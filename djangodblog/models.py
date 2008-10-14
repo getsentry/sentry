@@ -17,11 +17,6 @@ class ErrorBatch(models.Model):
     server_name     = models.CharField(max_length=128, db_index=True)
     checksum        = models.CharField(max_length=32, db_index=True)
 
-    class Admin:
-        list_display    = ('class_name', 'message', 'is_resolved', 'last_seen', 'times_seen', 'url', 'server_name')
-        list_filter     = ('class_name', 'times_seen', 'server_name', 'is_resolved')
-        ordering        = ('-last_seen',)
-        
     class Meta:
         unique_together = (('class_name', 'server_name', 'checksum'),)
 
@@ -32,8 +27,3 @@ class Error(models.Model):
     datetime        = models.DateTimeField(default=datetime.datetime.now)
     url             = models.URLField(verify_exists=False, null=True, blank=True)
     server_name     = models.CharField(max_length=128, db_index=True)
-    
-    class Admin:
-        list_display    = ('class_name', 'message', 'datetime', 'url', 'server_name')
-        list_filter     = ('class_name', 'datetime', 'server_name')
-        ordering        = ('-datetime',)
