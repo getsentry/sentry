@@ -1,10 +1,10 @@
 import traceback
 import socket
 import warnings
-import md5
 
 from django.conf import settings
 from django.http import Http404
+from django.utils.hashcompat import md5_constructor
 
 from djangodblog.models import Error, ErrorBatch
 
@@ -19,7 +19,7 @@ class DBLogMiddleware(object):
         server_name = socket.gethostname()
         tb_text     = traceback.format_exc()
         class_name  = exception.__class__.__name__
-        checksum    = md5.new(tb_text).hexdigest()
+        checksum    = md5_constructor.new(tb_text).hexdigest()
 
         defaults = dict(
             class_name  = class_name,
