@@ -19,7 +19,7 @@ class DBLogMiddleware(object):
         server_name = socket.gethostname()
         tb_text     = traceback.format_exc()
         class_name  = exception.__class__.__name__
-        checksum    = md5_constructor.new(tb_text).hexdigest()
+        checksum    = md5_constructor(tb_text).hexdigest()
 
         defaults = dict(
             class_name  = class_name,
