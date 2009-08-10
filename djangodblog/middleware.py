@@ -1,6 +1,7 @@
 import traceback
 import socket
 import warnings
+import datetime
 
 from django.conf import settings
 from django.http import Http404
@@ -40,6 +41,7 @@ class DBLogMiddleware(object):
             if not created:
                 batch.times_seen += 1
                 batch.resolved = False
+                batch.last_seen = datetime.datetime.now()
                 batch.save()
         except Exception, exc:
             warnings.warn(unicode(exc))
