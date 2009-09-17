@@ -41,3 +41,7 @@ You will find two new admin panels in the automatically built Django administrat
 
 It will store every single error inside of the `Errors` model, and it will store a collective, or summary, of errors inside of `Error batchs` (this is more useful for most cases).
 
+Notes
+=====
+
+* django-db-log will automatically integrate with django-idmapper
