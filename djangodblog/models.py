@@ -1,11 +1,15 @@
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
+try:
+    from idmapper.models import SharedMemoryModel as Model
+except ImportError:
+    Model = models.Model
 
 import datetime
 
 __all__ = ('Error', 'ErrorBatch')
 
-class ErrorBatch(models.Model):
+class ErrorBatch(Model):
     class_name      = models.CharField(_('Type'), max_length=128)
     message         = models.TextField()
     traceback       = models.TextField()
@@ -19,8 +23,9 @@ class ErrorBatch(models.Model):
 
     class Meta:
         unique_together = (('class_name', 'server_name', 'checksum'),)
+        verbose_name_plural = 'Error batches'
 
-class Error(models.Model):
+class Error(Model):
     class_name      = models.CharField(_('type'), max_length=128)
     message         = models.TextField()
     traceback       = models.TextField()

@@ -6,6 +6,7 @@ import datetime
 from django.conf import settings
 from django.http import Http404
 from django.utils.hashcompat import md5_constructor
+from django.utils.encoding import smart_unicode
 
 from djangodblog.models import Error, ErrorBatch
 
@@ -24,7 +25,7 @@ class DBLogMiddleware(object):
 
         defaults = dict(
             class_name  = class_name,
-            message     = getattr(exception, 'message', ''),
+            message     = smart_unicode(exception),
             url         = request.build_absolute_uri(),
             server_name = server_name,
             traceback   = tb_text,
@@ -44,4 +45,4 @@ class DBLogMiddleware(object):
                 batch.last_seen = datetime.datetime.now()
                 batch.save()
         except Exception, exc:
-            warnings.warn(unicode(exc))
+            warnings.warn(smart_unicode(exc))

@@ -1,4 +1,1 @@
-import djangodblog.admin
-
-from models import *
-from middleware import *
+__version__ = (1, 1, 0)
