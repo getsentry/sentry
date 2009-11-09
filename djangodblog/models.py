@@ -14,7 +14,7 @@ from manager import DBLogManager
 __all__ = ('Error', 'ErrorBatch')
 
 class ErrorBatch(Model):
-    class_name      = models.CharField(_('Type'), max_length=128)
+    class_name      = models.CharField(_('type'), max_length=128)
     message         = models.TextField()
     traceback       = models.TextField()
     is_resolved     = models.BooleanField(default=False)
