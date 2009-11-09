@@ -118,4 +118,5 @@ class DBLogManager(models.Manager):
                 batch.save()
         except Exception, exc:
             warnings.warn(smart_unicode(exc))
-        return instance
+        else:
+            return instance

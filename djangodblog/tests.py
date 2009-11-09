@@ -26,6 +26,9 @@ class RequestFactory(Client):
 RF = RequestFactory()
 
 class DBLogTestCase(TestCase):
+    def setUp(self):
+        settings.DBLOG_DATABASE = None
+    
     def testMiddleware(self):
         request = RF.get("/", REMOTE_ADDR="127.0.0.1:8000")
 
@@ -76,4 +79,4 @@ class DBLogTestCase(TestCase):
         cur = (Error.objects.count()-1, ErrorBatch.objects.count()-1)
         self.assertEquals(cur, ttl, 'Counts do not match. Assumed logs failed to save. %s != %s' % (cur, ttl))
 
-        settings.DBLOG_DATABASE = None        
+        settings.DBLOG_DATABASE = None
