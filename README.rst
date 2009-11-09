@@ -1,8 +1,10 @@
+-------------
 django-db-log
 -------------
 
 Logs Django exceptions to your database handler.
 
+=======
 Install
 =======
 
@@ -31,16 +33,19 @@ Once installed, update your settings.py and add the middleware and installed app
 
 Finally, run ``python manage.py syncdb`` to create the database tables.
 
+=============
 Configuration
 =============
 
 Several options exist to configure django-db-log via your ``settings.py``:
 
+######################
 DBLOG_CATCH_404_ERRORS
 ######################
 
 Enable catching of 404 errors in the logs. Default value is ``False``.
 
+##############
 DBLOG_DATABASE
 ##############
 
@@ -63,6 +68,7 @@ Some things to note:
 * You will need to create the tables by hand if you use this option. Use ``python manage.py sql djangodblog`` and dump that SQL into the correct server.
 * This functionality does not yet support Django 1.2.
 
+=====
 Usage
 =====
 
@@ -88,6 +94,7 @@ You can also record errors outside of middleware if you want::
 	except Exception, exc:
 		Error.objects.create_from_exception(exc, [url=None])
 
+=====
 Notes
 =====
 
