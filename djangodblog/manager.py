@@ -42,8 +42,17 @@ Note: You will need to create the tables by hand if you use this option.
 assert(not getattr(settings, 'DBLOG_DATABASE', None) or django.VERSION < (1, 2), 'The `DBLOG_DATABASE` setting requires Django < 1.2')
 
 class DBLogManager(models.Manager):
+    def _get_settings(self):
+        options = getattr(settings, 'DBLOG_DATABASE', None)
+        if options:
+            if 'DATABASE_PORT' not in options:
+                options['DATABASE_PORT'] = ''
+            if 'DATABASE_OPTIONS' not in options:
+                options['DATABASE_OPTIONS'] = {}
+        return options
+
     def get_query_set(self):
-        db_options = getattr(settings, 'DBLOG_DATABASE', None)
+        db_options = self._get_settings()
         if not db_options:
             return super(DBLogManager, self).get_query_set()
             
@@ -73,7 +82,7 @@ class DBLogManager(models.Manager):
         return connection
 
     def _insert(self, values, return_id=False, raw_values=False):
-        db_options = getattr(settings, 'DBLOG_DATABASE', None)
+        db_options = self._get_settings()
         if not db_options:
             return super(DBLogManager, self)._insert(values, return_id, raw_values)
 
