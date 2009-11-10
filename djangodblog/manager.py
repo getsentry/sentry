@@ -101,7 +101,7 @@ class DBLogManager(models.Manager):
         from models import Error, ErrorBatch
 
         server_name = socket.gethostname()
-        checksum    = md5_constructor(level)
+        checksum    = md5_constructor(str(level))
         checksum.update(type)
         checksum.update(message)
         checksum    = checksum.hexdigest()
@@ -137,7 +137,7 @@ class DBLogManager(models.Manager):
         server_name = socket.gethostname()
         tb_text     = traceback.format_exc()
         class_name  = exception.__class__.__name__
-        checksum    = md5_constructor(logging.FATAL)
+        checksum    = md5_constructor(str(logging.FATAL))
         checksum.update(class_name)
         checksum.update(tb_text)
         checksum    = checksum.hexdigest()
