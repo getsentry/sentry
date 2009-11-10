@@ -45,6 +45,7 @@ assert(not getattr(settings, 'DBLOG_DATABASE', None) or django.VERSION < (1, 2),
 
 _connection = None
 def close_connection(**kwargs):
+    global _connection
     if _connection is None:
         return
     _connection.close()
