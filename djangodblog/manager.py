@@ -2,6 +2,7 @@
 # TODO: is there a way to use the traceback module based on an exception variable?
 
 from django.conf import settings
+from django.core import signals
 from django.db import models
 from django.conf import settings
 from django.db.models import sql
@@ -42,7 +43,15 @@ Note: You will need to create the tables by hand if you use this option.
 
 assert(not getattr(settings, 'DBLOG_DATABASE', None) or django.VERSION < (1, 2), 'The `DBLOG_DATABASE` setting requires Django < 1.2')
 
+_connection = None
+def close_connection(**kwargs):
+    _connection.close()
+    _connection = None
+signals.request_finished.connect(close_connection)
+
 class DBLogManager(models.Manager):
+    # use_for_related_fields = True
+    
     def _get_settings(self):
         options = getattr(settings, 'DBLOG_DATABASE', None)
         if options:
@@ -56,8 +65,8 @@ class DBLogManager(models.Manager):
         db_options = self._get_settings()
         if not db_options:
             return super(DBLogManager, self).get_query_set()
-            
         connection = self.get_db_wrapper(db_options)
+        
         if connection.features.uses_custom_query_class:
             Query = connection.ops.query_class(BaseQuery)
         else:
@@ -65,22 +74,24 @@ class DBLogManager(models.Manager):
         return QuerySet(self.model, Query(self.model, connection))
 
     def get_db_wrapper(self, options):
-        backend = __import__('django.db.backends.' + options.get('DATABASE_ENGINE', settings.DATABASE_ENGINE)
-            + ".base", {}, {}, ['base'])
-        if django_is_10:
-            backup = {}
-            for key, value in options.iteritems():
-                backup[key] = getattr(settings, key)
-                setattr(settings, key, value)
-        connection = backend.DatabaseWrapper(options)
-        # if django_is_10:
-        #     connection._cursor(settings)
-        # else:
-        #     wrapper._cursor()
-        if django_is_10:
-            for key, value in backup.iteritems():
-                setattr(settings, key, value)
-        return connection
+        global _connection
+        if _connection is None:
+            backend = __import__('django.db.backends.' + options.get('DATABASE_ENGINE', settings.DATABASE_ENGINE)
+                + ".base", {}, {}, ['base'])
+            if django_is_10:
+                backup = {}
+                for key, value in options.iteritems():
+                    backup[key] = getattr(settings, key)
+                    setattr(settings, key, value)
+            _connection = backend.DatabaseWrapper(options)
+            # if django_is_10:
+            #     connection._cursor(settings)
+            # else:
+            #     connection._cursor()
+            if django_is_10:
+                for key, value in backup.iteritems():
+                    setattr(settings, key, value)
+        return _connection
 
     def _insert(self, values, return_id=False, raw_values=False):
         db_options = self._get_settings()
