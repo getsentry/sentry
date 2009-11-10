@@ -144,7 +144,7 @@ You can also record errors outside of middleware if you want::
 	except Exception, exc:
 		Error.objects.create_from_exception(exc, [url=None])
 
-If you wish to log normal messages (useful for non-``logging`` integration):
+If you wish to log normal messages (useful for non-``logging`` integration)::
 
 	from djangodblog.models import Error
 	import logging
