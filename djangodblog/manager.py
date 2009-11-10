@@ -98,7 +98,7 @@ class DBLogManager(models.Manager):
         if not db_options:
             return super(DBLogManager, self)._insert(values, return_id, raw_values)
 
-        query = sql.InsertQuery(self.model, self.get_db_wrapper())
+        query = sql.InsertQuery(self.model, self.get_db_wrapper(db_options))
         query.insert_values(values, raw_values)
         ret = query.execute_sql(return_id)
         # XXX: Why is the following needed?
