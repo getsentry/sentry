@@ -13,11 +13,28 @@ from manager import DBLogManager
 
 __all__ = ('Error', 'ErrorBatch')
 
+import logging
+
+LOG_LEVELS = (
+    ('Info', logging.INFO),
+    ('Warning', logging.WARNING),
+    ('Debug', logging.DEBUG),
+    ('Error', logging.ERROR),
+    ('Fatal', logging.FATAL),
+)
+
+STATUS_LEVELS = (
+    ('Unresolved', 0),
+    ('Resolved', 1),
+)
+
 class ErrorBatch(Model):
     class_name      = models.CharField(_('type'), max_length=128)
+    level           = models.PositiveIntegerField(choices=LOG_LEVELS, default=logging.ERROR, blank=True)
     message         = models.TextField()
-    traceback       = models.TextField()
-    is_resolved     = models.BooleanField(default=False)
+    traceback       = models.TextField(blank=True, null=True)
+    # XXX: We're using the legacy column for `is_resolved` for status
+    status          = models.PositiveIntegerField(default=0, db_column="is_resolved")
     times_seen      = models.PositiveIntegerField(default=1)
     last_seen       = models.DateTimeField(default=datetime.datetime.now)
     first_seen      = models.DateTimeField(default=datetime.datetime.now)
@@ -36,8 +53,9 @@ class ErrorBatch(Model):
 
 class Error(Model):
     class_name      = models.CharField(_('type'), max_length=128)
+    level           = models.PositiveIntegerField(choices=LOG_LEVELS, default=logging.FATAL, blank=True)
     message         = models.TextField()
-    traceback       = models.TextField()
+    traceback       = models.TextField(blank=True, null=True)
     datetime        = models.DateTimeField(default=datetime.datetime.now)
     url             = models.URLField(verify_exists=False, null=True, blank=True)
     server_name     = models.CharField(max_length=128, db_index=True)

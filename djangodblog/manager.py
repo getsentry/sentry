@@ -16,6 +16,7 @@ try:
 except ImportError:
     import dummy_thread as thread
 import traceback
+import logging
 import socket
 import warnings
 import datetime
@@ -96,13 +97,50 @@ class DBLogManager(models.Manager):
             del savepoint_state[thread_ident]
         return ret
 
+    def create_from_text(self, type, message, level=logging.FATAL, url=None):
+        from models import Error, ErrorBatch
+
+        server_name = socket.gethostname()
+        checksum    = md5_constructor(level)
+        checksum.update(type)
+        checksum.update(message)
+        checksum    = checksum.hexdigest()
+        
+        defaults = dict(
+            class_name  = type,
+            message     = smart_unicode(message),
+            url         = url,
+            server_name = server_name,
+        )
+
+        try:
+            instance = Error.objects.create(**defaults)
+            batch, created = ErrorBatch.objects.get_or_create(
+                class_name = class_name,
+                server_name = server_name,
+                checksum = checksum,
+                defaults = defaults
+            )
+            if not created:
+                batch.times_seen += 1
+                batch.status = 0
+                batch.last_seen = datetime.datetime.now()
+                batch.save()
+        except Exception, exc:
+            warnings.warn(smart_unicode(exc))
+        else:
+            return instance
+        
     def create_from_exception(self, exception, url=None):
         from models import Error, ErrorBatch
         
         server_name = socket.gethostname()
         tb_text     = traceback.format_exc()
         class_name  = exception.__class__.__name__
-        checksum    = md5_constructor(tb_text).hexdigest()
+        checksum    = md5_constructor(logging.FATAL)
+        checksum.update(class_name)
+        checksum.update(tb_text)
+        checksum    = checksum.hexdigest()
 
         defaults = dict(
             class_name  = class_name,
@@ -122,7 +160,7 @@ class DBLogManager(models.Manager):
             )
             if not created:
                 batch.times_seen += 1
-                batch.resolved = False
+                batch.status = 0
                 batch.last_seen = datetime.datetime.now()
                 batch.save()
         except Exception, exc:

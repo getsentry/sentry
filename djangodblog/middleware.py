@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.http import Http404
 
-from djangodblog.models import Error
+from models import Error
 
 __all__ = ('DBLogMiddleware',)
 

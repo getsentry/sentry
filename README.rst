@@ -4,6 +4,20 @@ django-db-log
 
 Logs Django exceptions to your database handler.
 
+=========
+Upgrading
+=========
+
+If you are upgrading from a version older than 1.3.0 you will need to update your database::
+
+	python manage.py sql djangodblog > dblog.sql
+	mysqldump -d --skip-opt -uroot -p yourdatabase djangodblog_error djangodblog_errorbatch > dblog.cur.sql
+	diff -u dblog.sql dblog.cur.sql
+
+Note: the above example is using MySQL, and isn't going to give anywhere near a precise diff.
+
+Review the diff, then make any changes which appear nescesary.
+
 =======
 Install
 =======
@@ -93,6 +107,21 @@ You can also record errors outside of middleware if you want::
 		...
 	except Exception, exc:
 		Error.objects.create_from_exception(exc, [url=None])
+
+If you wish to log normal messages:
+
+	from djangodblog.models import Error
+	import logging
+	
+	Error.objects.create_from_text('Error Type', 'Error Message'[, level=logging.WARNING, url=None])
+
+Both the ``url`` and ``level`` parameters are optional. ``level`` should be one of the following:
+
+* logging.DEBUG
+* logging.INFO
+* logging.WARNING
+* logging.ERROR
+* logging.FATAL
 
 =====
 Notes
