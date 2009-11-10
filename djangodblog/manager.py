@@ -127,8 +127,8 @@ class DBLogManager(models.Manager):
         try:
             instance = Error.objects.create(**defaults)
             batch, created = ErrorBatch.objects.get_or_create(
-                class_name = class_name,
-                server_name = server_name,
+                class_name = defaults['class_name'],
+                server_name = defaults['server_name'],
                 checksum = checksum,
                 defaults = defaults
             )
@@ -164,8 +164,8 @@ class DBLogManager(models.Manager):
         try:
             instance = Error.objects.create(**defaults)
             batch, created = ErrorBatch.objects.get_or_create(
-                class_name = class_name,
-                server_name = server_name,
+                class_name = defaults['class_name'],
+                server_name = defaults['server_name'],
                 checksum = checksum,
                 defaults = defaults
             )
