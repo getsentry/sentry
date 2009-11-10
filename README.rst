@@ -97,7 +97,8 @@ If you wish to access these within your own views and models, you may do so via 
 
 	from djangodblog.models import Error, ErrorBatch
 	
-	ErrorBatch.objects.all().order_by('-last_seen')
+	# Pull the last 10 unresolved errors.
+	ErrorBatch.objects.filter(status=0).order_by('-last_seen')[0:10]
 
 You can also record errors outside of middleware if you want::
 
@@ -108,7 +109,7 @@ You can also record errors outside of middleware if you want::
 	except Exception, exc:
 		Error.objects.create_from_exception(exc, [url=None])
 
-If you wish to log normal messages:
+If you wish to log normal messages (useful for ``logging`` integration):
 
 	from djangodblog.models import Error
 	import logging
