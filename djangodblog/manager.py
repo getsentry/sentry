@@ -50,7 +50,7 @@ def close_connection(**kwargs):
 signals.request_finished.connect(close_connection)
 
 class DBLogManager(models.Manager):
-    # use_for_related_fields = True
+    use_for_related_fields = True
     
     def _get_settings(self):
         options = getattr(settings, 'DBLOG_DATABASE', None)
@@ -96,7 +96,7 @@ class DBLogManager(models.Manager):
     def _insert(self, values, return_id=False, raw_values=False):
         db_options = self._get_settings()
         if not db_options:
-            return super(DBLogManager, self)._insert(values, return_id, raw_values)
+            return super(DBLogManager, self)._insert(values, return_id=return_id, raw_values=raw_values)
 
         query = sql.InsertQuery(self.model, self.get_db_wrapper(db_options))
         query.insert_values(values, raw_values)
