@@ -111,27 +111,25 @@ class DBLogManager(models.Manager):
             del savepoint_state[thread_ident]
         return ret
 
-    def create_from_text(self, type, message, level=logging.FATAL, url=None):
+    def _create(self, **defaults):
         from models import Error, ErrorBatch
-
-        server_name = socket.gethostname()
-        checksum    = md5_constructor(str(level))
-        checksum.update(type)
-        checksum.update(message)
-        checksum    = checksum.hexdigest()
         
-        defaults = dict(
-            class_name  = type,
-            message     = smart_unicode(message),
-            url         = url,
-            server_name = server_name,
-        )
+        server_name = socket.gethostname()
+        class_name  = defaults.pop('class_name', None)
+        checksum    = md5_constructor(str(defaults.get('level', logging.FATAL)))
+        checksum.update(class_name or '')
+        checksum.update(defaults.get('traceback') or defaults['message'])
+        checksum    = checksum.hexdigest()
 
         try:
-            instance = Error.objects.create(**defaults)
+            instance = Error.objects.create(
+                class_name=class_name,
+                server_name=server_name,
+                **defaults
+            )
             batch, created = ErrorBatch.objects.get_or_create(
-                class_name = defaults['class_name'],
-                server_name = defaults['server_name'],
+                class_name = class_name,
+                server_name = server_name,
                 checksum = checksum,
                 defaults = defaults
             )
@@ -144,40 +142,35 @@ class DBLogManager(models.Manager):
             warnings.warn(smart_unicode(exc))
         else:
             return instance
-        
-    def create_from_exception(self, exception, url=None):
-        from models import Error, ErrorBatch
-        
-        server_name = socket.gethostname()
-        tb_text     = traceback.format_exc()
-        class_name  = exception.__class__.__name__
-        checksum    = md5_constructor(str(logging.FATAL))
-        checksum.update(class_name)
-        checksum.update(tb_text)
-        checksum    = checksum.hexdigest()
-
-        defaults = dict(
-            class_name  = class_name,
-            message     = smart_unicode(exception),
-            url         = url,
-            server_name = server_name,
-            traceback   = tb_text,
+    
+    def create_from_record(self, record, **kwargs):
+        """
+        Creates an error log for a `logging` module `record` instance.
+        """
+        return self._create(
+            logger=record.name,
+            level=record.levelno,
+            traceback=record.exc_text,
+            message=record.getMessage(),
+            **kwargs
         )
 
-        try:
-            instance = Error.objects.create(**defaults)
-            batch, created = ErrorBatch.objects.get_or_create(
-                class_name = defaults['class_name'],
-                server_name = defaults['server_name'],
-                checksum = checksum,
-                defaults = defaults
-            )
-            if not created:
-                batch.times_seen += 1
-                batch.status = 0
-                batch.last_seen = datetime.datetime.now()
-                batch.save()
-        except Exception, exc:
-            warnings.warn(smart_unicode(exc))
-        else:
-            return instance
+    def create_from_text(self, message, **kwargs):
+        """
+        Creates an error log for from `type` and `message`.
+        """
+        return self._create(
+            message=message,
+            **kwargs
+        )
+    
+    def create_from_exception(self, exception, **kwargs):
+        """
+        Creates an error log from an `exception` instance.
+        """
+        return self._create(
+            class_name=exception.__class__.__name__,
+            traceback=traceback.format_exc(),
+            message=smart_unicode(exception),
+            **kwargs
+        )

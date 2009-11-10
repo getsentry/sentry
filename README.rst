@@ -8,7 +8,7 @@ Logs Django exceptions to your database handler.
 Upgrading
 =========
 
-If you are upgrading from a version older than 1.3.0 you will need to update your database::
+The first thing you will want to do is confirm your database matches. Do this by verifying your version, or simply taking a look at the changes::
 
 	python manage.py sql djangodblog > dblog.sql
 	mysqldump -d --skip-opt -uroot -p yourdatabase djangodblog_error djangodblog_errorbatch > dblog.cur.sql
@@ -17,6 +17,13 @@ If you are upgrading from a version older than 1.3.0 you will need to update you
 Note: the above example is using MySQL, and isn't going to give anywhere near a precise diff.
 
 Review the diff, then make any changes which appear nescesary.
+
+###############
+Notable Changes
+###############
+
+* 1.4.0 Added `logger` column to both Error and ErrorBatch. `traceback` and `class_name` are now nullable.
+* 1.3.0 Added `level` column to both Error and ErrorBatch.
 
 =======
 Install
@@ -57,7 +64,9 @@ Several options exist to configure django-db-log via your ``settings.py``:
 DBLOG_CATCH_404_ERRORS
 ######################
 
-Enable catching of 404 errors in the logs. Default value is ``False``.
+Enable catching of 404 errors in the logs. Default value is ``False``::
+
+	DBLOG_CATCH_404_ERRORS = True
 
 ##############
 DBLOG_DATABASE
@@ -81,6 +90,32 @@ Some things to note:
 
 * You will need to create the tables by hand if you use this option. Use ``python manage.py sql djangodblog`` and dump that SQL into the correct server.
 * This functionality does not yet support Django 1.2.
+
+##################
+DBLOG_WITH_LOGGING
+##################
+
+django-db-log supports the ability to directly tie into your ``logging`` module entries. To use it simply define ``DBLOG_WITH_LOGGING=True`` in your ``settings.py``.
+
+Note: The `class_name` (also labeled `type`) will use the record's logger name value.
+
+You will also most likely want to configure the logging module, as you would in any logging situation, using something similar to::
+
+	DBLOG_WITH_LOGGING = True
+	
+	import logging
+	
+	logging.basicConfig(
+	    level=DEBUG and logging.DEBUG or logging.INFO,
+	    format='%(asctime)s %(levelname)-8s %(message)s',
+	    datefmt='%a, %d %b %Y %H:%M:%S',
+	)
+
+If you only want to use django-db-log's logging mechanism, you can remove the default handlers using something similar to::
+
+	logger = logging.getLogger()
+	for h in logger.handlers:
+	    logger.removeHandler(h)
 
 =====
 Usage
@@ -109,20 +144,20 @@ You can also record errors outside of middleware if you want::
 	except Exception, exc:
 		Error.objects.create_from_exception(exc, [url=None])
 
-If you wish to log normal messages (useful for ``logging`` integration):
+If you wish to log normal messages (useful for non-``logging`` integration):
 
 	from djangodblog.models import Error
 	import logging
 	
-	Error.objects.create_from_text('Error Type', 'Error Message'[, level=logging.WARNING, url=None])
+	Error.objects.create_from_text('Error Message'[, level=logging.WARNING, url=None])
 
 Both the ``url`` and ``level`` parameters are optional. ``level`` should be one of the following:
 
-* logging.DEBUG
-* logging.INFO
-* logging.WARNING
-* logging.ERROR
-* logging.FATAL
+* ``logging.DEBUG``
+* ``logging.INFO``
+* ``logging.WARNING``
+* ``logging.ERROR``
+* ``logging.FATAL``
 
 =====
 Notes

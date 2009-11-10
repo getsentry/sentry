@@ -29,8 +29,9 @@ STATUS_LEVELS = (
 )
 
 class ErrorBatch(Model):
-    class_name      = models.CharField(_('type'), max_length=128)
-    level           = models.PositiveIntegerField(choices=LOG_LEVELS, default=logging.ERROR, blank=True)
+    logger          = models.CharField(max_length=64, blank=True, default='root', db_index=True)
+    class_name      = models.CharField(_('type'), max_length=128, blank=True, null=True)
+    level           = models.PositiveIntegerField(choices=LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
     message         = models.TextField()
     traceback       = models.TextField(blank=True, null=True)
     # XXX: We're using the legacy column for `is_resolved` for status
@@ -45,15 +46,16 @@ class ErrorBatch(Model):
     objects         = DBLogManager()
 
     class Meta:
-        unique_together = (('class_name', 'server_name', 'checksum'),)
+        unique_together = (('logger', 'class_name', 'server_name', 'checksum'),)
         verbose_name_plural = 'Error batches'
     
     def __unicode__(self):
         return "(%s) %s: %s" % (self.times_seen, self.class_name, self.message)
 
 class Error(Model):
-    class_name      = models.CharField(_('type'), max_length=128)
-    level           = models.PositiveIntegerField(choices=LOG_LEVELS, default=logging.FATAL, blank=True)
+    logger          = models.CharField(max_length=64, blank=True, default='root', db_index=True)
+    class_name      = models.CharField(_('type'), max_length=128, blank=True, null=True)
+    level           = models.PositiveIntegerField(choices=LOG_LEVELS, default=logging.FATAL, blank=True, db_index=True)
     message         = models.TextField()
     traceback       = models.TextField(blank=True, null=True)
     datetime        = models.DateTimeField(default=datetime.datetime.now)
