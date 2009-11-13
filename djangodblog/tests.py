@@ -2,11 +2,12 @@ from django.test.client import Client
 from django.test import TestCase
 from django.core.handlers.wsgi import WSGIRequest
 from django.conf import settings
+from django.db import models
 from django.utils.encoding import smart_unicode
 
 from models import Error, ErrorBatch
 from middleware import DBLogMiddleware
-
+from utils import JSONDictField
 import logging
 
 class RequestFactory(Client):
@@ -28,6 +29,21 @@ class RequestFactory(Client):
  
 RF = RequestFactory()
 
+class JSONDictModel(models.Model):
+    data = JSONDictField(blank=True, null=True)
+
+class JSONDictTestCase(TestCase):
+    def testField(self):
+        # Let's make sure the default value is correct
+        instance = JSONDictModel()
+        self.assertEquals(instance.data, {})
+        
+        instance = JSONDictModel.objects.create(data={'foo': 'bar'})
+        self.assertEquals(instance.data.get('foo'), 'bar')
+        
+        instance = JSONDictModel.objects.get()
+        self.assertEquals(instance.data.get('foo'), 'bar')
+
 class DBLogTestCase(TestCase):
     def setUp(self):
         settings.DBLOG_DATABASE = None
@@ -35,13 +51,18 @@ class DBLogTestCase(TestCase):
 
     def testLogger(self):
         from handlers import DBLogHandler
-        
+
         Error.objects.all().delete()
         ErrorBatch.objects.all().delete()
 
-        logging.getLogger().addHandler(DBLogHandler())
+        logger = logging.getLogger()
+        for h in logger.handlers:
+            logger.removeHandler(h)
 
-        logging.error('This is a test error')
+        logger.setLevel(logging.DEBUG)
+        logger.addHandler(DBLogHandler())
+
+        logger.error('This is a test error')
         cur = (Error.objects.count(), ErrorBatch.objects.count())
         self.assertEquals(cur, (1, 1), 'Assumed logs failed to save. %s' % (cur,))
         last = Error.objects.all().order_by('-id')[0:1].get()
@@ -49,7 +70,7 @@ class DBLogTestCase(TestCase):
         self.assertEquals(last.level, logging.ERROR)
         self.assertEquals(last.message, 'This is a test error')
 
-        logging.warning('This is a test warning')
+        logger.warning('This is a test warning')
         cur = (Error.objects.count(), ErrorBatch.objects.count())
         self.assertEquals(cur, (2, 2), 'Assumed logs failed to save. %s' % (cur,))
         last = Error.objects.all().order_by('-id')[0:1].get()
@@ -57,7 +78,7 @@ class DBLogTestCase(TestCase):
         self.assertEquals(last.level, logging.WARNING)
         self.assertEquals(last.message, 'This is a test warning')
         
-        logging.error('This is a test error')
+        logger.error('This is a test error')
         cur = (Error.objects.count(), ErrorBatch.objects.count())
         self.assertEquals(cur, (3, 2), 'Assumed logs failed to save. %s' % (cur,))
         last = Error.objects.all().order_by('-id')[0:1].get()
@@ -132,6 +153,7 @@ class DBLogTestCase(TestCase):
             DATABASE_USER=settings.DATABASE_USER,
             DATABASE_PASSWORD=settings.DATABASE_PASSWORD,
             DATABASE_OPTIONS=settings.DATABASE_OPTIONS,
+            TIME_ZONE=settings.TIME_ZONE,
         )
         
         Error.objects.all().delete()

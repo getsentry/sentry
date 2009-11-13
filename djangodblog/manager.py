@@ -121,10 +121,13 @@ class DBLogManager(models.Manager):
         checksum.update(defaults.get('traceback') or defaults['message'])
         checksum    = checksum.hexdigest()
 
+        data = defaults.pop('data', {})
+
         try:
             instance = Error.objects.create(
                 class_name=class_name,
                 server_name=server_name,
+                data=data,
                 **defaults
             )
             batch, created = ErrorBatch.objects.get_or_create(

@@ -10,6 +10,7 @@ except ImportError:
 import datetime
 
 from manager import DBLogManager
+from utils import JSONDictField
 
 __all__ = ('Error', 'ErrorBatch')
 
@@ -60,6 +61,7 @@ class Error(Model):
     traceback       = models.TextField(blank=True, null=True)
     datetime        = models.DateTimeField(default=datetime.datetime.now)
     url             = models.URLField(verify_exists=False, null=True, blank=True)
+    data            = JSONDictField(blank=True, null=True)
     server_name     = models.CharField(max_length=128, db_index=True)
 
     objects         = DBLogManager()
