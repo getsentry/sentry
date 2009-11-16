@@ -131,7 +131,6 @@ class DBLogManager(models.Manager):
                 **defaults
             )
             batch, created = ErrorBatch.objects.get_or_create(
-                class_name = class_name,
                 server_name = server_name,
                 checksum = checksum,
                 defaults = defaults
