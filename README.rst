@@ -72,24 +72,14 @@ Enable catching of 404 errors in the logs. Default value is ``False``::
 DBLOG_DATABASE
 ##############
 
-Warning: This feature is currently in the testing phase.
-
 Use a secondary database to store error logs. This is useful if you have several websites and want to aggregate error logs onto one database server::
 
-	DBLOG_DATABASE = dict(
-	    DATABASE_ENGINE='mysql', # defaults to settings.DATABASE_ENGINE
-	    DATABASE_NAME='my_db_name',
-	    DATABASE_USER='db_user',
-	    DATABASE_PASSWORD='db_pass',
-	    DATABASE_HOST='localhost', # defaults to localhost
-	    DATABASE_PORT='', # defaults to [default port]
-	    DATABASE_OPTIONS={}
-	)
+	# This should correspond to a key in your DATABASES setting
+	DBLOG_DATABASE_USING = 'default'
 
 Some things to note:
 
-* You will need to create the tables by hand if you use this option. Use ``python manage.py sql djangodblog`` and dump that SQL into the correct server.
-* This functionality does not yet support Django 1.2.
+* This functionality REQUIRES Django 1.2.
 
 ##################
 DBLOG_WITH_LOGGING
