@@ -6,7 +6,7 @@ class ErrorBatchAdmin(admin.ModelAdmin):
     list_display    = ('server_name', 'logger', 'class_name', 'status', 'message', 'last_seen', 'times_seen', 'url')
     list_display_links = ('message',)
     list_filter     = ('logger', 'class_name', 'server_name', 'status')
-    ordering        = ('-last_seen')
+    ordering        = ['-last_seen']
     actions         = ['resolve_errorbatch']
 
     def resolve_errorbatch(self, request, queryset):
