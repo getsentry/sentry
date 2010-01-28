@@ -36,7 +36,7 @@ class ErrorBatch(Model):
     message         = models.TextField()
     traceback       = models.TextField(blank=True, null=True)
     # XXX: We're using the legacy column for `is_resolved` for status
-    status          = models.PositiveIntegerField(default=0, db_column="is_resolved")
+    status          = models.PositiveIntegerField(default=0, db_column="is_resolved", choices=STATUS_LEVELS)
     times_seen      = models.PositiveIntegerField(default=1)
     last_seen       = models.DateTimeField(default=datetime.datetime.now)
     first_seen      = models.DateTimeField(default=datetime.datetime.now)
