@@ -3,9 +3,9 @@ from django.contrib import admin
 from models import ErrorBatch, Error
 
 class ErrorBatchAdmin(admin.ModelAdmin):
-    list_display    = ('server_name', 'logger', 'class_name', 'status', 'message', 'last_seen', 'times_seen', 'url')
+    list_display    = ('server_name', 'logger', 'status', 'message', 'last_seen', 'times_seen', 'url')
     list_display_links = ('message',)
-    list_filter     = ('logger', 'class_name', 'server_name', 'status')
+    list_filter     = ('logger', 'server_name', 'status', 'last_seen', 'class_name')
     ordering        = ['-last_seen']
     actions         = ['resolve_errorbatch']
 
