@@ -46,6 +46,10 @@ class ErrorBatch(Model):
 
     objects         = DBLogManager()
 
+    def error(self):
+        return "%s: %s" % (self.class_name, self.message)
+    combined_message.short_description = 'Error'
+
     class Meta:
         unique_together = (('logger', 'server_name', 'checksum'),)
         verbose_name_plural = 'Error batches'
