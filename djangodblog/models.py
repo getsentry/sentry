@@ -60,7 +60,7 @@ class ErrorBatch(Model):
 class Error(Model):
     logger          = models.CharField(max_length=64, blank=True, default='root', db_index=True)
     class_name      = models.CharField(_('type'), max_length=128, blank=True, null=True)
-    level           = models.PositiveIntegerField(choices=LOG_LEVELS, default=logging.FATAL, blank=True, db_index=True)
+    level           = models.PositiveIntegerField(choices=LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
     message         = models.TextField()
     traceback       = models.TextField(blank=True, null=True)
     datetime        = models.DateTimeField(default=datetime.datetime.now)
