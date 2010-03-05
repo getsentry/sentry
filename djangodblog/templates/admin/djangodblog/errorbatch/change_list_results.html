@@ -1,0 +1,18 @@
+{% if results %}
+	<table cellspacing="0">
+	<thead>
+	<tr>
+	{% for header in result_headers %}<th{{ header.class_attrib }}>
+	{% if header.sortable %}<a href="{{ header.url }}">{% endif %}
+	{{ header.text|capfirst }}
+	{% if header.sortable %}</a>{% endif %}</th>{% endfor %}
+	</tr>
+	</thead>
+	<tbody>
+	{% for result in results %}
+		<tr class="{% cycle 'row1' 'row2' %} start-cell cell-status-{{ result.instance.status }}">{% for item in result.cells %}{{ item }}{% endfor %}</tr>
+		<tr class="{% cycle 'row1' 'row2' %} end-cell cell-status-{{ result.instance.status }}"><td>&nbsp;</td><td style="color:#666;" colspan="{{ result.num_real_cells }}">{{ result.instance.error }}</tr>
+	{% endfor %}
+	</tbody>
+	</table>
+{% endif %}

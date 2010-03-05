@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
+from django.template.defaultfilters import urlizetrunc
 
 try:
     from idmapper.models import SharedMemoryModel as Model
@@ -46,16 +47,29 @@ class ErrorBatch(Model):
 
     objects         = DBLogManager()
 
-    def error(self):
-        return "%s: %s" % (self.class_name, self.message)
-    error.short_description = 'Error'
-
     class Meta:
         unique_together = (('logger', 'server_name', 'checksum'),)
-        verbose_name_plural = 'Error batches'
+        verbose_name_plural = 'Error summaries'
+        verbose_name = 'Error summary'
     
     def __unicode__(self):
-        return "(%s) %s: %s" % (self.times_seen, self.class_name, self.message)
+        return "(%s) %s: %s" % (self.times_seen, self.class_name, self.error())
+    
+    def shortened_url(self):
+        return urlizetrunc(self.url, 60)
+    shortened_url.allow_tags = True
+    shortened_url.short_description = "URL"
+    shortened_url.admin_order_field = 'url'
+
+    def error(self):
+        if len(self.message) > 100:
+            message = self.message[:97] + '...'
+        else:
+            message = self.message
+        return "%s: %s" % (self.class_name, message)
+    error.short_description = 'Error'
+
+
 
 class Error(Model):
     logger          = models.CharField(max_length=64, blank=True, default='root', db_index=True)

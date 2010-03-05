@@ -1,0 +1,23 @@
+{% extends "admin/change_list.html" %}
+
+{% load admin_list dblog_admin %}
+
+{% block extrastyle %}
+	{{ block.super }}
+	<style type="text/css">
+		#changelist .start-cell td, #changelist .start-cell th { border-bottom: 0 !important; }
+		#changelist td, #changelist th { padding-bottom: 3px; border-left: 0 !important; border: 0 !important; }
+		#changelist .end-cell td { border-top: 0; padding-top: 2px; }
+		#changelist .cell-status-0 { background: #FED; border-color: #E99; }
+		#changelist .cell-status-0.row2 { background: #FDC; border-color: #E88; }
+		#changelist td { border-color: inherit !important; }
+		#changelist .cell-status-1 { background: #dffee0; border-color: #99e999; }
+		#changelist .cell-status-1.row2 { background: #d1fdcf; border-color: #88e888; }
+	</style>
+{% endblock %}
+
+{% block result_list %}
+    {% if action_form and actions_on_top and cl.full_result_count %}{% admin_actions %}{% endif %}
+	{% result_list cl %}
+    {% if action_form and actions_on_bottom and cl.full_result_count %}{% admin_actions %}{% endif %}
+{% endblock %}

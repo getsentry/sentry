@@ -3,22 +3,22 @@ from django.contrib import admin
 from models import ErrorBatch, Error
 
 class ErrorBatchAdmin(admin.ModelAdmin):
-    list_display    = ('server_name', 'logger', 'status', 'error', 'last_seen', 'times_seen', 'url')
-    list_display_links = ('error',)
+    list_display    = ('shortened_url', 'logger', 'server_name', 'times_seen', 'last_seen')
+    #list_display_links = ('error',)
     list_filter     = ('logger', 'server_name', 'status', 'last_seen', 'class_name')
-    ordering        = ['-last_seen']
-    actions         = ['resolve_errorbatch']
+    ordering        = ('-last_seen',)
+    actions         = ('resolve_errorbatch',)
 
     def resolve_errorbatch(self, request, queryset):
         rows_updated = queryset.update(status=1)
         
         if rows_updated == 1:
-            message_bit = "1 error batch was"
+            message_bit = "1 error summary was"
         else:
-            message_bit = "%s error batches were" % rows_updated
+            message_bit = "%s error summaries were" % rows_updated
         self.message_user(request, "%s resolved." % message_bit)
         
-    resolve_errorbatch.short_description = 'Resolve selected error batches'
+    resolve_errorbatch.short_description = 'Resolve selected error summaries'
 
 class ErrorAdmin(admin.ModelAdmin):
     list_display    = ('logger', 'class_name', 'message', 'datetime', 'url', 'server_name')
