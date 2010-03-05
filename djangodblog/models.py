@@ -17,16 +17,16 @@ __all__ = ('Error', 'ErrorBatch')
 import logging
 
 LOG_LEVELS = (
-    ('Info', logging.INFO),
-    ('Warning', logging.WARNING),
-    ('Debug', logging.DEBUG),
-    ('Error', logging.ERROR),
-    ('Fatal', logging.FATAL),
+    (logging.INFO, 'Info'),
+    (logging.WARNING, 'Warning'),
+    (logging.DEBUG, 'Debug'),
+    (logging.ERROR, 'Error'),
+    (logging.FATAL, 'Fatal'),
 )
 
 STATUS_LEVELS = (
-    ('Unresolved', 0),
-    ('Resolved', 1),
+    (0, 'Unresolved'),
+    (1, 'Resolved'),
 )
 
 class ErrorBatch(Model):
