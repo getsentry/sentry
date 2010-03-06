@@ -4,7 +4,7 @@ from models import ErrorBatch, Error
 
 class ErrorBatchAdmin(admin.ModelAdmin):
     list_display    = ('shortened_url', 'logger', 'server_name', 'times_seen', 'last_seen')
-    #list_display_links = ('error',)
+    list_display_links = ('shortened_url',)
     list_filter     = ('logger', 'server_name', 'status', 'last_seen', 'class_name')
     ordering        = ('-last_seen',)
     actions         = ('resolve_errorbatch',)

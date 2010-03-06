@@ -56,20 +56,19 @@ class ErrorBatch(Model):
         return "(%s) %s: %s" % (self.times_seen, self.class_name, self.error())
     
     def shortened_url(self):
-        return urlizetrunc(self.url, 60)
-    shortened_url.allow_tags = True
+        url = self.url
+        if len(url) > 60:
+            url = url[:60] + '...'
+        return url
     shortened_url.short_description = "URL"
     shortened_url.admin_order_field = 'url'
 
     def error(self):
-        if len(self.message) > 100:
-            message = self.message[:97] + '...'
-        else:
-            message = self.message
+        message = self.message
+        if len(message) > 100:
+            message = message[:97] + '...'
         return "%s: %s" % (self.class_name, message)
     error.short_description = 'Error'
-
-
 
 class Error(Model):
     logger          = models.CharField(max_length=64, blank=True, default='root', db_index=True)
