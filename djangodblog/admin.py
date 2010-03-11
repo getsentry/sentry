@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from models import ErrorBatch, Error
+from djangodblog.models import ErrorBatch, Error
 
 class ErrorBatchAdmin(admin.ModelAdmin):
     list_display    = ('shortened_url', 'logger', 'server_name', 'times_seen', 'last_seen')

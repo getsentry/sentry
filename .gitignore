@@ -2,3 +2,6 @@
 /dist
 /django_db_log.egg-info
 *.pyc
+/django-db-log-*
+*.log
+pip-log.txt

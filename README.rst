@@ -8,7 +8,12 @@ Logs Django exceptions to your database handler.
 Upgrading
 =========
 
-The first thing you will want to do is confirm your database matches. Do this by verifying your version, or simply taking a look at the changes::
+If you use South migrations, simply run::
+
+	python manage.py migrate djangodblog
+
+
+Otherwise, the first thing you will want to do is confirm your database matches. Do this by verifying your version, or simply taking a look at the changes::
 
 	python manage.py sql djangodblog > dblog.sql
 	mysqldump -d --skip-opt -uroot -p yourdatabase djangodblog_error djangodblog_errorbatch > dblog.cur.sql
@@ -16,7 +21,7 @@ The first thing you will want to do is confirm your database matches. Do this by
 
 Note: the above example is using MySQL, and isn't going to give anywhere near a precise diff.
 
-Review the diff, then make any changes which appear nescesary.
+Review the diff, then make any changes which appear necessary.
 
 ###############
 Notable Changes
@@ -30,6 +35,10 @@ Install
 =======
 
 The easiest way to install the package is via setuptools::
+
+	pip install django-db-log
+
+OR, if you're not quite on the same page (work on that), with setuptools::
 
 	easy_install django-db-log
 
@@ -114,7 +123,7 @@ Usage
 You will find two new admin panels in the automatically built Django administration:
 
 * Errors (Error)
-* Error batches (ErrorBatch)
+* Error summaries (ErrorBatch)
 
 It will store every single error inside of the `Errors` model, and it will store a collective, or summary, of errors inside of `Error batches` (this is more useful for most cases). If you are using this on multiple sites with the same database, the `Errors` table also contains the SITE_ID for which it the error appeared on.
 
@@ -154,4 +163,4 @@ Notes
 =====
 
 * django-db-log will automatically integrate with django-idmapper.
-* Multi-db support (via ``DBLOG_DATABASE``) will most likely not work in Django 1.2
+* django-db-log supports South migrations.

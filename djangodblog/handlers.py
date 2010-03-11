@@ -1,4 +1,4 @@
-from models import Error
+from djangodblog.models import Error
 
 from django.conf import settings
 

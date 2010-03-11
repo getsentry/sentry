@@ -10,8 +10,8 @@ except ImportError:
 
 import datetime
 
-from manager import DBLogManager
-from utils import JSONDictField
+from djangodblog.manager import DBLogManager
+from djangodblog.utils import JSONDictField
 
 __all__ = ('Error', 'ErrorBatch')
 
@@ -70,6 +70,9 @@ class ErrorBatch(Model):
         return "%s: %s" % (self.class_name, message)
     error.short_description = 'Error'
 
+    def get_absolute_url(self):
+        return self.url
+
 class Error(Model):
     logger          = models.CharField(max_length=64, blank=True, default='root', db_index=True)
     class_name      = models.CharField(_('type'), max_length=128, blank=True, null=True)
@@ -85,3 +88,6 @@ class Error(Model):
 
     def __unicode__(self):
         return "%s: %s" % (self.class_name, self.message)
+
+    def get_absolute_url(self):
+        return self.url

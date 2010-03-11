@@ -5,9 +5,9 @@ from django.conf import settings
 from django.db import models
 from django.utils.encoding import smart_unicode
 
-from models import Error, ErrorBatch
-from middleware import DBLogMiddleware
-from utils import JSONDictField
+from djangodblog.models import Error, ErrorBatch
+from djangodblog.middleware import DBLogMiddleware
+from djangodblog.utils import JSONDictField
 import logging
 
 class RequestFactory(Client):
@@ -55,11 +55,13 @@ class DBLogTestCase(TestCase):
         Error.objects.all().delete()
         ErrorBatch.objects.all().delete()
 
+
         logger = logging.getLogger()
+        logger.setLevel(logging.DEBUG)
         for h in logger.handlers:
+            # TODO: fix this, for now, I don't care.
             logger.removeHandler(h)
 
-        logger.setLevel(logging.DEBUG)
         logger.addHandler(DBLogHandler())
 
         logger.error('This is a test error')
@@ -113,7 +115,7 @@ class DBLogTestCase(TestCase):
         last = Error.objects.all().order_by('-id')[0:1].get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.class_name, 'DoesNotExist')
-        self.assertEquals(last.level, logging.FATAL)
+        self.assertEquals(last.level, logging.ERROR)
         self.assertEquals(last.message, smart_unicode(exc))
         
     def testAPI(self):
@@ -132,7 +134,7 @@ class DBLogTestCase(TestCase):
         last = Error.objects.all().order_by('-id')[0:1].get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.class_name, 'DoesNotExist')
-        self.assertEquals(last.level, logging.FATAL)
+        self.assertEquals(last.level, logging.ERROR)
         self.assertEquals(last.message, smart_unicode(exc))
         
         Error.objects.create_from_text('This is an error', level=logging.DEBUG)
@@ -146,15 +148,7 @@ class DBLogTestCase(TestCase):
         
         
     def testAlternateDatabase(self):
-        settings.DBLOG_DATABASE = dict(
-            DATABASE_HOST=settings.DATABASE_HOST,
-            DATABASE_PORT=settings.DATABASE_PORT,
-            DATABASE_NAME=settings.DATABASE_NAME,
-            DATABASE_USER=settings.DATABASE_USER,
-            DATABASE_PASSWORD=settings.DATABASE_PASSWORD,
-            DATABASE_OPTIONS=settings.DATABASE_OPTIONS,
-            TIME_ZONE=settings.TIME_ZONE,
-        )
+        settings.DBLOG_USING = 'default'
         
         Error.objects.all().delete()
         ErrorBatch.objects.all().delete()
@@ -171,7 +165,7 @@ class DBLogTestCase(TestCase):
         last = Error.objects.all().order_by('-id')[0:1].get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.class_name, 'DoesNotExist')
-        self.assertEquals(last.level, logging.FATAL)
+        self.assertEquals(last.level, logging.ERROR)
         self.assertEquals(last.message, smart_unicode(exc))
 
         settings.DBLOG_DATABASE = None

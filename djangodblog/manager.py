@@ -22,15 +22,6 @@ assert not DBLOG_DATABASE_USING or django.VERSION >= (1, 2), 'The `DBLOG_DATABAS
 
 class DBLogManager(models.Manager):
     use_for_related_fields = True
-    
-    def _get_settings(self):
-        options = getattr(settings, 'DBLOG_DATABASE', None)
-        if options:
-            if 'DATABASE_PORT' not in options:
-                options['DATABASE_PORT'] = ''
-            if 'DATABASE_OPTIONS' not in options:
-                options['DATABASE_OPTIONS'] = {}
-        return options
 
     def get_query_set(self):
         qs = super(DBLogManager, self).get_query_set()
