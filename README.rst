@@ -90,31 +90,18 @@ Some things to note:
 
 * This functionality REQUIRES Django 1.2.
 
-##################
-DBLOG_WITH_LOGGING
-##################
+############################
+Integration with ``logging``
+############################
 
-django-db-log supports the ability to directly tie into your ``logging`` module entries. To use it simply define ``DBLOG_WITH_LOGGING=True`` in your ``settings.py``.
+django-db-log supports the ability to directly tie into your ``logging`` module entries. To use it simply define add ``DBLogHandler`` to your logger:
 
-Note: The `class_name` (also labeled `type`) will use the record's logger name value.
-
-You will also most likely want to configure the logging module, as you would in any logging situation, using something similar to::
-
-	DBLOG_WITH_LOGGING = True
-	
 	import logging
+	from djangodblog.handlers import DBLogHandler
 	
-	logging.basicConfig(
-	    level=DEBUG and logging.DEBUG or logging.INFO,
-	    format='%(asctime)s %(levelname)-8s %(message)s',
-	    datefmt='%a, %d %b %Y %H:%M:%S',
-	)
+	logging.getLogger().addHandler(DBLogHandler())
 
-If you only want to use django-db-log's logging mechanism, you can remove the default handlers using something similar to::
-
-	logger = logging.getLogger()
-	for h in logger.handlers:
-	    logger.removeHandler(h)
+Note: The ``class_name`` (also labeled `type`) will use the record's logger name value.
 
 =====
 Usage
