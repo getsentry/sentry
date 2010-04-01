@@ -1,7 +1,5 @@
 from djangodblog.models import Error
 
-from django.conf import settings
-
 import logging
 
 class DBLogHandler(logging.Handler):
