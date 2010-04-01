@@ -55,14 +55,15 @@ class DBLogTestCase(TestCase):
         Error.objects.all().delete()
         ErrorBatch.objects.all().delete()
 
+        dblog_handler = DBLogHandler()
 
         logger = logging.getLogger()
-        logger.setLevel(logging.DEBUG)
         for h in logger.handlers:
             # TODO: fix this, for now, I don't care.
             logger.removeHandler(h)
 
-        logger.addHandler(DBLogHandler())
+        logger.setLevel(logging.DEBUG)
+        logger.addHandler(dblog_handler)
 
         logger.error('This is a test error')
         cur = (Error.objects.count(), ErrorBatch.objects.count())
@@ -96,6 +97,9 @@ class DBLogTestCase(TestCase):
         self.assertEquals(last.logger, 'test')
         self.assertEquals(last.level, logging.INFO)
         self.assertEquals(last.message, 'This is a test info')
+        
+        logger = logging.getLogger()
+        logger.removeHandler(dblog_handler)
     
     def testMiddleware(self):
         Error.objects.all().delete()
