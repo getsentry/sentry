@@ -1,7 +1,5 @@
 from django.db import models
-from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
-from django.template.defaultfilters import urlizetrunc
 
 try:
     from idmapper.models import SharedMemoryModel as Model
