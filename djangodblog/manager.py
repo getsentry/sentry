@@ -55,10 +55,19 @@ class DBLogManager(models.Manager):
                 defaults = defaults
             )
             if not created:
-                batch.times_seen += 1
-                batch.status = 0
-                batch.last_seen = datetime.datetime.now()
-                batch.save()
+                # This creates a race condition:
+                #
+                # batch.times_seen += 1
+                # batch.status = 0
+                # batch.last_seen = datetime.datetime.now()
+                # batch.save()
+                #
+                # So instead we use the update method
+                ErrorBatch.objects.filter(pk=batch.pk).update(
+                    times_seen=models.F('times_seen') + 1,
+                    status=0,
+                    last_seen=datetime.datetime.now(),
+                )
         except Exception, exc:
             warnings.warn(smart_unicode(exc))
         else:
