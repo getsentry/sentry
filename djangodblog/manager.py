@@ -1,6 +1,13 @@
 # Multi-db support based on http://www.eflorenzano.com/blog/post/easy-multi-database-support-django/
 # TODO: is there a way to use the traceback module based on an exception variable?
 
+import traceback
+import logging
+import socket
+import warnings
+import datetime
+import django
+
 from django.conf import settings
 from django.db import models
 from django.conf import settings
@@ -8,13 +15,6 @@ from django.db.models import sql
 from django.utils.hashcompat import md5_constructor
 from django.utils.encoding import smart_unicode
 from django.db.models.query import QuerySet
-
-import traceback
-import logging
-import socket
-import warnings
-import datetime
-import django
 
 DBLOG_DATABASE_USING = getattr(settings, 'DBLOG_DATABASE_USING', None)
 

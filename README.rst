@@ -145,6 +145,10 @@ Both the ``url`` and ``level`` parameters are optional. ``level`` should be one 
 * ``logging.ERROR``
 * ``logging.FATAL``
 
+If you have a custom exception class, similar to Http404, or something else you don't want to log,
+you can also add ``skip_dblog = True`` to your exception class or instance, and dblog will simply ignore
+the error.
+
 =====
 Notes
 =====

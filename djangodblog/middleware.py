@@ -10,6 +10,9 @@ class DBLogMiddleware(object):
         if not getattr(settings, 'DBLOG_CATCH_404_ERRORS', False) and isinstance(exception, Http404):
             return
 
+        if getattr(exception, 'skip_dblog', False):
+            return
+
         Error.objects.create_from_exception(exception, url=request.build_absolute_uri(), data=dict(
             META=request.META,
             POST=request.POST,
