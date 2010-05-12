@@ -98,6 +98,13 @@ class DBLogTestCase(TestCase):
         self.assertEquals(last.level, logging.INFO)
         self.assertEquals(last.message, 'This is a test info')
         
+        logger.info('This is a test info with a url', extra=dict(url='http://example.com'))
+        cur = (Error.objects.count(), ErrorBatch.objects.count())
+        self.assertEquals(cur, (5, 4), 'Assumed logs failed to save. %s' % (cur,))
+        last = Error.objects.all().order_by('-id')[0:1].get()
+        self.assertEquals(last.url, 'http://example.com')
+        
+        
         logger = logging.getLogger()
         logger.removeHandler(dblog_handler)
     

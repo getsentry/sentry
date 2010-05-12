@@ -1,12 +1,18 @@
 # Multi-db support based on http://www.eflorenzano.com/blog/post/easy-multi-database-support-django/
 # TODO: is there a way to use the traceback module based on an exception variable?
 
-import traceback
+import traceback as traceback_mod
 import logging
 import socket
 import warnings
 import datetime
 import django
+import base64
+import sys
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 from django.conf import settings
 from django.db import models
@@ -15,10 +21,13 @@ from django.db.models import sql
 from django.utils.hashcompat import md5_constructor
 from django.utils.encoding import smart_unicode
 from django.db.models.query import QuerySet
+from django.views.debug import ExceptionReporter
 
 DBLOG_DATABASE_USING = getattr(settings, 'DBLOG_DATABASE_USING', None)
 
 assert not DBLOG_DATABASE_USING or django.VERSION >= (1, 2), 'The `DBLOG_DATABASE_USING` setting requires Django >= 1.2'
+
+logger = logging.getLogger('dblog')
 
 class DBLogManager(models.Manager):
     use_for_related_fields = True
@@ -55,21 +64,14 @@ class DBLogManager(models.Manager):
                 defaults = defaults
             )
             if not created:
-                # This creates a race condition:
-                #
-                # batch.times_seen += 1
-                # batch.status = 0
-                # batch.last_seen = datetime.datetime.now()
-                # batch.save()
-                #
-                # So instead we use the update method
                 ErrorBatch.objects.filter(pk=batch.pk).update(
                     times_seen=models.F('times_seen') + 1,
                     status=0,
                     last_seen=datetime.datetime.now(),
                 )
-        except Exception, exc:
-            warnings.warn(smart_unicode(exc))
+        except Exception:
+            exc_info = sys.exc_info()
+            logger.exception(exc_info[1], exc_info=exc_info)
         else:
             return instance
     
@@ -77,6 +79,9 @@ class DBLogManager(models.Manager):
         """
         Creates an error log for a `logging` module `record` instance.
         """
+        for k in ('url',):
+            if k not in kwargs:
+                kwargs[k] = record.__dict__.get(k)
         return self._create(
             logger=record.name,
             level=record.levelno,
@@ -87,20 +92,40 @@ class DBLogManager(models.Manager):
 
     def create_from_text(self, message, **kwargs):
         """
-        Creates an error log for from `type` and `message`.
+        Creates an error log for from ``type`` and ``message``.
         """
         return self._create(
             message=message,
             **kwargs
         )
-    
-    def create_from_exception(self, exception, **kwargs):
+
+    def create_from_exception(self, exception=None, traceback=None, **kwargs):
         """
-        Creates an error log from an `exception` instance.
+        Creates an error log from an exception.
         """
+        if not exception:
+            exc_type, exc_value, traceback = sys.exc_info()
+        elif not traceback:
+            warnings.warn('Using just the ``exception`` argument is deprecated, send ``traceback`` in addition.', DeprecationWarning)
+            exc_type, exc_value, traceback = sys.exc_info()
+        else:
+            exc_type = exception.__class__
+            exc_value = exception
+
+        reporter = ExceptionReporter(None, exc_type, exc_value, traceback)
+        frames = reporter.get_traceback_frames()
+        for f in frames:
+            for k, v in f.iteritems():
+                f[k] = unicode(v)
+
+        data = kwargs.get('data', {})
+        data['exc'] = base64.b64encode(pickle.dumps([exc_type.__class__.__module__, exc_value.args, frames]))
+
+        tb_message = '\n'.join(traceback_mod.format_exception(exc_type, exc_value, traceback))
+
         return self._create(
-            class_name=exception.__class__.__name__,
-            traceback=traceback.format_exc(),
-            message=smart_unicode(exception),
+            class_name=exc_type.__name__,
+            traceback=tb_message,
+            message=smart_unicode(exc_value),
             **kwargs
         )

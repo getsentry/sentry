@@ -47,13 +47,15 @@ class ErrorBatch(Model):
 
     class Meta:
         unique_together = (('logger', 'server_name', 'checksum'),)
-        verbose_name_plural = 'Error summaries'
-        verbose_name = 'Error summary'
+        verbose_name_plural = 'Message summaries'
+        verbose_name = 'Message summary'
     
     def __unicode__(self):
         return "(%s) %s: %s" % (self.times_seen, self.class_name, self.error())
     
     def shortened_url(self):
+        if not self.url:
+            return '(No URL)'
         url = self.url
         if len(url) > 60:
             url = url[:60] + '...'
@@ -84,8 +86,29 @@ class Error(Model):
 
     objects         = DBLogManager()
 
+    class Meta:
+        verbose_name = 'Message'
+        verbose_name_plural = 'Messages'
+
     def __unicode__(self):
         return "%s: %s" % (self.class_name, self.message)
+
+    def shortened_url(self):
+        if not self.url:
+            return '(No URL)'
+        url = self.url
+        if len(url) > 60:
+            url = url[:60] + '...'
+        return url
+    shortened_url.short_description = "URL"
+    shortened_url.admin_order_field = 'url'
+
+    def error(self):
+        message = self.message
+        if len(message) > 100:
+            message = message[:97] + '...'
+        return "%s: %s" % (self.class_name, message)
+    error.short_description = 'Error'
 
     def get_absolute_url(self):
         return self.url
