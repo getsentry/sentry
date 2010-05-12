@@ -101,7 +101,9 @@ django-db-log supports the ability to directly tie into your ``logging`` module 
 	
 	logging.getLogger().addHandler(DBLogHandler())
 
-Note: The ``class_name`` (also labeled `type`) will use the record's logger name value.
+You can also use the ``exc_info`` and ``extra=dict(url=foo)`` arguments on your ``log`` methods. This will store the appropriate information and allow django-db-log to render it based on that information:
+
+	logging.error('There was some crazy error', exc_info=sys.exc_info(), extra={'url': request.build_absolute_uri()})
 
 =====
 Usage
