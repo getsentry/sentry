@@ -82,11 +82,16 @@ class DBLogManager(models.Manager):
         for k in ('url',):
             if k not in kwargs:
                 kwargs[k] = record.__dict__.get(k)
+        kwargs.update({
+            'logger': record.name,
+            'level': record.levelno,
+            'message': record.getMessage(),
+        })
+        if record.exc_info:
+            return self.create_from_exception(*record.exc_info[1:2], **kwargs)
+
         return self._create(
-            logger=record.name,
-            level=record.levelno,
             traceback=record.exc_text,
-            message=record.getMessage(),
             **kwargs
         )
 
@@ -125,14 +130,16 @@ class DBLogManager(models.Manager):
         reporter = ExceptionReporter(None, exc_type, exc_value, traceback)
         frames = to_unicode(reporter.get_traceback_frames())
 
-        data = kwargs.get('data', {})
+        data = kwargs.pop('data', {})
         data['exc'] = base64.b64encode(pickle.dumps([exc_type.__class__.__module__, exc_value.args, frames]))
 
         tb_message = '\n'.join(traceback_mod.format_exception(exc_type, exc_value, traceback))
 
+        kwargs.setdefault('message', smart_unicode(exc_value))
+
         return self._create(
             class_name=exc_type.__name__,
             traceback=tb_message,
-            message=smart_unicode(exc_value),
+            data=data,
             **kwargs
         )

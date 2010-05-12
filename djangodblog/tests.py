@@ -8,7 +8,9 @@ from django.utils.encoding import smart_unicode
 from djangodblog.models import Error, ErrorBatch
 from djangodblog.middleware import DBLogMiddleware
 from djangodblog.utils import JSONDictField
+
 import logging
+import sys
 
 class RequestFactory(Client):
     # Used to generate request objects.
@@ -104,7 +106,17 @@ class DBLogTestCase(TestCase):
         last = Error.objects.all().order_by('-id')[0:1].get()
         self.assertEquals(last.url, 'http://example.com')
         
-        
+        try:
+            raise ValueError('This is a test ValueError')
+        except ValueError:
+            logger.info('This is a test info with an exception', exc_info=sys.exc_info())
+            cur = (Error.objects.count(), ErrorBatch.objects.count())
+            self.assertEquals(cur, (6, 5), 'Assumed logs failed to save. %s' % (cur,))
+            last = Error.objects.all().order_by('-id')[0:1].get()
+            self.assertEquals(last.class_name, 'ValueError')
+            self.assertEquals(last.message, 'This is a test info with an exception')
+            self.assertTrue(last.data.get('exc'))
+            
         logger = logging.getLogger()
         logger.removeHandler(dblog_handler)
     
@@ -139,9 +151,18 @@ class DBLogTestCase(TestCase):
             Error.objects.create_from_exception(exc)
         else:
             self.fail('Unable to create `Error` entry.')
+
+        try:
+            Error.objects.get(id=999999989)
+        except Error.DoesNotExist, exc:
+            error = Error.objects.create_from_exception()
+            self.assertTrue(error.data.get('exc'))
+        else:
+            self.fail('Unable to create `Error` entry.')
+
         
         cur = (Error.objects.count(), ErrorBatch.objects.count())
-        self.assertEquals(cur, (1, 1), 'Assumed logs failed to save. %s' % (cur,))
+        self.assertEquals(cur, (2, 2), 'Assumed logs failed to save. %s' % (cur,))
         last = Error.objects.all().order_by('-id')[0:1].get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.class_name, 'DoesNotExist')
@@ -151,7 +172,7 @@ class DBLogTestCase(TestCase):
         Error.objects.create_from_text('This is an error', level=logging.DEBUG)
         
         cur = (Error.objects.count(), ErrorBatch.objects.count())
-        self.assertEquals(cur, (2, 2), 'Assumed logs failed to save. %s' % (cur,))
+        self.assertEquals(cur, (3, 3), 'Assumed logs failed to save. %s' % (cur,))
         last = Error.objects.all().order_by('-id')[0:1].get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.level, logging.DEBUG)
