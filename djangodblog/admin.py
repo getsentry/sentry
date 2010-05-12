@@ -18,6 +18,7 @@ class ErrorBatchAdmin(admin.ModelAdmin):
     list_filter     = ('logger', 'server_name', 'status', 'last_seen', 'class_name')
     ordering        = ('-last_seen',)
     actions         = ('resolve_errorbatch',)
+    search_fields   = ('url', 'class_name', 'message', 'traceback', 'server_name')
     readonly_fields = ('url', 'logger', 'server_name', 'class_name', 'level', 'message', 'traceback', 'times_seen', 'first_seen', 'last_seen')
     
     def resolve_errorbatch(self, request, queryset):
@@ -36,6 +37,7 @@ class ErrorAdmin(admin.ModelAdmin):
     list_display_links = ('shortened_url',)
     list_filter     = ('logger', 'class_name', 'datetime', 'server_name')
     ordering        = ('-datetime',)
+    search_fields   = ('url', 'class_name', 'message', 'traceback', 'server_name')
     readonly_fields = ('url', 'logger', 'server_name', 'class_name', 'level', 'message', 'traceback', 'datetime', 'data')
 
     def change_view(self, request, object_id, extra_context={}):
