@@ -3,6 +3,8 @@ from django.http import Http404
 
 from djangodblog.models import Error
 
+import sys
+
 __all__ = ('DBLogMiddleware',)
 
 class DBLogMiddleware(object):
@@ -13,7 +15,7 @@ class DBLogMiddleware(object):
         if getattr(exception, 'skip_dblog', False):
             return
 
-        Error.objects.create_from_exception(exception, url=request.build_absolute_uri(), data=dict(
+        Error.objects.create_from_exception(url=request.build_absolute_uri(), data=dict(
             META=request.META,
             POST=request.POST,
             GET=request.GET,
