@@ -71,7 +71,7 @@ class DBLogManager(models.Manager):
                 )
         except Exception:
             exc_info = sys.exc_info()
-            logger.exception(exc_info[1], exc_info=exc_info)
+            logger.exception(exc_info[1])
         else:
             return instance
     
