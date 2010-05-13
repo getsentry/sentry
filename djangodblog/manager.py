@@ -119,9 +119,9 @@ class DBLogManager(models.Manager):
 
         def to_unicode(f):
             if isinstance(f, dict):
-                f = dict(f.copy())
+                nf = dict()
                 for k, v in f.iteritems():
-                    f[k] = to_unicode(v)
+                    nf[k] = to_unicode(v)
             elif isinstance(f, (list, tuple)):
                 f = [to_unicode(f) for f in f]
             else:
