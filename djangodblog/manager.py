@@ -119,9 +119,8 @@ class DBLogManager(models.Manager):
 
         def to_unicode(f):
             if isinstance(f, dict):
-                nf = dict()
                 for k, v in f.iteritems():
-                    nf[k] = to_unicode(v)
+                    f[str(k)] = to_unicode(v)
             elif isinstance(f, (list, tuple)):
                 f = [to_unicode(f) for f in f]
             else:
@@ -129,10 +128,10 @@ class DBLogManager(models.Manager):
             return f
 
         reporter = ExceptionReporter(None, exc_type, exc_value, traceback)
-        frames = to_unicode(reporter.get_traceback_frames())
+        frames = reporter.get_traceback_frames()
 
         data = kwargs.pop('data', {})
-        data['exc'] = base64.b64encode(pickle.dumps([exc_type.__class__.__module__, exc_value.args, frames]))
+        data['exc'] = base64.b64encode(pickle.dumps(map(to_unicode, [exc_type.__class__.__module__, exc_value.args, frames])))
 
         tb_message = '\n'.join(traceback_mod.format_exception(exc_type, exc_value, traceback))
 
