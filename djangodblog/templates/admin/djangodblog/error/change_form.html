@@ -2,8 +2,20 @@
 
 {% load i18n admin_modify adminmedia %}
 
-{% block extra_style %}
+{% block extrahead %}
 	{{ block.super }}
+	{% if has_traceback %}
+		{{ error_headers }}
+		<style type="text/css">
+		#reporter_body { 
+			padding: 8px;
+			background: none repeat scroll 0 0 #FFFFCC
+		}
+		#reporter_body #traceback li { list-style-type: inherit; }
+		#reporter_body #traceback { padding: 8px; margin-top: 10px; }
+		#content { margin: 0; }
+		</style>
+	{% endif %}
 {% endblock %}
 
 {% block content_title %}{% endblock %}
@@ -12,9 +24,8 @@
 	{% if not has_traceback %}
 		{{ block.super }}
 	{% else %}
-		<iframe src="?frame=exc" width="100%" height="75%" id="dblog_exc"/>
-		<script type="text/javascript">
-			document.getElementById('dblog_exc').style.height = '100%';
-		</script>
+		<div id="reporter_body">
+			{{ error_body }}
+		</div>
 	{% endif %}
 {% endblock %}

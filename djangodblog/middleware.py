@@ -19,4 +19,6 @@ class DBLogMiddleware(object):
             META=request.META,
             POST=request.POST,
             GET=request.GET,
+            COOKIES=request.COOKIES,
+            SESSION=request.SESSION,
         ))
