@@ -12,7 +12,6 @@ If you use South migrations, simply run::
 
 	python manage.py migrate djangodblog
 
-
 Otherwise, the first thing you will want to do is confirm your database matches. Do this by verifying your version, or simply taking a look at the changes::
 
 	python manage.py sql djangodblog > dblog.sql
@@ -36,7 +35,7 @@ Install
 
 The easiest way to install the package is via setuptools::
 
-	pip install django-db-log
+	pip install django-db-log --upgrade
 
 OR, if you're not quite on the same page (work on that), with setuptools::
 
@@ -77,6 +76,8 @@ Enable catching of 404 errors in the logs. Default value is ``False``::
 
 	DBLOG_CATCH_404_ERRORS = True
 
+You can skip other custom exception types by adding a ``skip_dblog = True`` attribute to them.
+
 ##############
 DBLOG_DATABASE
 ##############
@@ -111,8 +112,8 @@ Usage
 
 You will find two new admin panels in the automatically built Django administration:
 
-* Errors (Error)
-* Error summaries (ErrorBatch)
+* Messages (Error)
+* Message summaries (ErrorBatch)
 
 It will store every single error inside of the `Errors` model, and it will store a collective, or summary, of errors inside of `Error batches` (this is more useful for most cases). If you are using this on multiple sites with the same database, the `Errors` table also contains the SITE_ID for which it the error appeared on.
 
@@ -157,3 +158,4 @@ Notes
 
 * django-db-log will automatically integrate with django-idmapper.
 * django-db-log supports South migrations.
+* The fact that the admin shows large quantities of results, even if there aren't, is not a bug. This is an efficiency hack on top of Django.
