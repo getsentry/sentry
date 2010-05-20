@@ -46,13 +46,21 @@ class ErrorAdminForm(forms.ModelForm):
         fields = ('url', 'logger', 'server_name', 'class_name', 'level', 'message', 'datetime', 'traceback')
         model = ErrorBatch
 
+class EfficientPaginator(Paginator):
+    def _get_count(self):
+        # because who really cares if theres a next page or not in the admin?
+        return 10000000000000
+    count = property(_get_count)
+
 class EfficientChangeList(ChangeList):
     def get_results(self, request):
-        paginator = Paginator(self.query_set, self.list_per_page)
+        paginator = EfficientPaginator(self.query_set, self.list_per_page)
         # Get the number of objects, with admin filters applied.
         result_count = paginator.count
-
+        
         multi_page = result_count > self.list_per_page
+
+        result_count = ''
 
         # Get the list of objects to display on this page.
         try:
@@ -107,7 +115,7 @@ class ErrorAdmin(EfficientModelAdmin):
     list_display    = ('shortened_url', 'logger', 'server_name', 'datetime')
     list_display_links = ('shortened_url',)
     list_filter     = ('logger', 'class_name', 'datetime', 'server_name')
-    ordering        = ('-datetime',)
+    ordering        = ('-id',)
     search_fields   = ('url', 'class_name', 'message', 'traceback', 'server_name')
     readonly_fields = ('url', 'logger', 'server_name', 'class_name', 'level', 'message', 'datetime')
     fieldsets       = (
@@ -168,26 +176,6 @@ class ErrorAdmin(EfficientModelAdmin):
             'error_body': mark_safe(self._body_re.search(html).group(1)),
             'error_headers': mark_safe(self._header_re.search(html).group(1)),
         }
-
-    def get_results(self, request):
-        paginator = Paginator(self.query_set, self.list_per_page)
-        # Get the number of objects, with admin filters applied.
-        result_count = paginator.count
-
-        multi_page = result_count > self.list_per_page
-
-        # Get the list of objects to display on this page.
-        try:
-            result_list = paginator.page(self.page_num+1).object_list
-        except InvalidPage:
-            result_list = ()
-
-        self.full_result_count = result_count
-        self.result_count = result_count
-        self.result_list = result_list
-        self.can_show_all = False
-        self.multi_page = multi_page
-        self.paginator = paginator
 
 admin.site.register(ErrorBatch, ErrorBatchAdmin)
 admin.site.register(Error, ErrorAdmin)
