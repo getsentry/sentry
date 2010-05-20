@@ -16,6 +16,11 @@
 		#content { margin: 0; }
 		</style>
 	{% endif %}
+	<style type="text/css">
+	#meta { border-top: 0; }
+	#meta th, #meta td { border: 0; padding: 8px; }
+	#meta th { text-align: left; }
+	</style>
 {% endblock %}
 
 {% block content_title %}{% endblock %}
@@ -24,6 +29,27 @@
 	{% if not has_traceback %}
 		{{ block.super }}
 	{% else %}
+		<table id="meta">
+			<colgroup>
+				<col style="width:15%"/>
+				<col style="width:35%"/>
+				<col style="width:15%"/>
+				<col style="width:35%"/>
+			</colgroup>
+
+			<tr>
+				<th>URL:</th>
+				<td><a href="{{ instance.url }}">{{ instance.url }}</a></td>
+				<th>Level:</th>
+				<td>{{ instance.get_level_display }}</td>
+			</tr>
+			<tr>
+				<th>Server:</th>
+				<td>{{ instance.server_name }}</td>
+				<th>Date:</th>
+				<td>{{ instance.datetime }}</td>
+			</tr>
+		</table>
 		<div id="reporter_body">
 			{{ error_body }}
 		</div>

@@ -11,6 +11,7 @@ from djangodblog.models import ErrorBatch, Error
 from djangodblog.helpers import ImprovedExceptionReporter
 from djangodblog.utils import JSONDictFormField
 
+import cgi
 import base64
 import re
 import logging
@@ -32,8 +33,19 @@ class PreformattedText(forms.Textarea):
             value = force_unicode(value)
         return mark_safe(u'<pre style="clear:left;display:block;padding-top:5px;white-space: pre-wrap;white-space: -moz-pre-wrap;white-space: -pre-wrap;white-space: -o-pre-wrap;word-wrap: break-word;">%s</pre>' % (value,))
 
+class Link(forms.TextInput):
+    input_type = 'a'
+
+    def render(self, name, value, attrs=None):
+        if value is None: value = ''
+        if value != '':
+            # Only add the 'value' attribute if a value is non-empty.
+            value = force_unicode(value)
+        return mark_safe(u'<a href="%s">%s</a>' % (value, cgi.escape(value)))
+
 class ErrorBatchAdminForm(forms.ModelForm):
     traceback = forms.CharField(widget=PreformattedText())
+    url = forms.CharField(widget=Link())
     
     class Meta:
         fields = ('url', 'logger', 'server_name', 'class_name', 'level', 'message', 'times_seen', 'first_seen', 'last_seen', 'traceback')
@@ -41,6 +53,7 @@ class ErrorBatchAdminForm(forms.ModelForm):
 
 class ErrorAdminForm(forms.ModelForm):
     traceback = forms.CharField(widget=PreformattedText())
+    url = forms.CharField(widget=Link())
     
     class Meta:
         fields = ('url', 'logger', 'server_name', 'class_name', 'level', 'message', 'datetime', 'traceback')
@@ -92,7 +105,7 @@ class ErrorBatchAdmin(EfficientModelAdmin):
     ordering        = ('-last_seen',)
     actions         = ('resolve_errorbatch',)
     search_fields   = ('url', 'class_name', 'message', 'traceback', 'server_name')
-    readonly_fields = ('url', 'logger', 'server_name', 'class_name', 'level', 'message', 'times_seen', 'first_seen', 'last_seen')
+    readonly_fields = ('logger', 'server_name', 'class_name', 'level', 'message', 'times_seen', 'first_seen', 'last_seen')
     fieldsets       = (
         (None, {
             'fields': ('url', 'logger', 'server_name', 'class_name', 'level', 'message', 'times_seen', 'first_seen', 'last_seen', 'traceback')
@@ -117,7 +130,7 @@ class ErrorAdmin(EfficientModelAdmin):
     list_filter     = ('logger', 'class_name', 'datetime', 'server_name')
     ordering        = ('-id',)
     search_fields   = ('url', 'class_name', 'message', 'traceback', 'server_name')
-    readonly_fields = ('url', 'logger', 'server_name', 'class_name', 'level', 'message', 'datetime')
+    readonly_fields = ('logger', 'server_name', 'class_name', 'level', 'message', 'datetime')
     fieldsets       = (
         (None, {
             'fields': ('url', 'logger', 'server_name', 'class_name', 'level', 'message', 'datetime', 'traceback')
@@ -129,8 +142,7 @@ class ErrorAdmin(EfficientModelAdmin):
     
     def change_view(self, request, object_id, extra_context={}):
         obj = self.get_object(request, unquote(object_id))
-        has_traceback = bool('exc' in obj.data) and not request.GET.get('raw')
-        frame = request.GET.get('frame')
+        has_traceback = bool('exc' in obj.data) and 'raw' not in request.GET
         if has_traceback:
             try:
                 extra_context.update(self.get_traceback_context(request, obj))
@@ -139,8 +151,8 @@ class ErrorAdmin(EfficientModelAdmin):
                 logger.exception(exc_info[1])
                 has_traceback = False
         extra_context.update({
-            'frame': frame,
             'has_traceback': has_traceback,
+            'instance': obj,
         })
         return super(ErrorAdmin, self).change_view(request, object_id, extra_context)
         

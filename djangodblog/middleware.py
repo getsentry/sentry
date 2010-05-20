@@ -2,6 +2,7 @@ from django.conf import settings
 from django.http import Http404
 
 from djangodblog.models import Error
+# from django.db import IntegrityError
 
 import sys
 
@@ -14,6 +15,9 @@ class DBLogMiddleware(object):
 
         if getattr(exception, 'skip_dblog', False):
             return
+            
+        # if isinstance(exception, IntegrityError):
+        #     transaction.rollback_unless_managed()
 
         Error.objects.create_from_exception(url=request.build_absolute_uri(), data=dict(
             META=request.META,
