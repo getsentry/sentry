@@ -26,7 +26,7 @@ class JSONDictWidget(forms.Textarea):
 
 class JSONDictFormField(forms.CharField):
     def __init__(self, *args, **kwargs):
-        kwargs['widget'] = JSONDictWidget
+        kwargs['widget'] = kwargs.get('widget', JSONDictWidget)
         super(JSONDictFormField, self).__init__(*args, **kwargs)
  
     def clean(self, value):
