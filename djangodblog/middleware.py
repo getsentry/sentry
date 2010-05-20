@@ -20,5 +20,4 @@ class DBLogMiddleware(object):
             POST=request.POST,
             GET=request.GET,
             COOKIES=request.COOKIES,
-            SESSION=request.SESSION,
         ))
