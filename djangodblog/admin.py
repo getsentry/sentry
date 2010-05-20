@@ -160,7 +160,6 @@ class ErrorAdmin(EfficientModelAdmin):
         fake_request.COOKIES = obj.data.get('COOKIES', {})
         fake_request.url = obj.url
         fake_request.path_info = '/' + obj.url.split('/', 3)[-1]
-        print fake_request.build_absolute_uri()
 
         reporter = ImprovedExceptionReporter(fake_request, exc_type, exc_value, frames)
         html = reporter.get_traceback_html()
