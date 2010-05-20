@@ -1,0 +1,3 @@
+include setup.py README.rst MANIFEST.in LICENSE
+recursive-include djangodblog/templates *
+global-exclude *~
