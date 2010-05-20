@@ -1,5 +1,0 @@
-setup.py
-djangodblog/admin.py
-djangodblog/models.py
-djangodblog/middleware.py
-djangodblog/__init__.py
