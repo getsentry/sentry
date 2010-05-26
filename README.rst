@@ -47,8 +47,9 @@ Once installed, update your settings.py and add the middleware and installed app
 	    'django.middleware.common.CommonMiddleware',
 	    'django.contrib.sessions.middleware.SessionMiddleware',
 	    'django.contrib.auth.middleware.AuthenticationMiddleware',
-	    ...
+	    # placement is important
 	    'djangodblog.middleware.DBLogMiddleware',
+	    ...
 	)
 
 	INSTALLED_APPS = (
@@ -119,6 +120,9 @@ django-db-log supports the ability to directly tie into the ``logging`` module. 
 	from djangodblog.handlers import DBLogHandler
 	
 	logging.getLogger().addHandler(DBLogHandler())
+
+	# Add StreamHandler to dblog's default so you can catch missed exceptions
+	logging.getLogger('dblog').addHandler(logging.StreamHandler())
 
 You can also use the ``exc_info`` and ``extra=dict(url=foo)`` arguments on your ``log`` methods. This will store the appropriate information and allow django-db-log to render it based on that information:
 
