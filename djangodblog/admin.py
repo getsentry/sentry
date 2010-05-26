@@ -167,7 +167,10 @@ class ErrorAdmin(EfficientModelAdmin):
         obj.class_name = str(obj.class_name)
     
         if module == '__builtin__':
-            exc_type = __builtins__[obj.class_name]
+            try:
+                exc_type = __builtins__[obj.class_name]
+            except KeyError:
+                exc_type = type(obj.class_name, (Exception,), {})
         else:
             exc_type = __import__(module + '.' + obj.class_name, {}, {}, obj.class_name)
         exc_value = exc_type(obj.message)
