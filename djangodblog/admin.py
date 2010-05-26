@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import admin
 from django.contrib.admin.util import unquote
 from django.contrib.admin.views.main import ChangeList, Paginator
@@ -101,7 +102,7 @@ class ErrorBatchAdmin(EfficientModelAdmin):
     form            = ErrorBatchAdminForm
     list_display    = ('shortened_url', 'logger', 'server_name', 'times_seen', 'last_seen')
     list_display_links = ('shortened_url',)
-    list_filter     = ('logger', 'server_name', 'status', 'last_seen', 'class_name')
+    list_filter     = ('status', 'level', 'last_seen')
     ordering        = ('-last_seen',)
     actions         = ('resolve_errorbatch',)
     search_fields   = ('url', 'class_name', 'message', 'traceback', 'server_name')
@@ -127,7 +128,7 @@ class ErrorAdmin(EfficientModelAdmin):
     form            = ErrorAdminForm
     list_display    = ('shortened_url', 'logger', 'server_name', 'datetime')
     list_display_links = ('shortened_url',)
-    list_filter     = ('logger', 'class_name', 'datetime', 'server_name')
+    list_filter     = ('level', 'datetime')
     ordering        = ('-id',)
     search_fields   = ('url', 'class_name', 'message', 'traceback', 'server_name')
     readonly_fields = ('logger', 'server_name', 'class_name', 'level', 'message', 'datetime')
@@ -142,7 +143,7 @@ class ErrorAdmin(EfficientModelAdmin):
     
     def change_view(self, request, object_id, extra_context={}):
         obj = self.get_object(request, unquote(object_id))
-        has_traceback = bool('exc' in obj.data) and 'raw' not in request.GET
+        has_traceback = getattr(settings, 'DBLOG_ENHANCED_TRACEBACKS', True) and bool('exc' in obj.data) and 'raw' not in request.GET
         if has_traceback:
             try:
                 extra_context.update(self.get_traceback_context(request, obj))

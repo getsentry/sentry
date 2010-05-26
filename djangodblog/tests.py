@@ -178,7 +178,6 @@ class DBLogTestCase(TestCase):
         self.assertEquals(last.level, logging.DEBUG)
         self.assertEquals(last.message, 'This is an error')
         
-        
     def testAlternateDatabase(self):
         settings.DBLOG_USING = 'default'
         

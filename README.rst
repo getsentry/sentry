@@ -33,7 +33,7 @@ Notable Changes
 Install
 =======
 
-The easiest way to install the package is via setuptools::
+The easiest way to install the package is via pip::
 
 	pip install django-db-log --upgrade
 
@@ -78,18 +78,36 @@ Enable catching of 404 errors in the logs. Default value is ``False``::
 
 You can skip other custom exception types by adding a ``skip_dblog = True`` attribute to them.
 
-##############
-DBLOG_DATABASE
-##############
+####################
+DBLOG_DATABASE_USING
+####################
 
 Use a secondary database to store error logs. This is useful if you have several websites and want to aggregate error logs onto one database server::
 
 	# This should correspond to a key in your DATABASES setting
 	DBLOG_DATABASE_USING = 'default'
 
+You should also enable the ``DBLogRouter`` to avoid things like extraneous table creation::
+
+	DATABASE_ROUTERS = [
+		'djangodblog.routers.DBLogRouter',
+		...
+	]
+
 Some things to note:
 
 * This functionality REQUIRES Django 1.2.
+
+#########################
+DBLOG_ENHANCED_TRACEBACKS
+#########################
+
+Enables showing full embedded (enhanced) tracebacks within the administration for "Messages". These work almost identically to the default exception pages within Django's DEBUG environment::
+
+	# Disable embedded interactive tracebacks in the admin
+	DBLOG_ENHANCED_TRACEBACKS = False
+
+* Note: Even if you disable displaying of enhanced tracebacks, dblog will still store the entire exception stacktrace.
 
 ############################
 Integration with ``logging``
