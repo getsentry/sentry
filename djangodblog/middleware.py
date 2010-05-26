@@ -4,8 +4,6 @@ from django.http import Http404
 from djangodblog.models import Error
 from django.db import transaction
 
-import sys
-
 __all__ = ('DBLogMiddleware',)
 
 class DBLogMiddleware(object):

@@ -69,9 +69,8 @@ class DBLogManager(models.Manager):
                     status=0,
                     last_seen=datetime.datetime.now(),
                 )
-        except Exception:
-            exc_info = sys.exc_info()
-            logger.exception(exc_info[1])
+        except Exception, exc:
+            logger.exception(exc)
         else:
             return instance
     
