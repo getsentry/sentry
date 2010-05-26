@@ -113,7 +113,7 @@ Enables showing full embedded (enhanced) tracebacks within the administration fo
 Integration with ``logging``
 ############################
 
-django-db-log supports the ability to directly tie into your ``logging`` module entries. To use it simply define add ``DBLogHandler`` to your logger:
+django-db-log supports the ability to directly tie into the ``logging`` module. To use it simply add ``DBLogHandler`` to your logger:
 
 	import logging
 	from djangodblog.handlers import DBLogHandler
