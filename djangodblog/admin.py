@@ -172,7 +172,10 @@ class ErrorAdmin(EfficientModelAdmin):
             except KeyError:
                 exc_type = type(obj.class_name, (Exception,), {})
         else:
-            exc_type = __import__(module + '.' + obj.class_name, {}, {}, obj.class_name)
+            try:
+                exc_type = __import__(module + '.' + obj.class_name, {}, {}, obj.class_name)
+            except ImportError:
+                exc_type = type(obj.class_name, (Exception,), {})
         exc_value = exc_type(obj.message)
         exc_value.args = args
     
