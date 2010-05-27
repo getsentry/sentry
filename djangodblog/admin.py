@@ -162,8 +162,10 @@ class ErrorAdmin(EfficientModelAdmin):
         Create a technical server error response. The last three arguments are
         the values returned from sys.exc_info() and friends.
         """
-        module, args, frames = pickle.loads(base64.b64decode(obj.data['exc']))
-    
+        try:
+            module, args, frames = pickle.loads(base64.b64decode(obj.data['exc']).decode('zlib'))
+        except:
+            module, args, frames = pickle.loads(base64.b64decode(obj.data['exc']))
         obj.class_name = str(obj.class_name)
     
         if module == '__builtin__':
