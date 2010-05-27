@@ -138,8 +138,8 @@ class ErrorAdmin(EfficientModelAdmin):
         }),
     )
     
-    _header_re = re.compile(r'(<(?:style|script).*>.+</(?:style|script)>)', re.I | re.S)
-    _body_re = re.compile(r'<body>(.*)<\/body>', re.I | re.S)
+    _header_re = re.compile(r'(<(?:style|script)[^>]*>.+</(?:style|script)>)', re.I | re.S)
+    _body_re = re.compile(r'<body>(.+)<\/body>', re.I | re.S)
     
     def change_view(self, request, object_id, extra_context={}):
         obj = self.get_object(request, unquote(object_id))
