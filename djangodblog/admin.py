@@ -100,7 +100,7 @@ class FakeRequest(object):
 
 class ErrorBatchAdmin(EfficientModelAdmin):
     form            = ErrorBatchAdminForm
-    list_display    = ('shortened_url', 'logger', 'server_name', 'times_seen', 'last_seen')
+    list_display    = ('shortened_url', 'logger', 'level', 'server_name', 'times_seen', 'last_seen')
     list_display_links = ('shortened_url',)
     list_filter     = ('status', 'level', 'last_seen')
     ordering        = ('-last_seen',)
@@ -126,7 +126,7 @@ class ErrorBatchAdmin(EfficientModelAdmin):
 
 class ErrorAdmin(EfficientModelAdmin):
     form            = ErrorAdminForm
-    list_display    = ('shortened_url', 'logger', 'server_name', 'datetime')
+    list_display    = ('shortened_url', 'logger', 'level', 'server_name', 'datetime')
     list_display_links = ('shortened_url',)
     list_filter     = ('level', 'datetime')
     ordering        = ('-id',)

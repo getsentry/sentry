@@ -67,7 +67,9 @@ class ErrorBatch(Model):
         message = self.message
         if len(message) > 100:
             message = message[:97] + '...'
-        return "%s: %s" % (self.class_name, message)
+        if self.class_name:
+            return "%s: %s" % (self.class_name, message)
+        return message
     error.short_description = 'Error'
 
     def get_absolute_url(self):
@@ -107,7 +109,9 @@ class Error(Model):
         message = self.message
         if len(message) > 100:
             message = message[:97] + '...'
-        return "%s: %s" % (self.class_name, message)
+        if self.class_name:
+            return "%s: %s" % (self.class_name, message)
+        return message
     error.short_description = 'Error'
 
     def get_absolute_url(self):

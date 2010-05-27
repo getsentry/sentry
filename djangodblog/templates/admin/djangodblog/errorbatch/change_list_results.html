@@ -10,8 +10,8 @@
 	</thead>
 	<tbody>
 	{% for result in results %}
-		<tr class="{% cycle 'row1' 'row2' %} start-cell cell-status-{{ result.instance.status }}">{% for item in result.cells %}{{ item }}{% endfor %}</tr>
-		<tr class="{% cycle 'row1' 'row2' %} end-cell cell-status-{{ result.instance.status }}"><td>&nbsp;</td><td style="color:#666;" colspan="{{ result.num_real_cells }}">{{ result.instance.error }}</tr>
+		<tr class="{% cycle 'row1' 'row2' %} start-cell cell-status-{{ result.instance.status }} cell-level-{{ result.instance.level }}">{% for item in result.cells %}{{ item }}{% endfor %}</tr>
+		<tr class="{% cycle 'row1' 'row2' %} end-cell cell-status-{{ result.instance.status }} cell-level-{{ result.instance.level }}"><td>&nbsp;</td><td class="meta-info" colspan="{{ result.num_real_cells }}">{{ result.instance.error }}</tr>
 	{% endfor %}
 	</tbody>
 	</table>
