@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from django.test.client import Client
 from django.test import TestCase
 from django.core.handlers.wsgi import WSGIRequest
@@ -33,6 +35,9 @@ RF = RequestFactory()
 
 class JSONDictModel(models.Model):
     data = JSONDictField(blank=True, null=True)
+    
+    def __unicode__(self):
+        return unicode(self.data)
 
 class JSONDictTestCase(TestCase):
     def testField(self):
@@ -50,22 +55,47 @@ class DBLogTestCase(TestCase):
     def setUp(self):
         settings.DBLOG_DATABASE = None
         settings.DBLOG_WITH_LOGGER = False
-
-    def testLogger(self):
+        self._handlers = None
+        self._level = None
+    
+    def tearDown(self):
+        self.tearDownHandler()
+        
+    def setUpHandler(self):
+        self.tearDownHandler()
         from handlers import DBLogHandler
+        
+        logger = logging.getLogger()
+        self._handlers = logger.handlers
+        self._level = logger.level
 
+        for h in self._handlers:
+            # TODO: fix this, for now, I don't care.
+            logger.removeHandler(h)
+    
+        logger.setLevel(logging.DEBUG)
+        dblog_handler = DBLogHandler()
+        logger.addHandler(dblog_handler)
+    
+    def tearDownHandler(self):
+        if self._handlers is None:
+            return
+        
+        logger = logging.getLogger()
+        logger.removeHandler(logger.handlers[0])
+        for h in self._handlers:
+            logger.addHandler(h)
+        
+        logger.setLevel(self._level)
+        self._handlers = None
+        
+    def testLogger(self):
+        logger = logging.getLogger()
+        
         Error.objects.all().delete()
         ErrorBatch.objects.all().delete()
 
-        dblog_handler = DBLogHandler()
-
-        logger = logging.getLogger()
-        for h in logger.handlers:
-            # TODO: fix this, for now, I don't care.
-            logger.removeHandler(h)
-
-        logger.setLevel(logging.DEBUG)
-        logger.addHandler(dblog_handler)
+        self.setUpHandler()
 
         logger.error('This is a test error')
         cur = (Error.objects.count(), ErrorBatch.objects.count())
@@ -116,9 +146,8 @@ class DBLogTestCase(TestCase):
             self.assertEquals(last.class_name, 'ValueError')
             self.assertEquals(last.message, 'This is a test info with an exception')
             self.assertTrue(last.data.get('exc'))
-            
-        logger = logging.getLogger()
-        logger.removeHandler(dblog_handler)
+    
+        self.tearDownHandler()
     
     def testMiddleware(self):
         Error.objects.all().delete()
@@ -200,3 +229,21 @@ class DBLogTestCase(TestCase):
         self.assertEquals(last.message, smart_unicode(exc))
 
         settings.DBLOG_DATABASE = None
+    
+    def testUnicode(self):
+        self.setUpHandler()
+        
+        cnt = Error.objects.count()
+        value = u'רונית מגן'
+        x = JSONDictModel.objects.create(data={'value': value})
+        try:
+            raise SyntaxError(value)
+        except Exception, exc:
+            logging.exception(exc)
+            logging.info('test', exc_info=sys.exc_info())
+        self.assertEquals(Error.objects.count(), cnt+2)
+        error = Error.objects.create_from_text(value)
+        self.assertEquals(error.message, value)
+        self.assertEquals(Error.objects.count(), cnt+3)
+        
+        self.tearDownHandler()
