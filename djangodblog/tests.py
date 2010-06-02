@@ -230,11 +230,37 @@ class DBLogTestCase(TestCase):
 
         settings.DBLOG_DATABASE = None
     
-    def testUnicode(self):
+    def testCorrectUnicode(self):
         self.setUpHandler()
         
         cnt = Error.objects.count()
         value = 'רונית מגן'
+
+        error = Error.objects.create_from_text(value)
+        self.assertEquals(Error.objects.count(), cnt+1)
+        self.assertEquals(error.message, value)
+
+        logging.info(value)
+        self.assertEquals(Error.objects.count(), cnt+2)
+
+        x = JSONDictModel.objects.create(data={'value': value})
+        logging.warn(x)
+        self.assertEquals(Error.objects.count(), cnt+3)
+
+        try:
+            raise SyntaxError(value)
+        except Exception, exc:
+            logging.exception(exc)
+            logging.info('test', exc_info=sys.exc_info())
+        self.assertEquals(Error.objects.count(), cnt+5)
+        
+        self.tearDownHandler()
+
+    def testIncorrectUnicode(self):
+        self.setUpHandler()
+        
+        cnt = Error.objects.count()
+        value = u'רונית מגן'
 
         error = Error.objects.create_from_text(value)
         self.assertEquals(Error.objects.count(), cnt+1)
