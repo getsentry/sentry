@@ -4,19 +4,17 @@
 
 {% block extrahead %}
 	{{ block.super }}
-	{% if has_traceback %}
-		{{ error_headers }}
-		<style type="text/css">
-		#reporter_body { 
-			padding: 8px;
-			background: none repeat scroll 0 0 #FFFFCC
-		}
-		#reporter_body #traceback li { list-style-type: inherit; }
-		#reporter_body #traceback { padding: 8px; margin-top: 10px; }
-		#reporter_body td, #reporter_body th { border-bottom: 0; font:small sans-serif; line-height: auto; }
-		#content { margin: 0; }
-		</style>
-	{% endif %}
+	{{ error_headers }}
+	<style type="text/css">
+	#reporter_body { 
+		padding: 8px;
+		background: none repeat scroll 0 0 #FFFFCC
+	}
+	#reporter_body #traceback li { list-style-type: inherit; }
+	#reporter_body #traceback { padding: 8px; margin-top: 10px; }
+	#reporter_body td, #reporter_body th { border-bottom: 0; font:small sans-serif; line-height: auto; }
+	#content { margin: 0; }
+	</style>
 	<style type="text/css">
 	#meta { border-top: 0; }
 	#meta th, #meta td { border: 0; padding: 8px; }
@@ -27,17 +25,29 @@
 {% block content_title %}{% endblock %}
 
 {% block content %}
-	{% if not has_traceback %}
-		{{ block.super }}
-	{% else %}
-		<table id="meta">
-			<colgroup>
-				<col style="width:15%"/>
-				<col style="width:35%"/>
-				<col style="width:15%"/>
-				<col style="width:35%"/>
-			</colgroup>
-
+	<table id="meta">
+		<colgroup>
+			<col style="width:15%"/>
+			<col style="width:35%"/>
+			<col style="width:15%"/>
+			<col style="width:35%"/>
+		</colgroup>
+		<tfoot>
+			<tr>
+				<td colspan="4">
+					{% if show_traceback %}
+						<a href="?raw">&rsaquo; View plain traceback information</a>
+					{% else %}
+						{% if has_traceback %}
+							<a href="./">&rsaquo; View interactive traceback information</a>
+						{% else %}
+							<em>Interactive traceback is not available for this message</em>
+						{% endif %}
+					{% endif %}
+				</td>
+			</tr>
+		</tfoot>
+		<tbody>
 			<tr>
 				<th>URL:</th>
 				<td><a href="{{ instance.url }}">{{ instance.url }}</a></td>
@@ -50,8 +60,11 @@
 				<th>Date:</th>
 				<td>{{ instance.datetime }}</td>
 			</tr>
-		</table>
-		<p><a href="?raw">View raw (standard) traceback information instead.</a></p>
+		</tbody>
+	</table>
+	{% if not show_traceback %}
+		{{ block.super }}
+	{% else %}
 		<div id="reporter_body">
 			{{ error_body }}
 		</div>

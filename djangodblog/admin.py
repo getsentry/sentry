@@ -161,7 +161,7 @@ class ErrorAdmin(EfficientModelAdmin):
     readonly_fields = ('logger', 'server_name', 'class_name', 'level', 'message', 'datetime')
     fieldsets       = (
         (None, {
-            'fields': ('url', 'logger', 'server_name', 'class_name', 'level', 'message', 'datetime', 'traceback')
+            'fields': ('logger', 'class_name', 'message', 'traceback')
         }),
     )
     
@@ -170,8 +170,10 @@ class ErrorAdmin(EfficientModelAdmin):
     
     def change_view(self, request, object_id, extra_context={}):
         obj = self.get_object(request, unquote(object_id))
-        has_traceback = getattr(settings, 'DBLOG_ENHANCED_TRACEBACKS', True) and bool('exc' in obj.data) and 'raw' not in request.GET
-        if has_traceback:
+        has_traceback = getattr(settings, 'DBLOG_ENHANCED_TRACEBACKS', True) \
+                and 'exc' in obj.data and 'META' in obj.data
+        show_traceback = has_traceback and 'raw' not in request.GET
+        if show_traceback:
             try:
                 extra_context.update(self.get_traceback_context(request, obj))
             except Exception:
@@ -180,6 +182,7 @@ class ErrorAdmin(EfficientModelAdmin):
                 has_traceback = False
         extra_context.update({
             'has_traceback': has_traceback,
+            'show_traceback': show_traceback,
             'instance': obj,
         })
         return super(ErrorAdmin, self).change_view(request, object_id, extra_context)
@@ -207,7 +210,7 @@ class ErrorAdmin(EfficientModelAdmin):
                 exc_type = type(obj.class_name, (Exception,), {})
         exc_value = exc_type(obj.message)
         exc_value.args = args
-    
+        
         fake_request = FakeRequest()
         fake_request.META = obj.data['META']
         fake_request.GET = obj.data['GET']
