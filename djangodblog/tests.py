@@ -230,7 +230,7 @@ class DBLogTestCase(TestCase):
 
         settings.DBLOG_DATABASE = None
     
-    def testCorrectUnicode(self):
+    def testIncorrectUnicode(self):
         self.setUpHandler()
         
         cnt = Error.objects.count()
@@ -256,11 +256,11 @@ class DBLogTestCase(TestCase):
         
         self.tearDownHandler()
 
-    def testIncorrectUnicode(self):
+    def testCorrectUnicode(self):
         self.setUpHandler()
         
         cnt = Error.objects.count()
-        value = u'רונית מגן'
+        value = 'רונית מגן'.decode('utf-8')
 
         error = Error.objects.create_from_text(value)
         self.assertEquals(Error.objects.count(), cnt+1)

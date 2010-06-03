@@ -19,7 +19,6 @@ from django.db import models
 from django.conf import settings
 from django.db.models import sql
 from django.utils.hashcompat import md5_constructor
-from django.utils.encoding import smart_unicode
 from django.db.models.query import QuerySet
 from django.views.debug import ExceptionReporter
 
@@ -43,9 +42,13 @@ class DBLogManager(models.Manager):
         
         server_name = socket.gethostname()
         class_name  = defaults.pop('class_name', None)
+        
+        message = defaults.get('traceback') or defaults['message']
+        if isinstance(message, unicode):
+            message = message.encode('ascii', 'replace')
         checksum    = md5_constructor(str(defaults.get('level', logging.FATAL)))
         checksum.update(class_name or '')
-        checksum.update(defaults.get('traceback') or defaults['message'])
+        checksum.update(message)
         checksum    = checksum.hexdigest()
 
         data = defaults.pop('data', {})
@@ -123,9 +126,13 @@ class DBLogManager(models.Manager):
                     nf[str(k)] = to_unicode(v)
                 f = nf
             elif isinstance(f, (list, tuple)):
-                f = [to_unicode(f) for f in f]
-            else:
-                f = unicode(f)
+                f = map(to_unicode, f)
+            elif not isinstance(f, basestring):
+                try:
+                    f = unicode(f)
+                except Exception, exc:
+                    # TODO: 
+                    pass
             return f
 
         reporter = ExceptionReporter(None, exc_type, exc_value, traceback)
@@ -136,7 +143,7 @@ class DBLogManager(models.Manager):
 
         tb_message = '\n'.join(traceback_mod.format_exception(exc_type, exc_value, traceback))
 
-        kwargs.setdefault('message', smart_unicode(exc_value))
+        kwargs.setdefault('message', to_unicode(exc_value))
 
         return self._create(
             class_name=exc_type.__name__,
