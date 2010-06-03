@@ -18,6 +18,7 @@ from django.conf import settings
 from django.db import models
 from django.conf import settings
 from django.db.models import sql
+from django.utils.encoding import smart_unicode
 from django.utils.hashcompat import md5_constructor
 from django.db.models.query import QuerySet
 from django.views.debug import ExceptionReporter
@@ -45,7 +46,7 @@ class DBLogManager(models.Manager):
         
         message = defaults.get('traceback') or defaults['message']
         if isinstance(message, unicode):
-            message = message.encode('ascii', 'replace')
+            message = message.encode('utf-8', 'replace')
         checksum    = md5_constructor(str(defaults.get('level', logging.FATAL)))
         checksum.update(class_name or '')
         checksum.update(message)
@@ -126,13 +127,9 @@ class DBLogManager(models.Manager):
                     nf[str(k)] = to_unicode(v)
                 f = nf
             elif isinstance(f, (list, tuple)):
-                f = map(to_unicode, f)
-            elif not isinstance(f, basestring):
-                try:
-                    f = unicode(f)
-                except Exception, exc:
-                    # TODO: 
-                    pass
+                f = [to_unicode(f) for f in f]
+            else:
+                f = smart_unicode(f)
             return f
 
         reporter = ExceptionReporter(None, exc_type, exc_value, traceback)

@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
 try:
@@ -64,7 +65,7 @@ class ErrorBatch(Model):
     shortened_url.admin_order_field = 'url'
 
     def error(self):
-        message = self.message
+        message = smart_unicode(self.message)
         if len(message) > 100:
             message = message[:97] + '...'
         if self.class_name:
@@ -93,7 +94,7 @@ class Error(Model):
         verbose_name_plural = 'Messages'
 
     def __unicode__(self):
-        return "%s: %s" % (self.class_name, self.message)
+        return "%s: %s" % (self.class_name, smart_unicode(self.message))
 
     def shortened_url(self):
         if not self.url:
@@ -106,7 +107,7 @@ class Error(Model):
     shortened_url.admin_order_field = 'url'
 
     def error(self):
-        message = self.message
+        message = smart_unicode(self.message)
         if len(message) > 100:
             message = message[:97] + '...'
         if self.class_name:
