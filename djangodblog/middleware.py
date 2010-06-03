@@ -9,10 +9,11 @@ __all__ = ('DBLogMiddleware',)
 class DBLogMiddleware(object):
     @transaction.commit_on_success
     def process_exception(self, request, exception):
-        if not getattr(settings, 'DBLOG_CATCH_404_ERRORS', False) and isinstance(exception, Http404):
+        if not getattr(settings, 'DBLOG_CATCH_404_ERRORS', False) \
+                and isinstance(exception, Http404):                
             return
 
-        if getattr(exception, 'skip_dblog', False):
+        if settings.DEBUG or getattr(exception, 'skip_dblog', False):
             return
 
         if transaction.is_dirty():
