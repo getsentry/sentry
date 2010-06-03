@@ -4,6 +4,7 @@ from django.contrib.admin.util import unquote
 from django.contrib.admin.views.main import ChangeList, Paginator
 from django.forms.util import flatatt
 from django.http import HttpResponse
+from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.encoding import force_unicode
 from django import forms
@@ -12,7 +13,6 @@ from djangodblog.models import ErrorBatch, Error
 from djangodblog.helpers import ImprovedExceptionReporter
 from djangodblog.utils import JSONDictFormField
 
-import cgi
 import base64
 import re
 import logging
@@ -32,7 +32,7 @@ class PreformattedText(forms.Textarea):
         if value != '':
             # Only add the 'value' attribute if a value is non-empty.
             value = force_unicode(value)
-        return mark_safe(u'<pre style="clear:left;display:block;padding-top:5px;white-space: pre-wrap;white-space: -moz-pre-wrap;white-space: -pre-wrap;white-space: -o-pre-wrap;word-wrap: break-word;">%s</pre>' % (value,))
+        return mark_safe(u'<pre style="clear:left;display:block;padding-top:5px;white-space: pre-wrap;white-space: -moz-pre-wrap;white-space: -pre-wrap;white-space: -o-pre-wrap;word-wrap: break-word;">%s</pre>' % (escape(value),))
 
 class Link(forms.TextInput):
     input_type = 'a'
@@ -42,7 +42,7 @@ class Link(forms.TextInput):
         if value != '':
             # Only add the 'value' attribute if a value is non-empty.
             value = force_unicode(value)
-        return mark_safe(u'<a href="%s">%s</a>' % (value, cgi.escape(value)))
+        return mark_safe(u'<a href="%s">%s</a>' % (value, escape(value)))
 
 class ErrorBatchAdminForm(forms.ModelForm):
     traceback = forms.CharField(widget=PreformattedText())
