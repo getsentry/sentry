@@ -19,7 +19,6 @@ from django.db import models
 from django.conf import settings
 from django.db.models import sql
 from django.utils.encoding import smart_unicode
-from django.utils.hashcompat import md5_constructor
 from django.db.models.query import QuerySet
 from django.views.debug import ExceptionReporter
 
@@ -44,14 +43,6 @@ class DBLogManager(models.Manager):
         server_name = socket.gethostname()
         class_name  = defaults.pop('class_name', None)
         
-        message = defaults.get('traceback') or defaults['message']
-        if isinstance(message, unicode):
-            message = message.encode('utf-8', 'replace')
-        checksum    = md5_constructor(str(defaults.get('level', logging.FATAL)))
-        checksum.update(class_name or '')
-        checksum.update(message)
-        checksum    = checksum.hexdigest()
-
         data = defaults.pop('data', {})
 
         try:
@@ -64,7 +55,7 @@ class DBLogManager(models.Manager):
             batch, created = ErrorBatch.objects.get_or_create(
                 class_name = class_name,
                 server_name = server_name,
-                checksum = checksum,
+                checksum = instance.checksum,
                 defaults = defaults
             )
             if not created:

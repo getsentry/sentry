@@ -14,13 +14,13 @@
 	#reporter_body #traceback { padding: 8px; margin-top: 10px; }
 	#reporter_body td, #reporter_body th { border-bottom: 0; font:small sans-serif; line-height: auto; }
 	#content { margin: 0; }
-	</style>
-	<style type="text/css">
-	#meta { border-top: 0; }
 	#meta th, #meta td { border: 0; padding: 8px; }
 	#meta th { text-align: left; }
 	.submit-row { display: none; }
+	.error-list h3 { padding: 0 8px; }
+	.error-list table { width: 100%; border: 1px solid #ddd; }
 	</style>
+	{% include "admin/djangodblog/partial/change_list_styles.html" %}
 {% endblock %}
 
 {% block content_title %}{% endblock %}
@@ -36,15 +36,7 @@
 		<tfoot>
 			<tr>
 				<td colspan="4">
-					{% if show_traceback %}
-						<a href="?raw">&rsaquo; View plain traceback information</a>
-					{% else %}
-						{% if has_traceback %}
-							<a href="./">&rsaquo; View interactive traceback information</a>
-						{% else %}
-							<em>Interactive traceback is not available for this message</em>
-						{% endif %}
-					{% endif %}
+					<em>Interactive tracebacks are not available when viewing summaries</em>
 				</td>
 			</tr>
 		</tfoot>
@@ -58,16 +50,38 @@
 			<tr>
 				<th>Server:</th>
 				<td><a href="../?server_name={{ instance.server_name }}">{{ instance.server_name }}</a></td>
-				<th>Date:</th>
-				<td>{{ instance.datetime }}</td>
+				<th>Last Seen:</th>
+				<td>{{ instance.last_seen }}</td>
 			</tr>
 		</tbody>
 	</table>
-	{% if not show_traceback %}
-		{{ block.super }}
-	{% else %}
-		<div id="reporter_body">
-			{{ error_body }}
+	{{ block.super }}
+	{% if recent_errors %}
+		<div id="meta" class="error-list">
+			<h3>Recent Errors</h3>
+			<table>
+				<thead>
+					<th>URL</th>
+					<th>Server name</th>
+					<th>Datetime</th>
+				</thead>
+				<tfoot>
+					<tr>
+						<td colspan="4">
+							<a href="../../error/?checksum={{ instance.checksum }}">&rsaquo; View all errors within this batch</a>
+						</td>
+					</tr>
+				</tfoot>
+				<tbody>
+					{% for error in recent_errors %}
+						<tr class="{% cycle 'row1' 'row2' %}">
+							<th><a href="{{ error.url }}">{{ error.url }}</a></th>
+							<td>{{ error.server_name }}</td>
+							<td>{{ error.datetime }}</td>
+						</tr>
+					{% endfor %}
+				</tbody>
+			</table>
 		</div>
 	{% endif %}
 {% endblock %}

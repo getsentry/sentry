@@ -133,10 +133,10 @@ class ErrorBatchAdmin(EfficientModelAdmin):
     ordering        = ('-last_seen',)
     actions         = ('resolve_errorbatch',)
     search_fields   = ('url', 'class_name', 'message', 'traceback', 'server_name')
-    readonly_fields = ('logger', 'server_name', 'class_name', 'level', 'message', 'times_seen', 'first_seen', 'last_seen')
+    readonly_fields = ('class_name', 'message', 'times_seen', 'first_seen')
     fieldsets       = (
         (None, {
-            'fields': ('url', 'logger', 'server_name', 'class_name', 'level', 'message', 'times_seen', 'first_seen', 'last_seen', 'traceback')
+            'fields': ('class_name', 'message', 'times_seen', 'first_seen', 'traceback')
         }),
     )
     
@@ -151,6 +151,15 @@ class ErrorBatchAdmin(EfficientModelAdmin):
         
     resolve_errorbatch.short_description = 'Resolve selected error summaries'
 
+    def change_view(self, request, object_id, extra_context={}):
+        obj = self.get_object(request, unquote(object_id))
+        recent_errors = Error.objects.filter(checksum=obj.checksum).order_by('-datetime')[0:5]
+        extra_context.update({
+            'instance': obj,
+            'recent_errors': recent_errors,
+        })
+        return super(ErrorBatchAdmin, self).change_view(request, object_id, extra_context)
+
 class ErrorAdmin(EfficientModelAdmin):
     form            = ErrorAdminForm
     list_display    = ('shortened_url', 'logger', 'level', 'server_name', 'datetime')
@@ -158,10 +167,10 @@ class ErrorAdmin(EfficientModelAdmin):
     list_filter     = ('level', 'datetime')
     ordering        = ('-id',)
     search_fields   = ('url', 'class_name', 'message', 'traceback', 'server_name')
-    readonly_fields = ('logger', 'server_name', 'class_name', 'level', 'message', 'datetime')
+    readonly_fields = ('class_name', 'message')
     fieldsets       = (
         (None, {
-            'fields': ('logger', 'class_name', 'message', 'traceback')
+            'fields': ('class_name', 'message', 'traceback')
         }),
     )
     

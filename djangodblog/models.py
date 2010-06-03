@@ -11,6 +11,7 @@ import datetime
 
 from djangodblog.manager import DBLogManager
 from djangodblog.utils import JSONDictField
+from djangodblog.helpers import construct_checksum
 
 __all__ = ('Error', 'ErrorBatch')
 
@@ -86,6 +87,7 @@ class Error(Model):
     url             = models.URLField(verify_exists=False, null=True, blank=True)
     data            = JSONDictField(blank=True, null=True)
     server_name     = models.CharField(max_length=128, db_index=True)
+    checksum        = models.CharField(max_length=32, db_index=True, null=True)
 
     objects         = DBLogManager()
 
@@ -117,3 +119,8 @@ class Error(Model):
 
     def get_absolute_url(self):
         return self.url
+    
+    def save(self, *args, **kwargs):
+        if not self.checksum:
+            self.checksum = construct_checksum(self)
+        super(Error, self).save(*args, **kwargs)
