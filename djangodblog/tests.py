@@ -53,8 +53,7 @@ class JSONDictTestCase(TestCase):
 
 class DBLogTestCase(TestCase):
     def setUp(self):
-        settings.DBLOG_DATABASE = None
-        settings.DBLOG_WITH_LOGGER = False
+        settings.DBLOG_DATABASE_USING = None
         self._handlers = None
         self._level = None
     
@@ -208,7 +207,7 @@ class DBLogTestCase(TestCase):
         self.assertEquals(last.message, 'This is an error')
         
     def testAlternateDatabase(self):
-        settings.DBLOG_USING = 'default'
+        settings.DBLOG_DATABASE_USING = 'default'
         
         Error.objects.all().delete()
         ErrorBatch.objects.all().delete()

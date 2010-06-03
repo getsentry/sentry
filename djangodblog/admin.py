@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.contrib import admin
+from django.contrib.admin.filterspecs import AllValuesFilterSpec, FilterSpec
 from django.contrib.admin.util import unquote
 from django.contrib.admin.views.main import ChangeList, Paginator
 from django.forms.util import flatatt
@@ -23,6 +24,68 @@ except ImportError:
     import pickle
 
 logger = logging.getLogger('dblog')
+
+# Custom admin and pagination clauses for efficiency
+
+class EfficientPaginator(Paginator):
+    def _get_count(self):
+        # because who really cares if theres a next page or not in the admin?
+        return 10000000000000
+    count = property(_get_count)
+
+class EfficientChangeList(ChangeList):
+    def get_results(self, request):
+        paginator = EfficientPaginator(self.query_set, self.list_per_page)
+        # Get the number of objects, with admin filters applied.
+        result_count = paginator.count
+        
+        multi_page = result_count > self.list_per_page
+
+        result_count = ''
+
+        # Get the list of objects to display on this page.
+        try:
+            result_list = paginator.page(self.page_num+1).object_list
+        except InvalidPage:
+            result_list = ()
+
+        self.full_result_count = result_count
+        self.result_count = result_count
+        self.result_list = result_list
+        self.can_show_all = False
+        self.multi_page = multi_page
+        self.paginator = paginator
+
+class EfficientModelAdmin(admin.ModelAdmin):
+    def get_changelist(self, request, **kwargs):
+        return EfficientChangeList
+
+class EfficientAllValuesFilterSpec(AllValuesFilterSpec):
+    def __init__(self, f, request, params, model, model_admin):
+        super(AllValuesFilterSpec, self).__init__(f, request, params, model, model_admin)
+        self.lookup_val = request.GET.get(f.name, None)
+        self.lookup_choices = model_admin.queryset(request).distinct().order_by(f.name).values_list(f.name, flat=True)
+
+    def title(self):
+        return self.field.verbose_name
+
+    def choices(self, cl):
+        yield {'selected': self.lookup_val is None,
+               'query_string': cl.get_query_string({}, [self.field.name]),
+               'display': _('All')}
+        for val in self.lookup_choices:
+            val = smart_unicode(val)
+            yield {'selected': self.lookup_val == val,
+                   'query_string': cl.get_query_string({self.field.name: val}),
+                   'display': val}
+FilterSpec.filter_specs.insert(-1, (lambda f: f.model._meta.app_label == 'djangodblog', EfficientAllValuesFilterSpec))
+
+UNDEFINED = object()
+
+class FakeRequest(object):
+    def build_absolute_uri(self): return self.url
+    
+# Custom forms/fields for the admin
 
 class PreformattedText(forms.Textarea):
     input_type = 'textarea'
@@ -60,43 +123,7 @@ class ErrorAdminForm(forms.ModelForm):
         fields = ('url', 'logger', 'server_name', 'class_name', 'level', 'message', 'datetime', 'traceback')
         model = ErrorBatch
 
-class EfficientPaginator(Paginator):
-    def _get_count(self):
-        # because who really cares if theres a next page or not in the admin?
-        return 10000000000000
-    count = property(_get_count)
-
-class EfficientChangeList(ChangeList):
-    def get_results(self, request):
-        paginator = EfficientPaginator(self.query_set, self.list_per_page)
-        # Get the number of objects, with admin filters applied.
-        result_count = paginator.count
-        
-        multi_page = result_count > self.list_per_page
-
-        result_count = ''
-
-        # Get the list of objects to display on this page.
-        try:
-            result_list = paginator.page(self.page_num+1).object_list
-        except InvalidPage:
-            result_list = ()
-
-        self.full_result_count = result_count
-        self.result_count = result_count
-        self.result_list = result_list
-        self.can_show_all = False
-        self.multi_page = multi_page
-        self.paginator = paginator
-
-class EfficientModelAdmin(admin.ModelAdmin):
-    def get_changelist(self, request, **kwargs):
-        return EfficientChangeList
-
-UNDEFINED = object()
-
-class FakeRequest(object):
-    def build_absolute_uri(self): return self.url
+# Actual admin modules
 
 class ErrorBatchAdmin(EfficientModelAdmin):
     form            = ErrorBatchAdminForm

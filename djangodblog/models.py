@@ -38,8 +38,8 @@ class ErrorBatch(Model):
     # XXX: We're using the legacy column for `is_resolved` for status
     status          = models.PositiveIntegerField(default=0, db_column="is_resolved", choices=STATUS_LEVELS)
     times_seen      = models.PositiveIntegerField(default=1)
-    last_seen       = models.DateTimeField(default=datetime.datetime.now)
-    first_seen      = models.DateTimeField(default=datetime.datetime.now)
+    last_seen       = models.DateTimeField(default=datetime.datetime.now, db_index=True)
+    first_seen      = models.DateTimeField(default=datetime.datetime.now, db_index=True)
     url             = models.URLField(verify_exists=False, null=True, blank=True)
     server_name     = models.CharField(max_length=128, db_index=True)
     checksum        = models.CharField(max_length=32, db_index=True)
@@ -78,11 +78,11 @@ class ErrorBatch(Model):
 
 class Error(Model):
     logger          = models.CharField(max_length=64, blank=True, default='root', db_index=True)
-    class_name      = models.CharField(_('type'), max_length=128, blank=True, null=True)
+    class_name      = models.CharField(_('type'), max_length=128, blank=True, null=True, db_index=True)
     level           = models.PositiveIntegerField(choices=LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
     message         = models.TextField()
     traceback       = models.TextField(blank=True, null=True)
-    datetime        = models.DateTimeField(default=datetime.datetime.now)
+    datetime        = models.DateTimeField(default=datetime.datetime.now, db_index=True)
     url             = models.URLField(verify_exists=False, null=True, blank=True)
     data            = JSONDictField(blank=True, null=True)
     server_name     = models.CharField(max_length=128, db_index=True)
