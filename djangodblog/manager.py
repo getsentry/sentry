@@ -74,7 +74,10 @@ class DBLogManager(models.Manager):
                     last_seen=datetime.datetime.now(),
                 )
         except Exception, exc:
-            logger.exception(exc)
+            try:
+                logger.exception(exc)
+            except Exception, exc:
+                warnings.warn(u'Unable to process log entry: %s' % (exc,))
         else:
             return instance
     
