@@ -79,7 +79,7 @@ class DBLogManager(models.Manager):
         """
         Creates an error log for a `logging` module `record` instance.
         """
-        for k in ('url',):
+        for k in ('url', 'data'):
             if k not in kwargs:
                 kwargs[k] = record.__dict__.get(k)
         kwargs.update({
