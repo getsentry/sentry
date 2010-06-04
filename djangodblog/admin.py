@@ -3,11 +3,13 @@ from django.contrib import admin
 from django.contrib.admin.filterspecs import AllValuesFilterSpec, FilterSpec
 from django.contrib.admin.util import unquote
 from django.contrib.admin.views.main import ChangeList, Paginator
+from django.core.cache import cache
 from django.forms.util import flatatt
 from django.http import HttpResponse
+from django.utils.encoding import force_unicode, smart_unicode
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
-from django.utils.encoding import force_unicode
+from django.utils.translation import ugettext_lazy as _
 from django import forms
 
 from djangodblog.models import ErrorBatch, Error
@@ -60,11 +62,15 @@ class EfficientModelAdmin(admin.ModelAdmin):
     def get_changelist(self, request, **kwargs):
         return EfficientChangeList
 
-class EfficientAllValuesFilterSpec(AllValuesFilterSpec):
+class CachedAllValuesFilterSpec(AllValuesFilterSpec):
     def __init__(self, f, request, params, model, model_admin):
         super(AllValuesFilterSpec, self).__init__(f, request, params, model, model_admin)
         self.lookup_val = request.GET.get(f.name, None)
-        self.lookup_choices = model_admin.queryset(request).distinct().order_by(f.name).values_list(f.name, flat=True)
+        cache_key = 'admin_filters_%s_%s' % (model.__name__, f.name)
+        self.lookup_choices = cache.get(cache_key)
+        if self.lookup_choices is None:
+            self.lookup_choices = list(model_admin.queryset(request).distinct().order_by(f.name).values_list(f.name, flat=True))
+            cache.set(cache_key, self.lookup_choices, 60*5)
 
     def title(self):
         return self.field.verbose_name
@@ -78,7 +84,7 @@ class EfficientAllValuesFilterSpec(AllValuesFilterSpec):
             yield {'selected': self.lookup_val == val,
                    'query_string': cl.get_query_string({self.field.name: val}),
                    'display': val}
-FilterSpec.filter_specs.insert(-1, (lambda f: f.model._meta.app_label == 'djangodblog', EfficientAllValuesFilterSpec))
+FilterSpec.filter_specs.insert(-1, (lambda f: f.model._meta.app_label == 'djangodblog', CachedAllValuesFilterSpec))
 
 UNDEFINED = object()
 
@@ -129,7 +135,7 @@ class ErrorBatchAdmin(EfficientModelAdmin):
     form            = ErrorBatchAdminForm
     list_display    = ('shortened_url', 'logger', 'level', 'server_name', 'times_seen', 'last_seen')
     list_display_links = ('shortened_url',)
-    list_filter     = ('status', 'level', 'last_seen')
+    list_filter     = ('status', 'server_name', 'logger', 'level', 'last_seen')
     ordering        = ('-last_seen',)
     actions         = ('resolve_errorbatch',)
     search_fields   = ('url', 'class_name', 'message', 'traceback', 'server_name')
@@ -164,7 +170,7 @@ class ErrorAdmin(EfficientModelAdmin):
     form            = ErrorAdminForm
     list_display    = ('shortened_url', 'logger', 'level', 'server_name', 'datetime')
     list_display_links = ('shortened_url',)
-    list_filter     = ('level', 'datetime')
+    list_filter     = ('server_name', 'logger', 'level', 'datetime')
     ordering        = ('-id',)
     search_fields   = ('url', 'class_name', 'message', 'traceback', 'server_name')
     readonly_fields = ('class_name', 'message')
