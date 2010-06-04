@@ -31,8 +31,8 @@ class DBLogManager(models.Manager):
 
     def get_query_set(self):
         qs = super(DBLogManager, self).get_query_set()
-        if DBLOG_DATABASE_USING:
-            qs = qs.using(DBLOG_DATABASE_USING)
+        if DATABASE_USING:
+            qs = qs.using(DATABASE_USING)
         return qs
 
     def _create(self, **defaults):

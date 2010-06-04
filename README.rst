@@ -26,7 +26,7 @@ Review the diff, then make any changes which appear necessary.
 Notable Changes
 ###############
 
-* 2.0 Added `checksum` column to Error. Several indexes were created. Checksum calculation slightly changed.
+* 2.0.0 Added `checksum` column to Error. Several indexes were created. Checksum calculation slightly changed.
 * 1.4.0 Added `logger` column to both Error and ErrorBatch. `traceback` and `class_name` are now nullable.
 * 1.3.0 Added `level` column to both Error and ErrorBatch.
 
@@ -110,6 +110,14 @@ Enables showing full embedded (enhanced) tracebacks within the administration fo
 	DBLOG_ENHANCED_TRACEBACKS = False
 
 * Note: Even if you disable displaying of enhanced tracebacks, dblog will still store the entire exception stacktrace.
+
+#############
+DBLOG_LOGGING
+#############
+
+Enabling this setting will turn off automatic database logging with the middleware, and instead send all exceptions to the named logger ``dblog``. Use this in conjuction with ``djangodblog.handlers.DBLogHandler`` or your own handler to tweak how logging is dealt with.
+
+A good example use case for this, is if you want to write to something like a syslog ahead of time, and later process that into the database with another tool.
 
 ############################
 Integration with ``logging``

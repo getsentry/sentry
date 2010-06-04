@@ -4,6 +4,8 @@ from django.http import Http404
 from djangodblog.models import Error
 from djangodblog.settings import *
 
+import logging
+
 __all__ = ('DBLogMiddleware',)
 
 class DBLogMiddleware(object):
@@ -19,9 +21,16 @@ class DBLogMiddleware(object):
         if transaction.is_dirty():
             transaction.rollback()
 
-        Error.objects.create_from_exception(url=request.build_absolute_uri(), data=dict(
-            META=request.META,
-            POST=request.POST,
-            GET=request.GET,
-            COOKIES=request.COOKIES,
-        ))
+        extra = dict(
+            url=request.build_absolute_uri(), data=dict(
+                META=request.META,
+                POST=request.POST,
+                GET=request.GET,
+                COOKIES=request.COOKIES,
+            )
+        )
+
+        if USE_LOGGING:
+            logging.getLogger('dblog').exception(exception, extra=extra)
+        else:
+            Error.objects.create_from_exception(**extra)        
