@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.contrib import admin
 from django.contrib.admin.filterspecs import AllValuesFilterSpec, FilterSpec
 from django.contrib.admin.util import unquote
@@ -14,6 +13,7 @@ from django import forms
 
 from djangodblog.models import ErrorBatch, Error
 from djangodblog.helpers import ImprovedExceptionReporter
+from djangodblog.settings import *
 from djangodblog.utils import JSONDictFormField
 
 import base64
@@ -185,7 +185,7 @@ class ErrorAdmin(EfficientModelAdmin):
     
     def change_view(self, request, object_id, extra_context={}):
         obj = self.get_object(request, unquote(object_id))
-        has_traceback = getattr(settings, 'DBLOG_ENHANCED_TRACEBACKS', True) \
+        has_traceback = ENHANCED_TRACEBACKS \
                 and 'exc' in obj.data and 'META' in obj.data
         show_traceback = has_traceback and 'raw' not in request.GET
         if show_traceback:

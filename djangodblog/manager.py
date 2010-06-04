@@ -14,17 +14,15 @@ try:
 except ImportError:
     import pickle
 
-from django.conf import settings
 from django.db import models
-from django.conf import settings
 from django.db.models import sql
-from django.utils.encoding import smart_unicode
 from django.db.models.query import QuerySet
+from django.utils.encoding import smart_unicode
 from django.views.debug import ExceptionReporter
 
-DBLOG_DATABASE_USING = getattr(settings, 'DBLOG_DATABASE_USING', None)
+from djangodblog.settings import *
 
-assert not DBLOG_DATABASE_USING or django.VERSION >= (1, 2), 'The `DBLOG_DATABASE_USING` setting requires Django >= 1.2'
+assert not DATABASE_USING or django.VERSION >= (1, 2), 'The `DBLOG_DATABASE_USING` setting requires Django >= 1.2'
 
 logger = logging.getLogger('dblog')
 

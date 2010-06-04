@@ -1,15 +1,15 @@
-from django.conf import settings
+from django.db import transaction
 from django.http import Http404
 
 from djangodblog.models import Error
-from django.db import transaction
+from djangodblog.settings import *
 
 __all__ = ('DBLogMiddleware',)
 
 class DBLogMiddleware(object):
     @transaction.commit_on_success
     def process_exception(self, request, exception):
-        if not getattr(settings, 'DBLOG_CATCH_404_ERRORS', False) \
+        if not CATCH_404_ERRORS \
                 and isinstance(exception, Http404):                
             return
 
