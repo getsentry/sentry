@@ -20,9 +20,9 @@ from django.db.models.query import QuerySet
 from django.utils.encoding import smart_unicode
 from django.views.debug import ExceptionReporter
 
-from djangodblog.settings import *
+from djangodblog import settings
 
-assert not DATABASE_USING or django.VERSION >= (1, 2), 'The `DBLOG_DATABASE_USING` setting requires Django >= 1.2'
+assert not settings.DATABASE_USING or django.VERSION >= (1, 2), 'The `DBLOG_DATABASE_USING` setting requires Django >= 1.2'
 
 logger = logging.getLogger('dblog')
 
@@ -31,8 +31,8 @@ class DBLogManager(models.Manager):
 
     def get_query_set(self):
         qs = super(DBLogManager, self).get_query_set()
-        if DATABASE_USING:
-            qs = qs.using(DATABASE_USING)
+        if settings.DATABASE_USING:
+            qs = qs.using(settings.DATABASE_USING)
         return qs
 
     def _create(self, **defaults):

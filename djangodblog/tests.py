@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 
+from django.core.handlers.wsgi import WSGIRequest
+from django.db import models
 from django.test.client import Client
 from django.test import TestCase
-from django.core.handlers.wsgi import WSGIRequest
-from django.conf import settings
-from django.db import models
 from django.utils.encoding import smart_unicode
 
-from djangodblog.models import Error, ErrorBatch
 from djangodblog.middleware import DBLogMiddleware
+from djangodblog.models import Error, ErrorBatch
 from djangodblog.utils import JSONDictField
+from djangodblog import settings
 
 import logging
 import sys
@@ -53,7 +53,7 @@ class JSONDictTestCase(TestCase):
 
 class DBLogTestCase(TestCase):
     def setUp(self):
-        settings.DBLOG_DATABASE_USING = None
+        settings.DATABASE_USING = None
         self._handlers = None
         self._level = None
     
@@ -207,7 +207,7 @@ class DBLogTestCase(TestCase):
         self.assertEquals(last.message, 'This is an error')
         
     def testAlternateDatabase(self):
-        settings.DBLOG_DATABASE_USING = 'default'
+        settings.DATABASE_USING = 'default'
         
         Error.objects.all().delete()
         ErrorBatch.objects.all().delete()
@@ -227,7 +227,7 @@ class DBLogTestCase(TestCase):
         self.assertEquals(last.level, logging.ERROR)
         self.assertEquals(last.message, smart_unicode(exc))
 
-        settings.DBLOG_DATABASE = None
+        settings.DATABASE_USING = None
     
     def testIncorrectUnicode(self):
         self.setUpHandler()
@@ -286,3 +286,42 @@ class DBLogTestCase(TestCase):
         error = Error.objects.create_from_text('hello world', url='a'*210)
         self.assertEquals(error.url, 'a'*200)
         self.assertEquals(error.data['url'], 'a'*210)
+    
+    def testUseLogging(self):
+        Error.objects.all().delete()
+        ErrorBatch.objects.all().delete()
+        
+        request = RF.get("/", REMOTE_ADDR="127.0.0.1:8000")
+
+        try:
+            Error.objects.get(id=999999999)
+        except Error.DoesNotExist, exc:
+            DBLogMiddleware().process_exception(request, exc)
+        else:
+            self.fail('Unable to create `Error` entry.')
+        
+        cur = (Error.objects.count(), ErrorBatch.objects.count())
+        self.assertEquals(cur, (1, 1), 'Assumed logs failed to save. %s' % (cur,))
+        last = Error.objects.all().order_by('-id')[0:1].get()
+        self.assertEquals(last.logger, 'root')
+        self.assertEquals(last.class_name, 'DoesNotExist')
+        self.assertEquals(last.level, logging.ERROR)
+        self.assertEquals(last.message, smart_unicode(exc))
+        
+        settings.USE_LOGGING = True
+        
+        logger = logging.getLogger('dblog')
+        for h in logger.handlers:
+            logger.removeHandler(h)
+        
+        try:
+            Error.objects.get(id=999999999)
+        except Error.DoesNotExist, exc:
+            DBLogMiddleware().process_exception(request, exc)
+        else:
+            self.fail('Unable to create `Error` entry.')
+        
+        cur = (Error.objects.count(), ErrorBatch.objects.count())
+        self.assertEquals(cur, (1, 1), 'Assumed logs failed to save. %s' % (cur,))
+        
+        settings.USE_LOGGING = False
