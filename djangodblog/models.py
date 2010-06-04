@@ -62,9 +62,14 @@ class ErrorBatch(Model):
         if len(url) > 60:
             url = url[:60] + '...'
         return url
-    shortened_url.short_description = "URL"
+    shortened_url.short_description = 'URL'
     shortened_url.admin_order_field = 'url'
-
+    
+    def full_url(self):
+        return self.data.get('url') or self.url
+    full_url.short_description = 'URL'
+    full_url.admin_order_field = 'url'
+    
     def error(self):
         message = smart_unicode(self.message)
         if len(message) > 100:
@@ -105,8 +110,13 @@ class Error(Model):
         if len(url) > 60:
             url = url[:60] + '...'
         return url
-    shortened_url.short_description = "URL"
+    shortened_url.short_description = 'URL'
     shortened_url.admin_order_field = 'url'
+    
+    def full_url(self):
+        return self.data.get('url') or self.url
+    full_url.short_description = 'URL'
+    full_url.admin_order_field = 'url'
 
     def error(self):
         message = smart_unicode(self.message)

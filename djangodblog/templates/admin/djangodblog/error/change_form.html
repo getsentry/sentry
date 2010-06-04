@@ -51,7 +51,7 @@
 		<tbody>
 			<tr>
 				<th>URL:</th>
-				<td><a href="{{ instance.url }}">{{ instance.url }}</a></td>
+				<td>{% if instance.url %}<a href="{{ instance.full_url }}">{{ instance.full_url }}</a>{% else %}<em>Not available</em>{% endif %}</td>
 				<th>Level:</th>
 				<td><a href="../?level={{ instance.level }}">{{ instance.get_level_display }}</a> (<a href="../?logger={{ instance.logger }}">{{ instance.logger }}</a>, <a href="../?logger={{ instance.logger }}&amp;level={{ instance.level }}">{{ instance.logger }}:{{ instance.get_level_display }}</a>)</td>
 			</tr>

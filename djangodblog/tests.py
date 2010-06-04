@@ -280,3 +280,9 @@ class DBLogTestCase(TestCase):
         self.assertEquals(Error.objects.count(), cnt+5)
         
         self.tearDownHandler()
+    
+    def testLongURLs(self):
+        # Fix: #6 solves URLs > 200 characters
+        error = Error.objects.create_from_text('hello world', url='a'*210)
+        self.assertEquals(error.url, 'a'*200)
+        self.assertEquals(error.data['url'], 'a'*210)

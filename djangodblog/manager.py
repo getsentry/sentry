@@ -38,10 +38,15 @@ class DBLogManager(models.Manager):
     def _create(self, **defaults):
         from models import Error, ErrorBatch
         
+        URL_MAX_LENGTH = Error._meta.get_field_by_name('url')[0].max_length
+        
         server_name = socket.gethostname()
         class_name  = defaults.pop('class_name', None)
         
         data = defaults.pop('data', {})
+        if defaults.get('url'):
+            data['url'] = defaults['url']
+            defaults['url'] = defaults['url'][:URL_MAX_LENGTH]
 
         try:
             instance = Error.objects.create(
