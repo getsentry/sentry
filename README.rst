@@ -26,6 +26,7 @@ Review the diff, then make any changes which appear necessary.
 Notable Changes
 ###############
 
+* 2.0 Added `checksum` column to Error. Several indexes were created. Checksum calculation slightly changed.
 * 1.4.0 Added `logger` column to both Error and ErrorBatch. `traceback` and `class_name` are now nullable.
 * 1.3.0 Added `level` column to both Error and ErrorBatch.
 
