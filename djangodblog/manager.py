@@ -14,6 +14,7 @@ try:
 except ImportError:
     import pickle
 
+from django.core.cache import cache
 from django.db import models
 from django.db.models import sql
 from django.db.models.query import QuerySet
@@ -21,6 +22,7 @@ from django.utils.encoding import smart_unicode
 from django.views.debug import ExceptionReporter
 
 from djangodblog import settings
+from djangodblog.helpers import construct_checksum
 
 assert not settings.DATABASE_USING or django.VERSION >= (1, 2), 'The `DBLOG_DATABASE_USING` setting requires Django >= 1.2'
 
@@ -43,18 +45,26 @@ class DBLogManager(models.Manager):
         server_name = socket.gethostname()
         class_name  = defaults.pop('class_name', None)
         
-        data = defaults.pop('data', {})
+        data = defaults.pop('data', {}) or {}
         if defaults.get('url'):
             data['url'] = defaults['url']
             defaults['url'] = defaults['url'][:URL_MAX_LENGTH]
 
+        instance = Error(
+            class_name=class_name,
+            server_name=server_name,
+            data=data,
+            **defaults
+        )
+        instance.checksum = construct_checksum(instance)
+        
+        cache_key = 'djangodblog:%s:%s' % (instance.class_name, instance.checksum)
+        added = cache.add(cache_key, 1, settings.THRASHING_TIMEOUT)
+        if not added and cache.incr(cache_key) > settings.THRASHING_LIMIT:
+            return
+
         try:
-            instance = Error.objects.create(
-                class_name=class_name,
-                server_name=server_name,
-                data=data,
-                **defaults
-            )
+            instance.save()
             batch, created = ErrorBatch.objects.get_or_create(
                 class_name = class_name,
                 server_name = server_name,
@@ -132,7 +142,7 @@ class DBLogManager(models.Manager):
         reporter = ExceptionReporter(None, exc_type, exc_value, traceback)
         frames = reporter.get_traceback_frames()
 
-        data = kwargs.pop('data', {})
+        data = kwargs.pop('data', {}) or {}
         data['exc'] = base64.b64encode(pickle.dumps(map(to_unicode, [exc_type.__class__.__module__, exc_value.args, frames])).encode('zlib'))
 
         tb_message = '\n'.join(traceback_mod.format_exception(exc_type, exc_value, traceback))

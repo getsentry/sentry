@@ -56,6 +56,7 @@ class DBLogTestCase(TestCase):
         settings.DATABASE_USING = None
         self._handlers = None
         self._level = None
+        settings.DEBUG = False
     
     def tearDown(self):
         self.tearDownHandler()
@@ -325,3 +326,12 @@ class DBLogTestCase(TestCase):
         self.assertEquals(cur, (1, 1), 'Assumed logs failed to save. %s' % (cur,))
         
         settings.USE_LOGGING = False
+    
+    def testThrashing(self):
+        Error.objects.all().delete()
+        ErrorBatch.objects.all().delete()
+        
+        for i in range(0, 50):
+            Error.objects.create_from_text('hi')
+        
+        self.assertEquals(Error.objects.count(), settings.THRASHING_LIMIT)
