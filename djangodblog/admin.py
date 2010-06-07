@@ -38,11 +38,6 @@ class EfficientPaginator(Paginator):
 class EfficientChangeList(ChangeList):
     def get_results(self, request):
         paginator = EfficientPaginator(self.query_set, self.list_per_page)
-        # Get the number of objects, with admin filters applied.
-        result_count = paginator.count
-        
-        multi_page = result_count > self.list_per_page
-
         result_count = ''
 
         # Get the list of objects to display on this page.
@@ -55,7 +50,7 @@ class EfficientChangeList(ChangeList):
         self.result_count = result_count
         self.result_list = result_list
         self.can_show_all = False
-        self.multi_page = multi_page
+        self.multi_page = True
         self.paginator = paginator
 
 class EfficientModelAdmin(admin.ModelAdmin):
@@ -71,6 +66,16 @@ class CachedAllValuesFilterSpec(AllValuesFilterSpec):
         if self.lookup_choices is None:
             self.lookup_choices = list(model_admin.queryset(request).distinct().order_by(f.name).values_list(f.name, flat=True))
             cache.set(cache_key, self.lookup_choices, 60*5)
+
+    def choices(self, cl):
+        yield {'selected': self.lookup_val is None,
+               'query_string': cl.get_query_string({}, [self.field.name]),
+               'display': _('All')}
+        for val in self.lookup_choices:
+            val = smart_unicode(val)
+            yield {'selected': self.lookup_val == val,
+                   'query_string': cl.get_query_string({self.field.name: val}),
+                   'display': val}
 FilterSpec.filter_specs.insert(-1, (lambda f: f.model._meta.app_label == 'djangodblog', CachedAllValuesFilterSpec))
 
 UNDEFINED = object()
