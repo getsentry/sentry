@@ -71,19 +71,6 @@ class CachedAllValuesFilterSpec(AllValuesFilterSpec):
         if self.lookup_choices is None:
             self.lookup_choices = list(model_admin.queryset(request).distinct().order_by(f.name).values_list(f.name, flat=True))
             cache.set(cache_key, self.lookup_choices, 60*5)
-
-    def title(self):
-        return self.field.verbose_name
-
-    def choices(self, cl):
-        yield {'selected': self.lookup_val is None,
-               'query_string': cl.get_query_string({}, [self.field.name]),
-               'display': _('All')}
-        for val in self.lookup_choices:
-            val = smart_unicode(val)
-            yield {'selected': self.lookup_val == val,
-                   'query_string': cl.get_query_string({self.field.name: val}),
-                   'display': val}
 FilterSpec.filter_specs.insert(-1, (lambda f: f.model._meta.app_label == 'djangodblog', CachedAllValuesFilterSpec))
 
 UNDEFINED = object()
