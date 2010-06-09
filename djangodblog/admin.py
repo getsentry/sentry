@@ -3,8 +3,6 @@ from django.contrib.admin.filterspecs import AllValuesFilterSpec, FilterSpec
 from django.contrib.admin.util import unquote
 from django.contrib.admin.views.main import ChangeList, Paginator
 from django.core.cache import cache
-from django.forms.util import flatatt
-from django.http import HttpResponse
 from django.utils.encoding import force_unicode, smart_unicode
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
@@ -14,7 +12,6 @@ from django import forms
 from djangodblog.models import ErrorBatch, Error
 from djangodblog.helpers import ImprovedExceptionReporter
 from djangodblog.settings import *
-from djangodblog.utils import JSONDictFormField
 
 import base64
 import re

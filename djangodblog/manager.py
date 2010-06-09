@@ -16,8 +16,6 @@ except ImportError:
 
 from django.core.cache import cache
 from django.db import models
-from django.db.models import sql
-from django.db.models.query import QuerySet
 from django.utils.encoding import smart_unicode
 from django.views.debug import ExceptionReporter
 

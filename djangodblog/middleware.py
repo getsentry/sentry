@@ -1,4 +1,3 @@
-from django.core.cache import cache
 from django.conf import settings as dj_settings
 from django.db import transaction
 from django.http import Http404
