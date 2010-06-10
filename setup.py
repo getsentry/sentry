@@ -2,11 +2,9 @@
 
 from setuptools import setup, find_packages
 
-import djangodblog
-
 setup(
     name='django-db-log',
-    version='.'.join(map(str, djangodblog.__version__)),
+    version='.'.join(map(str, __import__('djangodblog').__version__)),
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/django-db-log',
