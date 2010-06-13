@@ -123,7 +123,7 @@ A good example use case for this, is if you want to write to something like a sy
 Integration with ``logging``
 ############################
 
-django-db-log supports the ability to directly tie into the ``logging`` module. To use it simply add ``DBLogHandler`` to your logger:
+django-db-log supports the ability to directly tie into the ``logging`` module. To use it simply add ``DBLogHandler`` to your logger::
 
 	import logging
 	from djangodblog.handlers import DBLogHandler
