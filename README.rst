@@ -26,6 +26,7 @@ Review the diff, then make any changes which appear necessary.
 Notable Changes
 ###############
 
+* 2.1.0 There is no longer a middleware. Instead, we use a fallback exception handler which catches all.
 * 2.0.0 Added `checksum` column to Error. Several indexes were created. Checksum calculation slightly changed.
 * 1.4.0 Added `logger` column to both Error and ErrorBatch. `traceback` and `class_name` are now nullable.
 * 1.3.0 Added `level` column to both Error and ErrorBatch.
@@ -42,16 +43,7 @@ OR, if you're not quite on the same page (work on that), with setuptools::
 
 	easy_install django-db-log
 
-Once installed, update your settings.py and add the middleware and installed apps settings::
-
-	MIDDLEWARE_CLASSES = (
-	    'django.middleware.common.CommonMiddleware',
-	    'django.contrib.sessions.middleware.SessionMiddleware',
-	    'django.contrib.auth.middleware.AuthenticationMiddleware',
-	    # placement is important
-	    'djangodblog.middleware.DBLogMiddleware',
-	    ...
-	)
+Once installed, update your settings.py and add dblog to ``INSTALLED_APPS``::
 
 	INSTALLED_APPS = (
 	    'django.contrib.admin',
@@ -115,7 +107,7 @@ Enables showing full embedded (enhanced) tracebacks within the administration fo
 DBLOG_LOGGING
 #############
 
-Enabling this setting will turn off automatic database logging with the middleware, and instead send all exceptions to the named logger ``dblog``. Use this in conjuction with ``djangodblog.handlers.DBLogHandler`` or your own handler to tweak how logging is dealt with.
+Enabling this setting will turn off automatic database logging within the exception handler, and instead send all exceptions to the named logger ``dblog``. Use this in conjuction with ``djangodblog.handlers.DBLogHandler`` or your own handler to tweak how logging is dealt with.
 
 A good example use case for this, is if you want to write to something like a syslog ahead of time, and later process that into the database with another tool.
 
@@ -155,7 +147,7 @@ If you wish to access these within your own views and models, you may do so via 
 	# Pull the last 10 unresolved errors.
 	ErrorBatch.objects.filter(status=0).order_by('-last_seen')[0:10]
 
-You can also record errors outside of middleware if you want::
+You can also record errors outside of handler if you want::
 
 	from djangodblog.models import Error
 	

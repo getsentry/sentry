@@ -158,7 +158,7 @@ class DBLogTestCase(TestCase):
         try:
             Error.objects.get(id=999999999)
         except Error.DoesNotExist, exc:
-            DBLogMiddleware().process_exception(request, exc)
+            ErrorBatch.handle_exception(request=request, sender=self)
         else:
             self.fail('Unable to create `Error` entry.')
         
@@ -297,7 +297,7 @@ class DBLogTestCase(TestCase):
         try:
             Error.objects.get(id=999999999)
         except Error.DoesNotExist, exc:
-            DBLogMiddleware().process_exception(request, exc)
+            ErrorBatch.handle_exception(request=request, sender=self)
         else:
             self.fail('Unable to create `Error` entry.')
         
@@ -318,7 +318,7 @@ class DBLogTestCase(TestCase):
         try:
             Error.objects.get(id=999999999)
         except Error.DoesNotExist, exc:
-            DBLogMiddleware().process_exception(request, exc)
+            ErrorBatch.handle_exception(request=request, sender=self)
         else:
             self.fail('Unable to create `Error` entry.')
         

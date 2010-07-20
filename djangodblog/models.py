@@ -1,21 +1,25 @@
-from django.db import models
+from django.conf import settings as dj_settings
+from django.db import models, transaction
+from django.core.signals import got_request_exception
+from django.http import Http404
 from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
+
+from djangodblog import settings
+from djangodblog.manager import DBLogManager
+from djangodblog.utils import JSONDictField
+from djangodblog.helpers import construct_checksum
+
+import datetime
+import logging
+import sys
 
 try:
     from idmapper.models import SharedMemoryModel as Model
 except ImportError:
     Model = models.Model
 
-import datetime
-
-from djangodblog.manager import DBLogManager
-from djangodblog.utils import JSONDictField
-from djangodblog.helpers import construct_checksum
-
 __all__ = ('Error', 'ErrorBatch')
-
-import logging
 
 LOG_LEVELS = (
     (logging.INFO, 'Info'),
@@ -82,6 +86,35 @@ class ErrorBatch(Model):
     def get_absolute_url(self):
         return self.url
 
+    @staticmethod
+    @transaction.commit_on_success
+    def handle_exception(sender, request):
+        exc_type, exc_value, traceback = sys.exc_info()
+        
+        if not settings.CATCH_404_ERRORS \
+                and issubclass(exc_type, Http404):
+            return
+
+        if dj_settings.DEBUG or getattr(exc_type, 'skip_dblog', False):
+            return
+
+        if transaction.is_dirty():
+            transaction.rollback()
+
+        extra = dict(
+            url=request.build_absolute_uri(), data=dict(
+                META=request.META,
+                POST=request.POST,
+                GET=request.GET,
+                COOKIES=request.COOKIES,
+            )
+        )
+
+        if settings.USE_LOGGING:
+            logging.getLogger('dblog').critical(exc_value, exc_info=sys.exc_info(), extra=extra)
+        else:
+            Error.objects.create_from_exception(**extra)
+
 class Error(Model):
     logger          = models.CharField(max_length=64, blank=True, default='root', db_index=True)
     class_name      = models.CharField(_('type'), max_length=128, blank=True, null=True, db_index=True)
@@ -134,3 +167,6 @@ class Error(Model):
         if not self.checksum:
             self.checksum = construct_checksum(self)
         super(Error, self).save(*args, **kwargs)
+
+   
+got_request_exception.connect(ErrorBatch.handle_exception)
