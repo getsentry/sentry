@@ -88,7 +88,7 @@ class ErrorBatch(Model):
 
     @staticmethod
     @transaction.commit_on_success
-    def handle_exception(sender, request):
+    def handle_exception(sender, request, **kwargs):
         exc_type, exc_value, traceback = sys.exc_info()
         
         if not settings.CATCH_404_ERRORS \
