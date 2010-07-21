@@ -12,15 +12,7 @@ If you use South migrations, simply run::
 
 	python manage.py migrate djangodblog
 
-Otherwise, the first thing you will want to do is confirm your database matches. Do this by verifying your version, or simply taking a look at the changes::
-
-	python manage.py sql djangodblog > dblog.sql
-	mysqldump -d --skip-opt -uroot -p yourdatabase djangodblog_error djangodblog_errorbatch > dblog.cur.sql
-	diff -u dblog.sql dblog.cur.sql
-
-Note: the above example is using MySQL, and isn't going to give anywhere near a precise diff.
-
-Review the diff, then make any changes which appear necessary.
+If you don't use South, then start.
 
 ###############
 Notable Changes
