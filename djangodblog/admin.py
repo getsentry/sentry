@@ -29,7 +29,7 @@ logger = logging.getLogger('dblog')
 class EfficientPaginator(Paginator):
     def _get_count(self):
         # because who really cares if theres a next page or not in the admin?
-        return 10000000000000
+        return 1000
     count = property(_get_count)
 
 class EfficientChangeList(ChangeList):
@@ -61,7 +61,14 @@ class CachedAllValuesFilterSpec(AllValuesFilterSpec):
         cache_key = 'admin_filters_%s_%s' % (model.__name__, f.name)
         self.lookup_choices = cache.get(cache_key)
         if self.lookup_choices is None:
-            self.lookup_choices = list(model_admin.queryset(request).distinct().order_by(f.name).values_list(f.name, flat=True))
+            qs = model_admin.queryset(request).order_by(f.name)
+            self.lookup_choices = list(qs.values_list(f.name, flat=True).distinct())
+            # We are asking for the unique set of values from the last 1000 recorded entries
+            # so as to avoid a massive database hit.
+            # We could do this as a subquery but mysql doesnt support LIMIT in subselects
+            # self.lookup_choices = list(qs.distinct()\
+            #                              .filter(pk__in=list(qs.values_list('pk', flat=True)[:1000]))
+            #                              .values_list(f.name, flat=True))
             cache.set(cache_key, self.lookup_choices, 60*5)
 
     def choices(self, cl):
@@ -73,7 +80,7 @@ class CachedAllValuesFilterSpec(AllValuesFilterSpec):
             yield {'selected': self.lookup_val == val,
                    'query_string': cl.get_query_string({self.field.name: val}),
                    'display': val}
-FilterSpec.filter_specs.insert(-1, (lambda f: f.model._meta.app_label == 'djangodblog', CachedAllValuesFilterSpec))
+FilterSpec.filter_specs.insert(-1, (lambda f: hasattr(f, 'model') and f.model._meta.app_label == 'djangodblog', CachedAllValuesFilterSpec))
 
 UNDEFINED = object()
 
