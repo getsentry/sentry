@@ -357,3 +357,25 @@ class DBLogTestCase(TestCase):
         self.assertEquals(last.class_name, 'DoesNotExist')
         self.assertEquals(last.level, logging.ERROR)
         self.assertEquals(last.message, smart_unicode(exc))        
+
+    def testSignalsWithoutRequest(self):
+        Error.objects.all().delete()
+        ErrorBatch.objects.all().delete()
+
+        request = RF.get("/", REMOTE_ADDR="127.0.0.1:8000")
+
+        try:
+            Error.objects.get(id=999999999)
+        except Error.DoesNotExist, exc:
+            got_request_exception.send(sender=self.__class__, request=None)
+        else:
+            self.fail('Expected an exception.')
+            
+        cur = (Error.objects.count(), ErrorBatch.objects.count())
+        self.assertEquals(cur, (1, 1), 'Assumed logs failed to save. %s' % (cur,))
+        last = Error.objects.all().order_by('-id')[0:1].get()
+        self.assertEquals(last.logger, 'root')
+        self.assertEquals(last.class_name, 'DoesNotExist')
+        self.assertEquals(last.level, logging.ERROR)
+        self.assertEquals(last.message, smart_unicode(exc))        
+

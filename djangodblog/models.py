@@ -116,7 +116,7 @@ class ErrorBatch(Model):
                 data = dict()
 
             extra = dict(
-                url=request.build_absolute_uri(),
+                url=request and request.build_absolute_uri() or None,
                 data=data,
             )
 
