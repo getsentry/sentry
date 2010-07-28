@@ -88,7 +88,7 @@ class ErrorBatch(Model):
 
     @staticmethod
     @transaction.commit_on_success
-    def handle_exception(sender, request, **kwargs):
+    def handle_exception(sender, request=None, **kwargs):
         exc_type, exc_value, traceback = sys.exc_info()
         
         if not settings.CATCH_404_ERRORS \
@@ -101,13 +101,19 @@ class ErrorBatch(Model):
         if transaction.is_dirty():
             transaction.rollback()
 
-        extra = dict(
-            url=request.build_absolute_uri(), data=dict(
+        if request:
+            data = dict(
                 META=request.META,
                 POST=request.POST,
                 GET=request.GET,
                 COOKIES=request.COOKIES,
             )
+        else:
+            data = dict()
+
+        extra = dict(
+            url=request.build_absolute_uri(),
+            data=data,
         )
 
         if settings.USE_LOGGING:
