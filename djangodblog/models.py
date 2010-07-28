@@ -11,6 +11,7 @@ from djangodblog.utils import JSONDictField
 from djangodblog.helpers import construct_checksum
 
 import datetime
+import warnings
 import logging
 import sys
 
@@ -18,6 +19,8 @@ try:
     from idmapper.models import SharedMemoryModel as Model
 except ImportError:
     Model = models.Model
+
+logger = logging.getLogger('dblog')
 
 __all__ = ('Error', 'ErrorBatch')
 
@@ -89,37 +92,43 @@ class ErrorBatch(Model):
     @staticmethod
     @transaction.commit_on_success
     def handle_exception(sender, request=None, **kwargs):
-        exc_type, exc_value, traceback = sys.exc_info()
+        try:
+            exc_type, exc_value, traceback = sys.exc_info()
         
-        if not settings.CATCH_404_ERRORS \
-                and issubclass(exc_type, Http404):
-            return
+            if not settings.CATCH_404_ERRORS \
+                    and issubclass(exc_type, Http404):
+                return
 
-        if dj_settings.DEBUG or getattr(exc_type, 'skip_dblog', False):
-            return
+            if dj_settings.DEBUG or getattr(exc_type, 'skip_dblog', False):
+                return
 
-        if transaction.is_dirty():
-            transaction.rollback()
+            if transaction.is_dirty():
+                transaction.rollback()
 
-        if request:
-            data = dict(
-                META=request.META,
-                POST=request.POST,
-                GET=request.GET,
-                COOKIES=request.COOKIES,
+            if request:
+                data = dict(
+                    META=request.META,
+                    POST=request.POST,
+                    GET=request.GET,
+                    COOKIES=request.COOKIES,
+                )
+            else:
+                data = dict()
+
+            extra = dict(
+                url=request.build_absolute_uri(),
+                data=data,
             )
-        else:
-            data = dict()
 
-        extra = dict(
-            url=request.build_absolute_uri(),
-            data=data,
-        )
-
-        if settings.USE_LOGGING:
-            logging.getLogger('dblog').critical(exc_value, exc_info=sys.exc_info(), extra=extra)
-        else:
-            Error.objects.create_from_exception(**extra)
+            if settings.USE_LOGGING:
+                logging.getLogger('dblog').critical(exc_value, exc_info=sys.exc_info(), extra=extra)
+            else:
+                Error.objects.create_from_exception(**extra)
+        except Exception, exc:
+            try:
+                logger.exception(exc)
+            except Exception, exc:
+                warnings.warn(u'Unable to process log entry: %s' % (exc,))
 
 class Error(Model):
     logger          = models.CharField(max_length=64, blank=True, default='root', db_index=True)
