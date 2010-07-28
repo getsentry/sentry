@@ -134,7 +134,10 @@ class DBLogManager(models.Manager):
             elif isinstance(f, (list, tuple)):
                 f = [to_unicode(f) for f in f]
             else:
-                f = smart_unicode(f)
+                try:
+                    f = smart_unicode(f)
+                except UnicodeEncodeError:
+                    f = '(Error decoding value)'
             return f
 
         reporter = ExceptionReporter(None, exc_type, exc_value, traceback)
