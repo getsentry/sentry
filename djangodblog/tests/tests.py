@@ -373,6 +373,20 @@ class DBLogTestCase(TestCase):
         self.assertEquals(last.level, logging.ERROR)
         self.assertEquals(last.message, smart_unicode(exc))
 
+    def testNoThrashing(self):
+        prev = settings.THRASHING_LIMIT
+        settings.THRASHING_LIMIT = 0
+        
+        Error.objects.all().delete()
+        ErrorBatch.objects.all().delete()
+        
+        for i in range(0, 50):
+            Error.objects.create_from_text('hi')
+        
+        self.assertEquals(Error.objects.count(), 50)
+
+        settings.THRASHING_LIMIT = prev
+
 class DBLogViewsTest(TestCase):
     urls = 'djangodblog.tests.urls'
     
