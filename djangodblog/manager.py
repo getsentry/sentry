@@ -56,10 +56,11 @@ class DBLogManager(models.Manager):
         )
         instance.checksum = construct_checksum(instance)
         
-        cache_key = 'djangodblog:%s:%s' % (instance.class_name, instance.checksum)
-        added = cache.add(cache_key, 1, settings.THRASHING_TIMEOUT)
-        if not added and cache.incr(cache_key) > settings.THRASHING_LIMIT:
-            return
+        if settings.THRASHING_TIMEOUT and settings.THRASHING_LIMIT:
+            cache_key = 'djangodblog:%s:%s' % (instance.class_name, instance.checksum)
+            added = cache.add(cache_key, 1, settings.THRASHING_TIMEOUT)
+            if not added and cache.incr(cache_key) > settings.THRASHING_LIMIT:
+                return
 
         try:
             instance.save()
