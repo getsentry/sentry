@@ -125,6 +125,7 @@ class ErrorBatch(Model):
             else:
                 Error.objects.create_from_exception(**extra)
         except Exception, exc:
+            print exc
             try:
                 logger.exception(u'Unable to process log entry: %s' % (exc,))
             except Exception, exc:

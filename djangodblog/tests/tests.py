@@ -2,14 +2,13 @@
 
 from django.core.handlers.wsgi import WSGIRequest
 from django.core.signals import got_request_exception
-from django.db import models
 from django.test.client import Client
 from django.test import TestCase
 from django.utils.encoding import smart_unicode
 
 from djangodblog.middleware import DBLogMiddleware
 from djangodblog.models import Error, ErrorBatch
-from djangodblog.utils import JSONDictField
+from djangodblog.tests.models import JSONDictModel
 from djangodblog import settings
 
 import logging
@@ -33,12 +32,6 @@ class RequestFactory(Client):
         return WSGIRequest(environ)
  
 RF = RequestFactory()
-
-class JSONDictModel(models.Model):
-    data = JSONDictField(blank=True, null=True)
-    
-    def __unicode__(self):
-        return unicode(self.data)
 
 class JSONDictTestCase(TestCase):
     def testField(self):
@@ -64,7 +57,7 @@ class DBLogTestCase(TestCase):
         
     def setUpHandler(self):
         self.tearDownHandler()
-        from handlers import DBLogHandler
+        from djangodblog.handlers import DBLogHandler
         
         logger = logging.getLogger()
         self._handlers = logger.handlers
@@ -315,6 +308,7 @@ class DBLogTestCase(TestCase):
         logger = logging.getLogger('dblog')
         for h in logger.handlers:
             logger.removeHandler(h)
+        logger.addHandler(logging.StreamHandler())
         
         try:
             Error.objects.get(id=999999999)
@@ -377,5 +371,58 @@ class DBLogTestCase(TestCase):
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.class_name, 'DoesNotExist')
         self.assertEquals(last.level, logging.ERROR)
-        self.assertEquals(last.message, smart_unicode(exc))        
+        self.assertEquals(last.message, smart_unicode(exc))
 
+class DBLogViewsTest(TestCase):
+    urls = 'djangodblog.tests.urls'
+    
+    def setUp(self):
+        settings.DATABASE_USING = None
+        self._handlers = None
+        self._level = None
+        settings.DEBUG = False
+    
+    def tearDown(self):
+        self.tearDownHandler()
+        
+    def setUpHandler(self):
+        self.tearDownHandler()
+        from djangodblog.handlers import DBLogHandler
+        
+        logger = logging.getLogger()
+        self._handlers = logger.handlers
+        self._level = logger.level
+
+        for h in self._handlers:
+            # TODO: fix this, for now, I don't care.
+            logger.removeHandler(h)
+    
+        logger.setLevel(logging.DEBUG)
+        dblog_handler = DBLogHandler()
+        logger.addHandler(dblog_handler)
+    
+    def tearDownHandler(self):
+        if self._handlers is None:
+            return
+        
+        logger = logging.getLogger()
+        logger.removeHandler(logger.handlers[0])
+        for h in self._handlers:
+            logger.addHandler(h)
+        
+        logger.setLevel(self._level)
+        self._handlers = None
+
+    def testSignals(self):
+        Error.objects.all().delete()
+        ErrorBatch.objects.all().delete()
+
+        self.assertRaises(Exception, self.client.get, '/')
+        
+        cur = (Error.objects.count(), ErrorBatch.objects.count())
+        self.assertEquals(cur, (1, 1), 'Assumed logs failed to save. %s' % (cur,))
+        last = Error.objects.all().order_by('-id')[0:1].get()
+        self.assertEquals(last.logger, 'root')
+        self.assertEquals(last.class_name, 'Exception')
+        self.assertEquals(last.level, logging.ERROR)
+        self.assertEquals(last.message, 'view exception')

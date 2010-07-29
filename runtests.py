@@ -10,7 +10,10 @@ if not settings.configured:
         DATABASE_ENGINE='sqlite3',
         INSTALLED_APPS=[
             'djangodblog',
-        ]
+            # No fucking idea why I have to do this
+            'djangodblog.tests',
+        ],
+        ROOT_URLCONF=None,
     )
 
 from django.test.simple import run_tests
