@@ -323,6 +323,9 @@ class DBLogTestCase(TestCase):
         settings.USE_LOGGING = False
     
     def testThrashing(self):
+        settings.THRASHING_LIMIT = 10
+        settings.THRASHING_TIMEOUT = 60
+        
         Error.objects.all().delete()
         ErrorBatch.objects.all().delete()
         
