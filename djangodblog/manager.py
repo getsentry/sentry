@@ -137,7 +137,7 @@ class DBLogManager(models.Manager):
             else:
                 try:
                     f = smart_unicode(f)
-                except UnicodeEncodeError:
+                except (UnicodeEncodeError, UnicodeDecodeError):
                     f = '(Error decoding value)'
             return f
 
