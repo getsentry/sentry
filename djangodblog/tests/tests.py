@@ -8,11 +8,23 @@ from django.utils.encoding import smart_unicode
 
 from djangodblog.middleware import DBLogMiddleware
 from djangodblog.models import Error, ErrorBatch
-from djangodblog.tests.models import JSONDictModel
+from djangodblog.tests.models import JSONDictModel, DuplicateKeyModel
 from djangodblog import settings
 
 import logging
 import sys
+
+def conditional_on_module(module):
+    def wrapped(func):
+        def inner(self, *args, **kwargs):
+            try:
+                __import__(module)
+            except ImportError:
+                print "Skipping test: %s.%s" % (self.__class__.__name__, func.__name__)
+            else:
+                return func(self, *args, **kwargs)
+        return inner
+    return wrapped
 
 class RequestFactory(Client):
     # Used to generate request objects.
@@ -51,6 +63,8 @@ class DBLogTestCase(TestCase):
         self._handlers = None
         self._level = None
         settings.DEBUG = False
+        self.logger = logging.getLogger('dblog')
+        self.logger.addHandler(logging.StreamHandler())
     
     def tearDown(self):
         self.tearDownHandler()
@@ -389,6 +403,30 @@ class DBLogTestCase(TestCase):
         self.assertEquals(Error.objects.count(), 50)
 
         settings.THRASHING_LIMIT = prev
+
+    def testDatabaseError(self):
+        from django.db import connection
+        
+        try:
+            cursor = connection.cursor()
+            cursor.execute("select foo")
+        except:
+            got_request_exception.send(sender=self.__class__)
+
+        self.assertEquals(Error.objects.count(), 1)
+        self.assertEquals(ErrorBatch.objects.count(), 1)
+
+    def testIntegrityError(self):
+        DuplicateKeyModel.objects.create()
+        try:
+            DuplicateKeyModel.objects.create()
+        except:
+            got_request_exception.send(sender=self.__class__)
+        else:
+            self.fail('Excepted an IntegrityError to be raised.')
+
+        self.assertEquals(Error.objects.count(), 1)
+        self.assertEquals(ErrorBatch.objects.count(), 1)
 
 class DBLogViewsTest(TestCase):
     urls = 'djangodblog.tests.urls'
