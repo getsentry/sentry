@@ -99,8 +99,7 @@ class ErrorBatch(Model):
                     and issubclass(exc_type, Http404):
                 return
 
-            if dj_settings.DEBUG or getattr(exc_type, 'skip_dblog', False) or \
-               getattr(dj_settings, 'TEST', False):
+            if dj_settings.DEBUG or getattr(exc_type, 'skip_dblog', False):
                 return
 
             if transaction.is_dirty():
