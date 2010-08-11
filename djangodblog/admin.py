@@ -176,13 +176,11 @@ class ErrorAdmin(EfficientModelAdmin):
         }),
     )
     
-    _header_re = re.compile(r'(<(?:style|script)[^>]*>.+</(?:style|script)>)', re.I | re.S)
     _body_re = re.compile(r'<body>(.+)<\/body>', re.I | re.S)
     
     def change_view(self, request, object_id, extra_context={}):
         obj = self.get_object(request, unquote(object_id))
-        has_traceback = ENHANCED_TRACEBACKS \
-                and 'exc' in obj.data and 'META' in obj.data
+        has_traceback = ENHANCED_TRACEBACKS and 'exc' in obj.data
         show_traceback = has_traceback and 'raw' not in request.GET
         if show_traceback:
             try:
@@ -223,9 +221,9 @@ class ErrorAdmin(EfficientModelAdmin):
         exc_value.args = args
         
         fake_request = FakeRequest()
-        fake_request.META = obj.data['META']
-        fake_request.GET = obj.data['GET']
-        fake_request.POST = obj.data['POST']
+        fake_request.META = obj.data.get('META', {})
+        fake_request.GET = obj.data.get('GET', {})
+        fake_request.POST = obj.data.get('POST', {})
         fake_request.FILES = obj.data.get('FILES', {})
         fake_request.COOKIES = obj.data.get('COOKIES', {})
         fake_request.url = obj.url
@@ -235,8 +233,7 @@ class ErrorAdmin(EfficientModelAdmin):
         html = reporter.get_traceback_html()
         
         return {
-            'error_body': mark_safe(self._body_re.search(html).group(1)),
-            'error_headers': mark_safe(self._header_re.search(html).group(1)),
+            'error_body': mark_safe(html),
         }
 
 admin.site.register(ErrorBatch, ErrorBatchAdmin)

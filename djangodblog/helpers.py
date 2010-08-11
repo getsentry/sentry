@@ -54,116 +54,6 @@ def construct_checksum(error):
     return checksum.hexdigest()
 
 TECHNICAL_500_TEMPLATE = """
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-<html lang="en">
-<head>
-  <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <meta name="robots" content="NONE,NOARCHIVE">
-  <title>{{ exception_type }} at {{ request.path_info|escape }}</title>
-  <style type="text/css">
-    html * { padding:0; margin:0; }
-    body * { padding:10px 20px; }
-    body * * { padding:0; }
-    body { font:small sans-serif; }
-    body>div { border-bottom:1px solid #ddd; }
-    h1 { font-weight:normal; }
-    h2 { margin-bottom:.8em; }
-    h2 span { font-size:80%; color:#666; font-weight:normal; }
-    h3 { margin:1em 0 .5em 0; }
-    h4 { margin:0 0 .5em 0; font-weight: normal; }
-    table { border:1px solid #ccc; border-collapse: collapse; width:100%; background:white; }
-    tbody td, tbody th { vertical-align:top; padding:2px 3px; }
-    thead th { padding:1px 6px 1px 3px; background:#fefefe; text-align:left; font-weight:normal; font-size:11px; border:1px solid #ddd; }
-    tbody th { width:12em; text-align:right; color:#666; padding-right:.5em; }
-    table.vars { margin:5px 0 2px 40px; }
-    table.vars td, table.req td { font-family:monospace; }
-    table td.code { width:100%; }
-    table td.code div { overflow:hidden; }
-    table.source th { color:#666; }
-    table.source td { font-family:monospace; white-space:pre; border-bottom:1px solid #eee; }
-    ul.traceback { list-style-type:none; }
-    ul.traceback li.frame { margin-bottom:1em; }
-    div.context { margin: 10px 0; }
-    div.context ol { padding-left:30px; margin:0 10px; list-style-position: inside; }
-    div.context ol li { font-family:monospace; white-space:pre; color:#666; cursor:pointer; }
-    div.context ol.context-line li { color:black; background-color:#ccc; }
-    div.context ol.context-line li span { float: right; }
-    div.commands { margin-left: 40px; }
-    div.commands a { color:black; text-decoration:none; }
-    #summary { background: #ffc; }
-    #summary h2 { font-weight: normal; color: #666; }
-    #explanation { background:#eee; }
-    #template, #template-not-exist { background:#f6f6f6; }
-    #template-not-exist ul { margin: 0 0 0 20px; }
-    #unicode-hint { background:#eee; }
-    #traceback { background:#eee; }
-    #requestinfo { background:#f6f6f6; padding-left:120px; }
-    #summary table { border:none; background:transparent; }
-    #requestinfo h2, #requestinfo h3 { position:relative; margin-left:-100px; }
-    #requestinfo h3 { margin-bottom:-1em; }
-    .error { background: #ffc; }
-    .specific { color:#cc3300; font-weight:bold; }
-    h2 span.commands { font-size:.7em;}
-    span.commands a:link {color:#5E5694;}
-    pre.exception_value { font-family: sans-serif; color: #666; font-size: 1.5em; margin: 10px 0 10px 0; }
-  </style>
-  <script type="text/javascript">
-  //<!--
-    function getElementsByClassName(oElm, strTagName, strClassName){
-        // Written by Jonathan Snook, http://www.snook.ca/jon; Add-ons by Robert Nyman, http://www.robertnyman.com
-        var arrElements = (strTagName == "*" && document.all)? document.all :
-        oElm.getElementsByTagName(strTagName);
-        var arrReturnElements = new Array();
-        strClassName = strClassName.replace(/\-/g, "\\-");
-        var oRegExp = new RegExp("(^|\\s)" + strClassName + "(\\s|$)");
-        var oElement;
-        for(var i=0; i<arrElements.length; i++){
-            oElement = arrElements[i];
-            if(oRegExp.test(oElement.className)){
-                arrReturnElements.push(oElement);
-            }
-        }
-        return (arrReturnElements)
-    }
-    function hideAll(elems) {
-      for (var e = 0; e < elems.length; e++) {
-        elems[e].style.display = 'none';
-      }
-    }
-    window.onload = function() {
-      hideAll(getElementsByClassName(document, 'table', 'vars'));
-      hideAll(getElementsByClassName(document, 'ol', 'pre-context'));
-      hideAll(getElementsByClassName(document, 'ol', 'post-context'));
-      hideAll(getElementsByClassName(document, 'div', 'pastebin'));
-    }
-    function toggle() {
-      for (var i = 0; i < arguments.length; i++) {
-        var e = document.getElementById(arguments[i]);
-        if (e) {
-          e.style.display = e.style.display == 'none' ? 'block' : 'none';
-        }
-      }
-      return false;
-    }
-    function varToggle(link, id) {
-      toggle('v' + id);
-      var s = link.getElementsByTagName('span')[0];
-      var uarr = String.fromCharCode(0x25b6);
-      var darr = String.fromCharCode(0x25bc);
-      s.innerHTML = s.innerHTML == uarr ? darr : uarr;
-      return false;
-    }
-    function switchPastebinFriendly(link) {
-      s1 = "Switch to copy-and-paste view";
-      s2 = "Switch back to interactive view";
-      link.innerHTML = link.innerHTML == s1 ? s2 : s1;
-      toggle('browserTraceback', 'pastebinTraceback');
-      return false;
-    }
-    //-->
-  </script>
-</head>
-<body>
 <div id="summary">
   <h1>{{ exception_type }} at {{ request.path_info|escape }}</h1>
   <pre class="exception_value">{{ exception_value|escape }}</pre>
@@ -261,16 +151,11 @@ TECHNICAL_500_TEMPLATE = """
     </ul>
   </div>
   {% endautoescape %}
-  <form action="http://dpaste.com/" name="pasteform" id="pasteform" method="post">
   <div id="pastebinTraceback" class="pastebin">
-    <input type="hidden" name="language" value="PythonConsole">
-    <input type="hidden" name="title" value="{{ exception_type|escape }} at {{ request.path_info|escape }}">
-    <input type="hidden" name="source" value="Django Dpaste Agent">
-    <input type="hidden" name="poster" value="Django">
-    <textarea name="content" id="traceback_area" cols="140" rows="25">
+    <textarea id="traceback_area" cols="140" rows="25">
 Environment:
 
-Request Method: {{ request.META.REQUEST_METHOD }}
+{% if request.META %}Request Method: {{ request.META.REQUEST_METHOD }}{% endif %}
 Request URL: {{ request.build_absolute_uri|escape }}
 Python Version: {{ sys_version_info }}
 
@@ -290,12 +175,9 @@ Traceback:
 Exception Type: {{ exception_type|escape }} at {{ request.path_info|escape }}
 Exception Value: {{ exception_value|escape }}
 </textarea>
-  <br><br>
-  <input type="submit" value="Share this traceback on a public Web site">
   </div>
-</form>
 </div>
-
+{% if request %}
 <div id="requestinfo">
   <h2>Request information</h2>
 
@@ -366,6 +248,7 @@ Exception Value: {{ exception_value|escape }}
   {% endif %}
 
   <h3 id="meta-info">META</h3>
+  {% if request.META %}
   <table class="req">
     <thead>
       <tr>
@@ -382,8 +265,9 @@ Exception Value: {{ exception_value|escape }}
       {% endfor %}
     </tbody>
   </table>
-
+  {% else %}
+    <p>No META data</p>
+  {% endif %}
 </div>
-</body>
-</html>
+{% endif %}
 """
