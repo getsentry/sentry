@@ -208,18 +208,11 @@ class ErrorAdmin(EfficientModelAdmin):
         except:
             module, args, frames = pickle.loads(base64.b64decode(obj.data['exc']))
         obj.class_name = str(obj.class_name)
-    
-        if module == '__builtin__':
-            try:
-                exc_type = __builtins__[obj.class_name]
-            except KeyError:
-                exc_type = type(obj.class_name, (Exception,), {})
-        else:
-            try:
-                exc_type = __import__(module + '.' + obj.class_name, {}, {}, obj.class_name)
-            except ImportError:
-                exc_type = type(obj.class_name, (Exception,), {})
+
+        # We fake the exception class due to many issues with imports/builtins/etc
+        exc_type = type(obj.class_name, (Exception,), {})
         exc_value = exc_type(obj.message)
+
         exc_value.args = args
         
         fake_request = FakeRequest()
