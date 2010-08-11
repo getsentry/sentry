@@ -189,7 +189,8 @@ class ErrorAdmin(EfficientModelAdmin):
                 exc_info = sys.exc_info()
                 logger.exception(exc_info[1])
                 has_traceback = False
-                extra_context['tb_error'] = '%s: %s' % (exc_info[0].__name__, exc_info[1])
+                import traceback
+                extra_context['tb_error'] = traceback.format_exc()
         extra_context.update({
             'has_traceback': has_traceback,
             'show_traceback': show_traceback,

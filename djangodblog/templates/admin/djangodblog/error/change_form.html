@@ -141,13 +141,13 @@
 						{% if has_traceback %}
 							<a href="?raw">&rsaquo; View plain traceback information</a>
 						{% else %}
-							<em><strong>Error rendering interactive traceback:</strong> {{ tb_error }}</em>
+							<em>Enhanced traceback is not available for this message</em>
 						{% endif %}
 					{% else %}
 						{% if has_traceback %}
-							<a href="./">&rsaquo; View interactive traceback information</a>
+							<a href="./">&rsaquo; View enhanced traceback information</a>
 						{% else %}
-							<em>Interactive traceback is not available for this message</em>
+							<em>Enhanced traceback is not available for this message</em>
 						{% endif %}
 					{% endif %}
 				</td>
@@ -168,6 +168,13 @@
 			</tr>
 		</tbody>
 	</table>
+	{% if tb_error %}
+		<div style="padding:10px;border-top: 1px solid #ddd; background: #eee;">
+			<p>An error occurred within DBLog while trying to render the enhanced traceback:</p>
+			<br/>
+			<pre>{{ tb_error }}</pre>
+		</div>
+	{% endif %}
 	{% if show_traceback and has_traceback %}
 		<div id="reporter_body">
 			{{ error_body }}
