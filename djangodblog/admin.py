@@ -185,10 +185,11 @@ class ErrorAdmin(EfficientModelAdmin):
         if show_traceback:
             try:
                 extra_context.update(self.get_traceback_context(request, obj))
-            except Exception:
+            except:
                 exc_info = sys.exc_info()
                 logger.exception(exc_info[1])
                 has_traceback = False
+                extra_context['tb_error'] = '%s: %s' % (exc_info[0].__name__, exc_info[1])
         extra_context.update({
             'has_traceback': has_traceback,
             'show_traceback': show_traceback,

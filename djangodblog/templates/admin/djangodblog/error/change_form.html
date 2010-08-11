@@ -138,7 +138,11 @@
 			<tr>
 				<td colspan="4">
 					{% if show_traceback %}
-						<a href="?raw">&rsaquo; View plain traceback information</a>
+						{% if has_traceback %}
+							<a href="?raw">&rsaquo; View plain traceback information</a>
+						{% else %}
+							<em><strong>Error rendering interactive traceback:</strong> {{ tb_error }}</em>
+						{% endif %}
 					{% else %}
 						{% if has_traceback %}
 							<a href="./">&rsaquo; View interactive traceback information</a>
@@ -164,11 +168,11 @@
 			</tr>
 		</tbody>
 	</table>
-	{% if not show_traceback %}
-		{{ block.super }}
-	{% else %}
+	{% if show_traceback and has_traceback %}
 		<div id="reporter_body">
 			{{ error_body }}
 		</div>
+	{% else %}
+		{{ block.super }}
 	{% endif %}
 {% endblock %}
