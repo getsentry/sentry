@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from django.core.handlers.wsgi import WSGIRequest
+from django.core.urlresolvers import reverse
 from django.core.signals import got_request_exception
 from django.test.client import Client
 from django.test import TestCase
@@ -481,3 +482,24 @@ class DBLogViewsTest(TestCase):
         self.assertEquals(last.class_name, 'Exception')
         self.assertEquals(last.level, logging.ERROR)
         self.assertEquals(last.message, 'view exception')
+
+class DBLogFeedsTest(TestCase):
+    fixtures = ['djangodblog/tests/fixtures/feeds.json']
+    
+    def testErrorFeed(self):
+        response = self.client.get(reverse('dblog-feed-messages'))
+        self.assertEquals(response.status_code, 200)
+        self.assertTrue(response.content.startswith('<?xml version="1.0" encoding="utf-8"?>'))
+        self.assertTrue('<link>http://testserver/admin/djangodblog/error/</link>' in response.content)
+        self.assertTrue('<title>log messages</title>' in response.content)
+        self.assertTrue('<link>http://testserver/admin/djangodblog/error/1/</link>' in response.content)
+        self.assertTrue('<title>TypeError: exceptions must be old-style classes or derived from BaseException, not NoneType</title>' in response.content)
+
+    def testSummaryFeed(self):
+        response = self.client.get(reverse('dblog-feed-summaries'))
+        self.assertEquals(response.status_code, 200)
+        self.assertTrue(response.content.startswith('<?xml version="1.0" encoding="utf-8"?>'))
+        self.assertTrue('<link>http://testserver/admin/djangodblog/errorbatch/</link>' in response.content)
+        self.assertTrue('<title>log summaries</title>' in response.content)
+        self.assertTrue('<link>http://testserver/admin/djangodblog/errorbatch/1/</link>' in response.content)
+        self.assertTrue('<title>(1) TypeError: TypeError: exceptions must be old-style classes or derived from BaseException, not NoneType</title>' in response.content)

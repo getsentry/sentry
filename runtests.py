@@ -9,13 +9,19 @@ if not settings.configured:
     settings.configure(
         DATABASE_ENGINE='sqlite3',
         INSTALLED_APPS=[
+            'django.contrib.auth',
+            'django.contrib.admin',
+            'django.contrib.sessions',
+
             # Included to fix Disqus' test Django which solves IntegrityError case
             'django.contrib.contenttypes',
+
             'djangodblog',
+
             # No fucking idea why I have to do this
             'djangodblog.tests',
         ],
-        ROOT_URLCONF=None,
+        ROOT_URLCONF='djangodblog.tests.urls',
     )
 
 from django.test.simple import run_tests

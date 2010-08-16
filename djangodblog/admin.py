@@ -9,8 +9,8 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from django import forms
 
-from djangodblog.models import ErrorBatch, Error
 from djangodblog.helpers import ImprovedExceptionReporter
+from djangodblog.models import ErrorBatch, Error
 from djangodblog.settings import *
 
 import base64
@@ -74,7 +74,7 @@ class CachedAllValuesFilterSpec(AllValuesFilterSpec):
     def choices(self, cl):
         yield {'selected': self.lookup_val is None,
                'query_string': cl.get_query_string({}, [self.field.name]),
-               'display': _('All')}
+               'display': _('all')}
         for val in self.lookup_choices:
             val = smart_unicode(val)
             yield {'selected': self.lookup_val == val,
@@ -175,9 +175,9 @@ class ErrorAdmin(EfficientModelAdmin):
             'fields': ('class_name', 'message', 'traceback')
         }),
     )
-    
+
     _body_re = re.compile(r'<body>(.+)<\/body>', re.I | re.S)
-    
+
     def change_view(self, request, object_id, extra_context={}):
         obj = self.get_object(request, unquote(object_id))
         has_traceback = ENHANCED_TRACEBACKS and 'exc' in obj.data

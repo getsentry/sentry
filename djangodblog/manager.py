@@ -157,3 +157,7 @@ class DBLogManager(models.Manager):
             data=data,
             **kwargs
         )
+
+class ErrorBatchManager(DBLogManager):
+    def get_by_natural_key(self, logger, server_name, checksum):
+        return self.get(logger=logger, server_name=server_name, checksum=checksum)
