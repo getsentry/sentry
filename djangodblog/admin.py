@@ -62,13 +62,14 @@ class CachedAllValuesFilterSpec(AllValuesFilterSpec):
         self.lookup_choices = cache.get(cache_key)
         if self.lookup_choices is None:
             qs = model_admin.queryset(request).order_by(f.name)
-            self.lookup_choices = list(qs.values_list(f.name, flat=True).distinct())
+            # self.lookup_choices = list(qs.values_list(f.name, flat=True).distinct())
+
             # We are asking for the unique set of values from the last 1000 recorded entries
             # so as to avoid a massive database hit.
             # We could do this as a subquery but mysql doesnt support LIMIT in subselects
-            # self.lookup_choices = list(qs.distinct()\
-            #                              .filter(pk__in=list(qs.values_list('pk', flat=True)[:1000]))
-            #                              .values_list(f.name, flat=True))
+            self.lookup_choices = list(qs.distinct()\
+                                         .filter(pk__in=list(qs.values_list('pk', flat=True)[:1000]))
+                                         .values_list(f.name, flat=True))
             cache.set(cache_key, self.lookup_choices, 60*5)
 
     def choices(self, cl):
