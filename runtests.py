@@ -21,7 +21,7 @@ if not settings.configured:
             # No fucking idea why I have to do this
             'djangodblog.tests',
         ],
-        ROOT_URLCONF='djangodblog.tests.urls',
+        ROOT_URLCONF='',
     )
 
 from django.test.simple import run_tests

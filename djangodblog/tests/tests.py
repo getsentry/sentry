@@ -485,6 +485,7 @@ class DBLogViewsTest(TestCase):
 
 class DBLogFeedsTest(TestCase):
     fixtures = ['djangodblog/tests/fixtures/feeds.json']
+    urls = 'djangodblog.tests.urls'
     
     def testErrorFeed(self):
         response = self.client.get(reverse('dblog-feed-messages'))
