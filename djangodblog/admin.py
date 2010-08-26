@@ -177,8 +177,6 @@ class ErrorAdmin(EfficientModelAdmin):
         }),
     )
 
-    _body_re = re.compile(r'<body>(.+)<\/body>', re.I | re.S)
-
     def change_view(self, request, object_id, extra_context={}):
         obj = self.get_object(request, unquote(object_id))
         has_traceback = ENHANCED_TRACEBACKS and 'exc' in obj.data
