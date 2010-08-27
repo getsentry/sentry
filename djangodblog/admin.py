@@ -54,23 +54,19 @@ class EfficientModelAdmin(admin.ModelAdmin):
     def get_changelist(self, request, **kwargs):
         return EfficientChangeList
 
-class CachedAllValuesFilterSpec(AllValuesFilterSpec):
+class EfficientAllValuesFilterSpec(AllValuesFilterSpec):
     def __init__(self, f, request, params, model, model_admin):
         super(AllValuesFilterSpec, self).__init__(f, request, params, model, model_admin)
         self.lookup_val = request.GET.get(f.name, None)
-        cache_key = 'admin_filters_%s_%s' % (model.__name__, f.name)
-        self.lookup_choices = cache.get(cache_key)
-        if self.lookup_choices is None:
-            qs = model_admin.queryset(request).order_by(f.name)
-            # self.lookup_choices = list(qs.values_list(f.name, flat=True).distinct())
+        qs = model_admin.queryset(request).order_by(f.name)
+        # self.lookup_choices = list(qs.values_list(f.name, flat=True).distinct())
 
-            # We are asking for the unique set of values from the last 1000 recorded entries
-            # so as to avoid a massive database hit.
-            # We could do this as a subquery but mysql doesnt support LIMIT in subselects
-            self.lookup_choices = list(qs.distinct()\
-                                         .filter(pk__in=list(qs.values_list('pk', flat=True)[:1000]))
-                                         .values_list(f.name, flat=True))
-            cache.set(cache_key, self.lookup_choices, 60*5)
+        # We are asking for the unique set of values from the last 1000 recorded entries
+        # so as to avoid a massive database hit.
+        # We could do this as a subquery but mysql doesnt support LIMIT in subselects
+        self.lookup_choices = list(qs.distinct()\
+                                     .filter(pk__in=list(qs.values_list('pk', flat=True)[:1000]))
+                                     .values_list(f.name, flat=True))
 
     def choices(self, cl):
         yield {'selected': self.lookup_val is None,
@@ -168,7 +164,7 @@ class ErrorAdmin(EfficientModelAdmin):
     list_display    = ('shortened_url', 'logger', 'level', 'server_name', 'datetime')
     list_display_links = ('shortened_url',)
     list_filter     = ('server_name', 'logger', 'level', 'datetime')
-    ordering        = ('-id',)
+    ordering        = ('-datetime',)
     search_fields   = ('url', 'class_name', 'message', 'traceback', 'server_name')
     readonly_fields = ('class_name', 'message')
     fieldsets       = (
