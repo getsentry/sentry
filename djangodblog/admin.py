@@ -77,7 +77,7 @@ class EfficientAllValuesFilterSpec(AllValuesFilterSpec):
             yield {'selected': self.lookup_val == val,
                    'query_string': cl.get_query_string({self.field.name: val}),
                    'display': val}
-FilterSpec.filter_specs.insert(-1, (lambda f: hasattr(f, 'model') and f.model._meta.app_label == 'djangodblog', CachedAllValuesFilterSpec))
+FilterSpec.filter_specs.insert(-1, (lambda f: hasattr(f, 'model') and f.model._meta.app_label == 'djangodblog', EfficientAllValuesFilterSpec))
 
 UNDEFINED = object()
 
