@@ -49,6 +49,8 @@ class ErrorFeed(object):
             qs = qs.filter(level__gte=request.GET['level'])
         elif request.GET.get('server_name'):
             qs = qs.filter(server_name=request.GET['server_name'])
+        elif request.GET.get('logger'):
+            qs = qs.filter(logger=request.GET['logger'])
         return qs
 
     def get_order_field(self, request):
