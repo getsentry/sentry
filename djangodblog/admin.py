@@ -217,7 +217,10 @@ class ErrorAdmin(EfficientModelAdmin):
         fake_request.FILES = obj.data.get('FILES', {})
         fake_request.COOKIES = obj.data.get('COOKIES', {})
         fake_request.url = obj.url
-        fake_request.path_info = '/' + obj.url.split('/', 3)[-1]
+        if obj.url:
+            fake_request.path_info = '/' + obj.url.split('/', 3)[-1]
+        else:
+            fake_request.path_info = ''
 
         reporter = ImprovedExceptionReporter(fake_request, exc_type, exc_value, frames)
         html = reporter.get_traceback_html()
