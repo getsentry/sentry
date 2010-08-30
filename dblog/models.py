@@ -133,14 +133,14 @@ class GroupedMessage(MessageBase):
             for (filename, line, function, text) in reversed(tb):
                 for path in sys.path:
                     if filename.startswith(path):
-                        module = file[len(path)+1:].replace('/', '.').replace('.py', '')
-                        view = '%s.%s' % (module, function)
+                        view = '%s.%s' % (file[len(path)+1:].replace('/', '.').replace('.py', ''), function)
                         break
-                if module.split('.')[0] in modules:
+                if view.split('.')[0] in modules:
                     break
                 else:
-                    module = None
-                    view = None
+                    view = '%s.%s' % (exc_traceback.tb_frame.f_globals['__name__'], tb[-1][2]) 
+
+            print view
 
             if request:
                 data = dict(
