@@ -15,4 +15,4 @@ def result_list(cl):
     return {'cl': cl,
             'result_headers': list(result_headers(cl)),
             'results': list(better_results(cl))}
-result_list = register.inclusion_tag("admin/dblog/errorbatch/change_list_results.html")(result_list)
+result_list = register.inclusion_tag("admin/dblog/groupedmessage/change_list_results.html")(result_list)

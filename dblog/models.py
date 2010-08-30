@@ -6,14 +6,15 @@ from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
 from dblog import settings
+from dblog.helpers import construct_checksum, get_installed_apps
 from dblog.manager import DBLogManager, GroupedMessageManager
 from dblog.utils import JSONDictField
-from dblog.helpers import construct_checksum
 
 import datetime
 import warnings
 import logging
 import sys
+import traceback
 
 try:
     from idmapper.models import SharedMemoryModel as Model
@@ -43,6 +44,7 @@ class MessageBase(Model):
     level           = models.PositiveIntegerField(choices=LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
     message         = models.TextField()
     traceback       = models.TextField(blank=True, null=True)
+    view            = models.CharField(max_length=255, db_index=True)
     url             = models.URLField(verify_exists=False, null=True, blank=True)
     server_name     = models.CharField(max_length=128, db_index=True)
     checksum        = models.CharField(max_length=32, db_index=True)
@@ -84,7 +86,6 @@ class MessageBase(Model):
     description.short_description = _('description')
 
 class GroupedMessage(MessageBase):
-    # XXX: We're using the legacy column for `is_resolved` for status
     status          = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS)
     times_seen      = models.PositiveIntegerField(default=1)
     last_seen       = models.DateTimeField(default=datetime.datetime.now, db_index=True)
@@ -93,7 +94,7 @@ class GroupedMessage(MessageBase):
     objects         = GroupedMessageManager()
 
     class Meta:
-        unique_together = (('logger', 'server_name', 'checksum'),)
+        unique_together = (('logger', 'view', 'checksum'),)
         verbose_name_plural = _('grouped messages')
         verbose_name = _('grouped message')
     
@@ -107,8 +108,8 @@ class GroupedMessage(MessageBase):
     @transaction.commit_on_success
     def handle_exception(sender, request=None, **kwargs):
         try:
-            exc_type, exc_value, traceback = sys.exc_info()
-        
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+
             if not settings.CATCH_404_ERRORS \
                     and issubclass(exc_type, Http404):
                 return
@@ -118,6 +119,28 @@ class GroupedMessage(MessageBase):
 
             if transaction.is_dirty():
                 transaction.rollback()
+
+            # kudos to Tapz for this idea
+            modules = get_installed_apps()
+
+            # only retrive last 10 lines
+            tb = traceback.extract_tb(exc_traceback, limit=10)
+
+            # retrive final file and line number where the exception occured
+            file, line_number = tb[-1][:2]
+
+            # tiny hack to get the python path from filename
+            for (filename, line, function, text) in reversed(tb):
+                for path in sys.path:
+                    if filename.startswith(path):
+                        module = file[len(path)+1:].replace('/', '.').replace('.py', '')
+                        view = '%s.%s' % (module, function)
+                        break
+                if module.split('.')[0] in modules:
+                    break
+                else:
+                    module = None
+                    view = None
 
             if request:
                 data = dict(
@@ -132,6 +155,7 @@ class GroupedMessage(MessageBase):
             extra = dict(
                 url=request and request.build_absolute_uri() or None,
                 data=data,
+                view=view,
             )
 
             if settings.USE_LOGGING:

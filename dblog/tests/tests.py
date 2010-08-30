@@ -59,6 +59,8 @@ class JSONDictTestCase(TestCase):
         self.assertEquals(instance.data.get('foo'), 'bar')
 
 class DBLogTestCase(TestCase):
+    urls = 'dblog.tests.urls'
+
     def setUp(self):
         settings.DATABASE_USING = None
         self._handlers = None
@@ -66,7 +68,9 @@ class DBLogTestCase(TestCase):
         settings.DEBUG = False
         self.logger = logging.getLogger('dblog')
         self.logger.addHandler(logging.StreamHandler())
-    
+        Message.objects.all().delete()
+        GroupedMessage.objects.all().delete()
+
     def tearDown(self):
         self.tearDownHandler()
         
@@ -101,9 +105,6 @@ class DBLogTestCase(TestCase):
     def testLogger(self):
         logger = logging.getLogger()
         
-        Message.objects.all().delete()
-        GroupedMessage.objects.all().delete()
-
         self.setUpHandler()
 
         logger.error('This is a test error')
@@ -180,9 +181,6 @@ class DBLogTestCase(TestCase):
         self.assertEquals(last.message, smart_unicode(exc))
         
     def testAPI(self):
-        Message.objects.all().delete()
-        GroupedMessage.objects.all().delete()
-
         try:
             Message.objects.get(id=999999989)
         except Message.DoesNotExist, exc:
@@ -219,9 +217,6 @@ class DBLogTestCase(TestCase):
     def testAlternateDatabase(self):
         settings.DATABASE_USING = 'default'
         
-        Message.objects.all().delete()
-        GroupedMessage.objects.all().delete()
-
         try:
             Message.objects.get(id=999999979)
         except Message.DoesNotExist, exc:
@@ -350,9 +345,6 @@ class DBLogTestCase(TestCase):
         self.assertEquals(Message.objects.count(), settings.THRASHING_LIMIT)
     
     def testSignals(self):
-        Message.objects.all().delete()
-        GroupedMessage.objects.all().delete()
-
         request = RF.get("/", REMOTE_ADDR="127.0.0.1:8000")
 
         try:
@@ -368,12 +360,9 @@ class DBLogTestCase(TestCase):
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.class_name, 'DoesNotExist')
         self.assertEquals(last.level, logging.ERROR)
-        self.assertEquals(last.message, smart_unicode(exc))        
+        self.assertEquals(last.message, smart_unicode(exc))
 
     def testSignalsWithoutRequest(self):
-        Message.objects.all().delete()
-        GroupedMessage.objects.all().delete()
-
         request = RF.get("/", REMOTE_ADDR="127.0.0.1:8000")
 
         try:
@@ -429,6 +418,18 @@ class DBLogTestCase(TestCase):
         self.assertEquals(Message.objects.count(), 1)
         self.assertEquals(GroupedMessage.objects.count(), 1)
 
+    def testViewException(self):
+        self.assertRaises(Exception, self.client.get, reverse('dblog-raise-exc'))
+        
+        cur = (Message.objects.count(), GroupedMessage.objects.count())
+        self.assertEquals(cur, (1, 1), 'Assumed logs failed to save. %s' % (cur,))
+        last = Message.objects.all().order_by('-id')[0:1].get()
+        self.assertEquals(last.logger, 'root')
+        self.assertEquals(last.class_name, 'Exception')
+        self.assertEquals(last.level, logging.ERROR)
+        self.assertEquals(last.message, 'view exception')
+        self.assertEquals(last.view, 'dblog.tests.views.raise_exc')
+
 class DBLogViewsTest(TestCase):
     urls = 'dblog.tests.urls'
     
@@ -470,9 +471,6 @@ class DBLogViewsTest(TestCase):
         self._handlers = None
 
     def testSignals(self):
-        Message.objects.all().delete()
-        GroupedMessage.objects.all().delete()
-
         self.assertRaises(Exception, self.client.get, '/')
         
         cur = (Message.objects.count(), GroupedMessage.objects.count())
@@ -491,16 +489,16 @@ class DBLogFeedsTest(TestCase):
         response = self.client.get(reverse('dblog-feed-messages'))
         self.assertEquals(response.status_code, 200)
         self.assertTrue(response.content.startswith('<?xml version="1.0" encoding="utf-8"?>'))
-        self.assertTrue('<link>http://testserver/admin/dblog/error/</link>' in response.content)
+        self.assertTrue('<link>http://testserver/admin/dblog/message/</link>' in response.content)
         self.assertTrue('<title>log messages</title>' in response.content)
-        self.assertTrue('<link>http://testserver/admin/dblog/error/1/</link>' in response.content)
+        self.assertTrue('<link>http://testserver/admin/dblog/message/1/</link>' in response.content, response.content)
         self.assertTrue('<title>TypeError: exceptions must be old-style classes or derived from BaseException, not NoneType</title>' in response.content)
 
     def testSummaryFeed(self):
         response = self.client.get(reverse('dblog-feed-summaries'))
         self.assertEquals(response.status_code, 200)
         self.assertTrue(response.content.startswith('<?xml version="1.0" encoding="utf-8"?>'))
-        self.assertTrue('<link>http://testserver/admin/dblog/errorbatch/</link>' in response.content)
+        self.assertTrue('<link>http://testserver/admin/dblog/groupedmessage/</link>' in response.content)
         self.assertTrue('<title>log summaries</title>' in response.content)
-        self.assertTrue('<link>http://testserver/admin/dblog/errorbatch/1/</link>' in response.content)
+        self.assertTrue('<link>http://testserver/admin/dblog/groupedmessage/1/</link>' in response.content)
         self.assertTrue('<title>(1) TypeError: TypeError: exceptions must be old-style classes or derived from BaseException, not NoneType</title>' in response.content)

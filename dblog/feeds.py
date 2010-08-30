@@ -38,7 +38,7 @@ class MessageFeed(object):
         return _('log messages')
 
     def get_link(self, request):
-        return reverse('admin:dblog_error_changelist')
+        return reverse('admin:dblog_message_changelist')
 
     def get_model(self, request):
         return Message
@@ -57,7 +57,7 @@ class MessageFeed(object):
         return '-datetime'
 
     def get_item_url(self, request, obj):
-        return reverse('admin:dblog_error_change', args=[obj.pk])
+        return reverse('admin:dblog_message_change', args=[obj.pk])
 
     def get_item_date(self, request, obj):
         return obj.datetime
@@ -67,7 +67,7 @@ class SummaryFeed(MessageFeed):
         return _('log summaries')
 
     def get_link(self, request):
-        return reverse('admin:dblog_errorbatch_changelist')
+        return reverse('admin:dblog_groupedmessage_changelist')
 
     def get_model(self, request):
         return GroupedMessage
@@ -80,7 +80,7 @@ class SummaryFeed(MessageFeed):
         return '-last_seen'
 
     def get_item_url(self, request, obj):
-        return reverse('admin:dblog_errorbatch_change', args=[obj.pk])
+        return reverse('admin:dblog_groupedmessage_change', args=[obj.pk])
 
     def get_item_date(self, request, obj):
         return obj.last_seen

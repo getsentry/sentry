@@ -130,7 +130,7 @@ class GroupedMessageAdmin(EfficientModelAdmin):
     list_display_links = ('shortened_url',)
     list_filter     = ('status', 'server_name', 'logger', 'level', 'last_seen')
     ordering        = ('-last_seen',)
-    actions         = ('resolve_errorbatch',)
+    actions         = ('resolve_groupedmessage',)
     search_fields   = ('url', 'class_name', 'message', 'traceback', 'server_name')
     readonly_fields = ('class_name', 'message', 'times_seen', 'first_seen')
     fieldsets       = (
@@ -139,7 +139,7 @@ class GroupedMessageAdmin(EfficientModelAdmin):
         }),
     )
     
-    def resolve_errorbatch(self, request, queryset):
+    def resolve_groupedmessage(self, request, queryset):
         rows_updated = queryset.update(status=1)
         
         if rows_updated == 1:
@@ -148,7 +148,7 @@ class GroupedMessageAdmin(EfficientModelAdmin):
             message_bit = "%s error summaries were" % rows_updated
         self.message_user(request, "%s resolved." % message_bit)
         
-    resolve_errorbatch.short_description = 'Resolve selected error summaries'
+    resolve_groupedmessage.short_description = 'Resolve selected error summaries'
 
     def change_view(self, request, object_id, extra_context={}):
         obj = self.get_object(request, unquote(object_id))

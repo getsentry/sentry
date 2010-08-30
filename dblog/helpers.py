@@ -53,9 +53,18 @@ def construct_checksum(error):
     checksum.update(message)
     return checksum.hexdigest()
 
+def get_installed_apps():
+    """
+    Generate a list of modules in settings.INSTALLED_APPS.
+    """
+    out = set()
+    for app in settings.INSTALLED_APPS:
+        out.add(app.split('.')[0])
+    return out
+
 TECHNICAL_500_TEMPLATE = """
 <div id="summary">
-  <h1>{{ exception_type }} at {{ request.path_info|escape }}</h1>
+  <h1>{{ exception_type }}{% if request.path_info %} at {{ request.path_info|escape }}{% endif %}</h1>
   <pre class="exception_value">{{ exception_value|escape }}</pre>
   <table class="meta">
     <tr>
