@@ -13,13 +13,13 @@ if not settings.configured:
             'django.contrib.admin',
             'django.contrib.sessions',
 
-            # Included to fix Disqus' test Django which solves IntegrityError case
+            # Included to fix Disqus' test Django which solves IntegrityMessage case
             'django.contrib.contenttypes',
 
-            'djangodblog',
+            'dblog',
 
             # No fucking idea why I have to do this
-            'djangodblog.tests',
+            'dblog.tests',
         ],
         ROOT_URLCONF='',
     )
@@ -29,7 +29,7 @@ from django.test.simple import run_tests
 
 def runtests(*test_args):
     if not test_args:
-        test_args = ['djangodblog']
+        test_args = ['dblog']
     parent = dirname(abspath(__file__))
     sys.path.insert(0, parent)
     failures = run_tests(test_args, verbosity=1, interactive=True)

@@ -1,8 +1,10 @@
--------------
-django-db-log
--------------
+--------------
+django-db-log2
+--------------
 
 Logs Django exceptions to your database handler.
+
+(This is a major refactor of django-db-log and is not backwards compatible)
 
 =========
 Upgrading
@@ -10,18 +12,9 @@ Upgrading
 
 If you use South migrations, simply run::
 
-	python manage.py migrate djangodblog
+	python manage.py migrate dblog
 
 If you don't use South, then start.
-
-###############
-Notable Changes
-###############
-
-* 2.1.0 There is no longer a middleware. Instead, we use a fallback exception handler which catches all.
-* 2.0.0 Added `checksum` column to Error. Several indexes were created. Checksum calculation slightly changed.
-* 1.4.0 Added `logger` column to both Error and ErrorBatch. `traceback` and `class_name` are now nullable.
-* 1.3.0 Added `level` column to both Error and ErrorBatch.
 
 =======
 Install
@@ -29,11 +22,11 @@ Install
 
 The easiest way to install the package is via pip::
 
-	pip install django-db-log --upgrade
+	pip install django-db-log2 --upgrade
 
 OR, if you're not quite on the same page (work on that), with setuptools::
 
-	easy_install django-db-log
+	easy_install django-db-log2
 
 Once installed, update your settings.py and add dblog to ``INSTALLED_APPS``::
 
@@ -42,7 +35,7 @@ Once installed, update your settings.py and add dblog to ``INSTALLED_APPS``::
 	    'django.contrib.auth',
 	    'django.contrib.contenttypes',
 	    'django.contrib.sessions',
-	    'djangodblog',
+	    'dblog',
 	    ...
 	)
 
@@ -52,7 +45,7 @@ Finally, run ``python manage.py syncdb`` to create the database tables.
 Configuration
 =============
 
-Several options exist to configure django-db-log via your ``settings.py``:
+Several options exist to configure django-db-log2 via your ``settings.py``:
 
 ######################
 DBLOG_CATCH_404_ERRORS
@@ -76,7 +69,7 @@ Use a secondary database to store error logs. This is useful if you have several
 You should also enable the ``DBLogRouter`` to avoid things like extraneous table creation::
 
 	DATABASE_ROUTERS = [
-		'djangodblog.routers.DBLogRouter',
+		'dblog.routers.DBLogRouter',
 		...
 	]
 
@@ -99,7 +92,7 @@ Enables showing full embedded (enhanced) tracebacks within the administration fo
 DBLOG_LOGGING
 #############
 
-Enabling this setting will turn off automatic database logging within the exception handler, and instead send all exceptions to the named logger ``dblog``. Use this in conjuction with ``djangodblog.handlers.DBLogHandler`` or your own handler to tweak how logging is dealt with.
+Enabling this setting will turn off automatic database logging within the exception handler, and instead send all exceptions to the named logger ``dblog``. Use this in conjuction with ``dblog.handlers.DBLogHandler`` or your own handler to tweak how logging is dealt with.
 
 A good example use case for this, is if you want to write to something like a syslog ahead of time, and later process that into the database with another tool.
 
@@ -110,7 +103,7 @@ Integration with ``logging``
 django-db-log supports the ability to directly tie into the ``logging`` module. To use it simply add ``DBLogHandler`` to your logger::
 
 	import logging
-	from djangodblog.handlers import DBLogHandler
+	from dblog.handlers import DBLogHandler
 	
 	logging.getLogger().addHandler(DBLogHandler())
 
@@ -127,33 +120,33 @@ Usage
 
 You will find two new admin panels in the automatically built Django administration:
 
-* Messages (Error)
-* Message summaries (ErrorBatch)
+* Messages (Message)
+* Message summaries (GroupedMessage)
 
-It will store every single error inside of the `Errors` model, and it will store a collective, or summary, of errors inside of `Error batches` (this is more useful for most cases). If you are using this on multiple sites with the same database, the `Errors` table also contains the SITE_ID for which it the error appeared on.
+It will store every single error inside of the `Messages` model, and it will store a collective, or summary, of errors inside of `Message batches` (this is more useful for most cases). If you are using this on multiple sites with the same database, the `Messages` table also contains the SITE_ID for which it the error appeared on.
 
 If you wish to access these within your own views and models, you may do so via the standard model API::
 
-	from djangodblog.models import Error, ErrorBatch
+	from dblog.models import Message, GroupedMessage
 	
 	# Pull the last 10 unresolved errors.
-	ErrorBatch.objects.filter(status=0).order_by('-last_seen')[0:10]
+	GroupedMessage.objects.filter(status=0).order_by('-last_seen')[0:10]
 
 You can also record errors outside of handler if you want::
 
-	from djangodblog.models import Error
+	from dblog.models import Message
 	
 	try:
 		...
 	except Exception, exc:
-		Error.objects.create_from_exception(exc, [url=None])
+		Message.objects.create_from_exception(exc, [url=None])
 
 If you wish to log normal messages (useful for non-``logging`` integration)::
 
-	from djangodblog.models import Error
+	from dblog.models import Message
 	import logging
 	
-	Error.objects.create_from_text('Error Message'[, level=logging.WARNING, url=None])
+	Message.objects.create_from_text('Message Message'[, level=logging.WARNING, url=None])
 
 Both the ``url`` and ``level`` parameters are optional. ``level`` should be one of the following:
 
