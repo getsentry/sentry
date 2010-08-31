@@ -10,12 +10,7 @@ from sentry.models import GroupedMessage, Message, LOG_LEVELS
 from math import log
 from pygooglechart import SimpleLineChart, Axis
 
-import base64
 import datetime
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 
 def index(request):
     logger_names = SortedDict((l, l) for l in GroupedMessage.objects.values_list('logger', flat=True).distinct())
@@ -104,10 +99,10 @@ def group(request, group_id):
     message_list = Message.objects.filter(checksum=message.checksum, logger=message.logger, view=message.view)
     
     obj = message_list[0]
-    if 'exc' in obj.data:
-        module, args, frames = pickle.loads(base64.b64decode(obj.data['exc']).decode('zlib'))
+    if '__sentry__' in obj.data:
+        module, args, frames = obj.data['__sentry__']['exc']
         obj.class_name = str(obj.class_name)
-
+        
         # We fake the exception class due to many issues with imports/builtins/etc
         exc_type = type(obj.class_name, (Exception,), {})
         exc_value = exc_type(obj.message)
@@ -126,7 +121,7 @@ def group(request, group_id):
         else:
             fake_request.path_info = ''
 
-        reporter = ImprovedExceptionReporter(fake_request, exc_type, exc_value, frames)
+        reporter = ImprovedExceptionReporter(fake_request, exc_type, exc_value, frames, obj.data['__sentry__']['template'])
         traceback = mark_safe(reporter.get_traceback_html())
     else:
         traceback = mark_safe('<pre>%s</pre>' % (message.traceback,))

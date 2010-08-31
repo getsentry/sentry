@@ -8,7 +8,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry import settings
 from sentry.helpers import construct_checksum, get_installed_apps
 from sentry.manager import DBLogManager, GroupedMessageManager
-from sentry.utils import JSONDictField
+from sentry.utils import GzippedDictField
 
 import datetime
 import warnings
@@ -129,8 +129,6 @@ class GroupedMessage(MessageBase):
                 else:
                     view = '%s.%s' % (exc_traceback.tb_frame.f_globals['__name__'], tb[-1][2]) 
 
-            print view
-
             if request:
                 data = dict(
                     META=request.META,
@@ -159,7 +157,7 @@ class GroupedMessage(MessageBase):
 
 class Message(MessageBase):
     datetime        = models.DateTimeField(default=datetime.datetime.now, db_index=True)
-    data            = JSONDictField(blank=True, null=True)
+    data            = GzippedDictField(blank=True, null=True)
     url             = models.URLField(verify_exists=False, null=True, blank=True)
 
     class Meta:

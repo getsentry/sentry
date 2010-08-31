@@ -3,23 +3,57 @@ from django.template import (Template, Context, TemplateDoesNotExist,
     TemplateSyntaxError)
 from django.utils.encoding import smart_unicode
 from django.utils.hashcompat import md5_constructor
-from django.views.debug import ExceptionReporter
+from django.utils.html import escape
+from django.views.debug import ExceptionReporter, linebreak_iter
 
 class ImprovedExceptionReporter(ExceptionReporter):
-    def __init__(self, request, exc_type, exc_value, frames):
+    def __init__(self, request, exc_type, exc_value, frames, template_info=None):
         ExceptionReporter.__init__(self, request, exc_type, exc_value, None)
         self.frames = frames
+        self._template = template_info
 
     def get_traceback_frames(self):
         return self.frames
+
+    def get_template_exception_info(self):
+        template_source, start, end, name = self._template
+        context_lines = 10
+        line = 0
+        upto = 0
+        source_lines = []
+        before = during = after = ""
+        for num, next in enumerate(linebreak_iter(template_source)):
+            if start >= upto and end <= next:
+                line = num
+                before = escape(template_source[upto:start])
+                during = escape(template_source[start:end])
+                after = escape(template_source[end:next])
+            source_lines.append( (num, escape(template_source[upto:next])) )
+            upto = next
+        total = len(source_lines)
+
+        top = max(1, line - context_lines)
+        bottom = min(total, line + 1 + context_lines)
+
+        self.template_info = {
+            'message': self.exc_value.args[0],
+            'source_lines': source_lines[top:bottom],
+            'before': before,
+            'during': during,
+            'after': after,
+            'top': top,
+            'bottom': bottom,
+            'total': total,
+            'line': line,
+            'name': name,
+        }
 
     def get_traceback_html(self):
         "Return HTML code for traceback."
 
         if issubclass(self.exc_type, TemplateDoesNotExist):
             self.template_does_not_exist = True
-        if (settings.TEMPLATE_DEBUG and hasattr(self.exc_value, 'source') and
-            isinstance(self.exc_value, TemplateSyntaxError)):
+        if self._template:
             self.get_template_exception_info()
 
         frames = self.get_traceback_frames()

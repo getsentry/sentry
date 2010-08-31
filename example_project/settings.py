@@ -2,8 +2,8 @@ import os.path
 
 # Django settings for example_project project.
 
-DEBUG = True
-TEMPLATE_DEBUG = DEBUG
+DEBUG = False
+TEMPLATE_DEBUG = True
 
 ADMINS = (
     # ('Your Name', 'your_email@domain.com'),
@@ -100,3 +100,6 @@ INSTALLED_APPS = (
     # Uncomment the next line to enable the admin:
     # 'django.contrib.admin',
 )
+
+import logging
+logging.basicConfig(level=logging.DEBUG)

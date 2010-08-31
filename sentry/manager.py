@@ -7,15 +7,11 @@ import socket
 import warnings
 import datetime
 import django
-import base64
 import sys
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 
 from django.core.cache import cache
 from django.db import models
+from django.template import TemplateSyntaxError
 from django.utils.encoding import smart_unicode
 from django.views.debug import ExceptionReporter
 
@@ -149,8 +145,16 @@ class DBLogManager(models.Manager):
         frames = reporter.get_traceback_frames()
 
         data = kwargs.pop('data', {}) or {}
-        data['exc'] = base64.b64encode(pickle.dumps(map(to_unicode, [exc_type.__class__.__module__, exc_value.args, frames])).encode('zlib'))
+        data['__sentry__'] = {
+            'exc': map(to_unicode, [exc_type.__class__.__module__, exc_value.args, frames]),
+        }
 
+        if isinstance(exc_value, TemplateSyntaxError) and hasattr(exc_value, 'source'):
+            origin, (start, end) = exc_value.source
+            data['__sentry__'].update({
+                'template': (origin.reload(), start, end, origin.name),
+            })
+        
         tb_message = '\n'.join(traceback_mod.format_exception(exc_type, exc_value, traceback))
 
         kwargs.setdefault('message', to_unicode(exc_value))
