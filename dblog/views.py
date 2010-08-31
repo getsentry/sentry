@@ -59,7 +59,9 @@ def group(request, group_id):
     else:
         message.priority = 'veryhigh'
 
-    obj = Message.objects.filter(checksum=message.checksum, logger=message.logger, view=message.view)[0]
+    message_list = Message.objects.filter(checksum=message.checksum, logger=message.logger, view=message.view)
+    
+    obj = message_list[0]
 
     module, args, frames = pickle.loads(base64.b64decode(obj.data['exc']).decode('zlib'))
     obj.class_name = str(obj.class_name)
@@ -84,5 +86,7 @@ def group(request, group_id):
 
     reporter = ImprovedExceptionReporter(fake_request, exc_type, exc_value, frames)
     interactive_traceback = mark_safe(reporter.get_traceback_html())
+    
+    unique_urls = [m[0] for m in message_list.values_list('url', 'logger', 'view', 'checksum').distinct()[0:10]]
     
     return render_to_response('dblog/group.html', locals())

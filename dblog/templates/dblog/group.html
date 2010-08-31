@@ -15,6 +15,17 @@
 				<pre class="traceback">{{ message.shortened_traceback }}</pre>
 			</li>
 		</ul>
+		
+		<h2>Logged URLs</h2>
+		
+		<ul>
+			{% for link in unique_urls %}
+				<li>{{ link }}</li>
+			{% endfor %}
+		</ul>
+		
+		<h2>Sample Error</h2>
+		
 		{{ interactive_traceback }}
 	</div>
 
