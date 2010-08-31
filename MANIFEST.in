@@ -1,3 +1,3 @@
 include setup.py README.rst MANIFEST.in LICENSE
-recursive-include dblog/templates *
+recursive-include sentry/templates *
 global-exclude *~
