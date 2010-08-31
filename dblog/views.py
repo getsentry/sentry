@@ -4,7 +4,7 @@ from django.shortcuts import render_to_response
 from django.utils.safestring import mark_safe
 
 from dblog.helpers import FakeRequest, ImprovedExceptionReporter
-from dblog.models import GroupedMessage, Message
+from dblog.models import GroupedMessage, Message, LOG_LEVELS
 
 from math import log
 
@@ -15,28 +15,54 @@ except ImportError:
     import pickle
 
 def index(request):
+    logger_names = dict((l, l) for l in GroupedMessage.objects.values_list('logger', flat=True).distinct())
+    server_names = dict((l, l) for l in GroupedMessage.objects.values_list('server_name', flat=True).distinct())
+    level_names = dict((str(k), v) for k, v in LOG_LEVELS)
+
+    logger = request.GET.get('logger')
+    server_name = request.GET.get('server_name') or ''
+    level = request.GET.get('level') or ''
+
+    if logger not in logger_names:
+        logger = ''
+
+    if server_name not in server_names:
+        server_name = ''
+
+    if level not in level_names:
+        level = ''
+
     # this only works in postgres
-    message_list = list(GroupedMessage.objects.filter(
+    message_list = GroupedMessage.objects.filter(
         status=0,
     ).extra(
         select={
             'score': 'times_seen / (pow((floor(extract(epoch from now() - last_seen) / 3600) + 2), 1.25) + 1)',
         }
-    ).order_by('-score', '-last_seen')[0:10])
-    
-    for m in message_list:
-        score = log(m.score)
-        if score > 2:
-            m.priority = 'high'
-        elif score > 1:
-            m.priority = 'medium'
-        elif score >= 0:
-            m.priority = 'low'
-        elif score < 0:
-            m.priority = 'verylow'
-        else:
-            m.priority = 'veryhigh'
-    
+    ).order_by('-score', '-last_seen')
+
+    if logger:
+        message_list = message_list.filter(logger=logger)
+
+    if level:
+        message_list = message_list.filter(level=level)
+
+    if server_name:
+        message_list = message_list.filter(server_name=server_name)
+
+    # for m in message_list:
+    #     score = log(m.score)
+    #     if score > 2:
+    #         m.priority = 'high'
+    #     elif score > 1:
+    #         m.priority = 'medium'
+    #     elif score >= 0:
+    #         m.priority = 'low'
+    #     elif score < 0:
+    #         m.priority = 'verylow'
+    #     else:
+    #         m.priority = 'veryhigh'
+
     return render_to_response('dblog/index.html', locals())
 
 def group(request, group_id):

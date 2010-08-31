@@ -10,6 +10,9 @@ setup(
     url='http://github.com/dcramer/django-db-log2',
     description = 'Exception Logging to a Database in Django',
     packages=find_packages(),
+    requirements=[
+        'django-paging',
+    ]
     include_package_data=True,
     classifiers=[
         'Framework :: Django',

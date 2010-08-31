@@ -1,8 +1,10 @@
 {% extends "dblog/index.html" %}
 
+{% block title %}{{ message.error }} | Django DB Log{% endblock %}
+
 {% block body %}
 	<div id="header"> 
-		<h1>Django DB Log</h1> 
+		<h1><a href="{% url dblog %}">Django DB Log</a></h1> 
 		<h2>Message Details</h2>
 	</div> 
 
