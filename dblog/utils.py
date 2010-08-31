@@ -52,8 +52,8 @@ class JSONDictField(models.TextField):
         elif not value:
             return {}
         return value
- 
-    def get_db_prep_save(self, value):
+
+    def get_prep_value(self, value):
         if value is None: return
         return json_dumps(value)
  
