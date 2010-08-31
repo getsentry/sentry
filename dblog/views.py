@@ -1,6 +1,7 @@
 # TODO: login
 from django.db.models import Count
 from django.shortcuts import render_to_response
+from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 
 from dblog.helpers import FakeRequest, ImprovedExceptionReporter
@@ -15,9 +16,9 @@ except ImportError:
     import pickle
 
 def index(request):
-    logger_names = dict((l, l) for l in GroupedMessage.objects.values_list('logger', flat=True).distinct())
-    server_names = dict((l, l) for l in GroupedMessage.objects.values_list('server_name', flat=True).distinct())
-    level_names = dict((str(k), v) for k, v in LOG_LEVELS)
+    logger_names = SortedDict((l, l) for l in GroupedMessage.objects.values_list('logger', flat=True).distinct())
+    server_names = SortedDict((l, l) for l in GroupedMessage.objects.values_list('server_name', flat=True).distinct())
+    level_names = SortedDict((str(k), v) for k, v in LOG_LEVELS)
 
     logger = request.GET.get('logger')
     server_name = request.GET.get('server_name') or ''
