@@ -1,5 +1,7 @@
 {% extends "dblog/index.html" %}
 
+{% load dblog_helpers %}
+
 {% block title %}{{ message.error }} | Django DB Log{% endblock %}
 
 {% block body %}
@@ -12,16 +14,16 @@
 		<h2>URLs</h2>
 		
 		<ul class="url-list">
-			{% for link in unique_urls %}
-				<li><span class="count">{{ link.times_seen }}</span> <a href="{{ link.url }}">{{ link.url }}</a></li>
+			{% for link, priority in unique_urls|with_priority:"times_seen" %}
+				<li class="priority-{{ priority }}"><span class="count">{{ link.times_seen }}</span> <a href="{{ link.url }}">{{ link.url }}</a></li>
 			{% endfor %}
 		</ul>
 
 		<h2>Servers</h2>
 		
 		<ul class="server-list">
-			{% for server in unique_servers %}
-				<li><span class="count">{{ server.times_seen }}</span> {{ server.server_name }}</li>
+			{% for server, priority in unique_servers|with_priority:"times_seen" %}
+				<li class="priority-{{ priority }}"><span class="count">{{ server.times_seen }}</span> {{ server.server_name }}</li>
 			{% endfor %}
 		</ul>
 	</div>

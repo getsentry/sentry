@@ -50,19 +50,6 @@ def index(request):
     if server_name:
         message_list = message_list.filter(server_name=server_name)
 
-    # for m in message_list:
-    #     score = log(m.score)
-    #     if score > 2:
-    #         m.priority = 'high'
-    #     elif score > 1:
-    #         m.priority = 'medium'
-    #     elif score >= 0:
-    #         m.priority = 'low'
-    #     elif score < 0:
-    #         m.priority = 'verylow'
-    #     else:
-    #         m.priority = 'veryhigh'
-
     return render_to_response('dblog/index.html', locals())
 
 def group(request, group_id):

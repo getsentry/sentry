@@ -1,4 +1,5 @@
 {% load paging_extras %}
+{% load dblog_helpers %}
 
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd"> 
 <html lang="en">
@@ -155,17 +156,17 @@
 			.messages .traceback { display: none; }
 			.messages li { padding: 8px; }
 			.messages .row1 { background: #f9f9f9; }
-			.messages .priority-veryhigh .count {
+			.priority-veryhigh .count {
 				background: red;
 			}
-			.messages .priority-high .count {
+			.priority-high .count {
 				background: #ff5400;
 			}
-			.messages .priority-medium .count {
+			.priority-medium .count {
 				background: #ff7800;
 			}
-			.messages .priority-low .count,
-			.messages .priority-verylow .count {
+			.priority-low .count,
+			.priority-verylow .count {
 				background: #ffb400;
 			}
 			.messages .last_seen { color: #bbb; font-size: 0.9em; margin-left: 5px; }
@@ -221,8 +222,8 @@
 			{% paginate message_list from request as message_list per_page 25 %}
 			{{ message_list.paging }}
 			<ul class="messages">
-				{% for message in message_list.objects %}
-					<li class="{% cycle 'row1' 'row2' %} level-{{ message.level }} priority-{{ message.priority }}" onclick="window.location.href='{% url dblog-group message.pk %}'">
+				{% for message, priority in message_list.objects|with_priority %}
+					<li class="{% cycle 'row1' 'row2' %} level-{{ message.level }} priority-{{ priority }}" onclick="window.location.href='{% url dblog-group message.pk %}'">
 						<span class="count">{{ message.times_seen }}</span>
 						<h3>{{ message.view }}</h3>
 						<span class="last_seen">{{ message.last_seen|timesince }} ago</span>
