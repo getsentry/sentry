@@ -30,9 +30,9 @@
 
 	<div id="body" class="with-sidebar"> 
 		<ul class="messages">
-			<li class="{% cycle 'row1' 'row2' %} level-{{ message.level }} priority-{{ message.priority }} active">
+			<li class="{% cycle 'row1' 'row2' %} level-{{ message.level }} active">
 				<span class="count">{{ message.times_seen }}</span>
-				<h3>{{ message.view }}</h3>
+				<h3>{% if message.view %}{{ message.view }}{% else %}{{ message.message }}{% endif %}</h3>
 				<p class="message">{{ message.error }}</p>
 				<pre class="traceback">{{ message.shortened_traceback }}</pre>
 			</li>

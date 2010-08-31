@@ -135,24 +135,26 @@
 			
 			/* message details */
 			.server-list, .url-list, .logger-list, .level-list { list-style: none; margin-left: 5px; }
-			.filter-list { margin-left: 0;  }
+			.filter-list { margin-left: 0; text-transform: lowercase; }
 			.filter-list li a { display: block; padding: 5px; text-decoration: none; }
 			.filter-list li a:hover, .filter-list li.active a { background: #e0ebff; }
-			 .filter-list li.active a { font-weight: bold; }
+			.filter-list li.active a { font-weight: bold; }
 
 			/* messages generic */
 			.count { background: #000; -moz-border-radius: 4px; border-radius: 4px; padding: 0 5px; margin-right: 3px; line-height: 19px; color: #fff; display: inline-block; }
 			
 			/* message list */
 			.messages { list-style: none; margin-left: 0; }
-			.messages .count { width: 25px; text-align: center; background: #000; -moz-border-radius: 4px; border-radius: 4px; padding: 0 8px; line-height: 19px; color: #fff; display: inline-block; margin-right: 5px; }
+			.messages .count { width: 25px; text-align: center; background: red; -moz-border-radius: 4px; border-radius: 4px; padding: 0 8px; line-height: 19px; color: #fff; display: inline-block; margin-right: 5px; }
 			.messages h3 { height: 20px; line-height: 20px; display: inline-block; margin: 0; }
+			.messages h3 a { text-decoration: none; }
 			.messages .message {
 				color: #666;
 				margin-top: 8px;
 				margin-left: 50px;
 				font-size: 0.9em;
 			}
+			.messages .tag { display: inline-block; padding: 2px 5px; background: #eee; }
 			.messages .traceback { display: none; }
 			.messages li { padding: 8px; }
 			.messages .row1 { background: #f9f9f9; }
@@ -225,9 +227,9 @@
 				{% for message, priority in message_list.objects|with_priority %}
 					<li class="{% cycle 'row1' 'row2' %} level-{{ message.level }} priority-{{ priority }}" onclick="window.location.href='{% url dblog-group message.pk %}'">
 						<span class="count">{{ message.times_seen }}</span>
-						<h3>{{ message.view }}</h3>
+						<h3><a href="{% url dblog-group message.pk %}">{% if message.view %}{{ message.view }}{% else %}{{ message.message }}{% endif %}</a></h3>
 						<span class="last_seen">{{ message.last_seen|timesince }} ago</span>
-						<p class="message">{{ message.error }}</p>
+						<p class="message"><span class="tag tag-level">{{ message.get_level_display }}</span> <span class="tag tag-server">{{ message.server_name }}</span> {{ message.error }}</p>
 						<pre class="traceback">{{ message.shortened_traceback }}</pre>
 					</li>
 				{% endfor %}

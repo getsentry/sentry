@@ -40,18 +40,22 @@ class DBLogManager(models.Manager):
         
         URL_MAX_LENGTH = Message._meta.get_field_by_name('url')[0].max_length
         
-        server_name = socket.gethostname()
-        class_name  = defaults.pop('class_name', None)
-        
+        view = defaults.pop('view', None)
+        logger_name = defaults.pop('logger', 'root')
+        url = defaults.pop('url', None)
+
         data = defaults.pop('data', {}) or {}
-        if defaults.get('url'):
-            data['url'] = defaults['url']
-            defaults['url'] = defaults['url'][:URL_MAX_LENGTH]
+        if url:
+            data['url'] = url
+            url = url[:URL_MAX_LENGTH]
+
+        defaults['server_name'] = socket.gethostname()
 
         instance = Message(
-            class_name=class_name,
-            server_name=server_name,
+            view=view,
+            logger=logger_name,
             data=data,
+            url=url,
             **defaults
         )
         instance.checksum = construct_checksum(instance)
@@ -65,10 +69,10 @@ class DBLogManager(models.Manager):
         try:
             instance.save()
             batch, created = GroupedMessage.objects.get_or_create(
-                class_name = class_name,
-                server_name = server_name,
-                checksum = instance.checksum,
-                defaults = defaults
+                view=view,
+                logger=logger_name,
+                checksum=instance.checksum,
+                defaults=defaults
             )
             if not created:
                 GroupedMessage.objects.filter(pk=batch.pk).update(
@@ -88,7 +92,7 @@ class DBLogManager(models.Manager):
         """
         Creates an error log for a `logging` module `record` instance.
         """
-        for k in ('url', 'data'):
+        for k in ('url', 'view', 'data'):
             if k not in kwargs:
                 kwargs[k] = record.__dict__.get(k)
         kwargs.update({
@@ -159,5 +163,5 @@ class DBLogManager(models.Manager):
         )
 
 class GroupedMessageManager(DBLogManager):
-    def get_by_natural_key(self, logger, server_name, checksum):
-        return self.get(logger=logger, server_name=server_name, checksum=checksum)
+    def get_by_natural_key(self, logger, view, checksum):
+        return self.get(logger=logger, view=view, checksum=checksum)

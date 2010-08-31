@@ -44,8 +44,7 @@ class MessageBase(Model):
     level           = models.PositiveIntegerField(choices=LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
     message         = models.TextField()
     traceback       = models.TextField(blank=True, null=True)
-    view            = models.CharField(max_length=255, db_index=True)
-    url             = models.URLField(verify_exists=False, null=True, blank=True)
+    view            = models.CharField(max_length=255, db_index=True, blank=True, null=True)
     server_name     = models.CharField(max_length=128, db_index=True)
     checksum        = models.CharField(max_length=32, db_index=True)
 
@@ -54,28 +53,10 @@ class MessageBase(Model):
     class Meta:
         abstract = True
 
-    def get_absolute_url(self):
-        return self.url
-    
-    def shortened_url(self):
-        if not self.url:
-            return _('no data')
-        url = self.url
-        if len(url) > 60:
-            url = url[:60] + '...'
-        return url
-    shortened_url.short_description = _('url')
-    shortened_url.admin_order_field = 'url'
-    
     def shortened_traceback(self):
         return '\n'.join(self.traceback.split('\n')[-5:])
     shortened_traceback.short_description = _('traceback')
     shortened_traceback.admin_order_field = 'traceback'
-    
-    def full_url(self):
-        return self.data.get('url') or self.url
-    full_url.short_description = _('url')
-    full_url.admin_order_field = 'url'
     
     def error(self):
         if self.message:
@@ -110,7 +91,7 @@ class GroupedMessage(MessageBase):
         return "(%s) %s: %s" % (self.times_seen, self.class_name, self.error())
 
     def natural_key(self):
-        return (self.logger, self.server_name, self.checksum)
+        return (self.logger, self.view, self.checksum)
 
     @staticmethod
     @transaction.commit_on_success
@@ -179,6 +160,7 @@ class GroupedMessage(MessageBase):
 class Message(MessageBase):
     datetime        = models.DateTimeField(default=datetime.datetime.now, db_index=True)
     data            = JSONDictField(blank=True, null=True)
+    url             = models.URLField(verify_exists=False, null=True, blank=True)
 
     class Meta:
         verbose_name = _('message')
@@ -192,5 +174,22 @@ class Message(MessageBase):
             self.checksum = construct_checksum(self)
         super(Message, self).save(*args, **kwargs)
 
-   
+    def get_absolute_url(self):
+        return self.url
+    
+    def shortened_url(self):
+        if not self.url:
+            return _('no data')
+        url = self.url
+        if len(url) > 60:
+            url = url[:60] + '...'
+        return url
+    shortened_url.short_description = _('url')
+    shortened_url.admin_order_field = 'url'
+    
+    def full_url(self):
+        return self.data.get('url') or self.url
+    full_url.short_description = _('url')
+    full_url.admin_order_field = 'url'
+ 
 got_request_exception.connect(GroupedMessage.handle_exception)
