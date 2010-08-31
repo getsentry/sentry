@@ -78,11 +78,14 @@ class MessageBase(Model):
     full_url.admin_order_field = 'url'
     
     def error(self):
-        message = smart_unicode(self.message)
-        if len(message) > 100:
-            message = message[:97] + '...'
-        if self.class_name:
-            return "%s: %s" % (self.class_name, message)
+        if self.message:
+            message = smart_unicode(self.message)
+            if len(message) > 100:
+                message = message[:97] + '...'
+            if self.class_name:
+                return "%s: %s" % (self.class_name, message)
+        else:
+            self.message = self._class_name or ''
         return message
     error.short_description = _('error')
 

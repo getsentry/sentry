@@ -9,7 +9,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 from django import forms
 
-from dblog.helpers import ImprovedExceptionReporter
+from dblog.helpers import ImprovedExceptionReporter, FakeRequest, UNDEFINED
 from dblog.models import GroupedMessage, Message
 from dblog.settings import *
 
@@ -78,11 +78,6 @@ class EfficientAllValuesFilterSpec(AllValuesFilterSpec):
                    'query_string': cl.get_query_string({self.field.name: val}),
                    'display': val}
 FilterSpec.filter_specs.insert(-1, (lambda f: hasattr(f, 'model') and f.model._meta.app_label == 'dblog', EfficientAllValuesFilterSpec))
-
-UNDEFINED = object()
-
-class FakeRequest(object):
-    def build_absolute_uri(self): return self.url
     
 # Custom forms/fields for the admin
 

@@ -1,9 +1,17 @@
 # TODO: login
 from django.shortcuts import render_to_response
+from django.utils.safestring import mark_safe
 
-from dblog.models import GroupedMessage
+from dblog.helpers import FakeRequest, ImprovedExceptionReporter
+from dblog.models import GroupedMessage, Message
 
 from math import log
+
+import base64
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 def index(request):
     # this only works in postgres
@@ -38,17 +46,7 @@ def group(request, group_id):
             'score': 'times_seen / (pow((floor(extract(epoch from now() - last_seen) / 3600) + 2), 1.25) + 1)',
         }
     ).get(pk=group_id)
-    
-    try:
-        prev_message = GroupedMessage.objects.filter(id__gt=group_id).order_by('id')[0]
-    except IndexError:
-        prev_message = None
 
-    try:
-        next_message = GroupedMessage.objects.filter(id__lt=group_id).order_by('-id')[0]
-    except IndexError:
-        next_message = None
-    
     score = log(message.score)
     if score > 2:
         message.priority = 'high'
@@ -60,5 +58,31 @@ def group(request, group_id):
         message.priority = 'verylow'
     else:
         message.priority = 'veryhigh'
+
+    obj = Message.objects.filter(checksum=message.checksum, logger=message.logger, view=message.view)[0]
+
+    module, args, frames = pickle.loads(base64.b64decode(obj.data['exc']).decode('zlib'))
+    obj.class_name = str(obj.class_name)
+
+    # We fake the exception class due to many issues with imports/builtins/etc
+    exc_type = type(obj.class_name, (Exception,), {})
+    exc_value = exc_type(obj.message)
+
+    exc_value.args = args
+    
+    fake_request = FakeRequest()
+    fake_request.META = obj.data.get('META', {})
+    fake_request.GET = obj.data.get('GET', {})
+    fake_request.POST = obj.data.get('POST', {})
+    fake_request.FILES = obj.data.get('FILES', {})
+    fake_request.COOKIES = obj.data.get('COOKIES', {})
+    fake_request.url = obj.url
+    if obj.url:
+        fake_request.path_info = '/' + obj.url.split('/', 3)[-1]
+    else:
+        fake_request.path_info = ''
+
+    reporter = ImprovedExceptionReporter(fake_request, exc_type, exc_value, frames)
+    interactive_traceback = mark_safe(reporter.get_traceback_html())
     
     return render_to_response('dblog/group.html', locals())

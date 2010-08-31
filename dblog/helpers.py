@@ -62,6 +62,12 @@ def get_installed_apps():
         out.add(app.split('.')[0])
     return out
 
+
+UNDEFINED = object()
+
+class FakeRequest(object):
+    def build_absolute_uri(self): return self.url
+
 TECHNICAL_500_TEMPLATE = """
 <div id="summary">
   <h1>{{ exception_type }}{% if request.path_info %} at {{ request.path_info|escape }}{% endif %}</h1>
