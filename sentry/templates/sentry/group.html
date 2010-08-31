@@ -15,6 +15,17 @@
 		
 		<img src="{{ chart_url }}" class="chart" alt="chart"/>
 		
+		<h2>Meta</h2>
+		
+		<dl class="flat">
+			<dt>First Seen:</dt>
+			<dd>{{ message.first_seen }}</dd>
+			<dt>Last Seen:</dt>
+			<dd>{{ message.last_seen }}</dd>
+			<dt>Status:</dt>
+			<dd>{{ message.get_status_display|title }}</dd>
+		</dl>
+		
 		<h2>URLs</h2>
 		
 		<ul class="url-list">
