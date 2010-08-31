@@ -36,8 +36,6 @@ def index(request):
         else:
             m.priority = 'veryhigh'
     
-    message = message_list[0]
-    
     return render_to_response('dblog/index.html', locals())
 
 def group(request, group_id):
