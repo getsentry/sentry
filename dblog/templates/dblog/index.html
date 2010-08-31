@@ -122,6 +122,10 @@
 			h2 span.commands { font-size:.7em;}
 			span.commands a:link {color:#5E5694;}
 			pre.exception_value { font-family: sans-serif; color: #666; font-size: 1.5em; margin: 10px 0 10px 0; }
+			.server-list, .url-list { list-style: none; margin-left: 5px; }
+			
+			/* messages generic */
+			.count { background: #000; -moz-border-radius: 4px; border-radius: 4px; padding: 0 5px; line-height: 19px; color: #fff; display: inline-block; }
 			
 			/* message list */
 			.messages { list-style: none; margin-left: 0; }
@@ -136,11 +140,22 @@
 			.messages .traceback { display: none; }
 			.messages li { padding: 8px; }
 			.messages .row1 { background: #f9f9f9; }
-			.messages .priority-high .count, .messages .priority-veryhigh .count {
+			.messages .priority-veryhigh .count {
 				background: red;
+			}
+			.messages .priority-high .count {
+				background: #ff5400;
+			}
+			.messages .priority-medium .count {
+				background: #ff7800;
+			}
+			.messages .priority-low .count,
+			.messages .priority-verylow .count {
+				background: #ffb400;
 			}
 			.messages .last_seen { color: #bbb; font-size: 0.9em; margin-left: 5px; }
 			.messages li:hover, .messages .active { background: #e0ebff; cursor: pointer; }
+			.messages li:hover .last_seen, .messages .active .last_seen { color: #777; }
 			pre {
 				white-space: pre-wrap;       /* CSS-3                  */
 				white-space: -moz-pre-wrap;  /* Mozilla, since 1999    */
@@ -149,11 +164,6 @@
 				word-wrap: break-word;       /* Internet Explorer 5.5+ */
 				color:;
 			}
-			.nextprev .count { background: #000; -moz-border-radius: 4px; border-radius: 4px; padding: 0 5px; line-height: 19px; color: #fff; display: inline-block; }
-			.nextprev { list-style: none; margin-left: 0; margin-bottom: 2em; }
-			.nextprev a { text-decoration: none; font-size: 1.2em; }
-			.nextprev .next { float: right; }
-			.nextprev .prev { display: inline-block; }
 		</style> 
 	</head> 
  

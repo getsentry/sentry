@@ -1,4 +1,5 @@
 # TODO: login
+from django.db.models import Count
 from django.shortcuts import render_to_response
 from django.utils.safestring import mark_safe
 
@@ -87,6 +88,8 @@ def group(request, group_id):
     else:
         traceback = message.traceback
     
-    unique_urls = [m[0] for m in message_list.filter(url__isnull=False).values_list('url', 'logger', 'view', 'checksum').distinct()[0:10]]
+    unique_urls = message_list.filter(url__isnull=False).values_list('url', 'logger', 'view', 'checksum').annotate(times_seen=Count('url')).values('url', 'times_seen')
+    
+    unique_servers = message_list.filter(server_name__isnull=False).values_list('server_name', 'logger', 'view', 'checksum').annotate(times_seen=Count('server_name')).values('server_name', 'times_seen')
     
     return render_to_response('dblog/group.html', locals())

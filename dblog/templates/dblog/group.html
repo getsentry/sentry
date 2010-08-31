@@ -16,13 +16,22 @@
 			</li>
 		</ul>
 		
-		<h2>Logged URLs</h2>
+		<h2>URLs</h2>
 		
-		<ul>
+		<ul class="url-list">
 			{% for link in unique_urls %}
-				<li><a href="{{ link }}">{{ link }}</a></li>
+				<li><span class="count">{{ link.times_seen }}</span> <a href="{{ link.url }}">{{ link.url }}</a></li>
 			{% endfor %}
 		</ul>
+
+		<h2>Servers</h2>
+		
+		<ul class="server-list">
+			{% for server in unique_servers %}
+				<li><span class="count">{{ server.times_seen }}</span> {{ server.server_name }}</li>
+			{% endfor %}
+		</ul>
+
 		
 		{% if traceback %}
 
