@@ -144,7 +144,7 @@ You can also record errors outside of handler if you want::
 	try:
 		...
 	except Exception, exc:
-		Message.objects.create_from_exception(exc, [url=None])
+		Message.objects.create_from_exception(exc, [url=None, view=None])
 
 If you wish to log normal messages (useful for non-``logging`` integration)::
 
