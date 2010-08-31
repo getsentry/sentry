@@ -86,11 +86,29 @@
                 background: #ccc; /* for non-css3 browsers */
                 filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#e0ebff', endColorstr='#cccccc'); /* for IE */
                 background: -webkit-gradient(linear, left top, left bottom, from(#f2f2f2), to(#ddd)); /* for webkit browsers */
-                background: -moz-linear-gradient(top,  #35464e,  #0D1616); /* for firefox 3.6+ */
+                background: -moz-linear-gradient(top,  #333,  #000); /* for firefox 3.6+ */
+            }
+            .sentry-logo {
+                display: inline-block;
+                font-weight: normal;
+                font-family: helvetica, sans-serif;
+                font-size: 28px;
+                color: #ddd;
+                border: 1px solid #666;
+                -moz-border-radius: 8px;
+                border-radius: 8px;
+                background: -moz-linear-gradient(top, #333, #444); /* for firefox 3.6+ */                
+                padding: 7px 10px 7px 10px;
+                -webkit-box-shadow:5px 5px 5px #999999; 
+                -moz-box-shadow: 0px 0px 5px #666; 
+                box-shadow:5px 5px 5px #999999; 
+            }
+            .sentry-logo small {
+                font-size: 22px;
             }
             #header h1 {display: inline; font-size: 20px; line-height: 24px;
                         color: #e5e5e5; text-shadow: 1px 1px 1px #333;}
-			#header h2 {display: inline; font-size: 16px; line-height: 20px;
+			#header h2 {display: inline; font-size: 22px; line-height: 24px;
                         font-weight: normal; color: #888; margin-bottom: 0; margin-left: 10px;
                         color: #e5e5e5;}
 			#footer { clear: both; border-top:1px solid #ddd; }
@@ -228,7 +246,7 @@
 	<body> 
 		{% block body %}
 		<div id="header"> 
-			<h1><a href="{% url dblog %}">Django DB Log</a></h1> 
+			<h1><a href="{% url dblog %}"><span class="sentry-logo">&#9820; <small></small></span></a></h1> 
 			<h2>Dashboard</h2>
 		</div> 
 		
