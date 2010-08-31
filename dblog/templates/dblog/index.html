@@ -139,6 +139,7 @@
 			.messages .priority-high .count, .messages .priority-veryhigh .count {
 				background: red;
 			}
+			.messages .last_seen { color: #bbb; font-size: 0.9em; margin-left: 5px; }
 			.messages li:hover, .messages .active { background: #e0ebff; cursor: pointer; }
 			pre {
 				white-space: pre-wrap;       /* CSS-3                  */
@@ -169,6 +170,7 @@
 					<li class="{% cycle 'row1' 'row2' %} level-{{ message.level }} priority-{{ message.priority }}" onclick="window.location.href='{% url dblog-group message.pk %}'">
 						<span class="count">{{ message.times_seen }}</span>
 						<h3>{{ message.view }}</h3>
+						<span class="last_seen">{{ message.last_seen|timesince }} ago</span>
 						<p class="message">{{ message.error }}</p>
 						<pre class="traceback">{{ message.shortened_traceback }}</pre>
 					</li>
