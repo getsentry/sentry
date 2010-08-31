@@ -6,16 +6,7 @@
 		<h2>Message Details</h2>
 	</div> 
 
-	<div id="body"> 
-		<ul class="messages">
-			<li class="{% cycle 'row1' 'row2' %} level-{{ message.level }} priority-{{ message.priority }} active">
-				<span class="count">{{ message.times_seen }}</span>
-				<h3>{{ message.view }}</h3>
-				<p class="message">{{ message.error }}</p>
-				<pre class="traceback">{{ message.shortened_traceback }}</pre>
-			</li>
-		</ul>
-		
+	<div id="sidebar">
 		<h2>URLs</h2>
 		
 		<ul class="url-list">
@@ -31,7 +22,17 @@
 				<li><span class="count">{{ server.times_seen }}</span> {{ server.server_name }}</li>
 			{% endfor %}
 		</ul>
+	</div>
 
+	<div id="body" class="with-sidebar"> 
+		<ul class="messages">
+			<li class="{% cycle 'row1' 'row2' %} level-{{ message.level }} priority-{{ message.priority }} active">
+				<span class="count">{{ message.times_seen }}</span>
+				<h3>{{ message.view }}</h3>
+				<p class="message">{{ message.error }}</p>
+				<pre class="traceback">{{ message.shortened_traceback }}</pre>
+			</li>
+		</ul>
 		
 		{% if traceback %}
 

@@ -79,6 +79,11 @@
 			#header h2 { font-weight: normal; color: #666; margin-bottom: 0; }
 			#footer { background:#eee; clear: both; border-top:1px solid #ddd; }
 			#header table { border:none; background:transparent; }
+			#body, #sidebar { position: relative; }
+			#sidebar { float: right; width: 384px; padding: 8px; margin-top: 1em; margin-left: -100%; background: inherit; }
+			
+			#body.with-sidebar { margin-right: 400px; }
+
 			/* tracebacks */
 			table { border:1px solid #ccc; border-collapse: collapse; width:100%; background:white; }
 			tbody td, tbody th { vertical-align:top; padding:2px 3px; }
@@ -103,7 +108,7 @@
 			#template-not-exist ul { margin: 0 0 0 20px; }
 			#unicode-hint { background:#eee; }
 			#traceback { background:#eee; padding: 10px; }
-			#requestinfo { background:#f6f6f6; padding-left:120px; }
+			#requestinfo { background:#f6f6f6; padding-left:120px; margin-top: 1em; }
 			#summary { background: #ffc; padding: 10px; }
 			#summary h2 { font-weight: normal; color: #666; }
 			#explanation { background:#eee; }
@@ -122,6 +127,8 @@
 			h2 span.commands { font-size:.7em;}
 			span.commands a:link {color:#5E5694;}
 			pre.exception_value { font-family: sans-serif; color: #666; font-size: 1.5em; margin: 10px 0 10px 0; }
+			
+			/* message details */
 			.server-list, .url-list { list-style: none; margin-left: 5px; }
 			
 			/* messages generic */
@@ -162,7 +169,6 @@
 				white-space: -pre-wrap;      /* Opera 4-6              */
 				white-space: -o-pre-wrap;    /* Opera 7                */
 				word-wrap: break-word;       /* Internet Explorer 5.5+ */
-				color:;
 			}
 		</style> 
 	</head> 
