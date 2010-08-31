@@ -1,0 +1,22 @@
+{% extends "dblog/index.html" %}
+
+{% block body %}
+	<div id="header"> 
+		<h1>Django DB Log</h1> 
+		<h2>Message Details</h2>
+	</div> 
+
+	<div id="body"> 
+		<ul class="messages">
+			<li class="{% cycle 'row1' 'row2' %} level-{{ message.level }} priority-{{ message.priority }} active">
+				<span class="count">{{ message.times_seen }}</span>
+				<h3>{{ message.view }}</h3>
+				<p class="message">{{ message.error }}</p>
+				<pre class="traceback">{{ message.shortened_traceback }}</pre>
+			</li>
+		</ul>
+		<pre>{{ message.traceback }}</pre>
+	</div>
+
+	<div id="footer">Powered by sexy Django magic.</div> 
+{% endblock %}

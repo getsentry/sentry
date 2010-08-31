@@ -67,6 +67,11 @@ class MessageBase(Model):
     shortened_url.short_description = _('url')
     shortened_url.admin_order_field = 'url'
     
+    def shortened_traceback(self):
+        return '\n'.join(self.traceback.split('\n')[-5:])
+    shortened_traceback.short_description = _('traceback')
+    shortened_traceback.admin_order_field = 'traceback'
+    
     def full_url(self):
         return self.data.get('url') or self.url
     full_url.short_description = _('url')
@@ -124,7 +129,7 @@ class GroupedMessage(MessageBase):
             modules = get_installed_apps()
 
             # only retrive last 10 lines
-            tb = traceback.extract_tb(exc_traceback, limit=10)
+            tb = traceback.extract_tb(exc_traceback)
 
             # retrive final file and line number where the exception occured
             file, line_number = tb[-1][:2]

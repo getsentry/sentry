@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd"> 
+<html lang="en">
+	<head> 
+		<meta http-equiv="content-type" content="text/html; charset=utf-8"> 
+		<meta name="robots" content="NONE,NOARCHIVE"><title>Django DB Log</title> 
+		<style type="text/css"> 
+			html * { padding:0; margin:0; }
+			body * { padding:10px 20px; }
+			body * * { padding:0; }
+			body { font:small sans-serif; background:#f6f6f6; }
+			h1 { font-weight:normal; }
+			h2 { margin-bottom:.8em; }
+			h2 span { font-size:80%; color:#666; font-weight:normal; }
+			h3 { margin:1em 0 .5em 0; }
+			h4 { margin:0 0 .5em 0; font-weight: normal; }
+			table { border:1px solid #ccc; border-collapse: collapse; width:100%; background:white; }
+			tbody td, tbody th { vertical-align:top; padding:2px 3px; }
+			thead th { padding:1px 6px 1px 3px; background:#fefefe; text-align:left; font-weight:normal; font-size:11px; border:1px solid #ddd; }
+			tbody th { width:12em; text-align:right; color:#666; padding-right:.5em; }
+			a { color: blue; }
+			a:visited { color: blue; }
+			ul { margin: 1em 0 1em 2em; }
+			#header { background: #e0ebff; border-bottom:1px solid #ddd; }
+			#header h2 { font-weight: normal; color: #666; margin-bottom: 0; }
+			#footer { background:#eee; clear: both; border-top:1px solid #ddd; }
+			#header table { border:none; background:transparent; }
+			.messages { list-style: none; margin-left: 0; }
+			.messages .count { width: 25px; text-align: center; background: #000; -moz-border-radius: 4px; border-radius: 4px; padding: 0 8px; line-height: 19px; color: #fff; display: inline-block; margin-right: 5px; }
+			.messages h3 { height: 20px; line-height: 20px; display: inline-block; margin: 0; }
+			.messages .message {
+				color: #666;
+				margin-top: 8px;
+				margin-left: 50px;
+				font-size: 0.9em;
+			}
+			.messages .traceback { display: none; }
+			.messages li { padding: 8px; }
+			.messages .row1 { background: #f9f9f9; }
+			.messages .priority-high .count, .messages .priority-veryhigh .count {
+				background: red;
+			}
+			.messages li:hover, .messages .active { background: #e0ebff; cursor: pointer; }
+			pre {
+				white-space: pre-wrap;       /* CSS-3                  */
+				white-space: -moz-pre-wrap;  /* Mozilla, since 1999    */
+				white-space: -pre-wrap;      /* Opera 4-6              */
+				white-space: -o-pre-wrap;    /* Opera 7                */
+				word-wrap: break-word;       /* Internet Explorer 5.5+ */
+				color:;
+			}
+			.nextprev .count { background: #000; -moz-border-radius: 4px; border-radius: 4px; padding: 0 5px; line-height: 19px; color: #fff; display: inline-block; }
+			.nextprev { list-style: none; margin-left: 0; margin-bottom: 2em; }
+			.nextprev a { text-decoration: none; font-size: 1.2em; }
+			.nextprev .next { float: right; }
+			.nextprev .prev { display: inline-block; }
+		</style> 
+	</head> 
+ 
+	<body> 
+		{% block body %}
+		<div id="header"> 
+			<h1>Django DB Log</h1> 
+			<h2>Dashboard</h2>
+		</div> 
+ 
+		<div id="body"> 
+			<ul class="messages">
+				{% for message in message_list %}
+					<li class="{% cycle 'row1' 'row2' %} level-{{ message.level }} priority-{{ message.priority }}" onclick="window.location.href='{% url dblog-group message.pk %}'">
+						<span class="count">{{ message.times_seen }}</span>
+						<h3>{{ message.view }}</h3>
+						<p class="message">{{ message.error }}</p>
+						<pre class="traceback">{{ message.shortened_traceback }}</pre>
+					</li>
+				{% endfor %}
+			</ul>
+			<!-- <div id="details">
+				<pre>{{ message.traceback }}</pre>
+			</div> -->
+		</div>
+ 
+		<div id="footer">Powered by sexy Django magic.</div> 
+		{% endblock %}
+	</body>
+</html>
