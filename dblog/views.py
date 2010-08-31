@@ -8,8 +8,10 @@ from dblog.helpers import FakeRequest, ImprovedExceptionReporter
 from dblog.models import GroupedMessage, Message, LOG_LEVELS
 
 from math import log
+from pygooglechart import SimpleLineChart, Axis
 
 import base64
+import datetime
 try:
     import cPickle as pickle
 except ImportError:
@@ -41,15 +43,42 @@ def index(request):
             'score': 'times_seen / (pow((floor(extract(epoch from now() - last_seen) / 3600) + 2), 1.25) + 1)',
         }
     ).order_by('-score', '-last_seen')
+    
+    
+    today = datetime.datetime.now()
+
+    chart_qs = Message.objects\
+                      .filter(datetime__gte=today - datetime.timedelta(hours=24))\
+                      .extra(select={'hour': 'extract(hour from datetime)'}).values('hour')\
+                      .annotate(num=Count('id')).values_list('hour', 'num')
 
     if logger:
         message_list = message_list.filter(logger=logger)
+        chart_qs = chart_qs.filter(logger=logger)
 
     if level:
         message_list = message_list.filter(level=level)
+        chart_qs = chart_qs.filter(level=level)
 
     if server_name:
         message_list = message_list.filter(server_name=server_name)
+        chart_qs = chart_qs.filter(server_name=server_name)
+
+    rows = dict(chart_qs)
+    if rows:
+        max_y = max(rows.values())
+    else:
+        max_y = 1
+    chart = SimpleLineChart(384, 130, y_range=[0, max_y])
+    chart.add_data([max_y]*30)
+    chart.add_data([rows.get((today-datetime.timedelta(hours=d)).hour, 0) for d in range(0, 24)][::-1])
+    chart.add_data([0]*30)
+    chart.fill_solid(chart.BACKGROUND, 'eeeeee')
+    chart.add_fill_range('eeeeee', 0, 1)
+    chart.add_fill_range('e0ebff', 1, 2)
+    chart.set_colours(['eeeeee', '999999', 'eeeeee'])
+    chart.set_line_style(1, 1)
+    chart_url = chart.get_url()
 
     return render_to_response('dblog/index.html', locals())
 
@@ -105,5 +134,28 @@ def group(request, group_id):
     unique_urls = message_list.filter(url__isnull=False).values_list('url', 'logger', 'view', 'checksum').annotate(times_seen=Count('url')).values('url', 'times_seen')
     
     unique_servers = message_list.filter(server_name__isnull=False).values_list('server_name', 'logger', 'view', 'checksum').annotate(times_seen=Count('server_name')).values('server_name', 'times_seen')
+    
+    today = datetime.datetime.now()
+
+    chart_qs = message_list\
+                      .filter(datetime__gte=today - datetime.timedelta(hours=24))\
+                      .extra(select={'hour': 'extract(hour from datetime)'}).values('hour')\
+                      .annotate(num=Count('id')).values_list('hour', 'num')
+
+    rows = dict(chart_qs)
+    if rows:
+        max_y = max(rows.values())
+    else:
+        max_y = 1
+    chart = SimpleLineChart(384, 130, y_range=[0, max_y])
+    chart.add_data([max_y]*30)
+    chart.add_data([rows.get((today-datetime.timedelta(hours=d)).hour, 0) for d in range(0, 24)][::-1])
+    chart.add_data([0]*30)
+    chart.fill_solid(chart.BACKGROUND, 'eeeeee')
+    chart.add_fill_range('eeeeee', 0, 1)
+    chart.add_fill_range('e0ebff', 1, 2)
+    chart.set_colours(['eeeeee', '999999', 'eeeeee'])
+    chart.set_line_style(1, 1)
+    chart_url = chart.get_url()
     
     return render_to_response('dblog/group.html', locals())

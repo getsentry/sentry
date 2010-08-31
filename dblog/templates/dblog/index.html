@@ -88,6 +88,7 @@
 			#body { background: #f9f9f9; }
 			#sidebar { float: right; width: 384px; padding: 8px; margin-top: 1em; margin-left: -100%; background: inherit; border-left:1px solid #ddd; }
 			#body.with-sidebar { margin-right: 400px; border-right:1px solid #ddd; }
+			#sidebar .chart { margin-bottom: 1em; }
 
 			/* tracebacks */
 			table { border:1px solid #ccc; border-collapse: collapse; width:100%; background:white; }
@@ -194,6 +195,10 @@
 		</div> 
 		
 		<div id="sidebar">
+			<h2>Last 24 Hours</h2>
+			
+			<img src="{{ chart_url }}" class="chart" alt="chart"/>
+			
 			<h2>Loggers</h2>
 
 			<ul class="logger-list filter-list">
