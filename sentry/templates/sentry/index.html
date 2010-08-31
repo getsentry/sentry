@@ -10,24 +10,24 @@
 		<script type="text/javascript"> 
 		//<!--
 		function getElementsByClassName(oElm, strTagName, strClassName){
-		    // Written by Jonathan Snook, http://www.snook.ca/jon; Add-ons by Robert Nyman, http://www.robertnyman.com
-		    var arrElements = (strTagName == "*" && document.all)? document.all :
-		    oElm.getElementsByTagName(strTagName);
-		    var arrReturnElements = new Array();
-		    strClassName = strClassName.replace(/\-/g, "\\-");
-		    var oRegExp = new RegExp("(^|\\s)" + strClassName + "(\\s|$)");
-		    var oElement;
-		    for(var i=0; i<arrElements.length; i++){
-		        oElement = arrElements[i];
-		        if(oRegExp.test(oElement.className)){
-		            arrReturnElements.push(oElement);
-		        }
-		    }
-		    return (arrReturnElements)
+			// Written by Jonathan Snook, http://www.snook.ca/jon; Add-ons by Robert Nyman, http://www.robertnyman.com
+			var arrElements = (strTagName == "*" && document.all)? document.all :
+			oElm.getElementsByTagName(strTagName);
+			var arrReturnElements = new Array();
+			strClassName = strClassName.replace(/\-/g, "\\-");
+			var oRegExp = new RegExp("(^|\\s)" + strClassName + "(\\s|$)");
+			var oElement;
+			for(var i=0; i<arrElements.length; i++){
+				oElement = arrElements[i];
+				if(oRegExp.test(oElement.className)){
+					arrReturnElements.push(oElement);
+				}
+			}
+			return (arrReturnElements)
 		}
 		function hideAll(elems) {
 		  for (var e = 0; e < elems.length; e++) {
-		    elems[e].style.display = 'none';
+			elems[e].style.display = 'none';
 		  }
 		}
 		window.onload = function() {
@@ -38,10 +38,10 @@
 		}
 		function toggle() {
 		  for (var i = 0; i < arguments.length; i++) {
-		    var e = document.getElementById(arguments[i]);
-		    if (e) {
-		      e.style.display = e.style.display == 'none' ? 'block' : 'none';
-		    }
+			var e = document.getElementById(arguments[i]);
+			if (e) {
+			  e.style.display = e.style.display == 'none' ? 'block' : 'none';
+			}
 		  }
 		  return false;
 		}
@@ -80,9 +80,35 @@
 			a { color: #333; }
 			a:visited { color: inherit; }
 			ul { margin: 1em 0 1em 2em; }
-			#header { background: #e0ebff; border-bottom:1px solid #ddd; }
-			#header h2 { font-weight: normal; color: #666; margin-bottom: 0; }
-			#footer { clear: both; border-top:1px solid #ddd; }
+			#header {
+				font-family: "lucida grande", "lucida sans", verdana, sans-serif;
+				background: #e0ebff; border-bottom:1px solid #ddd;
+				background: #ccc; /* for non-css3 browsers */
+				filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#e0ebff', endColorstr='#cccccc'); /* for IE */
+				background: -webkit-gradient(linear, left top, left bottom, from(#f2f2f2), to(#ddd)); /* for webkit browsers */
+				background: -moz-linear-gradient(top,  #333,  #000); /* for firefox 3.6+ */
+			}
+			.sentry-logo {
+				display: inline-block;
+				font-weight: normal;
+				font-family: helvetica, sans-serif;
+				font-size: 28px;
+				color: #ccc;
+				-moz-border-radius: 8px;
+				border-radius: 8px;
+				background: -moz-linear-gradient(top, #333, #444); /* for firefox 3.6+ */				
+			}
+			.sentry-logo:before {
+				content: '&#9820;';
+			}
+			.sentry-logo small {
+				font-size: 22px;
+			}
+			#header h1 {display: inline; font-size: 20px; line-height: 24px;
+						color: #e5e5e5; text-shadow: 1px 1px 1px #333;}
+			#header h2 {display: inline; font-size: 22px; line-height: 24px;
+						font-weight: normal; color: #888; margin-bottom: 0; margin-left: 10px;
+						color: #e5e5e5;}			#footer { clear: both; border-top:1px solid #ddd; }
 			#header table { border:none; background:transparent; }
 			#body, #sidebar { position: relative; }
 			#body { background: #f9f9f9; }
@@ -146,41 +172,69 @@
 			
 			/* message list */
 			.messages { list-style: none; margin-left: 0; }
-			.messages .count { width: 25px; text-align: center; background: red; -moz-border-radius: 4px; border-radius: 4px; padding: 0 8px; line-height: 19px; color: #fff; display: inline-block; margin-right: 5px; }
+			.messages .count {
+				width: 25px; text-align: center;
+				-moz-border-radius: 6px;
+				border-radius: 6px;
+				padding: 4px; line-height: 19px; color: #fff; display: inline-block; margin-right: 5px;
+			}
 			.messages h3 { height: 20px; line-height: 20px; display: inline-block; margin: 0; }
 			.messages h3 a { text-decoration: none; }
 			.messages .message {
 				color: #666;
 				margin-top: 8px;
-				margin-left: 50px;
 				font-size: 0.9em;
 			}
-			.messages .tag { display: inline-block; padding: 2px 5px; background: #eee; }
+			
+			.messages .tag { display: inline-block; padding: 2px 5px; background: #d5d5d5; margin-right: 5px;}
 			.messages .traceback { display: none; }
-			.messages li { padding: 8px; }
+			.messages li { padding: 8px; position: relative; }
 			.messages .row1 { background: #f9f9f9; }
+			.messages .hidden {
+				position: absolute;
+				right: 15px;
+				top: 0px;
+				color: #fff;
+				font-size: 55px;
+			}
+			.messages li:hover .hidden {
+				color: #fff;
+			}
 			.priority-veryhigh .count {
-				background: red;
+				background: #e22e2e;
+				-webkit-box-shadow: 0 1px 2px rgba(0,0,0,.2);
+				-moz-box-shadow: 0 1px 2px rgba(0,0,0,.2);
+				box-shadow: 0 1px 2px rgba(0,0,0,.2);
+				background:-moz-linear-gradient(center top , #ED1C24, #AA1317) repeat scroll 0 0 transparent;
 			}
 			.priority-high .count {
 				background: #ff5400;
+				background:-moz-linear-gradient(center top , #F16C7C, #BF404F) repeat scroll 0 0 transparent;
 			}
 			.priority-medium .count {
 				background: #ff7800;
+				background:-moz-linear-gradient(center top , #FAA51A, #F47A20) repeat scroll 0 0 transparent;
 			}
 			.priority-low .count,
 			.priority-verylow .count {
 				background: #ffb400;
+				background:-moz-linear-gradient(center top , #efd57c, #e0ae00) repeat scroll 0 0 transparent;
 			}
 			.messages .last_seen { color: #bbb; font-size: 0.9em; margin-left: 5px; }
-			.messages li:hover, .messages .active { background: #e0ebff; cursor: pointer; }
+			.messages li:hover, .messages .active {
+				background: #e0ebff;
+				background: -moz-linear-gradient(top,  #e5e5e5,  #ddd); /* for firefox 3.6+ */
+				cursor: pointer;
+				-moz-border-radius: 6px;
+				border-radius: 6px;
+			}
 			.messages li:hover .last_seen, .messages .active .last_seen { color: #777; }
 			pre {
-				white-space: pre-wrap;       /* CSS-3                  */
-				white-space: -moz-pre-wrap;  /* Mozilla, since 1999    */
-				white-space: -pre-wrap;      /* Opera 4-6              */
-				white-space: -o-pre-wrap;    /* Opera 7                */
-				word-wrap: break-word;       /* Internet Explorer 5.5+ */
+				white-space: pre-wrap;	   /* CSS-3				  */
+				white-space: -moz-pre-wrap;  /* Mozilla, since 1999	*/
+				white-space: -pre-wrap;	  /* Opera 4-6			  */
+				white-space: -o-pre-wrap;	/* Opera 7				*/
+				word-wrap: break-word;	   /* Internet Explorer 5.5+ */
 			}
 			.no-messages { font-size: 1.1em; padding: 20px 0; }
 			
@@ -190,7 +244,7 @@
 	<body> 
 		{% block body %}
 		<div id="header"> 
-			<h1><a href="{% url sentry %}">Django Sentry</a></h1> 
+			<h1><a href="{% url sentry %}"><span class="sentry-logo" title="Django Sentry">Django Sentry</span></a></h1>
 			<h2>Dashboard</h2>
 		</div> 
 		
@@ -239,6 +293,7 @@
 							<span class="last_seen">{{ message.last_seen|timesince }} ago</span>
 							<p class="message"><span class="tag tag-level">{{ message.get_level_display }}</span> <span class="tag tag-server">{{ message.server_name }}</span> {{ message.error }}</p>
 							<pre class="traceback">{{ message.shortened_traceback }}</pre>
+							<span class="hidden">&raquo;</span>
 						</li>
 					{% endfor %}
 				</ul>
