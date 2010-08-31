@@ -121,7 +121,7 @@ def group(request, group_id):
         else:
             fake_request.path_info = ''
 
-        reporter = ImprovedExceptionReporter(fake_request, exc_type, exc_value, frames, obj.data['__sentry__']['template'])
+        reporter = ImprovedExceptionReporter(fake_request, exc_type, exc_value, frames, obj.data['__sentry__'].get('template'))
         traceback = mark_safe(reporter.get_traceback_html())
     else:
         traceback = mark_safe('<pre>%s</pre>' % (message.traceback,))

@@ -111,7 +111,7 @@
 						color: #e5e5e5;}			#footer { clear: both; border-top:1px solid #ddd; }
 			#header table { border:none; background:transparent; }
 			#body, #sidebar { position: relative; }
-			#body { background: #f9f9f9; }
+			#body { background: #f9f9f9; max-width: 100%; overflow: hidden; }
 			#sidebar { float: right; width: 384px; padding: 8px; margin-top: 1em; margin-left: -100%; background: inherit; border-left:1px solid #ddd; }
 			#body.with-sidebar { margin-right: 400px; border-right:1px solid #ddd; }
 			#sidebar .chart { margin-bottom: 1em; }
@@ -230,6 +230,7 @@
 			}
 			.messages li:hover .last_seen, .messages .active .last_seen { color: #777; }
 			pre {
+				display: block;
 				white-space: pre-wrap;	   /* CSS-3				  */
 				white-space: -moz-pre-wrap;  /* Mozilla, since 1999	*/
 				white-space: -pre-wrap;	  /* Opera 4-6			  */
@@ -240,7 +241,7 @@
 			
 		</style> 
 	</head> 
- 
+	
 	<body> 
 		{% block body %}
 		<div id="header"> 

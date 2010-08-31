@@ -189,7 +189,7 @@ TECHNICAL_500_TEMPLATE = """
                 {% for var in frame.vars|dictsort:"0" %}
                   <tr>
                     <td>{{ var.0|escape }}</td>
-                    <td class="code"><div>{{ var.1|pprint|escape }}</div></td>
+                    <td class="code"><pre>{{ var.1|pprint|escape }}</pre></td>
                   </tr>
                 {% endfor %}
               </tbody>
