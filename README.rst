@@ -118,12 +118,17 @@ You can also use the ``exc_info`` and ``extra=dict(url=foo)`` arguments on your 
 Usage
 =====
 
-You will find two new admin panels in the automatically built Django administration:
+Set up a viewer server (or use your existing application server) and add dblog to your INSTALLED_APPS and your included URLs::
 
-* Messages (Message)
-* Message summaries (GroupedMessage)
+	# urls.py
+	urlpatterns = patterns('',
+	    (r'^admin/', include(admin.site.urls)),
+	    (r'^dblog/', include('dblog.urls')),
+	)
 
-It will store every single error inside of the `Messages` model, and it will store a collective, or summary, of errors inside of `Message batches` (this is more useful for most cases). If you are using this on multiple sites with the same database, the `Messages` table also contains the SITE_ID for which it the error appeared on.
+Now enjoy your beautiful new error tracking at ``/dblog/``.
+
+For the technical, here's some further docs:
 
 If you wish to access these within your own views and models, you may do so via the standard model API::
 
@@ -139,7 +144,7 @@ You can also record errors outside of handler if you want::
 	try:
 		...
 	except Exception, exc:
-		Message.objects.create_from_exception(exc, [url=None])
+		Message.objects.create_from_exception(exc, [url=None, view=None])
 
 If you wish to log normal messages (useful for non-``logging`` integration)::
 
