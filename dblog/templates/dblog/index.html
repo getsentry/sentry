@@ -181,6 +181,8 @@
 				white-space: -o-pre-wrap;    /* Opera 7                */
 				word-wrap: break-word;       /* Internet Explorer 5.5+ */
 			}
+			.no-messages { font-size: 1.1em; padding: 20px 0; }
+			
 		</style> 
 	</head> 
  
@@ -222,22 +224,23 @@
 
 		<div id="body" class="with-sidebar">
 			{% paginate message_list from request as message_list per_page 25 %}
-			{{ message_list.paging }}
-			<ul class="messages">
-				{% for message, priority in message_list.objects|with_priority %}
-					<li class="{% cycle 'row1' 'row2' %} level-{{ message.level }} priority-{{ priority }}" onclick="window.location.href='{% url dblog-group message.pk %}'">
-						<span class="count">{{ message.times_seen }}</span>
-						<h3><a href="{% url dblog-group message.pk %}">{% if message.view %}{{ message.view }}{% else %}{{ message.message }}{% endif %}</a></h3>
-						<span class="last_seen">{{ message.last_seen|timesince }} ago</span>
-						<p class="message"><span class="tag tag-level">{{ message.get_level_display }}</span> <span class="tag tag-server">{{ message.server_name }}</span> {{ message.error }}</p>
-						<pre class="traceback">{{ message.shortened_traceback }}</pre>
-					</li>
-				{% endfor %}
-			</ul>
-			{{ message_list.paging }}
-			<!-- <div id="details">
-				<pre>{{ message.traceback }}</pre>
-			</div> -->
+			{% if message_list.objects %}
+				{{ message_list.paging }}
+				<ul class="messages">
+					{% for message, priority in message_list.objects|with_priority %}
+						<li class="{% cycle 'row1' 'row2' %} level-{{ message.level }} priority-{{ priority }}" onclick="window.location.href='{% url dblog-group message.pk %}'">
+							<span class="count">{{ message.times_seen }}</span>
+							<h3><a href="{% url dblog-group message.pk %}">{% if message.view %}{{ message.view }}{% else %}{{ message.message }}{% endif %}</a></h3>
+							<span class="last_seen">{{ message.last_seen|timesince }} ago</span>
+							<p class="message"><span class="tag tag-level">{{ message.get_level_display }}</span> <span class="tag tag-server">{{ message.server_name }}</span> {{ message.error }}</p>
+							<pre class="traceback">{{ message.shortened_traceback }}</pre>
+						</li>
+					{% endfor %}
+				</ul>
+				{{ message_list.paging }}
+			{% else %}
+				<p class="no-messages">No messages match your filters.</p>
+			{% endif %}
 		</div>
  
 		<div id="footer">Powered by sexy Django magic.</div> 
