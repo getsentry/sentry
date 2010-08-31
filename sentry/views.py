@@ -14,7 +14,7 @@ import datetime
 
 def index(request):
     logger_names = SortedDict((l, l) for l in GroupedMessage.objects.values_list('logger', flat=True).distinct())
-    server_names = SortedDict((l, l) for l in GroupedMessage.objects.values_list('server_name', flat=True).distinct())
+    server_names = SortedDict((l, l) for l in Message.objects.values_list('server_name', flat=True).distinct())
     level_names = SortedDict((str(k), v) for k, v in LOG_LEVELS)
 
     logger = request.GET.get('logger')
@@ -56,7 +56,7 @@ def index(request):
         chart_qs = chart_qs.filter(level=level)
 
     if server_name:
-        message_list = message_list.filter(server_name=server_name)
+        message_list = message_list.filter(message_set__server_name=server_name).distinct()
         chart_qs = chart_qs.filter(server_name=server_name)
 
     rows = dict(chart_qs)
@@ -78,25 +78,9 @@ def index(request):
     return render_to_response('sentry/index.html', locals())
 
 def group(request, group_id):
-    message = GroupedMessage.objects.extra(
-        select={
-            'score': 'times_seen / (pow((floor(extract(epoch from now() - last_seen) / 3600) + 2), 1.25) + 1)',
-        }
-    ).get(pk=group_id)
+    group = GroupedMessage.objects.get(pk=group_id)
 
-    score = log(message.score)
-    if score > 2:
-        message.priority = 'high'
-    elif score > 1:
-        message.priority = 'medium'
-    elif score >= 0:
-        message.priority = 'low'
-    elif score < 0:
-        message.priority = 'verylow'
-    else:
-        message.priority = 'veryhigh'
-
-    message_list = Message.objects.filter(checksum=message.checksum, logger=message.logger, view=message.view)
+    message_list = group.message_set.all()
     
     obj = message_list[0]
     if '__sentry__' in obj.data:
@@ -124,7 +108,7 @@ def group(request, group_id):
         reporter = ImprovedExceptionReporter(fake_request, exc_type, exc_value, frames, obj.data['__sentry__'].get('template'))
         traceback = mark_safe(reporter.get_traceback_html())
     else:
-        traceback = mark_safe('<pre>%s</pre>' % (message.traceback,))
+        traceback = mark_safe('<pre>%s</pre>' % (group.traceback,))
     
     unique_urls = message_list.filter(url__isnull=False).values_list('url', 'logger', 'view', 'checksum').annotate(times_seen=Count('url')).values('url', 'times_seen')
     

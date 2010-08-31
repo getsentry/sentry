@@ -63,8 +63,7 @@ class DBLogManager(models.Manager):
                 return
 
         try:
-            instance.save()
-            batch, created = GroupedMessage.objects.get_or_create(
+            group, created = GroupedMessage.objects.get_or_create(
                 view=view,
                 logger=logger_name,
                 checksum=instance.checksum,
@@ -76,6 +75,8 @@ class DBLogManager(models.Manager):
                     status=0,
                     last_seen=datetime.datetime.now(),
                 )
+            instance.group = group
+            instance.save()
         except Exception, exc:
             try:
                 logger.exception(u'Unable to process log entry: %s' % (exc,))

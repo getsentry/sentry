@@ -2,7 +2,7 @@
 
 {% load sentry_helpers %}
 
-{% block title %}{{ message.error }} | Django Sentry{% endblock %}
+{% block title %}{{ group.error }} | Django Sentry{% endblock %}
 
 {% block body %}
 	<div id="header"> 
@@ -19,11 +19,11 @@
 		
 		<dl class="flat">
 			<dt>First Seen:</dt>
-			<dd>{{ message.first_seen }}</dd>
+			<dd>{{ group.first_seen }}</dd>
 			<dt>Last Seen:</dt>
-			<dd>{{ message.last_seen }}</dd>
+			<dd>{{ group.last_seen }}</dd>
 			<dt>Status:</dt>
-			<dd>{{ message.get_status_display|title }}</dd>
+			<dd>{{ group.get_status_display|title }}</dd>
 		</dl>
 		
 		<h2>URLs</h2>
@@ -45,11 +45,11 @@
 
 	<div id="body" class="with-sidebar"> 
 		<ul class="messages">
-			<li class="{% cycle 'row1' 'row2' %} level-{{ message.level }} active">
-				<span class="count">{{ message.times_seen }}</span>
-				<h3>{% if message.view %}{{ message.view }}{% else %}{{ message.message }}{% endif %}</h3>
-				<p class="message">{{ message.error }}</p>
-				<pre class="traceback">{{ message.shortened_traceback }}</pre>
+			<li class="{% cycle 'row1' 'row2' %} level-{{ group.level }} active">
+				<span class="count">{{ group.times_seen }}</span>
+				<h3>{% if group.view %}{{ group.view }}{% else %}{{ group.message }}{% endif %}</h3>
+				<p class="message">{{ group.error }}</p>
+				<pre class="traceback">{{ group.shortened_traceback }}</pre>
 			</li>
 		</ul>
 		

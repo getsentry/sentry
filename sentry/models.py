@@ -45,7 +45,6 @@ class MessageBase(Model):
     message         = models.TextField()
     traceback       = models.TextField(blank=True, null=True)
     view            = models.CharField(max_length=255, db_index=True, blank=True, null=True)
-    server_name     = models.CharField(max_length=128, db_index=True)
     checksum        = models.CharField(max_length=32, db_index=True)
 
     objects         = DBLogManager()
@@ -156,9 +155,11 @@ class GroupedMessage(MessageBase):
                 warnings.warn(u'Unable to process log entry: %s' % (exc,))
 
 class Message(MessageBase):
+    group           = models.ForeignKey(GroupedMessage, blank=True, null=True, related_name="message_set")
     datetime        = models.DateTimeField(default=datetime.datetime.now, db_index=True)
     data            = GzippedDictField(blank=True, null=True)
     url             = models.URLField(verify_exists=False, null=True, blank=True)
+    server_name     = models.CharField(max_length=128, db_index=True)
 
     class Meta:
         verbose_name = _('message')
