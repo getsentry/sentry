@@ -7,6 +7,7 @@
 		<meta http-equiv="content-type" content="text/html; charset=utf-8"> 
 		<meta name="robots" content="NONE,NOARCHIVE">
 		<title>{% block title %}Django Sentry{% endblock %}</title> 
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
 		<script type="text/javascript"> 
 		//<!--
 		function getElementsByClassName(oElm, strTagName, strClassName){
@@ -60,6 +61,15 @@
 		  toggle('browserTraceback', 'pastebinTraceback');
 		  return false;
 		}
+		
+		$.fn.setAllToMaxHeight = function(){
+			return this.height( Math.max.apply(this, $.map( this , function(e){ return $(e).height() }) ) );
+		}
+		
+		$(document).ready(function(){
+			$("div.column").setAllToMaxHeight();
+		});
+		
 		//-->
 		</script>
 		<style>
@@ -71,66 +81,74 @@
 		{% block body %}
 		
 		<div id="header"> 
-			<h1><a href="{% url sentry %}"><span class="sentry-logo" title="Django Sentry">Django Sentry</span></a></h1>
-			<h2>Dashboard</h2>
+			<div class="container">
+				<h1><a href="{% url sentry %}"><span class="sentry-logo" title="Django Sentry">Django Sentry</span></a></h1>
+				<h2>Dashboard</h2>
+			</div>
 		</div> 
 		<div id="content">
-			<div id="sidebar">
-				<h2>Last 24 Hours</h2>
+			<div class="container">
+				<div id="sidebar" class="column">
+					<h2>Last 24 Hours</h2>
 			
-				<img src="{{ chart_url }}" class="chart" alt="chart"/>
+					<img src="{{ chart_url }}" class="chart" alt="chart"/>
 			
-				<h2>Loggers</h2>
+					<h2>Loggers</h2>
 
-				<ul class="logger-list filter-list sidebar-module">
-					<li{% if not logger %} class="active"{% endif %}><a href="?server_name={{ server_name }}&amp;level={{ level }}">any logger</a></li>
-					{% for key, name in logger_names.iteritems %}
-						<li{% if logger == key %} class="active"{% endif %}><a href="?logger={{ key }}&amp;server_name={{ server_name }}&amp;level={{ level }}">{{ name }}</a></li>
-					{% endfor %}
-				</ul>
-			
-				<h2>Levels</h2>
-
-				<ul class="level-list filter-list sidebar-module">
-					<li{% if not level %} class="active"{% endif %}><a href="?server_name={{ server_name }}&amp;logger={{ logger }}">any level</a></li>
-					{% for key, name in level_names.iteritems %}
-						<li{% if level == key %} class="active"{% endif %}><a href="?level={{ key }}&amp;server_name={{ server_name }}&amp;logger={{ logger }}">{{ name|title }}</a></li>
-					{% endfor %}
-				</ul>
-
-				<h2>Servers</h2>
-
-				<ul class="server-list filter-list sidebar-module">
-					<li{% if not server_name %} class="active"{% endif %}><a href="?level={{ level }}&amp;logger={{ logger }}">any server</a></li>
-					{% for key, name in server_names.iteritems %}
-						<li{% if server_name == key %} class="active"{% endif %}><a href="?server_name={{ key }}&amp;level={{ level }}&amp;logger={{ logger }}">{{ name }}</a></li>
-					{% endfor %}
-				</ul>
-			</div>
-
-			<div id="body" class="with-sidebar">
-				{% paginate message_list from request as message_list per_page 25 %}
-				{% if message_list.objects %}
-					{{ message_list.paging }}
-					<ul class="messages">
-						{% for message, priority in message_list.objects|with_priority %}
-							<li class="{% cycle 'row1' 'row2' %} level-{{ message.level }} priority-{{ priority }}" onclick="window.location.href='{% url sentry-group message.pk %}'">
-								<span class="count">{{ message.times_seen }}</span>
-								<h3><a href="{% url sentry-group message.pk %}">{% if message.view %}{{ message.view }}{% else %}{{ message.message }}{% endif %}</a></h3>
-								<span class="last_seen">{{ message.last_seen|timesince }} ago</span>
-								<p class="message"><span class="tag tag-level">{{ message.get_level_display }}</span> <span class="tag tag-server">{{ message.server_name }}</span> {{ message.error }}</p>
-								<pre class="traceback">{{ message.shortened_traceback }}</pre>
-								<span class="hidden">&raquo;</span>
-							</li>
+					<ul class="logger-list filter-list sidebar-module">
+						<li{% if not logger %} class="active"{% endif %}><a href="?server_name={{ server_name }}&amp;level={{ level }}">any logger</a></li>
+						{% for key, name in logger_names.iteritems %}
+							<li{% if logger == key %} class="active"{% endif %}><a href="?logger={{ key }}&amp;server_name={{ server_name }}&amp;level={{ level }}">{{ name }}</a></li>
 						{% endfor %}
 					</ul>
-					{{ message_list.paging }}
-				{% else %}
-					<p class="no-messages">No messages match your filters.</p>
-				{% endif %}
+			
+					<h2>Levels</h2>
+
+					<ul class="level-list filter-list sidebar-module">
+						<li{% if not level %} class="active"{% endif %}><a href="?server_name={{ server_name }}&amp;logger={{ logger }}">any level</a></li>
+						{% for key, name in level_names.iteritems %}
+							<li{% if level == key %} class="active"{% endif %}><a href="?level={{ key }}&amp;server_name={{ server_name }}&amp;logger={{ logger }}">{{ name|title }}</a></li>
+						{% endfor %}
+					</ul>
+
+					<h2>Servers</h2>
+
+					<ul class="server-list filter-list sidebar-module">
+						<li{% if not server_name %} class="active"{% endif %}><a href="?level={{ level }}&amp;logger={{ logger }}">any server</a></li>
+						{% for key, name in server_names.iteritems %}
+							<li{% if server_name == key %} class="active"{% endif %}><a href="?server_name={{ key }}&amp;level={{ level }}&amp;logger={{ logger }}">{{ name }}</a></li>
+						{% endfor %}
+					</ul>
+				</div>
+
+				<div id="body" class="with-sidebar column">
+					{% paginate message_list from request as message_list per_page 25 %}
+					{% if message_list.objects %}
+						{{ message_list.paging }}
+						<ul class="messages">
+							{% for message, priority in message_list.objects|with_priority %}
+								<li class="{% cycle 'row1' 'row2' %} level-{{ message.level }} priority-{{ priority }}" onclick="window.location.href='{% url sentry-group message.pk %}'">
+									<span class="count">{{ message.times_seen }}</span>
+									<h3><a href="{% url sentry-group message.pk %}">{% if message.view %}{{ message.view }}{% else %}{{ message.message }}{% endif %}</a></h3>
+									<span class="last_seen">{{ message.last_seen|timesince }} ago</span>
+									<p class="message"><span class="tag tag-level">{{ message.get_level_display }}</span> <span class="tag tag-server">{{ message.server_name }}</span> {{ message.error }}</p>
+									<pre class="traceback">{{ message.shortened_traceback }}</pre>
+									<span class="hidden">&raquo;</span>
+								</li>
+							{% endfor %}
+						</ul>
+						{{ message_list.paging }}
+					{% else %}
+						<p class="no-messages">No messages match your filters.</p>
+					{% endif %}
+				</div>
 			</div>
  		</div>
-		<div id="footer">Powered by sexy Django magic.</div> 
+		<div id="footer">
+			<div class="container">
+				Powered by sexy Django magic.
+			</div>
+		</div> 
 		{% endblock %}
 	</body>
 </html>

@@ -22,14 +22,18 @@ ul { margin: 1em 0 1em 2em; }
 	background: -webkit-gradient(linear, left top, left bottom, from(#555555), to(#222222)); /* for webkit browsers */
 	background: -moz-linear-gradient(top,  #555,  #222); /* for firefox 3.6+ */
 	border-bottom: 1px solid #000;
-	padding: 10px 20px;
+}
+
+#header .container {
+    padding: 10px 20px;
+    max-width: 1560px;
 }
 .sentry-logo {
 	display: inline-block;
 	font-weight: normal;
 	font-family: helvetica, sans-serif;
-	font-size: 28px;
-	color: #ccc;
+	font-size: 22px;
+	color: #fff;
 	-moz-border-radius: 8px;
 	border-radius: 8px;
 					
@@ -41,7 +45,12 @@ ul { margin: 1em 0 1em 2em; }
 			color: #e5e5e5; text-shadow: 1px 1px 1px #333;}
 #header h2 {display: inline; font-size: 22px; line-height: 24px;
 			font-weight: normal; color: #888; margin-bottom: 0; margin-left: 10px;
-			color: #e5e5e5;}			#footer { clear: both; border-top:1px solid #ddd; }
+			color: #ccc;}			
+#footer { clear: both; border-top:1px solid #ddd; }
+#footer .container {
+    padding: 20px;
+    max-width: 1560px;
+}
 #header table { border:none; background:transparent; }
 #body, #sidebar { position: relative; }
 #body { 
@@ -60,9 +69,14 @@ ul { margin: 1em 0 1em 2em; }
     overflow: hidden;
 }
 
+.container {
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
 #sidebar { 
     float: right; 
-    width: 24%; 
+    width: 300px; 
     margin: 2em; 
     background: inherit;
     overflow: hidden;
@@ -72,6 +86,7 @@ ul { margin: 1em 0 1em 2em; }
     background: rgba(0,0,0, .03);
     -moz-border-radius: 10px;
     -moz-box-shadow: inset 0 1px 1px rgba(0,0,0, .25), 0 1px 0 #fff;
+    margin: 0 0 20px;
 }
 
 #sidebar .chart { margin-bottom: 1em; }
@@ -137,6 +152,7 @@ pre.exception_value { font-family: sans-serif; color: #666; font-size: 1.5em; ma
 
 .filter-list li a:hover  {
     background: rgba(131,136,142, .10);
+    -moz-box-shadow: inset 0 1px 0 rgba(0,0,0, .1);
 } 
 .filter-list li.active a { 
     background: #3079d0;
