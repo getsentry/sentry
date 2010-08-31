@@ -62,30 +62,32 @@ def group(request, group_id):
     message_list = Message.objects.filter(checksum=message.checksum, logger=message.logger, view=message.view)
     
     obj = message_list[0]
+    if 'exc' in obj.data:
+        module, args, frames = pickle.loads(base64.b64decode(obj.data['exc']).decode('zlib'))
+        obj.class_name = str(obj.class_name)
 
-    module, args, frames = pickle.loads(base64.b64decode(obj.data['exc']).decode('zlib'))
-    obj.class_name = str(obj.class_name)
+        # We fake the exception class due to many issues with imports/builtins/etc
+        exc_type = type(obj.class_name, (Exception,), {})
+        exc_value = exc_type(obj.message)
 
-    # We fake the exception class due to many issues with imports/builtins/etc
-    exc_type = type(obj.class_name, (Exception,), {})
-    exc_value = exc_type(obj.message)
-
-    exc_value.args = args
+        exc_value.args = args
     
-    fake_request = FakeRequest()
-    fake_request.META = obj.data.get('META', {})
-    fake_request.GET = obj.data.get('GET', {})
-    fake_request.POST = obj.data.get('POST', {})
-    fake_request.FILES = obj.data.get('FILES', {})
-    fake_request.COOKIES = obj.data.get('COOKIES', {})
-    fake_request.url = obj.url
-    if obj.url:
-        fake_request.path_info = '/' + obj.url.split('/', 3)[-1]
-    else:
-        fake_request.path_info = ''
+        fake_request = FakeRequest()
+        fake_request.META = obj.data.get('META', {})
+        fake_request.GET = obj.data.get('GET', {})
+        fake_request.POST = obj.data.get('POST', {})
+        fake_request.FILES = obj.data.get('FILES', {})
+        fake_request.COOKIES = obj.data.get('COOKIES', {})
+        fake_request.url = obj.url
+        if obj.url:
+            fake_request.path_info = '/' + obj.url.split('/', 3)[-1]
+        else:
+            fake_request.path_info = ''
 
-    reporter = ImprovedExceptionReporter(fake_request, exc_type, exc_value, frames)
-    interactive_traceback = mark_safe(reporter.get_traceback_html())
+        reporter = ImprovedExceptionReporter(fake_request, exc_type, exc_value, frames)
+        traceback = mark_safe(reporter.get_traceback_html())
+    else:
+        traceback = message.traceback
     
     unique_urls = [m[0] for m in message_list.filter(url__isnull=False).values_list('url', 'logger', 'view', 'checksum').distinct()[0:10]]
     

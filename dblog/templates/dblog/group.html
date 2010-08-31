@@ -24,9 +24,13 @@
 			{% endfor %}
 		</ul>
 		
-		<h2>Sample Error</h2>
-		
-		{{ interactive_traceback }}
+		{% if traceback %}
+
+			<h2>Sample Traceback</h2>
+
+			{{ traceback }}
+
+		{% endif %}
 	</div>
 
 	<div id="footer">Powered by sexy Django magic.</div> 
