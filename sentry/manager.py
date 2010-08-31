@@ -18,7 +18,7 @@ from django.views.debug import ExceptionReporter
 from sentry import settings
 from sentry.helpers import construct_checksum
 
-assert not settings.DATABASE_USING or django.VERSION >= (1, 2), 'The `DBLOG_DATABASE_USING` setting requires Django >= 1.2'
+assert not settings.DATABASE_USING or django.VERSION >= (1, 2), 'The `SENTRY_DATABASE_USING` setting requires Django >= 1.2'
 
 logger = logging.getLogger('sentry')
 

@@ -48,23 +48,23 @@ Configuration
 Several options exist to configure django-sentry via your ``settings.py``:
 
 ######################
-DBLOG_CATCH_404_ERRORS
+SENTRY_CATCH_404_ERRORS
 ######################
 
 Enable catching of 404 errors in the logs. Default value is ``False``::
 
-	DBLOG_CATCH_404_ERRORS = True
+	SENTRY_CATCH_404_ERRORS = True
 
 You can skip other custom exception types by adding a ``skip_sentry = True`` attribute to them.
 
 ####################
-DBLOG_DATABASE_USING
+SENTRY_DATABASE_USING
 ####################
 
 Use a secondary database to store error logs. This is useful if you have several websites and want to aggregate error logs onto one database server::
 
 	# This should correspond to a key in your DATABASES setting
-	DBLOG_DATABASE_USING = 'default'
+	SENTRY_DATABASE_USING = 'default'
 
 You should also enable the ``DBLogRouter`` to avoid things like extraneous table creation::
 
@@ -78,18 +78,18 @@ Some things to note:
 * This functionality REQUIRES Django 1.2.
 
 #########################
-DBLOG_ENHANCED_TRACEBACKS
+SENTRY_ENHANCED_TRACEBACKS
 #########################
 
 Enables showing full embedded (enhanced) tracebacks within the administration for "Messages". These work almost identically to the default exception pages within Django's DEBUG environment::
 
 	# Disable embedded interactive tracebacks in the admin
-	DBLOG_ENHANCED_TRACEBACKS = False
+	SENTRY_ENHANCED_TRACEBACKS = False
 
 * Note: Even if you disable displaying of enhanced tracebacks, sentry will still store the entire exception stacktrace.
 
 #############
-DBLOG_LOGGING
+SENTRY_LOGGING
 #############
 
 Enabling this setting will turn off automatic database logging within the exception handler, and instead send all exceptions to the named logger ``sentry``. Use this in conjuction with ``sentry.handlers.DBLogHandler`` or your own handler to tweak how logging is dealt with.
