@@ -226,8 +226,8 @@ dl.flat dd {
 .messages .hidden {
 	position: absolute;
 	right: 15px;
-	top: 20px;
-    visibility: hidden;
+	top: 21px;
+    visibility: hidden;;
 }
 .messages li:hover .hidden {
     visibility: visible;
@@ -236,9 +236,9 @@ dl.flat dd {
 .button {
     display: inline-block;
 	color: #888;
-	padding: 8px;
+	padding: 8px 8px 6px 8px;
     font-size: 12px;
-    line-height: 14px;
+    line-height: 12px;
     border:1px solid #C5C5C5;
 	text-decoration: none;
 	-webkit-border-radius: 10px;
