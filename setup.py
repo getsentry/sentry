@@ -11,6 +11,7 @@ setup(
     description = 'Exception Logging to a Database in Django',
     packages=find_packages(),
     requirements=[
+        'pygooglechart',
         'django-paging',
         'django-indexer',
     ],
