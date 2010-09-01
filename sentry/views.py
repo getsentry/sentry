@@ -8,7 +8,7 @@ except ImportError:
 
 # TODO: login
 from django.db.models import Count
-from django.http import HttpResponse, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden, HttpResponseRedirect
 from django.shortcuts import render_to_response
 from django.template.loader import render_to_string
 from django.utils import simplejson
@@ -139,7 +139,7 @@ def ajax_handler(request):
             }) for m, p in with_priority(message_list[0:15])]
 
     elif op == 'resolve':
-        gid = request.POST.get('gid')
+        gid = request.REQUEST.get('gid')
         if not gid:
             return HttpResponseForbidden()
         try:
