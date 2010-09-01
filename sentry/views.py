@@ -99,8 +99,6 @@ def ajax_handler(request):
         server_name = request.GET.get('server_name') or ''
         level = request.GET.get('level') or ''
 
-        realtime = not (request.GET.get('p') > 1)
-
         if logger not in logger_names:
             logger = ''
 
@@ -138,8 +136,19 @@ def ajax_handler(request):
         gid = request.POST.get('gid')
         if not gid:
             return HttpResponseForbidden()
-        GroupedMessage.objects.filter(pk=gid).update(status=1)
-        data = {gid: 1}
+        try:
+            group = GroupedMessage.objects.get(pk=gid)
+        except GroupedMessage.DoesNotExist:
+            return HttpResponseForbidden()
+        
+        GroupedMessage.objects.filter(pk=group.pk).update(status=1)
+        group.status = 1
+        
+        data = [
+            (m.pk, {
+                'html': render_to_string('sentry/partial/_group.html', {'group': m}),
+                'count': m.times_seen,
+            }) for m in [group]]
         
     response = HttpResponse(simplejson.dumps(data))
     response['Content-Type'] = 'application/json'
