@@ -7,6 +7,7 @@
 	<span class="status status-{{ group.status }}">{{ group.get_status_display }}</span>
 	<p class="message"><span class="tag tag-level">{{ group.get_level_display }}</span> {{ group.error }}</p>
 	<pre class="traceback">{{ group.shortened_traceback }}</pre>
+    <a href="{% url sentry-group group.pk %}" class="row_link"></a>
 	{% if group.status == 0 %}
 		<a href="{% url sentry-ajax %}?op=resolve&amp;gid={{ group.pk }}" onclick="sentryResolve({{ group.pk }});returnfalse;" class="button resolve_button hidden">&#10003;</a>
 	{% endif %}
