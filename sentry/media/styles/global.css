@@ -79,6 +79,8 @@ ul { margin: 1em 0 1em 2em; }
     -moz-border-radius: 10px;
     -webkit-border-radius: 10px;
     -moz-box-shadow: 0 1px 4px #c5c5c5;
+    -webkit-box-shadow: 0 1px 4px #c5c5c5;
+    box-shadow: 01px 4px #c5c5c5;
     padding: 10px 20px;
 }
 
