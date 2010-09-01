@@ -227,25 +227,33 @@ dl.flat dd {
 	position: absolute;
 	right: 15px;
 	top: 20px;
-	color: #fff;
+    visibility: hidden;
 }
 .messages li:hover .hidden {
-	color: #000;
-	background: #ccc;
+    visibility: visible;
+}
+
+.button {
+    display: inline-block;
+	color: #888;
 	border-top: 1px solid #ddd;
 	border-left: 1px solid #ddd;
 	border-right: 1px solid #aaa;
 	border-bottom: 1px solid #aaa;
-	padding: 5px;
+	padding: 8px;
+    font-size: 12px;
+    line-height: 14px;
+    border:1px solid #C5C5C5;
 	text-decoration: none;
-	-webkit-border-radius: 3px;
-	-moz-border-radius: 3px;
-	border-radius: 3px;
+	-webkit-border-radius: 10px;
+	-moz-border-radius: 6px;
+	border-radius: 10px;
+    background:-moz-linear-gradient(center top , #FFFFFF 0pt, #DCDCDC 100%) repeat scroll 0 0 transparent;
 }
-.messages li:hover .hidden:hover {
-	border-top: 1px solid #eee;
-	border-left: 1px solid #eee;
-    background-color: #ddd;
+
+.button:hover {
+    border:1px solid #aaa;
+    color: #333;
 }
 .priority-veryhigh .count {
 	background: #e22e2e;
