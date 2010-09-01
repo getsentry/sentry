@@ -246,11 +246,20 @@ dl.flat dd {
 	-moz-border-radius: 6px;
 	border-radius: 10px;
     background:-moz-linear-gradient(center top , #FFFFFF 0pt, #DCDCDC 100%) repeat scroll 0 0 transparent;
+
+
+    
 }
 
 .button:hover {
-    border:1px solid #aaa;
+    border:1px solid #3079d0;
     color: #333;
+    color: #fff;
+    text-shadow: 0 -1px 0 #3079d0;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#4da2e5', endColorstr='#3079d0'); /* for IE */
+	background: -webkit-gradient(linear, left top, left bottom, from(#4da2e5), to(#3079d0)); /* for webkit browsers */
+	background: -moz-linear-gradient(top,  #4da2e5,  #3079d0); /* for firefox 3.6+ */
+
 }
 .priority-veryhigh .count {
 	background: #e22e2e;
