@@ -9,7 +9,7 @@ from django.utils.encoding import smart_unicode
 
 from sentry.middleware import DBLogMiddleware
 from sentry.models import Message, GroupedMessage
-from sentry.tests.models import JSONDictModel, DuplicateKeyModel
+from sentry.tests.models import TestModel, DuplicateKeyModel
 from sentry import settings
 
 import logging
@@ -45,18 +45,6 @@ class RequestFactory(Client):
         return WSGIRequest(environ)
  
 RF = RequestFactory()
-
-class JSONDictTestCase(TestCase):
-    def testField(self):
-        # Let's make sure the default value is correct
-        instance = JSONDictModel()
-        self.assertEquals(instance.data, {})
-        
-        instance = JSONDictModel.objects.create(data={'foo': 'bar'})
-        self.assertEquals(instance.data.get('foo'), 'bar')
-        
-        instance = JSONDictModel.objects.get()
-        self.assertEquals(instance.data.get('foo'), 'bar')
 
 class DBLogTestCase(TestCase):
     urls = 'sentry.tests.urls'
@@ -155,7 +143,7 @@ class DBLogTestCase(TestCase):
             last = Message.objects.all().order_by('-id')[0:1].get()
             self.assertEquals(last.class_name, 'ValueError')
             self.assertEquals(last.message, 'This is a test info with an exception')
-            self.assertTrue(last.data.get('exc'))
+            self.assertTrue(last.data.get('__sentry__', {}).get('exc'))
     
         self.tearDownHandler()
     
@@ -192,7 +180,7 @@ class DBLogTestCase(TestCase):
             Message.objects.get(id=999999989)
         except Message.DoesNotExist, exc:
             error = Message.objects.create_from_exception()
-            self.assertTrue(error.data.get('exc'))
+            self.assertTrue(error.data.get('__sentry__', {}).get('exc'))
         else:
             self.fail('Unable to create `Message` entry.')
 
@@ -247,7 +235,7 @@ class DBLogTestCase(TestCase):
         logging.info(value)
         self.assertEquals(Message.objects.count(), cnt+2)
 
-        x = JSONDictModel.objects.create(data={'value': value})
+        x = TestModel.objects.create(data={'value': value})
         logging.warn(x)
         self.assertEquals(Message.objects.count(), cnt+3)
 
@@ -273,7 +261,7 @@ class DBLogTestCase(TestCase):
         logging.info(value)
         self.assertEquals(Message.objects.count(), cnt+2)
 
-        x = JSONDictModel.objects.create(data={'value': value})
+        x = TestModel.objects.create(data={'value': value})
         logging.warn(x)
         self.assertEquals(Message.objects.count(), cnt+3)
 
@@ -489,16 +477,16 @@ class DBLogFeedsTest(TestCase):
         response = self.client.get(reverse('sentry-feed-messages'))
         self.assertEquals(response.status_code, 200)
         self.assertTrue(response.content.startswith('<?xml version="1.0" encoding="utf-8"?>'))
-        self.assertTrue('<link>http://testserver/admin/sentry/message/</link>' in response.content)
+        self.assertTrue('<link>http://testserver/</link>' in response.content)
         self.assertTrue('<title>log messages</title>' in response.content)
-        self.assertTrue('<link>http://testserver/admin/sentry/message/1/</link>' in response.content, response.content)
+        self.assertTrue('<link>http://testserver/group/1</link>' in response.content, response.content)
         self.assertTrue('<title>TypeError: exceptions must be old-style classes or derived from BaseException, not NoneType</title>' in response.content)
 
     def testSummaryFeed(self):
         response = self.client.get(reverse('sentry-feed-summaries'))
         self.assertEquals(response.status_code, 200)
         self.assertTrue(response.content.startswith('<?xml version="1.0" encoding="utf-8"?>'))
-        self.assertTrue('<link>http://testserver/admin/sentry/groupedmessage/</link>' in response.content)
+        self.assertTrue('<link>http://testserver/</link>' in response.content)
         self.assertTrue('<title>log summaries</title>' in response.content)
-        self.assertTrue('<link>http://testserver/admin/sentry/groupedmessage/1/</link>' in response.content)
+        self.assertTrue('<link>http://testserver/group/1</link>' in response.content, response.content)
         self.assertTrue('<title>(1) TypeError: TypeError: exceptions must be old-style classes or derived from BaseException, not NoneType</title>' in response.content)

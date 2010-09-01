@@ -1,8 +1,8 @@
 from django.db import models
-from sentry.utils import JSONDictField
+from sentry.utils import GzippedDictField
 
-class JSONDictModel(models.Model):
-    data = JSONDictField(blank=True, null=True)
+class TestModel(models.Model):
+    data = GzippedDictField(blank=True, null=True)
     
     def __unicode__(self):
         return unicode(self.data)
