@@ -254,7 +254,7 @@ dl.flat dd {
 
 .messages .tag { display: inline-block; padding: 2px 5px; background: #d5d5d5; margin-right: 5px;}
 .messages .traceback { display: none; }
-.messages li { padding: 8px; position: relative; }
+.messages li { padding: 8px; position: relative; padding-right: 50px;}
 .messages .row1 { background: #f9f9f9; }
 .messages .hidden {
 	position: absolute;
