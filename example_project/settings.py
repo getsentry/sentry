@@ -2,7 +2,7 @@ import os.path
 import sys
 # Django settings for example_project project.
 
-DEBUG = False
+DEBUG = True
 TEMPLATE_DEBUG = True
 
 ADMINS = (
@@ -99,6 +99,7 @@ INSTALLED_APPS = (
     'sentry',
     'paging',
     'south',
+    'indexer',
     # Uncomment the next line to enable the admin:
     # 'django.contrib.admin',
 )
@@ -107,3 +108,10 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 SENTRY_THRASHING_TIMEOUT = 0
+
+SENTRY_FILTERS = (
+    'sentry.filters.LoggerFilter',
+    'sentry.filters.LevelFilter',
+    'sentry.filters.ServerNameFilter',
+    'example_project.filters.IPFilter',
+)

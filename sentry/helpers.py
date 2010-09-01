@@ -6,6 +6,8 @@ from django.utils.hashcompat import md5_constructor
 from django.utils.html import escape
 from django.views.debug import ExceptionReporter, linebreak_iter
 
+from indexer.models import Index
+
 import logging
 
 class ImprovedExceptionReporter(ExceptionReporter):
@@ -112,6 +114,8 @@ def get_filters():
     
     if _FILTER_CACHE is None:
         from sentry import settings
+        from sentry.models import Message
+        
         filters = []
         for filter_ in settings.FILTERS:
             module_name, class_name = filter_.rsplit('.', 1)
@@ -121,6 +125,8 @@ def get_filters():
             except Exception, exc:
                 logging.exception('Unable to import %s' % (filter_,))
                 continue
+            if filter_.column.startswith('data__'):
+                Index.objects.register_model(Message, filter_.column, index_to='group')
             filters.append(filter_)
         _FILTER_CACHE = filters
     for f in _FILTER_CACHE:

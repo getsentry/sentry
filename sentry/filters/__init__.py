@@ -2,6 +2,8 @@
 from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 
+from indexer.models import Index
+
 from sentry.models import GroupedMessage, Message, LOG_LEVELS
 
 class Widget(object):
@@ -26,10 +28,10 @@ class ChoiceWidget(Widget):
         column = self.filter.get_query_param()
 
         output = ['<ul class="%s-list filter-list sidebar-module">' % (self.filter.column,)]
-        output.append('<li%(active)s><a href="?%(query_string)s">Any %(label)s</a></li>' % dict(
+        output.append('<li%(active)s><a href="%(query_string)s">Any %(label)s</a></li>' % dict(
             active=not value and ' class="active"' or '',
             query_string=query_string,
-            label=self.filter.get_label(),
+            label=self.filter.label,
         ))
         for key, val in choices.iteritems():
             key = unicode(key)
@@ -57,20 +59,14 @@ class SentryFilter(object):
     def get_value(self):
         return self.request.GET.get(self.get_query_param()) or ''
     
-    def get_label(self):
-        return self.label
-
-    def get_column(self):
-        return self.column
-    
     def get_query_param(self):
-        return self.get_column()
+        return getattr(self, 'query_param', self.column)
 
     def get_widget(self):
         return self.widget(self, self.request)
     
     def get_query_string(self):
-        column = self.get_column()
+        column = self.column
         query_dict = self.request.GET.copy()
         if 'p' in query_dict:
             del query_dict['p']
@@ -79,10 +75,13 @@ class SentryFilter(object):
         return '?' + query_dict.urlencode()
     
     def get_choices(self):
-        return SortedDict((l, l) for l in GroupedMessage.objects.values_list(self.get_column(), flat=True).distinct())
+        return SortedDict((l, l) for l in GroupedMessage.objects.values_list(self.column, flat=True).distinct())
     
     def get_query_set(self, queryset):
-        return queryset.filter(**{self.get_column(): self.get_value()})
+        kwargs = {self.column: self.get_value()}
+        if self.column.startswith('data__'):
+            return Index.objects.get_for_queryset(queryset, **kwargs)
+        return queryset.filter(**kwargs)
     
     def process(self, data):
         """``self.request`` is not available within this method"""
@@ -101,7 +100,7 @@ class ServerNameFilter(SentryFilter):
     column = 'server_name'
 
     def get_choices(self):
-        return SortedDict((l, l) for l in Message.objects.values_list(self.get_column(), flat=True).distinct())
+        return SortedDict((l, l) for l in Message.objects.values_list(self.column, flat=True).distinct())
 
     def get_query_set(self, queryset):
         return queryset.filter(message_set__server_name=self.get_value())

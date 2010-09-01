@@ -11,6 +11,7 @@ import sys
 
 from django.core.cache import cache
 from django.db import models
+from django.db.models import signals
 from django.template import TemplateSyntaxError
 from django.utils.encoding import smart_unicode
 from django.views.debug import ExceptionReporter
@@ -78,6 +79,7 @@ class DBLogManager(models.Manager):
                     status=0,
                     last_seen=datetime.datetime.now(),
                 )
+                # signals.post_save.send(sender=GroupedMessage, instance=group, created=False)
             instance.group = group
             instance.save()
         except Exception, exc:
