@@ -80,7 +80,7 @@ def index(request):
         max_y = max(rows.values())
     else:
         max_y = 1
-    chart = SimpleLineChart(384, 130, y_range=[0, max_y])
+    chart = SimpleLineChart(384, 80, y_range=[0, max_y])
     chart.add_data([max_y]*30)
     chart.add_data([rows.get((today-datetime.timedelta(hours=d)).hour, 0) for d in range(0, 24)][::-1])
     chart.add_data([0]*30)
@@ -141,7 +141,7 @@ def group(request, group_id):
         max_y = max(rows.values())
     else:
         max_y = 1
-    chart = SimpleLineChart(384, 130, y_range=[0, max_y])
+    chart = SimpleLineChart(384, 80, y_range=[0, max_y])
     chart.add_data([max_y]*30)
     chart.add_data([rows.get((today-datetime.timedelta(hours=d)).hour, 0) for d in range(0, 24)][::-1])
     chart.add_data([0]*30)
