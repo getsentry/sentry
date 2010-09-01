@@ -106,7 +106,7 @@ table td.code div { overflow:hidden; }
 table.source th { color:#666; }
 table.source td { font-family:monospace; white-space:pre; border-bottom:1px solid #eee; }
 ul.traceback { list-style-type:none; }
-ul.traceback li.frame { margin-bottom:1em; }
+ul.traceback li.frame { margin-bottom:1em; overflow: hidden; }
 div.context { margin: 10px 0; }
 div.context ol { padding-left:30px; margin:0 10px; list-style-position: inside; }
 div.context ol li { font-family:monospace; white-space:pre; color:#666; cursor:pointer; }
