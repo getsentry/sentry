@@ -6,6 +6,14 @@ Logs Django exceptions to your database handler.
 
 (This is a major refactor of django-db-log and is not backwards compatible)
 
+============
+Requirements
+============
+ 
+ - **postgresql**
+ - **Django >= 1.2** (to use a secondary database to store error logs)
+ - **pygooglechart** (to generate *optional* error reports)
+
 =========
 Upgrading
 =========
@@ -47,9 +55,9 @@ Configuration
 
 Several options exist to configure django-sentry via your ``settings.py``:
 
-######################
+#######################
 SENTRY_CATCH_404_ERRORS
-######################
+#######################
 
 Enable catching of 404 errors in the logs. Default value is ``False``::
 
@@ -57,9 +65,9 @@ Enable catching of 404 errors in the logs. Default value is ``False``::
 
 You can skip other custom exception types by adding a ``skip_sentry = True`` attribute to them.
 
-####################
+#####################
 SENTRY_DATABASE_USING
-####################
+#####################
 
 Use a secondary database to store error logs. This is useful if you have several websites and want to aggregate error logs onto one database server::
 
@@ -73,13 +81,12 @@ You should also enable the ``DBLogRouter`` to avoid things like extraneous table
 		...
 	]
 
-Some things to note:
 
-* This functionality REQUIRES Django 1.2.
+.. note:: This functionality REQUIRES Django 1.2.
 
-#############
+##############
 SENTRY_LOGGING
-#############
+##############
 
 Enabling this setting will turn off automatic database logging within the exception handler, and instead send all exceptions to the named logger ``sentry``. Use this in conjuction with ``sentry.handlers.DBLogHandler`` or your own handler to tweak how logging is dealt with.
 
