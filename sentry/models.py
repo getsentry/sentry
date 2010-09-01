@@ -121,7 +121,7 @@ class GroupedMessage(MessageBase):
             for (filename, line, function, text) in reversed(tb):
                 for path in sys.path:
                     if filename.startswith(path):
-                        view = '%s.%s' % (file[len(path)+1:].replace('/', '.').replace('.py', ''), function)
+                        view = '%s.%s' % (filename[len(path)+1:].replace('/', '.').replace('.py', ''), function)
                         break
                 if view.split('.')[0] in modules:
                     break
