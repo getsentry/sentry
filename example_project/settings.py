@@ -1,5 +1,5 @@
 import os.path
-
+import sys
 # Django settings for example_project project.
 
 DEBUG = False
@@ -12,6 +12,8 @@ ADMINS = (
 MANAGERS = ADMINS
 
 PROJECT_ROOT = os.path.dirname(__file__)
+
+sys.path.insert(0, os.path.abspath(os.path.join(PROJECT_ROOT, '..')))
 
 DATABASES = {
     'default': {
