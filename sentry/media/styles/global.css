@@ -276,11 +276,13 @@ dl.flat dd {
 .messages .status-0 { display: none; }
 .messages .status-1 { color: red; }
 .messages li:hover, .messages .active {
-	background: #e0ebff;
-	background: -moz-linear-gradient(top,  #e5e5e5,  #ddd); /* for firefox 3.6+ */
+	background: #e5e5e5;
 	-webkit-border-radius: 6px;
 	-moz-border-radius: 6px;
 	border-radius: 6px;
+}
+.messages li:hover h3 a {
+    color: #006CA3;
 }
 .messages li:hover .last_seen, .messages .active .last_seen { color: #777; }
 pre {
