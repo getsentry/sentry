@@ -9,6 +9,6 @@
 	<pre class="traceback">{{ group.shortened_traceback }}</pre>
     <a href="{% url sentry-group group.pk %}" class="row_link"></a>
 	{% if group.status == 0 %}
-		<a href="javascript:void(0)" onclick="sentryResolve({{ group.pk }});" class="button resolve_button hidden">&#10003;</a>
+		<a href="{% url sentry-ajax %}?op=resolve&amp;gid={{ group.pk }}" onclick="sentryResolve({{ group.pk }});returnfalse;" class="button resolve_button hidden">&#10003;</a>
 	{% endif %}
 </li>
