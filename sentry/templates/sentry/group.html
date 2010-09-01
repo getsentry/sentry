@@ -56,7 +56,7 @@
 						<p class="message"><span class="tag tag-level">{{ group.get_level_display }}</span> {{ group.error }}</p>
 						<pre class="traceback">{{ group.shortened_traceback }}</pre>
 						{% if group.status == 0 %}
-							<a href="javascript:void(0)" onclick="sentryResolve({{ group.pk }}, false);" class="hidden resolve-link">Resolve</a>
+							<a href="javascript:void(0)" onclick="sentryResolve({{ group.pk }}, false);" class="hidden button button_resolve">&#10003;</a>
 						{% endif %}
 					</li>
 				</ul>
