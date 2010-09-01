@@ -268,6 +268,9 @@ dl.flat dd {
 	background:-moz-linear-gradient(center top , #efd57c, #e0ae00) repeat scroll 0 0 transparent;
 }
 .messages .last_seen { color: #bbb; font-size: 0.9em; margin-left: 5px; }
+.messages .status { margin-left: 5px; text-transform: uppercase; font-size: 0.9em; }
+.messages .status-0 { display: none; }
+.messages .status-1 { color: red; }
 .messages li:hover, .messages .active {
 	background: #e0ebff;
 	background: -moz-linear-gradient(top,  #e5e5e5,  #ddd); /* for firefox 3.6+ */
