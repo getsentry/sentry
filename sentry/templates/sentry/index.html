@@ -8,70 +8,7 @@
 		<meta name="robots" content="NONE,NOARCHIVE">
 		<title>{% block title %}Django Sentry{% endblock %}</title> 
 		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
-		<script type="text/javascript"> 
-		//<!--
-		function getElementsByClassName(oElm, strTagName, strClassName){
-			// Written by Jonathan Snook, http://www.snook.ca/jon; Add-ons by Robert Nyman, http://www.robertnyman.com
-			var arrElements = (strTagName == "*" && document.all)? document.all :
-			oElm.getElementsByTagName(strTagName);
-			var arrReturnElements = new Array();
-			strClassName = strClassName.replace(/\-/g, "\\-");
-			var oRegExp = new RegExp("(^|\\s)" + strClassName + "(\\s|$)");
-			var oElement;
-			for(var i=0; i<arrElements.length; i++){
-				oElement = arrElements[i];
-				if(oRegExp.test(oElement.className)){
-					arrReturnElements.push(oElement);
-				}
-			}
-			return (arrReturnElements)
-		}
-		function hideAll(elems) {
-		  for (var e = 0; e < elems.length; e++) {
-			elems[e].style.display = 'none';
-		  }
-		}
-		window.onload = function() {
-		  hideAll(getElementsByClassName(document, 'table', 'vars'));
-		  hideAll(getElementsByClassName(document, 'ol', 'pre-context'));
-		  hideAll(getElementsByClassName(document, 'ol', 'post-context'));
-		  hideAll(getElementsByClassName(document, 'div', 'pastebin'));
-		}
-		function toggle() {
-		  for (var i = 0; i < arguments.length; i++) {
-			var e = document.getElementById(arguments[i]);
-			if (e) {
-			  e.style.display = e.style.display == 'none' ? 'block' : 'none';
-			}
-		  }
-		  return false;
-		}
-		function varToggle(link, id) {
-		  toggle('v' + id);
-		  var s = link.getElementsByTagName('span')[0];
-		  var uarr = String.fromCharCode(0x25b6);
-		  var darr = String.fromCharCode(0x25bc);
-		  s.innerHTML = s.innerHTML == uarr ? darr : uarr;
-		  return false;
-		}
-		function switchPastebinFriendly(link) {
-		  s1 = "Switch to copy-and-paste view";
-		  s2 = "Switch back to interactive view";
-		  link.innerHTML = link.innerHTML == s1 ? s2 : s1;
-		  toggle('browserTraceback', 'pastebinTraceback');
-		  return false;
-		}
-		
-		$.fn.setAllToMaxHeight = function(){
-			return this.height( Math.max.apply(this, $.map( this , function(e){ return $(e).height() }) ) );
-		}
-		
-		$(document).ready(function(){
-			$("div.column").setAllToMaxHeight();
-		});
-		
-		//-->
-		</script>
+		<script type="text/javascript" src="{% url sentry-media "scripts/global.js" %}"></script>
 		<style>
 		@import '{% url sentry-media "styles/global.css" %}';
 		</style>
@@ -127,14 +64,7 @@
 						{{ message_list.paging }}
 						<ul class="messages">
 							{% for message, priority in message_list.objects|with_priority %}
-								<li class="{% cycle 'row1' 'row2' %} level-{{ message.level }} priority-{{ priority }}" onclick="window.location.href='{% url sentry-group message.pk %}'">
-									<span class="count">{{ message.times_seen }}</span>
-									<h3><a href="{% url sentry-group message.pk %}">{% if message.view %}{{ message.view }}{% else %}{{ message.message }}{% endif %}</a></h3>
-									<span class="last_seen">{{ message.last_seen|timesince }} ago</span>
-									<p class="message"><span class="tag tag-level">{{ message.get_level_display }}</span> <span class="tag tag-server">{{ message.server_name }}</span> {{ message.error }}</p>
-									<pre class="traceback">{{ message.shortened_traceback }}</pre>
-									<span class="hidden">&raquo;</span>
-								</li>
+								{% include "sentry/partial/_group.html" %}
 							{% endfor %}
 						</ul>
 						{{ message_list.paging }}
