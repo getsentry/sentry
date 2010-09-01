@@ -222,6 +222,7 @@ dl.flat dd {
 
 /* message list */
 .messages { list-style: none; margin-left: 0; }
+.messages li { list-style: none; }
 .messages .count {
 	width: 28px; text-align: center;
 	-webkit-border-radius: 6px;
@@ -249,6 +250,14 @@ dl.flat dd {
 }
 .messages li:hover .hidden {
     visibility: visible;
+}
+
+.row_link {
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    position: absolute;
 }
 
 .button {
