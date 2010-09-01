@@ -142,13 +142,14 @@ class DBLogManager(models.Manager):
             return f
 
         def shorten(var):
-            var = to_unicode(var)
+            if not isinstance(var, basestring):
+                var = to_unicode(var)
             if len(var) > 500:
                 var = var[:500] + '...'
             return var
 
         reporter = ExceptionReporter(None, exc_type, exc_value, traceback)
-        frames = varmap(shorten, reporter.get_traceback_frames)
+        frames = varmap(shorten, reporter.get_traceback_frames())
 
         data = kwargs.pop('data', {}) or {}
         data['__sentry__'] = {
