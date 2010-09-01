@@ -79,7 +79,7 @@ ul { margin: 1em 0 1em 2em; }
 #sidebar { 
     float: right; 
     width: 300px; 
-    margin: 2em 2em 2em 0; 
+    margin: 2em 2em 2em 1.5em; 
     background: inherit;
     overflow: hidden;
     }
@@ -236,10 +236,6 @@ dl.flat dd {
 .button {
     display: inline-block;
 	color: #888;
-	border-top: 1px solid #ddd;
-	border-left: 1px solid #ddd;
-	border-right: 1px solid #aaa;
-	border-bottom: 1px solid #aaa;
 	padding: 8px;
     font-size: 12px;
     line-height: 14px;
