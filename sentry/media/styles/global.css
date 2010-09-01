@@ -35,9 +35,9 @@ ul { margin: 1em 0 1em 2em; }
 	font-family: helvetica, sans-serif;
 	font-size: 22px;
 	color: #fff;
+	-webkit-border-radius: 8px;
 	-moz-border-radius: 8px;
 	border-radius: 8px;
-					
 }
 .sentry-logo small {
 	font-size: 22px;
@@ -59,6 +59,7 @@ ul { margin: 1em 0 1em 2em; }
     max-width: 100%; 
     overflow: hidden; 
     margin: 1.5em;
+    border-radius: 10px;
     -moz-border-radius: 10px;
     -webkit-border-radius: 10px;
     -moz-box-shadow: 0 1px 4px #c5c5c5;
@@ -169,9 +170,19 @@ pre.exception_value { font-family: sans-serif; color: #666; font-size: 1.5em; ma
 
 .filter-list li:first-child.active a { -moz-box-shadow: inset 0 1px 1px rgba(0,0,0, .30);}
 
-.filter-list li:first-child a:hover, .filter-list li:first-child.active a { -moz-border-radius: 10px 10px 0 0; border-top: 0;}
-.filter-list li:last-child a:hover, .filter-list li:last-child.active a { -moz-border-radius: 0 0 10px 10px; border-bottom: 0;
-    -moz-box-shadow: none}
+.filter-list li:first-child a:hover, .filter-list li:first-child.active a {
+    -moz-border-radius: 10px 10px 0 0;
+    -webkit-border-radius: 10px 10px 0 0;
+    border-radius: 10px 10px 0 0;
+    border-top: 0;
+}
+.filter-list li:last-child a:hover, .filter-list li:last-child.active a {
+    -moz-border-radius: 0 0 10px 10px;
+    -webkit-border-radius: 0 0 10px 10px;
+    border-radius: 0 0 10px 10px;
+    border-bottom: 0;
+    -moz-box-shadow: none;
+}
 .filter-list li.active a { font-weight: bold; }
 dl.flat {
 	margin-bottom: 1em;
@@ -186,12 +197,13 @@ dl.flat dd {
 	padding-bottom: 5px;
 }
 /* messages generic */
-.count { background: #000; -moz-border-radius: 4px; border-radius: 4px; padding: 0 5px; margin-right: 3px; line-height: 19px; color: #fff; display: inline-block; }
+.count { background: #000; -moz-border-radius: 4px; -webkit-border-radius: 4px; border-radius: 4px; padding: 0 5px; margin-right: 3px; line-height: 19px; color: #fff; display: inline-block; }
 
 /* message list */
 .messages { list-style: none; margin-left: 0; }
 .messages .count {
 	width: 25px; text-align: center;
+	-webkit-border-radius: 6px;
 	-moz-border-radius: 6px;
 	border-radius: 6px;
 	padding: 4px; line-height: 19px; color: #fff; display: inline-block; margin-right: 5px;
@@ -243,6 +255,7 @@ dl.flat dd {
 	background: #e0ebff;
 	background: -moz-linear-gradient(top,  #e5e5e5,  #ddd); /* for firefox 3.6+ */
 	cursor: pointer;
+	-webkit-border-radius: 6px;
 	-moz-border-radius: 6px;
 	border-radius: 6px;
 }
