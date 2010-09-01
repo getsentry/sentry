@@ -16,6 +16,6 @@ urlpatterns = patterns('',
     url(r'^feeds/%s/summaries.xml$' % hashed_secret, SummaryFeed(), name='sentry-feed-summaries'),
     url(r'^group/(\d+)$', views.group, name='sentry-group'),
     url(r'^$', views.index, name='sentry'),
-    (r'^_media/(?P<path>.*)$', 'django.views.static.serve',
-        {'document_root': os.path.join(SENTRY_ROOT, 'media')}),
+    url(r'^_media/(?P<path>.*)$', 'django.views.static.serve',
+        {'document_root': os.path.join(SENTRY_ROOT, 'media')}, name='sentry-media'),
 )
