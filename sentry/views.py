@@ -1,3 +1,11 @@
+from math import log
+import datetime
+
+try:
+    from pygooglechart import SimpleLineChart
+except ImportError:
+    SimpleLineChart = None
+
 # TODO: login
 from django.db.models import Count
 from django.http import HttpResponse
@@ -11,10 +19,6 @@ from sentry.helpers import FakeRequest, ImprovedExceptionReporter
 from sentry.models import GroupedMessage, Message, LOG_LEVELS
 from sentry.templatetags.sentry_helpers import with_priority
 
-from math import log
-from pygooglechart import SimpleLineChart, Axis
-
-import datetime
 
 def index(request):
     logger_names = SortedDict((l, l) for l in GroupedMessage.objects.values_list('logger', flat=True).distinct())
@@ -82,16 +86,18 @@ def index(request):
         max_y = max(rows.values())
     else:
         max_y = 1
-    chart = SimpleLineChart(384, 80, y_range=[0, max_y])
-    chart.add_data([max_y]*30)
-    chart.add_data([rows.get((today-datetime.timedelta(hours=d)).hour, 0) for d in range(0, 24)][::-1])
-    chart.add_data([0]*30)
-    chart.fill_solid(chart.BACKGROUND, 'eeeeee')
-    chart.add_fill_range('eeeeee', 0, 1)
-    chart.add_fill_range('e0ebff', 1, 2)
-    chart.set_colours(['eeeeee', '999999', 'eeeeee'])
-    chart.set_line_style(1, 1)
-    chart_url = chart.get_url()
+        
+    if SimpleLineChart:
+        chart = SimpleLineChart(384, 80, y_range=[0, max_y])
+        chart.add_data([max_y]*30)
+        chart.add_data([rows.get((today-datetime.timedelta(hours=d)).hour, 0) for d in range(0, 24)][::-1])
+        chart.add_data([0]*30)
+        chart.fill_solid(chart.BACKGROUND, 'eeeeee')
+        chart.add_fill_range('eeeeee', 0, 1)
+        chart.add_fill_range('e0ebff', 1, 2)
+        chart.set_colours(['eeeeee', '999999', 'eeeeee'])
+        chart.set_line_style(1, 1)
+        chart_url = chart.get_url()
 
     return render_to_response('sentry/index.html', locals())
 
@@ -143,15 +149,17 @@ def group(request, group_id):
         max_y = max(rows.values())
     else:
         max_y = 1
-    chart = SimpleLineChart(384, 80, y_range=[0, max_y])
-    chart.add_data([max_y]*30)
-    chart.add_data([rows.get((today-datetime.timedelta(hours=d)).hour, 0) for d in range(0, 24)][::-1])
-    chart.add_data([0]*30)
-    chart.fill_solid(chart.BACKGROUND, 'eeeeee')
-    chart.add_fill_range('eeeeee', 0, 1)
-    chart.add_fill_range('e0ebff', 1, 2)
-    chart.set_colours(['eeeeee', '999999', 'eeeeee'])
-    chart.set_line_style(1, 1)
-    chart_url = chart.get_url()
+        
+    if SimpleLineChart:
+        chart = SimpleLineChart(384, 80, y_range=[0, max_y])
+        chart.add_data([max_y]*30)
+        chart.add_data([rows.get((today-datetime.timedelta(hours=d)).hour, 0) for d in range(0, 24)][::-1])
+        chart.add_data([0]*30)
+        chart.fill_solid(chart.BACKGROUND, 'eeeeee')
+        chart.add_fill_range('eeeeee', 0, 1)
+        chart.add_fill_range('e0ebff', 1, 2)
+        chart.set_colours(['eeeeee', '999999', 'eeeeee'])
+        chart.set_line_style(1, 1)
+        chart_url = chart.get_url()
     
     return render_to_response('sentry/group.html', locals())
