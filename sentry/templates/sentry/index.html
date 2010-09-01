@@ -8,15 +8,13 @@
 		<meta name="robots" content="NONE,NOARCHIVE">
 		<title>{% block title %}Django Sentry{% endblock %}</title> 
 		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
-		<script type="text/javascript" src="{% url sentry-media "scripts/global.js" %}"></script>
-		<style>
-		@import '{% url sentry-media "styles/global.css" %}';
-		</style>
+		<script type="text/javascript" src="{% url sentry-media "scripts/jquery.animate-colors-min.js" %}"></script>		
+		<script type="text/javascript" src="{% url sentry-media "scripts/global.js" %}"></script>		
+		<style type="text/css">@import '{% url sentry-media "styles/global.css" %}';</style>
 	</head> 
 	
 	<body> 
-		{% block body %}
-		
+		{% block body %}		
 		<div id="header"> 
 			<div class="container">
 				<h1><a href="{% url sentry %}"><span class="sentry-logo" title="Django Sentry">Django Sentry</span></a></h1>
@@ -59,10 +57,10 @@
 				</div>
 
 				<div id="body" class="with-sidebar column">
-					{% paginate message_list from request as message_list per_page 25 %}
+					{% paginate message_list from request as message_list per_page 15 %}
 					{% if message_list.objects %}
 						{{ message_list.paging }}
-						<ul class="messages">
+						<ul class="messages" id="message_list">
 							{% for group, priority in message_list.objects|with_priority %}
 								{% include "sentry/partial/_group.html" %}
 							{% endfor %}

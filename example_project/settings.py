@@ -2,7 +2,7 @@ import os.path
 
 # Django settings for example_project project.
 
-DEBUG = True
+DEBUG = False
 TEMPLATE_DEBUG = True
 
 ADMINS = (
@@ -103,3 +103,5 @@ INSTALLED_APPS = (
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
+
+SENTRY_THRASHING_TIMEOUT = 0

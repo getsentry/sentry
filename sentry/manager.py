@@ -16,7 +16,7 @@ from django.utils.encoding import smart_unicode
 from django.views.debug import ExceptionReporter
 
 from sentry import settings
-from sentry.helpers import construct_checksum
+from sentry.helpers import construct_checksum, varmap
 
 assert not settings.DATABASE_USING or django.VERSION >= (1, 2), 'The `SENTRY_DATABASE_USING` setting requires Django >= 1.2'
 
@@ -45,13 +45,12 @@ class DBLogManager(models.Manager):
             data['url'] = url
             url = url[:URL_MAX_LENGTH]
 
-        defaults['server_name'] = socket.gethostname()
-
         instance = Message(
             view=view,
             logger=logger_name,
             data=data,
             url=url,
+            server_name=socket.gethostname(),
             **defaults
         )
         instance.checksum = construct_checksum(instance)
@@ -70,7 +69,7 @@ class DBLogManager(models.Manager):
                 defaults=defaults
             )
             if not created:
-                GroupedMessage.objects.filter(pk=batch.pk).update(
+                GroupedMessage.objects.filter(pk=group.pk).update(
                     times_seen=models.F('times_seen') + 1,
                     status=0,
                     last_seen=datetime.datetime.now(),
@@ -142,8 +141,14 @@ class DBLogManager(models.Manager):
                     f = '(Error decoding value)'
             return f
 
+        def shorten(var):
+            var = to_unicode(var)
+            if len(var) > 500:
+                var = var[:500] + '...'
+            return var
+
         reporter = ExceptionReporter(None, exc_type, exc_value, traceback)
-        frames = reporter.get_traceback_frames()
+        frames = varmap(shorten, reporter.get_traceback_frames)
 
         data = kwargs.pop('data', {}) or {}
         data['__sentry__'] = {

@@ -96,6 +96,13 @@ def get_installed_apps():
         out.add(app.split('.')[0])
     return out
 
+def varmap(func, var):
+    if isinstance(var, dict):
+        return dict((k, varmap(func, v)) for k, v in var.iteritems())
+    elif isinstance(var, (list, tuple)):
+        return [varmap(func, f) for f in var]
+    else:
+        return func(var)
 
 UNDEFINED = object()
 
@@ -186,12 +193,12 @@ TECHNICAL_500_TEMPLATE = """
                 </tr>
               </thead>
               <tbody>
-                {% for var in frame.vars|dictsort:"0" %}
-                  <tr>
-                    <td>{{ var.0|escape }}</td>
-                    <td class="code"><pre>{{ var.1|pprint|escape }}</pre></td>
-                  </tr>
-                {% endfor %}
+              {% for var in frame.vars|dictsort:"0" %}
+                <tr>
+                  <td>{{ var.0|escape }}</td>
+                  <td class="code"><pre>{{ var.1|pprint|escape }}</pre></td>
+                </tr>
+              {% endfor %}
               </tbody>
             </table>
           {% endif %}

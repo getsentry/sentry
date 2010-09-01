@@ -1,11 +1,15 @@
 # TODO: login
 from django.db.models import Count
+from django.http import HttpResponse
 from django.shortcuts import render_to_response
+from django.template.loader import render_to_string
+from django.utils import simplejson
 from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 
 from sentry.helpers import FakeRequest, ImprovedExceptionReporter
 from sentry.models import GroupedMessage, Message, LOG_LEVELS
+from sentry.templatetags.sentry_helpers import with_priority
 
 from math import log
 from pygooglechart import SimpleLineChart, Axis
@@ -59,6 +63,18 @@ def index(request):
         message_list = message_list.filter(message_set__server_name=server_name).distinct()
         chart_qs = chart_qs.filter(server_name=server_name)
 
+    if request.is_ajax():
+        # Returns the first page's worth of groups
+        data = simplejson.dumps([
+            (m.pk, {
+                'html': render_to_string('sentry/partial/_group.html', {'group': m, 'priority': p}),
+                'count': m.times_seen,
+                'priority': p,
+            }) for m, p in with_priority(message_list[0:15])])
+        response = HttpResponse(data)
+        response['Content-Type'] = 'application/json'
+        return response
+
     rows = dict(chart_qs)
     if rows:
         max_y = max(rows.values())
@@ -86,7 +102,6 @@ def group(request, group_id):
     if '__sentry__' in obj.data:
         module, args, frames = obj.data['__sentry__']['exc']
         obj.class_name = str(obj.class_name)
-        
         # We fake the exception class due to many issues with imports/builtins/etc
         exc_type = type(obj.class_name, (Exception,), {})
         exc_value = exc_type(obj.message)
@@ -110,9 +125,9 @@ def group(request, group_id):
     else:
         traceback = mark_safe('<pre>%s</pre>' % (group.traceback,))
     
-    unique_urls = message_list.filter(url__isnull=False).values_list('url', 'logger', 'view', 'checksum').annotate(times_seen=Count('url')).values('url', 'times_seen')
+    unique_urls = message_list.filter(url__isnull=False).values_list('url', 'logger', 'view', 'checksum').annotate(times_seen=Count('url')).values('url', 'times_seen').order_by('-times_seen')
     
-    unique_servers = message_list.filter(server_name__isnull=False).values_list('server_name', 'logger', 'view', 'checksum').annotate(times_seen=Count('server_name')).values('server_name', 'times_seen')
+    unique_servers = message_list.filter(server_name__isnull=False).values_list('server_name', 'logger', 'view', 'checksum').annotate(times_seen=Count('server_name')).values('server_name', 'times_seen').order_by('-times_seen')
     
     today = datetime.datetime.now()
 

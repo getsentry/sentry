@@ -1,4 +1,4 @@
-<li class="{% cycle 'row1' 'row2' %} level-{{ group.level }}{% if priority %} priority-{{ priority }}{% endif %}" onclick="window.location.href='{% url sentry-group group.pk %}'" id="group_{{ group.pk }}">
+<li class="{% cycle 'row1' 'row2' %} level-{{ group.level }}{% if priority %} priority-{{ priority }}{% endif %}" onclick="window.location.href='{% url sentry-group group.pk %}'" id="group_{{ group.pk }}" data-sentry-count="{{ group.times_seen }}">
 	<span class="count">{{ group.times_seen }}</span>
 	<h3><a href="{% url sentry-group group.pk %}">{% if group.view %}{{ group.view }}{% else %}{{ group.message }}{% endif %}</a></h3>
 	<span class="last_seen">{{ group.last_seen|timesince }} ago</span>

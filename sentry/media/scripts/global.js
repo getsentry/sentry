@@ -55,5 +55,42 @@ $.fn.setAllToMaxHeight = function(){
 }
 
 $(document).ready(function(){
-	$("div.column").setAllToMaxHeight();
+	//$("div.column").setAllToMaxHeight();
+	setTimeout('sentryRefresh()', 3000);
 });
+
+function sentryRefresh(){
+    $.ajax({
+      url: './',
+      dataType: 'json',
+      data: {
+          logger: '{{ logger }}',
+          server_name: '{{ server_name }}',
+          level: '{{ level }}'
+      },
+      success: function(groups){
+          // $('#message_list').each(function(){
+          //               $(this).removeClass('fresh');
+          //           })
+          for (var i=groups.length-1, el, row; (el=groups[i]); i--) {
+              var id = el[0];
+              var data = el[1];
+              if (row = $('#group_' + id)) {
+                  row.remove();
+                  $('#message_list').prepend(data.html);
+                  if (row.attr('data-sentry-count') != data.count) {
+                      $('#group_' + el[0]).addClass('fresh');
+                  }
+              } else {
+                  $('#message_list').prepend(data.html);
+                  $('#group_' + el[0]).addClass('fresh')
+              }
+          }
+          $('#message_list .fresh').css('background-color', '#ccc').animate({backgroundColor: '#fff'}, 1200, function() { 
+                $(this).removeClass('fresh');
+          });
+           
+      }
+    });
+    setTimeout('sentryRefresh()', 3000);
+}
