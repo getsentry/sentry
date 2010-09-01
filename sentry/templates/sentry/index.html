@@ -42,9 +42,11 @@
 				</div>
 
 				<div id="body" class="with-sidebar column">
-					{% paginate message_list from request as message_list per_page 15 %}
+                        {% paginate message_list from request as message_list per_page 15 %}
 					{% if message_list.objects %}
-						{{ message_list.paging }}
+                    <div class="clearfix">
+                        {{ message_list.paging }}
+                    </div>                   
 						<ul class="messages" id="message_list">
 							{% for group, priority in message_list.objects|with_priority %}
 								{% include "sentry/partial/_group.html" %}

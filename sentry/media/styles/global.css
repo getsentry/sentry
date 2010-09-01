@@ -1,7 +1,22 @@
+/* http://www.positioniseverything.net/easyclearing.html */
+.clearfix:after {
+    content: "."; 
+    display: block; 
+    height: 0; 
+    clear: both; 
+    visibility: hidden;
+}
+.clearfix {display: inline-block;}
+/* Hides from IE-mac \*/
+.clearfix {display: block;}
+* html .clearfix {height: 1%;}
+/* end hide from IE-mac */
 
 html * { padding:0; margin:0; }
 body * * { padding:0; }
-body { font:small sans-serif; background: #eee; }
+body { font:small sans-serif; background: #eee;
+    font-family: "Lucida Grande", "Lucida Sans", verdana, sans-serif;
+}
 h1 { font-weight:normal; }
 h1 a { color: inherit; text-decoration: none; }
 h2 { margin-bottom:.4em; font-weight: normal; margin-top: .8em; margin-left: .1em; }
@@ -17,7 +32,6 @@ a:visited { color: inherit; }
 ul { margin: 1em 0 1em 2em; }
 #header {
     position: relative;
-	font-family: "lucida grande", "lucida sans", verdana, sans-serif;
 	background: #e0ebff; border-bottom:1px solid #ddd;
 	background: #555; /* for non-css3 browsers */
 	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#555555', endColorstr='#222222'); /* for IE */
@@ -328,3 +342,70 @@ pre {
 	word-wrap: break-word;	   /* Internet Explorer 5.5+ */
 }
 .no-messages { font-size: 1.1em; padding: 20px 0; }
+
+.paging {
+    display: inline; float: left;
+    width: 100%;
+}
+
+.paging-meta {
+    display: inline; float: right;
+    margin: 10px 10px 0 0;
+    font-size: 14px;
+    line-height: 16px;
+    color: #aaa;
+    font-weight: bold;
+}
+
+.paging-endless {
+    display: inline; float: left;
+    margin: 10px 0 0 10px;
+}
+
+.paging-endless li {
+    float: left; display: inline;
+    margin-right: 15px;
+}
+
+.paging-endless li span {
+    display: inline-block;
+    color: #aaa;
+	padding: 8px 8px 6px 8px;
+    font-size: 12px;
+    line-height: 12px;
+    border:1px solid #ddd;
+	text-decoration: none;
+	-webkit-border-radius: 6px;
+	-moz-border-radius: 6px;
+    opacity: 0.75;
+	border-radius: 6px;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFF', endColorstr='#DCDCDC'); /* for IE */
+	background: -webkit-gradient(linear, left top, left bottom, from(#FFF), to(#DCDCDC)); /* for webkit browsers */
+    background:-moz-linear-gradient(center top , #FFFFFF 0pt, #DCDCDC 100%) repeat scroll 0 0 transparent;    
+}
+
+.paging-endless li a {
+    display: inline-block;
+    text-decoration: none;
+	color: #888;
+	padding: 8px 8px 6px 8px;
+    font-size: 12px;
+    line-height: 12px;
+    border:1px solid #C5C5C5;
+	text-decoration: none;
+	-webkit-border-radius: 6px;
+	-moz-border-radius: 6px;
+	border-radius: 6px;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFF', endColorstr='#DCDCDC'); /* for IE */
+	background: -webkit-gradient(linear, left top, left bottom, from(#FFF), to(#DCDCDC)); /* for webkit browsers */
+    background:-moz-linear-gradient(center top , #FFFFFF 0pt, #DCDCDC 100%) repeat scroll 0 0 transparent;    
+}
+
+.paging-endless li a:hover {
+    border:1px solid #3079d0;
+    color: #fff;
+    text-shadow: 0 -1px 0 #3079d0;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#4da2e5', endColorstr='#3079d0'); /* for IE */
+	background: -webkit-gradient(linear, left top, left bottom, from(#4da2e5), to(#3079d0)); /* for webkit browsers */
+	background: -moz-linear-gradient(top,  #4da2e5,  #3079d0); /* for firefox 3.6+ */
+}
