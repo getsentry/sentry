@@ -144,6 +144,9 @@ def ajax_handler(request):
         GroupedMessage.objects.filter(pk=group.pk).update(status=1)
         group.status = 1
         
+        if not request.is_ajax():
+            return HttpResponseRedirect(request.META['HTTP_REFERER'])
+        
         data = [
             (m.pk, {
                 'html': render_to_string('sentry/partial/_group.html', {'group': m}),
