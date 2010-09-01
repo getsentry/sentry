@@ -6,6 +6,15 @@ Logs Django exceptions to your database handler.
 
 (This is a major refactor of django-db-log and is not backwards compatible)
 
+==========
+Screenshot
+==========
+
+.. image:: http://media.nodnod.net/django_sentry.jpg
+   :height 567
+   :width 939
+   :alt: django-sentry screenshot
+   
 ============
 Requirements
 ============
