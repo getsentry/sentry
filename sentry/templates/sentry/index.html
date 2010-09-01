@@ -27,36 +27,18 @@
 		<div id="content">
 			<div class="container">
 				<div id="sidebar" class="column">
-					<h2>Last 24 Hours</h2>
+					{% if chart_url %}
+						<h2>Last 24 Hours</h2>
 			
-					<img src="{{ chart_url }}" class="chart" alt="chart"/>
-			
-					<h2>Loggers</h2>
-
-					<ul class="logger-list filter-list sidebar-module">
-						<li{% if not logger %} class="active"{% endif %}><a href="?server_name={{ server_name }}&amp;level={{ level }}">any logger</a></li>
-						{% for key, name in logger_names.iteritems %}
-							<li{% if logger == key %} class="active"{% endif %}><a href="?logger={{ key }}&amp;server_name={{ server_name }}&amp;level={{ level }}">{{ name }}</a></li>
-						{% endfor %}
-					</ul>
-			
-					<h2>Levels</h2>
-
-					<ul class="level-list filter-list sidebar-module">
-						<li{% if not level %} class="active"{% endif %}><a href="?server_name={{ server_name }}&amp;logger={{ logger }}">any level</a></li>
-						{% for key, name in level_names.iteritems %}
-							<li{% if level == key %} class="active"{% endif %}><a href="?level={{ key }}&amp;server_name={{ server_name }}&amp;logger={{ logger }}">{{ name|title }}</a></li>
-						{% endfor %}
-					</ul>
-
-					<h2>Servers</h2>
-
-					<ul class="server-list filter-list sidebar-module">
-						<li{% if not server_name %} class="active"{% endif %}><a href="?level={{ level }}&amp;logger={{ logger }}">any server</a></li>
-						{% for key, name in server_names.iteritems %}
-							<li{% if server_name == key %} class="active"{% endif %}><a href="?server_name={{ key }}&amp;level={{ level }}&amp;logger={{ logger }}">{{ name }}</a></li>
-						{% endfor %}
-					</ul>
+						<img src="{{ chart_url }}" class="chart" alt="chart"/>
+					{% endif %}
+					
+					{% for filter in filters %}
+						<h2>{{ filter.get_label }}</h2>
+						<form method="get" action="{{ filter.get_query_string }}">
+							{{ filter.render }}
+						</form>
+					{% endfor %}
 				</div>
 
 				<div id="body" class="with-sidebar column">

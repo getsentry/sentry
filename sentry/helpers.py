@@ -6,6 +6,8 @@ from django.utils.hashcompat import md5_constructor
 from django.utils.html import escape
 from django.views.debug import ExceptionReporter, linebreak_iter
 
+import logging
+
 class ImprovedExceptionReporter(ExceptionReporter):
     def __init__(self, request, exc_type, exc_value, frames, template_info=None):
         ExceptionReporter.__init__(self, request, exc_type, exc_value, None)
@@ -103,6 +105,26 @@ def varmap(func, var):
         return [varmap(func, f) for f in var]
     else:
         return func(var)
+
+_FILTER_CACHE = None
+def get_filters():
+    global _FILTER_CACHE
+    
+    if _FILTER_CACHE is None:
+        from sentry import settings
+        filters = []
+        for filter_ in settings.FILTERS:
+            module_name, class_name = filter_.rsplit('.', 1)
+            try:
+                module = __import__(module_name, {}, {}, class_name)
+                filter_ = getattr(module, class_name)
+            except Exception, exc:
+                logging.exception('Unable to import %s' % (filter_,))
+                continue
+            filters.append(filter_)
+        _FILTER_CACHE = filters
+    for f in _FILTER_CACHE:
+        yield f
 
 UNDEFINED = object()
 

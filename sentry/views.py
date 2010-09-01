@@ -15,19 +15,14 @@ from django.utils import simplejson
 from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 
-from sentry.helpers import FakeRequest, ImprovedExceptionReporter
+from sentry.helpers import FakeRequest, ImprovedExceptionReporter, get_filters
 from sentry.models import GroupedMessage, Message, LOG_LEVELS
 from sentry.templatetags.sentry_helpers import with_priority
 
-
 def index(request):
-    logger_names = SortedDict((l, l) for l in GroupedMessage.objects.values_list('logger', flat=True).distinct())
-    server_names = SortedDict((l, l) for l in Message.objects.values_list('server_name', flat=True).distinct())
-    level_names = SortedDict((str(k), v) for k, v in LOG_LEVELS)
-
-    logger = request.GET.get('logger')
-    server_name = request.GET.get('server_name') or ''
-    level = request.GET.get('level') or ''
+    filters = []
+    for filter_ in get_filters():
+        filters.append(filter_(request))
     
     try:
         page = int(request.GET.get('p', 1))
@@ -35,15 +30,6 @@ def index(request):
         page = 1
 
     realtime = page == 1
-
-    if logger not in logger_names:
-        logger = ''
-
-    if server_name not in server_names:
-        server_name = ''
-
-    if level not in level_names:
-        level = ''
 
     # this only works in postgres
     message_list = GroupedMessage.objects.filter(
@@ -54,43 +40,40 @@ def index(request):
         }
     ).order_by('-score', '-last_seen')
     
+    any_filter = False
+    for filter_ in filters:
+        if not filter_.is_set():
+            continue
+        any_filter = True
+        message_list = filter_.get_query_set(message_list)
     
     today = datetime.datetime.now()
 
-    chart_qs = Message.objects\
-                      .filter(datetime__gte=today - datetime.timedelta(hours=24))\
-                      .extra(select={'hour': 'extract(hour from datetime)'}).values('hour')\
-                      .annotate(num=Count('id')).values_list('hour', 'num')
+    if not any_filter and page == 1:
 
-    if logger:
-        message_list = message_list.filter(logger=logger)
-        chart_qs = chart_qs.filter(logger=logger)
+        chart_qs = Message.objects\
+                          .filter(datetime__gte=today - datetime.timedelta(hours=24))\
+                          .extra(select={'hour': 'extract(hour from datetime)'}).values('hour')\
+                          .annotate(num=Count('id')).values_list('hour', 'num')
 
-    if level:
-        message_list = message_list.filter(level=level)
-        chart_qs = chart_qs.filter(level=level)
 
-    if server_name:
-        message_list = message_list.filter(message_set__server_name=server_name).distinct()
-        chart_qs = chart_qs.filter(server_name=server_name)
-
-    rows = dict(chart_qs)
-    if rows:
-        max_y = max(rows.values())
-    else:
-        max_y = 1
+        rows = dict(chart_qs)
+        if rows:
+            max_y = max(rows.values())
+        else:
+            max_y = 1
         
-    if SimpleLineChart:
-        chart = SimpleLineChart(384, 80, y_range=[0, max_y])
-        chart.add_data([max_y]*30)
-        chart.add_data([rows.get((today-datetime.timedelta(hours=d)).hour, 0) for d in range(0, 24)][::-1])
-        chart.add_data([0]*30)
-        chart.fill_solid(chart.BACKGROUND, 'eeeeee')
-        chart.add_fill_range('eeeeee', 0, 1)
-        chart.add_fill_range('e0ebff', 1, 2)
-        chart.set_colours(['eeeeee', '999999', 'eeeeee'])
-        chart.set_line_style(1, 1)
-        chart_url = chart.get_url()
+        if SimpleLineChart:
+            chart = SimpleLineChart(384, 80, y_range=[0, max_y])
+            chart.add_data([max_y]*30)
+            chart.add_data([rows.get((today-datetime.timedelta(hours=d)).hour, 0) for d in range(0, 24)][::-1])
+            chart.add_data([0]*30)
+            chart.fill_solid(chart.BACKGROUND, 'eeeeee')
+            chart.add_fill_range('eeeeee', 0, 1)
+            chart.add_fill_range('e0ebff', 1, 2)
+            chart.set_colours(['eeeeee', '999999', 'eeeeee'])
+            chart.set_line_style(1, 1)
+            chart_url = chart.get_url()
 
     return render_to_response('sentry/index.html', locals())
 
