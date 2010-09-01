@@ -257,9 +257,11 @@ dl.flat dd {
     line-height: 12px;
     border:1px solid #C5C5C5;
 	text-decoration: none;
-	-webkit-border-radius: 10px;
+	-webkit-border-radius: 6px;
 	-moz-border-radius: 6px;
-	border-radius: 10px;
+	border-radius: 6px;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFF', endColorstr='#DCDCDC'); /* for IE */
+	background: -webkit-gradient(linear, left top, left bottom, from(#FFF), to(#DCDCDC)); /* for webkit browsers */
     background:-moz-linear-gradient(center top , #FFFFFF 0pt, #DCDCDC 100%) repeat scroll 0 0 transparent;    
 }
 
