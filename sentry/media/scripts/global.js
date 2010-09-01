@@ -89,7 +89,14 @@ function sentryRefresh(){
           $('#message_list .fresh').css('background-color', '#ccc').animate({backgroundColor: '#fff'}, 1200, function() { 
                 $(this).removeClass('fresh');
           });
-           
+          // make sure we limit the number shown
+          var count = 0;
+          $('#message_list').each(function(){
+              count++;
+              if (count > 50) {
+                  $(this).remove();
+              }
+          })
       }
     });
     setTimeout('sentryRefresh()', 3000);
