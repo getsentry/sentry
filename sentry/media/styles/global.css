@@ -4,7 +4,7 @@ body * * { padding:0; }
 body { font:small sans-serif; background: #eee; }
 h1 { font-weight:normal; }
 h1 a { color: inherit; text-decoration: none; }
-h2 { margin-bottom:.8em; font-weight: normal; }
+h2 { margin-bottom:.4em; font-weight: normal; margin-top: .8em; margin-left: .1em; }
 h2 span { font-size:80%; color:#666; font-weight:normal; }
 h3 { margin:1em 0 .5em 0; }
 h4 { margin:0 0 .5em 0; font-weight: normal; }
@@ -80,7 +80,7 @@ ul { margin: 1em 0 1em 2em; }
 #sidebar { 
     float: right; 
     width: 300px; 
-    margin: 2em 2em 2em 1.5em; 
+    margin: 0em 2em 2em 1.5em; 
     background: inherit;
     overflow: hidden;
     }
@@ -245,15 +245,11 @@ dl.flat dd {
 	-webkit-border-radius: 10px;
 	-moz-border-radius: 6px;
 	border-radius: 10px;
-    background:-moz-linear-gradient(center top , #FFFFFF 0pt, #DCDCDC 100%) repeat scroll 0 0 transparent;
-
-
-    
+    background:-moz-linear-gradient(center top , #FFFFFF 0pt, #DCDCDC 100%) repeat scroll 0 0 transparent;    
 }
 
 .button:hover {
     border:1px solid #3079d0;
-    color: #333;
     color: #fff;
     text-shadow: 0 -1px 0 #3079d0;
     filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#4da2e5', endColorstr='#3079d0'); /* for IE */
