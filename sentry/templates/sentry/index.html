@@ -63,7 +63,7 @@
 					{% if message_list.objects %}
 						{{ message_list.paging }}
 						<ul class="messages">
-							{% for message, priority in message_list.objects|with_priority %}
+							{% for group, priority in message_list.objects|with_priority %}
 								{% include "sentry/partial/_group.html" %}
 							{% endfor %}
 						</ul>
