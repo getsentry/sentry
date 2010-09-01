@@ -79,7 +79,7 @@ ul { margin: 1em 0 1em 2em; }
 #sidebar { 
     float: right; 
     width: 300px; 
-    margin: 2em; 
+    margin: 2em 2em 2em 0; 
     background: inherit;
     overflow: hidden;
     }
