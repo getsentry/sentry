@@ -16,6 +16,7 @@ a { color: #333; }
 a:visited { color: inherit; }
 ul { margin: 1em 0 1em 2em; }
 #header {
+    position: relative;
 	font-family: "lucida grande", "lucida sans", verdana, sans-serif;
 	background: #e0ebff; border-bottom:1px solid #ddd;
 	background: #555; /* for non-css3 browsers */
@@ -42,11 +43,25 @@ ul { margin: 1em 0 1em 2em; }
 .sentry-logo small {
 	font-size: 22px;
 }
-#header h1 {display: inline; font-size: 20px; line-height: 24px;
-			color: #e5e5e5; text-shadow: 1px 1px 1px #333;}
-#header h2 {display: inline; font-size: 22px; line-height: 24px;
-			font-weight: normal; color: #888; margin-bottom: 0; margin-left: 10px;
-			color: #ccc;}			
+#header h1 {display: inline-block; font-size: 20px; line-height: 24px;
+			color: #e5e5e5; text-shadow: 1px 1px 1px #333; vertical-align: middle;}
+#header h2 {display: inline-block; font-size: 20px; line-height: 24px;
+            margin-top: 0;
+			font-weight: normal; color: #888; margin-bottom: 0; margin-left: 15px;
+			color: #ccc; vertical-align: middle;}
+
+#header .backlink {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    color: #ccc;
+    text-decoration: none;
+}
+
+#header .backlink:hover {
+    color: #fff;
+}
+
 #footer { clear: both; border-top:1px solid #ddd; background-color: #e5e5e5; }
 #footer .container {
     color: #666;
