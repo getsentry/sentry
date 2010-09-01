@@ -47,8 +47,9 @@ ul { margin: 1em 0 1em 2em; }
 #header h2 {display: inline; font-size: 22px; line-height: 24px;
 			font-weight: normal; color: #888; margin-bottom: 0; margin-left: 10px;
 			color: #ccc;}			
-#footer { clear: both; border-top:1px solid #ddd; }
+#footer { clear: both; border-top:1px solid #ddd; background-color: #e5e5e5; }
 #footer .container {
+    color: #666;
     padding: 20px;
     max-width: 1560px;
 }
@@ -113,7 +114,7 @@ div.context ol.context-line li { color:black; background-color:#ccc; }
 div.context ol.context-line li span { float: right; }
 div.commands { margin-left: 40px; }
 div.commands a { color:black; text-decoration:none; }
-#template, #template-not-exist { background:#f6f6f6; margin-top: 1em; }
+#template, #template-not-exist { background:#f6f6f6; margin-top: 1em; overflow: hidden;}
 #template-not-exist ul { margin: 0 0 0 20px; }
 #unicode-hint { background:#eee; }
 #traceback { background:#eee; padding: 10px; }
@@ -276,7 +277,7 @@ dl.flat dd {
 .messages .status-0 { display: none; }
 .messages .status-1 { color: red; }
 .messages li:hover, .messages .active {
-	background: #e5e5e5;
+	background: #eaeaea;
 	-webkit-border-radius: 6px;
 	-moz-border-radius: 6px;
 	border-radius: 6px;
