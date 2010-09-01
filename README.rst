@@ -11,9 +11,6 @@ Screenshot
 ==========
 
 .. image:: http://media.nodnod.net/django_sentry.jpg
-   :height 567
-   :width 939
-   :alt: django-sentry screenshot
    
 ============
 Requirements
