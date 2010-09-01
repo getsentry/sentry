@@ -24,3 +24,7 @@ def with_priority(result_list, key='score'):
                 priority = 'verylow'
             yield result, priority
 with_priority = register.filter(with_priority)
+
+def num_digits(value):
+    return len(str(value))
+num_digits = register.filter(num_digits)

@@ -199,11 +199,13 @@ dl.flat dd {
 }
 /* messages generic */
 .count { background: #000; -moz-border-radius: 4px; -webkit-border-radius: 4px; border-radius: 4px; padding: 0 5px; margin-right: 3px; line-height: 19px; color: #fff; display: inline-block; }
+.count-digits-4 { font-size: 0.8em; }
+.count-digits-5 { font-size: 0.7em; }
 
 /* message list */
 .messages { list-style: none; margin-left: 0; }
 .messages .count {
-	width: 25px; text-align: center;
+	width: 28px; text-align: center;
 	-webkit-border-radius: 6px;
 	-moz-border-radius: 6px;
 	border-radius: 6px;
