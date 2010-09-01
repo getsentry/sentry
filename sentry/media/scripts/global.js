@@ -54,7 +54,8 @@ $.fn.setAllToMaxHeight = function(){
 	return this.height( Math.max.apply(this, $.map( this , function(e){ return $(e).height() }) ) );
 }
 
-function sentryResolve(gid){
+function sentryResolve(gid, remove){
+    if (remove === undefined) var remove = true;
     $.ajax({
         url: SENTRY_JS_API_URL,
         type: 'post',
@@ -65,7 +66,11 @@ function sentryResolve(gid){
         },
         success: function(groups){
             for (var gid in groups) {
-                $('#group_' + gid).remove();
+                if (remove) {
+                    $('#group_' + gid).remove();
+                } else {
+                    $('#group_' + gid + ' .resolve-link').remove();
+                }
             }
         }
     });

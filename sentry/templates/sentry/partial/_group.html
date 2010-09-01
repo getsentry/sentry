@@ -6,5 +6,7 @@
 	<span class="last_seen">{{ group.last_seen|timesince }} ago</span>
 	<p class="message"><span class="tag tag-level">{{ group.get_level_display }}</span> {{ group.error }}</p>
 	<pre class="traceback">{{ group.shortened_traceback }}</pre>
-	<a href="javascript:void(0)" onclick="sentryResolve({{ group.pk }});" class="hidden">Resolve</a>
+	{% if group.status == 0 %}
+		<a href="javascript:void(0)" onclick="sentryResolve({{ group.pk }});" class="hidden">Resolve</a>
+	{% endif %}
 </li>
