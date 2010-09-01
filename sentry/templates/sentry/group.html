@@ -47,7 +47,7 @@
 			</div>
 
 			<div id="body" class="with-sidebar">
-				<ul class="messages">
+				<ul class="messages" id="message_list">
 					<li class="{% cycle 'row1' 'row2' %} level-{{ group.level }} active" id="group_{{ group.pk }}" data-sentry-count="{{ group.times_seen }}">
 						<span class="count count-digits-{{ group.times_seen|num_digits }}">{{ group.times_seen }}</span>
 						<h3>{% if group.view %}{{ group.view }}{% else %}{{ group.message }}{% endif %}</h3>

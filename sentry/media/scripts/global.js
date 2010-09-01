@@ -65,11 +65,13 @@ function sentryResolve(gid, remove){
             gid: gid,
         },
         success: function(groups){
-            for (var gid in groups) {
-                if (remove) {
-                    $('#group_' + gid).remove();
-                } else {
-                    $('#group_' + gid + ' .resolve-link').remove();
+            for (var i=groups.length-1, el, row; (el=groups[i]); i--) {
+                var id = el[0];
+                var data = el[1];
+                $('#group_' + id).remove();
+                if (!remove) {
+                    $('#message_list').prepend(data.html);
+                    $('#group_' + id).addClass('fresh');
                 }
             }
         }
@@ -97,11 +99,11 @@ function sentryRefresh(){
                   row.remove();
                   $('#message_list').prepend(data.html);
                   if (row.attr('data-sentry-count') != data.count) {
-                      $('#group_' + el[0]).addClass('fresh');
+                      $('#group_' + id).addClass('fresh');
                   }
               } else {
                   $('#message_list').prepend(data.html);
-                  $('#group_' + el[0]).addClass('fresh')
+                  $('#group_' + id).addClass('fresh')
               }
           }
           $('#message_list .fresh').css('background-color', '#ccc').animate({backgroundColor: '#fff'}, 1200, function() { 
