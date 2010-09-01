@@ -54,11 +54,6 @@ $.fn.setAllToMaxHeight = function(){
 	return this.height( Math.max.apply(this, $.map( this , function(e){ return $(e).height() }) ) );
 }
 
-$(document).ready(function(){
-	//$("div.column").setAllToMaxHeight();
-	setTimeout('sentryRefresh()', 3000);
-});
-
 function sentryRefresh(){
     $.ajax({
       url: './',

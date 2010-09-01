@@ -255,7 +255,6 @@ dl.flat dd {
 .messages li:hover, .messages .active {
 	background: #e0ebff;
 	background: -moz-linear-gradient(top,  #e5e5e5,  #ddd); /* for firefox 3.6+ */
-	cursor: pointer;
 	-webkit-border-radius: 6px;
 	-moz-border-radius: 6px;
 	border-radius: 6px;

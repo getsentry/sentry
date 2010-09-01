@@ -79,4 +79,12 @@
 		</div> 
 		{% endblock %}
 	</body>
+	{% if realtime %}
+	<script type="text/javascript">
+	$(document).ready(function(){
+		//$("div.column").setAllToMaxHeight();
+		setTimeout('sentryRefresh()', 3000);
+	});
+	</script>
+	{% endif %}
 </html>

@@ -12,6 +12,7 @@ setup(
     packages=find_packages(),
     requirements=[
         'django-paging',
+        'django-indexer',
     ],
     include_package_data=True,
     classifiers=[

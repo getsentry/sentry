@@ -25,6 +25,8 @@ def index(request):
     server_name = request.GET.get('server_name') or ''
     level = request.GET.get('level') or ''
 
+    realtime = not (request.GET.get('p') > 1)
+
     if logger not in logger_names:
         logger = ''
 
