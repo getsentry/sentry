@@ -84,8 +84,9 @@ class SentryFilter(object):
     def get_query_set(self, queryset):
         return queryset.filter(**{self.get_column(): self.get_value()})
     
-    def process_message(self, **kwargs):
-        return kwargs
+    def process(self, data):
+        """``self.request`` is not available within this method"""
+        return data
     
     def render(self):
         widget = self.get_widget()

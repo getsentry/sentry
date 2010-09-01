@@ -32,9 +32,13 @@ class DBLogManager(models.Manager):
         return qs
 
     def _create(self, **defaults):
-        from models import Message, GroupedMessage
+        from sentry.models import Message, GroupedMessage
+        from sentry.helpers import get_filters
         
         URL_MAX_LENGTH = Message._meta.get_field_by_name('url')[0].max_length
+        
+        for filter_ in get_filters():
+            defaults = filter_(None).process(defaults) or defaults
         
         view = defaults.pop('view', None)
         logger_name = defaults.pop('logger', 'root')

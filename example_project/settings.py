@@ -2,7 +2,7 @@ import os.path
 import sys
 # Django settings for example_project project.
 
-DEBUG = True
+DEBUG = False
 TEMPLATE_DEBUG = True
 
 ADMINS = (
