@@ -77,17 +77,6 @@ Some things to note:
 
 * This functionality REQUIRES Django 1.2.
 
-#########################
-SENTRY_ENHANCED_TRACEBACKS
-#########################
-
-Enables showing full embedded (enhanced) tracebacks within the administration for "Messages". These work almost identically to the default exception pages within Django's DEBUG environment::
-
-	# Disable embedded interactive tracebacks in the admin
-	SENTRY_ENHANCED_TRACEBACKS = False
-
-* Note: Even if you disable displaying of enhanced tracebacks, sentry will still store the entire exception stacktrace.
-
 #############
 SENTRY_LOGGING
 #############
