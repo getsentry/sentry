@@ -54,11 +54,34 @@ $.fn.setAllToMaxHeight = function(){
 	return this.height( Math.max.apply(this, $.map( this , function(e){ return $(e).height() }) ) );
 }
 
+function sentryResolve(gid, remove){
+    if (remove === undefined) var remove = true;
+    $.ajax({
+        url: SENTRY_JS_API_URL,
+        type: 'post',
+        dataType: 'json',
+        data: {
+            op: 'resolve',
+            gid: gid,
+        },
+        success: function(groups){
+            for (var gid in groups) {
+                if (remove) {
+                    $('#group_' + gid).remove();
+                } else {
+                    $('#group_' + gid + ' .resolve-link').remove();
+                }
+            }
+        }
+    });
+}
 function sentryRefresh(){
     $.ajax({
-      url: './',
+      url: SENTRY_JS_API_URL,
+      type: 'get',
       dataType: 'json',
       data: {
+          op: 'poll',
           logger: '{{ logger }}',
           server_name: '{{ server_name }}',
           level: '{{ level }}'

@@ -79,7 +79,7 @@ ul { margin: 1em 0 1em 2em; }
 #sidebar { 
     float: right; 
     width: 300px; 
-    margin: 2em; 
+    margin: 2em 2em 2em 0; 
     background: inherit;
     overflow: hidden;
     }
@@ -226,12 +226,26 @@ dl.flat dd {
 .messages .hidden {
 	position: absolute;
 	right: 15px;
-	top: 0px;
+	top: 20px;
 	color: #fff;
-	font-size: 55px;
 }
 .messages li:hover .hidden {
-	color: #fff;
+	color: #000;
+	background: #ccc;
+	border-top: 1px solid #ddd;
+	border-left: 1px solid #ddd;
+	border-right: 1px solid #aaa;
+	border-bottom: 1px solid #aaa;
+	padding: 5px;
+	text-decoration: none;
+	-webkit-border-radius: 3px;
+	-moz-border-radius: 3px;
+	border-radius: 3px;
+}
+.messages li:hover .hidden:hover {
+	border-top: 1px solid #eee;
+	border-left: 1px solid #eee;
+    background-color: #ddd;
 }
 .priority-veryhigh .count {
 	background: #e22e2e;
