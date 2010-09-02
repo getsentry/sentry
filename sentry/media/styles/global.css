@@ -121,7 +121,9 @@ ul { margin: 1em 0 1em 2em; }
 .sidebar-module {
     background: rgba(0,0,0, .03);
     -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
     -moz-box-shadow: inset 0 1px 1px rgba(0,0,0, .25), 0 1px 0 #fff;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0, .25), 0 1px 0 #fff;
     margin: 0 0 20px;
 }
 
@@ -173,7 +175,7 @@ pre.exception_value { font-family: sans-serif; color: #666; font-size: 1.5em; ma
 
 /* message details */
 .server-list, .url-list, .logger-list, .level-list { list-style: none; margin-left: 5px; }
-.server-list li, .url-list li, .logger-list li { padding-bottom: 5px; }
+.url-list li { padding-bottom: 5px; }
 .filter-list { margin-left: 0; text-transform: lowercase; }
 .filter-list li a { 
     display: block; padding: 10px; text-decoration: none; 
@@ -190,6 +192,7 @@ pre.exception_value { font-family: sans-serif; color: #666; font-size: 1.5em; ma
 .filter-list li a:hover  {
     background: rgba(131,136,142, .10);
     -moz-box-shadow: inset 0 1px 0 rgba(0,0,0, .1);
+    -webkit-box-shadow: inset 0 1px 0 rgba(0,0,0, .1);
 } 
 .filter-list li.active a { 
     background: #3079d0;
@@ -203,7 +206,10 @@ pre.exception_value { font-family: sans-serif; color: #666; font-size: 1.5em; ma
 	background: -moz-linear-gradient(top,  #4da2e5,  #3079d0); /* for firefox 3.6+ */
     }
 
-.filter-list li:first-child.active a { -moz-box-shadow: inset 0 1px 1px rgba(0,0,0, .30);}
+.filter-list li:first-child.active a { 
+    -moz-box-shadow: inset 0 1px 1px rgba(0,0,0, .30);
+    -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0, .30);
+    }
 
 .filter-list li:first-child a:hover, .filter-list li:first-child.active a {
     -moz-border-radius: 10px 10px 0 0;
@@ -443,6 +449,7 @@ pre {
     display: block;
     width: 12px;
     height: 12px;
-    background: url(../images/search.png);
+    background: #fff url(../images/search.png);
     text-indent: -9999em;
+    border: none;
 }
