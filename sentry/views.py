@@ -30,6 +30,8 @@ def login_required(func):
             print "no perms"
             return HttpResponseRedirect(reverse('sentry-login'))
         return func(request, *args, **kwargs)
+    wrapped.__doc__ = func.__doc__
+    wrapped.__name__ = func.__name__
     return wrapped
 
 @csrf_protect
