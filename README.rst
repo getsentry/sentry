@@ -45,14 +45,16 @@ OR, if you're not quite on the same page (work on that), with setuptools::
 
 	easy_install django-sentry
 
-Once installed, update your settings.py and add sentry to ``INSTALLED_APPS``::
+Once installed, update your settings.py and add ``sentry`` and ``indexer`` to ``INSTALLED_APPS``::
 
 	INSTALLED_APPS = (
 	    'django.contrib.admin',
 	    'django.contrib.auth',
 	    'django.contrib.contenttypes',
 	    'django.contrib.sessions',
+
 	    'sentry',
+	    'indexer',
 	    ...
 	)
 
