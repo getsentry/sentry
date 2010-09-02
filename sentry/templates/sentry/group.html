@@ -15,10 +15,12 @@
 	<div id="content">
 		<div class="container">
 			<div id="sidebar">
-				<h2>Last 24 Hours</h2>
+				{% if chart_url %}
+					<h2>Last 24 Hours</h2>
 		
-				<img src="{{ chart_url }}" class="chart" alt="chart"/>
-		
+					<img src="{{ chart_url }}" class="chart" alt="chart"/>
+				{% endif %}
+				
 				<h2>Meta</h2>
 		
 				<dl class="flat">
