@@ -46,7 +46,7 @@ OR, if you're not quite on the same page (work on that), with setuptools::
 
 	easy_install django-sentry
 
-Once installed, update your settings.py and add ``sentry`` and ``indexer`` to ``INSTALLED_APPS``::
+Once installed, update your settings.py and add ``sentry``, ``indexer``, and ``paging`` to ``INSTALLED_APPS``::
 
 	INSTALLED_APPS = (
 	    'django.contrib.admin',
@@ -56,6 +56,7 @@ Once installed, update your settings.py and add ``sentry`` and ``indexer`` to ``
 
 	    'sentry',
 	    'indexer',
+	    'paging',
 	    ...
 	)
 

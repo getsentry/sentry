@@ -1,4 +1,5 @@
 from django.conf import settings as dj_settings
+from django.core.exceptions import ImproperlyConfigured
 from django.db import models, transaction
 from django.core.signals import got_request_exception
 from django.http import Http404
@@ -11,10 +12,16 @@ from sentry.manager import SentryManager, GroupedMessageManager
 from sentry.utils import GzippedDictField
 
 import datetime
-import warnings
 import logging
 import sys
 import traceback
+import warnings
+
+_reqs = ('paging', 'indexer')
+for r in _reqs:
+    if r not in dj_settings.INSTALLED_APPS:
+        raise ImproperlyConfigured("Put '%s' in your "
+            "INSTALLED_APPS setting in order to use the sentry application." % r)
 
 try:
     from idmapper.models import SharedMemoryModel as Model
