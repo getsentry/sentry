@@ -161,6 +161,8 @@ class GroupedMessage(MessageBase):
     def get_score_clause(cls):
         if dj_settings.DATABASE_ENGINE.rsplit('.', 1)[-1].startswith('postgresql'):
             return 'times_seen / (pow((floor(extract(epoch from now() - last_seen) / 3600) + 2), 1.25) + 1)'
+        if dj_settings.DATABASE_ENGINE.rsplit('.', 1)[-1].startswith('mysql'):
+            return 'times_seen / (pow((floor(unix_timestamp(now() - last_seen) / 3600) + 2), 1.25) + 1)'
         return 'times_seen'
 
 class Message(MessageBase):
