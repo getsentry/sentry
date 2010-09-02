@@ -21,6 +21,7 @@ Requirements
  
  - **Django >= 1.2** (to use a secondary database to store error logs)
  - **django-indexer** (stores metadata indexes)
+ - **django-paging**
  - **pygooglechart** (to generate *optional* error reports)
 
 =========
