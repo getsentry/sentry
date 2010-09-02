@@ -7,7 +7,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import settings
 from sentry.helpers import construct_checksum, get_installed_apps
-from sentry.manager import DBLogManager, GroupedMessageManager
+from sentry.manager import SentryManager, GroupedMessageManager
 from sentry.utils import GzippedDictField
 
 import datetime
@@ -47,7 +47,7 @@ class MessageBase(Model):
     view            = models.CharField(max_length=255, db_index=True, blank=True, null=True)
     checksum        = models.CharField(max_length=32, db_index=True)
 
-    objects         = DBLogManager()
+    objects         = SentryManager()
 
     class Meta:
         abstract = True

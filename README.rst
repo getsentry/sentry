@@ -85,10 +85,10 @@ Use a secondary database to store error logs. This is useful if you have several
 	# This should correspond to a key in your DATABASES setting
 	SENTRY_DATABASE_USING = 'default'
 
-You should also enable the ``DBLogRouter`` to avoid things like extraneous table creation::
+You should also enable the ``SentryRouter`` to avoid things like extraneous table creation::
 
 	DATABASE_ROUTERS = [
-		'sentry.routers.DBLogRouter',
+		'sentry.routers.SentryRouter',
 		...
 	]
 
@@ -99,7 +99,7 @@ You should also enable the ``DBLogRouter`` to avoid things like extraneous table
 SENTRY_LOGGING
 ##############
 
-Enabling this setting will turn off automatic database logging within the exception handler, and instead send all exceptions to the named logger ``sentry``. Use this in conjuction with ``sentry.handlers.DBLogHandler`` or your own handler to tweak how logging is dealt with.
+Enabling this setting will turn off automatic database logging within the exception handler, and instead send all exceptions to the named logger ``sentry``. Use this in conjuction with ``sentry.handlers.SentryHandler`` or your own handler to tweak how logging is dealt with.
 
 A good example use case for this, is if you want to write to something like a syslog ahead of time, and later process that into the database with another tool.
 
@@ -107,12 +107,12 @@ A good example use case for this, is if you want to write to something like a sy
 Integration with ``logging``
 ############################
 
-django-db-log supports the ability to directly tie into the ``logging`` module. To use it simply add ``DBLogHandler`` to your logger::
+django-db-log supports the ability to directly tie into the ``logging`` module. To use it simply add ``SentryHandler`` to your logger::
 
 	import logging
-	from sentry.handlers import DBLogHandler
+	from sentry.handlers import SentryHandler
 	
-	logging.getLogger().addHandler(DBLogHandler())
+	logging.getLogger().addHandler(SentryHandler())
 
 	# Add StreamHandler to sentry's default so you can catch missed exceptions
 	logging.getLogger('sentry').addHandler(logging.StreamHandler())

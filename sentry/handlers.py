@@ -1,6 +1,6 @@
 import logging
 
-class DBLogHandler(logging.Handler):
+class SentryHandler(logging.Handler):
     def emit(self, record):
         from sentry.models import Message
 

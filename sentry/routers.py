@@ -1,6 +1,6 @@
 from sentry import settings
 
-class DBLogRouter(object):
+class SentryRouter(object):
     def db_for_write(self, model, **hints):
         if model._meta.app_label == 'sentry':
             return settings.DATABASE_USING

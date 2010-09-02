@@ -7,7 +7,6 @@ from django.test.client import Client
 from django.test import TestCase
 from django.utils.encoding import smart_unicode
 
-from sentry.middleware import DBLogMiddleware
 from sentry.models import Message, GroupedMessage
 from sentry.tests.models import TestModel, DuplicateKeyModel
 from sentry import settings
@@ -46,7 +45,7 @@ class RequestFactory(Client):
  
 RF = RequestFactory()
 
-class DBLogTestCase(TestCase):
+class SentryTestCase(TestCase):
     urls = 'sentry.tests.urls'
 
     def setUp(self):
@@ -64,7 +63,7 @@ class DBLogTestCase(TestCase):
         
     def setUpHandler(self):
         self.tearDownHandler()
-        from sentry.handlers import DBLogHandler
+        from sentry.handlers import SentryHandler
         
         logger = logging.getLogger()
         self._handlers = logger.handlers
@@ -75,7 +74,7 @@ class DBLogTestCase(TestCase):
             logger.removeHandler(h)
     
         logger.setLevel(logging.DEBUG)
-        sentry_handler = DBLogHandler()
+        sentry_handler = SentryHandler()
         logger.addHandler(sentry_handler)
     
     def tearDownHandler(self):
@@ -418,7 +417,7 @@ class DBLogTestCase(TestCase):
         self.assertEquals(last.message, 'view exception')
         self.assertEquals(last.view, 'sentry.tests.views.raise_exc')
 
-class DBLogViewsTest(TestCase):
+class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'
     
     def setUp(self):
@@ -432,7 +431,7 @@ class DBLogViewsTest(TestCase):
         
     def setUpHandler(self):
         self.tearDownHandler()
-        from sentry.handlers import DBLogHandler
+        from sentry.handlers import SentryHandler
         
         logger = logging.getLogger()
         self._handlers = logger.handlers
@@ -443,7 +442,7 @@ class DBLogViewsTest(TestCase):
             logger.removeHandler(h)
     
         logger.setLevel(logging.DEBUG)
-        sentry_handler = DBLogHandler()
+        sentry_handler = SentryHandler()
         logger.addHandler(sentry_handler)
     
     def tearDownHandler(self):
@@ -469,7 +468,7 @@ class DBLogViewsTest(TestCase):
         self.assertEquals(last.level, logging.ERROR)
         self.assertEquals(last.message, 'view exception')
 
-class DBLogFeedsTest(TestCase):
+class SentryFeedsTest(TestCase):
     fixtures = ['sentry/tests/fixtures/feeds.json']
     urls = 'sentry.tests.urls'
     

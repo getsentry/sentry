@@ -23,11 +23,11 @@ assert not settings.DATABASE_USING or django.VERSION >= (1, 2), 'The `SENTRY_DAT
 
 logger = logging.getLogger('sentry')
 
-class DBLogManager(models.Manager):
+class SentryManager(models.Manager):
     use_for_related_fields = True
 
     def get_query_set(self):
-        qs = super(DBLogManager, self).get_query_set()
+        qs = super(SentryManager, self).get_query_set()
         if settings.DATABASE_USING:
             qs = qs.using(settings.DATABASE_USING)
         return qs
@@ -179,6 +179,6 @@ class DBLogManager(models.Manager):
             **kwargs
         )
 
-class GroupedMessageManager(DBLogManager):
+class GroupedMessageManager(SentryManager):
     def get_by_natural_key(self, logger, view, checksum):
         return self.get(logger=logger, view=view, checksum=checksum)
