@@ -6,7 +6,8 @@ try:
 except ImportError:
     SimpleLineChart = None
 
-# TODO: login
+from django.core.context_processors import csrf
+from django.core.urlresolvers import reverse
 from django.db.models import Count
 from django.http import HttpResponse, HttpResponseForbidden, HttpResponseRedirect
 from django.shortcuts import render_to_response
@@ -14,11 +15,45 @@ from django.template.loader import render_to_string
 from django.utils import simplejson
 from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
+from django.views.decorators.csrf import csrf_protect
 
 from sentry.helpers import FakeRequest, ImprovedExceptionReporter, get_filters
 from sentry.models import GroupedMessage, Message, LOG_LEVELS
 from sentry.templatetags.sentry_helpers import with_priority
 
+def login_required(func):
+    def wrapped(request, *args, **kwargs):
+        if not request.user.is_authenticated():
+            print "not authed"
+            return HttpResponseRedirect(reverse('sentry-login'))
+        if not request.user.has_perm('sentry_groupedmessage.can_view'):
+            print "no perms"
+            return HttpResponseRedirect(reverse('sentry-login'))
+        return func(request, *args, **kwargs)
+    return wrapped
+
+@csrf_protect
+def login(request):
+    from django.contrib.auth import authenticate, login as login_
+    from django.contrib.auth.forms import AuthenticationForm
+    
+    if request.POST:
+        form = AuthenticationForm(request, request.POST)
+        if form.is_valid():
+            login_(request, form.get_user())
+            return HttpResponseRedirect(request.POST.get('next') or reverse('sentry'))
+        else:
+            request.session.set_test_cookie()
+    else:
+        form = AuthenticationForm(request)
+        request.session.set_test_cookie()
+
+    
+    context = locals()
+    context.update(csrf(request))
+    return render_to_response('sentry/login.html', locals(), )
+
+@login_required
 def index(request):
     filters = []
     for filter_ in get_filters():
@@ -52,9 +87,9 @@ def index(request):
     else:
         realtime = False
     
-    print str(message_list.query)
     return render_to_response('sentry/index.html', locals())
 
+@login_required
 def ajax_handler(request):
     op = request.REQUEST.get('op')
     if op == 'poll':
@@ -124,6 +159,7 @@ def ajax_handler(request):
     response['Content-Type'] = 'application/json'
     return response
 
+@login_required
 def group(request, group_id):
     group = GroupedMessage.objects.get(pk=group_id)
 

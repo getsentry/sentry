@@ -85,7 +85,10 @@ class GroupedMessage(MessageBase):
         unique_together = (('logger', 'view', 'checksum'),)
         verbose_name_plural = _('grouped messages')
         verbose_name = _('grouped message')
-    
+        permissions = (
+            ("can_view", "Can view"),
+        )
+
     def __unicode__(self):
         return "(%s) %s: %s" % (self.times_seen, self.class_name, self.error())
 

@@ -2,9 +2,12 @@
 django-sentry
 --------------
 
-Logs Django exceptions to your database handler.
+Sentry provides you with a generic interface to view and interact with your error logs. By
+default, it will catch any exception thrown by Django and store it in a database. With this
+it allows you to interact and view near real-time information to discover issues and more
+easily trace them in your application.
 
-(This is a major refactor of django-db-log and is not backwards compatible)
+* Note: Sentry has only been tested under a PostgreSQL environment.
 
 ==========
 Screenshot
@@ -16,7 +19,6 @@ Screenshot
 Requirements
 ============
  
- - **postgresql**
  - **Django >= 1.2** (to use a secondary database to store error logs)
  - **pygooglechart** (to generate *optional* error reports)
 
@@ -54,6 +56,8 @@ Once installed, update your settings.py and add sentry to ``INSTALLED_APPS``::
 	)
 
 Finally, run ``python manage.py syncdb`` to create the database tables.
+
+(If you use South, you'll need to use ``python manage.py migrate sentry``)
 
 =============
 Configuration

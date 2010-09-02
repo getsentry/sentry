@@ -459,3 +459,19 @@ pre {
     text-indent: -9999em;
     border: none;
 }
+
+.login-area {
+    width: 300px;
+    margin: 50px auto;
+    background: #eee;
+    border: 1px solid #ddd;
+    padding: 10px;
+}
+.login-form table {
+    border: 0;
+    margin: 1em 0;
+    background: inherit;
+}
+.login-form td input { width: 100%; }
+.login-form table td { padding: 5px; }
+.login-submit { text-align: right; }
