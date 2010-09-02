@@ -26,9 +26,9 @@ logger = logging.getLogger('sentry')
 __all__ = ('Message', 'GroupedMessage')
 
 LOG_LEVELS = (
+    (logging.DEBUG, _('debug')),
     (logging.INFO, _('info')),
     (logging.WARNING, _('warning')),
-    (logging.DEBUG, _('debug')),
     (logging.ERROR, _('error')),
     (logging.FATAL, _('fatal')),
 )
