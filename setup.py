@@ -13,7 +13,7 @@ setup(
     requirements=[
         'pygooglechart',
         'django-paging',
-        'django-indexer',
+        'django-indexer==0.2',
     ],
     include_package_data=True,
     classifiers=[
