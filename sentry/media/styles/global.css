@@ -14,7 +14,7 @@
 
 html * { padding:0; margin:0; }
 body * * { padding:0; }
-body { font:small sans-serif; background: #eee;
+body { font:small sans-serif; background: #E5E5E5;
     font-family: "Lucida Grande", "Lucida Sans", verdana, sans-serif;
 }
 h1 { font-weight:normal; }
@@ -41,8 +41,8 @@ ul { margin: 1em 0 1em 2em; }
 }
 
 #header .container {
-    padding: 10px 20px;
-    max-width: 1560px;
+    padding: 1em 2em;
+    max-width: 1550px;
 }
 .sentry-logo {
 	display: inline-block;
@@ -79,8 +79,8 @@ ul { margin: 1em 0 1em 2em; }
 #footer { clear: both; border-top:1px solid #ddd; background-color: #e5e5e5; }
 #footer .container {
     color: #666;
-    padding: 20px;
-    max-width: 1560px;
+    padding: 2em;
+    max-width: 1550px;
 }
 #header table { border:none; background:transparent; }
 #body, #sidebar { position: relative; }
@@ -88,7 +88,7 @@ ul { margin: 1em 0 1em 2em; }
     background: #fff; 
     max-width: 100%; 
     overflow: hidden; 
-    margin: 1.5em;
+    margin: 2em;
     border-radius: 10px;
     -moz-border-radius: 10px;
     -webkit-border-radius: 10px;
@@ -96,11 +96,13 @@ ul { margin: 1em 0 1em 2em; }
     -webkit-box-shadow: 0 1px 4px #c5c5c5;
     box-shadow: 01px 4px #c5c5c5;
     padding: 10px 20px;
+    min-height: 800px;
 }
 
 #content {
     border-top: 1px solid #fff;
     overflow: hidden;
+    background: #EEEEEE;
 }
 
 .container {
@@ -171,7 +173,7 @@ pre.exception_value { font-family: sans-serif; color: #666; font-size: 1.5em; ma
 
 /* message details */
 .server-list, .url-list, .logger-list, .level-list { list-style: none; margin-left: 5px; }
-.server-list li, .url-list li, .logger-list li, .level-list li { padding-bottom: 5px; }
+.server-list li, .url-list li, .logger-list li { padding-bottom: 5px; }
 .filter-list { margin-left: 0; text-transform: lowercase; }
 .filter-list li a { 
     display: block; padding: 10px; text-decoration: none; 
@@ -408,4 +410,39 @@ pre {
     filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#4da2e5', endColorstr='#3079d0'); /* for IE */
 	background: -webkit-gradient(linear, left top, left bottom, from(#4da2e5), to(#3079d0)); /* for webkit browsers */
 	background: -moz-linear-gradient(top,  #4da2e5,  #3079d0); /* for firefox 3.6+ */
+}
+
+
+#search {
+    float: right;
+    background: rgba(255,255,255,.50);
+    -moz-border-radius: 18px;
+    -webkit-border-radius: 18px;
+    -moz-box-shadow: inset 0 1px 5px rgba(0,0,0, .30), 0 1px 0 #fff;
+    -webkit-box-shadow: inset 0 1px 5px rgba(0,0,0, .30), 0 1px 0 #fff;
+    position: relative;
+}
+
+#search .textfield input {
+    border: 0;
+    background: transparent;
+    padding: 8px 16px;
+    font-size: 16px;
+    color: #666;
+    width: 267px;
+}
+
+#search .submit {
+    position: absolute;
+    right: 16px;
+    top: 12px;
+    opacity: .6;
+}
+
+.search-submit {
+    display: block;
+    width: 12px;
+    height: 12px;
+    background: url(../images/search.png);
+    text-indent: -9999em;
 }
