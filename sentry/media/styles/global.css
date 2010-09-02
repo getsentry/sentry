@@ -44,6 +44,12 @@ ul { margin: 1em 0 1em 2em; }
     padding: 1em 2em;
     max-width: 1550px;
 }
+#header .sparkline {
+    padding: 5px;
+    position: absolute;
+    right: 45px;
+    top: 20px;
+}
 .sentry-logo {
 	display: inline-block;
 	font-weight: normal;

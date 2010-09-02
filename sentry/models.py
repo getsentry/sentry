@@ -154,6 +154,12 @@ class GroupedMessage(MessageBase):
             except Exception, exc:
                 warnings.warn(u'Unable to process log entry: %s' % (exc,))
 
+    @classmethod
+    def get_score_clause(cls):
+        if dj_settings.DATABASE_ENGINE.rsplit('.', 1)[-1].startswith('postgresql'):
+            return 'times_seen / (pow((floor(extract(epoch from now() - last_seen) / 3600) + 2), 1.25) + 1)'
+        return 'times_seen'
+
 class Message(MessageBase):
     group           = models.ForeignKey(GroupedMessage, blank=True, null=True, related_name="message_set")
     datetime        = models.DateTimeField(default=datetime.datetime.now, db_index=True)

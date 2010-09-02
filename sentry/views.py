@@ -34,7 +34,7 @@ def index(request):
         status=0,
     ).extra(
         select={
-            'score': 'times_seen / (pow((floor(extract(epoch from now() - last_seen) / 3600) + 2), 1.25) + 1)',
+            'score': GroupedMessage.get_score_clause(),
         }
     ).order_by('-score', '-last_seen').distinct()
     
@@ -49,32 +49,10 @@ def index(request):
 
     if not any_filter and page == 1:
         realtime = True
-
-        if SimpleLineChart:
-            chart_qs = Message.objects\
-                              .filter(datetime__gte=today - datetime.timedelta(hours=24))\
-                              .extra(select={'hour': 'extract(hour from datetime)'}).values('hour')\
-                              .annotate(num=Count('id')).values_list('hour', 'num')
-
-
-            rows = dict(chart_qs)
-            if rows:
-                max_y = max(rows.values())
-            else:
-                max_y = 1
-
-            chart = SimpleLineChart(384, 80, y_range=[0, max_y])
-            chart.add_data([max_y]*30)
-            chart.add_data([rows.get((today-datetime.timedelta(hours=d)).hour, 0) for d in range(0, 24)][::-1])
-            chart.add_data([0]*30)
-            chart.fill_solid(chart.BACKGROUND, 'eeeeee')
-            chart.add_fill_range('eeeeee', 0, 1)
-            chart.add_fill_range('e0ebff', 1, 2)
-            chart.set_colours(['eeeeee', '999999', 'eeeeee'])
-            chart.set_line_style(1, 1)
-            chart_url = chart.get_url()
     else:
         realtime = False
+    
+    print str(message_list.query)
     return render_to_response('sentry/index.html', locals())
 
 def ajax_handler(request):
@@ -101,7 +79,7 @@ def ajax_handler(request):
             status=0,
         ).extra(
             select={
-                'score': 'times_seen / (pow((floor(extract(epoch from now() - last_seen) / 3600) + 2), 1.25) + 1)',
+                'score': GroupedMessage.get_score_clause(),
             }
         ).order_by('-score', '-last_seen')
 
@@ -182,20 +160,20 @@ def group(request, group_id):
     
     unique_servers = message_list.filter(server_name__isnull=False).values_list('server_name', 'logger', 'view', 'checksum').annotate(times_seen=Count('server_name')).values('server_name', 'times_seen').order_by('-times_seen')
     
-    today = datetime.datetime.now()
-
-    chart_qs = message_list\
-                      .filter(datetime__gte=today - datetime.timedelta(hours=24))\
-                      .extra(select={'hour': 'extract(hour from datetime)'}).values('hour')\
-                      .annotate(num=Count('id')).values_list('hour', 'num')
-
-    rows = dict(chart_qs)
-    if rows:
-        max_y = max(rows.values())
-    else:
-        max_y = 1
-        
     if SimpleLineChart:
+        today = datetime.datetime.now()
+
+        chart_qs = message_list\
+                          .filter(datetime__gte=today - datetime.timedelta(hours=24))\
+                          .extra(select={'hour': 'extract(hour from datetime)'}).values('hour')\
+                          .annotate(num=Count('id')).values_list('hour', 'num')
+
+        rows = dict(chart_qs)
+        if rows:
+            max_y = max(rows.values())
+        else:
+            max_y = 1
+
         chart = SimpleLineChart(384, 80, y_range=[0, max_y])
         chart.add_data([max_y]*30)
         chart.add_data([rows.get((today-datetime.timedelta(hours=d)).hour, 0) for d in range(0, 24)][::-1])
