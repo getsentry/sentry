@@ -10,7 +10,7 @@ setup(
     url='http://github.com/dcramer/django-sentry',
     description = 'Exception Logging to a Database in Django',
     packages=find_packages(),
-    requirements=[
+    install_requires=[
         'pygooglechart',
         'django-paging',
         'django-indexer==0.2',
