@@ -1,6 +1,3 @@
-# Multi-db support based on http://www.eflorenzano.com/blog/post/easy-multi-database-support-django/
-# TODO: is there a way to use the traceback module based on an exception variable?
-
 import base64
 try:
     import cPickle as pickle
