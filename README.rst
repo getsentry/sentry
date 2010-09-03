@@ -46,14 +46,15 @@ OR, if you're not quite on the same page (work on that), with setuptools::
 
 	easy_install django-sentry
 
-Once installed, update your settings.py and add ``sentry``, ``indexer``, and ``paging`` to ``INSTALLED_APPS``::
+Once installed, update your settings.py and add ``sentry``, ``sentry.client``, ``indexer``, and ``paging`` to ``INSTALLED_APPS``::
 
 	INSTALLED_APPS = (
 	    'django.contrib.admin',
 	    'django.contrib.auth',
 	    'django.contrib.contenttypes',
 	    'django.contrib.sessions',
-
+	    
+	    # don't forget to add the dependancies!
 	    'indexer',
 	    'paging',
 	    'sentry',
@@ -100,7 +101,7 @@ This is a two step process. First you'll want to configure your Sentry server (n
 And on your main application, you need to add ``sentry.client``::
 
 	# This should be the absolute URI of sentries store view
-	SENTRY_REMOTE_URL = '%sentry_url_base%/store/'
+	SENTRY_REMOTE_URL = 'SENTRY_URL_BASE/store/'
 	
 	INSTALLED_APPS = [
 	  ...
