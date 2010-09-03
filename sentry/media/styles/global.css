@@ -230,6 +230,17 @@ pre.exception_value { font-family: sans-serif; color: #666; font-size: 1.5em; ma
     border-bottom: 0;
     -moz-box-shadow: none;
 }
+
+.filter-list li:first-child:last-child.active a { 
+    -moz-box-shadow: inset 1px 1px 1px rgba(0,0,0, .30);
+    -webkit-box-shadow: inset 1px 1px 1px rgba(0,0,0, .30);
+    }
+
+.filter-list li:first-child:last-child a:hover, .filter-list li:first-child:last-child.active a {
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
+    border-radius: 10px;
+}
 .filter-list li.active a { font-weight: bold; }
 dl.flat {
 	margin-bottom: 1em;
