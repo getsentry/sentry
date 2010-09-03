@@ -5,6 +5,7 @@ except ImportError:
     import pickle
 import datetime
 from math import log
+import logging
 
 try:
     from pygooglechart import SimpleLineChart
@@ -20,12 +21,37 @@ from django.template.loader import render_to_string
 from django.utils import simplejson
 from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
 from sentry import settings
-from sentry.helpers import FakeRequest, ImprovedExceptionReporter, get_filters
 from sentry.models import GroupedMessage, Message
 from sentry.templatetags.sentry_helpers import with_priority
+from sentry.reporter import ImprovedExceptionReporter, FakeRequest
+
+from indexer.models import Index
+
+_FILTER_CACHE = None
+def get_filters():
+    global _FILTER_CACHE
+    
+    if _FILTER_CACHE is None:
+        from sentry import settings
+        
+        filters = []
+        for filter_ in settings.FILTERS:
+            module_name, class_name = filter_.rsplit('.', 1)
+            try:
+                module = __import__(module_name, {}, {}, class_name)
+                filter_ = getattr(module, class_name)
+            except Exception, exc:
+                logging.exception('Unable to import %s' % (filter_,))
+                continue
+            if filter_.column.startswith('data__'):
+                Index.objects.register_model(Message, filter_.column, index_to='group')
+            filters.append(filter_)
+        _FILTER_CACHE = filters
+    for f in _FILTER_CACHE:
+        yield f
 
 def login_required(func):
     def wrapped(request, *args, **kwargs):
@@ -231,6 +257,7 @@ def group(request, group_id):
     
     return render_to_response('sentry/group.html', locals())
 
+@csrf_exempt
 def store(request):
     key = request.POST.get('key')
     if key != settings.KEY:
@@ -241,10 +268,10 @@ def store(request):
         return HttpResponseForbidden('Missing data')
     
     try:
-        data = base64.b64decode(pickle.loads(data.decode('zlib')))
-    except:
+        data = pickle.loads(base64.b64decode(data).decode('zlib'))
+    except Exception, e:
         return HttpResponseForbidden('Bad data')
 
-    GroupedMessage.objects._create(**data)
+    GroupedMessage.objects.from_kwargs(**data)
     
     return HttpResponse()

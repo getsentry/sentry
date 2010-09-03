@@ -54,9 +54,10 @@ Once installed, update your settings.py and add ``sentry``, ``indexer``, and ``p
 	    'django.contrib.contenttypes',
 	    'django.contrib.sessions',
 
-	    'sentry',
 	    'indexer',
 	    'paging',
+	    'sentry.client',
+	    'sentry',
 	    ...
 	)
 
@@ -103,7 +104,7 @@ You should also enable the ``SentryRouter`` to avoid things like extraneous tabl
 SENTRY_LOGGING
 ##############
 
-Enabling this setting will turn off automatic database logging within the exception handler, and instead send all exceptions to the named logger ``sentry``. Use this in conjuction with ``sentry.handlers.SentryHandler`` or your own handler to tweak how logging is dealt with.
+Enabling this setting will turn off automatic database logging within the exception handler, and instead send all exceptions to the named logger ``sentry``. Use this in conjuction with ``sentry.client.handlers.SentryHandler`` or your own handler to tweak how logging is dealt with.
 
 A good example use case for this, is if you want to write to something like a syslog ahead of time, and later process that into the database with another tool.
 
@@ -111,17 +112,17 @@ A good example use case for this, is if you want to write to something like a sy
 Integration with ``logging``
 ############################
 
-django-db-log supports the ability to directly tie into the ``logging`` module. To use it simply add ``SentryHandler`` to your logger::
+django-sentry supports the ability to directly tie into the ``logging`` module. To use it simply add ``SentryHandler`` to your logger::
 
 	import logging
-	from sentry.handlers import SentryHandler
+	from sentry.client.handlers import SentryHandler
 	
 	logging.getLogger().addHandler(SentryHandler())
 
 	# Add StreamHandler to sentry's default so you can catch missed exceptions
 	logging.getLogger('sentry').addHandler(logging.StreamHandler())
 
-You can also use the ``exc_info`` and ``extra=dict(url=foo)`` arguments on your ``log`` methods. This will store the appropriate information and allow django-db-log to render it based on that information:
+You can also use the ``exc_info`` and ``extra=dict(url=foo)`` arguments on your ``log`` methods. This will store the appropriate information and allow django-sentry to render it based on that information:
 
 	logging.error('There was some crazy error', exc_info=sys.exc_info(), extra={'url': request.build_absolute_uri()})
 
@@ -150,19 +151,19 @@ If you wish to access these within your own views and models, you may do so via 
 
 You can also record errors outside of handler if you want::
 
-	from sentry.models import Message
+	from sentry.client import SentryClient
 	
 	try:
 		...
 	except Exception, exc:
-		Message.objects.create_from_exception(exc, [url=None, view=None])
+		SentryClient.create_from_exception(exc, [url=None, view=None])
 
 If you wish to log normal messages (useful for non-``logging`` integration)::
 
-	from sentry.models import Message
+	from sentry.client import SentryClient
 	import logging
 	
-	Message.objects.create_from_text('Message Message'[, level=logging.WARNING, url=None])
+	SentryClient.create_from_text('Message Message'[, level=logging.WARNING, url=None])
 
 Both the ``url`` and ``level`` parameters are optional. ``level`` should be one of the following:
 
@@ -180,6 +181,6 @@ the error.
 Notes
 =====
 
-* django-db-log will automatically integrate with django-idmapper.
-* django-db-log supports South migrations.
+* sentry-client will automatically integrate with django-idmapper.
+* sentry-client supports South migrations.
 * The fact that the admin shows large quantities of results, even if there aren't, is not a bug. This is an efficiency hack on top of Django.

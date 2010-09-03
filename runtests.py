@@ -8,6 +8,9 @@ from django.conf import settings
 if not settings.configured:
     settings.configure(
         DATABASE_ENGINE='sqlite3',
+        # HACK: this fixes our threaded runserver remote tests
+        # DATABASE_NAME='test_sentry',
+        # TEST_DATABASE_NAME='test_sentry',
         INSTALLED_APPS=[
             'django.contrib.auth',
             'django.contrib.admin',
@@ -17,6 +20,7 @@ if not settings.configured:
             'django.contrib.contenttypes',
 
             'sentry',
+            'sentry.client',
             'paging',
             'indexer',
 

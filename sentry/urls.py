@@ -4,8 +4,8 @@ from django.conf import settings
 from django.conf.urls.defaults import *
 
 from sentry.settings import KEY
-from sentry.feeds import MessageFeed, SummaryFeed
 from sentry import views
+from sentry.feeds import MessageFeed, SummaryFeed
 
 SENTRY_ROOT = os.path.dirname(__file__) 
 

@@ -97,6 +97,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.messages',
     'sentry',
+    'sentry.client',
     'paging',
     'south',
     'indexer',

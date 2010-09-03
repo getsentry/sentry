@@ -1,5 +1,5 @@
 from django.db import models
-from sentry.utils import GzippedDictField
+from sentry.models import GzippedDictField
 
 class TestModel(models.Model):
     data = GzippedDictField(blank=True, null=True)

@@ -2,9 +2,6 @@
 from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 
-from indexer.models import Index
-
-from sentry.models import GroupedMessage, Message
 from sentry.settings import LOG_LEVELS
 
 class Widget(object):
@@ -76,9 +73,11 @@ class SentryFilter(object):
         return '?' + query_dict.urlencode()
     
     def get_choices(self):
+        from sentry.models import GroupedMessage
         return SortedDict((l, l) for l in GroupedMessage.objects.values_list(self.column, flat=True).distinct())
     
     def get_query_set(self, queryset):
+        from indexer.models import Index
         kwargs = {self.column: self.get_value()}
         if self.column.startswith('data__'):
             return Index.objects.get_for_queryset(queryset, **kwargs)
@@ -101,6 +100,7 @@ class ServerNameFilter(SentryFilter):
     column = 'server_name'
 
     def get_choices(self):
+        from sentry.models import Message
         return SortedDict((l, l) for l in Message.objects.values_list(self.column, flat=True).distinct())
 
     def get_query_set(self, queryset):

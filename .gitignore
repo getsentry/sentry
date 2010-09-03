@@ -4,3 +4,4 @@
 *.pyc
 *.log
 pip-log.txt
+.DS_Store

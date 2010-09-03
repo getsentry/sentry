@@ -1,3 +1,14 @@
+import base64
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+import datetime
+import logging
+import sys
+import traceback
+import warnings
+
 from django.conf import settings as dj_settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models, transaction
@@ -7,15 +18,9 @@ from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import settings
-from sentry.helpers import construct_checksum, get_installed_apps
+from sentry.client import SentryClient
+from sentry.helpers import construct_checksum, get_installed_apps, transform
 from sentry.manager import SentryManager, GroupedMessageManager
-from sentry.utils import GzippedDictField
-
-import datetime
-import logging
-import sys
-import traceback
-import warnings
 
 _reqs = ('paging', 'indexer')
 for r in _reqs:
@@ -36,6 +41,35 @@ STATUS_LEVELS = (
     (0, _('unresolved')),
     (1, _('resolved')),
 )
+
+class GzippedDictField(models.TextField):
+    """
+    Slightly different from a JSONField in the sense that the default
+    value is a dictionary.
+    """
+    __metaclass__ = models.SubfieldBase
+ 
+    def to_python(self, value):
+        if isinstance(value, basestring) and value:
+            value = pickle.loads(base64.b64decode(value).decode('zlib'))
+        elif not value:
+            return {}
+        return value
+
+    def get_prep_value(self, value):
+        if value is None: return
+        return base64.b64encode(pickle.dumps(transform(value)).encode('zlib'))
+ 
+    def value_to_string(self, obj):
+        value = self._get_val_from_obj(obj)
+        return self.get_db_prep_value(value)
+
+    def south_field_triple(self):
+        "Returns a suitable description of this field for South."
+        from south.modelsinspector import introspector
+        field_class = "django.db.models.fields.TextField"
+        args, kwargs = introspector(self)
+        return (field_class, args, kwargs)
 
 class MessageBase(Model):
     logger          = models.CharField(max_length=64, blank=True, default='root', db_index=True)
@@ -87,6 +121,7 @@ class GroupedMessage(MessageBase):
         permissions = (
             ("can_view", "Can view"),
         )
+        db_table = 'sentry_groupedmessage'
 
     def __unicode__(self):
         return "(%s) %s: %s" % (self.times_seen, self.class_name, self.error())
@@ -149,7 +184,7 @@ class GroupedMessage(MessageBase):
             if settings.USE_LOGGING:
                 logging.getLogger('sentry').critical(exc_value, exc_info=sys.exc_info(), extra=extra)
             else:
-                Message.objects.create_from_exception(**extra)
+                SentryClient.create_from_exception(**extra)
         except Exception, exc:
             try:
                 logger.exception(u'Unable to process log entry: %s' % (exc,))
@@ -174,6 +209,7 @@ class Message(MessageBase):
     class Meta:
         verbose_name = _('message')
         verbose_name_plural = _('messages')
+        db_table = 'sentry_message'
 
     def __unicode__(self):
         return "%s: %s" % (self.class_name, smart_unicode(self.message))

@@ -1,5 +1,14 @@
 # -*- coding: utf-8 -*-
 
+import base64
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+import logging
+import sys
+import threading
+
 from django.core.handlers.wsgi import WSGIRequest, WSGIHandler
 from django.core.urlresolvers import reverse
 from django.core.signals import got_request_exception
@@ -9,12 +18,11 @@ from django.test import TestCase
 from django.utils.encoding import smart_unicode
 
 from sentry import settings
+from sentry.helpers import transform
 from sentry.models import Message, GroupedMessage
-from sentry.tests.models import TestModel, DuplicateKeyModel
+from sentry.client import SentryClient
 
-import logging
-import sys
-import threading
+from models import TestModel, DuplicateKeyModel
 
 class TestServerThread(threading.Thread):
     """Thread for running a http server while tests are running."""
@@ -106,7 +114,7 @@ class SentryTestCase(TestCase):
         
     def setUpHandler(self):
         self.tearDownHandler()
-        from sentry.handlers import SentryHandler
+        from sentry.client.handlers import SentryHandler
         
         logger = logging.getLogger()
         self._handlers = logger.handlers
@@ -214,14 +222,14 @@ class SentryTestCase(TestCase):
         try:
             Message.objects.get(id=999999989)
         except Message.DoesNotExist, exc:
-            Message.objects.create_from_exception(exc)
+            SentryClient.create_from_exception(exc)
         else:
             self.fail('Unable to create `Message` entry.')
 
         try:
             Message.objects.get(id=999999989)
         except Message.DoesNotExist, exc:
-            error = Message.objects.create_from_exception()
+            error = SentryClient.create_from_exception()
             self.assertTrue(error.data.get('__sentry__', {}).get('exc'))
         else:
             self.fail('Unable to create `Message` entry.')
@@ -235,7 +243,7 @@ class SentryTestCase(TestCase):
         self.assertEquals(last.level, logging.ERROR)
         self.assertEquals(last.message, smart_unicode(exc))
         
-        Message.objects.create_from_text('This is an error', level=logging.DEBUG)
+        SentryClient.create_from_text('This is an error', level=logging.DEBUG)
         
         cur = (Message.objects.count(), GroupedMessage.objects.count())
         self.assertEquals(cur, (3, 3), 'Assumed logs failed to save. %s' % (cur,))
@@ -250,7 +258,7 @@ class SentryTestCase(TestCase):
         try:
             Message.objects.get(id=999999979)
         except Message.DoesNotExist, exc:
-            Message.objects.create_from_exception(exc)
+            SentryClient.create_from_exception(exc)
         else:
             self.fail('Unable to create `Message` entry.')
             
@@ -270,7 +278,7 @@ class SentryTestCase(TestCase):
         cnt = Message.objects.count()
         value = 'רונית מגן'
 
-        error = Message.objects.create_from_text(value)
+        error = SentryClient.create_from_text(value)
         self.assertEquals(Message.objects.count(), cnt+1)
         self.assertEquals(error.message, value)
 
@@ -296,7 +304,7 @@ class SentryTestCase(TestCase):
         cnt = Message.objects.count()
         value = 'רונית מגן'.decode('utf-8')
 
-        error = Message.objects.create_from_text(value)
+        error = SentryClient.create_from_text(value)
         self.assertEquals(Message.objects.count(), cnt+1)
         self.assertEquals(error.message, value)
 
@@ -318,7 +326,7 @@ class SentryTestCase(TestCase):
     
     def testLongURLs(self):
         # Fix: #6 solves URLs > 200 characters
-        error = Message.objects.create_from_text('hello world', url='a'*210)
+        error = SentryClient.create_from_text('hello world', url='a'*210)
         self.assertEquals(error.url, 'a'*200)
         self.assertEquals(error.data['url'], 'a'*210)
     
@@ -370,7 +378,7 @@ class SentryTestCase(TestCase):
         GroupedMessage.objects.all().delete()
         
         for i in range(0, 50):
-            Message.objects.create_from_text('hi')
+            SentryClient.create_from_text('hi')
         
         self.assertEquals(Message.objects.count(), settings.THRASHING_LIMIT)
     
@@ -418,7 +426,7 @@ class SentryTestCase(TestCase):
         GroupedMessage.objects.all().delete()
         
         for i in range(0, 50):
-            Message.objects.create_from_text('hi')
+            SentryClient.create_from_text('hi')
         
         self.assertEquals(Message.objects.count(), 50)
 
@@ -474,7 +482,7 @@ class SentryViewsTest(TestCase):
         
     def setUpHandler(self):
         self.tearDownHandler()
-        from sentry.handlers import SentryHandler
+        from sentry.client.handlers import SentryHandler
         
         logger = logging.getLogger()
         self._handlers = logger.handlers
@@ -529,6 +537,10 @@ class RemoteSentryTest(TestCase):
     def setUp(self):
         self.server_thread = None
         settings.REMOTE_URL = 'http://localhost:8000%s' % reverse('sentry-store')
+        logger = logging.getLogger('sentry')
+        for h in logger.handlers:
+            logger.removeHandler(h)
+        logger.addHandler(logging.StreamHandler())
 
     def tearDown(self):
         self.stop_test_server()
@@ -537,34 +549,60 @@ class RemoteSentryTest(TestCase):
     def testNoKey(self):
         resp = self.client.post(reverse('sentry-store'))
         self.assertEquals(resp.status_code, 403)
+        self.assertEquals(resp.content, 'Invalid credentials')
 
     def testNoData(self):
         resp = self.client.post(reverse('sentry-store'), {
             'key': settings.KEY,
         })
         self.assertEquals(resp.status_code, 403)
+        self.assertEquals(resp.content, 'Missing data')
 
     def testBadData(self):
         resp = self.client.post(reverse('sentry-store'), {
             'key': settings.KEY,
-            'data': 'hell world',
+            'data': 'hello world',
         })
         self.assertEquals(resp.status_code, 403)
+        self.assertEquals(resp.content, 'Bad data')
 
-    def testProcess(self):
-        self.start_test_server()
-        GroupedMessage.objects.process(message='hello')
+    def testBadData(self):
+        resp = self.client.post(reverse('sentry-store'), {
+            'key': settings.KEY,
+            'data': 'hello world',
+        })
+        self.assertEquals(resp.status_code, 403)
+        self.assertEquals(resp.content, 'Bad data')
+
+    def testCorrectData(self):
+        kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40}
+        data = {
+            
+        }
+        resp = self.client.post(reverse('sentry-store'), {
+            'data': base64.b64encode(pickle.dumps(transform(kwargs)).encode('zlib')),
+            'key': settings.KEY,
+        })
+        self.assertEquals(resp.status_code, 200)
         instance = Message.objects.get()
         self.assertEquals(instance.message, 'hello')
-    
-    def testExternal(self):
-        self.start_test_server()
-        self.assertRaises(Exception, self.client.get, '/?test')
-        instance = Message.objects.get()
-        self.assertEquals(instance.message, 'view exception')
-        self.assertEquals(instance.url, 'http://testserver/?test')
-        
-        
+        self.assertEquals(instance.server_name, 'not_dcramer.local')
+        self.assertEquals(instance.level, 40)
+
+    # def testProcess(self):
+    #     self.start_test_server()
+    #     SentryClient.process(message='hello')
+    #     instance = Message.objects.all().order_by('-id')[0]
+    #     self.assertEquals(instance.message, 'hello')
+    #     self.stop_test_server()
+    # 
+    # def testExternal(self):
+    #     self.start_test_server()
+    #     self.assertRaises(Exception, self.client.get, '/?test')
+    #     instance = Message.objects.all().order_by('-id')[0]
+    #     self.assertEquals(instance.message, 'view exception')
+    #     self.assertEquals(instance.url, 'http://testserver/?test')
+    #     self.stop_test_server()
 class SentryFeedsTest(TestCase):
     fixtures = ['sentry/tests/fixtures/feeds.json']
     urls = 'sentry.tests.urls'
