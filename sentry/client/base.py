@@ -48,7 +48,9 @@ class SentryClient(object):
 
             try:
                 response = urllib2.urlopen(req).read()
-            except (urllib2.HTTPError, urllib2.URLError), e:
+            except urllib2.URLError, e:
+                logger.exception('Unable to reach Sentry log server')
+            except urllib2.HTTPError, e:
                 logger.exception('Unable to reach Sentry log server', extra={'body': e.read()})
         else:
             from sentry.models import GroupedMessage
