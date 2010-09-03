@@ -87,8 +87,17 @@ SENTRY_REMOTE_URL
 
 If you run on a multi server environment we highly recommend this method for storing error logs.
 
-You'll need to setup a webserver that's designated as a sentry server. Bare minimum config would include
-everything the install guide talks about here. Once done, you'll need to do two things on your app server::
+This is a two step process. First you'll want to configure your Sentry server (not your application)::
+
+	INSTALLED_APPS = [
+	  ...
+	  'indexer',
+	  'paging',
+	  'sentry',
+	  'sentry.client',
+	]
+
+And on your main application, you need to add ``sentry.client``::
 
 	# This should be the absolute URI of sentries store view
 	SENTRY_REMOTE_URL = '%sentry_url_base%/store/'
