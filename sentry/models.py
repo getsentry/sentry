@@ -32,14 +32,6 @@ logger = logging.getLogger('sentry')
 
 __all__ = ('Message', 'GroupedMessage')
 
-LOG_LEVELS = (
-    (logging.DEBUG, _('debug')),
-    (logging.INFO, _('info')),
-    (logging.WARNING, _('warning')),
-    (logging.ERROR, _('error')),
-    (logging.FATAL, _('fatal')),
-)
-
 STATUS_LEVELS = (
     (0, _('unresolved')),
     (1, _('resolved')),
@@ -48,7 +40,7 @@ STATUS_LEVELS = (
 class MessageBase(Model):
     logger          = models.CharField(max_length=64, blank=True, default='root', db_index=True)
     class_name      = models.CharField(_('type'), max_length=128, blank=True, null=True, db_index=True)
-    level           = models.PositiveIntegerField(choices=LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
+    level           = models.PositiveIntegerField(choices=settings.LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
     message         = models.TextField()
     traceback       = models.TextField(blank=True, null=True)
     view            = models.CharField(max_length=255, db_index=True, blank=True, null=True)
@@ -188,7 +180,7 @@ class Message(MessageBase):
 
     def save(self, *args, **kwargs):
         if not self.checksum:
-            self.checksum = construct_checksum(self)
+            self.checksum = construct_checksum(**self.__dict__)
         super(Message, self).save(*args, **kwargs)
 
     def get_absolute_url(self):

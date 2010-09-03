@@ -17,6 +17,8 @@ if not settings.configured:
             'django.contrib.contenttypes',
 
             'sentry',
+            'paging',
+            'indexer',
 
             # No fucking idea why I have to do this
             'sentry.tests',

@@ -1,18 +1,63 @@
 # -*- coding: utf-8 -*-
 
-from django.core.handlers.wsgi import WSGIRequest
+from django.core.handlers.wsgi import WSGIRequest, WSGIHandler
 from django.core.urlresolvers import reverse
 from django.core.signals import got_request_exception
+from django.core.servers import basehttp
 from django.test.client import Client
 from django.test import TestCase
 from django.utils.encoding import smart_unicode
 
+from sentry import settings
 from sentry.models import Message, GroupedMessage
 from sentry.tests.models import TestModel, DuplicateKeyModel
-from sentry import settings
 
 import logging
 import sys
+import threading
+
+class TestServerThread(threading.Thread):
+    """Thread for running a http server while tests are running."""
+
+    def __init__(self, address, port):
+        self.address = address
+        self.port = port
+        self._stopevent = threading.Event()
+        self.started = threading.Event()
+        self.error = None
+        super(TestServerThread, self).__init__()
+
+    def run(self):
+        """Sets up test server and database and loops over handling http requests."""
+        from django.conf import settings
+        try:
+            handler = basehttp.AdminMediaHandler(WSGIHandler())
+            server_address = (self.address, self.port)
+            httpd = basehttp.StoppableWSGIServer(server_address, basehttp.WSGIRequestHandler)
+            httpd.set_app(handler)
+            self.started.set()
+        except basehttp.WSGIServerException, e:
+            self.error = e
+            self.started.set()
+            return
+
+        # Must do database stuff in this new thread if database in memory.
+        if settings.DATABASE_ENGINE == 'sqlite3' \
+            and (not settings.TEST_DATABASE_NAME or settings.TEST_DATABASE_NAME == ':memory:'):
+            # Import the fixture data into the test database.
+            if hasattr(self, 'fixtures'):
+                # We have to use this slightly awkward syntax due to the fact
+                # that we're using *args and **kwargs together.
+                call_command('loaddata', *self.fixtures, **{'verbosity': 0})
+
+        # Loop until we get a stop event.
+        while not self._stopevent.isSet():
+            httpd.handle_request()
+
+    def join(self, timeout=None):
+        """Stop the thread and wait for it to finish."""
+        self._stopevent.set()
+        threading.Thread.join(self, timeout)
 
 def conditional_on_module(module):
     def wrapped(func):
@@ -49,10 +94,8 @@ class SentryTestCase(TestCase):
     urls = 'sentry.tests.urls'
 
     def setUp(self):
-        settings.DATABASE_USING = None
         self._handlers = None
         self._level = None
-        settings.DEBUG = False
         self.logger = logging.getLogger('sentry')
         self.logger.addHandler(logging.StreamHandler())
         Message.objects.all().delete()
@@ -468,6 +511,61 @@ class SentryViewsTest(TestCase):
         self.assertEquals(last.level, logging.ERROR)
         self.assertEquals(last.message, 'view exception')
 
+class RemoteSentryTest(TestCase):
+    urls = 'sentry.tests.urls'
+    
+    def start_test_server(self, address='localhost', port=8000):
+        """Creates a live test server object (instance of WSGIServer)."""
+        self.server_thread = TestServerThread(address, port)
+        self.server_thread.start()
+        self.server_thread.started.wait()
+        if self.server_thread.error:
+            raise self.server_thread.error
+
+    def stop_test_server(self):
+        if self.server_thread:
+            self.server_thread.join()
+    
+    def setUp(self):
+        self.server_thread = None
+        settings.REMOTE_URL = 'http://localhost:8000%s' % reverse('sentry-store')
+
+    def tearDown(self):
+        self.stop_test_server()
+        settings.REMOTE_URL = None
+
+    def testNoKey(self):
+        resp = self.client.post(reverse('sentry-store'))
+        self.assertEquals(resp.status_code, 403)
+
+    def testNoData(self):
+        resp = self.client.post(reverse('sentry-store'), {
+            'key': settings.KEY,
+        })
+        self.assertEquals(resp.status_code, 403)
+
+    def testBadData(self):
+        resp = self.client.post(reverse('sentry-store'), {
+            'key': settings.KEY,
+            'data': 'hell world',
+        })
+        self.assertEquals(resp.status_code, 403)
+
+    def testProcess(self):
+        self.start_test_server()
+        # TODO:
+        GroupedMessage.objects.process(message='hello')
+        instance = Message.objects.get()
+        self.assertEquals(instance.message, 'hello')
+    
+    def testExternal(self):
+        self.start_test_server()
+        self.assertRaises(Exception, self.client.get, '/?test')
+        instance = Message.objects.get()
+        self.assertEquals(instance.message, 'view exception')
+        self.assertEquals(instance.url, 'http://testserver/?test')
+        
+        
 class SentryFeedsTest(TestCase):
     fixtures = ['sentry/tests/fixtures/feeds.json']
     urls = 'sentry.tests.urls'

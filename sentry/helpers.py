@@ -82,10 +82,10 @@ class ImprovedExceptionReporter(ExceptionReporter):
         })
         return t.render(c)
 
-def construct_checksum(error):
-    checksum = md5_constructor(str(error.level))
-    checksum.update(error.class_name or '')
-    message = error.traceback or error.message
+def construct_checksum(level=logging.ERROR, class_name='', traceback='', message='', **kwargs):
+    checksum = md5_constructor(str(level))
+    checksum.update(class_name or '')
+    message = traceback or message
     if isinstance(message, unicode):
         message = message.encode('utf-8', 'replace')
     checksum.update(message)

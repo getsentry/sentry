@@ -4,7 +4,8 @@ from django.utils.safestring import mark_safe
 
 from indexer.models import Index
 
-from sentry.models import GroupedMessage, Message, LOG_LEVELS
+from sentry.models import GroupedMessage, Message
+from sentry.settings import LOG_LEVELS
 
 class Widget(object):
     def __init__(self, filter, request):

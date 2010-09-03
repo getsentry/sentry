@@ -1,5 +1,10 @@
-from math import log
+import base64
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 import datetime
+from math import log
 
 try:
     from pygooglechart import SimpleLineChart
@@ -17,8 +22,9 @@ from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_protect
 
+from sentry import settings
 from sentry.helpers import FakeRequest, ImprovedExceptionReporter, get_filters
-from sentry.models import GroupedMessage, Message, LOG_LEVELS
+from sentry.models import GroupedMessage, Message
 from sentry.templatetags.sentry_helpers import with_priority
 
 def login_required(func):
@@ -97,7 +103,7 @@ def ajax_handler(request):
     if op == 'poll':
         logger_names = SortedDict((l, l) for l in GroupedMessage.objects.values_list('logger', flat=True).distinct())
         server_names = SortedDict((l, l) for l in Message.objects.values_list('server_name', flat=True).distinct())
-        level_names = SortedDict((str(k), v) for k, v in LOG_LEVELS)
+        level_names = SortedDict((str(k), v) for k, v in settings.LOG_LEVELS)
 
         logger = request.GET.get('logger')
         server_name = request.GET.get('server_name') or ''
@@ -224,3 +230,21 @@ def group(request, group_id):
         chart_url = chart.get_url()
     
     return render_to_response('sentry/group.html', locals())
+
+def store(request):
+    key = request.POST.get('key')
+    if key != settings.KEY:
+        return HttpResponseForbidden('Invalid credentials')
+    
+    data = request.POST.get('data')
+    if not data:
+        return HttpResponseForbidden('Missing data')
+    
+    try:
+        data = base64.b64decode(pickle.loads(data.decode('zlib')))
+    except:
+        return HttpResponseForbidden('Bad data')
+
+    GroupedMessage.objects._create(**data)
+    
+    return HttpResponse()

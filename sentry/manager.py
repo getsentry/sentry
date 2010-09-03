@@ -1,13 +1,20 @@
 # Multi-db support based on http://www.eflorenzano.com/blog/post/easy-multi-database-support-django/
 # TODO: is there a way to use the traceback module based on an exception variable?
 
-import traceback as traceback_mod
-import logging
-import socket
-import warnings
+import base64
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 import datetime
 import django
+import logging
+import socket
 import sys
+import traceback as traceback_mod
+import urllib
+import urllib2
+import warnings
 
 from django.core.cache import cache
 from django.db import models
@@ -18,6 +25,7 @@ from django.views.debug import ExceptionReporter
 
 from sentry import settings
 from sentry.helpers import construct_checksum, varmap
+from sentry.utils import transform
 
 assert not settings.DATABASE_USING or django.VERSION >= (1, 2), 'The `SENTRY_DATABASE_USING` setting requires Django >= 1.2'
 
@@ -32,56 +40,83 @@ class SentryManager(models.Manager):
             qs = qs.using(settings.DATABASE_USING)
         return qs
 
-    def _create(self, **defaults):
-        from sentry.models import Message, GroupedMessage
+    def process(self, **kwargs):
         from sentry.helpers import get_filters
         
-        URL_MAX_LENGTH = Message._meta.get_field_by_name('url')[0].max_length
-        
         for filter_ in get_filters():
-            defaults = filter_(None).process(defaults) or defaults
+            kwargs = filter_(None).process(kwargs) or kwargs
         
-        view = defaults.pop('view', None)
-        logger_name = defaults.pop('logger', 'root')
-        url = defaults.pop('url', None)
+        kwargs.setdefault('level', logging.ERROR)
+        kwargs.setdefault('server_name', socket.gethostname())
+        
+        checksum = construct_checksum(**kwargs)
+        
+        if settings.THRASHING_TIMEOUT and settings.THRASHING_LIMIT:
+            cache_key = 'sentry:%s:%s' % (kwargs.get('class_name'), checksum)
+            added = cache.add(cache_key, 1, settings.THRASHING_TIMEOUT)
+            if not added and cache.incr(cache_key) > settings.THRASHING_LIMIT:
+                return
 
-        data = defaults.pop('data', {}) or {}
+        if settings.REMOTE_URL:
+            data = {
+                'data': base64.b64encode(pickle.dumps(transform(kwargs))).encode('zlib'),
+                'key': settings.KEY,
+            }
+            req = urllib2.Request(settings.REMOTE_URL, urllib.urlencode(data))
+
+            try:
+                response = urllib2.urlopen(req).read()
+            except urllib2.HTTPError, e:
+                logger.exception('Unable to reach Sentry log server')
+        return self._create(**kwargs)
+
+    def _create(self, **kwargs):
+        from sentry.models import Message, GroupedMessage
+        
+        URL_MAX_LENGTH = Message._meta.get_field_by_name('url')[0].max_length
+        now = datetime.datetime.now()
+
+        view = kwargs.pop('view', None)
+        logger_name = kwargs.pop('logger', 'root')
+        url = kwargs.pop('url', None)
+        server_name = kwargs.pop('server_name', )
+        data = kwargs.pop('data', {}) or {}
+
         if url:
             data['url'] = url
             url = url[:URL_MAX_LENGTH]
 
-        instance = Message(
-            view=view,
-            logger=logger_name,
-            data=data,
-            url=url,
-            server_name=socket.gethostname(),
-            **defaults
-        )
-        instance.checksum = construct_checksum(instance)
-        
-        if settings.THRASHING_TIMEOUT and settings.THRASHING_LIMIT:
-            cache_key = 'sentry:%s:%s' % (instance.class_name, instance.checksum)
-            added = cache.add(cache_key, 1, settings.THRASHING_TIMEOUT)
-            if not added and cache.incr(cache_key) > settings.THRASHING_LIMIT:
-                return
+        checksum = construct_checksum(**kwargs)
 
         try:
             group, created = GroupedMessage.objects.get_or_create(
                 view=view,
                 logger=logger_name,
-                checksum=instance.checksum,
-                defaults=defaults
+                checksum=checksum,
+                defaults=kwargs
             )
             if not created:
                 GroupedMessage.objects.filter(pk=group.pk).update(
                     times_seen=models.F('times_seen') + 1,
                     status=0,
-                    last_seen=datetime.datetime.now(),
+                    last_seen=now,
                 )
-                # signals.post_save.send(sender=GroupedMessage, instance=group, created=False)
-            instance.group = group
-            instance.save()
+                # HACK: maintain appeared state
+                group.status = 0
+                group.last_seen = now
+                group.times_seen += 1
+                signals.post_save.send(sender=GroupedMessage, instance=group, created=False)
+
+            instance = Message.objects.create(
+                view=view,
+                logger=logger_name,
+                data=data,
+                url=url,
+                server_name=server_name,
+                checksum=checksum,
+                group=group,
+                **kwargs
+            )
         except Exception, exc:
             try:
                 logger.exception(u'Unable to process log entry: %s' % (exc,))
@@ -105,7 +140,7 @@ class SentryManager(models.Manager):
         if record.exc_info:
             return self.create_from_exception(*record.exc_info[1:2], **kwargs)
 
-        return self._create(
+        return self.process(
             traceback=record.exc_text,
             **kwargs
         )
@@ -114,7 +149,7 @@ class SentryManager(models.Manager):
         """
         Creates an error log for from ``type`` and ``message``.
         """
-        return self._create(
+        return self.process(
             message=message,
             **kwargs
         )
@@ -172,7 +207,7 @@ class SentryManager(models.Manager):
 
         kwargs.setdefault('message', to_unicode(exc_value))
 
-        return self._create(
+        return self.process(
             class_name=exc_type.__name__,
             traceback=tb_message,
             data=data,
