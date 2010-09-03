@@ -223,7 +223,7 @@ def group(request, group_id):
 
         reporter = ImprovedExceptionReporter(fake_request, exc_type, exc_value, frames, obj.data['__sentry__'].get('template'))
         traceback = mark_safe(reporter.get_traceback_html())
-    else:
+    elif group.traceback:
         traceback = mark_safe('<pre>%s</pre>' % (group.traceback,))
     
     unique_urls = message_list.filter(url__isnull=False).values_list('url', 'logger', 'view', 'checksum').annotate(times_seen=Count('url')).values('url', 'times_seen').order_by('-times_seen')
