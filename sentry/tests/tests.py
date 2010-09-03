@@ -553,7 +553,6 @@ class RemoteSentryTest(TestCase):
 
     def testProcess(self):
         self.start_test_server()
-        # TODO:
         GroupedMessage.objects.process(message='hello')
         instance = Message.objects.get()
         self.assertEquals(instance.message, 'hello')
