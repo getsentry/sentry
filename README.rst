@@ -177,7 +177,7 @@ If you wish to access these within your own views and models, you may do so via 
 
 You can also record errors outside of handler if you want::
 
-	from sentry.client import SentryClient
+	from sentry.client.base import SentryClient
 	
 	try:
 		...
@@ -186,7 +186,7 @@ You can also record errors outside of handler if you want::
 
 If you wish to log normal messages (useful for non-``logging`` integration)::
 
-	from sentry.client import SentryClient
+	from sentry.client.base import SentryClient
 	import logging
 	
 	SentryClient.create_from_text('Message Message'[, level=logging.WARNING, url=None])

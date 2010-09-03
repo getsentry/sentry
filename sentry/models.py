@@ -17,7 +17,7 @@ from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import settings
-from sentry.client import SentryClient
+from sentry.client.base import SentryClient
 from sentry.helpers import construct_checksum, get_installed_apps, transform
 from sentry.manager import SentryManager, GroupedMessageManager
 

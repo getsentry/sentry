@@ -9,7 +9,7 @@ from django.db import  transaction
 from django.http import Http404
 
 from sentry import settings
-from sentry.client import SentryClient
+from sentry.client.base import SentryClient
 from sentry.helpers import get_installed_apps
 
 logger = logging.getLogger('sentry')

@@ -20,7 +20,7 @@ from django.utils.encoding import smart_unicode
 from sentry import settings
 from sentry.helpers import transform
 from sentry.models import Message, GroupedMessage
-from sentry.client import SentryClient
+from sentry.client.base import SentryClient
 from sentry.client.models import sentry_exception_handler
 
 from models import TestModel, DuplicateKeyModel
