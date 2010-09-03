@@ -21,6 +21,7 @@ from sentry import settings
 from sentry.helpers import transform
 from sentry.models import Message, GroupedMessage
 from sentry.client import SentryClient
+from sentry.client.models import sentry_exception_handler
 
 from models import TestModel, DuplicateKeyModel
 
@@ -206,7 +207,7 @@ class SentryTestCase(TestCase):
         try:
             Message.objects.get(id=999999999)
         except Message.DoesNotExist, exc:
-            GroupedMessage.handle_exception(request=request, sender=self)
+            sentry_exception_handler(request=request, sender=self)
         else:
             self.fail('Unable to create `Message` entry.')
         
@@ -339,7 +340,7 @@ class SentryTestCase(TestCase):
         try:
             Message.objects.get(id=999999999)
         except Message.DoesNotExist, exc:
-            GroupedMessage.handle_exception(request=request, sender=self)
+            sentry_exception_handler(request=request, sender=self)
         else:
             self.fail('Expected an exception.')
         
@@ -361,7 +362,7 @@ class SentryTestCase(TestCase):
         try:
             Message.objects.get(id=999999999)
         except Message.DoesNotExist, exc:
-            GroupedMessage.handle_exception(request=request, sender=self)
+            sentry_exception_handler(request=request, sender=self)
         else:
             self.fail('Expected an exception.')
         

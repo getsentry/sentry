@@ -56,8 +56,8 @@ Once installed, update your settings.py and add ``sentry``, ``indexer``, and ``p
 
 	    'indexer',
 	    'paging',
-	    'sentry.client',
 	    'sentry',
+	    'sentry.client',
 	    ...
 	)
 
@@ -80,6 +80,23 @@ Enable catching of 404 errors in the logs. Default value is ``False``::
 	SENTRY_CATCH_404_ERRORS = True
 
 You can skip other custom exception types by adding a ``skip_sentry = True`` attribute to them.
+
+#################
+SENTRY_REMOTE_URL
+#################
+
+If you run on a multi server environment we highly recommend this method for storing error logs.
+
+You'll need to setup a webserver that's designated as a sentry server. Bare minimum config would include
+everything the install guide talks about here. Once done, you'll need to do two things on your app server::
+
+	# This should be the absolute URI of sentries store view
+	SENTRY_REMOTE_URL = '%sentry_url_base%/store/'
+	
+	INSTALLED_APPS = [
+	  ...
+	  'sentry.client',
+	]
 
 #####################
 SENTRY_DATABASE_USING
