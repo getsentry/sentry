@@ -92,6 +92,9 @@ function sentryRefresh(){
           // $('#message_list').each(function(){
           //               $(this).removeClass('fresh');
           //           })
+          if (groups) {
+              $('#no_messages').remove();
+          }
           for (var i=groups.length-1, el, row; (el=groups[i]); i--) {
               var id = el[0];
               var data = el[1];
