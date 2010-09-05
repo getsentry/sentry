@@ -30,6 +30,7 @@ tbody th { width:12em; text-align:right; color:#666; padding-right:.5em; }
 a { color: #333; }
 a:visited { color: inherit; }
 ul { margin: 1em 0 1em 2em; }
+input { border: 0px; }
 #header {
     position: relative;
 	background: #e0ebff; border-bottom:1px solid #ddd;
@@ -136,6 +137,7 @@ ul { margin: 1em 0 1em 2em; }
 
 /* tracebacks */
 table { border:1px solid #ccc; border-collapse: collapse; width:100%; background:white; }
+table.req { width: 1032px; }
 tbody td, tbody th { vertical-align:top; padding:2px 3px; }
 thead th { padding:1px 6px 1px 3px; background:#fefefe; text-align:left; font-weight:normal; font-size:11px; border:1px solid #ddd; }
 tbody th { width:12em; text-align:right; color:#666; padding-right:.5em; }
