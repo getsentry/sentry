@@ -7,9 +7,9 @@
 {% block body %}
 	<div id="header">
 		<div class="container">
-				<h1><a href="{% url sentry %}"><span class="sentry-logo" title="Django Sentry"><img src="{% url sentry-media "images/sentry.png" %}" border=0/></span></a></h1>
+			<h1><a href="{% url sentry %}"><span class="sentry-logo" title="Django Sentry"><img src="{% url sentry-media "images/sentry.png" %}" border=0/></span></a></h1>
 			<h2>Message Details</h2>
-            <a class="backlink" href="/">&laquo; back to list</a>
+			<a class="backlink" href="{% url sentry %}">&laquo; back to list</a>
 		</div>
 	</div> 
 	<div id="content">
