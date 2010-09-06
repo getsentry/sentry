@@ -32,3 +32,5 @@ LOG_LEVELS = (
 
 # This should be the full URL to sentries store view
 REMOTE_URL = getattr(settings, 'SENTRY_REMOTE_URL', None)
+
+REMOTE_TIMEOUT = getattr(settings, 'SENTRY_REMOTE_TIMEOUT', 5)

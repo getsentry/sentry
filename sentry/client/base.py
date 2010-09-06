@@ -47,7 +47,7 @@ class SentryClient(object):
             req = urllib2.Request(settings.REMOTE_URL, urllib.urlencode(data))
 
             try:
-                response = urllib2.urlopen(req).read()
+                response = urllib2.urlopen(req, None, settings.REMOTE_TIMEOUT).read()
             except urllib2.URLError, e:
                 logger.exception('Unable to reach Sentry log server')
             except urllib2.HTTPError, e:

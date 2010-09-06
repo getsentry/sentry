@@ -108,6 +108,10 @@ And on your main application, you need to add ``sentry.client``::
 	  'sentry.client',
 	]
 
+You may also specify an alternative timeout to the default (which is 5 seconds) for all outgoing logging requests::
+
+	SENTRY_REMOTE_TIMEOUT = 5
+
 #####################
 SENTRY_DATABASE_USING
 #####################
