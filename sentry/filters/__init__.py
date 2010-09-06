@@ -92,7 +92,7 @@ class SentryFilter(object):
         return widget.render(self.get_value())
 
 class StatusFilter(SentryFilter):
-    label = 'status'
+    label = 'Status'
     column = 'status'
 
     def get_choices(self):
