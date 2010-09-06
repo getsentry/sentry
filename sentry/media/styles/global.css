@@ -130,7 +130,6 @@ ul { margin: 1em 0 1em 2em; }
     -webkit-border-radius: 10px;
     -moz-box-shadow: inset 0 1px 1px rgba(0,0,0, .25), 0 1px 0 #fff;
     -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0, .25), 0 1px 0 #fff;
-    margin: 0 0 20px;
 }
 
 #sidebar .chart { margin-bottom: 1em; }
@@ -159,7 +158,7 @@ div.commands a { color:black; text-decoration:none; }
 #template-not-exist ul { margin: 0 0 0 20px; }
 #unicode-hint { background:#eee; }
 #traceback { background:#eee; padding: 10px; }
-#requestinfo { background:#f6f6f6; padding-left:120px; margin-top: 1em; }
+#requestinfo { background:#f6f6f6; padding: 10px; padding-left:120px; margin-top: 1em; }
 #summary { background: #ffc; padding: 10px; }
 #summary h2 { font-weight: normal; color: #666; }
 #explanation { background:#eee; }
@@ -187,6 +186,7 @@ pre.exception_value { font-family: sans-serif; color: #666; font-size: 1.5em; ma
     display: block; padding: 10px; text-decoration: none; 
     border-bottom: 1px solid rgba(0,0,0, .05);
     -moz-box-shadow: 0 1px 0 rgba(255,255,255, .3);
+     -webkit-box-shadow: 0 1px 0 rgba(255,255,255, .3);
     font-weight: bold;
     color: #666;
     }
@@ -207,6 +207,7 @@ pre.exception_value { font-family: sans-serif; color: #666; font-size: 1.5em; ma
     border-top: 1px solid rgba(0,0,0, .2); 
     border-bottom: 1px solid rgba(0,0,0, .2);
     -moz-box-shadow: inset 0 0 1px #22579b, 0 1px 0 #fff;
+    -webkit-box-shadow: inset 0 0 1px #22579b, 0 1px 0 #fff;
     filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#4da2e5', endColorstr='#3079d0'); /* for IE */
 	background: -webkit-gradient(linear, left top, left bottom, from(#4da2e5), to(#3079d0)); /* for webkit browsers */
 	background: -moz-linear-gradient(top,  #4da2e5,  #3079d0); /* for firefox 3.6+ */
@@ -302,7 +303,7 @@ dl.flat dd {
 .button {
     display: inline-block;
 	color: #888;
-	padding: 8px 8px 6px 8px;
+	padding: 7px 8px 7px 8px;
     font-size: 12px;
     line-height: 12px;
     border:1px solid #C5C5C5;
@@ -330,19 +331,23 @@ dl.flat dd {
 	-moz-box-shadow: 0 1px 2px rgba(0,0,0,.2);
 	box-shadow: 0 1px 2px rgba(0,0,0,.2);
 	background:-moz-linear-gradient(center top , #ED1C24, #AA1317) repeat scroll 0 0 transparent;
+	background:-webkit-gradient(linear, 0% 0%, 0% 100%, from(#ED1C24), to(#AA1317));
 }
 .priority-high .count {
 	background: #ff5400;
 	background:-moz-linear-gradient(center top , #F16C7C, #BF404F) repeat scroll 0 0 transparent;
+	background:-webkit-gradient(linear, 0% 0%, 0% 100%, from(#F16C7C), to(#BF404F));
 }
 .priority-medium .count {
 	background: #ff7800;
 	background:-moz-linear-gradient(center top , #FAA51A, #F47A20) repeat scroll 0 0 transparent;
+	background:-webkit-gradient(linear, 0% 0%, 0% 100%, from(#FAA51A), to(#F47A20));
 }
 .priority-low .count,
 .priority-verylow .count {
 	background: #ffb400;
 	background:-moz-linear-gradient(center top , #efd57c, #e0ae00) repeat scroll 0 0 transparent;
+	background:-webkit-gradient(linear, 0% 0%, 0% 100%, from(#efd57c), to(#e0ae00));
 }
 .messages .last_seen { color: #bbb; font-size: 0.9em; margin-left: 5px; }
 .messages .status { margin-left: 5px; text-transform: uppercase; font-size: 0.9em; }

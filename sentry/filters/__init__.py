@@ -14,7 +14,7 @@ class Widget(object):
 
 class TextWidget(Widget):
     def render(self, value):
-        return mark_safe('<div id="search"><p class="textfield"><input type="text" name="%(name)s" value="%(value)s"/></p><p class="submit"><input type="image" class="search-submit"/></p></div>' % dict(
+        return mark_safe('<div id="search"><p class="textfield"><input type="text" name="%(name)s" value="%(value)s"/></p><p class="submit"><input type="submit" class="search-submit"/></p></div>' % dict(
             name=self.filter.get_query_param(),
             value=value,
         ))
