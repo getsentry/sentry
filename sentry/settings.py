@@ -14,6 +14,7 @@ THRASHING_TIMEOUT = getattr(settings, 'SENTRY_THRASHING_TIMEOUT', 60)
 THRASHING_LIMIT = getattr(settings, 'SENTRY_THRASHING_LIMIT', 10)
 
 FILTERS = getattr(settings, 'SENTRY_FILTERS', (
+    'sentry.filters.StatusFilter',
     'sentry.filters.LoggerFilter',
     'sentry.filters.LevelFilter',
     'sentry.filters.ServerNameFilter',

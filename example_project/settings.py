@@ -111,6 +111,7 @@ logging.basicConfig(level=logging.DEBUG)
 SENTRY_THRASHING_TIMEOUT = 0
 
 SENTRY_FILTERS = (
+    'sentry.filters.StatusFilter',
     'sentry.filters.LoggerFilter',
     'sentry.filters.LevelFilter',
     'sentry.filters.ServerNameFilter',

@@ -91,6 +91,16 @@ class SentryFilter(object):
         widget = self.get_widget()
         return widget.render(self.get_value())
 
+class StatusFilter(SentryFilter):
+    label = 'status'
+    column = 'status'
+
+    def get_choices(self):
+        return SortedDict([
+            (0, 'Unresolved'),
+            (1, 'Resolved'),
+        ])
+
 class LoggerFilter(SentryFilter):
     label = 'Logger'
     column = 'logger'

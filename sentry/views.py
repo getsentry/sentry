@@ -99,9 +99,7 @@ def index(request):
         page = 1
 
     # this only works in postgres
-    message_list = GroupedMessage.objects.filter(
-        status=0,
-    ).extra(
+    message_list = GroupedMessage.objects.extra(
         select={
             'score': GroupedMessage.get_score_clause(),
         }
@@ -127,39 +125,11 @@ def index(request):
 def ajax_handler(request):
     op = request.REQUEST.get('op')
     if op == 'poll':
-        logger_names = SortedDict((l, l) for l in GroupedMessage.objects.values_list('logger', flat=True).distinct())
-        server_names = SortedDict((l, l) for l in Message.objects.values_list('server_name', flat=True).distinct())
-        level_names = SortedDict((str(k), v) for k, v in settings.LOG_LEVELS)
-
-        logger = request.GET.get('logger')
-        server_name = request.GET.get('server_name') or ''
-        level = request.GET.get('level') or ''
-
-        if logger not in logger_names:
-            logger = ''
-
-        if server_name not in server_names:
-            server_name = ''
-
-        if level not in level_names:
-            level = ''
-        
-        message_list = GroupedMessage.objects.filter(
-            status=0,
-        ).extra(
+        message_list = GroupedMessage.objects.extra(
             select={
                 'score': GroupedMessage.get_score_clause(),
             }
         ).order_by('-score', '-last_seen')
-
-        if logger:
-            message_list = message_list.filter(logger=logger)
-
-        if level:
-            message_list = message_list.filter(level=level)
-
-        if server_name:
-            message_list = message_list.filter(message_set__server_name=server_name).distinct()
         
         data = [
             (m.pk, {
