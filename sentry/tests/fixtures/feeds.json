@@ -3,7 +3,6 @@
     "fields": {
       "status": 0, 
       "first_seen": "2010-07-22 20:14:18", 
-      "server_name": "dcramer.local", 
       "level": 40, 
       "class_name": "TypeError", 
       "checksum": "0edb43b51699ce88eed908b340feb17f", 
@@ -21,6 +20,7 @@
     "fields": {
       "server_name": "dcramer.local", 
       "level": 40, 
+      "group": 1,
       "class_name": "TypeError", 
       "checksum": "0edb43b51699ce88eed908b340feb17f", 
       "view": "sentry.admin.create",
