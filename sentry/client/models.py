@@ -3,7 +3,6 @@ import traceback
 import logging
 import warnings
 
-from django.conf import settings as dj_settings
 from django.core.signals import got_request_exception
 from django.db import  transaction
 from django.http import Http404
@@ -23,7 +22,7 @@ def sentry_exception_handler(sender, request=None, **kwargs):
                 and issubclass(exc_type, Http404):
             return
 
-        if dj_settings.DEBUG or getattr(exc_type, 'skip_sentry', False):
+        if settings.DEBUG or getattr(exc_type, 'skip_sentry', False):
             return
 
         if transaction.is_dirty():

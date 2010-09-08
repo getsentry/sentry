@@ -159,6 +159,16 @@ You can also use the ``exc_info`` and ``extra=dict(url=foo)`` arguments on your 
 
 	logging.error('There was some crazy error', exc_info=sys.exc_info(), extra={'url': request.build_absolute_uri()})
 
+##############
+SENTRY_TESTING
+##############
+
+Enabling this setting allows the testing of Sentry exception handler even if Django DEBUG is enabled.
+
+Default value is ``False``
+
+.. note:: Normally when Django DEBUG is enabled the Sentry exception handler is immediately skipped
+
 =====
 Usage
 =====
