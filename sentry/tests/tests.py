@@ -567,14 +567,6 @@ class RemoteSentryTest(TestCase):
         self.assertEquals(resp.status_code, 403)
         self.assertEquals(resp.content, 'Bad data')
 
-    def testBadData(self):
-        resp = self.client.post(reverse('sentry-store'), {
-            'key': settings.KEY,
-            'data': 'hello world',
-        })
-        self.assertEquals(resp.status_code, 403)
-        self.assertEquals(resp.content, 'Bad data')
-
     def testCorrectData(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40}
         data = {
