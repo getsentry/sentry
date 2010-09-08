@@ -66,9 +66,41 @@ Finally, run ``python manage.py syncdb`` to create the database tables.
 
 (If you use South, you'll need to use ``python manage.py migrate sentry``)
 
-=============
-Configuration
-=============
+==========================
+Multi-server configuration
+==========================
+
+To configure Sentry for use in a multi-server environment, first you'll want to configure your Sentry server (not your application)::
+
+	INSTALLED_APPS = [
+	  ...
+	  'indexer',
+	  'paging',
+	  'sentry',
+	  'sentry.client',
+	]
+	
+	SENTRY_KEY = '0123456789abcde'
+
+And on each of your application servers, specify the URL of the Sentry server, add ``sentry.client`` to ``INSTALLED_APPS``, and specify the same key used in your Sentry server's settings::
+
+	# This should be the absolute URI of sentries store view
+	SENTRY_REMOTE_URL = 'http://your.sentry.server/sentry/store/'
+	
+	INSTALLED_APPS = [
+	  ...
+	  'sentry.client',
+	]
+	
+	SENTRY_KEY = '0123456789abcde'
+
+You may also specify an alternative timeout to the default (which is 5 seconds) for all outgoing logging requests::
+
+	SENTRY_REMOTE_TIMEOUT = 5
+
+===========================
+Other configuration options
+===========================
 
 Several options exist to configure django-sentry via your ``settings.py``:
 
@@ -81,36 +113,6 @@ Enable catching of 404 errors in the logs. Default value is ``False``::
 	SENTRY_CATCH_404_ERRORS = True
 
 You can skip other custom exception types by adding a ``skip_sentry = True`` attribute to them.
-
-#################
-SENTRY_REMOTE_URL
-#################
-
-If you run on a multi server environment we highly recommend this method for storing error logs.
-
-This is a two step process. First you'll want to configure your Sentry server (not your application)::
-
-	INSTALLED_APPS = [
-	  ...
-	  'indexer',
-	  'paging',
-	  'sentry',
-	  'sentry.client',
-	]
-
-And on your main application, you need to add ``sentry.client``::
-
-	# This should be the absolute URI of sentries store view
-	SENTRY_REMOTE_URL = 'SENTRY_URL_BASE/store/'
-	
-	INSTALLED_APPS = [
-	  ...
-	  'sentry.client',
-	]
-
-You may also specify an alternative timeout to the default (which is 5 seconds) for all outgoing logging requests::
-
-	SENTRY_REMOTE_TIMEOUT = 5
 
 #####################
 SENTRY_DATABASE_USING
