@@ -13,7 +13,7 @@ easily trace them in your application.
 Screenshot
 ==========
 
-.. image:: http://media.nodnod.net/django_sentry.jpg
+.. image:: http://dl.dropbox.com/u/116385/sentry2.jpg
    
 ============
 Requirements
