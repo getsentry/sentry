@@ -4,6 +4,9 @@ from django.utils.translation import ugettext_lazy as _
 
 import logging
 
+# Allow local testing of Sentry even if DEBUG is enabled
+DEBUG = getattr(settings, 'DEBUG', False) and not getattr(settings, 'SENTRY_TESTING', False)
+
 CATCH_404_ERRORS = getattr(settings, 'SENTRY_CATCH_404_ERRORS', False)
 
 DATABASE_USING = getattr(settings, 'SENTRY_DATABASE_USING', None)
@@ -34,3 +37,4 @@ LOG_LEVELS = (
 REMOTE_URL = getattr(settings, 'SENTRY_REMOTE_URL', None)
 
 REMOTE_TIMEOUT = getattr(settings, 'SENTRY_REMOTE_TIMEOUT', 5)
+
