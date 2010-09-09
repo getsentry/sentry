@@ -684,7 +684,7 @@ class SentryFeedsTest(TestCase):
         self.assertTrue('<link>http://testserver/</link>' in response.content)
         self.assertTrue('<title>log summaries</title>' in response.content)
         self.assertTrue('<link>http://testserver/group/1</link>' in response.content, response.content)
-        self.assertTrue('<title>(1) TypeError: TypeError: exceptions must be old-style classes or derived from BaseException, not NoneType</title>' in response.content)
+        self.assertTrue('<title>(1) TypeError: exceptions must be old-style classes or derived from BaseException, not NoneType</title>' in response.content)
 
 class SentryHelpersTest(TestCase):
     def test_get_db_engine(self):
