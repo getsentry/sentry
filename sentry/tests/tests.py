@@ -147,24 +147,24 @@ class SentryTestCase(TestCase):
         self.setUpHandler()
 
         logger.error('This is a test error')
-        cur = (Message.objects.count(), GroupedMessage.objects.count())
-        self.assertEquals(cur, (1, 1), 'Assumed logs failed to save. %s' % (cur,))
+        self.assertEquals(Message.objects.count(), 1)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
         last = Message.objects.all().order_by('-id')[0:1].get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.level, logging.ERROR)
         self.assertEquals(last.message, 'This is a test error')
 
         logger.warning('This is a test warning')
-        cur = (Message.objects.count(), GroupedMessage.objects.count())
-        self.assertEquals(cur, (2, 2), 'Assumed logs failed to save. %s' % (cur,))
+        self.assertEquals(Message.objects.count(), 2)
+        self.assertEquals(GroupedMessage.objects.count(), 2)
         last = Message.objects.all().order_by('-id')[0:1].get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.level, logging.WARNING)
         self.assertEquals(last.message, 'This is a test warning')
         
         logger.error('This is a test error')
-        cur = (Message.objects.count(), GroupedMessage.objects.count())
-        self.assertEquals(cur, (3, 2), 'Assumed logs failed to save. %s' % (cur,))
+        self.assertEquals(Message.objects.count(), 3)
+        self.assertEquals(GroupedMessage.objects.count(), 2)
         last = Message.objects.all().order_by('-id')[0:1].get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.level, logging.ERROR)
@@ -172,16 +172,16 @@ class SentryTestCase(TestCase):
     
         logger = logging.getLogger('test')
         logger.info('This is a test info')
-        cur = (Message.objects.count(), GroupedMessage.objects.count())
-        self.assertEquals(cur, (4, 3), 'Assumed logs failed to save. %s' % (cur,))
+        self.assertEquals(Message.objects.count(), 4)
+        self.assertEquals(GroupedMessage.objects.count(), 3)
         last = Message.objects.all().order_by('-id')[0:1].get()
         self.assertEquals(last.logger, 'test')
         self.assertEquals(last.level, logging.INFO)
         self.assertEquals(last.message, 'This is a test info')
         
         logger.info('This is a test info with a url', extra=dict(url='http://example.com'))
-        cur = (Message.objects.count(), GroupedMessage.objects.count())
-        self.assertEquals(cur, (5, 4), 'Assumed logs failed to save. %s' % (cur,))
+        self.assertEquals(Message.objects.count(), 5)
+        self.assertEquals(GroupedMessage.objects.count(), 4)
         last = Message.objects.all().order_by('-id')[0:1].get()
         self.assertEquals(last.url, 'http://example.com')
         
@@ -189,8 +189,8 @@ class SentryTestCase(TestCase):
             raise ValueError('This is a test ValueError')
         except ValueError:
             logger.info('This is a test info with an exception', exc_info=sys.exc_info())
-            cur = (Message.objects.count(), GroupedMessage.objects.count())
-            self.assertEquals(cur, (6, 5), 'Assumed logs failed to save. %s' % (cur,))
+            self.assertEquals(Message.objects.count(), 6)
+            self.assertEquals(GroupedMessage.objects.count(), 5)
             last = Message.objects.all().order_by('-id')[0:1].get()
             self.assertEquals(last.class_name, 'ValueError')
             self.assertEquals(last.message, 'This is a test info with an exception')
@@ -211,9 +211,9 @@ class SentryTestCase(TestCase):
         else:
             self.fail('Unable to create `Message` entry.')
         
-        cur = (Message.objects.count(), GroupedMessage.objects.count())
-        self.assertEquals(cur, (1, 1), 'Assumed logs failed to save. %s' % (cur,))
-        last = Message.objects.all().order_by('-id')[0:1].get()
+        self.assertEquals(Message.objects.count(), 1)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+        last = Message.objects.get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.class_name, 'DoesNotExist')
         self.assertEquals(last.level, logging.ERROR)
@@ -236,8 +236,8 @@ class SentryTestCase(TestCase):
             self.fail('Unable to create `Message` entry.')
 
         
-        cur = (Message.objects.count(), GroupedMessage.objects.count())
-        self.assertEquals(cur, (2, 2), 'Assumed logs failed to save. %s' % (cur,))
+        self.assertEquals(Message.objects.count(), 2)
+        self.assertEquals(GroupedMessage.objects.count(), 2)
         last = Message.objects.all().order_by('-id')[0:1].get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.class_name, 'DoesNotExist')
@@ -246,8 +246,8 @@ class SentryTestCase(TestCase):
         
         SentryClient.create_from_text('This is an error', level=logging.DEBUG)
         
-        cur = (Message.objects.count(), GroupedMessage.objects.count())
-        self.assertEquals(cur, (3, 3), 'Assumed logs failed to save. %s' % (cur,))
+        self.assertEquals(Message.objects.count(), 3)
+        self.assertEquals(GroupedMessage.objects.count(), 3)
         last = Message.objects.all().order_by('-id')[0:1].get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.level, logging.DEBUG)
@@ -263,9 +263,9 @@ class SentryTestCase(TestCase):
         else:
             self.fail('Unable to create `Message` entry.')
             
-        cur = (Message.objects.count(), GroupedMessage.objects.count())
-        self.assertEquals(cur, (1, 1), 'Assumed logs failed to save. %s' % (cur,))
-        last = Message.objects.all().order_by('-id')[0:1].get()
+        self.assertEquals(Message.objects.count(), 1)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+        last = Message.objects.get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.class_name, 'DoesNotExist')
         self.assertEquals(last.level, logging.ERROR)
@@ -344,9 +344,9 @@ class SentryTestCase(TestCase):
         else:
             self.fail('Expected an exception.')
         
-        cur = (Message.objects.count(), GroupedMessage.objects.count())
-        self.assertEquals(cur, (1, 1), 'Assumed logs failed to save. %s' % (cur,))
-        last = Message.objects.all().order_by('-id')[0:1].get()
+        self.assertEquals(Message.objects.count(), 1)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+        last = Message.objects.get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.class_name, 'DoesNotExist')
         self.assertEquals(last.level, logging.ERROR)
@@ -366,8 +366,8 @@ class SentryTestCase(TestCase):
         else:
             self.fail('Expected an exception.')
         
-        cur = (Message.objects.count(), GroupedMessage.objects.count())
-        self.assertEquals(cur, (1, 1), 'Assumed logs failed to save. %s' % (cur,))
+        self.assertEquals(Message.objects.count(), 1)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
         
         settings.USE_LOGGING = False
     
@@ -393,9 +393,9 @@ class SentryTestCase(TestCase):
         else:
             self.fail('Expected an exception.')
             
-        cur = (Message.objects.count(), GroupedMessage.objects.count())
-        self.assertEquals(cur, (1, 1), 'Assumed logs failed to save. %s' % (cur,))
-        last = Message.objects.all().order_by('-id')[0:1].get()
+        self.assertEquals(Message.objects.count(), 1)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+        last = Message.objects.get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.class_name, 'DoesNotExist')
         self.assertEquals(last.level, logging.ERROR)
@@ -411,9 +411,9 @@ class SentryTestCase(TestCase):
         else:
             self.fail('Expected an exception.')
             
-        cur = (Message.objects.count(), GroupedMessage.objects.count())
-        self.assertEquals(cur, (1, 1), 'Assumed logs failed to save. %s' % (cur,))
-        last = Message.objects.all().order_by('-id')[0:1].get()
+        self.assertEquals(Message.objects.count(), 1)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+        last = Message.objects.get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.class_name, 'DoesNotExist')
         self.assertEquals(last.level, logging.ERROR)
@@ -460,14 +460,66 @@ class SentryTestCase(TestCase):
     def testViewException(self):
         self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
         
-        cur = (Message.objects.count(), GroupedMessage.objects.count())
-        self.assertEquals(cur, (1, 1), 'Assumed logs failed to save. %s' % (cur,))
-        last = Message.objects.all().order_by('-id')[0:1].get()
+        self.assertEquals(Message.objects.count(), 1)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+        last = Message.objects.get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.class_name, 'Exception')
         self.assertEquals(last.level, logging.ERROR)
         self.assertEquals(last.message, 'view exception')
         self.assertEquals(last.view, 'sentry.tests.views.raise_exc')
+
+    def testRequestMiddlwareException(self):
+        from django.conf import settings
+        orig = list(settings.MIDDLEWARE_CLASSES)
+        settings.MIDDLEWARE_CLASSES = orig + ['sentry.tests.middleware.BrokenRequestMiddleware',]
+        
+        self.assertRaises(ImportError, self.client.get, reverse('sentry'))
+        self.assertEquals(Message.objects.count(), 1)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+        last = Message.objects.get()
+        self.assertEquals(last.logger, 'root')
+        self.assertEquals(last.class_name, 'ImportError')
+        self.assertEquals(last.level, logging.ERROR)
+        self.assertEquals(last.message, 'request')
+        self.assertEquals(last.view, 'sentry.tests.middleware.process_request')
+        
+        settings.MIDDLEWARE_CLASSES = orig
+
+    # XXX: Django doesn't handle response middleware exceptions (yet)
+    # def testResponseMiddlwareException(self):
+    #     from django.conf import settings
+    #     orig = list(settings.MIDDLEWARE_CLASSES)
+    #     settings.MIDDLEWARE_CLASSES = orig + ['sentry.tests.middleware.BrokenResponseMiddleware',]
+    #     
+    #     self.assertRaises(ImportError, self.client.get, reverse('sentry'))
+    #     self.assertEquals(Message.objects.count(), 1)
+    #     self.assertEquals(GroupedMessage.objects.count(), 1)
+    #     last = Message.objects.get()
+    #     self.assertEquals(last.logger, 'root')
+    #     self.assertEquals(last.class_name, 'ImportError')
+    #     self.assertEquals(last.level, logging.ERROR)
+    #     self.assertEquals(last.message, 'response')
+    #     self.assertEquals(last.view, 'sentry.tests.middleware.process_response')
+    #     
+    #     settings.MIDDLEWARE_CLASSES = orig
+
+    def testViewMiddlewareException(self):
+        from django.conf import settings
+        orig = list(settings.MIDDLEWARE_CLASSES)
+        settings.MIDDLEWARE_CLASSES = orig + ['sentry.tests.middleware.BrokenViewMiddleware',]
+        
+        self.assertRaises(ImportError, self.client.get, reverse('sentry'))
+        self.assertEquals(Message.objects.count(), 1)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+        last = Message.objects.get()
+        self.assertEquals(last.logger, 'root')
+        self.assertEquals(last.class_name, 'ImportError')
+        self.assertEquals(last.level, logging.ERROR)
+        self.assertEquals(last.message, 'view')
+        self.assertEquals(last.view, 'sentry.tests.middleware.process_view')
+        
+        settings.MIDDLEWARE_CLASSES = orig
 
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'
@@ -510,10 +562,10 @@ class SentryViewsTest(TestCase):
         self._handlers = None
 
     def testSignals(self):
-        self.assertRaises(Exception, self.client.get, '/')
+        self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
         
-        cur = (Message.objects.count(), GroupedMessage.objects.count())
-        self.assertEquals(cur, (1, 1), 'Assumed logs failed to save. %s' % (cur,))
+        self.assertEquals(Message.objects.count(), 1)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
         last = Message.objects.all().order_by('-id')[0:1].get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.class_name, 'Exception')
@@ -596,6 +648,7 @@ class RemoteSentryTest(TestCase):
     #     self.assertEquals(instance.message, 'view exception')
     #     self.assertEquals(instance.url, 'http://testserver/?test')
     #     self.stop_test_server()
+
 class SentryFeedsTest(TestCase):
     fixtures = ['sentry/tests/fixtures/feeds.json']
     urls = 'sentry.tests.urls'

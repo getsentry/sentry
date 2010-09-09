@@ -58,10 +58,8 @@ def get_filters():
 def login_required(func):
     def wrapped(request, *args, **kwargs):
         if not request.user.is_authenticated():
-            print "not authed"
             return HttpResponseRedirect(reverse('sentry-login'))
         if not request.user.has_perm('sentry_groupedmessage.can_view'):
-            print "no perms"
             return HttpResponseRedirect(reverse('sentry-login'))
         return func(request, *args, **kwargs)
     wrapped.__doc__ = func.__doc__

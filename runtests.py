@@ -28,6 +28,7 @@ if not settings.configured:
             'sentry.tests',
         ],
         ROOT_URLCONF='',
+        DEBUG=False,
     )
 
 from django.test.simple import run_tests
