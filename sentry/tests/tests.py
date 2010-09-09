@@ -9,6 +9,7 @@ import logging
 import sys
 import threading
 
+from django.contrib.auth.models import User
 from django.core.handlers.wsgi import WSGIRequest, WSGIHandler
 from django.core.urlresolvers import reverse
 from django.core.signals import got_request_exception
@@ -523,12 +524,16 @@ class SentryTestCase(TestCase):
 
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'
+    fixtures = ['sentry/tests/fixtures/views.json']
     
     def setUp(self):
         settings.DATABASE_USING = None
         self._handlers = None
         self._level = None
         settings.DEBUG = False
+        self.user = User(username="admin", email="admin@localhost", is_staff=True, is_superuser=True)
+        self.user.set_password('admin')
+        self.user.save()
     
     def tearDown(self):
         self.tearDownHandler()
@@ -561,16 +566,26 @@ class SentryViewsTest(TestCase):
         logger.setLevel(self._level)
         self._handlers = None
 
-    def testSignals(self):
-        self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
-        
-        self.assertEquals(Message.objects.count(), 1)
-        self.assertEquals(GroupedMessage.objects.count(), 1)
-        last = Message.objects.get()
-        self.assertEquals(last.logger, 'root')
-        self.assertEquals(last.class_name, 'Exception')
-        self.assertEquals(last.level, logging.ERROR)
-        self.assertEquals(last.message, 'view exception')
+    def testTestAuth(self):
+        resp = self.client.get(reverse('sentry'), follow=True)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/login.html')
+
+    def testDashboard(self):
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(reverse('sentry'), follow=True)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/index.html')
+        group = resp.context['message_list'][0]
+        self.assertEquals(group.times_seen, 7)
+        self.assertEquals(group.class_name, 'AttributeError')
+        self.assertEquals(len(resp.context['message_list']), 4)
+
+    def testGroup(self):
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(reverse('sentry-group', args=[2]), follow=True)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/group.html')
 
 class RemoteSentryTest(TestCase):
     urls = 'sentry.tests.urls'
