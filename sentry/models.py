@@ -123,7 +123,7 @@ class GroupedMessage(MessageBase):
         db_table = 'sentry_groupedmessage'
 
     def __unicode__(self):
-        return "(%s) %s: %s" % (self.times_seen, self.class_name, self.error())
+        return "(%s) %s: %s" % (self.times_seen, self.error())
 
     def natural_key(self):
         return (self.logger, self.view, self.checksum)
@@ -150,7 +150,7 @@ class Message(MessageBase):
         db_table = 'sentry_message'
 
     def __unicode__(self):
-        return "%s: %s" % (self.class_name, smart_unicode(self.message))
+        return self.error()
 
     def save(self, *args, **kwargs):
         if not self.checksum:
