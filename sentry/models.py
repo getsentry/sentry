@@ -18,7 +18,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import settings
 from sentry.client.base import SentryClient
-from sentry.helpers import construct_checksum, get_installed_apps, transform
+from sentry.helpers import construct_checksum, get_installed_apps, transform, get_db_engine
 from sentry.manager import SentryManager, GroupedMessageManager
 
 _reqs = ('paging', 'indexer')
@@ -130,7 +130,7 @@ class GroupedMessage(MessageBase):
 
     @classmethod
     def get_score_clause(cls):
-        engine = dj_settings.DATABASE_ENGINE.rsplit('.', 1)[-1]
+        engine = get_db_engine()
         if engine.startswith('postgresql'):
             return 'times_seen / (pow((floor(extract(epoch from now() - last_seen) / 3600) + 2), 1.25) + 1)'
         if engine.startswith('mysql'):

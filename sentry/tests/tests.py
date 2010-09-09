@@ -617,3 +617,26 @@ class SentryFeedsTest(TestCase):
         self.assertTrue('<title>log summaries</title>' in response.content)
         self.assertTrue('<link>http://testserver/group/1</link>' in response.content, response.content)
         self.assertTrue('<title>(1) TypeError: TypeError: exceptions must be old-style classes or derived from BaseException, not NoneType</title>' in response.content)
+
+class SentryHelpersTest(TestCase):
+    def test_get_db_engine(self):
+        from django.conf import settings
+        from sentry.helpers import get_db_engine
+        _databases = settings.DATABASES
+        _engine = settings.DATABASE_ENGINE
+        
+        settings.DATABASE_ENGINE = ''
+        settings.DATABASES['default'] = {'ENGINE': 'blah.sqlite3'}
+        
+        self.assertEquals(get_db_engine(), 'sqlite3')
+
+        settings.DATABASE_ENGINE = 'mysql'
+
+        self.assertEquals(get_db_engine(), 'sqlite3')
+
+        settings.DATABASES['default'] = {'ENGINE': 'blah.mysql'}
+
+        self.assertEquals(get_db_engine(), 'mysql')
+        
+        settings.DATABASES = _databases
+        settings.DATABASE_ENGINE = _engine

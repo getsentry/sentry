@@ -25,6 +25,7 @@ from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
 from sentry import settings
+from sentry.helpers import get_db_engine
 from sentry.models import GroupedMessage, Message
 from sentry.templatetags.sentry_helpers import with_priority
 from sentry.reporter import ImprovedExceptionReporter, FakeRequest
@@ -201,7 +202,7 @@ def group(request, group_id):
     
     unique_servers = message_list.filter(server_name__isnull=False).values_list('server_name', 'logger', 'view', 'checksum').annotate(times_seen=Count('server_name')).values('server_name', 'times_seen').order_by('-times_seen')
     
-    engine = dj_settings.DATABASE_ENGINE.rsplit('.', 1)[-1]
+    engine = get_db_engine()
     if SimpleLineChart and not engine.startswith('sqlite'):
         today = datetime.datetime.now()
 

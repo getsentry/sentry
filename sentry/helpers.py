@@ -1,5 +1,6 @@
 import logging
 
+import django
 from django.conf import settings
 from django.utils.hashcompat import md5_constructor
 
@@ -23,6 +24,15 @@ def get_filters():
         _FILTER_CACHE = filters
     for f in _FILTER_CACHE:
         yield f
+
+def get_db_engine(alias='default'):
+    has_multidb = django.VERSION >= (1, 2)
+    if has_multidb:
+        value = settings.DATABASES[alias]['ENGINE']
+    else:
+        assert alias == 'default', 'You cannot fetch a database engine other than the default on Django < 1.2'
+        value = settings.DATABASE_ENGINE
+    return value.rsplit('.', 1)[-1]
 
 def construct_checksum(level=logging.ERROR, class_name='', traceback='', message='', **kwargs):
     checksum = md5_constructor(str(level))
