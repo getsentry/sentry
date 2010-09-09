@@ -149,7 +149,7 @@ class SentryTestCase(TestCase):
         logger.error('This is a test error')
         self.assertEquals(Message.objects.count(), 1)
         self.assertEquals(GroupedMessage.objects.count(), 1)
-        last = Message.objects.all().order_by('-id')[0:1].get()
+        last = Message.objects.get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.level, logging.ERROR)
         self.assertEquals(last.message, 'This is a test error')
@@ -566,7 +566,7 @@ class SentryViewsTest(TestCase):
         
         self.assertEquals(Message.objects.count(), 1)
         self.assertEquals(GroupedMessage.objects.count(), 1)
-        last = Message.objects.all().order_by('-id')[0:1].get()
+        last = Message.objects.get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.class_name, 'Exception')
         self.assertEquals(last.level, logging.ERROR)
