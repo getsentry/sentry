@@ -18,8 +18,9 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry import settings
 from sentry.client.base import SentryClient
-from sentry.helpers import construct_checksum, get_installed_apps, transform, get_db_engine
-from sentry.manager import SentryManager, GroupedMessageManager
+from sentry.helpers import cached_property, construct_checksum, get_db_engine, get_installed_apps, transform
+from sentry.manager import GroupedMessageManager, SentryManager
+from sentry.reporter import FakeRequest
 
 _reqs = ('paging', 'indexer')
 for r in _reqs:
@@ -137,6 +138,37 @@ class GroupedMessage(MessageBase):
             return 'times_seen / (pow((floor(unix_timestamp(now() - last_seen) / 3600) + 2), 1.25) + 1)'
         return 'times_seen'
 
+    def mail_admins(self, request=None, fail_silently=True):
+        from django.core.mail import send_mail
+        from django.template.loader import render_to_string
+
+        message = self.message_set.order_by('-id')[0]
+
+        obj_request = message.request
+
+        subject = 'Error (%s IP): %s' % ((obj_request.META.get('REMOTE_ADDR') in dj_settings.INTERNAL_IPS and 'internal' or 'EXTERNAL'), obj_request.path)
+        try:
+            request_repr = repr(obj_request)
+        except:
+            request_repr = "Request repr() unavailable"
+
+        if request:
+            link = request.build_absolute_url(self.get_absolute_url())
+        else:
+            link = None
+
+        body = render_to_string('sentry/emails/error.txt', {
+            'request_repr': request_repr,
+            'request': obj_request,
+            'group': self,
+            'traceback': message.traceback,
+            'link': link,
+        })
+        
+        send_mail(dj_settings.EMAIL_SUBJECT_PREFIX + subject, body,
+                  dj_settings.SERVER_EMAIL, [a[0] for a in settings.ADMINS],
+                  fail_silently=fail_silently)
+
 class Message(MessageBase):
     group           = models.ForeignKey(GroupedMessage, blank=True, null=True, related_name="message_set")
     datetime        = models.DateTimeField(default=datetime.datetime.now, db_index=True)
@@ -174,3 +206,19 @@ class Message(MessageBase):
         return self.data.get('url') or self.url
     full_url.short_description = _('url')
     full_url.admin_order_field = 'url'
+
+    @cached_property
+    def request(self):
+        fake_request = FakeRequest()
+        fake_request.META = self.data.get('META', {})
+        fake_request.GET = self.data.get('GET', {})
+        fake_request.POST = self.data.get('POST', {})
+        fake_request.FILES = self.data.get('FILES', {})
+        fake_request.COOKIES = self.data.get('COOKIES', {})
+        fake_request.url = self.url
+        if self.url:
+            fake_request.path_info = '/' + self.url.split('/', 3)[-1]
+        else:
+            fake_request.path_info = ''
+        fake_request.path = fake_request.path_info
+        return fake_request

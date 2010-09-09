@@ -1,7 +1,9 @@
 #!/usr/bin/env python
+import logging
 import sys
-
 from os.path import dirname, abspath
+
+logging.getLogger('sentry').addHandler(logging.StreamHandler())
 
 from django.conf import settings
 

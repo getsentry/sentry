@@ -104,6 +104,19 @@ Other configuration options
 
 Several options exist to configure django-sentry via your ``settings.py``:
 
+#############
+SENTRY_ADMINS
+#############
+
+On smaller sites you may wish to enable throttled emails, we recommend doing this by first
+removing the ``ADMINS`` setting in Django, and adding in ``SENTRY_ADMINS``::
+
+	ADMINS = ()
+	SENTRY_ADMINS = ('root@localhost',)
+
+This will send out a notification the first time an error is seen, and the first time an error is
+seen after it has been resolved.
+
 #######################
 SENTRY_CATCH_404_ERRORS
 #######################

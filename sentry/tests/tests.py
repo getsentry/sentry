@@ -5,11 +5,13 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+import getpass
 import logging
 import sys
 import threading
 
 from django.contrib.auth.models import User
+from django.core import mail
 from django.core.handlers.wsgi import WSGIRequest, WSGIHandler
 from django.core.urlresolvers import reverse
 from django.core.signals import got_request_exception
@@ -685,6 +687,64 @@ class SentryFeedsTest(TestCase):
         self.assertTrue('<title>log summaries</title>' in response.content)
         self.assertTrue('<link>http://testserver/group/1</link>' in response.content, response.content)
         self.assertTrue('<title>(1) TypeError: exceptions must be old-style classes or derived from BaseException, not NoneType</title>' in response.content)
+
+class SentryMailTest(TestCase):
+    fixtures = ['sentry/tests/fixtures/mail.json']
+    urls = 'sentry.tests.urls'
+    
+    def setUp(self):
+        settings.ADMINS = ((getpass.getuser(), '%s@localhost' % getpass.getuser()),)
+    
+    def test_mail_admins(self):
+        group = GroupedMessage.objects.get()
+        self.assertEquals(len(mail.outbox), 0)
+        group.mail_admins(fail_silently=False)
+        self.assertEquals(len(mail.outbox), 1)
+
+        out = mail.outbox[0]
+
+        self.assertTrue('Traceback (most recent call last):' in out.body)
+        self.assertTrue("COOKIES:{'commenter_name': 'admin'," in out.body)
+        self.assertEquals(out.subject, '[Django] Error (EXTERNAL IP): /group/1')
+
+    def test_mail_on_creation(self):
+        settings.MAIL = True
+        
+        self.assertEquals(len(mail.outbox), 0)
+        self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
+        self.assertEquals(len(mail.outbox), 1)
+        self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
+        self.assertEquals(len(mail.outbox), 1)
+
+        out = mail.outbox[0]
+
+        self.assertTrue('Traceback (most recent call last):' in out.body)
+        self.assertTrue("<Request" in out.body)
+        self.assertEquals(out.subject, '[Django] Error (EXTERNAL IP): /trigger-500')
+
+    def test_mail_on_duplication(self):
+        settings.MAIL = True
+        
+        self.assertEquals(len(mail.outbox), 0)
+        self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
+        self.assertEquals(len(mail.outbox), 1)
+        self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
+        self.assertEquals(len(mail.outbox), 1)
+        # XXX: why wont this work
+        # group = GroupedMessage.objects.update(status=1)
+        group = GroupedMessage.objects.all().order_by('-id')[0]
+        group.status = 1
+        group.save()
+        self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
+        self.assertEquals(len(mail.outbox), 2)
+        self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
+        self.assertEquals(len(mail.outbox), 2)
+
+        out = mail.outbox[1]
+
+        self.assertTrue('Traceback (most recent call last):' in out.body)
+        self.assertTrue("<Request" in out.body)
+        self.assertEquals(out.subject, '[Django] Error (EXTERNAL IP): /trigger-500')
 
 class SentryHelpersTest(TestCase):
     def test_get_db_engine(self):

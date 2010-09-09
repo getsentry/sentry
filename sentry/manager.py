@@ -42,6 +42,7 @@ class SentryManager(models.Manager):
 
         checksum = construct_checksum(**kwargs)
 
+        mail = False
         try:
             group, created = GroupedMessage.objects.get_or_create(
                 view=view,
@@ -56,11 +57,14 @@ class SentryManager(models.Manager):
                     last_seen=now,
                 )
                 # HACK: maintain appeared state
+                if group.status == 1:
+                    mail = True
                 group.status = 0
                 group.last_seen = now
                 group.times_seen += 1
                 signals.post_save.send(sender=GroupedMessage, instance=group, created=False)
-
+            else: 
+                mail = True
             instance = Message.objects.create(
                 view=view,
                 logger=logger_name,
@@ -72,11 +76,14 @@ class SentryManager(models.Manager):
                 **kwargs
             )
         except Exception, exc:
+            # TODO: should we mail admins when there are failures?
             try:
                 logger.exception(u'Unable to process log entry: %s' % (exc,))
             except Exception, exc:
                 warnings.warn(u'Unable to process log entry: %s' % (exc,))
         else:
+            if settings.ADMINS and mail:
+                group.mail_admins()
             return instance
 
 class GroupedMessageManager(SentryManager):

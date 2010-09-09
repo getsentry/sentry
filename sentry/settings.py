@@ -38,3 +38,4 @@ REMOTE_URL = getattr(settings, 'SENTRY_REMOTE_URL', None)
 
 REMOTE_TIMEOUT = getattr(settings, 'SENTRY_REMOTE_TIMEOUT', 5)
 
+ADMINS = getattr(settings, 'SENTRY_ADMINS', [])

@@ -28,7 +28,7 @@ from sentry import settings
 from sentry.helpers import get_db_engine
 from sentry.models import GroupedMessage, Message
 from sentry.templatetags.sentry_helpers import with_priority
-from sentry.reporter import ImprovedExceptionReporter, FakeRequest
+from sentry.reporter import ImprovedExceptionReporter
 
 from indexer.models import Index
 
@@ -169,7 +169,7 @@ def group(request, group_id):
 
     message_list = group.message_set.all()
     
-    obj = message_list[0]
+    obj = message_list.order_by('-id')[0]
     if '__sentry__' in obj.data:
         module, args, frames = obj.data['__sentry__']['exc']
         obj.class_name = str(obj.class_name)
@@ -179,19 +179,7 @@ def group(request, group_id):
 
         exc_value.args = args
     
-        fake_request = FakeRequest()
-        fake_request.META = obj.data.get('META', {})
-        fake_request.GET = obj.data.get('GET', {})
-        fake_request.POST = obj.data.get('POST', {})
-        fake_request.FILES = obj.data.get('FILES', {})
-        fake_request.COOKIES = obj.data.get('COOKIES', {})
-        fake_request.url = obj.url
-        if obj.url:
-            fake_request.path_info = '/' + obj.url.split('/', 3)[-1]
-        else:
-            fake_request.path_info = ''
-
-        reporter = ImprovedExceptionReporter(fake_request, exc_type, exc_value, frames, obj.data['__sentry__'].get('template'))
+        reporter = ImprovedExceptionReporter(obj.request, exc_type, exc_value, frames, obj.data['__sentry__'].get('template'))
         traceback = mark_safe(reporter.get_traceback_html())
     elif group.traceback:
         traceback = mark_safe('<pre>%s</pre>' % (group.traceback,))
