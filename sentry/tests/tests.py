@@ -690,7 +690,7 @@ class SentryHelpersTest(TestCase):
     def test_get_db_engine(self):
         from django.conf import settings
         from sentry.helpers import get_db_engine
-        _databases = settings.DATABASES
+        _databases = getattr(settings, 'DATABASES', {}).copy()
         _engine = settings.DATABASE_ENGINE
         
         settings.DATABASE_ENGINE = ''
