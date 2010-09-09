@@ -12,6 +12,7 @@ try:
 except ImportError:
     SimpleLineChart = None
 
+from django.conf import settings as dj_settings
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.db.models import Count
@@ -200,7 +201,8 @@ def group(request, group_id):
     
     unique_servers = message_list.filter(server_name__isnull=False).values_list('server_name', 'logger', 'view', 'checksum').annotate(times_seen=Count('server_name')).values('server_name', 'times_seen').order_by('-times_seen')
     
-    if SimpleLineChart:
+    engine = dj_settings.DATABASE_ENGINE.rsplit('.', 1)[-1]
+    if SimpleLineChart and not engine.startswith('sqlite'):
         today = datetime.datetime.now()
 
         chart_qs = message_list\
