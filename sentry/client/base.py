@@ -19,7 +19,7 @@ from django.views.debug import ExceptionReporter
 from sentry import settings
 from sentry.helpers import construct_checksum, varmap, transform
 
-logger = logging.getLogger('sentry')
+logger = logging.getLogger('sentry.errors')
 
 class SentryClient(object):
     def process(self, **kwargs):
@@ -52,9 +52,11 @@ class SentryClient(object):
             try:
                 response = urllib2.urlopen(req, None, settings.REMOTE_TIMEOUT).read()
             except urllib2.URLError, e:
-                logger.exception('Unable to reach Sentry log server')
+                logger.critical('Unable to reach Sentry log server')
+                logger.log(kwargs.pop('level', None) or logging.ERROR, kwargs.pop('message', None))
             except urllib2.HTTPError, e:
-                logger.exception('Unable to reach Sentry log server', extra={'body': e.read()})
+                logger.critical('Unable to reach Sentry log server', extra={'body': e.read()})
+                logger.log(kwargs.pop('level', None) or logging.ERROR, kwargs.pop('message', None))
         else:
             from sentry.models import GroupedMessage
             

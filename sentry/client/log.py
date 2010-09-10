@@ -13,6 +13,6 @@ class LoggingSentryClient(SentryClient):
     
     def send(self, **kwargs):
         exc_info = sys.exc_info()
-        self.logger.log(kwargs.pop('level') or self.default_level,
-                        kwargs.pop('message') or exc_info[0],
+        self.logger.log(kwargs.pop('level', None) or self.default_level,
+                        kwargs.pop('message', None) or exc_info[0],
                         exc_info=exc_info, extra=kwargs)
