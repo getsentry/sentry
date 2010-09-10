@@ -2,6 +2,6 @@ import logging
 
 class SentryHandler(logging.Handler):
     def emit(self, record):
-        from sentry.client.base import SentryClient
+        from sentry.client.models import get_client
 
-        SentryClient.create_from_record(record)
+        get_client().create_from_record(record)

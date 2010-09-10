@@ -146,14 +146,6 @@ You should also enable the ``SentryRouter`` to avoid things like extraneous tabl
 
 .. note:: This functionality REQUIRES Django 1.2.
 
-##############
-SENTRY_LOGGING
-##############
-
-Enabling this setting will turn off automatic database logging within the exception handler, and instead send all exceptions to the named logger ``sentry``. Use this in conjuction with ``sentry.client.handlers.SentryHandler`` or your own handler to tweak how logging is dealt with.
-
-A good example use case for this, is if you want to write to something like a syslog ahead of time, and later process that into the database with another tool.
-
 ############################
 Integration with ``logging``
 ############################

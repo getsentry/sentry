@@ -24,7 +24,7 @@ from sentry import settings
 from sentry.helpers import transform
 from sentry.models import Message, GroupedMessage
 from sentry.client.base import SentryClient
-from sentry.client.models import sentry_exception_handler
+from sentry.client.models import sentry_exception_handler, get_client
 
 from models import TestModel, DuplicateKeyModel
 
@@ -226,14 +226,14 @@ class SentryTestCase(TestCase):
         try:
             Message.objects.get(id=999999989)
         except Message.DoesNotExist, exc:
-            SentryClient.create_from_exception(exc)
+            get_client().create_from_exception(exc)
         else:
             self.fail('Unable to create `Message` entry.')
 
         try:
             Message.objects.get(id=999999989)
         except Message.DoesNotExist, exc:
-            error = SentryClient.create_from_exception()
+            error = get_client().create_from_exception()
             self.assertTrue(error.data.get('__sentry__', {}).get('exc'))
         else:
             self.fail('Unable to create `Message` entry.')
@@ -247,7 +247,7 @@ class SentryTestCase(TestCase):
         self.assertEquals(last.level, logging.ERROR)
         self.assertEquals(last.message, smart_unicode(exc))
         
-        SentryClient.create_from_text('This is an error', level=logging.DEBUG)
+        get_client().create_from_text('This is an error', level=logging.DEBUG)
         
         self.assertEquals(Message.objects.count(), 3)
         self.assertEquals(GroupedMessage.objects.count(), 3)
@@ -262,7 +262,7 @@ class SentryTestCase(TestCase):
         try:
             Message.objects.get(id=999999979)
         except Message.DoesNotExist, exc:
-            SentryClient.create_from_exception(exc)
+            get_client().create_from_exception(exc)
         else:
             self.fail('Unable to create `Message` entry.')
             
@@ -282,7 +282,7 @@ class SentryTestCase(TestCase):
         cnt = Message.objects.count()
         value = 'רונית מגן'
 
-        error = SentryClient.create_from_text(value)
+        error = get_client().create_from_text(value)
         self.assertEquals(Message.objects.count(), cnt+1)
         self.assertEquals(error.message, value)
 
@@ -308,7 +308,7 @@ class SentryTestCase(TestCase):
         cnt = Message.objects.count()
         value = 'רונית מגן'.decode('utf-8')
 
-        error = SentryClient.create_from_text(value)
+        error = get_client().create_from_text(value)
         self.assertEquals(Message.objects.count(), cnt+1)
         self.assertEquals(error.message, value)
 
@@ -330,49 +330,9 @@ class SentryTestCase(TestCase):
     
     def testLongURLs(self):
         # Fix: #6 solves URLs > 200 characters
-        error = SentryClient.create_from_text('hello world', url='a'*210)
+        error = get_client().create_from_text('hello world', url='a'*210)
         self.assertEquals(error.url, 'a'*200)
         self.assertEquals(error.data['url'], 'a'*210)
-    
-    def testUseLogging(self):
-        Message.objects.all().delete()
-        GroupedMessage.objects.all().delete()
-        
-        request = RF.get("/", REMOTE_ADDR="127.0.0.1:8000")
-
-        try:
-            Message.objects.get(id=999999999)
-        except Message.DoesNotExist, exc:
-            sentry_exception_handler(request=request, sender=self)
-        else:
-            self.fail('Expected an exception.')
-        
-        self.assertEquals(Message.objects.count(), 1)
-        self.assertEquals(GroupedMessage.objects.count(), 1)
-        last = Message.objects.get()
-        self.assertEquals(last.logger, 'root')
-        self.assertEquals(last.class_name, 'DoesNotExist')
-        self.assertEquals(last.level, logging.ERROR)
-        self.assertEquals(last.message, smart_unicode(exc))
-        
-        settings.USE_LOGGING = True
-        
-        logger = logging.getLogger('sentry')
-        for h in logger.handlers:
-            logger.removeHandler(h)
-        logger.addHandler(logging.StreamHandler())
-        
-        try:
-            Message.objects.get(id=999999999)
-        except Message.DoesNotExist, exc:
-            sentry_exception_handler(request=request, sender=self)
-        else:
-            self.fail('Expected an exception.')
-        
-        self.assertEquals(Message.objects.count(), 1)
-        self.assertEquals(GroupedMessage.objects.count(), 1)
-        
-        settings.USE_LOGGING = False
     
     def testThrashing(self):
         settings.THRASHING_LIMIT = 10
@@ -382,7 +342,7 @@ class SentryTestCase(TestCase):
         GroupedMessage.objects.all().delete()
         
         for i in range(0, 50):
-            SentryClient.create_from_text('hi')
+            get_client().create_from_text('hi')
         
         self.assertEquals(Message.objects.count(), settings.THRASHING_LIMIT)
     
@@ -430,7 +390,7 @@ class SentryTestCase(TestCase):
         GroupedMessage.objects.all().delete()
         
         for i in range(0, 50):
-            SentryClient.create_from_text('hi')
+            get_client().create_from_text('hi')
         
         self.assertEquals(Message.objects.count(), 50)
 
@@ -768,3 +728,45 @@ class SentryHelpersTest(TestCase):
         
         settings.DATABASES = _databases
         settings.DATABASE_ENGINE = _engine
+
+class SentryClientTest(TestCase):
+    urls = 'sentry.tests.urls'
+
+    def setUp(self):
+        self._client = settings.CLIENT
+        
+    def tearDown(self):
+        settings.CLIENT = self._client
+    
+    def test_get_client(self):
+        from sentry.client.base import SentryClient
+        from sentry.client.log import LoggingSentryClient
+        self.assertEquals(get_client().__class__, SentryClient)
+        self.assertEquals(get_client(), get_client())
+    
+        settings.CLIENT = 'sentry.client.log.LoggingSentryClient'
+        
+        self.assertEquals(get_client().__class__, LoggingSentryClient)
+        self.assertEquals(get_client(), get_client())
+    
+        settings.CLIENT = 'sentry.client.base.SentryClient'
+    
+    def test_logging_client(self):
+        settings.CLIENT = 'sentry.client.log.LoggingSentryClient'
+        
+        client = get_client()
+        
+        _foo = {'': None}
+        
+        class handler(logging.Handler):
+            def emit(self, record):
+                _foo[''] = record
+
+        logger = client.logger
+        logger.addHandler(handler())
+        
+        self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
+        
+        self.assertEquals(_foo[''].getMessage(), 'view exception')
+        self.assertEquals(_foo[''].levelno, client.default_level)
+        self.assertEquals(_foo[''].class_name, 'Exception')

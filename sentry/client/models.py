@@ -13,6 +13,15 @@ from sentry.helpers import get_installed_apps
 
 logger = logging.getLogger('sentry')
 
+_client = (None, None)
+def get_client():
+    global _client
+    if _client[0] != settings.CLIENT:
+        module, class_name = settings.CLIENT.rsplit('.', 1)
+        _client = (settings.CLIENT, getattr(__import__(module, {}, {}, class_name), class_name)())
+    return _client[1]
+client = get_client()
+
 @transaction.commit_on_success
 def sentry_exception_handler(sender, request=None, **kwargs):
     try:
@@ -63,11 +72,9 @@ def sentry_exception_handler(sender, request=None, **kwargs):
             data=data,
             view=view,
         )
-
-        if settings.USE_LOGGING:
-            logger.critical(exc_value, exc_info=sys.exc_info(), extra=extra)
-        else:
-            SentryClient.create_from_exception(**extra)
+        
+        client = get_client()
+        client.create_from_exception(**extra)
     except Exception, exc:
         try:
             logger.exception(u'Unable to process log entry: %s' % (exc,))

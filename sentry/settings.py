@@ -11,8 +11,6 @@ CATCH_404_ERRORS = getattr(settings, 'SENTRY_CATCH_404_ERRORS', False)
 
 DATABASE_USING = getattr(settings, 'SENTRY_DATABASE_USING', None)
 
-USE_LOGGING = getattr(settings, 'SENTRY_USE_LOGGING', False)
-
 THRASHING_TIMEOUT = getattr(settings, 'SENTRY_THRASHING_TIMEOUT', 60)
 THRASHING_LIMIT = getattr(settings, 'SENTRY_THRASHING_LIMIT', 10)
 
@@ -39,3 +37,13 @@ REMOTE_URL = getattr(settings, 'SENTRY_REMOTE_URL', None)
 REMOTE_TIMEOUT = getattr(settings, 'SENTRY_REMOTE_TIMEOUT', 5)
 
 ADMINS = getattr(settings, 'SENTRY_ADMINS', [])
+
+# TODO: deprecate this
+USE_LOGGING = getattr(settings, 'SENTRY_USE_LOGGING', False)
+
+if USE_LOGGING:
+    default_client = 'sentry.client.log.LoggingSentryClient'
+else:
+    default_client = 'sentry.client.base.SentryClient'
+
+CLIENT = getattr(settings, 'SENTRY_CLIENT', default_client)

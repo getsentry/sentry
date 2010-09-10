@@ -39,6 +39,9 @@ class SentryClient(object):
             if not added and cache.incr(cache_key) > settings.THRASHING_LIMIT:
                 return
 
+        return self.send(**kwargs)
+
+    def send(self, **kwargs):
         if settings.REMOTE_URL:
             data = {
                 'data': base64.b64encode(pickle.dumps(transform(kwargs)).encode('zlib')),
@@ -145,4 +148,3 @@ class SentryClient(object):
             data=data,
             **kwargs
         )
-SentryClient = SentryClient()
