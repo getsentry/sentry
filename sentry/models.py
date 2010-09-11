@@ -166,7 +166,7 @@ class GroupedMessage(MessageBase):
         })
         
         send_mail(dj_settings.EMAIL_SUBJECT_PREFIX + subject, body,
-                  dj_settings.SERVER_EMAIL, [a[0] for a in settings.ADMINS],
+                  dj_settings.SERVER_EMAIL, settings.ADMINS,
                   fail_silently=fail_silently)
 
 class Message(MessageBase):
