@@ -566,7 +566,7 @@ class RemoteSentryTest(TestCase):
     
     def setUp(self):
         self.server_thread = None
-        settings.REMOTE_URL = 'http://localhost:8000%s' % reverse('sentry-store')
+        settings.REMOTE_URL = ['http://localhost:8000%s' % reverse('sentry-store')]
         logger = logging.getLogger('sentry')
         for h in logger.handlers:
             logger.removeHandler(h)
@@ -770,3 +770,4 @@ class SentryClientTest(TestCase):
         self.assertEquals(_foo[''].getMessage(), 'view exception')
         self.assertEquals(_foo[''].levelno, client.default_level)
         self.assertEquals(_foo[''].class_name, 'Exception')
+

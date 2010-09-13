@@ -43,20 +43,24 @@ class SentryClient(object):
 
     def send(self, **kwargs):
         if settings.REMOTE_URL:
-            data = {
-                'data': base64.b64encode(pickle.dumps(transform(kwargs)).encode('zlib')),
-                'key': settings.KEY,
-            }
-            req = urllib2.Request(settings.REMOTE_URL, urllib.urlencode(data))
+            if not type(settings.REMOTE_URL) == list:
+                raise ValueError("SENTRY_REMOTE_URL must be of type list.")
 
-            try:
-                response = urllib2.urlopen(req, None, settings.REMOTE_TIMEOUT).read()
-            except urllib2.URLError, e:
-                logger.critical('Unable to reach Sentry log server')
-                logger.log(kwargs.pop('level', None) or logging.ERROR, kwargs.pop('message', None))
-            except urllib2.HTTPError, e:
-                logger.critical('Unable to reach Sentry log server', extra={'body': e.read()})
-                logger.log(kwargs.pop('level', None) or logging.ERROR, kwargs.pop('message', None))
+            for url in settings.REMOTE_URL:
+                data = {
+                    'data': base64.b64encode(pickle.dumps(transform(kwargs)).encode('zlib')),
+                    'key': settings.KEY,
+                }
+                req = urllib2.Request(url, urllib.urlencode(data))
+
+                try:
+                    response = urllib2.urlopen(req, None, settings.REMOTE_TIMEOUT).read()
+                except urllib2.URLError, e:
+                    logger.critical('Unable to reach Sentry log server')
+                    logger.log(kwargs.pop('level', None) or logging.ERROR, kwargs.pop('message', None))
+                except urllib2.HTTPError, e:
+                    logger.critical('Unable to reach Sentry log server', extra={'body': e.read()})
+                    logger.log(kwargs.pop('level', None) or logging.ERROR, kwargs.pop('message', None))
         else:
             from sentry.models import GroupedMessage
             
@@ -150,3 +154,4 @@ class SentryClient(object):
             data=data,
             **kwargs
         )
+

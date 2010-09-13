@@ -135,7 +135,7 @@ class GroupedMessage(MessageBase):
         if engine.startswith('postgresql'):
             return 'times_seen / (pow((floor(extract(epoch from now() - last_seen) / 3600) + 2), 1.25) + 1)'
         if engine.startswith('mysql'):
-            return 'times_seen / (pow((floor(unix_timestamp(now() - last_seen) / 3600) + 2), 1.25) + 1)'
+            return 'times_seen / (pow((floor((unix_timestamp(now()) - unix_timestamp(last_seen)) / 3600) + 2), 1.25) + 1)'
         return 'times_seen'
 
     def mail_admins(self, request=None, fail_silently=True):
