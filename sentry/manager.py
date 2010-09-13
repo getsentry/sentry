@@ -82,7 +82,7 @@ class SentryManager(models.Manager):
             except Exception, exc:
                 warnings.warn(u'Unable to process log entry: %s' % (exc,))
         else:
-            if settings.ADMINS and mail:
+            if mail:
                 group.mail_admins()
             return instance
 

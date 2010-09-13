@@ -43,9 +43,6 @@ class SentryClient(object):
 
     def send(self, **kwargs):
         if settings.REMOTE_URL:
-            if not type(settings.REMOTE_URL) == list:
-                raise ValueError("SENTRY_REMOTE_URL must be of type list.")
-
             for url in settings.REMOTE_URL:
                 data = {
                     'data': base64.b64encode(pickle.dumps(transform(kwargs)).encode('zlib')),
@@ -56,10 +53,10 @@ class SentryClient(object):
                 try:
                     response = urllib2.urlopen(req, None, settings.REMOTE_TIMEOUT).read()
                 except urllib2.URLError, e:
-                    logger.critical('Unable to reach Sentry log server')
+                    logger.critical('Unable to reach Sentry log server', extra={'remote_url': url})
                     logger.log(kwargs.pop('level', None) or logging.ERROR, kwargs.pop('message', None))
                 except urllib2.HTTPError, e:
-                    logger.critical('Unable to reach Sentry log server', extra={'body': e.read()})
+                    logger.critical('Unable to reach Sentry log server', extra={'body': e.read(), 'remote_url': url})
                     logger.log(kwargs.pop('level', None) or logging.ERROR, kwargs.pop('message', None))
         else:
             from sentry.models import GroupedMessage

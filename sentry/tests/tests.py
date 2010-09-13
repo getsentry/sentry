@@ -653,7 +653,7 @@ class SentryMailTest(TestCase):
     urls = 'sentry.tests.urls'
     
     def setUp(self):
-        settings.ADMINS = ((getpass.getuser(), '%s@localhost' % getpass.getuser()),)
+        settings.ADMINS = ('%s@localhost' % getpass.getuser(),)
     
     def test_mail_admins(self):
         group = GroupedMessage.objects.get()

@@ -139,6 +139,9 @@ class GroupedMessage(MessageBase):
         return 'times_seen'
 
     def mail_admins(self, request=None, fail_silently=True):
+        if not settings.ADMINS:
+            return
+        
         from django.core.mail import send_mail
         from django.template.loader import render_to_string
 
