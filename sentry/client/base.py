@@ -4,7 +4,6 @@ try:
 except ImportError:
     import pickle
 import logging
-import socket
 import sys
 import traceback as traceback_mod
 import urllib
@@ -29,7 +28,7 @@ class SentryClient(object):
             kwargs = filter_(None).process(kwargs) or kwargs
 
         kwargs.setdefault('level', logging.ERROR)
-        kwargs.setdefault('server_name', socket.gethostname())
+        kwargs.setdefault('server_name', settings.NAME)
 
         checksum = construct_checksum(**kwargs)
 

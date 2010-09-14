@@ -3,6 +3,7 @@ from django.utils.hashcompat import md5_constructor
 from django.utils.translation import ugettext_lazy as _
 
 import logging
+import socket
 
 # Allow local testing of Sentry even if DEBUG is enabled
 DEBUG = getattr(settings, 'DEBUG', False) and not getattr(settings, 'SENTRY_TESTING', False)
@@ -53,3 +54,5 @@ else:
     default_client = 'sentry.client.base.SentryClient'
 
 CLIENT = getattr(settings, 'SENTRY_CLIENT', default_client)
+
+NAME = getattr(settings, 'SENTRY_NAME', socket.gethostname())
