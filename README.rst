@@ -178,6 +178,12 @@ Default value is ``False``
 
 .. note:: Normally when Django DEBUG is enabled the Sentry exception handler is immediately skipped
 
+###########
+SENTRY_NAME
+###########
+
+This will override the ``server_name`` value for this installation. Defaults to ``socket.get_hostname()``.
+
 =====
 Usage
 =====
@@ -191,6 +197,10 @@ Set up a viewer server (or use your existing application server) and add sentry 
 	)
 
 Now enjoy your beautiful new error tracking at ``/sentry/``.
+
+===
+API
+===
 
 For the technical, here's some further docs:
 

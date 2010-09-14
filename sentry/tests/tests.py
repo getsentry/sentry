@@ -484,6 +484,24 @@ class SentryTestCase(TestCase):
         
         settings.MIDDLEWARE_CLASSES = orig
 
+    def testSettingName(self):
+        orig = settings.NAME
+        settings.NAME = 'foo'
+        
+        self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
+
+        self.assertEquals(Message.objects.count(), 1)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+        last = Message.objects.get()
+        self.assertEquals(last.logger, 'root')
+        self.assertEquals(last.class_name, 'Exception')
+        self.assertEquals(last.level, logging.ERROR)
+        self.assertEquals(last.message, 'view exception')
+        self.assertEquals(last.server_name, 'foo')
+        self.assertEquals(last.view, 'sentry.tests.views.raise_exc')
+        
+        settings.NAME = orig
+
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'
     fixtures = ['sentry/tests/fixtures/views.json']
