@@ -29,7 +29,7 @@ class SentryClient(object):
             kwargs = filter_(None).process(kwargs) or kwargs
 
         kwargs.setdefault('level', logging.ERROR)
-        kwargs.setdefault('server_name', socket.gethostname())
+        kwargs.setdefault('server_name', settings.CLIENT_NAME or socket.gethostname())
 
         checksum = construct_checksum(**kwargs)
 

@@ -102,6 +102,10 @@ Sentry also allows you to support high availability by pushing to multiple serve
 
 	SENTRY_REMOTE_URL = ['http://server1/sentry/store', 'http://server2/sentry/store']
 
+If not configured otherwise, Sentry will use the host name as server name. To overwrite this, use::
+
+	SENTRY_CLIENT_NAME = 'example.com'
+
 ===========================
 Other configuration options
 ===========================

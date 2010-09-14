@@ -33,13 +33,12 @@ LOG_LEVELS = (
 
 # This should be the full URL to sentries store view
 REMOTE_URL = getattr(settings, 'SENTRY_REMOTE_URL', None)
-
 if REMOTE_URL:
     if isinstance(REMOTE_URL, basestring):
         REMOTE_URL = [REMOTE_URL]
     elif not isinstance(REMOTE_URL, (list, tuple)):
         raise ValueError("SENTRY_REMOTE_URL must be of type list.")
-
+CLIENT_NAME = getattr(settings, 'SENTRY_CLIENT_NAME', None)
 REMOTE_TIMEOUT = getattr(settings, 'SENTRY_REMOTE_TIMEOUT', 5)
 
 ADMINS = getattr(settings, 'SENTRY_ADMINS', [])
