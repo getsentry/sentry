@@ -15,7 +15,10 @@ class Command(BaseCommand):
     help = 'Cleans up old entries in the log.'
 
     def handle(self, *args, **options):
-        ts = datetime.datetime.now() - datetime.timedelta(days=int(getattr(options, 'days', 30)))
+        days = 30
+        if options.get('days'): # options always contain the days key
+            days = int(options['days'])
+        ts = datetime.datetime.now() - datetime.timedelta(days=days)
         
         base_kwargs = {}
         if options.get('logger'):
