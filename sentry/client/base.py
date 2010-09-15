@@ -117,6 +117,8 @@ class SentryClient(object):
                     f = smart_unicode(f)
                 except (UnicodeEncodeError, UnicodeDecodeError):
                     f = '(Error decoding value)'
+                except Exception: # in some cases we get a different exception
+                    f = smart_unicode(type(f))
             return f
 
         def shorten(var):
