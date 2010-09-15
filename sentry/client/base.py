@@ -52,10 +52,10 @@ class SentryClient(object):
                 try:
                     response = urllib2.urlopen(req, None, settings.REMOTE_TIMEOUT).read()
                 except urllib2.URLError, e:
-                    logger.critical('Unable to reach Sentry log server', extra={'remote_url': url})
+                    logger.exception('Unable to reach Sentry log server: %s' % (e,), extra={'remote_url': url})
                     logger.log(kwargs.pop('level', None) or logging.ERROR, kwargs.pop('message', None))
                 except urllib2.HTTPError, e:
-                    logger.critical('Unable to reach Sentry log server', extra={'body': e.read(), 'remote_url': url})
+                    logger.exception('Unable to reach Sentry log server: %s' % (e,), extra={'body': e.read(), 'remote_url': url})
                     logger.log(kwargs.pop('level', None) or logging.ERROR, kwargs.pop('message', None))
         else:
             from sentry.models import GroupedMessage
