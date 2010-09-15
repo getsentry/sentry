@@ -504,7 +504,6 @@ class SentryTestCase(TestCase):
         
         settings.NAME = orig
 
-
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'
     fixtures = ['sentry/tests/fixtures/views.json']
@@ -818,3 +817,16 @@ class SentryClientTest(TestCase):
         self.assertEquals(_foo[''].getMessage(), 'view exception')
         self.assertEquals(_foo[''].levelno, client.default_level)
         self.assertEquals(_foo[''].class_name, 'Exception')
+
+class SentryManageTest(TestCase):
+    fixtures = ['sentry/tests/fixtures/cleanup.json']
+    
+    def test_cleanup_sentry(self):
+        from sentry.management.commands.cleanup_sentry import Command
+        
+        self.assertEquals(Message.objects.count(), 10)
+        
+        command = Command()
+        command.handle(days=1)
+        
+        self.assertEquals(Message.objects.count(), 0)
