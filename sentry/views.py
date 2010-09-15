@@ -6,6 +6,7 @@ except ImportError:
 import datetime
 from math import log
 import logging
+import zlib
 
 try:
     from pygooglechart import SimpleLineChart
@@ -227,7 +228,10 @@ def store(request):
         return HttpResponseForbidden('Missing data')
     
     try:
-        data = pickle.loads(base64.b64decode(data).decode('zlib'))
+        try:
+            data = pickle.loads(base64.b64decode(data).decode('zlib'))
+        except zlib.error, e:
+            data = pickle.loads(base64.b64decode(data))
     except Exception, e:
         return HttpResponseForbidden('Bad data')
 

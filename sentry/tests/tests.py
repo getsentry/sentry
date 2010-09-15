@@ -629,6 +629,21 @@ class RemoteSentryTest(TestCase):
         self.assertEquals(instance.server_name, 'not_dcramer.local')
         self.assertEquals(instance.level, 40)
 
+    def testUngzippedData(self):
+        kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40}
+        data = {
+            
+        }
+        resp = self.client.post(reverse('sentry-store'), {
+            'data': base64.b64encode(pickle.dumps(transform(kwargs))),
+            'key': settings.KEY,
+        })
+        self.assertEquals(resp.status_code, 200)
+        instance = Message.objects.get()
+        self.assertEquals(instance.message, 'hello')
+        self.assertEquals(instance.server_name, 'not_dcramer.local')
+        self.assertEquals(instance.level, 40)
+
     # def testProcess(self):
     #     self.start_test_server()
     #     SentryClient.process(message='hello')
