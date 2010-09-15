@@ -122,5 +122,5 @@ function sentryRefresh(){
           })
       }
     });
-    setTimeout('sentryRefresh()', 3000);
+    setTimeout(sentryRefresh, 3000);
 }
