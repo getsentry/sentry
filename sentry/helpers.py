@@ -40,7 +40,6 @@ def construct_checksum(level=logging.ERROR, class_name='', traceback='', message
     message = traceback or message
     if isinstance(message, unicode):
         message = message.encode('utf-8', 'replace')
-    checksum.update(message)
     return checksum.hexdigest()
 
 def varmap(func, var):
