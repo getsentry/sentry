@@ -114,12 +114,12 @@ function sentryRefresh(){
           });
           // make sure we limit the number shown
           var count = 0;
-          $('#message_list').each(function(){
+          $('#message_list li').each(function(){
               count++;
               if (count > 50) {
                   $(this).remove();
               }
-          })
+          });
       }
     });
     setTimeout(sentryRefresh, 3000);
