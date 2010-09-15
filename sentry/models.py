@@ -98,7 +98,7 @@ class MessageBase(Model):
             if self.class_name:
                 return "%s: %s" % (self.class_name, message)
         else:
-            self.message = self._class_name or ''
+            self.message = self.class_name or ''
         return message
     error.short_description = _('error')
 
