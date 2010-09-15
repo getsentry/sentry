@@ -120,7 +120,7 @@ function sentryRefresh(){
                   $(this).remove();
               }
           });
+          setTimeout(sentryRefresh, 3000);          
       }
     });
-    setTimeout(sentryRefresh, 3000);
 }
