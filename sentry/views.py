@@ -17,8 +17,9 @@ from django.conf import settings as dj_settings
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.db.models import Count
-from django.http import HttpResponse, HttpResponseForbidden, HttpResponseRedirect
-from django.shortcuts import render_to_response
+from django.http import HttpResponse, HttpResponseBadRequest, \
+    HttpResponseForbidden, HttpResponseRedirect
+from django.shortcuts import render_to_response, get_object_or_404
 from django.template.loader import render_to_string
 from django.utils import simplejson
 from django.utils.datastructures import SortedDict
@@ -125,6 +126,7 @@ def index(request):
 @login_required
 def ajax_handler(request):
     op = request.REQUEST.get('op')
+
     if op == 'poll':
         message_list = GroupedMessage.objects.extra(
             select={
@@ -159,6 +161,8 @@ def ajax_handler(request):
                 'html': render_to_string('sentry/partial/_group.html', {'group': m}),
                 'count': m.times_seen,
             }) for m in [group]]
+    else:
+        return HttpResponseBadRequest()
         
     response = HttpResponse(simplejson.dumps(data))
     response['Content-Type'] = 'application/json'
@@ -166,7 +170,7 @@ def ajax_handler(request):
 
 @login_required
 def group(request, group_id):
-    group = GroupedMessage.objects.get(pk=group_id)
+    group = get_object_or_404(GroupedMessage, pk=group_id)
 
     message_list = group.message_set.all()
     
