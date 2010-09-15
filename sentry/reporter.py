@@ -120,17 +120,19 @@ class FakeRequest(object):
 
 TECHNICAL_500_TEMPLATE = """
 <div id="summary">
-  <h1>{{ exception_type }}{% if request.path_info %} at {{ request.path_info|escape }}{% endif %}</h1>
+  <h1>{{ exception_type }}</h1>
   <pre class="exception_value">{{ exception_value|escape }}</pre>
   <table class="meta">
     <tr>
       <th>Request Method:</th>
       <td>{{ request.META.REQUEST_METHOD }}</td>
     </tr>
+    {% if request.path_info %}
     <tr>
       <th>Request URL:</th>
-      <td>{{ request.build_absolute_uri|escape }}</td>
+      <td><a href="{{ request.build_absolute_uri|escape }}">{{ request.build_absolute_uri|escape }}</a></td>
     </tr>
+    {% endif %}
     <tr>
       <th>Exception Type:</th>
       <td>{{ exception_type }}</td>
