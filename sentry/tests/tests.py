@@ -7,6 +7,7 @@ except ImportError:
     import pickle
 import getpass
 import logging
+import os.path
 import sys
 import threading
 
@@ -19,6 +20,7 @@ from django.core.servers import basehttp
 from django.test.client import Client
 from django.test import TestCase
 from django.utils.encoding import smart_unicode
+from django.utils import simplejson
 
 from sentry import settings
 from sentry.helpers import transform
@@ -226,7 +228,8 @@ class SentryTestCase(TestCase):
         try:
             Message.objects.get(id=999999989)
         except Message.DoesNotExist, exc:
-            get_client().create_from_exception(exc)
+            error = get_client().create_from_exception(exc)
+            self.assertTrue(error.data.get('__sentry__', {}).get('exc'))
         else:
             self.fail('Unable to create `Message` entry.')
 
@@ -238,7 +241,6 @@ class SentryTestCase(TestCase):
         else:
             self.fail('Unable to create `Message` entry.')
 
-        
         self.assertEquals(Message.objects.count(), 2)
         self.assertEquals(GroupedMessage.objects.count(), 2)
         last = Message.objects.all().order_by('-id')[0:1].get()
@@ -502,6 +504,7 @@ class SentryTestCase(TestCase):
         
         settings.NAME = orig
 
+
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'
     fixtures = ['sentry/tests/fixtures/views.json']
@@ -616,9 +619,6 @@ class RemoteSentryTest(TestCase):
 
     def testCorrectData(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40}
-        data = {
-            
-        }
         resp = self.client.post(reverse('sentry-store'), {
             'data': base64.b64encode(pickle.dumps(transform(kwargs)).encode('zlib')),
             'key': settings.KEY,
@@ -631,9 +631,6 @@ class RemoteSentryTest(TestCase):
 
     def testUngzippedData(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40}
-        data = {
-            
-        }
         resp = self.client.post(reverse('sentry-store'), {
             'data': base64.b64encode(pickle.dumps(transform(kwargs))),
             'key': settings.KEY,
@@ -643,6 +640,24 @@ class RemoteSentryTest(TestCase):
         self.assertEquals(instance.message, 'hello')
         self.assertEquals(instance.server_name, 'not_dcramer.local')
         self.assertEquals(instance.level, 40)
+
+    def testByteSequence(self):
+        """
+        invalid byte sequence for encoding "UTF8": 0xedb7af
+        """
+        fname = os.path.join(os.path.dirname(__file__), 'fixtures/encode_error.json')
+        kwargs = simplejson.load(open(fname))
+        
+        resp = self.client.post(reverse('sentry-store'), {
+            'data': base64.b64encode(pickle.dumps(transform(kwargs)).encode('zlib')),
+            'key': settings.KEY,
+        })
+        self.assertEquals(resp.status_code, 200)
+        instance = Message.objects.get()
+        self.assertEquals(instance.message, 'hello')
+        self.assertEquals(instance.server_name, 'localhost')
+        self.assertEquals(instance.level, 40)
+        self.assertTrue(instance.data['__sentry__']['exc'])
 
     # def testProcess(self):
     #     self.start_test_server()
@@ -803,4 +818,3 @@ class SentryClientTest(TestCase):
         self.assertEquals(_foo[''].getMessage(), 'view exception')
         self.assertEquals(_foo[''].levelno, client.default_level)
         self.assertEquals(_foo[''].class_name, 'Exception')
-
