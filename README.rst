@@ -100,7 +100,7 @@ You may also specify an alternative timeout to the default (which is 5 seconds) 
 
 Sentry also allows you to support high availability by pushing to multiple servers::
 
-	SENTRY_REMOTE_URL = ['http://server1/sentry/store', 'http://server2/sentry/store']
+	SENTRY_REMOTE_URL = ['http://server1/sentry/store/', 'http://server2/sentry/store/']
 
 ===========================
 Other configuration options
