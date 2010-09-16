@@ -49,7 +49,7 @@
 									{% for k, v in request.GET.iteritems %}
 										<input type="hidden" name="{{ k }}" value="{{ v }}"/>
 									{% endfor %}
-									<div class="sort-by">Sort by: <select name="sort" onchange="this.form.submit()">
+									<div class="sort-by">Sort by <select name="sort" onchange="this.form.submit()">
 										<option value=""{% ifequal sort 'priority' %} selected="selected"{% endifequal %}>Priority</option>
 										<option value="date"{% ifequal sort 'date' %} selected="selected"{% endifequal %}>Last Seen</option>
 										<option value="new"{% ifequal sort 'new' %} selected="selected"{% endifequal %}>First Seen</option>

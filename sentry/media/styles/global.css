@@ -446,6 +446,7 @@ pre {
 
 .sort-by select {
     border: 0;
+    margin-left: 4px;
     background: inherit;
 }
 
