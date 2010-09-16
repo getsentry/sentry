@@ -45,9 +45,23 @@
 					{% if message_list.objects %}
 						<div class="clearfix">
 							<div class="paging-wrap">
+								<form method="GET" action="">
+									{% for k, v in request.GET.iteritems %}
+										<input type="hidden" name="{{ k }}" value="{{ v }}"/>
+									{% endfor %}
+									<div class="sort-by">Sort by: <select name="sort" onchange="this.form.submit()">
+										<option value=""{% ifequal sort 'priority' %} selected="selected"{% endifequal %}>Priority</option>
+										<option value="date"{% ifequal sort 'date' %} selected="selected"{% endifequal %}>Last Seen</option>
+										<option value="new"{% ifequal sort 'new' %} selected="selected"{% endifequal %}>First Seen</option>
+									</select>
+									</div>
+								</form>
+								{% if has_realtime %}
+									<a id="sentry_realtime" class="realtime realtime-pause">Pause Feed</a>
+								{% endif %}
 								{{ message_list.paging }}
 							</div>
-						</div>                   
+						</div>
 						<ul class="messages" id="message_list">
 							{% for group, priority in message_list.objects|with_priority %}
 								{% include "sentry/partial/_group.html" %}
@@ -70,6 +84,7 @@
 	</body>
 	{% if has_realtime %}
 	<script type="text/javascript">
+	sentryRealtime = true;
 	$(document).ready(function(){
 		//$("div.column").setAllToMaxHeight();
 		setTimeout(sentryRefresh, 3000);

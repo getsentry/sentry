@@ -1,3 +1,5 @@
+sentryRealtime = true;
+
 function getElementsByClassName(oElm, strTagName, strClassName){
 	// Written by Jonathan Snook, http://www.snook.ca/jon; Add-ons by Robert Nyman, http://www.robertnyman.com
 	var arrElements = (strTagName == "*" && document.all)? document.all :
@@ -92,15 +94,15 @@ function sentryResolve(gid, remove){
 function sentryRefresh(){
     data = getQueryParams();
     data.op = 'poll';
+    if (!sentryRealtime) {
+        return;
+    }
     $.ajax({
       url: SENTRY_JS_API_URL,
       type: 'get',
       dataType: 'json',
       data: data,
       success: function(groups){
-          // $('#message_list').each(function(){
-          //               $(this).removeClass('fresh');
-          //           })
           if (groups.length) {
               $('#no_messages').remove();
           }
@@ -133,3 +135,18 @@ function sentryRefresh(){
       }
     });
 }
+$(document).ready(function(){
+    $('#sentry_realtime').click(function(){
+        if ($(this).hasClass('realtime-play')) {
+            $(this).removeClass('realtime-play');
+            $(this).addClass('realtime-pause');
+            $(this).text('Pause Feed');
+            sentryRealtime = true;
+        } else {
+            $(this).addClass('realtime-play');
+            $(this).removeClass('realtime-pause');
+            $(this).text('Go Live');
+            sentryRealtime = false;
+        }
+    });
+});

@@ -105,7 +105,17 @@ def index(request):
         select={
             'score': GroupedMessage.get_score_clause(),
         }
-    ).order_by('-score', '-last_seen').distinct()
+    )
+
+    sort = request.GET.get('sort')
+    if sort == 'date':
+        message_list = message_list.order_by('-last_seen')
+    elif sort == 'new':
+        message_list = message_list.order_by('-first_seen')
+    else:
+        sort = 'priority'
+        message_list = message_list.order_by('-score', '-last_seen').distinct()
+
     
     any_filter = False
     for filter_ in filters:
@@ -133,7 +143,16 @@ def ajax_handler(request):
             select={
                 'score': GroupedMessage.get_score_clause(),
             }
-        ).order_by('-score', '-last_seen')
+        )
+        
+        sort = request.GET.get('sort')
+        if sort == 'date':
+            message_list = message_list.order_by('-last_seen')
+        elif sort == 'new':
+            message_list = message_list.order_by('-first_seen')
+        else:
+            sort = 'priority'
+            message_list = message_list.order_by('-score', '-last_seen').distinct()
         
         for filter_ in filters:
             if not filter_.is_set():

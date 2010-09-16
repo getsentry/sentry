@@ -381,12 +381,12 @@ pre {
     display: inline; float: right;
     margin: 10px 10px 0 0;
     font-size: 14px;
-    line-height: 16px;
+    line-height: 17px;
     color: #aaa;
     font-weight: bold;
 }
 .paging-meta {
-    padding: 4px 8px;
+    padding: 6px 8px;
 }
 .paging-endless {
     display: inline; float: left;
@@ -402,8 +402,8 @@ pre {
     display: inline-block;
 	padding: 6px 8px 6px 8px;
     color: #aaa;
-    font-size: 11px;
-    line-height: 12px;
+    font-size: 12px;
+    line-height: 17px;
     border:1px solid #ddd;
 	text-decoration: none;
 	-webkit-border-radius: 6px;
@@ -421,8 +421,8 @@ pre {
     text-decoration: none;
 	color: #888;
 	padding: 6px 8px 6px 8px;
-    font-size: 11px;
-    line-height: 11px;
+    font-size: 12px;
+    line-height: 17px;
     border:1px solid #C5C5C5;
 	text-decoration: none;
 	-webkit-border-radius: 6px;
@@ -433,7 +433,9 @@ pre {
     background:-moz-linear-gradient(center top , #FFFFFF 0pt, #DCDCDC 100%) repeat scroll 0 0 transparent;    
 }
 
-.paging-endless li a:hover {
+.paging-endless li a:hover,
+.realtime:hover {
+    cursor: pointer;
     border:1px solid #3079d0;
     color: #fff;
     text-shadow: 0 -1px 0 #3079d0;
@@ -442,6 +444,10 @@ pre {
 	background: -moz-linear-gradient(top,  #4da2e5,  #3079d0); /* for firefox 3.6+ */
 }
 
+.sort-by select {
+    border: 0;
+    background: inherit;
+}
 
 #search {
     float: right;
