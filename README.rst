@@ -168,6 +168,9 @@ You can also use the ``exc_info`` and ``extra=dict(url=foo)`` arguments on your 
 
 	logging.error('There was some crazy error', exc_info=sys.exc_info(), extra={'url': request.build_absolute_uri()})
 
+Any additional information you pass into the extra clause will also be stored as meta information with the event. As long as the key
+name is not reserved (url) and not private (_foo) it will be displayed on the Sentry dashboard.
+
 ##############
 SENTRY_TESTING
 ##############
