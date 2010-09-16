@@ -75,6 +75,38 @@
 					{{ traceback }}
 
 				{% endif %}
+				
+				<div id="requestinfo">
+					<h2>Request information</h2>
+				  
+					{% for k, v in json_data %}
+						<h3 id="get-info">{{ k }}</h3>
+						{% if v %}
+							{% if v|is_dict %}
+								<table class="req">
+									<thead>
+										<tr>
+											<th>Variable</th>
+											<th>Value</th>
+										</tr>
+									</thead>
+									<tbody>
+										{% for k_, v_ in v.iteritems %}
+										<tr>
+											<td>{{ k_ }}</td>
+											<td class="code"><div>{{ v_|pprint }}</div></td>
+										</tr>
+										{% endfor %}
+									</tbody>
+								</table>
+							{% else %}
+								{{ v|pprint }}
+							{% endif %}
+						{% else %}
+							<p>No data for {{ k }}</p>
+						{% endif %}
+					{% endfor %}
+				</div>
 			</div>
 		</div>
 	</div>

@@ -1,5 +1,11 @@
 from django import template
+from django.utils import simplejson
+
 register = template.Library()
+
+def is_dict(value):
+    return isinstance(value, dict)
+is_dict = register.filter(is_dict)
 
 def with_priority(result_list, key='score'):
     if result_list:

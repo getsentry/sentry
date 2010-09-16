@@ -217,6 +217,14 @@ def group(request, group_id):
     unique_urls = message_list.filter(url__isnull=False).values_list('url', 'logger', 'view', 'checksum').annotate(times_seen=Count('url')).values('url', 'times_seen').order_by('-times_seen')
     
     unique_servers = message_list.filter(server_name__isnull=False).values_list('server_name', 'logger', 'view', 'checksum').annotate(times_seen=Count('server_name')).values('server_name', 'times_seen').order_by('-times_seen')
+
+    def iter_data(obj):
+        for k, v in obj.data.iteritems():
+            if k.startswith('_') or k in ['url']:
+                continue
+            yield k, v
+    
+    json_data = iter_data(obj)
     
     engine = get_db_engine()
     if SimpleLineChart and not engine.startswith('sqlite'):
