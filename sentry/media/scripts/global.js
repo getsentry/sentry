@@ -50,6 +50,18 @@ function switchPastebinFriendly(link) {
   return false;
 }
 
+function getQueryParams()
+{
+    var vars = {}, hash;
+    var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+    for(var i = 0; i < hashes.length; i++)
+    {
+        hash = hashes[i].split('=');
+        vars[hash[0]] = hash[1];
+    }
+    return vars;
+}
+
 $.fn.setAllToMaxHeight = function(){
 	return this.height( Math.max.apply(this, $.map( this , function(e){ return $(e).height() }) ) );
 }
@@ -78,16 +90,13 @@ function sentryResolve(gid, remove){
     });
 }
 function sentryRefresh(){
+    data = getQueryParams();
+    data.op = 'poll';
     $.ajax({
       url: SENTRY_JS_API_URL,
       type: 'get',
       dataType: 'json',
-      data: {
-          op: 'poll',
-          logger: '{{ logger }}',
-          server_name: '{{ server_name }}',
-          level: '{{ level }}'
-      },
+      data: data,
       success: function(groups){
           // $('#message_list').each(function(){
           //               $(this).removeClass('fresh');
@@ -120,7 +129,7 @@ function sentryRefresh(){
                   $(this).remove();
               }
           });
-          setTimeout(sentryRefresh, 3000);          
+          setTimeout(sentryRefresh, 3000);
       }
     });
 }

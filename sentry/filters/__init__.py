@@ -47,6 +47,8 @@ class SentryFilter(object):
     label = ''
     column = ''
     widget = ChoiceWidget
+    # This must be a string
+    default = ''
     
     def __init__(self, request):
         self.request = request
@@ -55,7 +57,7 @@ class SentryFilter(object):
         return bool(self.get_value())
     
     def get_value(self):
-        return self.request.GET.get(self.get_query_param()) or ''
+        return self.request.GET.get(self.get_query_param(), self.default) or ''
     
     def get_query_param(self):
         return getattr(self, 'query_param', self.column)
@@ -94,6 +96,7 @@ class SentryFilter(object):
 class StatusFilter(SentryFilter):
     label = 'Status'
     column = 'status'
+    default = '0'
 
     def get_choices(self):
         return SortedDict([

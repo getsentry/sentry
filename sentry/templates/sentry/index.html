@@ -44,7 +44,9 @@
 					{% paginate message_list from request as message_list per_page 15 %}
 					{% if message_list.objects %}
 						<div class="clearfix">
-							{{ message_list.paging }}
+							<div class="paging-wrap">
+								{{ message_list.paging }}
+							</div>
 						</div>                   
 						<ul class="messages" id="message_list">
 							{% for group, priority in message_list.objects|with_priority %}
@@ -66,7 +68,7 @@
 		</div> 
 		{% endblock %}
 	</body>
-	{% if realtime %}
+	{% if has_realtime %}
 	<script type="text/javascript">
 	$(document).ready(function(){
 		//$("div.column").setAllToMaxHeight();

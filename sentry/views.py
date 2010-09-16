@@ -116,10 +116,7 @@ def index(request):
     
     today = datetime.datetime.now()
 
-    if not any_filter and page == 1:
-        realtime = True
-    else:
-        realtime = False
+    has_realtime = page == 1
     
     return render_to_response('sentry/index.html', locals())
 
@@ -128,11 +125,20 @@ def ajax_handler(request):
     op = request.REQUEST.get('op')
 
     if op == 'poll':
+        filters = []
+        for filter_ in get_filters():
+            filters.append(filter_(request))
+
         message_list = GroupedMessage.objects.extra(
             select={
                 'score': GroupedMessage.get_score_clause(),
             }
         ).order_by('-score', '-last_seen')
+        
+        for filter_ in filters:
+            if not filter_.is_set():
+                continue
+            message_list = filter_.get_query_set(message_list)
         
         data = [
             (m.pk, {

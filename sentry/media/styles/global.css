@@ -373,12 +373,11 @@ pre {
 }
 .no-messages { font-size: 1.1em; padding: 20px 0; }
 
-.paging {
+.paging-wrap {
     display: inline; float: left;
     width: 100%;
 }
-
-.paging-meta {
+.paging-meta, .sort-by, .realtime {
     display: inline; float: right;
     margin: 10px 10px 0 0;
     font-size: 14px;
@@ -386,7 +385,9 @@ pre {
     color: #aaa;
     font-weight: bold;
 }
-
+.paging-meta {
+    padding: 4px 8px;
+}
 .paging-endless {
     display: inline; float: left;
     margin: 10px 0 0 10px;
@@ -399,8 +400,8 @@ pre {
 
 .paging-endless li span {
     display: inline-block;
-    color: #aaa;
 	padding: 6px 8px 6px 8px;
+    color: #aaa;
     font-size: 11px;
     line-height: 12px;
     border:1px solid #ddd;
@@ -414,13 +415,14 @@ pre {
     background:-moz-linear-gradient(center top , #FFFFFF 0pt, #DCDCDC 100%) repeat scroll 0 0 transparent;    
 }
 
-.paging-endless li a {
+.paging-endless li a,
+.sort-by, .realtime {
     display: inline-block;
     text-decoration: none;
 	color: #888;
 	padding: 6px 8px 6px 8px;
     font-size: 11px;
-    line-height: 12px;
+    line-height: 11px;
     border:1px solid #C5C5C5;
 	text-decoration: none;
 	-webkit-border-radius: 6px;
