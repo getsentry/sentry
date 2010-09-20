@@ -225,3 +225,15 @@ class Message(MessageBase):
             fake_request.path_info = ''
         fake_request.path = fake_request.path_info
         return fake_request
+
+class FilterValue(models.Model):
+    FILTER_KEYS = (
+        ('server_name', _('server name')),
+        ('logger', _('logger')),
+    )
+    
+    key = models.CharField(choices=FILTER_KEYS, max_length=32)
+    value = models.CharField(max_length=255)
+    
+    class Meta:
+        unique_together = (('key', 'value'),)

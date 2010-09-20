@@ -75,8 +75,10 @@ class SentryFilter(object):
         return '?' + query_dict.urlencode()
     
     def get_choices(self):
-        from sentry.models import GroupedMessage
-        return SortedDict((l, l) for l in GroupedMessage.objects.values_list(self.column, flat=True).distinct())
+        from sentry.models import FilterValue
+        return SortedDict((l, l) for l in FilterValue.objects.filter(key=self.column)\
+                                                     .values_list('value', flat=True)\
+                                                     .order_by('value'))
     
     def get_query_set(self, queryset):
         from indexer.models import Index
@@ -111,10 +113,6 @@ class LoggerFilter(SentryFilter):
 class ServerNameFilter(SentryFilter):
     label = 'Server Name'
     column = 'server_name'
-
-    def get_choices(self):
-        from sentry.models import Message
-        return SortedDict((l, l) for l in Message.objects.values_list(self.column, flat=True).distinct())
 
     def get_query_set(self, queryset):
         return queryset.filter(message_set__server_name=self.get_value())
