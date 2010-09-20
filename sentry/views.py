@@ -89,6 +89,13 @@ def login(request):
     context.update(csrf(request))
     return render_to_response('sentry/login.html', locals(), )
 
+def logout(request):
+    from django.contrib.auth import logout
+    
+    logout(request)
+    
+    return HttpResponseRedirect(reverse('sentry'))
+
 @login_required
 def index(request):
     filters = []

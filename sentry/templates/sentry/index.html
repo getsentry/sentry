@@ -22,6 +22,11 @@
 			<div class="container">
 				<h1><a href="{% url sentry %}"><span class="sentry-logo" title="Django Sentry"><img src="{% url sentry-media "images/sentry.png" %}" border=0/></span></a></h1>
 				<h2>Dashboard</h2>
+				<ul class="nav" id="account">
+					{% if request.user.is_authenticated %}
+						<li><a href="{% url sentry-logout %}">Logout</a>
+					{% endif %}
+				</ul>
 			</div>
 		</div> 
 		<div id="content">

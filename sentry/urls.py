@@ -26,6 +26,7 @@ urlpatterns = patterns('',
     # Normal views
 
     url(r'^login$', views.login, name='sentry-login'),
+    url(r'^logout$', views.logout, name='sentry-logout'),
     url(r'^group/(\d+)$', views.group, name='sentry-group'),
 
     url(r'^$', views.index, name='sentry'),

@@ -41,6 +41,7 @@ ul { margin: 1em 0 1em 2em; }
 }
 
 #header .container {
+    position: relative;
     padding: 1em 2em;
     max-width: 1550px;
 }
@@ -50,6 +51,21 @@ ul { margin: 1em 0 1em 2em; }
     right: 45px;
     top: 20px;
 }
+
+#account {
+    position: absolute;
+    right: 1em;
+    top: 1.8em;
+    color: #fff;
+}
+
+.nav {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.nav a { color: inherit; }
+
 .sentry-logo {
 	display: inline-block;
 	font-weight: normal;
