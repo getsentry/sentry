@@ -33,7 +33,7 @@ class SentryManager(models.Manager):
         view = kwargs.pop('view', None)
         logger_name = kwargs.pop('logger', 'root')
         url = kwargs.pop('url', None)
-        server_name = kwargs.pop('server_name', )
+        server_name = kwargs.pop('server_name', settings.CLIENT)
         data = kwargs.pop('data', {}) or {}
 
         if url:
