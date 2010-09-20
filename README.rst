@@ -148,7 +148,25 @@ You should also enable the ``SentryRouter`` to avoid things like extraneous tabl
 	]
 
 
-.. note:: This functionality REQUIRES Django 1.2.
+.. note:: This functionality REQUIRES Django 1.2. We highly recommend using HTTP over multi-db, as it can cause issues with dependancies such as django-indexer.
+
+
+##############
+SENTRY_TESTING
+##############
+
+Enabling this setting allows the testing of Sentry exception handler even if Django DEBUG is enabled.
+
+Default value is ``False``
+
+.. note:: Normally when Django DEBUG is enabled the Sentry exception handler is immediately skipped
+
+###########
+SENTRY_NAME
+###########
+
+This will override the ``server_name`` value for this installation. Defaults to ``socket.get_hostname()``.
+
 
 ############################
 Integration with ``logging``
@@ -170,22 +188,6 @@ You can also use the ``exc_info`` and ``extra=dict(url=foo)`` arguments on your 
 
 Any additional information you pass into the extra clause will also be stored as meta information with the event. As long as the key
 name is not reserved (url) and not private (_foo) it will be displayed on the Sentry dashboard.
-
-##############
-SENTRY_TESTING
-##############
-
-Enabling this setting allows the testing of Sentry exception handler even if Django DEBUG is enabled.
-
-Default value is ``False``
-
-.. note:: Normally when Django DEBUG is enabled the Sentry exception handler is immediately skipped
-
-###########
-SENTRY_NAME
-###########
-
-This will override the ``server_name`` value for this installation. Defaults to ``socket.get_hostname()``.
 
 =====
 Usage
