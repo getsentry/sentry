@@ -107,7 +107,7 @@ class MessageBase(Model):
     description.short_description = _('description')
 
 class GroupedMessage(MessageBase):
-    status          = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS)
+    status          = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
     times_seen      = models.PositiveIntegerField(default=1)
     last_seen       = models.DateTimeField(default=datetime.datetime.now, db_index=True)
     first_seen      = models.DateTimeField(default=datetime.datetime.now, db_index=True)
