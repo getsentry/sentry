@@ -12,6 +12,7 @@ import warnings
 from django.conf import settings as dj_settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models, transaction
+from django.db.models.signals import post_syncdb
 from django.http import Http404
 from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
@@ -130,12 +131,27 @@ class GroupedMessage(MessageBase):
         return (self.logger, self.view, self.checksum)
 
     @classmethod
+    def create_sort_index(cls, sender, db, created_models, **kwargs):
+        # This is only supported in postgres
+        engine = get_db_engine()
+        if not engine.startswith('postgresql'):
+            return
+        if cls not in created_models:
+            return
+
+        from django.db import connections
+        
+        cursor = connections[db].cursor()
+        cursor.execute("create index sentry_groupedmessage_score on sentry_groupedmessage ((%s))" % (cls.get_score_clause(),))
+        cursor.close()
+
+    @classmethod
     def get_score_clause(cls):
         engine = get_db_engine()
         if engine.startswith('postgresql'):
-            return 'times_seen / (pow((floor(extract(epoch from now() - last_seen) / 3600) + 2), 1.25) + 1)'
+            return 'times_seen * 3600 + last_seen::abstime::int'
         if engine.startswith('mysql'):
-            return 'times_seen / (pow((floor((unix_timestamp(now()) - unix_timestamp(last_seen)) / 3600) + 2), 1.25) + 1)'
+            return 'times_seen * 3600 + unix_timestamp(last_seen)'
         return 'times_seen'
 
     def mail_admins(self, request=None, fail_silently=True):
@@ -237,3 +253,7 @@ class FilterValue(models.Model):
     
     class Meta:
         unique_together = (('key', 'value'),)
+
+# XXX: Django sucks and we can't listen to our specific app
+# post_syncdb.connect(GroupedMessage.create_sort_index, sender=__name__)
+post_syncdb.connect(GroupedMessage.create_sort_index)
