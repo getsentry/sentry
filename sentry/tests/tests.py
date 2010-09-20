@@ -644,11 +644,11 @@ class RemoteSentryTest(TestCase):
         """
         invalid byte sequence for encoding "UTF8": 0xedb7af
         """
-        fname = os.path.join(os.path.dirname(__file__), 'fixtures/encode_error.json')
-        kwargs = simplejson.load(open(fname))
+        fname = os.path.join(os.path.dirname(__file__), 'fixtures/bad_data.json')
+        data = open(fname).read()
         
         resp = self.client.post(reverse('sentry-store'), {
-            'data': base64.b64encode(pickle.dumps(transform(kwargs)).encode('zlib')),
+            'data': data,
             'key': settings.KEY,
         })
         self.assertEquals(resp.status_code, 200)
