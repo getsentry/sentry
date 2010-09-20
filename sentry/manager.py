@@ -25,7 +25,7 @@ class SentryManager(models.Manager):
         return qs
 
     def from_kwargs(self, **kwargs):
-        from sentry.models import Message, GroupedMessage
+        from sentry.models import Message, GroupedMessage, FilterValue
         
         URL_MAX_LENGTH = Message._meta.get_field_by_name('url')[0].max_length
         now = datetime.datetime.now()
