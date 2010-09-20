@@ -9,6 +9,8 @@ ADMINS = (
     # ('Your Name', 'your_email@domain.com'),
 )
 
+INTERNAL_IPS = ('127.0.0.1',)
+
 MANAGERS = ADMINS
 
 PROJECT_ROOT = os.path.dirname(__file__)
@@ -109,7 +111,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 SENTRY_THRASHING_TIMEOUT = 0
-
+SENTRY_TESTING = True
 SENTRY_FILTERS = (
     'sentry.filters.StatusFilter',
     'sentry.filters.LoggerFilter',
@@ -117,3 +119,16 @@ SENTRY_FILTERS = (
     'sentry.filters.ServerNameFilter',
     'example_project.filters.IPFilter',
 )
+
+try:
+    import debug_toolbar
+except ImportError, exc:
+    pass
+else:
+    INSTALLED_APPS = INSTALLED_APPS + (
+        'debug_toolbar',
+    )
+    
+    MIDDLEWARE_CLASSES = MIDDLEWARE_CLASSES + (
+        'debug_toolbar.middleware.DebugToolbarMiddleware',
+    )
