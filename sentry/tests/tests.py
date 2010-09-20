@@ -653,8 +653,8 @@ class RemoteSentryTest(TestCase):
         })
         self.assertEquals(resp.status_code, 200)
         instance = Message.objects.get()
-        self.assertEquals(instance.message, 'hello')
-        self.assertEquals(instance.server_name, 'localhost')
+        self.assertEquals(instance.message, 'invalid byte sequence for encoding "UTF8": 0xeda4ac\nHINT:  This error can also happen if the byte sequence does not match the encoding expected by the server, which is controlled by "client_encoding".\n')
+        self.assertEquals(instance.server_name, 'shilling.disqus.net')
         self.assertEquals(instance.level, 40)
         self.assertTrue(instance.data['__sentry__']['exc'])
 
