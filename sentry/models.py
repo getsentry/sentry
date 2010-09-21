@@ -127,6 +127,10 @@ class GroupedMessage(MessageBase):
     def __unicode__(self):
         return "(%s) %s" % (self.times_seen, self.error())
 
+    @models.permalink
+    def get_absolute_url(self):
+        return ('sentry-group', (self.pk), {})
+
     def natural_key(self):
         return (self.logger, self.view, self.checksum)
 
@@ -208,8 +212,9 @@ class Message(MessageBase):
             self.checksum = construct_checksum(**self.__dict__)
         super(Message, self).save(*args, **kwargs)
 
+    @models.permalink
     def get_absolute_url(self):
-        return self.url
+        return ('sentry-group-message', (self.group_id, self.pk), {})
     
     def shortened_url(self):
         if not self.url:

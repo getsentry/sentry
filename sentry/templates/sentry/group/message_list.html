@@ -1,0 +1,19 @@
+{% extends "sentry/group/details.html" %}
+
+{% load paging_extras %}
+
+{% block inner %}
+	<h2>Message List</h2>
+	{% paginate message_list from request as message_list per_page 15 %}
+	<div class="clearfix">
+		{{ message_list.paging }}
+	</div>
+	<ul class="messages" id="message_list">
+		{% for message in message_list.objects %}
+			{% include "sentry/partial/_message.html" %}
+		{% endfor %}
+	</ul>
+	<div class="clearfix">
+		{{ message_list.paging }}
+	</div>
+{% endblock %}

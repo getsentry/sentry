@@ -65,6 +65,8 @@ ul { margin: 1em 0 1em 2em; }
     padding: 0;
 }
 .nav a { color: inherit; }
+.nav li { display: inline; }
+.nav li a { display: inline-block; }
 
 .sentry-logo {
 	display: inline-block;
@@ -86,17 +88,6 @@ ul { margin: 1em 0 1em 2em; }
 			font-weight: normal; color: #888; margin-bottom: 0; margin-left: 15px;
 			color: #ccc; vertical-align: middle;}
 
-#header .backlink {
-    position: absolute;
-    right: 20px;
-    top: 20px;
-    color: #ccc;
-    text-decoration: none;
-}
-
-#header .backlink:hover {
-    color: #fff;
-}
 
 #footer { clear: both; border-top:1px solid #ddd; background-color: #e5e5e5; }
 #footer .container {
@@ -471,6 +462,7 @@ pre {
     background: rgba(255,255,255,.50);
     -moz-border-radius: 18px;
     -webkit-border-radius: 18px;
+	border-radius: 18px;
     -moz-box-shadow: inset 0 1px 5px rgba(0,0,0, .30), 0 1px 0 #fff;
     -webkit-box-shadow: inset 0 1px 5px rgba(0,0,0, .30), 0 1px 0 #fff;
     position: relative;
@@ -516,3 +508,20 @@ pre {
 .login-form td input { width: 100%; }
 .login-form table td { padding: 5px; }
 .login-submit { text-align: right; }
+
+#group_nav {
+    border-bottom: 1px solid #ddd;
+}
+#group_nav a {
+    -moz-border-radius: 6px 6px 0 0;
+    -webkit-border-radius: 6px 6px 0 0;
+    border-radius: 6px 6px 0 0;
+    padding: 6px 12px;
+    text-decoration: none;
+}
+#group_nav a:hover {
+    background: #eee;
+}
+#group_nav .active a {
+    background: #ddd;
+}

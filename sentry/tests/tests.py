@@ -567,7 +567,7 @@ class SentryViewsTest(TestCase):
         self.client.login(username='admin', password='admin')
         resp = self.client.get(reverse('sentry-group', args=[2]), follow=True)
         self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/group.html')
+        self.assertTemplateUsed(resp, 'sentry/group/details.html')
 
 class RemoteSentryTest(TestCase):
     urls = 'sentry.tests.urls'
