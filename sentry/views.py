@@ -121,7 +121,7 @@ def index(request):
         message_list = message_list.order_by('-first_seen')
     else:
         sort = 'priority'
-        message_list = message_list.order_by('-score', '-last_seen').distinct()
+        message_list = message_list.order_by('-score', '-last_seen')
 
     
     any_filter = False
@@ -159,7 +159,7 @@ def ajax_handler(request):
             message_list = message_list.order_by('-first_seen')
         else:
             sort = 'priority'
-            message_list = message_list.order_by('-score', '-last_seen').distinct()
+            message_list = message_list.order_by('-score', '-last_seen')
         
         for filter_ in filters:
             if not filter_.is_set():
