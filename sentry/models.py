@@ -153,9 +153,9 @@ class GroupedMessage(MessageBase):
     def get_score_clause(cls):
         engine = get_db_engine()
         if engine.startswith('postgresql'):
-            return 'log(times_seen) * 60 + last_seen::abstime::int'
+            return 'log(times_seen) * 600 + last_seen::abstime::int'
         if engine.startswith('mysql'):
-            return 'log(times_seen) * 60 + unix_timestamp(last_seen)'
+            return 'log(times_seen) * 600 + unix_timestamp(last_seen)'
         return 'times_seen'
 
     def mail_admins(self, request=None, fail_silently=True):
