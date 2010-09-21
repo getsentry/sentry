@@ -256,4 +256,4 @@ class FilterValue(models.Model):
 
 # XXX: Django sucks and we can't listen to our specific app
 # post_syncdb.connect(GroupedMessage.create_sort_index, sender=__name__)
-post_syncdb.connect(GroupedMessage.create_sort_index)
+post_syncdb.connect(GroupedMessage.create_sort_index, sender=sys.modules[__name__])
