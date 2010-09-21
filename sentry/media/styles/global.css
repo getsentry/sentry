@@ -116,6 +116,7 @@ ul { margin: 1em 0 1em 2em; }
     border-top: 1px solid #fff;
     overflow: hidden;
     background: #EEEEEE;
+    min-width: 900px;
 }
 
 .container {
@@ -187,7 +188,7 @@ pre.exception_value { font-family: sans-serif; color: #666; font-size: 1.5em; ma
 
 /* message details */
 .server-list, .url-list, .logger-list, .level-list { list-style: none; margin-left: 5px; }
-.url-list li { padding-bottom: 5px; }
+.server-list li, .url-list li { padding-bottom: 5px; }
 .filter-list { margin-left: 0; text-transform: lowercase; }
 .filter-list li a { 
     display: block; padding: 10px; text-decoration: none; 
@@ -277,7 +278,7 @@ dl.flat dd {
 	border-radius: 6px;
 	padding: 4px; line-height: 19px; color: #fff; display: inline-block; margin-right: 5px;
 }
-.messages h3 { height: 20px; line-height: 20px; display: inline-block; margin: 0; }
+.messages h3 { height: 20px; line-height: 20px; display: inline-block; margin: 0; white-space: nowrap; overflow: hidden; }
 .messages h3 a { text-decoration: none; }
 .messages .message {
 	color: #666;
