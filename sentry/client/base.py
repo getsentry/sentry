@@ -127,7 +127,6 @@ class SentryClient(object):
         frames = varmap(shorten, reporter.get_traceback_frames())
 
         if not kwargs.get('view'):
-            # kudos to Tapz for this idea
             modules = get_installed_apps()
 
             def iter_tb_frames(tb):
