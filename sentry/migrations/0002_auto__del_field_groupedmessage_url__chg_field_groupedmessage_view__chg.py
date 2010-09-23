@@ -12,7 +12,7 @@ class Migration(SchemaMigration):
         db.delete_column('sentry_groupedmessage', 'url')
 
         # Changing field 'GroupedMessage.view'
-        db.alter_column('sentry_groupedmessage', 'view', self.gf('django.db.models.fields.CharField')(max_length=255, null=True, blank=True))
+        db.alter_column('sentry_groupedmessage', 'view', self.gf('django.db.models.fields.CharField')(max_length=200, null=True, blank=True))
 
         # Changing field 'Message.view'
         db.alter_column('sentry_message', 'view', self.gf('django.db.models.fields.CharField')(max_length=255, null=True, blank=True))
@@ -24,7 +24,7 @@ class Migration(SchemaMigration):
         db.add_column('sentry_groupedmessage', 'url', self.gf('django.db.models.fields.URLField')(max_length=200, null=True, blank=True), keep_default=False)
 
         # Changing field 'GroupedMessage.view'
-        db.alter_column('sentry_groupedmessage', 'view', self.gf('django.db.models.fields.CharField')(max_length=255))
+        db.alter_column('sentry_groupedmessage', 'view', self.gf('django.db.models.fields.CharField')(max_length=200))
 
         # Changing field 'Message.view'
         db.alter_column('sentry_message', 'view', self.gf('django.db.models.fields.CharField')(max_length=255))
@@ -45,7 +45,7 @@ class Migration(SchemaMigration):
             'status': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'}),
             'times_seen': ('django.db.models.fields.PositiveIntegerField', [], {'default': '1'}),
             'traceback': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
-            'view': ('django.db.models.fields.CharField', [], {'db_index': 'True', 'max_length': '255', 'null': 'True', 'blank': 'True'})
+            'view': ('django.db.models.fields.CharField', [], {'db_index': 'True', 'max_length': '200', 'null': 'True', 'blank': 'True'})
         },
         'sentry.message': {
             'Meta': {'object_name': 'Message'},
