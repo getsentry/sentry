@@ -182,12 +182,17 @@ django-sentry supports the ability to directly tie into the ``logging`` module. 
 	# Add StreamHandler to sentry's default so you can catch missed exceptions
 	logging.getLogger('sentry').addHandler(logging.StreamHandler())
 
-You can also use the ``exc_info`` and ``extra=dict(url=foo)`` arguments on your ``log`` methods. This will store the appropriate information and allow django-sentry to render it based on that information:
+You can also use the ``exc_info`` and ``extra=dict(url=foo)`` arguments on your ``log`` methods. This will store the appropriate information and allow django-sentry to render it based on that information::
 
 	logging.error('There was some crazy error', exc_info=sys.exc_info(), extra={'url': request.build_absolute_uri()})
 
-Any additional information you pass into the extra clause will also be stored as meta information with the event. As long as the key
-name is not reserved (url) and not private (_foo) it will be displayed on the Sentry dashboard.
+You may also pass additional information to be stored as meta information with the event. As long as the key
+name is not reserved and not private (_foo) it will be displayed on the Sentry dashboard. To do this, pass it as ``data`` within
+your ``extra`` clause::
+
+	logging.error('There was some crazy error', exc_info=sys.exc_info(), extra={
+	    'url': request.build_absolute_uri(),
+	    'data': {'username': request.user.username}})
 
 =====
 Usage
