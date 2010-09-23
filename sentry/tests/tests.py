@@ -228,7 +228,7 @@ class SentryTestCase(TestCase):
         try:
             Message.objects.get(id=999999989)
         except Message.DoesNotExist, exc:
-            error = get_client().create_from_exception(exc)
+            error = get_client().create_from_exception()
             self.assertTrue(error.data.get('__sentry__', {}).get('exc'))
         else:
             self.fail('Unable to create `Message` entry.')
@@ -264,7 +264,7 @@ class SentryTestCase(TestCase):
         try:
             Message.objects.get(id=999999979)
         except Message.DoesNotExist, exc:
-            get_client().create_from_exception(exc)
+            get_client().create_from_exception()
         else:
             self.fail('Unable to create `Message` entry.')
             
@@ -503,6 +503,14 @@ class SentryTestCase(TestCase):
         self.assertEquals(last.view, 'sentry.tests.views.raise_exc')
         
         settings.NAME = orig
+
+    def testExclusionViewPath(self):
+        try: Message.objects.get(pk=1341324)
+        except: get_client().create_from_exception()
+        
+        last = Message.objects.get()
+        
+        self.assertEquals(last.view, 'sentry.tests.tests.testExclusionViewPath')
 
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'

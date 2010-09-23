@@ -5,7 +5,7 @@ except ImportError:
     import pickle
 import logging
 import sys
-import traceback as traceback_mod
+import traceback
 import urllib
 import urllib2
 import warnings
@@ -16,7 +16,7 @@ from django.utils.encoding import smart_unicode
 from django.views.debug import ExceptionReporter
 
 from sentry import settings
-from sentry.helpers import construct_checksum, varmap, transform
+from sentry.helpers import construct_checksum, varmap, transform, get_installed_apps
 
 logger = logging.getLogger('sentry.errors')
 
@@ -75,7 +75,7 @@ class SentryClient(object):
             'message': record.getMessage(),
         })
         if record.exc_info:
-            return self.create_from_exception(*record.exc_info[1:2], **kwargs)
+            return self.create_from_exception(record.exc_info, **kwargs)
 
         return self.process(
             traceback=record.exc_text,
@@ -91,18 +91,13 @@ class SentryClient(object):
             **kwargs
         )
 
-    def create_from_exception(self, exception=None, traceback=None, **kwargs):
+    def create_from_exception(self, exc_info=None, **kwargs):
         """
         Creates an error log from an exception.
         """
-        if not exception:
-            exc_type, exc_value, traceback = sys.exc_info()
-        elif not traceback:
-            warnings.warn('Using just the ``exception`` argument is deprecated, send ``traceback`` in addition.', DeprecationWarning)
-            exc_type, exc_value, traceback = sys.exc_info()
-        else:
-            exc_type = exception.__class__
-            exc_value = exception
+        if not exc_info:
+            exc_info = sys.exc_info()
+        exc_type, exc_value, exc_traceback = exc_info
 
         def to_unicode(f):
             if isinstance(f, dict):
@@ -128,8 +123,24 @@ class SentryClient(object):
                 var = var[:500] + '...'
             return var
 
-        reporter = ExceptionReporter(None, exc_type, exc_value, traceback)
+        reporter = ExceptionReporter(None, exc_type, exc_value, exc_traceback)
         frames = varmap(shorten, reporter.get_traceback_frames())
+
+        if not kwargs.get('view'):
+            # kudos to Tapz for this idea
+            modules = get_installed_apps()
+
+            def iter_tb_frames(tb):
+                while tb:
+                    yield tb.tb_frame
+                    tb = tb.tb_next
+                
+            
+            for frame in iter_tb_frames(exc_traceback):
+                if frame.f_globals['__name__'].rsplit('.', 1)[0] in modules:
+                    break
+
+            kwargs['view'] = '%s.%s' % (frame.f_globals['__name__'], frame.f_code.co_name)
 
         data = kwargs.pop('data', {}) or {}
         data['__sentry__'] = {
@@ -142,7 +153,7 @@ class SentryClient(object):
                 'template': (origin.reload(), start, end, origin.name),
             })
         
-        tb_message = '\n'.join(traceback_mod.format_exception(exc_type, exc_value, traceback))
+        tb_message = '\n'.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
 
         kwargs.setdefault('message', to_unicode(exc_value))
 

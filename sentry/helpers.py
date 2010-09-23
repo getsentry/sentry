@@ -66,7 +66,7 @@ def get_installed_apps():
     """
     out = set()
     for app in settings.INSTALLED_APPS:
-        out.add(app.split('.')[0])
+        out.add(app)
     return out
 
 class _Missing(object):

@@ -223,7 +223,7 @@ You can also record errors outside of handler if you want::
 	try:
 		...
 	except Exception, exc:
-		SentryClient.create_from_exception([url=None, view=None])
+		SentryClient.create_from_exception([exc_info=None, url=None, view=None])
 
 If you wish to log normal messages (useful for non-``logging`` integration)::
 
