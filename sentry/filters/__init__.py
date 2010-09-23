@@ -26,10 +26,11 @@ class ChoiceWidget(Widget):
         column = self.filter.get_query_param()
 
         output = ['<ul class="%s-list filter-list sidebar-module">' % (self.filter.column,)]
-        output.append('<li%(active)s><a href="%(query_string)s">Any %(label)s</a></li>' % dict(
+        output.append('<li%(active)s><a href="%(query_string)s&amp;%(column)s">Any %(label)s</a></li>' % dict(
             active=not value and ' class="active"' or '',
             query_string=query_string,
             label=self.filter.label,
+            column=column,
         ))
         for key, val in choices.iteritems():
             key = unicode(key)
