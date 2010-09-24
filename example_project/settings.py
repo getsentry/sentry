@@ -117,8 +117,10 @@ SENTRY_FILTERS = (
     'sentry.filters.LoggerFilter',
     'sentry.filters.LevelFilter',
     'sentry.filters.ServerNameFilter',
+    'sentry.filters.SiteFilter',
     'example_project.filters.IPFilter',
 )
+SENTRY_SITE = 'example'
 
 try:
     import debug_toolbar
