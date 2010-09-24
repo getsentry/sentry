@@ -20,6 +20,7 @@ FILTERS = getattr(settings, 'SENTRY_FILTERS', (
     'sentry.filters.LoggerFilter',
     'sentry.filters.LevelFilter',
     'sentry.filters.ServerNameFilter',
+    'sentry.filters.SiteFilter',
 ))
 
 KEY = getattr(settings, 'SENTRY_KEY', md5_constructor(settings.SECRET_KEY).hexdigest())
@@ -56,3 +57,9 @@ else:
 CLIENT = getattr(settings, 'SENTRY_CLIENT', default_client)
 
 NAME = getattr(settings, 'SENTRY_NAME', socket.gethostname())
+
+# We allow setting the site name either by explicitly setting it with the
+# SENTRY_SITE setting, or using the django.contrib.sites framework for
+# fetching the current site. Since we can't reliably query the database
+# from this module, the specific logic is within the SiteFilter
+SITE = getattr(settings, 'SENTRY_SITE', None)

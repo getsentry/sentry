@@ -209,12 +209,21 @@ class GroupedMessage(MessageBase):
                    .values('server_name', 'times_seen')\
                    .order_by('-times_seen')
 
+    @property
+    def unique_sites(self):
+        return self.message_set.filter(site__isnull=False)\
+                   .values_list('site', 'logger', 'view', 'checksum')\
+                   .annotate(times_seen=Count('site'))\
+                   .values('site', 'times_seen')\
+                   .order_by('-times_seen')
+
 class Message(MessageBase):
     group           = models.ForeignKey(GroupedMessage, blank=True, null=True, related_name="message_set")
     datetime        = models.DateTimeField(default=datetime.datetime.now, db_index=True)
     data            = GzippedDictField(blank=True, null=True)
     url             = models.URLField(verify_exists=False, null=True, blank=True)
     server_name     = models.CharField(max_length=128, db_index=True)
+    site            = models.CharField(max_length=128, db_index=True, default='')
 
     class Meta:
         verbose_name = _('message')
@@ -268,6 +277,7 @@ class FilterValue(models.Model):
     FILTER_KEYS = (
         ('server_name', _('server name')),
         ('logger', _('logger')),
+        ('site', _('site')),
     )
     
     key = models.CharField(choices=FILTER_KEYS, max_length=32)
