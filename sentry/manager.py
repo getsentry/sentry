@@ -77,9 +77,12 @@ class SentryManager(models.Manager):
                 group=group,
                 **kwargs
             )
-            FilterValue.objects.get_or_create(key='server_name', value=server_name)
-            FilterValue.objects.get_or_create(key='site', value=site)
-            FilterValue.objects.get_or_create(key='logger', value=logger_name)
+            if server_name:
+                FilterValue.objects.get_or_create(key='server_name', value=server_name)
+            if site:
+                FilterValue.objects.get_or_create(key='site', value=site)
+            if logger_name:
+                FilterValue.objects.get_or_create(key='logger', value=logger_name)
         except Exception, exc:
             # TODO: should we mail admins when there are failures?
             try:
