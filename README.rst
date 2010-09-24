@@ -1,6 +1,6 @@
---------------
+-------------
 django-sentry
---------------
+-------------
 
 Sentry provides you with a generic interface to view and interact with your error logs. By
 default, it will catch any exception thrown by Django and store it in a database. With this
@@ -117,16 +117,16 @@ this, Sentry allows you to specify a custom client::
 
 In addition to the default client (which will handle multi-db and REMOTE_URL for you) we also include two additional options:
 
--------------------------------------
+#####################################
 sentry.client.log.LoggingSentryClient
--------------------------------------
+#####################################
 
 Pipes all Sentry errors to a named logger: ``sentry``. If you wish to use Sentry in a strictly client based logging mode
 this would be the way to do it.
 
----------------------------------------
+#######################################
 sentry.client.celery.CelerySentryClient
----------------------------------------
+#######################################
 
 Integrates with the Celery message queue (http://celeryproject.org/). To use this you will also need to add ``sentry.client.celery`` to ``INSTALLED_APPS`` for ``tasks.py`` auto discovery. You may also specify ``SENTRY_CELERY_ROUTING_KEY`` to change the task queue
 name (defaults to ``sentry``).
