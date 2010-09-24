@@ -9,7 +9,7 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         
         # Adding field 'Message.site'
-        db.add_column('sentry_message', 'site', self.gf('django.db.models.fields.CharField')(default='', max_length=128, db_index=True), keep_default=False)
+        db.add_column('sentry_message', 'site', self.gf('django.db.models.fields.CharField')(null=True, max_length=128, db_index=True), keep_default=False)
 
 
     def backwards(self, orm):
@@ -52,7 +52,7 @@ class Migration(SchemaMigration):
             'logger': ('django.db.models.fields.CharField', [], {'default': "'root'", 'max_length': '64', 'db_index': 'True', 'blank': 'True'}),
             'message': ('django.db.models.fields.TextField', [], {}),
             'server_name': ('django.db.models.fields.CharField', [], {'max_length': '128', 'db_index': 'True'}),
-            'site': ('django.db.models.fields.CharField', [], {'default': "''", 'max_length': '128', 'db_index': 'True'}),
+            'site': ('django.db.models.fields.CharField', [], {'null': 'True', 'max_length': '128', 'db_index': 'True'}),
             'traceback': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
             'url': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
             'view': ('django.db.models.fields.CharField', [], {'max_length': '255', 'null': 'True', 'blank': 'True'})

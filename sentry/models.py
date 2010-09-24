@@ -223,7 +223,7 @@ class Message(MessageBase):
     data            = GzippedDictField(blank=True, null=True)
     url             = models.URLField(verify_exists=False, null=True, blank=True)
     server_name     = models.CharField(max_length=128, db_index=True)
-    site            = models.CharField(max_length=128, db_index=True, default='')
+    site            = models.CharField(max_length=128, db_index=True, null=True)
 
     class Meta:
         verbose_name = _('message')
