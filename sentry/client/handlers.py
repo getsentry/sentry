@@ -7,6 +7,7 @@ class SentryHandler(logging.Handler):
 
         # Avoid typical config issues by overriding loggers behavior
         if record.name == 'sentry.errors':
+            print >> sys.stderr, "Recursive log message sent to SentryHandler"
             print >> sys.stderr, record.message
             return
 
