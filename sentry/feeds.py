@@ -51,6 +51,8 @@ class MessageFeed(object):
             qs = qs.filter(server_name=request.GET['server_name'])
         elif request.GET.get('logger'):
             qs = qs.filter(logger=request.GET['logger'])
+        elif request.GET.get('site'):
+            qs = qs.filter(site=request.GET['site'])
         return qs
 
     def get_order_field(self, request):

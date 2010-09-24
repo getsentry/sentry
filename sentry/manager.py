@@ -34,6 +34,7 @@ class SentryManager(models.Manager):
         logger_name = kwargs.pop('logger', 'root')
         url = kwargs.pop('url', None)
         server_name = kwargs.pop('server_name', settings.CLIENT)
+        site = kwargs.pop('site', None)
         data = kwargs.pop('data', {}) or {}
 
         if url:
@@ -71,11 +72,13 @@ class SentryManager(models.Manager):
                 data=data,
                 url=url,
                 server_name=server_name,
+                site=site,
                 checksum=checksum,
                 group=group,
                 **kwargs
             )
             FilterValue.objects.get_or_create(key='server_name', value=server_name)
+            FilterValue.objects.get_or_create(key='site', value=site)
             FilterValue.objects.get_or_create(key='logger', value=logger_name)
         except Exception, exc:
             # TODO: should we mail admins when there are failures?

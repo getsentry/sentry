@@ -487,8 +487,10 @@ class SentryTestCase(TestCase):
         settings.MIDDLEWARE_CLASSES = orig
 
     def testSettingName(self):
-        orig = settings.NAME
+        orig_name = settings.NAME
+        orig_site = settings.SITE
         settings.NAME = 'foo'
+        settings.SITE = 'bar'
         
         self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
 
@@ -500,9 +502,11 @@ class SentryTestCase(TestCase):
         self.assertEquals(last.level, logging.ERROR)
         self.assertEquals(last.message, 'view exception')
         self.assertEquals(last.server_name, 'foo')
+        self.assertEquals(last.site, 'bar')
         self.assertEquals(last.view, 'sentry.tests.views.raise_exc')
         
-        settings.NAME = orig
+        settings.NAME = orig_name
+        settings.SITE = orig_site
 
     def testExclusionViewPath(self):
         try: Message.objects.get(pk=1341324)
@@ -625,7 +629,7 @@ class RemoteSentryTest(TestCase):
         self.assertEquals(resp.content, 'Bad data')
 
     def testCorrectData(self):
-        kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40}
+        kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
         resp = self.client.post(reverse('sentry-store'), {
             'data': base64.b64encode(pickle.dumps(transform(kwargs)).encode('zlib')),
             'key': settings.KEY,
@@ -635,9 +639,10 @@ class RemoteSentryTest(TestCase):
         self.assertEquals(instance.message, 'hello')
         self.assertEquals(instance.server_name, 'not_dcramer.local')
         self.assertEquals(instance.level, 40)
+        self.assertEquals(instance.site, 'not_a_real_site')
 
     def testUngzippedData(self):
-        kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40}
+        kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
         resp = self.client.post(reverse('sentry-store'), {
             'data': base64.b64encode(pickle.dumps(transform(kwargs))),
             'key': settings.KEY,
@@ -646,12 +651,16 @@ class RemoteSentryTest(TestCase):
         instance = Message.objects.get()
         self.assertEquals(instance.message, 'hello')
         self.assertEquals(instance.server_name, 'not_dcramer.local')
+        self.assertEquals(instance.site, 'not_a_real_site')
         self.assertEquals(instance.level, 40)
 
     def testByteSequence(self):
         """
         invalid byte sequence for encoding "UTF8": 0xedb7af
         """
+        # TODO:
+        # add 'site' to data in fixtures/bad_data.json, then assert it's set correctly below
+
         fname = os.path.join(os.path.dirname(__file__), 'fixtures/bad_data.json')
         data = open(fname).read()
         

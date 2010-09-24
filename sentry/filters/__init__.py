@@ -1,8 +1,9 @@
 # Widget api is pretty ugly
+from django.conf import settings as django_settings
 from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 
-from sentry.settings import LOG_LEVELS
+from sentry import settings
 
 class Widget(object):
     def __init__(self, filter, request):
@@ -118,9 +119,31 @@ class ServerNameFilter(SentryFilter):
     def get_query_set(self, queryset):
         return queryset.filter(message_set__server_name=self.get_value()).distinct()
 
+class SiteFilter(SentryFilter):
+    label = 'Site'
+    column = 'site'
+
+    def process(self, data):
+        if 'site' in data:
+            return data
+        if settings.SITE is None:
+            if 'django.contrib.sites' in django_settings.INSTALLED_APPS:
+                from django.contrib.sites.models import Site
+                try:
+                    settings.SITE = Site.objects.get_current().name
+                except Site.DoesNotExist:
+                    settings.SITE = ''
+            else:
+                settings.SITE = ''
+        data['site'] = settings.SITE
+        return data
+
+    def get_query_set(self, queryset):
+        return queryset.filter(message_set__site=self.get_value()).distinct()
+
 class LevelFilter(SentryFilter):
     label = 'Level'
     column = 'level'
     
     def get_choices(self):
-        return SortedDict((str(k), v) for k, v in LOG_LEVELS)
+        return SortedDict((str(k), v) for k, v in settings.LOG_LEVELS)

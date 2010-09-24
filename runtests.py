@@ -17,6 +17,7 @@ if not settings.configured:
             'django.contrib.auth',
             'django.contrib.admin',
             'django.contrib.sessions',
+            'django.contrib.sites',
 
             # Included to fix Disqus' test Django which solves IntegrityMessage case
             'django.contrib.contenttypes',
@@ -31,6 +32,7 @@ if not settings.configured:
         ],
         ROOT_URLCONF='',
         DEBUG=False,
+        SITE_ID=1,
     )
 
 from django.test.simple import run_tests
