@@ -1,4 +1,3 @@
-from django.contrib.sites.models import Site
 from sentry.client.base import SentryClient
 from sentry.client.celery import tasks
 
