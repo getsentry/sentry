@@ -835,6 +835,25 @@ class SentryClientTest(TestCase):
         self.assertEquals(_foo[''].levelno, client.default_level)
         self.assertEquals(_foo[''].class_name, 'Exception')
 
+    def test_celery_client(self):
+        from sentry.client.base import SentryClient
+        from sentry.client.celery import CelerySentryClient
+        self.assertEquals(get_client().__class__, SentryClient)
+        self.assertEquals(get_client(), get_client())
+
+        settings.CLIENT = 'sentry.client.celery.CelerySentryClient'
+
+        self.assertEquals(get_client().__class__, CelerySentryClient)
+        self.assertEquals(get_client(), get_client())
+
+        self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
+
+        message = GroupedMessage.objects.get()
+        self.assertEqual(message.class_name, 'Exception')
+        self.assertEqual(message.message, 'view exception')
+
+        settings.CLIENT = 'sentry.client.base.SentryClient'
+        
 class SentryManageTest(TestCase):
     fixtures = ['sentry/tests/fixtures/cleanup.json']
     

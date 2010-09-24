@@ -24,8 +24,12 @@ if not settings.configured:
 
             'sentry',
             'sentry.client',
+            'sentry.client.celery',
             'paging',
             'indexer',
+            
+            # celery client
+            'djcelery',
 
             # No fucking idea why I have to do this
             'sentry.tests',
@@ -33,7 +37,15 @@ if not settings.configured:
         ROOT_URLCONF='',
         DEBUG=False,
         SITE_ID=1,
+        BROKER_HOST="localhost",
+        BROKER_PORT=5672,
+        BROKER_USER="guest",
+        BROKER_PASSWORD="guest",
+        BROKER_VHOST="/",
+        CELERY_ALWAYS_EAGER=True,
     )
+    import djcelery
+    djcelery.setup_loader()
 
 from django.test.simple import run_tests
 

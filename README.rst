@@ -107,6 +107,31 @@ Other configuration options
 Several options exist to configure django-sentry via your ``settings.py``:
 
 #############
+SENTRY_CLIENT
+#############
+
+In some situations you may wish for a slightly different behavior to how Sentry communicates with your server. For
+this, Sentry allows you to specify a custom client::
+
+	SENTRY_CLIENT = 'sentry.client.base.SentryClient'
+
+In addition to the default client (which will handle multi-db and REMOTE_URL for you) we also include two additional options:
+
+-------------------------------------
+sentry.client.log.LoggingSentryClient
+-------------------------------------
+
+Pipes all Sentry errors to a named logger: ``sentry``. If you wish to use Sentry in a strictly client based logging mode
+this would be the way to do it.
+
+---------------------------------------
+sentry.client.celery.CelerySentryClient
+---------------------------------------
+
+Integrates with the Celery message queue (http://celeryproject.org/). To use this you will also need to add ``sentry.client.celery`` to ``INSTALLED_APPS`` for ``tasks.py`` auto discovery. You may also specify ``SENTRY_CELERY_ROUTING_KEY`` to change the task queue
+name (defaults to ``sentry``).
+
+#############
 SENTRY_ADMINS
 #############
 
@@ -253,4 +278,3 @@ Notes
 
 * sentry-client will automatically integrate with django-idmapper.
 * sentry-client supports South migrations.
-* The fact that the admin shows large quantities of results, even if there aren't, is not a bug. This is an efficiency hack on top of Django.
