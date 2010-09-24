@@ -1,6 +1,14 @@
 from django import template
 from django.utils import simplejson
 
+from sentry.helpers import get_db_engine
+
+import datetime
+try:
+    from pygooglechart import SimpleLineChart
+except ImportError:
+    SimpleLineChart = None
+
 register = template.Library()
 
 def is_dict(value):
@@ -34,3 +42,34 @@ with_priority = register.filter(with_priority)
 def num_digits(value):
     return len(str(value))
 num_digits = register.filter(num_digits)
+
+def can_chart(group):
+    engine = get_db_engine()
+    return SimpleLineChart and not engine.startswith('sqlite')
+can_chart = register.filter(can_chart)
+
+def chart_url(group):
+    today = datetime.datetime.now()
+
+    chart_qs = group.message_set.all()\
+                      .filter(datetime__gte=today - datetime.timedelta(hours=24))\
+                      .extra(select={'hour': 'extract(hour from datetime)'}).values('hour')\
+                      .annotate(num=Count('id')).values_list('hour', 'num')
+
+    rows = dict(chart_qs)
+    if rows:
+        max_y = max(rows.values())
+    else:
+        max_y = 1
+
+    chart = SimpleLineChart(300, 80, y_range=[0, max_y])
+    chart.add_data([max_y]*30)
+    chart.add_data([rows.get((today-datetime.timedelta(hours=d)).hour, 0) for d in range(0, 24)][::-1])
+    chart.add_data([0]*30)
+    chart.fill_solid(chart.BACKGROUND, 'eeeeee')
+    chart.add_fill_range('eeeeee', 0, 1)
+    chart.add_fill_range('e0ebff', 1, 2)
+    chart.set_colours(['eeeeee', '999999', 'eeeeee'])
+    chart.set_line_style(1, 1)
+    return chart.get_url()
+chart_url = register.filter(chart_url)

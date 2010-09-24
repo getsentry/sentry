@@ -12,6 +12,7 @@ import warnings
 from django.conf import settings as dj_settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models, transaction
+from django.db.models import Count
 from django.db.models.signals import post_syncdb
 from django.http import Http404
 from django.utils.encoding import smart_unicode
@@ -191,6 +192,22 @@ class GroupedMessage(MessageBase):
         send_mail(dj_settings.EMAIL_SUBJECT_PREFIX + subject, body,
                   dj_settings.SERVER_EMAIL, settings.ADMINS,
                   fail_silently=fail_silently)
+    
+    @property
+    def unique_urls(self):
+        return self.message_set.filter(url__isnull=False)\
+                   .values_list('url', 'logger', 'view', 'checksum')\
+                   .annotate(times_seen=Count('url'))\
+                   .values('url', 'times_seen')\
+                   .order_by('-times_seen')
+
+    @property
+    def unique_servers(self):
+        return self.message_set.filter(server_name__isnull=False)\
+                   .values_list('server_name', 'logger', 'view', 'checksum')\
+                   .annotate(times_seen=Count('server_name'))\
+                   .values('server_name', 'times_seen')\
+                   .order_by('-times_seen')
 
 class Message(MessageBase):
     group           = models.ForeignKey(GroupedMessage, blank=True, null=True, related_name="message_set")

@@ -30,6 +30,8 @@ urlpatterns = patterns('',
     url(r'^group/(\d+)$', views.group, name='sentry-group'),
     url(r'^group/(\d+)/messages$', views.group_message_list, name='sentry-group-messages'),
     url(r'^group/(\d+)/messages/(\d+)$', views.group_message_details, name='sentry-group-message'),
+    url(r'^group/(\d+)/urls$', views.group_urls, name='sentry-group-urls'),
+    url(r'^group/(\d+)/servers$', views.group_servers, name='sentry-group-servers'),
 
     url(r'^$', views.index, name='sentry'),
 )

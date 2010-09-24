@@ -8,11 +8,6 @@ from math import log
 import logging
 import zlib
 
-try:
-    from pygooglechart import SimpleLineChart
-except ImportError:
-    SimpleLineChart = None
-
 from django.conf import settings as dj_settings
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
@@ -27,7 +22,6 @@ from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
 from sentry import settings
-from sentry.helpers import get_db_engine
 from sentry.models import GroupedMessage, Message
 from sentry.templatetags.sentry_helpers import with_priority
 from sentry.reporter import ImprovedExceptionReporter
@@ -221,10 +215,6 @@ def group(request, group_id):
     elif group.traceback:
         traceback = mark_safe('<pre>%s</pre>' % (group.traceback,))
     
-    unique_urls = message_list.filter(url__isnull=False).values_list('url', 'logger', 'view', 'checksum').annotate(times_seen=Count('url')).values('url', 'times_seen').order_by('-times_seen')
-    
-    unique_servers = message_list.filter(server_name__isnull=False).values_list('server_name', 'logger', 'view', 'checksum').annotate(times_seen=Count('server_name')).values('server_name', 'times_seen').order_by('-times_seen')
-
     def iter_data(obj):
         for k, v in obj.data.iteritems():
             if k.startswith('_') or k in ['url']:
@@ -233,32 +223,6 @@ def group(request, group_id):
     
     json_data = iter_data(obj)
     
-    # TODO: this should be a template tag
-    engine = get_db_engine()
-    if SimpleLineChart and not engine.startswith('sqlite'):
-        today = datetime.datetime.now()
-
-        chart_qs = message_list\
-                          .filter(datetime__gte=today - datetime.timedelta(hours=24))\
-                          .extra(select={'hour': 'extract(hour from datetime)'}).values('hour')\
-                          .annotate(num=Count('id')).values_list('hour', 'num')
-
-        rows = dict(chart_qs)
-        if rows:
-            max_y = max(rows.values())
-        else:
-            max_y = 1
-
-        chart = SimpleLineChart(300, 80, y_range=[0, max_y])
-        chart.add_data([max_y]*30)
-        chart.add_data([rows.get((today-datetime.timedelta(hours=d)).hour, 0) for d in range(0, 24)][::-1])
-        chart.add_data([0]*30)
-        chart.fill_solid(chart.BACKGROUND, 'eeeeee')
-        chart.add_fill_range('eeeeee', 0, 1)
-        chart.add_fill_range('e0ebff', 1, 2)
-        chart.set_colours(['eeeeee', '999999', 'eeeeee'])
-        chart.set_line_style(1, 1)
-        chart_url = chart.get_url()
     
     return render_to_response('sentry/group/details.html', locals())
 
@@ -267,36 +231,6 @@ def group_message_list(request, group_id):
     group = get_object_or_404(GroupedMessage, pk=group_id)
 
     message_list = group.message_set.all().order_by('-datetime')
-    
-    unique_urls = message_list.filter(url__isnull=False).values_list('url', 'logger', 'view', 'checksum').annotate(times_seen=Count('url')).values('url', 'times_seen').order_by('-times_seen')
-    
-    unique_servers = message_list.filter(server_name__isnull=False).values_list('server_name', 'logger', 'view', 'checksum').annotate(times_seen=Count('server_name')).values('server_name', 'times_seen').order_by('-times_seen')
-    
-    engine = get_db_engine()
-    if SimpleLineChart and not engine.startswith('sqlite'):
-        today = datetime.datetime.now()
-
-        chart_qs = message_list\
-                          .filter(datetime__gte=today - datetime.timedelta(hours=24))\
-                          .extra(select={'hour': 'extract(hour from datetime)'}).values('hour')\
-                          .annotate(num=Count('id')).values_list('hour', 'num')
-
-        rows = dict(chart_qs)
-        if rows:
-            max_y = max(rows.values())
-        else:
-            max_y = 1
-
-        chart = SimpleLineChart(300, 80, y_range=[0, max_y])
-        chart.add_data([max_y]*30)
-        chart.add_data([rows.get((today-datetime.timedelta(hours=d)).hour, 0) for d in range(0, 24)][::-1])
-        chart.add_data([0]*30)
-        chart.fill_solid(chart.BACKGROUND, 'eeeeee')
-        chart.add_fill_range('eeeeee', 0, 1)
-        chart.add_fill_range('e0ebff', 1, 2)
-        chart.set_colours(['eeeeee', '999999', 'eeeeee'])
-        chart.set_line_style(1, 1)
-        chart_url = chart.get_url()
     
     page = 'messages'
     
@@ -309,10 +243,6 @@ def group_message_details(request, group_id, message_id):
     message_list = group.message_set.all()
 
     message = get_object_or_404(group.message_set, pk=message_id)
-    
-    unique_urls = message_list.filter(url__isnull=False).values_list('url', 'logger', 'view', 'checksum').annotate(times_seen=Count('url')).values('url', 'times_seen').order_by('-times_seen')
-    
-    unique_servers = message_list.filter(server_name__isnull=False).values_list('server_name', 'logger', 'view', 'checksum').annotate(times_seen=Count('server_name')).values('server_name', 'times_seen').order_by('-times_seen')
     
     if '__sentry__' in message.data:
         module, args, frames = message.data['__sentry__']['exc']
@@ -336,35 +266,25 @@ def group_message_details(request, group_id, message_id):
     
     json_data = iter_data(message)
     
-    engine = get_db_engine()
-    if SimpleLineChart and not engine.startswith('sqlite'):
-        today = datetime.datetime.now()
-
-        chart_qs = message_list\
-                          .filter(datetime__gte=today - datetime.timedelta(hours=24))\
-                          .extra(select={'hour': 'extract(hour from datetime)'}).values('hour')\
-                          .annotate(num=Count('id')).values_list('hour', 'num')
-
-        rows = dict(chart_qs)
-        if rows:
-            max_y = max(rows.values())
-        else:
-            max_y = 1
-
-        chart = SimpleLineChart(300, 80, y_range=[0, max_y])
-        chart.add_data([max_y]*30)
-        chart.add_data([rows.get((today-datetime.timedelta(hours=d)).hour, 0) for d in range(0, 24)][::-1])
-        chart.add_data([0]*30)
-        chart.fill_solid(chart.BACKGROUND, 'eeeeee')
-        chart.add_fill_range('eeeeee', 0, 1)
-        chart.add_fill_range('e0ebff', 1, 2)
-        chart.set_colours(['eeeeee', '999999', 'eeeeee'])
-        chart.set_line_style(1, 1)
-        chart_url = chart.get_url()
-    
     page = 'messages'
     
     return render_to_response('sentry/group/message.html', locals())
+
+@login_required
+def group_urls(request, group_id):
+    group = get_object_or_404(GroupedMessage, pk=group_id)
+
+    page = 'urls'
+    
+    return render_to_response('sentry/group/url_list.html', locals())
+
+@login_required
+def group_servers(request, group_id):
+    group = get_object_or_404(GroupedMessage, pk=group_id)
+
+    page = 'servers'
+    
+    return render_to_response('sentry/group/server_list.html', locals())
 
 @csrf_exempt
 def store(request):

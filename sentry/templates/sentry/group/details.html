@@ -9,10 +9,10 @@
 {% block content %}
 	<div id="sidebar">
 		<a href="{% url sentry %}">&laquo; back to list</a>
-		{% if chart_url %}
+		{% if group|can_chart %}
 			<h2>Last 24 Hours</h2>
 
-			<img src="{{ chart_url }}" class="chart" alt="chart"/>
+			<img src="{{ group|chart_url }}" class="chart" alt="chart"/>
 		{% endif %}
 	
 		<h2>Meta</h2>
@@ -26,25 +26,29 @@
 			<dd>{{ group.get_status_display|title }}</dd>
 		</dl>
 
-		{% if unique_servers %}
-			<h2>Servers</h2>
+		{% with group.unique_servers|slice:"10" as unique_servers %}
+			{% if unique_servers %}
+				<h2>Servers <a href="{% url sentry-group-servers group.pk %}" class="morelink">&raquo;</a></h2>
 
-			<ul class="server-list">
-				{% for server, priority in unique_servers|with_priority:"times_seen" %}
-					<li class="priority-{{ priority }}"><span class="count">{{ server.times_seen }}</span> {{ server.server_name }}</li>
-				{% endfor %}
-			</ul>
-		{% endif %}
+				<ul class="server-list">
+					{% for server, priority in unique_servers|with_priority:"times_seen" %}
+						<li class="priority-{{ priority }}"><span class="count">{{ server.times_seen }}</span> {{ server.server_name }}</li>
+					{% endfor %}
+				</ul>
+			{% endif %}
+		{% endwith %}
 
-		{% if unique_urls %}
-			<h2>URLs</h2>
+		{% with group.unique_urls|slice:"10" as unique_urls %}
+			{% if unique_urls %}
+				<h2>URLs <a href="{% url sentry-group-urls group.pk %}" class="morelink">&raquo;</a></h2>
 
-			<ul class="url-list">
-				{% for link, priority in unique_urls|with_priority:"times_seen" %}
-					<li class="priority-{{ priority }}"><span class="count">{{ link.times_seen }}</span> <a href="{{ link.url }}">{{ link.url }}</a></li>
-				{% endfor %}
-			</ul>
-		{% endif %}
+				<ul class="url-list">
+					{% for link, priority in unique_urls|with_priority:"times_seen" %}
+						<li class="priority-{{ priority }}"><span class="count">{{ link.times_seen }}</span> <a href="{{ link.url }}">{{ link.url }}</a></li>
+					{% endfor %}
+				</ul>
+			{% endif %}
+		{% endwith %}
 	</div>
 
 	<div id="body" class="with-sidebar">
@@ -64,6 +68,8 @@
 		<ul class="nav" id="group_nav">
 			<li{% if not page %} class="active"{% endif %}><a href="{% url sentry-group group.pk %}">Details</a></li>
 			<li{% ifequal page 'messages' %} class="active"{% endifequal %}><a href="{% url sentry-group-messages group.pk %}">Messages</a></li>
+			<li{% ifequal page 'urls' %} class="active"{% endifequal %}><a href="{% url sentry-group-urls group.pk %}">URLs</a></li>
+			<li{% ifequal page 'servers' %} class="active"{% endifequal %}><a href="{% url sentry-group-servers group.pk %}">Servers</a></li>
 		</ul>
 		
 		{% block inner %}

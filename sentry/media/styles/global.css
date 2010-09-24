@@ -526,3 +526,4 @@ pre {
 #group_nav .active a {
     background: #ddd;
 }
+h2 .morelink { text-decoration: none; }
