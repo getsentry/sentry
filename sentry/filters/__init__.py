@@ -135,7 +135,8 @@ class SiteFilter(SentryFilter):
                     settings.SITE = ''
             else:
                 settings.SITE = ''
-        data['site'] = settings.SITE
+        if settings.SITE:
+            data['site'] = settings.SITE
         return data
 
     def get_query_set(self, queryset):
