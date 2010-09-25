@@ -425,8 +425,8 @@ class SentryTestCase(TestCase):
     def testViewException(self):
         self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
         
-        self.assertEquals(Message.objects.count(), 1)
         self.assertEquals(GroupedMessage.objects.count(), 1)
+        self.assertEquals(Message.objects.count(), 1)
         last = Message.objects.get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.class_name, 'Exception')
@@ -538,6 +538,13 @@ class SentryTestCase(TestCase):
         self.assertEquals(last.view, 'sentry.tests.views.raise_exc')
         
         settings.EXCLUDE_PATHS = []
+
+    def testVaryingMessages(self):
+        self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc') + '?message=foo')
+        self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc') + '?message=bar')
+        self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc') + '?message=gra')
+
+        self.assertEquals(GroupedMessage.objects.count(), 1)
 
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'

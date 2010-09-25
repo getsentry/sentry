@@ -43,6 +43,7 @@ if not settings.configured:
         BROKER_PASSWORD="guest",
         BROKER_VHOST="/",
         CELERY_ALWAYS_EAGER=True,
+        SENTRY_THRASHING_LIMIT=0,
     )
     import djcelery
     djcelery.setup_loader()
