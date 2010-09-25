@@ -63,3 +63,7 @@ NAME = getattr(settings, 'SENTRY_NAME', socket.gethostname())
 # fetching the current site. Since we can't reliably query the database
 # from this module, the specific logic is within the SiteFilter
 SITE = getattr(settings, 'SENTRY_SITE', None)
+
+# Extending this allow you to ignore module prefixes when we attempt to
+# discover which function an error comes from (typically a view)
+EXCLUDE_PATHS = getattr(settings, 'SENTRY_EXCLUDE_PATHS', [])

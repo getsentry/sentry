@@ -138,12 +138,25 @@ class SentryClient(object):
                     yield tb.tb_frame
                     tb = tb.tb_next
                 
-            
+            # We iterate through each frame looking for an app in INSTALLED_APPS
+            # When one is found, we mark it as last "best guess" (_frame) and then
+            # check it against SENTRY_EXCLUDE_PATHS. If it isnt listed, then we
+            # use this option. If nothing is found, we use the "best guess".
+            _view = None
             for frame in iter_tb_frames(exc_traceback):
+                view = '.'.join([frame.f_globals['__name__'], frame.f_code.co_name])
                 if frame.f_globals['__name__'].rsplit('.', 1)[0] in modules:
-                    break
-
-            kwargs['view'] = '%s.%s' % (frame.f_globals['__name__'], frame.f_code.co_name)
+                    _view = view
+                    bail = True
+                    for m in settings.EXCLUDE_PATHS:
+                        if view.startswith(m):
+                            bail = False
+                    if bail:
+                        break
+            if _view:
+                view = _view
+            
+            kwargs['view'] = view
 
         data = kwargs.pop('data', {}) or {}
         data['__sentry__'] = {

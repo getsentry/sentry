@@ -516,6 +516,29 @@ class SentryTestCase(TestCase):
         
         self.assertEquals(last.view, 'sentry.tests.tests.testExclusionViewPath')
 
+    def testBestGuessView(self):
+        settings.EXCLUDE_PATHS = ['sentry.tests.tests']
+        
+        try: Message.objects.get(pk=1341324)
+        except: get_client().create_from_exception()
+        
+        last = Message.objects.get()
+        
+        self.assertEquals(last.view, 'sentry.tests.tests.testBestGuessView')
+        
+        settings.EXCLUDE_PATHS = []
+
+    def testExcludeModulesView(self):
+        settings.EXCLUDE_PATHS = ['sentry.tests.views.decorated_raise_exc']
+        
+        self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc-decor'))
+        
+        last = Message.objects.get()
+        
+        self.assertEquals(last.view, 'sentry.tests.views.raise_exc')
+        
+        settings.EXCLUDE_PATHS = []
+
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'
     fixtures = ['sentry/tests/fixtures/views.json']

@@ -35,8 +35,6 @@ try:
 except ImportError:
     Model = models.Model
 
-logger = logging.getLogger('sentry')
-
 __all__ = ('Message', 'GroupedMessage')
 
 STATUS_LEVELS = (
@@ -144,12 +142,15 @@ class GroupedMessage(MessageBase):
         if cls not in created_models:
             return
 
-        from django.db import connections
+        from django.db import connections, transaction
         
-        cursor = connections[db].cursor()
-        cursor.execute("create index sentry_groupedmessage_score on sentry_groupedmessage ((%s))" % (cls.get_score_clause(),))
-        cursor.close()
-
+        try:
+            cursor = connections[db].cursor()
+            cursor.execute("create index sentry_groupedmessage_score on sentry_groupedmessage ((%s))" % (cls.get_score_clause(),))
+            cursor.close()
+        except:
+            transaction.rollback()
+        
     @classmethod
     def get_score_clause(cls):
         engine = get_db_engine()

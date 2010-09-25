@@ -295,7 +295,6 @@ def store(request):
     data = request.POST.get('data')
     if not data:
         return HttpResponseForbidden('Missing data')
-    
     try:
         try:
             data = pickle.loads(base64.b64decode(data).decode('zlib'))
