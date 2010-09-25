@@ -131,12 +131,21 @@ class SentryClient(object):
         frames = varmap(shorten, reporter.get_traceback_frames())
 
         if not kwargs.get('view'):
+            # This should be cached
             modules = get_installed_apps()
+            if settings.INCLUDE_PATHS:
+                modules = set(list(modules) + settings.INCLUDE_PATHS)
 
             def iter_tb_frames(tb):
                 while tb:
                     yield tb.tb_frame
                     tb = tb.tb_next
+            
+            def contains(iterator, value):
+                for k in iterator:
+                    if value.startswith(k):
+                        return True
+                return False
                 
             # We iterate through each frame looking for an app in INSTALLED_APPS
             # When one is found, we mark it as last "best guess" (best_guess) and then
@@ -145,12 +154,8 @@ class SentryClient(object):
             best_guess = None
             for frame in iter_tb_frames(exc_traceback):
                 view = '.'.join([frame.f_globals['__name__'], frame.f_code.co_name])
-                if frame.f_globals['__name__'].rsplit('.', 1)[0] in modules:
-                    save = True
-                    for m in settings.EXCLUDE_PATHS:
-                        if view.startswith(m):
-                            save = False
-                    if save or not best_guess:
+                if contains(modules, view):
+                    if not (contains(settings.EXCLUDE_PATHS, view) and best_guess):
                         best_guess = view
                 elif best_guess:
                     break

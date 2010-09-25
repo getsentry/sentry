@@ -67,3 +67,7 @@ SITE = getattr(settings, 'SENTRY_SITE', None)
 # Extending this allow you to ignore module prefixes when we attempt to
 # discover which function an error comes from (typically a view)
 EXCLUDE_PATHS = getattr(settings, 'SENTRY_EXCLUDE_PATHS', [])
+
+# By default Sentry only looks at modules in INSTALLED_APPS for drilling down
+# where an exception is located
+INCLUDE_PATHS = getattr(settings, 'SENTRY_INCLUDE_PATHS', [])

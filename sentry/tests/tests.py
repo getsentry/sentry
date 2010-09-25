@@ -546,6 +546,17 @@ class SentryTestCase(TestCase):
 
         self.assertEquals(GroupedMessage.objects.count(), 1)
 
+    def testIncludeModules(self):
+        settings.INCLUDE_PATHS = ['django.shortcuts.get_object_or_404']
+        
+        self.assertRaises(Exception, self.client.get, reverse('sentry-django-exc'))
+        
+        last = Message.objects.get()
+        
+        self.assertEquals(last.view, 'django.shortcuts.get_object_or_404')
+        
+        settings.INCLUDE_PATHS = []
+
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'
     fixtures = ['sentry/tests/fixtures/views.json']
