@@ -47,7 +47,7 @@ class SentryClient(object):
         if settings.REMOTE_URL:
             for url in settings.REMOTE_URL:
                 data = {
-                    'data': base64.b64encode(pickle.dumps(transform(kwargs)).encode('zlib')),
+                    'data': base64.b64encode(pickle.dumps(kwargs).encode('zlib')),
                     'key': settings.KEY,
                 }
                 req = urllib2.Request(url, urllib.urlencode(data))
