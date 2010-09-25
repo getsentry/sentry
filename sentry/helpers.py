@@ -52,13 +52,17 @@ def varmap(func, var):
         return func(var)
 
 def transform(value):
+    # TODO: make this extendable
+    # TODO: include some sane defaults, like UUID
     if isinstance(value, (tuple, list)):
         return [transform(o) for o in value]
     elif isinstance(value, dict):
         return dict((k, transform(v)) for k, v in value.iteritems())
     elif not isinstance(value, (int, bool, basestring)) and value is not None:
         return unicode(value)
-    return value
+    else:
+        # return the type of the object since we cant guarantee we're able to pickle it
+        return type(value)
 
 def get_installed_apps():
     """
