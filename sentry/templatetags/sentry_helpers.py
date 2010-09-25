@@ -1,4 +1,5 @@
 from django import template
+from django.db.models import Count
 from django.utils import simplejson
 
 from sentry.helpers import get_db_engine
