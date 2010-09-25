@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 
 if 'djcelery' not in settings.INSTALLED_APPS:
     raise ImproperlyConfigured("Put 'djcelery' in your "
