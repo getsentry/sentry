@@ -24,9 +24,6 @@ class SentryClient(object):
     def process(self, **kwargs):
         from sentry.helpers import get_filters
 
-        for filter_ in get_filters():
-            kwargs = filter_(None).process(kwargs) or kwargs
-
         kwargs.setdefault('level', logging.ERROR)
         kwargs.setdefault('server_name', settings.NAME)
 
@@ -37,6 +34,9 @@ class SentryClient(object):
             added = cache.add(cache_key, 1, settings.THRASHING_TIMEOUT)
             if not added and cache.incr(cache_key) > settings.THRASHING_LIMIT:
                 return
+
+        for filter_ in get_filters():
+            kwargs = filter_(None).process(kwargs) or kwargs
 
         return self.send(**kwargs)
 

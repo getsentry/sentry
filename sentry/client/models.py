@@ -9,7 +9,7 @@ from django.http import Http404
 from sentry import settings
 from sentry.client.base import SentryClient
 
-logger = logging.getLogger('sentry')
+logger = logging.getLogger('sentry.errors')
 
 _client = (None, None)
 def get_client():

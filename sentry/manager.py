@@ -13,7 +13,7 @@ from sentry.helpers import construct_checksum, transform, varmap
 
 assert not settings.DATABASE_USING or django.VERSION >= (1, 2), 'The `SENTRY_DATABASE_USING` setting requires Django >= 1.2'
 
-logger = logging.getLogger('sentry')
+logger = logging.getLogger('sentry.errors')
 
 class SentryManager(models.Manager):
     use_for_related_fields = True
