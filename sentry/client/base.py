@@ -37,6 +37,9 @@ class SentryClient(object):
 
         for filter_ in get_filters():
             kwargs = filter_(None).process(kwargs) or kwargs
+        
+        # Make sure all additional data is coerced
+        kwargs['data'] = transform(kwargs['data'])
 
         return self.send(**kwargs)
 
@@ -119,8 +122,8 @@ class SentryClient(object):
         def shorten(var):
             if not isinstance(var, basestring):
                 var = to_unicode(var)
-            if len(var) > 500:
-                var = var[:500] + '...'
+            if len(var) > 200:
+                var = var[:200] + '...'
             return var
 
         reporter = ExceptionReporter(None, exc_type, exc_value, exc_traceback)
