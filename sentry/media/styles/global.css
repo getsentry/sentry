@@ -1,9 +1,9 @@
 /* http://www.positioniseverything.net/easyclearing.html */
 .clearfix:after {
-    content: "."; 
-    display: block; 
-    height: 0; 
-    clear: both; 
+    content: ".";
+    display: block;
+    height: 0;
+    clear: both;
     visibility: hidden;
 }
 .clearfix {display: inline-block;}
@@ -97,10 +97,10 @@ ul { margin: 1em 0 1em 2em; }
 }
 #header table { border:none; background:transparent; }
 #body, #sidebar { position: relative; }
-#body { 
-    background: #fff; 
-    max-width: 100%; 
-    overflow: hidden; 
+#body {
+    background: #fff;
+    max-width: 100%;
+    overflow: hidden;
     margin: 2em;
     border-radius: 10px;
     -moz-border-radius: 10px;
@@ -124,14 +124,14 @@ ul { margin: 1em 0 1em 2em; }
     margin: 0 auto;
 }
 
-#sidebar { 
-    float: right; 
-    width: 300px; 
-    margin: 0em 2em 2em 1.5em; 
+#sidebar {
+    float: right;
+    width: 300px;
+    margin: 0em 2em 2em 1.5em;
     background: inherit;
     overflow: hidden;
     }
-    
+
 .sidebar-module {
     background: rgba(0,0,0, .03);
     -moz-border-radius: 10px;
@@ -173,7 +173,7 @@ div.commands a { color:black; text-decoration:none; }
 #summary table { border:none; background:transparent; }
 #requestinfo h2, #requestinfo h3 { position:relative; margin-left:-100px; }
 #requestinfo h3 { margin-bottom:-1em; }
-#reporter_body { 
+#reporter_body {
 	padding: 8px;
 	background: none repeat scroll 0 0 #FFFFCC
 }
@@ -190,15 +190,15 @@ pre.exception_value { font-family: sans-serif; color: #666; font-size: 1.5em; ma
 .server-list, .url-list, .logger-list, .level-list { list-style: none; margin-left: 5px; }
 .server-list li, .url-list li { padding-bottom: 5px; }
 .filter-list { margin-left: 0; text-transform: lowercase; }
-.filter-list li a { 
-    display: block; padding: 10px; text-decoration: none; 
+.filter-list li a {
+    display: block; padding: 10px; text-decoration: none;
     border-bottom: 1px solid rgba(0,0,0, .05);
     -moz-box-shadow: 0 1px 0 rgba(255,255,255, .3);
      -webkit-box-shadow: 0 1px 0 rgba(255,255,255, .3);
     font-weight: bold;
     color: #666;
     }
-    
+
 .filter-list li:last-child a {
     border-bottom: none;
 }
@@ -207,12 +207,12 @@ pre.exception_value { font-family: sans-serif; color: #666; font-size: 1.5em; ma
     background: rgba(131,136,142, .10);
     -moz-box-shadow: inset 0 1px 0 rgba(0,0,0, .1);
     -webkit-box-shadow: inset 0 1px 0 rgba(0,0,0, .1);
-} 
-.filter-list li.active a { 
+}
+.filter-list li.active a {
     background: #3079d0;
     color: #fff;
     text-shadow: 0 -1px 0 #3079d0;
-    border-top: 1px solid rgba(0,0,0, .2); 
+    border-top: 1px solid rgba(0,0,0, .2);
     border-bottom: 1px solid rgba(0,0,0, .2);
     -moz-box-shadow: inset 0 0 1px #22579b, 0 1px 0 #fff;
     -webkit-box-shadow: inset 0 0 1px #22579b, 0 1px 0 #fff;
@@ -221,7 +221,7 @@ pre.exception_value { font-family: sans-serif; color: #666; font-size: 1.5em; ma
 	background: -moz-linear-gradient(top,  #4da2e5,  #3079d0); /* for firefox 3.6+ */
     }
 
-.filter-list li:first-child.active a { 
+.filter-list li:first-child.active a {
     -moz-box-shadow: inset 0 1px 1px rgba(0,0,0, .30);
     -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0, .30);
     }
@@ -240,7 +240,7 @@ pre.exception_value { font-family: sans-serif; color: #666; font-size: 1.5em; ma
     -moz-box-shadow: none;
 }
 
-.filter-list li:first-child:last-child.active a { 
+.filter-list li:first-child:last-child.active a {
     -moz-box-shadow: inset 1px 1px 1px rgba(0,0,0, .30);
     -webkit-box-shadow: inset 1px 1px 1px rgba(0,0,0, .30);
     }
@@ -288,7 +288,7 @@ dl.flat dd {
 
 .messages .tag { display: inline-block; padding: 2px 5px; background: #d5d5d5; margin-right: 5px;}
 .messages .traceback { display: none; }
-.messages li { padding: 8px; position: relative; padding-right: 50px;}
+.messages li { padding: 8px; position: relative; padding-right: 50px; overflow: hidden;}
 .messages .row1 { background: #f9f9f9; }
 .messages .hidden {
 	position: absolute;
@@ -321,7 +321,7 @@ dl.flat dd {
 	border-radius: 6px;
     filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFF', endColorstr='#DCDCDC'); /* for IE */
 	background: -webkit-gradient(linear, left top, left bottom, from(#FFF), to(#DCDCDC)); /* for webkit browsers */
-    background:-moz-linear-gradient(center top , #FFFFFF 0pt, #DCDCDC 100%) repeat scroll 0 0 transparent;    
+    background:-moz-linear-gradient(center top , #FFFFFF 0pt, #DCDCDC 100%) repeat scroll 0 0 transparent;
 }
 
 .button:hover {
@@ -420,7 +420,7 @@ pre {
 	border-radius: 6px;
     filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFF', endColorstr='#DCDCDC'); /* for IE */
 	background: -webkit-gradient(linear, left top, left bottom, from(#FFF), to(#DCDCDC)); /* for webkit browsers */
-    background:-moz-linear-gradient(center top , #FFFFFF 0pt, #DCDCDC 100%) repeat scroll 0 0 transparent;    
+    background:-moz-linear-gradient(center top , #FFFFFF 0pt, #DCDCDC 100%) repeat scroll 0 0 transparent;
 }
 
 .paging-endless li a,
@@ -438,7 +438,7 @@ pre {
 	border-radius: 6px;
     filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFF', endColorstr='#DCDCDC'); /* for IE */
 	background: -webkit-gradient(linear, left top, left bottom, from(#FFF), to(#DCDCDC)); /* for webkit browsers */
-    background:-moz-linear-gradient(center top , #FFFFFF 0pt, #DCDCDC 100%) repeat scroll 0 0 transparent;    
+    background:-moz-linear-gradient(center top , #FFFFFF 0pt, #DCDCDC 100%) repeat scroll 0 0 transparent;
 }
 
 .paging-endless li a:hover,
