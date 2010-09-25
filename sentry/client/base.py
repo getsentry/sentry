@@ -39,7 +39,8 @@ class SentryClient(object):
             kwargs = filter_(None).process(kwargs) or kwargs
         
         # Make sure all additional data is coerced
-        kwargs['data'] = transform(kwargs['data'])
+        if 'data' in kwargs:
+            kwargs['data'] = transform(kwargs['data'])
 
         return self.send(**kwargs)
 

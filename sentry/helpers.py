@@ -59,10 +59,8 @@ def transform(value):
     elif isinstance(value, dict):
         return dict((k, transform(v)) for k, v in value.iteritems())
     elif not isinstance(value, (int, bool, basestring)) and value is not None:
-        return unicode(value)
-    else:
-        # return the type of the object since we cant guarantee we're able to pickle it
-        return type(value)
+        return unicode(type(value))
+    return value
 
 def get_installed_apps():
     """
