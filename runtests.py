@@ -44,6 +44,7 @@ if not settings.configured:
         BROKER_VHOST="/",
         CELERY_ALWAYS_EAGER=True,
         SENTRY_THRASHING_LIMIT=0,
+        TEMPLATE_DEBUG=True,
     )
     import djcelery
     djcelery.setup_loader()

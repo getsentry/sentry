@@ -8,5 +8,6 @@ urlpatterns = patterns('',
     url(r'^trigger-500$', 'sentry.tests.views.raise_exc', name='sentry-raise-exc'),
     url(r'^trigger-500-decorated$', 'sentry.tests.views.decorated_raise_exc', name='sentry-raise-exc-decor'),
     url(r'^trigger-500-django$', 'sentry.tests.views.django_exc', name='sentry-django-exc'),
+    url(r'^trigger-500-template$', 'sentry.tests.views.template_exc', name='sentry-template-exc'),
     url(r'', include('sentry.urls')),
 )

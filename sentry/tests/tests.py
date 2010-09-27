@@ -19,6 +19,7 @@ from django.core.signals import got_request_exception
 from django.core.servers import basehttp
 from django.test.client import Client
 from django.test import TestCase
+from django.template import TemplateSyntaxError
 from django.utils.encoding import smart_unicode
 from django.utils import simplejson
 
@@ -556,6 +557,13 @@ class SentryTestCase(TestCase):
         self.assertEquals(last.view, 'django.shortcuts.get_object_or_404')
         
         settings.INCLUDE_PATHS = []
+
+    def testTemplateNameAsView(self):
+        self.assertRaises(TemplateSyntaxError, self.client.get, reverse('sentry-template-exc'))
+        
+        last = Message.objects.get()
+        
+        self.assertEquals(last.view, 'sentry-tests/error.html')
 
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'

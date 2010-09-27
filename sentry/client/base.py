@@ -174,6 +174,7 @@ class SentryClient(object):
             data['__sentry__'].update({
                 'template': (origin.reload(), start, end, origin.name),
             })
+            kwargs['view'] = origin.loadname
         
         tb_message = '\n'.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
 
