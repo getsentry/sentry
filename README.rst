@@ -60,6 +60,9 @@ Once installed, update your settings.py and add ``sentry``, ``sentry.client``, `
 	    ...
 	)
 
+We also highly recommend setting ``TEMPLATE_DEBUG=True`` in your environment (not to be confused with ``DEBUG``). This will allow
+Sentry to receive template debug information when it hits a syntax error.
+
 Finally, run ``python manage.py syncdb`` to create the database tables.
 
 (If you use South, you'll need to use ``python manage.py migrate sentry``)
