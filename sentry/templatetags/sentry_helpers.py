@@ -74,3 +74,8 @@ def chart_url(group):
     chart.set_line_style(1, 1)
     return chart.get_url()
 chart_url = register.filter(chart_url)
+
+def sentry_version():
+    import sentry
+    return '.'.join(map(str, sentry.__version__))
+sentry_version = register.simple_tag(sentry_version)
