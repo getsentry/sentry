@@ -7,34 +7,10 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        
-        # Removing index on 'Message', fields ['checksum']
-        db.delete_index('sentry_message', ['checksum'])
-
-        # Removing index on 'Message', fields ['view']
-        db.delete_index('sentry_message', ['view'])
-
-        # Removing index on 'GroupedMessage', fields ['checksum']
-        db.delete_index('sentry_groupedmessage', ['checksum'])
-
-        # Removing index on 'GroupedMessage', fields ['view']
-        db.delete_index('sentry_groupedmessage', ['view'])
-
+        pass
 
     def backwards(self, orm):
-        
-        # Adding index on 'GroupedMessage', fields ['view']
-        db.create_index('sentry_groupedmessage', ['view'])
-
-        # Adding index on 'GroupedMessage', fields ['checksum']
-        db.create_index('sentry_groupedmessage', ['checksum'])
-
-        # Adding index on 'Message', fields ['view']
-        db.create_index('sentry_message', ['view'])
-
-        # Adding index on 'Message', fields ['checksum']
-        db.create_index('sentry_message', ['checksum'])
-
+        pass
 
     models = {
         'sentry.filtervalue': {
