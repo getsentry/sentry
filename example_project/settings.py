@@ -100,6 +100,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'sentry',
     'sentry.client',
+    'sentry.plugins.redmine',
     'paging',
     'south',
     'indexer',

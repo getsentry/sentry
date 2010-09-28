@@ -13,7 +13,7 @@ from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.db.models import Count
 from django.http import HttpResponse, HttpResponseBadRequest, \
-    HttpResponseForbidden, HttpResponseRedirect
+    HttpResponseForbidden, HttpResponseRedirect, Http404
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template.loader import render_to_string
 from django.utils import simplejson
@@ -23,6 +23,7 @@ from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
 from sentry import settings
 from sentry.models import GroupedMessage, Message
+from sentry.plugins import GroupActionProvider
 from sentry.templatetags.sentry_helpers import with_priority
 from sentry.reporter import ImprovedExceptionReporter
 
@@ -81,7 +82,7 @@ def login(request):
     
     context = locals()
     context.update(csrf(request))
-    return render_to_response('sentry/login.html', locals(), )
+    return render_to_response('sentry/login.html', locals())
 
 def logout(request):
     from django.contrib.auth import logout
@@ -306,3 +307,16 @@ def store(request):
     GroupedMessage.objects.from_kwargs(**data)
     
     return HttpResponse()
+
+@login_required
+def group_plugin_action(request, group_id, slug):
+    group = get_object_or_404(GroupedMessage, pk=group_id)
+    
+    try:
+        cls = GroupActionProvider.plugins[slug]
+    except KeyError:
+        raise Http404('Plugin not found')
+    response = cls(group_id)(request, group)
+    if response:
+        return response
+    return HttpResponseRedirect(request.META['HTTP_REFERER'])

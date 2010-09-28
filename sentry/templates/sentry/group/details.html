@@ -8,7 +8,12 @@
 
 {% block content %}
 	<div id="sidebar">
-		<a href="{% url sentry %}">&laquo; back to list</a>
+		<ul class="actions">
+			<li><a href="{% url sentry %}">&laquo; back to list</a></li>
+			{% for link, label in group|get_actions %}
+				<li><a href="{{ link }}">{{ label }}</a></li>
+			{% endfor %}
+		</ul>
 		{% if group|can_chart %}
 			<h2>Last 24 Hours</h2>
 

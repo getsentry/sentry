@@ -3,6 +3,7 @@ from django.db.models import Count
 from django.utils import simplejson
 
 from sentry.helpers import get_db_engine
+from sentry.plugins import GroupActionProvider
 
 import datetime
 try:
@@ -79,3 +80,9 @@ def sentry_version():
     import sentry
     return '.'.join(map(str, sentry.__version__))
 sentry_version = register.simple_tag(sentry_version)
+
+def get_actions(group):
+    for cls in GroupActionProvider.plugins.itervalues():
+        action = cls(group.pk)
+        yield action.url, action.title
+get_actions = register.filter(get_actions)
