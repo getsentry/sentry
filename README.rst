@@ -254,14 +254,14 @@ You can also record errors outside of handler if you want::
 	try:
 		...
 	except Exception, exc:
-		SentryClient.create_from_exception([exc_info=None, url=None, view=None])
+		SentryClient().create_from_exception([exc_info=None, url=None, view=None])
 
 If you wish to log normal messages (useful for non-``logging`` integration)::
 
 	from sentry.client.base import SentryClient
 	import logging
 	
-	SentryClient.create_from_text('Message Message'[, level=logging.WARNING, url=None])
+	SentryClient().create_from_text('Message Message'[, level=logging.WARNING, url=None])
 
 Both the ``url`` and ``level`` parameters are optional. ``level`` should be one of the following:
 
