@@ -71,3 +71,6 @@ EXCLUDE_PATHS = getattr(settings, 'SENTRY_EXCLUDE_PATHS', [])
 # By default Sentry only looks at modules in INSTALLED_APPS for drilling down
 # where an exception is located
 INCLUDE_PATHS = getattr(settings, 'SENTRY_INCLUDE_PATHS', [])
+
+# Absolute URL to the sentry root directory. Should not include a trailing slash.
+URL_PREFIX = getattr(settings, 'SENTRY_URL_PREFIX', None)

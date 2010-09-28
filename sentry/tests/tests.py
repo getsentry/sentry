@@ -819,6 +819,16 @@ class SentryMailTest(TestCase):
         self.assertTrue("<Request" in out.body)
         self.assertEquals(out.subject, '[Django] Error (EXTERNAL IP): /trigger-500')
 
+    def test_url_prefix(self):
+        settings.URL_PREFIX = 'http://example.com'
+
+        group = GroupedMessage.objects.get()
+        group.mail_admins(fail_silently=False)
+
+        out = mail.outbox[0]
+
+        self.assertTrue('http://example.com/group/2' in out.body, out.body)
+
 class SentryHelpersTest(TestCase):
     def test_get_db_engine(self):
         from django.conf import settings

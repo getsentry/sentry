@@ -128,7 +128,7 @@ class GroupedMessage(MessageBase):
 
     @models.permalink
     def get_absolute_url(self):
-        return ('sentry-group', (self.pk), {})
+        return ('sentry-group', (self.pk,), {})
 
     def natural_key(self):
         return (self.logger, self.view, self.checksum)
@@ -180,7 +180,7 @@ class GroupedMessage(MessageBase):
         if request:
             link = request.build_absolute_url(self.get_absolute_url())
         else:
-            link = None
+            link = '%s%s' % (settings.URL_PREFIX, self.get_absolute_url())
 
         body = render_to_string('sentry/emails/error.txt', {
             'request_repr': request_repr,

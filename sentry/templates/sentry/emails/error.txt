@@ -1,5 +1,6 @@
 {% autoescape off %}{% if link %}
 View in detail: {{ link }}
+
 {% endif %}{% if traceback %}{{ traceback }}
 
 {% endif %}{% if request_repr %}{{ request_repr }}{% endif %}{% endautoescape %}
