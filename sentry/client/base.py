@@ -54,7 +54,12 @@ class SentryClient(object):
                 req = urllib2.Request(url, urllib.urlencode(data))
 
                 try:
-                    response = urllib2.urlopen(req, None, settings.REMOTE_TIMEOUT).read()
+                    try:
+                        # this should work in python 2.6 and above
+                        response = urllib2.urlopen(req, None, settings.REMOTE_TIMEOUT).read()
+                    except TypeError:
+                        # fallback for python 2.5
+                        response = urllib2.urlopen(req, None).read()
                 except urllib2.URLError, e:
                     logger.error('Unable to reach Sentry log server: %s' % (e,), exc_info=sys.exc_info(), extra={'remote_url': url})
                     logger.log(kwargs.pop('level', None) or logging.ERROR, kwargs.pop('message', None))

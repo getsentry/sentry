@@ -95,7 +95,7 @@ And on each of your application servers, specify the URL of the Sentry server, a
 	
 	SENTRY_KEY = '0123456789abcde'
 
-You may also specify an alternative timeout to the default (which is 5 seconds) for all outgoing logging requests::
+You may also specify an alternative timeout to the default (which is 5 seconds) for all outgoing logging requests (only works with python 2.6 and above)::
 
 	SENTRY_REMOTE_TIMEOUT = 5
 
