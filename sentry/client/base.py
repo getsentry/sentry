@@ -6,7 +6,6 @@ except ImportError:
 import logging
 import sys
 import traceback
-import urllib
 import urllib2
 import warnings
 
@@ -16,7 +15,7 @@ from django.utils.encoding import smart_unicode
 from django.views.debug import ExceptionReporter
 
 from sentry import settings
-from sentry.helpers import construct_checksum, varmap, transform, get_installed_apps
+from sentry.helpers import construct_checksum, varmap, transform, get_installed_apps, urlread
 
 logger = logging.getLogger('sentry.errors')
 
@@ -51,10 +50,8 @@ class SentryClient(object):
                     'data': base64.b64encode(pickle.dumps(kwargs).encode('zlib')),
                     'key': settings.KEY,
                 }
-                req = urllib2.Request(url, urllib.urlencode(data))
-
                 try:
-                    response = urllib2.urlopen(req, None, settings.REMOTE_TIMEOUT).read()
+                    response = urlread(url, GET=data, timeout=settings.REMOTE_TIMEOUT)
                 except urllib2.URLError, e:
                     logger.error('Unable to reach Sentry log server: %s' % (e,), exc_info=sys.exc_info(), extra={'remote_url': url})
                     logger.log(kwargs.pop('level', None) or logging.ERROR, kwargs.pop('message', None))

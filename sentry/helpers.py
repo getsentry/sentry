@@ -1,4 +1,6 @@
 import logging
+import urllib
+import urllib2
 
 import django
 from django.conf import settings
@@ -136,3 +138,8 @@ class cached_property(object):
             value = self.func(obj)
             obj.__dict__[self.__name__] = value
         return value
+
+def urlread(url, GET={}, POST={}, timeout=None):
+    req = urllib2.Request(url, urllib.urlencode(GET))
+    response = urllib2.urlopen(req, urllib.urlencode(POST), timeout).read()
+    return response
