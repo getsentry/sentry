@@ -147,16 +147,6 @@ removing the ``ADMINS`` setting in Django, and adding in ``SENTRY_ADMINS``::
 This will send out a notification the first time an error is seen, and the first time an error is
 seen after it has been resolved.
 
-#######################
-SENTRY_CATCH_404_ERRORS
-#######################
-
-Enable catching of 404 errors in the logs. Default value is ``False``::
-
-	SENTRY_CATCH_404_ERRORS = True
-
-You can skip other custom exception types by adding a ``skip_sentry = True`` attribute to them.
-
 #####################
 SENTRY_DATABASE_USING
 #####################

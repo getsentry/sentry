@@ -8,8 +8,6 @@ import socket
 # Allow local testing of Sentry even if DEBUG is enabled
 DEBUG = getattr(settings, 'DEBUG', False) and not getattr(settings, 'SENTRY_TESTING', False)
 
-CATCH_404_ERRORS = getattr(settings, 'SENTRY_CATCH_404_ERRORS', False)
-
 DATABASE_USING = getattr(settings, 'SENTRY_DATABASE_USING', None)
 
 THRASHING_TIMEOUT = getattr(settings, 'SENTRY_THRASHING_TIMEOUT', 60)

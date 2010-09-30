@@ -24,10 +24,6 @@ def sentry_exception_handler(sender, request=None, **kwargs):
     try:
         exc_type, exc_value, exc_traceback = sys.exc_info()
 
-        if not conf.CATCH_404_ERRORS \
-                and issubclass(exc_type, Http404):
-            return
-
         if conf.DEBUG or getattr(exc_type, 'skip_sentry', False):
             return
 
