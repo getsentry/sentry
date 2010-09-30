@@ -8,7 +8,6 @@ from math import log
 import logging
 import zlib
 
-from django.conf import settings
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.db.models import Count
