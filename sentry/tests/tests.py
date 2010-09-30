@@ -86,29 +86,11 @@ def conditional_on_module(module):
         return inner
     return wrapped
 
-class RequestFactory(Client):
-    # Used to generate request objects.
-    def request(self, **request):
-        environ = {
-            'HTTP_COOKIE': self.cookies,
-            'PATH_INFO': '/',
-            'QUERY_STRING': '',
-            'REQUEST_METHOD': 'GET',
-            'SCRIPT_NAME': '',
-            'SERVER_NAME': 'testserver',
-            'SERVER_PORT': 80,
-            'SERVER_PROTOCOL': 'HTTP/1.1',
-        }
-        environ.update(self.defaults)
-        environ.update(request)
-        return WSGIRequest(environ)
- 
-RF = RequestFactory()
-
 class SentryTestCase(TestCase):
     urls = 'sentry.tests.urls'
 
     def setUp(self):
+        self._middleware = settings.MIDDLEWARE_CLASSES
         self._handlers = None
         self._level = None
         self.logger = logging.getLogger('sentry')
@@ -118,6 +100,7 @@ class SentryTestCase(TestCase):
 
     def tearDown(self):
         self.tearDownHandler()
+        settings.MIDDLEWARE_CLASSES = self._middleware
         
     def setUpHandler(self):
         self.tearDownHandler()
@@ -201,30 +184,9 @@ class SentryTestCase(TestCase):
             self.assertEquals(last.class_name, 'ValueError')
             self.assertEquals(last.message, 'This is a test info with an exception')
             self.assertTrue(last.data.get('__sentry__', {}).get('exc'))
-    
-        self.tearDownHandler()
-    
-    def testMiddleware(self):
-        Message.objects.all().delete()
-        GroupedMessage.objects.all().delete()
-        
-        request = RF.get("/", REMOTE_ADDR="127.0.0.1:8000")
 
-        try:
-            Message.objects.get(id=999999999)
-        except Message.DoesNotExist, exc:
-            sentry_exception_handler(request=request, sender=self)
-        else:
-            self.fail('Unable to create `Message` entry.')
-        
-        self.assertEquals(Message.objects.count(), 1)
-        self.assertEquals(GroupedMessage.objects.count(), 1)
-        last = Message.objects.get()
-        self.assertEquals(last.logger, 'root')
-        self.assertEquals(last.class_name, 'DoesNotExist')
-        self.assertEquals(last.level, logging.ERROR)
-        self.assertEquals(last.message, smart_unicode(exc))
-        
+        self.tearDownHandler()
+
     def testAPI(self):
         try:
             Message.objects.get(id=999999989)
@@ -350,12 +312,10 @@ class SentryTestCase(TestCase):
         self.assertEquals(Message.objects.count(), conf.THRASHING_LIMIT)
     
     def testSignals(self):
-        request = RF.get("/", REMOTE_ADDR="127.0.0.1:8000")
-
         try:
             Message.objects.get(id=999999999)
         except Message.DoesNotExist, exc:
-            got_request_exception.send(sender=self.__class__, request=request)
+            got_request_exception.send(sender=self.__class__, request=None)
         else:
             self.fail('Expected an exception.')
             
