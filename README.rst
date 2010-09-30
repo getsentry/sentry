@@ -95,7 +95,7 @@ And on each of your application servers, specify the URL of the Sentry server, a
 	
 	SENTRY_KEY = '0123456789abcde'
 
-You may also specify an alternative timeout to the default (which is 5 seconds) for all outgoing logging requests::
+You may also specify an alternative timeout to the default (which is 5 seconds) for all outgoing logging requests (only works with python 2.6 and above)::
 
 	SENTRY_REMOTE_TIMEOUT = 5
 
@@ -244,14 +244,14 @@ You can also record errors outside of handler if you want::
 	try:
 		...
 	except Exception, exc:
-		SentryClient.create_from_exception([exc_info=None, url=None, view=None])
+		SentryClient().create_from_exception([exc_info=None, url=None, view=None])
 
 If you wish to log normal messages (useful for non-``logging`` integration)::
 
 	from sentry.client.base import SentryClient
 	import logging
 	
-	SentryClient.create_from_text('Message Message'[, level=logging.WARNING, url=None])
+	SentryClient().create_from_text('Message Message'[, level=logging.WARNING, url=None])
 
 Both the ``url`` and ``level`` parameters are optional. ``level`` should be one of the following:
 
