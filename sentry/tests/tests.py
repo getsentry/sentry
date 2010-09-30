@@ -187,6 +187,20 @@ class SentryTestCase(TestCase):
 
         self.tearDownHandler()
 
+    # def test404Middleware(self):
+    #     settings.MIDDLEWARE_CLASSES = settings.MIDDLEWARE_CLASSES + ('sentry.client.middleware.Sentry404CatchMiddleware',)
+    #     
+    #     response = self.client.get("/404/this-page-does-not-exist", REMOTE_ADDR="127.0.0.1:8000")
+    #     self.assertTemplateUsed(response, '404.html')
+    #     
+    #     self.assertEquals(Message.objects.count(), 1)
+    #     self.assertEquals(GroupedMessage.objects.count(), 1)
+    #     last = Message.objects.get()
+    #     self.assertEquals(last.logger, 'root')
+    #     self.assertEquals(last.class_name, 'Http404')
+    #     self.assertEquals(last.level, logging.ERROR)
+    #     self.assertEquals(last.message, 'foo')
+
     def testAPI(self):
         try:
             Message.objects.get(id=999999989)
