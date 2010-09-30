@@ -5,3 +5,4 @@
 *.log
 pip-log.txt
 .DS_Store
+/example_project/local_settings.py

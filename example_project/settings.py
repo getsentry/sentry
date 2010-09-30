@@ -135,3 +135,9 @@ else:
     MIDDLEWARE_CLASSES = MIDDLEWARE_CLASSES + (
         'debug_toolbar.middleware.DebugToolbarMiddleware',
     )
+
+try:
+    from local_settings import *
+except ImportError, e:
+    print e
+    pass
