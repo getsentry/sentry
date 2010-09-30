@@ -3,7 +3,7 @@ import os
 from django.conf import settings
 from django.conf.urls.defaults import *
 
-from sentry.settings import KEY
+from sentry.conf import KEY
 from sentry import views
 from sentry.feeds import MessageFeed, SummaryFeed
 

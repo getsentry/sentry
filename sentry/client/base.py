@@ -14,7 +14,7 @@ from django.template import TemplateSyntaxError
 from django.utils.encoding import smart_unicode
 from django.views.debug import ExceptionReporter
 
-from sentry import settings
+from sentry import conf
 from sentry.helpers import construct_checksum, varmap, transform, get_installed_apps, urlread
 
 logger = logging.getLogger('sentry.errors')
@@ -24,14 +24,14 @@ class SentryClient(object):
         from sentry.helpers import get_filters
 
         kwargs.setdefault('level', logging.ERROR)
-        kwargs.setdefault('server_name', settings.NAME)
+        kwargs.setdefault('server_name', conf.NAME)
 
         checksum = construct_checksum(**kwargs)
 
-        if settings.THRASHING_TIMEOUT and settings.THRASHING_LIMIT:
+        if conf.THRASHING_TIMEOUT and conf.THRASHING_LIMIT:
             cache_key = 'sentry:%s:%s' % (kwargs.get('class_name'), checksum)
-            added = cache.add(cache_key, 1, settings.THRASHING_TIMEOUT)
-            if not added and cache.incr(cache_key) > settings.THRASHING_LIMIT:
+            added = cache.add(cache_key, 1, conf.THRASHING_TIMEOUT)
+            if not added and cache.incr(cache_key) > conf.THRASHING_LIMIT:
                 return
 
         for filter_ in get_filters():
@@ -44,14 +44,14 @@ class SentryClient(object):
         return self.send(**kwargs)
 
     def send(self, **kwargs):
-        if settings.REMOTE_URL:
-            for url in settings.REMOTE_URL:
+        if conf.REMOTE_URL:
+            for url in conf.REMOTE_URL:
                 data = {
                     'data': base64.b64encode(pickle.dumps(kwargs).encode('zlib')),
-                    'key': settings.KEY,
+                    'key': conf.KEY,
                 }
                 try:
-                    response = urlread(url, GET=data, timeout=settings.REMOTE_TIMEOUT)
+                    response = urlread(url, GET=data, timeout=conf.REMOTE_TIMEOUT)
                 except urllib2.URLError, e:
                     logger.error('Unable to reach Sentry log server: %s' % (e,), exc_info=sys.exc_info(), extra={'remote_url': url})
                     logger.log(kwargs.pop('level', None) or logging.ERROR, kwargs.pop('message', None))
@@ -130,8 +130,8 @@ class SentryClient(object):
         if not kwargs.get('view'):
             # This should be cached
             modules = get_installed_apps()
-            if settings.INCLUDE_PATHS:
-                modules = set(list(modules) + settings.INCLUDE_PATHS)
+            if conf.INCLUDE_PATHS:
+                modules = set(list(modules) + conf.INCLUDE_PATHS)
 
             def iter_tb_frames(tb):
                 while tb:
@@ -152,7 +152,7 @@ class SentryClient(object):
             for frame in iter_tb_frames(exc_traceback):
                 view = '.'.join([frame.f_globals['__name__'], frame.f_code.co_name])
                 if contains(modules, view):
-                    if not (contains(settings.EXCLUDE_PATHS, view) and best_guess):
+                    if not (contains(conf.EXCLUDE_PATHS, view) and best_guess):
                         best_guess = view
                 elif best_guess:
                     break

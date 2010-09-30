@@ -6,15 +6,16 @@ import django
 from django.conf import settings
 from django.utils.hashcompat import md5_constructor
 
+from sentry import conf
+
 _FILTER_CACHE = None
 def get_filters():
     global _FILTER_CACHE
     
     if _FILTER_CACHE is None:
-        from sentry import settings
         
         filters = []
-        for filter_ in settings.FILTERS:
+        for filter_ in conf.FILTERS:
             module_name, class_name = filter_.rsplit('.', 1)
             try:
                 module = __import__(module_name, {}, {}, class_name)

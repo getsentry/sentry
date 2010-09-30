@@ -9,7 +9,7 @@ import sys
 import traceback
 import warnings
 
-from django.conf import settings as dj_settings
+from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models, transaction
 from django.db.models import Count
@@ -18,7 +18,7 @@ from django.http import Http404
 from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
-from sentry import settings
+from sentry import conf
 from sentry.client.base import SentryClient
 from sentry.helpers import cached_property, construct_checksum, get_db_engine, get_installed_apps, transform
 from sentry.manager import GroupedMessageManager, SentryManager
@@ -26,7 +26,7 @@ from sentry.reporter import FakeRequest
 
 _reqs = ('paging', 'indexer')
 for r in _reqs:
-    if r not in dj_settings.INSTALLED_APPS:
+    if r not in settings.INSTALLED_APPS:
         raise ImproperlyConfigured("Put '%s' in your "
             "INSTALLED_APPS setting in order to use the sentry application." % r)
 
@@ -74,7 +74,7 @@ class GzippedDictField(models.TextField):
 class MessageBase(Model):
     logger          = models.CharField(max_length=64, blank=True, default='root', db_index=True)
     class_name      = models.CharField(_('type'), max_length=128, blank=True, null=True, db_index=True)
-    level           = models.PositiveIntegerField(choices=settings.LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
+    level           = models.PositiveIntegerField(choices=conf.LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
     message         = models.TextField()
     traceback       = models.TextField(blank=True, null=True)
     view            = models.CharField(max_length=255, blank=True, null=True)
@@ -161,7 +161,7 @@ class GroupedMessage(MessageBase):
         return 'times_seen'
 
     def mail_admins(self, request=None, fail_silently=True):
-        if not settings.ADMINS:
+        if not conf.ADMINS:
             return
         
         from django.core.mail import send_mail
@@ -171,7 +171,7 @@ class GroupedMessage(MessageBase):
 
         obj_request = message.request
 
-        subject = 'Error (%s IP): %s' % ((obj_request.META.get('REMOTE_ADDR') in dj_settings.INTERNAL_IPS and 'internal' or 'EXTERNAL'), obj_request.path)
+        subject = 'Error (%s IP): %s' % ((obj_request.META.get('REMOTE_ADDR') in settings.INTERNAL_IPS and 'internal' or 'EXTERNAL'), obj_request.path)
         try:
             request_repr = repr(obj_request)
         except:
@@ -180,7 +180,7 @@ class GroupedMessage(MessageBase):
         if request:
             link = request.build_absolute_url(self.get_absolute_url())
         else:
-            link = '%s%s' % (settings.URL_PREFIX, self.get_absolute_url())
+            link = '%s%s' % (conf.URL_PREFIX, self.get_absolute_url())
 
         body = render_to_string('sentry/emails/error.txt', {
             'request_repr': request_repr,
@@ -190,8 +190,8 @@ class GroupedMessage(MessageBase):
             'link': link,
         })
         
-        send_mail(dj_settings.EMAIL_SUBJECT_PREFIX + subject, body,
-                  dj_settings.SERVER_EMAIL, settings.ADMINS,
+        send_mail(settings.EMAIL_SUBJECT_PREFIX + subject, body,
+                  settings.SERVER_EMAIL, conf.ADMINS,
                   fail_silently=fail_silently)
     
     @property

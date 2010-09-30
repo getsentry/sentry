@@ -71,7 +71,7 @@
 		</ul>
 
 		<ul class="nav" id="group_nav">
-			<li{% if not page %} class="active"{% endif %}><a href="{% url sentry-group group.pk %}">Details</a></li>
+			<li{% ifequal page 'details' %} class="active"{% endifequal %}><a href="{% url sentry-group group.pk %}">Details</a></li>
 			<li{% ifequal page 'messages' %} class="active"{% endifequal %}><a href="{% url sentry-group-messages group.pk %}">Messages</a></li>
 			<li{% ifequal page 'urls' %} class="active"{% endifequal %}><a href="{% url sentry-group-urls group.pk %}">URLs</a></li>
 			<li{% ifequal page 'servers' %} class="active"{% endifequal %}><a href="{% url sentry-group-servers group.pk %}">Servers</a></li>

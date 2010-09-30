@@ -8,10 +8,10 @@ from django.db.models import signals
 from django.template import TemplateSyntaxError
 from django.views.debug import ExceptionReporter
 
-from sentry import settings
+from sentry import conf
 from sentry.helpers import construct_checksum, transform, varmap
 
-assert not settings.DATABASE_USING or django.VERSION >= (1, 2), 'The `SENTRY_DATABASE_USING` setting requires Django >= 1.2'
+assert not conf.DATABASE_USING or django.VERSION >= (1, 2), 'The `SENTRY_DATABASE_USING` setting requires Django >= 1.2'
 
 logger = logging.getLogger('sentry.errors')
 
@@ -20,8 +20,8 @@ class SentryManager(models.Manager):
 
     def get_query_set(self):
         qs = super(SentryManager, self).get_query_set()
-        if settings.DATABASE_USING:
-            qs = qs.using(settings.DATABASE_USING)
+        if conf.DATABASE_USING:
+            qs = qs.using(conf.DATABASE_USING)
         return qs
 
     def from_kwargs(self, **kwargs):
@@ -33,7 +33,7 @@ class SentryManager(models.Manager):
         view = kwargs.pop('view', None)
         logger_name = kwargs.pop('logger', 'root')
         url = kwargs.pop('url', None)
-        server_name = kwargs.pop('server_name', settings.CLIENT)
+        server_name = kwargs.pop('server_name', conf.CLIENT)
         site = kwargs.pop('site', None)
         data = kwargs.pop('data', {}) or {}
 

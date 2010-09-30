@@ -6,7 +6,7 @@ from django.core.signals import got_request_exception
 from django.db import  transaction
 from django.http import Http404
 
-from sentry import settings
+from sentry import conf
 from sentry.client.base import SentryClient
 
 logger = logging.getLogger('sentry.errors')
@@ -14,9 +14,9 @@ logger = logging.getLogger('sentry.errors')
 _client = (None, None)
 def get_client():
     global _client
-    if _client[0] != settings.CLIENT:
-        module, class_name = settings.CLIENT.rsplit('.', 1)
-        _client = (settings.CLIENT, getattr(__import__(module, {}, {}, class_name), class_name)())
+    if _client[0] != conf.CLIENT:
+        module, class_name = conf.CLIENT.rsplit('.', 1)
+        _client = (conf.CLIENT, getattr(__import__(module, {}, {}, class_name), class_name)())
     return _client[1]
 client = get_client()
 
@@ -25,11 +25,11 @@ def sentry_exception_handler(sender, request=None, **kwargs):
     try:
         exc_type, exc_value, exc_traceback = sys.exc_info()
 
-        if not settings.CATCH_404_ERRORS \
+        if not conf.CATCH_404_ERRORS \
                 and issubclass(exc_type, Http404):
             return
 
-        if settings.DEBUG or getattr(exc_type, 'skip_sentry', False):
+        if conf.DEBUG or getattr(exc_type, 'skip_sentry', False):
             return
 
         if transaction.is_dirty():

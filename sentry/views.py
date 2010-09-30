@@ -8,7 +8,7 @@ from math import log
 import logging
 import zlib
 
-from django.conf import settings as dj_settings
+from django.conf import settings
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.db.models import Count
@@ -21,7 +21,7 @@ from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
-from sentry import settings
+from sentry import conf
 from sentry.models import GroupedMessage, Message
 from sentry.plugins import GroupActionProvider
 from sentry.templatetags.sentry_helpers import with_priority
@@ -34,10 +34,8 @@ def get_filters():
     global _FILTER_CACHE
     
     if _FILTER_CACHE is None:
-        from sentry import settings
-        
         filters = []
-        for filter_ in settings.FILTERS:
+        for filter_ in conf.FILTERS:
             module_name, class_name = filter_.rsplit('.', 1)
             try:
                 module = __import__(module_name, {}, {}, class_name)
@@ -224,6 +222,7 @@ def group(request, group_id):
     
     json_data = iter_data(obj)
     
+    page = 'details'
     
     return render_to_response('sentry/group/details.html', locals())
 
@@ -290,7 +289,7 @@ def group_servers(request, group_id):
 @csrf_exempt
 def store(request):
     key = request.POST.get('key')
-    if key != settings.KEY:
+    if key != conf.KEY:
         return HttpResponseForbidden('Invalid credentials')
     
     data = request.POST.get('data')
