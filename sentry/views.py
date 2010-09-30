@@ -193,9 +193,7 @@ def ajax_handler(request):
 def group(request, group_id):
     group = get_object_or_404(GroupedMessage, pk=group_id)
 
-    message_list = group.message_set.all()
-    
-    obj = message_list.order_by('-id')[0]
+    obj = group.message_set.all().order_by('-id')[0]
     if '__sentry__' in obj.data:
         module, args, frames = obj.data['__sentry__']['exc']
         obj.class_name = str(obj.class_name)
@@ -235,8 +233,6 @@ def group_message_list(request, group_id):
 @login_required
 def group_message_details(request, group_id, message_id):
     group = get_object_or_404(GroupedMessage, pk=group_id)
-
-    message_list = group.message_set.all()
 
     message = get_object_or_404(group.message_set, pk=message_id)
     
