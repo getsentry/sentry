@@ -14,7 +14,7 @@ register = template.Library()
 
 def is_dict(value):
     return isinstance(value, dict)
-is_dict = register.filter(is_dict)
+register.filter(is_dict)
 
 def with_priority(result_list, key='score'):
     if result_list:
@@ -38,16 +38,16 @@ def with_priority(result_list, key='score'):
             else:
                 priority = 'verylow'
             yield result, priority
-with_priority = register.filter(with_priority)
+register.filter(with_priority)
 
 def num_digits(value):
     return len(str(value))
-num_digits = register.filter(num_digits)
+register.filter(num_digits)
 
 def can_chart(group):
     engine = get_db_engine()
     return SimpleLineChart and not engine.startswith('sqlite')
-can_chart = register.filter(can_chart)
+register.filter(can_chart)
 
 def chart_url(group):
     today = datetime.datetime.now()
@@ -73,15 +73,15 @@ def chart_url(group):
     chart.set_colours(['eeeeee', '999999', 'eeeeee'])
     chart.set_line_style(1, 1)
     return chart.get_url()
-chart_url = register.filter(chart_url)
+register.filter(chart_url)
 
 def sentry_version():
-    import sentry
-    return '.'.join(map(str, sentry.__version__))
-sentry_version = register.simple_tag(sentry_version)
+    from sentry import get_version
+    return get_version()
+register.simple_tag(sentry_version)
 
 def get_actions(group):
     for cls in GroupActionProvider.plugins.itervalues():
         action = cls(group.pk)
         yield action.url, action.title
-get_actions = register.filter(get_actions)
+register.filter(get_actions)
