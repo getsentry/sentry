@@ -15,6 +15,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core import mail
 from django.core.handlers.wsgi import WSGIRequest, WSGIHandler
+from django.core.management import call_command
 from django.core.urlresolvers import reverse
 from django.core.signals import got_request_exception
 from django.core.servers import basehttp
@@ -22,7 +23,6 @@ from django.test.client import Client
 from django.test import TestCase
 from django.template import TemplateSyntaxError
 from django.utils.encoding import smart_unicode
-from django.utils import simplejson
 
 from sentry import conf
 from sentry.helpers import transform
@@ -368,8 +368,6 @@ class SentryTestCase(TestCase):
         self.assertEquals(last.message, smart_unicode(exc))
 
     def testSignalsWithoutRequest(self):
-        request = RF.get("/", REMOTE_ADDR="127.0.0.1:8000")
-
         try:
             Message.objects.get(id=999999999)
         except Message.DoesNotExist, exc:
@@ -858,7 +856,6 @@ class SentryClientTest(TestCase):
         conf.CLIENT = self._client
     
     def test_get_client(self):
-        from sentry.client.base import SentryClient
         from sentry.client.log import LoggingSentryClient
         self.assertEquals(get_client().__class__, SentryClient)
         self.assertEquals(get_client(), get_client())
@@ -891,7 +888,6 @@ class SentryClientTest(TestCase):
         self.assertEquals(_foo[''].class_name, 'Exception')
 
     def test_celery_client(self):
-        from sentry.client.base import SentryClient
         from sentry.client.celery import CelerySentryClient
         self.assertEquals(get_client().__class__, SentryClient)
         self.assertEquals(get_client(), get_client())

@@ -6,21 +6,17 @@ except ImportError:
 import datetime
 import logging
 import sys
-import traceback
-import warnings
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models, transaction
 from django.db.models import Count
 from django.db.models.signals import post_syncdb
-from django.http import Http404
 from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import conf
-from sentry.client.base import SentryClient
-from sentry.helpers import cached_property, construct_checksum, get_db_engine, get_installed_apps, transform
+from sentry.helpers import cached_property, construct_checksum, get_db_engine, transform
 from sentry.manager import GroupedMessageManager, SentryManager
 from sentry.reporter import FakeRequest
 
@@ -142,7 +138,7 @@ class GroupedMessage(MessageBase):
         if cls not in created_models:
             return
 
-        from django.db import connections, transaction
+        from django.db import connections
         
         try:
             cursor = connections[db].cursor()

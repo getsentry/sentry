@@ -7,7 +7,6 @@ from django.db import  transaction
 from django.http import Http404
 
 from sentry import conf
-from sentry.client.base import SentryClient
 
 logger = logging.getLogger('sentry.errors')
 

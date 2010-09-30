@@ -1,4 +1,4 @@
-from django.core.management.base import CommandError, BaseCommand
+from django.core.management.base import BaseCommand
 
 from sentry.models import Message, GroupedMessage
 

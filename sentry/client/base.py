@@ -7,7 +7,6 @@ import logging
 import sys
 import traceback
 import urllib2
-import warnings
 
 from django.core.cache import cache
 from django.template import TemplateSyntaxError
@@ -51,7 +50,7 @@ class SentryClient(object):
                     'key': conf.KEY,
                 }
                 try:
-                    response = urlread(url, GET=data, timeout=conf.REMOTE_TIMEOUT)
+                    urlread(url, GET=data, timeout=conf.REMOTE_TIMEOUT)
                 except urllib2.URLError, e:
                     logger.error('Unable to reach Sentry log server: %s' % (e,), exc_info=sys.exc_info(), extra={'remote_url': url})
                     logger.log(kwargs.pop('level', None) or logging.ERROR, kwargs.pop('message', None))

@@ -5,11 +5,9 @@ import warnings
 
 from django.db import models
 from django.db.models import signals
-from django.template import TemplateSyntaxError
-from django.views.debug import ExceptionReporter
 
 from sentry import conf
-from sentry.helpers import construct_checksum, transform, varmap
+from sentry.helpers import construct_checksum
 
 assert not conf.DATABASE_USING or django.VERSION >= (1, 2), 'The `SENTRY_DATABASE_USING` setting requires Django >= 1.2'
 

@@ -1,12 +1,9 @@
-from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse
 from django.utils import feedgenerator
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import Message, GroupedMessage
-
-import logging
 
 class MessageFeed(object):
     def __call__(self, request):

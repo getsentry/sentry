@@ -20,7 +20,7 @@ def get_filters():
             try:
                 module = __import__(module_name, {}, {}, class_name)
                 filter_ = getattr(module, class_name)
-            except Exception, exc:
+            except Exception:
                 logging.exception('Unable to import %s' % (filter_,))
                 continue
             filters.append(filter_)

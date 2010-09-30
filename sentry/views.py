@@ -4,19 +4,16 @@ try:
 except ImportError:
     import pickle
 import datetime
-from math import log
 import logging
 import zlib
 
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
-from django.db.models import Count
 from django.http import HttpResponse, HttpResponseBadRequest, \
     HttpResponseForbidden, HttpResponseRedirect, Http404
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template.loader import render_to_string
 from django.utils import simplejson
-from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
@@ -39,7 +36,7 @@ def get_filters():
             try:
                 module = __import__(module_name, {}, {}, class_name)
                 filter_ = getattr(module, class_name)
-            except Exception, exc:
+            except Exception:
                 logging.exception('Unable to import %s' % (filter_,))
                 continue
             if filter_.column.startswith('data__'):
@@ -62,7 +59,7 @@ def login_required(func):
 
 @csrf_protect
 def login(request):
-    from django.contrib.auth import authenticate, login as login_
+    from django.contrib.auth import login as login_
     from django.contrib.auth.forms import AuthenticationForm
     
     if request.POST:
@@ -297,9 +294,9 @@ def store(request):
     try:
         try:
             data = pickle.loads(base64.b64decode(data).decode('zlib'))
-        except zlib.error, e:
+        except zlib.error:
             data = pickle.loads(base64.b64decode(data))
-    except Exception, e:
+    except Exception:
         return HttpResponseForbidden('Bad data')
 
     GroupedMessage.objects.from_kwargs(**data)

@@ -1,19 +1,9 @@
-import base64
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
-import logging
 from pprint import pformat
 
-from django.conf import settings
-from django.template import (Template, Context, TemplateDoesNotExist,
-    TemplateSyntaxError)
+from django.template import Template, Context, TemplateDoesNotExist
 from django.utils.encoding import smart_unicode
 from django.utils.html import escape
 from django.views.debug import ExceptionReporter, linebreak_iter
-
-from indexer.models import Index
 
 class ImprovedExceptionReporter(ExceptionReporter):
     def __init__(self, request, exc_type, exc_value, frames, template_info=None):
