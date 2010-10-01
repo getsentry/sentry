@@ -73,7 +73,7 @@ class MessageBase(Model):
     level           = models.PositiveIntegerField(choices=conf.LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
     message         = models.TextField()
     traceback       = models.TextField(blank=True, null=True)
-    view            = models.CharField(max_length=255, blank=True, null=True)
+    view            = models.CharField(max_length=200, blank=True, null=True)
     checksum        = models.CharField(max_length=32)
 
     objects         = SentryManager()
@@ -278,7 +278,7 @@ class FilterValue(models.Model):
     )
     
     key = models.CharField(choices=FILTER_KEYS, max_length=32)
-    value = models.CharField(max_length=255)
+    value = models.CharField(max_length=200)
     
     class Meta:
         unique_together = (('key', 'value'),)

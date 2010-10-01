@@ -15,7 +15,7 @@ class Migration(SchemaMigration):
         db.alter_column('sentry_groupedmessage', 'view', self.gf('django.db.models.fields.CharField')(max_length=200, null=True, blank=True))
 
         # Changing field 'Message.view'
-        db.alter_column('sentry_message', 'view', self.gf('django.db.models.fields.CharField')(max_length=255, null=True, blank=True))
+        db.alter_column('sentry_message', 'view', self.gf('django.db.models.fields.CharField')(max_length=200, null=True, blank=True))
 
 
     def backwards(self, orm):
@@ -27,7 +27,7 @@ class Migration(SchemaMigration):
         db.alter_column('sentry_groupedmessage', 'view', self.gf('django.db.models.fields.CharField')(max_length=200))
 
         # Changing field 'Message.view'
-        db.alter_column('sentry_message', 'view', self.gf('django.db.models.fields.CharField')(max_length=255))
+        db.alter_column('sentry_message', 'view', self.gf('django.db.models.fields.CharField')(max_length=200))
 
 
     models = {

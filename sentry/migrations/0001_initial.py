@@ -38,7 +38,7 @@ class Migration(SchemaMigration):
             ('level', self.gf('django.db.models.fields.PositiveIntegerField')(default=40, db_index=True, blank=True)),
             ('message', self.gf('django.db.models.fields.TextField')()),
             ('traceback', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
-            ('view', self.gf('django.db.models.fields.CharField')(max_length=255, db_index=True)),
+            ('view', self.gf('django.db.models.fields.CharField')(max_length=200, db_index=True)),
             ('url', self.gf('django.db.models.fields.URLField')(max_length=200, null=True, blank=True)),
             ('server_name', self.gf('django.db.models.fields.CharField')(max_length=128, db_index=True)),
             ('checksum', self.gf('django.db.models.fields.CharField')(max_length=32, db_index=True)),

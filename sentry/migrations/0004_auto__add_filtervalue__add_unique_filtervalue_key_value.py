@@ -12,7 +12,7 @@ class Migration(SchemaMigration):
         db.create_table('sentry_filtervalue', (
             ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('key', self.gf('django.db.models.fields.CharField')(max_length=32)),
-            ('value', self.gf('django.db.models.fields.CharField')(max_length=255)),
+            ('value', self.gf('django.db.models.fields.CharField')(max_length=200)),
         ))
         db.send_create_signal('sentry', ['FilterValue'])
 
