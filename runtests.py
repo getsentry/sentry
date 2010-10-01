@@ -28,6 +28,8 @@ if not settings.configured:
             'paging',
             'indexer',
             
+            'south',
+            
             # celery client
             'djcelery',
 
@@ -51,8 +53,11 @@ if not settings.configured:
 
 from django.test.simple import run_tests
 
-
 def runtests(*test_args):
+    if 'south' in settings.INSTALLED_APPS:
+        from south.management.commands import patch_for_test_db_setup
+        patch_for_test_db_setup()
+
     if not test_args:
         test_args = ['sentry']
     parent = dirname(abspath(__file__))
