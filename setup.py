@@ -12,7 +12,8 @@ setup(
     packages=find_packages(),
     zip_safe=False,
     install_requires=[
-        'pygooglechart',
+        # Optional
+        # 'pygooglechart',
         'django-paging',
         'django-indexer==0.2',
     ],
