@@ -50,7 +50,7 @@ class SentryClient(object):
                     'key': conf.KEY,
                 }
                 try:
-                    urlread(url, GET=data, timeout=conf.REMOTE_TIMEOUT)
+                    urlread(url, get=data, timeout=conf.REMOTE_TIMEOUT)
                 except urllib2.URLError, e:
                     logger.error('Unable to reach Sentry log server: %s' % (e,), exc_info=sys.exc_info(), extra={'remote_url': url})
                     logger.log(kwargs.pop('level', None) or logging.ERROR, kwargs.pop('message', None))

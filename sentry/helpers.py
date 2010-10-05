@@ -140,7 +140,7 @@ class cached_property(object):
             obj.__dict__[self.__name__] = value
         return value
 
-def urlread(url, GET={}, POST={}, timeout=None):
-    req = urllib2.Request(url, urllib.urlencode(GET))
-    response = urllib2.urlopen(req, urllib.urlencode(POST), timeout).read()
+def urlread(url, get={}, post={}, headers={}, timeout=None):
+    req = urllib2.Request(url, urllib.urlencode(get), headers=headers)
+    response = urllib2.urlopen(req, urllib.urlencode(post), timeout).read()
     return response
