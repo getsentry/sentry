@@ -13,8 +13,7 @@ class PluginMount(type):
             # This must be a plugin implementation, which should be registered.
             # Simply appending it to the list is all that's needed to keep
             # track of it later.
-            if not cls.slug:
-                cls.slug = cls.title.replace(' ', '-').lower()
+            cls.slug = getattr(cls, 'slug', None) or cls.title.replace(' ', '-').lower()
             cls.plugins[cls.slug] = cls
 
 class ActionProvider:
@@ -35,8 +34,6 @@ class ActionProvider:
     """
     __metaclass__ = PluginMount
 
-    slug = None
-
     def __init__(self):
         self.url = reverse('sentry-plugin-action', args=(self.slug,))
 
@@ -48,17 +45,43 @@ class ActionProvider:
         return self.perform(request)
 
 class GroupActionProvider:
-    __metaclass__ = PluginMount
+    # TODO: should be able to specify modal support
 
-    slug = None
+    __metaclass__ = PluginMount
     
+    new_window = False
+
+    @classmethod
+    def get_url(cls, group_id):
+        return reverse('sentry-group-plugin-action', args=(group_id, cls.slug))
+
     def __init__(self, group_id):
-        self.url = reverse('sentry-group-plugin-action', args=(group_id, self.slug))
-    
+        self.url = self.__class__.get_url(group_id)
+
     def __call__(self, request, group):
         self.selected = request.META['PATH_INFO'] == self.url
         if not self.selected:
             return
-        
-        return self.perform(request, group)
+        return self.view(request, group)
     
+    def view(self):
+        """
+        Handles the view logic. If no response is given, we continue to the next action provider.
+        """
+
+class GroupListProvider:
+    __metaclass__ = PluginMount
+
+    def before(self, request, group_list):
+        """
+        Called after pagination, before the list is iterated.
+        
+        No return value.
+        """
+
+    def tags(self, request, group, tags=[]):
+        """
+        Happens before rendering of a list of messages, but after pagination.
+        
+        Should return a list of tags.
+        """

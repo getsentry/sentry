@@ -6,9 +6,12 @@ from django.utils import simplejson
 
 from sentry.helpers import urlread
 from sentry.models import GroupedMessage
-from sentry.plugins import GroupActionProvider
+from sentry.plugins import GroupActionProvider, GroupListProvider
 
 import conf
+
+import urllib
+import urllib2
 
 class RedmineIssue(models.Model):
     group = models.ForeignKey(GroupedMessage)
@@ -21,18 +24,31 @@ class RedmineIssueForm(forms.Form):
 class CreateRedmineIssue(GroupActionProvider):
     title = 'Create Redmine Issue'
     
-    def perform(self, request, group):
+    def view(self, request, group):
         if request.POST:
             form = RedmineIssueForm(request.POST)
             if form.is_valid():
                 data = {
-                    'key': conf.REDMINE_API_KEY,
-                    'project_id': conf.REDMINE_PROJECT_ID,
-                    'subject': form.cleaned_data['subject'],
-                    'description': form.cleaned_data['description']
+                    'issue': {
+                        'subject': form.cleaned_data['subject'],
+                        'description': form.cleaned_data['description'],
+                    }
                 }
-                response = urlread(conf.REDMINE_URL + '/issues.json', POST=data)
+                url = conf.REDMINE_URL + '/projects/' + conf.REDMINE_PROJECT_SLUG + '/issues.json'
+                
+                req = urllib2.Request(url, urllib.urlencode({
+                    'key': conf.REDMINE_API_KEY,
+                }), headers={
+                    'Content-type': 'text/json',
+                })
+                try:
+                    print simplejson.dumps(data)
+                    response = urllib2.urlopen(req, simplejson.dumps(data)).read()
+                except Exception, e:
+                    raise Exception('%s: %s' % (e.code, e.read()))
+                    
                 print response
+                raise Exception
                 #RedmineIssue.objects.create(group=group, issue_id=response['issue_id'])
                 
         else:
@@ -50,3 +66,18 @@ class CreateRedmineIssue(GroupActionProvider):
         context.update(csrf(request))
 
         return render_to_response('sentry/plugins/redmine/create_issue.html', context)
+
+class RedmineTagIssue(GroupListProvider):
+    title = 'Redmine Issue IDs'
+    
+    def before(self, request, group_list):
+        self.issues_by_group = dict(RedmineIssue.objects.filter(group__in=group_list).values_list('group', 'issue_id'))
+    
+    def tags(self, request, group, tags=[]):
+        issue_id = self.issues_by_group.get(group.pk)
+        if issue_id:
+            tags.append(mark_safe('<a href="%s">#%s</a>' % (
+                '%sissues/%s' % (conf.REDMINE_URL, issue_id),
+                issue_id,
+            )))
+        return tags
