@@ -44,7 +44,7 @@ class CreateRedmineIssue(GroupActionProvider):
                 try:
                     print simplejson.dumps(data)
                     response = urllib2.urlopen(req, simplejson.dumps(data)).read()
-                except Exception, e:
+                except urllib2.HTTPError, e:
                     raise Exception('%s: %s' % (e.code, e.read()))
                     
                 print response
