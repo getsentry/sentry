@@ -1,4 +1,5 @@
 import os
+import re
 
 from django.conf.urls.defaults import *
 
@@ -14,8 +15,8 @@ urlpatterns = patterns('',
 
     # Feeds
 
-    url(r'^feeds/%s/messages.xml$' % KEY, MessageFeed(), name='sentry-feed-messages'),
-    url(r'^feeds/%s/summaries.xml$' % KEY, SummaryFeed(), name='sentry-feed-summaries'),
+    url(r'^feeds/%s/messages.xml$' % re.escape(KEY), MessageFeed(), name='sentry-feed-messages'),
+    url(r'^feeds/%s/summaries.xml$' % re.escape(KEY), SummaryFeed(), name='sentry-feed-summaries'),
 
     # JS and API
 
