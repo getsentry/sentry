@@ -60,7 +60,7 @@ def runtests(*test_args):
         patch_for_test_db_setup()
 
     if not test_args:
-        test_args = ['sentry', 'redmine']
+        test_args = ['sentry']
     parent = dirname(abspath(__file__))
     sys.path.insert(0, parent)
     failures = run_tests(test_args, verbosity=1, interactive=True)
