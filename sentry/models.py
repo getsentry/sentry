@@ -167,7 +167,7 @@ class GroupedMessage(MessageBase):
 
         obj_request = message.request
 
-        subject = 'Error (%s IP): %s' % ((obj_request.META.get('REMOTE_ADDR') in settings.INTERNAL_IPS and 'internal' or 'EXTERNAL'), obj_request.path)
+        subject = '[%s] Error (%s IP): %s' % (message.site, (obj_request.META.get('REMOTE_ADDR') in settings.INTERNAL_IPS and 'internal' or 'EXTERNAL'), obj_request.path)
         try:
             request_repr = repr(obj_request)
         except:
@@ -186,7 +186,7 @@ class GroupedMessage(MessageBase):
             'link': link,
         })
         
-        send_mail(settings.EMAIL_SUBJECT_PREFIX + subject, body,
+        send_mail(subject, body,
                   settings.SERVER_EMAIL, conf.ADMINS,
                   fail_silently=fail_silently)
     
