@@ -22,16 +22,17 @@ if not settings.configured:
             # Included to fix Disqus' test Django which solves IntegrityMessage case
             'django.contrib.contenttypes',
 
-            'sentry',
-            'sentry.client',
-            'sentry.client.celery',
             'paging',
             'indexer',
-            
             'south',
+
+            'sentry',
+            'sentry.client',
+            'djcelery', # celery client
+            'sentry.client.celery',
             
-            # celery client
-            'djcelery',
+            # included plugin tests
+            'sentry.plugins.redmine',
 
             # No fucking idea why I have to do this
             'sentry.tests',
@@ -59,7 +60,7 @@ def runtests(*test_args):
         patch_for_test_db_setup()
 
     if not test_args:
-        test_args = ['sentry']
+        test_args = ['sentry', 'redmine']
     parent = dirname(abspath(__file__))
     sys.path.insert(0, parent)
     failures = run_tests(test_args, verbosity=1, interactive=True)
