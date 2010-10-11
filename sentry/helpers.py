@@ -142,5 +142,8 @@ class cached_property(object):
 
 def urlread(url, get={}, post={}, headers={}, timeout=None):
     req = urllib2.Request(url, urllib.urlencode(get), headers=headers)
-    response = urllib2.urlopen(req, urllib.urlencode(post), timeout).read()
+    try:
+        response = urllib2.urlopen(req, urllib.urlencode(post), timeout).read()
+    except:
+        response = urllib2.urlopen(req, urllib.urlencode(post)).read()
     return response
