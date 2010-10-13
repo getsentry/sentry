@@ -147,25 +147,6 @@ removing the ``ADMINS`` setting in Django, and adding in ``SENTRY_ADMINS``::
 This will send out a notification the first time an error is seen, and the first time an error is
 seen after it has been resolved.
 
-#####################
-SENTRY_DATABASE_USING
-#####################
-
-Use a secondary database to store error logs. This is useful if you have several websites and want to aggregate error logs onto one database server::
-
-	# This should correspond to a key in your DATABASES setting
-	SENTRY_DATABASE_USING = 'default'
-
-You should also enable the ``SentryRouter`` to avoid things like extraneous table creation::
-
-	DATABASE_ROUTERS = [
-		'sentry.routers.SentryRouter',
-		...
-	]
-
-
-.. note:: This functionality REQUIRES Django 1.2. We highly recommend using HTTP over multi-db, as it can cause issues with dependancies such as django-indexer.
-
 
 ##############
 SENTRY_TESTING
