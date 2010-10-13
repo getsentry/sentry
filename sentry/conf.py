@@ -72,3 +72,7 @@ INCLUDE_PATHS = getattr(settings, 'SENTRY_INCLUDE_PATHS', [])
 
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
 URL_PREFIX = getattr(settings, 'SENTRY_URL_PREFIX', None)
+
+# Allow access to Sentry without authentication.
+PUBLIC = getattr(settings, 'SENTRY_PUBLIC', False)
+PUBLIC

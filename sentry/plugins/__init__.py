@@ -63,10 +63,19 @@ class GroupActionProvider:
         if not self.selected:
             return
         return self.view(request, group)
-    
+
     def view(self):
         """
         Handles the view logic. If no response is given, we continue to the next action provider.
+        """
+
+    def panels(self, request, panel_list, group):
+        """Modifies the panel list for a grouped message."""
+        return panel_list
+
+    def widget(self, request, group):
+        """
+        Renders as a widget in the group details sidebar.
         """
 
 class GroupListProvider:

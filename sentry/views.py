@@ -48,10 +48,11 @@ def get_filters():
 
 def login_required(func):
     def wrapped(request, *args, **kwargs):
-        if not request.user.is_authenticated():
-            return HttpResponseRedirect(reverse('sentry-login'))
-        if not request.user.has_perm('sentry_groupedmessage.can_view'):
-            return HttpResponseRedirect(reverse('sentry-login'))
+        if not conf.PUBLIC:
+            if not request.user.is_authenticated():
+                return HttpResponseRedirect(reverse('sentry-login'))
+            if not request.user.has_perm('sentry_groupedmessage.can_view'):
+                return HttpResponseRedirect(reverse('sentry-login'))
         return func(request, *args, **kwargs)
     wrapped.__doc__ = func.__doc__
     wrapped.__name__ = func.__name__
@@ -261,22 +262,6 @@ def group_message_details(request, group_id, message_id):
     page = 'messages'
     
     return render_to_response('sentry/group/message.html', locals())
-
-@login_required
-def group_urls(request, group_id):
-    group = get_object_or_404(GroupedMessage, pk=group_id)
-
-    page = 'urls'
-    
-    return render_to_response('sentry/group/url_list.html', locals())
-
-@login_required
-def group_servers(request, group_id):
-    group = get_object_or_404(GroupedMessage, pk=group_id)
-
-    page = 'servers'
-    
-    return render_to_response('sentry/group/server_list.html', locals())
 
 @csrf_exempt
 def store(request):

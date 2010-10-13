@@ -100,7 +100,9 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'sentry',
     'sentry.client',
-    'sentry.plugins.redmine',
+    'sentry.plugins.sentry_redmine',
+    'sentry.plugins.sentry_servers',
+    'sentry.plugins.sentry_urls',
     'paging',
     'south',
     'indexer',
@@ -122,6 +124,7 @@ SENTRY_FILTERS = (
     'example_project.filters.IPFilter',
 )
 SENTRY_SITE = 'example'
+SENTRY_PUBLIC = True
 
 try:
     import debug_toolbar

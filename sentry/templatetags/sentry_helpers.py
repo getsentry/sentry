@@ -82,6 +82,23 @@ register.simple_tag(sentry_version)
 
 def get_actions(group):
     for cls in GroupActionProvider.plugins.itervalues():
-        action = cls(group.pk)
-        yield action.url, action.title
+        inst = cls(group.pk)
+        yield inst.url, inst.title
 register.filter(get_actions)
+
+def get_panels(group, request):
+    panel_list = []
+    for cls in GroupActionProvider.plugins.itervalues():
+        inst = cls(group.pk)
+        panel_list = inst.panels(request, panel_list, group)
+    for panel in panel_list:
+        yield panel[0], panel[1], request.META['PATH_INFO'] == panel[1]
+register.filter(get_panels)
+
+def get_widgets(group, request):
+    for cls in GroupActionProvider.plugins.itervalues():
+        inst = cls(group.pk)
+        resp = inst.widget(request, group)
+        if resp:
+            yield resp
+register.filter(get_widgets)

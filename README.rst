@@ -226,6 +226,22 @@ Set up a viewer server (or use your existing application server) and add sentry 
 
 Now enjoy your beautiful new error tracking at ``/sentry/``.
 
+=======
+Plugins
+=======
+
+_The plugin interface is a work in progress and will most likely change before a final version._
+
+Add plugins to your installed apps, and voila::
+
+	INSTALLED_APPS = [
+	  ...
+	  'sentry.plugins.sentry_servers',
+	  'sentry.plugins.sentry_urls',
+	]
+
+More and better docs coming soon.
+
 ===
 API
 ===

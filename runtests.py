@@ -32,7 +32,7 @@ if not settings.configured:
             'sentry.client.celery',
             
             # included plugin tests
-            # 'sentry.plugins.redmine',
+            # 'sentry.plugins.sentry_redmine',
 
             # No fucking idea why I have to do this
             'sentry.tests',

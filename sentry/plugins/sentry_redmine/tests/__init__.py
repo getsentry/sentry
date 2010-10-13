@@ -3,8 +3,8 @@ from django.core.urlresolvers import reverse
 from django.test import TestCase
 
 from sentry.models import GroupedMessage
-from sentry.plugins.redmine import conf
-from sentry.plugins.redmine.models import CreateRedmineIssue
+from sentry.plugins.sentry_redmine import conf
+from sentry.plugins.sentry_redmine.models import CreateRedmineIssue
 
 class CreateIssueTest(TestCase):
     fixtures = ['sentry/plugins/redmine/tests/fixtures/regression.json']
