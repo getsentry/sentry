@@ -28,9 +28,13 @@ from sentry import conf
 from sentry.helpers import transform
 from sentry.models import Message, GroupedMessage
 from sentry.client.base import SentryClient
+from sentry.client.handlers import SentryHandler
 from sentry.client.models import sentry_exception_handler, get_client
 
 from models import TestModel, DuplicateKeyModel
+
+logger = logging.getLogger('sentry.test')
+logger.addHandler(SentryHandler())
 
 class TestServerThread(threading.Thread):
     """Thread for running a http server while tests are running."""
@@ -104,7 +108,6 @@ class SentryTestCase(TestCase):
         
     def setUpHandler(self):
         self.tearDownHandler()
-        from sentry.client.handlers import SentryHandler
         
         logger = logging.getLogger()
         self._handlers = logger.handlers
@@ -534,6 +537,15 @@ class SentryTestCase(TestCase):
         
         self.assertEquals(last.view, 'sentry-tests/error.html')
 
+    def testRequestInLogging(self):
+        resp = self.client.get(reverse('sentry-log-request-exc'))
+        self.assertEquals(resp.status_code, 200)
+        
+        last = Message.objects.get()
+        
+        self.assertEquals(last.view, 'sentry.tests.views.logging_request_exc')
+        self.assertEquals(last.data['META']['REMOTE_ADDR'], '127.0.0.1')
+
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'
     fixtures = ['sentry/tests/fixtures/views.json']
@@ -552,7 +564,6 @@ class SentryViewsTest(TestCase):
         
     def setUpHandler(self):
         self.tearDownHandler()
-        from sentry.client.handlers import SentryHandler
         
         logger = logging.getLogger()
         self._handlers = logger.handlers

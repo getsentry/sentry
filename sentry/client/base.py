@@ -69,6 +69,21 @@ class SentryClient(object):
         for k in ('url', 'view', 'data'):
             if k not in kwargs:
                 kwargs[k] = record.__dict__.get(k)
+        
+        request = getattr(record, 'request', None)
+        if request:
+            if not kwargs.get('data'):
+                kwargs['data'] = {}
+            kwargs['data'].update(dict(
+                META=request.META,
+                POST=request.POST,
+                GET=request.GET,
+                COOKIES=request.COOKIES,
+            ))
+
+            if not kwargs.get('url'):
+                kwargs['url'] = request.build_absolute_uri()
+        
         kwargs.update({
             'logger': record.name,
             'level': record.levelno,
