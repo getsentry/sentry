@@ -69,6 +69,10 @@ class GroupActionProvider:
         Handles the view logic. If no response is given, we continue to the next action provider.
         """
 
+    def actions(self, request, action_list, group):
+        """Modifies the action list for a grouped message."""
+        return action_list
+
     def panels(self, request, panel_list, group):
         """Modifies the panel list for a grouped message."""
         return panel_list

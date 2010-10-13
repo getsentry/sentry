@@ -80,10 +80,13 @@ def sentry_version():
     return get_version()
 register.simple_tag(sentry_version)
 
-def get_actions(group):
+def get_actions(group, request):
+    action_list = []
     for cls in GroupActionProvider.plugins.itervalues():
         inst = cls(group.pk)
-        yield inst.url, inst.title
+        action_list = inst.actions(request, action_list, group)
+    for action in action_list:
+        yield action[0], action[1], request.META['PATH_INFO'] == action[1]
 register.filter(get_actions)
 
 def get_panels(group, request):

@@ -9,8 +9,9 @@
 {% block content %}
 	<div id="sidebar">
 		<ul class="actions">
+			{# We're going to move these to the resolve action location #}
 			<li><a href="{% url sentry %}">&laquo; back to list</a></li>
-			{% for link, label in group|get_actions %}
+			{% for label, link, is_active in group|get_actions:request %}
 				<li><a href="{{ link }}">{{ label }}</a></li>
 			{% endfor %}
 		</ul>
