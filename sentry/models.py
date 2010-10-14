@@ -16,7 +16,7 @@ from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import conf
-from sentry.helpers import cached_property, construct_checksum, get_db_engine, transform
+from sentry.helpers import cached_property, construct_checksum, get_db_engine, transform, get_filters
 from sentry.manager import GroupedMessageManager, SentryManager
 from sentry.reporter import FakeRequest
 
@@ -25,6 +25,8 @@ for r in _reqs:
     if r not in settings.INSTALLED_APPS:
         raise ImproperlyConfigured("Put '%s' in your "
             "INSTALLED_APPS setting in order to use the sentry application." % r)
+
+from indexer.models import Index
 
 try:
     from idmapper.models import SharedMemoryModel as Model
@@ -282,6 +284,19 @@ class FilterValue(models.Model):
     
     class Meta:
         unique_together = (('key', 'value'),)
+
+### Helper methods
+
+def register_indexes():
+    """
+    Grabs all required indexes from filters and registers them.
+    """
+    logger = logging.getLogger('sentry.setup')
+    for filter_ in get_filters():
+        if filter_.column.startswith('data__'):
+            Index.objects.register_model(Message, filter_.column, index_to='group')
+            logger.debug('Registered index for for %s' % filter_.column)
+register_indexes()
 
 # XXX: Django sucks and we can't listen to our specific app
 # post_syncdb.connect(GroupedMessage.create_sort_index, sender=__name__)

@@ -18,33 +18,11 @@ from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
 from sentry import conf
+from sentry.helpers import get_filters
 from sentry.models import GroupedMessage, Message
 from sentry.plugins import GroupActionProvider
 from sentry.templatetags.sentry_helpers import with_priority
 from sentry.reporter import ImprovedExceptionReporter
-
-from indexer.models import Index
-
-_FILTER_CACHE = None
-def get_filters():
-    global _FILTER_CACHE
-    
-    if _FILTER_CACHE is None:
-        filters = []
-        for filter_ in conf.FILTERS:
-            module_name, class_name = filter_.rsplit('.', 1)
-            try:
-                module = __import__(module_name, {}, {}, class_name)
-                filter_ = getattr(module, class_name)
-            except Exception:
-                logging.exception('Unable to import %s' % (filter_,))
-                continue
-            if filter_.column.startswith('data__'):
-                Index.objects.register_model(Message, filter_.column, index_to='group')
-            filters.append(filter_)
-        _FILTER_CACHE = filters
-    for f in _FILTER_CACHE:
-        yield f
 
 def login_required(func):
     def wrapped(request, *args, **kwargs):
