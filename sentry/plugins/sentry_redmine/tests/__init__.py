@@ -7,7 +7,7 @@ from sentry.plugins.sentry_redmine import conf
 from sentry.plugins.sentry_redmine.models import CreateRedmineIssue
 
 class CreateIssueTest(TestCase):
-    fixtures = ['sentry/plugins/redmine/tests/fixtures/regression.json']
+    fixtures = ['sentry/plugins/sentry_redmine/tests/fixtures/regression.json']
     urls = 'sentry.urls'
 
     def setUp(self):
