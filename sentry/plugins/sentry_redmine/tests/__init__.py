@@ -4,7 +4,7 @@ from django.test import TestCase
 
 from sentry.models import GroupedMessage
 from sentry.plugins.sentry_redmine import conf
-from sentry.plugins.sentry_redmine.models import CreateRedmineIssue
+from sentry.plugins.sentry_redmine.models import CreateRedmineIssue, RedmineIssue
 
 class CreateIssueTest(TestCase):
     fixtures = ['sentry/plugins/sentry_redmine/tests/fixtures/regression.json']
@@ -33,3 +33,4 @@ class CreateIssueTest(TestCase):
         self.assertEquals(response.status_code, 200)
         self.assertTemplateUsed(response, 'sentry/plugins/redmine/create_issue.html')
         
+        self.assertTrue(RedmineIssue.objects.filter(group=group).exists())

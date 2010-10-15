@@ -28,29 +28,26 @@ class CreateRedmineIssue(GroupActionProvider):
         if request.POST:
             form = RedmineIssueForm(request.POST)
             if form.is_valid():
-                data = {
+                data = simplejson.dumps({
                     'issue': {
                         'subject': form.cleaned_data['subject'],
                         'description': form.cleaned_data['description'],
                     }
-                }
+                })
                 url = conf.REDMINE_URL + '/projects/' + conf.REDMINE_PROJECT_SLUG + '/issues.json'
                 
                 req = urllib2.Request(url, urllib.urlencode({
                     'key': conf.REDMINE_API_KEY,
                 }), headers={
-                    'Content-type': 'text/json',
+                    'Content-type': 'application/json',
                 })
                 try:
-                    print simplejson.dumps(data)
-                    response = urllib2.urlopen(req, simplejson.dumps(data)).read()
+                    response = urllib2.urlopen(req, data).read()
                 except urllib2.HTTPError, e:
                     raise Exception('%s: %s' % (e.code, e.read()))
-                    
-                print response
-                raise Exception
-                #RedmineIssue.objects.create(group=group, issue_id=response['issue_id'])
                 
+                data = simplejson.loads(response)
+                RedmineIssue.objects.create(group=group, issue_id=data['id'])
         else:
             description = 'Sentry Message: %s' % request.build_absolute_uri(group.get_absolute_url())
             description += '\n\n' + (group.traceback or group.message)
