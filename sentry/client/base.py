@@ -163,6 +163,7 @@ class SentryClient(object):
             # check it against SENTRY_EXCLUDE_PATHS. If it isnt listed, then we
             # use this option. If nothing is found, we use the "best guess".
             best_guess = None
+            view = None
             for frame in iter_tb_frames(exc_traceback):
                 view = '.'.join([frame.f_globals['__name__'], frame.f_code.co_name])
                 if contains(modules, view):
@@ -173,7 +174,8 @@ class SentryClient(object):
             if best_guess:
                 view = best_guess
             
-            kwargs['view'] = view
+            if view:
+                kwargs['view'] = view
 
         data = kwargs.pop('data', {}) or {}
         data['__sentry__'] = {
