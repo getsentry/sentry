@@ -12,10 +12,11 @@ except ImportError:
 
 register = template.Library()
 
+@register.filter
 def is_dict(value):
     return isinstance(value, dict)
-register.filter(is_dict)
 
+@register.filter
 def with_priority(result_list, key='score'):
     if result_list:
         if isinstance(result_list[0], dict):
@@ -38,17 +39,17 @@ def with_priority(result_list, key='score'):
             else:
                 priority = 'verylow'
             yield result, priority
-register.filter(with_priority)
 
+@register.filter
 def num_digits(value):
     return len(str(value))
-register.filter(num_digits)
 
+@register.filter
 def can_chart(group):
     engine = get_db_engine()
     return SimpleLineChart and not engine.startswith('sqlite')
-register.filter(can_chart)
 
+@register.filter
 def chart_url(group):
     today = datetime.datetime.now()
 
@@ -73,13 +74,13 @@ def chart_url(group):
     chart.set_colours(['eeeeee', '999999', 'eeeeee'])
     chart.set_line_style(1, 1)
     return chart.get_url()
-register.filter(chart_url)
 
 def sentry_version():
     from sentry import get_version
     return get_version()
 register.simple_tag(sentry_version)
 
+@register.filter
 def get_actions(group, request):
     action_list = []
     for cls in GroupActionProvider.plugins.itervalues():
@@ -87,8 +88,8 @@ def get_actions(group, request):
         action_list = inst.actions(request, action_list, group)
     for action in action_list:
         yield action[0], action[1], request.META['PATH_INFO'] == action[1]
-register.filter(get_actions)
 
+@register.filter
 def get_panels(group, request):
     panel_list = []
     for cls in GroupActionProvider.plugins.itervalues():
@@ -96,16 +97,25 @@ def get_panels(group, request):
         panel_list = inst.panels(request, panel_list, group)
     for panel in panel_list:
         yield panel[0], panel[1], request.META['PATH_INFO'] == panel[1]
-register.filter(get_panels)
 
+@register.filter
 def get_widgets(group, request):
     for cls in GroupActionProvider.plugins.itervalues():
         inst = cls(group.pk)
         resp = inst.widget(request, group)
         if resp:
             yield resp
-register.filter(get_widgets)
 
+@register.filter
+def get_tags(group, request):
+    tag_list = []
+    for cls in GroupActionProvider.plugins.itervalues():
+        inst = cls(group.pk)
+        tag_list = inst.tags(request, tag_list, group)
+    for tag in tag_list:
+        yield tag
+
+@register.filter
 def timesince(value):
     from django.template.defaultfilters import timesince
     if not value:
@@ -118,4 +128,3 @@ def timesince(value):
     if value == '1 day':
         return 'Yesterday'
     return value + ' ago'
-register.filter(timesince)

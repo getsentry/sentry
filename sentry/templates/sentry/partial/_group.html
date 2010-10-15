@@ -8,6 +8,7 @@
 	<p class="message">
 		<span class="tag tag-level">{{ group.get_level_display }}</span> 
 		<span class="tag tag-logger">{{ group.logger }}</span> 
+		{% for tag in group|get_tags:request %}<span class="tag">{{ tag }}</span> {% endfor %}
 		{{ group.error }}
 	</p>
 	<a href="{% url sentry-group group.pk %}" class="row_link"></a>

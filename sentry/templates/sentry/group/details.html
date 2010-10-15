@@ -48,7 +48,12 @@
 				<h3>{% if group.view %}{{ group.view }}{% else %}{{ group.message }}{% endif %}</h3>
 				<span class="last_seen">{{ group.last_seen|timesince }}</span>
 				<span class="status status-{{ group.status }}">{{ group.get_status_display }}</span>
-				<p class="message"><span class="tag tag-level">{{ group.get_level_display }}</span> {{ group.error }}</p>
+				<p class="message">
+					<span class="tag tag-level">{{ group.get_level_display }}</span> 
+					<span class="tag tag-logger">{{ group.logger }}</span> 
+					{% for tag in group|get_tags:request %}<span class="tag">{{ tag }}</span> {% endfor %}
+					{{ group.error }}
+				</p>
 				{% if group.status == 0 %}
 					<a href="{% url sentry-ajax %}?op=resolve&amp;gid={{ group.pk }}" class="hidden button button_resolve">&#10003;</a>
 				{% endif %}

@@ -4,9 +4,8 @@
 
 {% block inner %}
 	<h2>Create Redmine Issue</h2>
-    <form method="post" action="">
+	<form method="post" action="">
 		<input type="hidden" name="next" value="{{ next }}" />
-	
 		{% csrf_token %}
 		<table>
 			<colgroup>
@@ -14,16 +13,16 @@
 				<col/>
 			</colgroup>
 			<tr>
-			    <td>{{ form.subject.label_tag }}</td>
-			    <td>{{ form.subject }}</td>
+				<td>{{ form.subject.label_tag }}</td>
+				<td>{{ form.subject }}</td>
 			</tr>
 			<tr>
-			    <td>{{ form.description.label_tag }}</td>
-			    <td>{{ form.description }}</td>
+				<td>{{ form.description.label_tag }}</td>
+				<td>{{ form.description }}</td>
 			</tr>
 		</table>
 		<div class="submit">
-		    <button type="submit" class="button">Create Issue</button>
+			<button type="submit" class="button">Create Issue</button>
 		</div>
 	</form>
 {% endblock %}

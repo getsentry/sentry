@@ -5,10 +5,11 @@ from django.db import models
 from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response
 from django.utils import simplejson
+from django.utils.safestring import mark_safe
 
 from sentry.helpers import urlread
 from sentry.models import GroupedMessage
-from sentry.plugins import GroupActionProvider, GroupListProvider
+from sentry.plugins import GroupActionProvider
 
 import conf
 
@@ -36,6 +37,7 @@ class CreateRedmineIssue(GroupActionProvider):
             form = RedmineIssueForm(request.POST)
             if form.is_valid():
                 data = simplejson.dumps({
+                    'key': conf.REDMINE_API_KEY,
                     'issue': {
                         'subject': form.cleaned_data['subject'],
                         'description': form.cleaned_data['description'],
@@ -60,7 +62,7 @@ class CreateRedmineIssue(GroupActionProvider):
                 return HttpResponseRedirect(reverse('sentry-group', args=[group.pk]))
         else:
             description = 'Sentry Message: %s' % request.build_absolute_uri(group.get_absolute_url())
-            description += '\n\n' + (group.traceback or group.message)
+            description += '\n\n<pre>' + (group.traceback or group.message) + '</pre>'
 
             form = RedmineIssueForm(initial={
                 'subject': group.error(),
@@ -74,14 +76,11 @@ class CreateRedmineIssue(GroupActionProvider):
 
         return render_to_response('sentry/plugins/redmine/create_issue.html', context)
 
-class RedmineTagIssue(GroupListProvider):
-    title = 'Redmine Issue IDs'
-    
-    def tags(self, request, group, tags=[]):
+    def tags(self, request, tags, group):
         if 'redmine' in group.data:
             issue_id = group.data['redmine']['issue_id']
             tags.append(mark_safe('<a href="%s">#%s</a>' % (
-                '%sissues/%s' % (conf.REDMINE_URL, issue_id),
+                '%s/issues/%s' % (conf.REDMINE_URL, issue_id),
                 issue_id,
             )))
         return tags

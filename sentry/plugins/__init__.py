@@ -69,6 +69,10 @@ class GroupActionProvider:
         Handles the view logic. If no response is given, we continue to the next action provider.
         """
 
+    def tags(self, request, tag_list, group):
+        """Modifies the tag list for a grouped message."""
+        return tag_list
+
     def actions(self, request, action_list, group):
         """Modifies the action list for a grouped message."""
         return action_list
@@ -80,25 +84,4 @@ class GroupActionProvider:
     def widget(self, request, group):
         """
         Renders as a widget in the group details sidebar.
-        """
-
-class GroupListProvider:
-    __metaclass__ = PluginMount
-
-    def before(self, request, group_list):
-        """
-        Called after pagination, before the list is iterated.
-        
-        No return value.
-        """
-
-    def actions(self, request, action_list, group):
-        """Modifies the action list for a grouped message."""
-        return action_list
-
-    def tags(self, request, group, tags=[]):
-        """
-        Happens before rendering of a list of messages, but after pagination.
-        
-        Should return a list of tags.
         """
