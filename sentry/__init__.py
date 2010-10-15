@@ -4,7 +4,7 @@ Sentry
 """
 
 __all__ = ('__version__', '__build__', '__docformat__', 'get_revision')
-__version__ = (1, 3, 9)
+__version__ = (1, 3, 9, 1)
 __docformat__ = 'restructuredtext en'
 
 import os
