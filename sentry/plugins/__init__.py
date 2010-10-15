@@ -92,6 +92,10 @@ class GroupListProvider:
         No return value.
         """
 
+    def actions(self, request, action_list, group):
+        """Modifies the action list for a grouped message."""
+        return action_list
+
     def tags(self, request, group, tags=[]):
         """
         Happens before rendering of a list of messages, but after pagination.

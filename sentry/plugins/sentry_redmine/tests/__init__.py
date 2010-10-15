@@ -29,8 +29,11 @@ class CreateIssueTest(TestCase):
         response = self.client.post(CreateRedmineIssue.get_url(group.pk), {
             'subject': 'test',
             'description': 'foo',
-        })
+        }, follow=True)
         self.assertEquals(response.status_code, 200)
-        self.assertTemplateUsed(response, 'sentry/plugins/redmine/create_issue.html')
+        self.assertTemplateUsed(response, 'sentry/group/details.html')
         
         self.assertTrue(RedmineIssue.objects.filter(group=group).exists())
+        
+        group = GroupedMessage.objects.get(pk=group.pk)
+        self.assertTrue(group.data['redmine']['issue_id'] > 0)

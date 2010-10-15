@@ -4,5 +4,26 @@
 
 {% block inner %}
 	<h2>Create Redmine Issue</h2>
-	<iframe src="{{ ticket_link }}" width="100%" height="400px">
+    <form method="post" action="">
+		<input type="hidden" name="next" value="{{ next }}" />
+	
+		{% csrf_token %}
+		<table>
+			<colgroup>
+				<col width="100px"/>
+				<col/>
+			</colgroup>
+			<tr>
+			    <td>{{ form.subject.label_tag }}</td>
+			    <td>{{ form.subject }}</td>
+			</tr>
+			<tr>
+			    <td>{{ form.description.label_tag }}</td>
+			    <td>{{ form.description }}</td>
+			</tr>
+		</table>
+		<div class="submit">
+		    <button type="submit" class="button">Create Issue</button>
+		</div>
+	</form>
 {% endblock %}

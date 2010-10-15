@@ -1,6 +1,8 @@
 from django import forms
 from django.core.context_processors import csrf
+from django.core.urlresolvers import reverse
 from django.db import models
+from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response
 from django.utils import simplejson
 
@@ -23,7 +25,12 @@ class RedmineIssueForm(forms.Form):
 
 class CreateRedmineIssue(GroupActionProvider):
     title = 'Create Redmine Issue'
-    
+
+    def actions(self, request, action_list, group):
+        if 'redmine' not in group.data:
+            action_list.append((self.title, self.__class__.get_url(group.pk)))
+        return action_list
+
     def view(self, request, group):
         if request.POST:
             form = RedmineIssueForm(request.POST)
@@ -48,6 +55,9 @@ class CreateRedmineIssue(GroupActionProvider):
                 
                 data = simplejson.loads(response)
                 RedmineIssue.objects.create(group=group, issue_id=data['id'])
+                group.data['redmine'] = {'issue_id': data['id']}
+                group.save()
+                return HttpResponseRedirect(reverse('sentry-group', args=[group.pk]))
         else:
             description = 'Sentry Message: %s' % request.build_absolute_uri(group.get_absolute_url())
             description += '\n\n' + (group.traceback or group.message)
@@ -67,12 +77,9 @@ class CreateRedmineIssue(GroupActionProvider):
 class RedmineTagIssue(GroupListProvider):
     title = 'Redmine Issue IDs'
     
-    def before(self, request, group_list):
-        self.issues_by_group = dict(RedmineIssue.objects.filter(group__in=group_list).values_list('group', 'issue_id'))
-    
     def tags(self, request, group, tags=[]):
-        issue_id = self.issues_by_group.get(group.pk)
-        if issue_id:
+        if 'redmine' in group.data:
+            issue_id = group.data['redmine']['issue_id']
             tags.append(mark_safe('<a href="%s">#%s</a>' % (
                 '%sissues/%s' % (conf.REDMINE_URL, issue_id),
                 issue_id,
