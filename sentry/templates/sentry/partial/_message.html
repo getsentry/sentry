@@ -3,7 +3,7 @@
 <li class="{% cycle 'row1' 'row2' %} level-{{ message.level }}{% if priority %} priority-{{ priority }}{% endif %}" id="message_{{ message.pk }}" data-sentry-count="{{ message.times_seen }}">
 	<h3><a href="{% url sentry-group-message group.pk message.pk %}">{% if message.url %}{{ message.url }}{% else %}{{ message.server_name }}{% endif %}</a></h3>
 	<span class="status status-{{ message.status }}">{{ message.get_status_display }}</span>
-	<p class="message"><span class="tag tag-level">{{ message.get_level_display }}</span> <span class="tag tag-server">{{ message.server_name }}</span><span class="last_seen">{{ message.datetime|timesince }} ago</span>
+	<p class="message"><span class="tag tag-level">{{ message.get_level_display }}</span> <span class="tag tag-server">{{ message.server_name }}</span><span class="last_seen">{{ message.datetime|timesince }}</span>
 	</p>
     <a href="{% url sentry-group-message group.pk message.pk %}" class="row_link"></a>
 </li>
