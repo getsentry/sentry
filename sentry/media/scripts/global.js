@@ -110,9 +110,9 @@ function sentryRefresh(){
               var id = el[0];
               var data = el[1];
               if ((row = $('#group_' + id))) {
+                  row.remove();
                   if (row.attr('data-sentry-count') != data.count) {
                       $('#group_' + id).addClass('fresh');
-                      row.remove();
                       $('#message_list').prepend(data.html);
                   }
               } else {
