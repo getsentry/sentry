@@ -7,18 +7,31 @@
 	<form method="post" action="">
 		<input type="hidden" name="next" value="{{ next }}" />
 		{% csrf_token %}
+		{% if global_errors %}
+			<p class="error">{{ global_errors }}</p>
+		{% endif %}
 		<table>
 			<colgroup>
 				<col width="100px"/>
 				<col/>
 			</colgroup>
-			<tr>
+			<tr{% if form.subject.errors %} class="has-errors"{% endif %}>
 				<td>{{ form.subject.label_tag }}</td>
-				<td>{{ form.subject }}</td>
+				<td>
+					{{ form.subject }}
+					{% if form.subject.errors %}
+						<div class="errors">{{ form.subject.errors|join:", " }}</div>
+					{% endif %}
+				</td>
 			</tr>
-			<tr>
+			<tr{% if form.description.errors %} class="has-errors"{% endif %}>
 				<td>{{ form.description.label_tag }}</td>
-				<td>{{ form.description }}</td>
+				<td>
+					{{ form.description }}
+					{% if form.description.errors %}
+						<div class="errors">{{ form.description.errors|join:", " }}</div>
+					{% endif %}
+				</td>
 			</tr>
 		</table>
 		<div class="submit">

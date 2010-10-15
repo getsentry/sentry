@@ -180,7 +180,7 @@ div.commands a { color:black; text-decoration:none; }
 #reporter_body #traceback li { list-style-type: inherit; }
 #reporter_body #traceback { padding: 8px; margin-top: 10px; }
 #reporter_body td, #reporter_body th { border-bottom: 0; font:small sans-serif; line-height: auto; }
-.error { background: #ffc; }
+.error { background: #ffc; padding: 5px; }
 .specific { color:#cc3300; font-weight:bold; }
 h2 span.commands { font-size:.7em;}
 span.commands a:link {color:#5E5694;}
@@ -522,6 +522,9 @@ form table {
 }
 form table td { padding: 5px; }
 form .submit { text-align: right; }
+form .has-errors input,
+form .has-errors textarea { border-color: red; }
+form td .errors { color: red; margin-top: 5px; font-size: 0.9em; }
 
 form td textarea {
     min-height: 250px;

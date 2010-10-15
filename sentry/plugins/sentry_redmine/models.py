@@ -53,13 +53,16 @@ class CreateRedmineIssue(GroupActionProvider):
                 try:
                     response = urllib2.urlopen(req, data).read()
                 except urllib2.HTTPError, e:
-                    raise Exception('%s: %s' % (e.code, e.read()))
-                
-                data = simplejson.loads(response)
-                RedmineIssue.objects.create(group=group, issue_id=data['id'])
-                group.data['redmine'] = {'issue_id': data['id']}
-                group.save()
-                return HttpResponseRedirect(reverse('sentry-group', args=[group.pk]))
+                    form.errors['__all__'] = 'Bad response from Redmine: %s %s' % (e.code, e.read())
+                except urllib2.URLError, e:
+                    print dir(e), e.__dict__
+                    form.errors['__all__'] = 'Unable to reach Redmine host: %s' % (e.reason,)
+                else:
+                    data = simplejson.loads(response)
+                    RedmineIssue.objects.create(group=group, issue_id=data['id'])
+                    group.data['redmine'] = {'issue_id': data['id']}
+                    group.save()
+                    return HttpResponseRedirect(reverse('sentry-group', args=[group.pk]))
         else:
             description = 'Sentry Message: %s' % request.build_absolute_uri(group.get_absolute_url())
             description += '\n\n<pre>' + (group.traceback or group.message) + '</pre>'
@@ -68,6 +71,8 @@ class CreateRedmineIssue(GroupActionProvider):
                 'subject': group.error(),
                 'description': description,
             })
+            
+        global_errors = form.errors.get('__all__')
 
         BASE_TEMPLATE = "sentry/group/details.html"
 
