@@ -77,6 +77,7 @@ class MessageBase(Model):
     traceback       = models.TextField(blank=True, null=True)
     view            = models.CharField(max_length=200, blank=True, null=True)
     checksum        = models.CharField(max_length=32)
+    data            = GzippedDictField(blank=True, null=True)
 
     objects         = SentryManager()
 
@@ -219,7 +220,6 @@ class GroupedMessage(MessageBase):
 class Message(MessageBase):
     group           = models.ForeignKey(GroupedMessage, blank=True, null=True, related_name="message_set")
     datetime        = models.DateTimeField(default=datetime.datetime.now, db_index=True)
-    data            = GzippedDictField(blank=True, null=True)
     url             = models.URLField(verify_exists=False, null=True, blank=True)
     server_name     = models.CharField(max_length=128, db_index=True)
     site            = models.CharField(max_length=128, db_index=True, null=True)
