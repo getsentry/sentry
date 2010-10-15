@@ -279,15 +279,25 @@ dl.flat dd {
 	border-radius: 6px;
 	padding: 4px; line-height: 19px; color: #fff; display: inline-block; margin-right: 5px;
 }
-.messages h3 { height: 20px; line-height: 20px; display: inline-block; margin: 0; white-space: nowrap; overflow: hidden; }
+.messages h3 {
+    height: 20px;
+    line-height: 20px;
+    display: inline-block;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    max-width: 80%;
+}
 .messages h3 a { text-decoration: none; }
 .messages .message {
 	color: #666;
 	margin-top: 8px;
 	font-size: 0.9em;
+	overflow: hidden;
+	white-space: nowrap;
 }
 
-.messages .tag { display: inline-block; padding: 2px 5px; background: #d5d5d5; margin-right: 5px;}
+.messages .tag { display: inline-block; padding: 2px 5px; background: #eaeaea; margin-right: 5px;}
 .messages .traceback { display: none; }
 .messages li { padding: 8px; position: relative; padding-right: 50px; overflow: hidden;}
 .messages .row1 { background: #f9f9f9; }
@@ -358,7 +368,7 @@ dl.flat dd {
 	background:-moz-linear-gradient(center top , #efd57c, #e0ae00) repeat scroll 0 0 transparent;
 	background:-webkit-gradient(linear, 0% 0%, 0% 100%, from(#efd57c), to(#e0ae00));
 }
-.messages .last_seen { color: #bbb; font-size: 0.9em; margin-left: 5px; }
+.messages .last_seen { color: #bbb; font-size: 0.9em; margin-left: 5px; white-space: nowrap; }
 .messages .status { margin-left: 5px; text-transform: uppercase; font-size: 0.9em; }
 .messages .status-0 { display: none; }
 .messages .status-1 { color: red; }
@@ -368,6 +378,7 @@ dl.flat dd {
 	-moz-border-radius: 6px;
 	border-radius: 6px;
 }
+.messages li:hover .tag { background: #fff; }
 .messages li:hover h3 a {
     color: #006CA3;
 }
