@@ -10,9 +10,9 @@ from django.utils.safestring import mark_safe
 from sentry.helpers import urlread
 from sentry.models import GroupedMessage
 from sentry.plugins import GroupActionProvider
+from sentry.plugins.sentry_redmine import conf
 
-import conf
-
+import base64
 import urllib
 import urllib2
 
@@ -50,6 +50,11 @@ class CreateRedmineIssue(GroupActionProvider):
                 }), headers={
                     'Content-type': 'application/json',
                 })
+
+                if conf.REDMINE_USERNAME and conf.REDMINE_PASSWORD:
+                    authstring = base64.encodestring('%s:%s' % (conf.REDMINE_USERNAME, conf.REDMINE_PASSWORD))[:-1]
+                    req.add_header("Authorization", "Basic %s" % authstring)
+                
                 try:
                     response = urllib2.urlopen(req, data).read()
                 except urllib2.HTTPError, e:

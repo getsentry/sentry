@@ -1,3 +1,15 @@
+"""
+Configuring Redmine for these tests:
+
+- Create a project called sentry
+- Run a Redmine server locally on port 3000 (default webrick usage)
+- Create an account with user/pass of sentry/sentry
+
+Note: this does not test with API_KEY as that only works under a modified Redmine
+      environment (e.g. DISQUS branch)
+
+"""
+
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.test import TestCase
@@ -15,6 +27,9 @@ class CreateIssueTest(TestCase):
         self.user.set_password('admin')
         self.user.save()
         self.client.login(username='admin', password='admin')
+        
+        conf.REDMINE_URL = 'http://localhost:3000'
+        conf.REDMINE_PROJECT_SLUG = 'sentry'
 
     def test_basic_response(self):
         group = GroupedMessage.objects.all()[0]
@@ -23,7 +38,28 @@ class CreateIssueTest(TestCase):
         self.assertEquals(response.status_code, 200)
         self.assertTemplateUsed(response, 'sentry/plugins/redmine/create_issue.html')
 
-    def test_issue_creation(self):
+    def test_anonymous_issue_creation(self):
+        conf.REDMINE_USERNAME = None
+        conf.REDMINE_PASSWORD = None
+
+        group = GroupedMessage.objects.all()[0]
+
+        response = self.client.post(CreateRedmineIssue.get_url(group.pk), {
+            'subject': 'test',
+            'description': 'foo',
+        }, follow=True)
+        self.assertEquals(response.status_code, 200)
+        self.assertTemplateUsed(response, 'sentry/group/details.html')
+        
+        self.assertTrue(RedmineIssue.objects.filter(group=group).exists())
+        
+        group = GroupedMessage.objects.get(pk=group.pk)
+        self.assertTrue(group.data['redmine']['issue_id'] > 0)
+
+    def test_http_auth_issue_creation(self):
+        conf.REDMINE_USERNAME = 'sentry'
+        conf.REDMINE_PASSWORD = 'sentry'
+
         group = GroupedMessage.objects.all()[0]
 
         response = self.client.post(CreateRedmineIssue.get_url(group.pk), {
