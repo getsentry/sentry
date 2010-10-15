@@ -53,7 +53,17 @@ class CreateRedmineIssue(GroupActionProvider):
                 try:
                     response = urllib2.urlopen(req, data).read()
                 except urllib2.HTTPError, e:
-                    form.errors['__all__'] = 'Bad response from Redmine: %s %s' % (e.code, e.read())
+                    if e.code == 422:
+                        data = simplejson.loads(e.read())
+                        form.errors['__all__'] = 'Missing or invalid data'
+                        for message in data:
+                            for k, v in message.iteritems():
+                                if k in form.fields:
+                                    form.errors.setdefault(k, []).append(v)
+                                else:
+                                    form.errors['__all__'] += '; %s: %s' % (k, v)
+                    else:
+                        form.errors['__all__'] = 'Bad response from Redmine: %s %s' % (e.code, e.msg)
                 except urllib2.URLError, e:
                     print dir(e), e.__dict__
                     form.errors['__all__'] = 'Unable to reach Redmine host: %s' % (e.reason,)
