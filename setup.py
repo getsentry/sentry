@@ -13,7 +13,6 @@ setup(
     zip_safe=False,
     install_requires=[
         # Optional
-        # 'pygooglechart',
         'django-paging>=0.2.2',
         'django-indexer==0.2',
     ],

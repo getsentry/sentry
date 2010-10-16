@@ -1,14 +1,11 @@
 from django import template
 from django.db.models import Count
+from django.utils import simplejson
 
 from sentry.helpers import get_db_engine
 from sentry.plugins import GroupActionProvider
 
 import datetime
-try:
-    from pygooglechart import SimpleLineChart
-except ImportError:
-    SimpleLineChart = None
 
 register = template.Library()
 
@@ -45,35 +42,47 @@ def num_digits(value):
     return len(str(value))
 
 @register.filter
-def can_chart(group):
-    engine = get_db_engine()
-    return SimpleLineChart and not engine.startswith('sqlite')
-
-@register.filter
-def chart_url(group):
+def chart_data(group, max_days=90):
+    hours = max_days*24
+    
     today = datetime.datetime.now()
 
-    chart_qs = group.message_set.all()\
-                      .filter(datetime__gte=today - datetime.timedelta(hours=24))\
-                      .extra(select={'hour': 'extract(hour from datetime)'}).values('hour')\
-                      .annotate(num=Count('id')).values_list('hour', 'num')
+    if get_db_engine().startswith('postgresql'):
+        method = "date_trunc('hour', datetime)"
+    else:
+        raise NotImplementedError
+
+    chart_qs = list(group.message_set.all()\
+                      .filter(datetime__gte=datetime.datetime.now() - datetime.timedelta(hours=hours))\
+                      .extra(select={'grouper': method}).values('grouper')\
+                      .annotate(num=Count('id')).values_list('grouper', 'num')\
+                      .order_by('grouper'))
+
+    min_date = chart_qs[0][0]
+    if min_date < datetime.datetime.now() - datetime.timedelta(days=1):
+        stop_hours = (datetime.datetime.now() - min_date).days * 24
+        start_hours = (datetime.datetime.now() - chart_qs[-1][0]).days * 24
+    else:
+        stop_hours = 24
+        start_hours = 0
 
     rows = dict(chart_qs)
     if rows:
         max_y = max(rows.values())
     else:
         max_y = 1
+    
+    def to_grouper(val):
+        return val.replace(microsecond=0, second=0, minute=0)
 
-    chart = SimpleLineChart(300, 80, y_range=[0, max_y])
-    chart.add_data([max_y]*30)
-    chart.add_data([rows.get((today-datetime.timedelta(hours=d)).hour, 0) for d in range(0, 24)][::-1])
-    chart.add_data([0]*30)
-    chart.fill_solid(chart.BACKGROUND, 'eeeeee')
-    chart.add_fill_range('eeeeee', 0, 1)
-    chart.add_fill_range('e0ebff', 1, 2)
-    chart.set_colours(['eeeeee', '999999', 'eeeeee'])
-    chart.set_line_style(1, 1)
-    return chart.get_url()
+    return {
+        'points': [rows.get(to_grouper(today-datetime.timedelta(hours=d)), 0) for d in xrange(start_hours, stop_hours)][::-1],
+        'categories': [str(to_grouper(today-datetime.timedelta(hours=d))) for d in xrange(start_hours, stop_hours)][::-1],
+    }
+
+@register.filter
+def to_json(data):
+    return simplejson.dumps(data)
 
 def sentry_version():
     from sentry import get_version

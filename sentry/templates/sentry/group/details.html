@@ -15,14 +15,7 @@
 				<li><a href="{{ link }}">{{ label }}</a></li>
 			{% endfor %}
 		</ul>
-		{% if group|can_chart %}
-			<h2>Last 24 Hours</h2>
-
-			<img src="{{ group|chart_url }}" class="chart" alt="chart"/>
-		{% endif %}
-	
 		<h2>Meta</h2>
-
 		<dl class="flat">
 			<dt>Logger:</dt>
 			<dd><a href="{% url sentry %}?logger={{ group.logger }}">{{ group.logger }}</a></dd>
@@ -70,6 +63,81 @@
 		
 		{% block inner %}
 			<div id="details">
+				{% with group|chart_data as chart_data %}
+				<script type="text/javascript">
+				$(document).ready(function() {
+					new Highcharts.Chart({
+						chart: {
+							renderTo: 'chart',
+							zoomType: 'x',
+							marginLeft: 50,
+							marginRight: 20,
+							marginTop: 20,
+							marginBottom: 40,
+							backgroundColor: '#eeeeee',
+							showAxes: false,
+							height: 200
+						},
+						title: {
+							text: false
+						},
+						xAxis: {
+							type: 'datetime',
+							maxZoom: 24 * 3600000, // 1 day
+							title: {
+								text: false
+							},
+						},
+						yAxis: {
+							title: {
+								text: false
+							}
+						},
+						tooltip: {
+							formatter: function() {
+								return '<strong>'+
+									Highcharts.dateFormat('%A %B %e %Y', this.x) + '</strong><br/>'+
+									this.y+' records';
+							}
+						},
+						series: [{
+							pointStart: new Date() - 30 * 3600000,
+							pointInterval: 3600 * 1000,
+							type: 'area',
+							data: {{ chart_data.points|to_json }}
+						}],
+						legend: {
+							enabled: false
+						},
+						plotOptions: {
+							area: {
+								lineWidth: 1,
+								marker: {
+									enabled: false,
+									states: {
+										hover: {
+											enabled: true,
+											radius: 5
+										}
+									}
+								},
+								shadow: false,
+								states: {
+									hover: {
+										lineWidth: 1
+									}
+								}
+							}
+						},
+					});
+				});
+				</script>
+				<h2>Frequency</h2>
+				<div id="chart">
+					<noscript>Get yourself some JavaScripts dood</noscript>
+				</div>
+				{% endwith %}
+				
 				{% if traceback %}
 
 					<h2>Sample Traceback</h2>
