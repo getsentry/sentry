@@ -12,7 +12,6 @@ setup(
     packages=find_packages(),
     zip_safe=False,
     install_requires=[
-        # Optional
         'django-paging>=0.2.2',
         'django-indexer==0.2',
     ],
