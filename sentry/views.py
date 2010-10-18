@@ -136,7 +136,11 @@ def ajax_handler(request):
         
         data = [
             (m.pk, {
-                'html': render_to_string('sentry/partial/_group.html', {'group': m, 'priority': p}),
+                'html': render_to_string('sentry/partial/_group.html', {
+                    'group': m,
+                    'priority': p,
+                    'request': request,
+                }),
                 'count': m.times_seen,
                 'priority': p,
             }) for m, p in with_priority(message_list[0:15])]
@@ -158,7 +162,10 @@ def ajax_handler(request):
         
         data = [
             (m.pk, {
-                'html': render_to_string('sentry/partial/_group.html', {'group': m}),
+                'html': render_to_string('sentry/partial/_group.html', {
+                    'group': m,
+                    'request': request,
+                }),
                 'count': m.times_seen,
             }) for m in [group]]
     else:
