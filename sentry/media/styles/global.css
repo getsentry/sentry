@@ -101,7 +101,7 @@ ul { margin: 1em 0 1em 2em; }
     background: #fff;
     max-width: 100%;
     overflow: hidden;
-    margin: 2em;
+    margin: 2em 0 2em 2em;
     border-radius: 10px;
     -moz-border-radius: 10px;
     -webkit-border-radius: 10px;
@@ -127,7 +127,7 @@ ul { margin: 1em 0 1em 2em; }
 #sidebar {
     float: right;
     width: 300px;
-    margin: 0em 2em 2em 0em;
+    margin: 0em 2em 2em 1.5em;
     background: inherit;
     overflow: hidden;
     }
@@ -281,7 +281,7 @@ dl.flat dd {
 }
 .messages h3 {
     height: 20px;
-    line-height: 20px;
+    line-height: 28px;
     display: inline-block;
     margin: 0;
     white-space: nowrap;
