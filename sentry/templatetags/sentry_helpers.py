@@ -50,7 +50,7 @@ def chart_data(group, max_days=90):
     if get_db_engine().startswith('postgresql'):
         method = "date_trunc('hour', datetime)"
     else:
-        raise NotImplementedError
+        return {}
 
     chart_qs = list(group.message_set.all()\
                       .filter(datetime__gte=datetime.datetime.now() - datetime.timedelta(hours=hours))\

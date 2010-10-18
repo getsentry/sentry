@@ -64,78 +64,80 @@
 		{% block inner %}
 			<div id="details">
 				{% with group|chart_data as chart_data %}
-				<script type="text/javascript">
-				$(document).ready(function() {
-					new Highcharts.Chart({
-						chart: {
-							renderTo: 'chart',
-							zoomType: 'x',
-							marginLeft: 50,
-							marginRight: 20,
-							marginTop: 20,
-							marginBottom: 40,
-							backgroundColor: '#eeeeee',
-							showAxes: false,
-							height: 200
-						},
-						title: {
-							text: false
-						},
-						xAxis: {
-							type: 'datetime',
-							maxZoom: 24 * 3600000, // 1 day
-							title: {
-								text: false
-							},
-						},
-						yAxis: {
-							title: {
-								text: false
-							}
-						},
-						tooltip: {
-							formatter: function() {
-								return '<strong>'+
-									Highcharts.dateFormat('%A %B %e %Y', this.x) + '</strong><br/>'+
-									this.y+' records';
-							}
-						},
-						series: [{
-							pointStart: new Date() - 30 * 3600000,
-							pointInterval: 3600 * 1000,
-							type: 'area',
-							data: {{ chart_data.points|to_json }}
-						}],
-						legend: {
-							enabled: false
-						},
-						plotOptions: {
-							area: {
-								lineWidth: 1,
-								marker: {
-									enabled: false,
-									states: {
-										hover: {
-											enabled: true,
-											radius: 5
-										}
-									}
-								},
-								shadow: false,
-								states: {
-									hover: {
-										lineWidth: 1
-									}
-								}
-							}
-						},
-					});
-				});
-				</script>
-				<h2>Frequency</h2>
-				<div id="chart">
-					<noscript>Get yourself some JavaScripts dood</noscript>
-				</div>
+    				{% if chart_data %}
+    				<script type="text/javascript">
+    				$(document).ready(function() {
+    					new Highcharts.Chart({
+    						chart: {
+    							renderTo: 'chart',
+    							zoomType: 'x',
+    							marginLeft: 50,
+    							marginRight: 20,
+    							marginTop: 20,
+    							marginBottom: 40,
+    							backgroundColor: '#eeeeee',
+    							showAxes: false,
+    							height: 200
+    						},
+    						title: {
+    							text: false
+    						},
+    						xAxis: {
+    							type: 'datetime',
+    							maxZoom: 24 * 3600000, // 1 day
+    							title: {
+    								text: false
+    							},
+    						},
+    						yAxis: {
+    							title: {
+    								text: false
+    							}
+    						},
+    						tooltip: {
+    							formatter: function() {
+    								return '<strong>'+
+    									Highcharts.dateFormat('%A %B %e %Y', this.x) + '</strong><br/>'+
+    									this.y+' records';
+    							}
+    						},
+    						series: [{
+    							pointStart: new Date() - 30 * 3600000,
+    							pointInterval: 3600 * 1000,
+    							type: 'area',
+    							data: {{ chart_data.points|to_json }}
+    						}],
+    						legend: {
+    							enabled: false
+    						},
+    						plotOptions: {
+    							area: {
+    								lineWidth: 1,
+    								marker: {
+    									enabled: false,
+    									states: {
+    										hover: {
+    											enabled: true,
+    											radius: 5
+    										}
+    									}
+    								},
+    								shadow: false,
+    								states: {
+    									hover: {
+    										lineWidth: 1
+    									}
+    								}
+    							}
+    						},
+    					});
+    				});
+    				</script>
+    				<h2>Frequency</h2>
+    				<div id="chart">
+    					<noscript>Get yourself some JavaScripts dood</noscript>
+    				</div>
+    			    {% endif %}
 				{% endwith %}
 				
 				{% if traceback %}
