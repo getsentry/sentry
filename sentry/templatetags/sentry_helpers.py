@@ -47,10 +47,13 @@ def chart_data(group, max_days=90):
     
     today = datetime.datetime.now()
 
-    if get_db_engine().startswith('postgresql'):
-        method = "date_trunc('hour', datetime)"
+    if hasattr(group, '_state'):
+        from django.db import connections
+        conn = connections[group._state.db]
     else:
-        return {}
+        from django.db import connection as conn
+
+    method = conn.ops.date_trunc_sql('hour', 'datetime')
 
     chart_qs = list(group.message_set.all()\
                       .filter(datetime__gte=datetime.datetime.now() - datetime.timedelta(hours=hours))\
