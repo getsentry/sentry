@@ -758,7 +758,7 @@ class SentryMailTest(TestCase):
 
         self.assertTrue('Traceback (most recent call last):' in out.body)
         self.assertTrue("COOKIES:{'commenter_name': 'admin'," in out.body, out.body)
-        self.assertEquals(out.subject, '[Django] Error (EXTERNAL IP): /group/1')
+        self.assertEquals(out.subject, 'Error (EXTERNAL IP): /group/1')
 
     def test_mail_on_creation(self):
         conf.MAIL = True
@@ -773,7 +773,7 @@ class SentryMailTest(TestCase):
 
         self.assertTrue('Traceback (most recent call last):' in out.body)
         self.assertTrue("<Request" in out.body)
-        self.assertEquals(out.subject, '[Django] Error (EXTERNAL IP): /trigger-500')
+        self.assertEquals(out.subject, '[example.com] Error (EXTERNAL IP): /trigger-500')
 
     def test_mail_on_duplication(self):
         conf.MAIL = True
@@ -797,7 +797,7 @@ class SentryMailTest(TestCase):
 
         self.assertTrue('Traceback (most recent call last):' in out.body)
         self.assertTrue("<Request" in out.body)
-        self.assertEquals(out.subject, '[Django] Error (EXTERNAL IP): /trigger-500')
+        self.assertEquals(out.subject, '[example.com] Error (EXTERNAL IP): /trigger-500')
 
     def test_url_prefix(self):
         conf.URL_PREFIX = 'http://example.com'
