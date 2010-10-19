@@ -157,8 +157,18 @@ name is not reserved and not private (_foo) it will be displayed on the Sentry d
 your ``extra`` clause::
 
 	logging.error('There was some crazy error', exc_info=sys.exc_info(), extra={
-	    'url': request.build_absolute_uri(),
-	    'data': {'username': request.user.username}})
+	    # Optionally pass a request and we'll grab any information we can
+	    'request': request,
+
+	    # Otherwise you can pass additional arguments to specify request info
+	    'view': 'my.view.name',
+	    'url': request.build_absolute_url(),
+
+	    'data': {
+	        # You may specify any values here and Sentry will log and output them
+	        'username': request.user.username
+	    }
+	})
 
 ===========================
 Other configuration options
