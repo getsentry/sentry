@@ -30,8 +30,11 @@ class SentryClient(object):
         if conf.THRASHING_TIMEOUT and conf.THRASHING_LIMIT:
             cache_key = 'sentry:%s:%s' % (kwargs.get('class_name') or '', checksum)
             added = cache.add(cache_key, 1, conf.THRASHING_TIMEOUT)
-            if not added and cache.incr(cache_key) > conf.THRASHING_LIMIT:
-                return
+            try:
+                if not added and cache.incr(cache_key) > conf.THRASHING_LIMIT:
+                    return
+            except KeyError:
+                pass
 
         for filter_ in get_filters():
             kwargs = filter_(None).process(kwargs) or kwargs
