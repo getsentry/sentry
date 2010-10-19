@@ -276,7 +276,9 @@ dl.flat dd {
 .messages { list-style: none; margin-left: 0; }
 .messages li { list-style: none; }
 .messages .count {
-    width: 28px; text-align: center;
+    width: 28px;
+    vertical-align: top;
+    text-align: center;
     -webkit-border-radius: 6px;
     -moz-border-radius: 6px;
     border-radius: 6px;
@@ -284,12 +286,9 @@ dl.flat dd {
 }
 .messages h3 {
     vertical-align: middle;
-    height: 28px;
     line-height: 24px;
     display: inline-block;
     margin: 0;
-    white-space: nowrap;
-    overflow: hidden;
     max-width: 80%;
 }
 .messages h3 a { text-decoration: none; }
