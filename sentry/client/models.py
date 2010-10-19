@@ -20,7 +20,7 @@ def get_client():
 client = get_client()
 
 @transaction.commit_on_success
-def sentry_exception_handler(sender, request=None, **kwargs):
+def sentry_exception_handler(request=None, **kwargs):
     try:
         exc_type, exc_value, exc_traceback = sys.exc_info()
 

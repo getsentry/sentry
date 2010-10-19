@@ -66,6 +66,36 @@ Finally, run ``python manage.py syncdb`` to create the database tables.
 
 (If you use South, you'll need to use ``python manage.py migrate sentry``)
 
+=========================
+Error Handling Middleware
+=========================
+
+If you already have middleware in place that handles ``process_exception`` you will need to take extra care when using Sentry.
+
+For example, the following middleware would suppress Sentry logging due to it returning a response::
+
+	class MyMiddleware(object):
+	    def process_exception(self, request, exception):
+	        return HttpResponse('foo')
+
+To work around this, you can either disable your error handling middleware, or add something like the following::
+
+	from django.core.signals import got_request_exception
+	class MyMiddleware(object):
+	    def process_exception(self, request, exception):
+	        # Make sure the exception signal is fired for Sentry
+	        got_request_exception.send(sender=self, request=request)
+	        return HttpResponse('foo')
+
+Or, alternatively, you can just enable Sentry responses::
+
+	from sentry.client.models import sentry_exception_handler
+	class MyMiddleware(object):
+	    def process_exception(self, request, exception):
+	        # Make sure the exception signal is fired for Sentry
+	        sentry_exception_handler(request=request)
+	        return HttpResponse('foo')
+
 ==========================
 Multi-server configuration
 ==========================
