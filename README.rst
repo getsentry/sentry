@@ -132,6 +132,34 @@ Sentry also allows you to support high availability by pushing to multiple serve
 
 	SENTRY_REMOTE_URL = ['http://server1/sentry/store/', 'http://server2/sentry/store/']
 
+============================
+Integration with ``logging``
+============================
+
+django-sentry supports the ability to directly tie into the ``logging`` module. To use it simply add ``SentryHandler`` to your logger::
+
+	import logging
+	from sentry.client.handlers import SentryHandler
+	
+	logging.getLogger().addHandler(SentryHandler())
+
+	# Add StreamHandler to sentry's default so you can catch missed exceptions
+	logger = logging.getLogger('sentry.errors')
+	logger.propagate = False
+	logger.addHandler(logging.StreamHandler())
+
+You can also use the ``exc_info`` and ``extra=dict(url=foo)`` arguments on your ``log`` methods. This will store the appropriate information and allow django-sentry to render it based on that information::
+
+	logging.error('There was some crazy error', exc_info=sys.exc_info(), extra={'url': request.build_absolute_uri()})
+
+You may also pass additional information to be stored as meta information with the event. As long as the key
+name is not reserved and not private (_foo) it will be displayed on the Sentry dashboard. To do this, pass it as ``data`` within
+your ``extra`` clause::
+
+	logging.error('There was some crazy error', exc_info=sys.exc_info(), extra={
+	    'url': request.build_absolute_uri(),
+	    'data': {'username': request.user.username}})
+
 ===========================
 Other configuration options
 ===========================
@@ -192,35 +220,6 @@ SENTRY_NAME
 ###########
 
 This will override the ``server_name`` value for this installation. Defaults to ``socket.get_hostname()``.
-
-
-############################
-Integration with ``logging``
-############################
-
-django-sentry supports the ability to directly tie into the ``logging`` module. To use it simply add ``SentryHandler`` to your logger::
-
-	import logging
-	from sentry.client.handlers import SentryHandler
-	
-	logging.getLogger().addHandler(SentryHandler())
-
-	# Add StreamHandler to sentry's default so you can catch missed exceptions
-	logger = logging.getLogger('sentry.errors')
-	logger.propagate = False
-	logger.addHandler(logging.StreamHandler())
-
-You can also use the ``exc_info`` and ``extra=dict(url=foo)`` arguments on your ``log`` methods. This will store the appropriate information and allow django-sentry to render it based on that information::
-
-	logging.error('There was some crazy error', exc_info=sys.exc_info(), extra={'url': request.build_absolute_uri()})
-
-You may also pass additional information to be stored as meta information with the event. As long as the key
-name is not reserved and not private (_foo) it will be displayed on the Sentry dashboard. To do this, pass it as ``data`` within
-your ``extra`` clause::
-
-	logging.error('There was some crazy error', exc_info=sys.exc_info(), extra={
-	    'url': request.build_absolute_uri(),
-	    'data': {'username': request.user.username}})
 
 =====
 Usage
