@@ -28,7 +28,7 @@ class SentryClient(object):
         checksum = construct_checksum(**kwargs)
 
         if conf.THRASHING_TIMEOUT and conf.THRASHING_LIMIT:
-            cache_key = 'sentry:%s:%s' % (kwargs.get('class_name'), checksum)
+            cache_key = 'sentry:%s:%s' % (kwargs.get('class_name') or '', checksum)
             added = cache.add(cache_key, 1, conf.THRASHING_TIMEOUT)
             if not added and cache.incr(cache_key) > conf.THRASHING_LIMIT:
                 return
