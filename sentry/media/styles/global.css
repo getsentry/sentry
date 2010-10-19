@@ -52,35 +52,6 @@ ul { margin: 1em 0 1em 2em; }
     top: 20px;
 }
 
-#account {
-    position: absolute;
-    right: 1em;
-    top: 1.8em;
-    color: #fff;
-}
-
-.nav {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-.nav a { color: inherit; }
-.nav li { display: inline; }
-.nav li a { display: inline-block; }
-
-.sentry-logo {
-    display: inline-block;
-    font-weight: normal;
-    font-family: helvetica, sans-serif;
-    font-size: 22px;
-    color: #fff;
-    -webkit-border-radius: 8px;
-    -moz-border-radius: 8px;
-    border-radius: 8px;
-}
-.sentry-logo small {
-    font-size: 22px;
-}
 #header h1 {
     font-family: 'Yanone Kaffeesatz', arial, serif;
     display: inline-block;
@@ -103,6 +74,22 @@ ul { margin: 1em 0 1em 2em; }
     margin-left: 15px;
     color: #ccc;
 }
+
+#account {
+    position: absolute;
+    right: 1em;
+    top: 1.8em;
+    color: #fff;
+}
+
+.nav {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.nav a { color: inherit; }
+.nav li { display: inline; }
+.nav li a { display: inline-block; }
 
 
 #footer { clear: both; border-top:1px solid #ddd; background-color: #e5e5e5; }
@@ -146,7 +133,7 @@ ul { margin: 1em 0 1em 2em; }
     margin: 0em 2em 2em 1.5em;
     background: inherit;
     overflow: hidden;
-    }
+}
 
 .sidebar-module {
     background: rgba(0,0,0, .03);
