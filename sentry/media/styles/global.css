@@ -283,8 +283,9 @@ dl.flat dd {
     padding: 4px; line-height: 19px; color: #fff; display: inline-block; margin-right: 5px;
 }
 .messages h3 {
+    vertical-align: middle;
     height: 28px;
-    line-height: 28px;
+    line-height: 24px;
     display: inline-block;
     margin: 0;
     white-space: nowrap;
