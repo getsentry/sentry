@@ -3,104 +3,106 @@
 
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd"> 
 <html lang="en">
-	<head> 
-		<meta http-equiv="content-type" content="text/html; charset=utf-8"> 
-		<meta name="robots" content="NONE,NOARCHIVE">
-		<title>{% block title %}Django Sentry{% endblock %}</title> 
-		<script type="text/javascript">
-		SENTRY_JS_API_URL = '{% url sentry-ajax %}';
-		</script>
-		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
-		<script type="text/javascript" src="{% url sentry-media "scripts/highcharts.js" %}" ></script>
-		<script type="text/javascript" src="{% url sentry-media "scripts/jquery.animate-colors-min.js" %}"></script>
-		<script type="text/javascript" src="{% url sentry-media "scripts/global.js" %}"></script>
-		<style type="text/css">@import '{% url sentry-media "styles/global.css" %}';</style>
-	</head> 
-	
-	<body> 
-		{% block body %}
-		<div id="header"> 
-			<div class="container">
-				<h1><a href="{% url sentry %}"><span class="sentry-logo" title="Django Sentry"><img src="{% url sentry-media "images/sentry.png" %}" border=0/></span></a></h1>
-				<h2>{% block heading %}Dashboard{% endblock %}</h2>
-				<ul class="nav" id="account">
-					{% if request.user.is_authenticated %}
-						<li><a href="{% url sentry-logout %}">Logout</a>
-					{% endif %}
-				</ul>
-			</div>
-		</div> 
-		<div id="content">
-			{% block content_before %}
-			{% endblock %}
-			<div class="container">
-				{% block content %}
-					<div id="sidebar" class="column">
-						{% if chart_url %}
-							<h2>Last 24 Hours</h2>
-							<img src="{{ chart_url }}" class="chart" alt="chart"/>
-						{% endif %}
-					
-						{% for filter in filters %}
-							<h2>{{ filter.label }}</h2>
-							<form method="get" action="{{ filter.get_query_string|safe }}">
-								{{ filter.render }}
-							</form>
-						{% endfor %}
-					</div>
+    <head> 
+        <meta http-equiv="content-type" content="text/html; charset=utf-8"> 
+        <meta name="robots" content="NONE,NOARCHIVE">
+        <link href='http://fonts.googleapis.com/css?family=Yanone+Kaffeesatz:light,regular&subset=latin' rel='stylesheet' type='text/css'>
+        <link rel="shortcut icon" href="{% url sentry-media "images/sentry.png" %}"/>
+        <title>{% block title %}Sentry{% endblock %}</title> 
+        <script type="text/javascript">
+        SENTRY_JS_API_URL = '{% url sentry-ajax %}';
+        </script>
+        <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+        <script type="text/javascript" src="{% url sentry-media "scripts/highcharts.js" %}" ></script>
+        <script type="text/javascript" src="{% url sentry-media "scripts/jquery.animate-colors-min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "scripts/global.js" %}"></script>
+        <style type="text/css">@import '{% url sentry-media "styles/global.css" %}';</style>
+    </head> 
+    
+    <body> 
+        {% block body %}
+        <div id="header"> 
+            <div class="container">
+                <h1><a href="{% url sentry %}"><img src="{% url sentry-media "images/sentry.png" %}" border="0" width="32"/>Sentry</a></h1>
+                <h2>{% block heading %}Dashboard{% endblock %}</h2>
+                <ul class="nav" id="account">
+                    {% if request.user.is_authenticated %}
+                        <li><a href="{% url sentry-logout %}">Logout</a>
+                    {% endif %}
+                </ul>
+            </div>
+        </div> 
+        <div id="content">
+            {% block content_before %}
+            {% endblock %}
+            <div class="container">
+                {% block content %}
+                    <div id="sidebar" class="column">
+                        {% if chart_url %}
+                            <h2>Last 24 Hours</h2>
+                            <img src="{{ chart_url }}" class="chart" alt="chart"/>
+                        {% endif %}
+                    
+                        {% for filter in filters %}
+                            <h2>{{ filter.label }}</h2>
+                            <form method="get" action="{{ filter.get_query_string|safe }}">
+                                {{ filter.render }}
+                            </form>
+                        {% endfor %}
+                    </div>
 
-					<div id="body" class="with-sidebar column">
-						{% paginate message_list from request as message_list per_page 15 %}
-						{% if message_list.objects %}
-							<div class="clearfix">
-								<div class="paging-wrap">
-									<form method="GET" action="">
-										{% for k, v in request.GET.iteritems %}
-											<input type="hidden" name="{{ k }}" value="{{ v }}"/>
-										{% endfor %}
-										<div class="sort-by">Sort by <select name="sort" onchange="this.form.submit()">
-											<option value=""{% ifequal sort 'priority' %} selected="selected"{% endifequal %}>Priority</option>
-											<option value="date"{% ifequal sort 'date' %} selected="selected"{% endifequal %}>Last Seen</option>
-											<option value="new"{% ifequal sort 'new' %} selected="selected"{% endifequal %}>First Seen</option>
-										</select>
-										</div>
-									</form>
-									{% if has_realtime %}
-										<a id="sentry_realtime" class="realtime realtime-pause">Pause Feed</a>
-									{% endif %}
-									{{ message_list.paging }}
-								</div>
-							</div>
-							<ul class="messages" id="message_list">
-								{% for group, priority in message_list.objects|with_priority %}
-									{% include "sentry/partial/_group.html" %}
-								{% endfor %}
-							</ul>
-							<div class="clearfix">
-								{{ message_list.paging }}
-							</div>
-						{% else %}
-							<ul class="messages" id="message_list"></ul>
-							<p class="no-messages" id="no_messages">No messages match your filters.</p>
-						{% endif %}
-					</div>
-				{% endblock %}
-			</div>
- 		</div>
-		<div id="footer">
-			<div class="container">
-				Sentry {% sentry_version %} | Powered by sexy Django magic | Conjured up by the <a href="http://disqus.com">DISQUS</a> team and other noble <a href="http://github.com/dcramer/django-sentry/contributors">sorcerers</a>.
-			</div>
-		</div> 
-		{% endblock %}
-	</body>
-	{% if has_realtime %}
-	<script type="text/javascript">
-	sentryRealtime = true;
-	$(document).ready(function(){
-		//$("div.column").setAllToMaxHeight();
-		setTimeout(sentryRefresh, 3000);
-	});
-	</script>
-	{% endif %}
+                    <div id="body" class="with-sidebar column">
+                        {% paginate message_list from request as message_list per_page 15 %}
+                        {% if message_list.objects %}
+                            <div class="clearfix">
+                                <div class="paging-wrap">
+                                    <form method="GET" action="">
+                                        {% for k, v in request.GET.iteritems %}
+                                            <input type="hidden" name="{{ k }}" value="{{ v }}"/>
+                                        {% endfor %}
+                                        <div class="sort-by">Sort by <select name="sort" onchange="this.form.submit()">
+                                            <option value=""{% ifequal sort 'priority' %} selected="selected"{% endifequal %}>Priority</option>
+                                            <option value="date"{% ifequal sort 'date' %} selected="selected"{% endifequal %}>Last Seen</option>
+                                            <option value="new"{% ifequal sort 'new' %} selected="selected"{% endifequal %}>First Seen</option>
+                                        </select>
+                                        </div>
+                                    </form>
+                                    {% if has_realtime %}
+                                        <a id="sentry_realtime" class="realtime realtime-pause">Pause Feed</a>
+                                    {% endif %}
+                                    {{ message_list.paging }}
+                                </div>
+                            </div>
+                            <ul class="messages" id="message_list">
+                                {% for group, priority in message_list.objects|with_priority %}
+                                    {% include "sentry/partial/_group.html" %}
+                                {% endfor %}
+                            </ul>
+                            <div class="clearfix">
+                                {{ message_list.paging }}
+                            </div>
+                        {% else %}
+                            <ul class="messages" id="message_list"></ul>
+                            <p class="no-messages" id="no_messages">No messages match your filters.</p>
+                        {% endif %}
+                    </div>
+                {% endblock %}
+            </div>
+         </div>
+        <div id="footer">
+            <div class="container">
+                Sentry {% sentry_version %} | Powered by sexy Django magic | Conjured up by the <a href="http://disqus.com">DISQUS</a> team and other noble <a href="http://github.com/dcramer/django-sentry/contributors">sorcerers</a>.
+            </div>
+        </div> 
+        {% endblock %}
+    </body>
+    {% if has_realtime %}
+    <script type="text/javascript">
+    sentryRealtime = true;
+    $(document).ready(function(){
+        //$("div.column").setAllToMaxHeight();
+        setTimeout(sentryRefresh, 3000);
+    });
+    </script>
+    {% endif %}
 </html>

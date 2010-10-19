@@ -45,7 +45,7 @@ def num_digits(value):
 def chart_data(group, max_days=90):
     hours = max_days*24
     
-    today = datetime.datetime.now()
+    today = datetime.datetime.now().replace(microsecond=0, second=0, minute=0)
 
     if hasattr(group, '_state'):
         from django.db import connections
@@ -63,24 +63,21 @@ def chart_data(group, max_days=90):
 
     min_date = chart_qs[0][0]
     if min_date and min_date < datetime.datetime.now() - datetime.timedelta(days=1):
-        stop_hours = (datetime.datetime.now() - min_date).days * 24
+        stop_hours = (datetime.datetime.now() - min_date).days * 24 + 50
         start_hours = (datetime.datetime.now() - chart_qs[-1][0]).days * 24
     else:
         stop_hours = 24
         start_hours = 0
-
+    
     rows = dict(chart_qs)
     if rows:
         max_y = max(rows.values())
     else:
         max_y = 1
     
-    def to_grouper(val):
-        return val.replace(microsecond=0, second=0, minute=0)
-
     return {
-        'points': [rows.get(to_grouper(today-datetime.timedelta(hours=d)), 0) for d in xrange(start_hours, stop_hours)][::-1],
-        'categories': [str(to_grouper(today-datetime.timedelta(hours=d))) for d in xrange(start_hours, stop_hours)][::-1],
+        'points': [rows.get(today-datetime.timedelta(hours=d), 0) for d in xrange(start_hours, stop_hours)][::-1],
+        'categories': [str(today-datetime.timedelta(hours=d)) for d in xrange(start_hours, stop_hours)][::-1],
     }
 
 @register.filter

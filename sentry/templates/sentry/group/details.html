@@ -7,179 +7,189 @@
 {% block heading %}Message Details{% endblock %}
 
 {% block content %}
-	<div id="sidebar">
-		<ul class="actions">
-			{# We're going to move these to the resolve action location #}
-			<li><a href="{% url sentry %}">&laquo; back to list</a></li>
-			{% for label, link, is_active in group|get_actions:request %}
-				<li><a href="{{ link }}">{{ label }}</a></li>
-			{% endfor %}
-		</ul>
-		<h2>Meta</h2>
-		<dl class="flat">
-			<dt>Logger:</dt>
-			<dd><a href="{% url sentry %}?logger={{ group.logger }}">{{ group.logger }}</a></dd>
-			<dt>Level:</dt>
-			<dd><a href="{% url sentry %}?level={{ group.level }}">{{ group.get_level_display }}</a></dd>
-			<dt>Status:</dt>
-			<dd>{{ group.get_status_display|title }}</dd>
-			<dt>First Seen:</dt>
-			<dd>{{ group.first_seen|timesince }}</dd>
-			<dt>Last Seen:</dt>
-			<dd>{{ group.last_seen|timesince }}</dd>
-		</dl>
-		
-		{% for html in group|get_widgets:request %}
-			{{ html|safe }}
-		{% endfor %}
-	</div>
+    <div id="sidebar">
+        <ul class="actions">
+            {# We're going to move these to the resolve action location #}
+            <li><a href="{% url sentry %}">&laquo; back to list</a></li>
+            {% for label, link, is_active in group|get_actions:request %}
+                <li><a href="{{ link }}">{{ label }}</a></li>
+            {% endfor %}
+        </ul>
+        <h2>Meta</h2>
+        <dl class="flat">
+            <dt>Logger:</dt>
+            <dd><a href="{% url sentry %}?logger={{ group.logger }}">{{ group.logger }}</a></dd>
+            <dt>Level:</dt>
+            <dd><a href="{% url sentry %}?level={{ group.level }}">{{ group.get_level_display }}</a></dd>
+            <dt>Status:</dt>
+            <dd>{{ group.get_status_display|title }}</dd>
+            <dt>First Seen:</dt>
+            <dd>{{ group.first_seen|timesince }}</dd>
+            <dt>Last Seen:</dt>
+            <dd>{{ group.last_seen|timesince }}</dd>
+        </dl>
+        
+        {% for html in group|get_widgets:request %}
+            {{ html|safe }}
+        {% endfor %}
+    </div>
 
-	<div id="body" class="with-sidebar">
-		<ul class="messages" id="message_list">
-			<li class="{% cycle 'row1' 'row2' %} level-{{ group.level }} active" id="group_{{ group.pk }}" data-sentry-count="{{ group.times_seen }}">
-				<span class="count count-digits-{{ group.times_seen|num_digits }}">{{ group.times_seen }}</span>
-				<h3>{% if group.view %}{{ group.view }}{% else %}{{ group.message }}{% endif %}</h3>
-				<span class="last_seen">{{ group.last_seen|timesince }}</span>
-				<span class="status status-{{ group.status }}">{{ group.get_status_display }}</span>
-				<p class="message">
-					<span class="tag tag-level">{{ group.get_level_display }}</span> 
-					<span class="tag tag-logger">{{ group.logger }}</span> 
-					{% for tag in group|get_tags:request %}<span class="tag">{{ tag }}</span> {% endfor %}
-					{{ group.error }}
-				</p>
-				{% if group.status == 0 %}
-					<a href="{% url sentry-ajax %}?op=resolve&amp;gid={{ group.pk }}" class="hidden button button_resolve">&#10003;</a>
-				{% endif %}
-			</li>
-		</ul>
+    <div id="body" class="with-sidebar">
+        <ul class="messages" id="message_list">
+            <li class="{% cycle 'row1' 'row2' %} level-{{ group.level }} active" id="group_{{ group.pk }}" data-sentry-count="{{ group.times_seen }}">
+                <span class="count count-digits-{{ group.times_seen|num_digits }}">{{ group.times_seen }}</span>
+                <h3>{% if group.view %}{{ group.view }}{% else %}{{ group.message }}{% endif %}</h3>
+                <span class="last_seen">{{ group.last_seen|timesince }}</span>
+                <span class="status status-{{ group.status }}">{{ group.get_status_display }}</span>
+                <p class="message">
+                    <span class="tag tag-level">{{ group.get_level_display }}</span> 
+                    <span class="tag tag-logger">{{ group.logger }}</span> 
+                    {% for tag in group|get_tags:request %}<span class="tag">{{ tag }}</span> {% endfor %}
+                    {{ group.error }}
+                </p>
+                {% if group.status == 0 %}
+                    <a href="{% url sentry-ajax %}?op=resolve&amp;gid={{ group.pk }}" class="hidden button button_resolve">&#10003;</a>
+                {% endif %}
+            </li>
+        </ul>
 
-		<ul class="nav" id="group_nav">
-			<li{% ifequal page 'details' %} class="active"{% endifequal %}><a href="{% url sentry-group group.pk %}">Details</a></li>
-			<li{% ifequal page 'messages' %} class="active"{% endifequal %}><a href="{% url sentry-group-messages group.pk %}">Messages</a></li>
-			{% for label, link, is_active in group|get_panels:request %}
-				<li{% if is_active %} class="active"{% endif %}><a href="{{ link }}">{{ label }}</a></li>
-			{% endfor %}
-		</ul>
-		
-		{% block inner %}
-			<div id="details">
-				{% with group|chart_data as chart_data %}
-    				{% if chart_data %}
-    				<script type="text/javascript">
-    				$(document).ready(function() {
-    					new Highcharts.Chart({
-    						chart: {
-    							renderTo: 'chart',
-    							zoomType: 'x',
-    							marginLeft: 50,
-    							marginRight: 20,
-    							marginTop: 20,
-    							marginBottom: 40,
-    							backgroundColor: '#eeeeee',
-    							showAxes: false,
-    							height: 200
-    						},
-    						title: {
-    							text: false
-    						},
-    						xAxis: {
-    							type: 'datetime',
-    							maxZoom: 24 * 3600000, // 1 day
-    							title: {
-    								text: false
-    							},
-    						},
-    						yAxis: {
-    							title: {
-    								text: false
-    							}
-    						},
-    						tooltip: {
-    							formatter: function() {
-    								return '<strong>'+
-    									Highcharts.dateFormat('%A %B %e %Y', this.x) + '</strong><br/>'+
-    									this.y+' records';
-    							}
-    						},
-    						series: [{
-    							pointStart: new Date() - 30 * 3600000,
-    							pointInterval: 3600 * 1000,
-    							type: 'area',
-    							data: {{ chart_data.points|to_json }}
-    						}],
-    						legend: {
-    							enabled: false
-    						},
-    						plotOptions: {
-    							area: {
-    								lineWidth: 1,
-    								marker: {
-    									enabled: false,
-    									states: {
-    										hover: {
-    											enabled: true,
-    											radius: 5
-    										}
-    									}
-    								},
-    								shadow: false,
-    								states: {
-    									hover: {
-    										lineWidth: 1
-    									}
-    								}
-    							}
-    						},
-    					});
-    				});
-    				</script>
-    				<h2>Frequency</h2>
-    				<div id="chart">
-    					<noscript>Get yourself some JavaScripts dood</noscript>
-    				</div>
-    			    {% endif %}
-				{% endwith %}
-				
-				{% if traceback %}
+        <ul class="nav" id="group_nav">
+            <li{% ifequal page 'details' %} class="active"{% endifequal %}><a href="{% url sentry-group group.pk %}">Details</a></li>
+            <li{% ifequal page 'messages' %} class="active"{% endifequal %}><a href="{% url sentry-group-messages group.pk %}">Messages</a></li>
+            {% for label, link, is_active in group|get_panels:request %}
+                <li{% if is_active %} class="active"{% endif %}><a href="{{ link }}">{{ label }}</a></li>
+            {% endfor %}
+        </ul>
+        
+        {% block inner %}
+            <div id="details">
+                {% with group|chart_data as chart_data %}
+                    {% if chart_data %}
+                    <script type="text/javascript">
+                    $(document).ready(function() {
+                        new Highcharts.Chart({
+                            chart: {
+                                renderTo: 'chart',
+                                zoomType: 'x',
+                                marginLeft: 50,
+                                marginRight: 20,
+                                marginTop: 20,
+                                marginBottom: 40,
+                                backgroundColor: '#eeeeee',
+                                showAxes: false,
+                                height: 200
+                            },
+                            title: {
+                                text: false
+                            },
+                            xAxis: {
+                                type: 'datetime',
+                                maxZoom: 24 * 3600000, // 1 day
+                                title: {
+                                    text: false
+                                },
+                                showFirstLabel: false,
+                                dateTimeLabelFormats: {
+                                    second: '%H:%M:%S',
+                                    minute: '%H:%M',
+                                    hour: '%d %b %H:%M',
+                                    day: '%e. %b',
+                                    week: '%e. %b',
+                                    month: '%b \'%y',
+                                    year: '%Y'
+                                }
+                            },
+                            yAxis: {
+                                title: {
+                                    text: false
+                                }
+                            },
+                            tooltip: {
+                                formatter: function() {
+                                    return '<strong>'+
+                                        Highcharts.dateFormat('%A %B %e %Y<br/>%I:00 %p', this.x) + '</strong><br/>'+
+                                        this.y+' records';
+                                }
+                            },
+                            series: [{
+                                pointStart: new Date() - 30 * 3600000,
+                                pointInterval: 3600 * 1000,
+                                type: 'area',
+                                data: {{ chart_data.points|to_json }}
+                            }],
+                            legend: {
+                                enabled: false
+                            },
+                            plotOptions: {
+                                area: {
+                                    lineWidth: 1,
+                                    marker: {
+                                        enabled: false,
+                                        states: {
+                                            hover: {
+                                                enabled: true,
+                                                radius: 5
+                                            }
+                                        }
+                                    },
+                                    shadow: false,
+                                    states: {
+                                        hover: {
+                                            lineWidth: 1
+                                        }
+                                    }
+                                }
+                            },
+                        });
+                    });
+                    </script>
+                    <h2>Frequency</h2>
+                    <div id="chart">
+                        <noscript>Get yourself some JavaScripts dood</noscript>
+                    </div>
+                    {% endif %}
+                {% endwith %}
+                
+                {% if traceback %}
 
-					<h2>Sample Traceback</h2>
+                    <h2>Sample Traceback</h2>
 
-					{{ traceback }}
+                    {{ traceback }}
 
-				{% endif %}
-	
-				<div id="requestinfo">
-					<h2>More Information</h2>
-	  
-					{% for k, v in json_data %}
-						<h3 id="get-info">{{ k }}</h3>
-						{% if v %}
-							{% if v|is_dict %}
-								<table class="req">
-									<thead>
-										<tr>
-											<th>Variable</th>
-											<th>Value</th>
-										</tr>
-									</thead>
-									<tbody>
-										{% for k_, v_ in v.iteritems %}
-										<tr>
-											<td>{{ k_ }}</td>
-											<td class="code"><div>{{ v_|pprint }}</div></td>
-										</tr>
-										{% endfor %}
-									</tbody>
-								</table>
-							{% else %}
-								{{ v|pprint }}
-							{% endif %}
-						{% else %}
-							<p>No data for {{ k }}</p>
-						{% endif %}
-					{% endfor %}
-				</div>
-			</div>
-		{% endblock %}
-	</div>
+                {% endif %}
+    
+                <div id="requestinfo">
+                    <h2>More Information</h2>
+      
+                    {% for k, v in json_data %}
+                        <h3 id="get-info">{{ k }}</h3>
+                        {% if v %}
+                            {% if v|is_dict %}
+                                <table class="req">
+                                    <thead>
+                                        <tr>
+                                            <th>Variable</th>
+                                            <th>Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for k_, v_ in v.iteritems %}
+                                        <tr>
+                                            <td>{{ k_ }}</td>
+                                            <td class="code"><div>{{ v_|pprint }}</div></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            {% else %}
+                                {{ v|pprint }}
+                            {% endif %}
+                        {% else %}
+                            <p>No data for {{ k }}</p>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endblock %}
+    </div>
 {% endblock %}

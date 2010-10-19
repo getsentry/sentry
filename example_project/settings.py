@@ -94,6 +94,7 @@ TEMPLATE_DIRS = (
 
 INSTALLED_APPS = (
     'django.contrib.auth',
+    'django.contrib.admin',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.sites',
@@ -124,7 +125,7 @@ SENTRY_FILTERS = (
     'example_project.filters.IPFilter',
 )
 SENTRY_SITE = 'example'
-SENTRY_PUBLIC = True
+SENTRY_PUBLIC = False
 
 try:
     import debug_toolbar

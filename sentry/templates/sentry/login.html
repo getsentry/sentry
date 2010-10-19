@@ -7,36 +7,36 @@
 {% block heading %}Login{% endblock %}
 
 {% block content %}
-	<div id="body">
-		<div class="login-area">
-			<p>You must log in to continue</p>
-		
-			{% if form.errors %}
-				<p class="error">Your username and password didn't match. Please try again.</p>
-			{% endif %}
+    <div id="body">
+        <div class="login-area">
+            <p>You must log in to continue</p>
+        
+            {% if form.errors %}
+                <p class="error">Your username and password didn't match. Please try again.</p>
+            {% endif %}
 
-			<form method="post" action="" class="login-form">
-				<input type="hidden" name="next" value="{{ next }}" />
-			
-				{% csrf_token %}
-				<table>
-					<colgroup>
-						<col width="100px"/>
-						<col/>
-					</colgroup>
-					<tr>
-					    <td>{{ form.username.label_tag }}</td>
-					    <td>{{ form.username }}</td>
-					</tr>
-					<tr>
-					    <td>{{ form.password.label_tag }}</td>
-					    <td>{{ form.password }}</td>
-					</tr>
-				</table>
-				<div class="submit">
-					<button type="submit" class="button">Login</button>
-				</div>
-			</form>
-		</div>
-	</div>
+            <form method="post" action="" class="login-form">
+                <input type="hidden" name="next" value="{{ next }}" />
+            
+                {% csrf_token %}
+                <table>
+                    <colgroup>
+                        <col width="100px"/>
+                        <col/>
+                    </colgroup>
+                    <tr>
+                        <td>{{ form.username.label_tag }}</td>
+                        <td>{{ form.username }}</td>
+                    </tr>
+                    <tr>
+                        <td>{{ form.password.label_tag }}</td>
+                        <td>{{ form.password }}</td>
+                    </tr>
+                </table>
+                <div class="submit">
+                    <button type="submit" class="button">Login</button>
+                </div>
+            </form>
+        </div>
+    </div>
 {% endblock %}

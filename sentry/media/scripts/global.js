@@ -1,24 +1,24 @@
 sentryRealtime = true;
 
 function getElementsByClassName(oElm, strTagName, strClassName){
-	// Written by Jonathan Snook, http://www.snook.ca/jon; Add-ons by Robert Nyman, http://www.robertnyman.com
-	var arrElements = (strTagName == "*" && document.all)? document.all :
-	oElm.getElementsByTagName(strTagName);
-	var arrReturnElements = new Array();
-	strClassName = strClassName.replace(/\-/g, "\\-");
-	var oRegExp = new RegExp("(^|\\s)" + strClassName + "(\\s|$)");
-	var oElement;
-	for(var i=0; i<arrElements.length; i++){
-		oElement = arrElements[i];
-		if(oRegExp.test(oElement.className)){
-			arrReturnElements.push(oElement);
-		}
-	}
-	return (arrReturnElements)
+    // Written by Jonathan Snook, http://www.snook.ca/jon; Add-ons by Robert Nyman, http://www.robertnyman.com
+    var arrElements = (strTagName == "*" && document.all)? document.all :
+    oElm.getElementsByTagName(strTagName);
+    var arrReturnElements = new Array();
+    strClassName = strClassName.replace(/\-/g, "\\-");
+    var oRegExp = new RegExp("(^|\\s)" + strClassName + "(\\s|$)");
+    var oElement;
+    for(var i=0; i<arrElements.length; i++){
+        oElement = arrElements[i];
+        if(oRegExp.test(oElement.className)){
+            arrReturnElements.push(oElement);
+        }
+    }
+    return (arrReturnElements)
 }
 function hideAll(elems) {
   for (var e = 0; e < elems.length; e++) {
-	elems[e].style.display = 'none';
+    elems[e].style.display = 'none';
   }
 }
 window.onload = function() {
@@ -29,10 +29,10 @@ window.onload = function() {
 }
 function toggle() {
   for (var i = 0; i < arguments.length; i++) {
-	var e = document.getElementById(arguments[i]);
-	if (e) {
-	  e.style.display = e.style.display == 'none' ? 'block' : 'none';
-	}
+    var e = document.getElementById(arguments[i]);
+    if (e) {
+      e.style.display = e.style.display == 'none' ? 'block' : 'none';
+    }
   }
   return false;
 }
@@ -65,7 +65,7 @@ function getQueryParams()
 }
 
 $.fn.setAllToMaxHeight = function(){
-	return this.height( Math.max.apply(this, $.map( this , function(e){ return $(e).height() }) ) );
+    return this.height( Math.max.apply(this, $.map( this , function(e){ return $(e).height() }) ) );
 }
 
 function sentryResolve(gid, remove){
