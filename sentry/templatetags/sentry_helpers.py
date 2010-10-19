@@ -62,7 +62,7 @@ def chart_data(group, max_days=90):
                       .order_by('grouper'))
 
     min_date = chart_qs[0][0]
-    if min_date < datetime.datetime.now() - datetime.timedelta(days=1):
+    if min_date and min_date < datetime.datetime.now() - datetime.timedelta(days=1):
         stop_hours = (datetime.datetime.now() - min_date).days * 24
         start_hours = (datetime.datetime.now() - chart_qs[-1][0]).days * 24
     else:
