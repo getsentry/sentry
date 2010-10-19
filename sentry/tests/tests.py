@@ -546,6 +546,16 @@ class SentryTestCase(TestCase):
         self.assertEquals(last.view, 'sentry.tests.views.logging_request_exc')
         self.assertEquals(last.data['META']['REMOTE_ADDR'], '127.0.0.1')
 
+    def testSampleDataInGroup(self):
+        resp = self.client.get(reverse('sentry-log-request-exc'))
+        self.assertEquals(resp.status_code, 200)
+        
+        last = GroupedMessage.objects.get()
+        
+        self.assertEquals(last.view, 'sentry.tests.views.logging_request_exc')
+        self.assertEquals(last.data['url'], 'http://testserver' + reverse('sentry-log-request-exc'))
+
+
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'
     fixtures = ['sentry/tests/fixtures/views.json']

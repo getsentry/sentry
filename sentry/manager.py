@@ -43,12 +43,16 @@ class SentryManager(models.Manager):
 
         mail = False
         try:
+            if 'url' in data:
+                kwargs['data'] = {'url': data['url']}
             group, created = GroupedMessage.objects.get_or_create(
                 view=view,
                 logger=logger_name,
                 checksum=checksum,
+                # we store some sample data for rendering
                 defaults=kwargs
             )
+            kwargs.pop('data', None)
             if not created:
                 GroupedMessage.objects.filter(pk=group.pk).update(
                     times_seen=models.F('times_seen') + 1,
