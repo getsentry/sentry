@@ -256,6 +256,7 @@ Add plugins to your installed apps, and voila::
 	INSTALLED_APPS = [
 	  ...
 	  'sentry.plugins.sentry_servers',
+	  'sentry.plugins.sentry_sites',
 	  'sentry.plugins.sentry_urls',
 	]
 

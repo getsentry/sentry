@@ -103,6 +103,7 @@ INSTALLED_APPS = (
     'sentry.client',
     'sentry.plugins.sentry_redmine',
     'sentry.plugins.sentry_servers',
+    'sentry.plugins.sentry_sites',
     'sentry.plugins.sentry_urls',
     'paging',
     'south',

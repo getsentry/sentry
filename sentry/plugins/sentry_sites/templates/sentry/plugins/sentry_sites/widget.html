@@ -1,0 +1,13 @@
+{% load sentry_helpers %}
+
+{% with group.unique_sites|slice:"10" as unique_sites %}
+    {% if unique_sites %}
+        <h2>Sites</h2>
+
+        <ul class="server-list">
+            {% for site, priority in unique_sites|with_priority:"times_seen" %}
+                <li class="priority-{{ priority }}"><span class="count">{{ site.times_seen }}</span> {{ site.site }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endwith %}

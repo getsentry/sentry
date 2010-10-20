@@ -1,0 +1,19 @@
+{% extends "sentry/group/details.html" %}
+
+{% load paging_extras %}
+
+{% block inner %}
+    <h2>Site List</h2>
+    {% paginate group.unique_sites from request as site_list per_page 25 %}
+    <div class="clearfix">
+        {{ site_list.paging }}
+    </div>
+    <ul class="server-list">
+        {% for site in site_list.objects %}
+            <li><span class="count">{{ site.times_seen }}</span> {{ site.site }}</li>
+        {% endfor %}
+    </ul>
+    <div class="clearfix">
+        {{ site_list.paging }}
+    </div>
+{% endblock %}
