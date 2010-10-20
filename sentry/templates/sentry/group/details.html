@@ -38,7 +38,7 @@
         <ul class="messages" id="message_list">
             <li class="{% cycle 'row1' 'row2' %} level-{{ group.level }} active" id="group_{{ group.pk }}" data-sentry-count="{{ group.times_seen }}">
                 <span class="count count-digits-{{ group.times_seen|num_digits }}">{{ group.times_seen }}</span>
-                <h3>{% if group.view %}{{ group.view }}{% else %}{{ group.message }}{% endif %}</h3>
+                <h3>{% if group.view %}{{ group.view }}{% else %}{{ group.message_top }}{% endif %}</h3>
                 <span class="last_seen">{{ group.last_seen|timesince }}</span>
                 <span class="status status-{{ group.status }}">{{ group.get_status_display }}</span>
                 <p class="message">
@@ -149,6 +149,11 @@
                     </div>
                     {% endif %}
                 {% endwith %}
+                
+                {% if group.has_two_part_message %}
+                    <h2>Full Message</h2>
+                    <pre>{{ group.message }}</pre>
+                {% endif %}
                 
                 {% if traceback %}
 

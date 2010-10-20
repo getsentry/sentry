@@ -105,6 +105,12 @@ class MessageBase(Model):
         return self.traceback or ''
     description.short_description = _('description')
 
+    def has_two_part_message(self):
+        return '\n' in self.message.strip('\n')
+    
+    def message_top(self):
+        return self.message.split('\n')[0]
+
 class GroupedMessage(MessageBase):
     status          = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
     times_seen      = models.PositiveIntegerField(default=1)
