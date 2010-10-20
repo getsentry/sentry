@@ -96,7 +96,7 @@ def get_actions(group, request):
         inst = cls(group.pk)
         action_list = inst.actions(request, action_list, group)
     for action in action_list:
-        yield action[0], action[1], request.META.get('SCRIPT_NAME', '') + request.META['PATH_INFO'] == action[1]
+        yield action[0], action[1], request.path == action[1]
 
 @register.filter
 def get_panels(group, request):
@@ -105,7 +105,7 @@ def get_panels(group, request):
         inst = cls(group.pk)
         panel_list = inst.panels(request, panel_list, group)
     for panel in panel_list:
-        yield panel[0], panel[1], request.META.get('SCRIPT_NAME', '') + request.META['PATH_INFO'] == panel[1]
+        yield panel[0], panel[1], request.path == panel[1]
 
 @register.filter
 def get_widgets(group, request):
