@@ -11,7 +11,7 @@ easily trace them in your application.
 Screenshot
 ==========
 
-.. image:: http://dl.dropbox.com/u/116385/sentry2.jpg
+.. image:: http://dl.dropbox.com/u/116385/Screenshots/l6xk.png
    
 ============
 Requirements

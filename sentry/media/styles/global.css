@@ -30,6 +30,16 @@ tbody th { width:12em; text-align:right; color:#666; padding-right:.5em; }
 a { color: #333; }
 a:visited { color: inherit; }
 ul { margin: 1em 0 1em 2em; }
+
+pre {
+    display: block;
+    white-space: pre-wrap;       /* CSS-3                  */
+    white-space: -moz-pre-wrap;  /* Mozilla, since 1999    */
+    white-space: -pre-wrap;      /* Opera 4-6              */
+    white-space: -o-pre-wrap;    /* Opera 7                */
+    word-wrap: break-word;       /* Internet Explorer 5.5+ */
+}
+
 #header {
     position: relative;
     background: #e0ebff; border-bottom:1px solid #ddd;
@@ -314,13 +324,36 @@ dl.flat dd {
     visibility: visible;
 }
 
-.row_link {
+.messages .row_link {
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
     position: absolute;
 }
+
+.messages .last_seen {
+    color: #bbb;
+    font-size: 0.9em;
+    margin-left: 5px;
+    white-space: nowrap;
+    vertical-align: middle;
+    display: inline-block;
+}
+.messages .status { margin-left: 5px; text-transform: uppercase; font-size: 0.9em; }
+.messages .status-0 { display: none; }
+.messages .status-1 { color: red; }
+.messages li:hover, .messages .active {
+    background: #eaeaea;
+    -webkit-border-radius: 6px;
+    -moz-border-radius: 6px;
+    border-radius: 6px;
+}
+.messages li:hover .tag { background: #fff; }
+.messages li:hover h3 a {
+    color: #006CA3;
+}
+.messages li:hover .last_seen, .messages .active .last_seen { color: #777; }
 
 .button {
     cursor: pointer;
@@ -372,29 +405,7 @@ dl.flat dd {
     background:-moz-linear-gradient(center top , #efd57c, #e0ae00) repeat scroll 0 0 transparent;
     background:-webkit-gradient(linear, 0% 0%, 0% 100%, from(#efd57c), to(#e0ae00));
 }
-.messages .last_seen { color: #bbb; font-size: 0.9em; margin-left: 5px; white-space: nowrap; }
-.messages .status { margin-left: 5px; text-transform: uppercase; font-size: 0.9em; }
-.messages .status-0 { display: none; }
-.messages .status-1 { color: red; }
-.messages li:hover, .messages .active {
-    background: #eaeaea;
-    -webkit-border-radius: 6px;
-    -moz-border-radius: 6px;
-    border-radius: 6px;
-}
-.messages li:hover .tag { background: #fff; }
-.messages li:hover h3 a {
-    color: #006CA3;
-}
-.messages li:hover .last_seen, .messages .active .last_seen { color: #777; }
-pre {
-    display: block;
-    white-space: pre-wrap;       /* CSS-3                  */
-    white-space: -moz-pre-wrap;  /* Mozilla, since 1999    */
-    white-space: -pre-wrap;      /* Opera 4-6              */
-    white-space: -o-pre-wrap;    /* Opera 7                */
-    word-wrap: break-word;       /* Internet Explorer 5.5+ */
-}
+
 .no-messages { font-size: 1.1em; padding: 20px 0; }
 
 .paging-wrap {
