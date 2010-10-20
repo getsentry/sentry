@@ -152,7 +152,7 @@
                 
                 {% if group.has_two_part_message %}
                     <h2>Full Message</h2>
-                    <pre>{{ group.message }}</pre>
+                    <pre id="full-message">{{ group.message }}</pre>
                 {% endif %}
                 
                 {% if traceback %}

@@ -577,3 +577,7 @@ form td input:focus {
     background: #ddd;
 }
 h2 .morelink { text-decoration: none; }
+
+#full-message {
+    line-height: 1.5em;
+}
