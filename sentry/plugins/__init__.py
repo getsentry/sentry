@@ -38,7 +38,7 @@ class ActionProvider:
         self.url = reverse('sentry-plugin-action', args=(self.slug,))
 
     def __call__(self, request):
-        self.selected = request.META['PATH_INFO'] == self.url
+        self.selected = request.META.get('SCRIPT_NAME', '') + request.META['PATH_INFO'] == self.url
         if not self.selected:
             return
 
@@ -59,7 +59,7 @@ class GroupActionProvider:
         self.url = self.__class__.get_url(group_id)
 
     def __call__(self, request, group):
-        self.selected = request.META['PATH_INFO'] == self.url
+        self.selected = request.META.get('SCRIPT_NAME', '') + request.META['PATH_INFO'] == self.url
         if not self.selected:
             return
         return self.view(request, group)
