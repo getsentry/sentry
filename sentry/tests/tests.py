@@ -554,6 +554,23 @@ class SentryTestCase(TestCase):
         
         self.assertEquals(last.view, 'sentry.tests.views.logging_request_exc')
         self.assertEquals(last.data['url'], 'http://testserver' + reverse('sentry-log-request-exc'))
+        
+    def testCreateFromRecordNoneExcInfo(self):
+        # sys.exc_info can return (None, None, None) if no exception is being
+        # handled anywhere on the stack. See:
+        #  http://docs.python.org/library/sys.html#sys.exc_info
+        client = get_client()
+        record = logging.LogRecord(
+            'foo', 
+            logging.INFO, 
+            pathname=None,
+            lineno=None,
+            msg='test',
+            args=(),
+            exc_info=(None, None, None),
+        )
+        message = client.create_from_record(record)
+        self.assertEquals('test', message.message)
 
 
 class SentryViewsTest(TestCase):

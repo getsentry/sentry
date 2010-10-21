@@ -92,7 +92,10 @@ class SentryClient(object):
             'level': record.levelno,
             'message': record.getMessage(),
         })
-        if record.exc_info:
+        
+        # If there's no exception being processed, exc_info may be a 3-tuple of None
+        # http://docs.python.org/library/sys.html#sys.exc_info
+        if record.exc_info and all(record.exc_info):
             return self.create_from_exception(record.exc_info, **kwargs)
 
         return self.process(
