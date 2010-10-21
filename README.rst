@@ -7,4 +7,5 @@ default, it will catch any exception thrown by Django and store it in a database
 it allows you to interact and view near real-time information to discover issues and more
 easily trace them in your application.
 
-See the included docs for more information.
+
+**See http://dcramer.github.com/django-sentry/ for full docs.**
