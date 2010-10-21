@@ -1,0 +1,210 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Install &mdash; Sentry v1.3.13 (e085aca5caba00112997759038bd6abe7f103ffe) documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '1.3.13 (e085aca5caba00112997759038bd6abe7f103ffe)',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Sentry v1.3.13 (e085aca5caba00112997759038bd6abe7f103ffe) documentation" href="index.html" />
+    <link rel="next" title="Configuration" href="config.html" />
+    <link rel="prev" title="Sentry" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="config.html" title="Configuration"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Sentry"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Sentry v1.3.13 (e085aca5caba00112997759038bd6abe7f103ffe) documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="install">
+<h1>Install<a class="headerlink" href="#install" title="Permalink to this headline">¶</a></h1>
+<p>If you haven&#8217;t already, start by downloading Sentry. The easiest way is with <em>pip</em>:</p>
+<div class="highlight-python"><pre>pip install django-sentry --upgrade</pre>
+</div>
+<p>Or with <em>setuptools</em>:</p>
+<div class="highlight-python"><pre>easy_install django-sentry -U</pre>
+</div>
+<p>Once installed, update your settings.py and add <tt class="docutils literal"><span class="pre">sentry</span></tt>, <tt class="docutils literal"><span class="pre">sentry.client</span></tt>, <tt class="docutils literal"><span class="pre">indexer</span></tt>, and <tt class="docutils literal"><span class="pre">paging</span></tt> to <tt class="docutils literal"><span class="pre">INSTALLED_APPS</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">INSTALLED_APPS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s">&#39;django.contrib.admin&#39;</span><span class="p">,</span>
+    <span class="s">&#39;django.contrib.auth&#39;</span><span class="p">,</span>
+    <span class="s">&#39;django.contrib.contenttypes&#39;</span><span class="p">,</span>
+    <span class="s">&#39;django.contrib.sessions&#39;</span><span class="p">,</span>
+
+    <span class="c"># don&#39;t forget to add the dependancies!</span>
+    <span class="s">&#39;indexer&#39;</span><span class="p">,</span>
+    <span class="s">&#39;paging&#39;</span><span class="p">,</span>
+    <span class="s">&#39;sentry&#39;</span><span class="p">,</span>
+    <span class="s">&#39;sentry.client&#39;</span><span class="p">,</span>
+    <span class="o">...</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>We also highly recommend setting <tt class="docutils literal"><span class="pre">TEMPLATE_DEBUG=True</span></tt> in your environment (not to be confused with <tt class="docutils literal"><span class="pre">DEBUG</span></tt>). This will allow
+Sentry to receive template debug information when it hits a syntax error.</p>
+<p>Finally, run <tt class="docutils literal"><span class="pre">python</span> <span class="pre">manage.py</span> <span class="pre">syncdb</span></tt> to create the database tables.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">We recommend using South for migrations, in which you would run <tt class="docutils literal"><span class="pre">python</span> <span class="pre">manage.py</span> <span class="pre">migrate</span> <span class="pre">sentry</span></tt> instead of <tt class="docutils literal"><span class="pre">syncdb</span></tt></p>
+</div>
+<div class="admonition-see-also admonition seealso">
+<p class="first admonition-title">See also</p>
+<p class="last">See <a class="reference internal" href="extensions.html"><em>Extending Sentry</em></a> for information on additional plugins and functionality included.</p>
+</div>
+<div class="section" id="requirements">
+<h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this headline">¶</a></h2>
+<p>If you&#8217;re installing it by hand, you&#8217;ll need to fulfill the following requirements:</p>
+<blockquote>
+<ul class="simple">
+<li><strong>Django &gt;= 1.1</strong></li>
+<li><strong>django-indexer</strong> (stores metadata indexes)</li>
+<li><strong>django-paging</strong></li>
+</ul>
+</blockquote>
+</div>
+<div class="section" id="upgrading">
+<h2>Upgrading<a class="headerlink" href="#upgrading" title="Permalink to this headline">¶</a></h2>
+<p>Upgrading Sentry is fairly painless with South migrations:</p>
+<div class="highlight-python"><pre>python manage.py migrate sentry</pre>
+</div>
+<p>If you don&#8217;t use South, then start.</p>
+</div>
+<div class="section" id="caveats">
+<h2>Caveats<a class="headerlink" href="#caveats" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="error-handling-middleware">
+<h3>Error Handling Middleware<a class="headerlink" href="#error-handling-middleware" title="Permalink to this headline">¶</a></h3>
+<p>If you already have middleware in place that handles <tt class="docutils literal"><span class="pre">process_exception</span></tt> you will need to take extra care when using Sentry.</p>
+<p>For example, the following middleware would suppress Sentry logging due to it returning a response:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">MyMiddleware</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">process_exception</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">exception</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">HttpResponse</span><span class="p">(</span><span class="s">&#39;foo&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>To work around this, you can either disable your error handling middleware, or add something like the following:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">django.core.signals</span> <span class="kn">import</span> <span class="n">got_request_exception</span>
+<span class="k">class</span> <span class="nc">MyMiddleware</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">process_exception</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">exception</span><span class="p">):</span>
+        <span class="c"># Make sure the exception signal is fired for Sentry</span>
+        <span class="n">got_request_exception</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">sender</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">HttpResponse</span><span class="p">(</span><span class="s">&#39;foo&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Or, alternatively, you can just enable Sentry responses:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">sentry.client.models</span> <span class="kn">import</span> <span class="n">sentry_exception_handler</span>
+<span class="k">class</span> <span class="nc">MyMiddleware</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">process_exception</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">exception</span><span class="p">):</span>
+        <span class="c"># Make sure the exception signal is fired for Sentry</span>
+        <span class="n">sentry_exception_handler</span><span class="p">(</span><span class="n">request</span><span class="o">=</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">HttpResponse</span><span class="p">(</span><span class="s">&#39;foo&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="deprecation-notes">
+<h2>Deprecation Notes<a class="headerlink" href="#deprecation-notes" title="Permalink to this headline">¶</a></h2>
+<p>Milestones releases are 1.3 or 1.4, and our deprecation policy is to a two version step. For example,
+a feature will be deprecated in 1.3, and completely removed in 1.4.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Install</a><ul>
+<li><a class="reference internal" href="#requirements">Requirements</a></li>
+<li><a class="reference internal" href="#upgrading">Upgrading</a></li>
+<li><a class="reference internal" href="#caveats">Caveats</a><ul>
+<li><a class="reference internal" href="#error-handling-middleware">Error Handling Middleware</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#deprecation-notes">Deprecation Notes</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Sentry</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="config.html"
+                        title="next chapter">Configuration</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/install.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="config.html" title="Configuration"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Sentry"
+             >previous</a> |</li>
+        <li><a href="index.html">Sentry v1.3.13 (e085aca5caba00112997759038bd6abe7f103ffe) documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2010, David Cramer.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.4.
+    </div>
+  </body>
+</html>

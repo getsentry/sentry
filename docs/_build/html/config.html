@@ -1,0 +1,250 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Configuration &mdash; Sentry v1.3.13 (e085aca5caba00112997759038bd6abe7f103ffe) documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '1.3.13 (e085aca5caba00112997759038bd6abe7f103ffe)',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Sentry v1.3.13 (e085aca5caba00112997759038bd6abe7f103ffe) documentation" href="index.html" />
+    <link rel="next" title="Extending Sentry" href="extensions.html" />
+    <link rel="prev" title="Install" href="install.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="extensions.html" title="Extending Sentry"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="install.html" title="Install"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Sentry v1.3.13 (e085aca5caba00112997759038bd6abe7f103ffe) documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="configuration">
+<h1>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="multi-server-configuration">
+<h2>Multi-server configuration<a class="headerlink" href="#multi-server-configuration" title="Permalink to this headline">¶</a></h2>
+<p>To configure Sentry for use in a multi-server environment, first you&#8217;ll want to configure your Sentry server (not your application):</p>
+<div class="highlight-python"><pre>INSTALLED_APPS = [
+  ...
+  'indexer',
+  'paging',
+  'sentry',
+  'sentry.client',
+]
+
+SENTRY_KEY = '0123456789abcde'</pre>
+</div>
+<p>And on each of your application servers, specify the URL of the Sentry server, add <tt class="docutils literal"><span class="pre">sentry.client</span></tt> to <tt class="docutils literal"><span class="pre">INSTALLED_APPS</span></tt>, and specify the same key used in your Sentry server&#8217;s settings:</p>
+<div class="highlight-python"><pre># This should be the absolute URI of sentries store view
+SENTRY_REMOTE_URL = 'http://your.sentry.server/sentry/store/'
+
+INSTALLED_APPS = [
+  ...
+  'sentry.client',
+]
+
+SENTRY_KEY = '0123456789abcde'</pre>
+</div>
+<p>You may also specify an alternative timeout to the default (which is 5 seconds) for all outgoing logging requests (only works with python 2.6 and above):</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">SENTRY_REMOTE_TIMEOUT</span> <span class="o">=</span> <span class="mi">5</span>
+</pre></div>
+</div>
+<p>Sentry also allows you to support high availability by pushing to multiple servers:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">SENTRY_REMOTE_URL</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;http://server1/sentry/store/&#39;</span><span class="p">,</span> <span class="s">&#39;http://server2/sentry/store/&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="integration-with-logging">
+<h2>Integration with <tt class="docutils literal"><span class="pre">logging</span></tt><a class="headerlink" href="#integration-with-logging" title="Permalink to this headline">¶</a></h2>
+<p>django-sentry supports the ability to directly tie into the <tt class="docutils literal"><span class="pre">logging</span></tt> module. To use it simply add <tt class="docutils literal"><span class="pre">SentryHandler</span></tt> to your logger:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">sentry.client.handlers</span> <span class="kn">import</span> <span class="n">SentryHandler</span>
+
+<span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">SentryHandler</span><span class="p">())</span>
+
+<span class="c"># Add StreamHandler to sentry&#39;s default so you can catch missed exceptions</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s">&#39;sentry.errors&#39;</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">propagate</span> <span class="o">=</span> <span class="bp">False</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">StreamHandler</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>You can also use the <tt class="docutils literal"><span class="pre">exc_info</span></tt> and <tt class="docutils literal"><span class="pre">extra=dict(url=foo)</span></tt> arguments on your <tt class="docutils literal"><span class="pre">log</span></tt> methods. This will store the appropriate information and allow django-sentry to render it based on that information:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&#39;There was some crazy error&#39;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">(),</span> <span class="n">extra</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;url&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">build_absolute_uri</span><span class="p">()})</span>
+</pre></div>
+</div>
+<p>You may also pass additional information to be stored as meta information with the event. As long as the key
+name is not reserved and not private (_foo) it will be displayed on the Sentry dashboard. To do this, pass it as <tt class="docutils literal"><span class="pre">data</span></tt> within
+your <tt class="docutils literal"><span class="pre">extra</span></tt> clause:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&#39;There was some crazy error&#39;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">(),</span> <span class="n">extra</span><span class="o">=</span><span class="p">{</span>
+    <span class="c"># Optionally pass a request and we&#39;ll grab any information we can</span>
+    <span class="s">&#39;request&#39;</span><span class="p">:</span> <span class="n">request</span><span class="p">,</span>
+
+    <span class="c"># Otherwise you can pass additional arguments to specify request info</span>
+    <span class="s">&#39;view&#39;</span><span class="p">:</span> <span class="s">&#39;my.view.name&#39;</span><span class="p">,</span>
+    <span class="s">&#39;url&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">build_absolute_url</span><span class="p">(),</span>
+
+    <span class="s">&#39;data&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="c"># You may specify any values here and Sentry will log and output them</span>
+        <span class="s">&#39;username&#39;</span><span class="p">:</span> <span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">username</span>
+    <span class="p">}</span>
+<span class="p">})</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="other-settings">
+<h2>Other Settings<a class="headerlink" href="#other-settings" title="Permalink to this headline">¶</a></h2>
+<p>Several options exist to configure django-sentry via your <tt class="docutils literal"><span class="pre">settings.py</span></tt>:</p>
+<div class="section" id="sentry-client">
+<h3>SENTRY_CLIENT<a class="headerlink" href="#sentry-client" title="Permalink to this headline">¶</a></h3>
+<p>In some situations you may wish for a slightly different behavior to how Sentry communicates with your server. For
+this, Sentry allows you to specify a custom client:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">SENTRY_CLIENT</span> <span class="o">=</span> <span class="s">&#39;sentry.client.base.SentryClient&#39;</span>
+</pre></div>
+</div>
+<p>In addition to the default client (which will handle multi-db and REMOTE_URL for you) we also include two additional options:</p>
+<div class="section" id="loggingsentryclient">
+<h4>LoggingSentryClient<a class="headerlink" href="#loggingsentryclient" title="Permalink to this headline">¶</a></h4>
+<p>Pipes all Sentry errors to a named logger: <tt class="docutils literal"><span class="pre">sentry</span></tt>. If you wish to use Sentry in a strictly client based logging mode
+this would be the way to do it.</p>
+<blockquote>
+SENTRY_CLIENT = &#8216;sentry.client.log.LoggingSentryClient&#8217;</blockquote>
+</div>
+<div class="section" id="celerysentryclient">
+<h4>CelerySentryClient<a class="headerlink" href="#celerysentryclient" title="Permalink to this headline">¶</a></h4>
+<p>Integrates with the Celery message queue (<a class="reference external" href="http://celeryproject.org/">http://celeryproject.org/</a>). To use this you will also need to add <tt class="docutils literal"><span class="pre">sentry.client.celery</span></tt> to <tt class="docutils literal"><span class="pre">INSTALLED_APPS</span></tt> for <tt class="docutils literal"><span class="pre">tasks.py</span></tt> auto discovery. You may also specify <tt class="docutils literal"><span class="pre">SENTRY_CELERY_ROUTING_KEY</span></tt> to change the task queue
+name (defaults to <tt class="docutils literal"><span class="pre">sentry</span></tt>).</p>
+<blockquote>
+SENTRY_CLIENT = &#8216;sentry.client.celery.CelerySentryClient&#8217;</blockquote>
+</div>
+</div>
+<div class="section" id="sentry-admins">
+<h3>SENTRY_ADMINS<a class="headerlink" href="#sentry-admins" title="Permalink to this headline">¶</a></h3>
+<p>On smaller sites you may wish to enable throttled emails, we recommend doing this by first
+removing the <tt class="docutils literal"><span class="pre">ADMINS</span></tt> setting in Django, and adding in <tt class="docutils literal"><span class="pre">SENTRY_ADMINS</span></tt>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">ADMINS</span> <span class="o">=</span> <span class="p">()</span>
+<span class="n">SENTRY_ADMINS</span> <span class="o">=</span> <span class="p">(</span><span class="s">&#39;root@localhost&#39;</span><span class="p">,)</span>
+</pre></div>
+</div>
+<p>This will send out a notification the first time an error is seen, and the first time an error is
+seen after it has been resolved.</p>
+</div>
+<div class="section" id="sentry-testing">
+<h3>SENTRY_TESTING<a class="headerlink" href="#sentry-testing" title="Permalink to this headline">¶</a></h3>
+<p>Enabling this setting allows the testing of Sentry exception handler even if Django DEBUG is enabled.</p>
+<p>Default value is <tt class="xref docutils literal"><span class="pre">False</span></tt></p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Normally when Django DEBUG is enabled the Sentry exception handler is immediately skipped</p>
+</div>
+</div>
+<div class="section" id="sentry-name">
+<h3>SENTRY_NAME<a class="headerlink" href="#sentry-name" title="Permalink to this headline">¶</a></h3>
+<p>This will override the <tt class="docutils literal"><span class="pre">server_name</span></tt> value for this installation. Defaults to <tt class="docutils literal"><span class="pre">socket.get_hostname()</span></tt>.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Configuration</a><ul>
+<li><a class="reference internal" href="#multi-server-configuration">Multi-server configuration</a></li>
+<li><a class="reference internal" href="#integration-with-logging">Integration with <tt class="docutils literal"><span class="pre">logging</span></tt></a></li>
+<li><a class="reference internal" href="#other-settings">Other Settings</a><ul>
+<li><a class="reference internal" href="#sentry-client">SENTRY_CLIENT</a><ul>
+<li><a class="reference internal" href="#loggingsentryclient">LoggingSentryClient</a></li>
+<li><a class="reference internal" href="#celerysentryclient">CelerySentryClient</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#sentry-admins">SENTRY_ADMINS</a></li>
+<li><a class="reference internal" href="#sentry-testing">SENTRY_TESTING</a></li>
+<li><a class="reference internal" href="#sentry-name">SENTRY_NAME</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="install.html"
+                        title="previous chapter">Install</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="extensions.html"
+                        title="next chapter">Extending Sentry</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/config.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="extensions.html" title="Extending Sentry"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="install.html" title="Install"
+             >previous</a> |</li>
+        <li><a href="index.html">Sentry v1.3.13 (e085aca5caba00112997759038bd6abe7f103ffe) documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2010, David Cramer.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.4.
+    </div>
+  </body>
+</html>

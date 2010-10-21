@@ -1,0 +1,205 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Extending Sentry &mdash; Sentry v1.3.13 (e085aca5caba00112997759038bd6abe7f103ffe) documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '1.3.13 (e085aca5caba00112997759038bd6abe7f103ffe)',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Sentry v1.3.13 (e085aca5caba00112997759038bd6abe7f103ffe) documentation" href="index.html" />
+    <link rel="prev" title="Configuration" href="config.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="config.html" title="Configuration"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Sentry v1.3.13 (e085aca5caba00112997759038bd6abe7f103ffe) documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="extending-sentry">
+<h1>Extending Sentry<a class="headerlink" href="#extending-sentry" title="Permalink to this headline">¶</a></h1>
+<p>There are several interfaces currently available to extend Sentry. These are a work in
+progress and the API is not frozen.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">If you write a plugin be prepared to maintain it until we&#8217;re content with the API.</p>
+</div>
+<div class="section" id="bundled-plugins">
+<h2>Bundled Plugins<a class="headerlink" href="#bundled-plugins" title="Permalink to this headline">¶</a></h2>
+<p>Sentry includes several plugins by default. To enable a plugin, it&#8217;s as simple as adding it to
+your <tt class="docutils literal"><span class="pre">INSTALLED_APPS</span></tt>:</p>
+<div class="highlight-python"><pre>INSTALLED_APPS = [
+  ...
+  'sentry.plugins.sentry_servers',
+  'sentry.plugins.sentry_sites',
+  'sentry.plugins.sentry_urls',
+]</pre>
+</div>
+<div class="section" id="servers">
+<h3>Servers<a class="headerlink" href="#servers" title="Permalink to this headline">¶</a></h3>
+<p>Enables a list of most seen servers in the message details sidebar, as well
+as a dedicated panel to view all servers a message has been seen on.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">INSTALLED_APPS</span> <span class="o">=</span> <span class="p">[</span>
+  <span class="s">&#39;sentry.plugins.sentry_servers&#39;</span><span class="p">,</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="urls">
+<h3>URLs<a class="headerlink" href="#urls" title="Permalink to this headline">¶</a></h3>
+<p>Enables a list of most seen urls in the message details sidebar, as well
+as a dedicated panel to view all urls a message has been seen on.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">INSTALLED_APPS</span> <span class="o">=</span> <span class="p">[</span>
+  <span class="s">&#39;sentry.plugins.sentry_urls&#39;</span><span class="p">,</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="sites">
+<h3>Sites<a class="headerlink" href="#sites" title="Permalink to this headline">¶</a></h3>
+<p class="versionadded">
+<span class="versionmodified">New in version 1.3.13.</span></p>
+<p>Enables a list of most seen sites in the message details sidebar, as well
+as a dedicated panel to view all sites a message has been seen on.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">INSTALLED_APPS</span> <span class="o">=</span> <span class="p">[</span>
+  <span class="s">&#39;sentry.plugins.sentry_sites&#39;</span><span class="p">,</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="building-plugins">
+<h2>Building Plugins<a class="headerlink" href="#building-plugins" title="Permalink to this headline">¶</a></h2>
+<p><em>The plugin interface is a work in progress and the API is not frozen.*</em></p>
+<p>More and better docs coming soon.</p>
+</div>
+<div class="section" id="api">
+<h2>API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h2>
+<p>For the technical, here&#8217;s some further docs:</p>
+<p>If you wish to access these within your own views and models, you may do so via the standard model API:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">sentry.models</span> <span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">GroupedMessage</span>
+
+<span class="c"># Pull the last 10 unresolved errors.</span>
+<span class="n">GroupedMessage</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">status</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s">&#39;-last_seen&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="mi">10</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>You can also record errors outside of handler if you want:</p>
+<div class="highlight-python"><pre>from sentry.client.base import SentryClient
+
+try:
+        ...
+except Exception, exc:
+        SentryClient().create_from_exception([exc_info=None, url=None, view=None])</pre>
+</div>
+<p>If you wish to log normal messages (useful for non-<tt class="docutils literal"><span class="pre">logging</span></tt> integration):</p>
+<div class="highlight-python"><pre>from sentry.client.base import SentryClient
+import logging
+
+SentryClient().create_from_text('Message Message'[, level=logging.WARNING, url=None])</pre>
+</div>
+<p>Both the <tt class="docutils literal"><span class="pre">url</span></tt> and <tt class="docutils literal"><span class="pre">level</span></tt> parameters are optional. <tt class="docutils literal"><span class="pre">level</span></tt> should be one of the following:</p>
+<ul class="simple">
+<li><tt class="docutils literal"><span class="pre">logging.DEBUG</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">logging.INFO</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">logging.WARNING</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">logging.ERROR</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">logging.FATAL</span></tt></li>
+</ul>
+<p>If you have a custom exception class, similar to Http404, or something else you don&#8217;t want to log,
+you can also add <tt class="docutils literal"><span class="pre">skip_sentry</span> <span class="pre">=</span> <span class="pre">True</span></tt> to your exception class or instance, and sentry will simply ignore
+the error.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Extending Sentry</a><ul>
+<li><a class="reference internal" href="#bundled-plugins">Bundled Plugins</a><ul>
+<li><a class="reference internal" href="#servers">Servers</a></li>
+<li><a class="reference internal" href="#urls">URLs</a></li>
+<li><a class="reference internal" href="#sites">Sites</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#building-plugins">Building Plugins</a></li>
+<li><a class="reference internal" href="#api">API</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="config.html"
+                        title="previous chapter">Configuration</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/extensions.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="config.html" title="Configuration"
+             >previous</a> |</li>
+        <li><a href="index.html">Sentry v1.3.13 (e085aca5caba00112997759038bd6abe7f103ffe) documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2010, David Cramer.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.4.
+    </div>
+  </body>
+</html>
