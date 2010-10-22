@@ -21,12 +21,12 @@ function hideAll(elems) {
     elems[e].style.display = 'none';
   }
 }
-window.onload = function() {
-  hideAll(getElementsByClassName(document, 'table', 'vars'));
-  hideAll(getElementsByClassName(document, 'ol', 'pre-context'));
-  hideAll(getElementsByClassName(document, 'ol', 'post-context'));
-  hideAll(getElementsByClassName(document, 'div', 'pastebin'));
-}
+$(window).load(function() {
+    $('.frame table.vars').hide();
+    $('ol.pre-context').hide();
+    $('ol.post-context').hide();
+    $('div.pastebin').hide();
+});
 function toggle() {
   for (var i = 0; i < arguments.length; i++) {
     var e = document.getElementById(arguments[i]);
