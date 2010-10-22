@@ -18,14 +18,18 @@ body { font:small sans-serif; background: #E5E5E5;
     font-family: "Lucida Grande", "Lucida Sans", verdana, sans-serif;
 }
 h1 { font-weight:normal; }
+h2 { font-weight: normal; }
+h3 { font-weight: normal; }
+h4 { font-weight: normal; }
 h1 a { color: inherit; text-decoration: none; }
-h2 { margin-bottom:.4em; font-weight: normal; margin-top: .8em; margin-left: .1em; }
 h2 span { font-size:80%; color:#666; font-weight:normal; }
-h3 { margin:1em 0 .5em 0; }
-h4 { margin:0 0 .5em 0; font-weight: normal; }
+
+h1, h2, h3, h4, h5, h6, p, ul,
+table, form, pre, ol { margin-bottom: 20px; }
+ul { margin: 0 0 20px 20px; }
+
 a { color: #333; }
 a:visited { color: inherit; }
-ul { margin: 1em 0 1em 2em; }
 
 pre {
     display: block;
@@ -45,6 +49,8 @@ pre {
     background: -moz-linear-gradient(top,  #555,  #222); /* for firefox 3.6+ */
     border-bottom: 1px solid #000;
 }
+
+#header h1, #header h2 { margin-bottom: 0; }
 
 #header .container {
     position: relative;
@@ -90,8 +96,7 @@ pre {
 
 .nav {
     list-style: none;
-    margin: 0;
-    padding: 0;
+    margin-left: 0;
 }
 .nav a { color: inherit; }
 .nav li { display: inline; }
@@ -117,7 +122,7 @@ pre {
     -moz-box-shadow: 0 1px 4px #c5c5c5;
     -webkit-box-shadow: 0 1px 4px #c5c5c5;
     box-shadow: 01px 4px #c5c5c5;
-    padding: 10px 20px;
+    padding: 20px 20px 0;
     min-height: 800px;
 }
 
@@ -149,25 +154,19 @@ pre {
     -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0, .25), 0 1px 0 #fff;
 }
 
-#sidebar .chart { margin-bottom: 1em; }
+#chart { margin-bottom: 20px; }
 
 /* tracebacks */
 .frame table.vars { margin:5px 0 2px 40px; }
 table.vars tbody td:first-child { padding-right: 20px; }
 table.vars td { font-family:monospace; }
 table.vars td.code { overflow: hidden; }
-table.vars td.code pre {
-    white-space: pre-wrap;       /* CSS-3                  */
-    white-space: -moz-pre-wrap;  /* Mozilla, since 1999    */
-    white-space: -pre-wrap;      /* Opera 4-6              */
-    white-space: -o-pre-wrap;    /* Opera 7                */
-    word-wrap: break-word;       /* Internet Explorer 5.5+ */
-}
-div.pastebin textarea { padding: 10px; }
-table.vars { border:1px solid #ccc; border-collapse: collapse; background:white; }
+table.vars td.code pre { margin-bottom: 0; }
+div.pastebin textarea { padding: 10px; background: #f9f9f9; border-color: #ddd; }
+table.vars { border-collapse: collapse; background:white; margin-bottom: 10px; }
 table tbody td, table tbody th { vertical-align:top; padding:2px 3px; }
 table.meta th { text-align: right; white-space: nowrap; }
-table.vars thead th { padding:3px 6px 3px 3px; background:#eee; text-align:left; font-weight:bold; border:1px solid #ddd; font-size:11px; }
+table.vars thead th { padding:3px 6px 3px 3px; background:#eee; text-align:left; font-weight:bold; border:1px solid #ddd; border-width: 1px 0; font-size:11px; }
 
 table.source th { color:#666; }
 table.source td { font-family:monospace; white-space:pre; border-bottom:1px solid #eee; }
@@ -183,18 +182,15 @@ div.commands a { color:black; text-decoration:none; }
 #template, #template-not-exist { background:#f6f6f6; margin-top: 1em; overflow: hidden; }
 #template-not-exist ul { margin: 0 0 0 20px; }
 #unicode-hint { background:#eee; }
-#traceback { background:#eee; padding: 10px; }
-#summary { background: #ffc; padding: 10px; }
-#summary h2 { font-weight: normal; color: #666; }
+#traceback { padding: 10px; }
+#summary { background: #ffc; padding: 10px; margin-bottom: 10px; }
+#summary h1, #summary table, #summary pre { margin-bottom: 0; }
+#summary h1 { font-weight: normal; color: #666; }
 #explanation { background:#eee; }
 #summary table { border:none; background:inherit; }
-#reporter_body {
-    padding: 8px;
-    background: none repeat scroll 0 0 #FFFFCC
-}
 
 /** variables **/
-#requestinfo { padding: 10px; margin-top: 1em; }
+#requestinfo { padding: 10px; overflow: hidden; }
 #requestinfo > table { border: 0; width: 100%; }
 #requestinfo th.key, td.values { padding: 0 0 20px; position: relative; }
 #requestinfo th.key { vertical-align: top; font-size: 1.1em; text-align: left; padding-right: 30px; }
@@ -306,6 +302,7 @@ dl.flat dd {
 }
 .messages h3 {
     vertical-align: middle;
+    font-weight: bold;
     line-height: 24px;
     display: inline-block;
     margin: 0;
@@ -316,6 +313,7 @@ dl.flat dd {
     color: #666;
     margin-top: 8px;
     font-size: 0.9em;
+    margin-bottom: 0;
     overflow: hidden;
     white-space: nowrap;
 }
@@ -422,10 +420,11 @@ dl.flat dd {
     display: inline; float: left;
     width: 100%;
 }
+.paging-wrap form { margin-bottom: 0; }
 .paging-meta, .sort-by, .realtime {
     display: inline;
     float: right;
-    margin: 10px 10px 0 0;
+    margin: 0 10px 0 0;
     font-size: 14px;
     line-height: 17px;
     color: #aaa;
@@ -436,7 +435,7 @@ dl.flat dd {
 }
 .paging-endless {
     display: inline; float: left;
-    margin: 10px 0 0 10px;
+    margin-left: 0;
 }
 
 .paging-endless li {
