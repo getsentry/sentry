@@ -10,11 +10,10 @@ import urllib2
 
 from django.core.cache import cache
 from django.template import TemplateSyntaxError
-from django.utils.encoding import smart_unicode
 from django.views.debug import ExceptionReporter
 
 from sentry import conf
-from sentry.helpers import construct_checksum, varmap, transform, get_installed_apps, urlread
+from sentry.helpers import construct_checksum, varmap, transform, get_installed_apps, urlread, force_unicode
 
 logger = logging.getLogger('sentry.errors')
 
@@ -120,27 +119,9 @@ class SentryClient(object):
             exc_info = sys.exc_info()
         exc_type, exc_value, exc_traceback = exc_info
 
-        def to_unicode(f):
-            if isinstance(f, dict):
-                nf = dict()
-                for k, v in f.iteritems():
-                    nf[str(k)] = to_unicode(v)
-                f = nf
-            elif isinstance(f, (list, tuple)):
-                f = [to_unicode(f) for f in f]
-            else:
-                try:
-                    f = smart_unicode(f)
-                except (UnicodeEncodeError, UnicodeDecodeError):
-                    f = '(Error decoding value)'
-                except Exception: # in some cases we get a different exception
-                    f = smart_unicode(type(f))
-            return f
-
         def shorten(var):
-            if not isinstance(var, basestring):
-                var = to_unicode(var)
-            if len(var) > 200:
+            var = transform(var)
+            if isinstance(var, basestring) and len(var) > 200:
                 var = var[:200] + '...'
             return var
 
@@ -185,7 +166,7 @@ class SentryClient(object):
 
         data = kwargs.pop('data', {}) or {}
         data['__sentry__'] = {
-            'exc': map(to_unicode, [exc_type.__class__.__module__, exc_value.args, frames]),
+            'exc': map(transform, [exc_type.__class__.__module__, exc_value.args, frames]),
         }
 
         if isinstance(exc_value, TemplateSyntaxError) and hasattr(exc_value, 'source'):
@@ -197,7 +178,7 @@ class SentryClient(object):
         
         tb_message = '\n'.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
 
-        kwargs.setdefault('message', to_unicode(exc_value))
+        kwargs.setdefault('message', transform(force_unicode(exc_value)))
 
         return self.process(
             class_name=exc_type.__name__,

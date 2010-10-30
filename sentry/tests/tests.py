@@ -784,7 +784,7 @@ class SentryMailTest(TestCase):
         out = mail.outbox[0]
 
         self.assertTrue('Traceback (most recent call last):' in out.body)
-        self.assertTrue("COOKIES:{'commenter_name': 'admin'," in out.body, out.body)
+        self.assertTrue("COOKIES:{'commenter_name': u'admin'," in out.body, out.body)
         self.assertEquals(out.subject, 'Error (EXTERNAL IP): /group/1')
 
     def test_mail_on_creation(self):
