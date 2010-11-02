@@ -572,6 +572,26 @@ class SentryTestCase(TestCase):
         message = client.create_from_record(record)
         self.assertEquals('test', message.message)
 
+    def testGroupFormatting(self):
+        logger = logging.getLogger()
+        
+        self.setUpHandler()
+
+        logger.error('This is a test %s', 'error')
+        self.assertEquals(Message.objects.count(), 1)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+        last = Message.objects.get()
+        self.assertEquals(last.logger, 'root')
+        self.assertEquals(last.level, logging.ERROR)
+        self.assertEquals(last.message, 'This is a test error')
+
+        logger.error('This is a test %s', 'message')
+        logger.error('This is a test %s', 'foo')
+        
+        self.assertEquals(Message.objects.count(), 3)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+        
+
 
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'

@@ -24,7 +24,10 @@ class SentryClient(object):
         kwargs.setdefault('level', logging.ERROR)
         kwargs.setdefault('server_name', conf.NAME)
 
-        checksum = construct_checksum(**kwargs)
+        if 'checksum' not in kwargs:
+            checksum = construct_checksum(**kwargs)
+        else:
+            checksum = kwargs['checksum']
 
         if conf.THRASHING_TIMEOUT and conf.THRASHING_LIMIT:
             cache_key = 'sentry:%s:%s' % (kwargs.get('class_name') or '', checksum)
@@ -89,8 +92,15 @@ class SentryClient(object):
         kwargs.update({
             'logger': record.name,
             'level': record.levelno,
-            'message': record.getMessage(),
+            'message': force_unicode(record.msg),
+            'server_name': conf.NAME,
         })
+        
+        # construct the checksum with the unparsed message
+        kwargs['checksum'] = construct_checksum(**kwargs)
+        
+        # save the message with included formatting
+        kwargs['message'] = record.getMessage()
         
         # If there's no exception being processed, exc_info may be a 3-tuple of None
         # http://docs.python.org/library/sys.html#sys.exc_info
@@ -117,6 +127,7 @@ class SentryClient(object):
         """
         if not exc_info:
             exc_info = sys.exc_info()
+
         exc_type, exc_value, exc_traceback = exc_info
 
         def shorten(var):

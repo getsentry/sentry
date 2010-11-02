@@ -39,7 +39,9 @@ class SentryManager(models.Manager):
             data['url'] = url
             url = url[:URL_MAX_LENGTH]
 
-        checksum = construct_checksum(**kwargs)
+        checksum = kwargs.pop('checksum', None)
+        if not checksum:
+            checksum = construct_checksum(**kwargs)
 
         mail = False
         try:
