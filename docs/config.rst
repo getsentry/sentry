@@ -73,6 +73,13 @@ your ``extra`` clause::
 	    }
 	})
 
+Sentry will intelligently group messages if you use proper string formatting. For example, the following messages would
+be seen as the same message within Sentry::
+
+	logging.error('There was some %s error', 'crazy')
+	logging.error('There was some %s error', 'fun')
+	logging.error('There was some %s error', 1)
+
 Other Settings
 --------------
 
