@@ -25,6 +25,12 @@ Once installed, update your settings.py and add ``sentry``, ``sentry.client``, `
 	    ...
 	)
 
+You will also need to add ``sentry.urls`` to your url patterns::
+
+	urlpatterns = patterns('',
+	    (r'^sentry/', include('sentry.urls')),
+	)
+
 We also highly recommend setting ``TEMPLATE_DEBUG=True`` in your environment (not to be confused with ``DEBUG``). This will allow
 Sentry to receive template debug information when it hits a syntax error.
 
