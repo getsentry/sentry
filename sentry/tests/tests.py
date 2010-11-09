@@ -590,8 +590,6 @@ class SentryTestCase(TestCase):
         
         self.assertEquals(Message.objects.count(), 3)
         self.assertEquals(GroupedMessage.objects.count(), 1)
-        
-
 
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'
@@ -660,7 +658,7 @@ class SentryViewsTest(TestCase):
 class RemoteSentryTest(TestCase):
     urls = 'sentry.tests.urls'
     
-    def start_test_server(self, address='localhost', port=8000):
+    def start_test_server(self, address='localhost', port=8001):
         """Creates a live test server object (instance of WSGIServer)."""
         self.server_thread = TestServerThread(address, port)
         self.server_thread.start()
@@ -751,9 +749,17 @@ class RemoteSentryTest(TestCase):
         self.assertEquals(instance.level, 40)
         self.assertTrue(instance.data['__sentry__']['exc'])
 
+    # def testFunctionException(self):
+    #     try: raise Exception(lambda:'foo')
+    #     except: get_client().create_from_exception()
+    #     
+    #     last = Message.objects.get()
+    #     
+    #     self.assertEquals(last.view, 'sentry.tests.tests.testFunctionException')
+
     # def testProcess(self):
     #     self.start_test_server()
-    #     SentryClient.process(message='hello')
+    #     SentryClient().process(message='hello')
     #     instance = Message.objects.all().order_by('-id')[0]
     #     self.assertEquals(instance.message, 'hello')
     #     self.stop_test_server()
