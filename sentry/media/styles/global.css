@@ -541,6 +541,8 @@ dl.flat dd {
 .login-area p {
     margin-bottom: 10px;
 }
+.login-form table { width: 295px; }
+.login-form td { padding: 2px 0; }
 form table {
     border: 0;
     margin: 1em 0;
