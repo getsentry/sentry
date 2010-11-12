@@ -163,7 +163,10 @@ class SentryClient(object):
             best_guess = None
             view = None
             for frame in iter_tb_frames(exc_traceback):
-                view = '.'.join([frame.f_globals['__name__'], frame.f_code.co_name])
+                try:
+                    view = '.'.join([frame.f_globals['__name__'], frame.f_code.co_name])
+                except:
+                    continue
                 if contains(modules, view):
                     if not (contains(conf.EXCLUDE_PATHS, view) and best_guess):
                         best_guess = view
