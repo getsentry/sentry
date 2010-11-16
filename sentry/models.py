@@ -22,7 +22,13 @@ from sentry.reporter import FakeRequest
 
 _reqs = ('paging', 'indexer')
 for r in _reqs:
-    if r not in settings.INSTALLED_APPS:
+    try:
+        exec('import %s as req' % r)
+        dir(r)
+        passed = True
+    except:
+        passed = False
+    if not passed:
         raise ImproperlyConfigured("Put '%s' in your "
             "INSTALLED_APPS setting in order to use the sentry application." % r)
 
