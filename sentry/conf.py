@@ -78,4 +78,3 @@ URL_PREFIX = getattr(settings, 'SENTRY_URL_PREFIX', None)
 
 # Allow access to Sentry without authentication.
 PUBLIC = getattr(settings, 'SENTRY_PUBLIC', False)
-PUBLIC
