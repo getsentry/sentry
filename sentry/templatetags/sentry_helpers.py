@@ -85,8 +85,9 @@ def to_json(data):
     return simplejson.dumps(data)
 
 def sentry_version():
-    from sentry import get_version
-    return get_version()
+    import sentry
+    
+    return sentry.VERSION
 register.simple_tag(sentry_version)
 
 @register.filter
