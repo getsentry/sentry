@@ -179,8 +179,12 @@ class SentryClient(object):
                 kwargs['view'] = view
 
         data = kwargs.pop('data', {}) or {}
+        if hasattr(exc_type, '__class__'):
+            exc_module = exc_type.__class__.__module__
+        else:
+            exc_module = None
         data['__sentry__'] = {
-            'exc': map(transform, [exc_type.__class__.__module__, exc_value.args, frames]),
+            'exc': map(transform, [exc_module, exc_value.args, frames]),
         }
 
         if isinstance(exc_value, TemplateSyntaxError) and hasattr(exc_value, 'source'):
