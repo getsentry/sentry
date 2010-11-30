@@ -44,12 +44,15 @@ django-sentry supports the ability to directly tie into the ``logging`` module. 
 	import logging
 	from sentry.client.handlers import SentryHandler
 	
-	logging.getLogger().addHandler(SentryHandler())
-
-	# Add StreamHandler to sentry's default so you can catch missed exceptions
-	logger = logging.getLogger('sentry.errors')
-	logger.propagate = False
-	logger.addHandler(logging.StreamHandler())
+	logger = logging.getLogger()
+	# ensure we havent already registered the handler
+	if SentryHandler not in map(lambda x: x.__class__, logger.handlers):
+	    logger.addHandler(SentryHandler())
+	
+	    # Add StreamHandler to sentry's default so you can catch missed exceptions
+	    logger = logging.getLogger('sentry.errors')
+	    logger.propagate = False
+	    logger.addHandler(logging.StreamHandler())
 
 You can also use the ``exc_info`` and ``extra=dict(url=foo)`` arguments on your ``log`` methods. This will store the appropriate information and allow django-sentry to render it based on that information::
 
