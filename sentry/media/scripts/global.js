@@ -149,4 +149,24 @@ $(document).ready(function(){
             sentryRealtime = false;
         }
     });
+    $('#sidebar .filter-list').each(function(_, el){
+        var el = $(el);
+        if (el.find('li').length > 6) {
+            // rebuild this widget as a dropdown select
+            var select = $('<select></select>');
+            var parent = $('<div class="filter-select sidebar-module">').appendTo(el.parent());
+
+            el.find('li a').each(function(_, a){
+                a = $(a);
+                var opt = $('<option value="' + a.attr('href') + '">' + a.text() + '</option>').appendTo(select);
+                if (a.parent().hasClass('active')) {
+                    opt.attr('selected', 'selected');
+                }
+            });
+            el.remove();
+            select.appendTo(parent).change(function(){
+                window.location.href = $(this).val();
+            });
+       }
+    });
 });

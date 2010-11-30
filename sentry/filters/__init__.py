@@ -26,8 +26,8 @@ class ChoiceWidget(Widget):
         query_string = self.get_query_string()
         column = self.filter.get_query_param()
 
-        output = ['<ul class="%s-list filter-list sidebar-module">' % (self.filter.column,)]
-        output.append('<li%(active)s><a href="%(query_string)s&amp;%(column)s">Any %(label)s</a></li>' % dict(
+        output = ['<ul class="%s-list filter-list sidebar-module" rel="%s">' % (self.filter.column, column)]
+        output.append('<li%(active)s><a href="%(query_string)s">Any %(label)s</a></li>' % dict(
             active=not value and ' class="active"' or '',
             query_string=query_string,
             label=self.filter.label,
@@ -35,7 +35,7 @@ class ChoiceWidget(Widget):
         ))
         for key, val in choices.iteritems():
             key = unicode(key)
-            output.append('<li%(active)s><a href="%(query_string)s&amp;%(column)s=%(key)s">%(value)s</a></li>' % dict(
+            output.append('<li%(active)s rel="%(key)s"><a href="%(query_string)s&amp;%(column)s=%(key)s">%(value)s</a></li>' % dict(
                 active=value == key and ' class="active"' or '',
                 column=column,
                 key=key,

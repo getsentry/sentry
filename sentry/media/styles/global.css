@@ -210,6 +210,12 @@ pre.exception_value { font-family: sans-serif; color: #666; font-size: 1.5em; ma
 .server-list li, .url-list li { padding-bottom: 10px; }
 .url-list li a { line-height: 18px; }
 .filter-list { margin-left: 0; text-transform: lowercase; }
+.filter-select {
+    padding: 10px;
+}
+.filter-select select {
+    width: 100%;
+}
 .filter-list li a {
     display: block; padding: 10px; text-decoration: none;
     border-bottom: 1px solid rgba(0,0,0, .05);
