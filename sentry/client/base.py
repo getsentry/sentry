@@ -32,11 +32,16 @@ class SentryClient(object):
         if conf.THRASHING_TIMEOUT and conf.THRASHING_LIMIT:
             cache_key = 'sentry:%s:%s' % (kwargs.get('class_name') or '', checksum)
             added = cache.add(cache_key, 1, conf.THRASHING_TIMEOUT)
-            try:
-                if not added and cache.incr(cache_key) > conf.THRASHING_LIMIT:
+            if not added:
+                try:
+                    thrash_count = cache.incr(cache_key)
+                except (KeyError, ValueError):
+                    # cache.incr can fail. Assume we aren't thrashing yet, and
+                    # if we are, hope that the next error has a successful
+                    # cache.incr call.
+                    thrash_count = 0
+                if thrash_count > conf.THRASHING_LIMIT:
                     return
-            except KeyError:
-                pass
 
         for filter_ in get_filters():
             kwargs = filter_(None).process(kwargs) or kwargs
