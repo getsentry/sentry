@@ -61,6 +61,9 @@ def chart_data(group, max_days=90):
                       .annotate(num=Count('id')).values_list('grouper', 'num')\
                       .order_by('grouper'))
 
+    if not chart_qs:
+        return {}
+
     min_date = chart_qs[0][0]
     if min_date and min_date < datetime.datetime.now() - datetime.timedelta(days=1):
         stop_hours = (datetime.datetime.now() - min_date).days * 24
