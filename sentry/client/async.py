@@ -27,10 +27,10 @@ class SentryAsyncClient(SentryClient):
             if record is self._terminator:
                 self.running = False
                 break
-            self.send_sync(**record)
+            self.send_remote_sync(**record)
 
-    def send_sync(self, **kwargs):
-        super(SentryAsyncClient, self).send(**kwargs)
+    def send_remote_sync(self, **kwargs):
+        super(SentryAsyncClient, self).send_remote(**kwargs)
 
-    def send(self, **kwargs):
+    def send_remote(self, **kwargs):
         self.queue.put_nowait(kwargs)
