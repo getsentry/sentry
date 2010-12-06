@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='django-sentry',
-    version='1.4.0',
+    version='1.4.1',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/django-sentry',
@@ -13,7 +13,7 @@ setup(
     zip_safe=False,
     install_requires=[
         'django-paging>=0.2.2',
-        'django-indexer==0.2',
+        'django-indexer==0.2.1',
     ],
     include_package_data=True,
     classifiers=[
