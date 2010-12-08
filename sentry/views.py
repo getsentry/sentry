@@ -12,6 +12,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseBadRequest, \
     HttpResponseForbidden, HttpResponseRedirect, Http404
 from django.shortcuts import render_to_response, get_object_or_404
+from django.template import RequestContext
 from django.template.loader import render_to_string
 from django.utils import simplejson
 from django.utils.safestring import mark_safe
@@ -55,7 +56,7 @@ def login(request):
     
     context = locals()
     context.update(csrf(request))
-    return render_to_response('sentry/login.html', locals())
+    return render_to_response('sentry/login.html', locals(), context_instance=RequestContext(request))
 
 def logout(request):
     from django.contrib.auth import logout
@@ -103,7 +104,7 @@ def index(request):
 
     has_realtime = page == 1
     
-    return render_to_response('sentry/index.html', locals())
+    return render_to_response('sentry/index.html', locals(), context_instance=RequestContext(request))
 
 @login_required
 def ajax_handler(request):
@@ -204,7 +205,7 @@ def group(request, group_id):
     
     page = 'details'
     
-    return render_to_response('sentry/group/details.html', locals())
+    return render_to_response('sentry/group/details.html', locals(), context_instance=RequestContext(request))
 
 @login_required
 def group_message_list(request, group_id):
@@ -214,7 +215,7 @@ def group_message_list(request, group_id):
     
     page = 'messages'
     
-    return render_to_response('sentry/group/message_list.html', locals())
+    return render_to_response('sentry/group/message_list.html', locals(), context_instance=RequestContext(request))
 
 @login_required
 def group_message_details(request, group_id, message_id):
@@ -246,7 +247,7 @@ def group_message_details(request, group_id, message_id):
     
     page = 'messages'
     
-    return render_to_response('sentry/group/message.html', locals())
+    return render_to_response('sentry/group/message.html', locals(), context_instance=RequestContext(request))
 
 @csrf_exempt
 def store(request):

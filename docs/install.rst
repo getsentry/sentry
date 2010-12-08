@@ -25,6 +25,13 @@ Once installed, update your settings.py and add ``sentry``, ``sentry.client``, `
 	    ...
 	)
 
+To enable Sentry to find it's media under django 1.3+ and its static media handling, you'll need to add in the following to your settings:
+
+	import sentry
+	STATICFILES_DIRS = (
+	    ('sentry', path(sentry.__file__).dirname() / 'media'),
+	)
+
 You will also need to add ``sentry.urls`` to your url patterns::
 
 	urlpatterns = patterns('',
