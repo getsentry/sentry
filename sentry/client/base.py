@@ -89,6 +89,7 @@ class SentryClient(object):
                 POST=request.POST,
                 GET=request.GET,
                 COOKIES=request.COOKIES,
+                raw_post_data=request.raw_post_data,
             ))
 
             if not kwargs.get('url'):

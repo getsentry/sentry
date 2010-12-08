@@ -36,6 +36,7 @@ def sentry_exception_handler(request=None, **kwargs):
                 POST=request.POST,
                 GET=request.GET,
                 COOKIES=request.COOKIES,
+                raw_post_data=request.raw_post_data,
             )
         else:
             data = dict()
