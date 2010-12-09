@@ -1,5 +1,7 @@
+import haystack
 from haystack.indexes import *
-from haystack import site
+
+from sentry.search_sites import site
 from sentry.models import GroupedMessage
 
 class GroupedMessageIndex(RealTimeSearchIndex):

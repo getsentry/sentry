@@ -121,12 +121,12 @@ SENTRY_TESTING = True
 SENTRY_SITE = 'example'
 SENTRY_PUBLIC = False
 
-# HAYSTACK_WHOOSH_PATH = os.path.join(PROJECT_ROOT, 'sentry_index')
-# HAYSTACK_SEARCH_ENGINE = 'whoosh'
+HAYSTACK_WHOOSH_PATH = os.path.join(PROJECT_ROOT, 'sentry_index')
+HAYSTACK_SEARCH_ENGINE = 'whoosh'
 # HAYSTACK_SOLR_URL = 'http://127.0.0.1:8983/solr'
 # HAYSTACK_SEARCH_ENGINE = 'solr'
 
-HAYSTACK_SITECONF = 'sentry.search_indexes'
+HAYSTACK_SITECONF = 'sentry.search_sites'
 
 try:
     import debug_toolbar

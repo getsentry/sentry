@@ -29,6 +29,7 @@ from sentry.reporter import ImprovedExceptionReporter
 if 'sentry.filters.SearchFilter' in conf.FILTERS:
     try:
         from haystack.query import SearchQuerySet
+        from sentry.search_indexes import site as SentrySearchSite
     except ImportError:
         SentrySearchQuerySet = None
     else:
@@ -159,7 +160,7 @@ def ajax_handler(request):
         is_search = query and SentrySearchQuerySet
 
         if is_search:
-            message_list = SentrySearchQuerySet().filter(content=query)
+            message_list = SentrySearchQuerySet(site=SentrySearchSite).filter(content=query)
         else:
             message_list = GroupedMessage.objects.extra(
                 select={
