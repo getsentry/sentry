@@ -25,7 +25,7 @@ from django.template import TemplateSyntaxError
 from django.utils.encoding import smart_unicode
 
 from sentry import conf
-from sentry.helpers import transform
+from sentry.helpers import transform, force_unicode
 from sentry.models import Message, GroupedMessage
 from sentry.client.base import SentryClient
 from sentry.client.handlers import SentryHandler
@@ -266,7 +266,7 @@ class SentryTestCase(TestCase):
 
         error = get_client().create_from_text(value)
         self.assertEquals(Message.objects.count(), cnt+1)
-        self.assertEquals(error.message, value)
+        self.assertEquals(error.message, force_unicode(value))
 
         logging.info(value)
         self.assertEquals(Message.objects.count(), cnt+2)
@@ -810,7 +810,7 @@ class SentryMailTest(TestCase):
         out = mail.outbox[0]
 
         self.assertTrue('Traceback (most recent call last):' in out.body)
-        self.assertTrue("COOKIES:{'commenter_name': u'admin'," in out.body, out.body)
+        self.assertTrue("COOKIES:{'commenter_name': 'admin'," in out.body, out.body)
         self.assertEquals(out.subject, 'Error (EXTERNAL IP): /group/1')
 
     def test_mail_on_creation(self):

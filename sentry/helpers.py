@@ -1,6 +1,7 @@
 import logging
 import urllib
 import urllib2
+import uuid
 
 import django
 from django.conf import settings
@@ -61,12 +62,18 @@ def transform(value):
     # TODO: make this extendable
     # TODO: include some sane defaults, like UUID
     # TODO: dont coerce strings to unicode, leave them as strings
-    if isinstance(value, (tuple, list)):
-        return [transform(o) for o in value]
+    if isinstance(value, (tuple, list, set, frozenset)):
+        return type(value)(transform(o) for o in value)
+    elif isinstance(value, uuid.UUID):
+        return repr(value)
     elif isinstance(value, dict):
         return dict((k, transform(v)) for k, v in value.iteritems())
     elif isinstance(value, basestring):
-        value = force_unicode(value)
+        try:
+            unicode(value)
+        except:
+            value = force_unicode(value)
+        return value
     elif not isinstance(value, (int, bool)) and value is not None:
         # XXX: we could do transform(repr(value)) here
         return force_unicode(value)
