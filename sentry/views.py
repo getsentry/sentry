@@ -29,7 +29,7 @@ from sentry.reporter import ImprovedExceptionReporter
 if 'sentry.filters.SearchFilter' in conf.FILTERS:
     try:
         from haystack.query import SearchQuerySet
-        from sentry.search_indexes import site as SentrySearchSite
+        from sentry.search_sites import site as SentrySearchSite
     except ImportError:
         SentrySearchQuerySet = None
     else:
