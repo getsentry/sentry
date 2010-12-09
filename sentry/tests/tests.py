@@ -606,7 +606,7 @@ class SentryTestCase(TestCase):
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.level, logging.ERROR)
         self.assertEquals(last.message, 'Test')
-        self.assertEquals(last.data, repr(uuid))
+        self.assertEquals(last.data['uuid'], repr(uuid))
 
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'
