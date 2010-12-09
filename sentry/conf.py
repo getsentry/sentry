@@ -16,13 +16,14 @@ if DATABASE_USING:
 THRASHING_TIMEOUT = getattr(settings, 'SENTRY_THRASHING_TIMEOUT', 60)
 THRASHING_LIMIT = getattr(settings, 'SENTRY_THRASHING_LIMIT', 10)
 
-FILTERS = getattr(settings, 'SENTRY_FILTERS', (
+FILTERS = getattr(settings, 'SENTRY_FILTERS', filter(None, (
+    getattr(settings, 'HAYSTACK_SEARCH_ENGINE', 'dummy') != 'dummy' and 'sentry.filters.SearchFilter' or None,
     'sentry.filters.StatusFilter',
     'sentry.filters.LoggerFilter',
     'sentry.filters.LevelFilter',
     'sentry.filters.ServerNameFilter',
     'sentry.filters.SiteFilter',
-))
+)))
 
 KEY = getattr(settings, 'SENTRY_KEY', md5_constructor(settings.SECRET_KEY).hexdigest())
 

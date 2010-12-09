@@ -4,11 +4,12 @@ try:
 except ImportError:
     import pickle
 import datetime
-import logging
 import zlib
 
+from django.conf import settings
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
+from django.db.models import Q
 from django.http import HttpResponse, HttpResponseBadRequest, \
     HttpResponseForbidden, HttpResponseRedirect, Http404
 from django.shortcuts import render_to_response, get_object_or_404
@@ -19,10 +20,29 @@ from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
 from sentry import conf
 from sentry.helpers import get_filters
-from sentry.models import GroupedMessage, Message
+from sentry.models import GroupedMessage
 from sentry.plugins import GroupActionProvider
 from sentry.templatetags.sentry_helpers import with_priority
 from sentry.reporter import ImprovedExceptionReporter
+
+# HACK
+if 'sentry.filters.SearchFilter' in conf.FILTERS:
+    try:
+        from haystack.query import SearchQuerySet
+    except ImportError:
+        SentrySearchQuerySet = None
+    else:
+        class SentrySearchQuerySet(SearchQuerySet):
+            "Returns actual instances rather than search results."
+
+            def __getitem__(self, k):
+                result = []
+                for r in super(SentrySearchQuerySet, self).__getitem__(k):
+                    r.object.score = r.score
+                    result.append(r.object)
+                return result
+else:
+    SentrySearchQuerySet = None
 
 def login_required(func):
     def wrapped(request, *args, **kwargs):
@@ -75,12 +95,24 @@ def index(request):
     except (TypeError, ValueError):
         page = 1
 
-    # this only works in postgres
-    message_list = GroupedMessage.objects.extra(
-        select={
-            'score': GroupedMessage.get_score_clause(),
-        }
-    )
+    query = request.GET.get('content')
+    is_search = query and SentrySearchQuerySet
+
+    if is_search:
+        message_list = SentrySearchQuerySet().filter(content=query)
+    else:
+        message_list = GroupedMessage.objects.extra(
+            select={
+                'score': GroupedMessage.get_score_clause(),
+            }
+        )
+        if query:
+            # You really shouldnt be doing this
+            message_list = message_list.filter(
+                Q(view__icontains=query) \
+                | Q(message__icontains=query) \
+                | Q(traceback__icontains=query)
+            )
 
     sort = request.GET.get('sort')
     if sort == 'date':
@@ -89,8 +121,8 @@ def index(request):
         message_list = message_list.order_by('-first_seen')
     else:
         sort = 'priority'
-        message_list = message_list.order_by('-score', '-last_seen')
-
+        if not is_search:
+            message_list = message_list.order_by('-score', '-last_seen')
     
     any_filter = False
     for filter_ in filters:
@@ -103,7 +135,16 @@ def index(request):
 
     has_realtime = page == 1
     
-    return render_to_response('sentry/index.html', locals())
+    return render_to_response('sentry/index.html', {
+        'has_realtime': has_realtime,
+        'message_list': message_list,
+        'today': today,
+        'query': query,
+        'sort': sort,
+        'any_filter': any_filter,
+        'request': request,
+        'filters': filters,
+    })
 
 @login_required
 def ajax_handler(request):
@@ -114,11 +155,24 @@ def ajax_handler(request):
         for filter_ in get_filters():
             filters.append(filter_(request))
 
-        message_list = GroupedMessage.objects.extra(
-            select={
-                'score': GroupedMessage.get_score_clause(),
-            }
-        )
+        query = request.GET.get('content')
+        is_search = query and SentrySearchQuerySet
+
+        if is_search:
+            message_list = SentrySearchQuerySet().filter(content=query)
+        else:
+            message_list = GroupedMessage.objects.extra(
+                select={
+                    'score': GroupedMessage.get_score_clause(),
+                }
+            )
+            if query:
+                # You really shouldnt be doing this
+                message_list = message_list.filter(
+                    Q(view__icontains=query) \
+                    | Q(message__icontains=query) \
+                    | Q(traceback__icontains=query)
+                )
         
         sort = request.GET.get('sort')
         if sort == 'date':
@@ -127,7 +181,8 @@ def ajax_handler(request):
             message_list = message_list.order_by('-first_seen')
         else:
             sort = 'priority'
-            message_list = message_list.order_by('-score', '-last_seen')
+            if not is_search:
+                message_list = message_list.order_by('-score', '-last_seen')
         
         for filter_ in filters:
             if not filter_.is_set():

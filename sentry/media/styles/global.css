@@ -297,6 +297,9 @@ dl.flat dd {
 /* message list */
 .messages { list-style: none; margin-left: 0; }
 .messages li { list-style: none; }
+.messages .no-messages {
+    font-weight: bold;
+}
 .messages .count {
     width: 28px;
     vertical-align: top;
@@ -510,6 +513,11 @@ dl.flat dd {
     -moz-box-shadow: inset 0 1px 5px rgba(0,0,0, .30), 0 1px 0 #fff;
     -webkit-box-shadow: inset 0 1px 5px rgba(0,0,0, .30), 0 1px 0 #fff;
     position: relative;
+    margin-bottom: 18px;
+}
+
+#search p {
+    margin-bottom: 0;
 }
 
 #search .textfield input {

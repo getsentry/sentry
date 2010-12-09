@@ -105,6 +105,7 @@ INSTALLED_APPS = (
     'sentry.plugins.sentry_servers',
     'sentry.plugins.sentry_sites',
     'sentry.plugins.sentry_urls',
+    # 'haystack',
     'paging',
     'south',
     'indexer',
@@ -117,16 +118,15 @@ logging.basicConfig(level=logging.DEBUG)
 
 SENTRY_THRASHING_TIMEOUT = 0
 SENTRY_TESTING = True
-SENTRY_FILTERS = (
-    'sentry.filters.StatusFilter',
-    'sentry.filters.LoggerFilter',
-    'sentry.filters.LevelFilter',
-    'sentry.filters.ServerNameFilter',
-    'sentry.filters.SiteFilter',
-    'example_project.filters.IPFilter',
-)
 SENTRY_SITE = 'example'
 SENTRY_PUBLIC = False
+
+# HAYSTACK_WHOOSH_PATH = os.path.join(PROJECT_ROOT, 'sentry_index')
+# HAYSTACK_SEARCH_ENGINE = 'whoosh'
+# HAYSTACK_SOLR_URL = 'http://127.0.0.1:8983/solr'
+# HAYSTACK_SEARCH_ENGINE = 'solr'
+
+HAYSTACK_SITECONF = 'sentry.search_indexes'
 
 try:
     import debug_toolbar

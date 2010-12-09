@@ -605,7 +605,7 @@ class SentryTestCase(TestCase):
         last = Message.objects.get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.level, logging.ERROR)
-        self.assertEquals(last.message, 'This is a test error')
+        self.assertEquals(last.message, 'Test')
         self.assertEquals(last.data, repr(uuid))
 
 class SentryViewsTest(TestCase):

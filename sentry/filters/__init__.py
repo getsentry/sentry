@@ -2,6 +2,7 @@
 from django.conf import settings
 from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
+from django.utils.html import escape
 
 from sentry import conf
 
@@ -17,7 +18,7 @@ class TextWidget(Widget):
     def render(self, value):
         return mark_safe('<div id="search"><p class="textfield"><input type="text" name="%(name)s" value="%(value)s"/></p><p class="submit"><input type="submit" class="search-submit"/></p></div>' % dict(
             name=self.filter.get_query_param(),
-            value=value,
+            value=escape(value),
         ))
 
 class ChoiceWidget(Widget):
@@ -27,7 +28,7 @@ class ChoiceWidget(Widget):
         column = self.filter.get_query_param()
 
         output = ['<ul class="%s-list filter-list sidebar-module" rel="%s">' % (self.filter.column, column)]
-        output.append('<li%(active)s><a href="%(query_string)s">Any %(label)s</a></li>' % dict(
+        output.append('<li%(active)s><a href="%(query_string)s&amp;%(column)s=">Any %(label)s</a></li>' % dict(
             active=not value and ' class="active"' or '',
             query_string=query_string,
             label=self.filter.label,
@@ -96,6 +97,15 @@ class SentryFilter(object):
     def render(self):
         widget = self.get_widget()
         return widget.render(self.get_value())
+
+class SearchFilter(SentryFilter):
+    label = 'Search'
+    column = 'content'
+    widget = TextWidget
+    
+    def get_query_set(self, queryset):
+        # this is really just a hack
+        return queryset
 
 class StatusFilter(SentryFilter):
     label = 'Status'
