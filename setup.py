@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='django-sentry',
-    version='1.4.1',
+    version='1.5.0',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/django-sentry',
