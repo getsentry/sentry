@@ -19,7 +19,6 @@ from django.core.management import call_command
 from django.core.urlresolvers import reverse
 from django.core.signals import got_request_exception
 from django.core.servers import basehttp
-from django.test.client import Client
 from django.test import TestCase
 from django.template import TemplateSyntaxError
 from django.utils.encoding import smart_unicode
@@ -29,7 +28,7 @@ from sentry.helpers import transform, force_unicode
 from sentry.models import Message, GroupedMessage
 from sentry.client.base import SentryClient
 from sentry.client.handlers import SentryHandler
-from sentry.client.models import sentry_exception_handler, get_client
+from sentry.client.models import get_client
 
 from models import TestModel, DuplicateKeyModel
 
@@ -590,6 +589,24 @@ class SentryTestCase(TestCase):
         
         self.assertEquals(Message.objects.count(), 3)
         self.assertEquals(GroupedMessage.objects.count(), 1)
+    
+    def testUUID(self):
+        import uuid
+        
+        logger = logging.getLogger()
+        
+        self.setUpHandler()
+        
+        uuid = uuid.uuid4()
+
+        logger.error('Test', extra={'data': {'uuid': uuid}})
+        self.assertEquals(Message.objects.count(), 1)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+        last = Message.objects.get()
+        self.assertEquals(last.logger, 'root')
+        self.assertEquals(last.level, logging.ERROR)
+        self.assertEquals(last.message, 'This is a test error')
+        self.assertEquals(last.data, repr(uuid))
 
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'
