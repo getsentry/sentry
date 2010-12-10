@@ -83,6 +83,34 @@ be seen as the same message within Sentry::
 	logging.error('There was some %s error', 'fun')
 	logging.error('There was some %s error', 1)
 
+Integration with ``haystack`` (Search)
+--------------------------------------
+
+(This support is still under development)
+
+Note: You will to install a forked version of Haystack which supports additional configuration. It can be obtained on [GitHub](http://github.com/disqus/django-haystack).
+
+Start by configuring your Sentry search backend::
+
+	# By default Sentry looks for HAYSTACK_* options
+	SENTRY_SEARCH_BACKEND = 'solr'
+	SENTRY_SEARCH_OPTIONS = {
+	    'url': 'http://127.0.0.1:8983/solr'
+	}
+
+Or if you want to use Whoosh (you shouldn't)::
+
+	SENTRY_SEARCH_BACKEND = 'whoosh'
+	SENTRY_SEARCH_OPTIONS = {
+	    'path': os.path.join(PROJECT_ROOT, 'sentry_index')
+	}
+
+Now ensure you've added ``haystack`` to the ``INSTALLED_APPS`` on Sentry's server::
+
+	INSTALLED_APPS = INSTALLED_APPS + ('haystack',)
+
+Enjoy!
+
 Other Settings
 --------------
 

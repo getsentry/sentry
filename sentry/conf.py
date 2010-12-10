@@ -25,6 +25,10 @@ FILTERS = getattr(settings, 'SENTRY_FILTERS', filter(None, (
     'sentry.filters.SiteFilter',
 )))
 
+# Sentry allows you to specify an alternative search backend for itself
+SEARCH_ENGINE = getattr(settings, 'SENTRY_SEARCH_ENGINE', getattr(settings, 'HAYSTACK_SEARCH_ENGINE', None))
+SEARCH_OPTIONS = getattr(settings, 'SENTRY_SEARCH_OPTIONS', {})
+
 KEY = getattr(settings, 'SENTRY_KEY', md5_constructor(settings.SECRET_KEY).hexdigest())
 
 LOG_LEVELS = (

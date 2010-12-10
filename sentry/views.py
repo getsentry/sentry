@@ -6,7 +6,6 @@ except ImportError:
 import datetime
 import zlib
 
-from django.conf import settings
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.db.models import Q
@@ -25,25 +24,24 @@ from sentry.plugins import GroupActionProvider
 from sentry.templatetags.sentry_helpers import with_priority
 from sentry.reporter import ImprovedExceptionReporter
 
-# HACK
-if 'sentry.filters.SearchFilter' in conf.FILTERS:
-    try:
-        from haystack.query import SearchQuerySet
-        from sentry.search_sites import site as SentrySearchSite
-    except ImportError:
-        SentrySearchQuerySet = None
-    else:
-        class SentrySearchQuerySet(SearchQuerySet):
-            "Returns actual instances rather than search results."
+def get_search_query_set(query):
+    from haystack.query import SearchQuerySet
+    from sentry.search_indexes import site, backend
 
-            def __getitem__(self, k):
-                result = []
-                for r in super(SentrySearchQuerySet, self).__getitem__(k):
-                    r.object.score = r.score
-                    result.append(r.object)
-                return result
-else:
-    SentrySearchQuerySet = None
+    class SentrySearchQuerySet(SearchQuerySet):
+        "Returns actual instances rather than search results."
+
+        def __getitem__(self, k):
+            result = []
+            for r in super(SentrySearchQuerySet, self).__getitem__(k):
+                r.object.score = r.score
+                result.append(r.object)
+            return result
+    
+    return SentrySearchQuerySet(
+        site=site,
+        query=backend.SearchQuery(backend=site.backend),
+    ).filter(content=query)
 
 def login_required(func):
     def wrapped(request, *args, **kwargs):
@@ -97,10 +95,10 @@ def index(request):
         page = 1
 
     query = request.GET.get('content')
-    is_search = query and SentrySearchQuerySet
+    is_search = query
 
     if is_search:
-        message_list = SentrySearchQuerySet().filter(content=query)
+        message_list = get_search_query_set(query)
     else:
         message_list = GroupedMessage.objects.extra(
             select={
@@ -157,10 +155,10 @@ def ajax_handler(request):
             filters.append(filter_(request))
 
         query = request.GET.get('content')
-        is_search = query and SentrySearchQuerySet
+        is_search = query
 
         if is_search:
-            message_list = SentrySearchQuerySet(site=SentrySearchSite).filter(content=query)
+            message_list = get_search_query_set(query)
         else:
             message_list = GroupedMessage.objects.extra(
                 select={
