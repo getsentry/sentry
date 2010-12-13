@@ -265,7 +265,7 @@ class SentryTestCase(TestCase):
 
         error = get_client().create_from_text(value)
         self.assertEquals(Message.objects.count(), cnt+1)
-        self.assertEquals(error.message, force_unicode(value))
+        self.assertEquals(error.message, value)
 
         logging.info(value)
         self.assertEquals(Message.objects.count(), cnt+2)
