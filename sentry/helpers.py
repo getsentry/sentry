@@ -70,7 +70,7 @@ def transform(value):
         return dict((k, transform(v)) for k, v in value.iteritems())
     elif isinstance(value, basestring):
         try:
-            unicode(value)
+            value = unicode(value)
         except:
             value = force_unicode(value)
         return value
