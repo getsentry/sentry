@@ -1,6 +1,21 @@
 #!/usr/bin/env python
 
-from setuptools import setup, find_packages
+try:
+    from setuptools import setup, find_packages
+    from setuptools.command.test import test
+except ImportError:
+    from ez_setup import use_setuptools
+    use_setuptools()
+    from setuptools import setup, find_packages
+    from setuptools.command.test import test
+
+
+class mytest(test):
+    def run(self, *args, **kwargs):
+        from runtests import runtests
+        runtests()
+        # Upgrade().run(dist=True)
+        # test.run(self, *args, **kwargs)
 
 setup(
     name='django-sentry',
@@ -15,7 +30,9 @@ setup(
         'django-paging>=0.2.2',
         'django-indexer==0.2.1',
     ],
+    test_suite = 'sentry.tests',
     include_package_data=True,
+    cmdclass={"test": mytest},
     classifiers=[
         'Framework :: Django',
         'Intended Audience :: Developers',
