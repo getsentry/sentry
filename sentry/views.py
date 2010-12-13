@@ -318,10 +318,10 @@ def store(request):
         except zlib.error:
             data = pickle.loads(base64.b64decode(data))
     except Exception, e:
-    # This error should be caught as it suggests that there's a
-    # bug somewhere in the Sentry code.
-
-    logging.exception('Bad data received')
+        logger = logging.getLogger('sentry.server')
+        # This error should be caught as it suggests that there's a
+        # bug somewhere in the Sentry code.
+        logger.exception('Bad data received')
         return HttpResponseForbidden('Bad data')
 
     GroupedMessage.objects.from_kwargs(**data)
