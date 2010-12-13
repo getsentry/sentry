@@ -1,3 +1,4 @@
+import logging
 import base64
 try:
     import cPickle as pickle
@@ -316,7 +317,11 @@ def store(request):
             data = pickle.loads(base64.b64decode(data).decode('zlib'))
         except zlib.error:
             data = pickle.loads(base64.b64decode(data))
-    except Exception:
+    except Exception, e:
+    # This error should be caught as it suggests that there's a
+    # bug somewhere in the Sentry code.
+
+    logging.exception('Bad data received')
         return HttpResponseForbidden('Bad data')
 
     GroupedMessage.objects.from_kwargs(**data)
