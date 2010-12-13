@@ -68,12 +68,13 @@ def transform(value):
         return repr(value)
     elif isinstance(value, dict):
         return dict((k, transform(v)) for k, v in value.iteritems())
-    elif isinstance(value, basestring):
+    elif isinstance(value, unicode):
+        return force_unicode(value)
+    elif isinstance(value, str):
         try:
-            value = unicode(value)
+            return str(value)
         except:
-            value = force_unicode(value)
-        return value
+            return force_unicode(value)
     elif not isinstance(value, (int, bool)) and value is not None:
         # XXX: we could do transform(repr(value)) here
         return force_unicode(value)
