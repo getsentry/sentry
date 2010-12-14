@@ -1,0 +1,17 @@
+Source: python-django-sentry
+Section: python
+Priority: optional
+Maintainer: Bruno Clermont <bruno.clermont@gmail.com>
+Homepage: https://github.com/bclermont/django-sentry
+Bugs: https://github.com/bclermont/sentry/issues
+Build-Depends: debhelper, python-support
+
+Package: python-django-sentry
+Architecture: all
+Depends: ${python:Depends}, python-support, python-django
+Provides: ${python:Provides}
+Description: 
+ Sentry provides you with a generic interface to view and interact with your
+ error logs. By default, it will catch any exception thrown by Django and store
+ it in a database. With this it allows you to interact and view near real-time
+ information to discover issues and more easily trace them in your application.
