@@ -1,9 +1,9 @@
 Source: python-django-sentry
 Section: python
 Priority: optional
-Maintainer: Bruno Clermont <bruno.clermont@gmail.com>
-Homepage: https://github.com/bclermont/django-sentry
-Bugs: https://github.com/bclermont/sentry/issues
+Maintainer: David Cramer <dcramer@gmail.com>
+Homepage: https://github.com/dcramer/django-sentry
+Bugs: https://github.com/dcramer/sentry/issues
 Build-Depends: debhelper, python-support
 
 Package: python-django-sentry
