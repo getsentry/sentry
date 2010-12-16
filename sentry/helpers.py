@@ -5,7 +5,7 @@ import uuid
 
 import django
 from django.conf import settings
-from django.utils.encoding import smart_unicode
+from django.utils.encoding import force_unicode
 from django.utils.hashcompat import md5_constructor
 
 from sentry import conf
@@ -69,24 +69,24 @@ def transform(value):
     elif isinstance(value, dict):
         return dict((k, transform(v)) for k, v in value.iteritems())
     elif isinstance(value, unicode):
-        return force_unicode(value)
+        return to_unicode(value)
     elif isinstance(value, str):
         try:
             return str(value)
         except:
-            return force_unicode(value)
+            return to_unicode(value)
     elif not isinstance(value, (int, bool)) and value is not None:
         # XXX: we could do transform(repr(value)) here
-        return force_unicode(value)
+        return to_unicode(value)
     return value
 
-def force_unicode(value):
+def to_unicode(value):
     try:
-        value = smart_unicode(value)
+        value = force_unicode(value)
     except (UnicodeEncodeError, UnicodeDecodeError):
         value = '(Error decoding value)'
     except Exception: # in some cases we get a different exception
-        value = smart_unicode(type(value))
+        value = force_unicode(type(value))
     return value
 
 def get_installed_apps():

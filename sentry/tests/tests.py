@@ -24,7 +24,7 @@ from django.template import TemplateSyntaxError
 from django.utils.encoding import smart_unicode
 
 from sentry import conf
-from sentry.helpers import transform, force_unicode
+from sentry.helpers import transform
 from sentry.models import Message, GroupedMessage
 from sentry.client.base import SentryClient
 from sentry.client.handlers import SentryHandler
@@ -900,6 +900,18 @@ class SentryHelpersTest(TestCase):
         
         settings.DATABASES = _databases
         settings.DATABASE_ENGINE = _engine
+
+    def test_transform_handles_gettext_lazy(self):
+        from sentry.helpers import transform
+        from django.utils.functional import lazy
+
+        def fake_gettext(to_translate):
+            return u'Igpay Atinlay'
+        fake_gettext_lazy = lazy(fake_gettext, str)
+        self.assertEquals(
+            pickle.loads(pickle.dumps(
+                    transform(fake_gettext_lazy("something")))),
+            u'Igpay Atinlay')
 
 class SentryClientTest(TestCase):
     urls = 'sentry.tests.urls'
