@@ -75,7 +75,7 @@ def login(request):
     
     context = locals()
     context.update(csrf(request))
-    return render_to_response('sentry/login.html', locals())
+    return render_to_response('sentry/login.html', context)
 
 def logout(request):
     from django.contrib.auth import logout
