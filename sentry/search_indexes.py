@@ -5,6 +5,10 @@ from haystack.sites import SearchSite
 from sentry import conf
 from sentry.models import GroupedMessage
 
+if not conf.SEARCH_ENGINE:
+    # Ensure we stop here if we havent configure Sentry to work under haystack
+    return
+
 backend = haystack.load_backend(conf.SEARCH_ENGINE)
 
 class SentrySearchSite(SearchSite): pass
