@@ -1,6 +1,7 @@
 from django import template
 from django.db.models import Count
 from django.utils import simplejson
+from django.template.defaultfilters import stringfilter
 
 from sentry.helpers import get_db_engine
 from sentry.plugins import GroupActionProvider
@@ -141,3 +142,20 @@ def timesince(value):
     if value == '1 day':
         return 'Yesterday'
     return value + ' ago'
+
+@register.filter(name='truncatechars')
+@stringfilter
+def truncatechars(value, arg):
+    """
+    Truncates a string after a certain number of chars.
+
+    Argument: Number of chars to truncate after.
+    """
+    try:
+        length = int(arg)
+    except ValueError: # Invalid literal for int().
+        return value # Fail silently.
+    if len(value) > length:
+        return value[:length] + '...'
+    return value
+truncatechars.is_safe = True
