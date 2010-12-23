@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import logging
 import sys
-from os.path import dirname, abspath
+from os.path import dirname, abspath, join
 
 logging.getLogger('sentry').addHandler(logging.StreamHandler())
 
@@ -26,7 +26,7 @@ if not settings.configured:
             'indexer',
             'south',
             'djcelery', # celery client
-            # 'haystack',
+            'haystack',
 
             'sentry',
             'sentry.client',
@@ -51,6 +51,12 @@ if not settings.configured:
         CELERY_ALWAYS_EAGER=True,
         SENTRY_THRASHING_LIMIT=0,
         TEMPLATE_DEBUG=True,
+        HAYSTACK_SITECONF='sentry.search_indexes',
+        HAYSTACK_SEARCH_ENGINE='whoosh',
+        SENTRY_SEARCH_ENGINE='whoosh',
+        SENTRY_SEARCH_OPTIONS={
+            'path': join(dirname(__file__), 'sentry_index'),
+        },
     )
     import djcelery
     djcelery.setup_loader()

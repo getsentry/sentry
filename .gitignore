@@ -8,3 +8,4 @@ pip-log.txt
 /example_project/local_settings.py
 /docs/html
 /docs/doctrees
+/sentry_index

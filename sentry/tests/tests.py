@@ -984,3 +984,14 @@ class SentryManageTest(TestCase):
         command.handle(days=1)
         
         self.assertEquals(Message.objects.count(), 0)
+
+class SentrySearchTest(TestCase):
+    urls = 'sentry.tests.urls'
+
+    def test_build_index(self):
+        from sentry.views import get_search_query_set
+        logger.error('test search error')
+        
+        qs = get_search_query_set('error')
+        self.assertEquals(qs.count(), 1)
+        self.assertEquals(qs[0:1][0].message, 'test search error')
