@@ -26,6 +26,7 @@ if not settings.configured:
             'indexer',
             'south',
             'djcelery', # celery client
+            # 'haystack',
 
             'sentry',
             'sentry.client',
