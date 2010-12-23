@@ -112,7 +112,7 @@
                                 }
                             },
                             series: [{
-                                pointStart: new Date() - 30 * 3600000,
+                                pointStart: new Date() - {{ chart_data.points|length }} * 3600000,
                                 pointInterval: 3600 * 1000,
                                 type: 'area',
                                 data: {{ chart_data.points|to_json }}
