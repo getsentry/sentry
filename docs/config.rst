@@ -88,7 +88,7 @@ Integration with ``haystack`` (Search)
 
 (This support is still under development)
 
-Note: You will to install a forked version of Haystack which supports additional configuration. It can be obtained on [GitHub](http://github.com/disqus/django-haystack).
+Note: You will need to install a forked version of Haystack which supports additional configuration. It can be obtained on [GitHub](http://github.com/disqus/django-haystack).
 
 Start by configuring your Sentry search backend::
 
