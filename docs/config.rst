@@ -92,7 +92,6 @@ Note: You will need to install a forked version of Haystack which supports addit
 
 Start by configuring your Sentry search backend::
 
-	# By default Sentry looks for HAYSTACK_* options
 	SENTRY_SEARCH_BACKEND = 'solr'
 	SENTRY_SEARCH_OPTIONS = {
 	    'url': 'http://127.0.0.1:8983/solr'
