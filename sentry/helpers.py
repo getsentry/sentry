@@ -75,6 +75,8 @@ def transform(value):
             return str(value)
         except:
             return to_unicode(value)
+    elif hasattr(value, '__sentry__'):
+        return value.__sentry__()
     elif not isinstance(value, (int, bool)) and value is not None:
         # XXX: we could do transform(repr(value)) here
         return to_unicode(value)
