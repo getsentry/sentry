@@ -88,7 +88,10 @@ def to_unicode(value):
     except (UnicodeEncodeError, UnicodeDecodeError):
         value = '(Error decoding value)'
     except Exception: # in some cases we get a different exception
-        value = force_unicode(type(value))
+        try:
+            value = str(repr(type(value)))
+        except Exception:
+            value = '(Error decoding value)'
     return value
 
 def get_installed_apps():
