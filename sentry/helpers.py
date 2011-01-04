@@ -1,4 +1,5 @@
 import logging
+import sys
 import urllib
 import urllib2
 import uuid
@@ -174,3 +175,28 @@ def urlread(url, get={}, post={}, headers={}, timeout=None):
     except:
         response = urllib2.urlopen(req, urllib.urlencode(post)).read()
     return response
+
+def get_versions(module_list=None):
+    if not module_list:
+        module_list = settings.INSTALLED_APPS + ['django']
+    versions = {}
+    for app in module_list:
+        name = app.split('.')[-1].replace('_', ' ').capitalize()
+        __import__(app)
+        app = sys.modules[app]
+        if hasattr(app, 'get_version'):
+            get_version = app.get_version
+            if callable(get_version):
+                version = get_version()
+            else:
+                version = get_version
+        elif hasattr(app, 'VERSION'):
+            version = app.VERSION
+        elif hasattr(app, '__version__'):
+            version = app.__version__
+        else:
+            continue
+        if isinstance(version, (list, tuple)):
+            version = '.'.join(str(o) for o in version)
+        versions[name] = version
+    return versions

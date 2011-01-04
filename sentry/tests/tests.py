@@ -608,6 +608,19 @@ class SentryTestCase(TestCase):
         self.assertEquals(last.message, 'Test')
         self.assertEquals(last.data['uuid'], repr(uuid))
 
+    def testVersions(self):
+        import sentry
+        logger = logging.getLogger()
+        
+        self.setUpHandler()
+        
+        logger.error('Test')
+
+        self.assertEquals(Message.objects.count(), 1)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+        last = Message.objects.get()
+        self.assertEquals(last.data['__sentry__']['versions']['Sentry'], sentry.VERSION)
+
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'
     fixtures = ['sentry/tests/fixtures/views.json']
@@ -912,6 +925,12 @@ class SentryHelpersTest(TestCase):
             pickle.loads(pickle.dumps(
                     transform(fake_gettext_lazy("something")))),
             u'Igpay Atinlay')
+
+    def test_get_versions(self):
+        import sentry
+        from sentry.helpers import get_versions
+        versions = get_versions(['sentry'])
+        self.assertEquals(versions['Sentry'], sentry.VERSION)
 
 class SentryClientTest(TestCase):
     urls = 'sentry.tests.urls'

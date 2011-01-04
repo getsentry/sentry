@@ -13,7 +13,8 @@ from django.template import TemplateSyntaxError
 from django.views.debug import ExceptionReporter
 
 from sentry import conf
-from sentry.helpers import construct_checksum, varmap, transform, get_installed_apps, urlread, force_unicode
+from sentry.helpers import construct_checksum, varmap, transform, get_installed_apps, urlread, force_unicode, \
+                           get_versions
 
 logger = logging.getLogger('sentry.errors')
 
@@ -23,6 +24,13 @@ class SentryClient(object):
 
         kwargs.setdefault('level', logging.ERROR)
         kwargs.setdefault('server_name', conf.NAME)
+
+        # save versions of all installed apps
+        if 'data' not in kwargs or '__sentry__' not in (kwargs['data'] or {}):
+            if kwargs.get('data') is None:
+                kwargs['data'] = {}
+            kwargs['data']['__sentry__'] = {}
+        kwargs['data']['__sentry__']['versions'] = get_versions()
 
         if 'checksum' not in kwargs:
             checksum = construct_checksum(**kwargs)
