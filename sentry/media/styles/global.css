@@ -192,10 +192,16 @@ div.commands a { color:black; text-decoration:none; }
 /** variables **/
 #requestinfo { padding: 10px; overflow: hidden; }
 #requestinfo > table { border: 0; width: 100%; }
-#requestinfo th.key, td.values { padding: 0 0 20px; position: relative; }
+#requestinfo th.key, #requestinfo td.values { padding: 0 0 20px; position: relative; }
 #requestinfo th.key { vertical-align: top; font-size: 1.1em; text-align: left; padding-right: 30px; }
-#requestinfo td.values td {  }
+#requestinfo td.values td { }
 #requestinfo td.values th { text-align: left; }
+
+#versioninfo th { text-align: left; font-family: monospace; padding-right: 20px; }
+#versioninfo tr:nth-child(odd) {
+    background: #eee;
+}
+
 #reporter_body #traceback li { list-style-type: inherit; }
 #reporter_body #traceback { padding: 8px; margin-top: 10px; }
 #reporter_body td, #reporter_body th { border-bottom: 0; font:small sans-serif; line-height: auto; }

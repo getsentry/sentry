@@ -246,8 +246,11 @@ def group(request, group_id):
     
         reporter = ImprovedExceptionReporter(obj.request, exc_type, exc_value, frames, obj.data['__sentry__'].get('template'))
         traceback = mark_safe(reporter.get_traceback_html())
+        version_data = obj.data['__sentry__'].get('versions', {}).iteritems()
+
     elif group.traceback:
         traceback = mark_safe('<pre>%s</pre>' % (group.traceback,))
+        version_data = None
     
     def iter_data(obj):
         for k, v in obj.data.iteritems():

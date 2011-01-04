@@ -44,6 +44,11 @@
                 <p class="message">
                     <span class="tag tag-level">{{ group.get_level_display }}</span> 
                     <span class="tag tag-logger">{{ group.logger }}</span> 
+                    {% with group.get_version as version %}
+                        {% if version %}
+                            <span class="tag tag-version">ver {{ version }}</span> 
+                        {% endif %}
+                    {% endwith %}
                     {% for tag in group|get_tags:request %}<span class="tag">{{ tag }}</span> {% endfor %}
                     {{ group.error }}
                 </p>
@@ -195,6 +200,20 @@
                         {% endfor %}
                     </table>
                 </div>
+                
+                {% if version_data %}
+                    <div id="versioninfo">
+                        <h2>Module Versions</h2>
+                        <table>
+                            {% for k, v in version_data %}
+                                <tr>
+                                    <th class="key">{{ k }}</th>
+                                    <td class="values">{{ v }}</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                {% endif %}
             </div>
         {% endblock %}
     </div>

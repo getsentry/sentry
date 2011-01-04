@@ -30,7 +30,22 @@ class SentryClient(object):
             if kwargs.get('data') is None:
                 kwargs['data'] = {}
             kwargs['data']['__sentry__'] = {}
-        kwargs['data']['__sentry__']['versions'] = get_versions()
+
+        versions = get_versions()
+        kwargs['data']['__sentry__']['versions'] = versions
+
+        if kwargs.get('view'):
+            # get list of modules from right to left
+            parts = kwargs['view'].split('.')
+            module_list = ['.'.join(parts[:idx]) for idx in xrange(1, len(parts)+1)][::-1]
+            version = None
+            for m in module_list:
+                if m in versions:
+                    version = versions[m]
+
+            # store our "best guess" for application version
+            if version:
+                kwargs['data']['__sentry__']['version'] = version
 
         if 'checksum' not in kwargs:
             checksum = construct_checksum(**kwargs)

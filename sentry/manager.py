@@ -45,8 +45,13 @@ class SentryManager(models.Manager):
 
         mail = False
         try:
+            kwargs['data'] = {}
+
             if 'url' in data:
-                kwargs['data'] = {'url': data['url']}
+                kwargs['data']['url'] = data['url']
+            if 'version' in data.get('__sentry__', {}):
+                kwargs['data']['version'] = data['__sentry__']['version']
+
             group, created = GroupedMessage.objects.get_or_create(
                 view=view,
                 logger=logger_name,
