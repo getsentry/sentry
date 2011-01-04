@@ -610,16 +610,16 @@ class SentryTestCase(TestCase):
 
     def testVersions(self):
         import sentry
-        logger = logging.getLogger()
-        
-        self.setUpHandler()
-        
-        logger.error('Test')
+        resp = self.client.get(reverse('sentry-log-request-exc'))
+        self.assertEquals(resp.status_code, 200)
 
         self.assertEquals(Message.objects.count(), 1)
         self.assertEquals(GroupedMessage.objects.count(), 1)
         last = Message.objects.get()
-        self.assertEquals(last.data['__sentry__']['versions']['sentry'], sentry.VERSION, last.data['__sentry__']['versions'])
+        self.assertEquals(last.data['__sentry__']['versions']['sentry'], sentry.VERSION)
+        self.assertEquals(last.data['__sentry__']['version'], sentry.VERSION)
+        last = GroupedMessage.objects.get()
+        self.assertEquals(last.data['version'], sentry.VERSION)
 
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'
