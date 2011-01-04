@@ -179,11 +179,16 @@ def urlread(url, get={}, post={}, headers={}, timeout=None):
 def get_versions(module_list=None):
     if not module_list:
         module_list = settings.INSTALLED_APPS + ['django']
+
+    ext_module_list = set()
+    for m in module_list:
+        parts = m.split('.')
+        ext_module_list.update('.'.join(parts[:idx]) for idx in xrange(1, len(parts)+1))
+
     versions = {}
-    for app in module_list:
-        name = app.split('.')[-1].replace('_', ' ').capitalize()
-        __import__(app)
-        app = sys.modules[app]
+    for module_name in ext_module_list:
+        __import__(module_name)
+        app = sys.modules[module_name]
         if hasattr(app, 'get_version'):
             get_version = app.get_version
             if callable(get_version):
@@ -198,5 +203,5 @@ def get_versions(module_list=None):
             continue
         if isinstance(version, (list, tuple)):
             version = '.'.join(str(o) for o in version)
-        versions[name] = version
+        versions[module_name] = version
     return versions

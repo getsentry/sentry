@@ -619,7 +619,7 @@ class SentryTestCase(TestCase):
         self.assertEquals(Message.objects.count(), 1)
         self.assertEquals(GroupedMessage.objects.count(), 1)
         last = Message.objects.get()
-        self.assertEquals(last.data['__sentry__']['versions']['Sentry'], sentry.VERSION)
+        self.assertEquals(last.data['__sentry__']['versions']['sentry'], sentry.VERSION, last.data['__sentry__']['versions'])
 
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'
@@ -930,7 +930,9 @@ class SentryHelpersTest(TestCase):
         import sentry
         from sentry.helpers import get_versions
         versions = get_versions(['sentry'])
-        self.assertEquals(versions['Sentry'], sentry.VERSION)
+        self.assertEquals(versions.get('sentry'), sentry.VERSION)
+        versions = get_versions(['sentry.client'])
+        self.assertEquals(versions.get('sentry'), sentry.VERSION)
 
 class SentryClientTest(TestCase):
     urls = 'sentry.tests.urls'
