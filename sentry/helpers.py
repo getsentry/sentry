@@ -85,7 +85,7 @@ def transform(value):
 
 def to_unicode(value):
     try:
-        value = force_unicode(value)
+        value = unicode(force_unicode(value))
     except (UnicodeEncodeError, UnicodeDecodeError):
         value = '(Error decoding value)'
     except Exception: # in some cases we get a different exception
