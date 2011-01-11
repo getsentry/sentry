@@ -280,7 +280,7 @@ def group_message_details(request, group_id, message_id):
 
     message = get_object_or_404(group.message_set, pk=message_id)
     
-    if '__sentry__' in message.data:
+    if '__sentry__' in message.data and 'exc' in message.data['__sentry__']:
         module, args, frames = message.data['__sentry__']['exc']
         message.class_name = str(message.class_name)
         # We fake the exception class due to many issues with imports/builtins/etc
