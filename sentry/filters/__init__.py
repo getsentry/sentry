@@ -15,14 +15,15 @@ class Widget(object):
         return self.filter.get_query_string()
 
 class TextWidget(Widget):
-    def render(self, value):
-        return mark_safe('<div class="sidebar-module filter-text"><p class="textfield"><input type="text" name="%(name)s" value="%(value)s"/></p><p class="submit"><input type="submit" class="search-submit"/></p></div>' % dict(
+    def render(self, value, placeholder='', **kwargs):
+        return mark_safe('<div class="sidebar-module filter-text"><p class="textfield"><input type="text" name="%(name)s" value="%(value)s" placeholder="%(placeholder)s"/></p><p class="submit"><input type="submit" class="search-submit"/></p></div>' % dict(
             name=self.filter.get_query_param(),
             value=escape(value),
+            placeholder=escape(placeholder),
         ))
 
 class ChoiceWidget(Widget):
-    def render(self, value):
+    def render(self, value, **kwargs):
         choices = self.filter.get_choices()
         query_string = self.get_query_string()
         column = self.filter.get_query_param()
@@ -108,6 +109,10 @@ class SearchFilter(SentryFilter):
     def get_query_set(self, queryset):
         # this is really just a hack
         return queryset
+
+    def render(self):
+        widget = self.get_widget()
+        return widget.render(self.get_value(), placeholder='search query or message id')
 
 class StatusFilter(SentryFilter):
     label = 'Status'
