@@ -1,0 +1,11 @@
+
+1.6.0
+
+* Added message references (uuid's) as message_id in Message
+* Fixed css compatibility issues with TextWidget
+* SearchFilter now allows searching by message reference id
+* Added Sentry404CatchMiddleware
+* Added SentryResponseErrorIdMiddleware
+* The `request` argument can now be passed into any create_from_ method.
+
+(History beyond 1.6.0 is not present)

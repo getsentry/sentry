@@ -110,6 +110,59 @@ Now ensure you've added ``haystack`` to the ``INSTALLED_APPS`` on Sentry's serve
 
 Enjoy!
 
+404 Logging
+-----------
+
+.. versionadded:: 1.6.0
+
+In certain conditions you may wish to log 404 events to the Sentry server. To do this, you simply need to enable a Django middleware::
+
+	MIDDLEWARE_CLASSES = MIDDLEWARE_CLASSES + (
+	  ...,
+	  'sentry.client.middleware.Sentry404CatchMiddleware',
+	)
+
+Message References
+------------------
+
+.. versionadded:: 1.6.0
+
+Sentry supports sending a message ID to your clients so that they can be tracked easily by your development team. There are two ways to access this information, the first is via the ``X-Sentry-ID`` HTTP response header. Adding this is as simple as appending a middleware to your stack::
+
+	MIDDLEWARE_CLASSES = MIDDLEWARE_CLASSES + (
+	  # We recommend putting this as high in the chain as possible
+	  'sentry.client.middleware.SentryResponseErrorIdMiddleware',
+	  ...,
+	)
+
+Another alternative method is rendering it within a template. By default, Sentry will attach request.sentry when it catches a Django exception. In our example, we will use this information to modify the default 500.html which is rendered, and show the user a case reference ID. The first step in doing this is creating a custom ``handler500`` in your ``urls.py`` file::
+
+	from django.conf.urls.defaults import *
+	
+	from django.views.defaults import page_not_found, server_error
+	
+	def handler500(request):
+	    """
+	    500 error handler which includes ``request`` in the context.
+	
+	    Templates: `500.html`
+	    Context: None
+	    """
+	    from django.template import Context, loader
+	    from django.http import HttpResponseServerError
+	
+	    t = loader.get_template('500.html') # You need to create a 500.html template.
+	    return HttpResponseServerError(t.render(Context({
+	        'request': request,
+	    })))
+
+Once we've successfully added the request context variable, adding the Sentry reference ID to our 500.html is simple::
+
+	<p>You've encountered an error, oh noes!</p>
+	{% if request.sentry.id %}
+	    <p>If you need assistance, you may reference this error as <strong>{{ request.sentry.id }}</strong>.</p>
+	{% endif %}
+
 Other Settings
 --------------
 

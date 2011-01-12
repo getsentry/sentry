@@ -80,19 +80,19 @@ If you wish to access these within your own views and models, you may do so via 
 
 You can also record errors outside of handler if you want::
 
-	from sentry.client.base import SentryClient
+	from sentry.client.models import client
 	
 	try:
-		...
+	    ...
 	except Exception, exc:
-		SentryClient().create_from_exception([exc_info=None, url=None, view=None])
+	    message_id = client.create_from_exception([exc_info=None, url=None, view=None])
 
 If you wish to log normal messages (useful for non-``logging`` integration)::
 
-	from sentry.client.base import SentryClient
+	from sentry.client.models import client
 	import logging
 	
-	SentryClient().create_from_text('Message Message'[, level=logging.WARNING, url=None])
+	message_id = client.create_from_text('Message Message'[, level=logging.WARNING, url=None])
 
 Both the ``url`` and ``level`` parameters are optional. ``level`` should be one of the following:
 
