@@ -5,6 +5,7 @@ class Sentry404CatchMiddleware(object):
         if response.status_code != 404:
             return
         sentry_exception_handler(sender=Sentry404CatchMiddleware, request=request)
+        return response
 
 class SentryResponseErrorIdMiddleware(object):
     """
