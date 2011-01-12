@@ -1,12 +1,7 @@
-from django.http import Http404
-
 from sentry.client.models import sentry_exception_handler
 
-# XXX: this isnt working
-
 class Sentry404CatchMiddleware(object):
-    def process_exception(self, request, exception):
-        if not isinstance(exception, Http404):
+    def process_response(self, request, response):
+        if response.status_code != 404:
             return
         sentry_exception_handler(sender=Sentry404CatchMiddleware, request=request)
-    
