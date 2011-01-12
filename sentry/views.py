@@ -20,7 +20,7 @@ from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
 from sentry import conf
 from sentry.helpers import get_filters
-from sentry.models import GroupedMessage
+from sentry.models import GroupedMessage, Message
 from sentry.plugins import GroupActionProvider
 from sentry.templatetags.sentry_helpers import with_priority
 from sentry.reporter import ImprovedExceptionReporter
@@ -237,7 +237,13 @@ def ajax_handler(request):
 def group(request, group_id):
     group = get_object_or_404(GroupedMessage, pk=group_id)
 
-    obj = group.message_set.all().order_by('-id')[0]
+    try:
+        obj = group.message_set.all().order_by('-id')[0]
+    except IndexError:
+        # It's possible that a message would not be created under certain circumstances
+        # (such as a post_save signal failing)
+        obj = Message(group=group, data=group.data)
+
     if '__sentry__' in obj.data and 'exc' in obj.data['__sentry__']:
         module, args, frames = obj.data['__sentry__']['exc']
         obj.class_name = str(obj.class_name)
