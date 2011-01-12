@@ -15,7 +15,7 @@
                 <span class="tag tag-server">{{ message.server_name }}</span>
                 {% with message.get_version as version %}
                     {% if version %}
-                        <span class="tag tag-version">ver {{ version }}</span> 
+                        <span class="tag tag-version">{{ version.0 }} {{ version.1 }}</span> 
                     {% endif %}
                 {% endwith %}
                 <span class="last_seen">{{ message.datetime|timesince }}</span>

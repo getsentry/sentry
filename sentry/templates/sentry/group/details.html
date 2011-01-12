@@ -46,7 +46,7 @@
                     <span class="tag tag-logger">{{ group.logger }}</span> 
                     {% with group.get_version as version %}
                         {% if version %}
-                            <span class="tag tag-version">ver {{ version }}</span> 
+                            <span class="tag tag-version">{{ version.0 }} {{ version.1 }}</span> 
                         {% endif %}
                     {% endwith %}
                     {% for tag in group|get_tags:request %}<span class="tag">{{ tag }}</span> {% endfor %}

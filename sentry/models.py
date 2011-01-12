@@ -230,7 +230,8 @@ class GroupedMessage(MessageBase):
             return
         if 'version' not in self.data:
             return
-        return self.data['version']
+        module = self.data.get('module', 'ver')
+        return module, self.data['version']
 
 class Message(MessageBase):
     message_id      = models.CharField(max_length=32, null=True, unique=True)

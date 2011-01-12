@@ -40,13 +40,18 @@ class SentryClient(object):
             parts = kwargs['view'].split('.')
             module_list = ['.'.join(parts[:idx]) for idx in xrange(1, len(parts)+1)][::-1]
             version = None
+            module = None
             for m in module_list:
                 if m in versions:
+                    module = m
                     version = versions[m]
 
             # store our "best guess" for application version
             if version:
-                kwargs['data']['__sentry__']['version'] = version
+                kwargs['data']['__sentry__'].update({
+                    'version': version,
+                    'module': module,
+                })
 
         if 'checksum' not in kwargs:
             checksum = construct_checksum(**kwargs)

@@ -52,6 +52,8 @@ class SentryManager(models.Manager):
                 kwargs['data']['url'] = data['url']
             if 'version' in data.get('__sentry__', {}):
                 kwargs['data']['version'] = data['__sentry__']['version']
+            if 'module' in data.get('__sentry__', {}):
+                kwargs['data']['module'] = data['__sentry__']['module']
 
             group, created = GroupedMessage.objects.get_or_create(
                 view=view,
