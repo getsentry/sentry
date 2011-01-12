@@ -3,7 +3,6 @@ from django.db.models import Count
 from django.utils import simplejson
 from django.template.defaultfilters import stringfilter
 
-from sentry.helpers import get_db_engine
 from sentry.plugins import GroupActionProvider
 
 import datetime
@@ -76,11 +75,11 @@ def chart_data(group, max_days=90):
 def to_json(data):
     return simplejson.dumps(data)
 
+@register.simple_tag
 def sentry_version():
     import sentry
     
     return sentry.VERSION
-register.simple_tag(sentry_version)
 
 @register.filter
 def get_actions(group, request):
