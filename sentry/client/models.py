@@ -29,19 +29,8 @@ def sentry_exception_handler(request=None, **kwargs):
         if transaction.is_dirty():
             transaction.rollback()
 
-        if request:
-            data = dict(
-                META=request.META,
-                POST=request.POST,
-                GET=request.GET,
-                COOKIES=request.COOKIES,
-            )
-        else:
-            data = dict()
-
         extra = dict(
-            url=request and request.build_absolute_uri() or None,
-            data=data,
+            request=request,
         )
         
         message_id = get_client().create_from_exception(**extra)

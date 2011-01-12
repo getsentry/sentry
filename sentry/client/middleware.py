@@ -1,11 +1,18 @@
-from sentry.client.models import sentry_exception_handler
+from sentry.client.models import get_client
+
+import logging
 
 class Sentry404CatchMiddleware(object):
     def process_response(self, request, response):
         if response.status_code != 404:
             return response
-        sentry_exception_handler(sender=Sentry404CatchMiddleware, request=request)
+        message_id = get_client().create_from_text('Http 404', request=request, level=logging.INFO, logger='http404')
+        request.sentry = {
+            'id': message_id,
+        }
         return response
+
+    # sentry_exception_handler(sender=Sentry404CatchMiddleware, request=request)
 
 class SentryResponseErrorIdMiddleware(object):
     """

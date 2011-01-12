@@ -23,6 +23,20 @@ class SentryClient(object):
     def process(self, **kwargs):
         from sentry.helpers import get_filters
 
+        request = kwargs.pop('request', None)
+        if request:
+            if not kwargs.get('data'):
+                kwargs['data'] = {}
+            kwargs['data'].update(dict(
+                META=request.META,
+                POST=request.POST,
+                GET=request.GET,
+                COOKIES=request.COOKIES,
+            ))
+
+            if not kwargs.get('url'):
+                kwargs['url'] = request.build_absolute_uri()
+
         kwargs.setdefault('level', logging.ERROR)
         kwargs.setdefault('server_name', conf.NAME)
 
@@ -113,23 +127,9 @@ class SentryClient(object):
         """
         Creates an error log for a `logging` module `record` instance.
         """
-        for k in ('url', 'view', 'data'):
+        for k in ('url', 'view', 'data', 'request'):
             if k not in kwargs:
                 kwargs[k] = record.__dict__.get(k)
-        
-        request = getattr(record, 'request', None)
-        if request:
-            if not kwargs.get('data'):
-                kwargs['data'] = {}
-            kwargs['data'].update(dict(
-                META=request.META,
-                POST=request.POST,
-                GET=request.GET,
-                COOKIES=request.COOKIES,
-            ))
-
-            if not kwargs.get('url'):
-                kwargs['url'] = request.build_absolute_uri()
         
         kwargs.update({
             'logger': record.name,

@@ -631,6 +631,42 @@ class SentryTestCase(TestCase):
         last = GroupedMessage.objects.get()
         self.assertEquals(last.data['version'], sentry.VERSION)
 
+    def test404Middleware(self):
+        existing = settings.MIDDLEWARE_CLASSES
+        
+        settings.MIDDLEWARE_CLASSES = (
+            'sentry.client.middleware.Sentry404CatchMiddleware',
+        ) + settings.MIDDLEWARE_CLASSES
+        
+        resp = self.client.get('/non-existant-page')
+        self.assertEquals(resp.status_code, 404)
+
+        self.assertEquals(Message.objects.count(), 1)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+        last = Message.objects.get()
+        self.assertEquals(last.url, u'http://testserver/non-existant-page')
+        self.assertEquals(last.level, logging.INFO)
+        self.assertEquals(last.logger, 'http404')
+
+        settings.MIDDLEWARE_CLASSES = existing
+
+    def testResponseErrorIdMiddleware(self):
+        # TODO: test with 500s
+        existing = settings.MIDDLEWARE_CLASSES
+        
+        settings.MIDDLEWARE_CLASSES = (
+            'sentry.client.middleware.SentryResponseErrorIdMiddleware',
+            'sentry.client.middleware.Sentry404CatchMiddleware',
+        ) + settings.MIDDLEWARE_CLASSES
+        
+        resp = self.client.get('/non-existant-page')
+        self.assertEquals(resp.status_code, 404)
+        headers = dict(resp.items())
+        self.assertTrue(headers.get('X-Sentry-ID'))
+        self.assertTrue(Message.objects.filter(message_id=headers['X-Sentry-ID']).exists())
+
+        settings.MIDDLEWARE_CLASSES = existing
+
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'
     fixtures = ['sentry/tests/fixtures/views.json']
