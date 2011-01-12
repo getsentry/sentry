@@ -35,8 +35,11 @@ def get_search_query_set(query):
         def __getitem__(self, k):
             result = []
             for r in super(SentrySearchQuerySet, self).__getitem__(k):
-                r.object.score = r.score
-                result.append(r.object)
+                inst = r.object
+                if not inst:
+                    continue
+                inst.score = r.score
+                result.append(inst)
             return result
     
     return SentrySearchQuerySet(
