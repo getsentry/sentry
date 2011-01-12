@@ -3,7 +3,7 @@ from sentry.client.models import sentry_exception_handler
 class Sentry404CatchMiddleware(object):
     def process_response(self, request, response):
         if response.status_code != 404:
-            return
+            return response
         sentry_exception_handler(sender=Sentry404CatchMiddleware, request=request)
         return response
 
@@ -14,6 +14,6 @@ class SentryResponseErrorIdMiddleware(object):
     """
     def process_response(self, request, response):
         if not getattr(request, 'sentry', None):
-            return
+            return response
         response['X-Sentry-ID'] = request.sentry['id']
         return response
