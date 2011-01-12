@@ -16,7 +16,7 @@ class Widget(object):
 
 class TextWidget(Widget):
     def render(self, value):
-        return mark_safe('<div id="search"><p class="textfield"><input type="text" name="%(name)s" value="%(value)s"/></p><p class="submit"><input type="submit" class="search-submit"/></p></div>' % dict(
+        return mark_safe('<div class="sidebar-module filter-text"><p class="textfield"><input type="text" name="%(name)s" value="%(value)s"/></p><p class="submit"><input type="submit" class="search-submit"/></p></div>' % dict(
             name=self.filter.get_query_param(),
             value=escape(value),
         ))
@@ -52,6 +52,7 @@ class SentryFilter(object):
     widget = ChoiceWidget
     # This must be a string
     default = ''
+    show_label = True
     
     def __init__(self, request):
         self.request = request
@@ -102,6 +103,7 @@ class SearchFilter(SentryFilter):
     label = 'Search'
     column = 'content'
     widget = TextWidget
+    show_label = False
     
     def get_query_set(self, queryset):
         # this is really just a hack

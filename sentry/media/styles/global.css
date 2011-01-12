@@ -510,8 +510,7 @@ dl.flat dd {
     background: inherit;
 }
 
-#search {
-    float: right;
+.filter-text {
     background: rgba(255,255,255,.50);
     -moz-border-radius: 18px;
     -webkit-border-radius: 18px;
@@ -522,11 +521,14 @@ dl.flat dd {
     margin-bottom: 18px;
 }
 
-#search p {
+.sidebar-module {
+    position: relative;
+}
+.filter-text p {
     margin-bottom: 0;
 }
 
-#search .textfield input {
+.filter-text .textfield input {
     border: 0;
     background: transparent;
     padding: 8px 16px;
@@ -535,7 +537,7 @@ dl.flat dd {
     width: 267px;
 }
 
-#search .submit {
+.filter-text .submit {
     position: absolute;
     right: 16px;
     top: 12px;

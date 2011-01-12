@@ -44,7 +44,9 @@
                         {% endif %}
                     
                         {% for filter in filters %}
-                            <h2>{{ filter.label }}</h2>
+                            {% if filter.show_label %}
+                                <h2>{{ filter.label }}</h2>
+                            {% endif %}
                             <form method="get" action="{{ filter.get_query_string|safe }}">
                                 {{ filter.render }}
                             </form>
