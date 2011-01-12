@@ -269,7 +269,7 @@ class SentryTestCase(TestCase):
         error = Message.objects.get(message_id=message_id)
 
         self.assertEquals(Message.objects.count(), cnt+1)
-        self.assertEquals(error.message, value)
+        self.assertEquals(error.message, u'רונית מגן')
 
         logging.info(value)
         self.assertEquals(Message.objects.count(), cnt+2)
