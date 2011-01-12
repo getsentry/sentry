@@ -296,7 +296,8 @@ class Message(MessageBase):
             return
         if 'version' not in self.data['__sentry__']:
             return
-        return self.data['__sentry__']['version']
+        module = self.data['__sentry__'].get('module', 'ver')
+        return module, self.data['__sentry__']['version']
 
 class FilterValue(models.Model):
     FILTER_KEYS = (
