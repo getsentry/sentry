@@ -207,7 +207,8 @@ class SentryTestCase(TestCase):
         try:
             Message.objects.get(id=999999989)
         except Message.DoesNotExist, exc:
-            error = get_client().create_from_exception()
+            message_id = get_client().create_from_exception()
+            error = Message.objects.get(message_id=message_id)
             self.assertTrue(error.data.get('__sentry__', {}).get('exc'))
         else:
             self.fail('Unable to create `Message` entry.')
@@ -215,7 +216,8 @@ class SentryTestCase(TestCase):
         try:
             Message.objects.get(id=999999989)
         except Message.DoesNotExist, exc:
-            error = get_client().create_from_exception()
+            message_id = get_client().create_from_exception()
+            error = Message.objects.get(message_id=message_id)
             self.assertTrue(error.data.get('__sentry__', {}).get('exc'))
         else:
             self.fail('Unable to create `Message` entry.')
@@ -263,7 +265,9 @@ class SentryTestCase(TestCase):
         cnt = Message.objects.count()
         value = 'רונית מגן'
 
-        error = get_client().create_from_text(value)
+        message_id = get_client().create_from_text(value)
+        error = Message.objects.get(message_id=message_id)
+
         self.assertEquals(Message.objects.count(), cnt+1)
         self.assertEquals(error.message, value)
 
@@ -289,7 +293,9 @@ class SentryTestCase(TestCase):
         cnt = Message.objects.count()
         value = 'רונית מגן'.decode('utf-8')
 
-        error = get_client().create_from_text(value)
+        message_id = get_client().create_from_text(value)
+        error = Message.objects.get(message_id=message_id)
+
         self.assertEquals(Message.objects.count(), cnt+1)
         self.assertEquals(error.message, value)
 
@@ -311,7 +317,9 @@ class SentryTestCase(TestCase):
     
     def testLongURLs(self):
         # Fix: #6 solves URLs > 200 characters
-        error = get_client().create_from_text('hello world', url='a'*210)
+        message_id = get_client().create_from_text('hello world', url='a'*210)
+        error = Message.objects.get(message_id=message_id)
+
         self.assertEquals(error.url, 'a'*200)
         self.assertEquals(error.data['url'], 'a'*210)
     
@@ -568,7 +576,9 @@ class SentryTestCase(TestCase):
             args=(),
             exc_info=(None, None, None),
         )
-        message = client.create_from_record(record)
+        message_id = client.create_from_record(record)
+        message = Message.objects.get(message_id=message_id)
+        
         self.assertEquals('test', message.message)
 
     def testGroupFormatting(self):

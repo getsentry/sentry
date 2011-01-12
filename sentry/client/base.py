@@ -7,6 +7,7 @@ import logging
 import sys
 import traceback
 import urllib2
+import uuid
 
 from django.core.cache import cache
 from django.template import TemplateSyntaxError
@@ -69,10 +70,16 @@ class SentryClient(object):
         for filter_ in get_filters():
             kwargs = filter_(None).process(kwargs) or kwargs
         
+        # create ID client-side so that it can be passed to application
+        message_id = uuid.uuid4().hex
+        kwargs['message_id'] = message_id
+
         # Make sure all data is coerced
         kwargs = transform(kwargs)
 
-        return self.send(**kwargs)
+        self.send(**kwargs)
+        
+        return message_id
 
     def send(self, **kwargs):
         if conf.REMOTE_URL:

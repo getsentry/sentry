@@ -4,7 +4,6 @@ import warnings
 
 from django.core.signals import got_request_exception
 from django.db import  transaction
-from django.http import Http404
 
 from sentry import conf
 
@@ -45,8 +44,12 @@ def sentry_exception_handler(request=None, **kwargs):
             data=data,
         )
         
-        client = get_client()
-        client.create_from_exception(**extra)
+        message_id = get_client().create_from_exception(**extra)
+        if request:
+            # attach the sentry object to the request
+            request.sentry = {
+                'id': message_id,
+            }
     except Exception, exc:
         try:
             logger.exception(u'Unable to process log entry: %s' % (exc,))

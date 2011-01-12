@@ -34,6 +34,7 @@ class SentryManager(models.Manager):
         server_name = kwargs.pop('server_name', conf.CLIENT)
         site = kwargs.pop('site', None)
         data = kwargs.pop('data', {}) or {}
+        message_id = kwargs.pop('message_id', None)
 
         if url:
             data['url'] = url
@@ -76,6 +77,7 @@ class SentryManager(models.Manager):
             else: 
                 mail = True
             instance = Message.objects.create(
+                message_id=message_id,
                 view=view,
                 logger=logger_name,
                 data=data,

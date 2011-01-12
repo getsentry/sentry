@@ -233,6 +233,7 @@ class GroupedMessage(MessageBase):
         return self.data['version']
 
 class Message(MessageBase):
+    message_id      = models.CharField(max_length=32, null=True, unique=True)
     group           = models.ForeignKey(GroupedMessage, blank=True, null=True, related_name="message_set")
     datetime        = models.DateTimeField(default=datetime.datetime.now, db_index=True)
     url             = models.URLField(verify_exists=False, null=True, blank=True)
