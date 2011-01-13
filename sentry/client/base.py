@@ -21,6 +21,7 @@ logger = logging.getLogger('sentry.errors')
 
 class SentryClient(object):
     def process(self, **kwargs):
+        "Processes the message before passing it on to the server"
         from sentry.helpers import get_filters
 
         if kwargs.get('data'):
@@ -106,6 +107,7 @@ class SentryClient(object):
         return message_id
 
     def send(self, **kwargs):
+        "Sends the message to the server."
         if conf.REMOTE_URL:
             for url in conf.REMOTE_URL:
                 data = {
@@ -130,7 +132,7 @@ class SentryClient(object):
 
     def create_from_record(self, record, **kwargs):
         """
-        Creates an error log for a `logging` module `record` instance.
+        Creates an error log for a ``logging`` module ``record`` instance.
         """
         for k in ('url', 'view', 'request', 'data'):
             if k not in kwargs:
@@ -161,7 +163,7 @@ class SentryClient(object):
 
     def create_from_text(self, message, **kwargs):
         """
-        Creates an error log for from ``type`` and ``message``.
+        Creates an error log for from ``message``.
         """
         return self.process(
             message=message,
@@ -252,3 +254,7 @@ class SentryClient(object):
             **kwargs
         )
 
+class DummyClient(SentryClient):
+    "Sends messages into an empty void"
+    def send(self, **kwargs):
+        return None
