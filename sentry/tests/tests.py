@@ -628,8 +628,10 @@ class SentryTestCase(TestCase):
         last = Message.objects.get()
         self.assertEquals(last.data['__sentry__']['versions']['sentry'], sentry.VERSION)
         self.assertEquals(last.data['__sentry__']['version'], sentry.VERSION)
+        self.assertEquals(last.data['__sentry__']['module'], 'sentry')
         last = GroupedMessage.objects.get()
         self.assertEquals(last.data['version'], sentry.VERSION)
+        self.assertEquals(last.data['module'], 'sentry')
 
     def test404Middleware(self):
         existing = settings.MIDDLEWARE_CLASSES
