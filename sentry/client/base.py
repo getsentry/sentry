@@ -23,6 +23,11 @@ class SentryClient(object):
     def process(self, **kwargs):
         from sentry.helpers import get_filters
 
+        if kwargs.get('data'):
+            # Ensure we're not changing the original data which was passed
+            # to Sentry
+            kwargs['data'] = kwargs['data'].copy()
+
         request = kwargs.pop('request', None)
         if request:
             if not kwargs.get('data'):
@@ -127,7 +132,7 @@ class SentryClient(object):
         """
         Creates an error log for a `logging` module `record` instance.
         """
-        for k in ('url', 'view', 'data', 'request'):
+        for k in ('url', 'view', 'request', 'data'):
             if k not in kwargs:
                 kwargs[k] = record.__dict__.get(k)
         
