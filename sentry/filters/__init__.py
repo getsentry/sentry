@@ -16,7 +16,7 @@ class Widget(object):
 
 class TextWidget(Widget):
     def render(self, value, placeholder='', **kwargs):
-        return mark_safe('<div class="sidebar-module filter-text"><p class="textfield"><input type="text" name="%(name)s" value="%(value)s" placeholder="%(placeholder)s"/></p><p class="submit"><input type="submit" class="search-submit"/></p></div>' % dict(
+        return mark_safe('<div class="filter-text"><p class="textfield"><input type="text" name="%(name)s" value="%(value)s" placeholder="%(placeholder)s"/></p><p class="submit"><input type="submit" class="search-submit"/></p></div>' % dict(
             name=self.filter.get_query_param(),
             value=escape(value),
             placeholder=escape(placeholder),
@@ -28,7 +28,7 @@ class ChoiceWidget(Widget):
         query_string = self.get_query_string()
         column = self.filter.get_query_param()
 
-        output = ['<ul class="%s-list filter-list sidebar-module" rel="%s">' % (self.filter.column, column)]
+        output = ['<ul class="%s-list filter-list" rel="%s">' % (self.filter.column, column)]
         output.append('<li%(active)s><a href="%(query_string)s&amp;%(column)s=">Any %(label)s</a></li>' % dict(
             active=not value and ' class="active"' or '',
             query_string=query_string,

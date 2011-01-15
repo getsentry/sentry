@@ -110,8 +110,7 @@ class FakeRequest(object):
 
 TECHNICAL_500_TEMPLATE = """
 <div id="summary">
-  <h1>{{ exception_type }}</h1>
-  <pre class="exception_value">{{ exception_value|escape }}</pre>
+  <h3>{{ exception_type }}: {{ exception_value|escape }}</h3>
   <table class="meta">
     <tr>
       <th>Request Method:</th>
@@ -123,10 +122,6 @@ TECHNICAL_500_TEMPLATE = """
       <td><a href="{{ request.build_absolute_uri|escape }}">{{ request.build_absolute_uri|escape }}</a></td>
     </tr>
     {% endif %}
-    <tr>
-      <th>Exception Type:</th>
-      <td>{{ exception_type }}</td>
-    </tr>
     <tr>
       <th>Exception Value:</th>
       <td><pre>{{ exception_value|escape }}</pre></td>
@@ -214,7 +209,6 @@ Environment:
 
 {% if request.META %}Request Method: {{ request.META.REQUEST_METHOD }}{% endif %}
 Request URL: {{ request.build_absolute_uri|escape }}
-Python Version: {{ sys_version_info }}
 
 {% if template_does_not_exist %}Template Loader Error: (Unavailable in db-log)
 {% endif %}{% if template_info %}

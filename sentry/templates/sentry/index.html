@@ -44,20 +44,22 @@
                         {% endif %}
                     
                         {% for filter in filters %}
-                            {% if filter.show_label %}
-                                <h2>{{ filter.label }}</h2>
-                            {% endif %}
-                            <form method="get" action="{{ filter.get_query_string|safe }}">
-                                {{ filter.render }}
-                            </form>
+                            <div class="sidebar-module sidebar-module-{{ filter.column }}">
+                                {% if filter.show_label %}
+                                    <h2>{{ filter.label }}</h2>
+                                {% endif %}
+                                <form method="get" action="{{ filter.get_query_string|safe }}">
+                                    {{ filter.render }}
+                                </form>
+                            </div>
                         {% endfor %}
                     </div>
 
                     <div id="body" class="with-sidebar column">
                         {% paginate message_list from request as message_list per_page 15 %}
 
-                        <div class="clearfix">
-                            <div class="paging-wrap">
+                        <div class="paging-wrap">
+                            <div class="clearfix">
                                 <form method="GET" action="">
                                     {% for k, v in request.GET.iteritems %}
                                         <input type="hidden" name="{{ k }}" value="{{ v }}"/>

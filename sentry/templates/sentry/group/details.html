@@ -1,16 +1,18 @@
 {% extends "sentry/index.html" %}
 
 {% load sentry_helpers %}
+{% load i18n %}
 
-{% block title %}{{ group.error }} | Django Sentry{% endblock %}
+{% block title %}{{ group.error }} | Sentry{% endblock %}
 
-{% block heading %}Message Details{% endblock %}
+{% block heading %}
+    Message Details <span><a href="{% url sentry %}">&laquo; {% trans "Back to list" %}</a></span>
+{% endblock %}
 
 {% block content %}
     <div id="sidebar">
         <ul class="actions">
             {# We're going to move these to the resolve action location #}
-            <li><a href="{% url sentry %}">&laquo; back to list</a></li>
             {% for label, link, is_active in group|get_actions:request %}
                 <li><a href="{{ link }}">{{ label }}</a></li>
             {% endfor %}
@@ -68,6 +70,15 @@
         
         {% block inner %}
             <div id="details">
+                {% if group.has_two_part_message %}
+                    <h2>Full Message</h2>
+                    <pre id="full-message">{{ group.message }}</pre>
+                {% endif %}
+                
+                {% if traceback %}
+                    {{ traceback }}
+                {% endif %}
+                
                 {% with group|chart_data as chart_data %}
                     {% if chart_data %}
                     <script type="text/javascript">
@@ -154,18 +165,9 @@
                     </div>
                     {% endif %}
                 {% endwith %}
-                
-                {% if group.has_two_part_message %}
-                    <h2>Full Message</h2>
-                    <pre id="full-message">{{ group.message }}</pre>
-                {% endif %}
-                
-                {% if traceback %}
-                    {{ traceback }}
-                {% endif %}
 
                 <div id="requestinfo">
-                    <h2>More Information</h2>
+                    <h2>{% trans "Additional Data" %}</h2>
                     <table>
                         {% for k, v in json_data %}
                             <tr>
