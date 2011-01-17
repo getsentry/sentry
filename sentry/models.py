@@ -276,11 +276,11 @@ class Message(MessageBase):
     @cached_property
     def request(self):
         fake_request = FakeRequest()
-        fake_request.META = self.data.get('META', {})
-        fake_request.GET = self.data.get('GET', {})
-        fake_request.POST = self.data.get('POST', {})
-        fake_request.FILES = self.data.get('FILES', {})
-        fake_request.COOKIES = self.data.get('COOKIES', {})
+        fake_request.META = self.data.get('META') or {}
+        fake_request.GET = self.data.get('GET') or {}
+        fake_request.POST = self.data.get('POST') or {}
+        fake_request.FILES = self.data.get('FILES') or {}
+        fake_request.COOKIES = self.data.get('COOKIES') or {}
         fake_request.url = self.url
         if self.url:
             fake_request.path_info = '/' + self.url.split('/', 3)[-1]
