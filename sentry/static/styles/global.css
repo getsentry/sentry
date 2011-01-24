@@ -388,6 +388,8 @@ dl.flat dd {
 .count { background: #000; -moz-border-radius: 5px; -webkit-border-radius: 5px; border-radius: 5px; padding: 0 5px; margin-right: 3px; line-height: 19px; color: #fff; display: inline-block; }
 .count-digits-4 { font-size: 0.8em; }
 .count-digits-5 { font-size: 0.7em; }
+.count-digits-6 { font-size: 0.6em; }
+.count-digits-7 { font-size: 0.5em; }
 
 /* message list */
 .messages { list-style: none; margin-left: 0; }
