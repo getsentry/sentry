@@ -47,6 +47,7 @@ def chart_data(group, max_days=90):
     hours = max_days*24
     
     today = datetime.datetime.now().replace(microsecond=0, second=0, minute=0)
+    min_date = today - datetime.timedelta(hours=hours)
 
     if hasattr(group, '_state'):
         from django.db import connections
@@ -57,7 +58,7 @@ def chart_data(group, max_days=90):
     method = conn.ops.date_trunc_sql('hour', 'datetime')
 
     chart_qs = list(group.message_set.all()\
-                      .filter(datetime__gte=today - datetime.timedelta(hours=hours))\
+                      .filter(datetime__gte=min_date)\
                       .extra(select={'grouper': method}).values('grouper')\
                       .annotate(num=Count('id')).values_list('grouper', 'num')\
                       .order_by('grouper'))
@@ -66,10 +67,15 @@ def chart_data(group, max_days=90):
         return {}
 
     rows = dict(chart_qs)
-    
+
+    #just skip zeroes
+    first_seen = hours
+    while not rows.get(today - datetime.timedelta(hours=first_seen)) and first_seen > 24:
+        first_seen -= 1
+
     return {
-        'points': [rows.get(today-datetime.timedelta(hours=d), 0) for d in xrange(hours, 0, -1)],
-        'categories': [str(today-datetime.timedelta(hours=d)) for d in xrange(hours, 0, -1)],
+        'points': [rows.get(today-datetime.timedelta(hours=d), 0) for d in xrange(first_seen, -1, -1)],
+        'categories': [str(today-datetime.timedelta(hours=d)) for d in xrange(first_seen, -1, -1)],
     }
 
 @register.filter
