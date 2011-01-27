@@ -8,4 +8,4 @@ it allows you to interact and view near real-time information to discover issues
 easily trace them in your application.
 
 
-Docs: http://dcramer.github.com/django-sentry/
+Docs: http://readthedocs.org/docs/sentry/en/latest/index.html
