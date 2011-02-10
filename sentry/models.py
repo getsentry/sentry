@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import base64
 try:
     import cPickle as pickle
