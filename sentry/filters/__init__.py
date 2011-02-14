@@ -1,4 +1,6 @@
 # Widget api is pretty ugly
+from __future__ import absolute_import
+
 from django.conf import settings
 from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
