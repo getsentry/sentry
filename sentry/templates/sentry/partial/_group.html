@@ -18,6 +18,6 @@
     </p>
     <a href="{% url sentry-group group.pk %}" class="row_link"></a>
     {% if group.status == 0 %}
-        <a href="{% url sentry-ajax %}?op=resolve&amp;gid={{ group.pk }}" onclick="sentryResolve({{ group.pk }});returnfalse;" class="button resolve_button hidden">&#10003;</a>
+        <a href="{% url sentry-ajax %}?op=resolve&amp;gid={{ group.pk }}" onclick="sentryResolve({{ group.pk }});return false;" class="button resolve_button hidden">&#10003;</a>
     {% endif %}
 </li>
