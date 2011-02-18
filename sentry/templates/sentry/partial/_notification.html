@@ -1,0 +1,35 @@
+<doctype html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8"> 
+        <meta name="robots" content="NONE,NOARCHIVE">
+        <link href="{% url sentry-media "images/sentry.png" %}" rel="shortcut icon"/>
+        <style type="text/css">
+        html * { padding:0; margin:0; }
+        body * * { padding:0; }
+        body {
+            font: 0.7em "Lucida Grande", "Lucida Sans", verdana, sans-serif;
+        }
+        body { padding: 5px; background: #fff; }
+        h1 { font-size: 1.1em; font-weight: bold; line-height: 1.2em; margin-bottom: 5px; }
+        .count { font-size: 0.8em; background: #000; -moz-border-radius: 5px; -webkit-border-radius: 5px; border-radius: 5px; padding: 0 5px; margin-right: 3px; line-height: 19px; color: #fff; display: inline-block; }
+        .message { margin-bottom: 10px; }
+        .tags span {
+            color: #666;
+            background: #eaeaea;
+            display: inline-block;
+            margin-right: 5px;
+            padding: 2px 5px;
+        }
+        </style>
+    </head>
+    <body>
+        <div id="notify-header">
+            <h1><span class="count">{{ count }}</span> {{ title }}</h1>
+        </div>
+        <div id="notify-content">
+            <p class="message">{{ message }}</p>
+            <div class="tags"><span>{{ level }}</span> <span>{{ logger }}</span></p>
+        </div>
+    </body>
+</html>

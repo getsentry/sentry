@@ -6,17 +6,24 @@
     <head> 
         <meta http-equiv="content-type" content="text/html; charset=utf-8"> 
         <meta name="robots" content="NONE,NOARCHIVE">
-        <link href='http{% if request.is_secure %}s{% endif %}://fonts.googleapis.com/css?family=Yanone+Kaffeesatz:light,regular&amp;subset=latin' rel='stylesheet' type='text/css'>
-        <link rel="shortcut icon" href="{% url sentry-media "images/sentry.png" %}"/>
+        <link href="http{% if request.is_secure %}s{% endif %}://fonts.googleapis.com/css?family=Yanone+Kaffeesatz:light,regular&amp;subset=latin" rel="stylesheet" type="text/css">
+        <link href="{% url sentry-media "styles/global.css" %}" rel="stylesheet" type="text/css"/>
+        <link href="{% url sentry-media "images/sentry.png" %}" rel="shortcut icon"/>
         <title>{% block title %}Sentry{% endblock %}</title> 
-        <script type="text/javascript">
-        SENTRY_JS_API_URL = '{% url sentry-ajax %}';
-        </script>
         <script type="text/javascript" src="http{% if request.is_secure %}s{% endif %}://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/highcharts.js" %}" ></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/jquery.animate-colors-min.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/global.js" %}"></script>
-        <style type="text/css">@import '{% url sentry-media "styles/global.css" %}';</style>
+        <script type="text/javascript">
+        Sentry.config({
+            mediaUrl: '{% url sentry-media '' %}',
+            apiUrl: '{% url sentry-ajax %}',
+            defaultImage: '{% url sentry-media 'images/sentry.png' %}'
+        });
+        {% if has_realtime %}
+        Sentry.realtime.enable();
+        {% endif %}
+        </script>
     </head> 
     
     <body> 
@@ -105,13 +112,4 @@
         </div> 
         {% endblock %}
     </body>
-    {% if has_realtime %}
-    <script type="text/javascript">
-    sentryRealtime = true;
-    $(document).ready(function(){
-        //$("div.column").setAllToMaxHeight();
-        setTimeout(sentryRefresh, 3000);
-    });
-    </script>
-    {% endif %}
 </html>

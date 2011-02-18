@@ -1,5 +1,3 @@
-sentryRealtime = true;
-
 function getElementsByClassName(oElm, strTagName, strClassName){
     // Written by Jonathan Snook, http://www.snook.ca/jon; Add-ons by Robert Nyman, http://www.robertnyman.com
     var arrElements = (strTagName == "*" && document.all)? document.all :
@@ -14,7 +12,7 @@ function getElementsByClassName(oElm, strTagName, strClassName){
             arrReturnElements.push(oElement);
         }
     }
-    return (arrReturnElements)
+    return (arrReturnElements);
 }
 function hideAll(elems) {
   for (var e = 0; e < elems.length; e++) {
@@ -65,108 +63,199 @@ function getQueryParams()
 }
 
 $.fn.setAllToMaxHeight = function(){
-    return this.height( Math.max.apply(this, $.map( this , function(e){ return $(e).height() }) ) );
-}
+    return this.height( Math.max.apply(this, $.map( this , function(e){ return $(e).height(); }) ) );
+};
 
-function sentryResolve(gid, remove){
-    if (remove === undefined) var remove = true;
-    $.ajax({
-        url: SENTRY_JS_API_URL,
-        type: 'post',
-        dataType: 'json',
-        data: {
-            op: 'resolve',
-            gid: gid,
-        },
-        success: function(groups){
-            for (var i=groups.length-1, el, row; (el=groups[i]); i--) {
-                var id = el[0];
-                var data = el[1];
-                $('#group_' + id).remove();
-                if (!remove) {
-                    $('#message_list').prepend(data.html);
-                    $('#group_' + id).addClass('fresh');
+var Sentry = {};
+(function(){
+    Sentry.options = {
+        mediaUrl: '/media/',
+        apiUrl: '/api/',
+        defaultImage: '/media/images/sentry.png'
+    };
+
+    Sentry.config = function(data){
+        $.each(data, function(k, v){
+            Sentry.options[k] = v;
+        });
+    };
+    
+    Sentry.stream = {};
+    Sentry.stream.resolve = function(gid, remove){
+        if (typeof(remove) == 'undefined') {
+            remove = true;
+        } 
+        $.ajax({
+            url: SENTRY_JS_API_URL,
+            type: 'post',
+            dataType: 'json',
+            data: {
+                op: 'resolve',
+                gid: gid
+            },
+            success: function(groups){
+                for (var i=groups.length-1, el, row; (el=groups[i]); i--) {
+                    var id = el[0];
+                    var data = el[1];
+                    $('#group_' + id).remove();
+                    if (!remove) {
+                        $('#message_list').prepend(data.html);
+                        $('#group_' + id).addClass('fresh');
+                    }
                 }
             }
-        }
-    });
-}
-function sentryRefresh(){
-    data = getQueryParams();
-    data.op = 'poll';
-    if (!sentryRealtime) {
-        return;
-    }
-    $.ajax({
-      url: SENTRY_JS_API_URL,
-      type: 'get',
-      dataType: 'json',
-      data: data,
-      success: function(groups){
-          if (groups.length) {
-              $('#no_messages').remove();
-          }
-          for (var i=groups.length-1, el, row; (el=groups[i]); i--) {
-              var id = el[0];
-              var data = el[1];
-              if ((row = $('#group_' + id))) {
-                  row.remove();
-                  $('#message_list').prepend(data.html);
-                  if (row.attr('data-sentry-count') != data.count) {
-                      $('#group_' + id).addClass('fresh');
-                  }
-              } else {
-                  $('#message_list').prepend(data.html);
-                  $('#group_' + id).addClass('fresh');
-              }
-          }
-          $('#message_list .fresh').css('background-color', '#ccc').animate({backgroundColor: '#fff'}, 1200, function() { 
-                $(this).removeClass('fresh');
-          });
-          // make sure we limit the number shown
-          var count = 0;
-          $('#message_list li').each(function(){
-              count++;
-              if (count > 50) {
-                  $(this).remove();
-              }
-          });
-          setTimeout(sentryRefresh, 3000);
-      }
-    });
-}
-$(document).ready(function(){
-    $('#sentry_realtime').click(function(){
-        if ($(this).hasClass('realtime-play')) {
-            $(this).removeClass('realtime-play');
-            $(this).addClass('realtime-pause');
-            $(this).text('Pause Feed');
-            sentryRealtime = true;
-        } else {
-            $(this).addClass('realtime-play');
-            $(this).removeClass('realtime-pause');
-            $(this).text('Go Live');
-            sentryRealtime = false;
-        }
-    });
-    $('#sidebar .filter-list').each(function(_, el){
-        var el = $(el);
-        if (el.find('li').length > 6) {
-            // rebuild this widget as a dropdown select
-            var select = $('<select></select>');
-            var parent = $('<div class="filter-select sidebar-module">').appendTo(el.parent());
+        });
+    };
+    
+    Sentry.realtime = {};
+    Sentry.realtime.status = false;
 
-            el.find('li a').each(function(_, a){
-                a = $(a);
-                var opt = $('<option value="' + a.attr('href') + '">' + a.text() + '</option>').appendTo(select);
-                if (a.parent().hasClass('active')) {
-                    opt.attr('selected', 'selected');
+    Sentry.realtime.enable = function(){
+        $('#sentry_realtime').removeClass('realtime-play');
+        $('#sentry_realtime').addClass('realtime-pause');
+        $('#sentry_realtime').text('Pause Feed');
+        Sentry.realtime.status = true;
+    };
+
+    Sentry.realtime.disable = function(){
+        $('#sentry_realtime').addClass('realtime-play');
+        $('#sentry_realtime').removeClass('realtime-pause');
+        $('#sentry_realtime').text('Go Live');
+        Sentry.realtime.status = false;
+    };
+    
+    Sentry.realtime.refresh = function(){
+        data = getQueryParams();
+        data.op = 'poll';
+        if (!Sentry.realtime.status) {
+            return;
+        }
+        $.ajax({
+            url: Sentry.options.apiUrl,
+            type: 'get',
+            dataType: 'json',
+            data: data,
+            success: function(groups){
+                if (groups.length) {
+                    $('#no_messages').remove();
                 }
-            });
-            el.remove();
-            select.appendTo(parent).change(function(){
-                window.location.href = $(this).val();
-            });
-       }
+                for (var i=groups.length-1, el, row; (el=groups[i]); i--) {
+                    var id = el[0];
+                    var data = el[1];
+                    if ((row = $('#group_' + id))) {
+                        row.remove();
+                        $('#message_list').prepend(data.html);
+                        if (row.attr('data-sentry-count') != data.count) {
+                            $('#group_' + id).addClass('fresh');
+                            var url = Sentry.options.apiUrl + '?' + $.param({
+                                op: 'notification',
+                                count: data.count,
+                                title: data.title,
+                                message: data.message,
+                                level: data.level,
+                                logger: data.logger
+                            });
+                        }
+                    } else {
+                        $('#message_list').prepend(data.html);
+                        $('#group_' + id).addClass('fresh');
+                        Sentry.notifications.show({'type': 'html', 'url': url});
+                    }
+                }
+                $('#message_list .fresh').css('background-color', '#ccc').animate({backgroundColor: '#fff'}, 1200, function() { 
+                    $(this).removeClass('fresh');
+                });
+                // make sure we limit the number shown
+                var count = 0;
+                $('#message_list li').each(function(){
+                    count++;
+                    if (count > 50) {
+                        $(this).remove();
+                    }
+                });
+                setTimeout(Sentry.realtime.refresh, 3000);
+            }
+        });
+    };
+    
+    Sentry.notifications = {};
+    Sentry.notifications.status = false;
+
+    Sentry.notifications.enable = function(){
+        // if (window.webkitNotifications.checkPermission()) {
+        //     Sentry.notifications.status = true;
+        //     $('#sentry_notify').text('Disable Notifications');
+        // } else {
+        window.webkitNotifications.requestPermission(function(){
+            Sentry.notifications.status = true;
+            Sentry.notifications.show({'type': 'simple', 'title': 'Sentry', 'body': 'Notifications have been enabled.'});
+            $('#sentry_notify').text('Disable Notifications');
+        });
+        // }
+    };
+
+    Sentry.notifications.disable = function(){
+        Sentry.notifications.status = false;
+        $('#sentry_notify').text('Enable Notifications');
+    };
+
+    Sentry.notifications.show = function(options){
+        if (!Sentry.notifications.status) return;
+
+        var note;
+
+        if (options.type == 'html') {
+            note = window.webkitNotifications.createHTMLNotification(options.url);
+        } else {
+            note = window.webkitNotifications.createNotification(options.image || Sentry.options.defaultImage, options.title, options.body);
+        }
+        note.ondisplay = function() { 
+            setTimeout(function(){ note.cancel(); }, 10000);
+        };
+        note.show();
+    };
+    
+    $(document).ready(function(){
+        $('#sentry_realtime').click(function(){
+            if (Sentry.realtime.status) {
+                Sentry.realtime.disable();
+            } else {
+                Sentry.realtime.enable();
+            }
+        });
+
+        setTimeout(Sentry.realtime.refresh, 3000);
+    
+        if (window.webkitNotifications){
+            Sentry.notifications.status = (window.webkitNotifications.checkPermission() > 0);
+            $('<li><a id="sentry_notify" href="javascript:void()">' + (Sentry.notifications.status ? 'Disable Notifications' : 'Enable Notifications') + '</a></li>').click(function(){
+                if (Sentry.notifications.status) {
+                    Sentry.notifications.disable();
+                } else {
+                    Sentry.notifications.enable();
+                }
+            }).prependTo('#account');
+        }
+    
+        $('#sidebar .filter-list').each(function(_, el){
+            var el = $(el);
+            if (el.find('li').length > 6) {
+                // rebuild this widget as a dropdown select
+                var select = $('<select></select>');
+                var parent = $('<div class="filter-select sidebar-module">').appendTo(el.parent());
+
+                el.find('li a').each(function(_, a){
+                    a = $(a);
+                    var opt = $('<option value="' + a.attr('href') + '">' + a.text() + '</option>').appendTo(select);
+                    if (a.parent().hasClass('active')) {
+                        opt.attr('selected', 'selected');
+                    }
+                });
+                el.remove();
+                select.appendTo(parent).change(function(){
+                    window.location.href = $(this).val();
+                });
+            }
+        });
     });
-});
+}());

@@ -165,7 +165,9 @@ def index(request):
 def ajax_handler(request):
     op = request.REQUEST.get('op')
 
-    if op == 'poll':
+    if op == 'notification':
+        return render_to_response('sentry/partial/_notification.html', request.GET)
+    elif op == 'poll':
         filters = []
         for filter_ in get_filters():
             filters.append(filter_(request))
@@ -211,6 +213,10 @@ def ajax_handler(request):
                     'priority': p,
                     'request': request,
                 }),
+                'title': m.view or m.message_top(),
+                'message': m.error(),
+                'level': m.get_level_display(),
+                'logger': m.logger,
                 'count': m.times_seen,
                 'priority': p,
             }) for m, p in with_priority(message_list[0:15])]
