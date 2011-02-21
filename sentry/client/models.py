@@ -36,11 +36,6 @@ def sentry_exception_handler(request=None, **kwargs):
         )
         
         message_id = get_client().create_from_exception(**extra)
-        if request:
-            # attach the sentry object to the request
-            request.sentry = {
-                'id': message_id,
-            }
     except Exception, exc:
         try:
             logger.exception(u'Unable to process log entry: %s' % (exc,))

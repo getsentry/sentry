@@ -106,6 +106,12 @@ class SentryClient(object):
 
         self.send(**kwargs)
         
+        if request:
+            # attach the sentry object to the request
+            request.sentry = {
+                'id': message_id,
+            }
+        
         return message_id
 
     def send(self, **kwargs):
