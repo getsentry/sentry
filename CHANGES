@@ -1,3 +1,8 @@
+1.6.2
+
+* LogHandler will attempt to pick up the request automatically using SentryLogMiddleware.
+* Updated AJAX CSRF support for Django 1.2.5.
+* request.sentry is now set in any event which has request as part of the parameters.
 
 1.6.0
 
