@@ -1,3 +1,7 @@
+1.6.3
+
+* Fixed a critical bug in the Sentry JS namespace preventing it from loading.
+
 1.6.2
 
 * LogHandler will attempt to pick up the request automatically using SentryLogMiddleware.
