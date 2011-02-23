@@ -4,6 +4,10 @@ import sys
 class SentryHandler(logging.Handler):
     def emit(self, record):
         from sentry.client.models import get_client
+        from sentry.client.middleware import SentryLogMiddleware
+
+        # Fetch the request from a threadlocal variable, if available
+        request = getattr(SentryLogMiddleware.thread, 'request', None)
 
         # Avoid typical config issues by overriding loggers behavior
         if record.name == 'sentry.errors':
@@ -11,7 +15,7 @@ class SentryHandler(logging.Handler):
             print >> sys.stderr, record.message
             return
 
-        get_client().create_from_record(record)
+        get_client().create_from_record(record, request=request)
 
 try:
     import logbook
@@ -38,3 +42,4 @@ else:
             if record.exc_info:
                 return client.create_from_exception(record.exc_info, **kwargs)
             return client.create_from_text(**kwargs)
+
