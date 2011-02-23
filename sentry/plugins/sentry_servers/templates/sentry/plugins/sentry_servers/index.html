@@ -10,7 +10,7 @@
     </div>
     <ul class="server-list">
         {% for server in server_list.objects %}
-            <li><span class="count">{{ server.times_seen }}</span> {{ server.server_name }}</li>
+            <li><span class="count">{{ server.times_seen }}</span> <a href="{% url sentry %}?server_name={{ server.server_name }}">{{ server.server_name }}</a></li>
         {% endfor %}
     </ul>
     <div class="clearfix">

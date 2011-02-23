@@ -6,7 +6,7 @@
 
         <ul class="server-list">
             {% for site, priority in unique_sites|with_priority:"times_seen" %}
-                <li class="priority-{{ priority }}"><span class="count">{{ site.times_seen }}</span> {{ site.site }}</li>
+                <li class="priority-{{ priority }}"><span class="count">{{ site.times_seen }}</span> <a href="{% url sentry %}?site={{ site.site }}">{{ site.site }}</a></li>
             {% endfor %}
         </ul>
     {% endif %}
