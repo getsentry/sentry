@@ -86,7 +86,7 @@ var Sentry = {};
             remove = true;
         } 
         $.ajax({
-            url: SENTRY_JS_API_URL,
+            url: Sentry.options.apiUrl,
             type: 'post',
             dataType: 'json',
             data: {
