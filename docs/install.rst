@@ -38,7 +38,7 @@ Finally, run ``python manage.py syncdb`` to create the database tables.
 
 .. note::
 
-   We recommend using South for migrations, in which you would run ``python manage.py migrate sentry`` instead of ``syncdb``
+   We recommend using South for migrations. Initial migrations have already been created for Sentry in sentry/migrations/ so you only need to run ``python manage.py migrate sentry`` instead of ``syncdb``
 
 .. seealso::
 
