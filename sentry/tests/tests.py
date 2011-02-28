@@ -669,6 +669,34 @@ class SentryTestCase(TestCase):
 
         settings.MIDDLEWARE_CLASSES = existing
 
+    def testExtraStorage(self):
+        from sentry.reporter import FakeRequest
+        
+        request = FakeRequest()
+        request.META['foo'] = 'bar'
+        
+        logger = logging.getLogger()
+
+        self.setUpHandler()
+
+        logger.error('This is a test %s', 'error', extra={
+            'request': request,
+            'data': {
+                'baz': 'bar',
+            }
+        })
+        self.assertEquals(Message.objects.count(), 1)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+        last = Message.objects.get()
+        self.assertEquals(last.logger, 'root')
+        self.assertEquals(last.level, logging.ERROR)
+        self.assertEquals(last.message, 'This is a test error')
+        self.assertTrue('META' in last.data)
+        self.assertTrue('foo' in last.data['META'])
+        self.assertEquals(last.data['META']['foo'], 'bar')
+        self.assertTrue('baz' in last.data)
+        self.assertEquals(last.data['baz'], 'bar')
+
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'
     fixtures = ['sentry/tests/fixtures/views.json']

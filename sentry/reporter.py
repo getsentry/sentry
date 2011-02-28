@@ -83,6 +83,7 @@ class FakeRequest(object):
     META = {}
     COOKIES = {}
     FILES = {}
+    url = ''
     
     def __repr__(self):
         # Since this is called as part of error handling, we need to be very
