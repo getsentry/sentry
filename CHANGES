@@ -1,3 +1,7 @@
+1.6.4
+
+* Fixed a memory leak due to TextNode's being created from leading whitespace in realtime packets.
+
 1.6.3
 
 * Fixed a critical bug in the Sentry JS namespace preventing it from loading.
