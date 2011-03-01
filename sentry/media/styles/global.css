@@ -435,6 +435,9 @@ dl.flat dd {
 }
 
 .no-messages { font-size: 1.1em; padding: 10px 0; }
+#message_list {
+    clear: left;
+}
 
 .paging-wrap {
     display: inline;
