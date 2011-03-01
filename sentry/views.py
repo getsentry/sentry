@@ -212,7 +212,7 @@ def ajax_handler(request):
                     'group': m,
                     'priority': p,
                     'request': request,
-                }),
+                }).strip(),
                 'title': m.view or m.message_top(),
                 'message': m.error(),
                 'level': m.get_level_display(),
@@ -241,7 +241,7 @@ def ajax_handler(request):
                 'html': render_to_string('sentry/partial/_group.html', {
                     'group': m,
                     'request': request,
-                }),
+                }).strip(),
                 'count': m.times_seen,
             }) for m in [group]]
     else:
