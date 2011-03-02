@@ -340,7 +340,7 @@ dl.flat dd {
 
 .messages .tag { display: inline-block; padding: 2px 5px; background: #eaeaea; margin-right: 5px;}
 .messages .traceback { display: none; }
-.messages li { padding: 8px; position: relative; padding-right: 50px; overflow: hidden;}
+.messages li { clear: both; padding: 8px; position: relative; padding-right: 50px; overflow: hidden; }
 .messages .row1 { background: #f9f9f9; }
 .messages .hidden {
     position: absolute;
