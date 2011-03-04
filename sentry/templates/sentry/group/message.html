@@ -58,7 +58,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for k_, v_ in v.iteritems %}
+                                    {% for k_, v_ in v.iteritems|as_sorted %}
                                     <tr>
                                         <td>{{ k_ }}</td>
                                         <td class="code"><pre>{{ v_|pprint }}</pre></td>

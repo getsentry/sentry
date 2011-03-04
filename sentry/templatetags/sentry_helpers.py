@@ -10,6 +10,10 @@ import datetime
 register = template.Library()
 
 @register.filter
+def as_sorted(value):
+    return sorted(value)
+
+@register.filter
 def is_dict(value):
     return isinstance(value, dict)
 
