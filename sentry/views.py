@@ -55,7 +55,7 @@ def login_required(func):
         if not conf.PUBLIC:
             if not request.user.is_authenticated():
                 return HttpResponseRedirect(reverse('sentry-login'))
-            if not request.user.has_perm('sentry_groupedmessage.can_view'):
+            if not request.user.has_perm('sentry.can_view'):
                 return HttpResponseRedirect(reverse('sentry-login'))
         return func(request, *args, **kwargs)
     wrapped.__doc__ = func.__doc__
