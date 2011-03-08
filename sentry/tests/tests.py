@@ -330,8 +330,16 @@ class SentryTestCase(TestCase):
         Message.objects.all().delete()
         GroupedMessage.objects.all().delete()
         
-        for i in range(0, 50):
-            get_client().create_from_text('hi')
+        message_id = None
+        for i in range(0, 10):
+            this_message_id = get_client().create_from_text('hi')
+            self.assertTrue(this_message_id is not None)
+            self.assertNotEquals(this_message_id, message_id)
+            message_id = this_message_id
+
+        for i in range(0, 40):
+            this_message_id = get_client().create_from_text('hi')
+            self.assertEquals(this_message_id, message_id)
         
         self.assertEquals(Message.objects.count(), conf.THRASHING_LIMIT)
     

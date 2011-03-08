@@ -92,7 +92,14 @@ class SentryClient(object):
                     # cache.incr call.
                     thrash_count = 0
                 if thrash_count > conf.THRASHING_LIMIT:
-                    return
+                    message_id = cache.get('%s:last_message_id' % cache_key)
+                    if request:
+                        # attach the sentry object to the request
+                        request.sentry = {
+                            'id': message_id,
+                            'thrashed': True,
+                        }
+                    return message_id
 
         for filter_ in get_filters():
             kwargs = filter_(None).process(kwargs) or kwargs
@@ -111,6 +118,10 @@ class SentryClient(object):
             request.sentry = {
                 'id': message_id,
             }
+        
+        if conf.THRASHING_TIMEOUT and conf.THRASHING_LIMIT:
+            # store the last message_id incase we hit thrashing limits
+            cache.set('%s:last_message_id' % cache_key, message_id, conf.THRASHING_LIMIT+5)
         
         return message_id
 
