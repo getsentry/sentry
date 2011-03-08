@@ -189,16 +189,27 @@ LoggingSentryClient
 Pipes all Sentry errors to a named logger: ``sentry``. If you wish to use Sentry in a strictly client based logging mode
 this would be the way to do it.
 
+::
+
 	SENTRY_CLIENT = 'sentry.client.log.LoggingSentryClient'
 
 ******************
 CelerySentryClient
 ******************
 
-Integrates with the Celery message queue (http://celeryproject.org/). To use this you will also need to add ``sentry.client.celery`` to ``INSTALLED_APPS`` for ``tasks.py`` auto discovery. You may also specify ``SENTRY_CELERY_ROUTING_KEY`` to change the task queue
+Integrates with the Celery message queue (http://celeryproject.org/). To use this you will also need to add ``sentry.client.celery`` to ``INSTALLED_APPS`` for ``tasks.py`` auto discovery.
+
+You may also specify ``SENTRY_CELERY_ROUTING_KEY`` to change the task queue
 name (defaults to ``sentry``).
 
+::
+
 	SENTRY_CLIENT = 'sentry.client.celery.CelerySentryClient'
+	
+	INSTALLED_APPS = (
+	    ...,
+	    'sentry.client.celery',
+	)
 
 #############
 SENTRY_ADMINS
