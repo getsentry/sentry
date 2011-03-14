@@ -27,6 +27,7 @@ setup(
     packages=find_packages(),
     zip_safe=False,
     install_requires=[
+        'django',
         'django-paging>=0.2.2',
         'django-indexer==0.2.1',
         'uuid',
