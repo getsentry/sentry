@@ -20,7 +20,7 @@ class mytest(test):
 
 setup(
     name='django-sentry',
-    version='1.6.5',
+    version='1.6.6',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/django-sentry',

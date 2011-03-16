@@ -1,3 +1,15 @@
+1.6.6
+
+* setup.py install will no longer install example_project.
+* Fixed an issue where __sentry__ would be called even if it wasn't a callable.
+* Fixed an issue where transactions would attempt a rollback when not managed while creating
+  the sort index.
+
+1.6.5
+
+* Set a last_message_id so when thrashing is hit there is still a point of reference for tracing.
+* Check correct permissions for Sentry.
+
 1.6.4
 
 * Fixed a memory leak due to TextNode's being created from leading whitespace in realtime packets.
