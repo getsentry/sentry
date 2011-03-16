@@ -156,7 +156,7 @@ class GroupedMessage(MessageBase):
             cursor.execute("create index sentry_groupedmessage_score on sentry_groupedmessage ((%s))" % (cls.get_score_clause(),))
             cursor.close()
         except:
-            transaction.rollback()
+            transaction.rollback_unless_managed()
         
     @classmethod
     def get_score_clause(cls):
