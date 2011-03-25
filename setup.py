@@ -28,12 +28,12 @@ setup(
     packages=find_packages(exclude="example_project"),
     zip_safe=False,
     install_requires=[
-        'django',
         'django-paging>=0.2.2',
         'django-indexer==0.2.1',
         'uuid',
     ],
     tests_require=[
+        'django',
         'django-celery',
         # also requires the disqus fork of haystack
     ],
