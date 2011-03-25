@@ -10,8 +10,6 @@ import warnings
 DEBUG = getattr(settings, 'DEBUG', False) and not getattr(settings, 'SENTRY_TESTING', False)
 
 DATABASE_USING = getattr(settings, 'SENTRY_DATABASE_USING', None)
-if DATABASE_USING:
-    warnings.warn('`SENTRY_DATABASE_USING` will be removed in a near-future version.', DeprecationWarning)
 
 THRASHING_TIMEOUT = getattr(settings, 'SENTRY_THRASHING_TIMEOUT', 60)
 THRASHING_LIMIT = getattr(settings, 'SENTRY_THRASHING_LIMIT', 10)
