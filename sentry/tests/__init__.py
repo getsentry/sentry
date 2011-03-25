@@ -1,2 +1,2 @@
-from tests import *
-from models import *
+from sentry.tests.tests import *
+from sentry.tests.models import *

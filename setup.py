@@ -2,21 +2,17 @@
 
 try:
     from setuptools import setup, find_packages
-    from setuptools.command.test import test
 except ImportError:
     from ez_setup import use_setuptools
     use_setuptools()
     from setuptools import setup, find_packages
-    from setuptools.command.test import test
 
-
-class mytest(test):
-    def run(self, *args, **kwargs):
-        from runtests import runtests
-        runtests()
-        # Upgrade().run(dist=True)
-        # test.run(self, *args, **kwargs)
-
+tests_require = [
+    'django',
+    'django-celery',
+    'south',
+    # also requires the disqus fork of haystack
+]
 
 setup(
     name='django-sentry',
@@ -32,14 +28,10 @@ setup(
         'django-indexer==0.2.1',
         'uuid',
     ],
-    tests_require=[
-        'django',
-        'django-celery',
-        # also requires the disqus fork of haystack
-    ],
-    test_suite = 'sentry.tests',
+    tests_require=tests_require,
+    extras_require={'test': tests_require},
+    test_suite='sentry.runtests.runtests',
     include_package_data=True,
-    cmdclass={"test": mytest},
     classifiers=[
         'Framework :: Django',
         'Intended Audience :: Developers',
