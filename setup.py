@@ -12,6 +12,7 @@ tests_require = [
     'django-celery',
     'south',
     'django-haystack',
+    'whoosh',
 ]
 
 setup(
