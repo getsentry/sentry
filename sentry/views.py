@@ -234,7 +234,7 @@ def ajax_handler(request):
         group.status = 1
         
         if not request.is_ajax():
-            return HttpResponseRedirect(request.META['HTTP_REFERER'])
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER') or reverse('sentry'))
         
         data = [
             (m.pk, {
@@ -369,4 +369,4 @@ def group_plugin_action(request, group_id, slug):
     response = cls(group_id)(request, group)
     if response:
         return response
-    return HttpResponseRedirect(request.META['HTTP_REFERER'])
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER') or reverse('sentry'))
