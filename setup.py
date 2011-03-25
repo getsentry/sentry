@@ -33,6 +33,10 @@ setup(
         'django-indexer==0.2.1',
         'uuid',
     ],
+    tests_require=[
+        'django-celery',
+        # also requires the disqus fork of haystack
+    ],
     test_suite = 'sentry.tests',
     include_package_data=True,
     cmdclass={"test": mytest},
