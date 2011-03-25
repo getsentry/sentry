@@ -11,7 +11,7 @@ tests_require = [
     'django',
     'django-celery',
     'south',
-    # also requires the disqus fork of haystack
+    'django-haystack',
 ]
 
 setup(
@@ -28,6 +28,9 @@ setup(
         'django-indexer==0.2.1',
         'uuid',
     ],
+    dependency_links=[
+        'https://github.com/disqus/django-haystack/tarball/master#egg=django-haystack',
+        ],
     tests_require=tests_require,
     extras_require={'test': tests_require},
     test_suite='sentry.runtests.runtests',
