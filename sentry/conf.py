@@ -3,8 +3,8 @@ from django.utils.hashcompat import md5_constructor
 from django.utils.translation import ugettext_lazy as _
 
 import logging
+import os.path
 import socket
-import warnings
 
 # Allow local testing of Sentry even if DEBUG is enabled
 DEBUG = getattr(settings, 'DEBUG', False) and not getattr(settings, 'SENTRY_TESTING', False)
@@ -77,7 +77,12 @@ EXCLUDE_PATHS = getattr(settings, 'SENTRY_EXCLUDE_PATHS', [])
 INCLUDE_PATHS = getattr(settings, 'SENTRY_INCLUDE_PATHS', [])
 
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
-URL_PREFIX = getattr(settings, 'SENTRY_URL_PREFIX', None)
+URL_PREFIX = getattr(settings, 'SENTRY_URL_PREFIX', '')
 
 # Allow access to Sentry without authentication.
 PUBLIC = getattr(settings, 'SENTRY_PUBLIC', False)
+
+# Absolute URL to the sentry static directory. Should not include a trailing slash.
+STATIC_URL_PREFIX = getattr(settings, 'SENTRY_STATIC_URL_PREFIX', URL_PREFIX + '/_static')
+
+ROOT = os.path.normpath(os.path.dirname(__file__))

@@ -10,8 +10,8 @@ from sentry.feeds import MessageFeed, SummaryFeed
 SENTRY_ROOT = os.path.dirname(__file__) 
 
 urlpatterns = patterns('',
-    url(r'^_media/(?P<path>.*)$', 'django.views.static.serve',
-        {'document_root': os.path.join(SENTRY_ROOT, 'media')}, name='sentry-media'),
+    # This path is also reflected in conf.STATIC_URL_PREFIX
+    url(r'^_static/(?P<path>.*)$', views.static_media, name='sentry-media'),
 
     # Feeds
 

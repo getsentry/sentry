@@ -1,3 +1,9 @@
+1.6.7
+
+* Moved static media into /static/.
+* Added serve_static view to handle static media solely within Sentry.
+* Added SENTRY_STATIC_URL_PREFIX setting.
+
 1.6.6
 
 * setup.py install will no longer install example_project.

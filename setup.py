@@ -17,7 +17,7 @@ tests_require = [
 
 setup(
     name='django-sentry',
-    version='1.6.6.1',
+    version='1.6.7',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/django-sentry',
@@ -31,7 +31,7 @@ setup(
     ],
     dependency_links=[
         'https://github.com/disqus/django-haystack/tarball/master#egg=django-haystack',
-        ],
+    ],
     tests_require=tests_require,
     extras_require={'test': tests_require},
     test_suite='sentry.runtests.runtests',

@@ -240,3 +240,27 @@ SENTRY_NAME
 ###########
 
 This will override the ``server_name`` value for this installation. Defaults to ``socket.get_hostname()``.
+
+#################
+SENTRY_URL_PREFIX
+#################
+
+Absolute URL to the sentry root directory. Should not include a trailing slash. Defaults to "".
+
+########################
+SENTRY_STATIC_URL_PREFIX
+########################
+
+Absolute URL to the sentry static directory. Should not include a trailing slash. Defaults to "{SENTRY_URL_PREFIX}/_static".
+
+####################
+SENTRY_EXCLUDE_PATHS
+####################
+
+Extending this allow you to ignore module prefixes when we attempt to discover which function an error comes from (typically a view)
+
+####################
+SENTRY_INCLUDE_PATHS
+####################
+
+By default Sentry only looks at modules in INSTALLED_APPS for drilling down where an exception is located
