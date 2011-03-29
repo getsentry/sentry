@@ -102,20 +102,6 @@ class SentryFilter(object):
         widget = self.get_widget()
         return widget.render(self.get_value())
 
-class SearchFilter(SentryFilter):
-    label = 'Search'
-    column = 'content'
-    widget = TextWidget
-    show_label = False
-    
-    def get_query_set(self, queryset):
-        # this is really just a hack
-        return queryset
-
-    def render(self):
-        widget = self.get_widget()
-        return widget.render(self.get_value(), placeholder='search query or message id')
-
 class StatusFilter(SentryFilter):
     label = 'Status'
     column = 'status'

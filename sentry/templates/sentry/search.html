@@ -5,24 +5,6 @@
 
 {% block heading %}Dashboard{% endblock %}
 
-{% block sidebar %}
-    {% if chart_url %}
-        <h2>Last 24 Hours</h2>
-        <img src="{{ chart_url }}" class="chart" alt="chart"/>
-    {% endif %}
-
-    {% for filter in filters %}
-        <div class="sidebar-module sidebar-module-{{ filter.column }}">
-            {% if filter.show_label %}
-                <h2>{{ filter.label }}</h2>
-            {% endif %}
-            <form method="get" action="{{ filter.get_query_string|safe }}">
-                {{ filter.render }}
-            </form>
-        </div>
-    {% endfor %}
-{% endblock %}
-
 {% block main %}
     {% paginate message_list from request as message_list per_page 15 %}
 
@@ -33,19 +15,16 @@
                     <input type="hidden" name="{{ k }}" value="{{ v }}"/>
                 {% endfor %}
                 <div class="sort-by">Sort by <select name="sort" onchange="this.form.submit()">
-                    <option value=""{% ifequal sort 'priority' %} selected="selected"{% endifequal %}>Priority</option>
+                    <option value=""{% ifequal sort 'relevance' %} selected="selected"{% endifequal %}>Relevance</option>
                     <option value="date"{% ifequal sort 'date' %} selected="selected"{% endifequal %}>Last Seen</option>
                     <option value="new"{% ifequal sort 'new' %} selected="selected"{% endifequal %}>First Seen</option>
                 </select>
                 </div>
             </form>
-            {% if has_realtime %}
-                <a id="sentry_realtime" class="realtime realtime-pause">Pause Feed</a>
-            {% endif %}
             {{ message_list.paging }}
         </div>
     </div>
-    
+
     {% if message_list.objects %}
         <ul class="messages" id="message_list">
             {% for group, priority in message_list.objects|with_priority %}
@@ -54,7 +33,7 @@
         </ul>
     {% else %}
         <ul class="messages" id="message_list">
-            <li class="no-messages" id="no_messages">No messages match your filters.</li>
+            <li class="no-messages" id="no_messages">No messages match your query.</li>
         </ul>
     {% endif %}
 

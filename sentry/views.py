@@ -10,10 +10,9 @@ import zlib
 
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
-from django.db.models import Q
 from django.http import HttpResponse, HttpResponseBadRequest, \
     HttpResponseForbidden, HttpResponseRedirect, Http404, HttpResponseNotModified
-from django.shortcuts import render_to_response, get_object_or_404
+from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.utils import simplejson
 from django.utils.safestring import mark_safe
@@ -27,6 +26,14 @@ from sentry.templatetags.sentry_helpers import with_priority
 from sentry.reporter import ImprovedExceptionReporter
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$')
+
+def render_to_response(template, context):
+    from django.shortcuts import render_to_response
+
+    context.update({
+        'has_search': bool(conf.SEARCH_ENGINE),
+    })
+    return render_to_response(template, context)
 
 def get_search_query_set(query):
     from haystack.query import SearchQuerySet
@@ -79,8 +86,11 @@ def login(request):
         request.session.set_test_cookie()
 
     
-    context = locals()
-    context.update(csrf(request))
+    context = csrf(request)
+    context.update({
+        'form': form,
+        'request': request,
+    })
     return render_to_response('sentry/login.html', context)
 
 def logout(request):
@@ -89,6 +99,47 @@ def logout(request):
     logout(request)
     
     return HttpResponseRedirect(reverse('sentry'))
+
+@login_required
+def search(request):
+    try:
+        page = int(request.GET.get('p', 1))
+    except (TypeError, ValueError):
+        page = 1
+
+    query = request.GET.get('q')
+    has_search = bool(conf.SEARCH_ENGINE)
+
+    if query:
+        if uuid_re.match(query):
+            # Forward to message if it exists
+            try:
+                message = Message.objects.get(message_id=query)
+            except Message.DoesNotExist:
+                pass
+            else:
+                return HttpResponseRedirect(message.get_absolute_url())
+        elif not has_search:
+            return render_to_response('sentry/invalid_message_id.html')
+        else:
+            message_list = get_search_query_set(query)
+    else:
+        message_list = GroupedMessage.objects.none()
+    
+    sort = request.GET.get('sort')
+    if sort == 'date':
+        message_list = message_list.order_by('-last_seen')
+    elif sort == 'new':
+        message_list = message_list.order_by('-first_seen')
+    else:
+        sort = 'relevance'
+
+    return render_to_response('sentry/search.html', {
+        'message_list': message_list,
+        'query': query,
+        'sort': sort,
+        'request': request,
+    })
 
 @login_required
 def index(request):
@@ -101,33 +152,11 @@ def index(request):
     except (TypeError, ValueError):
         page = 1
 
-    query = request.GET.get('content')
-    is_search = query
-
-    if is_search:
-        if uuid_re.match(query):
-            # Forward to message if it exists
-            try:
-                message = Message.objects.get(message_id=query)
-            except Message.DoesNotExist:
-                pass
-            else:
-                return HttpResponseRedirect(message.get_absolute_url())
-
-        message_list = get_search_query_set(query)
-    else:
-        message_list = GroupedMessage.objects.extra(
-            select={
-                'score': GroupedMessage.get_score_clause(),
-            }
-        )
-        if query:
-            # You really shouldnt be doing this
-            message_list = message_list.filter(
-                Q(view__icontains=query) \
-                | Q(message__icontains=query) \
-                | Q(traceback__icontains=query)
-            )
+    message_list = GroupedMessage.objects.extra(
+        select={
+            'score': GroupedMessage.get_score_clause(),
+        }
+    )
 
     sort = request.GET.get('sort')
     if sort == 'date':
@@ -136,9 +165,9 @@ def index(request):
         message_list = message_list.order_by('-first_seen')
     else:
         sort = 'priority'
-        if not is_search:
-            message_list = message_list.order_by('-score', '-last_seen')
+        message_list = message_list.order_by('-score', '-last_seen')
     
+    # Filters only apply if we're not searching
     any_filter = False
     for filter_ in filters:
         if not filter_.is_set():
@@ -154,7 +183,6 @@ def index(request):
         'has_realtime': has_realtime,
         'message_list': message_list,
         'today': today,
-        'query': query,
         'sort': sort,
         'any_filter': any_filter,
         'request': request,
@@ -172,24 +200,12 @@ def ajax_handler(request):
         for filter_ in get_filters():
             filters.append(filter_(request))
 
-        query = request.GET.get('content')
-        is_search = query
 
-        if is_search:
-            message_list = get_search_query_set(query)
-        else:
-            message_list = GroupedMessage.objects.extra(
-                select={
-                    'score': GroupedMessage.get_score_clause(),
-                }
-            )
-            if query:
-                # You really shouldnt be doing this
-                message_list = message_list.filter(
-                    Q(view__icontains=query) \
-                    | Q(message__icontains=query) \
-                    | Q(traceback__icontains=query)
-                )
+        message_list = GroupedMessage.objects.extra(
+            select={
+                'score': GroupedMessage.get_score_clause(),
+            }
+        )
         
         sort = request.GET.get('sort')
         if sort == 'date':
@@ -198,8 +214,7 @@ def ajax_handler(request):
             message_list = message_list.order_by('-first_seen')
         else:
             sort = 'priority'
-            if not is_search:
-                message_list = message_list.order_by('-score', '-last_seen')
+            message_list = message_list.order_by('-score', '-last_seen')
         
         for filter_ in filters:
             if not filter_.is_set():

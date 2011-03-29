@@ -1,3 +1,10 @@
+1.6.8
+
+* Search no longer allows filters.
+* Search no longer allows arbitrary queries without Haystack.
+* Added logger, level, site, server, and url to search index.
+* Haystack has been updated for further flexibility.
+
 1.6.7
 
 * Moved static media into /static/.

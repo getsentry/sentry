@@ -17,7 +17,12 @@ if conf.SEARCH_ENGINE:
 
     class GroupedMessageIndex(RealTimeSearchIndex):
         text = CharField(document=True, stored=False)
-        status = CharField(stored=False, null=True)
+        status = IntegerField(model_attr='status', stored=False, null=True)
+        level = IntegerField(model_attr='level', stored=False, null=True)
+        logger = CharField(model_attr='logger', stored=False, null=True)
+        server = MultiValueField(stored=False, null=True)
+        url = MultiValueField(stored=False, null=True)
+        site = MultiValueField(stored=False, null=True)
         first_seen = DateTimeField(model_attr='first_seen', stored=False)
         last_seen = DateTimeField(model_attr='last_seen', stored=False)
 
@@ -33,5 +38,15 @@ if conf.SEARCH_ENGINE:
 
         def prepare_text(self, instance):
             return '\n'.join(filter(None, [instance.message, instance.class_name, instance.traceback, instance.view]))
+
+        def prepare_server(self, instance):
+            return [s['server_name'] for s in instance.unique_servers]
+
+        def prepare_site(self, instance):
+            return [s['site'] for s in instance.unique_sites]
+
+        def prepare_url(self, instance):
+            return [s['url'] for s in instance.unique_urls]
+
 
     site.register(GroupedMessage, GroupedMessageIndex)

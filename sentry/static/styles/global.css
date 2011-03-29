@@ -99,10 +99,54 @@ pre {
 
 #account {
     position: absolute;
-    right: 1em;
-    top: 1.8em;
-    color: #fff;
+    right: 35px;
+    bottom: 6px;
+    padding-left: 20px;
+    background: #e5e5e5;
 }
+#search {
+    position: absolute;
+    right: 35px;
+    top: 1.4em;
+    width: 200px;
+}
+#search input {
+    width: 144px;
+    padding: 6px 50px 6px 6px;
+    background: #000;
+    border:1px solid #666;
+    color: #fff;
+    -moz-border-radius: 3px;
+    -webkit-border-radius: 3px;
+    border-radius: 3px;
+}
+#search button {
+    cursor: pointer;
+    position: absolute;
+    right: -2px;
+    top: 0;
+    padding: 6px;
+    height: 100%;
+    line-height: 100%;
+    font-weight: bold;
+    text-transform: uppercase;
+    background: #e0ebff;
+    background: #555; /* for non-css3 browsers */
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#555555', endColorstr='#222222'); /* for IE */
+    background: -webkit-gradient(linear, left top, left bottom, from(#555555), to(#222222)); /* for webkit browsers */
+    background: -moz-linear-gradient(top,  #555,  #222); /* for firefox 3.6+ */
+    border: 1px solid #666;
+    color: #fff;
+    -moz-border-radius: 0 3px 3px 0;
+    -webkit-border-radius: 0 3px 3px 0;
+    border-radius: 0 3px 3px 0;
+}
+#search button:hover {
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#777777', endColorstr='#555555'); /* for IE */
+    background: -webkit-gradient(linear, left top, left bottom, from(#777777), to(#555555)); /* for webkit browsers */
+    background: -moz-linear-gradient(top,  #777777,  #555555); /* for firefox 3.6+ */
+}
+
 
 .nav {
     list-style: none;
@@ -113,11 +157,16 @@ pre {
 .nav li a { display: inline-block; }
 
 
-#footer { clear: both; border-top:1px solid #ddd; background-color: #e5e5e5; }
+#footer {
+    clear: both;
+    border-top:1px solid #ddd;
+    background-color: #e5e5e5;
+}
 #footer .container {
     color: #666;
     padding: 2em;
     max-width: 1550px;
+    position: relative;
 }
 #header table { border:none; background:transparent; }
 #body, #sidebar { position: relative; }
