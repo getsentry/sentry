@@ -25,6 +25,9 @@ if conf.SEARCH_ENGINE:
         #     """Used when the entire index for model is updated."""
         #     return GroupedMessage.objects.all()
 
+        def get_updated_field(self):
+            return 'last_seen'
+
         def prepare_text(self, instance):
             return '\n'.join(filter(None, [instance.message, instance.class_name, instance.traceback, instance.view]))
 
