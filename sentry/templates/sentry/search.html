@@ -11,9 +11,7 @@
     <div class="paging-wrap">
         <div class="clearfix">
             <form method="GET" action="">
-                {% for k, v in request.GET.iteritems %}
-                    <input type="hidden" name="{{ k }}" value="{{ v }}"/>
-                {% endfor %}
+                <input type="hidden" name="q" value="{% if query %}{{ q }}{% endif %}"/>
                 <div class="sort-by">Sort by <select name="sort" onchange="this.form.submit()">
                     <option value=""{% ifequal sort 'relevance' %} selected="selected"{% endifequal %}>Relevance</option>
                     <option value="date"{% ifequal sort 'date' %} selected="selected"{% endifequal %}>Last Seen</option>
