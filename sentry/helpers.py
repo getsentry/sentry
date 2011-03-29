@@ -14,7 +14,7 @@ from sentry import conf
 _FILTER_CACHE = None
 def get_filters():
     global _FILTER_CACHE
-    
+
     if _FILTER_CACHE is None:
         
         filters = []
@@ -26,7 +26,8 @@ def get_filters():
                 module = __import__(module_name, {}, {}, class_name)
                 filter_ = getattr(module, class_name)
             except Exception:
-                logging.exception('Unable to import %s' % (filter_,))
+                logger = logging.getLogger('sentry.errors')
+                logger.exception('Unable to import %s' % (filter_,))
                 continue
             filters.append(filter_)
         _FILTER_CACHE = filters
