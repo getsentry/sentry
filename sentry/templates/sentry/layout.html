@@ -32,13 +32,13 @@
             <div class="container">
                 <h1><a href="{% url sentry %}"><img src="{% url sentry-media "images/sentry.png" %}" border="0" width="32"/>Sentry</a></h1>
                 <h2>{% block heading %}Dashboard{% endblock %}</h2>
-                {% if request.user.is_authenticated %}
+                {% block search %}
                     <form id="search" method="GET" action="{% url sentry-search %}">
                         <input type="hidden" name="sort" value="{% if sort %}{{ sort }}{% endif %}"/>
                         <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="{% if has_search %}search query or message id{% else %}message id{% endif %}"/>
                         <button type="submit">Go</button>
                     </form>
-                {% endif %}
+                {% endblock %}
             </div>
         </div> 
         <div id="content">
