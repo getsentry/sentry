@@ -108,10 +108,10 @@ pre {
     position: absolute;
     right: 35px;
     top: 1.4em;
-    width: 200px;
+    width: 300px;
 }
 #search input {
-    width: 144px;
+    width: 244px;
     padding: 6px 50px 6px 6px;
     background: #000;
     border:1px solid #666;
