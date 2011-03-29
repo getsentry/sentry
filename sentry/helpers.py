@@ -19,6 +19,8 @@ def get_filters():
         
         filters = []
         for filter_ in conf.FILTERS:
+            if filter_.endswith('sentry.filters.SearchFilter'):
+                continue
             module_name, class_name = filter_.rsplit('.', 1)
             try:
                 module = __import__(module_name, {}, {}, class_name)

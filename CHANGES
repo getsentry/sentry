@@ -4,6 +4,7 @@
 * Search no longer allows arbitrary queries without Haystack.
 * Added logger, level, site, server, and url to search index.
 * Haystack has been updated for further flexibility.
+* SearchFilter is now unused (you should update your configs).
 
 1.6.7
 
