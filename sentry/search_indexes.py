@@ -28,6 +28,9 @@ if conf.SEARCH_ENGINE:
         def get_updated_field(self):
             return 'last_seen'
 
+        def get_content_field(self):
+            return 'text'
+
         def prepare_text(self, instance):
             return '\n'.join(filter(None, [instance.message, instance.class_name, instance.traceback, instance.view]))
 
