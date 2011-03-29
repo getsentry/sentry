@@ -126,9 +126,6 @@ SENTRY_SEARCH_OPTIONS = {
     'path': os.path.join(PROJECT_ROOT, 'sentry_index'),
 }
 
-# This shouldn't be needed, but bleh
-HAYSTACK_SITECONF = 'sentry.search_indexes'
-
 try:
     import debug_toolbar
 except ImportError, exc:
