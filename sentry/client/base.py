@@ -13,6 +13,7 @@ import uuid
 
 from django.core.cache import cache
 from django.template import TemplateSyntaxError
+from django.template.loader import LoaderOrigin
 from django.views.debug import ExceptionReporter
 
 from sentry import conf
@@ -255,7 +256,8 @@ class SentryClient(object):
             'exc': map(transform, [exc_module, exc_value.args, frames]),
         }
 
-        if isinstance(exc_value, TemplateSyntaxError) and hasattr(exc_value, 'source'):
+        if (isinstance(exc_value, TemplateSyntaxError) and
+            hasattr(exc_value, 'source') and isinstance(exc_value.source, LoaderOrigin)):
             origin, (start, end) = exc_value.source
             data['__sentry__'].update({
                 'template': (origin.reload(), start, end, origin.name),
