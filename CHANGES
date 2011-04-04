@@ -1,3 +1,7 @@
+1.6.9.1
+
+* Fixed an issue with encoding to UTF-8 for Haystack.
+
 1.6.9
 
 * Added URLs to default search parameters.
