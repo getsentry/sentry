@@ -37,7 +37,9 @@ if conf.SEARCH_ENGINE:
             return 'text'
 
         def prepare_text(self, instance):
-            return '\n'.join(filter(None, [instance.message, instance.class_name, instance.traceback, instance.view]))
+            chunks = [instance.message, instance.class_name, instance.traceback, instance.view]
+            chunks.extend(self.prepare_url(instance))
+            return u'\n'.join(map(unicode, filter(None, chunks)))
 
         def prepare_server(self, instance):
             return [s['server_name'] for s in instance.unique_servers]
