@@ -1,3 +1,8 @@
+1.6.9
+
+* Added URLs to default search parameters.
+* Fixed a bug to ensure template information is only added if its the correct loader
+
 1.6.8.1
 
 * Search will now show when unauthenticated (e.g. when SENTRY_PUBLIC is enabled)
