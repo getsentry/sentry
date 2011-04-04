@@ -256,8 +256,8 @@ class SentryClient(object):
             'exc': map(transform, [exc_module, exc_value.args, frames]),
         }
 
-        if (isinstance(exc_value, TemplateSyntaxError) and
-            hasattr(exc_value, 'source') and isinstance(exc_value.source, LoaderOrigin)):
+        if (isinstance(exc_value, TemplateSyntaxError) and \
+            isinstance(getattr(exc_value, 'source', None), (tuple, list)) and isinstance(exc_value.source[0], LoaderOrigin)):
             origin, (start, end) = exc_value.source
             data['__sentry__'].update({
                 'template': (origin.reload(), start, end, origin.name),
