@@ -178,7 +178,7 @@ class GroupedMessage(MessageBase):
 
         obj_request = message.request
 
-        subject = 'Error (%s IP): %s' % ((obj_request.META.get('REMOTE_ADDR') in settings.INTERNAL_IPS and 'internal' or 'EXTERNAL'), obj_request.path)
+        subject = '%sError (%s IP): %s' % (settings.EMAIL_SUBJECT_PREFIX, (obj_request.META.get('REMOTE_ADDR') in settings.INTERNAL_IPS and 'internal' or 'EXTERNAL'), obj_request.path)
         if message.site:
             subject  = '[%s] %s' % (message.site, subject)
         try:
