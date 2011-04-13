@@ -27,7 +27,7 @@ from sentry.reporter import ImprovedExceptionReporter
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$')
 
-def render_to_response(template, context):
+def render_to_response(template, context={}):
     from django.shortcuts import render_to_response
 
     context.update({
