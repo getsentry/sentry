@@ -14,6 +14,7 @@ import uuid
 from django.core.cache import cache
 from django.template import TemplateSyntaxError
 from django.template.loader import LoaderOrigin
+from django.utils import simplejson
 from django.views.debug import ExceptionReporter
 
 from sentry import conf
@@ -131,7 +132,8 @@ class SentryClient(object):
         if conf.REMOTE_URL:
             for url in conf.REMOTE_URL:
                 data = {
-                    'data': base64.b64encode(pickle.dumps(kwargs).encode('zlib')),
+                    'data': base64.b64encode(simplejson.dumps(kwargs).encode('zlib')),
+                    'format': 'json',
                     'key': conf.KEY,
                 }
                 try:

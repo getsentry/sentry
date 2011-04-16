@@ -353,17 +353,34 @@ def store(request):
     key = request.POST.get('key')
     if key != conf.KEY:
         return HttpResponseForbidden('Invalid credentials')
+
+    format = request.POST.get('format', 'pickle')
+    if format not in ('pickle', 'json'):
+        return HttpResponseForbidden('Invalid format')
     
     data = request.POST.get('data')
     if not data:
         return HttpResponseForbidden('Missing data')
+
+    logger = logging.getLogger('sentry.server')
+
     try:
         try:
-            data = pickle.loads(base64.b64decode(data).decode('zlib'))
+            data = base64.b64decode(data).decode('zlib')
         except zlib.error:
-            data = pickle.loads(base64.b64decode(data))
+            data = base64.b64decode(data)
     except Exception, e:
-        logger = logging.getLogger('sentry.server')
+        # This error should be caught as it suggests that there's a
+        # bug somewhere in the Sentry code.
+        logger.exception('Bad data received')
+        return HttpResponseForbidden('Bad data')
+
+    try:
+        if format == 'pickle':
+            data = pickle.loads(data)
+        elif format == 'json':
+            data = simplejson.loads(data)
+    except Exception, e:
         # This error should be caught as it suggests that there's a
         # bug somewhere in the Sentry code.
         logger.exception('Bad data received')
