@@ -1,3 +1,8 @@
+1.6.10
+
+* Added JSON support to storage API.
+* Changed default client to use JSON format.
+
 1.6.9.1
 
 * Fixed an issue with encoding to UTF-8 for Haystack.
