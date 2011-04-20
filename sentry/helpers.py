@@ -3,6 +3,7 @@ import sys
 import urllib
 import urllib2
 import uuid
+from types import ClassType, TypeType
 
 import django
 from django.conf import settings
@@ -79,7 +80,8 @@ def transform(value):
             return str(value)
         except:
             return to_unicode(value)
-    elif callable(getattr(value, '__sentry__', None)):
+    elif not isinstance(value, (ClassType, TypeType)) and \
+            callable(getattr(value, '__sentry__', None)):
         return value.__sentry__()
     elif not isinstance(value, (int, bool)) and value is not None:
         # XXX: we could do transform(repr(value)) here
