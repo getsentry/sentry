@@ -8,8 +8,6 @@ To configure Sentry for use in a multi-server environment, first you'll want to 
 
 	INSTALLED_APPS = [
 	  ...
-	  'indexer',
-	  'paging',
 	  'sentry',
 	  'sentry.client',
 	]

@@ -17,9 +17,6 @@ Once installed, update your settings.py and add ``sentry``, ``sentry.client``, `
 	    'django.contrib.contenttypes',
 	    'django.contrib.sessions',
 	    
-	    # don't forget to add the dependencies!
-	    'indexer',
-	    'paging',
 	    'sentry',
 	    'sentry.client',
 	    ...

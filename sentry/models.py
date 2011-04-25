@@ -7,13 +7,11 @@ except ImportError:
     import pickle
 import datetime
 import logging
-import sys
+import math
 
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
-from django.db import models, transaction
+from django.db import models
 from django.db.models import Count
-from django.db.models.signals import post_syncdb
 from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
@@ -22,13 +20,7 @@ from sentry.helpers import cached_property, construct_checksum, get_db_engine, t
 from sentry.manager import GroupedMessageManager, SentryManager
 from sentry.reporter import FakeRequest
 
-_reqs = ('paging', 'indexer')
-for r in _reqs:
-    if r not in settings.INSTALLED_APPS:
-        raise ImproperlyConfigured("Put '%s' in your "
-            "INSTALLED_APPS setting in order to use the sentry application." % r)
-
-from indexer.models import Index
+from indexer.models import BaseIndex
 
 try:
     from idmapper.models import SharedMemoryModel as Model
@@ -119,6 +111,8 @@ class GroupedMessage(MessageBase):
     last_seen       = models.DateTimeField(default=datetime.datetime.now, db_index=True)
     first_seen      = models.DateTimeField(default=datetime.datetime.now, db_index=True)
 
+    score           = models.IntegerField(default=0)
+    
     objects         = GroupedMessageManager()
 
     class Meta:
@@ -140,24 +134,13 @@ class GroupedMessage(MessageBase):
     def natural_key(self):
         return (self.logger, self.view, self.checksum)
 
-    @classmethod
-    def create_sort_index(cls, sender, db, created_models, **kwargs):
-        # This is only supported in postgres
-        engine = get_db_engine()
-        if not engine.startswith('postgresql'):
-            return
-        if cls not in created_models:
-            return
+    def save(self, *args, **kwargs):
+        self.score = self.get_score()
+        super(GroupedMessage, self).save(*args, **kwargs)
 
-        from django.db import connections
-        
-        try:
-            cursor = connections[db].cursor()
-            cursor.execute("create index sentry_groupedmessage_score on sentry_groupedmessage ((%s))" % (cls.get_score_clause(),))
-            cursor.close()
-        except:
-            transaction.rollback_unless_managed()
-        
+    def get_score(self):
+        int(math.log(self.times_seen) * 600 + int(self.last_seen.strftime('%s')))
+
     @classmethod
     def get_score_clause(cls):
         engine = get_db_engine()
@@ -314,6 +297,11 @@ class FilterValue(models.Model):
     class Meta:
         unique_together = (('key', 'value'),)
 
+### django-indexer
+
+class MessageIndex(BaseIndex):
+    model = Message
+
 ### Helper methods
 
 def register_indexes():
@@ -323,10 +311,6 @@ def register_indexes():
     logger = logging.getLogger('sentry.setup')
     for filter_ in get_filters():
         if filter_.column.startswith('data__'):
-            Index.objects.register_model(Message, filter_.column, index_to='group')
+            MessageIndex.objects.register_index(filter_.column, index_to='group')
             logger.debug('Registered index for for %s' % filter_.column)
 register_indexes()
-
-# XXX: Django sucks and we can't listen to our specific app
-# post_syncdb.connect(GroupedMessage.create_sort_index, sender=__name__)
-post_syncdb.connect(GroupedMessage.create_sort_index, sender=sys.modules[__name__])

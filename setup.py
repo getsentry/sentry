@@ -17,7 +17,7 @@ tests_require = [
 
 setup(
     name='django-sentry',
-    version='1.6.10',
+    version='1.7.0',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/django-sentry',
@@ -26,7 +26,7 @@ setup(
     zip_safe=False,
     install_requires=[
         'django-paging>=0.2.2',
-        'django-indexer==0.2.1',
+        'django-indexer==0.3.0',
         'uuid',
     ],
     dependency_links=[

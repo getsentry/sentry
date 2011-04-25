@@ -64,17 +64,19 @@ class SentryManager(models.Manager):
             )
             kwargs.pop('data', None)
             if not created:
-                GroupedMessage.objects.filter(pk=group.pk).update(
-                    times_seen=models.F('times_seen') + 1,
-                    status=0,
-                    last_seen=now,
-                )
                 # HACK: maintain appeared state
                 if group.status == 1:
                     mail = True
                 group.status = 0
                 group.last_seen = now
                 group.times_seen += 1
+                GroupedMessage.objects.filter(pk=group.pk).update(
+                    times_seen=models.F('times_seen') + 1,
+                    status=0,
+                    last_seen=now,
+                    # XXX: this is precise and non-atomic
+                    score=group.get_score(),
+                )
                 signals.post_save.send(sender=GroupedMessage, instance=group, created=False)
             else: 
                 mail = True
