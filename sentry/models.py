@@ -139,7 +139,7 @@ class GroupedMessage(MessageBase):
         super(GroupedMessage, self).save(*args, **kwargs)
 
     def get_score(self):
-        int(math.log(self.times_seen) * 600 + int(self.last_seen.strftime('%s')))
+        return int(math.log(self.times_seen) * 600 + int(self.last_seen.strftime('%s')))
 
     @classmethod
     def get_score_clause(cls):
