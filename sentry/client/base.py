@@ -37,9 +37,15 @@ class SentryClient(object):
         if request:
             if not kwargs.get('data'):
                 kwargs['data'] = {}
+            
+            if not request.POST and request.raw_post_data:
+                post_data = request.raw_post_data
+            else:
+                post_data = request.POST
+
             kwargs['data'].update(dict(
                 META=request.META,
-                POST=request.POST,
+                POST=post_data,
                 GET=request.GET,
                 COOKIES=request.COOKIES,
             ))

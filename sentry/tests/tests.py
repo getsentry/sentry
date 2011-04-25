@@ -14,7 +14,7 @@ import threading
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core import mail
-from django.core.handlers.wsgi import WSGIRequest, WSGIHandler
+from django.core.handlers.wsgi import WSGIHandler
 from django.core.management import call_command
 from django.core.urlresolvers import reverse
 from django.core.signals import got_request_exception
@@ -704,6 +704,31 @@ class SentryTestCase(TestCase):
         self.assertEquals(last.data['META']['foo'], 'bar')
         self.assertTrue('baz' in last.data)
         self.assertEquals(last.data['baz'], 'bar')
+
+    def testRawPostData(self):
+        from sentry.reporter import FakeRequest
+        
+        request = FakeRequest()
+        request.raw_post_data = '{"json": "string"}'
+        
+        logger = logging.getLogger()
+
+        self.setUpHandler()
+
+        logger.error('This is a test %s', 'error', extra={
+            'request': request,
+            'data': {
+                'baz': 'bar',
+            }
+        })
+        self.assertEquals(Message.objects.count(), 1)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+        last = Message.objects.get()
+        self.assertEquals(last.logger, 'root')
+        self.assertEquals(last.level, logging.ERROR)
+        self.assertEquals(last.message, 'This is a test error')
+        self.assertTrue('POST' in last.data)
+        self.assertEquals(request.raw_post_data, last.data['POST'])
 
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'

@@ -83,6 +83,7 @@ class FakeRequest(object):
     META = {}
     COOKIES = {}
     FILES = {}
+    raw_post_data = ''
     url = ''
     
     def __repr__(self):
