@@ -1054,6 +1054,7 @@ class SentryClientTest(TestCase):
     
     def test_get_client(self):
         from sentry.client.log import LoggingSentryClient
+
         self.assertEquals(get_client().__class__, SentryClient)
         self.assertEquals(get_client(), get_client())
     
@@ -1086,6 +1087,7 @@ class SentryClientTest(TestCase):
 
     def test_celery_client(self):
         from sentry.client.celery import CelerySentryClient
+
         self.assertEquals(get_client().__class__, SentryClient)
         self.assertEquals(get_client(), get_client())
 
@@ -1101,6 +1103,26 @@ class SentryClientTest(TestCase):
         self.assertEqual(message.message, 'view exception')
 
         conf.CLIENT = 'sentry.client.base.SentryClient'
+
+    # XXX: need to fix behavior with threads so this test works correctly
+    # def test_async_client(self):
+    #     from sentry.client.async import AsyncSentryClient
+    # 
+    #     self.assertEquals(get_client().__class__, SentryClient)
+    #     self.assertEquals(get_client(), get_client())
+    # 
+    #     conf.CLIENT = 'sentry.client.async.AsyncSentryClient'
+    # 
+    #     self.assertEquals(get_client().__class__, AsyncSentryClient)
+    #     self.assertEquals(get_client(), get_client())
+    # 
+    #     self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
+    # 
+    #     message = GroupedMessage.objects.get()
+    #     self.assertEqual(message.class_name, 'Exception')
+    #     self.assertEqual(message.message, 'view exception')
+    # 
+    #     conf.CLIENT = 'sentry.client.base.SentryClient'
         
 class SentryManageTest(TestCase):
     fixtures = ['sentry/tests/fixtures/cleanup.json']
