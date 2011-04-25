@@ -47,8 +47,8 @@ Requirements
 If you're installing it by hand, you'll need to fulfill the following requirements:
  
  - **Django >= 1.2**
- - **django-indexer** (stores metadata indexes)
- - **django-paging**
+ - **django-indexer >= 0.3.0** (stores metadata indexes)
+ - **django-paging >= 0.2.2**
 
 Upgrading
 ---------
