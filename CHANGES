@@ -1,3 +1,11 @@
+1.7.0
+
+* Added ``score`` to ``GroupedMessage`` (schema change).
+* Added ``MessageIndex`` (schema change).
+* Added Async client (thanks to Yuri Baburov).
+* Added support for raw_post_data (thanks to Matthew Schinckel).
+* django-paging and django-indexer no longer need to be in INSTALLED_APPS.
+
 1.6.10
 
 * Added JSON support to storage API.
