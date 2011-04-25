@@ -209,6 +209,16 @@ name (defaults to ``sentry``).
 	    'sentry.client.celery',
 	)
 
+*****************
+AsyncSentryClient
+*****************
+
+Spawns a background thread within the process that will handle sending messages upstream.
+
+::
+
+	SENTRY_CLIENT = 'sentry.client.async.AsyncSentryClient'
+
 #############
 SENTRY_ADMINS
 #############
