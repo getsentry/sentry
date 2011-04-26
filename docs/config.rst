@@ -84,6 +84,12 @@ be seen as the same message within Sentry::
 	logging.error('There was some %s error', 'fun')
 	logging.error('There was some %s error', 1)
 
+Note that here we are describing a client/server interaction where
+both components are provided by django-sentry.  Other languages that
+provide a logging package that is comparable to the python ``logging``
+package may define a sentry handler.  Check the Integration with
+Sentry `Integration with Sentry <technical.html#integration-with-sentry>`_ paragraph.
+
 Integration with ``haystack`` (Search)
 --------------------------------------
 
