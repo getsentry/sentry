@@ -133,6 +133,9 @@ class SentryClient(object):
         
         return message_id
 
+    def send_remote(self, url=None, data=None):
+        return urlread(url, post=data, timeout=conf.REMOTE_TIMEOUT)
+
     def send(self, **kwargs):
         "Sends the message to the server."
         if conf.REMOTE_URL:
@@ -143,7 +146,7 @@ class SentryClient(object):
                     'key': conf.KEY,
                 }
                 try:
-                    urlread(url, post=data, timeout=conf.REMOTE_TIMEOUT)
+                    return self.send_remote(url=url, data=data)
                 except urllib2.HTTPError, e:
                     body = e.read()
                     logger.error('Unable to reach Sentry log server: %s (url: %%s, body: %%s)' % (e,), url, body,
