@@ -1,20 +1,21 @@
 {% extends "sentry/layout.html" %}
 
+{% load i18n %}
 {% load sentry_helpers %}
 
-{% block title %}Login | {{ block.super }}{% endblock %}
+{% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
 
-{% block heading %}Login{% endblock %}
+{% block heading %}{% trans "Login" %}{% endblock %}
 
 {% block search %}{% endblock %}
 
 {% block content %}
     <div id="body">
         <div class="login-area">
-            <p>You must log in to continue</p>
+            <p>{% trans "You must log in to continue" %}</p>
         
             {% if form.errors %}
-                <p class="error">Your username and password didn't match. Please try again.</p>
+                <p class="error">{% trans "Your username and password didn't match. Please try again." %}</p>
             {% endif %}
 
             <form method="post" action="" class="login-form">
@@ -36,7 +37,7 @@
                     </tr>
                 </table>
                 <div class="submit">
-                    <button type="submit" class="button">Login</button>
+                    <button type="submit" class="button">{% trans "Login" %}</button>
                 </div>
             </form>
         </div>

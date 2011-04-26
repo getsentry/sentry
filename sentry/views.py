@@ -152,17 +152,15 @@ def index(request):
     except (TypeError, ValueError):
         page = 1
 
-    message_list = GroupedMessage.objects.extra(
-        select={
-            'score': GroupedMessage.get_score_clause(),
-        }
-    )
+    message_list = GroupedMessage.objects.all()
 
     sort = request.GET.get('sort')
     if sort == 'date':
         message_list = message_list.order_by('-last_seen')
     elif sort == 'new':
         message_list = message_list.order_by('-first_seen')
+    elif sort == 'freq':
+        message_list = message_list.order_by('-times_seen')
     else:
         sort = 'priority'
         message_list = message_list.order_by('-score', '-last_seen')
@@ -201,17 +199,15 @@ def ajax_handler(request):
             filters.append(filter_(request))
 
 
-        message_list = GroupedMessage.objects.extra(
-            select={
-                'score': GroupedMessage.get_score_clause(),
-            }
-        )
+        message_list = GroupedMessage.objects.all()
         
         sort = request.GET.get('sort')
         if sort == 'date':
             message_list = message_list.order_by('-last_seen')
         elif sort == 'new':
             message_list = message_list.order_by('-first_seen')
+        elif sort == 'freq':
+            message_list = message_list.order_by('-times_seen')
         else:
             sort = 'priority'
             message_list = message_list.order_by('-score', '-last_seen')

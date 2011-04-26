@@ -16,7 +16,7 @@ from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import conf
-from sentry.helpers import cached_property, construct_checksum, get_db_engine, transform, get_filters
+from sentry.helpers import cached_property, construct_checksum, transform, get_filters
 from sentry.manager import GroupedMessageManager, SentryManager
 from sentry.reporter import FakeRequest
 
@@ -107,7 +107,7 @@ class MessageBase(Model):
 
 class GroupedMessage(MessageBase):
     status          = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
-    times_seen      = models.PositiveIntegerField(default=1)
+    times_seen      = models.PositiveIntegerField(default=1, db_index=True)
     last_seen       = models.DateTimeField(default=datetime.datetime.now, db_index=True)
     first_seen      = models.DateTimeField(default=datetime.datetime.now, db_index=True)
 
@@ -140,15 +140,6 @@ class GroupedMessage(MessageBase):
 
     def get_score(self):
         return int(math.log(self.times_seen) * 600 + int(self.last_seen.strftime('%s')))
-
-    @classmethod
-    def get_score_clause(cls):
-        engine = get_db_engine()
-        if engine.startswith('postgresql'):
-            return 'log(times_seen) * 600 + last_seen::abstime::int'
-        if engine.startswith('mysql'):
-            return 'log(times_seen) * 600 + unix_timestamp(last_seen)'
-        return 'times_seen'
 
     def mail_admins(self, request=None, fail_silently=True):
         if not conf.ADMINS:

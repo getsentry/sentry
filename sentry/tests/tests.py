@@ -730,6 +730,23 @@ class SentryTestCase(TestCase):
         self.assertTrue('POST' in last.data)
         self.assertEquals(request.raw_post_data, last.data['POST'])
 
+    def testScoreUpdate(self):
+        self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
+        
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+        group = GroupedMessage.objects.get()
+        self.assertTrue(group.score > 0, group.score)
+
+        # drop the score to ensure its getting re-set
+        group.score = 0
+        group.save()
+        
+        self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+
+        group = GroupedMessage.objects.get()
+        self.assertTrue(group.score > 0, group.score)
+
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'
     fixtures = ['sentry/tests/fixtures/views.json']
@@ -780,13 +797,13 @@ class SentryViewsTest(TestCase):
 
     def testDashboard(self):
         self.client.login(username='admin', password='admin')
-        resp = self.client.get(reverse('sentry'), follow=True)
+        resp = self.client.get(reverse('sentry') + '?sort=freq', follow=True)
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/index.html')
+        self.assertEquals(len(resp.context['message_list']), 4)
         group = resp.context['message_list'][0]
         self.assertEquals(group.times_seen, 7)
         self.assertEquals(group.class_name, 'AttributeError')
-        self.assertEquals(len(resp.context['message_list']), 4)
 
     def testGroup(self):
         self.client.login(username='admin', password='admin')

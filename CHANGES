@@ -5,6 +5,10 @@
 * Added Async client (thanks to Yuri Baburov).
 * Added support for raw_post_data (thanks to Matthew Schinckel).
 * django-paging and django-indexer no longer need to be in INSTALLED_APPS.
+* Added an index for GroupedMessages.times_seen.
+* The ``score`` column will update atomically in PostgreSQL and MySQL.
+* Added the frequency sort option.
+* Better internationalization support.
 
 1.6.10
 
