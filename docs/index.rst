@@ -12,5 +12,6 @@ easily trace them in your application.
    install
    config
    extensions
+   technical
 
 .. image:: http://dl.dropbox.com/u/116385/Screenshots/l6xk.png
