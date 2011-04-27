@@ -13,6 +13,8 @@ import uuid
 
 from django.core.cache import cache
 from django.template import TemplateSyntaxError
+from django.template.loader import LoaderOrigin
+from django.utils import simplejson
 from django.views.debug import ExceptionReporter
 
 from sentry import conf
@@ -35,9 +37,15 @@ class SentryClient(object):
         if request:
             if not kwargs.get('data'):
                 kwargs['data'] = {}
+            
+            if not request.POST and request.raw_post_data:
+                post_data = request.raw_post_data
+            else:
+                post_data = request.POST
+
             kwargs['data'].update(dict(
                 META=request.META,
-                POST=request.POST,
+                POST=post_data,
                 GET=request.GET,
                 COOKIES=request.COOKIES,
             ))
@@ -125,16 +133,20 @@ class SentryClient(object):
         
         return message_id
 
+    def send_remote(self, url=None, data=None):
+        return urlread(url, post=data, timeout=conf.REMOTE_TIMEOUT)
+
     def send(self, **kwargs):
         "Sends the message to the server."
         if conf.REMOTE_URL:
             for url in conf.REMOTE_URL:
                 data = {
-                    'data': base64.b64encode(pickle.dumps(kwargs).encode('zlib')),
+                    'data': base64.b64encode(simplejson.dumps(kwargs).encode('zlib')),
+                    'format': 'json',
                     'key': conf.KEY,
                 }
                 try:
-                    urlread(url, post=data, timeout=conf.REMOTE_TIMEOUT)
+                    return self.send_remote(url=url, data=data)
                 except urllib2.HTTPError, e:
                     body = e.read()
                     logger.error('Unable to reach Sentry log server: %s (url: %%s, body: %%s)' % (e,), url, body,
@@ -255,7 +267,8 @@ class SentryClient(object):
             'exc': map(transform, [exc_module, exc_value.args, frames]),
         }
 
-        if isinstance(exc_value, TemplateSyntaxError) and hasattr(exc_value, 'source'):
+        if (isinstance(exc_value, TemplateSyntaxError) and \
+            isinstance(getattr(exc_value, 'source', None), (tuple, list)) and isinstance(exc_value.source[0], LoaderOrigin)):
             origin, (start, end) = exc_value.source
             data['__sentry__'].update({
                 'template': (origin.reload(), start, end, origin.name),

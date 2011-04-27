@@ -1,9 +1,9 @@
 {% extends "sentry/layout.html" %}
 
-{% load paging_extras %}
+{% load i18n %}
 {% load sentry_helpers %}
 
-{% block heading %}Dashboard{% endblock %}
+{% block heading %}{% trans "Search" %}{% endblock %}
 
 {% block main %}
     {% paginate message_list from request as message_list per_page 15 %}
@@ -31,7 +31,7 @@
         </ul>
     {% else %}
         <ul class="messages" id="message_list">
-            <li class="no-messages" id="no_messages">No messages match your query.</li>
+            <li class="no-messages" id="no_messages">{% trans "No messages match your query." %}</li>
         </ul>
     {% endif %}
 

@@ -5,30 +5,21 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
-import datetime
 import logging
-import sys
+import math
 
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
-from django.db import models, transaction
+from django.db import models
 from django.db.models import Count
-from django.db.models.signals import post_syncdb
 from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import conf
-from sentry.helpers import cached_property, construct_checksum, get_db_engine, transform, get_filters
+from sentry.helpers import cached_property, construct_checksum, transform, get_filters
 from sentry.manager import GroupedMessageManager, SentryManager
 from sentry.reporter import FakeRequest
 
-_reqs = ('paging', 'indexer')
-for r in _reqs:
-    if r not in settings.INSTALLED_APPS:
-        raise ImproperlyConfigured("Put '%s' in your "
-            "INSTALLED_APPS setting in order to use the sentry application." % r)
-
-from indexer.models import Index
+from indexer.models import BaseIndex
 
 try:
     from idmapper.models import SharedMemoryModel as Model
@@ -115,10 +106,12 @@ class MessageBase(Model):
 
 class GroupedMessage(MessageBase):
     status          = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
-    times_seen      = models.PositiveIntegerField(default=1)
-    last_seen       = models.DateTimeField(default=datetime.datetime.now, db_index=True)
-    first_seen      = models.DateTimeField(default=datetime.datetime.now, db_index=True)
+    times_seen      = models.PositiveIntegerField(default=1, db_index=True)
+    last_seen       = models.DateTimeField(auto_now=True, db_index=True)
+    first_seen      = models.DateTimeField(auto_now_add=True, db_index=True)
 
+    score           = models.IntegerField(default=0)
+    
     objects         = GroupedMessageManager()
 
     class Meta:
@@ -140,32 +133,8 @@ class GroupedMessage(MessageBase):
     def natural_key(self):
         return (self.logger, self.view, self.checksum)
 
-    @classmethod
-    def create_sort_index(cls, sender, db, created_models, **kwargs):
-        # This is only supported in postgres
-        engine = get_db_engine()
-        if not engine.startswith('postgresql'):
-            return
-        if cls not in created_models:
-            return
-
-        from django.db import connections
-        
-        try:
-            cursor = connections[db].cursor()
-            cursor.execute("create index sentry_groupedmessage_score on sentry_groupedmessage ((%s))" % (cls.get_score_clause(),))
-            cursor.close()
-        except:
-            transaction.rollback_unless_managed()
-        
-    @classmethod
-    def get_score_clause(cls):
-        engine = get_db_engine()
-        if engine.startswith('postgresql'):
-            return 'log(times_seen) * 600 + last_seen::abstime::int'
-        if engine.startswith('mysql'):
-            return 'log(times_seen) * 600 + unix_timestamp(last_seen)'
-        return 'times_seen'
+    def get_score(self):
+        return int(math.log(self.times_seen) * 600 + int(self.last_seen.strftime('%s')))
 
     def mail_admins(self, request=None, fail_silently=True):
         if not conf.ADMINS:
@@ -178,7 +147,7 @@ class GroupedMessage(MessageBase):
 
         obj_request = message.request
 
-        subject = 'Error (%s IP): %s' % ((obj_request.META.get('REMOTE_ADDR') in settings.INTERNAL_IPS and 'internal' or 'EXTERNAL'), obj_request.path)
+        subject = '%sError (%s IP): %s' % (settings.EMAIL_SUBJECT_PREFIX, (obj_request.META.get('REMOTE_ADDR') in settings.INTERNAL_IPS and 'internal' or 'EXTERNAL'), obj_request.path)
         if message.site:
             subject  = '[%s] %s' % (message.site, subject)
         try:
@@ -238,7 +207,7 @@ class GroupedMessage(MessageBase):
 class Message(MessageBase):
     message_id      = models.CharField(max_length=32, null=True, unique=True)
     group           = models.ForeignKey(GroupedMessage, blank=True, null=True, related_name="message_set")
-    datetime        = models.DateTimeField(default=datetime.datetime.now, db_index=True)
+    datetime        = models.DateTimeField(auto_now_add=True, db_index=True)
     url             = models.URLField(verify_exists=False, null=True, blank=True)
     server_name     = models.CharField(max_length=128, db_index=True)
     site            = models.CharField(max_length=128, db_index=True, null=True)
@@ -314,6 +283,11 @@ class FilterValue(models.Model):
     class Meta:
         unique_together = (('key', 'value'),)
 
+### django-indexer
+
+class MessageIndex(BaseIndex):
+    model = Message
+
 ### Helper methods
 
 def register_indexes():
@@ -323,10 +297,6 @@ def register_indexes():
     logger = logging.getLogger('sentry.setup')
     for filter_ in get_filters():
         if filter_.column.startswith('data__'):
-            Index.objects.register_model(Message, filter_.column, index_to='group')
+            MessageIndex.objects.register_index(filter_.column, index_to='group')
             logger.debug('Registered index for for %s' % filter_.column)
 register_indexes()
-
-# XXX: Django sucks and we can't listen to our specific app
-# post_syncdb.connect(GroupedMessage.create_sort_index, sender=__name__)
-post_syncdb.connect(GroupedMessage.create_sort_index, sender=sys.modules[__name__])

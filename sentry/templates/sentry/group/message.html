@@ -1,9 +1,9 @@
 {% extends "sentry/group/details.html" %}
 
-{% load paging_extras %}
+{% load i18n %}
 {% load sentry_helpers %}
 
-{% block title %}{{ group.error }} | Sentry{% endblock %}
+{% block title %}{{ group.error }} | {{ block.super }}{% endblock %}
 
 {% block inner %}
     <ul class="messages" id="message_list">
@@ -41,7 +41,7 @@
     {% endif %}
 
     <div id="requestinfo">
-        <h2>More Information</h2>
+        <h2>{% trans "More Information" %}</h2>
 
         <table>
             {% for k, v in json_data %}
@@ -53,8 +53,8 @@
                             <table class="vars">
                                 <thead>
                                     <tr>
-                                        <th>Variable</th>
-                                        <th>Value</th>
+                                        <th>{% trans "Variable" %}</th>
+                                        <th>{% trans "Value" %}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -70,7 +70,7 @@
                             {{ v|pprint }}
                         {% endif %}
                     {% else %}
-                        <p>No data for {{ k }}</p>
+                        <p>{% blocktrans with k as varname %}No data for {{ varname }}{% endblocktrans %}</p>
                     {% endif %}
                     </td>
                 </tr>

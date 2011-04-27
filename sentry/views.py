@@ -27,7 +27,7 @@ from sentry.reporter import ImprovedExceptionReporter
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$')
 
-def render_to_response(template, context):
+def render_to_response(template, context={}):
     from django.shortcuts import render_to_response
 
     context.update({
@@ -152,17 +152,15 @@ def index(request):
     except (TypeError, ValueError):
         page = 1
 
-    message_list = GroupedMessage.objects.extra(
-        select={
-            'score': GroupedMessage.get_score_clause(),
-        }
-    )
+    message_list = GroupedMessage.objects.all()
 
     sort = request.GET.get('sort')
     if sort == 'date':
         message_list = message_list.order_by('-last_seen')
     elif sort == 'new':
         message_list = message_list.order_by('-first_seen')
+    elif sort == 'freq':
+        message_list = message_list.order_by('-times_seen')
     else:
         sort = 'priority'
         message_list = message_list.order_by('-score', '-last_seen')
@@ -201,17 +199,15 @@ def ajax_handler(request):
             filters.append(filter_(request))
 
 
-        message_list = GroupedMessage.objects.extra(
-            select={
-                'score': GroupedMessage.get_score_clause(),
-            }
-        )
+        message_list = GroupedMessage.objects.all()
         
         sort = request.GET.get('sort')
         if sort == 'date':
             message_list = message_list.order_by('-last_seen')
         elif sort == 'new':
             message_list = message_list.order_by('-first_seen')
+        elif sort == 'freq':
+            message_list = message_list.order_by('-times_seen')
         else:
             sort = 'priority'
             message_list = message_list.order_by('-score', '-last_seen')
@@ -353,17 +349,34 @@ def store(request):
     key = request.POST.get('key')
     if key != conf.KEY:
         return HttpResponseForbidden('Invalid credentials')
+
+    format = request.POST.get('format', 'pickle')
+    if format not in ('pickle', 'json'):
+        return HttpResponseForbidden('Invalid format')
     
     data = request.POST.get('data')
     if not data:
         return HttpResponseForbidden('Missing data')
+
+    logger = logging.getLogger('sentry.server')
+
     try:
         try:
-            data = pickle.loads(base64.b64decode(data).decode('zlib'))
+            data = base64.b64decode(data).decode('zlib')
         except zlib.error:
-            data = pickle.loads(base64.b64decode(data))
+            data = base64.b64decode(data)
     except Exception, e:
-        logger = logging.getLogger('sentry.server')
+        # This error should be caught as it suggests that there's a
+        # bug somewhere in the Sentry code.
+        logger.exception('Bad data received')
+        return HttpResponseForbidden('Bad data')
+
+    try:
+        if format == 'pickle':
+            data = pickle.loads(data)
+        elif format == 'json':
+            data = simplejson.loads(data)
+    except Exception, e:
         # This error should be caught as it suggests that there's a
         # bug somewhere in the Sentry code.
         logger.exception('Bad data received')

@@ -7,11 +7,33 @@ from django.db import models
 from django.db.models import signals
 
 from sentry import conf
-from sentry.helpers import construct_checksum
+from sentry.helpers import construct_checksum, get_db_engine
 
 assert not conf.DATABASE_USING or django.VERSION >= (1, 2), 'The `SENTRY_DATABASE_USING` setting requires Django >= 1.2'
 
 logger = logging.getLogger('sentry.errors')
+
+class ScoreClause(object):
+    def __init__(self, group):
+        self.group = group
+
+    def prepare_database_save(self, unused):
+        return self
+
+    def prepare(self, evaluator, query, allow_joins):
+        return
+
+    def evaluate(self, node, qn, connection):
+        engine = get_db_engine(getattr(connection, 'alias', 'default'))
+        if engine.startswith('postgresql'):
+            sql = 'log(times_seen) * 600 + last_seen::abstime::int'
+        elif engine.startswith('mysql'):
+            sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
+        else:
+            # XXX: if we cant do it atomicly let's do it the best we can
+            sql = self.group.get_score()
+        
+        return (sql, [])
 
 class SentryManager(models.Manager):
     use_for_related_fields = True
@@ -64,19 +86,23 @@ class SentryManager(models.Manager):
             )
             kwargs.pop('data', None)
             if not created:
-                GroupedMessage.objects.filter(pk=group.pk).update(
-                    times_seen=models.F('times_seen') + 1,
-                    status=0,
-                    last_seen=now,
-                )
                 # HACK: maintain appeared state
                 if group.status == 1:
                     mail = True
                 group.status = 0
                 group.last_seen = now
                 group.times_seen += 1
+                GroupedMessage.objects.filter(pk=group.pk).update(
+                    times_seen=models.F('times_seen') + 1,
+                    status=0,
+                    last_seen=now,
+                    score=ScoreClause(group),
+                )
                 signals.post_save.send(sender=GroupedMessage, instance=group, created=False)
-            else: 
+            else:
+                GroupedMessage.objects.filter(pk=group.pk).update(
+                    score=ScoreClause(group),
+                )
                 mail = True
             instance = Message.objects.create(
                 message_id=message_id,

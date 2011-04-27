@@ -1,3 +1,32 @@
+1.7.0
+
+* Added ``score`` to ``GroupedMessage`` (schema change).
+* Added ``MessageIndex`` (schema change).
+* Added Async client (thanks to Yuri Baburov).
+* Added support for raw_post_data (thanks to Matthew Schinckel).
+* django-paging and django-indexer no longer need to be in INSTALLED_APPS.
+* Added an index for GroupedMessages.times_seen.
+* The ``score`` column will update atomically in PostgreSQL and MySQL.
+* Added the frequency sort option.
+* Better internationalization support.
+* Fixed a bug with Oracle's date truncation support (changed to hh24).
+* Respect TIME_ZONE by using auto_now_* on DateTimeField's.
+* Tests required Haystack and Celery are now skipped if module is not found.
+
+1.6.10
+
+* Added JSON support to storage API.
+* Changed default client to use JSON format.
+
+1.6.9.1
+
+* Fixed an issue with encoding to UTF-8 for Haystack.
+
+1.6.9
+
+* Added URLs to default search parameters.
+* Fixed a bug to ensure template information is only added if its the correct loader
+
 1.6.8.1
 
 * Search will now show when unauthenticated (e.g. when SENTRY_PUBLIC is enabled)

@@ -3,6 +3,7 @@ import sys
 import urllib
 import urllib2
 import uuid
+from types import ClassType, TypeType
 
 import django
 from django.conf import settings
@@ -62,16 +63,19 @@ def varmap(func, var):
     else:
         return func(var)
 
-def transform(value):
+def transform(value, stack=[]):
     # TODO: make this extendable
     # TODO: include some sane defaults, like UUID
     # TODO: dont coerce strings to unicode, leave them as strings
+    if any(value is s for s in stack):
+        return 'cycle'
+    transform_rec = lambda o: transform(o, stack + [value])
     if isinstance(value, (tuple, list, set, frozenset)):
-        return type(value)(transform(o) for o in value)
+        return type(value)(transform_rec(o) for o in value)
     elif isinstance(value, uuid.UUID):
         return repr(value)
     elif isinstance(value, dict):
-        return dict((k, transform(v)) for k, v in value.iteritems())
+        return dict((k, transform_rec(v)) for k, v in value.iteritems())
     elif isinstance(value, unicode):
         return to_unicode(value)
     elif isinstance(value, str):
@@ -79,8 +83,9 @@ def transform(value):
             return str(value)
         except:
             return to_unicode(value)
-    elif callable(getattr(value, '__sentry__', None)):
-        return value.__sentry__()
+    elif not isinstance(value, (ClassType, TypeType)) and \
+            callable(getattr(value, '__sentry__', None)):
+        return transform_rec(value.__sentry__())
     elif not isinstance(value, (int, bool)) and value is not None:
         # XXX: we could do transform(repr(value)) here
         return to_unicode(value)

@@ -1,4 +1,4 @@
-{% load paging_extras %}
+{% load i18n %}
 {% load sentry_helpers %}
 
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd"> 
@@ -31,12 +31,12 @@
         <div id="header"> 
             <div class="container">
                 <h1><a href="{% url sentry %}"><img src="{% url sentry-media "images/sentry.png" %}" border="0" width="32"/>Sentry</a></h1>
-                <h2>{% block heading %}Dashboard{% endblock %}</h2>
+                <h2>{% block heading %}{% trans "Dashboard" %}{% endblock %}</h2>
                 {% block search %}
                     <form id="search" method="GET" action="{% url sentry-search %}">
                         <input type="hidden" name="sort" value="{% if sort %}{{ sort }}{% endif %}"/>
                         <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="{% if has_search %}search query or message id{% else %}message id{% endif %}"/>
-                        <button type="submit">Go</button>
+                        <button type="submit">{% trans "Go" %}</button>
                     </form>
                 {% endblock %}
             </div>
@@ -60,10 +60,10 @@
          </div>
         <div id="footer">
             <div class="container">
-                Sentry {% sentry_version %} | Powered by sexy Django magic | Conjured up by the <a href="http://code.disqus.com">DISQUS</a> team and other noble <a href="https://github.com/dcramer/django-sentry/contributors">sorcerers</a>.
+                Sentry {% sentry_version %} | {% trans "Powered by sexy Django magic" %} | Conjured up by the <a href="http://code.disqus.com">DISQUS</a> team and other noble <a href="https://github.com/dcramer/django-sentry/contributors">sorcerers</a>.
                 <ul class="nav" id="account">
                     {% if request.user.is_authenticated %}
-                        <li><a href="{% url sentry-logout %}">Logout</a></li>
+                        <li><a href="{% url sentry-logout %}">{% trans "Logout" %}</a></li>
                     {% endif %}
                 </ul>
             </div>

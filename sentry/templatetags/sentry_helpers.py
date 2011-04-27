@@ -1,9 +1,17 @@
+# XXX: Import django-paging's template tags so we dont have to worry about
+#      INSTALLED_APPS
 from django import template
 from django.db.models import Count
 from django.utils import simplejson
+from django.utils.safestring import mark_safe
+from django.template import RequestContext
 from django.template.defaultfilters import stringfilter
-
+from django.template.loader import render_to_string
+from paging.helpers import paginate as paginate_func
+from sentry.helpers import get_db_engine
 from sentry.plugins import GroupActionProvider
+from templatetag_sugar.register import tag
+from templatetag_sugar.parser import Name, Variable, Constant, Optional
 
 import datetime
 
@@ -58,7 +66,10 @@ def chart_data(group, max_days=90):
     else:
         from django.db import connection as conn
 
-    method = conn.ops.date_trunc_sql('hour', 'datetime')
+    if get_db_engine(getattr(conn, 'alias', 'default')).startswith('oracle'):
+        method = conn.ops.date_trunc_sql('hh24', 'datetime')
+    else:
+        method = conn.ops.date_trunc_sql('hour', 'datetime')
 
     chart_qs = list(group.message_set.all()\
                       .filter(datetime__gte=min_date)\
@@ -156,3 +167,22 @@ def truncatechars(value, arg):
         return value[:length] + '...'
     return value
 truncatechars.is_safe = True
+
+# XXX: this is taken from django-paging so that we may render
+#      a custom template, and not worry about INSTALLED_APPS
+@tag(register, [Variable('queryset_or_list'),
+                Constant('from'), Variable('request'),
+                Optional([Constant('as'), Name('asvar')]),
+                Optional([Constant('per_page'), Variable('per_page')]),
+                Optional([Variable('is_endless')])])
+def paginate(context, queryset_or_list, request, asvar, per_page=25, is_endless=True):
+    """{% paginate queryset_or_list from request as foo[ per_page 25][ is_endless False %}"""
+    context_instance = RequestContext(request)
+    paging_context = paginate_func(request, queryset_or_list, per_page, endless=is_endless)
+    paging = mark_safe(render_to_string('sentry/partial/_pager.html', paging_context, context_instance))
+
+    result = dict(objects=paging_context['paginator'].get('objects', []), paging=paging)
+    if asvar:
+        context[asvar] = result
+        return ''
+    return result

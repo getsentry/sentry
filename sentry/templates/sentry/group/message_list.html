@@ -1,9 +1,10 @@
 {% extends "sentry/group/details.html" %}
 
-{% load paging_extras %}
+{% load i18n %}
+{% load sentry_helpers %}
 
 {% block inner %}
-    <h2>Message List</h2>
+    <h2>{% trans "Message List" %}</h2>
     {% paginate message_list from request as message_list per_page 15 %}
     <div class="clearfix">
         {{ message_list.paging }}

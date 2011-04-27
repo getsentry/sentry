@@ -3,6 +3,7 @@ from haystack.indexes import *
 from haystack.sites import SearchSite
 
 from sentry import conf
+from sentry.helpers import to_unicode
 from sentry.models import GroupedMessage
 
 if conf.SEARCH_ENGINE:
@@ -37,16 +38,18 @@ if conf.SEARCH_ENGINE:
             return 'text'
 
         def prepare_text(self, instance):
-            return '\n'.join(filter(None, [instance.message, instance.class_name, instance.traceback, instance.view]))
+            chunks = [instance.message, instance.class_name, instance.traceback, instance.view]
+            chunks.extend(self.prepare_url(instance))
+            return '\n'.join(map(to_unicode, filter(None, chunks)))
 
         def prepare_server(self, instance):
-            return [s['server_name'] for s in instance.unique_servers]
+            return [to_unicode(s['server_name']) for s in instance.unique_servers]
 
         def prepare_site(self, instance):
-            return [s['site'] for s in instance.unique_sites]
+            return [to_unicode(s['site']) for s in instance.unique_sites]
 
         def prepare_url(self, instance):
-            return [s['url'] for s in instance.unique_urls]
+            return [to_unicode(s['url']) for s in instance.unique_urls]
 
 
     site.register(GroupedMessage, GroupedMessageIndex)

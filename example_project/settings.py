@@ -106,9 +106,7 @@ INSTALLED_APPS = (
     'sentry.plugins.sentry_sites',
     'sentry.plugins.sentry_urls',
     'haystack',
-    'paging',
     'south',
-    'indexer',
     # Uncomment the next line to enable the admin:
     # 'django.contrib.admin',
 )
