@@ -59,7 +59,7 @@ In general, the action taken by a logging handler compatible with
 attributable formatted logging record.  Every logging record has its
 own severity level.  
 
-:timestamped: ``timestamp`` is the time when the logging record has been produced.
+:timestamped: ``timestamp`` is the time when the logging record has been produced.  sentry assumes there is no delay between producing in the client and receiving in the server.  the timestamp is generated in the server when the record arrives.
 :attributable: ``logger``, the name of the logger that produced the record.
 :formatted: the logger has combined all logging record properties into one string: the logging ``message``.
 :severity level: ``level`` is a numeric property.
@@ -84,7 +84,6 @@ encoded.
 
 This ``data`` JSON object contains the following fields:
 
- :``timestamp``: when the message/exception happens in the client. **not implemented yet**.
  :``level``: the record severity.
  :``message``: will specify the entire message body
  :``view``: function call which was the primary perpetrator
