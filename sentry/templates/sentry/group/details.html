@@ -194,7 +194,7 @@
                                     {{ v|pprint }}
                                 {% endif %}
                             {% else %}
-                                <p>{% blocktrans with varname=k %}No data for {{ varname }}{% endblocktrans %}</p>
+                                <p>{% blocktrans with k as varname %}No data for {{ varname }}{% endblocktrans %}</p>
                             {% endif %}
                             </td>
                         </tr>
