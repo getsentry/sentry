@@ -60,7 +60,7 @@ attributable formatted logging record.  Every logging record has its
 own severity level.  
 
 :timestamped: ``timestamp`` is the time when the logging record has been produced.
-:attributable: ``logger_name``, the name of the logger that produced the record.
+:attributable: ``logger``, the name of the logger that produced the record.
 :formatted: the logger has combined all logging record properties into one string: the logging ``message``.
 :severity level: ``level`` is a numeric property.
 
@@ -89,7 +89,7 @@ This ``data`` JSON object contains the following fields:
  :``message``: will specify the entire message body
  :``view``: function call which was the primary perpetrator
  :``message_id``: a uuid4 hex value
- :``logger_name``: optional, defaults to the empty string (the root).
+ :``logger``: optional, defaults to the empty string (the root).
  :``server_name``: optional, **please document this**.
  :``url``: optional.
  :``site``: only if you use sites
