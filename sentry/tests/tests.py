@@ -84,6 +84,7 @@ def conditional_on_module(module):
                 __import__(module)
             except ImportError:
                 print "Skipping test: %s.%s" % (self.__class__.__name__, func.__name__)
+                return lambda x, *a, **kw: None
             else:
                 return func(self, *args, **kwargs)
         return inner
@@ -1102,6 +1103,7 @@ class SentryClientTest(TestCase):
         self.assertEquals(_foo[''].levelno, client.default_level)
         self.assertEquals(_foo[''].class_name, 'Exception')
 
+    @conditional_on_module('djcelery')
     def test_celery_client(self):
         from sentry.client.celery import CelerySentryClient
 
@@ -1157,6 +1159,7 @@ class SentryManageTest(TestCase):
 class SentrySearchTest(TestCase):
     urls = 'sentry.tests.urls'
 
+    @conditional_on_module('haystack')
     def test_build_index(self):
         from sentry.views import get_search_query_set
         logger.error('test search error')
