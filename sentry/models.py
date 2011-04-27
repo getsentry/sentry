@@ -5,7 +5,6 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
-import datetime
 import logging
 import math
 
@@ -108,8 +107,8 @@ class MessageBase(Model):
 class GroupedMessage(MessageBase):
     status          = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
     times_seen      = models.PositiveIntegerField(default=1, db_index=True)
-    last_seen       = models.DateTimeField(default=datetime.datetime.now, db_index=True)
-    first_seen      = models.DateTimeField(default=datetime.datetime.now, db_index=True)
+    last_seen       = models.DateTimeField(auto_now=True, db_index=True)
+    first_seen      = models.DateTimeField(auto_now_add=True, db_index=True)
 
     score           = models.IntegerField(default=0)
     
@@ -133,10 +132,6 @@ class GroupedMessage(MessageBase):
 
     def natural_key(self):
         return (self.logger, self.view, self.checksum)
-
-    def save(self, *args, **kwargs):
-        self.score = self.get_score()
-        super(GroupedMessage, self).save(*args, **kwargs)
 
     def get_score(self):
         return int(math.log(self.times_seen) * 600 + int(self.last_seen.strftime('%s')))
@@ -212,7 +207,7 @@ class GroupedMessage(MessageBase):
 class Message(MessageBase):
     message_id      = models.CharField(max_length=32, null=True, unique=True)
     group           = models.ForeignKey(GroupedMessage, blank=True, null=True, related_name="message_set")
-    datetime        = models.DateTimeField(default=datetime.datetime.now, db_index=True)
+    datetime        = models.DateTimeField(auto_now_add=True, db_index=True)
     url             = models.URLField(verify_exists=False, null=True, blank=True)
     server_name     = models.CharField(max_length=128, db_index=True)
     site            = models.CharField(max_length=128, db_index=True, null=True)

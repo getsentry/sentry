@@ -96,11 +96,13 @@ class SentryManager(models.Manager):
                     times_seen=models.F('times_seen') + 1,
                     status=0,
                     last_seen=now,
-                    # XXX: this is precise and non-atomic
                     score=ScoreClause(group),
                 )
                 signals.post_save.send(sender=GroupedMessage, instance=group, created=False)
-            else: 
+            else:
+                GroupedMessage.objects.filter(pk=group.pk).update(
+                    score=ScoreClause(group),
+                )
                 mail = True
             instance = Message.objects.create(
                 message_id=message_id,
