@@ -85,3 +85,6 @@ PUBLIC = getattr(settings, 'SENTRY_PUBLIC', False)
 STATIC_URL_PREFIX = getattr(settings, 'SENTRY_STATIC_URL_PREFIX', URL_PREFIX + '/_static')
 
 ROOT = os.path.normpath(os.path.dirname(__file__))
+
+MAX_LENGTH_LIST = getattr(settings, 'SENTRY_MAX_LENGTH_LIST', 50)
+MAX_LENGTH_STRING = getattr(settings, 'SENTRY_MAX_LENGTH_STRING', 200)

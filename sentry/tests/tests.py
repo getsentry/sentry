@@ -749,6 +749,22 @@ class SentryTestCase(TestCase):
         group = GroupedMessage.objects.get()
         self.assertTrue(group.score > 0, group.score)
 
+    def testShortenLists(self):
+        logger = logging.getLogger()
+
+        self.setUpHandler()
+
+        logger.error('This is a test %s', 'error', extra={'data': {
+            'list': [1]*50,
+        }})
+        self.assertEquals(Message.objects.count(), 1)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+        last = Message.objects.get()
+        self.assertTrue('list' in last.data)
+        self.assertEquals(len(last.data['list']), 22) # 20 + 2 extra ele
+        self.assertEquals(last.data['list'][-2], '...')
+        self.assertEquals(last.data['list'][-1], '(30 more elements)')
+
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'
     fixtures = ['sentry/tests/fixtures/views.json']

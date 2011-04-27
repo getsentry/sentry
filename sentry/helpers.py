@@ -213,3 +213,14 @@ def get_versions(module_list=None):
             version = '.'.join(str(o) for o in version)
         versions[module_name] = version
     return versions
+
+def shorten(var):
+    var = transform(var)
+    if isinstance(var, basestring) and len(var) > conf.MAX_LENGTH_STRING:
+        var = var[:conf.MAX_LENGTH_STRING] + '...'
+    elif isinstance(var, (list, tuple, set, frozenset)) and len(var) > conf.MAX_LENGTH_LIST:
+        # TODO: we should write a real API for storing some metadata with vars when
+        # we get around to doing ref storage
+        # TODO: when we finish the above, we should also implement this for dicts
+        var = list(var)[:conf.MAX_LENGTH_LIST] + ['...', '(%d more elements)' % (len(var) - conf.MAX_LENGTH_LIST,)]
+    return var

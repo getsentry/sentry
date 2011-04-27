@@ -17,7 +17,7 @@ tests_require = [
 
 setup(
     name='django-sentry',
-    version='1.7.1',
+    version='1.7.2',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/django-sentry',
