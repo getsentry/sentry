@@ -754,16 +754,41 @@ class SentryTestCase(TestCase):
 
         self.setUpHandler()
 
+        base_list = range(500)
+
         logger.error('This is a test %s', 'error', extra={'data': {
-            'list': [1]*50,
+            'list': base_list,
+            'set': set(base_list),
+            'tuple': tuple(base_list),
+            'frozenset': frozenset(base_list),
         }})
         self.assertEquals(Message.objects.count(), 1)
         self.assertEquals(GroupedMessage.objects.count(), 1)
         last = Message.objects.get()
+        
+        # test list length
         self.assertTrue('list' in last.data)
-        self.assertEquals(len(last.data['list']), 22) # 20 + 2 extra ele
+        self.assertEquals(len(last.data['list']), 52) # 20 + 2 extra ele
         self.assertEquals(last.data['list'][-2], '...')
-        self.assertEquals(last.data['list'][-1], '(30 more elements)')
+        self.assertEquals(last.data['list'][-1], '(450 more elements)')
+
+        # test set length
+        self.assertTrue('set' in last.data)
+        self.assertEquals(len(last.data['set']), 52) # 20 + 2 extra ele
+        self.assertEquals(last.data['set'][-2], '...')
+        self.assertEquals(last.data['set'][-1], '(450 more elements)')
+
+        # test frozenset length
+        self.assertTrue('frozenset' in last.data)
+        self.assertEquals(len(last.data['frozenset']), 52) # 20 + 2 extra ele
+        self.assertEquals(last.data['frozenset'][-2], '...')
+        self.assertEquals(last.data['frozenset'][-1], '(450 more elements)')
+
+        # test tuple length
+        self.assertTrue('tuple' in last.data)
+        self.assertEquals(len(last.data['tuple']), 52) # 20 + 2 extra ele
+        self.assertEquals(last.data['tuple'][-2], '...')
+        self.assertEquals(last.data['tuple'][-1], '(450 more elements)')
 
 class SentryViewsTest(TestCase):
     urls = 'sentry.tests.urls'
