@@ -126,7 +126,7 @@ def search(request):
     else:
         message_list = GroupedMessage.objects.none()
     
-    sort = request.GET.get('sort', 'relevance')
+    sort = request.GET.get('sort')
     if sort == 'date':
         message_list = message_list.order_by('-last_seen')
     elif sort == 'new':
