@@ -62,7 +62,7 @@ own severity level.
 :timestamped: ``timestamp`` is the time when the logging record has been produced.  sentry assumes there is no delay between producing in the client and receiving in the server.  the timestamp is generated in the server when the record arrives.
 :attributable: ``logger``, the name of the logger that produced the record.
 :formatted: the logger has combined all logging record properties into one string: the logging ``message``.
-:severity level: ``level`` is a numeric property.
+:severity level: ``level`` is a numeric property.
 
 on top of these, sentry requires the logger to report the ``view``,
 the name of the function that has caused the logging record.
