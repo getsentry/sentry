@@ -10,6 +10,7 @@ import logging
 import os.path
 import sys
 import threading
+import warnings
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -83,7 +84,7 @@ def conditional_on_module(module):
             try:
                 __import__(module)
             except ImportError:
-                print "Skipping test: %s.%s" % (self.__class__.__name__, func.__name__)
+                warnings.warn("Skipping test: %s.%s" % (self.__class__.__name__, func.__name__), ImportWarning)
                 return lambda x, *a, **kw: None
             else:
                 return func(self, *args, **kwargs)
