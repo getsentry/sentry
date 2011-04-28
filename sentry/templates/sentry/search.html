@@ -11,7 +11,7 @@
     <div class="paging-wrap">
         <div class="clearfix">
             <form method="GET" action="">
-                <input type="hidden" name="q" value="{% if query %}{{ q }}{% endif %}"/>
+                <input type="hidden" name="q" value="{% if query %}{{ query }}{% endif %}"/>
                 <div class="sort-by">Sort by <select name="sort" onchange="this.form.submit()">
                     <option value=""{% ifequal sort 'relevance' %} selected="selected"{% endifequal %}>Relevance</option>
                     <option value="date"{% ifequal sort 'date' %} selected="selected"{% endifequal %}>Last Seen</option>

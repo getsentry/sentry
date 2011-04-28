@@ -1,3 +1,15 @@
+1.7.2
+
+* All strings, lists, tuples, and sets are now shortened before sending
+  to the server. Iterable data structures are truncated to the first
+  50 items, and strings are truncated to the first 200 characters.
+  
+  Both shorteners have configurable values in the settings.
+
+1.7.1
+
+* Fixed a bug that slipped through with blocktrans usage.
+
 1.7.0
 
 * Added ``score`` to ``GroupedMessage`` (schema change).

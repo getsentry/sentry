@@ -278,3 +278,16 @@ SENTRY_INCLUDE_PATHS
 ####################
 
 By default Sentry only looks at modules in INSTALLED_APPS for drilling down where an exception is located
+
+######################
+SENTRY_MAX_LENGTH_LIST
+######################
+
+The maximum number of items a list-like container should store. Defaults to 50.
+
+########################
+SENTRY_MAX_LENGTH_STRING
+########################
+
+The maximum characters of a string that should be stored. Defaults to 200.
+
