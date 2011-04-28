@@ -59,7 +59,7 @@ In general, the action taken by a logging handler compatible with
 attributable formatted logging record.  Every logging record has its
 own severity level.  
 
-:timestamped: ``timestamp`` is the time when the logging record has been produced.  sentry assumes there is no delay between producing in the client and receiving in the server.  the timestamp is generated in the server when the record arrives.
+:timestamped: ``timestamp`` is the time when the logging record has been produced.
 :attributable: ``logger``, the name of the logger that produced the record.
 :formatted: the logger has combined all logging record properties into one string: the logging ``message``.
 :severity level: ``level`` is a numeric property.
@@ -78,20 +78,31 @@ the structure of the request is:
  format=json
  data=<the encoded record>
 
-the ``data`` is the string representation of a JSON object and is
+The SENTRY_KEY is a shared secret key between client and server.  It
+travels unencrypted in the POST request so make sure the client server
+connection is not sniffable or that you are not doing serious work.
+
+The ``data`` is the string representation of a JSON object and is
 (optionally and preferably) gzipped and then (necessarily) base64
-encoded.
+encoded.  
+
+ A thought for the future: sending a clear-text ``key`` could be made
+ superfluous if ``data`` is encrypted and signed.  Then the sentry
+ server could check the signature against a set of known public keys
+ and retrieve the corresponding key.  Encrypting could be alternative
+ to ``zlib`` encoding.
 
 This ``data`` JSON object contains the following fields:
 
+ :``message``: the text of the formatted logging record.
+ :``timestamp``: indicates when the logging record was created (in the sentry client).
  :``level``: the record severity.
- :``message``: will specify the entire message body
- :``view``: function call which was the primary perpetrator
- :``message_id``: a uuid4 hex value
- :``logger``: optional, defaults to the empty string (the root).
- :``server_name``: optional, **please document this**.
+ :``message_id``: hexadecimal string representing a uuid4 value.
+ :``logger``: which logger created the record, defaults to the empty string (the root).
+ :``view``: function call which was the primary perpetrator.
+ :``server_name``: optional, identifies the sentry client from which the record comes.
  :``url``: optional.
- :``site``: only if you use sites
+ :``site``: optional, makes sense if you use sites.
  :``data``: a further JSON hash containing optional metadata and some sentry magic. (to avoid confusion, it would be nice to call this field ``metadata``).
 
 some of the above fields (``server_name``, ``url``, ``site``) are
