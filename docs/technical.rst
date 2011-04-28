@@ -98,7 +98,7 @@ This ``data`` JSON object contains the following fields:
  :``timestamp``: indicates when the logging record was created (in the sentry client).
  :``level``: the record severity.
  :``message_id``: hexadecimal string representing a uuid4 value.
- :``logger``: which logger created the record, defaults to the empty string (the root).
+ :``logger``: which logger created the record.  If missing, defaults to the string ``root``, not to the root logger.
  :``view``: function call which was the primary perpetrator.
  :``server_name``: optional, identifies the sentry client from which the record comes.
  :``url``: optional.

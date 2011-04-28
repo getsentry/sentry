@@ -64,6 +64,7 @@ class GzippedDictField(models.TextField):
 
 class MessageBase(Model):
     logger          = models.CharField(max_length=64, blank=True, default='root', db_index=True)
+    timestamp       = models.DateTimeField(auto_now_add=True, db_index=True)
     class_name      = models.CharField(_('type'), max_length=128, blank=True, null=True, db_index=True)
     level           = models.PositiveIntegerField(choices=conf.LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
     message         = models.TextField()
