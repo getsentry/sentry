@@ -8,7 +8,7 @@ except ImportError:
     from setuptools import setup, find_packages
 
 tests_require = [
-    'django',
+    'Django',
     'django-celery',
     'south',
     'django-haystack',
