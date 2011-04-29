@@ -25,7 +25,7 @@ setup(
     packages=find_packages(exclude="example_project"),
     zip_safe=False,
     install_requires=[
-        'django-paging>=0.2.2',
+        'django-paging>=0.2.4',
         'django-indexer>=0.3.0',
         'uuid',
     ],
