@@ -367,9 +367,9 @@ def store(request):
             data = base64.b64decode(data)
     except Exception, e:
         # This error should be caught as it suggests that there's a
-        # bug somewhere in the Sentry code.
+        # bug somewhere in the client's code.
         logger.exception('Bad data received')
-        return HttpResponseForbidden('Bad data')
+        return HttpResponseForbidden('Bad data decoding request (' + e.__class__.__name__ + ', ' + e + ')')
 
     try:
         if format == 'pickle':
@@ -378,9 +378,9 @@ def store(request):
             data = simplejson.loads(data)
     except Exception, e:
         # This error should be caught as it suggests that there's a
-        # bug somewhere in the Sentry code.
+        # bug somewhere in the client's code.
         logger.exception('Bad data received')
-        return HttpResponseForbidden('Bad data')
+        return HttpResponseForbidden('Bad data reconstructing object (' + e.__class__.__name__ + ', ' + e + ')')
 
     GroupedMessage.objects.from_kwargs(**data)
     
