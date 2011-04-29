@@ -95,7 +95,7 @@ encoded.
 This ``data`` JSON object contains the following fields:
 
  :``message``: the text of the formatted logging record.
- :``timestamp``: indicates when the logging record was created (in the sentry client).
+ :``timestamp``: indicates when the logging record was created (in the sentry client).  the sentry server assumes the time is in UTC.
  :``level``: the record severity.
  :``message_id``: hexadecimal string representing a uuid4 value.
  :``logger``: which logger created the record.  If missing, defaults to the string ``root``, not to the root logger.
