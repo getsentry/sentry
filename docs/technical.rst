@@ -50,7 +50,7 @@ Writing a sentry client
 This section describes how to write a sentry client.  As far as the
 writer is concerned, a sentry client *is* a logging handler written in
 a language different than Python.  you will not find the
-implementation details of the sentry logging handler, since these are
+implementation details of a specific sentry logging handler, since these are
 language dependent, but a description of the steps that are needed to
 implement just any sentry logging handler.
 
