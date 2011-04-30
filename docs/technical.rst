@@ -1,8 +1,7 @@
 Integration with Sentry
 =======================
 
-this page is relevant for you if you want to write a sentry client or
-if you simply want to understand what is going on under the hoods.
+This page describes various internals of Sentry, as well as the client's storage API.
 
 API
 ---
