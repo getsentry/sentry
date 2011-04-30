@@ -369,8 +369,7 @@ def store(request):
         # This error should be caught as it suggests that there's a
         # bug somewhere in the client's code.
         logger.exception('Bad data received')
-        return HttpResponseForbidden('Bad data decoding request (' + e.__class__.__name__ + ', ' + e + ')')
-
+        return HttpResponseForbidden('Bad data decoding request (%s, %s)' % (e.__class__.__name__, e))
     try:
         if format == 'pickle':
             data = pickle.loads(data)
@@ -380,7 +379,7 @@ def store(request):
         # This error should be caught as it suggests that there's a
         # bug somewhere in the client's code.
         logger.exception('Bad data received')
-        return HttpResponseForbidden('Bad data reconstructing object (' + e.__class__.__name__ + ', ' + e + ')')
+        return HttpResponseForbidden('Bad data reconstructing object (%s, %s)' % (e.__class__.__name__, e))
 
     GroupedMessage.objects.from_kwargs(**data)
     

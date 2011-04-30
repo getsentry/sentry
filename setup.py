@@ -8,7 +8,7 @@ except ImportError:
     from setuptools import setup, find_packages
 
 tests_require = [
-    'django',
+    'Django',
     'django-celery',
     'south',
     'django-haystack',
@@ -17,7 +17,7 @@ tests_require = [
 
 setup(
     name='django-sentry',
-    version='1.7.2',
+    version='1.7.3',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/django-sentry',
