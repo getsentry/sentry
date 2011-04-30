@@ -899,7 +899,7 @@ class RemoteSentryTest(TestCase):
             'data': 'hello world',
         })
         self.assertEquals(resp.status_code, 403)
-        self.assertEquals(resp.content, 'Bad data')
+        self.assertEquals(resp.content, 'Bad data decoding request (TypeError, Incorrect padding)')
 
     def testCorrectData(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}

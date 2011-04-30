@@ -153,3 +153,6 @@ class LevelFilter(SentryFilter):
     
     def get_choices(self):
         return SortedDict((str(k), v) for k, v in conf.LOG_LEVELS)
+    
+    def get_query_set(self, queryset):
+        return queryset.filter(level__gte=self.get_value())
