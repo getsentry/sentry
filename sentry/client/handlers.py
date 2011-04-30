@@ -15,7 +15,11 @@ class SentryHandler(logging.Handler):
             print >> sys.stderr, record.message
             return
 
-        get_client().create_from_record(record, request=request)
+        try:
+            get_client().create_from_record(record, request=request)
+        except Exception, e:
+            print >> sys.stderr, "SentryHandler failure to create log record"
+            print >> sys.stderr, record.message
 
 try:
     import logbook
