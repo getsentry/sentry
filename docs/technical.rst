@@ -47,12 +47,12 @@ Writing a sentry client
 
 *work in progress!*
 
-This section describes how to write a sentry client.  As far as the
-writer is concerned, a sentry client *is* a logging handler written in
-a language different than Python.  you will not find the
-implementation details of the sentry logging handler, since these are
+This section describes how to write a Sentry client.  As far as the
+writer is concerned, a Sentry client *is* a logging handler written in
+a language different than Python. You will not find the
+implementation details of the Sentry logging handler, since these are
 language dependent, but a description of the steps that are needed to
-implement just any sentry logging handler.
+implement just a Sentry client in your own language or framework.
 
 In general, the action taken by a logging handler compatible with
 ``log4j`` and ``logging`` is doing something with a timestamped
@@ -64,21 +64,19 @@ own severity level.
 :formatted: the logger has combined all logging record properties into one string: the logging ``message``.
 :severity level: ``level`` is a numeric property.
 
-on top of these, sentry requires the logger to report the ``view``,
+On top of these, Sentry requires the logger to report the ``view``,
 the name of the function that has caused the logging record.
 
-A logging handler integrating with sentry sends the records it handles
-to a sentry server.  The sentry server listens to JSON POST requests,
-the structure of the request is:
+A logging handler integrating with Sentry sends the records it handles
+to the Sentry server.  The server listens for JSON POST requests,
+with the following structure::
 
-::
+    POST /store/
+    key=SENTRY_KEY
+    format=json
+    data=<the encoded record>
 
- POST /store/
- key=SENTRY_KEY
- format=json
- data=<the encoded record>
-
-The SENTRY_KEY is a shared secret key between client and server.  It
+The ``SENTRY_KEY`` is a shared secret key between client and server.  It
 travels unencrypted in the POST request so make sure the client server
 connection is not sniffable or that you are not doing serious work.
 
@@ -86,25 +84,25 @@ The ``data`` is the string representation of a JSON object and is
 (optionally and preferably) gzipped and then (necessarily) base64
 encoded.  
 
- A thought for the future: sending a clear-text ``key`` could be made
- superfluous if ``data`` is encrypted and signed.  Then the sentry
- server could check the signature against a set of known public keys
- and retrieve the corresponding key.  Encrypting could be alternative
- to ``zlib`` encoding.
+    A thought for the future: sending a clear-text ``key`` could be made
+    superfluous if ``data`` is encrypted and signed.  Then the sentry
+    server could check the signature against a set of known public keys
+    and retrieve the corresponding key.  Encrypting could be alternative
+    to ``zlib`` encoding.
 
 This ``data`` JSON object contains the following fields:
 
- :``message``: the text of the formatted logging record.
- :``timestamp``: indicates when the logging record was created (in the sentry client).
- :``level``: the record severity.
- :``message_id``: hexadecimal string representing a uuid4 value.
- :``logger``: which logger created the record, defaults to the empty string (the root).
- :``view``: function call which was the primary perpetrator.
- :``server_name``: optional, identifies the sentry client from which the record comes.
- :``url``: optional.
- :``site``: optional, makes sense if you use sites.
- :``data``: a further JSON hash containing optional metadata and some sentry magic. (to avoid confusion, it would be nice to call this field ``metadata``).
+    :``message``: the text of the formatted logging record.
+    :``timestamp``: indicates when the logging record was created (in the sentry client).
+    :``level``: the record severity.
+    :``message_id``: hexadecimal string representing a uuid4 value.
+    :``logger``: which logger created the record, defaults to the empty string (the root).
+    :``view``: function call which was the primary perpetrator.
+    :``server_name``: optional, identifies the sentry client from which the record comes.
+    :``url``: optional.
+    :``site``: optional, makes sense if you use sites.
+    :``data``: a further JSON hash containing optional metadata and some sentry magic. (to avoid confusion, it would be nice to call this field ``metadata``).
 
-some of the above fields (``server_name``, ``url``, ``site``) are
-optional and actually a legacy of the first sentry client, a
-django application.  they might be moved to the ``metadata`` field.
+Some of the above fields (``server_name``, ``url``, ``site``) are
+optional and actually a legacy of the first Sentry client, a
+Django application. They may eventually be moved to the ``metadata`` field.
