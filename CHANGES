@@ -1,3 +1,9 @@
+1.7.3
+
+* Storage API has better responses when data fails to decode, or
+  you send a bad request.
+* Documentation improvements for JSON storage API.
+
 1.7.2
 
 * All strings, lists, tuples, and sets are now shortened before sending
