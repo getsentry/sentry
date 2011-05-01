@@ -55,41 +55,58 @@ def construct_checksum(level=logging.ERROR, class_name='', traceback='', message
     checksum.update(message)
     return checksum.hexdigest()
 
-def varmap(func, var):
+def varmap(func, var, context=None):
+    if context is None:
+        context = {}
+    objid = id(var)
+    if objid in context:
+        return func('<...>')
+    context[objid] = 1
     if isinstance(var, dict):
-        return dict((k, varmap(func, v)) for k, v in var.iteritems())
+        ret = dict((k, varmap(func, v, context)) for k, v in var.iteritems())
     elif isinstance(var, (list, tuple)):
-        return [varmap(func, f) for f in var]
+        ret = [varmap(func, f, context) for f in var]
     else:
-        return func(var)
+        ret = func(var)
+    del context[objid]
+    return ret
 
-def transform(value, stack=[]):
+def transform(value, stack=[], context=None):
     # TODO: make this extendable
     # TODO: include some sane defaults, like UUID
     # TODO: dont coerce strings to unicode, leave them as strings
+    if context is None:
+        context = {}
+    objid = id(value)
+    if objid in context:
+        return '<...>'
+    context[objid] = 1
     if any(value is s for s in stack):
-        return 'cycle'
-    transform_rec = lambda o: transform(o, stack + [value])
+        ret = 'cycle'
+    transform_rec = lambda o: transform(o, stack + [value], context)
     if isinstance(value, (tuple, list, set, frozenset)):
-        return type(value)(transform_rec(o) for o in value)
+        ret = type(value)(transform_rec(o) for o in value)
     elif isinstance(value, uuid.UUID):
-        return repr(value)
+        ret = repr(value)
     elif isinstance(value, dict):
-        return dict((k, transform_rec(v)) for k, v in value.iteritems())
+        ret = dict((k, transform_rec(v)) for k, v in value.iteritems())
     elif isinstance(value, unicode):
-        return to_unicode(value)
+        ret = to_unicode(value)
     elif isinstance(value, str):
         try:
-            return str(value)
+            ret = str(value)
         except:
-            return to_unicode(value)
+            ret = to_unicode(value)
     elif not isinstance(value, (ClassType, TypeType)) and \
             callable(getattr(value, '__sentry__', None)):
-        return transform_rec(value.__sentry__())
+        ret = transform_rec(value.__sentry__())
     elif not isinstance(value, (int, bool)) and value is not None:
         # XXX: we could do transform(repr(value)) here
-        return to_unicode(value)
-    return value
+        ret = to_unicode(value)
+    else:
+        ret = value
+    del context[objid]
+    return ret
 
 def to_unicode(value):
     try:
