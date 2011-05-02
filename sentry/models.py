@@ -66,7 +66,6 @@ class GzippedDictField(models.TextField):
 
 class MessageBase(Model):
     logger          = models.CharField(max_length=64, blank=True, default='root', db_index=True)
-    timestamp       = models.DateTimeField(editable=False, default=datetime.utcnow)
     class_name      = models.CharField(_('type'), max_length=128, blank=True, null=True, db_index=True)
     level           = models.PositiveIntegerField(choices=conf.LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
     message         = models.TextField()
@@ -111,7 +110,7 @@ class GroupedMessage(MessageBase):
     status          = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
     times_seen      = models.PositiveIntegerField(default=1, db_index=True)
     last_seen       = models.DateTimeField(auto_now=True, db_index=True)
-    first_seen      = models.DateTimeField(auto_now_add=True, db_index=True)
+    first_seen      = models.DateTimeField(default=datetime.now, db_index=True)
 
     score           = models.IntegerField(default=0)
     
@@ -210,7 +209,7 @@ class GroupedMessage(MessageBase):
 class Message(MessageBase):
     message_id      = models.CharField(max_length=32, null=True, unique=True)
     group           = models.ForeignKey(GroupedMessage, blank=True, null=True, related_name="message_set")
-    datetime        = models.DateTimeField(auto_now_add=True, db_index=True)
+    datetime        = models.DateTimeField(default=datetime.now, db_index=True)
     url             = models.URLField(verify_exists=False, null=True, blank=True)
     server_name     = models.CharField(max_length=128, db_index=True)
     site            = models.CharField(max_length=128, db_index=True, null=True)
