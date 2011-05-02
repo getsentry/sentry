@@ -1,3 +1,8 @@
+1.7.4
+
+* Fixed a bug with potential recursion issues.
+* Fixed a bug with the storage API and unicode keys.
+
 1.7.3
 
 * Storage API has better responses when data fails to decode, or
