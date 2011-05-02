@@ -89,6 +89,8 @@ encoded.
     and retrieve the corresponding key.  Encrypting could be alternative
     to ``zlib`` encoding.
 
+    Other option: sending not a key but a signature of the ``message_id``.
+
 This ``data`` JSON object contains the following fields:
 
     :``message``: the text of the formatted logging record.
