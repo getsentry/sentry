@@ -57,7 +57,8 @@ class SentryManager(models.Manager):
         site = kwargs.pop('site', None)
         data = kwargs.pop('data', {}) or {}
         message_id = kwargs.pop('message_id', None)
-
+        timestamp = kwargs.pop('timestamp', None)
+        
         if url:
             data['url'] = url
             url = url[:URL_MAX_LENGTH]
@@ -76,6 +77,9 @@ class SentryManager(models.Manager):
                 kwargs['data']['version'] = data['__sentry__']['version']
             if 'module' in data.get('__sentry__', {}):
                 kwargs['data']['module'] = data['__sentry__']['module']
+
+            if timestamp:
+                kwargs['first_seen'] = timestamp
 
             group, created = GroupedMessage.objects.get_or_create(
                 view=view,
@@ -104,6 +108,10 @@ class SentryManager(models.Manager):
                     score=ScoreClause(group),
                 )
                 mail = True
+
+            if 'first_seen' in kwargs:
+                kwargs['datetime'] = kwargs.pop('first_seen', None)
+                
             instance = Message.objects.create(
                 message_id=message_id,
                 view=view,
