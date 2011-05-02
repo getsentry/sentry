@@ -6,7 +6,7 @@ This page describes various internals of Sentry, as well as the client's storage
 API
 ---
 
-If you wish to access sentry within your own views and models, you may do so via the standard model API::
+If you wish to access Sentry within your own views and models, you may do so via the standard model API::
 
 	from sentry.models import Message, GroupedMessage
 	
@@ -38,7 +38,7 @@ Both the ``url`` and ``level`` parameters are optional. ``level`` should be one 
 * ``logging.FATAL``
 
 If you have a custom exception class, similar to Http404, or something else you don't want to log,
-you can also add ``skip_sentry = True`` to your exception class or instance, and sentry will simply ignore
+you can also add ``skip_sentry = True`` to your exception class or instance, and Sentry will simply ignore
 the error.
 
 Writing a sentry client
@@ -48,8 +48,8 @@ Writing a sentry client
 
 This section describes how to write a Sentry client.  As far as the
 writer is concerned, a Sentry client *is* a logging handler written in
-a language different than Python. You will not find the
-implementation details of the Sentry logging handler, since these are
+a language different than Python.  You will not find the
+implementation details of a specific Sentry logging handler, since these are
 language dependent, but a description of the steps that are needed to
 implement just a Sentry client in your own language or framework.
 
@@ -84,23 +84,25 @@ The ``data`` is the string representation of a JSON object and is
 encoded.  
 
     A thought for the future: sending a clear-text ``key`` could be made
-    superfluous if ``data`` is encrypted and signed.  Then the sentry
+    superfluous if ``data`` is encrypted and signed.  Then the Sentry
     server could check the signature against a set of known public keys
     and retrieve the corresponding key.  Encrypting could be alternative
     to ``zlib`` encoding.
 
+    Other option: sending not a key but a signature of the ``message_id``.
+
 This ``data`` JSON object contains the following fields:
 
     :``message``: the text of the formatted logging record.
-    :``timestamp``: indicates when the logging record was created (in the sentry client).
+    :``timestamp``: indicates when the logging record was created (in the Sentry client).  The Sentry server assumes the time is in UTC.
     :``level``: the record severity.
     :``message_id``: hexadecimal string representing a uuid4 value.
-    :``logger``: which logger created the record, defaults to the empty string (the root).
+    :``logger``: which logger created the record.  If missing, defaults to the string ``root``, not to the root logger.
     :``view``: function call which was the primary perpetrator.
-    :``server_name``: optional, identifies the sentry client from which the record comes.
+    :``server_name``: optional, identifies the Sentry client from which the record comes.
     :``url``: optional.
     :``site``: optional, makes sense if you use sites.
-    :``data``: a further JSON hash containing optional metadata and some sentry magic. (to avoid confusion, it would be nice to call this field ``metadata``).
+    :``data``: a further JSON hash containing optional metadata and some Sentry magic. (to avoid confusion, it would be nice to call this field ``metadata``).
 
 Some of the above fields (``server_name``, ``url``, ``site``) are
 optional and actually a legacy of the first Sentry client, a
