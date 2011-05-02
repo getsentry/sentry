@@ -49,6 +49,7 @@ If you're installing it by hand, you'll need to fulfill the following requiremen
  - **Django >= 1.2**
  - **django-indexer >= 0.3.0** (stores metadata indexes)
  - **django-paging >= 0.2.2**
+ - **django-templatetag-sugar >= 0.1.0**
 
 Upgrading
 ---------
