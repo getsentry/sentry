@@ -241,3 +241,10 @@ def shorten(var):
         # TODO: when we finish the above, we should also implement this for dicts
         var = list(var)[:conf.MAX_LENGTH_LIST] + ['...', '(%d more elements)' % (len(var) - conf.MAX_LENGTH_LIST,)]
     return var
+
+def is_float(var):
+    try:
+        float(var)
+    except ValueError:
+        return False
+    return True

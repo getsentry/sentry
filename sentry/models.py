@@ -109,7 +109,7 @@ class MessageBase(Model):
 class GroupedMessage(MessageBase):
     status          = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
     times_seen      = models.PositiveIntegerField(default=1, db_index=True)
-    last_seen       = models.DateTimeField(auto_now=True, db_index=True)
+    last_seen       = models.DateTimeField(default=datetime.now, db_index=True)
     first_seen      = models.DateTimeField(default=datetime.now, db_index=True)
 
     score           = models.IntegerField(default=0)

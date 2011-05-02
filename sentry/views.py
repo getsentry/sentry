@@ -20,7 +20,7 @@ from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
 from sentry import conf
-from sentry.helpers import get_filters
+from sentry.helpers import get_filters, is_float
 from sentry.models import GroupedMessage, Message
 from sentry.plugins import GroupActionProvider
 from sentry.templatetags.sentry_helpers import with_priority
@@ -384,6 +384,16 @@ def store(request):
 
     # XXX: ensure keys are coerced to strings
     data = dict((smart_str(k), v) for k, v in data.iteritems())
+
+    if 'timestamp' in data:
+        if is_float(data['timestamp']):
+            data['timestamp'] = datetime.datetime.fromtimestamp(float(data['timestamp']))
+        else:
+            if '.' in data['timestamp']:
+                format = '%Y-%m-%dT%H:%M:%S.%f'
+            else:
+                format = '%Y-%m-%dT%H:%M:%S'
+            data['timestamp'] = datetime.datetime.strptime(data['timestamp'], format)
 
     GroupedMessage.objects.from_kwargs(**data)
     

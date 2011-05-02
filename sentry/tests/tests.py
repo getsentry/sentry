@@ -5,6 +5,7 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
+import datetime
 import getpass
 import logging
 import os.path
@@ -926,6 +927,21 @@ class RemoteSentryTest(TestCase):
         self.assertEquals(instance.server_name, 'not_dcramer.local')
         self.assertEquals(instance.level, 40)
         self.assertEquals(instance.site, 'not_a_real_site')
+
+    def testTimestamp(self):
+        timestamp = datetime.datetime.now() - datetime.timedelta(hours=1)
+        kwargs = {u'message': 'hello', 'timestamp': timestamp.strftime('%s.%f')}
+        resp = self.client.post(reverse('sentry-store'), {
+            'data': base64.b64encode(pickle.dumps(transform(kwargs)).encode('zlib')),
+            'key': conf.KEY,
+        })
+        self.assertEquals(resp.status_code, 200)
+        instance = Message.objects.get()
+        self.assertEquals(instance.message, 'hello')
+        self.assertEquals(instance.datetime, timestamp)
+        group = instance.group
+        self.assertEquals(group.first_seen, timestamp)
+        self.assertEquals(group.last_seen, timestamp)
 
     def testUngzippedData(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}

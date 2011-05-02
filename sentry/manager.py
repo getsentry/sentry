@@ -48,7 +48,7 @@ class SentryManager(models.Manager):
         from sentry.models import Message, GroupedMessage, FilterValue
         
         URL_MAX_LENGTH = Message._meta.get_field_by_name('url')[0].max_length
-        now = datetime.datetime.now()
+        now = kwargs.pop('timestamp', None) or datetime.datetime.now()
 
         view = kwargs.pop('view', None)
         logger_name = kwargs.pop('logger', 'root')
@@ -57,7 +57,6 @@ class SentryManager(models.Manager):
         site = kwargs.pop('site', None)
         data = kwargs.pop('data', {}) or {}
         message_id = kwargs.pop('message_id', None)
-        timestamp = kwargs.pop('timestamp', None)
         
         if url:
             data['url'] = url
@@ -78,15 +77,18 @@ class SentryManager(models.Manager):
             if 'module' in data.get('__sentry__', {}):
                 kwargs['data']['module'] = data['__sentry__']['module']
 
-            if timestamp:
-                kwargs['first_seen'] = timestamp
+            group_kwargs = kwargs.copy()
+            group_kwargs.update({
+                'last_seen': now,
+                'first_seen': now,
+            })
 
             group, created = GroupedMessage.objects.get_or_create(
                 view=view,
                 logger=logger_name,
                 checksum=checksum,
                 # we store some sample data for rendering
-                defaults=kwargs
+                defaults=group_kwargs
             )
             kwargs.pop('data', None)
             if not created:
@@ -109,8 +111,6 @@ class SentryManager(models.Manager):
                 )
                 mail = True
 
-            if 'first_seen' in kwargs:
-                kwargs['datetime'] = kwargs.pop('first_seen', None)
                 
             instance = Message.objects.create(
                 message_id=message_id,
@@ -122,6 +122,7 @@ class SentryManager(models.Manager):
                 site=site,
                 checksum=checksum,
                 group=group,
+                datetime=now,
                 **kwargs
             )
             if server_name:
