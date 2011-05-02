@@ -8,6 +8,8 @@ except ImportError:
 import logging
 import math
 
+from datetime import datetime
+
 from django.conf import settings
 from django.db import models
 from django.db.models import Count
@@ -64,6 +66,7 @@ class GzippedDictField(models.TextField):
 
 class MessageBase(Model):
     logger          = models.CharField(max_length=64, blank=True, default='root', db_index=True)
+    timestamp       = models.DateTimeField(editable=False, default=datetime.utcnow)
     class_name      = models.CharField(_('type'), max_length=128, blank=True, null=True, db_index=True)
     level           = models.PositiveIntegerField(choices=conf.LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
     message         = models.TextField()
