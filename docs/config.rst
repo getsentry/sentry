@@ -253,7 +253,7 @@ Default value is ``False``
 SENTRY_NAME
 ###########
 
-This will override the ``server_name`` value for this installation. Defaults to ``socket.get_hostname()``.
+This will override the ``server_name`` value for this installation. Defaults to ``socket.gethostname()``.
 
 #################
 SENTRY_URL_PREFIX
