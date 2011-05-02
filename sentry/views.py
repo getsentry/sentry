@@ -15,6 +15,7 @@ from django.http import HttpResponse, HttpResponseBadRequest, \
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.utils import simplejson
+from django.utils.encoding import smart_str
 from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
@@ -380,6 +381,9 @@ def store(request):
         # bug somewhere in the client's code.
         logger.exception('Bad data received')
         return HttpResponseForbidden('Bad data reconstructing object (%s, %s)' % (e.__class__.__name__, e))
+
+    # XXX: ensure keys are coerced to strings
+    data = dict((smart_str(k), v) for k, v in data.iteritems())
 
     GroupedMessage.objects.from_kwargs(**data)
     

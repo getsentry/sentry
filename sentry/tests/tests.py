@@ -914,6 +914,19 @@ class RemoteSentryTest(TestCase):
         self.assertEquals(instance.level, 40)
         self.assertEquals(instance.site, 'not_a_real_site')
 
+    def testUnicodeKeys(self):
+        kwargs = {u'message': 'hello', u'server_name': 'not_dcramer.local', u'level': 40, u'site': 'not_a_real_site'}
+        resp = self.client.post(reverse('sentry-store'), {
+            'data': base64.b64encode(pickle.dumps(transform(kwargs)).encode('zlib')),
+            'key': conf.KEY,
+        })
+        self.assertEquals(resp.status_code, 200)
+        instance = Message.objects.get()
+        self.assertEquals(instance.message, 'hello')
+        self.assertEquals(instance.server_name, 'not_dcramer.local')
+        self.assertEquals(instance.level, 40)
+        self.assertEquals(instance.site, 'not_a_real_site')
+
     def testUngzippedData(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
         resp = self.client.post(reverse('sentry-store'), {
@@ -1184,7 +1197,7 @@ class SentryClientTest(TestCase):
     #     self.assertEqual(message.message, 'view exception')
     # 
     #     conf.CLIENT = 'sentry.client.base.SentryClient'
-        
+
 class SentryManageTest(TestCase):
     fixtures = ['sentry/tests/fixtures/cleanup.json']
     
