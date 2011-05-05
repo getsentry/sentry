@@ -66,32 +66,40 @@ own severity level.
 On top of these, Sentry requires the logger to report the ``view``,
 the name of the function that has caused the logging record.
 
+Authentication
+~~~~~~~~~~~~~~
+
 A logging handler integrating with Sentry sends the records it handles
 to the Sentry server.  The server listens for JSON POST requests,
 with the following structure::
 
     POST /store/
-    key=SENTRY_KEY
-    format=json
-    data=<the encoded record>
+    <the encoded record>
+
+You must also send along the following authentication headers::
+
+    Authorization: Sentry sentry_signature=<hmac signature>,
+    sentry_timestamp=<signature timestamp>,
+    sentry_version=<client version, arbitrary>
+
+The header is composed of a SHA1-signed HMAC, the timestamp from when the message
+was generated, and an arbitrary client version string. To generate the HMAC signature,
+take the following example (in Python)::
+
+    hmac.new(SENTRY_KEY, '%s %s' % (timestamp, message), hashlib.sha1).hexdigest()
 
 The ``SENTRY_KEY`` is a shared secret key between client and server.  It
 travels unencrypted in the POST request so make sure the client server
 connection is not sniffable or that you are not doing serious work.
 
-The ``data`` is the string representation of a JSON object and is
+POST Body
+~~~~~~~~~
+
+The body of the post is a string representation of a JSON object and is
 (optionally and preferably) gzipped and then (necessarily) base64
 encoded.  
 
-    A thought for the future: sending a clear-text ``key`` could be made
-    superfluous if ``data`` is encrypted and signed.  Then the Sentry
-    server could check the signature against a set of known public keys
-    and retrieve the corresponding key.  Encrypting could be alternative
-    to ``zlib`` encoding.
-
-    Other option: sending not a key but a signature of the ``message_id``.
-
-This ``data`` JSON object contains the following fields:
+This JSON object contains the following fields:
 
     :``message``: the text of the formatted logging record.
     :``timestamp``: indicates when the logging record was created (in the Sentry client).  The Sentry server assumes the time is in UTC.

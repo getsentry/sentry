@@ -6,12 +6,15 @@ except ImportError:
 import datetime
 import logging
 import re
+import time
+import warnings
 import zlib
 
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseBadRequest, \
-    HttpResponseForbidden, HttpResponseRedirect, Http404, HttpResponseNotModified
+    HttpResponseForbidden, HttpResponseRedirect, Http404, HttpResponseNotModified, \
+    HttpResponseNotAllowed, HttpResponseGone
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.utils import simplejson
@@ -20,7 +23,7 @@ from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
 from sentry import conf
-from sentry.helpers import get_filters, is_float
+from sentry.helpers import get_filters, is_float, get_signature, parse_auth_header
 from sentry.models import GroupedMessage, Message
 from sentry.plugins import GroupActionProvider
 from sentry.templatetags.sentry_helpers import with_priority
@@ -347,17 +350,50 @@ def group_message_details(request, group_id, message_id):
 
 @csrf_exempt
 def store(request):
-    key = request.POST.get('key')
-    if key != conf.KEY:
-        return HttpResponseForbidden('Invalid credentials')
+    if request.method != 'POST':
+        return HttpResponseNotAllowed('This method only supports POST requests')
 
-    format = request.POST.get('format', 'pickle')
-    if format not in ('pickle', 'json'):
-        return HttpResponseForbidden('Invalid format')
-    
-    data = request.POST.get('data')
-    if not data:
-        return HttpResponseForbidden('Missing data')
+    if request.META.get('AUTHORIZATION', '').startswith('Sentry'):
+        auth_vars = parse_auth_header(request.META['AUTHORIZATION'])
+        
+        signature = auth_vars.get('sentry_signature')
+        timestamp = auth_vars.get('sentry_timestamp')
+
+        format = 'json'
+
+        data = request.raw_post_data
+
+        # Signed data packet
+        if signature and timestamp:
+            try:
+                timestamp = float(timestamp)
+            except ValueError:
+                return HttpResponseBadRequest('Invalid timestamp')
+
+            if timestamp < time.time() - 3600: # 1 hour
+                return HttpResponseGone('Message has expired')
+
+            sig_hmac = get_signature(data, timestamp)
+            if sig_hmac != signature:
+                return HttpResponseForbidden('Invalid signature')
+        else:
+            return HttpResponse('Unauthorized', status_code=401)
+    else:
+        data = request.POST.get('data')
+        if not data:
+            return HttpResponseBadRequest('Missing data')
+
+        format = request.POST.get('format', 'pickle')
+
+        if format not in ('pickle', 'json'):
+            return HttpResponseBadRequest('Invalid format')
+
+        # Legacy request (deprecated as of 2.0)
+        key = request.POST.get('key')
+        
+        if key != conf.KEY:
+            warnings.warn('A client is sending the `key` parameter, which will be removed in Sentry 2.0', DeprecationWarning)
+            return HttpResponseForbidden('Invalid credentials')
 
     logger = logging.getLogger('sentry.server')
 
@@ -371,6 +407,7 @@ def store(request):
         # bug somewhere in the client's code.
         logger.exception('Bad data received')
         return HttpResponseForbidden('Bad data decoding request (%s, %s)' % (e.__class__.__name__, e))
+
     try:
         if format == 'pickle':
             data = pickle.loads(data)

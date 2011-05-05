@@ -1,12 +1,9 @@
 from __future__ import absolute_import
 
 import base64
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 import logging
 import sys
+import time
 import traceback
 import urllib2
 import uuid
@@ -17,9 +14,10 @@ from django.template.loader import LoaderOrigin
 from django.utils import simplejson
 from django.views.debug import ExceptionReporter
 
+import sentry
 from sentry import conf
-from sentry.helpers import construct_checksum, varmap, transform, get_installed_apps, urlread, force_unicode, \
-                           get_versions, shorten
+from sentry.helpers import construct_checksum, varmap, transform, get_installed_apps, force_unicode, \
+                           get_versions, shorten, get_signature, get_auth_header
 
 logger = logging.getLogger('sentry.errors')
 
@@ -139,20 +137,28 @@ class SentryClient(object):
         
         return message_id
 
-    def send_remote(self, url=None, data=None):
-        return urlread(url, post=data, timeout=conf.REMOTE_TIMEOUT)
+    def send_remote(self, url, data, headers={}):
+        req = urllib2.Request(url, headers=headers)
+        try:
+            response = urllib2.urlopen(req, data, conf.REMOTE_TIMEOUT).read()
+        except:
+            response = urllib2.urlopen(req, data).read()
+        return response
 
     def send(self, **kwargs):
         "Sends the message to the server."
         if conf.REMOTE_URL:
             for url in conf.REMOTE_URL:
-                data = {
-                    'data': base64.b64encode(simplejson.dumps(kwargs).encode('zlib')),
-                    'format': 'json',
-                    'key': conf.KEY,
+                message = base64.b64encode(simplejson.dumps(kwargs).encode('zlib'))
+                timestamp = time.time()
+                signature = get_signature(message, timestamp)
+                headers={
+                    'Authorization': get_auth_header(signature, timestamp, '%s/%s' % (self.__class__.__name__, sentry.VERSION)),
+                    'Content-Type': 'application/octet-stream',
                 }
+                
                 try:
-                    return self.send_remote(url=url, data=data)
+                    return self.send_remote(url=url, data=message, headers=headers)
                 except urllib2.HTTPError, e:
                     body = e.read()
                     logger.error('Unable to reach Sentry log server: %s (url: %%s, body: %%s)' % (e,), url, body,

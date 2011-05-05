@@ -10,6 +10,7 @@ import getpass
 import logging
 import os.path
 import sys
+import time
 import threading
 import warnings
 
@@ -23,10 +24,11 @@ from django.core.signals import got_request_exception
 from django.core.servers import basehttp
 from django.test import TestCase
 from django.template import TemplateSyntaxError
+from django.utils import simplejson
 from django.utils.encoding import smart_unicode
 
 from sentry import conf
-from sentry.helpers import transform
+from sentry.helpers import transform, get_signature, get_auth_header
 from sentry.models import Message, GroupedMessage
 from sentry.client.base import SentryClient
 from sentry.client.handlers import SentryHandler
@@ -852,7 +854,7 @@ class SentryViewsTest(TestCase):
     def testGroup(self):
         self.client.login(username='admin', password='admin')
         resp = self.client.get(reverse('sentry-group', args=[2]), follow=True)
-        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp.status_code, 200, resp.content)
         self.assertTemplateUsed(resp, 'sentry/group/details.html')
 
 class RemoteSentryTest(TestCase):
@@ -884,15 +886,13 @@ class RemoteSentryTest(TestCase):
 
     def testNoKey(self):
         resp = self.client.post(reverse('sentry-store'))
-        self.assertEquals(resp.status_code, 403)
-        self.assertEquals(resp.content, 'Invalid credentials')
+        self.assertEquals(resp.status_code, 400)
 
     def testNoData(self):
         resp = self.client.post(reverse('sentry-store'), {
             'key': conf.KEY,
         })
-        self.assertEquals(resp.status_code, 403)
-        self.assertEquals(resp.content, 'Missing data')
+        self.assertEquals(resp.status_code, 400)
 
     def testBadData(self):
         resp = self.client.post(reverse('sentry-store'), {
@@ -921,7 +921,7 @@ class RemoteSentryTest(TestCase):
             'data': base64.b64encode(pickle.dumps(transform(kwargs)).encode('zlib')),
             'key': conf.KEY,
         })
-        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp.status_code, 200, resp.content)
         instance = Message.objects.get()
         self.assertEquals(instance.message, 'hello')
         self.assertEquals(instance.server_name, 'not_dcramer.local')
@@ -935,7 +935,7 @@ class RemoteSentryTest(TestCase):
             'data': base64.b64encode(pickle.dumps(transform(kwargs)).encode('zlib')),
             'key': conf.KEY,
         })
-        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp.status_code, 200, resp.content)
         instance = Message.objects.get()
         self.assertEquals(instance.message, 'hello')
         self.assertEquals(instance.datetime, timestamp)
@@ -955,6 +955,7 @@ class RemoteSentryTest(TestCase):
         self.assertEquals(instance.server_name, 'not_dcramer.local')
         self.assertEquals(instance.site, 'not_a_real_site')
         self.assertEquals(instance.level, 40)
+
 
     def testByteSequence(self):
         """
@@ -976,6 +977,20 @@ class RemoteSentryTest(TestCase):
         self.assertEquals(instance.server_name, 'shilling.disqus.net')
         self.assertEquals(instance.level, 40)
         self.assertTrue(instance.data['__sentry__']['exc'])
+
+    def testSignature(self):
+        kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
+        ts = time.time()
+        message = base64.b64encode(simplejson.dumps(transform(kwargs)))
+        sig = get_signature(message, ts)
+
+        resp = self.client.post(reverse('sentry-store'), message, content_type='application/octet-stream', AUTHORIZATION=get_auth_header(sig, ts, 'foo'))
+        self.assertEquals(resp.status_code, 200, resp.content)
+        instance = Message.objects.get()
+        self.assertEquals(instance.message, 'hello')
+        self.assertEquals(instance.server_name, 'not_dcramer.local')
+        self.assertEquals(instance.site, 'not_a_real_site')
+        self.assertEquals(instance.level, 40)
 
     # def testFunctionException(self):
     #     try: raise Exception(lambda:'foo')

@@ -1,3 +1,7 @@
+1.7.5
+
+* Implemented new client/server storage API and signing methods.
+
 1.7.4
 
 * Fixed a bug with potential recursion issues.

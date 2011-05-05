@@ -1,15 +1,15 @@
+import hmac
 import logging
 import sys
-import urllib
-import urllib2
 import uuid
 from types import ClassType, TypeType
 
 import django
 from django.conf import settings
 from django.utils.encoding import force_unicode
-from django.utils.hashcompat import md5_constructor
+from django.utils.hashcompat import md5_constructor, sha_constructor
 
+import sentry
 from sentry import conf
 
 _FILTER_CACHE = None
@@ -193,14 +193,6 @@ class cached_property(object):
             obj.__dict__[self.__name__] = value
         return value
 
-def urlread(url, get={}, post={}, headers={}, timeout=None):
-    req = urllib2.Request(url, urllib.urlencode(get), headers=headers)
-    try:
-        response = urllib2.urlopen(req, urllib.urlencode(post), timeout).read()
-    except:
-        response = urllib2.urlopen(req, urllib.urlencode(post)).read()
-    return response
-
 def get_versions(module_list=None):
     if not module_list:
         module_list = settings.INSTALLED_APPS + ['django']
@@ -248,3 +240,16 @@ def is_float(var):
     except ValueError:
         return False
     return True
+
+def get_signature(message, timestamp):
+    return hmac.new(conf.KEY, '%s %s' % (timestamp, message), sha_constructor).hexdigest()
+
+def get_auth_header(signature, timestamp, client):
+    return 'Sentry sentry_signature=%s, sentry_timestamp=%s, sentry_client=%s' % (
+        signature,
+        timestamp,
+        sentry.VERSION,
+    )
+
+def parse_auth_header(header):
+    return dict(map(lambda x: x.strip().split('='), header.split(' ', 1)[1].split(',')))
