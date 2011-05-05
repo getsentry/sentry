@@ -1,6 +1,8 @@
 1.7.5
 
 * Implemented new client/server storage API and signing methods.
+* Fixed a bug where accessing __sentry__ would sometimes cause errors on
+  certain code paths.
 
 1.7.4
 

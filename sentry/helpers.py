@@ -71,6 +71,12 @@ def varmap(func, var, context=None):
     del context[objid]
     return ret
 
+def has_sentry_metadata(value):
+    try:
+        return callable(getattr(value, '__sentry__', None))
+    except:
+        return False
+
 def transform(value, stack=[], context=None):
     # TODO: make this extendable
     # TODO: include some sane defaults, like UUID
@@ -98,7 +104,7 @@ def transform(value, stack=[], context=None):
         except:
             ret = to_unicode(value)
     elif not isinstance(value, (ClassType, TypeType)) and \
-            callable(getattr(value, '__sentry__', None)):
+            has_sentry_metadata(value):
         ret = transform_rec(value.__sentry__())
     elif not isinstance(value, (int, bool)) and value is not None:
         # XXX: we could do transform(repr(value)) here
