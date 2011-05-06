@@ -35,7 +35,7 @@ setup(
     ],
     tests_require=tests_require,
     extras_require={'test': tests_require},
-    test_suite='sentry.runtests.runtests',
+    test_suite='runtests.runtests',
     include_package_data=True,
     classifiers=[
         'Framework :: Django',
