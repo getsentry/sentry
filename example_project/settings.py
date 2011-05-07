@@ -119,6 +119,14 @@ SENTRY_TESTING = True
 SENTRY_SITE = 'example'
 SENTRY_PUBLIC = False
 
+SENTRY_FILTERS = (
+    'example_project.filters.IPFilter',
+    'sentry.filters.StatusFilter',
+    'sentry.filters.LoggerFilter',
+    'sentry.filters.LevelFilter',
+    'sentry.filters.ServerNameFilter',
+    'sentry.filters.SiteFilter',
+)
 SENTRY_SEARCH_ENGINE = 'whoosh'
 SENTRY_SEARCH_OPTIONS = {
     'path': os.path.join(PROJECT_ROOT, 'sentry_index'),

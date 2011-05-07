@@ -21,7 +21,7 @@ class TextWidget(Widget):
         return mark_safe('<div class="filter-text"><p class="textfield"><input type="text" name="%(name)s" value="%(value)s" placeholder="%(placeholder)s"/></p><p class="submit"><input type="submit" class="search-submit"/></p></div>' % dict(
             name=self.filter.get_query_param(),
             value=escape(value),
-            placeholder=escape(placeholder),
+            placeholder=escape(placeholder or 'enter %s' % self.filter.label.lower()),
         ))
 
 class ChoiceWidget(Widget):
