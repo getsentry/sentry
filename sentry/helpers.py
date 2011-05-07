@@ -2,6 +2,7 @@ import hmac
 import logging
 import sys
 import uuid
+import warnings
 from types import ClassType, TypeType
 
 import django
@@ -259,3 +260,9 @@ def get_auth_header(signature, timestamp, client):
 
 def parse_auth_header(header):
     return dict(map(lambda x: x.strip().split('='), header.split(' ', 1)[1].split(',')))
+
+def configure(**kwargs):
+    for k, v in kwargs.iteritems():
+        if not hasattr(conf, k):
+            warnings.warn('Setting %k which is not defined by Sentry' % k)
+        setattr(conf, k, v)
