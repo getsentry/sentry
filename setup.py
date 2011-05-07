@@ -17,7 +17,7 @@ tests_require = [
 
 setup(
     name='django-sentry',
-    version='1.7.5',
+    version='1.8.0',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/django-sentry',
@@ -37,6 +37,11 @@ setup(
     extras_require={'test': tests_require},
     test_suite='runtests.runtests',
     include_package_data=True,
+    entry_points = {
+        'console_scripts': [
+            'sentry = sentry.scripts.runner:main',
+        ],
+    },
     classifiers=[
         'Framework :: Django',
         'Intended Audience :: Developers',
