@@ -16,7 +16,7 @@ from django.views.debug import ExceptionReporter
 
 import sentry
 from sentry import conf
-from sentry.helpers import construct_checksum, varmap, transform, get_installed_apps, force_unicode, \
+from sentry.utils import construct_checksum, varmap, transform, get_installed_apps, force_unicode, \
                            get_versions, shorten, get_signature, get_auth_header
 
 logger = logging.getLogger('sentry.errors')
@@ -24,7 +24,7 @@ logger = logging.getLogger('sentry.errors')
 class SentryClient(object):
     def process(self, **kwargs):
         "Processes the message before passing it on to the server"
-        from sentry.helpers import get_filters
+        from sentry.utils import get_filters
 
         if kwargs.get('data'):
             # Ensure we're not changing the original data which was passed

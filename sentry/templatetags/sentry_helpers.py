@@ -8,7 +8,7 @@ from django.template import RequestContext
 from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
 from paging.helpers import paginate as paginate_func
-from sentry.helpers import get_db_engine
+from sentry.utils import get_db_engine
 from sentry.plugins import GroupActionProvider
 from templatetag_sugar.register import tag
 from templatetag_sugar.parser import Name, Variable, Constant, Optional

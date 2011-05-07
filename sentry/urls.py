@@ -1,38 +1,5 @@
-import os
-import re
+import warnings
 
-from django.conf.urls.defaults import *
+warnings.warn("The use of 'sentry.urls' is deprecated. Please use 'sentry.web.urls' instead.", DeprecationWarning)
 
-from sentry.conf import KEY
-from sentry import views
-from sentry.feeds import MessageFeed, SummaryFeed
-
-SENTRY_ROOT = os.path.dirname(__file__) 
-
-urlpatterns = patterns('',
-    # This path is also reflected in conf.STATIC_URL_PREFIX
-    url(r'^_static/(?P<path>.*)$', views.static_media, name='sentry-media'),
-
-    # Feeds
-
-    url(r'^feeds/%s/messages.xml$' % re.escape(KEY), MessageFeed(), name='sentry-feed-messages'),
-    url(r'^feeds/%s/summaries.xml$' % re.escape(KEY), SummaryFeed(), name='sentry-feed-summaries'),
-
-    # JS and API
-
-    url(r'^jsapi/$', views.ajax_handler, name='sentry-ajax'),
-    url(r'^store/$', views.store, name='sentry-store'),
-    
-    # Normal views
-
-    url(r'^login$', views.login, name='sentry-login'),
-    url(r'^logout$', views.logout, name='sentry-logout'),
-    url(r'^group/(\d+)$', views.group, name='sentry-group'),
-    url(r'^group/(\d+)/messages$', views.group_message_list, name='sentry-group-messages'),
-    url(r'^group/(\d+)/messages/(\d+)$', views.group_message_details, name='sentry-group-message'),
-    url(r'^group/(\d+)/actions/([\w_-]+)', views.group_plugin_action, name='sentry-group-plugin-action'),
-
-    url(r'^search$', views.search, name='sentry-search'),
-
-    url(r'^$', views.index, name='sentry'),
-)
+from sentry.web.urls import *

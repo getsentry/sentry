@@ -23,11 +23,11 @@ from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
 from sentry import conf
-from sentry.helpers import get_filters, is_float, get_signature, parse_auth_header
+from sentry.utils import get_filters, is_float, get_signature, parse_auth_header
 from sentry.models import GroupedMessage, Message
 from sentry.plugins import GroupActionProvider
 from sentry.templatetags.sentry_helpers import with_priority
-from sentry.reporter import ImprovedExceptionReporter
+from sentry.web.reporter import ImprovedExceptionReporter
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$')
 

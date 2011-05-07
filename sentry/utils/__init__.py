@@ -3,6 +3,7 @@ import logging
 import sys
 import uuid
 import warnings
+from pprint import pformat
 from types import ClassType, TypeType
 
 import django
@@ -266,3 +267,39 @@ def configure(**kwargs):
         if not hasattr(conf, k):
             warnings.warn('Setting %k which is not defined by Sentry' % k)
         setattr(conf, k, v)
+
+class MockDjangoRequest(object):
+    GET = {}
+    POST = {}
+    META = {}
+    COOKIES = {}
+    FILES = {}
+    raw_post_data = ''
+    url = ''
+    
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+    
+    def __repr__(self):
+        # Since this is called as part of error handling, we need to be very
+        # robust against potentially malformed input.
+        try:
+            get = pformat(self.GET)
+        except:
+            get = '<could not parse>'
+        try:
+            post = pformat(self.POST)
+        except:
+            post = '<could not parse>'
+        try:
+            cookies = pformat(self.COOKIES)
+        except:
+            cookies = '<could not parse>'
+        try:
+            meta = pformat(self.META)
+        except:
+            meta = '<could not parse>'
+        return '<Request\nGET:%s,\nPOST:%s,\nCOOKIES:%s,\nMETA:%s>' % \
+            (get, post, cookies, meta)
+
+    def build_absolute_uri(self): return self.url

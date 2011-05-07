@@ -28,7 +28,7 @@ from django.utils import simplejson
 from django.utils.encoding import smart_unicode
 
 from sentry import conf
-from sentry.helpers import transform, get_signature, get_auth_header
+from sentry.utils import transform, get_signature, get_auth_header
 from sentry.models import Message, GroupedMessage
 from sentry.client.base import SentryClient
 from sentry.client.handlers import SentryHandler
@@ -683,10 +683,11 @@ class SentryTestCase(TestCase):
         settings.MIDDLEWARE_CLASSES = existing
 
     def testExtraStorage(self):
-        from sentry.reporter import FakeRequest
+        from sentry.utils import MockDjangoRequest
         
-        request = FakeRequest()
-        request.META['foo'] = 'bar'
+        request = MockDjangoRequest(
+            META = {'foo': 'bar'},
+        )
         
         logger = logging.getLogger()
 
@@ -711,10 +712,11 @@ class SentryTestCase(TestCase):
         self.assertEquals(last.data['baz'], 'bar')
 
     def testRawPostData(self):
-        from sentry.reporter import FakeRequest
+        from sentry.utils import MockDjangoRequest
         
-        request = FakeRequest()
-        request.raw_post_data = '{"json": "string"}'
+        request = MockDjangoRequest(
+            raw_post_data = '{"json": "string"}',
+        )
         
         logger = logging.getLogger()
 
@@ -1107,7 +1109,7 @@ class SentryMailTest(TestCase):
 
 class SentryHelpersTest(TestCase):
     def test_get_db_engine(self):
-        from sentry.helpers import get_db_engine
+        from sentry.utils import get_db_engine
         _databases = getattr(settings, 'DATABASES', {}).copy()
         _engine = settings.DATABASE_ENGINE
         
@@ -1128,7 +1130,7 @@ class SentryHelpersTest(TestCase):
         settings.DATABASE_ENGINE = _engine
 
     def test_transform_handles_gettext_lazy(self):
-        from sentry.helpers import transform
+        from sentry.utils import transform
         from django.utils.functional import lazy
 
         def fake_gettext(to_translate):
@@ -1141,7 +1143,7 @@ class SentryHelpersTest(TestCase):
 
     def test_get_versions(self):
         import sentry
-        from sentry.helpers import get_versions
+        from sentry.utils import get_versions
         versions = get_versions(['sentry'])
         self.assertEquals(versions.get('sentry'), sentry.VERSION)
         versions = get_versions(['sentry.client'])
@@ -1229,16 +1231,15 @@ class SentryClientTest(TestCase):
     # 
     #     conf.CLIENT = 'sentry.client.base.SentryClient'
 
-class SentryManageTest(TestCase):
+class SentryCommandTest(TestCase):
     fixtures = ['sentry/tests/fixtures/cleanup.json']
     
-    def test_cleanup_sentry(self):
-        from sentry.management.commands.cleanup_sentry import Command
+    def test_cleanup(self):
+        from sentry.scripts.runner import cleanup
         
         self.assertEquals(Message.objects.count(), 10)
         
-        command = Command()
-        command.handle(days=1)
+        cleanup(days=1)
         
         self.assertEquals(Message.objects.count(), 0)
 

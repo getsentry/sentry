@@ -11,3 +11,4 @@ pip-log.txt
 sentry/sentry_index/
 *.egg
 sentry_index/
+*.db

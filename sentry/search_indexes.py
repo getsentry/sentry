@@ -3,7 +3,7 @@ from haystack.indexes import *
 from haystack.sites import SearchSite
 
 from sentry import conf
-from sentry.helpers import to_unicode
+from sentry.utils import to_unicode
 from sentry.models import GroupedMessage
 
 if conf.SEARCH_ENGINE:

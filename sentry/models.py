@@ -17,9 +17,9 @@ from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry import conf
-from sentry.helpers import cached_property, construct_checksum, transform, get_filters
-from sentry.manager import GroupedMessageManager, SentryManager
-from sentry.reporter import FakeRequest
+from sentry.utils import cached_property, construct_checksum, transform, get_filters, \
+                         MockDjangoRequest
+from sentry.utils.manager import GroupedMessageManager, SentryManager
 
 from indexer.models import BaseIndex
 
@@ -248,13 +248,14 @@ class Message(MessageBase):
 
     @cached_property
     def request(self):
-        fake_request = FakeRequest()
-        fake_request.META = self.data.get('META') or {}
-        fake_request.GET = self.data.get('GET') or {}
-        fake_request.POST = self.data.get('POST') or {}
-        fake_request.FILES = self.data.get('FILES') or {}
-        fake_request.COOKIES = self.data.get('COOKIES') or {}
-        fake_request.url = self.url
+        fake_request = MockDjangoRequest(
+            META = self.data.get('META') or {},
+            GET = self.data.get('GET') or {},
+            POST = self.data.get('POST') or {},
+            FILES = self.data.get('FILES') or {},
+            COOKIES = self.data.get('COOKIES') or {},
+            url = self.url,
+        )
         if self.url:
             fake_request.path_info = '/' + self.url.split('/', 3)[-1]
         else:
