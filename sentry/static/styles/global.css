@@ -669,3 +669,36 @@ h2 .morelink { text-decoration: none; }
 #full-message {
     line-height: 1.5em;
 }
+
+/* breadcrumbs */
+
+#breadcrumbs {
+    font-size: 0.9em;
+    height: 16px;
+    line-height: 16px;
+    margin: 0 0 20px;
+}
+#breadcrumbs li {
+    list-style: none;
+    display: inline;
+    float: left;
+}
+#breadcrumbs a,
+#breadcrumbs span {
+    font-weight: normal;
+    background: url('../images/breadcrumb.png') right center no-repeat;
+    padding: 0 12px 0 0;
+    margin: 0 8px 0 0;
+}
+#breadcrumbs li:last-child {
+    background: none;
+    font-weight: bold;
+}
+#breadcrumbs li:last-child a,
+#breadcrumbs li:last-child span {
+    background: none;
+    text-decoration: none;
+    font-weight: inherit;
+    padding-right: 0;
+    margin-right: 0;
+}
