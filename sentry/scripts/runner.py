@@ -17,7 +17,7 @@ class SentryServer(DaemonRunner):
     start_message = u"started with pid %(pid)d"
 
     def __init__(self, host='localhost', port=9000, pidfile='/var/run/sentry.pid',
-                 logfile='/var/log/sentry/sentry.log'):
+                 logfile='/var/log/sentry.log'):
 
         self.daemon_context = DaemonContext()
         self.daemon_context.stdout = open(logfile, 'w+')
@@ -76,7 +76,7 @@ def upgrade():
         call_command('migrate', database=conf.DATABASE_USING or 'default', interactive=False)
 
 def main():
-    command_list = ('start', 'stop', 'cleanup', 'upgrade')
+    command_list = ('start', 'stop', 'restart', 'cleanup', 'upgrade')
     args = sys.argv
     if len(args) < 2 or args[1] not in command_list:
         print "usage: sentry [command] [options]"
@@ -126,8 +126,11 @@ def main():
                              pidfile=options.pidfile, logfile=options.logfile)
         app.execute(args[0])
 
+    elif args[0] == 'restart':
+        app = SentryServer()
+        app.execute(args[0])
   
-    elif args[0] in ('stop', 'restart'):
+    elif args[0] == 'stop':
         if not options.pidfile:
             sys.exit('You must specify --pidfile')
 
