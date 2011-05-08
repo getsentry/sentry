@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 import eventlet
 import os
+import os.path
 import sys
 
 from daemon.daemon import DaemonContext
 from daemon.runner import DaemonRunner, make_pidlockfile
-from django.conf import settings
 from django.core.management import call_command
 from eventlet import wsgi
 from optparse import OptionParser
@@ -77,6 +77,8 @@ def upgrade():
         call_command('migrate', database=settings.DATABASE_USING or 'default', interactive=False)
 
 def main():
+    from django.conf import settings
+
     command_list = ('start', 'stop', 'restart', 'cleanup', 'upgrade')
     args = sys.argv
     if len(args) < 2 or args[1] not in command_list:
@@ -112,6 +114,8 @@ def main():
 
     if options.config:
         os.environ['DJANGO_SETTINGS_MODULE'] = options.config
+
+    # TODO: we should attempt to discover settings modules
 
     if not settings.configured:
         os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.conf.server'
