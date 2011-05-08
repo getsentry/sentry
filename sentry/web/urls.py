@@ -6,8 +6,6 @@ from django.conf.urls.defaults import *
 from sentry.conf.settings import KEY
 from sentry.web import views, feeds
 
-SENTRY_ROOT = os.path.dirname(__file__) 
-
 urlpatterns = patterns('',
     url(r'^_static/(?P<path>.*)$', views.static_media, name='sentry-media'),
 

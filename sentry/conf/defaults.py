@@ -7,7 +7,7 @@ import os
 import os.path
 import socket
 
-ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
+ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir))
 
 # Allow local testing of Sentry even if DEBUG is enabled
 DEBUG = False
