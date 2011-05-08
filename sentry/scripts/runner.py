@@ -16,22 +16,23 @@ class SentryServer(DaemonRunner):
     pidfile_timeout = 10
     start_message = u"started with pid %(pid)d"
 
-    def __init__(self, host='localhost', port=9000, pidfile='/var/run/sentry.pid',
-                 logfile='/var/log/sentry.log'):
+    def __init__(self, host=None, port=None, pidfile=None,
+                 logfile=None):
+        from sentry import conf
+
+        if not logfile:
+            logfile = conf.WEB_LOG_FILE
 
         self.daemon_context = DaemonContext()
         self.daemon_context.stdout = open(logfile, 'w+')
         self.daemon_context.stderr = open(logfile, 'w+', buffering=0)
 
-        self.pidfile = None
-        if pidfile is not None:
-            self.pidfile = make_pidlockfile(
-                pidfile, self.pidfile_timeout)
+        self.pidfile = make_pidlockfile(pidfile or conf.WEB_PID_FILE, self.pidfile_timeout)
 
         self.daemon_context.pidfile = self.pidfile
 
-        self.host = host
-        self.port = port
+        self.host = host or conf.WEB_HOST
+        self.port = port or conf.WEB_PORT
 
         # HACK: set app to self so self.app.run() works
         self.app = self
@@ -89,14 +90,14 @@ def main():
     parser = OptionParser(version="%%prog %s" % VERSION)
     parser.add_option('--config', metavar='CONFIG')
     if args[1] == 'start':
-        parser.add_option('--host', default='localhost', metavar='HOSTNAME')
-        parser.add_option('--port', type=int, default=9000, metavar='PORT')
+        parser.add_option('--host', metavar='HOSTNAME')
+        parser.add_option('--port', type=int, metavar='PORT')
         parser.add_option('--daemon', action='store_true', default=False, dest='daemonize')
-        parser.add_option('--pidfile', default='/var/run/sentry.pid', dest='pidfile')
-        parser.add_option('--logfile', default='/var/log/sentry.log', dest='logfile')
+        parser.add_option('--pidfile', dest='pidfile')
+        parser.add_option('--logfile', dest='logfile')
     elif args[1] == 'stop':
-        parser.add_option('--pidfile', default='/var/run/sentry.pid', dest='pidfile')
-        parser.add_option('--logfile', default='/var/log/sentry.log', dest='logfile')
+        parser.add_option('--pidfile', dest='pidfile')
+        parser.add_option('--logfile', dest='logfile')
     elif args[1] == 'cleanup':
         parser.add_option('--days', default='30',
                           help='Numbers of days to truncate on.')
@@ -113,15 +114,12 @@ def main():
         os.environ['DJANGO_SETTINGS_MODULE'] = options.config
 
     if not settings.configured:
-        os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.utils.conf.server'
+        os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.conf.server'
 
     if args[0] == 'upgrade':
         upgrade()
 
     elif args[0] == 'start':
-        if not options.pidfile:
-            sys.exit('You must specify --pidfile')
-
         app = SentryServer(host=options.host, port=options.port,
                              pidfile=options.pidfile, logfile=options.logfile)
         app.execute(args[0])
@@ -131,9 +129,6 @@ def main():
         app.execute(args[0])
   
     elif args[0] == 'stop':
-        if not options.pidfile:
-            sys.exit('You must specify --pidfile')
-
         app = SentryServer(pidfile=options.pidfile, logfile=options.logfile)
         app.execute(args[0])
 

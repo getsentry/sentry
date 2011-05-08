@@ -1,6 +1,10 @@
 Configuration
 =============
 
+This document describes additional configuration options available to Sentry.
+
+.. note:: If you are using Django, you must prefix all setting names with ``SENTRY_`` in your ``settings.py``.
+
 Integration with ``logging``
 ----------------------------
 
@@ -62,19 +66,19 @@ Integration with ``haystack`` (Search)
 
 (This support is still under development)
 
-Note: You will need to install a forked version of Haystack which supports additional configuration. It can be obtained on [GitHub](http://github.com/disqus/django-haystack).
+Note: You will need to install a forked version of Haystack which supports additional configuration. It can be obtained on `GitHub <http://github.com/disqus/django-haystack>`.
 
 Start by configuring your Sentry search backend::
 
-	SENTRY_SEARCH_BACKEND = 'solr'
-	SENTRY_SEARCH_OPTIONS = {
+	SEARCH_BACKEND = 'solr'
+	SEARCH_OPTIONS = {
 	    'url': 'http://127.0.0.1:8983/solr'
 	}
 
 Or if you want to use Whoosh (you shouldn't)::
 
-	SENTRY_SEARCH_BACKEND = 'whoosh'
-	SENTRY_SEARCH_OPTIONS = {
+	SEARCH_BACKEND = 'whoosh'
+	SEARCH_OPTIONS = {
 	    'path': os.path.join(PROJECT_ROOT, 'sentry_index')
 	}
 
@@ -142,14 +146,14 @@ Other Settings
 
 Several options exist to configure django-sentry via your ``settings.py``:
 
-#############
-SENTRY_CLIENT
-#############
+######
+CLIENT
+######
 
 In some situations you may wish for a slightly different behavior to how Sentry communicates with your server. For
 this, Sentry allows you to specify a custom client::
 
-	SENTRY_CLIENT = 'sentry.client.base.SentryClient'
+	CLIENT = 'sentry.client.base.SentryClient'
 
 In addition to the default client (which will handle multi-db and REMOTE_URL for you) we also include two additional options:
 
@@ -162,7 +166,7 @@ this would be the way to do it.
 
 ::
 
-	SENTRY_CLIENT = 'sentry.client.log.LoggingSentryClient'
+	CLIENT = 'sentry.client.log.LoggingSentryClient'
 
 ******************
 CelerySentryClient
@@ -170,12 +174,12 @@ CelerySentryClient
 
 Integrates with the Celery message queue (http://celeryproject.org/). To use this you will also need to add ``sentry.client.celery`` to ``INSTALLED_APPS`` for ``tasks.py`` auto discovery.
 
-You may also specify ``SENTRY_CELERY_ROUTING_KEY`` to change the task queue
+You may also specify ``CELERY_ROUTING_KEY`` to change the task queue
 name (defaults to ``sentry``).
 
 ::
 
-	SENTRY_CLIENT = 'sentry.client.celery.CelerySentryClient'
+	CLIENT = 'sentry.client.celery.CelerySentryClient'
 	
 	INSTALLED_APPS = (
 	    ...,
@@ -190,25 +194,25 @@ Spawns a background thread within the process that will handle sending messages 
 
 ::
 
-	SENTRY_CLIENT = 'sentry.client.async.AsyncSentryClient'
+	CLIENT = 'sentry.client.async.AsyncSentryClient'
 
-#############
-SENTRY_ADMINS
-#############
+######
+ADMINS
+######
 
 On smaller sites you may wish to enable throttled emails, we recommend doing this by first
-removing the ``ADMINS`` setting in Django, and adding in ``SENTRY_ADMINS``::
+removing the ``ADMINS`` setting in Django, and adding in ``ADMINS``::
 
 	ADMINS = ()
-	SENTRY_ADMINS = ('root@localhost',)
+	ADMINS = ('root@localhost',)
 
 This will send out a notification the first time an error is seen, and the first time an error is
 seen after it has been resolved.
 
 
-##############
-SENTRY_TESTING
-##############
+#######
+TESTING
+#######
 
 Enabling this setting allows the testing of Sentry exception handler even if Django DEBUG is enabled.
 
@@ -216,39 +220,39 @@ Default value is ``False``
 
 .. note:: Normally when Django DEBUG is enabled the Sentry exception handler is immediately skipped
 
-###########
-SENTRY_NAME
-###########
+####
+NAME
+####
 
 This will override the ``server_name`` value for this installation. Defaults to ``socket.gethostname()``.
 
-#################
-SENTRY_URL_PREFIX
-#################
+##########
+URL_PREFIX
+##########
 
 Absolute URL to the sentry root directory. Should not include a trailing slash. Defaults to "".
 
-####################
-SENTRY_EXCLUDE_PATHS
-####################
+#############
+EXCLUDE_PATHS
+#############
 
 Extending this allow you to ignore module prefixes when we attempt to discover which function an error comes from (typically a view)
 
-####################
-SENTRY_INCLUDE_PATHS
-####################
+#############
+INCLUDE_PATHS
+#############
 
 By default Sentry only looks at modules in INSTALLED_APPS for drilling down where an exception is located
 
-######################
-SENTRY_MAX_LENGTH_LIST
-######################
+###############
+MAX_LENGTH_LIST
+###############
 
 The maximum number of items a list-like container should store. Defaults to 50.
 
-########################
-SENTRY_MAX_LENGTH_STRING
-########################
+#################
+MAX_LENGTH_STRING
+#################
 
 The maximum characters of a string that should be stored. Defaults to 200.
 

@@ -72,3 +72,10 @@ PUBLIC = False
 
 MAX_LENGTH_LIST = 50
 MAX_LENGTH_STRING = 200
+
+## The following settings refer to the built-in webserver
+
+WEB_HOST = 'localhost'
+WEB_PORT = 9000
+WEB_LOG_FILE = '/var/log/sentry.log'
+WEB_PID_FILE = '/var/run/sentry.pid'

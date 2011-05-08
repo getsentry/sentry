@@ -1,3 +1,4 @@
+=======
 Install
 =======
 
@@ -9,6 +10,7 @@ Or with *setuptools*::
 
 	easy_install -U django-sentry
 
+------------
 Requirements
 ------------
 
@@ -39,6 +41,7 @@ You now have two choices:
    most compatibility with your application, as well as ensuring it does not impact your
    primary application servers.
 
+----------------
 Integrated Setup
 ----------------
 
@@ -75,13 +78,15 @@ Finally, run ``python manage.py syncdb`` to create the database tables.
 
    See :doc:`../extensions` for information on additional plugins and functionality included.
 
+#########
 Upgrading
-~~~~~~~~~
+#########
 
 Upgrading Sentry is fairly painless with South migrations. If you're not using South then you're on your own::
 
 	python manage.py migrate sentry
 
+-----------------------
 Running a Sentry Server
 -----------------------
 
@@ -90,8 +95,9 @@ logging. This means that any number of Sentry clients simply pass on this inform
 server. If you run into a situation where one of Sentry's requirements conflict with your own, or you simply
 need to ensure quality of service within your project, this is for you.
 
+###################
 The Built-in Server
-~~~~~~~~~~~~~~~~~~~
+###################
 
 Sentry provides a built-in webserver (powered by eventlet) to get you off the ground quickly. It's powered by two open source
 libraries, eventlet and python-daemon.
@@ -104,8 +110,35 @@ Sentry provides the start, stop, and restart commands available via the command 
 
 .. note: The ``start`` command will also automatically run the ``upgrade`` command, which handles data and schema migrations.
 
+The following settings are available for the built-in webserver:
+
+********
+WEB_HOST
+********
+
+THe hostname which the webserver should bind to. Defaults to ``localhost``.
+
+********
+WEB_PORT
+********
+
+The port which the webserver should listen on. Defaults to ``9000``.
+
+************
+WEB_PID_FILE
+************
+
+The location to store the PID file. Defaults to ``/var/run/sentry.pid``.
+
+************
+WEB_LOG_FILE
+************
+
+The location to store the log file. Defaults to ``/var/log/sentry.log``.
+
+#############################
 Configuring a Sentry WSGI app
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#############################
 
 If you need more flexibility in your Sentry server, you may want to setup the server project manually. While this guide does not
 cover configuring your webserver, it does describe the required attributes of your WSGI app to run in a standalone server mode.
@@ -125,8 +158,9 @@ You will also need to ensure that your ``SENTRY_KEY`` matches across your client
 	SENTRY_KEY = '0123456789abcde'
 
 
+######################
 Configure your Clients
-~~~~~~~~~~~~~~~~~~~~~~
+######################
 
 On each of your application servers, you will need to configure Sentry to communicate with your remote Sentry server.
 
@@ -148,11 +182,13 @@ You will also need to ensure that your ``SENTRY_KEY`` matches across your client
 	SENTRY_KEY = '0123456789abcde'
 
 
+-------
 Caveats
 -------
 
+#########################
 Error Handling Middleware
-~~~~~~~~~~~~~~~~~~~~~~~~~
+#########################
 
 If you already have middleware in place that handles ``process_exception`` you will need to take extra care when using Sentry.
 
