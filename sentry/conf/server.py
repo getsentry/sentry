@@ -103,7 +103,7 @@ INSTALLED_APPS = (
 )
 
 import logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.WARNING)
 
 SENTRY_SEARCH_ENGINE = 'whoosh'
 SENTRY_SEARCH_OPTIONS = {
