@@ -3,12 +3,13 @@
 /*.egg-info
 *.pyc
 *.log
+*.egg
+*.db
+*.pid
 pip-log.txt
 .DS_Store
 /example_project/local_settings.py
 /docs/html
 /docs/doctrees
 sentry/sentry_index/
-*.egg
-sentry_index/
-*.db
+/sentry_index/

@@ -100,7 +100,7 @@ def main():
         parser.add_option('--pidfile', dest='pidfile')
         parser.add_option('--logfile', dest='logfile')
     elif args[1] == 'cleanup':
-        parser.add_option('--days', default='30',
+        parser.add_option('--days', default='30', type=int,
                           help='Numbers of days to truncate on.')
         parser.add_option('--logger',
                           help='Limit truncation to only entries from logger.')
