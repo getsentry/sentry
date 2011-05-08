@@ -7,11 +7,17 @@ it allows you to interact and view near real-time information to discover issues
 easily trace them in your application.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
-   install
-   config
+   install/index
+   config/index
    extensions
    technical
 
 .. image:: http://dl.dropbox.com/u/116385/Screenshots/l6xk.png
+
+Deprecation Notes
+-----------------
+
+Milestones releases are 1.3 or 1.4, and our deprecation policy is to a two version step. For example,
+a feature will be deprecated in 1.3, and completely removed in 1.4.

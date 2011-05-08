@@ -1,43 +1,10 @@
 Configuration
 =============
 
-Multi-server configuration
---------------------------
-
-To configure Sentry for use in a multi-server environment, first you'll want to configure your Sentry server (not your application)::
-
-	INSTALLED_APPS = [
-	  ...
-	  'sentry',
-	  'sentry.client',
-	]
-	
-	SENTRY_KEY = '0123456789abcde'
-
-And on each of your application servers, specify the URL of the Sentry server, add ``sentry.client`` to ``INSTALLED_APPS``, and specify the same key used in your Sentry server's settings::
-
-	# This should be the absolute URI of sentries store view
-	SENTRY_REMOTE_URL = 'http://your.sentry.server/sentry/store/'
-	
-	INSTALLED_APPS = [
-	  ...
-	  'sentry.client',
-	]
-	
-	SENTRY_KEY = '0123456789abcde'
-
-You may also specify an alternative timeout to the default (which is 5 seconds) for all outgoing logging requests (only works with python 2.6 and above)::
-
-	SENTRY_REMOTE_TIMEOUT = 5
-
-Sentry also allows you to support high availability by pushing to multiple servers::
-
-	SENTRY_REMOTE_URL = ['http://server1/sentry/store/', 'http://server2/sentry/store/']
-
 Integration with ``logging``
 ----------------------------
 
-django-sentry supports the ability to directly tie into the ``logging`` module. To use it simply add ``SentryHandler`` to your logger::
+Sentry supports the ability to directly tie into the ``logging`` module. To use it simply add ``SentryHandler`` to your logger::
 
 	import logging
 	from sentry.client.handlers import SentryHandler
@@ -260,12 +227,6 @@ SENTRY_URL_PREFIX
 #################
 
 Absolute URL to the sentry root directory. Should not include a trailing slash. Defaults to "".
-
-########################
-SENTRY_STATIC_URL_PREFIX
-########################
-
-Absolute URL to the sentry static directory. Should not include a trailing slash. Defaults to "{SENTRY_URL_PREFIX}/_static".
 
 ####################
 SENTRY_EXCLUDE_PATHS
