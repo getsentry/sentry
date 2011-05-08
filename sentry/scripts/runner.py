@@ -113,7 +113,7 @@ def main():
         os.environ['DJANGO_SETTINGS_MODULE'] = options.config
 
     if not settings.configured:
-        os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.utils.conf.default_settings'
+        os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.utils.conf.server'
 
     if args[0] == 'upgrade':
         upgrade()

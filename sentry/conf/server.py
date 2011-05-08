@@ -1,11 +1,14 @@
+"""
+These settings act as the default (base) settings for the Sentry-provided web-server
+"""
+
 import hashlib
 import os
 import os.path
 import socket
 import sys
-# Django settings for example_project project.
 
-DEBUG = True
+DEBUG = False
 TEMPLATE_DEBUG = True
 
 ADMINS = (

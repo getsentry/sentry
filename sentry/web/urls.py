@@ -9,7 +9,6 @@ from sentry.web import views, feeds
 SENTRY_ROOT = os.path.dirname(__file__) 
 
 urlpatterns = patterns('',
-    # This path is also reflected in conf.STATIC_URL_PREFIX
     url(r'^_static/(?P<path>.*)$', views.static_media, name='sentry-media'),
 
     # Feeds

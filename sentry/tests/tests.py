@@ -1248,7 +1248,7 @@ class SentrySearchTest(TestCase):
 
     @conditional_on_module('haystack')
     def test_build_index(self):
-        from sentry.views import get_search_query_set
+        from sentry.web.views import get_search_query_set
         logger.error('test search error')
         
         qs = get_search_query_set('error')
