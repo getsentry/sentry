@@ -18,21 +18,21 @@ class SentryServer(DaemonRunner):
 
     def __init__(self, host=None, port=None, pidfile=None,
                  logfile=None):
-        from sentry import conf
+        from sentry.conf import settings
 
         if not logfile:
-            logfile = conf.WEB_LOG_FILE
+            logfile = settings.WEB_LOG_FILE
 
         self.daemon_context = DaemonContext()
         self.daemon_context.stdout = open(logfile, 'w+')
         self.daemon_context.stderr = open(logfile, 'w+', buffering=0)
 
-        self.pidfile = make_pidlockfile(pidfile or conf.WEB_PID_FILE, self.pidfile_timeout)
+        self.pidfile = make_pidlockfile(pidfile or settings.WEB_PID_FILE, self.pidfile_timeout)
 
         self.daemon_context.pidfile = self.pidfile
 
-        self.host = host or conf.WEB_HOST
-        self.port = port or conf.WEB_PORT
+        self.host = host or settings.WEB_HOST
+        self.port = port or settings.WEB_PORT
 
         # HACK: set app to self so self.app.run() works
         self.app = self
@@ -69,12 +69,12 @@ def cleanup(days=30, logger=None, site=None, server=None):
     qs.delete()
 
 def upgrade():
-    from sentry import conf
+    from sentry.conf import settings
     
-    call_command('syncdb', database=conf.DATABASE_USING or 'default', interactive=False)
+    call_command('syncdb', database=settings.DATABASE_USING or 'default', interactive=False)
 
     if 'south' in settings.INSTALLED_APPS:
-        call_command('migrate', database=conf.DATABASE_USING or 'default', interactive=False)
+        call_command('migrate', database=settings.DATABASE_USING or 'default', interactive=False)
 
 def main():
     command_list = ('start', 'stop', 'restart', 'cleanup', 'upgrade')

@@ -1,15 +1,15 @@
-from sentry import conf
+from sentry.conf import settings
 
 class SentryRouter(object):
     def db_for_write(self, model, **hints):
         if model._meta.app_label == 'sentry':
-            return conf.DATABASE_USING
+            return settings.DATABASE_USING
 
     def db_for_read(self, model, **hints):
         return self.db_for_write(model, **hints)
 
     def allow_syncdb(self, db, model):
-        sentry_db = conf.DATABASE_USING
+        sentry_db = settings.DATABASE_USING
         if not sentry_db:
             return None
         if model._meta.app_label == 'sentry' and db != sentry_db:

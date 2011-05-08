@@ -28,8 +28,8 @@ class CreateIssueTest(TestCase):
         self.user.save()
         self.client.login(username='admin', password='admin')
         
-        conf.REDMINE_URL = 'http://localhost:3000'
-        conf.REDMINE_PROJECT_SLUG = 'sentry'
+        settings.REDMINE_URL = 'http://localhost:3000'
+        settings.REDMINE_PROJECT_SLUG = 'sentry'
 
     def test_basic_response(self):
         group = GroupedMessage.objects.all()[0]
@@ -39,8 +39,8 @@ class CreateIssueTest(TestCase):
         self.assertTemplateUsed(response, 'sentry/plugins/redmine/create_issue.html')
 
     def test_anonymous_issue_creation(self):
-        conf.REDMINE_USERNAME = None
-        conf.REDMINE_PASSWORD = None
+        settings.REDMINE_USERNAME = None
+        settings.REDMINE_PASSWORD = None
 
         group = GroupedMessage.objects.all()[0]
 
@@ -57,8 +57,8 @@ class CreateIssueTest(TestCase):
         self.assertTrue(group.data['redmine']['issue_id'] > 0)
 
     def test_http_auth_issue_creation(self):
-        conf.REDMINE_USERNAME = 'sentry'
-        conf.REDMINE_PASSWORD = 'sentry'
+        settings.REDMINE_USERNAME = 'sentry'
+        settings.REDMINE_PASSWORD = 'sentry'
 
         group = GroupedMessage.objects.all()[0]
 

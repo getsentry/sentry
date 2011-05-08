@@ -17,7 +17,6 @@ import django.core.handlers.wsgi
 # Run WSGI handler for the application
 application = django.core.handlers.wsgi.WSGIHandler()
 
-from django.conf import settings
 if settings.SESSION_FILE_PATH:
     try:
         os.makedirs(settings.SESSION_FILE_PATH)

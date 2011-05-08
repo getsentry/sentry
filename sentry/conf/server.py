@@ -2,6 +2,8 @@
 These settings act as the default (base) settings for the Sentry-provided web-server
 """
 
+from django.conf.global_settings import *
+
 import hashlib
 import os
 import os.path
@@ -103,7 +105,7 @@ INSTALLED_APPS = (
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-# SENTRY_SEARCH_ENGINE = 'whoosh'
-# SENTRY_SEARCH_OPTIONS = {
-#     'path': os.path.join(PROJECT_ROOT, 'sentry_index'),
-# }
+SENTRY_SEARCH_ENGINE = 'whoosh'
+SENTRY_SEARCH_OPTIONS = {
+    'path': os.path.join(PROJECT_ROOT, 'sentry_index'),
+}

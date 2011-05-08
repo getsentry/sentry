@@ -15,7 +15,7 @@ from django.utils import simplejson
 from django.views.debug import ExceptionReporter
 
 import sentry
-from sentry import conf
+from sentry.conf import settings
 from sentry.utils import construct_checksum, varmap, transform, get_installed_apps, force_unicode, \
                            get_versions, shorten, get_signature, get_auth_header
 
@@ -52,7 +52,7 @@ class SentryClient(object):
                 kwargs['url'] = request.build_absolute_uri()
 
         kwargs.setdefault('level', logging.ERROR)
-        kwargs.setdefault('server_name', conf.NAME)
+        kwargs.setdefault('server_name', settings.NAME)
 
         # save versions of all installed apps
         if 'data' not in kwargs or '__sentry__' not in (kwargs['data'] or {}):
@@ -92,9 +92,9 @@ class SentryClient(object):
         else:
             checksum = kwargs['checksum']
 
-        if conf.THRASHING_TIMEOUT and conf.THRASHING_LIMIT:
+        if settings.THRASHING_TIMEOUT and settings.THRASHING_LIMIT:
             cache_key = 'sentry:%s:%s' % (kwargs.get('class_name') or '', checksum)
-            added = cache.add(cache_key, 1, conf.THRASHING_TIMEOUT)
+            added = cache.add(cache_key, 1, settings.THRASHING_TIMEOUT)
             if not added:
                 try:
                     thrash_count = cache.incr(cache_key)
@@ -103,7 +103,7 @@ class SentryClient(object):
                     # if we are, hope that the next error has a successful
                     # cache.incr call.
                     thrash_count = 0
-                if thrash_count > conf.THRASHING_LIMIT:
+                if thrash_count > settings.THRASHING_LIMIT:
                     message_id = cache.get('%s:last_message_id' % cache_key)
                     if request:
                         # attach the sentry object to the request
@@ -131,24 +131,24 @@ class SentryClient(object):
                 'id': message_id,
             }
         
-        if conf.THRASHING_TIMEOUT and conf.THRASHING_LIMIT:
+        if settings.THRASHING_TIMEOUT and settings.THRASHING_LIMIT:
             # store the last message_id incase we hit thrashing limits
-            cache.set('%s:last_message_id' % cache_key, message_id, conf.THRASHING_LIMIT+5)
+            cache.set('%s:last_message_id' % cache_key, message_id, settings.THRASHING_LIMIT+5)
         
         return message_id
 
     def send_remote(self, url, data, headers={}):
         req = urllib2.Request(url, headers=headers)
         try:
-            response = urllib2.urlopen(req, data, conf.REMOTE_TIMEOUT).read()
+            response = urllib2.urlopen(req, data, settings.REMOTE_TIMEOUT).read()
         except:
             response = urllib2.urlopen(req, data).read()
         return response
 
     def send(self, **kwargs):
         "Sends the message to the server."
-        if conf.REMOTE_URL:
-            for url in conf.REMOTE_URL:
+        if settings.REMOTE_URL:
+            for url in settings.REMOTE_URL:
                 message = base64.b64encode(simplejson.dumps(kwargs).encode('zlib'))
                 timestamp = time.time()
                 signature = get_signature(message, timestamp)
@@ -185,7 +185,7 @@ class SentryClient(object):
             'logger': record.name,
             'level': record.levelno,
             'message': force_unicode(record.msg),
-            'server_name': conf.NAME,
+            'server_name': settings.NAME,
         })
         
         # construct the checksum with the unparsed message
@@ -228,8 +228,8 @@ class SentryClient(object):
         if not kwargs.get('view'):
             # This should be cached
             modules = get_installed_apps()
-            if conf.INCLUDE_PATHS:
-                modules = set(list(modules) + conf.INCLUDE_PATHS)
+            if settings.INCLUDE_PATHS:
+                modules = set(list(modules) + settings.INCLUDE_PATHS)
 
             def iter_tb_frames(tb):
                 while tb:
@@ -254,7 +254,7 @@ class SentryClient(object):
                 except:
                     continue
                 if contains(modules, view):
-                    if not (contains(conf.EXCLUDE_PATHS, view) and best_guess):
+                    if not (contains(settings.EXCLUDE_PATHS, view) and best_guess):
                         best_guess = view
                 elif best_guess:
                     break

@@ -3,7 +3,7 @@ import re
 
 from django.conf.urls.defaults import *
 
-from sentry.conf import KEY
+from sentry.conf.settings import KEY
 from sentry.web import views, feeds
 
 SENTRY_ROOT = os.path.dirname(__file__) 

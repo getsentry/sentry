@@ -6,10 +6,10 @@ import warnings
 from django.db import models
 from django.db.models import signals
 
-from sentry import conf
+from sentry.conf import settings
 from sentry.utils import construct_checksum, get_db_engine
 
-assert not conf.DATABASE_USING or django.VERSION >= (1, 2), 'The `SENTRY_DATABASE_USING` setting requires Django >= 1.2'
+assert not settings.DATABASE_USING or django.VERSION >= (1, 2), 'The `SENTRY_DATABASE_USING` setting requires Django >= 1.2'
 
 logger = logging.getLogger('sentry.errors')
 
@@ -40,8 +40,8 @@ class SentryManager(models.Manager):
 
     def get_query_set(self):
         qs = super(SentryManager, self).get_query_set()
-        if conf.DATABASE_USING:
-            qs = qs.using(conf.DATABASE_USING)
+        if settings.DATABASE_USING:
+            qs = qs.using(settings.DATABASE_USING)
         return qs
 
     def from_kwargs(self, **kwargs):
@@ -53,7 +53,7 @@ class SentryManager(models.Manager):
         view = kwargs.pop('view', None)
         logger_name = kwargs.pop('logger', 'root')
         url = kwargs.pop('url', None)
-        server_name = kwargs.pop('server_name', conf.CLIENT)
+        server_name = kwargs.pop('server_name', settings.CLIENT)
         site = kwargs.pop('site', None)
         data = kwargs.pop('data', {}) or {}
         message_id = kwargs.pop('message_id', None)

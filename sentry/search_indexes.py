@@ -2,19 +2,19 @@ import haystack
 from haystack.indexes import *
 from haystack.sites import SearchSite
 
-from sentry import conf
+from sentry.conf import settings
 from sentry.utils import to_unicode
 from sentry.models import GroupedMessage
 
-if conf.SEARCH_ENGINE:
+if settings.SEARCH_ENGINE:
     # Ensure we stop here if we havent configure Sentry to work under haystack
 
-    backend = haystack.load_backend(conf.SEARCH_ENGINE)
+    backend = haystack.load_backend(settings.SEARCH_ENGINE)
 
     class SentrySearchSite(SearchSite): pass
 
     site = SentrySearchSite()
-    site.backend = backend.SearchBackend(site, **conf.SEARCH_OPTIONS)
+    site.backend = backend.SearchBackend(site, **settings.SEARCH_OPTIONS)
 
     class GroupedMessageIndex(RealTimeSearchIndex):
         text = CharField(document=True, stored=False)

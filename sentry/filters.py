@@ -1,12 +1,12 @@
 # Widget api is pretty ugly
 from __future__ import absolute_import
 
-from django.conf import settings
+from django.conf import settings as django_settings
 from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 from django.utils.html import escape
 
-from sentry import conf
+from sentry.conf import settings
 
 class Widget(object):
     def __init__(self, filter, request):
@@ -131,17 +131,17 @@ class SiteFilter(SentryFilter):
     def process(self, data):
         if 'site' in data:
             return data
-        if conf.SITE is None:
-            if 'django.contrib.sites' in settings.INSTALLED_APPS:
+        if settings.SITE is None:
+            if 'django.contrib.sites' in django_settings.INSTALLED_APPS:
                 from django.contrib.sites.models import Site
                 try:
-                    conf.SITE = Site.objects.get_current().name
+                    settings.SITE = Site.objects.get_current().name
                 except Site.DoesNotExist:
-                    conf.SITE = ''
+                    settings.SITE = ''
             else:
-                conf.SITE = ''
-        if conf.SITE:
-            data['site'] = conf.SITE
+                settings.SITE = ''
+        if settings.SITE:
+            data['site'] = settings.SITE
         return data
 
     def get_query_set(self, queryset):
@@ -152,7 +152,7 @@ class LevelFilter(SentryFilter):
     column = 'level'
     
     def get_choices(self):
-        return SortedDict((str(k), v) for k, v in conf.LOG_LEVELS)
+        return SortedDict((str(k), v) for k, v in settings.LOG_LEVELS)
     
     def get_query_set(self, queryset):
         return queryset.filter(level__gte=self.get_value())

@@ -22,7 +22,7 @@ from django.utils.encoding import smart_str
 from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
-from sentry import conf
+from sentry.conf import settings
 from sentry.utils import get_filters, is_float, get_signature, parse_auth_header
 from sentry.models import GroupedMessage, Message
 from sentry.plugins import GroupActionProvider
@@ -35,7 +35,7 @@ def render_to_response(template, context={}):
     from django.shortcuts import render_to_response
 
     context.update({
-        'has_search': bool(conf.SEARCH_ENGINE),
+        'has_search': bool(settings.SEARCH_ENGINE),
     })
     return render_to_response(template, context)
 
@@ -63,7 +63,7 @@ def get_search_query_set(query):
 
 def login_required(func):
     def wrapped(request, *args, **kwargs):
-        if not conf.PUBLIC:
+        if not settings.PUBLIC:
             if not request.user.is_authenticated():
                 return HttpResponseRedirect(reverse('sentry-login'))
             if not request.user.has_perm('sentry.can_view'):
@@ -112,7 +112,7 @@ def search(request):
         page = 1
 
     query = request.GET.get('q')
-    has_search = bool(conf.SEARCH_ENGINE)
+    has_search = bool(settings.SEARCH_ENGINE)
 
     if query:
         if uuid_re.match(query):
@@ -391,7 +391,7 @@ def store(request):
         # Legacy request (deprecated as of 2.0)
         key = request.POST.get('key')
         
-        if key != conf.KEY:
+        if key != settings.KEY:
             warnings.warn('A client is sending the `key` parameter, which will be removed in Sentry 2.0', DeprecationWarning)
             return HttpResponseForbidden('Invalid credentials')
 
@@ -461,7 +461,7 @@ def static_media(request, path):
     import stat
     import urllib
 
-    document_root = os.path.join(conf.ROOT, 'static')
+    document_root = os.path.join(settings.ROOT, 'static')
     
     path = posixpath.normpath(urllib.unquote(path))
     path = path.lstrip('/')

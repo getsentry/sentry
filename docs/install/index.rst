@@ -110,6 +110,16 @@ Sentry provides the start, stop, and restart commands available via the command 
 
 .. note: The ``start`` command will also automatically run the ``upgrade`` command, which handles data and schema migrations.
 
+The configuration for the server is based on ``sentry.conf.server``, which contains a basic Django project configuration, as well
+as the default Sentry configuration values. It will use SQLite for the database, and Haystack using Whoosh. If you specify your own
+configuration via --config, you will likely want to preface the file with importing the global defaults::
+
+	#!/usr/bin/env python
+	# filename: /etc/sentry.conf.py
+	from sentry.conf.defaults import *
+
+.. note: The default database is SQLite, which generally does not perform very well.
+
 The following settings are available for the built-in webserver:
 
 ********
