@@ -15,6 +15,7 @@ class SentryHandler(logging.Handler):
             print >> sys.stderr, record.message
             return
 
+        self.format(record)
         get_client().create_from_record(record, request=request)
 
 try:
