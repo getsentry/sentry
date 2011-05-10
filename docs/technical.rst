@@ -89,13 +89,15 @@ connection is not sniffable or that you are not doing serious work.
 Authentication
 ^^^^^^^^^^^^^^
 
-Authentication works on the bases of hmac (Hash based Message Authentication Code) where ``sha1`` is the hash function.  
+If the Sentry server is configured to require authentication, 
+the POST field ``key`` is a name used to identify the client 
+and correspondingly the shared secret key between client and server.  
+In this case the shared secret key does not travel in the POST.
+
+The authentication mechanism provided 
+works on the bases of hmac (Hash based Message Authentication Code) where ``sha1`` is the hash function.  
 The text being authenticated is 
 the concatenated values for the ``timestamp`` and ``data`` fields in the POST.  
-
-If the Sentry server requires authentication, 
-the POST field ``key`` is a name that identifies the client 
-and correspondingly the shared secret key between client and server.  
 
 A Python client could generate the authentication code value using the ``hashlib`` and ``hmac`` libraries::
 
@@ -103,9 +105,9 @@ A Python client could generate the authentication code value using the ``hashlib
 
 A POST fails authentication in any of the following conditions
 
-    * out of date (the ``timestamp`` lies more than 10" in the past) (this is configurable).
-    * repeated (an equal message was already received).
-    * hmac mismatch (the `<hmac value>` received does not match the one computed).
+ * out of date (the ``timestamp`` lies more than 10" in the past) (this is configurable).
+ * repeated (an equal message was already received).
+ * hmac mismatch (the `<hmac value>` received does not match the one computed).
 
 If a POST fails authentication, it is silently dropped.
 
