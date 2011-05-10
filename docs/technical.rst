@@ -82,11 +82,12 @@ with the following structure::
 
 Authentication (POST fields ``authentication`` and ``timestamp``) is optional and works on the bases of hmac (Hash based Message Authentication Code) where ``sha1`` is the hash function.  
 
-If you are using authentication, the POST field ``key`` is a name that identifies the client 
+If the Sentry server requires authentication, 
+the POST field ``key`` is a name that identifies the client 
 and correspondingly a shared secret key between client and server.  
 
 If the Sentry server doesn't expect authentication, 
-the two fields ``authentication`` and ``timestamp`` are not used and may be missing,
+the two fields ``authentication`` and ``timestamp`` are not consumed and may be missing,
 while the ``key`` is itself the shared secret key.  In this case, it
 travels unencrypted in the POST request so make sure the client server
 connection is not sniffable or that you are not doing serious work.
@@ -97,6 +98,8 @@ the concatenated values for the ``timestamp`` and ``data`` fields in the POST.
 A Python client could generate the authentication code value using the ``hashlib`` and ``hmac`` libraries::
 
     hmac_value = hmac.new(<client id>, '%s%s' % (<authenticated timestamp>, <encoded record>), hashlib.sha1).hexdigest()
+
+If a POST fails authentication, it is silently dropped.
 
 POST Body
 ~~~~~~~~~
