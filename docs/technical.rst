@@ -86,19 +86,22 @@ while the ``key`` is itself a shared secret key between client and server.  It
 travels unencrypted in the POST request so make sure the client server
 connection is not sniffable or that you are not doing serious work.
 
-If the Sentry server requires authentication, 
-the POST field ``key`` is a name that identifies the client 
-and correspondingly the shared secret key between client and server.  
+Authentication
+^^^^^^^^^^^^^^
 
 Authentication works on the bases of hmac (Hash based Message Authentication Code) where ``sha1`` is the hash function.  
 The text being authenticated is 
 the concatenated values for the ``timestamp`` and ``data`` fields in the POST.  
 
+If the Sentry server requires authentication, 
+the POST field ``key`` is a name that identifies the client 
+and correspondingly the shared secret key between client and server.  
+
 A Python client could generate the authentication code value using the ``hashlib`` and ``hmac`` libraries::
 
     hmac_value = hmac.new(<client id>, '%s%s' % (<authenticated timestamp>, <encoded record>), hashlib.sha1).hexdigest()
 
-A POST fails authentication in any of the following conditions:
+A POST fails authentication in any of the following conditions
     * out of date (the ``timestamp`` lies more than 10" in the past) (this is configurable).
     * repeated (an equal message was already received).
     * hmac mismatch (the `<hmac value>` received does not match the one computed).
