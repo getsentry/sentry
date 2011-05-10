@@ -102,6 +102,7 @@ A Python client could generate the authentication code value using the ``hashlib
     hmac_value = hmac.new(<client id>, '%s%s' % (<authenticated timestamp>, <encoded record>), hashlib.sha1).hexdigest()
 
 A POST fails authentication in any of the following conditions
+
     * out of date (the ``timestamp`` lies more than 10" in the past) (this is configurable).
     * repeated (an equal message was already received).
     * hmac mismatch (the `<hmac value>` received does not match the one computed).
