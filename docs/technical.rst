@@ -66,8 +66,8 @@ own severity level.
 On top of these, Sentry requires the logger to report the ``view``,
 the name of the function that has caused the logging record.
 
-Authentication
-~~~~~~~~~~~~~~
+POST request
+~~~~~~~~~~~~
 
 A logging handler integrating with Sentry sends the records it handles
 to the Sentry server.  The server listens for JSON POST requests,
