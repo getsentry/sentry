@@ -109,7 +109,7 @@ A POST fails authentication in any of the following conditions
     * the ``timestamp`` field is missing.
     * out of date (the ``timestamp`` lies more than 10" in the past) (configuration item).
     * repeated (an equal message was already received).
-    * hmac mismatch (the `<hmac value>` received does not match the one computed).
+    * hmac mismatch (the ``<hmac value>`` received does not match the one computed).
 
 If a POST fails authentication, it is (more or less silently) dropped.
 
