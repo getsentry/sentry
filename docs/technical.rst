@@ -74,28 +74,34 @@ to the Sentry server.  The server listens for JSON POST requests,
 with the following structure::
 
     POST /store/
-    <the encoded record>
+    format=json
+    key=<client id>
+    authentication=<hmac value>
+    timestamp=<authenticated timestamp>
+    data=<encoded record>
 
-You must also send along the following authentication headers::
+Authentication (POST fields ``authentication`` and ``timestamp``) is optional and works on the bases of hmac (Hash based Message Authentication Code) where ``sha1`` is the hash function.  
 
-    Authorization: Sentry sentry_signature=<hmac signature>,
-    sentry_timestamp=<signature timestamp>,
-    sentry_version=<client version, arbitrary>
+If you are using authentication, the POST field ``key`` is a name that identifies the client 
+and correspondingly a shared secret key between client and server.  
 
-The header is composed of a SHA1-signed HMAC, the timestamp from when the message
-was generated, and an arbitrary client version string. To generate the HMAC signature,
-take the following example (in Python)::
-
-    hmac.new(SENTRY_KEY, '%s %s' % (timestamp, message), hashlib.sha1).hexdigest()
-
-The ``SENTRY_KEY`` is a shared secret key between client and server.  It
+If the Sentry server doesn't expect authentication, 
+the two fields ``authentication`` and ``timestamp`` are not used and may be missing,
+while the ``key`` is itself the shared secret key.  In this case, it
 travels unencrypted in the POST request so make sure the client server
 connection is not sniffable or that you are not doing serious work.
+
+Back to the authentication mechanism: the text being authenticated is 
+the concatenated values for the ``timestamp`` and ``data`` fields in the POST.  
+
+A Python client could generate the authentication code value using the ``hashlib`` and ``hmac`` libraries::
+
+    hmac_value = hmac.new(<client id>, '%s%s' % (<authenticated timestamp>, <encoded record>), hashlib.sha1).hexdigest()
 
 POST Body
 ~~~~~~~~~
 
-The body of the post is a string representation of a JSON object and is
+The ``data`` field (the body of the post) is a string representation of a JSON object and is
 (optionally and preferably) gzipped and then (necessarily) base64
 encoded.  
 
