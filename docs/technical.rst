@@ -92,7 +92,7 @@ Authentication
 
 If the Sentry server is configured to require authentication, 
 the POST field ``key`` is a name used to identify the client 
-and correspondingly the shared secret key between client and server.  
+and correspondingly ``ssk``, the shared secret key between client and server.  
 In this case the shared secret key does not travel in the POST.
 
 The authentication mechanism provided 
@@ -102,7 +102,7 @@ the concatenated values for the ``timestamp`` and ``data`` fields in the POST.
 
 A Python client could generate the authentication code value using the ``hashlib`` and ``hmac`` libraries::
 
-    hmac_value = hmac.new(<client id>, '%s%s' % (<authenticated timestamp>, <encoded record>), hashlib.sha1).hexdigest()
+    hmac_value = hmac.new(<ssk>, '%s%s' % (<authenticated timestamp>, <encoded record>), hashlib.sha1).hexdigest()
 
 A POST fails authentication in any of the following conditions
 
