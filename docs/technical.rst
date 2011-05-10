@@ -82,7 +82,8 @@ with the following structure::
 
 If the Sentry server doesn't expect authentication, 
 the two fields ``authentication`` and ``timestamp`` are not consumed and may be missing,
-while the ``key`` is itself a shared secret key between client and server.  It
+while the ``key`` is itself a shared secret key between client and server.  
+In this case the shared secret key
 travels unencrypted in the POST request so make sure the client server
 connection is not sniffable or that you are not doing serious work.
 
@@ -105,11 +106,12 @@ A Python client could generate the authentication code value using the ``hashlib
 
 A POST fails authentication in any of the following conditions
 
- * out of date (the ``timestamp`` lies more than 10" in the past) (this is configurable).
- * repeated (an equal message was already received).
- * hmac mismatch (the `<hmac value>` received does not match the one computed).
+    * the ``timestamp`` field is missing.
+    * out of date (the ``timestamp`` lies more than 10" in the past) (configuration item).
+    * repeated (an equal message was already received).
+    * hmac mismatch (the `<hmac value>` received does not match the one computed).
 
-If a POST fails authentication, it is silently dropped.
+If a POST fails authentication, it is (more or less silently) dropped.
 
 POST Body
 ~~~~~~~~~
