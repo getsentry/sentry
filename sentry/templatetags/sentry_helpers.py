@@ -9,6 +9,7 @@ from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
 from paging.helpers import paginate as paginate_func
 from sentry.utils import get_db_engine
+from sentry.utils.compat.db import connections
 from sentry.plugins import GroupActionProvider
 from templatetag_sugar.register import tag
 from templatetag_sugar.parser import Name, Variable, Constant, Optional
@@ -60,11 +61,7 @@ def chart_data(group, max_days=90):
     today = datetime.datetime.now().replace(microsecond=0, second=0, minute=0)
     min_date = today - datetime.timedelta(hours=hours)
 
-    if hasattr(group, '_state'):
-        from django.db import connections
-        conn = connections[group._state.db]
-    else:
-        from django.db import connection as conn
+    conn = connections[getattr(group, '_state', 'default')]
 
     if get_db_engine(getattr(conn, 'alias', 'default')).startswith('oracle'):
         method = conn.ops.date_trunc_sql('hh24', 'datetime')

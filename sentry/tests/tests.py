@@ -23,13 +23,14 @@ from django.core.management import call_command
 from django.core.urlresolvers import reverse
 from django.core.signals import got_request_exception
 from django.core.servers import basehttp
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 from django.template import TemplateSyntaxError
 from django.utils import simplejson
 from django.utils.encoding import smart_unicode
 
 from sentry.conf import settings
 from sentry.utils import transform, get_signature, get_auth_header
+from sentry.utils.compat.db import connections
 from sentry.models import Message, GroupedMessage
 from sentry.client.base import SentryClient
 from sentry.client.handlers import SentryHandler
@@ -37,8 +38,21 @@ from sentry.client.models import get_client
 
 from models import TestModel, DuplicateKeyModel
 
+# class NullHandler(logging.Handler):
+#     def emit(self, record):
+#         pass
+# 
+# # Configure our "oh shit" handler, so that we dont output a bunch of unused
+# # information to stderr
+# 
+# logger = logging.getLogger('sentry.error')
+# logger.addHandler(NullHandler())
+
+# Configure our test handler
+
 logger = logging.getLogger('sentry.test')
 logger.addHandler(SentryHandler())
+logger.setLevel(logging.DEBUG)
 
 class StoppableWSGIServer(basehttp.WSGIServer):
     """WSGIServer with short timeout, so that server thread can stop this server."""
@@ -60,7 +74,8 @@ class StoppableWSGIServer(basehttp.WSGIServer):
 class TestServerThread(threading.Thread):
     """Thread for running a http server while tests are running."""
 
-    def __init__(self, address, port):
+    def __init__(self, test, address, port):
+        self.test = test
         self.address = address
         self.port = port
         self._stopevent = threading.Event()
@@ -82,13 +97,14 @@ class TestServerThread(threading.Thread):
             return
 
         # Must do database stuff in this new thread if database in memory.
-        if django_settings.DATABASE_ENGINE == 'sqlite3' \
-            and (not django_settings.TEST_DATABASE_NAME or django_settings.TEST_DATABASE_NAME == ':memory:'):
+        conn_settings = connections['default'].settings_dict
+        if conn_settings['ENGINE'] == 'sqlite3' \
+            and (not conn_settings['TEST_NAME'] or conn_settings['TEST_NAME'] == ':memory:'):
             # Import the fixture data into the test database.
-            if hasattr(self, 'fixtures'):
+            if hasattr(self.test, 'fixtures'):
                 # We have to use this slightly awkward syntax due to the fact
                 # that we're using *args and **kwargs together.
-                call_command('loaddata', *self.fixtures, **{'verbosity': 0})
+                call_command('loaddata', *self.test.fixtures, **{'verbosity': 0})
 
         # Loop until we get a stop event.
         while not self._stopevent.isSet():
@@ -877,23 +893,10 @@ class SentryViewsTest(TestCase):
         self.assertEquals(resp.status_code, 200, resp.content)
         self.assertTemplateUsed(resp, 'sentry/group/details.html')
 
-class RemoteSentryTest(TestCase):
+class SentryRemoteTest(TestCase):
     urls = 'sentry.tests.urls'
     
-    def start_test_server(self, address='localhost', port=8001):
-        """Creates a live test server object (instance of WSGIServer)."""
-        self.server_thread = TestServerThread(address, port)
-        self.server_thread.start()
-        self.server_thread.started.wait()
-        if self.server_thread.error:
-            raise self.server_thread.error
-
-    def stop_test_server(self):
-        if self.server_thread:
-            self.server_thread.join()
-    
     def setUp(self):
-        self.server_thread = None
         settings.REMOTE_URL = ['http://localhost:8000%s' % reverse('sentry-store')]
         logger = logging.getLogger('sentry')
         for h in logger.handlers:
@@ -901,7 +904,6 @@ class RemoteSentryTest(TestCase):
         logger.addHandler(logging.StreamHandler())
 
     def tearDown(self):
-        self.stop_test_server()
         settings.REMOTE_URL = None
 
     def testNoKey(self):
@@ -976,7 +978,6 @@ class RemoteSentryTest(TestCase):
         self.assertEquals(instance.site, 'not_a_real_site')
         self.assertEquals(instance.level, 40)
 
-
     def testByteSequence(self):
         """
         invalid byte sequence for encoding "UTF8": 0xedb7af
@@ -1020,22 +1021,51 @@ class RemoteSentryTest(TestCase):
     #     
     #     self.assertEquals(last.view, 'sentry.tests.tests.testFunctionException')
 
-    # def testProcess(self):
-    #     settings.REMOTE_URL = ['http://localhost:8001/store/']
-    #     self.start_test_server()
-    #     message_id = SentryClient().process(message='hello')
-    #     self.assertTrue(message_id)
-    #     instance = Message.objects.all().order_by('-id')[0]
-    #     self.assertEquals(instance.message, 'hello')
-    #     self.stop_test_server()
+class SentryRemoteServerTest(TransactionTestCase):
+    urls = 'sentry.tests.urls'
+    
+    def setUp(self):
+        self.server_thread = None
+        logger = logging.getLogger('sentry')
+        for h in logger.handlers:
+            logger.removeHandler(h)
+        logger.addHandler(logging.StreamHandler())
 
-    # def testExternal(self):
-    #     self.start_test_server()
-    #     self.assertRaises(Exception, self.client.get, '/?test')
-    #     instance = Message.objects.all().order_by('-id')[0]
-    #     self.assertEquals(instance.message, 'view exception')
-    #     self.assertEquals(instance.url, 'http://testserver/?test')
-    #     self.stop_test_server()
+    def tearDown(self):
+        self.stop_test_server()
+        settings.REMOTE_URL = None
+    
+    def start_test_server(self, address='localhost', port=8001):
+        """Creates a live test server object (instance of WSGIServer)."""
+        self._orig_remote_url = settings.REMOTE_URL
+        settings.REMOTE_URL = ['http://localhost:8001/store/']
+        self.server_thread = TestServerThread(self, address, port)
+        self.server_thread.start()
+        self.server_thread.started.wait()
+        if self.server_thread.error:
+            raise self.server_thread.error
+
+    def stop_test_server(self):
+        if self.server_thread:
+            settings.REMOTE_URL = self._orig_remote_url
+            self.server_thread.join()
+
+    def testProcess(self):
+        self.start_test_server()
+        message_id = SentryClient().process(message='hello')
+        self.assertTrue(message_id)
+        instance = Message.objects.all().order_by('-id')[0]
+        self.assertEquals(instance.message, 'hello')
+        self.stop_test_server()
+
+    def testExternal(self):
+        self.start_test_server()
+        path = reverse('sentry-raise-exc')
+        self.assertRaises(Exception, self.client.get, path)
+        instance = Message.objects.all().order_by('-id')[0]
+        self.assertEquals(instance.message, 'view exception')
+        self.assertEquals(instance.url, 'http://testserver' + path)
+        self.stop_test_server()
 
 class SentryFeedsTest(TestCase):
     fixtures = ['sentry/tests/fixtures/feeds.json']
