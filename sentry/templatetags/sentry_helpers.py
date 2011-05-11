@@ -61,7 +61,12 @@ def chart_data(group, max_days=90):
     today = datetime.datetime.now().replace(microsecond=0, second=0, minute=0)
     min_date = today - datetime.timedelta(hours=hours)
 
-    conn = connections[getattr(group, '_state', 'default')]
+    if hasattr(group, '_state'):
+        db = group._state.db
+    else:
+        db = 'default'
+
+    conn = connections[db]
 
     if get_db_engine(getattr(conn, 'alias', 'default')).startswith('oracle'):
         method = conn.ops.date_trunc_sql('hh24', 'datetime')
