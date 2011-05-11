@@ -27,14 +27,15 @@ from django.test import TestCase, TransactionTestCase
 from django.template import TemplateSyntaxError
 from django.utils import simplejson
 from django.utils.encoding import smart_unicode
+from django.utils.functional import lazy
 
-from sentry.conf import settings
-from sentry.utils import transform, get_signature, get_auth_header
-from sentry.utils.compat.db import connections
-from sentry.models import Message, GroupedMessage
 from sentry.client.base import SentryClient
 from sentry.client.handlers import SentryHandler
 from sentry.client.models import get_client
+from sentry.conf import settings
+from sentry.models import Message, GroupedMessage
+from sentry.utils import transform, get_signature, get_auth_header
+from sentry.utils.compat.db import connections
 
 from models import TestModel, DuplicateKeyModel
 
@@ -1180,12 +1181,11 @@ class SentryHelpersTest(TestCase):
         django_settings.DATABASE_ENGINE = _engine
 
     def test_transform_handles_gettext_lazy(self):
-        from sentry.utils import transform
-        from django.utils.functional import lazy
-
         def fake_gettext(to_translate):
             return u'Igpay Atinlay'
+
         fake_gettext_lazy = lazy(fake_gettext, str)
+
         self.assertEquals(
             pickle.loads(pickle.dumps(
                     transform(fake_gettext_lazy("something")))),
@@ -1198,6 +1198,12 @@ class SentryHelpersTest(TestCase):
         self.assertEquals(versions.get('sentry'), sentry.VERSION)
         versions = get_versions(['sentry.client'])
         self.assertEquals(versions.get('sentry'), sentry.VERSION)
+
+    def test_transform_model_instance(self):
+        instance = DuplicateKeyModel(foo='foo')
+        
+        result = transform(instance)
+        self.assertEquals(result, '<DuplicateKeyModel: foo>')
 
 class SentryClientTest(TestCase):
     urls = 'sentry.tests.urls'

@@ -2,13 +2,13 @@ import hmac
 import logging
 import sys
 import uuid
-import warnings
 from pprint import pformat
 from types import ClassType, TypeType
 
 import django
 from django.conf import settings as django_settings
 from django.utils.encoding import force_unicode
+from django.utils.functional import Promise
 from django.utils.hashcompat import md5_constructor, sha_constructor
 
 import sentry
@@ -108,9 +108,13 @@ def transform(value, stack=[], context=None):
     elif not isinstance(value, (ClassType, TypeType)) and \
             has_sentry_metadata(value):
         ret = transform_rec(value.__sentry__())
+    elif isinstance(value, Promise):
+        # EPIC HACK
+        pre = value.__class__.__name__[1:]
+        value = getattr(value, '%s__func' % pre)(*getattr(value, '%s__args' % pre), **getattr(value, '%s__kw' % pre))
+        return transform(value)
     elif not isinstance(value, (int, bool)) and value is not None:
-        # XXX: we could do transform(repr(value)) here
-        ret = to_unicode(value)
+        ret = transform(repr(value))
     else:
         ret = value
     del context[objid]
