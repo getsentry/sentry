@@ -67,7 +67,7 @@ if not settings.configured:
 
 from django.test.simple import run_tests
 
-def runtests(failfast=False, *test_args):
+def runtests(test_args, failfast=False):
     if 'south' in settings.INSTALLED_APPS:
         from south.management.commands import patch_for_test_db_setup
         patch_for_test_db_setup()
@@ -79,11 +79,10 @@ def runtests(failfast=False, *test_args):
     failures = run_tests(test_args, verbosity=1, interactive=False, failfast=failfast)
     sys.exit(failures)
 
-
 if __name__ == '__main__':
     parser = OptionParser()
     parser.add_option('--failfast', action='store_true', default=False, dest='failfast')
 
     (options, args) = parser.parse_args()
 
-    runtests(*args, failfast=options.failfast)
+    runtests(args, failfast=options.failfast)
