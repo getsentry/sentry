@@ -1036,11 +1036,27 @@ class SentryRemoteServerTest(TransactionTestCase):
         self.stop_test_server()
         settings.REMOTE_URL = None
     
-    def start_test_server(self, address='localhost', port=8001):
+    def start_test_server(self, host='localhost', port=None):
         """Creates a live test server object (instance of WSGIServer)."""
+        if not port:
+            for port in xrange(8001, 65535):
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                try:
+                    s.bind((host, port))
+                except socket.error:
+                    port = None
+                    continue
+                else:
+                    break
+                finally:
+                    s.close()
+        if not port:
+            raise socket.error('Unable to find an open port to bind server')
+
         self._orig_remote_url = settings.REMOTE_URL
-        settings.REMOTE_URL = ['http://localhost:8001/store/']
-        self.server_thread = TestServerThread(self, address, port)
+        settings.REMOTE_URL = ['http://%s:%s/store/' % (host, port)]
+        self.server_thread = TestServerThread(self, host, port)
         self.server_thread.start()
         self.server_thread.started.wait()
         if self.server_thread.error:
