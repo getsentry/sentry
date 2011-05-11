@@ -353,8 +353,8 @@ def store(request):
     if request.method != 'POST':
         return HttpResponseNotAllowed('This method only supports POST requests')
 
-    if request.META.get('AUTHORIZATION', '').startswith('Sentry'):
-        auth_vars = parse_auth_header(request.META['AUTHORIZATION'])
+    if request.META.get('HTTP_AUTHORIZATION', '').startswith('Sentry'):
+        auth_vars = parse_auth_header(request.META['HTTP_AUTHORIZATION'])
         
         signature = auth_vars.get('sentry_signature')
         timestamp = auth_vars.get('sentry_timestamp')

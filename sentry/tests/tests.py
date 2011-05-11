@@ -9,6 +9,7 @@ import datetime
 import getpass
 import logging
 import os.path
+import socket
 import sys
 import time
 import threading
@@ -39,6 +40,23 @@ from models import TestModel, DuplicateKeyModel
 logger = logging.getLogger('sentry.test')
 logger.addHandler(SentryHandler())
 
+class StoppableWSGIServer(basehttp.WSGIServer):
+    """WSGIServer with short timeout, so that server thread can stop this server."""
+
+    def server_bind(self):
+        """Sets timeout to 1 second."""
+        basehttp.WSGIServer.server_bind(self)
+        self.socket.settimeout(1)
+
+    def get_request(self):
+        """Checks for timeout when getting request."""
+        try:
+            sock, address = self.socket.accept()
+            sock.settimeout(None)
+            return (sock, address)
+        except socket.timeout:
+            raise
+
 class TestServerThread(threading.Thread):
     """Thread for running a http server while tests are running."""
 
@@ -55,7 +73,7 @@ class TestServerThread(threading.Thread):
         try:
             handler = basehttp.AdminMediaHandler(WSGIHandler())
             server_address = (self.address, self.port)
-            httpd = basehttp.StoppableWSGIServer(server_address, basehttp.WSGIRequestHandler)
+            httpd = StoppableWSGIServer(server_address, basehttp.WSGIRequestHandler)
             httpd.set_app(handler)
             self.started.set()
         except basehttp.WSGIServerException, e:
@@ -986,7 +1004,7 @@ class RemoteSentryTest(TestCase):
         message = base64.b64encode(simplejson.dumps(transform(kwargs)))
         sig = get_signature(message, ts)
 
-        resp = self.client.post(reverse('sentry-store'), message, content_type='application/octet-stream', AUTHORIZATION=get_auth_header(sig, ts, 'foo'))
+        resp = self.client.post(reverse('sentry-store'), message, content_type='application/octet-stream', HTTP_AUTHORIZATION=get_auth_header(sig, ts, 'foo'))
         self.assertEquals(resp.status_code, 200, resp.content)
         instance = Message.objects.get()
         self.assertEquals(instance.message, 'hello')
@@ -1003,12 +1021,14 @@ class RemoteSentryTest(TestCase):
     #     self.assertEquals(last.view, 'sentry.tests.tests.testFunctionException')
 
     # def testProcess(self):
+    #     settings.REMOTE_URL = ['http://localhost:8001/store/']
     #     self.start_test_server()
-    #     SentryClient().process(message='hello')
+    #     message_id = SentryClient().process(message='hello')
+    #     self.assertTrue(message_id)
     #     instance = Message.objects.all().order_by('-id')[0]
     #     self.assertEquals(instance.message, 'hello')
     #     self.stop_test_server()
-    # 
+
     # def testExternal(self):
     #     self.start_test_server()
     #     self.assertRaises(Exception, self.client.get, '/?test')
