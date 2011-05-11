@@ -83,8 +83,10 @@ You must also send along the following authentication headers::
     sentry_version=<client version, arbitrary>
 
 The header is composed of a SHA1-signed HMAC, the timestamp from when the message
-was generated, and an arbitrary client version string. To generate the HMAC signature,
-take the following example (in Python)::
+was generated, and an arbitrary client version string. The client version should
+be something distinct to your client, and is simply for reporting purposes.
+
+To generate the HMAC signature, take the following example (in Python)::
 
     hmac.new(SENTRY_KEY, '%s %s' % (timestamp, message), hashlib.sha1).hexdigest()
 
