@@ -88,9 +88,11 @@ take the following example (in Python)::
 
     hmac.new(SENTRY_KEY, '%s %s' % (timestamp, message), hashlib.sha1).hexdigest()
 
-The ``SENTRY_KEY`` is a shared secret key between client and server.  It
-travels unencrypted in the POST request so make sure the client server
-connection is not sniffable or that you are not doing serious work.
+The variables which are required within the signing of the message consist of the following:
+
+- The ``SENTRY_KEY`` is a the shared secret key between client and server. 
+- ``timestamp`` is the timestamp of which this message was generated
+- ``message`` is the encoded :ref:`POST Body`
 
 POST Body
 ~~~~~~~~~
