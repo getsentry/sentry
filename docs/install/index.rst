@@ -22,7 +22,9 @@ you will need to install the following packages in your Sentry server environmen
  - ``django-paging >= 0.2.4``
  - ``django-templatetag-sugar >= 0.1.0``
 
-.. note: The built-in webserver's dependencies are not installed by default.
+.. note::
+
+   The built-in webserver's dependencies are not installed by default.
 
 You now have two choices:
 
@@ -108,7 +110,9 @@ Sentry provides the start, stop, and restart commands available via the command 
 	# the correct host and port!
 	sentry start --config=/etc/sentry.conf.py
 
-.. note: The ``start`` command will also automatically run the ``upgrade`` command, which handles data and schema migrations.
+.. note::
+
+   The ``start`` command will also automatically run the ``upgrade`` command, which handles data and schema migrations.
 
 The configuration for the server is based on ``sentry.conf.server``, which contains a basic Django project configuration, as well
 as the default Sentry configuration values. It will use SQLite for the database, and Haystack using Whoosh. If you specify your own
@@ -118,7 +122,9 @@ configuration via --config, you will likely want to preface the file with import
 	# filename: /etc/sentry.conf.py
 	from sentry.conf.defaults import *
 
-.. note: The default database is SQLite, which generally does not perform very well.
+.. note::
+
+   The default database is SQLite, which generally does not perform very well.
 
 The following settings are available for the built-in webserver:
 
