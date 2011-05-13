@@ -126,7 +126,7 @@ The following settings are available for the built-in webserver:
 WEB_HOST
 ********
 
-THe hostname which the webserver should bind to. Defaults to ``localhost``.
+The hostname which the webserver should bind to. Defaults to ``localhost``.
 
 ********
 WEB_PORT
