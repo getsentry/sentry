@@ -13,6 +13,7 @@ import socket
 import sys
 import time
 import threading
+import urllib
 import warnings
 
 from django.conf import settings as django_settings
@@ -999,6 +1000,22 @@ class SentryRemoteTest(TestCase):
         self.assertEquals(instance.server_name, 'shilling.disqus.net')
         self.assertEquals(instance.level, 40)
         self.assertTrue(instance.data['__sentry__']['exc'])
+
+    def testLegacyAuth(self):
+        kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
+        message = base64.b64encode(simplejson.dumps(transform(kwargs)))
+
+        resp = self.client.post(reverse('sentry-store'), {
+            'data': message,
+            'format': 'json',
+            'key': settings.KEY,
+        })
+        self.assertEquals(resp.status_code, 200, resp.content)
+        instance = Message.objects.get()
+        self.assertEquals(instance.message, 'hello')
+        self.assertEquals(instance.server_name, 'not_dcramer.local')
+        self.assertEquals(instance.site, 'not_a_real_site')
+        self.assertEquals(instance.level, 40)
 
     def testSignature(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
