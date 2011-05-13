@@ -17,15 +17,12 @@ Requirements
 If you installed using pip or setuptools you shouldn't need to worry about requirements. Otherwise
 you will need to install the following packages in your Sentry server environment:
 
- - **Django >= 1.2**
- - **django-indexer >= 0.3.0** (stores metadata indexes)
- - **django-paging >= 0.2.4**
- - **django-templatetag-sugar >= 0.1.0**
+ - ``Django >= 1.2``
+ - ``django-indexer >= 0.3.0`` (stores metadata indexes)
+ - ``django-paging >= 0.2.4``
+ - ``django-templatetag-sugar >= 0.1.0``
 
-The following dependencies are required if you plan to run Sentry using it's built-in webserver:
-
- - **python-daemon >= 1.6**
- - **eventlet >= 0.9.15**
+.. note: The built-in webserver's dependencies are not installed by default.
 
 You now have two choices:
 
@@ -100,7 +97,10 @@ The Built-in Server
 ###################
 
 Sentry provides a built-in webserver (powered by eventlet) to get you off the ground quickly. It's powered by two open source
-libraries, eventlet and python-daemon.
+libraries, eventlet and python-daemon. To get started, you will need to manually install those dependicies::
+
+	easy_install eventlet>=0.9.15
+	easy_install python-daemon>=1.6
 
 Sentry provides the start, stop, and restart commands available via the command line interface to manage the server process::
 
