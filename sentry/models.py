@@ -10,7 +10,6 @@ import math
 
 from datetime import datetime
 
-from django.conf import settings as django_settings
 from django.db import models
 from django.db.models import Count
 from django.utils.encoding import smart_unicode
@@ -139,17 +138,20 @@ class GroupedMessage(MessageBase):
         return int(math.log(self.times_seen) * 600 + int(self.last_seen.strftime('%s')))
 
     def mail_admins(self, request=None, fail_silently=True):
-        if not settings.ADMINS:
-            return
-        
         from django.core.mail import send_mail
         from django.template.loader import render_to_string
 
+        if not settings.ADMINS:
+            return
+        
         message = self.message_set.order_by('-id')[0]
 
         obj_request = message.request
 
-        subject = '%sError (%s IP): %s' % (django_settings.EMAIL_SUBJECT_PREFIX, (obj_request.META.get('REMOTE_ADDR') in django_settings.INTERNAL_IPS and 'internal' or 'EXTERNAL'), obj_request.path)
+        ip_repr = (obj_request.META.get('REMOTE_ADDR') in settings.INTERNAL_IPS and 'internal' or 'EXTERNAL')
+
+        subject = '%sError (%s IP): %s' % (settings.EMAIL_SUBJECT_PREFIX, ip_repr, obj_request.path)
+
         if message.site:
             subject  = '[%s] %s' % (message.site, subject)
         try:
@@ -171,7 +173,7 @@ class GroupedMessage(MessageBase):
         })
         
         send_mail(subject, body,
-                  django_settings.SERVER_EMAIL, settings.ADMINS,
+                  settings.SERVER_EMAIL, settings.ADMINS,
                   fail_silently=fail_silently)
     
     @property
