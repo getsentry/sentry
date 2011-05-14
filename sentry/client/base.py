@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import base64
+import functools
 import logging
 import sys
 import time
@@ -21,7 +22,55 @@ from sentry.utils import construct_checksum, varmap, transform, get_installed_ap
 
 logger = logging.getLogger('sentry.errors')
 
+def fail_silently(default=None):
+    def wrapped(func):
+        @functools.wraps(func)
+        def _wrapped(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except Exception, e:
+                logger.exception(e)
+                return default
+        return _wrapped
+    return wrapped
+
 class SentryClient(object):
+    @fail_silently((False, None))
+    def check_throttle(self, checksum):
+        if not (settings.THRASHING_TIMEOUT and settings.THRASHING_LIMIT):
+            return (False, None)
+        
+        cache_key = 'sentry:%s' % (checksum,)
+        added = cache.add(cache_key, 1, settings.THRASHING_TIMEOUT)
+        if added:
+            return (False, None)
+        
+        try:
+            thrash_count = cache.incr(cache_key)
+        except (KeyError, ValueError):
+            # cache.incr can fail. Assume we aren't thrashing yet, and
+            # if we are, hope that the next error has a successful
+            # cache.incr call.
+            thrash_count = 0
+
+        if thrash_count > settings.THRASHING_LIMIT:
+             return (True, self.get_last_message_id(checksum))
+
+        return (False, None)
+
+    @fail_silently()
+    def get_last_message_id(self, checksum):
+        cache_key = 'sentry:%s:last_message_id' % (checksum,)
+        
+        return cache.get(cache_key)
+
+    @fail_silently()
+    def set_last_message_id(self, checksum, message_id):
+        if settings.THRASHING_TIMEOUT and settings.THRASHING_LIMIT:
+            cache_key = 'sentry:%s:last_message_id' % (checksum,)
+        
+            cache.set(cache_key, message_id, settings.THRASHING_LIMIT + 5)
+        
     def process(self, **kwargs):
         "Processes the message before passing it on to the server"
         from sentry.utils import get_filters
@@ -92,27 +141,18 @@ class SentryClient(object):
         else:
             checksum = kwargs['checksum']
 
-        if settings.THRASHING_TIMEOUT and settings.THRASHING_LIMIT:
-            cache_key = 'sentry:%s:%s' % (kwargs.get('class_name') or '', checksum)
-            added = cache.add(cache_key, 1, settings.THRASHING_TIMEOUT)
-            if not added:
-                try:
-                    thrash_count = cache.incr(cache_key)
-                except (KeyError, ValueError):
-                    # cache.incr can fail. Assume we aren't thrashing yet, and
-                    # if we are, hope that the next error has a successful
-                    # cache.incr call.
-                    thrash_count = 0
-                if thrash_count > settings.THRASHING_LIMIT:
-                    message_id = cache.get('%s:last_message_id' % cache_key)
-                    if request:
-                        # attach the sentry object to the request
-                        request.sentry = {
-                            'id': message_id,
-                            'thrashed': True,
-                        }
-                    return message_id
+        (is_thrashing, message_id) = self.check_throttle(checksum)
 
+        if is_thrashing:
+            if request and message_id:
+                # attach the sentry object to the request
+                request.sentry = {
+                    'id': message_id,
+                    'thrashed': True,
+                }
+            
+            return message_id
+            
         for filter_ in get_filters():
             kwargs = filter_(None).process(kwargs) or kwargs
         
@@ -129,11 +169,11 @@ class SentryClient(object):
             # attach the sentry object to the request
             request.sentry = {
                 'id': message_id,
+                'trashed': False,
             }
         
-        if settings.THRASHING_TIMEOUT and settings.THRASHING_LIMIT:
-            # store the last message_id incase we hit thrashing limits
-            cache.set('%s:last_message_id' % cache_key, message_id, settings.THRASHING_LIMIT+5)
+        # store the last message_id incase we hit thrashing limits
+        self.set_last_message_id(checksum, message_id)
         
         return message_id
 
