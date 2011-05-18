@@ -14,6 +14,7 @@ if not settings.configured:
         DATABASES={
             'default': {
                 'ENGINE': 'sqlite3',
+                'TEST_NAME': 'sentry_tests.db',
             },
         },
         # HACK: this fixes our threaded runserver remote tests
@@ -67,7 +68,7 @@ if not settings.configured:
 
 from django.test.simple import run_tests
 
-def runtests(failfast=False, *test_args):
+def runtests(*test_args, **kwargs):
     if 'south' in settings.INSTALLED_APPS:
         from south.management.commands import patch_for_test_db_setup
         patch_for_test_db_setup()
@@ -76,9 +77,8 @@ def runtests(failfast=False, *test_args):
         test_args = ['sentry']
     parent = dirname(abspath(__file__))
     sys.path.insert(0, parent)
-    failures = run_tests(test_args, verbosity=1, interactive=False, failfast=failfast)
+    failures = run_tests(test_args, verbosity=kwargs.get('verbosity', 1), interactive=kwargs.get('interactive', False), failfast=kwargs.get('failfast'))
     sys.exit(failures)
-
 
 if __name__ == '__main__':
     parser = OptionParser()
@@ -86,4 +86,4 @@ if __name__ == '__main__':
 
     (options, args) = parser.parse_args()
 
-    runtests(*args, failfast=options.failfast)
+    runtests(failfast=options.failfast, *args)

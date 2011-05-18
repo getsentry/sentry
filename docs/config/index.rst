@@ -45,8 +45,8 @@ your ``extra`` clause::
 	    }
 	})
 
-* Note 1: the ``url`` and ``__sentry__`` keys are used internally by Sentry within the extra data.
-* Note 2: any key prefixed with ``_`` will not automatically output on the Sentry details view.
+.. note:: The ``url`` and ``__sentry__`` keys are used internally by Sentry within the extra data.
+.. note:: Any key prefixed with ``_`` will not automatically output on the Sentry details view.
 
 Sentry will intelligently group messages if you use proper string formatting. For example, the following messages would
 be seen as the same message within Sentry::

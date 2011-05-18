@@ -8,31 +8,45 @@ except ImportError:
     from setuptools import setup, find_packages
 
 tests_require = [
-    'Django',
+    'Django>=1.2,<1.4',
+    
+    # celery
     'django-celery',
+    
+    # django migrations
     'south',
+    
+    # haystack support
     'django-haystack',
     'whoosh',
+    
+    # python-daemon and eventlet are required to run the Sentry independent webserver
+    'python-daemon>=1.6',
+    'eventlet>=0.9.15',
 ]
+
+install_requires = [
+    'django-paging>=0.2.4',
+    'django-indexer>=0.3.0',
+    'django-templatetag-sugar>=0.1.0',
+]
+
+try:
+    __import__('uuid')
+except ImportError:
+    # Older versions of Python did not include uuid
+    install_requires.append('uuid')
 
 setup(
     name='django-sentry',
-    version='1.8.0',
+    version='1.8.3',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/django-sentry',
     description = 'Exception Logging to a Database in Django',
     packages=find_packages(exclude="example_project"),
     zip_safe=False,
-    install_requires=[
-        'django-paging>=0.2.4',
-        'django-indexer>=0.3.0',
-        'django-templatetag-sugar>=0.1.0',
-        'uuid',
-        # python-daemon and eventlet are required to run the Sentry indepenent webserver
-        'python-daemon>=1.6',
-        'eventlet>=0.9.15',
-    ],
+    install_requires=install_requires,
     dependency_links=[
         'https://github.com/disqus/django-haystack/tarball/master#egg=django-haystack',
     ],

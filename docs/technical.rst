@@ -95,13 +95,22 @@ the POST field ``key`` is a name used to identify the client
 and correspondingly ``ssk``, the shared secret key between client and server.  
 In this case the shared secret key does not travel in the POST.
 
+<<<<<<< HEAD
 The authentication mechanism provided 
 works on the bases of hmac (Hash based Message Authentication Code) where ``sha1`` is the hash function.  
 The text being authenticated is 
 the concatenated values for the ``timestamp`` and ``data`` fields in the POST.  
+=======
+The header is composed of a SHA1-signed HMAC, the timestamp from when the message
+was generated, and an arbitrary client version string. The client version should
+be something distinct to your client, and is simply for reporting purposes.
+
+To generate the HMAC signature, take the following example (in Python)::
+>>>>>>> fe47e4dbb7d2bb9a913d950ddf1787cf94b49dbe
 
 A Python client could generate the authentication code value using the ``hashlib`` and ``hmac`` libraries::
 
+<<<<<<< HEAD
     hmac_value = hmac.new(<ssk>, '%s%s' % (<authenticated timestamp>, <encoded record>), hashlib.sha1).hexdigest()
 
 A POST fails authentication in any of the following conditions
@@ -112,6 +121,13 @@ A POST fails authentication in any of the following conditions
     * hmac mismatch (the ``authentication`` received does not match the one computed).
 
 If a POST fails authentication, it is (more or less silently) dropped.
+=======
+The variables which are required within the signing of the message consist of the following:
+
+- The ``SENTRY_KEY`` is a the shared secret key between client and server. 
+- ``timestamp`` is the timestamp of which this message was generated
+- ``message`` is the encoded :ref:`POST Body`
+>>>>>>> fe47e4dbb7d2bb9a913d950ddf1787cf94b49dbe
 
 POST Body
 ~~~~~~~~~
