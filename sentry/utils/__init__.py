@@ -114,7 +114,12 @@ def transform(value, stack=[], context=None):
         value = getattr(value, '%s__func' % pre)(*getattr(value, '%s__args' % pre), **getattr(value, '%s__kw' % pre))
         return transform(value)
     elif not isinstance(value, (int, bool)) and value is not None:
-        ret = transform(repr(value))
+        try:
+            ret = transform(repr(value))
+        except:
+            # It's common case that a model's __unicode__ definition may try to query the database
+            # which if it was not cleaned up correctly, would hit a transaction aborted exception
+            ret = u'<BadRepr: %s>' % type(value)
     else:
         ret = value
     del context[objid]
