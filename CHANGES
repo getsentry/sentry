@@ -1,3 +1,21 @@
+1.8.3.1
+
+* Fixed a case where the client may hit a transaction aborted error when
+  transforming variables.
+
+1.8.3
+
+* Added several settings which were Django specific so that they can be
+  configured isolated to the Sentry instance.
+* Graceful failover for when a cache backend isnt working properly and
+  throttling is enabled.
+* Better rendering of non-dict variables when passed within extra data.
+* Graceful failover for searching on message_id's that aren't found.
+
+1.8.0
+
+* Refactored Sentry server to run standalone (sentry --help).
+
 1.7.5
 
 * Implemented new client/server storage API and signing methods.
