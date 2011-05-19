@@ -291,3 +291,8 @@ SENTRY_MAX_LENGTH_STRING
 
 The maximum characters of a string that should be stored. Defaults to 200.
 
+########################
+SENTRY_PUBLIC
+########################
+
+Should Sentry be protected by a username and password (using @login_required) or be publicly accessible. Defaults to False (password protection).
