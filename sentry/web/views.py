@@ -354,47 +354,37 @@ def store(request):
     if request.method != 'POST':
         return HttpResponseNotAllowed('This method only supports POST requests')
 
-    if request.META.get('HTTP_AUTHORIZATION', '').startswith('Sentry'):
-        auth_vars = parse_auth_header(request.META['HTTP_AUTHORIZATION'])
-        
-        signature = auth_vars.get('sentry_signature')
-        timestamp = auth_vars.get('sentry_timestamp')
+    data = request.POST.get('data')
+    if not data:
+        return HttpResponseBadRequest('Missing data')
 
-        format = 'json'
+    format = request.POST.get('format', 'pickle')
 
-        data = request.raw_post_data
+    if format not in ('pickle', 'json'):
+        return HttpResponseBadRequest('Invalid format')
 
-        # Signed data packet
-        if signature and timestamp:
-            try:
-                timestamp = float(timestamp)
-            except ValueError:
-                return HttpResponseBadRequest('Invalid timestamp')
+    # the id / or the shared key
+    key = request.POST.get('key')
+    signature = request.POST.get('authentication')
+    timestamp = request.POST.get('timestamp', '0')
+    encoded_data = request.POST.get('data')
 
-            if timestamp < time.time() - 3600: # 1 hour
-                return HttpResponseGone('Message has expired')
-
-            sig_hmac = get_signature(data, timestamp)
-            if sig_hmac != signature:
-                return HttpResponseForbidden('Invalid signature')
-        else:
-            return HttpResponse('Unauthorized', status_code=401)
+    if signature is None:
+        warnings.warn('A client is sending the `key` parameter, which will be removed in Sentry 2.0', DeprecationWarning)
     else:
-        data = request.POST.get('data')
-        if not data:
-            return HttpResponseBadRequest('Missing data')
+        psk = get_psk_for_client(key)
+        check = hmac.new(psk, timestamp + encoded_data, hashlib.sha1).hexdigest(),
 
-        format = request.POST.get('format', 'pickle')
+        try:
+            timestamp = float(timestamp)
+        except ValueError:
+            return HttpResponseBadRequest('Invalid timestamp')
 
-        if format not in ('pickle', 'json'):
-            return HttpResponseBadRequest('Invalid format')
+        if timestamp < time.time() - 180:  # 3 minutes
+            return HttpResponseGone('Message has expired')
 
-        # Legacy request (deprecated as of 2.0)
-        key = request.POST.get('key')
-        
-        if key != settings.KEY:
-            warnings.warn('A client is sending the `key` parameter, which will be removed in Sentry 2.0', DeprecationWarning)
-            return HttpResponseForbidden('Invalid credentials')
+        if check != signature:
+            return HttpResponseForbidden('Invalid signature')
 
     logger = logging.getLogger('sentry.server')
 

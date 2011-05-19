@@ -7,6 +7,9 @@ import os
 import os.path
 import socket
 
+CLIENT_ID = ''
+PSK = None
+
 ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir))
 
 # Allow local testing of Sentry even if DEBUG is enabled
