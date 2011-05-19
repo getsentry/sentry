@@ -12,18 +12,12 @@ import os.path
 import socket
 import sys
 import time
-import threading
-import urllib
-import warnings
 
 from django.conf import settings as django_settings
 from django.contrib.auth.models import User
 from django.core import mail
-from django.core.handlers.wsgi import WSGIHandler
-from django.core.management import call_command
 from django.core.urlresolvers import reverse
 from django.core.signals import got_request_exception
-from django.core.servers import basehttp
 from django.test import TestCase, TransactionTestCase
 from django.template import TemplateSyntaxError
 from django.utils import simplejson
@@ -36,7 +30,8 @@ from sentry.client.models import get_client
 from sentry.conf import settings
 from sentry.models import Message, GroupedMessage
 from sentry.utils import transform, get_signature, get_auth_header
-from sentry.utils.compat.db import connections
+
+from sentry.tests.utils import TestServerThread, conditional_on_module
 
 from models import TestModel, DuplicateKeyModel
 
@@ -56,82 +51,32 @@ logger = logging.getLogger('sentry.test')
 logger.addHandler(SentryHandler())
 logger.setLevel(logging.DEBUG)
 
-class StoppableWSGIServer(basehttp.WSGIServer):
-    """WSGIServer with short timeout, so that server thread can stop this server."""
 
-    def server_bind(self):
-        """Sets timeout to 1 second."""
-        basehttp.WSGIServer.server_bind(self)
-        self.socket.settimeout(1)
+class BaseTestCase(TestCase):
+    ## Helper methods for posting
 
-    def get_request(self):
-        """Checks for timeout when getting request."""
-        try:
-            sock, address = self.socket.accept()
-            sock.settimeout(None)
-            return (sock, address)
-        except socket.timeout:
-            raise
-
-class TestServerThread(threading.Thread):
-    """Thread for running a http server while tests are running."""
-
-    def __init__(self, test, address, port):
-        self.test = test
-        self.address = address
-        self.port = port
-        self._stopevent = threading.Event()
-        self.started = threading.Event()
-        self.error = None
-        super(TestServerThread, self).__init__()
-
-    def run(self):
-        """Sets up test server and database and loops over handling http requests."""
-        try:
-            handler = basehttp.AdminMediaHandler(WSGIHandler())
-            server_address = (self.address, self.port)
-            httpd = StoppableWSGIServer(server_address, basehttp.WSGIRequestHandler)
-            httpd.set_app(handler)
-            self.started.set()
-        except basehttp.WSGIServerException, e:
-            self.error = e
-            self.started.set()
-            return
-
-        # Must do database stuff in this new thread if database in memory.
-        conn_settings = connections['default'].settings_dict
-        if conn_settings['ENGINE'] == 'sqlite3' \
-            and (not conn_settings['TEST_NAME'] or conn_settings['TEST_NAME'] == ':memory:'):
-            # Import the fixture data into the test database.
-            if hasattr(self.test, 'fixtures'):
-                # We have to use this slightly awkward syntax due to the fact
-                # that we're using *args and **kwargs together.
-                call_command('loaddata', *self.test.fixtures, **{'verbosity': 0})
-
-        # Loop until we get a stop event.
-        while not self._stopevent.isSet():
-            httpd.handle_request()
-
-    def join(self, timeout=None):
-        """Stop the thread and wait for it to finish."""
-        self._stopevent.set()
-        threading.Thread.join(self, timeout)
-
-def conditional_on_module(module):
-    def wrapped(func):
-        def inner(self, *args, **kwargs):
-            try:
-                __import__(module)
-            except ImportError:
-                warnings.warn("Skipping test: %s.%s" % (self.__class__.__name__, func.__name__), ImportWarning)
-                return lambda x, *a, **kw: None
-            else:
-                return func(self, *args, **kwargs)
-        return inner
-    return wrapped
-
-class SentryTestCase(TestCase):
     urls = 'sentry.tests.urls'
+
+    def _postWithKey(self, data):
+        resp = self.client.post(reverse('sentry-store'), {
+            'data': base64.b64encode(pickle.dumps(transform(data))),
+            'key': settings.KEY,
+        })
+        return resp        
+
+    def _postWithSignature(self, data):
+        ts = time.time()
+        message = base64.b64encode(simplejson.dumps(transform(data)))
+        sig = get_signature(message, ts)
+        
+        resp = self.client.post(reverse('sentry-store'), message,
+            content_type='application/octet-stream',
+            HTTP_AUTHORIZATION=get_auth_header(sig, ts, '_postWithSignature'),
+        )
+        return resp
+
+class SentryTestCase(BaseTestCase):
+    ## Fixture setup/teardown
 
     def setUp(self):
         self._middleware = django_settings.MIDDLEWARE_CLASSES
@@ -173,6 +118,9 @@ class SentryTestCase(TestCase):
         logger.setLevel(self._level)
         self._handlers = None
         
+    
+    ## Tests
+    
     def testLogger(self):
         logger = logging.getLogger()
         
@@ -831,8 +779,7 @@ class SentryTestCase(TestCase):
         self.assertEquals(last.data['tuple'][-2], '...')
         self.assertEquals(last.data['tuple'][-1], '(450 more elements)')
 
-class SentryViewsTest(TestCase):
-    urls = 'sentry.tests.urls'
+class SentryViewsTest(BaseTestCase):
     fixtures = ['sentry/tests/fixtures/views.json']
     
     def setUp(self):
@@ -895,8 +842,7 @@ class SentryViewsTest(TestCase):
         self.assertEquals(resp.status_code, 200, resp.content)
         self.assertTemplateUsed(resp, 'sentry/group/details.html')
 
-class SentryRemoteTest(TestCase):
-    urls = 'sentry.tests.urls'
+class SentryRemoteTest(BaseTestCase):
     
     def setUp(self):
         settings.REMOTE_URL = ['http://localhost:8000%s' % reverse('sentry-store')]
@@ -928,10 +874,7 @@ class SentryRemoteTest(TestCase):
 
     def testCorrectData(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
-        resp = self.client.post(reverse('sentry-store'), {
-            'data': base64.b64encode(pickle.dumps(transform(kwargs)).encode('zlib')),
-            'key': settings.KEY,
-        })
+        resp = self._postWithSignature(kwargs)
         self.assertEquals(resp.status_code, 200)
         instance = Message.objects.get()
         self.assertEquals(instance.message, 'hello')
@@ -941,10 +884,7 @@ class SentryRemoteTest(TestCase):
 
     def testUnicodeKeys(self):
         kwargs = {u'message': 'hello', u'server_name': 'not_dcramer.local', u'level': 40, u'site': 'not_a_real_site'}
-        resp = self.client.post(reverse('sentry-store'), {
-            'data': base64.b64encode(pickle.dumps(transform(kwargs)).encode('zlib')),
-            'key': settings.KEY,
-        })
+        resp = self._postWithSignature(kwargs)
         self.assertEquals(resp.status_code, 200, resp.content)
         instance = Message.objects.get()
         self.assertEquals(instance.message, 'hello')
@@ -955,10 +895,7 @@ class SentryRemoteTest(TestCase):
     def testTimestamp(self):
         timestamp = datetime.datetime.now() - datetime.timedelta(hours=1)
         kwargs = {u'message': 'hello', 'timestamp': timestamp.strftime('%s.%f')}
-        resp = self.client.post(reverse('sentry-store'), {
-            'data': base64.b64encode(pickle.dumps(transform(kwargs)).encode('zlib')),
-            'key': settings.KEY,
-        })
+        resp = self._postWithSignature(kwargs)
         self.assertEquals(resp.status_code, 200, resp.content)
         instance = Message.objects.get()
         self.assertEquals(instance.message, 'hello')
@@ -969,10 +906,7 @@ class SentryRemoteTest(TestCase):
 
     def testUngzippedData(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
-        resp = self.client.post(reverse('sentry-store'), {
-            'data': base64.b64encode(pickle.dumps(transform(kwargs))),
-            'key': settings.KEY,
-        })
+        resp = self._postWithSignature(kwargs)
         self.assertEquals(resp.status_code, 200)
         instance = Message.objects.get()
         self.assertEquals(instance.message, 'hello')
@@ -994,8 +928,11 @@ class SentryRemoteTest(TestCase):
             'data': data,
             'key': settings.KEY,
         })
+        
         self.assertEquals(resp.status_code, 200)
+        
         instance = Message.objects.get()
+        
         self.assertEquals(instance.message, 'invalid byte sequence for encoding "UTF8": 0xeda4ac\nHINT:  This error can also happen if the byte sequence does not match the encoding expected by the server, which is controlled by "client_encoding".\n')
         self.assertEquals(instance.server_name, 'shilling.disqus.net')
         self.assertEquals(instance.level, 40)
@@ -1003,15 +940,13 @@ class SentryRemoteTest(TestCase):
 
     def testLegacyAuth(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
-        message = base64.b64encode(simplejson.dumps(transform(kwargs)))
 
-        resp = self.client.post(reverse('sentry-store'), {
-            'data': message,
-            'format': 'json',
-            'key': settings.KEY,
-        })
+        resp = self._postWithKey(kwargs)
+
         self.assertEquals(resp.status_code, 200, resp.content)
+
         instance = Message.objects.get()
+
         self.assertEquals(instance.message, 'hello')
         self.assertEquals(instance.server_name, 'not_dcramer.local')
         self.assertEquals(instance.site, 'not_a_real_site')
@@ -1019,17 +954,33 @@ class SentryRemoteTest(TestCase):
 
     def testSignature(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
-        ts = time.time()
-        message = base64.b64encode(simplejson.dumps(transform(kwargs)))
-        sig = get_signature(message, ts)
 
-        resp = self.client.post(reverse('sentry-store'), message, content_type='application/octet-stream', HTTP_AUTHORIZATION=get_auth_header(sig, ts, 'foo'))
+        resp = self._postWithSignature(kwargs)
+
         self.assertEquals(resp.status_code, 200, resp.content)
+
         instance = Message.objects.get()
+
         self.assertEquals(instance.message, 'hello')
         self.assertEquals(instance.server_name, 'not_dcramer.local')
         self.assertEquals(instance.site, 'not_a_real_site')
         self.assertEquals(instance.level, 40)
+
+    def testBrokenCache(self):
+        from django.core.cache import cache
+        add_func = cache.add
+        cache.add = lambda: False
+        
+        client = get_client()
+        
+        settings.THRASHING_LIMIT = 10
+        settings.THRASHING_TIMEOUT = 60
+        
+        result = client.check_throttle('foobar')
+
+        self.assertEquals(result, (False, None))
+        
+        cache.add = add_func
 
     # def testFunctionException(self):
     #     try: raise Exception(lambda:'foo')
@@ -1101,9 +1052,8 @@ class SentryRemoteServerTest(TransactionTestCase):
         self.assertEquals(instance.url, 'http://testserver' + path)
         self.stop_test_server()
 
-class SentryFeedsTest(TestCase):
+class SentryFeedsTest(BaseTestCase):
     fixtures = ['sentry/tests/fixtures/feeds.json']
-    urls = 'sentry.tests.urls'
     
     def testMessageFeed(self):
         response = self.client.get(reverse('sentry-feed-messages'))
@@ -1123,9 +1073,8 @@ class SentryFeedsTest(TestCase):
         self.assertTrue('<link>http://testserver/group/1</link>' in response.content, response.content)
         self.assertTrue('<title>(1) TypeError: exceptions must be old-style classes or derived from BaseException, not NoneType</title>' in response.content)
 
-class SentryMailTest(TestCase):
+class SentryMailTest(BaseTestCase):
     fixtures = ['sentry/tests/fixtures/mail.json']
-    urls = 'sentry.tests.urls'
     
     def setUp(self):
         settings.ADMINS = ('%s@localhost' % getpass.getuser(),)
@@ -1191,7 +1140,7 @@ class SentryMailTest(TestCase):
 
         self.assertTrue('http://example.com/group/2' in out.body, out.body)
 
-class SentryHelpersTest(TestCase):
+class SentryHelpersTest(BaseTestCase):
     def test_get_db_engine(self):
         from sentry.utils import get_db_engine
         _databases = getattr(django_settings, 'DATABASES', {}).copy()
@@ -1238,9 +1187,7 @@ class SentryHelpersTest(TestCase):
         result = transform(instance)
         self.assertEquals(result, '<DuplicateKeyModel: foo>')
 
-class SentryClientTest(TestCase):
-    urls = 'sentry.tests.urls'
-
+class SentryClientTest(BaseTestCase):
     def setUp(self):
         self._client = settings.CLIENT
         
@@ -1320,7 +1267,7 @@ class SentryClientTest(TestCase):
     # 
     #     settings.CLIENT = 'sentry.client.base.SentryClient'
 
-class SentryCommandTest(TestCase):
+class SentryCommandTest(BaseTestCase):
     fixtures = ['sentry/tests/fixtures/cleanup.json']
     
     def test_cleanup(self):
@@ -1332,9 +1279,7 @@ class SentryCommandTest(TestCase):
         
         self.assertEquals(Message.objects.count(), 0)
 
-class SentrySearchTest(TestCase):
-    urls = 'sentry.tests.urls'
-
+class SentrySearchTest(BaseTestCase):
     @conditional_on_module('haystack')
     def test_build_index(self):
         from sentry.web.views import get_search_query_set

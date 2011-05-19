@@ -71,6 +71,10 @@ Finally, run ``python manage.py syncdb`` to create the database tables.
 
 .. note::
 
+   If you are using mod_wsgi/Apache, you will need to ensure that you set ``WSGIPassAuthorization On`` for the Sentry authentication to work.
+
+.. note::
+
    We recommend using South for migrations. Initial migrations have already been created for Sentry in sentry/migrations/ so you only need to run ``python manage.py migrate sentry`` instead of ``syncdb``
 
 .. seealso::

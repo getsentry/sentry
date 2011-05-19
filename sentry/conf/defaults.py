@@ -73,6 +73,12 @@ PUBLIC = False
 MAX_LENGTH_LIST = 50
 MAX_LENGTH_STRING = 200
 
+EMAIL_SUBJECT_PREFIX = ''
+
+INTERNAL_IPS = set()
+
+SERVER_EMAIL = 'root@localhost'
+
 ## The following settings refer to the built-in webserver
 
 WEB_HOST = 'localhost'
