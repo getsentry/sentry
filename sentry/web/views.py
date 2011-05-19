@@ -354,20 +354,17 @@ def store(request):
     if request.method != 'POST':
         return HttpResponseNotAllowed('This method only supports POST requests')
 
-    data = request.POST.get('data')
-    if not data:
-        return HttpResponseBadRequest('Missing data')
-
     format = request.POST.get('format', 'pickle')
-
-    if format not in ('pickle', 'json'):
-        return HttpResponseBadRequest('Invalid format')
-
-    ## the id / or the shared key
     client_id = request.POST.get('key')
     signature = request.POST.get('authentication')
     timestamp = request.POST.get('timestamp', '0')
     encoded_data = request.POST.get('data')
+
+    if format not in ('pickle', 'json'):
+        return HttpResponseBadRequest('Invalid format')
+
+    if not encoded_data:
+        return HttpResponseBadRequest('Missing data')
 
     ## look up the client in the underlying database
     client = get_client(client_id)
