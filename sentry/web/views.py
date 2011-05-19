@@ -363,36 +363,48 @@ def store(request):
     if format not in ('pickle', 'json'):
         return HttpResponseBadRequest('Invalid format')
 
-    # the id / or the shared key
-    key = request.POST.get('key')
+    ## the id / or the shared key
+    client_id = request.POST.get('key')
     signature = request.POST.get('authentication')
     timestamp = request.POST.get('timestamp', '0')
     encoded_data = request.POST.get('data')
 
+    ## look up the client in the underlying database
+    client = get_client(client_id)
+    if client is None:
+        return HttpResponseForbidden('Invalid credentials')
+
     if signature is None:
+        ## TODO: check in configuration whether we are to accept non
+        ## authenticated requests.  if not, bail out.
         warnings.warn('A client is sending the `key` parameter, which will be removed in Sentry 2.0', DeprecationWarning)
     else:
-        psk = get_psk_for_client(key)
-        check = hmac.new(psk, timestamp + encoded_data, hashlib.sha1).hexdigest(),
+        ## the pre-shared key is a property of client objects.
+        psk = client.psk
 
+        ## did we receive a good signature?
+        check = hmac.new(psk, timestamp + encoded_data, hashlib.sha1).hexdigest(),
+        if check != signature:
+            return HttpResponseForbidden('Invalid signature')
+
+        ## good signature, but is it too late?
         try:
             timestamp = float(timestamp)
         except ValueError:
+            ## this will happen if a trusted client is fooling us.
             return HttpResponseBadRequest('Invalid timestamp')
 
+        ## three minutes too late is really too late
         if timestamp < time.time() - 180:  # 3 minutes
             return HttpResponseGone('Message has expired')
-
-        if check != signature:
-            return HttpResponseForbidden('Invalid signature')
 
     logger = logging.getLogger('sentry.server')
 
     try:
         try:
-            data = base64.b64decode(data).decode('zlib')
+            data = base64.b64decode(encoded_data).decode('zlib')
         except zlib.error:
-            data = base64.b64decode(data)
+            data = base64.b64decode(encoded_data)
     except Exception, e:
         # This error should be caught as it suggests that there's a
         # bug somewhere in the client's code.
