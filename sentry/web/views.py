@@ -374,7 +374,7 @@ def store(request):
     if signature is None:
         ## TODO: check in configuration whether we are to accept non
         ## authenticated requests.  if not, bail out.
-        warnings.warn('A client is sending the `key` parameter, which will be removed in Sentry 2.0', DeprecationWarning)
+        warnings.warn('A client is not authenticating the request.', DeprecationWarning)
     else:
         ## the pre-shared key is a property of client objects.
         psk = client.psk
