@@ -1,3 +1,7 @@
+1.8.4.1
+
+* Fixed an error that was causing LOG_LEVELS to not display correctly.
+
 1.8.4
 
 * The Sentry base client will now pass along the timestamp from when the

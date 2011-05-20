@@ -17,7 +17,7 @@ for k in dir(settings):
     if k.startswith('SENTRY_'):
         locals()[k.split('SENTRY_', 1)[1]] = getattr(settings, k)
 
-LOG_LEVELS = ((k, _(v)) for k, v in LOG_LEVELS)
+LOG_LEVELS = [(k, _(v)) for k, v in LOG_LEVELS]
 
 if REMOTE_URL:
     if isinstance(REMOTE_URL, basestring):
