@@ -1,3 +1,8 @@
+1.8.4
+
+* The Sentry base client will now pass along the timestamp that the message
+  from when the message was generated.
+
 1.8.3.1
 
 * Fixed a case where the client may hit a transaction aborted error when
