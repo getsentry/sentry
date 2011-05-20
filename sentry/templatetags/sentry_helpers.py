@@ -2,12 +2,12 @@
 #      INSTALLED_APPS
 from django import template
 from django.db.models import Count
-from django.utils import simplejson
 from django.utils.safestring import mark_safe
 from django.template import RequestContext
 from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
 from paging.helpers import paginate as paginate_func
+from sentry.utils import json
 from sentry.utils import get_db_engine
 from sentry.utils.compat.db import connections
 from sentry.plugins import GroupActionProvider
@@ -96,7 +96,7 @@ def chart_data(group, max_days=90):
 
 @register.filter
 def to_json(data):
-    return simplejson.dumps(data)
+    return json.dumps(data)
 
 @register.simple_tag
 def sentry_version():

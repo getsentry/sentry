@@ -4,12 +4,12 @@ from django.core.urlresolvers import reverse
 from django.db import models
 from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response
-from django.utils import simplejson
 from django.utils.safestring import mark_safe
 
 from sentry.models import GroupedMessage
 from sentry.plugins import GroupActionProvider
 from sentry.plugins.sentry_redmine import conf
+from sentry.utils import json
 
 import base64
 import urllib
@@ -35,7 +35,7 @@ class CreateRedmineIssue(GroupActionProvider):
         if request.POST:
             form = RedmineIssueForm(request.POST)
             if form.is_valid():
-                data = simplejson.dumps({
+                data = json.dumps({
                     'key': conf.REDMINE_API_KEY,
                     'issue': {
                         'subject': form.cleaned_data['subject'],
@@ -58,7 +58,7 @@ class CreateRedmineIssue(GroupActionProvider):
                     response = urllib2.urlopen(req, data).read()
                 except urllib2.HTTPError, e:
                     if e.code == 422:
-                        data = simplejson.loads(e.read())
+                        data = json.loads(e.read())
                         form.errors['__all__'] = 'Missing or invalid data'
                         for message in data:
                             for k, v in message.iteritems():
@@ -71,7 +71,7 @@ class CreateRedmineIssue(GroupActionProvider):
                 except urllib2.URLError, e:
                     form.errors['__all__'] = 'Unable to reach Redmine host: %s' % (e.reason,)
                 else:
-                    data = simplejson.loads(response)
+                    data = json.loads(response)
                     RedmineIssue.objects.create(group=group, issue_id=data['id'])
                     group.data['redmine'] = {'issue_id': data['id']}
                     group.save()

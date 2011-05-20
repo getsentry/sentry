@@ -20,7 +20,6 @@ from django.core.urlresolvers import reverse
 from django.core.signals import got_request_exception
 from django.test import TestCase, TransactionTestCase
 from django.template import TemplateSyntaxError
-from django.utils import simplejson
 from django.utils.encoding import smart_unicode
 from django.utils.functional import lazy
 
@@ -29,8 +28,8 @@ from sentry.client.handlers import SentryHandler
 from sentry.client.models import get_client
 from sentry.conf import settings
 from sentry.models import Message, GroupedMessage
+from sentry.utils import json
 from sentry.utils import transform, get_signature, get_auth_header
-
 from sentry.tests.utils import TestServerThread, conditional_on_module
 
 from models import TestModel, DuplicateKeyModel
@@ -66,7 +65,7 @@ class BaseTestCase(TestCase):
 
     def _postWithSignature(self, data):
         ts = time.time()
-        message = base64.b64encode(simplejson.dumps(transform(data)))
+        message = base64.b64encode(json.dumps(transform(data)))
         sig = get_signature(message, ts)
         
         resp = self.client.post(reverse('sentry-store'), message,
@@ -904,6 +903,18 @@ class SentryRemoteTest(BaseTestCase):
         self.assertEquals(group.first_seen, timestamp)
         self.assertEquals(group.last_seen, timestamp)
 
+    def testTimestampAsISO(self):
+        timestamp = datetime.datetime.now() - datetime.timedelta(hours=1)
+        kwargs = {u'message': 'hello', 'timestamp': timestamp.strftime('%Y-%m-%dT%H:%M:%S.%f')}
+        resp = self._postWithSignature(kwargs)
+        self.assertEquals(resp.status_code, 200, resp.content)
+        instance = Message.objects.get()
+        self.assertEquals(instance.message, 'hello')
+        self.assertEquals(instance.datetime, timestamp)
+        group = instance.group
+        self.assertEquals(group.first_seen, timestamp)
+        self.assertEquals(group.last_seen, timestamp)
+
     def testUngzippedData(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
         resp = self._postWithSignature(kwargs)
@@ -1007,7 +1018,7 @@ class SentryRemoteServerTest(TransactionTestCase):
     def start_test_server(self, host='localhost', port=None):
         """Creates a live test server object (instance of WSGIServer)."""
         if not port:
-            for port in xrange(8001, 65535):
+            for port in xrange(8001, 8050):
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 try:
@@ -1038,19 +1049,36 @@ class SentryRemoteServerTest(TransactionTestCase):
     def testProcess(self):
         self.start_test_server()
         message_id = SentryClient().process(message='hello')
+        self.stop_test_server()
+
         self.assertTrue(message_id)
         instance = Message.objects.all().order_by('-id')[0]
         self.assertEquals(instance.message, 'hello')
-        self.stop_test_server()
 
     def testExternal(self):
         self.start_test_server()
         path = reverse('sentry-raise-exc')
+        self.stop_test_server()
+
         self.assertRaises(Exception, self.client.get, path)
         instance = Message.objects.all().order_by('-id')[0]
         self.assertEquals(instance.message, 'view exception')
         self.assertEquals(instance.url, 'http://testserver' + path)
+
+    def testTimestamp(self):
+        timestamp = datetime.datetime.now() - datetime.timedelta(hours=1)
+
+        self.start_test_server()
+        message_id = SentryClient().process(message='hello', timestamp=timestamp)
         self.stop_test_server()
+
+        self.assertTrue(message_id)
+        instance = Message.objects.all().order_by('-id')[0]
+        self.assertEquals(instance.message, 'hello')
+        self.assertEquals(instance.datetime, timestamp)
+        group = instance.group
+        self.assertEquals(group.first_seen, timestamp)
+        self.assertEquals(group.last_seen, timestamp)
 
 class SentryFeedsTest(BaseTestCase):
     fixtures = ['sentry/tests/fixtures/feeds.json']

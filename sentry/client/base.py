@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import base64
+import datetime
 import functools
 import logging
 import sys
@@ -12,11 +13,11 @@ import uuid
 from django.core.cache import cache
 from django.template import TemplateSyntaxError
 from django.template.loader import LoaderOrigin
-from django.utils import simplejson
 from django.views.debug import ExceptionReporter
 
 import sentry
 from sentry.conf import settings
+from sentry.utils import json
 from sentry.utils import construct_checksum, varmap, transform, get_installed_apps, force_unicode, \
                            get_versions, shorten, get_signature, get_auth_header
 
@@ -161,7 +162,10 @@ class SentryClient(object):
         kwargs['message_id'] = message_id
 
         # Make sure all data is coerced
-        kwargs = transform(kwargs)
+        kwargs['data'] = transform(kwargs['data'])
+
+        if 'timestamp' not in kwargs:
+            kwargs['timestamp'] = datetime.datetime.now()
 
         self.send(**kwargs)
         
@@ -189,7 +193,7 @@ class SentryClient(object):
         "Sends the message to the server."
         if settings.REMOTE_URL:
             for url in settings.REMOTE_URL:
-                message = base64.b64encode(simplejson.dumps(kwargs).encode('zlib'))
+                message = base64.b64encode(json.dumps(kwargs).encode('zlib'))
                 timestamp = time.time()
                 signature = get_signature(message, timestamp)
                 headers={
