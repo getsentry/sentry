@@ -305,3 +305,9 @@ def register_indexes():
             MessageIndex.objects.register_index(filter_.column, index_to='group')
             logger.debug('Registered index for for %s' % filter_.column)
 register_indexes()
+
+
+class Client(models.Model):
+    client_id      = models.CharField(max_length=32, null=True, unique=True)
+    psk            = models.CharField(max_length=64, null=False, unique=True)
+    
