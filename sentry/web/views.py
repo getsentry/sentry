@@ -122,6 +122,8 @@ def search(request):
             except Message.DoesNotExist:
                 if not has_search:
                     return render_to_response('sentry/invalid_message_id.html')
+                else:
+                    message_list = get_search_query_set(query)
             else:
                 return HttpResponseRedirect(message.get_absolute_url())
         elif not has_search:
