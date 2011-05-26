@@ -20,7 +20,7 @@ from sentry.plugins.sentry_redmine.models import CreateRedmineIssue, RedmineIssu
 
 class CreateIssueTest(TestCase):
     fixtures = ['sentry/plugins/sentry_redmine/tests/fixtures/regression.json']
-    urls = 'sentry.urls'
+    urls = 'sentry.web.urls'
 
     def setUp(self):
         self.user = User(username="admin", email="admin@localhost", is_staff=True, is_superuser=True)

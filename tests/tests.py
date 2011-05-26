@@ -30,9 +30,9 @@ from sentry.conf import settings
 from sentry.models import Message, GroupedMessage
 from sentry.utils import json
 from sentry.utils import transform, get_signature, get_auth_header
-from sentry.tests.utils import TestServerThread, conditional_on_module
 
 from models import TestModel, DuplicateKeyModel
+from utils import TestServerThread, conditional_on_module
 
 # class NullHandler(logging.Handler):
 #     def emit(self, record):
@@ -54,7 +54,7 @@ logger.setLevel(logging.DEBUG)
 class BaseTestCase(TestCase):
     ## Helper methods for posting
 
-    urls = 'sentry.tests.urls'
+    urls = 'tests.urls'
 
     def _postWithKey(self, data):
         resp = self.client.post(reverse('sentry-store'), {
@@ -411,11 +411,11 @@ class SentryTestCase(BaseTestCase):
         self.assertEquals(last.class_name, 'Exception')
         self.assertEquals(last.level, logging.ERROR)
         self.assertEquals(last.message, 'view exception')
-        self.assertEquals(last.view, 'sentry.tests.views.raise_exc')
+        self.assertEquals(last.view, 'tests.views.raise_exc')
 
     def testRequestMiddlwareException(self):
         orig = list(django_settings.MIDDLEWARE_CLASSES)
-        django_settings.MIDDLEWARE_CLASSES = orig + ['sentry.tests.middleware.BrokenRequestMiddleware',]
+        django_settings.MIDDLEWARE_CLASSES = orig + ['tests.middleware.BrokenRequestMiddleware',]
         
         self.assertRaises(ImportError, self.client.get, reverse('sentry'))
         self.assertEquals(Message.objects.count(), 1)
@@ -425,14 +425,14 @@ class SentryTestCase(BaseTestCase):
         self.assertEquals(last.class_name, 'ImportError')
         self.assertEquals(last.level, logging.ERROR)
         self.assertEquals(last.message, 'request')
-        self.assertEquals(last.view, 'sentry.tests.middleware.process_request')
+        self.assertEquals(last.view, 'tests.middleware.process_request')
         
         django_settings.MIDDLEWARE_CLASSES = orig
 
     # XXX: Django doesn't handle response middleware exceptions (yet)
     # def testResponseMiddlwareException(self):
     #     orig = list(django_settings.MIDDLEWARE_CLASSES)
-    #     django_settings.MIDDLEWARE_CLASSES = orig + ['sentry.tests.middleware.BrokenResponseMiddleware',]
+    #     django_settings.MIDDLEWARE_CLASSES = orig + ['tests.middleware.BrokenResponseMiddleware',]
     #     
     #     self.assertRaises(ImportError, self.client.get, reverse('sentry'))
     #     self.assertEquals(Message.objects.count(), 1)
@@ -442,13 +442,13 @@ class SentryTestCase(BaseTestCase):
     #     self.assertEquals(last.class_name, 'ImportError')
     #     self.assertEquals(last.level, logging.ERROR)
     #     self.assertEquals(last.message, 'response')
-    #     self.assertEquals(last.view, 'sentry.tests.middleware.process_response')
+    #     self.assertEquals(last.view, 'tests.middleware.process_response')
     #     
     #     django_settings.MIDDLEWARE_CLASSES = orig
 
     def testViewMiddlewareException(self):
         orig = list(django_settings.MIDDLEWARE_CLASSES)
-        django_settings.MIDDLEWARE_CLASSES = orig + ['sentry.tests.middleware.BrokenViewMiddleware',]
+        django_settings.MIDDLEWARE_CLASSES = orig + ['tests.middleware.BrokenViewMiddleware',]
         
         self.assertRaises(ImportError, self.client.get, reverse('sentry'))
         self.assertEquals(Message.objects.count(), 1)
@@ -458,7 +458,7 @@ class SentryTestCase(BaseTestCase):
         self.assertEquals(last.class_name, 'ImportError')
         self.assertEquals(last.level, logging.ERROR)
         self.assertEquals(last.message, 'view')
-        self.assertEquals(last.view, 'sentry.tests.middleware.process_view')
+        self.assertEquals(last.view, 'tests.middleware.process_view')
         
         django_settings.MIDDLEWARE_CLASSES = orig
 
@@ -479,7 +479,7 @@ class SentryTestCase(BaseTestCase):
         self.assertEquals(last.message, 'view exception')
         self.assertEquals(last.server_name, 'foo')
         self.assertEquals(last.site, 'bar')
-        self.assertEquals(last.view, 'sentry.tests.views.raise_exc')
+        self.assertEquals(last.view, 'tests.views.raise_exc')
         
         settings.NAME = orig_name
         settings.SITE = orig_site
@@ -490,28 +490,28 @@ class SentryTestCase(BaseTestCase):
         
         last = Message.objects.get()
         
-        self.assertEquals(last.view, 'sentry.tests.tests.testExclusionViewPath')
+        self.assertEquals(last.view, 'tests.tests.testExclusionViewPath')
 
     def testBestGuessView(self):
-        settings.EXCLUDE_PATHS = ['sentry.tests.tests']
+        settings.EXCLUDE_PATHS = ['tests.tests']
         
         try: Message.objects.get(pk=1341324)
         except: get_client().create_from_exception()
         
         last = Message.objects.get()
         
-        self.assertEquals(last.view, 'sentry.tests.tests.testBestGuessView')
+        self.assertEquals(last.view, 'tests.tests.testBestGuessView')
         
         settings.EXCLUDE_PATHS = []
 
     def testExcludeModulesView(self):
-        settings.EXCLUDE_PATHS = ['sentry.tests.views.decorated_raise_exc']
+        settings.EXCLUDE_PATHS = ['tests.views.decorated_raise_exc']
         
         self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc-decor'))
         
         last = Message.objects.get()
         
-        self.assertEquals(last.view, 'sentry.tests.views.raise_exc')
+        self.assertEquals(last.view, 'tests.views.raise_exc')
         
         settings.EXCLUDE_PATHS = []
 
@@ -546,7 +546,7 @@ class SentryTestCase(BaseTestCase):
         
         last = Message.objects.get()
         
-        self.assertEquals(last.view, 'sentry.tests.views.logging_request_exc')
+        self.assertEquals(last.view, 'tests.views.logging_request_exc')
         self.assertEquals(last.data['META']['REMOTE_ADDR'], '127.0.0.1')
 
     def testSampleDataInGroup(self):
@@ -555,7 +555,7 @@ class SentryTestCase(BaseTestCase):
         
         last = GroupedMessage.objects.get()
         
-        self.assertEquals(last.view, 'sentry.tests.views.logging_request_exc')
+        self.assertEquals(last.view, 'tests.views.logging_request_exc')
         self.assertEquals(last.data['url'], 'http://testserver' + reverse('sentry-log-request-exc'))
         
     def testCreateFromRecordNoneExcInfo(self):
@@ -621,13 +621,21 @@ class SentryTestCase(BaseTestCase):
 
         self.assertEquals(Message.objects.count(), 1)
         self.assertEquals(GroupedMessage.objects.count(), 1)
+
         last = Message.objects.get()
+        self.assertTrue('versions' in last.data['__sentry__'], last.data['__sentry__'])
+        self.assertTrue('sentry' in last.data['__sentry__']['versions'], last.data['__sentry__'])
         self.assertEquals(last.data['__sentry__']['versions']['sentry'], sentry.VERSION)
-        self.assertEquals(last.data['__sentry__']['version'], sentry.VERSION)
-        self.assertEquals(last.data['__sentry__']['module'], 'sentry')
+        self.assertTrue('module' in last.data['__sentry__'], last.data['__sentry__'])
+        self.assertEquals(last.data['__sentry__']['module'], 'tests')
+        self.assertTrue('version' in last.data['__sentry__'], last.data['__sentry__'])
+        self.assertEquals(last.data['__sentry__']['version'], '1.0')
+
         last = GroupedMessage.objects.get()
-        self.assertEquals(last.data['version'], sentry.VERSION)
-        self.assertEquals(last.data['module'], 'sentry')
+        self.assertTrue('module' in last.data)
+        self.assertEquals(last.data['module'], 'tests')
+        self.assertTrue('version' in last.data)
+        self.assertEquals(last.data['version'], '1.0')
 
     def test404Middleware(self):
         existing = django_settings.MIDDLEWARE_CLASSES
@@ -779,7 +787,7 @@ class SentryTestCase(BaseTestCase):
         self.assertEquals(last.data['tuple'][-1], '(450 more elements)')
 
 class SentryViewsTest(BaseTestCase):
-    fixtures = ['sentry/tests/fixtures/views.json']
+    fixtures = ['tests/fixtures/views.json']
     
     def setUp(self):
         settings.DATABASE_USING = None
@@ -999,10 +1007,10 @@ class SentryRemoteTest(BaseTestCase):
     #     
     #     last = Message.objects.get()
     #     
-    #     self.assertEquals(last.view, 'sentry.tests.tests.testFunctionException')
+    #     self.assertEquals(last.view, 'tests.tests.testFunctionException')
 
 class SentryRemoteServerTest(TransactionTestCase):
-    urls = 'sentry.tests.urls'
+    urls = 'tests.urls'
     
     def setUp(self):
         self.server_thread = None
@@ -1081,7 +1089,7 @@ class SentryRemoteServerTest(TransactionTestCase):
         self.assertEquals(group.last_seen, timestamp)
 
 class SentryFeedsTest(BaseTestCase):
-    fixtures = ['sentry/tests/fixtures/feeds.json']
+    fixtures = ['tests/fixtures/feeds.json']
     
     def testMessageFeed(self):
         response = self.client.get(reverse('sentry-feed-messages'))
@@ -1102,7 +1110,7 @@ class SentryFeedsTest(BaseTestCase):
         self.assertTrue('<title>(1) TypeError: exceptions must be old-style classes or derived from BaseException, not NoneType</title>' in response.content)
 
 class SentryMailTest(BaseTestCase):
-    fixtures = ['sentry/tests/fixtures/mail.json']
+    fixtures = ['tests/fixtures/mail.json']
     
     def setUp(self):
         settings.ADMINS = ('%s@localhost' % getpass.getuser(),)
@@ -1296,7 +1304,7 @@ class SentryClientTest(BaseTestCase):
     #     settings.CLIENT = 'sentry.client.base.SentryClient'
 
 class SentryCommandTest(BaseTestCase):
-    fixtures = ['sentry/tests/fixtures/cleanup.json']
+    fixtures = ['tests/fixtures/cleanup.json']
     
     def test_cleanup(self):
         from sentry.scripts.runner import cleanup

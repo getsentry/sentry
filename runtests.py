@@ -42,8 +42,7 @@ if not settings.configured:
             'sentry.plugins.sentry_urls',
             'sentry.plugins.sentry_redmine',
 
-            # No fucking idea why I have to do this
-            'sentry.tests',
+            'tests',
         ],
         ROOT_URLCONF='',
         DEBUG=False,
@@ -74,7 +73,7 @@ def runtests(*test_args, **kwargs):
         patch_for_test_db_setup()
 
     if not test_args:
-        test_args = ['sentry']
+        test_args = ['tests']
     parent = dirname(abspath(__file__))
     sys.path.insert(0, parent)
     failures = run_tests(test_args, verbosity=kwargs.get('verbosity', 1), interactive=kwargs.get('interactive', False), failfast=kwargs.get('failfast'))
