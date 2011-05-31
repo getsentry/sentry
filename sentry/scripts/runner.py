@@ -30,8 +30,10 @@ def settings_from_file(filename, silent=False):
         raise
     
     tuple_settings = ("INSTALLED_APPS", "TEMPLATE_DIRS")
+    
+    if not django_settings.configured:
+        django_settings.configure()
 
-    django_settings.configure()
     for setting in dir(mod):
         if setting == setting.upper():
             setting_value = getattr(mod, setting)
