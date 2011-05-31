@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 try:
-    from setuptools import setup, find_packages
+    from setuptools import setup, find_packages, Command
 except ImportError:
     from ez_setup import use_setuptools
     use_setuptools()
-    from setuptools import setup, find_packages
+    from setuptools import setup, find_packages, Command
 
 tests_require = [
     'Django>=1.2,<1.4',
@@ -39,12 +39,12 @@ except ImportError:
 
 setup(
     name='django-sentry',
-    version='1.8.3.1',
+    version='1.8.5',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/django-sentry',
     description = 'Exception Logging to a Database in Django',
-    packages=find_packages(exclude="example_project"),
+    packages=find_packages(exclude=("example_project",)),
     zip_safe=False,
     install_requires=install_requires,
     dependency_links=[

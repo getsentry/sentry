@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 import eventlet
+import errno
+import imp
 import os
 import os.path
 import sys
@@ -12,6 +14,30 @@ from eventlet import wsgi
 from optparse import OptionParser
 from sentry import VERSION
 from sentry.wsgi import application
+
+def settings_from_file(filename, silent=False):
+    """
+    Configures django settings from an arbitrary (non sys.path) filename.
+    """
+    mod = imp.new_module('config')
+    mod.__file__ = filename
+    try:
+        execfile(filename, mod.__dict__)
+    except IOError, e:
+        if silent and e.errno in (errno.ENOENT, errno.EISDIR):
+            return False
+        e.strerror = 'Unable to load configuration file (%s)' % e.strerror
+        raise
+    
+    tuple_settings = ("INSTALLED_APPS", "TEMPLATE_DIRS")
+
+    django_settings.configure()
+    for setting in dir(mod):
+        if setting == setting.upper():
+            setting_value = getattr(mod, setting)
+            if setting in tuple_settings and type(setting_value) == str:
+                setting_value = (setting_value,) # In case the user forgot the comma.
+            setattr(django_settings, setting, setting_value)
 
 class SentryServer(DaemonRunner):
     pidfile_timeout = 10
@@ -112,10 +138,9 @@ def main():
     (options, args) = parser.parse_args()
 
     if options.config:
-        os.environ['DJANGO_SETTINGS_MODULE'] = options.config
+        settings_from_file(options.config)
 
     # TODO: we should attempt to discover settings modules
-
     if not django_settings.configured:
         os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.conf.server'
 

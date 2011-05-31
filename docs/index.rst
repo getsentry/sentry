@@ -13,6 +13,7 @@ easily trace them in your application.
    config/index
    extensions
    technical
+   contributing/index
 
 .. image:: http://dl.dropbox.com/u/116385/Screenshots/l6xk.png
 

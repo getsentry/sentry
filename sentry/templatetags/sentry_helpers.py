@@ -2,14 +2,15 @@
 #      INSTALLED_APPS
 from django import template
 from django.db.models import Count
-from django.utils import simplejson
 from django.utils.safestring import mark_safe
 from django.template import RequestContext
 from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
 from paging.helpers import paginate as paginate_func
+from sentry.utils import json
 from sentry.utils import get_db_engine
 from sentry.utils.compat.db import connections
+from django.utils.translation import ugettext as _
 from sentry.plugins import GroupActionProvider
 from templatetag_sugar.register import tag
 from templatetag_sugar.parser import Name, Variable, Constant, Optional
@@ -57,7 +58,7 @@ def num_digits(value):
 @register.filter
 def chart_data(group, max_days=90):
     hours = max_days*24
-    
+
     today = datetime.datetime.now().replace(microsecond=0, second=0, minute=0)
     min_date = today - datetime.timedelta(hours=hours)
 
@@ -96,12 +97,11 @@ def chart_data(group, max_days=90):
 
 @register.filter
 def to_json(data):
-    return simplejson.dumps(data)
+    return json.dumps(data)
 
 @register.simple_tag
 def sentry_version():
     import sentry
-    
     return sentry.VERSION
 
 @register.filter
@@ -143,15 +143,15 @@ def get_tags(group, request):
 def timesince(value):
     from django.template.defaultfilters import timesince
     if not value:
-        return 'Never'
+        return _('Never')
     if value < datetime.datetime.now() - datetime.timedelta(days=5):
         return value.date()
     value = (' '.join(timesince(value).split(' ')[0:2])).strip(',')
-    if value == '0 minutes':
-        return 'Just now'
-    if value == '1 day':
-        return 'Yesterday'
-    return value + ' ago'
+    if value == _('0 minutes'):
+        return _('Just now')
+    if value == _('1 day'):
+        return _('Yesterday')
+    return value + _(' ago')
 
 @register.filter(name='truncatechars')
 @stringfilter

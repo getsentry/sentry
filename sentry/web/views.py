@@ -17,7 +17,6 @@ from django.http import HttpResponse, HttpResponseBadRequest, \
     HttpResponseNotAllowed, HttpResponseGone
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
-from django.utils import simplejson
 from django.utils.encoding import smart_str
 from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
@@ -27,6 +26,7 @@ from sentry.utils import get_filters, is_float, get_signature, parse_auth_header
 from sentry.models import GroupedMessage, Message
 from sentry.plugins import GroupActionProvider
 from sentry.templatetags.sentry_helpers import with_priority
+from sentry.utils import json
 from sentry.web.reporter import ImprovedExceptionReporter
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$')
@@ -122,6 +122,8 @@ def search(request):
             except Message.DoesNotExist:
                 if not has_search:
                     return render_to_response('sentry/invalid_message_id.html')
+                else:
+                    message_list = get_search_query_set(query)
             else:
                 return HttpResponseRedirect(message.get_absolute_url())
         elif not has_search:
@@ -263,7 +265,7 @@ def ajax_handler(request):
     else:
         return HttpResponseBadRequest()
         
-    response = HttpResponse(simplejson.dumps(data))
+    response = HttpResponse(json.dumps(data))
     response['Content-Type'] = 'application/json'
     return response
 
@@ -413,7 +415,7 @@ def store(request):
         if format == 'pickle':
             data = pickle.loads(data)
         elif format == 'json':
-            data = simplejson.loads(data)
+            data = json.loads(data)
     except Exception, e:
         # This error should be caught as it suggests that there's a
         # bug somewhere in the client's code.
@@ -423,16 +425,27 @@ def store(request):
     # XXX: ensure keys are coerced to strings
     data = dict((smart_str(k), v) for k, v in data.iteritems())
 
-    if 'timestamp' in data:
+    if'timestamp' in data:
         if is_float(data['timestamp']):
-            data['timestamp'] = datetime.datetime.fromtimestamp(float(data['timestamp']))
-        else:
+            try:
+                data['timestamp'] = datetime.datetime.fromtimestamp(float(data['timestamp']))
+            except:
+                logger.exception('Failed reading timestamp')
+                del data['timestamp']
+        elif not isinstance(data['timestamp'], datetime.datetime):
             if '.' in data['timestamp']:
                 format = '%Y-%m-%dT%H:%M:%S.%f'
             else:
                 format = '%Y-%m-%dT%H:%M:%S'
-            data['timestamp'] = datetime.datetime.strptime(data['timestamp'], format)
-
+            if 'Z' in data['timestamp']:
+                # support GMT market, but not other timestamps
+                format += 'Z'
+            try:
+                data['timestamp'] = datetime.datetime.strptime(data['timestamp'], format)
+            except:
+                logger.exception('Failed reading timestamp')
+                del data['timestamp']
+                
     GroupedMessage.objects.from_kwargs(**data)
     
     return HttpResponse()

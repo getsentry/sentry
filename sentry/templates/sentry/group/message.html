@@ -29,20 +29,19 @@
                 <span class="last_seen">{{ message.datetime|timesince }}</span>
             </p>
         </li>
-        
     </ul>
 
+    {% if message.has_two_part_message %}
+        <h2>{% trans "Full Message" %}</h2>
+        <pre id="full-message">{{ message.message }}</pre>
+    {% endif %}
+
     {% if traceback %}
-
-        <h2>Traceback</h2>
-
         {{ traceback }}
-
     {% endif %}
 
     <div id="requestinfo">
-        <h2>{% trans "More Information" %}</h2>
-
+        <h2>{% trans "Additional Data" %}</h2>
         <table>
             {% for k, v in json_data %}
                 <tr>
@@ -67,7 +66,7 @@
                                 </tbody>
                             </table>
                         {% else %}
-                            {{ v|pprint }}
+                            <pre>{{ v|pprint }}</pre>
                         {% endif %}
                     {% else %}
                         <p>{% blocktrans with k as varname %}No data for {{ varname }}{% endblocktrans %}</p>

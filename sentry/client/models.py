@@ -5,11 +5,25 @@ import logging
 import warnings
 
 from django.core.signals import got_request_exception
-from django.db import  transaction
 
 from sentry.conf import settings
 
 logger = logging.getLogger('sentry.errors')
+
+if settings.REMOTE_URL:
+    class MockTransaction(object):
+        def commit_on_success(self, func):
+            return func
+        
+        def is_dirty(self):
+            return False
+    
+        def rollback(self):
+            pass
+    
+    transaction = MockTransaction()
+else:
+    from django.db import transaction
 
 _client = (None, None)
 def get_client():
