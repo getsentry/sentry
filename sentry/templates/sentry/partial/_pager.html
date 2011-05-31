@@ -2,7 +2,7 @@
 
 {% if paginator.has_pages %}
     <div class="paging">
-        <div class="paging-meta">Page {{ paginator.page }}{% if paginator.num_pages %} of {{ paginator.num_pages }}{% endif %}</div>
+        
         {% if paginator.num_pages %}
             <ul class="paging-numeric">
                 <li class="paging-first">{% if not paginator.is_first %}<a href="?{{ query_string|escape }}&amp;p=1">{% trans "First" %}</a>{% else %}<span>{% trans "First" %}</span>{% endif %}</li>
@@ -21,5 +21,6 @@
                 <li class="paging-next">{% if paginator.has_next %}<a href="?{{ query_string|escape }}&amp;p={{ paginator.next_page }}">{% trans "Next Page" %}</a>{% else %}<span>{% trans "Next Page" %}"</span>{% endif %}</li>
             </ul>
         {% endif %}
+        <div class="paging-meta" style="float:left">Page {{ paginator.page }}{% if paginator.num_pages %} of {{ paginator.num_pages }}{% endif %}</div>
     </div>
 {% endif %}

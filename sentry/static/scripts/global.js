@@ -81,6 +81,21 @@ var Sentry = {};
     };
     
     Sentry.stream = {};
+    Sentry.stream.clear = function() {
+    	if (confirm("Are you sure you want to mark all your stream as resolved?")) {
+    		$.ajax({
+                url: Sentry.options.apiUrl,
+                type: 'post',
+                dataType: 'json',
+                data: {
+                    op: 'clear',
+                },
+                success: function(groups){
+                	window.location.reload();
+                }
+            });
+    	}
+    }
     Sentry.stream.resolve = function(gid, remove){
         if (typeof(remove) == 'undefined') {
             remove = true;
