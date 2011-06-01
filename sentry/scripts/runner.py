@@ -13,7 +13,6 @@ from django.core.management import call_command
 from eventlet import wsgi
 from optparse import OptionParser
 from sentry import VERSION
-from sentry.wsgi import application
 
 def settings_from_file(filename, silent=False):
     """
@@ -46,17 +45,26 @@ class SentryServer(DaemonRunner):
     start_message = u"started with pid %(pid)d"
 
     def __init__(self, host=None, port=None, pidfile=None,
-                 logfile=None):
+                 logfile=None, daemonize=False, debug=False):
         from sentry.conf import settings
 
         if not logfile:
             logfile = settings.WEB_LOG_FILE
 
-        self.daemon_context = DaemonContext()
+        logfile = os.path.realpath(logfile)
+        pidfile = os.path.realpath(pidfile or settings.WEB_PID_FILE)
+        
+        if daemonize:
+            detach_process = True
+        else:
+            detach_process = False
+
+        self.daemon_context = DaemonContext(detach_process=detach_process)
         self.daemon_context.stdout = open(logfile, 'w+')
         self.daemon_context.stderr = open(logfile, 'w+', buffering=0)
 
-        self.pidfile = make_pidlockfile(pidfile or settings.WEB_PID_FILE, self.pidfile_timeout)
+        self.debug = debug
+        self.pidfile = make_pidlockfile(pidfile, self.pidfile_timeout)
 
         self.daemon_context.pidfile = self.pidfile
 
@@ -68,11 +76,24 @@ class SentryServer(DaemonRunner):
 
     def execute(self, action):
         self.action = action
-        self.do_action()
+        if self.daemon_context.detach_process is False and self.action == 'start':
+            # HACK:
+            self.run()
+        else:
+            self.do_action()
 
     def run(self):
+        from sentry.wsgi import application
         upgrade()
-        wsgi.server(eventlet.listen((self.host, self.port)), application)
+        def inner_run():
+            wsgi.server(eventlet.listen((self.host, self.port)), application)
+            
+        if self.debug:
+            from django.utils import autoreload
+            autoreload.main(inner_run)
+        else:
+            inner_run()
+
 
 def cleanup(days=30, logger=None, site=None, server=None):
     from sentry.models import GroupedMessage, Message
@@ -122,6 +143,8 @@ def main():
         parser.add_option('--host', metavar='HOSTNAME')
         parser.add_option('--port', type=int, metavar='PORT')
         parser.add_option('--daemon', action='store_true', default=False, dest='daemonize')
+        parser.add_option('--no-daemon', action='store_false', default=False, dest='daemonize')
+        parser.add_option('--debug', action='store_true', default=False, dest='debug')
         parser.add_option('--pidfile', dest='pidfile')
         parser.add_option('--logfile', dest='logfile')
     elif args[1] == 'stop':
@@ -146,12 +169,16 @@ def main():
     if not django_settings.configured:
         os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.conf.server'
 
+    if getattr(options, 'debug', False):
+        django_settings.DEBUG = True
+
     if args[0] == 'upgrade':
         upgrade()
 
     elif args[0] == 'start':
         app = SentryServer(host=options.host, port=options.port,
-                             pidfile=options.pidfile, logfile=options.logfile)
+                           pidfile=options.pidfile, logfile=options.logfile,
+                           daemonize=options.daemonize, debug=options.debug)
         app.execute(args[0])
 
     elif args[0] == 'restart':

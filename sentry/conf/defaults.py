@@ -50,6 +50,11 @@ CLIENT = 'sentry.client.base.SentryClient'
 
 NAME = socket.gethostname()
 
+INSTALLED_APPS = (
+    'sentry',
+    'sentry.client'
+)
+
 # We allow setting the site name either by explicitly setting it with the
 # SENTRY_SITE setting, or using the django.contrib.sites framework for
 # fetching the current site. Since we can't reliably query the database
@@ -86,9 +91,12 @@ TEMPLATE_DIRS = (
     os.path.join(ROOT, 'templates'),
 )
 
+ROOT_URLCONF = 'sentry.web.urls'
+
 ## The following settings refer to the built-in webserver
 
 SENTRY_WEB_HOST = 'localhost'
 SENTRY_WEB_PORT = 9000
 SENTRY_WEB_LOG_FILE = '/var/log/sentry.log'
 SENTRY_WEB_PID_FILE = '/var/run/sentry.pid'
+SENTRY_PUBLIC = True
