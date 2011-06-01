@@ -76,6 +76,10 @@ class SentryServer(DaemonRunner):
 
     def execute(self, action):
         self.action = action
+
+        # Upgrade needs to happen before forking
+        upgrade()
+        
         if self.daemon_context.detach_process is False and self.action == 'start':
             # HACK:
             self.run()
@@ -84,7 +88,6 @@ class SentryServer(DaemonRunner):
 
     def run(self):
         from sentry.wsgi import application
-        upgrade()
         def inner_run():
             wsgi.server(eventlet.listen((self.host, self.port)), application)
             
@@ -118,13 +121,13 @@ def cleanup(days=30, logger=None, site=None, server=None):
         qs.filter(logger=logger)
     qs.delete()
 
-def upgrade():
+def upgrade(interactive=True):
     from sentry.conf import settings
     
-    call_command('syncdb', database=settings.DATABASE_USING or 'default', interactive=False)
+    call_command('syncdb', database=settings.DATABASE_USING or 'default', interactive=interactive)
 
     if 'south' in django_settings.INSTALLED_APPS:
-        call_command('migrate', database=settings.DATABASE_USING or 'default', interactive=False)
+        call_command('migrate', database=settings.DATABASE_USING or 'default', interactive=interactive)
 
 def main():
     command_list = ('start', 'stop', 'restart', 'cleanup', 'upgrade')
