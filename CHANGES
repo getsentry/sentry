@@ -2,6 +2,7 @@
 
 * Fixed a bug which caused thrashing prevention to not function correctly.
 * Corrected an error in transform()'s recursion safety.
+* Changed packaging to use Distribute.
 
 1.8.5
 
