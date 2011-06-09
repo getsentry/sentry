@@ -75,7 +75,7 @@ def varmap(func, var, context=None):
 
 def has_sentry_metadata(value):
     try:
-        return callable(getattr(value, '__sentry__', None))
+        return callable(value.__getattribute__("__sentry__"))
     except:
         return False
 
