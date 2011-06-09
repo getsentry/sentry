@@ -44,7 +44,7 @@ class SentryClient(object):
         cache_key = 'sentry:%s' % (checksum,)
         # We MUST do a get first to avoid re-setting the timeout when doing .add
         added = cache.get(cache_key) is None
-        if not added:
+        if added:
             # Use add to avoid race conditions
             added = cache.add(cache_key, 1, settings.THRASHING_TIMEOUT)
 
