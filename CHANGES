@@ -1,3 +1,8 @@
+1.8.5.1
+
+* Fixed a bug which caused thrashing prevention to not function correctly.
+* Corrected an error in transform()'s recursion safety.
+
 1.8.5
 
 * Pulled test suite out of the Sentry namespace to avoid conflicts in projects.
