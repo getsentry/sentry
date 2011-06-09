@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 
-try:
-    from setuptools import setup, find_packages, Command
-except ImportError:
-    from ez_setup import use_setuptools
-    use_setuptools()
-    from setuptools import setup, find_packages, Command
+from distribute_setup import use_setuptools
+use_setuptools()
+
+from setuptools import setup, find_packages, Command
 
 tests_require = [
     'Django>=1.2,<1.4',
