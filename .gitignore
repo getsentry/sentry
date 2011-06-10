@@ -1,6 +1,7 @@
 /build
 /dist
 /*.egg-info
+*.gz
 *.pyc
 *.log
 *.egg

@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 
-try:
-    from setuptools import setup, find_packages, Command
-except ImportError:
-    from ez_setup import use_setuptools
-    use_setuptools()
-    from setuptools import setup, find_packages, Command
+from distribute_setup import use_setuptools
+use_setuptools()
+
+from setuptools import setup, find_packages, Command
 
 tests_require = [
     'Django>=1.2,<1.4',
@@ -39,7 +37,7 @@ except ImportError:
 
 setup(
     name='django-sentry',
-    version='1.8.5',
+    version='1.8.5.1',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/django-sentry',

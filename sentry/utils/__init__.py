@@ -75,7 +75,7 @@ def varmap(func, var, context=None):
 
 def has_sentry_metadata(value):
     try:
-        return callable(getattr(value, '__sentry__', None))
+        return callable(value.__getattribute__("__sentry__"))
     except:
         return False
 
@@ -85,14 +85,17 @@ def transform(value, stack=[], context=None):
     # TODO: dont coerce strings to unicode, leave them as strings
     if context is None:
         context = {}
+
     objid = id(value)
     if objid in context:
         return '<...>'
+
     context[objid] = 1
+    transform_rec = lambda o: transform(o, stack + [value], context)
+
     if any(value is s for s in stack):
         ret = 'cycle'
-    transform_rec = lambda o: transform(o, stack + [value], context)
-    if isinstance(value, (tuple, list, set, frozenset)):
+    elif isinstance(value, (tuple, list, set, frozenset)):
         ret = type(value)(transform_rec(o) for o in value)
     elif isinstance(value, uuid.UUID):
         ret = repr(value)
