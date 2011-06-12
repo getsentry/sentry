@@ -82,7 +82,6 @@ def has_sentry_metadata(value):
 def transform(value, stack=[], context=None):
     # TODO: make this extendable
     # TODO: include some sane defaults, like UUID
-    # TODO: dont coerce strings to unicode, leave them as strings
     if context is None:
         context = {}
 
@@ -105,7 +104,7 @@ def transform(value, stack=[], context=None):
         ret = to_unicode(value)
     elif isinstance(value, str):
         try:
-            ret = str(value)
+            ret = unicode(value)
         except:
             ret = to_unicode(value)
     elif not isinstance(value, (ClassType, TypeType)) and \
