@@ -1,7 +1,7 @@
 # XXX: Import django-paging's template tags so we dont have to worry about
 #      INSTALLED_APPS
 from django import template
-from django.db.models import Count
+from django.db.models import Sum
 from django.utils.safestring import mark_safe
 from django.template import RequestContext
 from django.template.defaultfilters import stringfilter
@@ -74,11 +74,13 @@ def chart_data(group, max_days=90):
     else:
         method = conn.ops.date_trunc_sql('hour', 'datetime')
 
-    chart_qs = list(group.message_set.all()\
+    query = group.message_set.all()\
                       .filter(datetime__gte=min_date)\
                       .extra(select={'grouper': method}).values('grouper')\
-                      .annotate(num=Count('id')).values_list('grouper', 'num')\
-                      .order_by('grouper'))
+                      .annotate(num=Sum('sample_rate')).values_list('grouper', 'num')\
+                      .order_by('grouper')
+
+    chart_qs = list(query)
 
     if not chart_qs:
         return {}

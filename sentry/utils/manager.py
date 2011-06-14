@@ -32,8 +32,33 @@ class ScoreClause(object):
         else:
             # XXX: if we cant do it atomicly let's do it the best we can
             sql = self.group.get_score()
-        
+
         return (sql, [])
+
+
+def count_limit(count): # ~ 150 * ((log(n) - 1.5) ^ 2 - 0.25)
+    if count <= 200: # 200
+        return 1
+    if count <= 1000: # 400
+        return 2
+    if count <= 10000: # 900
+        return 10
+    if count <= 100000: # 1800
+        return 50
+    if count <= 1000000: # 3000
+        return 300
+    if count <= 10000000: # 4500 
+        return 2000
+    return 10000
+
+def time_limit(silence): # ~ 3600 per hour  
+    if silence >= 3600:
+        return 1
+    if silence >= 360:
+        return 10
+    if silence >= 60:
+        return 60
+    return 10000
 
 class SentryManager(models.Manager):
     use_for_related_fields = True
@@ -44,9 +69,10 @@ class SentryManager(models.Manager):
             qs = qs.using(settings.DATABASE_USING)
         return qs
 
+
     def from_kwargs(self, **kwargs):
         from sentry.models import Message, GroupedMessage, FilterValue
-        
+
         URL_MAX_LENGTH = Message._meta.get_field_by_name('url')[0].max_length
         now = kwargs.pop('timestamp', None) or datetime.datetime.now()
 
@@ -57,7 +83,7 @@ class SentryManager(models.Manager):
         site = kwargs.pop('site', None)
         data = kwargs.pop('data', {}) or {}
         message_id = kwargs.pop('message_id', None)
-        
+
         if url:
             data['url'] = url
             url = url[:URL_MAX_LENGTH]
@@ -95,6 +121,8 @@ class SentryManager(models.Manager):
                 # HACK: maintain appeared state
                 if group.status == 1:
                     mail = True
+                silence_timedelta = now - group.last_seen
+                silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
                 group.status = 0
                 group.last_seen = now
                 group.times_seen += 1
@@ -109,10 +137,13 @@ class SentryManager(models.Manager):
                 GroupedMessage.objects.filter(pk=group.pk).update(
                     score=ScoreClause(group),
                 )
+                silence = 0
                 mail = True
 
-                
-            instance = Message.objects.create(
+            sample_rate = min(count_limit(group.times_seen), time_limit(silence))
+
+            instance = Message(
+                sample_rate=sample_rate,
                 message_id=message_id,
                 view=view,
                 logger=logger_name,
@@ -125,6 +156,8 @@ class SentryManager(models.Manager):
                 datetime=now,
                 **kwargs
             )
+            if group.times_seen % sample_rate == 0:
+                instance.save()
             if server_name:
                 FilterValue.objects.get_or_create(key='server_name', value=server_name)
             if site:
