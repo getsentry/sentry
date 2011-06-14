@@ -7,7 +7,7 @@ import math
 from datetime import datetime
 
 from django.db import models
-from django.db.models import Count
+from django.db.models import Sum
 from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
@@ -183,7 +183,7 @@ class GroupedMessage(MessageBase):
     def unique_urls(self):
         return self.message_set.filter(url__isnull=False)\
                    .values_list('url', 'logger', 'view', 'checksum')\
-                   .annotate(times_seen=Count('url'))\
+                   .annotate(times_seen=Sum('sample_rate'))\
                    .values('url', 'times_seen')\
                    .order_by('-times_seen')
 
@@ -191,7 +191,7 @@ class GroupedMessage(MessageBase):
     def unique_servers(self):
         return self.message_set.filter(server_name__isnull=False)\
                    .values_list('server_name', 'logger', 'view', 'checksum')\
-                   .annotate(times_seen=Count('server_name'))\
+                   .annotate(times_seen=Sum('sample_rate'))\
                    .values('server_name', 'times_seen')\
                    .order_by('-times_seen')
 
@@ -199,7 +199,7 @@ class GroupedMessage(MessageBase):
     def unique_sites(self):
         return self.message_set.filter(site__isnull=False)\
                    .values_list('site', 'logger', 'view', 'checksum')\
-                   .annotate(times_seen=Count('site'))\
+                   .annotate(times_seen=Sum('sample_rate'))\
                    .values('site', 'times_seen')\
                    .order_by('-times_seen')
 
@@ -218,6 +218,7 @@ class Message(MessageBase):
     url             = models.URLField(verify_exists=False, null=True, blank=True)
     server_name     = models.CharField(max_length=128, db_index=True)
     site            = models.CharField(max_length=128, db_index=True, null=True)
+    sample_rate     = models.IntegerField(default=1) # how much exceptions were not added because of this one
 
     class Meta:
         verbose_name = _('message')
