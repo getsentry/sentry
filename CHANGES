@@ -1,3 +1,8 @@
+
+1.8.6.1
+
+* Include distribute_setup.py in the MANIFEST to ship it in sdists.
+
 1.8.6
 
 * Corrected an issue which was causing certain settings (like WEB_HOST) to
