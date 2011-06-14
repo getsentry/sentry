@@ -165,12 +165,17 @@ def main():
 
     (options, args) = parser.parse_args()
 
-    if options.config:
-        settings_from_file(options.config)
-
-    # TODO: we should attempt to discover settings modules
+    # Install default server values
     if not django_settings.configured:
         os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.conf.server'
+
+    if options.config:
+        # assumed to be a file
+        settings_from_file(options.config)
+    else:
+        config_path = os.path.expanduser(os.path.join('~', '.sentry', 'sentry.conf.py'))
+        if os.path.exists(config_path):
+            settings_from_file(config_path)
 
     if getattr(options, 'debug', False):
         django_settings.DEBUG = True

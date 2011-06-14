@@ -37,7 +37,7 @@ except ImportError:
 
 setup(
     name='django-sentry',
-    version='1.8.5.1',
+    version='1.8.6',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/django-sentry',

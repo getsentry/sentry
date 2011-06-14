@@ -126,6 +126,8 @@ configuration via --config, you will likely want to preface the file with import
 	# filename: /etc/sentry.conf.py
 	from sentry.conf.defaults import *
 
+By default, Sentry will also look for ``~/.sentry/sentry.conf.py`` and load it if it exists, and ``--config`` is not passed.
+
 .. note::
 
    The default database is SQLite, which generally does not perform very well.

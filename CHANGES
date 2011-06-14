@@ -1,3 +1,10 @@
+1.8.6
+
+* Corrected an issue which was causing certain settings (like WEB_HOST) to
+  not take affect in custom configuration files.
+* The Sentry server will now pull in default server settings, as well as
+  ~/.sentry/sentry.conf.py if --config is not passed to it.
+
 1.8.5.1
 
 * Fixed a bug which caused thrashing prevention to not function correctly.
