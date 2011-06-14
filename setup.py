@@ -3,7 +3,7 @@
 from distribute_setup import use_setuptools
 use_setuptools()
 
-from setuptools import setup, find_packages, Command
+from setuptools import setup, find_packages
 
 tests_require = [
     'Django>=1.2,<1.4',
