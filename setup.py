@@ -42,7 +42,7 @@ setup(
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/django-sentry',
     description = 'Exception Logging to a Database in Django',
-    packages=find_packages(exclude=("example_project",)),
+    packages=find_packages(exclude=("example_project", "tests")),
     zip_safe=False,
     install_requires=install_requires,
     dependency_links=[
