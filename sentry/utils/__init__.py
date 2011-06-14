@@ -81,8 +81,6 @@ def has_sentry_metadata(value):
 
 def transform(value, stack=[], context=None):
     # TODO: make this extendable
-    # TODO: include some sane defaults, like UUID
-    # TODO: dont coerce strings to unicode, leave them as strings
     if context is None:
         context = {}
 
@@ -105,7 +103,7 @@ def transform(value, stack=[], context=None):
         ret = to_unicode(value)
     elif isinstance(value, str):
         try:
-            ret = str(value)
+            ret = str(value.decode('utf-8').encode('utf-8'))
         except:
             ret = to_unicode(value)
     elif not isinstance(value, (ClassType, TypeType)) and \
@@ -113,6 +111,7 @@ def transform(value, stack=[], context=None):
         ret = transform_rec(value.__sentry__())
     elif isinstance(value, Promise):
         # EPIC HACK
+        # handles lazy model instances (which are proxy values that dont easily give you the actual function)
         pre = value.__class__.__name__[1:]
         value = getattr(value, '%s__func' % pre)(*getattr(value, '%s__args' % pre), **getattr(value, '%s__kw' % pre))
         return transform(value)
