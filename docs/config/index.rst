@@ -3,7 +3,7 @@ Configuration
 
 This document describes additional configuration options available to Sentry.
 
-.. note:: If you are using Django, you must prefix all setting names with ``SENTRY_`` in your ``settings.py``.
+.. note:: **You must prefix all setting names with ``SENTRY_`` in your ``settings.py``**.
 
 Integration with ``logging``
 ----------------------------

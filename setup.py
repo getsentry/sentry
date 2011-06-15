@@ -3,7 +3,7 @@
 from distribute_setup import use_setuptools
 use_setuptools()
 
-from setuptools import setup, find_packages, Command
+from setuptools import setup, find_packages
 
 tests_require = [
     'Django>=1.2,<1.4',
@@ -37,12 +37,12 @@ except ImportError:
 
 setup(
     name='django-sentry',
-    version='1.8.5.1',
+    version='1.8.6.1',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/django-sentry',
     description = 'Exception Logging to a Database in Django',
-    packages=find_packages(exclude=("example_project",)),
+    packages=find_packages(exclude=("example_project", "tests")),
     zip_safe=False,
     install_requires=install_requires,
     dependency_links=[

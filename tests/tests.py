@@ -1198,7 +1198,28 @@ class SentryHelpersTest(BaseTestCase):
         django_settings.DATABASES = _databases
         django_settings.DATABASE_ENGINE = _engine
 
-    def test_transform_handles_gettext_lazy(self):
+    def test_get_versions(self):
+        import sentry
+        from sentry.utils import get_versions
+        versions = get_versions(['sentry'])
+        self.assertEquals(versions.get('sentry'), sentry.VERSION)
+        versions = get_versions(['sentry.client'])
+        self.assertEquals(versions.get('sentry'), sentry.VERSION)
+
+class SentryTransformTest(BaseTestCase):
+    def test_bad_string(self):
+        x = 'The following character causes problems: \xd4'
+
+        result = transform(x)
+        self.assertEquals(result, '(Error decoding value)')
+
+    def test_model_instance(self):
+        instance = DuplicateKeyModel(foo='foo')
+        
+        result = transform(instance)
+        self.assertEquals(result, '<DuplicateKeyModel: foo>')
+
+    def test_handles_gettext_lazy(self):
         def fake_gettext(to_translate):
             return u'Igpay Atinlay'
 
@@ -1209,19 +1230,6 @@ class SentryHelpersTest(BaseTestCase):
                     transform(fake_gettext_lazy("something")))),
             u'Igpay Atinlay')
 
-    def test_get_versions(self):
-        import sentry
-        from sentry.utils import get_versions
-        versions = get_versions(['sentry'])
-        self.assertEquals(versions.get('sentry'), sentry.VERSION)
-        versions = get_versions(['sentry.client'])
-        self.assertEquals(versions.get('sentry'), sentry.VERSION)
-
-    def test_transform_model_instance(self):
-        instance = DuplicateKeyModel(foo='foo')
-        
-        result = transform(instance)
-        self.assertEquals(result, '<DuplicateKeyModel: foo>')
 
 class SentryClientTest(BaseTestCase):
     def setUp(self):

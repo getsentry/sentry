@@ -29,7 +29,5 @@ def configure(**kwargs):
     for k, v in kwargs.iteritems():
         if k.upper() != k:
             warnings.warn('Invalid setting, \'%s\' which is not defined by Sentry' % k)
-        elif k not in locals():
-            warnings.warn('Setting \'%s\' which is not defined by Sentry' % k)
         else:
             locals[k] = v
