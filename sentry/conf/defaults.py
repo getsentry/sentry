@@ -84,15 +84,6 @@ INTERNAL_IPS = set()
 
 SERVER_EMAIL = 'root@localhost'
 
-TEMPLATE_DIRS = (
-    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
-    # Always use forward slashes, even on Windows.
-    # Don't forget to use absolute paths, not relative paths.
-    os.path.join(ROOT, 'templates'),
-)
-
-ROOT_URLCONF = 'sentry.web.urls'
-
 ## The following settings refer to the built-in webserver
 
 WEB_HOST = 'localhost'
