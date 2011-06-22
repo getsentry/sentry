@@ -88,5 +88,5 @@ SERVER_EMAIL = 'root@localhost'
 
 WEB_HOST = 'localhost'
 WEB_PORT = 9000
-WEB_LOG_FILE = '/var/log/sentry.log'
-WEB_PID_FILE = '/var/run/sentry.pid'
+WEB_LOG_FILE = os.path.join(ROOT, 'sentry.log')
+WEB_PID_FILE = os.path.join(ROOT, 'sentry.pid')
