@@ -150,7 +150,7 @@ TECHNICAL_500_TEMPLATE = """
 
           {% if frame.vars %}
             <div class="commands">
-                <a href="#" onclick="return varToggle(this, '{{ frame.id }}')"><span>&#x25b6;</span> Local vars</a>
+                <a href="javascript:void(0);" onclick="return varToggle(this, '{{ frame.id }}')"><span>&#x25b6;</span> Local vars</a>
             </div>
             <table class="vars" id="v{{ frame.id }}">
               <thead>
