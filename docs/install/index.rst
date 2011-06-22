@@ -137,7 +137,8 @@ configuration via --config, you will likely want to preface the file with import
 	}
 	
 	SENTRY_LOG_FILE = '/var/log/sentry.log'
-	SENTRY_WEB_HOST = 9000
+        SENTRY_WEB_HOST = '0.0.0.0'
+	SENTRY_WEB_PORT = 9000
 
 By default, Sentry will also look for ``~/.sentry/sentry.conf.py`` and load it if it exists, and ``--config`` is not passed.
 
