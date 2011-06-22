@@ -109,3 +109,6 @@ SENTRY_SEARCH_ENGINE = 'whoosh'
 SENTRY_SEARCH_OPTIONS = {
     'path': os.path.join(PROJECT_ROOT, 'sentry_index'),
 }
+
+
+SENTRY_PUBLIC = True
