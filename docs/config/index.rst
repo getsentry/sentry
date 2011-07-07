@@ -200,11 +200,11 @@ Spawns a background thread within the process that will handle sending messages 
 ADMINS
 ######
 
-On smaller sites you may wish to enable throttled emails, we recommend doing this by first
-removing the ``ADMINS`` setting in Django, and adding in ``ADMINS``::
+On larger sites you may wish to enable throttled emails, we recommend doing this by first
+removing the ``ADMINS`` setting in Django, and adding in ``SENTRY_ADMINS``::
 
 	ADMINS = ()
-	ADMINS = ('root@localhost',)
+	SENTRY_ADMINS = ('root@localhost',)
 
 This will send out a notification the first time an error is seen, and the first time an error is
 seen after it has been resolved.
