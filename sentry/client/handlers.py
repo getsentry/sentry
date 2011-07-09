@@ -9,13 +9,14 @@ class SentryHandler(logging.Handler):
         # Fetch the request from a threadlocal variable, if available
         request = getattr(SentryLogMiddleware.thread, 'request', None)
 
+        self.format(record)
+
         # Avoid typical config issues by overriding loggers behavior
         if record.name == 'sentry.errors':
             print >> sys.stderr, "Recursive log message sent to SentryHandler"
             print >> sys.stderr, record.message
             return
 
-        self.format(record)
         get_client().create_from_record(record, request=request)
 
 try:
@@ -26,6 +27,8 @@ else:
     class SentryLogbookHandler(logbook.Handler):
         def emit(self, record):
             from sentry.client.models import get_client
+            
+            self.format(record)
 
             # Avoid typical config issues by overriding loggers behavior
             if record.name == 'sentry.errors':
