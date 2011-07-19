@@ -72,8 +72,8 @@ class CreateRedmineIssue(GroupActionProvider):
                     form.errors['__all__'] = 'Unable to reach Redmine host: %s' % (e.reason,)
                 else:
                     data = json.loads(response)
-                    RedmineIssue.objects.create(group=group, issue_id=data['id'])
-                    group.data['redmine'] = {'issue_id': data['id']}
+                    RedmineIssue.objects.create(group=group, issue_id=data['issue']['id'])
+                    group.data['redmine'] = {'issue_id': data['issue']['id']}
                     group.save()
                     return HttpResponseRedirect(reverse('sentry-group', args=[group.pk]))
         else:
