@@ -1,10 +1,11 @@
+from django.middleware.common import _is_ignorable_404
 from sentry.client.models import get_client
 import threading
 import logging
 
 class Sentry404CatchMiddleware(object):
     def process_response(self, request, response):
-        if response.status_code != 404:
+        if response.status_code != 404 or _is_ignorable_404(request.get_full_path()):
             return response
         message_id = get_client().create_from_text('Http 404', request=request, level=logging.INFO, logger='http404')
         request.sentry = {
