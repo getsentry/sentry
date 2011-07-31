@@ -197,14 +197,14 @@ def index(request):
 @login_required
 def ajax_handler(request):
     op = request.REQUEST.get('op')
-
-    if op == 'notification':
+    
+    def notification(request):
         return render_to_response('sentry/partial/_notification.html', request.GET)
-    elif op == 'poll':
+    
+    def poll(request):
         filters = []
         for filter_ in get_filters():
             filters.append(filter_(request))
-
 
         message_list = GroupedMessage.objects.all()
         
@@ -238,8 +238,12 @@ def ajax_handler(request):
                 'count': m.times_seen,
                 'priority': p,
             }) for m, p in with_priority(message_list[0:15])]
-
-    elif op == 'resolve':
+        
+        response = HttpResponse(json.dumps(data))
+        response['Content-Type'] = 'application/json'
+        return response
+        
+    def resolve(request):
         gid = request.REQUEST.get('gid')
         if not gid:
             return HttpResponseForbidden()
@@ -262,13 +266,26 @@ def ajax_handler(request):
                 }).strip(),
                 'count': m.times_seen,
             }) for m in [group]]
+        
+        response = HttpResponse(json.dumps(data))
+        response['Content-Type'] = 'application/json'
+        return response
+    
+    def clear(request):
+        GroupedMessage.objects.all().update(status=1)
+        
+        if not request.is_ajax():
+            return HttpResponseRedirect(request.META.get('HTTP_REFERER') or reverse('sentry'))
+        
+        data = []
+        response = HttpResponse(json.dumps(data))
+        response['Content-Type'] = 'application/json'
+        return response
+        
+    if op in ['notification','poll','resolve', 'clear']:
+        return locals()[op](request)  
     else:
         return HttpResponseBadRequest()
-        
-    response = HttpResponse(json.dumps(data))
-    response['Content-Type'] = 'application/json'
-    return response
-
 @login_required
 def group(request, group_id):
     group = get_object_or_404(GroupedMessage, pk=group_id)
