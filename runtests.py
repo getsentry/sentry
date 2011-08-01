@@ -74,9 +74,15 @@ def runtests(*test_args, **kwargs):
 
     if not test_args:
         test_args = ['tests']
-    parent = dirname(abspath(__file__))
-    sys.path.insert(0, parent)
-    failures = run_tests(test_args, verbosity=kwargs.get('verbosity', 1), interactive=kwargs.get('interactive', False), failfast=kwargs.get('failfast'))
+
+    sys.path.insert(0, dirname(abspath(__file__)))
+
+    failures = run_tests(test_args,
+        verbosity=kwargs.get('verbosity', 1),
+        interactive=kwargs.get('interactive', False),
+        failfast=kwargs.get('failfast'),
+    )
+
     sys.exit(failures)
 
 if __name__ == '__main__':
