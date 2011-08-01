@@ -8,10 +8,6 @@
 
 {% block search %}{% endblock %}
 
-{% block content %}
-    <div id="body">
-        <div class="login-area">
-            <p>{% trans "You do not have access to this page with your current permissions." %}</p>
-        </div>
-    </div>
+{% block main %}
+    <p>{% trans "You do not have access to this page with your current permissions." %}</p>
 {% endblock %}

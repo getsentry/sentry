@@ -1,0 +1,15 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Page Not Found" %} | {{ block.super }}{% endblock %}
+
+{% block heading %}{% trans "Page Not Found" %}{% endblock %}
+
+{% block search %}{% endblock %}
+
+{% block main %}
+    <h2>Page Not Found</h2>
+    <p>{% trans "The page you are looking for was not found." %}</p>
+    <p><a href="{% url sentry %}">{% trans "Return to the dashboard" %}</a></p>
+{% endblock %}
