@@ -3,7 +3,8 @@ Configuration
 
 This document describes additional configuration options available to Sentry.
 
-.. note:: **You must prefix all setting names with ``SENTRY_`` in your ``settings.py``**.
+.. note:: While these are prefixed with ``SENTRY_`` in your ``settings.py``, if you were to configure or reference them via
+          Sentry's internal tools the prefix would be dropped.
 
 Integration with ``logging``
 ----------------------------
@@ -150,14 +151,14 @@ Other Settings
 
 Several options exist to configure django-sentry via your ``settings.py``:
 
-######
-CLIENT
-######
+#############
+SENTRY_CLIENT
+#############
 
 In some situations you may wish for a slightly different behavior to how Sentry communicates with your server. For
 this, Sentry allows you to specify a custom client::
 
-	CLIENT = 'sentry.client.base.SentryClient'
+	SENTRY_CLIENT = 'sentry.client.base.SentryClient'
 
 In addition to the default client (which will handle multi-db and REMOTE_URL for you) we also include two additional options:
 
@@ -170,7 +171,7 @@ this would be the way to do it.
 
 ::
 
-	CLIENT = 'sentry.client.log.LoggingSentryClient'
+	SENTRY_CLIENT = 'sentry.client.log.LoggingSentryClient'
 
 ******************
 CelerySentryClient
@@ -183,7 +184,7 @@ name (defaults to ``sentry``).
 
 ::
 
-	CLIENT = 'sentry.client.celery.CelerySentryClient'
+	SENTRY_CLIENT = 'sentry.client.celery.CelerySentryClient'
 	
 	INSTALLED_APPS = (
 	    ...,
@@ -198,25 +199,25 @@ Spawns a background thread within the process that will handle sending messages 
 
 ::
 
-	CLIENT = 'sentry.client.async.AsyncSentryClient'
+	SENTRY_CLIENT = 'sentry.client.async.AsyncSentryClient'
 
-######
-ADMINS
-######
+#############
+SENTRY_ADMINS
+#############
 
 On smaller sites you may wish to enable throttled emails, we recommend doing this by first
-removing the ``ADMINS`` setting in Django, and adding in ``ADMINS``::
+removing the ``ADMINS`` setting in Django, and adding in ``SENTRY_ADMINS``::
 
 	ADMINS = ()
-	ADMINS = ('root@localhost',)
+	SENTRY_ADMINS = ('root@localhost',)
 
 This will send out a notification the first time an error is seen, and the first time an error is
 seen after it has been resolved.
 
 
-#######
-TESTING
-#######
+##############
+SENTRY_TESTING
+##############
 
 Enabling this setting allows the testing of Sentry exception handler even if Django DEBUG is enabled.
 
@@ -224,44 +225,44 @@ Default value is ``False``
 
 .. note:: Normally when Django DEBUG is enabled the Sentry exception handler is immediately skipped
 
-####
-NAME
-####
+###########
+SENTRY_NAME
+###########
 
 This will override the ``server_name`` value for this installation. Defaults to ``socket.gethostname()``.
 
-##########
-URL_PREFIX
-##########
+#################
+SENTRY_URL_PREFIX
+#################
 
 Absolute URL to the sentry root directory. Should not include a trailing slash. Defaults to "".
 
-#############
-EXCLUDE_PATHS
-#############
+####################
+SENTRY_EXCLUDE_PATHS
+####################
 
 Extending this allow you to ignore module prefixes when we attempt to discover which function an error comes from (typically a view)
 
-#############
-INCLUDE_PATHS
-#############
+####################
+SENTRY_INCLUDE_PATHS
+####################
 
 By default Sentry only looks at modules in INSTALLED_APPS for drilling down where an exception is located
 
-###############
-MAX_LENGTH_LIST
-###############
+######################
+SENTRY_MAX_LENGTH_LIST
+######################
 
 The maximum number of items a list-like container should store. Defaults to 50.
 
-#################
-MAX_LENGTH_STRING
-#################
+########################
+SENTRY_MAX_LENGTH_STRING
+########################
 
 The maximum characters of a string that should be stored. Defaults to 200.
 
-######
-PUBLIC
-######
+#############
+SENTRY_PUBLIC
+#############
 
 Should Sentry be protected by a username and password (using @login_required) or be publicly accessible. Defaults to False (password protection).
