@@ -9,30 +9,63 @@ This document describes additional configuration options available to Sentry.
 Integration with ``logging``
 ----------------------------
 
-Sentry supports the ability to directly tie into the ``logging`` module. To use it simply add ``SentryHandler`` to your logger::
+Sentry supports the ability to directly tie into the ``logging`` module. To use it simply add ``SentryHandler`` to your logger.
 
-	import logging
-	from sentry.client.handlers import SentryHandler
-	
-	logger = logging.getLogger()
-	# ensure we havent already registered the handler
-	if SentryHandler not in map(lambda x: x.__class__, logger.handlers):
-	    logger.addHandler(SentryHandler())
-	
-	    # Add StreamHandler to sentry's default so you can catch missed exceptions
-	    logger = logging.getLogger('sentry.errors')
-	    logger.propagate = False
-	    logger.addHandler(logging.StreamHandler())
+##########
+Django 1.3
+##########
+
+::
+
+    import logging
+    
+    LOGGING = {
+        'handlers': {
+            'sentry': {
+                'level': 'DEBUG',
+                'class': 'sentry.client.handlers.SentryHandler',
+                'formatter': 'verbose'
+            },
+       },
+    }
+
+##############
+Older Versions
+##############
+
+::
+
+    import logging
+    from sentry.client.handlers import SentryHandler
+
+    logger = logging.getLogger()
+    # ensure we havent already registered the handler
+    if SentryHandler not in map(lambda x: x.__class__, logger.handlers):
+        logger.addHandler(SentryHandler())
+
+        # Add StreamHandler to sentry's default so you can catch missed exceptions
+        logger = logging.getLogger('sentry.errors')
+        logger.propagate = False
+        logger.addHandler(logging.StreamHandler())
+
+#####
+Usage
+#####
+
+A recommended pattern in logging is to simply reference the modules name for each logger, so for example, you might at the top of your module define the following::
+
+    import logging
+    logger = logging.getLogger(__name__)
 
 You can also use the ``exc_info`` and ``extra=dict(url=foo)`` arguments on your ``log`` methods. This will store the appropriate information and allow django-sentry to render it based on that information::
 
-	logging.error('There was some crazy error', exc_info=sys.exc_info(), extra={'url': request.build_absolute_uri()})
+	logger.error('There was some crazy error', exc_info=sys.exc_info(), extra={'url': request.build_absolute_uri()})
 
 You may also pass additional information to be stored as meta information with the event. As long as the key
 name is not reserved and not private (_foo) it will be displayed on the Sentry dashboard. To do this, pass it as ``data`` within
 your ``extra`` clause::
 
-	logging.error('There was some crazy error', exc_info=sys.exc_info(), extra={
+	logger.error('There was some crazy error', exc_info=sys.exc_info(), extra={
 	    # Optionally pass a request and we'll grab any information we can
 	    'request': request,
 
@@ -52,9 +85,9 @@ your ``extra`` clause::
 Sentry will intelligently group messages if you use proper string formatting. For example, the following messages would
 be seen as the same message within Sentry::
 
-	logging.error('There was some %s error', 'crazy')
-	logging.error('There was some %s error', 'fun')
-	logging.error('There was some %s error', 1)
+	logger.error('There was some %s error', 'crazy')
+	logger.error('There was some %s error', 'fun')
+	logger.error('There was some %s error', 1)
 
 Note that here we are describing a client/server interaction where
 both components are provided by django-sentry.  Other languages that
