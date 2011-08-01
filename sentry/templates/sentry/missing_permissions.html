@@ -1,0 +1,17 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Forbidden" %} | {{ block.super }}{% endblock %}
+
+{% block heading %}{% trans "Forbidden" %}{% endblock %}
+
+{% block search %}{% endblock %}
+
+{% block content %}
+    <div id="body">
+        <div class="login-area">
+            <p>{% trans "You do not have access to this page with your current permissions." %}</p>
+        </div>
+    </div>
+{% endblock %}
