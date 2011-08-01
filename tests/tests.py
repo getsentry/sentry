@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import base64
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 import datetime
 import getpass
 import logging
@@ -30,6 +26,7 @@ from sentry.conf import settings
 from sentry.models import Message, GroupedMessage
 from sentry.utils import json
 from sentry.utils import transform, get_signature, get_auth_header
+from sentry.utils.compat import pickle
 
 from models import TestModel, DuplicateKeyModel
 from utils import TestServerThread, conditional_on_module

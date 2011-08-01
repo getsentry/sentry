@@ -11,5 +11,5 @@ pip-log.txt
 /example_project/local_settings.py
 /docs/html
 /docs/doctrees
-sentry/sentry_index/
 /sentry_index/
+/sentry_test_index

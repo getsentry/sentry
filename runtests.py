@@ -59,7 +59,7 @@ if not settings.configured:
         HAYSTACK_SEARCH_ENGINE='whoosh',
         SENTRY_SEARCH_ENGINE='whoosh',
         SENTRY_SEARCH_OPTIONS={
-            'path': join(dirname(__file__), 'sentry_index'),
+            'path': join(dirname(__file__), 'sentry_test_index'),
         },
     )
     import djcelery
