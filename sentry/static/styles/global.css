@@ -530,6 +530,9 @@ dl.flat dd {
     width: 100%;
     margin-bottom: 10px;
 }
+.paging ul {
+    margin-bottom: 0; 
+}
 .paging-wrap form { margin-bottom: 0; }
 .paging-meta, .sort-by, .realtime {
     display: inline;
@@ -544,7 +547,8 @@ dl.flat dd {
     padding: 6px 8px;
 }
 .paging-endless {
-    display: inline; float: left;
+    display: inline;
+    float: left;
     margin-left: 0;
 }
 
