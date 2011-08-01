@@ -197,8 +197,8 @@ class SentryClient(object):
     def send(self, **kwargs):
         "Sends the message to the server."
         if settings.REMOTE_URL:
+            message = base64.b64encode(json.dumps(kwargs).encode('zlib'))
             for url in settings.REMOTE_URL:
-                message = base64.b64encode(json.dumps(kwargs).encode('zlib'))
                 timestamp = time.time()
                 signature = get_signature(message, timestamp)
                 headers={
