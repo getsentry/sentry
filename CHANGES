@@ -4,6 +4,8 @@
 * Version information will be read from pkg_resources if possible.
 * Cleared up documentation on configuration settings..
 * Performance improvements to ``Client.send()``.
+* Added default 404/500 pages.
+* Added support for Django's LOGIN_URL setting.
 
 1.8.6.2
 
