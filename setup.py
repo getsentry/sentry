@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import sys
+
 try:
     from setuptools import setup, find_packages, Command
 except ImportError:
@@ -31,10 +33,10 @@ install_requires = [
     'django-templatetag-sugar>=0.1.0',
 ]
 
-try:
-    __import__('uuid')
-except ImportError:
-    # Older versions of Python did not include uuid
+if sys.version_info[:2] < (2, 7):
+    install_requires.append('importlib')
+
+if sys.version_info[:2] < (2, 5):
     install_requires.append('uuid')
 
 setup(
