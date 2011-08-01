@@ -56,7 +56,7 @@ Older Versions
 
     logger = logging.getLogger()
     # ensure we havent already registered the handler
-    if SentryHandler not in map(lambda x: x.__class__, logger.handlers):
+    if SentryHandler not in map(type, logger.handlers):
         logger.addHandler(SentryHandler())
 
         # Add StreamHandler to sentry's default so you can catch missed exceptions
