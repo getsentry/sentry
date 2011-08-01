@@ -70,21 +70,25 @@ Note: You will need to install a forked version of Haystack which supports addit
 
 Start by configuring your Sentry search backend::
 
-	SEARCH_BACKEND = 'solr'
-	SEARCH_OPTIONS = {
+	SENTRY_SEARCH_ENGINE = 'solr'
+	SENTRY_SEARCH_OPTIONS = {
 	    'url': 'http://127.0.0.1:8983/solr'
 	}
 
 Or if you want to use Whoosh (you shouldn't)::
 
-	SEARCH_BACKEND = 'whoosh'
-	SEARCH_OPTIONS = {
+	SENTRY_SEARCH_ENGINE = 'whoosh'
+	SENTRY_SEARCH_OPTIONS = {
 	    'path': os.path.join(PROJECT_ROOT, 'sentry_index')
 	}
 
 Now ensure you've added ``haystack`` to the ``INSTALLED_APPS`` on Sentry's server::
 
 	INSTALLED_APPS = INSTALLED_APPS + ('haystack',)
+
+When calling Haystack's Django management commands, you'll need to identify Sentry to Haystack by explicitly including the ``--site`` parameter::
+
+	python manage.py build_solr_schema --site=sentry.search_indexes.site
 
 Enjoy!
 
