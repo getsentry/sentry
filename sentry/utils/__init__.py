@@ -1,5 +1,6 @@
 import hmac
 import logging
+import pkg_resources
 import sys
 import uuid
 from pprint import pformat
@@ -236,6 +237,12 @@ def get_versions(module_list=None):
         elif hasattr(app, '__version__'):
             version = app.__version__
         else:
+            # pull version from pkg_resources if distro exists
+            try:
+                version = pkg_resources.get_distribution(module_name).version
+            except pkg_resources.DistributionNotFound:
+                continue
+        if not version:
             continue
         if isinstance(version, (list, tuple)):
             version = '.'.join(str(o) for o in version)
