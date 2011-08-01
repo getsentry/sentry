@@ -1,10 +1,6 @@
 from __future__ import absolute_import
 
 import base64
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 import logging
 import math
 
@@ -18,6 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
 from sentry.utils import cached_property, construct_checksum, transform, get_filters, \
                          MockDjangoRequest
+from sentry.utils.compat import pickle
 from sentry.utils.manager import GroupedMessageManager, SentryManager
 
 from indexer.models import BaseIndex

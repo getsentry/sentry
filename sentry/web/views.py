@@ -1,8 +1,4 @@
 import base64
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 import datetime
 import logging
 import re
@@ -23,6 +19,7 @@ from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
 from sentry.conf import settings
 from sentry.utils import get_filters, is_float, get_signature, parse_auth_header
+from sentry.utils.compat import pickle
 from sentry.models import GroupedMessage, Message
 from sentry.plugins import GroupActionProvider
 from sentry.templatetags.sentry_helpers import with_priority
@@ -30,6 +27,12 @@ from sentry.utils import json
 from sentry.web.reporter import ImprovedExceptionReporter
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$')
+
+def iter_data(obj):
+    for k, v in obj.data.iteritems():
+        if k.startswith('_') or k in ['url']:
+            continue
+        yield k, v
 
 def render_to_response(template, context={}):
     from django.shortcuts import render_to_response
@@ -106,11 +109,6 @@ def logout(request):
 
 @login_required
 def search(request):
-    try:
-        page = int(request.GET.get('p', 1))
-    except (TypeError, ValueError):
-        page = 1
-
     query = request.GET.get('q')
     has_search = bool(settings.SEARCH_ENGINE)
 
@@ -286,6 +284,7 @@ def ajax_handler(request):
         return locals()[op](request)  
     else:
         return HttpResponseBadRequest()
+
 @login_required
 def group(request, group_id):
     group = get_object_or_404(GroupedMessage, pk=group_id)
@@ -314,17 +313,17 @@ def group(request, group_id):
         traceback = mark_safe('<pre>%s</pre>' % (group.traceback,))
         version_data = None
     
-    def iter_data(obj):
-        for k, v in obj.data.iteritems():
-            if k.startswith('_') or k in ['url']:
-                continue
-            yield k, v
+    else:
+        traceback = None
+        version_data = None
     
-    json_data = iter_data(obj)
-    
-    page = 'details'
-    
-    return render_to_response('sentry/group/details.html', locals())
+    return render_to_response('sentry/group/details.html', {
+        'page': 'details',
+        'group': group,
+        'json_data': iter_data(obj),
+        'traceback': traceback,
+        'version_data': version_data,
+    })
 
 @login_required
 def group_message_list(request, group_id):
@@ -332,9 +331,11 @@ def group_message_list(request, group_id):
 
     message_list = group.message_set.all().order_by('-datetime')
     
-    page = 'messages'
-    
-    return render_to_response('sentry/group/message_list.html', locals())
+    return render_to_response('sentry/group/message_list.html', {
+        'group': group,
+        'message_list': message_list,
+        'page': 'messages',
+    })
 
 @login_required
 def group_message_details(request, group_id, message_id):
@@ -353,20 +354,20 @@ def group_message_details(request, group_id, message_id):
     
         reporter = ImprovedExceptionReporter(message.request, exc_type, exc_value, frames, message.data['__sentry__'].get('template'))
         traceback = mark_safe(reporter.get_traceback_html())
+
     elif group.traceback:
         traceback = mark_safe('<pre>%s</pre>' % (group.traceback,))
+
+    else:
+        traceback = None
     
-    def iter_data(obj):
-        for k, v in obj.data.iteritems():
-            if k.startswith('_') or k in ['url']:
-                continue
-            yield k, v
-    
-    json_data = iter_data(message)
-    
-    page = 'messages'
-    
-    return render_to_response('sentry/group/message.html', locals())
+    return render_to_response('sentry/group/message.html', {
+        'page': 'messages',
+        'group': group,
+        'message': message,
+        'json_data': iter_data(message),
+        'traceback': traceback,
+    })
 
 @csrf_exempt
 def store(request):
