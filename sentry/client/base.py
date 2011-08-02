@@ -267,7 +267,7 @@ class SentryClient(object):
         Creates an error log from an exception.
         """
         new_exc = bool(exc_info)
-        if not exc_info:
+        if not exc_info or exc_info is True:
             exc_info = sys.exc_info()
         
         try:
