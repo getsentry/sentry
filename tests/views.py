@@ -2,7 +2,6 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render_to_response
 
 import logging
-import sys
 
 def django_exc(request):
     return get_object_or_404(Exception, pk=1)
@@ -21,5 +20,5 @@ def logging_request_exc(request):
     try:
         raise Exception(request.GET.get('message', 'view exception'))
     except Exception, e:
-        logger.error(e, exc_info=sys.exc_info(), extra={'request': request})
+        logger.error(e, exc_info=True, extra={'request': request})
     return HttpResponse('')

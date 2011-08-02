@@ -36,10 +36,10 @@ client = get_client()
 
 @transaction.commit_on_success
 def sentry_exception_handler(request=None, **kwargs):
+    exc_info = sys.exc_info()
     try:
-        exc_type, exc_value, exc_traceback = sys.exc_info()
 
-        if settings.DEBUG or getattr(exc_type, 'skip_sentry', False):
+        if settings.DEBUG or getattr(exc_info[0], 'skip_sentry', False):
             return
 
         if transaction.is_dirty():
@@ -55,6 +55,8 @@ def sentry_exception_handler(request=None, **kwargs):
             logger.exception(u'Unable to process log entry: %s' % (exc,))
         except Exception, exc:
             warnings.warn(u'Unable to process log entry: %s' % (exc,))
+    finally:
+        del exc_info
 
 got_request_exception.connect(sentry_exception_handler)
 

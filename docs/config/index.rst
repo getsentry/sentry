@@ -75,13 +75,13 @@ A recommended pattern in logging is to simply reference the modules name for eac
 
 You can also use the ``exc_info`` and ``extra=dict(url=foo)`` arguments on your ``log`` methods. This will store the appropriate information and allow django-sentry to render it based on that information::
 
-	logger.error('There was some crazy error', exc_info=sys.exc_info(), extra={'url': request.build_absolute_uri()})
+	logger.error('There was some crazy error', exc_info=True, extra={'url': request.build_absolute_uri()})
 
 You may also pass additional information to be stored as meta information with the event. As long as the key
 name is not reserved and not private (_foo) it will be displayed on the Sentry dashboard. To do this, pass it as ``data`` within
 your ``extra`` clause::
 
-	logger.error('There was some crazy error', exc_info=sys.exc_info(), extra={
+	logger.error('There was some crazy error', exc_info=True, extra={
 	    # Optionally pass a request and we'll grab any information we can
 	    'request': request,
 

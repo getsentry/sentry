@@ -164,7 +164,7 @@ class SentryTestCase(BaseTestCase):
         try:
             raise ValueError('This is a test ValueError')
         except ValueError:
-            logger.info('This is a test info with an exception', exc_info=sys.exc_info())
+            logger.info('This is a test info with an exception', exc_info=True)
             self.assertEquals(Message.objects.count(), 6)
             self.assertEquals(GroupedMessage.objects.count(), 5)
             last = Message.objects.all().order_by('-id')[0:1].get()
@@ -267,7 +267,7 @@ class SentryTestCase(BaseTestCase):
             raise SyntaxMessage(value)
         except Exception, exc:
             logging.exception(exc)
-            logging.info('test', exc_info=sys.exc_info())
+            logging.info('test', exc_info=True)
         self.assertEquals(Message.objects.count(), cnt+5)
         
         self.tearDownHandler()
@@ -295,7 +295,7 @@ class SentryTestCase(BaseTestCase):
             raise SyntaxMessage(value)
         except Exception, exc:
             logging.exception(exc)
-            logging.info('test', exc_info=sys.exc_info())
+            logging.info('test', exc_info=True)
         self.assertEquals(Message.objects.count(), cnt+5)
         
         self.tearDownHandler()
@@ -487,7 +487,7 @@ class SentryTestCase(BaseTestCase):
         
         last = Message.objects.get()
         
-        self.assertEquals(last.view, 'tests.tests.testExclusionViewPath')
+        self.assertEquals(last.view, 'tests.tests.test_exclusion_view_path')
 
     def test_best_guess_view(self):
         settings.EXCLUDE_PATHS = ['tests.tests']
@@ -497,7 +497,7 @@ class SentryTestCase(BaseTestCase):
         
         last = Message.objects.get()
         
-        self.assertEquals(last.view, 'tests.tests.testBestGuessView')
+        self.assertEquals(last.view, 'tests.tests.test_best_guess_view')
         
         settings.EXCLUDE_PATHS = []
 

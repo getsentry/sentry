@@ -211,11 +211,11 @@ class SentryClient(object):
                 except urllib2.HTTPError, e:
                     body = e.read()
                     logger.error('Unable to reach Sentry log server: %s (url: %%s, body: %%s)' % (e,), url, body,
-                                 exc_info=sys.exc_info(), extra={'data':{'body': body, 'remote_url': url}})
+                                 exc_info=True, extra={'data':{'body': body, 'remote_url': url}})
                     logger.log(kwargs.pop('level', None) or logging.ERROR, kwargs.pop('message', None))
                 except urllib2.URLError, e:
                     logger.error('Unable to reach Sentry log server: %s (url: %%s)' % (e,), url,
-                                 exc_info=sys.exc_info(), extra={'data':{'remote_url': url}})
+                                 exc_info=True, extra={'data':{'remote_url': url}})
                     logger.log(kwargs.pop('level', None) or logging.ERROR, kwargs.pop('message', None))
         else:
             from sentry.models import GroupedMessage
@@ -266,80 +266,85 @@ class SentryClient(object):
         """
         Creates an error log from an exception.
         """
+        new_exc = bool(exc_info)
         if not exc_info:
             exc_info = sys.exc_info()
-
-        exc_type, exc_value, exc_traceback = exc_info
-
-        reporter = ExceptionReporter(None, exc_type, exc_value, exc_traceback)
-        frames = varmap(shorten, reporter.get_traceback_frames())
-
-        if not kwargs.get('view'):
-            # This should be cached
-            modules = get_installed_apps()
-            if settings.INCLUDE_PATHS:
-                modules = set(list(modules) + settings.INCLUDE_PATHS)
-
-            def iter_tb_frames(tb):
-                while tb:
-                    yield tb.tb_frame
-                    tb = tb.tb_next
-            
-            def contains(iterator, value):
-                for k in iterator:
-                    if value.startswith(k):
-                        return True
-                return False
-                
-            # We iterate through each frame looking for an app in INSTALLED_APPS
-            # When one is found, we mark it as last "best guess" (best_guess) and then
-            # check it against SENTRY_EXCLUDE_PATHS. If it isnt listed, then we
-            # use this option. If nothing is found, we use the "best guess".
-            best_guess = None
-            view = None
-            for frame in iter_tb_frames(exc_traceback):
-                try:
-                    view = '.'.join([frame.f_globals['__name__'], frame.f_code.co_name])
-                except:
-                    continue
-                if contains(modules, view):
-                    if not (contains(settings.EXCLUDE_PATHS, view) and best_guess):
-                        best_guess = view
-                elif best_guess:
-                    break
-            if best_guess:
-                view = best_guess
-            
-            if view:
-                kwargs['view'] = view
-
-        data = kwargs.pop('data', {}) or {}
-        if hasattr(exc_type, '__class__'):
-            exc_module = exc_type.__class__.__module__
-        else:
-            exc_module = None
-        data['__sentry__'] = {
-            'exc': map(transform, [exc_module, exc_value.args, frames]),
-        }
-
-        if (isinstance(exc_value, TemplateSyntaxError) and \
-            isinstance(getattr(exc_value, 'source', None), (tuple, list)) and isinstance(exc_value.source[0], LoaderOrigin)):
-            origin, (start, end) = exc_value.source
-            data['__sentry__'].update({
-                'template': (origin.reload(), start, end, origin.name),
-            })
-            kwargs['view'] = origin.loadname
         
-        tb_message = '\n'.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+        try:
+            exc_type, exc_value, exc_traceback = exc_info
 
-        kwargs.setdefault('message', transform(force_unicode(exc_value)))
+            reporter = ExceptionReporter(None, exc_type, exc_value, exc_traceback)
+            frames = varmap(shorten, reporter.get_traceback_frames())
 
-        return self.process(
-            class_name=exc_type.__name__,
-            traceback=tb_message,
-            data=data,
-            **kwargs
-        )
+            if not kwargs.get('view'):
+                # This should be cached
+                modules = get_installed_apps()
+                if settings.INCLUDE_PATHS:
+                    modules = set(list(modules) + settings.INCLUDE_PATHS)
+
+                def iter_tb_frames(tb):
+                    while tb:
+                        yield tb.tb_frame
+                        tb = tb.tb_next
+            
+                def contains(iterator, value):
+                    for k in iterator:
+                        if value.startswith(k):
+                            return True
+                    return False
+                
+                # We iterate through each frame looking for an app in INSTALLED_APPS
+                # When one is found, we mark it as last "best guess" (best_guess) and then
+                # check it against SENTRY_EXCLUDE_PATHS. If it isnt listed, then we
+                # use this option. If nothing is found, we use the "best guess".
+                best_guess = None
+                view = None
+                for frame in iter_tb_frames(exc_traceback):
+                    try:
+                        view = '.'.join([frame.f_globals['__name__'], frame.f_code.co_name])
+                    except:
+                        continue
+                    if contains(modules, view):
+                        if not (contains(settings.EXCLUDE_PATHS, view) and best_guess):
+                            best_guess = view
+                    elif best_guess:
+                        break
+                if best_guess:
+                    view = best_guess
+            
+                if view:
+                    kwargs['view'] = view
+
+            data = kwargs.pop('data', {}) or {}
+            if hasattr(exc_type, '__class__'):
+                exc_module = exc_type.__class__.__module__
+            else:
+                exc_module = None
+            data['__sentry__'] = {
+                'exc': map(transform, [exc_module, exc_value.args, frames]),
+            }
+
+            if (isinstance(exc_value, TemplateSyntaxError) and \
+                isinstance(getattr(exc_value, 'source', None), (tuple, list)) and isinstance(exc_value.source[0], LoaderOrigin)):
+                origin, (start, end) = exc_value.source
+                data['__sentry__'].update({
+                    'template': (origin.reload(), start, end, origin.name),
+                })
+                kwargs['view'] = origin.loadname
+        
+            tb_message = '\n'.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+
+            kwargs.setdefault('message', transform(force_unicode(exc_value)))
+
+            return self.process(
+                class_name=exc_type.__name__,
+                traceback=tb_message,
+                data=data,
+                **kwargs
+            )
+        finally:
+            if new_exc:
+                del exc_info
 
 class DummyClient(SentryClient):
     "Sends messages into an empty void"

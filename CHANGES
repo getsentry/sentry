@@ -6,6 +6,7 @@
 * Performance improvements to ``Client.send()``.
 * Added default 404/500 pages.
 * Added support for Django's LOGIN_URL setting.
+* Fixed a memory leak in the client (thanks to Ben Bangert).
 
 1.8.6.2
 
