@@ -338,6 +338,7 @@ def group_message_list(request, group_id):
         'group': group,
         'message_list': message_list,
         'page': 'messages',
+        'request' : request
     })
 
 @login_required
