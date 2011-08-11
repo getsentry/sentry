@@ -98,7 +98,11 @@ def transform(value, stack=[], context=None):
     if any(value is s for s in stack):
         ret = 'cycle'
     elif isinstance(value, (tuple, list, set, frozenset)):
-        ret = type(value)(transform_rec(o) for o in value)
+        try:
+            ret = type(value)(transform_rec(o) for o in value)
+        except TypeError, te:
+            # We may be dealing with a namedtuple
+            ret = type(value)(transform_rec(o) for o in value[:])
     elif isinstance(value, uuid.UUID):
         ret = repr(value)
     elif isinstance(value, dict):
