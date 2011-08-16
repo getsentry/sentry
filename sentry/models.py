@@ -31,6 +31,8 @@ STATUS_LEVELS = (
     (1, _('resolved')),
 )
 
+logger = logging.getLogger('sentry.errors')
+
 class GzippedDictField(models.TextField):
     """
     Slightly different from a JSONField in the sense that the default
@@ -40,7 +42,11 @@ class GzippedDictField(models.TextField):
  
     def to_python(self, value):
         if isinstance(value, basestring) and value:
-            value = pickle.loads(base64.b64decode(value).decode('zlib'))
+            try:
+                value = pickle.loads(base64.b64decode(value).decode('zlib'))
+            except Exception, e:
+                logger.exception(e)
+                return {}
         elif not value:
             return {}
         return value
