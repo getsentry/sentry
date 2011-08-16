@@ -100,26 +100,34 @@ class SentryServer(DaemonRunner):
 
 def cleanup(days=30, logger=None, site=None, server=None):
     from sentry.models import GroupedMessage, Message
+    from sentry.utils.query import RangeQuerySetWrapper, SkinnyQuerySet
     import datetime
     
     ts = datetime.datetime.now() - datetime.timedelta(days=days)
     
-    qs = Message.objects.filter(datetime__lte=ts)
+    qs = SkinnyQuerySet(Message).filter(datetime__lte=ts)
     if logger:
         qs.filter(logger=logger)
     if site:
         qs.filter(site=site)
     if server:
         qs.filter(server_name=server)
-    qs.delete()
+
+    for obj in RangeQuerySetWrapper(qs):
+        print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
+        obj.delete()
     
     # TODO: we should collect which messages above were deleted
     # and potentially just send out post_delete signals where
     # GroupedMessage can update itself accordingly
-    qs = GroupedMessage.objects.filter(last_seen__lte=ts)
+
+    qs = SkinnyQuerySet(GroupedMessage).filter(last_seen__lte=ts)
     if logger:
         qs.filter(logger=logger)
-    qs.delete()
+
+    for obj in RangeQuerySetWrapper(qs):
+        print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
+        obj.delete()
 
 def upgrade(interactive=True):
     from sentry.conf import settings
