@@ -27,7 +27,7 @@ If you wish to log normal messages (useful for non-``logging`` integration)::
 	from sentry.client.models import client
 	import logging
 	
-	message_id = client.create_from_text('Message Message'[, level=logging.WARNING, url=None])
+	message_id = client.create_from_text('Message Message', level=logging.WARNING, url=None)
 
 Both the ``url`` and ``level`` parameters are optional. ``level`` should be one of the following:
 
