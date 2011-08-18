@@ -26,7 +26,7 @@
                         <span class="tag tag-version">{{ version.0 }} {{ version.1 }}</span> 
                     {% endif %}
                 {% endwith %}
-                <span class="last_seen">{{ message.datetime|timesince }}</span>
+                <span class="last_seen" title="{{ message.datetime }}">{{ message.datetime|timesince }}</span>
             </p>
         </li>
     </ul>
