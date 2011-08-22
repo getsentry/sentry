@@ -73,7 +73,7 @@ def login_required(func):
             if not request.user.is_authenticated():
                 return HttpResponseRedirect(settings.LOGIN_URL or reverse('sentry-login'))
             if not request.user.has_perm('sentry.can_view'):
-                return render_to_response('missing_permissions.html', status=400)
+                return render_to_response('sentry/missing_permissions.html', status=400)
         return func(request, *args, **kwargs)
     wrapped.__doc__ = func.__doc__
     wrapped.__name__ = func.__name__
