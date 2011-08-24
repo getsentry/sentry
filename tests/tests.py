@@ -1200,6 +1200,14 @@ class SentryTransformTest(BaseTestCase):
                     transform(fake_gettext_lazy("something")))),
             u'Igpay Atinlay')
 
+    def test_dict_keys(self):
+        x = {u'foo': 'bar'}
+
+        result = transform(x)
+        keys = result.keys()
+        self.assertEquals(len(keys), 1)
+        self.assertEquals(keys[0], 'foo')
+        self.assertTrue(isinstance(keys[0], str))
 
 class SentryClientTest(BaseTestCase):
     def setUp(self):
