@@ -2,6 +2,7 @@
 1.8.10
 
 * Ensure dictionary keys are coerced to strings.
+* Fixed path to missing_permissions.html.
 
 1.8.9
 
