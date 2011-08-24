@@ -25,9 +25,9 @@
         <dt>{% trans "Status:" %}</dt>
         <dd>{{ group.get_status_display|title }}</dd>
         <dt>{% trans "First Seen:" %}</dt>
-        <dd>{{ group.first_seen|timesince }}</dd>
+        <dd title="{{ group.first_seen }}">{{ group.first_seen|timesince }}</dd>
         <dt>{% trans "Last Seen:" %}</dt>
-        <dd>{{ group.last_seen|timesince }}</dd>
+        <dd title="{{ group.first_seen }}">{{ group.last_seen|timesince }}</dd>
     </dl>
     
     {% for html in group|get_widgets:request %}
@@ -40,7 +40,7 @@
         <li class="{% cycle 'row1' 'row2' %} level-{{ group.level }} active" id="group_{{ group.pk }}" data-sentry-count="{{ group.times_seen }}">
             <span class="count count-digits-{{ group.times_seen|num_digits }}">{{ group.times_seen }}</span>
             <h3>{% if group.view %}{{ group.view }}{% else %}{{ group.message_top|truncatechars:100 }}{% endif %}</h3>
-            <span class="last_seen">{{ group.last_seen|timesince }}</span>
+            <span class="last_seen" title="{{ group.last_seen }}">{{ group.last_seen|timesince }}</span>
             <span class="status status-{{ group.status }}">{{ group.get_status_display }}</span>
             <p class="message">
                 <span class="tag tag-level">{{ group.get_level_display }}</span> 
