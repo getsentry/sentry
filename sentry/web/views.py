@@ -282,8 +282,23 @@ def ajax_handler(request):
         response = HttpResponse(json.dumps(data))
         response['Content-Type'] = 'application/json'
         return response
-        
-    if op in ['notification','poll','resolve', 'clear']:
+    
+    def chart(request):
+        gid = request.REQUEST.get('gid')
+        if not gid:
+            return HttpResponseForbidden()
+
+        try:
+            group = GroupedMessage.objects.get(pk=gid)
+        except GroupedMessage.DoesNotExist:
+            return HttpResponseForbidden()
+        data = GroupedMessage.objects.get_chart_data(group)
+
+        response = HttpResponse(json.dumps(data))
+        response['Content-Type'] = 'application/json'
+        return response
+    
+    if op in ['notification','poll','resolve', 'clear','chart']:
         return locals()[op](request)  
     else:
         return HttpResponseBadRequest()

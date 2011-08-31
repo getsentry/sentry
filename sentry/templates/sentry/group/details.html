@@ -78,92 +78,11 @@
                 {{ traceback }}
             {% endif %}
             
-            {% with group|chart_data as chart_data %}
-                {% if chart_data %}
-                <script type="text/javascript">
-                $(document).ready(function() {
-                    new Highcharts.Chart({
-                        chart: {
-                            renderTo: 'chart',
-                            zoomType: 'x',
-                            marginLeft: 50,
-                            marginRight: 20,
-                            marginTop: 20,
-                            marginBottom: 40,
-                            backgroundColor: '#eeeeee',
-                            showAxes: false,
-                            height: 200
-                        },
-                        title: {
-                            text: false
-                        },
-                        xAxis: {
-                            type: 'datetime',
-                            maxZoom: 24 * 3600000, // 1 day
-                            title: {
-                                text: false
-                            },
-                            showFirstLabel: false,
-                            dateTimeLabelFormats: {
-                                second: '%H:%M:%S',
-                                minute: '%H:%M',
-                                hour: '%d %b %H:%M',
-                                day: '%e. %b',
-                                week: '%e. %b',
-                                month: '%b \'%y',
-                                year: '%Y'
-                            }
-                        },
-                        yAxis: {
-                            title: {
-                                text: false
-                            }
-                        },
-                        tooltip: {
-                            formatter: function() {
-                                return '<strong>'+
-                                    Highcharts.dateFormat('%A %B %e %Y<br/>%I:00 %p', this.x) + '</strong><br/>'+
-                                    this.y+' records';
-                            }
-                        },
-                        series: [{
-                            pointStart: new Date() - {{ chart_data.points|length }} * 3600000,
-                            pointInterval: 3600 * 1000,
-                            type: 'area',
-                            data: {{ chart_data.points|to_json }}
-                        }],
-                        legend: {
-                            enabled: false
-                        },
-                        plotOptions: {
-                            area: {
-                                lineWidth: 1,
-                                marker: {
-                                    enabled: false,
-                                    states: {
-                                        hover: {
-                                            enabled: true,
-                                            radius: 5
-                                        }
-                                    }
-                                },
-                                shadow: false,
-                                states: {
-                                    hover: {
-                                        lineWidth: 1
-                                    }
-                                }
-                            }
-                        },
-                    });
-                });
-                </script>
-                <h2>{% trans "Frequency" %}</h2>
-                <div id="chart">
-                    <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
-                </div>
-                {% endif %}
-            {% endwith %}
+            <h2>{% trans "Frequency" %}</h2>
+            <div id="chart">
+                <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
+                <p>Loading...</p>
+            </div>
 
             <div id="requestinfo">
                 <h2>{% trans "Additional Data" %}</h2>
@@ -217,4 +136,93 @@
             {% endif %}
         </div>
     {% endblock %}
+    <script type="text/javascript">
+    $(document).ready(function() {
+        $.ajax({
+            url: Sentry.options.apiUrl,
+            type: 'post',
+            dataType: 'json',
+            data: {
+                op: 'chart',
+                gid: '{{ group.id }}'
+            },
+            success: function(data){
+                new Highcharts.Chart({
+                    chart: {
+                        renderTo: 'chart',
+                        zoomType: 'x',
+                        marginLeft: 50,
+                        marginRight: 20,
+                        marginTop: 20,
+                        marginBottom: 40,
+                        backgroundColor: '#eeeeee',
+                        showAxes: false,
+                        height: 200
+                    },
+                    title: {
+                        text: false
+                    },
+                    xAxis: {
+                        type: 'datetime',
+                        maxZoom: 24 * 3600000, // 1 day
+                        title: {
+                            text: false
+                        },
+                        showFirstLabel: false,
+                        dateTimeLabelFormats: {
+                            second: '%H:%M:%S',
+                            minute: '%H:%M',
+                            hour: '%d %b %H:%M',
+                            day: '%e. %b',
+                            week: '%e. %b',
+                            month: '%b \'%y',
+                            year: '%Y'
+                        }
+                    },
+                    yAxis: {
+                        title: {
+                            text: false
+                        }
+                    },
+                    tooltip: {
+                        formatter: function() {
+                            return '<strong>'+
+                                Highcharts.dateFormat('%A %B %e %Y<br/>%I:00 %p', this.x) + '</strong><br/>'+
+                                this.y+' records';
+                        }
+                    },
+                    series: [{
+                        pointStart: new Date() - data.points.length * 3600000,
+                        pointInterval: 3600 * 1000,
+                        type: 'area',
+                        data: data.points
+                    }],
+                    legend: {
+                        enabled: false
+                    },
+                    plotOptions: {
+                        area: {
+                            lineWidth: 1,
+                            marker: {
+                                enabled: false,
+                                states: {
+                                    hover: {
+                                        enabled: true,
+                                        radius: 5
+                                    }
+                                }
+                            },
+                            shadow: false,
+                            states: {
+                                hover: {
+                                    lineWidth: 1
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    });
+    </script>
 {% endblock %}

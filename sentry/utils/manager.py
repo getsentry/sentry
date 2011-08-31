@@ -3,8 +3,8 @@ import django
 import logging
 import warnings
 
-from django.db import models
-from django.db.models import signals
+from django.db import models, connections
+from django.db.models import signals, Count
 
 from sentry.conf import settings
 from sentry.utils import construct_checksum, get_db_engine
@@ -145,3 +145,42 @@ class SentryManager(models.Manager):
 class GroupedMessageManager(SentryManager):
     def get_by_natural_key(self, logger, view, checksum):
         return self.get(logger=logger, view=view, checksum=checksum)
+
+    def get_chart_data(self, group, max_days=90):
+        hours = max_days*24
+
+        today = datetime.datetime.now().replace(microsecond=0, second=0, minute=0)
+        min_date = today - datetime.timedelta(hours=hours)
+
+        if hasattr(group, '_state'):
+            db = group._state.db
+        else:
+            db = 'default'
+
+        conn = connections[db]
+
+        if get_db_engine(getattr(conn, 'alias', 'default')).startswith('oracle'):
+            method = conn.ops.date_trunc_sql('hh24', 'datetime')
+        else:
+            method = conn.ops.date_trunc_sql('hour', 'datetime')
+            
+        chart_qs = list(group.message_set.all()\
+                          .filter(datetime__gte=min_date)\
+                          .extra(select={'grouper': method}).values('grouper')\
+                          .annotate(num=Count('id')).values_list('grouper', 'num')\
+                          .order_by('grouper'))
+
+        if not chart_qs:
+            return {}
+
+        rows = dict(chart_qs)
+
+        #just skip zeroes
+        first_seen = hours
+        while not rows.get(today - datetime.timedelta(hours=first_seen)) and first_seen > 24:
+            first_seen -= 1
+
+        return {
+            'points': [rows.get(today-datetime.timedelta(hours=d), 0) for d in xrange(first_seen, -1, -1)],
+            'categories': [str(today-datetime.timedelta(hours=d)) for d in xrange(first_seen, -1, -1)],
+        }
