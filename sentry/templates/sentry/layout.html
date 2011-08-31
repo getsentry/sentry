@@ -12,7 +12,6 @@
         <title>{% block title %}Sentry{% endblock %}</title> 
         <script type="text/javascript" src="{% url sentry-media "scripts/jquery.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/jquery.animate-colors-min.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "scripts/highcharts.js" %}" ></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/global.js" %}"></script>
         <script type="text/javascript">
         Sentry.config({
@@ -24,6 +23,8 @@
         Sentry.realtime.enable();
         {% endif %}
         </script>
+        {% block meta %}
+        {% endblock %}
     </head> 
     
     <body> 

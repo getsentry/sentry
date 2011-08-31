@@ -5,6 +5,10 @@
 
 {% block title %}{{ group.error }} | {{ block.super }}{% endblock %}
 
+{% block meta %}
+    <script type="text/javascript" src="{% url sentry-media "scripts/highstock.js" %}"></script>
+{% endblock %}
+
 {% block heading %}
     {% trans "Message Details" %} <span><a href="{% url sentry %}">&laquo; {% trans "Back to list" %}</a></span>
 {% endblock %}
@@ -78,11 +82,13 @@
                 {{ traceback }}
             {% endif %}
             
+            {% if group|has_charts %}
             <h2>{% trans "Frequency" %}</h2>
             <div id="chart">
                 <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
                 <p>Loading...</p>
             </div>
+            {% endif %}
 
             <div id="requestinfo">
                 <h2>{% trans "Additional Data" %}</h2>
@@ -138,6 +144,8 @@
     {% endblock %}
     <script type="text/javascript">
     $(document).ready(function() {
+        if (!$('#chart').length) return;
+
         $.ajax({
             url: Sentry.options.apiUrl,
             type: 'post',
@@ -147,17 +155,17 @@
                 gid: '{{ group.id }}'
             },
             success: function(data){
-                new Highcharts.Chart({
+                new Highcharts.StockChart({
                     chart: {
                         renderTo: 'chart',
-                        zoomType: 'x',
-                        marginLeft: 50,
-                        marginRight: 20,
-                        marginTop: 20,
-                        marginBottom: 40,
+                        // zoomType: 'x',
+                        // marginLeft: 50,
+                        // marginRight: 20,
+                        // marginTop: 20,
+                        // marginBottom: 40,
                         backgroundColor: '#eeeeee',
-                        showAxes: false,
-                        height: 200
+                        // showAxes: false,
+                        height: 300
                     },
                     title: {
                         text: false
@@ -168,34 +176,59 @@
                         title: {
                             text: false
                         },
-                        showFirstLabel: false,
-                        dateTimeLabelFormats: {
-                            second: '%H:%M:%S',
-                            minute: '%H:%M',
-                            hour: '%d %b %H:%M',
-                            day: '%e. %b',
-                            week: '%e. %b',
-                            month: '%b \'%y',
-                            year: '%Y'
-                        }
+                        //showFirstLabel: false,
+                        // dateTimeLabelFormats: {
+                        //     second: '%H:%M:%S',
+                        //     minute: '%H:%M',
+                        //     hour: '%d %b %H:%M',
+                        //     day: '%e. %b',
+                        //     week: '%e. %b',
+                        //     month: '%b \'%y',
+                        //     year: '%Y'
+                        // },
                     },
                     yAxis: {
                         title: {
                             text: false
                         }
                     },
+                    rangeSelector: {
+                        buttons: [{
+                            type: 'minute',
+                            count: 15,
+                            text: '15m'
+                        }, {
+                            type: 'hour',
+                            count: 1,
+                            text: '1h'
+                        }, {
+                            type: 'day',
+                            count: 1,
+                            text: '1d'
+                        }, {
+                            type: 'all',
+                            count: 1,
+                            text: 'All'
+                        }],
+                        selected: 1,
+                        inputEnabled: false
+                   },
                     tooltip: {
                         formatter: function() {
+                            var records = 0;
+                            $.each(this.points, function(_, point){
+                                records += point.y;
+                            });
                             return '<strong>'+
                                 Highcharts.dateFormat('%A %B %e %Y<br/>%I:00 %p', this.x) + '</strong><br/>'+
-                                this.y+' records';
+                                records+' records';
                         }
                     },
                     series: [{
-                        pointStart: new Date() - data.points.length * 3600000,
+                        pointStart: new Date() - data.length * 3600000,
                         pointInterval: 3600 * 1000,
                         type: 'area',
-                        data: data.points
+                        data: data
                     }],
                     legend: {
                         enabled: false

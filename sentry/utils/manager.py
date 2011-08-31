@@ -3,11 +3,13 @@ import django
 import logging
 import warnings
 
-from django.db import models, connections
+from django.db import models
 from django.db.models import signals, Count
 
 from sentry.conf import settings
 from sentry.utils import construct_checksum, get_db_engine
+from sentry.utils.charts import has_charts
+from sentry.utils.compat.db import connections
 
 assert not settings.DATABASE_USING or django.VERSION >= (1, 2), 'The `SENTRY_DATABASE_USING` setting requires Django >= 1.2'
 
@@ -147,23 +149,26 @@ class GroupedMessageManager(SentryManager):
         return self.get(logger=logger, view=view, checksum=checksum)
 
     def get_chart_data(self, group, max_days=90):
-        hours = max_days*24
-
-        today = datetime.datetime.now().replace(microsecond=0, second=0, minute=0)
-        min_date = today - datetime.timedelta(hours=hours)
-
         if hasattr(group, '_state'):
             db = group._state.db
         else:
             db = 'default'
 
+        if not has_charts(db):
+            return []
+
         conn = connections[db]
 
-        if get_db_engine(getattr(conn, 'alias', 'default')).startswith('oracle'):
+        engine = get_db_engine(db)
+        if engine.startswith('oracle'):
             method = conn.ops.date_trunc_sql('hh24', 'datetime')
         else:
             method = conn.ops.date_trunc_sql('hour', 'datetime')
-            
+
+        hours = max_days*24
+        today = datetime.datetime.now().replace(microsecond=0, second=0, minute=0)
+        min_date = today - datetime.timedelta(hours=hours)
+
         chart_qs = list(group.message_set.all()\
                           .filter(datetime__gte=min_date)\
                           .extra(select={'grouper': method}).values('grouper')\
@@ -171,7 +176,7 @@ class GroupedMessageManager(SentryManager):
                           .order_by('grouper'))
 
         if not chart_qs:
-            return {}
+            return []
 
         rows = dict(chart_qs)
 
@@ -180,7 +185,4 @@ class GroupedMessageManager(SentryManager):
         while not rows.get(today - datetime.timedelta(hours=first_seen)) and first_seen > 24:
             first_seen -= 1
 
-        return {
-            'points': [rows.get(today-datetime.timedelta(hours=d), 0) for d in xrange(first_seen, -1, -1)],
-            'categories': [str(today-datetime.timedelta(hours=d)) for d in xrange(first_seen, -1, -1)],
-        }
+        return [rows.get(today-datetime.timedelta(hours=d), 0) for d in xrange(first_seen, -1, -1)]

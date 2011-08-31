@@ -1,23 +1,29 @@
 # XXX: Import django-paging's template tags so we dont have to worry about
 #      INSTALLED_APPS
 from django import template
-from django.db.models import Count
-from django.utils.safestring import mark_safe
 from django.template import RequestContext
 from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
-from paging.helpers import paginate as paginate_func
-from sentry.utils import json
-from sentry.utils import get_db_engine
-from sentry.utils.compat.db import connections
+from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
+from paging.helpers import paginate as paginate_func
 from sentry.plugins import GroupActionProvider
+from sentry.utils import json
 from templatetag_sugar.register import tag
 from templatetag_sugar.parser import Name, Variable, Constant, Optional
 
 import datetime
 
 register = template.Library()
+
+@register.filter
+def has_charts(group):
+    from sentry.utils.charts import has_charts
+    if hasattr(group, '_state'):
+        db = group._state.db
+    else:
+        db = 'default'
+    return has_charts(db)
 
 @register.filter
 def as_sorted(value):
