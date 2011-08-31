@@ -15,9 +15,9 @@ function getElementsByClassName(oElm, strTagName, strClassName){
     return (arrReturnElements);
 }
 function hideAll(elems) {
-  for (var e = 0; e < elems.length; e++) {
-    elems[e].style.display = 'none';
-  }
+    for (var e = 0; e < elems.length; e++) {
+        elems[e].style.display = 'none';
+    }
 }
 $(window).load(function() {
     $('.frame table.vars').hide();
@@ -26,28 +26,28 @@ $(window).load(function() {
     $('div.pastebin').hide();
 });
 function toggle() {
-  for (var i = 0; i < arguments.length; i++) {
-    var e = document.getElementById(arguments[i]);
-    if (e) {
-      e.style.display = e.style.display == 'none' ? 'block' : 'none';
+    for (var i = 0; i < arguments.length; i++) {
+        var e = document.getElementById(arguments[i]);
+        if (e) {
+            e.style.display = e.style.display == 'none' ? 'block' : 'none';
+        }
     }
-  }
-  return false;
+    return false;
 }
 function varToggle(link, id) {
-  toggle('v' + id);
-  var s = link.getElementsByTagName('span')[0];
-  var uarr = String.fromCharCode(0x25b6);
-  var darr = String.fromCharCode(0x25bc);
-  s.innerHTML = s.innerHTML == uarr ? darr : uarr;
-  return false;
+    toggle('v' + id);
+    var s = link.getElementsByTagName('span')[0];
+    var uarr = String.fromCharCode(0x25b6);
+    var darr = String.fromCharCode(0x25bc);
+    s.innerHTML = s.innerHTML == uarr ? darr : uarr;
+    return false;
 }
 function switchPastebinFriendly(link) {
-  s1 = "Switch to copy-and-paste view";
-  s2 = "Switch back to interactive view";
-  link.innerHTML = link.innerHTML == s1 ? s2 : s1;
-  toggle('browserTraceback', 'pastebinTraceback');
-  return false;
+    s1 = "Switch to copy-and-paste view";
+    s2 = "Switch back to interactive view";
+    link.innerHTML = link.innerHTML == s1 ? s2 : s1;
+    toggle('browserTraceback', 'pastebinTraceback');
+    return false;
 }
 
 function getQueryParams()
@@ -82,19 +82,19 @@ var Sentry = {};
     
     Sentry.stream = {};
     Sentry.stream.clear = function() {
-    	if (confirm("Are you sure you want to mark all your stream as resolved?")) {
-    		$.ajax({
+        if (confirm("Are you sure you want to mark all your stream as resolved?")) {
+            $.ajax({
                 url: Sentry.options.apiUrl,
                 type: 'post',
                 dataType: 'json',
                 data: {
-                    op: 'clear',
+                    op: 'clear'
                 },
                 success: function(groups){
                 	window.location.reload();
                 }
             });
-    	}
+        }
     }
     Sentry.stream.resolve = function(gid, remove){
         if (typeof(remove) == 'undefined') {
