@@ -4,7 +4,7 @@ import logging
 import warnings
 
 from django.db import models
-from django.db.models import signals, Sum
+from django.db.models import signals, Sum, F
 
 from sentry.conf import settings
 from sentry.utils import construct_checksum, get_db_engine
@@ -38,8 +38,10 @@ class ScoreClause(object):
         return (sql, [])
 
 
-def count_limit(count): # ~ 150 * ((log(n) - 1.5) ^ 2 - 0.25)
-    if count <= 200: # 200
+def count_limit(count):
+    # TODO: could we do something like num_to_store = max(math.sqrt(100*count)+59, 200) ?
+    # ~ 150 * ((log(n) - 1.5) ^ 2 - 0.25)
+    if count <= 50: # 200
         return 1
     if count <= 1000: # 400
         return 2
@@ -129,7 +131,7 @@ class SentryManager(models.Manager):
                 group.last_seen = now
                 group.times_seen += 1
                 GroupedMessage.objects.filter(pk=group.pk).update(
-                    times_seen=models.F('times_seen') + 1,
+                    times_seen=F('times_seen') + 1,
                     status=0,
                     last_seen=now,
                     score=ScoreClause(group),
@@ -145,7 +147,6 @@ class SentryManager(models.Manager):
             sample_rate = min(count_limit(group.times_seen), time_limit(silence))
 
             instance = Message(
-                sample_rate=sample_rate,
                 message_id=message_id,
                 view=view,
                 logger=logger_name,
@@ -158,14 +159,35 @@ class SentryManager(models.Manager):
                 datetime=now,
                 **kwargs
             )
+
             if group.times_seen % sample_rate == 0:
                 instance.save()
-            if server_name:
-                FilterValue.objects.get_or_create(key='server_name', value=server_name)
-            if site:
-                FilterValue.objects.get_or_create(key='site', value=site)
-            if logger_name:
-                FilterValue.objects.get_or_create(key='logger', value=logger_name)
+
+            normalized_to_hour = now.replace(second=0, microsecond=0)
+
+            affected = group.messagecountbyminute_set.filter(date=normalized_to_hour).update(times_seen=F('times_seen') + 1)
+            if not affected:
+                group.messagecountbyminute_set.create(
+                    date=normalized_to_hour,
+                    times_seen=1,
+                )
+
+            for key, value in (
+                    ('server_name', server_name),
+                    ('site', site),
+                    ('logger', logger_name)
+                ):
+                if value:
+                    FilterValue.objects.get_or_create(key=key, value=value)
+
+                affected = group.messagefiltervalue_set.filter(key=key, value=value).update(times_seen=F('times_seen') + 1)
+            if not affected:
+                group.messagefiltervalue_set.create(
+                    key=key,
+                    value=value,
+                    times_seen=1,
+                )
+
         except Exception, exc:
             # TODO: should we mail admins when there are failures?
             try:
@@ -202,10 +224,10 @@ class GroupedMessageManager(SentryManager):
         today = datetime.datetime.now().replace(microsecond=0, second=0, minute=0)
         min_date = today - datetime.timedelta(hours=hours)
 
-        chart_qs = list(group.message_set.all()\
+        chart_qs = list(group.messagecountbyminute_set.all()\
                           .filter(datetime__gte=min_date)\
                           .extra(select={'grouper': method}).values('grouper')\
-                          .annotate(num=Sum('sample_rate')).values_list('grouper', 'num')\
+                          .annotate(num=Sum('times_seen')).values_list('grouper', 'num')\
                           .order_by('grouper'))
 
         if not chart_qs:

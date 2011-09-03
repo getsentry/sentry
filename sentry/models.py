@@ -31,6 +31,13 @@ STATUS_LEVELS = (
     (1, _('resolved')),
 )
 
+# These are predefined builtin's
+FILTER_KEYS = (
+    ('server_name', _('server name')),
+    ('logger', _('logger')),
+    ('site', _('site')),
+)
+
 logger = logging.getLogger('sentry.errors')
 
 class GzippedDictField(models.TextField):
@@ -181,26 +188,26 @@ class GroupedMessage(MessageBase):
     
     @property
     def unique_urls(self):
-        return self.message_set.filter(url__isnull=False)\
-                   .values_list('url', 'logger', 'view', 'checksum')\
-                   .annotate(times_seen=Sum('sample_rate'))\
-                   .values('url', 'times_seen')\
+        return self.messagefiltervalue_set.filter(key='url', value__isnull=False)\
+                   .values_list('value')\
+                   .annotate(times_seen=Sum('times_seen'))\
+                   .values_list('value', 'times_seen')\
                    .order_by('-times_seen')
 
     @property
     def unique_servers(self):
-        return self.message_set.filter(server_name__isnull=False)\
-                   .values_list('server_name', 'logger', 'view', 'checksum')\
-                   .annotate(times_seen=Sum('sample_rate'))\
-                   .values('server_name', 'times_seen')\
+        return self.messagefiltervalue_set.filter(key='logger', value__isnull=False)\
+                   .values_list('value')\
+                   .annotate(times_seen=Sum('times_seen'))\
+                   .values_list('value', 'times_seen')\
                    .order_by('-times_seen')
 
     @property
     def unique_sites(self):
-        return self.message_set.filter(site__isnull=False)\
-                   .values_list('site', 'logger', 'view', 'checksum')\
-                   .annotate(times_seen=Sum('sample_rate'))\
-                   .values('site', 'times_seen')\
+        return self.messagefiltervalue_set.filter(key='site', value__isnull=False)\
+                   .values_list('value')\
+                   .annotate(times_seen=Sum('times_seen'))\
+                   .values_list('value', 'times_seen')\
                    .order_by('-times_seen')
 
     def get_version(self):
@@ -218,7 +225,6 @@ class Message(MessageBase):
     url             = models.URLField(verify_exists=False, null=True, blank=True)
     server_name     = models.CharField(max_length=128, db_index=True)
     site            = models.CharField(max_length=128, db_index=True, null=True)
-    sample_rate     = models.IntegerField(default=1) # how much exceptions were not added because of this one
 
     class Meta:
         verbose_name = _('message')
@@ -280,17 +286,28 @@ class Message(MessageBase):
         return module, self.data['__sentry__']['version']
 
 class FilterValue(models.Model):
-    FILTER_KEYS = (
-        ('server_name', _('server name')),
-        ('logger', _('logger')),
-        ('site', _('site')),
-    )
-    
     key = models.CharField(choices=FILTER_KEYS, max_length=32)
     value = models.CharField(max_length=200)
     
     class Meta:
         unique_together = (('key', 'value'),)
+
+class MessageFilterValue(models.Model):
+    group = models.ForeignKey(GroupedMessage)
+    times_seen = models.PositiveIntegerField(default=0)
+    key = models.CharField(choices=FILTER_KEYS, max_length=32)
+    value = models.CharField(max_length=200)
+    
+    class Meta:
+        unique_together = (('key', 'value', 'group'),)
+
+class MessageCountByMinute(Model):
+    group = models.ForeignKey(GroupedMessage)
+    date = models.DateTimeField() # normalized to HH:MM:00
+    times_seen = models.PositiveIntegerField(default=0)
+    
+    class Meta:
+        unique_together = (('group', 'date'),)
 
 ### django-indexer
 

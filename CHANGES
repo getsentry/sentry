@@ -3,6 +3,9 @@
 * You can now pass ``extra={'stack': True}`` to logging methods to capture
   the current frames and their locals.
 * Code refactoring in various places related to stack extraction.
+* Denormalized graph data in MessageCountByDate.
+* Denormalized filter counts into MessageFilterValue
+* Added message sampling (adapter from Yuri Baburov's patch).
 
 1.9.0
 

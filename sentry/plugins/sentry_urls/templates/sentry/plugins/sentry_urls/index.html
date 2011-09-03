@@ -9,8 +9,8 @@
         {{ url_list.paging }}
     </div>
     <ul class="url-list">
-        {% for link in url_list.objects %}
-            <li><span class="count">{{ link.times_seen }}</span> <a href="{{ link.url }}">{{ link.url }}</a></li>
+        {% for url, times_seen in url_list.objects %}
+            <li><span class="count">{{ times_seen }}</span> <a href="{{ url }}">{{ url }}</a></li>
         {% endfor %}
     </ul>
     <div class="clearfix">

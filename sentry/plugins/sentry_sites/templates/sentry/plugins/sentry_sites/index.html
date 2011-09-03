@@ -9,8 +9,8 @@
         {{ site_list.paging }}
     </div>
     <ul class="server-list">
-        {% for site in site_list.objects %}
-            <li><span class="count">{{ site.times_seen }}</span> <a href="{% url sentry %}?site={{ site.site }}">{{ site.site }}</a></li>
+        {% for site, times_seen in site_list.objects %}
+            <li><span class="count">{{ times_seen }}</span> <a href="{% url sentry %}?site={{ site }}">{{ site }}</a></li>
         {% endfor %}
     </ul>
     <div class="clearfix">

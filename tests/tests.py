@@ -323,7 +323,7 @@ class SentryTestCase(BaseTestCase):
 
         self.assertEquals(error.url, 'a'*200)
         self.assertEquals(error.data['url'], 'a'*210)
-    
+        
     def test_thrashing(self):
         settings.THRASHING_LIMIT = 10
         settings.THRASHING_TIMEOUT = 60
@@ -798,6 +798,22 @@ class SentryTestCase(BaseTestCase):
         self.assertEquals(len(last.data['tuple']), 52) # 20 + 2 extra ele
         self.assertEquals(last.data['tuple'][-2], '...')
         self.assertEquals(last.data['tuple'][-1], '(450 more elements)')
+
+    # def test_sampling(self):
+    #     settings.THRASHING_LIMIT = 0
+    #     settings.THRASHING_TIMEOUT = 0
+    # 
+    #     Message.objects.all().delete()
+    #     GroupedMessage.objects.all().delete()
+    #     
+    #     message_id = None
+    #     for i in xrange(0, 1000):
+    #         get_client().create_from_text('hi')
+    #     
+    #     self.assertEquals(GroupedMessage.objects.count(), 1)
+    #     group = GroupedMessage.objects.get()
+    #     self.assertEquals(group.times_seen, 1000)
+    #     self.assertNotEquals(Message.objects.count(), 400)
 
 class SentryViewsTest(BaseTestCase):
     fixtures = ['tests/fixtures/views.json']
