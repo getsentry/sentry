@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+
 import base64
 import datetime
 import getpass
 import logging
 import os.path
 import socket
-import sys
 import time
 
 from django.conf import settings as django_settings
@@ -28,8 +29,8 @@ from sentry.utils import json
 from sentry.utils import transform, get_signature, get_auth_header
 from sentry.utils.compat import pickle
 
-from models import TestModel, DuplicateKeyModel
-from utils import TestServerThread, conditional_on_module
+from tests.models import TestModel, DuplicateKeyModel
+from tests.utils import TestServerThread, conditional_on_module
 
 # class NullHandler(logging.Handler):
 #     def emit(self, record):
