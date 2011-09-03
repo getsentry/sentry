@@ -1,6 +1,6 @@
 1.10.0
 
-* You can now passing ``extra={'stack': True}`` to logging methods to capture
+* You can now pass ``extra={'stack': True}`` to logging methods to capture
   the current frames and their locals.
 * Code refactoring in various places related to stack extraction.
 
