@@ -410,7 +410,7 @@ class SentryTestCase(BaseTestCase):
         self.assertEquals(last.message, 'view exception')
         self.assertEquals(last.view, 'tests.views.raise_exc')
 
-    def test_request_middlware_exception(self):
+    def test_request_middleware_exception(self):
         orig = list(django_settings.MIDDLEWARE_CLASSES)
         django_settings.MIDDLEWARE_CLASSES = orig + ['tests.middleware.BrokenRequestMiddleware',]
         
