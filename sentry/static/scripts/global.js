@@ -23,7 +23,6 @@ $(window).load(function() {
     $('.frame table.vars').hide();
     $('ol.pre-context').hide();
     $('ol.post-context').hide();
-    $('div.pastebin').hide();
 });
 function toggle() {
     for (var i = 0; i < arguments.length; i++) {
@@ -40,13 +39,6 @@ function varToggle(link, id) {
     var uarr = String.fromCharCode(0x25b6);
     var darr = String.fromCharCode(0x25bc);
     s.innerHTML = s.innerHTML == uarr ? darr : uarr;
-    return false;
-}
-function switchPastebinFriendly(link) {
-    s1 = "Switch to copy-and-paste view";
-    s2 = "Switch back to interactive view";
-    link.innerHTML = link.innerHTML == s1 ? s2 : s1;
-    toggle('browserTraceback', 'pastebinTraceback');
     return false;
 }
 

@@ -13,13 +13,13 @@ import uuid
 from django.core.cache import cache
 from django.template import TemplateSyntaxError
 from django.template.loader import LoaderOrigin
-from django.views.debug import ExceptionReporter
 
 import sentry
 from sentry.conf import settings
 from sentry.utils import json
-from sentry.utils import construct_checksum, varmap, transform, get_installed_apps, force_unicode, \
+from sentry.utils import construct_checksum, transform, get_installed_apps, force_unicode, \
                            get_versions, shorten, get_signature, get_auth_header
+from sentry.utils.stacks import get_stack_info, iter_stack_frames, iter_traceback_frames
 
 logger = logging.getLogger('sentry.errors')
 
@@ -124,6 +124,42 @@ class SentryClient(object):
                 continue
             kwargs['data'][k] = shorten(v)
 
+        # if we've passed frames, lets try to fetch the culprit
+        if not kwargs.get('view') and kwargs['data']['__sentry__'].get('frames'):
+            # This should be cached
+            modules = get_installed_apps()
+            if settings.INCLUDE_PATHS:
+                modules = set(list(modules) + settings.INCLUDE_PATHS)
+        
+            def contains(iterator, value):
+                for k in iterator:
+                    if value.startswith(k):
+                        return True
+                return False
+            
+            # We iterate through each frame looking for an app in INSTALLED_APPS
+            # When one is found, we mark it as last "best guess" (best_guess) and then
+            # check it against SENTRY_EXCLUDE_PATHS. If it isnt listed, then we
+            # use this option. If nothing is found, we use the "best guess".
+            best_guess = None
+            view = None
+            for frame in kwargs['data']['__sentry__']['frames']:
+                try:
+                    view = '.'.join([frame['module'], frame['function']])
+                except:
+                    continue
+                if contains(modules, view):
+                    if not (contains(settings.EXCLUDE_PATHS, view) and best_guess):
+                        best_guess = view
+                elif best_guess:
+                    break
+            if best_guess:
+                view = best_guess
+        
+            if view:
+                kwargs['view'] = view
+
+        # try to fetch the current version
         if kwargs.get('view'):
             # get list of modules from right to left
             parts = kwargs['view'].split('.')
@@ -248,8 +284,29 @@ class SentryClient(object):
         if record.exc_info and all(record.exc_info):
             return self.create_from_exception(record.exc_info, **kwargs)
 
+        data = kwargs.pop('data', {}) or {}
+        data['__sentry__'] = {}
+        if getattr(record, 'stack', settings.AUTO_LOG_STACKS):
+            stack = []
+            found = None
+            for frame in iter_stack_frames():
+                # There are initial frames from Sentry that need skipped
+                name = frame.f_globals.get('__name__')
+                if found is None:
+                    if name == 'logging':
+                        found = False
+                    continue
+                elif not found:
+                    if name != 'logging':
+                        found = True
+                    else:
+                        continue
+                stack.append(frame)
+            data['__sentry__']['frames'] = get_stack_info(stack)
+
         return self.process(
             traceback=record.exc_text,
+            data=data,
             **kwargs
         )
 
@@ -269,60 +326,22 @@ class SentryClient(object):
         new_exc = bool(exc_info)
         if not exc_info or exc_info is True:
             exc_info = sys.exc_info()
+
+        data = kwargs.pop('data', {}) or {}
         
         try:
             exc_type, exc_value, exc_traceback = exc_info
 
-            reporter = ExceptionReporter(None, exc_type, exc_value, exc_traceback)
-            frames = varmap(shorten, reporter.get_traceback_frames())
+            frames = get_stack_info(iter_traceback_frames(exc_traceback))
 
-            if not kwargs.get('view'):
-                # This should be cached
-                modules = get_installed_apps()
-                if settings.INCLUDE_PATHS:
-                    modules = set(list(modules) + settings.INCLUDE_PATHS)
-
-                def iter_tb_frames(tb):
-                    while tb:
-                        yield tb.tb_frame
-                        tb = tb.tb_next
-            
-                def contains(iterator, value):
-                    for k in iterator:
-                        if value.startswith(k):
-                            return True
-                    return False
-                
-                # We iterate through each frame looking for an app in INSTALLED_APPS
-                # When one is found, we mark it as last "best guess" (best_guess) and then
-                # check it against SENTRY_EXCLUDE_PATHS. If it isnt listed, then we
-                # use this option. If nothing is found, we use the "best guess".
-                best_guess = None
-                view = None
-                for frame in iter_tb_frames(exc_traceback):
-                    try:
-                        view = '.'.join([frame.f_globals['__name__'], frame.f_code.co_name])
-                    except:
-                        continue
-                    if contains(modules, view):
-                        if not (contains(settings.EXCLUDE_PATHS, view) and best_guess):
-                            best_guess = view
-                    elif best_guess:
-                        break
-                if best_guess:
-                    view = best_guess
-            
-                if view:
-                    kwargs['view'] = view
-
-            data = kwargs.pop('data', {}) or {}
             if hasattr(exc_type, '__class__'):
                 exc_module = exc_type.__class__.__module__
             else:
                 exc_module = None
-            data['__sentry__'] = {
-                'exc': map(transform, [exc_module, exc_value.args, frames]),
-            }
+
+            data['__sentry__'] = {}
+            data['__sentry__']['frames'] = frames
+            data['__sentry__']['exception'] = [transform(exc_module), transform(exc_value.args)]
 
             if (isinstance(exc_value, TemplateSyntaxError) and \
                 isinstance(getattr(exc_value, 'source', None), (tuple, list)) and isinstance(exc_value.source[0], LoaderOrigin)):

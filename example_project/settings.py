@@ -117,7 +117,7 @@ logging.basicConfig(level=logging.DEBUG)
 SENTRY_THRASHING_TIMEOUT = 0
 SENTRY_TESTING = True
 SENTRY_SITE = 'example'
-SENTRY_PUBLIC = False
+SENTRY_PUBLIC = True
 
 SENTRY_FILTERS = (
     'example_project.filters.IPFilter',

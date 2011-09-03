@@ -105,7 +105,13 @@ be seen as the same message within Sentry::
 	logger.error('There was some %s error', 'fun')
 	logger.error('There was some %s error', 1)
 
-Note that here we are describing a client/server interaction where
+As of Sentry 1.10.0 the ``logging`` integration also allows easy capture of stack frames (and their locals) as if you were
+logging an exception. This can be done automatically with the ``SENTRY_AUTO_LOG_STACKS`` setting, as well as by passing the
+``stack`` boolean to ``extra``::
+
+	logger.error('There was an error', extra={'stack': True})
+
+.. note:: We are describing a client/server interaction where
 both components are provided by django-sentry.  Other languages that
 provide a logging package that is comparable to the python ``logging``
 package may define a sentry handler.  Check the Integration with
@@ -268,7 +274,7 @@ seen after it has been resolved.
 SENTRY_TESTING
 ##############
 
-Enabling this setting allows the testing of Sentry exception handler even if Django DEBUG is enabled.
+Enabling this setting allows the testing of Sentry exception handler even if Django ``DEBUG`` is enabled.
 
 Default value is ``False``
 
@@ -284,7 +290,7 @@ This will override the ``server_name`` value for this installation. Defaults to 
 SENTRY_URL_PREFIX
 #################
 
-Absolute URL to the sentry root directory. Should not include a trailing slash. Defaults to "".
+Absolute URL to the sentry root directory. Should not include a trailing slash. Defaults to ``""``.
 
 ####################
 SENTRY_EXCLUDE_PATHS
@@ -302,16 +308,22 @@ By default Sentry only looks at modules in INSTALLED_APPS for drilling down wher
 SENTRY_MAX_LENGTH_LIST
 ######################
 
-The maximum number of items a list-like container should store. Defaults to 50.
+The maximum number of items a list-like container should store. Defaults to ``50``.
 
 ########################
 SENTRY_MAX_LENGTH_STRING
 ########################
 
-The maximum characters of a string that should be stored. Defaults to 200.
+The maximum characters of a string that should be stored. Defaults to ``200``.
 
 #############
 SENTRY_PUBLIC
 #############
 
 Should Sentry be protected by a username and password (using @login_required) or be publicly accessible. Defaults to False (password protection).
+
+######################
+SENTRY_AUTO_LOG_STACKS
+######################
+
+Should Sentry automatically log frame stacks (including locals) for ``create_from_record`` (``logging``) calls as it would for exceptions. Defaults to ``False``.

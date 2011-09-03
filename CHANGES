@@ -1,3 +1,9 @@
+1.10.0
+
+* You can now passing ``extra={'stack': True}`` to logging methods to capture
+  the current frames and their locals.
+* Code refactoring in various places related to stack extraction.
+
 1.9.0
 
 * Load the Frequency chart asynchronously.

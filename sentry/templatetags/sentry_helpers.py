@@ -16,6 +16,11 @@ import datetime
 
 register = template.Library()
 
+# seriously Django?
+@register.filter
+def plus(value, amount):
+    return int(value) + int(amount)
+
 @register.filter
 def has_charts(group):
     from sentry.utils.charts import has_charts

@@ -1,5 +1,6 @@
 import logging
 import sys
+import traceback
 
 class SentryHandler(logging.Handler):
     def emit(self, record):
@@ -23,6 +24,7 @@ class SentryHandler(logging.Handler):
         except Exception:
             print >> sys.stderr, "Top level Sentry exception caught - failed creating log record"
             print >> sys.stderr, record.msg
+            print >> sys.stderr, traceback.format_exc()
             return
 
 try:

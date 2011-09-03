@@ -81,6 +81,9 @@ SERVER_EMAIL = 'root@localhost'
 
 LOGIN_URL = None
 
+# Automatically log frame stacks from all ``logging`` messages
+AUTO_LOG_STACKS = False
+
 ## The following settings refer to the built-in webserver
 
 WEB_HOST = 'localhost'

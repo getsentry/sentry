@@ -14,7 +14,6 @@ from django.http import HttpResponse, HttpResponseBadRequest, \
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.utils.encoding import smart_str
-from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
 from sentry.conf import settings
@@ -23,8 +22,7 @@ from sentry.plugins import GroupActionProvider
 from sentry.templatetags.sentry_helpers import with_priority
 from sentry.utils import get_filters, is_float, get_signature, parse_auth_header, json
 from sentry.utils.compat import pickle
-from sentry.utils.charts import has_charts
-from sentry.web.reporter import ImprovedExceptionReporter
+from sentry.utils.stacks import get_template_info
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$')
 
@@ -314,33 +312,47 @@ def group(request, group_id):
         # (such as a post_save signal failing)
         obj = Message(group=group, data=group.data)
 
-    if '__sentry__' in obj.data and 'exc' in obj.data['__sentry__']:
-        module, args, frames = obj.data['__sentry__']['exc']
-        obj.class_name = str(obj.class_name)
-        # We fake the exception class due to many issues with imports/builtins/etc
-        exc_type = type(obj.class_name, (Exception,), {})
-        exc_value = exc_type(obj.message)
+    # template information
+    template_info = None
+    # exception information
+    exc_type, exc_value = None, None
+    # stack frames
+    frames = None
+    # module versions
+    version_data = None
 
-        exc_value.args = args
-    
-        reporter = ImprovedExceptionReporter(obj.request, exc_type, exc_value, frames, obj.data['__sentry__'].get('template'))
-        traceback = mark_safe(reporter.get_traceback_html())
-        version_data = obj.data['__sentry__'].get('versions', {}).iteritems()
+    if '__sentry__' in obj.data:
+        sentry_data = obj.data['__sentry__']
+        if 'exc' in sentry_data:
+            module, args, frames = sentry_data['exc']
+        elif 'exception' in sentry_data:
+            module, args = sentry_data['exception']
+        else:
+            module, args = None, None
+        
+        if 'frames' in obj.data:
+            frames = sentry_data['frames']
 
-    elif group.traceback:
-        traceback = mark_safe('<pre>%s</pre>' % (group.traceback,))
-        version_data = None
+        if module and args:
+            # We fake the exception class due to many issues with imports/builtins/etc
+            exc_type = type(str(obj.class_name), (Exception,), {})
+            exc_value = exc_type(obj.message)
+            exc_value.args = args
+
+        if 'template' in sentry_data:
+            template_info = get_template_info(sentry_data['template'], exc_value)
     
-    else:
-        traceback = None
-        version_data = None
-    
+        if 'versions' in sentry_data:
+            version_data = sentry_data['versions'].iteritems()
+
+
     return render_to_response('sentry/group/details.html', {
         'page': 'details',
         'group': group,
         'json_data': iter_data(obj),
-        'traceback': traceback,
         'version_data': version_data,
+        'frames': frames,
+        'template_info': template_info,
     })
 
 @login_required
@@ -361,31 +373,42 @@ def group_message_details(request, group_id, message_id):
     group = get_object_or_404(GroupedMessage, pk=group_id)
 
     message = get_object_or_404(group.message_set, pk=message_id)
+
+    # template information
+    template_info = None
+    # exception information
+    exc_type, exc_value = None, None
+    # stack frames
+    frames = None
     
-    if '__sentry__' in message.data and 'exc' in message.data['__sentry__']:
-        module, args, frames = message.data['__sentry__']['exc']
-        message.class_name = str(message.class_name)
-        # We fake the exception class due to many issues with imports/builtins/etc
-        exc_type = type(message.class_name, (Exception,), {})
-        exc_value = exc_type(message.message)
+    if '__sentry__' in message.data:
+        sentry_data = message.data['__sentry__']
+        if 'exc' in sentry_data:
+            module, args, frames = sentry_data['exc']
+        elif 'exception' in sentry_data:
+            module, args = sentry_data['exception']
+        else:
+            module, args = None, None
+        
+        if 'frames' in message.data:
+            frames = sentry_data['frames']
 
-        exc_value.args = args
-    
-        reporter = ImprovedExceptionReporter(message.request, exc_type, exc_value, frames, message.data['__sentry__'].get('template'))
-        traceback = mark_safe(reporter.get_traceback_html())
+        if module and args:
+            # We fake the exception class due to many issues with imports/builtins/etc
+            exc_type = type(str(message.class_name), (Exception,), {})
+            exc_value = exc_type(message.message)
+            exc_value.args = args
 
-    elif group.traceback:
-        traceback = mark_safe('<pre>%s</pre>' % (group.traceback,))
-
-    else:
-        traceback = None
+        if 'template' in sentry_data:
+            template_info = get_template_info(sentry_data['template'], exc_value)
     
     return render_to_response('sentry/group/message.html', {
         'page': 'messages',
         'group': group,
         'message': message,
         'json_data': iter_data(message),
-        'traceback': traceback,
+        'frames': frames,
+        'template_info': template_info,
     })
 
 @csrf_exempt

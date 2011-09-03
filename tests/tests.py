@@ -171,7 +171,20 @@ class SentryTestCase(BaseTestCase):
             last = Message.objects.all().order_by('-id')[0:1].get()
             self.assertEquals(last.class_name, 'ValueError')
             self.assertEquals(last.message, 'This is a test info with an exception')
-            self.assertTrue(last.data.get('__sentry__', {}).get('exc'))
+            self.assertTrue('__sentry__' in last.data)
+            self.assertTrue('exception' in last.data['__sentry__'])
+            self.assertTrue('frames' in last.data['__sentry__'])
+
+        # test stacks
+        logger.info('This is a test of stacks', extra={'stack': True})
+        self.assertEquals(Message.objects.count(), 7)
+        self.assertEquals(GroupedMessage.objects.count(), 6)
+        last = Message.objects.all().order_by('-id')[0:1].get()
+        self.assertEquals(last.view, 'tests.tests.test_logger')
+        self.assertEquals(last.class_name, None)
+        self.assertEquals(last.message, 'This is a test of stacks')
+        self.assertTrue('__sentry__' in last.data)
+        self.assertTrue('frames' in last.data['__sentry__'])
 
         self.tearDownHandler()
 
@@ -195,7 +208,8 @@ class SentryTestCase(BaseTestCase):
         except Message.DoesNotExist, exc:
             message_id = get_client().create_from_exception()
             error = Message.objects.get(message_id=message_id)
-            self.assertTrue(error.data.get('__sentry__', {}).get('exc'))
+            self.assertTrue('__sentry__' in error.data)
+            self.assertTrue('exception' in error.data['__sentry__'])
         else:
             self.fail('Unable to create `Message` entry.')
 
@@ -204,7 +218,8 @@ class SentryTestCase(BaseTestCase):
         except Message.DoesNotExist, exc:
             message_id = get_client().create_from_exception()
             error = Message.objects.get(message_id=message_id)
-            self.assertTrue(error.data.get('__sentry__', {}).get('exc'))
+            self.assertTrue('__sentry__' in error.data)
+            self.assertTrue('exception' in error.data['__sentry__'])
         else:
             self.fail('Unable to create `Message` entry.')
 
