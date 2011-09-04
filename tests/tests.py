@@ -26,8 +26,8 @@ from sentry.client.models import get_client
 from sentry.conf import settings
 from sentry.models import Message, GroupedMessage, MessageCountByMinute, \
                           FilterValue, MessageFilterValue
-from sentry.utils import json
-from sentry.utils import transform, get_signature, get_auth_header
+from sentry.utils import json, transform, get_signature, get_auth_header, \
+                         MockDjangoRequest
 from sentry.utils.compat import pickle
 
 from tests.models import TestModel, DuplicateKeyModel
@@ -73,7 +73,7 @@ class BaseTestCase(TestCase):
         )
         return resp
 
-class SentryTestCase(BaseTestCase):
+class SentryTest(BaseTestCase):
     ## Fixture setup/teardown
 
     def setUp(self):
@@ -1519,3 +1519,16 @@ class SentrySearchTest(BaseTestCase):
         qs = get_search_query_set('error')
         self.assertEquals(qs.count(), 1)
         self.assertEquals(qs[0:1][0].message, 'test search error')
+
+class SentryPluginTest(BaseTestCase):
+    def test_registration(self):
+        from sentry.plugins import GroupActionProvider
+        self.assertEquals(len(GroupActionProvider.plugins), 4)
+    
+    def test_get_widgets(self):
+        from sentry.templatetags.sentry_helpers import get_widgets
+        get_client().create_from_text('hi')
+        
+        group = GroupedMessage.objects.get()
+        widgets = list(get_widgets(group, MockDjangoRequest()))
+        self.assertEquals(len(widgets), 3)

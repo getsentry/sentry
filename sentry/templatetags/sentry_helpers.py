@@ -41,7 +41,7 @@ def is_dict(value):
 @register.filter
 def with_priority(result_list, key='score'):
     if result_list:
-        if isinstance(result_list[0], dict):
+        if isinstance(result_list[0], (dict, list, tuple)):
             _get = lambda x, k: x[k]
         else:
             _get = lambda x, k: getattr(x, k)

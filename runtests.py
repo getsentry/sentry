@@ -39,6 +39,7 @@ if not settings.configured:
 
             # included plugin tests
             'sentry.plugins.sentry_servers',
+            'sentry.plugins.sentry_sites',
             'sentry.plugins.sentry_urls',
             'sentry.plugins.sentry_redmine',
 
