@@ -269,6 +269,24 @@ removing the ``ADMINS`` setting in Django, and adding in ``SENTRY_ADMINS``::
 This will send out a notification the first time an error is seen, and the first time an error is
 seen after it has been resolved.
 
+#################
+SENTRY_MAIL_LEVEL
+#################
+
+The threshold level to restrict emails to. Defaults to ``logging.DEBUG``.
+
+###########################
+SENTRY_MAIL_INCLUDE_LOGGERS
+###########################
+
+An explicit list of all logger names to restrict emails to. Defaults to ``None``, which
+translates to "all loggers".
+
+###########################
+SENTRY_MAIL_EXCLUDE_LOGGERS
+###########################
+
+An explicit list of all logger names to exclude from emails. Defaults to ``[]``.
 
 ##############
 SENTRY_TESTING
@@ -342,9 +360,3 @@ If this is enabled, data will be sampled in a manner similar to the following:
 * 100000 messages stores ~1800 results
 * 1000000 messages stores ~3600 results
 * 10000000 messages stores ~4500 results
-
-#################
-SENTRY_MAIL_LEVEL
-#################
-
-The threshold level on which messages should be emailed to ``ADMINS``. Defaults to ``logging.DEBUG``.

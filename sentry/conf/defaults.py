@@ -81,14 +81,20 @@ SERVER_EMAIL = 'root@localhost'
 
 LOGIN_URL = None
 
-# Automatically log frame stacks from all ``logging`` messages
+# Automatically log frame stacks from all ``logging`` messages.
 AUTO_LOG_STACKS = False
 
-# Only store a portion of all messages per unique group
+# Only store a portion of all messages per unique group.
 SAMPLE_DATA = True
 
-# Restrict emails to only messages >= this value
+# Restrict emails to only ``messages >= this value``.
 MAIL_LEVEL = logging.DEBUG
+
+# A list of loggers to restrict emails to.
+MAIL_INCLUDE_LOGGERS = None
+
+# A list of loggers to exclude in emails.
+MAIL_EXCLUDE_LOGGERS = []
 
 ## The following settings refer to the built-in webserver
 

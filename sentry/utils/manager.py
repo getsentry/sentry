@@ -7,7 +7,7 @@ from django.db import models
 from django.db.models import signals, Sum, F
 
 from sentry.conf import settings
-from sentry.utils import construct_checksum, get_db_engine
+from sentry.utils import construct_checksum, get_db_engine, should_mail
 from sentry.utils.charts import has_charts
 from sentry.utils.compat.db import connections
 
@@ -192,10 +192,11 @@ class SentryManager(models.Manager):
                 logger.exception(u'Unable to process log entry: %s' % (exc,))
             except Exception, exc:
                 warnings.warn(u'Unable to process log entry: %s' % (exc,))
-        else:
-            if mail and int(group.level) >= settings.MAIL_LEVEL:
-                group.mail_admins()
-            return instance
+
+        if mail and should_mail(group):
+            group.mail_admins()
+
+        return instance
 
 class GroupedMessageManager(SentryManager):
     def get_by_natural_key(self, logger, view, checksum):
