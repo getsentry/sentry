@@ -216,16 +216,16 @@ class GroupedMessageManager(SentryManager):
 
         engine = get_db_engine(db)
         if engine.startswith('oracle'):
-            method = conn.ops.date_trunc_sql('hh24', 'datetime')
+            method = conn.ops.date_trunc_sql('hh24', 'date')
         else:
-            method = conn.ops.date_trunc_sql('hour', 'datetime')
+            method = conn.ops.date_trunc_sql('hour', 'date')
 
         hours = max_days*24
         today = datetime.datetime.now().replace(microsecond=0, second=0, minute=0)
         min_date = today - datetime.timedelta(hours=hours)
 
         chart_qs = list(group.messagecountbyminute_set.all()\
-                          .filter(datetime__gte=min_date)\
+                          .filter(date__gte=min_date)\
                           .extra(select={'grouper': method}).values('grouper')\
                           .annotate(num=Sum('times_seen')).values_list('grouper', 'num')\
                           .order_by('grouper'))

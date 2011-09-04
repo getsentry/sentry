@@ -240,6 +240,10 @@
                 gid: '{{ group.id }}'
             },
             success: function(data){
+                if (!data.length) {
+                    $('#chart').html('No data currently available.');
+                    return;
+                }
                 new Highcharts.StockChart({
                     chart: {
                         renderTo: 'chart',
@@ -260,17 +264,7 @@
                         maxZoom: 24 * 3600000, // 1 day
                         title: {
                             text: false
-                        },
-                        //showFirstLabel: false,
-                        // dateTimeLabelFormats: {
-                        //     second: '%H:%M:%S',
-                        //     minute: '%H:%M',
-                        //     hour: '%d %b %H:%M',
-                        //     day: '%e. %b',
-                        //     week: '%e. %b',
-                        //     month: '%b \'%y',
-                        //     year: '%Y'
-                        // },
+                        }
                     },
                     yAxis: {
                         title: {
