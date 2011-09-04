@@ -352,6 +352,7 @@ def group(request, group_id):
         'version_data': version_data,
         'frames': frames,
         'template_info': template_info,
+        'request': request,
     })
 
 @login_required
@@ -408,6 +409,7 @@ def group_message_details(request, group_id, message_id):
         'json_data': iter_data(message),
         'frames': frames,
         'template_info': template_info,
+        'request': request,
     })
 
 @csrf_exempt
