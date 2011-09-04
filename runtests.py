@@ -19,7 +19,7 @@ if not settings.configured:
         },
         # HACK: this fixes our threaded runserver remote tests
         # DATABASE_NAME='test_sentry',
-        # TEST_DATABASE_NAME='test_sentry',
+        TEST_DATABASE_NAME='sentry_tests.db',
         INSTALLED_APPS=[
             'django.contrib.auth',
             'django.contrib.admin',
