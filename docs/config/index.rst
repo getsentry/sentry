@@ -327,3 +327,9 @@ SENTRY_AUTO_LOG_STACKS
 ######################
 
 Should Sentry automatically log frame stacks (including locals) for ``create_from_record`` (``logging``) calls as it would for exceptions. Defaults to ``False``.
+
+#################
+SENTRY_MAIL_LEVEL
+#################
+
+The threshold level on which messages should be emailed to ``ADMINS``. Defaults to ``logging.DEBUG``.

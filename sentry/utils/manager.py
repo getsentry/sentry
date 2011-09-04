@@ -193,7 +193,7 @@ class SentryManager(models.Manager):
             except Exception, exc:
                 warnings.warn(u'Unable to process log entry: %s' % (exc,))
         else:
-            if mail:
+            if mail and int(group.level) >= settings.MAIL_LEVEL:
                 group.mail_admins()
             return instance
 

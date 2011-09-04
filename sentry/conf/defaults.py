@@ -87,6 +87,9 @@ AUTO_LOG_STACKS = False
 # Only store a portion of all messages per unique group
 SAMPLE_DATA = True
 
+# Restrict emails to only messages >= this value
+MAIL_LEVEL = logging.DEBUG
+
 ## The following settings refer to the built-in webserver
 
 WEB_HOST = 'localhost'
