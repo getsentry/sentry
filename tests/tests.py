@@ -24,7 +24,8 @@ from sentry.client.base import SentryClient
 from sentry.client.handlers import SentryHandler
 from sentry.client.models import get_client
 from sentry.conf import settings
-from sentry.models import Message, GroupedMessage
+from sentry.models import Message, GroupedMessage, MessageCountByMinute, \
+                          FilterValue, MessageFilterValue
 from sentry.utils import json
 from sentry.utils import transform, get_signature, get_auth_header
 from sentry.utils.compat import pickle
@@ -1321,17 +1322,80 @@ class SentryClientTest(BaseTestCase):
     # 
     #     settings.CLIENT = 'sentry.client.base.SentryClient'
 
-class SentryCommandTest(BaseTestCase):
+class SentryCleanupTest(BaseTestCase):
     fixtures = ['tests/fixtures/cleanup.json']
     
-    def test_cleanup(self):
+    def test_simple(self):
         from sentry.scripts.runner import cleanup
-        
-        self.assertEquals(Message.objects.count(), 10)
         
         cleanup(days=1)
         
         self.assertEquals(Message.objects.count(), 0)
+        self.assertEquals(GroupedMessage.objects.count(), 0)
+        self.assertEquals(MessageCountByMinute.objects.count(), 0)
+        self.assertEquals(MessageFilterValue.objects.count(), 0)
+
+    def test_logger(self):
+        from sentry.scripts.runner import cleanup
+        
+        cleanup(days=1, logger='sentry')
+        
+        self.assertEquals(Message.objects.count(), 8)
+        for message in Message.objects.all():
+            self.assertNotEquals(message.logger, 'sentry')
+        self.assertEquals(GroupedMessage.objects.count(), 3)
+        for message in GroupedMessage.objects.all():
+            self.assertNotEquals(message.logger, 'sentry')
+
+        cleanup(days=1, logger='awesome')
+        
+        self.assertEquals(Message.objects.count(), 4)
+        for message in Message.objects.all():
+            self.assertNotEquals(message.logger, 'awesome')
+        self.assertEquals(GroupedMessage.objects.count(), 2)
+        for message in GroupedMessage.objects.all():
+            self.assertNotEquals(message.logger, 'awesome')
+
+        cleanup(days=1, logger='root')
+        
+        self.assertEquals(Message.objects.count(), 0)
+        self.assertEquals(GroupedMessage.objects.count(), 0)
+        self.assertEquals(MessageCountByMinute.objects.count(), 0)
+        self.assertEquals(MessageFilterValue.objects.count(), 0)
+
+    def test_server_name(self):
+        from sentry.scripts.runner import cleanup
+        
+        cleanup(days=1, server='dcramer.local')
+        
+        self.assertEquals(Message.objects.count(), 2)
+        for message in Message.objects.all():
+            self.assertNotEquals(message.server_name, 'dcramer.local')
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+
+        cleanup(days=1, server='node.local')
+        
+        self.assertEquals(Message.objects.count(), 0)
+        self.assertEquals(GroupedMessage.objects.count(), 0)
+        self.assertEquals(MessageCountByMinute.objects.count(), 0)
+        self.assertEquals(MessageFilterValue.objects.count(), 0)
+
+    def test_level(self):
+        from sentry.scripts.runner import cleanup
+        
+        cleanup(days=1, level=logging.ERROR)
+        
+        self.assertEquals(Message.objects.count(), 1)
+        for message in Message.objects.all():
+            self.assertNotEquals(message.level, logging.ERROR)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+
+        cleanup(days=1, level=logging.DEBUG)
+        
+        self.assertEquals(Message.objects.count(), 0)
+        self.assertEquals(GroupedMessage.objects.count(), 0)
+        self.assertEquals(MessageCountByMinute.objects.count(), 0)
+        self.assertEquals(MessageFilterValue.objects.count(), 0)
 
 class SentrySearchTest(BaseTestCase):
     @conditional_on_module('haystack')

@@ -2,6 +2,7 @@
 import eventlet
 import errno
 import imp
+import logging
 import os
 import os.path
 import sys
@@ -98,36 +99,90 @@ class SentryServer(DaemonRunner):
             inner_run()
 
 
-def cleanup(days=30, logger=None, site=None, server=None):
-    from sentry.models import GroupedMessage, Message
-    from sentry.utils.query import RangeQuerySetWrapper, SkinnyQuerySet
-    import datetime
+def cleanup(days=30, logger=None, site=None, server=None, level=None):
+    """
+    Deletes a portion of the trailing data in Sentry based on
+    their creation dates. For example, if ``days`` is 30, this
+    would attempt to clean up all data thats older than 30 days.
     
-    ts = datetime.datetime.now() - datetime.timedelta(days=days)
-    
-    qs = SkinnyQuerySet(Message).filter(datetime__lte=ts)
-    if logger:
-        qs.filter(logger=logger)
-    if site:
-        qs.filter(site=site)
-    if server:
-        qs.filter(server_name=server)
-
-    for obj in RangeQuerySetWrapper(qs):
-        print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
-        obj.delete()
-    
+    :param logger: limit all deletion scopes to messages from the
+                   specified logger.
+    :param site: limit the message deletion scope to the specified
+                 site.
+    :param server: limit the message deletion scope to the specified
+                   server.
+    :param level: limit all deleteion scopes to messages that are greater
+                  than or equal to level.
+    """
     # TODO: we should collect which messages above were deleted
     # and potentially just send out post_delete signals where
     # GroupedMessage can update itself accordingly
 
-    qs = SkinnyQuerySet(GroupedMessage).filter(last_seen__lte=ts)
-    if logger:
-        qs.filter(logger=logger)
+    from sentry.models import GroupedMessage, Message, MessageCountByMinute, \
+                              MessageFilterValue, FilterValue
+    from sentry.utils.query import RangeQuerySetWrapper, SkinnyQuerySet
+    import datetime
+    
+    ts = datetime.datetime.now() - datetime.timedelta(days=days)
 
+    # Message
+    qs = SkinnyQuerySet(Message).filter(datetime__lte=ts)
+    if logger:
+        qs = qs.filter(logger=logger)
+    if site:
+        qs = qs.filter(site=site)
+    if server:
+        qs = qs.filter(server_name=server)
+    if level:
+        qs = qs.filter(level__gte=level)
+    
+    groups_to_check = set()
     for obj in RangeQuerySetWrapper(qs):
         print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
         obj.delete()
+        groups_to_check.add(obj.group_id)
+    
+    if not (server or site):
+        # MessageCountByMinute
+        qs = SkinnyQuerySet(MessageCountByMinute).filter(date__lte=ts)
+        if logger:
+            qs = qs.filter(group__logger=logger)
+        if level:
+            qs = qs.filter(group__level__gte=level)
+
+        for obj in RangeQuerySetWrapper(qs):
+            print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
+            obj.delete()
+
+        # GroupedMessage
+        qs = SkinnyQuerySet(GroupedMessage).filter(last_seen__lte=ts)
+        if logger:
+            qs = qs.filter(logger=logger)
+        if level:
+            qs = qs.filter(level__gte=level)
+
+        for obj in RangeQuerySetWrapper(qs):
+            for key, value in SkinnyQuerySet(MessageFilterValue).filter(group=obj).values_list('key', 'value'):
+                if not MessageFilterValue.objects.filter(key=key, value=value).exclude(group=obj).exists():
+                    print ">>> Removing <FilterValue: key=%s, value=%s>" % ( key, value)
+                    FilterValue.objects.filter(key=key, value=value).delete()
+            print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
+            obj.delete()
+
+    # attempt to cleanup any groups that may now be empty
+    groups_to_delete = []
+    for group_id in groups_to_check:
+        if not Message.objects.filter(group=group_id).exists():
+            groups_to_delete.append(group_id)
+
+    if groups_to_delete:
+        for obj in SkinnyQuerySet(GroupedMessage).filter(pk__in=groups_to_delete):
+            for key, value in SkinnyQuerySet(MessageFilterValue).filter(group=obj).values_list('key', 'value'):
+                if not MessageFilterValue.objects.filter(key=key, value=value).exclude(group=obj).exists():
+                    print ">>> Removing <FilterValue: key=%s, value=%s>" % ( key, value)
+                    FilterValue.objects.filter(key=key, value=value).delete()
+            print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
+            obj.delete()
 
 def upgrade(interactive=True):
     from sentry.conf import settings
@@ -170,6 +225,8 @@ def main():
                           help='Limit truncation to only entries from site.')
         parser.add_option('--server',
                           help='Limit truncation to only entries from server.')
+        parser.add_option('--level',
+                          help='Limit truncation to only entries greater than or equal to level (e.g. DEBUG).')
 
     (options, args) = parser.parse_args()
 
@@ -206,7 +263,12 @@ def main():
         app.execute(args[0])
 
     elif args[0] == 'cleanup':
-        cleanup(days=options.days, logger=options.logger, site=options.site, server=options.server)
+        level = options.level
+        if level is not None and not level.isdigit():
+            level = getattr(logging, level.upper())
+
+        cleanup(days=options.days, logger=options.logger, site=options.site, server=options.server,
+                level=level)
 
     sys.exit(0)
 
