@@ -5,7 +5,7 @@
 * Code refactoring in various places related to stack extraction.
 * Denormalized graph data in MessageCountByDate.
 * Denormalized filter counts into MessageFilterValue
-* Added message sampling (adapter from Yuri Baburov's patch).
+* Added message sampling (adapted from Yuri Baburov's patch).
 
 1.9.0
 
