@@ -330,7 +330,7 @@ def group(request, group_id):
         else:
             module, args = None, None
         
-        if 'frames' in obj.data:
+        if 'frames' in sentry_data:
             frames = sentry_data['frames']
 
         if module and args:
@@ -344,7 +344,6 @@ def group(request, group_id):
     
         if 'versions' in sentry_data:
             version_data = sentry_data['versions'].iteritems()
-
 
     return render_to_response('sentry/group/details.html', {
         'page': 'details',
@@ -390,7 +389,7 @@ def group_message_details(request, group_id, message_id):
         else:
             module, args = None, None
         
-        if 'frames' in message.data:
+        if 'frames' in sentry_data:
             frames = sentry_data['frames']
 
         if module and args:
