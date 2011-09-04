@@ -6,6 +6,9 @@
 * Denormalized graph data in MessageCountByDate.
 * Denormalized filter counts into MessageFilterValue
 * Added message sampling (adapted from Yuri Baburov's patch).
+* Added SENTRY_MAIL_LEVEL setting.
+* Added SENTRY_MAIL_INCLUDE_LOGGERS setting.
+* Added SENTRY_MAIL_EXCLUDE_LOGGERS setting.
 
 1.9.0
 
