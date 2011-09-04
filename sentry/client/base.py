@@ -353,7 +353,7 @@ class SentryClient(object):
 
             data['__sentry__'] = {}
             data['__sentry__']['frames'] = frames
-            data['__sentry__']['exception'] = [transform(exc_module), transform(exc_value.args)]
+            data['__sentry__']['exception'] = [exc_module, exc_value.args]
 
             if (isinstance(exc_value, TemplateSyntaxError) and \
                 isinstance(getattr(exc_value, 'source', None), (tuple, list)) and isinstance(exc_value.source[0], LoaderOrigin)):
