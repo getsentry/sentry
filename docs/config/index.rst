@@ -329,6 +329,21 @@ SENTRY_AUTO_LOG_STACKS
 Should Sentry automatically log frame stacks (including locals) for ``create_from_record`` (``logging``) calls as it would for exceptions. Defaults to ``False``.
 
 #################
+SENTRY_SAMPLE_DATA
+#################
+
+Controls sampling of data. Defaults to ``True``.
+
+If this is enabled, data will be sampled in a manner similar to the following:
+
+* 50 messages stores ~50 results
+* 1000 messages stores ~400 results
+* 10000 messages stores ~900 results
+* 100000 messages stores ~1800 results
+* 1000000 messages stores ~3600 results
+* 10000000 messages stores ~4500 results
+
+#################
 SENTRY_MAIL_LEVEL
 #################
 
