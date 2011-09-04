@@ -299,7 +299,8 @@ class MockDjangoRequest(object):
     FILES = {}
     raw_post_data = ''
     url = ''
-    
+    path = '/'
+
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
     

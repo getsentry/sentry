@@ -1532,3 +1532,19 @@ class SentryPluginTest(BaseTestCase):
         group = GroupedMessage.objects.get()
         widgets = list(get_widgets(group, MockDjangoRequest()))
         self.assertEquals(len(widgets), 3)
+
+    def test_get_panels(self):
+        from sentry.templatetags.sentry_helpers import get_panels
+        get_client().create_from_text('hi')
+        
+        group = GroupedMessage.objects.get()
+        widgets = list(get_panels(group, MockDjangoRequest()))
+        self.assertEquals(len(widgets), 3)
+
+    def test_get_actions(self):
+        from sentry.templatetags.sentry_helpers import get_actions
+        get_client().create_from_text('hi')
+        
+        group = GroupedMessage.objects.get()
+        widgets = list(get_actions(group, MockDjangoRequest()))
+        self.assertEquals(len(widgets), 1)
