@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import base64
 import logging
 import math
+import time
 
 from datetime import datetime
 
@@ -145,7 +146,7 @@ class GroupedMessage(MessageBase):
         return (self.logger, self.view, self.checksum)
 
     def get_score(self):
-        return int(math.log(self.times_seen) * 600 + int(self.last_seen.strftime('%s')))
+        return int(math.log(self.times_seen) * 600 + float(time.mktime(self.last_seen.timetuple())))
 
     def mail_admins(self, request=None, fail_silently=True):
         from django.core.mail import send_mail
