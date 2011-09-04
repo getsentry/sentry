@@ -4,8 +4,7 @@ import re
 from django.utils.html import escape
 
 from sentry.conf import settings
-from sentry.utils import get_installed_apps, shorten, varmap, \
-                         transform
+from sentry.utils import get_installed_apps, transform
 
 def get_lines_from_file(filename, lineno, context_lines, loader=None, module_name=None):
     """
@@ -93,6 +92,10 @@ def iter_stack_frames():
 def get_stack_info(frames):
     results = []
     for frame in frames:
+        # Support hidden frames
+        if frame.f_locals.get('__traceback_hide__'):
+            continue
+
         filename = frame.f_code.co_filename
         function = frame.f_code.co_name
         lineno = frame.f_lineno - 1
@@ -107,7 +110,7 @@ def get_stack_info(frames):
                 'function': function,
                 'lineno': lineno + 1,
                 # TODO: vars need to be references
-                'vars': transform(frame.f_locals),
+                'vars': transform(frame.f_locals.items()),
                 'pre_context': pre_context,
                 'context_line': context_line,
                 'post_context': post_context,

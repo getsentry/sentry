@@ -18,7 +18,7 @@ import sentry
 from sentry.conf import settings
 from sentry.utils import json
 from sentry.utils import construct_checksum, transform, get_installed_apps, force_unicode, \
-                           get_versions, shorten, get_signature, get_auth_header
+                           get_versions, shorten, get_signature, get_auth_header, varmap
 from sentry.utils.stacks import get_stack_info, iter_stack_frames, iter_traceback_frames
 
 logger = logging.getLogger('sentry.errors')
@@ -302,7 +302,7 @@ class SentryClient(object):
                     else:
                         continue
                 stack.append(frame)
-            data['__sentry__']['frames'] = get_stack_info(stack)
+            data['__sentry__']['frames'] = varmap(shorten, get_stack_info(stack))
 
         return self.process(
             traceback=record.exc_text,
@@ -332,7 +332,7 @@ class SentryClient(object):
         try:
             exc_type, exc_value, exc_traceback = exc_info
 
-            frames = get_stack_info(iter_traceback_frames(exc_traceback))
+            frames = varmap(shorten, get_stack_info(iter_traceback_frames(exc_traceback)))
 
             if hasattr(exc_type, '__class__'):
                 exc_module = exc_type.__class__.__module__
