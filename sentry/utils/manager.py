@@ -144,8 +144,6 @@ class SentryManager(models.Manager):
                 silence = 0
                 mail = True
 
-            sample_rate = min(count_limit(group.times_seen), time_limit(silence))
-
             instance = Message(
                 message_id=message_id,
                 view=view,
@@ -160,7 +158,7 @@ class SentryManager(models.Manager):
                 **kwargs
             )
 
-            if group.times_seen % sample_rate == 0:
+            if not settings.SAMPLE_DATA or group.times_seen % min(count_limit(group.times_seen), time_limit(silence)) == 0:
                 instance.save()
 
             normalized_to_hour = now.replace(second=0, microsecond=0)

@@ -84,6 +84,9 @@ LOGIN_URL = None
 # Automatically log frame stacks from all ``logging`` messages
 AUTO_LOG_STACKS = False
 
+# Only store a portion of all messages per unique group
+SAMPLE_DATA = True
+
 ## The following settings refer to the built-in webserver
 
 WEB_HOST = 'localhost'
