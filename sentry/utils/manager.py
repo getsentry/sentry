@@ -175,8 +175,10 @@ class SentryManager(models.Manager):
                     ('site', site),
                     ('logger', logger_name)
                 ):
-                if value:
-                    FilterValue.objects.get_or_create(key=key, value=value)
+                if not value:
+                    continue
+
+                FilterValue.objects.get_or_create(key=key, value=value)
 
                 affected = group.messagefiltervalue_set.filter(key=key, value=value).update(times_seen=F('times_seen') + 1)
                 if not affected:
