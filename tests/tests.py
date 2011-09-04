@@ -326,6 +326,7 @@ class SentryTest(BaseTestCase):
         self.assertEquals(error.data['url'], 'a'*210)
         
     def test_thrashing(self):
+        request = MockDjangoRequest()
         settings.THRASHING_LIMIT = 10
         settings.THRASHING_TIMEOUT = 60
         
@@ -334,13 +335,19 @@ class SentryTest(BaseTestCase):
         
         message_id = None
         for i in range(0, 10):
-            this_message_id = get_client().create_from_text('hi')
+            this_message_id = get_client().create_from_text('test_thrashing', request=request)
             self.assertTrue(this_message_id is not None)
+            self.assertTrue(hasattr(request, 'sentry'))
+            self.assertTrue('thrashed' in request.sentry)
+            self.assertFalse(request.sentry['thrashed'])
             self.assertNotEquals(this_message_id, message_id)
             message_id = this_message_id
 
         for i in range(0, 40):
-            this_message_id = get_client().create_from_text('hi')
+            this_message_id = get_client().create_from_text('test_thrashing', request=request)
+            self.assertTrue(hasattr(request, 'sentry'))
+            self.assertTrue('thrashed' in request.sentry)
+            self.assertTrue(request.sentry['thrashed'])
             self.assertEquals(this_message_id, message_id)
         
         self.assertEquals(Message.objects.count(), settings.THRASHING_LIMIT)
@@ -426,6 +433,39 @@ class SentryTest(BaseTestCase):
         self.assertEquals(last.level, logging.ERROR)
         self.assertEquals(last.message, 'view exception')
         self.assertEquals(last.view, 'tests.views.raise_exc')
+
+    def test_user_info(self):
+        user = User(username='admin', email='admin@example.com')
+        user.set_password('admin')
+        user.save()
+        
+        self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
+        
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+        self.assertEquals(Message.objects.count(), 1)
+        last = Message.objects.get()
+        self.assertTrue('user' in last.data['__sentry__'])
+        user_info = last.data['__sentry__']['user']
+        self.assertTrue('is_authenticated' in user_info)
+        self.assertFalse(user_info['is_authenticated'])
+        self.assertFalse('username' in user_info)
+        self.assertFalse('email' in user_info)
+        
+        self.assertTrue(self.client.login(username='admin', password='admin'))
+
+        self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
+
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+        self.assertEquals(Message.objects.count(), 2)
+        last = Message.objects.order_by('-id')[0]
+        self.assertTrue('user' in last.data['__sentry__'])
+        user_info = last.data['__sentry__']['user']
+        self.assertTrue('is_authenticated' in user_info)
+        self.assertTrue(user_info['is_authenticated'])
+        self.assertTrue('username' in user_info)
+        self.assertEquals(user_info['username'], 'admin')
+        self.assertTrue('email' in user_info)
+        self.assertEquals(user_info['email'], 'admin@example.com')
 
     def test_request_middleware_exception(self):
         orig = list(django_settings.MIDDLEWARE_CLASSES)
@@ -964,6 +1004,27 @@ class SentryViewsTest(BaseTestCase):
         resp = self.client.get(reverse('sentry-group', args=[2]), follow=True)
         self.assertEquals(resp.status_code, 200, resp.content)
         self.assertTemplateUsed(resp, 'sentry/group/details.html')
+        self.assertTrue('group' in resp.context)
+        group = GroupedMessage.objects.get(pk=2)
+        self.assertEquals(resp.context['group'], group)
+
+    def test_group_message_list(self):
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(reverse('sentry-group-messages', args=[2]), follow=True)
+        self.assertEquals(resp.status_code, 200, resp.content)
+        self.assertTemplateUsed(resp, 'sentry/group/message_list.html')
+        self.assertTrue('group' in resp.context)
+        group = GroupedMessage.objects.get(pk=2)
+        self.assertEquals(resp.context['group'], group)
+
+    def test_group_message_details(self):
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(reverse('sentry-group-message', args=[2, 4]), follow=True)
+        self.assertEquals(resp.status_code, 200, resp.content)
+        self.assertTemplateUsed(resp, 'sentry/group/message.html')
+        self.assertTrue('group' in resp.context)
+        group = GroupedMessage.objects.get(pk=2)
+        self.assertEquals(resp.context['group'], group)
 
 class SentryRemoteTest(BaseTestCase):
 

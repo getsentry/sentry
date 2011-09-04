@@ -320,6 +320,7 @@ def group(request, group_id):
     frames = None
     # module versions
     version_data = None
+    user_data = None
 
     if '__sentry__' in obj.data:
         sentry_data = obj.data['__sentry__']
@@ -332,6 +333,9 @@ def group(request, group_id):
         
         if 'frames' in sentry_data:
             frames = sentry_data['frames']
+
+        if 'user' in sentry_data:
+            user_data = sentry_data['user']
 
         if module and args:
             # We fake the exception class due to many issues with imports/builtins/etc
@@ -349,6 +353,7 @@ def group(request, group_id):
         'page': 'details',
         'group': group,
         'json_data': iter_data(obj),
+        'user_data': user_data,
         'version_data': version_data,
         'frames': frames,
         'template_info': template_info,
@@ -380,6 +385,7 @@ def group_message_details(request, group_id, message_id):
     exc_type, exc_value = None, None
     # stack frames
     frames = None
+    user_data = None
     
     if '__sentry__' in message.data:
         sentry_data = message.data['__sentry__']
@@ -392,6 +398,9 @@ def group_message_details(request, group_id, message_id):
         
         if 'frames' in sentry_data:
             frames = sentry_data['frames']
+
+        if 'user' in sentry_data:
+            user_data = sentry_data['user']
 
         if module and args:
             # We fake the exception class due to many issues with imports/builtins/etc
@@ -407,6 +416,7 @@ def group_message_details(request, group_id, message_id):
         'group': group,
         'message': message,
         'json_data': iter_data(message),
+        'user_data': user_data,
         'frames': frames,
         'template_info': template_info,
         'request': request,

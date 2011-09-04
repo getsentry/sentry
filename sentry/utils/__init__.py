@@ -11,6 +11,7 @@ from types import ClassType, TypeType
 
 import django
 from django.conf import settings as django_settings
+from django.http import HttpRequest
 from django.utils.encoding import force_unicode
 from django.utils.functional import Promise
 from django.utils.hashcompat import md5_constructor, sha_constructor
@@ -100,7 +101,7 @@ def transform(value, stack=[], context=None):
     elif isinstance(value, (tuple, list, set, frozenset)):
         try:
             ret = type(value)(transform_rec(o) for o in value)
-        except TypeError, te:
+        except TypeError:
             # We may be dealing with a namedtuple
             ret = type(value)(transform_rec(o) for o in value[:])
     elif isinstance(value, uuid.UUID):
@@ -291,7 +292,7 @@ def get_auth_header(signature, timestamp, client):
 def parse_auth_header(header):
     return dict(map(lambda x: x.strip().split('='), header.split(' ', 1)[1].split(',')))
 
-class MockDjangoRequest(object):
+class MockDjangoRequest(HttpRequest):
     GET = {}
     POST = {}
     META = {}

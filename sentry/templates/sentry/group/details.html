@@ -180,6 +180,29 @@
             <div id="requestinfo">
                 <h2>{% trans "Additional Data" %}</h2>
                 <table>
+                    {% if user_data %}
+                        <tr>
+                            <th class="key">USER</th>
+                            <td class="values">
+                                <table class="vars">
+                                    <thead>
+                                        <tr>
+                                            <th>{% trans "Variable" %}</th>
+                                            <th>{% trans "Value" %}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for k_, v_ in user_data.iteritems|as_sorted %}
+                                        <tr>
+                                            <td>{{ k_ }}</td>
+                                            <td class="code"><pre>{{ v_|pprint }}</pre></td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                    {% endif %}
                     {% for k, v in json_data %}
                         <tr>
                             <th class="key">{{ k }}</th>

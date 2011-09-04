@@ -11,6 +11,7 @@ import urllib2
 import uuid
 
 from django.core.cache import cache
+from django.http import HttpRequest
 from django.template import TemplateSyntaxError
 from django.template.loader import LoaderOrigin
 
@@ -85,12 +86,14 @@ class SentryClient(object):
             # Ensure we're not changing the original data which was passed
             # to Sentry
             kwargs['data'] = kwargs['data'].copy()
+        else:
+            kwargs['data'] = {}
+
+        if '__sentry__' not in kwargs['data']:
+            kwargs['data']['__sentry__'] = {}
 
         request = kwargs.pop('request', None)
-        if request:
-            if not kwargs.get('data'):
-                kwargs['data'] = {}
-            
+        if isinstance(request, HttpRequest):
             if not request.POST and request.raw_post_data:
                 post_data = request.raw_post_data
             else:
@@ -102,18 +105,27 @@ class SentryClient(object):
                 GET=request.GET,
                 COOKIES=request.COOKIES,
             ))
+            
+            if hasattr(request, 'user'):
+                if request.user.is_authenticated():
+                    user_info = {
+                        'is_authenticated': True,
+                        'id': request.user.pk,
+                        'username': request.user.username,
+                        'email': request.user.email,
+                    }
+                else:
+                    user_info = {
+                        'is_authenticated': False,
+                    }
+
+                kwargs['data']['__sentry__']['user'] = user_info
 
             if not kwargs.get('url'):
                 kwargs['url'] = request.build_absolute_uri()
 
         kwargs.setdefault('level', logging.ERROR)
         kwargs.setdefault('server_name', settings.NAME)
-
-        # save versions of all installed apps
-        if 'data' not in kwargs or '__sentry__' not in (kwargs['data'] or {}):
-            if kwargs.get('data') is None:
-                kwargs['data'] = {}
-            kwargs['data']['__sentry__'] = {}
 
         versions = get_versions()
         kwargs['data']['__sentry__']['versions'] = versions
@@ -214,7 +226,7 @@ class SentryClient(object):
             # attach the sentry object to the request
             request.sentry = {
                 'id': message_id,
-                'trashed': False,
+                'thrashed': False,
             }
         
         # store the last message_id incase we hit thrashing limits

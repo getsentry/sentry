@@ -194,11 +194,11 @@ class SentryManager(models.Manager):
                 logger.exception(u'Unable to process log entry: %s' % (exc,))
             except Exception, exc:
                 warnings.warn(u'Unable to process log entry: %s' % (exc,))
+        else:
+            if mail and should_mail(group):
+                group.mail_admins()
 
-        if mail and should_mail(group):
-            group.mail_admins()
-
-        return instance
+            return instance
 
 class GroupedMessageManager(SentryManager):
     def get_by_natural_key(self, logger, view, checksum):

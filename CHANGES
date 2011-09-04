@@ -10,6 +10,9 @@
 * Added SENTRY_MAIL_INCLUDE_LOGGERS setting.
 * Added SENTRY_MAIL_EXCLUDE_LOGGERS setting.
 * Added the ``level`` argument to the cleanup command.
+* The thrashed key is now set correctly in request.sentry.
+* Added user information to all messages that have ``request``.
+* Much improved test coverage.
 
 1.9.0
 
