@@ -292,6 +292,9 @@ class FilterValue(models.Model):
     
     class Meta:
         unique_together = (('key', 'value'),)
+    
+    def __unicode__(self):
+        return u'key=%s, value=%s' % (self.key, self.value)
 
 class MessageFilterValue(models.Model):
     group = models.ForeignKey(GroupedMessage)
@@ -302,6 +305,10 @@ class MessageFilterValue(models.Model):
     class Meta:
         unique_together = (('key', 'value', 'group'),)
 
+    def __unicode__(self):
+        return u'group_id=%s, times_seen=%s, key=%s, value=%s' % (self.group_id, self.times_seen,
+                                                                  self.key, self.value)
+
 class MessageCountByMinute(Model):
     group = models.ForeignKey(GroupedMessage)
     date = models.DateTimeField() # normalized to HH:MM:00
@@ -309,6 +316,10 @@ class MessageCountByMinute(Model):
     
     class Meta:
         unique_together = (('group', 'date'),)
+
+    def __unicode__(self):
+        return u'group_id=%s, times_seen=%s, date=%s' % (self.group_id, self.times_seen, self.date)
+
 
 ### django-indexer
 

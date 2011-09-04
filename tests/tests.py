@@ -800,6 +800,119 @@ class SentryTestCase(BaseTestCase):
         self.assertEquals(last.data['tuple'][-2], '...')
         self.assertEquals(last.data['tuple'][-1], '(450 more elements)')
 
+    def test_denormalized_counters(self):
+        get_client().create_from_text('hi', timestamp=datetime.datetime.now() - datetime.timedelta(minutes=3))
+
+        self.assertEquals(Message.objects.count(), 1)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+        self.assertEquals(MessageCountByMinute.objects.count(), 1)
+        self.assertEquals(MessageFilterValue.objects.count(), 3)
+        self.assertEquals(FilterValue.objects.count(), 3)
+        
+        group = GroupedMessage.objects.get()
+
+        count = MessageCountByMinute.objects.get()
+        self.assertEquals(count.group, group)
+        self.assertEquals(count.times_seen, 1)
+        self.assertEquals(count.date, group.last_seen.replace(second=0, microsecond=0))
+
+        filter_map = dict((m.key, m) for m in MessageFilterValue.objects.all().order_by('key', 'value'))
+
+        self.assertTrue('server_name' in filter_map)
+        filtervalue = filter_map['server_name']
+        self.assertEquals(filtervalue.group, group)
+        self.assertEquals(filtervalue.times_seen, 1)
+        self.assertEquals(filtervalue.key, 'server_name')
+        self.assertEquals(filtervalue.value, settings.NAME)
+
+        self.assertTrue('site' in filter_map)
+        filtervalue = filter_map['site']
+        self.assertEquals(filtervalue.group, group)
+        self.assertEquals(filtervalue.times_seen, 1)
+        self.assertEquals(filtervalue.key, 'site')
+        self.assertEquals(filtervalue.value, settings.SITE)
+
+        self.assertTrue('logger' in filter_map)
+        filtervalue = filter_map['logger']
+        self.assertEquals(filtervalue.group, group)
+        self.assertEquals(filtervalue.times_seen, 1)
+        self.assertEquals(filtervalue.key, 'logger')
+        self.assertEquals(filtervalue.value, 'root')
+
+        filter_map = dict((m.key, m) for m in FilterValue.objects.all().order_by('key', 'value'))
+
+        self.assertTrue('server_name' in filter_map)
+        filtervalue = filter_map['server_name']
+        self.assertEquals(filtervalue.key, 'server_name')
+        self.assertEquals(filtervalue.value, settings.NAME)
+
+        self.assertTrue('site' in filter_map)
+        filtervalue = filter_map['site']
+        self.assertEquals(filtervalue.key, 'site')
+        self.assertEquals(filtervalue.value, settings.SITE)
+
+        self.assertTrue('logger' in filter_map)
+        filtervalue = filter_map['logger']
+        self.assertEquals(filtervalue.key, 'logger')
+        self.assertEquals(filtervalue.value, 'root')
+
+        get_client().create_from_text('hi')
+
+        self.assertEquals(Message.objects.count(), 2)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
+        self.assertEquals(MessageCountByMinute.objects.count(), 2)
+        self.assertEquals(MessageFilterValue.objects.count(), 3)
+        self.assertEquals(FilterValue.objects.count(), 3)
+        
+        group = GroupedMessage.objects.get()
+
+        counts = MessageCountByMinute.objects.all()
+        for count in counts:
+            self.assertEquals(count.group, group)
+            self.assertEquals(count.times_seen, 1)
+            self.assertEquals(count.date.second, 0)
+            self.assertEquals(count.date.microsecond, 0)
+
+        filter_map = dict((m.key, m) for m in MessageFilterValue.objects.all().order_by('key', 'value'))
+
+        self.assertTrue('server_name' in filter_map)
+        filtervalue = filter_map['server_name']
+        self.assertEquals(filtervalue.group, group)
+        self.assertEquals(filtervalue.times_seen, 2)
+        self.assertEquals(filtervalue.key, 'server_name')
+        self.assertEquals(filtervalue.value, settings.NAME)
+
+        self.assertTrue('site' in filter_map)
+        filtervalue = filter_map['site']
+        self.assertEquals(filtervalue.group, group)
+        self.assertEquals(filtervalue.times_seen, 2)
+        self.assertEquals(filtervalue.key, 'site')
+        self.assertEquals(filtervalue.value, settings.SITE)
+
+        self.assertTrue('logger' in filter_map)
+        filtervalue = filter_map['logger']
+        self.assertEquals(filtervalue.group, group)
+        self.assertEquals(filtervalue.times_seen, 2)
+        self.assertEquals(filtervalue.key, 'logger')
+        self.assertEquals(filtervalue.value, 'root')
+
+        filter_map = dict((m.key, m) for m in FilterValue.objects.all().order_by('key', 'value'))
+
+        self.assertTrue('server_name' in filter_map)
+        filtervalue = filter_map['server_name']
+        self.assertEquals(filtervalue.key, 'server_name')
+        self.assertEquals(filtervalue.value, settings.NAME)
+
+        self.assertTrue('site' in filter_map)
+        filtervalue = filter_map['site']
+        self.assertEquals(filtervalue.key, 'site')
+        self.assertEquals(filtervalue.value, settings.SITE)
+
+        self.assertTrue('logger' in filter_map)
+        filtervalue = filter_map['logger']
+        self.assertEquals(filtervalue.key, 'logger')
+        self.assertEquals(filtervalue.value, 'root')
+
     # def test_sampling(self):
     #     settings.THRASHING_LIMIT = 0
     #     settings.THRASHING_TIMEOUT = 0
