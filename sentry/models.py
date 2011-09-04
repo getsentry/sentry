@@ -189,7 +189,7 @@ class GroupedMessage(MessageBase):
     
     @property
     def unique_urls(self):
-        return self.messagefiltervalue_set.filter(key='url', value__isnull=False)\
+        return self.messagefiltervalue_set.filter(key='url')\
                    .values_list('value')\
                    .annotate(times_seen=Sum('times_seen'))\
                    .values_list('value', 'times_seen')\
@@ -197,7 +197,7 @@ class GroupedMessage(MessageBase):
 
     @property
     def unique_servers(self):
-        return self.messagefiltervalue_set.filter(key='logger', value__isnull=False)\
+        return self.messagefiltervalue_set.filter(key='logger')\
                    .values_list('value')\
                    .annotate(times_seen=Sum('times_seen'))\
                    .values_list('value', 'times_seen')\
@@ -205,7 +205,7 @@ class GroupedMessage(MessageBase):
 
     @property
     def unique_sites(self):
-        return self.messagefiltervalue_set.filter(key='site', value__isnull=False)\
+        return self.messagefiltervalue_set.filter(key='site')\
                    .values_list('value')\
                    .annotate(times_seen=Sum('times_seen'))\
                    .values_list('value', 'times_seen')\
