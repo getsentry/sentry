@@ -161,12 +161,12 @@ class SentryManager(models.Manager):
             if not settings.SAMPLE_DATA or group.times_seen % min(count_limit(group.times_seen), time_limit(silence)) == 0:
                 instance.save()
 
-            normalized_to_hour = now.replace(second=0, microsecond=0)
+            normalized_to_minute = now.replace(second=0, microsecond=0)
 
-            affected = group.messagecountbyminute_set.filter(date=normalized_to_hour).update(times_seen=F('times_seen') + 1)
+            affected = group.messagecountbyminute_set.filter(date=normalized_to_minute).update(times_seen=F('times_seen') + 1)
             if not affected:
                 group.messagecountbyminute_set.create(
-                    date=normalized_to_hour,
+                    date=normalized_to_minute,
                     times_seen=1,
                 )
 
