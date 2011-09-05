@@ -33,9 +33,6 @@ install_requires = [
     'django-templatetag-sugar>=0.1.0',
 ]
 
-if sys.version_info[:2] < (2, 7):
-    install_requires.append('importlib')
-
 if sys.version_info[:2] < (2, 5):
     install_requires.append('uuid')
 
