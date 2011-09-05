@@ -496,7 +496,7 @@ def store(request):
     # XXX: ensure keys are coerced to strings
     data = dict((smart_str(k), v) for k, v in data.iteritems())
 
-    if'timestamp' in data:
+    if 'timestamp' in data:
         if is_float(data['timestamp']):
             try:
                 data['timestamp'] = datetime.datetime.fromtimestamp(float(data['timestamp']))
