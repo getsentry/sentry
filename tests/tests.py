@@ -225,7 +225,7 @@ class SentryTest(BaseTestCase):
             self.fail('Unable to create `Message` entry.')
 
         self.assertEquals(Message.objects.count(), 2)
-        self.assertEquals(GroupedMessage.objects.count(), 2)
+        self.assertEquals(GroupedMessage.objects.count(), 1)
         last = Message.objects.all().order_by('-id')[0:1].get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.class_name, 'DoesNotExist')
@@ -235,7 +235,7 @@ class SentryTest(BaseTestCase):
         get_client().create_from_text('This is an error', level=logging.DEBUG)
         
         self.assertEquals(Message.objects.count(), 3)
-        self.assertEquals(GroupedMessage.objects.count(), 3)
+        self.assertEquals(GroupedMessage.objects.count(), 2)
         last = Message.objects.all().order_by('-id')[0:1].get()
         self.assertEquals(last.logger, 'root')
         self.assertEquals(last.level, logging.DEBUG)

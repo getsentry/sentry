@@ -12,6 +12,8 @@
 * Added the ``level`` argument to the cleanup command.
 * The thrashed key is now set correctly in request.sentry.
 * Added user information to all messages that have ``request``.
+* Changed the hashing function for messages that include
+  stacktraces to ignore the ``message`` and line numbers.
 * Much improved test coverage.
 
 1.9.0
