@@ -61,7 +61,7 @@ class SentryClient(object):
             thrash_count = 0
 
         if thrash_count > settings.THRASHING_LIMIT:
-             return (True, self.get_last_message_id(checksum))
+            return (True, self.get_last_message_id(checksum))
 
         return (False, None)
 
@@ -175,7 +175,7 @@ class SentryClient(object):
         if kwargs.get('view'):
             # get list of modules from right to left
             parts = kwargs['view'].split('.')
-            module_list = ['.'.join(parts[:idx]) for idx in xrange(1, len(parts)+1)][::-1]
+            module_list = ['.'.join(parts[:idx]) for idx in xrange(1, len(parts) + 1)][::-1]
             version = None
             module = None
             for m in module_list:
@@ -249,7 +249,7 @@ class SentryClient(object):
             for url in settings.REMOTE_URL:
                 timestamp = time.time()
                 signature = get_signature(message, timestamp)
-                headers={
+                headers = {
                     'Authorization': get_auth_header(signature, timestamp, '%s/%s' % (self.__class__.__name__, sentry.VERSION)),
                     'Content-Type': 'application/octet-stream',
                 }
@@ -259,11 +259,11 @@ class SentryClient(object):
                 except urllib2.HTTPError, e:
                     body = e.read()
                     logger.error('Unable to reach Sentry log server: %s (url: %%s, body: %%s)' % (e,), url, body,
-                                 exc_info=True, extra={'data':{'body': body, 'remote_url': url}})
+                                 exc_info=True, extra={'data': {'body': body, 'remote_url': url}})
                     logger.log(kwargs.pop('level', None) or logging.ERROR, kwargs.pop('message', None))
                 except urllib2.URLError, e:
                     logger.error('Unable to reach Sentry log server: %s (url: %%s)' % (e,), url,
-                                 exc_info=True, extra={'data':{'remote_url': url}})
+                                 exc_info=True, extra={'data': {'remote_url': url}})
                     logger.log(kwargs.pop('level', None) or logging.ERROR, kwargs.pop('message', None))
         else:
             from sentry.models import GroupedMessage

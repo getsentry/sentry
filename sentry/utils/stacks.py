@@ -131,7 +131,7 @@ def get_template_info(template_info, exc_value=None):
             before = escape(template_source[upto:start])
             during = escape(template_source[start:end])
             after = escape(template_source[end:next])
-        source_lines.append( (num, escape(template_source[upto:next])) )
+        source_lines.append((num, escape(template_source[upto:next])))
         upto = next
     total = len(source_lines)
 

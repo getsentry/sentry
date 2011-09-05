@@ -296,7 +296,7 @@ def ajax_handler(request):
         response['Content-Type'] = 'application/json'
         return response
     
-    if op in ['notification','poll','resolve', 'clear','chart']:
+    if op in ['notification', 'poll', 'resolve', 'clear', 'chart']:
         return locals()[op](request)  
     else:
         return HttpResponseBadRequest()
@@ -370,7 +370,7 @@ def group_message_list(request, group_id):
         'group': group,
         'message_list': message_list,
         'page': 'messages',
-        'request' : request
+        'request': request
     })
 
 @login_required

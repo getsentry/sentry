@@ -89,6 +89,7 @@ class SentryServer(DaemonRunner):
 
     def run(self):
         from sentry.wsgi import application
+
         def inner_run():
             wsgi.server(eventlet.listen((self.host, self.port)), application)
             
@@ -164,7 +165,7 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None):
         for obj in RangeQuerySetWrapper(qs):
             for key, value in SkinnyQuerySet(MessageFilterValue).filter(group=obj).values_list('key', 'value'):
                 if not MessageFilterValue.objects.filter(key=key, value=value).exclude(group=obj).exists():
-                    print ">>> Removing <FilterValue: key=%s, value=%s>" % ( key, value)
+                    print ">>> Removing <FilterValue: key=%s, value=%s>" % (key, value)
                     FilterValue.objects.filter(key=key, value=value).delete()
             print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
             obj.delete()
@@ -179,7 +180,7 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None):
         for obj in SkinnyQuerySet(GroupedMessage).filter(pk__in=groups_to_delete):
             for key, value in SkinnyQuerySet(MessageFilterValue).filter(group=obj).values_list('key', 'value'):
                 if not MessageFilterValue.objects.filter(key=key, value=value).exclude(group=obj).exists():
-                    print ">>> Removing <FilterValue: key=%s, value=%s>" % ( key, value)
+                    print ">>> Removing <FilterValue: key=%s, value=%s>" % (key, value)
                     FilterValue.objects.filter(key=key, value=value).delete()
             print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
             obj.delete()
