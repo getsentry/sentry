@@ -7,12 +7,11 @@ it allows you to interact and view near real-time information to discover issues
 easily trace them in your application.
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    install/index
    config/index
-   extensions
-   technical
+   technical/index
    contributing/index
 
 .. image:: http://dl.dropbox.com/u/116385/Screenshots/l6xk.png
