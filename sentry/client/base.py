@@ -358,9 +358,7 @@ class SentryClient(object):
             if (isinstance(exc_value, TemplateSyntaxError) and \
                 isinstance(getattr(exc_value, 'source', None), (tuple, list)) and isinstance(exc_value.source[0], LoaderOrigin)):
                 origin, (start, end) = exc_value.source
-                data['__sentry__'].update({
-                    'template': (origin.reload(), start, end, origin.name),
-                })
+                data['__sentry__']['template'] = (origin.reload(), start, end, origin.name)
                 kwargs['view'] = origin.loadname
         
             tb_message = '\n'.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
