@@ -296,7 +296,7 @@ class SentryClient(object):
         if record.exc_info and all(record.exc_info):
             return self.create_from_exception(record.exc_info, **kwargs)
 
-        data = kwargs.pop('data', {}) or {}
+        data = kwargs.get('data', {}) or {}
         data['__sentry__'] = {}
         if getattr(record, 'stack', settings.AUTO_LOG_STACKS):
             stack = []
