@@ -70,7 +70,10 @@ URL_PREFIX = ''
 # Allow access to Sentry without authentication.
 PUBLIC = False
 
+# The maximum number of elements to store for a list-like structure.
 MAX_LENGTH_LIST = 50
+
+# The maximum length to store of a string-like structure.
 MAX_LENGTH_STRING = 200
 
 EMAIL_SUBJECT_PREFIX = ''
