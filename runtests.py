@@ -4,6 +4,8 @@ import sys
 from os.path import dirname, abspath, join
 from optparse import OptionParser
 
+sys.path.insert(0, dirname(abspath(__file__)))
+
 logging.getLogger('sentry').addHandler(logging.StreamHandler())
 
 from django.conf import settings
@@ -75,8 +77,6 @@ def runtests(*test_args, **kwargs):
 
     if not test_args:
         test_args = ['tests']
-
-    sys.path.insert(0, dirname(abspath(__file__)))
 
     failures = run_tests(test_args,
         verbosity=kwargs.get('verbosity', 1),
