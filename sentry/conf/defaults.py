@@ -96,10 +96,10 @@ MAIL_INCLUDE_LOGGERS = None
 # A list of loggers to exclude in emails.
 MAIL_EXCLUDE_LOGGERS = []
 
-# Normalize counts to the 5 minute marker. This value MUST be less than 60. A
+# Normalize counts to the 15 minute marker. This value MUST be less than 60. A
 # value of 0 would store counts for every minute, and is the lowest level of
 # accuracy provided.
-MINUTE_NORMALIZATION = 5
+MINUTE_NORMALIZATION = 15
 
 ## The following settings refer to the built-in webserver
 
