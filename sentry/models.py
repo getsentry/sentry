@@ -288,6 +288,9 @@ class Message(MessageBase):
         return module, self.data['__sentry__']['version']
 
 class FilterValue(models.Model):
+    """
+    Stores references to available filters.
+    """
     key = models.CharField(choices=FILTER_KEYS, max_length=32)
     value = models.CharField(max_length=200)
     
@@ -298,6 +301,10 @@ class FilterValue(models.Model):
         return u'key=%s, value=%s' % (self.key, self.value)
 
 class MessageFilterValue(models.Model):
+    """
+    Stores the total number of messages seen by a group matching
+    the given filter.
+    """
     group = models.ForeignKey(GroupedMessage)
     times_seen = models.PositiveIntegerField(default=0)
     key = models.CharField(choices=FILTER_KEYS, max_length=32)
@@ -311,6 +318,12 @@ class MessageFilterValue(models.Model):
                                                                   self.key, self.value)
 
 class MessageCountByMinute(Model):
+    """
+    Stores the total number of messages seen by a group at 5 minute intervals
+    
+    e.g. if it happened at 08:34:55 the time would be normalized to 08:30:00
+    """
+    
     group = models.ForeignKey(GroupedMessage)
     date = models.DateTimeField() # normalized to HH:MM:00
     times_seen = models.PositiveIntegerField(default=0)

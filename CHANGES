@@ -3,7 +3,7 @@
 * You can now pass ``extra={'stack': True}`` to logging methods to capture
   the current frames and their locals.
 * Code refactoring in various places related to stack extraction.
-* Denormalized graph data in MessageCountByMinute.
+* Denormalized graph data in MessageCountByMinute (stores at 5m intervals).
 * Denormalized filter counts into MessageFilterValue
 * Added message sampling (adapted from Yuri Baburov's patch).
 * Added SENTRY_MAIL_LEVEL setting.
