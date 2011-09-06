@@ -178,7 +178,7 @@ class SentryManager(models.Manager):
             for key, value in (
                     ('server_name', server_name),
                     ('site', site),
-                    ('logger', logger_name)
+                    ('logger', logger_name),
                 ):
                 if not value:
                     continue

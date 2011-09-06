@@ -198,7 +198,7 @@ class GroupedMessage(MessageBase):
 
     @property
     def unique_servers(self):
-        return self.messagefiltervalue_set.filter(key='logger')\
+        return self.messagefiltervalue_set.filter(key='server_name')\
                    .values_list('value')\
                    .annotate(times_seen=Sum('times_seen'))\
                    .values_list('value', 'times_seen')\

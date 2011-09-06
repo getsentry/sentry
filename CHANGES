@@ -1,3 +1,7 @@
+1.10.1
+
+* Fixed an issue that was causing servers to show logger names.
+
 1.10.0
 
 * You can now pass ``extra={'stack': True}`` to logging methods to capture
