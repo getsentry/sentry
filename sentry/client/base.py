@@ -296,7 +296,7 @@ class SentryClient(object):
         if record.exc_info and all(record.exc_info):
             return self.create_from_exception(record.exc_info, **kwargs)
 
-        data = kwargs.pop('data', {}) or {}
+        data = kwargs.get('data', {}) or {}
         data['__sentry__'] = {}
         if getattr(record, 'stack', settings.AUTO_LOG_STACKS):
             stack = []
@@ -358,9 +358,7 @@ class SentryClient(object):
             if (isinstance(exc_value, TemplateSyntaxError) and \
                 isinstance(getattr(exc_value, 'source', None), (tuple, list)) and isinstance(exc_value.source[0], LoaderOrigin)):
                 origin, (start, end) = exc_value.source
-                data['__sentry__'].update({
-                    'template': (origin.reload(), start, end, origin.name),
-                })
+                data['__sentry__']['template'] = (origin.reload(), start, end, origin.name)
                 kwargs['view'] = origin.loadname
         
             tb_message = '\n'.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
