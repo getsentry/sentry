@@ -161,8 +161,12 @@ class SentryManager(models.Manager):
             if not settings.SAMPLE_DATA or group.times_seen % min(count_limit(group.times_seen), time_limit(silence)) == 0:
                 instance.save()
 
-            # rounded down to the nearest 5m interval
-            normalized_datetime = now.replace(second=0, microsecond=0, minute=(now.minute - (now.minute % 5)))
+            # rounded down to the nearest interval
+            if settings.MINUTE_NORMALIZATION:
+                minutes = (now.minute - (now.minute % settings.MINUTE_NORMALIZATION))
+            else:
+                minutes = now.minute
+            normalized_datetime = now.replace(second=0, microsecond=0, minute=minutes)
 
             affected = group.messagecountbyminute_set.filter(date=normalized_datetime).update(times_seen=F('times_seen') + 1)
             if not affected:

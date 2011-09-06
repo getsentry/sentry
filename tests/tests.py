@@ -841,6 +841,8 @@ class SentryTest(BaseTestCase):
         self.assertEquals(last.data['tuple'][-1], '(450 more elements)')
 
     def test_denormalized_counters(self):
+        settings.MINUTE_NORMALIZATION = 0
+        
         get_client().create_from_text('hi', timestamp=datetime.datetime.now() - datetime.timedelta(minutes=3))
 
         self.assertEquals(Message.objects.count(), 1)
