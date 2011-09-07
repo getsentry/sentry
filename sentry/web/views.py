@@ -453,6 +453,16 @@ def store(request):
         else:
             return HttpResponse('Unauthorized', status_code=401)
     else:
+        # Legacy request (deprecated as of 2.0)
+        key = request.POST.get('key')
+
+        if not key:
+            return HttpResponseForbidden('Invalid credentials')
+        
+        if key != settings.KEY:
+            warnings.warn('A client is sending the `key` parameter, which will be removed in Sentry 2.0', DeprecationWarning)
+            return HttpResponseForbidden('Invalid credentials')
+
         data = request.POST.get('data')
         if not data:
             return HttpResponseBadRequest('Missing data')
@@ -461,13 +471,6 @@ def store(request):
 
         if format not in ('pickle', 'json'):
             return HttpResponseBadRequest('Invalid format')
-
-        # Legacy request (deprecated as of 2.0)
-        key = request.POST.get('key')
-        
-        if key != settings.KEY:
-            warnings.warn('A client is sending the `key` parameter, which will be removed in Sentry 2.0', DeprecationWarning)
-            return HttpResponseForbidden('Invalid credentials')
 
     logger = logging.getLogger('sentry.server')
 
