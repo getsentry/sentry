@@ -1042,7 +1042,7 @@ class SentryRemoteTest(BaseTestCase):
 
     def test_no_key(self):
         resp = self.client.post(reverse('sentry-store'))
-        self.assertEquals(resp.status_code, 400)
+        self.assertEquals(resp.status_code, 403)
 
     def test_no_data(self):
         resp = self.client.post(reverse('sentry-store'), {
