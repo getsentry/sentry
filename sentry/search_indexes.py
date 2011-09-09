@@ -14,7 +14,8 @@ if settings.SEARCH_ENGINE:
     class SentrySearchSite(SearchSite): pass
 
     site = SentrySearchSite()
-    site.backend = backend.SearchBackend(site, **settings.SEARCH_OPTIONS)
+    haystack.site = site
+    site.backend = backend.SearchBackend(site)
 
     class GroupedMessageIndex(RealTimeSearchIndex):
         text = CharField(document=True, stored=False)
