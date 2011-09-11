@@ -1,3 +1,11 @@
+"""
+sentry.search_indexes
+~~~~~~~~~~~~~~~~~~~~~
+
+:copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
+
 import haystack
 from haystack.indexes import *
 from haystack.sites import SearchSite

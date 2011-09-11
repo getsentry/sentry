@@ -1,3 +1,11 @@
+"""
+sentry.plugins.sentry_servers.models
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
+
 from django.shortcuts import render_to_response
 from django.template.loader import render_to_string
 

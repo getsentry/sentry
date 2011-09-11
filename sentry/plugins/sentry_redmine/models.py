@@ -1,3 +1,11 @@
+"""
+sentry.plugins.sentry_redmine.models
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
+
 from django import forms
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse

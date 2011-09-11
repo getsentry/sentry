@@ -1,3 +1,11 @@
+"""
+sentry.client.middleware
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+:copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
+
 from django.middleware.common import _is_ignorable_404
 from sentry.client.models import get_client
 import threading

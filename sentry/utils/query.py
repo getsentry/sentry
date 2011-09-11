@@ -1,3 +1,11 @@
+"""
+sentry.utils.query
+~~~~~~~~~~~~~~~~~~
+
+:copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
+
 from django.db.models import Min, Max
 from django.db.models.fields import AutoField, IntegerField
 from django.db.models.query import QuerySet

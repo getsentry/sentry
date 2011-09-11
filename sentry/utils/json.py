@@ -1,3 +1,11 @@
+"""
+sentry.utils.json
+~~~~~~~~~~~~~~~~~
+
+:copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
+
 from django.core.serializers.json import DjangoJSONEncoder
 from django.utils import simplejson
 

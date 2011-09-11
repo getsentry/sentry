@@ -1,3 +1,11 @@
+"""
+sentry.utils.db
+~~~~~~~~~~~~~~~
+
+:copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
+
 from django.conf import settings
 try:
     from django.db import connections
