@@ -1,3 +1,8 @@
+1.11.0
+
+* Added license headers.
+* Removed ``sentry.helpers`` and ``sentry.routers``.
+
 1.10.1
 
 * Fixed an issue that was causing servers to show logger names.
