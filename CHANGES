@@ -2,6 +2,8 @@
 
 * Added license headers.
 * Removed ``sentry.helpers`` and ``sentry.routers``.
+* Global module versions are now cached to avoid continuous path walking and
+  import overhead.
 
 1.10.1
 
@@ -134,7 +136,7 @@
 * All strings, lists, tuples, and sets are now shortened before sending
   to the server. Iterable data structures are truncated to the first
   50 items, and strings are truncated to the first 200 characters.
-  
+
   Both shorteners have configurable values in the settings.
 
 1.7.1

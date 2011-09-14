@@ -32,7 +32,7 @@ def get_filters():
     global _FILTER_CACHE
 
     if _FILTER_CACHE is None:
-        
+
         filters = []
         for filter_ in settings.FILTERS:
             if filter_.endswith('sentry.filters.SearchFilter'):
@@ -238,6 +238,9 @@ class cached_property(object):
             obj.__dict__[self.__name__] = value
         return value
 
+# We store a cache of module_name->version string to avoid
+# continuous imports and lookups of modules
+_VERSION_CACHE = {}
 def get_versions(module_list=None):
     if not module_list:
         module_list = django_settings.INSTALLED_APPS + ['django']
@@ -249,32 +252,35 @@ def get_versions(module_list=None):
 
     versions = {}
     for module_name in ext_module_list:
-        __import__(module_name)
-        app = sys.modules[module_name]
-        if hasattr(app, 'get_version'):
-            get_version = app.get_version
-            if callable(get_version):
-                version = get_version()
+        if module_name not in _VERSION_CACHE:
+            __import__(module_name)
+            app = sys.modules[module_name]
+            if hasattr(app, 'get_version'):
+                get_version = app.get_version
+                if callable(get_version):
+                    version = get_version()
+                else:
+                    version = get_version
+            elif hasattr(app, 'VERSION'):
+                version = app.VERSION
+            elif hasattr(app, '__version__'):
+                version = app.__version__
+            elif pkg_resources:
+                # pull version from pkg_resources if distro exists
+                try:
+                    version = pkg_resources.get_distribution(module_name).version
+                except pkg_resources.DistributionNotFound:
+                    version = None
             else:
-                version = get_version
-        elif hasattr(app, 'VERSION'):
-            version = app.VERSION
-        elif hasattr(app, '__version__'):
-            version = app.__version__
-        elif pkg_resources:
-            # pull version from pkg_resources if distro exists
-            try:
-                version = pkg_resources.get_distribution(module_name).version
-            except pkg_resources.DistributionNotFound:
-                continue
+                version = None
+
+            if isinstance(version, (list, tuple)):
+                version = '.'.join(str(o) for o in version)
+            _VERSION_CACHE[module_name] = version
         else:
+            version = _VERSION_CACHE[module_name]
+        if version is None:
             continue
-
-        if not version:
-            continue
-
-        if isinstance(version, (list, tuple)):
-            version = '.'.join(str(o) for o in version)
         versions[module_name] = version
     return versions
 
@@ -321,7 +327,7 @@ class MockDjangoRequest(HttpRequest):
 
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-    
+
     def __repr__(self):
         # Since this is called as part of error handling, we need to be very
         # robust against potentially malformed input.
