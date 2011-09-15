@@ -114,11 +114,13 @@ logging an exception. This can be done automatically with the ``SENTRY_AUTO_LOG_
 
 	logger.error('There was an error', extra={'stack': True})
 
-.. note:: We are describing a client/server interaction where
-both components are provided by django-sentry.  Other languages that
-provide a logging package that is comparable to the python ``logging``
-package may define a sentry handler.  Check the Integration with
-Sentry `Integration with Sentry <technical.html#integration-with-sentry>`_ paragraph.
+.. note::
+
+    We are describing a client/server interaction where
+    both components are provided by django-sentry.  Other languages that
+    provide a logging package that is comparable to the python ``logging``
+    package may define a sentry handler.  Check the Integration with
+    Sentry `Integration with Sentry <technical.html#integration-with-sentry>`_ paragraph.
 
 Integration with ``haystack`` (Search)
 --------------------------------------
