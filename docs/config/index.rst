@@ -23,6 +23,10 @@ Django 1.3
     LOGGING = {
         'version': 1,
         'disable_existing_loggers': True,
+        'root': {
+            'level': 'WARNING',
+            'handlers': ['sentry'],
+        },
         'handlers': {
             'sentry': {
                 'level': 'DEBUG',
@@ -36,10 +40,6 @@ Django 1.3
             }
         },
         'loggers': {
-            '()': {
-                'level': 'WARNING',
-                'handlers': ['sentry'],
-            },
             'sentry.errors': {
                 'level': 'DEBUG',
                 'handlers': ['console'],
