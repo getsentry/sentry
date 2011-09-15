@@ -117,15 +117,14 @@ logging an exception. This can be done automatically with the ``SENTRY_AUTO_LOG_
 .. note:: We are describing a client/server interaction where
 both components are provided by django-sentry.  Other languages that
 provide a logging package that is comparable to the python ``logging``
-package may define a sentry handler.  Check the Integration with
-Sentry `Integration with Sentry <technical.html#integration-with-sentry>`_ paragraph.
+package may define a sentry handler.  Check the :ref:`Extending Sentry <extending-sentry>` documentation.
 
 Integration with ``haystack`` (Search)
 --------------------------------------
 
 (This support is still under development)
 
-Note: You will need to install a forked version of Haystack which supports additional configuration. It can be obtained on `GitHub <http://github.com/disqus/django-haystack>`.
+Note: You will need to install a forked version of Haystack which supports additional configuration. It can be obtained on `GitHub <http://github.com/disqus/django-haystack>`_.
 
 Start by configuring your Sentry search backend::
 
