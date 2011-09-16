@@ -363,9 +363,11 @@ class SentryClient(object):
             data['__sentry__']['frames'] = frames
             data['__sentry__']['exception'] = [exc_module, exc_value.args]
 
-            if (isinstance(exc_value, TemplateSyntaxError) and \
-                isinstance(getattr(exc_value, 'source', None), (tuple, list)) and isinstance(exc_value.source[0], LoaderOrigin)):
-                origin, (start, end) = exc_value.source
+            # As of r16833 (Django) all exceptions may contain a ``django_template_source`` attribute (rather than the 
+            # legacy ``TemplateSyntaxError.source`` check) which describes template information.
+            if hasattr(exc_value, 'django_template_source') or ((isinstance(exc_value, TemplateSyntaxError) and \
+                isinstance(getattr(exc_value, 'source', None), (tuple, list)) and isinstance(exc_value.source[0], LoaderOrigin))):
+                origin, (start, end) = getattr(exc_value, 'django_template_source', exc_value.source)
                 data['__sentry__']['template'] = (origin.reload(), start, end, origin.name)
                 kwargs['view'] = origin.loadname
         
