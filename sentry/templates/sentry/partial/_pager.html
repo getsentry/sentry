@@ -17,7 +17,7 @@
     {% else %}
         <ul class="paging-endless">
             <li class="paging-previous">{% if paginator.has_previous %}<a href="?{{ query_string|escape }}&amp;p={{ paginator.previous_page }}">{% trans "Previous Page" %}</a>{% else %}<span>{% trans "Previous Page" %}</span>{% endif %}</li>
-            <li class="paging-next">{% if paginator.has_next %}<a href="?{{ query_string|escape }}&amp;p={{ paginator.next_page }}">{% trans "Next Page" %}</a>{% else %}<span>{% trans "Next Page" %}"</span>{% endif %}</li>
+            <li class="paging-next">{% if paginator.has_next %}<a href="?{{ query_string|escape }}&amp;p={{ paginator.next_page }}">{% trans "Next Page" %}</a>{% else %}<span>{% trans "Next Page" %}</span>{% endif %}</li>
         </ul>
     {% endif %}
     <div class="paging-meta" style="float:left">Page {{ paginator.page }}{% if paginator.num_pages %} of {{ paginator.num_pages }}{% endif %}</div>
