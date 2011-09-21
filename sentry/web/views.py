@@ -14,8 +14,9 @@ import time
 import warnings
 import zlib
 
+from django.conf import settings as dj_settings
 from django.core.context_processors import csrf
-from django.core.urlresolvers import reverse
+from django.core.urlresolvers import reverse, resolve
 from django.http import HttpResponse, HttpResponseBadRequest, \
     HttpResponseForbidden, HttpResponseRedirect, Http404, HttpResponseNotModified, \
     HttpResponseNotAllowed, HttpResponseGone
@@ -33,6 +34,24 @@ from sentry.utils.compat import pickle
 from sentry.utils.stacks import get_template_info
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$')
+
+_LOGIN_URL = None
+def get_login_url(reset=False):
+    global _LOGIN_URL
+
+    if _LOGIN_URL is None or reset:
+        # if LOGIN_URL resolves force login_required to it instead of our own
+        # XXX: this must be done as late as possible to avoid idempotent requirements
+        try:
+            resolve(dj_settings.LOGIN_URL)
+        except:
+            _LOGIN_URL = settings.LOGIN_URL
+        else:
+            _LOGIN_URL = dj_settings.LOGIN_URL
+
+        if _LOGIN_URL is None:
+             _LOGIN_URL = reverse('sentry-login')
+    return _LOGIN_URL
 
 def iter_data(obj):
     for k, v in obj.data.iteritems():
@@ -67,7 +86,7 @@ def get_search_query_set(query):
                 inst.score = r.score
                 result.append(inst)
             return result
-    
+
     return SentrySearchQuerySet(
         site=site,
         query=backend.SearchQuery(backend=site.backend),
@@ -77,7 +96,7 @@ def login_required(func):
     def wrapped(request, *args, **kwargs):
         if not settings.PUBLIC:
             if not request.user.is_authenticated():
-                return HttpResponseRedirect(settings.LOGIN_URL or reverse('sentry-login'))
+                return HttpResponseRedirect(get_login_url())
             if not request.user.has_perm('sentry.can_view'):
                 return render_to_response('sentry/missing_permissions.html', status=400)
         return func(request, *args, **kwargs)
@@ -89,7 +108,7 @@ def login_required(func):
 def login(request):
     from django.contrib.auth import login as login_
     from django.contrib.auth.forms import AuthenticationForm
-    
+
     if request.POST:
         form = AuthenticationForm(request, request.POST)
         if form.is_valid():
@@ -101,7 +120,7 @@ def login(request):
         form = AuthenticationForm(request)
         request.session.set_test_cookie()
 
-    
+
     context = csrf(request)
     context.update({
         'form': form,
@@ -111,9 +130,9 @@ def login(request):
 
 def logout(request):
     from django.contrib.auth import logout
-    
+
     logout(request)
-    
+
     return HttpResponseRedirect(reverse('sentry'))
 
 @login_required
@@ -139,7 +158,7 @@ def search(request):
             message_list = get_search_query_set(query)
     else:
         message_list = GroupedMessage.objects.none()
-    
+
     sort = request.GET.get('sort')
     if sort == 'date':
         message_list = message_list.order_by('-last_seen')
@@ -160,7 +179,7 @@ def index(request):
     filters = []
     for filter_ in get_filters():
         filters.append(filter_(request))
-    
+
     try:
         page = int(request.GET.get('p', 1))
     except (TypeError, ValueError):
@@ -178,7 +197,7 @@ def index(request):
     else:
         sort = 'priority'
         message_list = message_list.order_by('-score', '-last_seen')
-    
+
     # Filters only apply if we're not searching
     any_filter = False
     for filter_ in filters:
@@ -186,11 +205,11 @@ def index(request):
             continue
         any_filter = True
         message_list = filter_.get_query_set(message_list)
-    
+
     today = datetime.datetime.now()
 
     has_realtime = page == 1
-    
+
     return render_to_response('sentry/index.html', {
         'has_realtime': has_realtime,
         'message_list': message_list,
@@ -204,17 +223,17 @@ def index(request):
 @login_required
 def ajax_handler(request):
     op = request.REQUEST.get('op')
-    
+
     def notification(request):
         return render_to_response('sentry/partial/_notification.html', request.GET)
-    
+
     def poll(request):
         filters = []
         for filter_ in get_filters():
             filters.append(filter_(request))
 
         message_list = GroupedMessage.objects.all()
-        
+
         sort = request.GET.get('sort')
         if sort == 'date':
             message_list = message_list.order_by('-last_seen')
@@ -225,12 +244,12 @@ def ajax_handler(request):
         else:
             sort = 'priority'
             message_list = message_list.order_by('-score', '-last_seen')
-        
+
         for filter_ in filters:
             if not filter_.is_set():
                 continue
             message_list = filter_.get_query_set(message_list)
-        
+
         data = [
             (m.pk, {
                 'html': render_to_string('sentry/partial/_group.html', {
@@ -245,11 +264,11 @@ def ajax_handler(request):
                 'count': m.times_seen,
                 'priority': p,
             }) for m, p in with_priority(message_list[0:15])]
-        
+
         response = HttpResponse(json.dumps(data))
         response['Content-Type'] = 'application/json'
         return response
-        
+
     def resolve(request):
         gid = request.REQUEST.get('gid')
         if not gid:
@@ -258,13 +277,13 @@ def ajax_handler(request):
             group = GroupedMessage.objects.get(pk=gid)
         except GroupedMessage.DoesNotExist:
             return HttpResponseForbidden()
-        
+
         GroupedMessage.objects.filter(pk=group.pk).update(status=1)
         group.status = 1
-        
+
         if not request.is_ajax():
             return HttpResponseRedirect(request.META.get('HTTP_REFERER') or reverse('sentry'))
-        
+
         data = [
             (m.pk, {
                 'html': render_to_string('sentry/partial/_group.html', {
@@ -273,22 +292,22 @@ def ajax_handler(request):
                 }).strip(),
                 'count': m.times_seen,
             }) for m in [group]]
-        
+
         response = HttpResponse(json.dumps(data))
         response['Content-Type'] = 'application/json'
         return response
-    
+
     def clear(request):
         GroupedMessage.objects.all().update(status=1)
-        
+
         if not request.is_ajax():
             return HttpResponseRedirect(request.META.get('HTTP_REFERER') or reverse('sentry'))
-        
+
         data = []
         response = HttpResponse(json.dumps(data))
         response['Content-Type'] = 'application/json'
         return response
-    
+
     def chart(request):
         gid = request.REQUEST.get('gid')
         if not gid:
@@ -303,9 +322,9 @@ def ajax_handler(request):
         response = HttpResponse(json.dumps(data))
         response['Content-Type'] = 'application/json'
         return response
-    
+
     if op in ['notification', 'poll', 'resolve', 'clear', 'chart']:
-        return locals()[op](request)  
+        return locals()[op](request)
     else:
         return HttpResponseBadRequest()
 
@@ -338,7 +357,7 @@ def group(request, group_id):
             module, args = sentry_data['exception']
         else:
             module, args = None, None
-        
+
         if 'frames' in sentry_data:
             frames = sentry_data['frames']
 
@@ -353,7 +372,7 @@ def group(request, group_id):
 
         if 'template' in sentry_data:
             template_info = get_template_info(sentry_data['template'], exc_value)
-    
+
         if 'versions' in sentry_data:
             version_data = sentry_data['versions'].iteritems()
 
@@ -373,7 +392,7 @@ def group_message_list(request, group_id):
     group = get_object_or_404(GroupedMessage, pk=group_id)
 
     message_list = group.message_set.all().order_by('-datetime')
-    
+
     return render_to_response('sentry/group/message_list.html', {
         'group': group,
         'message_list': message_list,
@@ -394,7 +413,7 @@ def group_message_details(request, group_id, message_id):
     # stack frames
     frames = None
     user_data = None
-    
+
     if '__sentry__' in message.data:
         sentry_data = message.data['__sentry__']
         if 'exc' in sentry_data:
@@ -403,7 +422,7 @@ def group_message_details(request, group_id, message_id):
             module, args = sentry_data['exception']
         else:
             module, args = None, None
-        
+
         if 'frames' in sentry_data:
             frames = sentry_data['frames']
 
@@ -418,7 +437,7 @@ def group_message_details(request, group_id, message_id):
 
         if 'template' in sentry_data:
             template_info = get_template_info(sentry_data['template'], exc_value)
-    
+
     return render_to_response('sentry/group/message.html', {
         'page': 'messages',
         'group': group,
@@ -437,7 +456,7 @@ def store(request):
 
     if request.META.get('HTTP_AUTHORIZATION', '').startswith('Sentry'):
         auth_vars = parse_auth_header(request.META['HTTP_AUTHORIZATION'])
-        
+
         signature = auth_vars.get('sentry_signature')
         timestamp = auth_vars.get('sentry_timestamp')
 
@@ -466,7 +485,7 @@ def store(request):
 
         if not key:
             return HttpResponseForbidden('Invalid credentials')
-        
+
         if key != settings.KEY:
             warnings.warn('A client is sending the `key` parameter, which will be removed in Sentry 2.0', DeprecationWarning)
             return HttpResponseForbidden('Invalid credentials')
@@ -527,15 +546,15 @@ def store(request):
             except:
                 logger.exception('Failed reading timestamp')
                 del data['timestamp']
-                
+
     GroupedMessage.objects.from_kwargs(**data)
-    
+
     return HttpResponse()
 
 @login_required
 def group_plugin_action(request, group_id, slug):
     group = get_object_or_404(GroupedMessage, pk=group_id)
-    
+
     try:
         cls = GroupActionProvider.plugins[slug]
     except KeyError:
@@ -558,7 +577,7 @@ def static_media(request, path):
     import urllib
 
     document_root = os.path.join(settings.ROOT, 'static')
-    
+
     path = posixpath.normpath(urllib.unquote(path))
     path = path.lstrip('/')
     newpath = ''

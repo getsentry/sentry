@@ -29,6 +29,7 @@ from sentry.models import Message, GroupedMessage, MessageCountByMinute, \
 from sentry.utils import json, transform, get_signature, get_auth_header, \
                          MockDjangoRequest
 from sentry.utils.compat import pickle
+from sentry.web.views import get_login_url
 
 from tests.models import TestModel, DuplicateKeyModel
 from tests.utils import TestServerThread, conditional_on_module
@@ -49,6 +50,37 @@ logger = logging.getLogger('sentry.test')
 logger.addHandler(SentryHandler())
 logger.setLevel(logging.DEBUG)
 
+class Settings(object):
+    """
+    Allows you to define settings that are required for this function to work.
+
+    >>> with Settings(SENTRY_LOGIN_URL='foo'): #doctest: +SKIP
+    >>>     print settings.SENTRY_LOGIN_URL #doctest: +SKIP
+    """
+
+    NotDefined = object()
+
+    def __init__(self, **overrides):
+        self.overrides = overrides
+        self._orig = {}
+
+    def __enter__(self):
+        for k, v in self.overrides.iteritems():
+            self._orig[k] = getattr(django_settings, k, self.NotDefined)
+            setattr(django_settings, k, v)
+            if k.startswith('SENTRY_'):
+                setattr(settings, k.split('SENTRY_', 1)[1], v)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        for k, v in self._orig.iteritems():
+            if v is self.NotDefined:
+                delattr(django_settings, k)
+                if k.startswith('SENTRY_'):
+                    delattr(settings, k.split('SENTRY_', 1)[1])
+            else:
+                setattr(django_settings, k, v)
+                if k.startswith('SENTRY_'):
+                    setattr(settings, k.split('SENTRY_', 1)[1], v)
 
 class BaseTestCase(TestCase):
     ## Helper methods for posting
@@ -991,6 +1023,24 @@ class SentryViewsTest(BaseTestCase):
         }, follow=True)
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/index.html')
+
+    def test_get_login_url(self):
+        with Settings(LOGIN_URL='/404'):
+            url = get_login_url(True)
+            self.assertEquals(url, reverse('sentry-login'))
+
+        with Settings(LOGIN_URL=reverse('sentry-fake-login')):
+            url = get_login_url(True)
+            self.assertEquals(url, reverse('sentry-fake-login'))
+
+        # should still be cached
+        with Settings(LOGIN_URL='/404'):
+            url = get_login_url(False)
+            self.assertEquals(url, reverse('sentry-fake-login'))
+
+        with Settings(SENTRY_LOGIN_URL=None):
+            url = get_login_url(True)
+            self.assertEquals(url, reverse('sentry-login'))
 
     def test_dashboard(self):
         self.client.login(username='admin', password='admin')

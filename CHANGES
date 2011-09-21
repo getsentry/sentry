@@ -1,3 +1,7 @@
+1.11.1
+
+* Fixed a bug that would cause the admin (and potentially other modules) to get loaded multiple times.
+
 1.11.0
 
 * Added license headers.

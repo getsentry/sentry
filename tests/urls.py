@@ -5,6 +5,7 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     url(r'^admin/', include(admin.site.urls)),
+    url(r'^fake-login$', 'tests.views.fake_login', name='sentry-fake-login'),
     url(r'^trigger-500$', 'tests.views.raise_exc', name='sentry-raise-exc'),
     url(r'^trigger-500-decorated$', 'tests.views.decorated_raise_exc', name='sentry-raise-exc-decor'),
     url(r'^trigger-500-django$', 'tests.views.django_exc', name='sentry-django-exc'),

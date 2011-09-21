@@ -3,6 +3,9 @@ from django.shortcuts import get_object_or_404, render_to_response
 
 import logging
 
+def fake_login(request):
+    return HttpResponse('')
+
 def django_exc(request):
     return get_object_or_404(Exception, pk=1)
 
