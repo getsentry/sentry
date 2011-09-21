@@ -26,6 +26,10 @@ Django 1.3
         'root': {
             'level': 'WARNING',
             'handlers': ['sentry'],
+        'formatters': {
+            'verbose': {
+                'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+            },
         },
         'handlers': {
             'sentry': {
