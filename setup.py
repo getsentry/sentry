@@ -11,17 +11,17 @@ except ImportError:
 
 tests_require = [
     'Django>=1.2,<1.4',
-    
+
     # celery
     'django-celery',
-    
+
     # django migrations
     'south',
-    
+
     # haystack support
     'django-haystack',
     'whoosh',
-    
+
     # python-daemon and eventlet are required to run the Sentry independent webserver
     'python-daemon>=1.6',
     'eventlet>=0.9.15',
@@ -38,7 +38,7 @@ if sys.version_info[:2] < (2, 5):
 
 setup(
     name='django-sentry',
-    version='1.11.0',
+    version='1.11.1',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/django-sentry',
