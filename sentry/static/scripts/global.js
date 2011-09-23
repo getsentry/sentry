@@ -71,7 +71,7 @@ var Sentry = {};
             Sentry.options[k] = v;
         });
     };
-    
+
     Sentry.stream = {};
     Sentry.stream.clear = function() {
         if (confirm("Are you sure you want to mark all your stream as resolved?")) {
@@ -91,7 +91,7 @@ var Sentry = {};
     Sentry.stream.resolve = function(gid, remove){
         if (typeof(remove) == 'undefined') {
             remove = true;
-        } 
+        }
         $.ajax({
             url: Sentry.options.apiUrl,
             type: 'post',
@@ -113,7 +113,7 @@ var Sentry = {};
             }
         });
     };
-    
+
     Sentry.realtime = {};
     Sentry.realtime.status = false;
 
@@ -130,7 +130,7 @@ var Sentry = {};
         $('#sentry_realtime').text('Go Live');
         Sentry.realtime.status = false;
     };
-    
+
     Sentry.realtime.refresh = function(){
         data = getQueryParams();
         data.op = 'poll';
@@ -169,7 +169,7 @@ var Sentry = {};
                         Sentry.notifications.show({'type': 'html', 'url': url});
                     }
                 }
-                $('#message_list .fresh').css('background-color', '#ccc').animate({backgroundColor: '#fff'}, 1200, function() { 
+                $('#message_list .fresh').css('background-color', '#ccc').animate({backgroundColor: '#fff'}, 1200, function() {
                     $(this).removeClass('fresh');
                 });
                 // make sure we limit the number shown
@@ -184,7 +184,7 @@ var Sentry = {};
             }
         });
     };
-    
+
     Sentry.notifications = {};
     Sentry.notifications.status = false;
 
@@ -216,12 +216,12 @@ var Sentry = {};
         } else {
             note = window.webkitNotifications.createNotification(options.image || Sentry.options.defaultImage, options.title, options.body);
         }
-        note.ondisplay = function() { 
+        note.ondisplay = function() {
             setTimeout(function(){ note.cancel(); }, 10000);
         };
         note.show();
     };
-    
+
     $(document).ready(function(){
         $('#sentry_realtime').click(function(){
             if (Sentry.realtime.status) {
@@ -232,7 +232,7 @@ var Sentry = {};
         });
 
         setTimeout(Sentry.realtime.refresh, 3000);
-    
+
         if (window.webkitNotifications){
             Sentry.notifications.status = (window.webkitNotifications.checkPermission() > 0);
             $('<li><a id="sentry_notify" href="javascript:void()">' + (Sentry.notifications.status ? 'Disable Notifications' : 'Enable Notifications') + '</a></li>').click(function(){
@@ -243,7 +243,7 @@ var Sentry = {};
                 }
             }).prependTo('#account');
         }
-    
+
         $('#sidebar .filter-list').each(function(_, el){
             var el = $(el);
             if (el.find('li').length > 6) {

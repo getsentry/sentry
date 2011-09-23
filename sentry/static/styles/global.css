@@ -533,7 +533,7 @@ dl.flat dd {
     margin-bottom: 10px;
 }
 .paging ul {
-    margin-bottom: 0; 
+    margin-bottom: 0;
 }
 .paging-wrap form { margin-bottom: 0; }
 .paging-meta, .sort-by, .realtime {
@@ -706,4 +706,8 @@ h2 .morelink { text-decoration: none; }
     font-weight: inherit;
     padding-right: 0;
     margin-right: 0;
+}
+
+table.inline tr {
+    display: inline-block;
 }

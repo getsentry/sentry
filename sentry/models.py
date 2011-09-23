@@ -25,7 +25,7 @@ from sentry.utils import cached_property, construct_checksum, transform, get_fil
                          MockDjangoRequest
 from sentry.utils.compat import pickle
 from sentry.utils.manager import GroupedMessageManager, SentryManager
-
+from sentry.templatetags.sentry_helpers import truncatechars
 from indexer.models import BaseIndex
 
 try:
@@ -55,7 +55,7 @@ class GzippedDictField(models.TextField):
     value is a dictionary.
     """
     __metaclass__ = models.SubfieldBase
- 
+
     def to_python(self, value):
         if isinstance(value, basestring) and value:
             try:
@@ -71,7 +71,7 @@ class GzippedDictField(models.TextField):
         if value is None:
             return
         return base64.b64encode(pickle.dumps(transform(value)).encode('zlib'))
- 
+
     def value_to_string(self, obj):
         value = self._get_val_from_obj(obj)
         return self.get_db_prep_value(value)
@@ -102,7 +102,7 @@ class MessageBase(Model):
         return '\n'.join(self.traceback.split('\n')[-5:])
     shortened_traceback.short_description = _('traceback')
     shortened_traceback.admin_order_field = 'traceback'
-    
+
     def error(self):
         if self.message:
             message = smart_unicode(self.message)
@@ -120,10 +120,10 @@ class MessageBase(Model):
     description.short_description = _('description')
 
     def has_two_part_message(self):
-        return '\n' in self.message.strip('\n')
-    
+        return '\n' in self.message.strip('\n') or len(self.message) > 100
+
     def message_top(self):
-        return self.message.split('\n')[0]
+        return truncatechars(self.message.split('\n')[0], 100)
 
 class GroupedMessage(MessageBase):
     status          = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
@@ -132,7 +132,7 @@ class GroupedMessage(MessageBase):
     first_seen      = models.DateTimeField(default=datetime.now, db_index=True)
 
     score           = models.IntegerField(default=0)
-    
+
     objects         = GroupedMessageManager()
 
     class Meta:
@@ -163,7 +163,7 @@ class GroupedMessage(MessageBase):
 
         if not settings.ADMINS:
             return
-        
+
         message = self.message_set.order_by('-id')[0]
 
         obj_request = message.request
@@ -191,11 +191,11 @@ class GroupedMessage(MessageBase):
             'traceback': message.traceback,
             'link': link,
         })
-        
+
         send_mail(subject, body,
                   settings.SERVER_EMAIL, settings.ADMINS,
                   fail_silently=fail_silently)
-    
+
     @property
     def unique_urls(self):
         return self.messagefiltervalue_set.filter(key='url')\
@@ -252,7 +252,7 @@ class Message(MessageBase):
     @models.permalink
     def get_absolute_url(self):
         return ('sentry-group-message', (self.group_id, self.pk), {})
-    
+
     def shortened_url(self):
         if not self.url:
             return _('no data')
@@ -262,7 +262,7 @@ class Message(MessageBase):
         return url
     shortened_url.short_description = _('url')
     shortened_url.admin_order_field = 'url'
-    
+
     def full_url(self):
         return self.data.get('url') or self.url
     full_url.short_description = _('url')
@@ -301,10 +301,10 @@ class FilterValue(models.Model):
     """
     key = models.CharField(choices=FILTER_KEYS, max_length=32)
     value = models.CharField(max_length=200)
-    
+
     class Meta:
         unique_together = (('key', 'value'),)
-    
+
     def __unicode__(self):
         return u'key=%s, value=%s' % (self.key, self.value)
 
@@ -317,7 +317,7 @@ class MessageFilterValue(models.Model):
     times_seen = models.PositiveIntegerField(default=0)
     key = models.CharField(choices=FILTER_KEYS, max_length=32)
     value = models.CharField(max_length=200)
-    
+
     class Meta:
         unique_together = (('key', 'value', 'group'),)
 
@@ -328,14 +328,14 @@ class MessageFilterValue(models.Model):
 class MessageCountByMinute(Model):
     """
     Stores the total number of messages seen by a group at 5 minute intervals
-    
+
     e.g. if it happened at 08:34:55 the time would be normalized to 08:30:00
     """
-    
+
     group = models.ForeignKey(GroupedMessage)
     date = models.DateTimeField() # normalized to HH:MM:00
     times_seen = models.PositiveIntegerField(default=0)
-    
+
     class Meta:
         unique_together = (('group', 'date'),)
 

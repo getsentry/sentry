@@ -9,7 +9,7 @@
     <ul class="messages" id="message_list">
         <li class="row1 active level-{{ message.level }}" data-sentry-count="{{ message.times_seen }}">
             <h3>
-                {{ message.message_top|truncatechars:100 }}
+                {{ message.message_top }}
                 {% if message.url %}
                      on {{ message.url }}
                 {% endif %}
@@ -23,7 +23,7 @@
                 <span class="tag tag-server">{{ message.server_name }}</span>
                 {% with message.get_version as version %}
                     {% if version %}
-                        <span class="tag tag-version">{{ version.0 }} {{ version.1 }}</span> 
+                        <span class="tag tag-version">{{ version.0 }} {{ version.1 }}</span>
                     {% endif %}
                 {% endwith %}
                 <span class="last_seen" title="{{ message.datetime }}">{{ message.datetime|timesince }}</span>
@@ -31,29 +31,47 @@
         </li>
     </ul>
 
-    {% if message.has_two_part_message %}
-        <h2>{% trans "Full Message" %}</h2>
-        <pre id="full-message">{{ message.message }}</pre>
-    {% endif %}
-
-    {% if exeption_type %}
-        <div id="summary">
-          <h3>{{ exception_type }}: {{ exception_value|escape }}</h3>
-          <table class="meta">
-            <tr>
-              <th>Exception Value:</th>
-              <td><pre>{{ exception_value|escape }}</pre></td>
-            </tr>
+    <div id="summary">
+        <h3>{% if exception_type %}{{ exception_type }}: {{ exception_value|escape }}{% else %}Summary{% endif %}</h3>
+        {% if group.has_two_part_message %}
+            <pre id="full-message">{{ group.message }}</pre>
+        {% endif %}
+        <table class="meta">
+            {% if exception_type %}
+                <tr>
+                  <th>Exception Value:</th>
+                  <td><pre>{{ exception_value|escape }}</pre></td>
+                </tr>
+            {% endif %}
+            {% if group.data.url %}
+                <tr>
+                  <th>URL:</th>
+                  <td><a href="{{ group.data.url }}">{{ group.data.url|truncatechars:100 }}</a></td>
+                </tr>
+            {% endif %}
             {% if lastframe %}
             <tr>
-              <th>Exception Location:</th>
+              <th>Location:</th>
               <td>{{ lastframe.filename|escape }} in {{ lastframe.function|escape }}, line {{ lastframe.lineno }}</td>
             </tr>
             {% endif %}
-          </table>
+        </table>
+    </div>
+
+    {% if version_data %}
+        <div id="versioninfo">
+            <h2>{% trans "Module Versions" %}</h2>
+            <table class="inline">
+                {% for k, v in version_data %}
+                    <tr>
+                        <th class="key">{{ k }}</th>
+                        <td class="values">{{ v }}</td>
+                    </tr>
+                {% endfor %}
+            </table>
         </div>
     {% endif %}
-    
+
     {% if template_info %}
         <div id="template">
             <h2>Template error</h2>
@@ -71,7 +89,7 @@
             </table>
         </div>
     {% endif %}
-    
+
     {% if frames %}
         <div id="traceback">
           <h2>Traceback</h2>
@@ -126,7 +144,7 @@
             <pre>{{ group.traceback }}</pre>
         {% endif %}
     {% endif %}
-    
+
     <div id="requestinfo">
         <h2>{% trans "Additional Data" %}</h2>
         <table>

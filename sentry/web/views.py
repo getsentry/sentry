@@ -374,7 +374,12 @@ def group(request, group_id):
             template_info = get_template_info(sentry_data['template'], exc_value)
 
         if 'versions' in sentry_data:
-            version_data = sentry_data['versions'].iteritems()
+            version_data = sorted(sentry_data['versions'].iteritems())
+
+    if frames:
+        lastframe = frames[-1]
+    else:
+        lastframe = None
 
     return render_to_response('sentry/group/details.html', {
         'page': 'details',
@@ -383,6 +388,7 @@ def group(request, group_id):
         'user_data': user_data,
         'version_data': version_data,
         'frames': frames,
+        'lastframe': lastframe,
         'template_info': template_info,
         'request': request,
     })
@@ -412,6 +418,9 @@ def group_message_details(request, group_id, message_id):
     exc_type, exc_value = None, None
     # stack frames
     frames = None
+    lastframe = None
+    # module versions
+    version_data = None
     user_data = None
 
     if '__sentry__' in message.data:
@@ -438,13 +447,23 @@ def group_message_details(request, group_id, message_id):
         if 'template' in sentry_data:
             template_info = get_template_info(sentry_data['template'], exc_value)
 
+        if 'versions' in sentry_data:
+            version_data = sorted(sentry_data['versions'].iteritems())
+
+    if frames:
+        lastframe = frames[-1]
+    else:
+        lastframe = None
+
     return render_to_response('sentry/group/message.html', {
         'page': 'messages',
         'group': group,
         'message': message,
         'json_data': iter_data(message),
         'user_data': user_data,
+        'version_data': version_data,
         'frames': frames,
+        'lastframe': lastframe,
         'template_info': template_info,
         'request': request,
     })

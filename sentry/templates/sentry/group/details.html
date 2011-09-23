@@ -20,7 +20,8 @@
             <li><a href="{{ link }}">{{ label }}</a></li>
         {% endfor %}
     </ul>
-    <h2>Meta</h2>
+
+    <h2>Aggregate Details</h2>
     <dl class="flat">
         <dt>{% trans "Logger:" %}</dt>
         <dd><a href="{% url sentry %}?logger={{ group.logger }}">{{ group.logger }}</a></dd>
@@ -33,25 +34,26 @@
         <dt>{% trans "Last Seen:" %}</dt>
         <dd title="{{ group.first_seen }}">{{ group.last_seen|timesince }}</dd>
     </dl>
-    
+
     {% for html in group|get_widgets:request %}
         {{ html|safe }}
     {% endfor %}
+
 {% endblock %}
 
 {% block main %}
     <ul class="messages" id="message_list">
         <li class="{% cycle 'row1' 'row2' %} level-{{ group.level }} active" id="group_{{ group.pk }}" data-sentry-count="{{ group.times_seen }}">
             <span class="count count-digits-{{ group.times_seen|num_digits }}">{{ group.times_seen }}</span>
-            <h3>{% if group.view %}{{ group.view }}{% else %}{{ group.message_top|truncatechars:100 }}{% endif %}</h3>
+            <h3>{% if group.view %}{{ group.view }}{% else %}{{ group.message_top }}{% endif %}</h3>
             <span class="last_seen" title="{{ group.last_seen }}">{{ group.last_seen|timesince }}</span>
             <span class="status status-{{ group.status }}">{{ group.get_status_display }}</span>
             <p class="message">
-                <span class="tag tag-level">{{ group.get_level_display }}</span> 
-                <span class="tag tag-logger">{{ group.logger }}</span> 
+                <span class="tag tag-level">{{ group.get_level_display }}</span>
+                <span class="tag tag-logger">{{ group.logger }}</span>
                 {% with group.get_version as version %}
                     {% if version %}
-                        <span class="tag tag-version">{{ version.0 }} {{ version.1 }}</span> 
+                        <span class="tag tag-version">{{ version.0 }} {{ version.1 }}</span>
                     {% endif %}
                 {% endwith %}
                 {% for tag in group|get_tags:request %}<span class="tag">{{ tag }}</span> {% endfor %}
@@ -70,32 +72,50 @@
             <li{% if is_active %} class="active"{% endif %}><a href="{{ link }}">{{ label }}</a></li>
         {% endfor %}
     </ul>
-    
+
     {% block inner %}
         <div id="details">
-            {% if group.has_two_part_message %}
-                <h2>{% trans "Full Message" %}</h2>
-                <pre id="full-message">{{ group.message }}</pre>
-            {% endif %}
-            
-            {% if exeption_type %}
-                <div id="summary">
-                  <h3>{{ exception_type }}: {{ exception_value|escape }}</h3>
-                  <table class="meta">
-                    <tr>
-                      <th>Exception Value:</th>
-                      <td><pre>{{ exception_value|escape }}</pre></td>
-                    </tr>
+            <div id="summary">
+                <h3>{% if exception_type %}{{ exception_type }}: {{ exception_value|escape }}{% else %}Summary{% endif %}</h3>
+                {% if group.has_two_part_message %}
+                    <pre id="full-message">{{ group.message }}</pre>
+                {% endif %}
+                <table class="meta">
+                    {% if exception_type %}
+                        <tr>
+                          <th>Exception Value:</th>
+                          <td><pre>{{ exception_value|escape }}</pre></td>
+                        </tr>
+                    {% endif %}
+                    {% if group.data.url %}
+                        <tr>
+                          <th>URL:</th>
+                          <td><a href="{{ group.data.url }}">{{ group.data.url|truncatechars:100 }}</a></td>
+                        </tr>
+                    {% endif %}
                     {% if lastframe %}
                     <tr>
-                      <th>Exception Location:</th>
+                      <th>Location:</th>
                       <td>{{ lastframe.filename|escape }} in {{ lastframe.function|escape }}, line {{ lastframe.lineno }}</td>
                     </tr>
                     {% endif %}
-                  </table>
+                </table>
+            </div>
+
+            {% if version_data %}
+                <div id="versioninfo">
+                    <h2>{% trans "Module Versions" %}</h2>
+                    <table class="inline">
+                        {% for k, v in version_data %}
+                            <tr>
+                                <th class="key">{{ k }}</th>
+                                <td class="values">{{ v }}</td>
+                            </tr>
+                        {% endfor %}
+                    </table>
                 </div>
             {% endif %}
-            
+
             {% if template_info %}
                 <div id="template">
                     <h2>Template error</h2>
@@ -113,7 +133,7 @@
                     </table>
                 </div>
             {% endif %}
-            
+
             {% if frames %}
                 <div id="traceback">
                   <h2>Traceback</h2>
@@ -168,7 +188,7 @@
                     <pre>{{ group.traceback }}</pre>
                 {% endif %}
             {% endif %}
-            
+
             {% if group|has_charts %}
                 <h2>{% trans "Frequency" %}</h2>
                 <div id="chart">
@@ -236,20 +256,6 @@
                     {% endfor %}
                 </table>
             </div>
-            
-            {% if version_data %}
-                <div id="versioninfo">
-                    <h2>{% trans "Module Versions" %}</h2>
-                    <table>
-                        {% for k, v in version_data %}
-                            <tr>
-                                <th class="key">{{ k }}</th>
-                                <td class="values">{{ v }}</td>
-                            </tr>
-                        {% endfor %}
-                    </table>
-                </div>
-            {% endif %}
         </div>
     {% endblock %}
     <script type="text/javascript">
