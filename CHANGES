@@ -1,3 +1,8 @@
+1.11.2
+
+* Cleaned up message and group details pages (adding back some missing information).
+* Cleaned up some design around odd margins/padding.
+
 1.11.1
 
 * Fixed a bug that would cause the admin (and potentially other modules) to get loaded multiple times.

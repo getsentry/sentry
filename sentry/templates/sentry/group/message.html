@@ -34,12 +34,6 @@
     <div id="summary">
         <h3>{% if exception_type %}{{ exception_type }}: {{ exception_value|escape }}{% else %}Summary{% endif %}</h3>
         <table class="meta">
-            {% if group.has_two_part_message %}
-                <tr>
-                  <th>Full Message</th>
-                  <td><pre id="full-message">{{ group.message }}</pre></td>
-                </tr>
-            {% endif %}
             {% if exception_type %}
                 <tr>
                   <th>Exception Value:</th>
@@ -53,10 +47,16 @@
                 </tr>
             {% endif %}
             {% if lastframe %}
-            <tr>
-              <th>Location:</th>
-              <td>{{ lastframe.filename|escape }} in {{ lastframe.function|escape }}, line {{ lastframe.lineno }}</td>
-            </tr>
+              <tr>
+                <th>Location:</th>
+                <td>{{ lastframe.filename|escape }} in {{ lastframe.function|escape }}, line {{ lastframe.lineno }}</td>
+              </tr>
+            {% endif %}
+            {% if group.has_two_part_message %}
+                <tr>
+                  <th>Full Message</th>
+                  <td><pre id="full-message">{{ group.message }}</pre></td>
+                </tr>
             {% endif %}
         </table>
     </div>
