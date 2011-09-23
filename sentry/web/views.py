@@ -390,6 +390,8 @@ def group(request, group_id):
         'frames': frames,
         'lastframe': lastframe,
         'template_info': template_info,
+        'exception_type': exc_type,
+        'exception_value': exc_value,
         'request': request,
     })
 
@@ -465,6 +467,8 @@ def group_message_details(request, group_id, message_id):
         'frames': frames,
         'lastframe': lastframe,
         'template_info': template_info,
+        'exception_type': exc_type,
+        'exception_value': exc_value,
         'request': request,
     })
 

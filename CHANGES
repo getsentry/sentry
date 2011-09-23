@@ -1,3 +1,7 @@
+1.11.3
+
+* Fixed a bug that was causing exception summary to not show.
+
 1.11.2
 
 * Cleaned up message and group details pages (adding back some missing information).
