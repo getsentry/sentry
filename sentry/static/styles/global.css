@@ -368,7 +368,7 @@ span.commands a:link {color:#5E5694;}
 pre.exception_value { font-family: sans-serif; font-weight: normal; color: #333; font-size: 1.5em; }
 
 /* message details */
-.server-list, .url-list, .logger-list, .level-list { list-style: none; margin-left: 0; }
+.server-list, .url-list, .logger-list, .level-list { list-style: none; margin-left: 0; margin-bottom: 0; }
 .server-list li, .url-list li { padding-bottom: 10px; }
 .url-list li a { line-height: 18px; }
 

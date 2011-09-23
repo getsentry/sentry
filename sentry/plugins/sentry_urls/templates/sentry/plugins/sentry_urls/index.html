@@ -5,15 +5,19 @@
 {% block inner %}
     <h2>URL List</h2>
     {% paginate group.unique_urls from request as url_list per_page 25 %}
-    <div class="clearfix">
-        {{ url_list.paging }}
+    <div class="paging-wrap">
+        <div class="clearfix">
+            {{ url_list.paging }}
+        </div>
     </div>
     <ul class="url-list">
         {% for url, times_seen in url_list.objects %}
             <li><span class="count">{{ times_seen }}</span> <a href="{{ url }}">{{ url }}</a></li>
         {% endfor %}
     </ul>
-    <div class="clearfix">
-        {{ url_list.paging }}
+    <div class="paging-wrap">
+        <div class="clearfix">
+            {{ url_list.paging }}
+        </div>
     </div>
 {% endblock %}

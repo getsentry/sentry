@@ -5,15 +5,19 @@
 {% block inner %}
     <h2>Server List</h2>
     {% paginate group.unique_servers from request as server_list per_page 25 %}
-    <div class="clearfix">
-        {{ server_list.paging }}
+    <div class="paging-wrap">
+        <div class="clearfix">
+            {{ server_list.paging }}
+        </div>
     </div>
     <ul class="server-list">
         {% for server_name, times_seen in server_list.objects %}
             <li><span class="count">{{ times_seen }}</span> <a href="{% url sentry %}?server_name={{ server_name }}">{{ server_name }}</a></li>
         {% endfor %}
     </ul>
-    <div class="clearfix">
-        {{ server_list.paging }}
+    <div class="paging-wrap">
+        <div class="clearfix">
+            {{ server_list.paging }}
+        </div>
     </div>
 {% endblock %}
