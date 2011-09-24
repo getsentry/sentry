@@ -12,9 +12,12 @@ import base64
 import logging
 import math
 import time
-
+from bitfield import BitField
 from datetime import datetime
+from indexer.models import BaseIndex
 
+
+from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import Sum
 from django.utils.encoding import smart_unicode
@@ -26,7 +29,6 @@ from sentry.utils import cached_property, construct_checksum, transform, get_fil
 from sentry.utils.compat import pickle
 from sentry.utils.manager import GroupedMessageManager, SentryManager
 from sentry.templatetags.sentry_helpers import truncatechars
-from indexer.models import BaseIndex
 
 try:
     from idmapper.models import SharedMemoryModel as Model
@@ -83,7 +85,29 @@ class GzippedDictField(models.TextField):
         args, kwargs = introspector(self)
         return (field_class, args, kwargs)
 
+class Project(Model):
+    name            = models.CharField(max_length=200)
+    owner           = models.ForeignKey(User)
+    public          = models.BooleanField(default=False)
+    date_added      = models.DateTimeField(default=datetime.now)
+
+class ProjectMember(Model):
+    project         = models.ForeignKey(Project)
+    user            = models.ForeignKey(User)
+    permissions     = BitField(flags=(
+        'read_message',
+        'change_message_status',
+        'add_member',
+        'change_member',
+        'delete_member',
+    ))
+    date_added      = models.DateTimeField(default=datetime.now)
+
+    class Meta:
+        unique_together = (('project', 'user'),)
+
 class MessageBase(Model):
+    project         = models.ForeignKey(Project)
     logger          = models.CharField(max_length=64, blank=True, default='root', db_index=True)
     class_name      = models.CharField(_('type'), max_length=128, blank=True, null=True, db_index=True)
     level           = models.PositiveIntegerField(choices=settings.LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
@@ -136,7 +160,7 @@ class GroupedMessage(MessageBase):
     objects         = GroupedMessageManager()
 
     class Meta:
-        unique_together = (('logger', 'view', 'checksum'),)
+        unique_together = (('project', 'logger', 'view', 'checksum'),)
         verbose_name_plural = _('grouped messages')
         verbose_name = _('grouped message')
         permissions = (
@@ -299,11 +323,12 @@ class FilterValue(models.Model):
     """
     Stores references to available filters.
     """
+    project = models.ForeignKey(Project)
     key = models.CharField(choices=FILTER_KEYS, max_length=32)
     value = models.CharField(max_length=200)
 
     class Meta:
-        unique_together = (('key', 'value'),)
+        unique_together = (('project', 'key', 'value'),)
 
     def __unicode__(self):
         return u'key=%s, value=%s' % (self.key, self.value)
@@ -313,13 +338,14 @@ class MessageFilterValue(models.Model):
     Stores the total number of messages seen by a group matching
     the given filter.
     """
+    project = models.ForeignKey(Project)
     group = models.ForeignKey(GroupedMessage)
     times_seen = models.PositiveIntegerField(default=0)
     key = models.CharField(choices=FILTER_KEYS, max_length=32)
     value = models.CharField(max_length=200)
 
     class Meta:
-        unique_together = (('key', 'value', 'group'),)
+        unique_together = (('project', 'key', 'value', 'group'),)
 
     def __unicode__(self):
         return u'group_id=%s, times_seen=%s, key=%s, value=%s' % (self.group_id, self.times_seen,
@@ -332,12 +358,13 @@ class MessageCountByMinute(Model):
     e.g. if it happened at 08:34:55 the time would be normalized to 08:30:00
     """
 
+    project = models.ForeignKey(Project)
     group = models.ForeignKey(GroupedMessage)
     date = models.DateTimeField() # normalized to HH:MM:00
     times_seen = models.PositiveIntegerField(default=0)
 
     class Meta:
-        unique_together = (('group', 'date'),)
+        unique_together = (('project', 'group', 'date'),)
 
     def __unicode__(self):
         return u'group_id=%s, times_seen=%s, date=%s' % (self.group_id, self.times_seen, self.date)
