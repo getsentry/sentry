@@ -92,8 +92,8 @@ class Project(Model):
     date_added      = models.DateTimeField(default=datetime.now)
 
 class ProjectMember(Model):
-    project         = models.ForeignKey(Project)
-    user            = models.ForeignKey(User)
+    project         = models.ForeignKey(Project, related_name="member_set")
+    user            = models.ForeignKey(User, related_name="project_set")
     permissions     = BitField(flags=(
         'read_message',
         'change_message_status',

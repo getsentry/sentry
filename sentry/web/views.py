@@ -17,6 +17,7 @@ import zlib
 from django.conf import settings as dj_settings
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse, resolve
+from django.db.models import Q
 from django.http import HttpResponse, HttpResponseBadRequest, \
     HttpResponseForbidden, HttpResponseRedirect, Http404, HttpResponseNotModified, \
     HttpResponseNotAllowed, HttpResponseGone
@@ -26,7 +27,7 @@ from django.utils.encoding import smart_str
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
 from sentry.conf import settings
-from sentry.models import GroupedMessage, Message
+from sentry.models import GroupedMessage, Message, Project
 from sentry.plugins import GroupActionProvider
 from sentry.templatetags.sentry_helpers import with_priority
 from sentry.utils import get_filters, is_float, get_signature, parse_auth_header, json
@@ -34,6 +35,15 @@ from sentry.utils.compat import pickle
 from sentry.utils.stacks import get_template_info
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$')
+
+def get_project_list(user=None):
+    """
+    Returns a set of all projects a user has some level of access to.
+    """
+    projects = set(Project.objects.filter(public=True))
+    if user.is_authenticated():
+        projects.update(set(Project.objects.filter(member_set__user=user)))
+    return projects
 
 _LOGIN_URL = None
 def get_login_url(reset=False):
@@ -185,7 +195,9 @@ def index(request):
     except (TypeError, ValueError):
         page = 1
 
-    message_list = GroupedMessage.objects.all()
+    projects = get_project_list(request.user)
+
+    message_list = GroupedMessage.objects.filter(Q(projects__in=projects) | Q(project__isnull=True))
 
     sort = request.GET.get('sort')
     if sort == 'date':
@@ -232,7 +244,9 @@ def ajax_handler(request):
         for filter_ in get_filters():
             filters.append(filter_(request))
 
-        message_list = GroupedMessage.objects.all()
+        projects = get_project_list(request.user)
+
+        message_list = GroupedMessage.objects.filter(Q(projects__in=projects) | Q(project__isnull=True))
 
         sort = request.GET.get('sort')
         if sort == 'date':
@@ -278,6 +292,9 @@ def ajax_handler(request):
         except GroupedMessage.DoesNotExist:
             return HttpResponseForbidden()
 
+        if group.project and group.project not in get_project_list(request.user):
+            return HttpResponseForbidden()
+
         GroupedMessage.objects.filter(pk=group.pk).update(status=1)
         group.status = 1
 
@@ -298,7 +315,11 @@ def ajax_handler(request):
         return response
 
     def clear(request):
-        GroupedMessage.objects.all().update(status=1)
+        projects = get_project_list(request.user)
+
+        message_list = GroupedMessage.objects.filter(Q(projects__in=projects) | Q(project__isnull=True))
+
+        message_list.update(status=1)
 
         if not request.is_ajax():
             return HttpResponseRedirect(request.META.get('HTTP_REFERER') or reverse('sentry'))
@@ -317,6 +338,10 @@ def ajax_handler(request):
             group = GroupedMessage.objects.get(pk=gid)
         except GroupedMessage.DoesNotExist:
             return HttpResponseForbidden()
+
+        if group.project and group.project not in get_project_list(request.user):
+            return HttpResponseForbidden()
+
         data = GroupedMessage.objects.get_chart_data(group)
 
         response = HttpResponse(json.dumps(data))
@@ -331,6 +356,9 @@ def ajax_handler(request):
 @login_required
 def group(request, group_id):
     group = get_object_or_404(GroupedMessage, pk=group_id)
+
+    if group.project and group.project not in get_project_list(request.user):
+        return HttpResponseForbidden()
 
     try:
         obj = group.message_set.all().order_by('-id')[0]
@@ -399,6 +427,9 @@ def group(request, group_id):
 def group_message_list(request, group_id):
     group = get_object_or_404(GroupedMessage, pk=group_id)
 
+    if group.project and group.project not in get_project_list(request.user):
+        return HttpResponseForbidden()
+
     message_list = group.message_set.all().order_by('-datetime')
 
     return render_to_response('sentry/group/message_list.html', {
@@ -411,6 +442,9 @@ def group_message_list(request, group_id):
 @login_required
 def group_message_details(request, group_id, message_id):
     group = get_object_or_404(GroupedMessage, pk=group_id)
+
+    if group.project and group.project not in get_project_list(request.user):
+            return HttpResponseForbidden()
 
     message = get_object_or_404(group.message_set, pk=message_id)
 
