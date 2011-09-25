@@ -13,6 +13,7 @@ def create_default_project(app, created_models, verbosity=2, **kwargs):
         models.Project.objects.get_or_create(
             id=1,
             defaults=dict(
+                public=True,
                 name='Default',
                 owner=owner,
             )
