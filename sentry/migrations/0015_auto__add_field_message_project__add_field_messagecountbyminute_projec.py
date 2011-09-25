@@ -21,28 +21,28 @@ class Migration(SchemaMigration):
         db.delete_unique('sentry_messagecountbyminute', ['date', 'group_id'])
 
         # Adding field 'Message.project'
-        db.add_column('sentry_message', 'project', self.gf('django.db.models.fields.related.ForeignKey')(default=1, to=orm['sentry.Project']), keep_default=False)
+        db.add_column('sentry_message', 'project', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.Project'], null=True), keep_default=False)
 
         # Adding field 'MessageCountByMinute.project'
-        db.add_column('sentry_messagecountbyminute', 'project', self.gf('django.db.models.fields.related.ForeignKey')(default=1, to=orm['sentry.Project']), keep_default=False)
+        db.add_column('sentry_messagecountbyminute', 'project', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.Project'], null=True), keep_default=False)
 
         # Adding unique constraint on 'MessageCountByMinute', fields ['project', 'date', 'group']
         db.create_unique('sentry_messagecountbyminute', ['project_id', 'date', 'group_id'])
 
         # Adding field 'FilterValue.project'
-        db.add_column('sentry_filtervalue', 'project', self.gf('django.db.models.fields.related.ForeignKey')(default=1, to=orm['sentry.Project']), keep_default=False)
+        db.add_column('sentry_filtervalue', 'project', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.Project'], null=True), keep_default=False)
 
         # Adding unique constraint on 'FilterValue', fields ['project', 'value', 'key']
         db.create_unique('sentry_filtervalue', ['project_id', 'value', 'key'])
 
         # Adding field 'MessageFilterValue.project'
-        db.add_column('sentry_messagefiltervalue', 'project', self.gf('django.db.models.fields.related.ForeignKey')(default=1, to=orm['sentry.Project']), keep_default=False)
+        db.add_column('sentry_messagefiltervalue', 'project', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.Project'], null=True), keep_default=False)
 
         # Adding unique constraint on 'MessageFilterValue', fields ['project', 'group', 'value', 'key']
         db.create_unique('sentry_messagefiltervalue', ['project_id', 'group_id', 'value', 'key'])
 
         # Adding field 'GroupedMessage.project'
-        db.add_column('sentry_groupedmessage', 'project', self.gf('django.db.models.fields.related.ForeignKey')(default=1, to=orm['sentry.Project']), keep_default=False)
+        db.add_column('sentry_groupedmessage', 'project', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.Project'], null=True), keep_default=False)
 
         # Adding unique constraint on 'GroupedMessage', fields ['project', 'checksum', 'logger', 'view']
         db.create_unique('sentry_groupedmessage', ['project_id', 'checksum', 'logger', 'view'])
@@ -131,7 +131,7 @@ class Migration(SchemaMigration):
             'Meta': {'unique_together': "(('project', 'key', 'value'),)", 'object_name': 'FilterValue'},
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'key': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
-            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']"}),
+            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'}),
             'value': ('django.db.models.fields.CharField', [], {'max_length': '200'})
         },
         'sentry.groupedmessage': {
@@ -145,7 +145,7 @@ class Migration(SchemaMigration):
             'level': ('django.db.models.fields.PositiveIntegerField', [], {'default': '40', 'db_index': 'True', 'blank': 'True'}),
             'logger': ('django.db.models.fields.CharField', [], {'default': "'root'", 'max_length': '64', 'db_index': 'True', 'blank': 'True'}),
             'message': ('django.db.models.fields.TextField', [], {}),
-            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']"}),
+            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'}),
             'score': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
             'status': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0', 'db_index': 'True'}),
             'times_seen': ('django.db.models.fields.PositiveIntegerField', [], {'default': '1', 'db_index': 'True'}),
@@ -164,7 +164,7 @@ class Migration(SchemaMigration):
             'logger': ('django.db.models.fields.CharField', [], {'default': "'root'", 'max_length': '64', 'db_index': 'True', 'blank': 'True'}),
             'message': ('django.db.models.fields.TextField', [], {}),
             'message_id': ('django.db.models.fields.CharField', [], {'max_length': '32', 'unique': 'True', 'null': 'True'}),
-            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']"}),
+            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'}),
             'server_name': ('django.db.models.fields.CharField', [], {'max_length': '128', 'db_index': 'True'}),
             'site': ('django.db.models.fields.CharField', [], {'max_length': '128', 'null': 'True', 'db_index': 'True'}),
             'traceback': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
@@ -176,7 +176,7 @@ class Migration(SchemaMigration):
             'date': ('django.db.models.fields.DateTimeField', [], {}),
             'group': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.GroupedMessage']"}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']"}),
+            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'}),
             'times_seen': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'})
         },
         'sentry.messagefiltervalue': {
@@ -184,7 +184,7 @@ class Migration(SchemaMigration):
             'group': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.GroupedMessage']"}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'key': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
-            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']"}),
+            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'}),
             'times_seen': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'}),
             'value': ('django.db.models.fields.CharField', [], {'max_length': '200'})
         },

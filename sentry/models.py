@@ -107,7 +107,7 @@ class ProjectMember(Model):
         unique_together = (('project', 'user'),)
 
 class MessageBase(Model):
-    project         = models.ForeignKey(Project)
+    project         = models.ForeignKey(Project, null=True)
     logger          = models.CharField(max_length=64, blank=True, default='root', db_index=True)
     class_name      = models.CharField(_('type'), max_length=128, blank=True, null=True, db_index=True)
     level           = models.PositiveIntegerField(choices=settings.LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
@@ -323,7 +323,7 @@ class FilterValue(models.Model):
     """
     Stores references to available filters.
     """
-    project = models.ForeignKey(Project)
+    project = models.ForeignKey(Project, null=True)
     key = models.CharField(choices=FILTER_KEYS, max_length=32)
     value = models.CharField(max_length=200)
 
@@ -338,7 +338,7 @@ class MessageFilterValue(models.Model):
     Stores the total number of messages seen by a group matching
     the given filter.
     """
-    project = models.ForeignKey(Project)
+    project = models.ForeignKey(Project, null=True)
     group = models.ForeignKey(GroupedMessage)
     times_seen = models.PositiveIntegerField(default=0)
     key = models.CharField(choices=FILTER_KEYS, max_length=32)
@@ -358,7 +358,7 @@ class MessageCountByMinute(Model):
     e.g. if it happened at 08:34:55 the time would be normalized to 08:30:00
     """
 
-    project = models.ForeignKey(Project)
+    project = models.ForeignKey(Project, null=True)
     group = models.ForeignKey(GroupedMessage)
     date = models.DateTimeField() # normalized to HH:MM:00
     times_seen = models.PositiveIntegerField(default=0)
