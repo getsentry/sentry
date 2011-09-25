@@ -26,8 +26,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 h1, h2, h3, h4, h5, h6, p, ul,
-table, form, pre, ol { margin-bottom: 20px; }
-ul { margin: 0 0 20px 20px; }
+table, form, pre, ol { margin-bottom: 15px; }
+ul { margin: 0 0 15px 20px; }
 
 a { color: #333; }
 a:visited { color: inherit; }
@@ -96,6 +96,37 @@ pre {
 #header h2 span a {
     text-decoration: none;
 }
+
+.module {
+    margin-bottom: 10px;
+    overflow: auto;
+}
+.module h2 {
+    color: #fff;
+    margin: 0;
+    padding: 5px 10px;
+    font-size: 1.1em;
+    border-radius: 5px 5px 0 0;
+    -moz-border-radius: 5px 5px 0 0;
+    -webkit-border-radius: 5px 5px 0 0;
+    -moz-box-shadow: inset 0 0 1px #22579b, 0 1px 0 #fff;
+    -webkit-box-shadow: inset 0 0 1px #22579b, 0 1px 0 #fff;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#4da2e5', endColorstr='#3079d0'); /* for IE */
+    background: -webkit-gradient(linear, left top, left bottom, from(#4da2e5), to(#3079d0)); /* for webkit browsers */
+    background: -moz-linear-gradient(top,  #4da2e5,  #3079d0); /* for firefox 3.6+ */
+}
+.module-content {
+    -moz-box-shadow: inset 0 0 1px #22579b, 0 1px 0 #fff;
+    -webkit-box-shadow: inset 0 0 1px #22579b, 0 1px 0 #fff;
+    overflow: auto;
+    border-radius: 0 0 5px 5px;
+    -moz-border-radius: 0 0 5px 5px;
+    -webkit-border-radius: 0 0 5px 5px;
+    -moz-box-shadow: inset 0 0 1px #22579b, 0 1px 0 #fff;
+    -webkit-box-shadow: inset 0 0 1px #22579b, 0 1px 0 #fff;
+    padding: 10px 10px 0;
+}
+.module table, .module form, .module pre, .module ol, .module ul { margin-bottom: 10px; }
 
 #account {
     position: absolute;
@@ -307,7 +338,7 @@ pre {
     cursor: pointer;
 }
 
-#chart { margin-bottom: 20px; }
+#chart { margin-bottom: 15px; }
 
 /* tracebacks */
 .frame table.vars { margin:5px 0 2px 40px; }
@@ -323,23 +354,28 @@ table.vars thead th { padding:3px 6px 3px 3px; background:#eee; text-align:left;
 
 table.source th { color:#666; }
 table.source td { font-family:monospace; white-space:pre; border-bottom:1px solid #eee; }
-ul.traceback { list-style-type:none; }
-ul.traceback li.frame { margin-bottom:1em; overflow: hidden; position: relative; }
+ul.traceback { list-style-type: none; margin-left: 0;}
+ul.traceback li.frame { margin-bottom: 1em; overflow: hidden; position: relative; }
 div.context { margin: 10px 0; }
-div.context ol { padding-left:30px; margin:0 10px; list-style-position: inside; }
+div.context ol { padding-left: 20px; margin:0 0px; list-style-position: inside; }
 div.context ol li { font-family:monospace; white-space:pre; color:#666; cursor:pointer; }
 div.context ol.context-line li { color:black; background-color:#ccc; }
 div.context ol.context-line li span { float: right; }
-div.commands { margin-left: 40px; }
+div.commands { margin-left: 20px; }
 div.commands a { color:black; text-decoration:none; }
 #template, #template-not-exist { overflow: hidden; }
+#template li {
+    margin-left: 38px;
+    line-height: 1.5em;
+    font-family: monospace;
+}
 #template pre {
+    color: #000;
     margin-bottom: 0;
 }
 #template-not-exist ul { margin: 0 0 0 20px; }
 #unicode-hint { background:#eee; }
-#traceback { }
-#summary, #traceback, #unicode-hint, #template, #requestinfo, #versioninfo { margin-bottom: 20px; }
+#summary { margin-bottom: 15px; }
 #summary table, #summary pre { margin-bottom: 0; }
 #summary pre {
     line-height: 16px;
@@ -351,7 +387,7 @@ div.commands a { color:black; text-decoration:none; }
 /** variables **/
 #requestinfo { overflow: hidden; }
 #requestinfo > table { border: 0; width: 100%; margin-bottom: 0; }
-#requestinfo th.key, #requestinfo td.values { padding: 0 0 20px; position: relative; }
+#requestinfo th.key, #requestinfo td.values { padding: 0 0 15px; position: relative; }
 #requestinfo th.key { vertical-align: top; font-size: 1.1em; text-align: left; padding-right: 30px; }
 #requestinfo td.values td { }
 #requestinfo td.values th { text-align: left; }
