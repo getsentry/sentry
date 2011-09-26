@@ -383,7 +383,10 @@ class SentryClient(object):
             )
         finally:
             if new_exc:
-                del exc_info
+                try:
+                    del exc_info
+                except Exception, e:
+                    logger.exception(e)
 
 class DummyClient(SentryClient):
     "Sends messages into an empty void"
