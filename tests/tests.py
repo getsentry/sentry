@@ -220,6 +220,16 @@ class SentryTest(BaseTestCase):
         self.assertTrue('__sentry__' in last.data)
         self.assertTrue('frames' in last.data['__sentry__'])
 
+        # test no stacks
+        logger.info('This is a test of no stacks', extra={'stack': False})
+        self.assertEquals(Message.objects.count(), 8)
+        self.assertEquals(GroupedMessage.objects.count(), 7)
+        last = Message.objects.all().order_by('-id')[0:1].get()
+        self.assertEquals(last.class_name, None)
+        self.assertEquals(last.message, 'This is a test of no stacks')
+        self.assertTrue('__sentry__' in last.data)
+        self.assertFalse('frames' in last.data['__sentry__'])
+
         self.tearDownHandler()
 
     # def test_404_middleware(self):
