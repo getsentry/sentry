@@ -24,6 +24,7 @@ THRASHING_TIMEOUT = 60
 THRASHING_LIMIT = 10
 
 FILTERS = (
+    'sentry.filters.ProjectFilter',
     'sentry.filters.StatusFilter',
     'sentry.filters.LoggerFilter',
     'sentry.filters.LevelFilter',
