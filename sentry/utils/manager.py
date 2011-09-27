@@ -83,7 +83,7 @@ class SentryManager(models.Manager):
 
 
     def from_kwargs(self, **kwargs):
-        from sentry.models import Message, GroupedMessage, FilterValue
+        from sentry.models import Message, GroupedMessage, FilterValue, Project
 
         URL_MAX_LENGTH = Message._meta.get_field_by_name('url')[0].max_length
         now = kwargs.pop('timestamp', None) or datetime.datetime.now()
@@ -93,7 +93,9 @@ class SentryManager(models.Manager):
         url = kwargs.pop('url', None)
         server_name = kwargs.pop('server_name', settings.CLIENT)
         site = kwargs.pop('site', None)
-        project = kwargs.pop('project', settings.PROJECT)
+        project_id = kwargs.pop('project', settings.PROJECT)
+        project = Project.objects.get(pk=project_id)
+
         data = kwargs.pop('data', {}) or {}
         message_id = kwargs.pop('message_id', None)
 
@@ -155,6 +157,7 @@ class SentryManager(models.Manager):
                 mail = True
 
             instance = Message(
+                project=project,
                 message_id=message_id,
                 view=view,
                 logger=logger_name,
@@ -181,6 +184,7 @@ class SentryManager(models.Manager):
             affected = group.messagecountbyminute_set.filter(date=normalized_datetime).update(times_seen=F('times_seen') + 1)
             if not affected:
                 group.messagecountbyminute_set.create(
+                    project=project,
                     date=normalized_datetime,
                     times_seen=1,
                 )
@@ -193,11 +197,16 @@ class SentryManager(models.Manager):
                 if not value:
                     continue
 
-                FilterValue.objects.get_or_create(key=key, value=value)
+                FilterValue.objects.get_or_create(
+                    project=project,
+                    key=key,
+                    value=value,
+                )
 
                 affected = group.messagefiltervalue_set.filter(key=key, value=value).update(times_seen=F('times_seen') + 1)
                 if not affected:
                     group.messagefiltervalue_set.create(
+                        project=project,
                         key=key,
                         value=value,
                         times_seen=1,

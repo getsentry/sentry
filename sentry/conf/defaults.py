@@ -60,6 +60,8 @@ NAME = socket.gethostname()
 # The primary key of the project which this client should
 # log messages to.
 PROJECT = 1
+SECRET_KEY = None
+PUBLIC_KEY = None
 
 # We allow setting the site name either by explicitly setting it with the
 # SENTRY_SITE setting, or using the django.contrib.sites framework for

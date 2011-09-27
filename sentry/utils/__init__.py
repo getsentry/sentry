@@ -6,7 +6,6 @@ sentry.utils
 :license: BSD, see LICENSE for more details.
 """
 
-import hmac
 import logging
 try:
     import pkg_resources
@@ -22,9 +21,8 @@ from django.conf import settings as django_settings
 from django.http import HttpRequest
 from django.utils.encoding import force_unicode
 from django.utils.functional import Promise
-from django.utils.hashcompat import md5_constructor, sha_constructor
+from django.utils.hashcompat import md5_constructor
 
-import sentry
 from sentry.conf import settings
 
 _FILTER_CACHE = None
@@ -301,24 +299,6 @@ def is_float(var):
     except ValueError:
         return False
     return True
-
-def get_signature(message, timestamp, project=None):
-    if project:
-        key = project.api_key
-    else:
-        key = settings.KEY
-    return hmac.new(key, '%s %s' % (timestamp, message), sha_constructor).hexdigest()
-
-def get_auth_header(signature, timestamp, client):
-    return 'Sentry sentry_signature=%s, sentry_timestamp=%s, sentry_client=%s, sentry_project=%s' % (
-        signature,
-        timestamp,
-        sentry.VERSION,
-        settings.PROJECT,
-    )
-
-def parse_auth_header(header):
-    return dict(map(lambda x: x.strip().split('='), header.split(' ', 1)[1].split(',')))
 
 class MockDjangoRequest(HttpRequest):
     GET = {}

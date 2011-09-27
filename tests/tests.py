@@ -26,8 +26,8 @@ from sentry.client.models import get_client
 from sentry.conf import settings
 from sentry.models import Message, GroupedMessage, MessageCountByMinute, \
                           FilterValue, MessageFilterValue
-from sentry.utils import json, transform, get_signature, get_auth_header, \
-                         MockDjangoRequest
+from sentry.utils import json, transform, MockDjangoRequest
+from sentry.utils.auth import get_signature, get_auth_header
 from sentry.utils.compat import pickle
 from sentry.web.views import get_login_url
 
@@ -114,8 +114,6 @@ class SentryTest(BaseTestCase):
         self._level = None
         self.logger = logging.getLogger('sentry')
         self.logger.addHandler(logging.StreamHandler())
-        Message.objects.all().delete()
-        GroupedMessage.objects.all().delete()
 
     def tearDown(self):
         self.tearDownHandler()

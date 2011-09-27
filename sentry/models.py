@@ -21,6 +21,7 @@ from indexer.models import BaseIndex
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import Sum
+from django.db.models.signals import post_syncdb
 from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
@@ -88,7 +89,7 @@ class GzippedDictField(models.TextField):
 
 class Project(Model):
     name            = models.CharField(max_length=200)
-    owner           = models.ForeignKey(User, related_name="owned_project_set")
+    owner           = models.ForeignKey(User, related_name="owned_project_set", null=True)
     public          = models.BooleanField(default=False)
     date_added      = models.DateTimeField(default=datetime.now)
 
@@ -96,7 +97,8 @@ class ProjectMember(Model):
     project         = models.ForeignKey(Project, related_name="member_set")
     user            = models.ForeignKey(User, related_name="project_set")
     is_superuser    = models.BooleanField(default=False)
-    api_key         = models.CharField(max_length=32, unique=True, null=True)
+    public_key         = models.CharField(max_length=32, unique=True, null=True)
+    secret_key      = models.CharField(max_length=32, unique=True, null=True)
     permissions     = BitField(flags=(
         'read_message',
         'change_message_status',
@@ -111,8 +113,10 @@ class ProjectMember(Model):
         unique_together = (('project', 'user'),)
 
     def save(self, *args, **kwargs):
-        if not self.api_key:
-            self.api_key = ProjectMember.generate_api_key()
+        if not self.public_key:
+            self.public_key = ProjectMember.generate_api_key()
+        if not self.secret_key:
+            self.secret_key = ProjectMember.generate_api_key()
         super(ProjectMember, self).save(*args, **kwargs)
 
     @classmethod
@@ -400,3 +404,33 @@ def register_indexes():
             MessageIndex.objects.register_index(filter_.column, index_to='group')
             logger.debug('Registered index for for %s' % filter_.column)
 register_indexes()
+
+def create_default_project(created_models, verbosity=2, **kwargs):
+    if Project in created_models:
+        try:
+            owner = User.objects.filter(is_staff=True, is_superuser=True).order_by('id').get()
+        except User.DoesNotExist:
+            owner = None
+
+        project, created = Project.objects.get_or_create(
+            id=1,
+            defaults=dict(
+                public=True,
+                name='Default',
+                owner=owner,
+            )
+        )
+        if not created:
+            return
+
+        if owner:
+            ProjectMember.objects.create(
+                project=project,
+                user=owner,
+                is_superuser=True,
+            )
+
+        if verbosity > 0:
+            print 'Created default Sentry project owned by %s' % owner
+
+post_syncdb.connect(create_default_project)

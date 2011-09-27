@@ -27,10 +27,11 @@ from django.utils.encoding import smart_str
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
 from sentry.conf import settings
-from sentry.models import GroupedMessage, Message, Project
+from sentry.models import GroupedMessage, Message, Project, ProjectMember
 from sentry.plugins import GroupActionProvider
 from sentry.templatetags.sentry_helpers import with_priority
-from sentry.utils import get_filters, is_float, get_signature, parse_auth_header, json
+from sentry.utils import get_filters, is_float, json
+from sentry.utils.auth import get_signature, parse_auth_header
 from sentry.utils.compat import pickle
 from sentry.utils.stacks import get_template_info
 
@@ -511,18 +512,28 @@ def store(request):
     if request.method != 'POST':
         return HttpResponseNotAllowed('This method only supports POST requests')
 
-    if request.META.get('HTTP_AUTHORIZATION', '').startswith('Sentry'):
+    if request.META.get('HTTP_X_SENTRY_AUTH', '').startswith('Sentry'):
+        # Auth version 2.0
+        auth_vars = parse_auth_header(request.META['HTTP_X_SENTRY_AUTH'])
+    elif request.META.get('HTTP_AUTHORIZATION', '').startswith('Sentry'):
+        # Auth version 2.0
         auth_vars = parse_auth_header(request.META['HTTP_AUTHORIZATION'])
+    else:
+        auth_vars = None
 
+    if auth_vars:
         signature = auth_vars.get('sentry_signature')
         timestamp = auth_vars.get('sentry_timestamp')
-        project = auth_vars.get('sentry_project')
+        api_key = auth_vars.get('sentry_key')
+        # version = auth_vars.get('sentry_version')
 
-        if project:
+        if api_key:
             try:
-                project = Project.objects.get(pk=project)
-            except Project.DoesNotExist:
+                secret_key = ProjectMember.objects.filter(api_key=api_key).values_list('secret_key', flat=True)[0]
+            except IndexError:
                 return HttpResponseForbidden('Invalid signature')
+        else:
+            secret_key = settings.KEY
 
         format = 'json'
 
@@ -538,13 +549,14 @@ def store(request):
             if timestamp < time.time() - 3600: # 1 hour
                 return HttpResponseGone('Message has expired')
 
-            sig_hmac = get_signature(data, timestamp, project)
+            sig_hmac = get_signature(data, timestamp, secret_key)
             if sig_hmac != signature:
                 return HttpResponseForbidden('Invalid signature')
         else:
             return HttpResponse('Unauthorized', status_code=401)
     else:
-        # Legacy request (deprecated as of 2.0)
+        # Auth version 1.0
+        # deprecated
         key = request.POST.get('key')
 
         if not key:

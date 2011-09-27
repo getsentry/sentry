@@ -25,9 +25,9 @@ from django.template.loader import LoaderOrigin
 
 import sentry
 from sentry.conf import settings
-from sentry.utils import json
 from sentry.utils import construct_checksum, transform, get_installed_apps, force_unicode, \
-                           get_versions, shorten, get_signature, get_auth_header, varmap
+                           get_versions, shorten, varmap, json
+from sentry.utils.auth import get_signature, get_auth_header
 from sentry.utils.stacks import get_stack_info, iter_stack_frames, iter_traceback_frames
 
 logger = logging.getLogger('sentry.errors')
@@ -253,15 +253,15 @@ class SentryClient(object):
             response = urllib2.urlopen(req, data).read()
         return response
 
-    def send(self, **kwargs):
+    def send(self, api_key=None, secret_key=None, **kwargs):
         "Sends the message to the server."
         if settings.REMOTE_URL:
             message = base64.b64encode(json.dumps(kwargs).encode('zlib'))
             for url in settings.REMOTE_URL:
                 timestamp = time.time()
-                signature = get_signature(message, timestamp)
+                signature = get_signature(message, timestamp, settings.SECRET_KEY)
                 headers = {
-                    'Authorization': get_auth_header(signature, timestamp, '%s/%s' % (self.__class__.__name__, sentry.VERSION)),
+                    'X-Sentry-Auth': get_auth_header(signature, timestamp, '%s/%s' % (self.__class__.__name__, sentry.VERSION), settings.PUBLIC_KEY),
                     'Content-Type': 'application/octet-stream',
                 }
 
