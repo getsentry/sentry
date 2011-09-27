@@ -529,10 +529,13 @@ def store(request):
 
         if api_key:
             try:
-                secret_key = ProjectMember.objects.filter(api_key=api_key).values_list('secret_key', flat=True)[0]
-            except IndexError:
+                pm = ProjectMember.objects.get(api_key=api_key)
+            except ProjectMember.DoesNotExist:
                 return HttpResponseForbidden('Invalid signature')
+            project = pm.project
+            secret_key = pm.secret_key
         else:
+            project = None
             secret_key = settings.KEY
 
         format = 'json'
@@ -574,6 +577,8 @@ def store(request):
 
         if format not in ('pickle', 'json'):
             return HttpResponseBadRequest('Invalid format')
+
+        project = None
 
     logger = logging.getLogger('sentry.server')
 
@@ -622,6 +627,11 @@ def store(request):
             except:
                 logger.exception('Failed reading timestamp')
                 del data['timestamp']
+
+    # Confirm they're using either the master key, or their specified project matches with the
+    # signed project.
+    if project and str(data.get('project', '')) != str(project.pk):
+        return HttpResponseForbidden('Invalid credentials')
 
     GroupedMessage.objects.from_kwargs(**data)
 
