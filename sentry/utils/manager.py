@@ -15,6 +15,7 @@ from django.db import models
 from django.db.models import signals, Sum, F
 
 from sentry.conf import settings
+from sentry.signals import regression_signal
 from sentry.utils import construct_checksum, get_db_engine, should_mail
 from sentry.utils.charts import has_charts
 from sentry.utils.compat.db import connections
@@ -22,7 +23,6 @@ from sentry.utils.compat.db import connections
 assert not settings.DATABASE_USING or django.VERSION >= (1, 2), 'The `SENTRY_DATABASE_USING` setting requires Django >= 1.2'
 
 logger = logging.getLogger('sentry.errors')
-regression_signal = django.dispatch.Signal(providing_args=["instance"])
 
 class ScoreClause(object):
     def __init__(self, group):
@@ -210,7 +210,7 @@ class SentryManager(models.Manager):
                 warnings.warn(u'Unable to process log entry: %s' % (exc,))
         else:
             if mail and should_mail(group):
-                regression_signal.send(sender=group)
+                regression_signal.send(sender=GroupedMessage, instance=group)
                 group.mail_admins()
 
             return instance
