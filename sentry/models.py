@@ -87,13 +87,14 @@ class GzippedDictField(models.TextField):
 
 class Project(Model):
     name            = models.CharField(max_length=200)
-    owner           = models.ForeignKey(User)
+    owner           = models.ForeignKey(User, related_name="owned_project_set")
     public          = models.BooleanField(default=False)
     date_added      = models.DateTimeField(default=datetime.now)
 
 class ProjectMember(Model):
     project         = models.ForeignKey(Project, related_name="member_set")
     user            = models.ForeignKey(User, related_name="project_set")
+    is_superuser    = models.BooleanField(default=False)
     permissions     = BitField(flags=(
         'read_message',
         'change_message_status',

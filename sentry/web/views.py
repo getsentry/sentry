@@ -197,7 +197,7 @@ def index(request):
 
     projects = get_project_list(request.user)
 
-    message_list = GroupedMessage.objects.filter(Q(projects__in=projects) | Q(project__isnull=True))
+    message_list = GroupedMessage.objects.filter(Q(project__in=projects) | Q(project__isnull=True))
 
     sort = request.GET.get('sort')
     if sort == 'date':
@@ -246,7 +246,7 @@ def ajax_handler(request):
 
         projects = get_project_list(request.user)
 
-        message_list = GroupedMessage.objects.filter(Q(projects__in=projects) | Q(project__isnull=True))
+        message_list = GroupedMessage.objects.filter(Q(project__in=projects) | Q(project__isnull=True))
 
         sort = request.GET.get('sort')
         if sort == 'date':
@@ -317,7 +317,7 @@ def ajax_handler(request):
     def clear(request):
         projects = get_project_list(request.user)
 
-        message_list = GroupedMessage.objects.filter(Q(projects__in=projects) | Q(project__isnull=True))
+        message_list = GroupedMessage.objects.filter(Q(project__in=projects) | Q(project__isnull=True))
 
         message_list.update(status=1)
 

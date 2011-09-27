@@ -10,7 +10,7 @@ def create_default_project(app, created_models, verbosity=2, **kwargs):
         except User.DoesNotExist:
             return
 
-        models.Project.objects.get_or_create(
+        project, created = models.Project.objects.get_or_create(
             id=1,
             defaults=dict(
                 public=True,
@@ -18,6 +18,11 @@ def create_default_project(app, created_models, verbosity=2, **kwargs):
                 owner=owner,
             )
         )
+        if not created:
+            return
+
+        project.member_set.add(owner, is_superuser=True)
+
         if verbosity > 0:
             print 'Created default Sentry project owned by %s' % owner
 
