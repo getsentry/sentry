@@ -12,6 +12,7 @@ import base64
 import logging
 import math
 import time
+import uuid
 from bitfield import BitField
 from datetime import datetime
 from indexer.models import BaseIndex
@@ -95,17 +96,28 @@ class ProjectMember(Model):
     project         = models.ForeignKey(Project, related_name="member_set")
     user            = models.ForeignKey(User, related_name="project_set")
     is_superuser    = models.BooleanField(default=False)
+    api_key         = models.CharField(max_length=32, unique=True, null=True)
     permissions     = BitField(flags=(
         'read_message',
         'change_message_status',
         'add_member',
         'change_member',
         'delete_member',
+        'add_message',
     ))
     date_added      = models.DateTimeField(default=datetime.now)
 
     class Meta:
         unique_together = (('project', 'user'),)
+
+    def save(self, *args, **kwargs):
+        if not self.api_key:
+            self.api_key = ProjectMember.generate_api_key()
+        super(ProjectMember, self).save(*args, **kwargs)
+
+    @classmethod
+    def generate_api_key(cls):
+        return uuid.uuid4().hex
 
 class MessageBase(Model):
     project         = models.ForeignKey(Project, null=True)
