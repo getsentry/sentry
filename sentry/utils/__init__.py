@@ -302,14 +302,19 @@ def is_float(var):
         return False
     return True
 
-def get_signature(message, timestamp):
-    return hmac.new(settings.KEY, '%s %s' % (timestamp, message), sha_constructor).hexdigest()
+def get_signature(message, timestamp, project=None):
+    if project:
+        key = project.api_key
+    else:
+        key = settings.KEY
+    return hmac.new(key, '%s %s' % (timestamp, message), sha_constructor).hexdigest()
 
 def get_auth_header(signature, timestamp, client):
-    return 'Sentry sentry_signature=%s, sentry_timestamp=%s, sentry_client=%s' % (
+    return 'Sentry sentry_signature=%s, sentry_timestamp=%s, sentry_client=%s, sentry_project=%s' % (
         signature,
         timestamp,
         sentry.VERSION,
+        settings.PROJECT,
     )
 
 def parse_auth_header(header):

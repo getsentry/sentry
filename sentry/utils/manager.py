@@ -59,11 +59,11 @@ def count_limit(count):
         return 50
     if count <= 1000000: # 3000
         return 300
-    if count <= 10000000: # 4500 
+    if count <= 10000000: # 4500
         return 2000
     return 10000
 
-def time_limit(silence): # ~ 3600 per hour  
+def time_limit(silence): # ~ 3600 per hour
     if silence >= 3600:
         return 1
     if silence >= 360:
@@ -93,6 +93,7 @@ class SentryManager(models.Manager):
         url = kwargs.pop('url', None)
         server_name = kwargs.pop('server_name', settings.CLIENT)
         site = kwargs.pop('site', None)
+        project = kwargs.pop('project', settings.PROJECT)
         data = kwargs.pop('data', {}) or {}
         message_id = kwargs.pop('message_id', None)
 
@@ -122,6 +123,7 @@ class SentryManager(models.Manager):
             })
 
             group, created = GroupedMessage.objects.get_or_create(
+                project=project,
                 view=view,
                 logger=logger_name,
                 checksum=checksum,

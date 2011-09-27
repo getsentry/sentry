@@ -516,6 +516,13 @@ def store(request):
 
         signature = auth_vars.get('sentry_signature')
         timestamp = auth_vars.get('sentry_timestamp')
+        project = auth_vars.get('sentry_project')
+
+        if project:
+            try:
+                project = Project.objects.get(pk=project)
+            except Project.DoesNotExist:
+                return HttpResponseForbidden('Invalid signature')
 
         format = 'json'
 
@@ -531,7 +538,7 @@ def store(request):
             if timestamp < time.time() - 3600: # 1 hour
                 return HttpResponseGone('Message has expired')
 
-            sig_hmac = get_signature(data, timestamp)
+            sig_hmac = get_signature(data, timestamp, project)
             if sig_hmac != signature:
                 return HttpResponseForbidden('Invalid signature')
         else:
