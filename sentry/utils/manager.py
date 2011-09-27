@@ -22,6 +22,7 @@ from sentry.utils.compat.db import connections
 assert not settings.DATABASE_USING or django.VERSION >= (1, 2), 'The `SENTRY_DATABASE_USING` setting requires Django >= 1.2'
 
 logger = logging.getLogger('sentry.errors')
+regression_signal = django.dispatch.Signal(providing_args=["instance"])
 
 class ScoreClause(object):
     def __init__(self, group):
@@ -209,6 +210,7 @@ class SentryManager(models.Manager):
                 warnings.warn(u'Unable to process log entry: %s' % (exc,))
         else:
             if mail and should_mail(group):
+                regression_signal.send(sender=group)
                 group.mail_admins()
 
             return instance
