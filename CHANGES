@@ -1,3 +1,7 @@
+1.11.4
+
+* Several design improvements for group/message details panes.
+
 1.11.3
 
 * Fixed a bug that was causing exception summary to not show.

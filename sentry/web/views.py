@@ -394,8 +394,8 @@ def group(request, group_id):
 
         if module and args:
             # We fake the exception class due to many issues with imports/builtins/etc
-            exc_type = type(str(obj.class_name), (Exception,), {})
-            exc_value = exc_type(obj.message)
+            exc_type = obj.class_name
+            exc_value = type(str(obj.class_name), (Exception,), {})(obj.message)
             exc_value.args = args
 
         if 'template' in sentry_data:
@@ -476,8 +476,8 @@ def group_message_details(request, group_id, message_id):
 
         if module and args:
             # We fake the exception class due to many issues with imports/builtins/etc
-            exc_type = type(str(message.class_name), (Exception,), {})
-            exc_value = exc_type(message.message)
+            exc_type = message.class_name
+            exc_value = type(str(message.class_name), (Exception,), {})(message.message)
             exc_value.args = args
 
         if 'template' in sentry_data:
