@@ -20,9 +20,22 @@
 
 {% block main %}
     <h2>Manage Project: {{ project.name }}</h2>
-    <form action="" method="post">
+    <form action="" method="post" style="width: 500px">
         {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Save Changes</button>
+        <table style="width: 100%">
+            <colgroup>
+                <col width="100px"/>
+                <col/>
+            </colgroup>
+            {% for field in form %}
+                <tr>
+                    <td>{{ field.label_tag }}</td>
+                    <td>{{ field }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+        <div class="submit">
+            <button type="submit" class="button">{% trans "Login" %}</button>
+        </div>
     </form>
 {% endblock %}
