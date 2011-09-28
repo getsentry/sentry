@@ -47,10 +47,18 @@ urlpatterns = patterns('',
 
     url(r'^store/$', api.store, name='sentry-store'),
 
-    # Normal views
+    # Account
 
     url(r'^login$', views.login, name='sentry-login'),
     url(r'^logout$', views.logout, name='sentry-logout'),
+
+    # Management
+
+    url(r'^projects$', views.project_list, name='sentry-project-list'),
+    url(r'^projects/(\d+)/edit$', views.manage_project, name='sentry-manage-project'),
+
+    # Normal views
+
     url(r'^group/(\d+)$', views.group, name='sentry-group'),
     url(r'^group/(\d+)/messages$', views.group_message_list, name='sentry-group-messages'),
     url(r'^group/(\d+)/messages/(\d+)$', views.group_message_details, name='sentry-group-message'),

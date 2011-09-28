@@ -19,7 +19,7 @@ from django.utils.encoding import smart_str
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.conf import settings
-from sentry.models import GroupedMessage, Message, Project, ProjectMember
+from sentry.models import GroupedMessage, ProjectMember
 from sentry.utils import is_float, json
 from sentry.utils.auth import get_signature, parse_auth_header
 from sentry.utils.compat import pickle

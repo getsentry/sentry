@@ -9,9 +9,8 @@ sentry.web.views
 import datetime
 import re
 
-from django.conf import settings as dj_settings
 from django.core.context_processors import csrf
-from django.core.urlresolvers import reverse, resolve
+from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.http import HttpResponse, HttpResponseBadRequest, \
     HttpResponseForbidden, HttpResponseRedirect, Http404, HttpResponseNotModified
@@ -20,91 +19,16 @@ from django.template.loader import render_to_string
 from django.views.decorators.csrf import csrf_protect
 
 from sentry.conf import settings
-from sentry.models import GroupedMessage, Message, Project
+from sentry.models import GroupedMessage, Message
 from sentry.plugins import GroupActionProvider
 from sentry.templatetags.sentry_helpers import with_priority
 from sentry.utils import get_filters, json
 from sentry.utils.stacks import get_template_info
+from sentry.web.forms import EditProjectForm
+from sentry.web.helpers import login_required, render_to_response, get_search_query_set, \
+    get_project_list, iter_data
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$')
-
-def get_project_list(user=None):
-    """
-    Returns a set of all projects a user has some level of access to.
-    """
-    projects = set(Project.objects.filter(public=True))
-    if user.is_authenticated():
-        projects.update(set(Project.objects.filter(member_set__user=user)))
-    return projects
-
-_LOGIN_URL = None
-def get_login_url(reset=False):
-    global _LOGIN_URL
-
-    if _LOGIN_URL is None or reset:
-        # if LOGIN_URL resolves force login_required to it instead of our own
-        # XXX: this must be done as late as possible to avoid idempotent requirements
-        try:
-            resolve(dj_settings.LOGIN_URL)
-        except:
-            _LOGIN_URL = settings.LOGIN_URL
-        else:
-            _LOGIN_URL = dj_settings.LOGIN_URL
-
-        if _LOGIN_URL is None:
-             _LOGIN_URL = reverse('sentry-login')
-    return _LOGIN_URL
-
-def iter_data(obj):
-    for k, v in obj.data.iteritems():
-        if k.startswith('_') or k in ['url']:
-            continue
-        yield k, v
-
-def render_to_response(template, context={}, status=200):
-    from django.shortcuts import render_to_response
-
-    context.update({
-        'has_search': bool(settings.SEARCH_ENGINE),
-    })
-
-    response = render_to_response(template, context)
-    response.status_code = status
-    return response
-
-def get_search_query_set(query):
-    from haystack.query import SearchQuerySet
-    from sentry.search_indexes import site, backend
-
-    class SentrySearchQuerySet(SearchQuerySet):
-        "Returns actual instances rather than search results."
-
-        def __getitem__(self, k):
-            result = []
-            for r in super(SentrySearchQuerySet, self).__getitem__(k):
-                inst = r.object
-                if not inst:
-                    continue
-                inst.score = r.score
-                result.append(inst)
-            return result
-
-    return SentrySearchQuerySet(
-        site=site,
-        query=backend.SearchQuery(backend=site.backend),
-    ).filter(content=query)
-
-def login_required(func):
-    def wrapped(request, *args, **kwargs):
-        if not settings.PUBLIC:
-            if not request.user.is_authenticated():
-                return HttpResponseRedirect(get_login_url())
-            if not request.user.has_perm('sentry.can_view'):
-                return render_to_response('sentry/missing_permissions.html', status=400)
-        return func(request, *args, **kwargs)
-    wrapped.__doc__ = func.__doc__
-    wrapped.__name__ = func.__name__
-    return wrapped
 
 @csrf_protect
 def login(request):
@@ -137,92 +61,6 @@ def logout(request):
 
     return HttpResponseRedirect(reverse('sentry'))
 
-@login_required
-def search(request):
-    query = request.GET.get('q')
-    has_search = bool(settings.SEARCH_ENGINE)
-
-    if query:
-        if uuid_re.match(query):
-            # Forward to message if it exists
-            try:
-                message = Message.objects.get(message_id=query)
-            except Message.DoesNotExist:
-                if not has_search:
-                    return render_to_response('sentry/invalid_message_id.html')
-                else:
-                    message_list = get_search_query_set(query)
-            else:
-                return HttpResponseRedirect(message.get_absolute_url())
-        elif not has_search:
-            return render_to_response('sentry/invalid_message_id.html')
-        else:
-            message_list = get_search_query_set(query)
-    else:
-        message_list = GroupedMessage.objects.none()
-
-    sort = request.GET.get('sort')
-    if sort == 'date':
-        message_list = message_list.order_by('-last_seen')
-    elif sort == 'new':
-        message_list = message_list.order_by('-first_seen')
-    else:
-        sort = 'relevance'
-
-    return render_to_response('sentry/search.html', {
-        'message_list': message_list,
-        'query': query,
-        'sort': sort,
-        'request': request,
-    })
-
-@login_required
-def index(request):
-    filters = []
-    for filter_ in get_filters():
-        filters.append(filter_(request))
-
-    try:
-        page = int(request.GET.get('p', 1))
-    except (TypeError, ValueError):
-        page = 1
-
-    projects = get_project_list(request.user)
-
-    message_list = GroupedMessage.objects.filter(Q(project__in=projects) | Q(project__isnull=True))
-
-    sort = request.GET.get('sort')
-    if sort == 'date':
-        message_list = message_list.order_by('-last_seen')
-    elif sort == 'new':
-        message_list = message_list.order_by('-first_seen')
-    elif sort == 'freq':
-        message_list = message_list.order_by('-times_seen')
-    else:
-        sort = 'priority'
-        message_list = message_list.order_by('-score', '-last_seen')
-
-    # Filters only apply if we're not searching
-    any_filter = False
-    for filter_ in filters:
-        if not filter_.is_set():
-            continue
-        any_filter = True
-        message_list = filter_.get_query_set(message_list)
-
-    today = datetime.datetime.now()
-
-    has_realtime = page == 1
-
-    return render_to_response('sentry/index.html', {
-        'has_realtime': has_realtime,
-        'message_list': message_list,
-        'today': today,
-        'sort': sort,
-        'any_filter': any_filter,
-        'request': request,
-        'filters': filters,
-    })
 
 @login_required
 def ajax_handler(request):
@@ -344,6 +182,93 @@ def ajax_handler(request):
         return locals()[op](request)
     else:
         return HttpResponseBadRequest()
+
+@login_required
+def search(request):
+    query = request.GET.get('q')
+    has_search = bool(settings.SEARCH_ENGINE)
+
+    if query:
+        if uuid_re.match(query):
+            # Forward to message if it exists
+            try:
+                message = Message.objects.get(message_id=query)
+            except Message.DoesNotExist:
+                if not has_search:
+                    return render_to_response('sentry/invalid_message_id.html')
+                else:
+                    message_list = get_search_query_set(query)
+            else:
+                return HttpResponseRedirect(message.get_absolute_url())
+        elif not has_search:
+            return render_to_response('sentry/invalid_message_id.html')
+        else:
+            message_list = get_search_query_set(query)
+    else:
+        message_list = GroupedMessage.objects.none()
+
+    sort = request.GET.get('sort')
+    if sort == 'date':
+        message_list = message_list.order_by('-last_seen')
+    elif sort == 'new':
+        message_list = message_list.order_by('-first_seen')
+    else:
+        sort = 'relevance'
+
+    return render_to_response('sentry/search.html', {
+        'message_list': message_list,
+        'query': query,
+        'sort': sort,
+        'request': request,
+    })
+
+@login_required
+def index(request):
+    filters = []
+    for filter_ in get_filters():
+        filters.append(filter_(request))
+
+    try:
+        page = int(request.GET.get('p', 1))
+    except (TypeError, ValueError):
+        page = 1
+
+    projects = get_project_list(request.user)
+
+    message_list = GroupedMessage.objects.filter(Q(project__in=projects) | Q(project__isnull=True))
+
+    sort = request.GET.get('sort')
+    if sort == 'date':
+        message_list = message_list.order_by('-last_seen')
+    elif sort == 'new':
+        message_list = message_list.order_by('-first_seen')
+    elif sort == 'freq':
+        message_list = message_list.order_by('-times_seen')
+    else:
+        sort = 'priority'
+        message_list = message_list.order_by('-score', '-last_seen')
+
+    # Filters only apply if we're not searching
+    any_filter = False
+    for filter_ in filters:
+        if not filter_.is_set():
+            continue
+        any_filter = True
+        message_list = filter_.get_query_set(message_list)
+
+    today = datetime.datetime.now()
+
+    has_realtime = page == 1
+
+    return render_to_response('sentry/index.html', {
+        'has_realtime': has_realtime,
+        'message_list': message_list,
+        'today': today,
+        'sort': sort,
+        'any_filter': any_filter,
+        'request': request,
+        'filters': filters,
+    })
 
 @login_required
 def group(request, group_id):
@@ -510,6 +435,35 @@ def group_plugin_action(request, group_id, slug):
     if response:
         return response
     return HttpResponseRedirect(request.META.get('HTTP_REFERER') or reverse('sentry'))
+
+@login_required
+def project_list(request):
+    return render_to_response('sentry/projects/list.html', {
+        'project_list': get_project_list(request.user),
+        'request': request,
+    })
+
+@login_required
+def manage_project(request, project_id):
+    project_list = dict((str(p.id), p) for p in get_project_list(request.user))
+    try:
+        project = project_list[project_id]
+    except KeyError:
+        return HttpResponseRedirect(reverse('sentry-project-list'))
+
+    form = EditProjectForm(request.POST or None, instance=project)
+    if form.is_valid():
+        project = form.save()
+
+    context = csrf(request)
+    context.update({
+        'form': form,
+        'project': project,
+        'project_list': project_list.values(),
+        'request': request,
+    })
+
+    return render_to_response('sentry/projects/manage.html', context)
 
 def static_media(request, path):
     """
