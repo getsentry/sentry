@@ -47,6 +47,8 @@ def store(request):
         if api_key:
             try:
                 pm = ProjectMember.objects.get(api_key=api_key)
+                if not pm.has_perm('add_message'):
+                    raise ProjectMember.DoesNotExist
             except ProjectMember.DoesNotExist:
                 return HttpResponseForbidden('Invalid signature')
             project = pm.project

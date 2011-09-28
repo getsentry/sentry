@@ -97,7 +97,7 @@ class ProjectMember(Model):
     project         = models.ForeignKey(Project, related_name="member_set")
     user            = models.ForeignKey(User, related_name="project_set")
     is_superuser    = models.BooleanField(default=False)
-    public_key         = models.CharField(max_length=32, unique=True, null=True)
+    public_key      = models.CharField(max_length=32, unique=True, null=True)
     secret_key      = models.CharField(max_length=32, unique=True, null=True)
     permissions     = BitField(flags=(
         'read_message',
@@ -118,6 +118,11 @@ class ProjectMember(Model):
         if not self.secret_key:
             self.secret_key = ProjectMember.generate_api_key()
         super(ProjectMember, self).save(*args, **kwargs)
+
+    def has_perm(self, flag):
+        if self.is_superuser:
+            return True
+        return getattr(self.permissions, flag, False)
 
     @classmethod
     def generate_api_key(cls):
