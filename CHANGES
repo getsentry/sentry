@@ -1,3 +1,8 @@
+1.12.0
+
+* Added project scoping to all data in sentry.
+* Added permissions to projects.
+
 1.11.4
 
 * Several design improvements for group/message details panes.
