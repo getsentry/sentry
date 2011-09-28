@@ -12,7 +12,7 @@ from django.conf.urls.defaults import *
 from django.views.defaults import page_not_found
 
 from sentry.conf.settings import KEY
-from sentry.web import views, feeds
+from sentry.web import views, feeds, api
 
 handler404 = lambda x: page_not_found(x, template_name='sentry/404.html')
 
@@ -25,9 +25,9 @@ def handler500(request):
     """
     from django.template import Context, loader
     from django.http import HttpResponseServerError
-    
+
     context = {'request': request}
-    
+
     t = loader.get_template('sentry/500.html')
     return HttpResponseServerError(t.render(Context(context)))
 
@@ -39,11 +39,14 @@ urlpatterns = patterns('',
     url(r'^feeds/%s/messages.xml$' % re.escape(KEY), feeds.MessageFeed(), name='sentry-feed-messages'),
     url(r'^feeds/%s/summaries.xml$' % re.escape(KEY), feeds.SummaryFeed(), name='sentry-feed-summaries'),
 
-    # JS and API
+    # JS
 
     url(r'^jsapi/$', views.ajax_handler, name='sentry-ajax'),
-    url(r'^store/$', views.store, name='sentry-store'),
-    
+
+    # API
+
+    url(r'^store/$', api.store, name='sentry-store'),
+
     # Normal views
 
     url(r'^login$', views.login, name='sentry-login'),
