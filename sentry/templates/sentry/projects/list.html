@@ -1,9 +1,8 @@
 {% extends "sentry/layout.html" %}
 
 {% load i18n %}
-{% load sentry_helpers %}
 
-{% block title %}Project List | {{ block.super }}{% endblock %}
+{% block title %}{% trans "Project List" %} | {{ block.super }}{% endblock %}
 
 {% block heading %}
     {% trans "Project List" %}
@@ -13,7 +12,7 @@
 {% endblock %}
 
 {% block main %}
-    <h2>Project List</h2>
+    <h2>{% trans "Project List" %}</h2>
     <ul>
         {% for project in project_list %}
             <li><a href="{% url sentry-manage-project project.pk %}">{{ project.name }}</a></li>

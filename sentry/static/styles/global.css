@@ -126,7 +126,7 @@ pre {
     -webkit-box-shadow: inset 0 0 1px #22579b, 0 1px 0 #fff;
     padding: 10px 10px 0;
 }
-.module table, .module form, .module pre, .module ol, .module ul { margin-bottom: 10px; }
+.module table, .module form, .module pre, .module ol, .module ul, .module form { margin-bottom: 10px; }
 
 #account {
     position: absolute;

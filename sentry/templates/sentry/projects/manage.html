@@ -1,16 +1,15 @@
 {% extends "sentry/layout.html" %}
 
 {% load i18n %}
-{% load sentry_helpers %}
 
-{% block title %}Manage Project: {{ project.name }} | {{ block.super }}{% endblock %}
+{% block title %}{% blocktrans with project.name as name %}Manage Project: {{ name }}{% endblocktrans %} | {{ block.super }}{% endblock %}
 
 {% block heading %}
     {% trans "Project List" %}
 {% endblock %}
 
 {% block sidebar %}
-    <h2>Project List</h2>
+    <h2>{% trans "Project List" %}</h2>
     <ul>
         {% for project in project_list %}
             <li><a href="{% url sentry-manage-project project.pk %}">{{ project.name }}</a></li>
@@ -19,23 +18,58 @@
 {% endblock %}
 
 {% block main %}
-    <h2>Manage Project: {{ project.name }}</h2>
+    <h1>{% blocktrans with project.name as name %}Manage Project: {{ name }}{% endblocktrans %}</h1>
     <form action="" method="post" style="width: 500px">
-        {% csrf_token %}
-        <table style="width: 100%">
-            <colgroup>
-                <col width="100px"/>
-                <col/>
-            </colgroup>
-            {% for field in form %}
-                <tr>
-                    <td>{{ field.label_tag }}</td>
-                    <td>{{ field }}</td>
-                </tr>
-            {% endfor %}
-        </table>
-        <div class="submit">
-            <button type="submit" class="button">{% trans "Login" %}</button>
+        <div class="module">
+            <h2>{% trans "Project Details" %}</h2>
+            <div class="module-content">
+                {% csrf_token %}
+                <table style="width: 480px">
+                    <colgroup>
+                        <col width="100px"/>
+                        <col/>
+                    </colgroup>
+                    {% for field in form %}
+                        <tr{% if field.errors %} class="has-errors"{% endif %}>
+                            <td>{{ field.label_tag }}</td>
+                            <td>{{ field }}</td>
+                        </tr>
+                    {% endfor %}
+                </table>
+                <p class="submit">
+                    <button type="submit" class="button">{% trans "Save Changes" %}</button>
+                </p>
+            </div>
+        </div>
+        <div class="module">
+            <h2>{% trans "Access" %}</h2>
+            <div class="module-content">
+                <table style="width: 480px">
+                    <colgroup>
+                        <col width="100px"/>
+                        <col/>
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Access</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>zeeg</td>
+                            <td><strong>superuser</strong></td>
+                        </tr>
+                        <tr>
+                            <td>chriskjennings</td>
+                            <td>read_message, submit_message</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p class="submit">
+                    <button type="submit" class="button">{% trans "Save Changes" %}</button>
+                </p>
+            </div>
         </div>
     </form>
 {% endblock %}
