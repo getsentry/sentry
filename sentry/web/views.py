@@ -19,11 +19,12 @@ from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse, resolve
 from django.http import HttpResponse, HttpResponseBadRequest, \
     HttpResponseForbidden, HttpResponseRedirect, Http404, HttpResponseNotModified, \
-    HttpResponseNotAllowed, HttpResponseGone
+    HttpResponseGone
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.utils.encoding import smart_str
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
+from django.views.decorators.http import require_http_methods
 
 from sentry.conf import settings
 from sentry.models import GroupedMessage, Message
@@ -473,10 +474,8 @@ def group_message_details(request, group_id, message_id):
     })
 
 @csrf_exempt
+@require_http_methods(['POST'])
 def store(request):
-    if request.method != 'POST':
-        return HttpResponseNotAllowed('This method only supports POST requests')
-
     if request.META.get('HTTP_AUTHORIZATION', '').startswith('Sentry'):
         auth_vars = parse_auth_header(request.META['HTTP_AUTHORIZATION'])
 
