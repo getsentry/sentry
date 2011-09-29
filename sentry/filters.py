@@ -33,18 +33,21 @@ class TextWidget(Widget):
         ))
 
 class ChoiceWidget(Widget):
+    allow_any = True
+
     def render(self, value, **kwargs):
         choices = self.filter.get_choices()
         query_string = self.get_query_string()
         column = self.filter.get_query_param()
 
         output = ['<ul class="%s-list filter-list" rel="%s">' % (self.filter.column, column)]
-        output.append('<li%(active)s><a href="%(query_string)s&amp;%(column)s=">Any %(label)s</a></li>' % dict(
-            active=not value and ' class="active"' or '',
-            query_string=query_string,
-            label=self.filter.label,
-            column=column,
-        ))
+        if self.allow_any:
+            output.append('<li%(active)s><a href="%(query_string)s&amp;%(column)s=">Any %(label)s</a></li>' % dict(
+                active=not value and ' class="active"' or '',
+                query_string=query_string,
+                label=self.filter.label,
+                column=column,
+            ))
         for key, val in choices.iteritems():
             key = unicode(key)
             output.append('<li%(active)s rel="%(key)s"><a href="%(query_string)s&amp;%(column)s=%(key)s">%(value)s</a></li>' % dict(
@@ -191,6 +194,13 @@ class SiteFilter(SentryFilter):
 class ProjectFilter(SentryFilter):
     label = 'Project'
     column = 'project'
+
+    allow_any = False
+
+    def get_value(self):
+        from sentry.web.views import get_project_list
+        projects = get_project_list(self.request.user)
+        return self.request.GET.get(self.get_query_param()) or projects[0].id
 
     def get_choices(self):
         from sentry.web.views import get_project_list
