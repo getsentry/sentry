@@ -11,15 +11,18 @@ from django.core.urlresolvers import reverse, resolve
 from django.http import HttpResponseRedirect
 
 from sentry.conf import settings
-from sentry.models import Project
+from sentry.models import Project, ProjectMember
 
-def get_project_list(user=None):
+def get_project_list(user=None, flag=None):
     """
     Returns a set of all projects a user has some level of access to.
     """
     projects = set(Project.objects.filter(public=True))
     if user.is_authenticated():
-        projects.update(set(Project.objects.filter(member_set__user=user)))
+        pms = list(ProjectMember.objects.filter(user=user).select_related('project'))
+        if flag:
+            pms = filter(lambda x: x.has_perm(flag), pms)
+        projects.update(set(pms))
     return projects
 
 _LOGIN_URL = None

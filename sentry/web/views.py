@@ -74,7 +74,7 @@ def ajax_handler(request):
         for filter_ in get_filters():
             filters.append(filter_(request))
 
-        projects = get_project_list(request.user)
+        projects = get_project_list(request.user, 'read_message')
 
         message_list = GroupedMessage.objects.filter(Q(project__in=projects) | Q(project__isnull=True))
 
@@ -122,7 +122,7 @@ def ajax_handler(request):
         except GroupedMessage.DoesNotExist:
             return HttpResponseForbidden()
 
-        if group.project and group.project not in get_project_list(request.user):
+        if group.project and group.project not in get_project_list(request.user, 'change_message_status'):
             return HttpResponseForbidden()
 
         GroupedMessage.objects.filter(pk=group.pk).update(status=1)
@@ -145,7 +145,7 @@ def ajax_handler(request):
         return response
 
     def clear(request):
-        projects = get_project_list(request.user)
+        projects = get_project_list(request.user, 'change_message_status')
 
         message_list = GroupedMessage.objects.filter(Q(project__in=projects) | Q(project__isnull=True))
 
@@ -169,7 +169,7 @@ def ajax_handler(request):
         except GroupedMessage.DoesNotExist:
             return HttpResponseForbidden()
 
-        if group.project and group.project not in get_project_list(request.user):
+        if group.project and group.project not in get_project_list(request.user, 'read_message'):
             return HttpResponseForbidden()
 
         data = GroupedMessage.objects.get_chart_data(group)
@@ -233,7 +233,7 @@ def index(request):
     except (TypeError, ValueError):
         page = 1
 
-    projects = get_project_list(request.user)
+    projects = get_project_list(request.user, 'read_message')
 
     message_list = GroupedMessage.objects.filter(Q(project__in=projects) | Q(project__isnull=True))
 
@@ -274,7 +274,7 @@ def index(request):
 def group(request, group_id):
     group = get_object_or_404(GroupedMessage, pk=group_id)
 
-    if group.project and group.project not in get_project_list(request.user):
+    if group.project and group.project not in get_project_list(request.user, 'read_message'):
         return HttpResponseForbidden()
 
     try:
@@ -344,7 +344,7 @@ def group(request, group_id):
 def group_message_list(request, group_id):
     group = get_object_or_404(GroupedMessage, pk=group_id)
 
-    if group.project and group.project not in get_project_list(request.user):
+    if group.project and group.project not in get_project_list(request.user, 'read_message'):
         return HttpResponseForbidden()
 
     message_list = group.message_set.all().order_by('-datetime')
@@ -360,7 +360,7 @@ def group_message_list(request, group_id):
 def group_message_details(request, group_id, message_id):
     group = get_object_or_404(GroupedMessage, pk=group_id)
 
-    if group.project and group.project not in get_project_list(request.user):
+    if group.project and group.project not in get_project_list(request.user, 'read_message'):
             return HttpResponseForbidden()
 
     message = get_object_or_404(group.message_set, pk=message_id)
