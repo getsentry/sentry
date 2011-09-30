@@ -209,7 +209,7 @@ class SentryClient(object):
             if request and message_id:
                 # attach the sentry object to the request
                 request.sentry = {
-                    'id': message_id,
+                    'id': '%s$%s' % (message_id, checksum),
                     'thrashed': True,
                 }
 
@@ -236,7 +236,7 @@ class SentryClient(object):
         if request:
             # attach the sentry object to the request
             request.sentry = {
-                'id': message_id,
+                'id': '%s$%s' % (message_id, checksum),
                 'thrashed': False,
             }
 

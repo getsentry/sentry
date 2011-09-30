@@ -136,7 +136,7 @@ class MessageBase(Model):
     message         = models.TextField()
     traceback       = models.TextField(blank=True, null=True)
     view            = models.CharField(max_length=200, blank=True, null=True)
-    checksum        = models.CharField(max_length=32)
+    checksum        = models.CharField(max_length=32, db_index=True)
     data            = GzippedDictField(blank=True, null=True)
 
     objects         = SentryManager()

@@ -17,6 +17,10 @@ from django.http import HttpResponse, HttpResponseBadRequest, \
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.views.decorators.csrf import csrf_protect
+from django.shortcuts import get_object_or_404
+from django.template.loader import render_to_string
+from django.utils.encoding import smart_str
+from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
 from sentry.conf import settings
 from sentry.models import GroupedMessage, Message
@@ -28,7 +32,8 @@ from sentry.web.forms import EditProjectForm
 from sentry.web.helpers import login_required, render_to_response, get_search_query_set, \
     get_project_list, iter_data
 
-uuid_re = re.compile(r'^[a-z0-9]{32}$')
+uuid_re = re.compile(r'^[a-z0-9]{32}$', re.I)
+message_re = re.compile(r'^(?P<message_id>[a-z0-9]{32})\$(?P<checksum>[a-z0-9]{32})$', re.I)
 
 @csrf_protect
 def login(request):
@@ -60,7 +65,6 @@ def logout(request):
     logout(request)
 
     return HttpResponseRedirect(reverse('sentry'))
-
 
 @login_required
 def ajax_handler(request):
@@ -189,7 +193,21 @@ def search(request):
     has_search = bool(settings.SEARCH_ENGINE)
 
     if query:
-        if uuid_re.match(query):
+        result = message_re.match(query)
+        if result:
+            # Forward to message if it exists
+            message_id = result.group(1)
+            checksum = result.group(2)
+            try:
+                message = GroupedMessage.objects.get(checksum=checksum)
+            except GroupedMessage.DoesNotExist:
+                if not has_search:
+                    return render_to_response('sentry/invalid_message_id.html')
+                else:
+                    message_list = get_search_query_set(query)
+            else:
+                return HttpResponseRedirect(message.get_absolute_url())
+        elif uuid_re.match(query):
             # Forward to message if it exists
             try:
                 message = Message.objects.get(message_id=query)
@@ -422,6 +440,7 @@ def group_message_details(request, group_id, message_id):
         'exception_value': exc_value,
         'request': request,
     })
+
 
 @login_required
 def group_plugin_action(request, group_id, slug):

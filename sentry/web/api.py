@@ -14,9 +14,10 @@ import warnings
 import zlib
 
 from django.http import HttpResponse, HttpResponseBadRequest, \
-    HttpResponseForbidden, HttpResponseNotAllowed, HttpResponseGone
+    HttpResponseForbidden, HttpResponseGone
 from django.utils.encoding import smart_str
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 
 from sentry.conf import settings
 from sentry.models import GroupedMessage, ProjectMember
@@ -25,10 +26,8 @@ from sentry.utils.auth import get_signature, parse_auth_header
 from sentry.utils.compat import pickle
 
 @csrf_exempt
+@require_http_methods(['POST'])
 def store(request):
-    if request.method != 'POST':
-        return HttpResponseNotAllowed('This method only supports POST requests')
-
     if request.META.get('HTTP_X_SENTRY_AUTH', '').startswith('Sentry'):
         # Auth version 2.0
         auth_vars = parse_auth_header(request.META['HTTP_X_SENTRY_AUTH'])
