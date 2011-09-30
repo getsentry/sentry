@@ -1,3 +1,8 @@
+1.12.0
+
+* Adjusted message_id to include the checksum to avoid situations were the message_id
+  that was generated did not exist due to sampling.
+
 1.11.4
 
 * Several design improvements for group/message details panes.
