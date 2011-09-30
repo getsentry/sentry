@@ -2,6 +2,8 @@
 
 * Added project scoping to all data in sentry.
 * Added permissions to projects.
+* The authorization header is now X-Sentry-Auth to avoid certain default behaviors such as
+  mod_wsgi's "don't pass HTTP Authorization header".
 
 1.12.0
 
