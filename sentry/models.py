@@ -128,6 +128,13 @@ class ProjectMember(Model):
     def generate_api_key(cls):
         return uuid.uuid4().hex
 
+class ProjectDomain(Model):
+    project         = models.ForeignKey(Project, related_name="domain_set")
+    domain          = models.CharField(max_length=128)
+
+    class Meta:
+        unique_together = (('project', 'domain'),)
+
 class MessageBase(Model):
     project         = models.ForeignKey(Project, null=True)
     logger          = models.CharField(max_length=64, blank=True, default='root', db_index=True)
