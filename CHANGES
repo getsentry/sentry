@@ -1,3 +1,7 @@
+1.12.1
+
+* Stabilize migration schema (solves problem with index creation fail introduced in 1.12.0).
+
 1.12.0
 
 * Adjusted message_id to include the checksum to avoid situations were the message_id
