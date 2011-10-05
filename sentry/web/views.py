@@ -17,10 +17,6 @@ from django.http import HttpResponse, HttpResponseBadRequest, \
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.views.decorators.csrf import csrf_protect
-from django.shortcuts import get_object_or_404
-from django.template.loader import render_to_string
-from django.utils.encoding import smart_str
-from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
 from sentry.conf import settings
 from sentry.models import GroupedMessage, Message
@@ -50,7 +46,6 @@ def login(request):
     else:
         form = AuthenticationForm(request)
         request.session.set_test_cookie()
-
 
     context = csrf(request)
     context.update({
