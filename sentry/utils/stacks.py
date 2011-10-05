@@ -125,7 +125,7 @@ def get_stack_info(frames):
         function = frame.f_code.co_name
         lineno = frame.f_lineno - 1
         loader = frame.f_globals.get('__loader__')
-        module_name = frame.f_globals.get('__name__')
+        module_name = frame.f_globals.get('__name__') or '?'
         pre_context_lineno, pre_context, context_line, post_context = get_lines_from_file(filename, lineno, 7, loader, module_name)
         if pre_context_lineno is not None:
             results.append({
