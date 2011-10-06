@@ -42,10 +42,7 @@ class TransactionTestCase(TransactionTestCase):
     fixtures and doesn't `flush` on setup.  This enables tests to be run in
     any order.
     """
-    tags = ['transaction']
-
-    multi_db = True
-    databases = None
+    urls = 'tests.urls'
 
     def __call__(self, result=None):
         """
@@ -53,7 +50,7 @@ class TransactionTestCase(TransactionTestCase):
         set up. This means that user-defined Test Cases aren't required to
         include a call to super().setUp().
         """
-        self.client = Client()
+        self.client = getattr(self, 'client_class', Client)()
         try:
             self._pre_setup()
         except (KeyboardInterrupt, SystemExit):
@@ -72,7 +69,6 @@ class TransactionTestCase(TransactionTestCase):
             except Exception:
                 import sys
                 result.addError(self, sys.exc_info())
-                return
 
     def _get_databases(self):
         if getattr(self, 'multi_db', False):
