@@ -68,7 +68,7 @@ if not settings.configured:
     import djcelery
     djcelery.setup_loader()
 
-from django.test.simple import run_tests
+from django_nose import NoseTestSuiteRunner
 
 def runtests(*test_args, **kwargs):
     if 'south' in settings.INSTALLED_APPS:
@@ -78,18 +78,15 @@ def runtests(*test_args, **kwargs):
     if not test_args:
         test_args = ['tests']
 
-    failures = run_tests(test_args,
-        verbosity=kwargs.get('verbosity', 1),
-        interactive=kwargs.get('interactive', False),
-        failfast=kwargs.get('failfast'),
-    )
+    test_runner = NoseTestSuiteRunner(**kwargs)
 
+    failures = test_runner.run_tests(test_args)
     sys.exit(failures)
 
 if __name__ == '__main__':
     parser = OptionParser()
-    parser.add_option('--failfast', action='store_true', default=False, dest='failfast')
-
+    parser.add_option('--verbosity', dest='verbosity', action='store', default=1, type=int)
+    parser.add_options(NoseTestSuiteRunner.options)
     (options, args) = parser.parse_args()
 
-    runtests(failfast=options.failfast, *args)
+    runtests(*args, **options.__dict__)

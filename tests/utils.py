@@ -2,10 +2,12 @@ import socket
 import threading
 import warnings
 
+from django.conf import settings as django_settings
 from django.core.handlers.wsgi import WSGIHandler
 from django.core.management import call_command
 from django.core.servers import basehttp
 
+from sentry.conf import settings
 from sentry.utils.compat.db import connections
 
 class StoppableWSGIServer(basehttp.WSGIServer):
@@ -81,3 +83,35 @@ def conditional_on_module(module):
                 return func(self, *args, **kwargs)
         return inner
     return wrapped
+
+class Settings(object):
+    """
+    Allows you to define settings that are required for this function to work.
+
+    >>> with Settings(SENTRY_LOGIN_URL='foo'): #doctest: +SKIP
+    >>>     print settings.SENTRY_LOGIN_URL #doctest: +SKIP
+    """
+
+    NotDefined = object()
+
+    def __init__(self, **overrides):
+        self.overrides = overrides
+        self._orig = {}
+
+    def __enter__(self):
+        for k, v in self.overrides.iteritems():
+            self._orig[k] = getattr(django_settings, k, self.NotDefined)
+            setattr(django_settings, k, v)
+            if k.startswith('SENTRY_'):
+                setattr(settings, k.split('SENTRY_', 1)[1], v)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        for k, v in self._orig.iteritems():
+            if v is self.NotDefined:
+                delattr(django_settings, k)
+                if k.startswith('SENTRY_'):
+                    delattr(settings, k.split('SENTRY_', 1)[1])
+            else:
+                setattr(django_settings, k, v)
+                if k.startswith('SENTRY_'):
+                    setattr(settings, k.split('SENTRY_', 1)[1], v)
