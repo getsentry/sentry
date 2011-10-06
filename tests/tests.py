@@ -2,20 +2,17 @@
 
 from __future__ import absolute_import
 
-import base64
 import datetime
 import getpass
 import logging
 import os.path
 import socket
-import time
 
 from django.conf import settings as django_settings
 from django.contrib.auth.models import User
 from django.core import mail
 from django.core.urlresolvers import reverse
 from django.core.signals import got_request_exception
-from django.test import TestCase, TransactionTestCase
 from django.template import TemplateSyntaxError
 from django.utils.encoding import smart_unicode
 from django.utils.functional import lazy
@@ -26,13 +23,13 @@ from sentry.client.models import get_client
 from sentry.conf import settings
 from sentry.models import Message, GroupedMessage, MessageCountByMinute, \
                           FilterValue, MessageFilterValue
-from sentry.utils import json, transform, MockDjangoRequest
-from sentry.utils.auth import get_signature, get_auth_header
+from sentry.utils import transform, MockDjangoRequest
 from sentry.utils.compat import pickle
 from sentry.web.views import get_login_url
 
 from tests.models import TestModel, DuplicateKeyModel
-from tests.utils import TestServerThread, conditional_on_module
+from tests.testcases import TestCase, TransactionTestCase
+from tests.utils import TestServerThread, conditional_on_module, Settings
 
 # class NullHandler(logging.Handler):
 #     def emit(self, record):
@@ -50,62 +47,7 @@ logger = logging.getLogger('sentry.test')
 logger.addHandler(SentryHandler())
 logger.setLevel(logging.DEBUG)
 
-class Settings(object):
-    """
-    Allows you to define settings that are required for this function to work.
-
-    >>> with Settings(SENTRY_LOGIN_URL='foo'): #doctest: +SKIP
-    >>>     print settings.SENTRY_LOGIN_URL #doctest: +SKIP
-    """
-
-    NotDefined = object()
-
-    def __init__(self, **overrides):
-        self.overrides = overrides
-        self._orig = {}
-
-    def __enter__(self):
-        for k, v in self.overrides.iteritems():
-            self._orig[k] = getattr(django_settings, k, self.NotDefined)
-            setattr(django_settings, k, v)
-            if k.startswith('SENTRY_'):
-                setattr(settings, k.split('SENTRY_', 1)[1], v)
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        for k, v in self._orig.iteritems():
-            if v is self.NotDefined:
-                delattr(django_settings, k)
-                if k.startswith('SENTRY_'):
-                    delattr(settings, k.split('SENTRY_', 1)[1])
-            else:
-                setattr(django_settings, k, v)
-                if k.startswith('SENTRY_'):
-                    setattr(settings, k.split('SENTRY_', 1)[1], v)
-
-class BaseTestCase(TestCase):
-    ## Helper methods for posting
-
-    urls = 'tests.urls'
-
-    def _postWithKey(self, data):
-        resp = self.client.post(reverse('sentry-store'), {
-            'data': base64.b64encode(pickle.dumps(transform(data))),
-            'key': settings.KEY,
-        })
-        return resp
-
-    def _postWithSignature(self, data):
-        ts = time.time()
-        message = base64.b64encode(json.dumps(transform(data)))
-        sig = get_signature(message, ts)
-
-        resp = self.client.post(reverse('sentry-store'), message,
-            content_type='application/octet-stream',
-            HTTP_AUTHORIZATION=get_auth_header(sig, ts, '_postWithSignature'),
-        )
-        return resp
-
-class SentryTest(BaseTestCase):
+class SentryTest(TestCase):
     ## Fixture setup/teardown
 
     def setUp(self):
@@ -1012,7 +954,7 @@ class SentryTest(BaseTestCase):
     #     self.assertEquals(group.times_seen, 1000)
     #     self.assertNotEquals(Message.objects.count(), 400)
 
-class SentryViewsTest(BaseTestCase):
+class SentryViewsTest(TestCase):
     fixtures = ['tests/fixtures/views.json']
 
     def setUp(self):
@@ -1087,7 +1029,7 @@ class SentryViewsTest(BaseTestCase):
         group = GroupedMessage.objects.get(pk=2)
         self.assertEquals(resp.context['group'], group)
 
-class SentryRemoteTest(BaseTestCase):
+class SentryRemoteTest(TestCase):
 
     def setUp(self):
         settings.REMOTE_URL = ['http://localhost:8000%s' % reverse('sentry-store')]
@@ -1258,10 +1200,10 @@ class SentryRemoteServerTest(TransactionTestCase):
         logger.addHandler(logging.StreamHandler())
 
     def tearDown(self):
-        self.stop_test_server()
+        self.stop_dummy_server()
         settings.REMOTE_URL = None
 
-    def start_test_server(self, host='localhost', port=None):
+    def start_dummy_server(self, host='localhost', port=None):
         """Creates a live test server object (instance of WSGIServer)."""
         if not port:
             for port in xrange(8001, 8050):
@@ -1287,24 +1229,24 @@ class SentryRemoteServerTest(TransactionTestCase):
         if self.server_thread.error:
             raise self.server_thread.error
 
-    def stop_test_server(self):
+    def stop_dummy_server(self):
         if self.server_thread:
             settings.REMOTE_URL = self._orig_remote_url
             self.server_thread.join()
 
     def test_process(self):
-        self.start_test_server()
+        self.start_dummy_server()
         message_id = SentryClient().process(message='hello')
-        self.stop_test_server()
+        self.stop_dummy_server()
 
         self.assertTrue(message_id)
         instance = Message.objects.all().order_by('-id')[0]
         self.assertEquals(instance.message, 'hello')
 
     def test_external(self):
-        self.start_test_server()
+        self.start_dummy_server()
         path = reverse('sentry-raise-exc')
-        self.stop_test_server()
+        self.stop_dummy_server()
 
         self.assertRaises(Exception, self.client.get, path)
         instance = Message.objects.all().order_by('-id')[0]
@@ -1314,9 +1256,9 @@ class SentryRemoteServerTest(TransactionTestCase):
     def test_timestamp(self):
         timestamp = datetime.datetime.now() - datetime.timedelta(hours=1)
 
-        self.start_test_server()
+        self.start_dummy_server()
         message_id = SentryClient().process(message='hello', timestamp=timestamp)
-        self.stop_test_server()
+        self.stop_dummy_server()
 
         self.assertTrue(message_id)
         instance = Message.objects.all().order_by('-id')[0]
@@ -1326,7 +1268,7 @@ class SentryRemoteServerTest(TransactionTestCase):
         self.assertEquals(group.first_seen, timestamp)
         self.assertEquals(group.last_seen, timestamp)
 
-class SentryFeedsTest(BaseTestCase):
+class SentryFeedsTest(TestCase):
     fixtures = ['tests/fixtures/feeds.json']
 
     def test_message_feed(self):
@@ -1347,7 +1289,7 @@ class SentryFeedsTest(BaseTestCase):
         self.assertTrue('<link>http://testserver/group/1</link>' in response.content, response.content)
         self.assertTrue('<title>(1) TypeError: exceptions must be old-style classes or derived from BaseException, not NoneType</title>' in response.content)
 
-class SentryMailTest(BaseTestCase):
+class SentryMailTest(TestCase):
     fixtures = ['tests/fixtures/mail.json']
 
     def setUp(self):
@@ -1414,7 +1356,7 @@ class SentryMailTest(BaseTestCase):
 
         self.assertTrue('http://example.com/group/2' in out.body, out.body)
 
-class SentryHelpersTest(BaseTestCase):
+class SentryHelpersTest(TestCase):
     def test_get_db_engine(self):
         from sentry.utils import get_db_engine
         _databases = getattr(django_settings, 'DATABASES', {}).copy()
@@ -1444,7 +1386,7 @@ class SentryHelpersTest(BaseTestCase):
         versions = get_versions(['sentry.client'])
         self.assertEquals(versions.get('sentry'), sentry.VERSION)
 
-class SentryTransformTest(BaseTestCase):
+class SentryTransformTest(TestCase):
     def test_bad_string(self):
         x = 'The following character causes problems: \xd4'
 
@@ -1477,7 +1419,7 @@ class SentryTransformTest(BaseTestCase):
         self.assertEquals(keys[0], 'foo')
         self.assertTrue(isinstance(keys[0], str))
 
-class SentryClientTest(BaseTestCase):
+class SentryClientTest(TestCase):
     def setUp(self):
         self._client = settings.CLIENT
 
@@ -1557,7 +1499,7 @@ class SentryClientTest(BaseTestCase):
     #
     #     settings.CLIENT = 'sentry.client.base.SentryClient'
 
-class SentryCleanupTest(BaseTestCase):
+class SentryCleanupTest(TestCase):
     fixtures = ['tests/fixtures/cleanup.json']
 
     def test_simple(self):
@@ -1632,7 +1574,7 @@ class SentryCleanupTest(BaseTestCase):
         self.assertEquals(MessageCountByMinute.objects.count(), 0)
         self.assertEquals(MessageFilterValue.objects.count(), 0)
 
-class SentrySearchTest(BaseTestCase):
+class SentrySearchTest(TestCase):
     @conditional_on_module('haystack')
     def test_build_index(self):
         from sentry.web.views import get_search_query_set
@@ -1642,7 +1584,7 @@ class SentrySearchTest(BaseTestCase):
         self.assertEquals(qs.count(), 1)
         self.assertEquals(qs[0:1][0].message, 'test search error')
 
-class SentryPluginTest(BaseTestCase):
+class SentryPluginTest(TestCase):
     def test_registration(self):
         from sentry.plugins import GroupActionProvider
         self.assertEquals(len(GroupActionProvider.plugins), 4)

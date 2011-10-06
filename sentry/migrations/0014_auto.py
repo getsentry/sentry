@@ -7,22 +7,10 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        
-        # Adding index on 'Message', fields ['checksum']
-        db.create_index('sentry_message', ['checksum'])
-
-        # Adding index on 'GroupedMessage', fields ['checksum']
-        db.create_index('sentry_groupedmessage', ['checksum'])
-
+        pass
 
     def backwards(self, orm):
-        
-        # Removing index on 'GroupedMessage', fields ['checksum']
-        db.delete_index('sentry_groupedmessage', ['checksum'])
-
-        # Removing index on 'Message', fields ['checksum']
-        db.delete_index('sentry_message', ['checksum'])
-
+        pass
 
     models = {
         'sentry.filtervalue': {
