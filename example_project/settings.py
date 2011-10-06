@@ -120,7 +120,6 @@ SENTRY_SITE = 'example'
 SENTRY_PUBLIC = True
 
 SENTRY_FILTERS = (
-    'sentry.filters.ProjectFilter',
     'example_project.filters.IPFilter',
     'sentry.filters.StatusFilter',
     'sentry.filters.LoggerFilter',

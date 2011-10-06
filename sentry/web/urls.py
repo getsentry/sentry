@@ -34,6 +34,14 @@ def handler500(request):
 urlpatterns = patterns('',
     url(r'^_static/(?P<path>.*)$', views.static_media, name='sentry-media'),
 
+    # Legacy redirects
+    # TODO:
+
+    url(r'^group/(?P<group_id>\d+)$', views.group, name='sentry-group'),
+    url(r'^group/(?P<group_id>\d+)/messages$', views.group_message_list, name='sentry-group-messages'),
+    url(r'^group/(?P<group_id>\d+)/messages/(?P<message_id>\d+)$', views.group_message_details, name='sentry-group-message'),
+    url(r'^group/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)', views.group_plugin_action, name='sentry-group-plugin-action'),
+
     # Feeds
 
     url(r'^feeds/%s/messages.xml$' % re.escape(KEY), feeds.MessageFeed(), name='sentry-feed-messages'),
@@ -55,16 +63,21 @@ urlpatterns = patterns('',
     # Management
 
     url(r'^projects$', views.project_list, name='sentry-project-list'),
-    url(r'^projects/(\d+)/edit$', views.manage_project, name='sentry-manage-project'),
+    url(r'^projects/(?P<project_id>\d+)/edit$', views.manage_project, name='sentry-manage-project'),
 
-    # Normal views
+    # Global
 
-    url(r'^group/(\d+)$', views.group, name='sentry-group'),
-    url(r'^group/(\d+)/messages$', views.group_message_list, name='sentry-group-messages'),
-    url(r'^group/(\d+)/messages/(\d+)$', views.group_message_details, name='sentry-group-message'),
-    url(r'^group/(\d+)/actions/([\w_-]+)', views.group_plugin_action, name='sentry-group-plugin-action'),
+    url(r'^$', views.dashboard, name='sentry'),
 
-    url(r'^search$', views.search, name='sentry-search'),
+    # Project specific
 
-    url(r'^$', views.index, name='sentry'),
+    url(r'^(?P<project_id>\d+)/group/(?P<group_id>\d+)$', views.group, name='sentry-group'),
+    url(r'^(?P<project_id>\d+)/group/(?P<group_id>\d+)/messages$', views.group_message_list, name='sentry-group-messages'),
+    url(r'^(?P<project_id>\d+)/group/(?P<group_id>\d+)/messages/(?P<message_id>\d+)$', views.group_message_details, name='sentry-group-message'),
+    url(r'^(?P<project_id>\d+)/group/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)', views.group_plugin_action, name='sentry-group-plugin-action'),
+
+    url(r'^(?P<project_id>\d+)/search$', views.search, name='sentry-search'),
+
+    url(r'^(?P<project_id>\d+)$', views.index, name='sentry'),
+
 )

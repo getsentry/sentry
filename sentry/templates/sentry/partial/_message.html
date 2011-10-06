@@ -1,7 +1,7 @@
 {% load sentry_helpers %}
 
 <li class="{% cycle 'row1' 'row2' %} level-{{ message.level }}{% if priority %} priority-{{ priority }}{% endif %}" id="message_{{ message.pk }}" data-sentry-count="{{ message.times_seen }}">
-    <h3><a href="{% url sentry-group-message group.pk message.pk %}">
+    <h3><a href="{% url sentry-group-message group.project_id group.pk message.pk %}">
         {{ message.message_top }}
         {% if message.url %}
              on {{ message.url }}
@@ -21,5 +21,5 @@
         {% endwith %}
         <span class="last_seen">{{ message.datetime|timesince }}</span>
     </p>
-    <a href="{% url sentry-group-message group.pk message.pk %}" class="row_link"></a>
+    <a href="{% url sentry-group-message group.project_id group.pk message.pk %}" class="row_link"></a>
 </li>

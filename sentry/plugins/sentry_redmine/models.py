@@ -51,7 +51,7 @@ class CreateRedmineIssue(GroupActionProvider):
                     }
                 })
                 url = conf.REDMINE_URL + '/projects/' + conf.REDMINE_PROJECT_SLUG + '/issues.json'
-                
+
                 req = urllib2.Request(url, urllib.urlencode({
                     'key': conf.REDMINE_API_KEY,
                 }), headers={
@@ -61,7 +61,7 @@ class CreateRedmineIssue(GroupActionProvider):
                 if conf.REDMINE_USERNAME and conf.REDMINE_PASSWORD:
                     authstring = base64.encodestring('%s:%s' % (conf.REDMINE_USERNAME, conf.REDMINE_PASSWORD))[:-1]
                     req.add_header("Authorization", "Basic %s" % authstring)
-                
+
                 try:
                     response = urllib2.urlopen(req, data).read()
                 except urllib2.HTTPError, e:
@@ -83,7 +83,7 @@ class CreateRedmineIssue(GroupActionProvider):
                     RedmineIssue.objects.create(group=group, issue_id=data['issue']['id'])
                     group.data['redmine'] = {'issue_id': data['issue']['id']}
                     group.save()
-                    return HttpResponseRedirect(reverse('sentry-group', args=[group.pk]))
+                    return HttpResponseRedirect(reverse('sentry-group', args=[group.project_id, group.pk]))
         else:
             description = 'Sentry Message: %s' % request.build_absolute_uri(group.get_absolute_url())
             description += '\n\n<pre>' + (group.traceback or group.message) + '</pre>'
@@ -92,7 +92,7 @@ class CreateRedmineIssue(GroupActionProvider):
                 'subject': group.error(),
                 'description': description,
             })
-            
+
         global_errors = form.errors.get('__all__')
 
         BASE_TEMPLATE = "sentry/group/details.html"

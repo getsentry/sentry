@@ -23,7 +23,7 @@ def get_project_list(user=None, flag=None):
         if flag:
             pms = filter(lambda x: x.has_perm(flag), pms)
         projects.update(set(pms))
-    return projects
+    return dict((p.pk, p) for p in projects)
 
 _LOGIN_URL = None
 def get_login_url(reset=False):

@@ -10,7 +10,7 @@
 {% endblock %}
 
 {% block heading %}
-    {% trans "Message Details" %} <span><a href="{% url sentry %}">&laquo; {% trans "Back to list" %}</a></span>
+    {% trans "Message Details" %} <span><a href="{% url sentry project.pk %}">&laquo; {% trans "Back to list" %}</a></span>
 {% endblock %}
 
 {% block sidebar %}
@@ -24,9 +24,9 @@
     <h2>Aggregate Details</h2>
     <dl class="flat">
         <dt>{% trans "Logger:" %}</dt>
-        <dd><a href="{% url sentry %}?logger={{ group.logger }}">{{ group.logger }}</a></dd>
+        <dd><a href="{% url sentry project.pk %}?logger={{ group.logger }}">{{ group.logger }}</a></dd>
         <dt>{% trans "Level:" %}</dt>
-        <dd><a href="{% url sentry %}?level={{ group.level }}">{{ group.get_level_display }}</a></dd>
+        <dd><a href="{% url sentry project.pk %}?level={{ group.level }}">{{ group.get_level_display }}</a></dd>
         <dt>{% trans "Status:" %}</dt>
         <dd>{{ group.get_status_display|title }}</dd>
         <dt>{% trans "First Seen:" %}</dt>
@@ -66,8 +66,8 @@
     </ul>
 
     <ul class="nav" id="group_nav">
-        <li{% ifequal page 'details' %} class="active"{% endifequal %}><a href="{% url sentry-group group.pk %}">Details</a></li>
-        <li{% ifequal page 'messages' %} class="active"{% endifequal %}><a href="{% url sentry-group-messages group.pk %}">Messages</a></li>
+        <li{% ifequal page 'details' %} class="active"{% endifequal %}><a href="{% url sentry-group group.project_id group.pk %}">Details</a></li>
+        <li{% ifequal page 'messages' %} class="active"{% endifequal %}><a href="{% url sentry-group-messages group.project_id group.pk %}">Messages</a></li>
         {% for label, link, is_active in group|get_panels:request %}
             <li{% if is_active %} class="active"{% endif %}><a href="{{ link }}">{{ label }}</a></li>
         {% endfor %}

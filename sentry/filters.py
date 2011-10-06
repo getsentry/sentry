@@ -190,21 +190,3 @@ class SiteFilter(SentryFilter):
 
     def get_query_set(self, queryset):
         return queryset.filter(message_set__site=self.get_value()).distinct()
-
-class ProjectFilter(SentryFilter):
-    label = 'Project'
-    column = 'project'
-
-    allow_any = False
-
-    def get_value(self):
-        from sentry.web.views import get_project_list
-        projects = get_project_list(self.request.user)
-        return self.request.GET.get(self.get_query_param()) or projects[0].id
-
-    def get_choices(self):
-        from sentry.web.views import get_project_list
-        return SortedDict((str(k.pk), k.name) for k in get_project_list(self.request.user))
-
-    def get_query_set(self, queryset):
-        return queryset.filter(project=self.get_value()).distinct()

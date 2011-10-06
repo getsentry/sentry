@@ -25,7 +25,7 @@ from sentry.models import Message, GroupedMessage, MessageCountByMinute, \
                           FilterValue, MessageFilterValue
 from sentry.utils import transform, MockDjangoRequest
 from sentry.utils.compat import pickle
-from sentry.web.views import get_login_url
+from sentry.web.helpers import get_login_url
 
 from tests.models import TestModel, DuplicateKeyModel
 from tests.testcases import TestCase, TransactionTestCase
@@ -972,10 +972,10 @@ class SentryViewsTest(TestCase):
             'password': 'admin',
         }, follow=True)
         self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/index.html')
+        self.assertTemplateUsed(resp, 'sentry/dashboard.html')
 
     def test_get_login_url(self):
-        with Settings(LOGIN_URL='/404'):
+        with Settings(LOGIN_URL='/really-a-404'):
             url = get_login_url(True)
             self.assertEquals(url, reverse('sentry-login'))
 
@@ -984,7 +984,7 @@ class SentryViewsTest(TestCase):
             self.assertEquals(url, reverse('sentry-fake-login'))
 
         # should still be cached
-        with Settings(LOGIN_URL='/404'):
+        with Settings(LOGIN_URL='/really-a-404'):
             url = get_login_url(False)
             self.assertEquals(url, reverse('sentry-fake-login'))
 
@@ -994,7 +994,13 @@ class SentryViewsTest(TestCase):
 
     def test_dashboard(self):
         self.client.login(username='admin', password='admin')
-        resp = self.client.get(reverse('sentry') + '?sort=freq', follow=True)
+        resp = self.client.get(reverse('sentry'), follow=True)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/dashboard.html')
+
+    def test_index(self):
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(reverse('sentry', kwargs={'project_id': 1}) + '?sort=freq', follow=True)
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/index.html')
         self.assertEquals(len(resp.context['message_list']), 4)
@@ -1004,7 +1010,7 @@ class SentryViewsTest(TestCase):
 
     def test_group_details(self):
         self.client.login(username='admin', password='admin')
-        resp = self.client.get(reverse('sentry-group', args=[2]), follow=True)
+        resp = self.client.get(reverse('sentry-group', kwargs={'group_id': 2}), follow=True)
         self.assertEquals(resp.status_code, 200, resp.content)
         self.assertTemplateUsed(resp, 'sentry/group/details.html')
         self.assertTrue('group' in resp.context)
@@ -1022,7 +1028,7 @@ class SentryViewsTest(TestCase):
 
     def test_group_message_details(self):
         self.client.login(username='admin', password='admin')
-        resp = self.client.get(reverse('sentry-group-message', args=[2, 4]), follow=True)
+        resp = self.client.get(reverse('sentry-group-message', kwargs={'group_id': 2, 'message_id': 4}), follow=True)
         self.assertEquals(resp.status_code, 200, resp.content)
         self.assertTemplateUsed(resp, 'sentry/group/message.html')
         self.assertTrue('group' in resp.context)
@@ -1129,6 +1135,8 @@ class SentryRemoteTest(TestCase):
         })
 
         self.assertEquals(resp.status_code, 200)
+
+        self.assertEquals(Message.objects.count(), 1)
 
         instance = Message.objects.get()
 
@@ -1277,7 +1285,7 @@ class SentryFeedsTest(TestCase):
         self.assertTrue(response.content.startswith('<?xml version="1.0" encoding="utf-8"?>'))
         self.assertTrue('<link>http://testserver/</link>' in response.content)
         self.assertTrue('<title>log messages</title>' in response.content)
-        self.assertTrue('<link>http://testserver/group/1</link>' in response.content, response.content)
+        self.assertTrue('<link>http://testserver/1/group/1</link>' in response.content, response.content)
         self.assertTrue('<title>TypeError: exceptions must be old-style classes or derived from BaseException, not NoneType</title>' in response.content)
 
     def test_summary_feed(self):
@@ -1286,7 +1294,7 @@ class SentryFeedsTest(TestCase):
         self.assertTrue(response.content.startswith('<?xml version="1.0" encoding="utf-8"?>'))
         self.assertTrue('<link>http://testserver/</link>' in response.content)
         self.assertTrue('<title>log summaries</title>' in response.content)
-        self.assertTrue('<link>http://testserver/group/1</link>' in response.content, response.content)
+        self.assertTrue('<link>http://testserver/1/group/1</link>' in response.content, response.content)
         self.assertTrue('<title>(1) TypeError: exceptions must be old-style classes or derived from BaseException, not NoneType</title>' in response.content)
 
 class SentryMailTest(TestCase):
