@@ -34,6 +34,7 @@ install_requires = [
     'django-paging>=0.2.4',
     'django-indexer>=0.3.0',
     'django-templatetag-sugar>=0.1.0',
+    'raven',
 ]
 
 if sys.version_info[:2] < (2, 5):
@@ -41,7 +42,7 @@ if sys.version_info[:2] < (2, 5):
 
 setup(
     name='django-sentry',
-    version='1.12.1',
+    version='1.13.0',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/django-sentry',

@@ -1223,8 +1223,8 @@ class SentryRemoteServerTest(TransactionTestCase):
         if not port:
             raise socket.error('Unable to find an open port to bind server')
 
-        self._orig_remote_url = settings.REMOTE_URL
-        settings.REMOTE_URL = ['http://%s:%s/store/' % (host, port)]
+        self._orig_remote_url = settings.SERVERS
+        settings.SERVERS = ['http://%s:%s/store/' % (host, port)]
         self.server_thread = TestServerThread(self, host, port)
         self.server_thread.start()
         self.server_thread.started.wait()
@@ -1233,7 +1233,7 @@ class SentryRemoteServerTest(TransactionTestCase):
 
     def stop_dummy_server(self):
         if self.server_thread:
-            settings.REMOTE_URL = self._orig_remote_url
+            settings.SERVERS = self._orig_remote_url
             self.server_thread.join()
 
     def test_process(self):

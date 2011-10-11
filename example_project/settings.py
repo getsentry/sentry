@@ -100,7 +100,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.messages',
     'sentry',
-    'sentry.client',
+    'raven.contrib.django',
     'sentry.plugins.sentry_redmine',
     'sentry.plugins.sentry_servers',
     'sentry.plugins.sentry_sites',
@@ -140,7 +140,7 @@ else:
     INSTALLED_APPS = INSTALLED_APPS + (
         'debug_toolbar',
     )
-    
+
     MIDDLEWARE_CLASSES = MIDDLEWARE_CLASSES + (
         'debug_toolbar.middleware.DebugToolbarMiddleware',
     )
