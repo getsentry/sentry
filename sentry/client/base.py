@@ -17,6 +17,7 @@ import time
 import traceback
 import urllib2
 import uuid
+import warnings
 
 from django.core.cache import cache
 from django.http import HttpRequest
@@ -29,6 +30,8 @@ from sentry.utils import json
 from sentry.utils import construct_checksum, transform, get_installed_apps, force_unicode, \
                            get_versions, shorten, get_signature, get_auth_header, varmap
 from sentry.utils.stacks import get_stack_info, iter_stack_frames, iter_traceback_frames
+
+warnings.warn('sentry.client will be removed in version 1.14.0. You should switch to raven.client.django', DeprecationWarning)
 
 logger = logging.getLogger('sentry.errors')
 
