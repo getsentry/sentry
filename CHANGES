@@ -1,6 +1,9 @@
 1.13.0
 
 * Deprecated the Sentry client, and added Raven to the as the default builtin.
+* Removed Highstock and replaced it with an awesome OPEN SOURCE alternative, jQuery Flot.
+* Default Sentry server options should now work out of the box.
+* Packaged Google Web Font as part of Sentry.
 
 1.12.2
 
