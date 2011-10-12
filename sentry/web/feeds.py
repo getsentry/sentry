@@ -1,3 +1,11 @@
+"""
+sentry.web.feeds
+~~~~~~~~~~~~~~~~
+
+:copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
+
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse
 from django.utils import feedgenerator

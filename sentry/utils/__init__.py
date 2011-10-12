@@ -1,5 +1,17 @@
+"""
+sentry.utils
+~~~~~~~~~~~~
+
+:copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
+
 import hmac
 import logging
+try:
+    import pkg_resources
+except ImportError:
+    pkg_resources = None
 import sys
 import uuid
 from pprint import pformat
@@ -7,6 +19,7 @@ from types import ClassType, TypeType
 
 import django
 from django.conf import settings as django_settings
+from django.http import HttpRequest
 from django.utils.encoding import force_unicode
 from django.utils.functional import Promise
 from django.utils.hashcompat import md5_constructor, sha_constructor
@@ -19,7 +32,7 @@ def get_filters():
     global _FILTER_CACHE
 
     if _FILTER_CACHE is None:
-        
+
         filters = []
         for filter_ in settings.FILTERS:
             if filter_.endswith('sentry.filters.SearchFilter'):
@@ -49,12 +62,21 @@ def get_db_engine(alias='default'):
 def construct_checksum(level=logging.ERROR, class_name='', traceback='', message='', **kwargs):
     checksum = md5_constructor(str(level))
     checksum.update(class_name or '')
-    if traceback:
+
+    if 'data' in kwargs and kwargs['data'] and '__sentry__' in kwargs['data'] and 'frames' in kwargs['data']['__sentry__']:
+        frames = kwargs['data']['__sentry__']['frames']
+        for frame in frames:
+            checksum.update(frame['module'])
+            checksum.update(frame['function'])
+
+    elif traceback:
         traceback = '\n'.join(traceback.split('\n')[:-3])
-    message = traceback or message
-    if isinstance(message, unicode):
-        message = message.encode('utf-8', 'replace')
-    checksum.update(message)
+
+    elif message:
+        if isinstance(message, unicode):
+            message = message.encode('utf-8', 'replace')
+        checksum.update(message)
+
     return checksum.hexdigest()
 
 def varmap(func, var, context=None):
@@ -75,34 +97,39 @@ def varmap(func, var, context=None):
 
 def has_sentry_metadata(value):
     try:
-        return callable(getattr(value, '__sentry__', None))
+        return callable(value.__getattribute__("__sentry__"))
     except:
         return False
 
 def transform(value, stack=[], context=None):
     # TODO: make this extendable
-    # TODO: include some sane defaults, like UUID
-    # TODO: dont coerce strings to unicode, leave them as strings
     if context is None:
         context = {}
+
     objid = id(value)
     if objid in context:
         return '<...>'
+
     context[objid] = 1
+    transform_rec = lambda o: transform(o, stack + [value], context)
+
     if any(value is s for s in stack):
         ret = 'cycle'
-    transform_rec = lambda o: transform(o, stack + [value], context)
-    if isinstance(value, (tuple, list, set, frozenset)):
-        ret = type(value)(transform_rec(o) for o in value)
+    elif isinstance(value, (tuple, list, set, frozenset)):
+        try:
+            ret = type(value)(transform_rec(o) for o in value)
+        except TypeError:
+            # We may be dealing with a namedtuple
+            ret = type(value)(transform_rec(o) for o in value[:])
     elif isinstance(value, uuid.UUID):
         ret = repr(value)
     elif isinstance(value, dict):
-        ret = dict((k, transform_rec(v)) for k, v in value.iteritems())
+        ret = dict((str(k), transform_rec(v)) for k, v in value.iteritems())
     elif isinstance(value, unicode):
         ret = to_unicode(value)
     elif isinstance(value, str):
         try:
-            ret = str(value)
+            ret = str(value.decode('utf-8').encode('utf-8'))
         except:
             ret = to_unicode(value)
     elif not isinstance(value, (ClassType, TypeType)) and \
@@ -110,11 +137,17 @@ def transform(value, stack=[], context=None):
         ret = transform_rec(value.__sentry__())
     elif isinstance(value, Promise):
         # EPIC HACK
+        # handles lazy model instances (which are proxy values that dont easily give you the actual function)
         pre = value.__class__.__name__[1:]
         value = getattr(value, '%s__func' % pre)(*getattr(value, '%s__args' % pre), **getattr(value, '%s__kw' % pre))
         return transform(value)
     elif not isinstance(value, (int, bool)) and value is not None:
-        ret = transform(repr(value))
+        try:
+            ret = transform(repr(value))
+        except:
+            # It's common case that a model's __unicode__ definition may try to query the database
+            # which if it was not cleaned up correctly, would hit a transaction aborted exception
+            ret = u'<BadRepr: %s>' % type(value)
     else:
         ret = value
     del context[objid]
@@ -205,6 +238,9 @@ class cached_property(object):
             obj.__dict__[self.__name__] = value
         return value
 
+# We store a cache of module_name->version string to avoid
+# continuous imports and lookups of modules
+_VERSION_CACHE = {}
 def get_versions(module_list=None):
     if not module_list:
         module_list = django_settings.INSTALLED_APPS + ['django']
@@ -216,22 +252,35 @@ def get_versions(module_list=None):
 
     versions = {}
     for module_name in ext_module_list:
-        __import__(module_name)
-        app = sys.modules[module_name]
-        if hasattr(app, 'get_version'):
-            get_version = app.get_version
-            if callable(get_version):
-                version = get_version()
+        if module_name not in _VERSION_CACHE:
+            __import__(module_name)
+            app = sys.modules[module_name]
+            if hasattr(app, 'get_version'):
+                get_version = app.get_version
+                if callable(get_version):
+                    version = get_version()
+                else:
+                    version = get_version
+            elif hasattr(app, 'VERSION'):
+                version = app.VERSION
+            elif hasattr(app, '__version__'):
+                version = app.__version__
+            elif pkg_resources:
+                # pull version from pkg_resources if distro exists
+                try:
+                    version = pkg_resources.get_distribution(module_name).version
+                except pkg_resources.DistributionNotFound:
+                    version = None
             else:
-                version = get_version
-        elif hasattr(app, 'VERSION'):
-            version = app.VERSION
-        elif hasattr(app, '__version__'):
-            version = app.__version__
+                version = None
+
+            if isinstance(version, (list, tuple)):
+                version = '.'.join(str(o) for o in version)
+            _VERSION_CACHE[module_name] = version
         else:
+            version = _VERSION_CACHE[module_name]
+        if version is None:
             continue
-        if isinstance(version, (list, tuple)):
-            version = '.'.join(str(o) for o in version)
         versions[module_name] = version
     return versions
 
@@ -266,7 +315,7 @@ def get_auth_header(signature, timestamp, client):
 def parse_auth_header(header):
     return dict(map(lambda x: x.strip().split('='), header.split(' ', 1)[1].split(',')))
 
-class MockDjangoRequest(object):
+class MockDjangoRequest(HttpRequest):
     GET = {}
     POST = {}
     META = {}
@@ -274,10 +323,11 @@ class MockDjangoRequest(object):
     FILES = {}
     raw_post_data = ''
     url = ''
-    
+    path = '/'
+
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-    
+
     def __repr__(self):
         # Since this is called as part of error handling, we need to be very
         # robust against potentially malformed input.
@@ -301,3 +351,12 @@ class MockDjangoRequest(object):
             (get, post, cookies, meta)
 
     def build_absolute_uri(self): return self.url
+
+def should_mail(group):
+    if int(group.level) < settings.MAIL_LEVEL:
+        return False
+    if settings.MAIL_INCLUDE_LOGGERS is not None and group.logger not in settings.MAIL_INCLUDE_LOGGERS:
+        return False
+    if settings.MAIL_EXCLUDE_LOGGERS and group.logger in settings.MAIL_EXCLUDE_LOGGERS:
+        return False
+    return True

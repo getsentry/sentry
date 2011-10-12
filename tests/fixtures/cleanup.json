@@ -3,7 +3,7 @@
     "fields": {
       "status": 0, 
       "first_seen": "2010-08-31 17:50:47", 
-      "level": 40, 
+      "level": 30, 
       "class_name": "KeyError", 
       "checksum": "ed77d1185670a58e7242fde014d980e9", 
       "times_seen": 1, 
@@ -71,7 +71,7 @@
     "fields": {
       "group": 2, 
       "server_name": "dcramer.local", 
-      "level": 40, 
+      "level": 30, 
       "class_name": "KeyError", 
       "checksum": "ed77d1185670a58e7242fde014d980e9", 
       "traceback": "Traceback (most recent call last):\n\n  File \"/Users/dcramer/.virtualenvs/disqus/lib/python2.6/site-packages/django/core/handlers/base.py\", line 100, in get_response\n    response = callback(request, *callback_args, **callback_kwargs)\n\n  File \"/Users/dcramer/Development/django-sentry/sentry/views.py\", line 124, in group\n    reporter = ImprovedExceptionReporter(fake_request, exc_type, exc_value, frames, obj.data['__sentry__']['template'])\n\nKeyError: 'template'\n", 

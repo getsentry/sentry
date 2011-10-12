@@ -1,3 +1,11 @@
+"""
+sentry.plugins.sentry_redmine.conf
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
+
 from django.conf import settings
 
 # Either API_KEY or USERNAME/PASSWORD should be specified for non-anonymous

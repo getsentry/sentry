@@ -5,8 +5,8 @@
         <h2>Servers</h2>
 
         <ul class="server-list">
-            {% for server, priority in unique_servers|with_priority:"times_seen" %}
-                <li class="priority-{{ priority }}"><span class="count">{{ server.times_seen }}</span> <a href="{% url sentry %}?server_name={{ server.server_name }}">{{ server.server_name }}</a></li>
+            {% for server, priority in unique_servers|with_priority:1 %}
+                <li class="priority-{{ priority }}"><span class="count">{{ server.1 }}</span> <a href="{% url sentry %}?server_name={{ server.0 }}">{{ server.0 }}</a></li>
             {% endfor %}
         </ul>
     {% endif %}

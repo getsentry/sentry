@@ -100,7 +100,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.messages',
     'sentry',
-    'sentry.client',
+    'raven.contrib.django',
     'sentry.plugins.sentry_redmine',
     'sentry.plugins.sentry_servers',
     'sentry.plugins.sentry_sites',
@@ -117,7 +117,7 @@ logging.basicConfig(level=logging.DEBUG)
 SENTRY_THRASHING_TIMEOUT = 0
 SENTRY_TESTING = True
 SENTRY_SITE = 'example'
-SENTRY_PUBLIC = False
+SENTRY_PUBLIC = True
 
 SENTRY_FILTERS = (
     'example_project.filters.IPFilter',
@@ -140,7 +140,7 @@ else:
     INSTALLED_APPS = INSTALLED_APPS + (
         'debug_toolbar',
     )
-    
+
     MIDDLEWARE_CLASSES = MIDDLEWARE_CLASSES + (
         'debug_toolbar.middleware.DebugToolbarMiddleware',
     )

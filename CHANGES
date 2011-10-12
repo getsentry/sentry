@@ -1,3 +1,156 @@
+1.13.0
+
+* Deprecated the Sentry client, and added Raven to the as the default builtin.
+* Removed Highstock and replaced it with an awesome OPEN SOURCE alternative, jQuery Flot.
+* Default Sentry server options should now work out of the box.
+* Packaged Google Web Font as part of Sentry.
+
+1.12.2
+
+* Fixed infinite loop.
+
+1.12.1
+
+* Stabilize migration schema (solves problem with index creation fail introduced in 1.12.0).
+
+1.12.0
+
+* Adjusted message_id to include the checksum to avoid situations were the message_id
+  that was generated did not exist due to sampling.
+
+1.11.4
+
+* Several design improvements for group/message details panes.
+
+1.11.3
+
+* Fixed a bug that was causing exception summary to not show.
+
+1.11.2
+
+* Cleaned up message and group details pages (adding back some missing information).
+* Cleaned up some design around odd margins/padding.
+
+1.11.1
+
+* Fixed a bug that would cause the admin (and potentially other modules) to get loaded multiple times.
+
+1.11.0
+
+* Added license headers.
+* Removed ``sentry.helpers`` and ``sentry.routers``.
+* Global module versions are now cached to avoid continuous path walking and
+  import overhead.
+
+1.10.1
+
+* Fixed an issue that was causing servers to show logger names.
+
+1.10.0
+
+* You can now pass ``extra={'stack': True}`` to logging methods to capture
+  the current frames and their locals.
+* Code refactoring in various places related to stack extraction.
+* Denormalized graph data in MessageCountByMinute (stores at 5m intervals).
+* Denormalized filter counts into MessageFilterValue
+* Added message sampling (adapted from Yuri Baburov's patch).
+* Added SENTRY_MAIL_LEVEL setting.
+* Added SENTRY_MAIL_INCLUDE_LOGGERS setting.
+* Added SENTRY_MAIL_EXCLUDE_LOGGERS setting.
+* Added the ``level`` argument to the cleanup command.
+* The thrashed key is now set correctly in request.sentry.
+* Added user information to all messages that have ``request``.
+* Changed the hashing function for messages that include
+  stacktraces to ignore the ``message`` and line numbers.
+* Much improved test coverage.
+
+1.9.0
+
+* Load the Frequency chart asynchronously.
+* Frequency chart no longer shows for SQLite.
+* Switch graphing library to Highstock from Highcharts.
+
+1.8.10
+
+* Ensure dictionary keys are coerced to strings.
+* Fixed path to missing_permissions.html.
+
+1.8.9
+
+* Safely handle unpickling objects that may not have been stored in a
+  valid format.
+
+1.8.8
+
+* Changed ``sentry cleanup`` to use a range query.
+
+1.8.7
+
+* Added "Clear Feed" option.
+* Version information will be read from pkg_resources if possible.
+* Cleared up documentation on configuration settings..
+* Performance improvements to ``Client.send()``.
+* Added default 404/500 pages.
+* Added support for Django's LOGIN_URL setting.
+* Fixed a memory leak in the client (thanks to Ben Bangert).
+
+1.8.6.2
+
+* Reverted change which required distribute.
+* Cleaned up configuration defaults.
+
+1.8.6.1
+
+* Include distribute_setup.py in the MANIFEST to ship it in sdists.
+
+1.8.6
+
+* Corrected an issue which was causing certain settings (like WEB_HOST) to
+  not take affect in custom configuration files.
+* The Sentry server will now pull in default server settings, as well as
+  ~/.sentry/sentry.conf.py if --config is not passed to it.
+
+1.8.5.1
+
+* Fixed a bug which caused thrashing prevention to not function correctly.
+* Corrected an error in transform()'s recursion safety.
+* Changed packaging to use Distribute.
+
+1.8.5
+
+* Pulled test suite out of the Sentry namespace to avoid conflicts in projects.
+
+1.8.4.2
+
+* Added missing invalid_message_id template.
+
+1.8.4.1
+
+* Fixed an error that was causing LOG_LEVELS to not display correctly.
+
+1.8.4
+
+* The Sentry base client will now pass along the timestamp from when the
+  message was generated.
+
+1.8.3.1
+
+* Fixed a case where the client may hit a transaction aborted error when
+  transforming variables.
+
+1.8.3
+
+* Added several settings which were Django specific so that they can be
+  configured isolated to the Sentry instance.
+* Graceful failover for when a cache backend isnt working properly and
+  throttling is enabled.
+* Better rendering of non-dict variables when passed within extra data.
+* Graceful failover for searching on message_id's that aren't found.
+
+1.8.0
+
+* Refactored Sentry server to run standalone (sentry --help).
+
 1.7.5
 
 * Implemented new client/server storage API and signing methods.
@@ -20,7 +173,7 @@
 * All strings, lists, tuples, and sets are now shortened before sending
   to the server. Iterable data structures are truncated to the first
   50 items, and strings are truncated to the first 200 characters.
-  
+
   Both shorteners have configurable values in the settings.
 
 1.7.1

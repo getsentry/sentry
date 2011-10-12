@@ -40,6 +40,7 @@
                 </select>
                 </div>
             </form>
+            <a id="clear_feed" href="{% url sentry-ajax %}?op=clear" onclick="Sentry.stream.clear();return false;" class="realtime realtime-pause">Clear Feed</a>
             {% if has_realtime %}
                 <a id="sentry_realtime" class="realtime realtime-pause">Pause Feed</a>
             {% endif %}
@@ -59,7 +60,9 @@
         </ul>
     {% endif %}
 
-    <div class="clearfix">
-        {{ message_list.paging }}
+    <div class="paging-wrap">
+        <div class="clearfix">
+            {{ message_list.paging }}
+        </div>
     </div>
 {% endblock %}

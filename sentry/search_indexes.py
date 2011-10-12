@@ -1,3 +1,11 @@
+"""
+sentry.search_indexes
+~~~~~~~~~~~~~~~~~~~~~
+
+:copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
+
 import haystack
 from haystack.indexes import *
 from haystack.sites import SearchSite
@@ -43,13 +51,13 @@ if settings.SEARCH_ENGINE:
             return '\n'.join(map(to_unicode, filter(None, chunks)))
 
         def prepare_server(self, instance):
-            return [to_unicode(s['server_name']) for s in instance.unique_servers]
+            return [to_unicode(s[0]) for s in instance.unique_servers]
 
         def prepare_site(self, instance):
-            return [to_unicode(s['site']) for s in instance.unique_sites]
+            return [to_unicode(s[0]) for s in instance.unique_sites]
 
         def prepare_url(self, instance):
-            return [to_unicode(s['url']) for s in instance.unique_urls]
+            return [to_unicode(s[0]) for s in instance.unique_urls]
 
 
     site.register(GroupedMessage, GroupedMessageIndex)

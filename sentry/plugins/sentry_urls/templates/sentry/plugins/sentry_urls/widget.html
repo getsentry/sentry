@@ -5,8 +5,8 @@
         <h2>URLs</h2>
 
         <ul class="url-list">
-            {% for link, priority in unique_urls|with_priority:"times_seen" %}
-                <li class="priority-{{ priority }}"><span class="count">{{ link.times_seen }}</span> <a href="{{ link.url }}">{{ link.url }}</a></li>
+            {% for link, priority in unique_urls|with_priority:1 %}
+                <li class="priority-{{ priority }}"><span class="count">{{ link.1 }}</span> <a href="{{ link.0 }}">{{ link.0 }}</a></li>
             {% endfor %}
         </ul>
     {% endif %}

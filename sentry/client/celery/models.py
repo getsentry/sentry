@@ -1,3 +1,11 @@
+"""
+sentry.client.celery.models
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
+
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
