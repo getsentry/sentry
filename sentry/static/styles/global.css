@@ -1,3 +1,11 @@
+@font-face {
+    font-family: 'Yanone Kaffeesatz';
+    font-style: normal;
+    font-weight: 400;
+    src: local('Yanone Kaffeesatz Regular'), local('YanoneKaffeesatz-Regular'), url('../fonts/YanoneKaffeesatz-Regular.ttf') format('truetype');
+}
+
+
 /* http://www.positioniseverything.net/easyclearing.html */
 .clearfix:after {
     content: ".";
