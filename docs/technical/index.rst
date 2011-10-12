@@ -93,40 +93,73 @@ own severity level.
 On top of these, Sentry suggests the logger report the ``view``,
 the name of the function that has caused the logging record.
 
-Authentication
-~~~~~~~~~~~~~~
+POST request
+~~~~~~~~~~~~
 
 A logging handler integrating with Sentry sends the records it handles
 to the Sentry server.  The server listens for JSON POST requests,
 with the following structure::
 
     POST /store/
-    <the encoded record>
+    format=json
+    key=<client id>
+    authentication=<hmac value>
+    timestamp=<authenticated timestamp>
+    data=<encoded record>
 
-You must also send along the following authentication headers::
+If the Sentry server doesn't expect authentication, 
+the two fields ``authentication`` and ``timestamp`` are not consumed and may be missing,
+while the ``key`` is itself a shared secret key between client and server.  
+In this case the shared secret key
+travels unencrypted in the POST request so make sure the client server
+connection is not sniffable or that you are not doing serious work.
 
-    Authorization: Sentry sentry_signature=<hmac signature>,
-    sentry_timestamp=<signature timestamp>,
-    sentry_version=<client version, arbitrary>
+Authentication
+^^^^^^^^^^^^^^
 
+If the Sentry server is configured to require authentication, 
+the POST field ``key`` is a name used to identify the client 
+and correspondingly ``ssk``, the shared secret key between client and server.  
+In this case the shared secret key does not travel in the POST.
+
+<<<<<<< HEAD
+The authentication mechanism provided 
+works on the bases of hmac (Hash based Message Authentication Code) where ``sha1`` is the hash function.  
+The text being authenticated is 
+the concatenated values for the ``timestamp`` and ``data`` fields in the POST.  
+=======
 The header is composed of a SHA1-signed HMAC, the timestamp from when the message
 was generated, and an arbitrary client version string. The client version should
 be something distinct to your client, and is simply for reporting purposes.
 
 To generate the HMAC signature, take the following example (in Python)::
+>>>>>>> fe47e4dbb7d2bb9a913d950ddf1787cf94b49dbe
 
-    hmac.new(SENTRY_KEY, '%s %s' % (timestamp, message), hashlib.sha1).hexdigest()
+A Python client could generate the authentication code value using the ``hashlib`` and ``hmac`` libraries::
 
+<<<<<<< HEAD
+    hmac_value = hmac.new(<ssk>, '%s%s' % (<authenticated timestamp>, <encoded record>), hashlib.sha1).hexdigest()
+
+A POST fails authentication in any of the following conditions
+
+    * the ``timestamp`` field is missing.
+    * out of date (the ``timestamp`` lies more than 10" in the past) (configuration item).
+    * repeated (an equal message was already received).
+    * hmac mismatch (the ``authentication`` received does not match the one computed).
+
+If a POST fails authentication, it is (more or less silently) dropped.
+=======
 The variables which are required within the signing of the message consist of the following:
 
 - The ``SENTRY_KEY`` is a the shared secret key between client and server.
 - ``timestamp`` is the timestamp of which this message was generated
 - ``message`` is the encoded :ref:`POST Body`
+>>>>>>> fe47e4dbb7d2bb9a913d950ddf1787cf94b49dbe
 
 POST Body
 ~~~~~~~~~
 
-The body of the post is a string representation of a JSON object and is
+The ``data`` field (the body of the post) is a string representation of a JSON object and is
 (optionally and preferably) gzipped and then (necessarily) base64
 encoded.
 
