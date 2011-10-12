@@ -133,7 +133,7 @@ configuration via --config, you will likely want to preface the file with import
 	    }
 	}
 
-	SENTRY_LOG_FILE = '/var/log/sentry.log'
+    SENTRY_LOG_FILE = '/var/log/sentry.log'
     SENTRY_WEB_HOST = '0.0.0.0'
 	SENTRY_WEB_PORT = 9000
 
