@@ -1,3 +1,7 @@
+1.12.2
+
+* Fixed infinite loop.
+
 1.12.1
 
 * Stabilize migration schema (solves problem with index creation fail introduced in 1.12.0).
