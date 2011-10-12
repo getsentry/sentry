@@ -27,8 +27,8 @@ install_requires = [
     'eventlet>=0.9.15',
     'south',
     # haystack support
-    'django-haystack',
-    'whoosh',
+    # 'django-haystack',
+    # 'whoosh',
 ]
 
 if sys.version_info[:2] < (2, 5):
@@ -44,9 +44,9 @@ setup(
     packages=find_packages(exclude=("example_project", "tests")),
     zip_safe=False,
     install_requires=install_requires,
-    dependency_links=[
-        'https://github.com/disqus/django-haystack/tarball/master#egg=django-haystack',
-    ],
+    # dependency_links=[
+    #     'https://github.com/disqus/django-haystack/tarball/master#egg=django-haystack',
+    # ],
     tests_require=tests_require,
     extras_require={'test': tests_require},
     test_suite='runtests.runtests',
