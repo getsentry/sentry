@@ -346,7 +346,7 @@ pre {
     cursor: pointer;
 }
 
-#chart { margin-bottom: 15px; }
+#chart { margin-bottom: 15px; overflow: hidden; }
 
 /* tracebacks */
 .frame table.vars { margin:5px 0 2px 40px; }
