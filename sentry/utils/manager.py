@@ -60,11 +60,11 @@ def count_limit(count):
         return 50
     if count <= 1000000: # 3000
         return 300
-    if count <= 10000000: # 4500 
+    if count <= 10000000: # 4500
         return 2000
     return 10000
 
-def time_limit(silence): # ~ 3600 per hour  
+def time_limit(silence): # ~ 3600 per hour
     if silence >= 3600:
         return 1
     if silence >= 360:
@@ -231,6 +231,7 @@ class GroupedMessageManager(SentryManager):
         conn = connections[db]
 
         engine = get_db_engine(db)
+        # TODO: does extract work for sqlite?
         if engine.startswith('oracle'):
             method = conn.ops.date_trunc_sql('hh24', 'date')
         else:
