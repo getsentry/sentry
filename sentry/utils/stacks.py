@@ -105,9 +105,8 @@ def iter_traceback_frames(tb):
     while tb:
         # support for __traceback_hide__ which is used by a few libraries
         # to hide internal frames.
-        if tb.tb_frame.f_locals.get('__traceback_hide__'):
-            continue
-        yield tb.tb_frame
+        if not tb.tb_frame.f_locals.get('__traceback_hide__'):
+            yield tb.tb_frame
         tb = tb.tb_next
 
 def iter_stack_frames():
