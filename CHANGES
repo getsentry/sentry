@@ -1,7 +1,10 @@
-
 1.13.0
 
 * Deprecated the Sentry client, and added Raven to the as the default builtin.
+
+1.12.2
+
+* Fixed infinite loop.
 
 1.12.1
 
