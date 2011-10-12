@@ -27,9 +27,10 @@ ROOT = os.path.dirname(__file__)
 DATABASES = {
     'default': {
         # You can swap out the engine for MySQL easily by changing this value
-        # to ``django.db.backends.mysql``
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'sentry',
+        # to ``django.db.backends.mysql`` or to PostgreSQL with
+        # ``django.db.backends.postgresql_psycopg2``
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(ROOT, 'sentry.db'),
         'USER': 'postgres',
         'PASSWORD': '',
         'HOST': '',
