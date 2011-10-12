@@ -25,9 +25,9 @@ def handler500(request):
     """
     from django.template import Context, loader
     from django.http import HttpResponseServerError
-    
+
     context = {'request': request}
-    
+
     t = loader.get_template('sentry/500.html')
     return HttpResponseServerError(t.render(Context(context)))
 
@@ -36,14 +36,14 @@ urlpatterns = patterns('',
 
     # Feeds
 
-    url(r'^feeds/%s/messages.xml$' % re.escape(KEY), feeds.MessageFeed(), name='sentry-feed-messages'),
-    url(r'^feeds/%s/summaries.xml$' % re.escape(KEY), feeds.SummaryFeed(), name='sentry-feed-summaries'),
+    url(r'^feeds/messages.xml$', feeds.MessageFeed(), name='sentry-feed-messages'),
+    url(r'^feeds/summaries.xml$', feeds.SummaryFeed(), name='sentry-feed-summaries'),
 
     # JS and API
 
     url(r'^jsapi/$', views.ajax_handler, name='sentry-ajax'),
     url(r'^store/$', views.store, name='sentry-store'),
-    
+
     # Normal views
 
     url(r'^login$', views.login, name='sentry-login'),
