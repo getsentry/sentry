@@ -119,23 +119,23 @@ The configuration for the server is based on ``sentry.conf.server``, which conta
 as the default Sentry configuration values. It will use SQLite for the database, and Haystack using Whoosh. If you specify your own
 configuration via --config, you will likely want to preface the file with importing the global defaults::
 
-	#!/usr/bin/env python
-	# filename: /etc/sentry.conf.py
+    #!/usr/bin/env python
+    # filename: /etc/sentry.conf.py
 
-	DATABASES = {
-	    'default': {
-	        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-	        'NAME': 'sentry',
-	        'USER': 'postgres',
-	        'PASSWORD': '',
-	        'HOST': '',
-	        'PORT': '',
-	    }
-	}
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+            'NAME': 'sentry',
+            'USER': 'postgres',
+            'PASSWORD': '',
+            'HOST': '',
+            'PORT': '',
+        }
+    }
 
     SENTRY_LOG_FILE = '/var/log/sentry.log'
     SENTRY_WEB_HOST = '0.0.0.0'
-	SENTRY_WEB_PORT = 9000
+    SENTRY_WEB_PORT = 9000
 
 By default, Sentry will also look for ``~/.sentry/sentry.conf.py`` and load it if it exists, and ``--config`` is not passed.
 
