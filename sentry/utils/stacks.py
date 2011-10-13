@@ -105,9 +105,8 @@ def iter_traceback_frames(tb):
     while tb:
         # support for __traceback_hide__ which is used by a few libraries
         # to hide internal frames.
-        if tb.tb_frame.f_locals.get('__traceback_hide__'):
-            continue
-        yield tb.tb_frame
+        if not tb.tb_frame.f_locals.get('__traceback_hide__'):
+            yield tb.tb_frame
         tb = tb.tb_next
 
 def iter_stack_frames():
@@ -125,7 +124,7 @@ def get_stack_info(frames):
         function = frame.f_code.co_name
         lineno = frame.f_lineno - 1
         loader = frame.f_globals.get('__loader__')
-        module_name = frame.f_globals.get('__name__')
+        module_name = frame.f_globals.get('__name__') or '?'
         pre_context_lineno, pre_context, context_line, post_context = get_lines_from_file(filename, lineno, 7, loader, module_name)
         if pre_context_lineno is not None:
             results.append({

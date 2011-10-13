@@ -163,28 +163,27 @@
                                   {% endif %}
                                 </div>
                               {% endif %}
-
-                              {% if frame.vars %}
-                                <div class="commands">
-                                    <a href="#" onclick="return varToggle(this, '{{ frame.id }}')"><span>&#x25b6;</span> Local vars</a>
-                                </div>
-                                <table class="vars" id="v{{ frame.id }}">
-                                  <thead>
-                                    <tr>
-                                      <th>Variable</th>
-                                      <th>Value</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
+                              <div class="commands">
+                                <a href="#" onclick="return varToggle(this, '{{ frame.id }}')"><span>&#x25b6;</span> Local vars</a>
+                              </div>
+                              <table class="vars" id="v{{ frame.id }}">
+                                <thead>
+                                  <tr>
+                                    <th>Variable</th>
+                                    <th>Value</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                {% if frame.vars %}
                                   {% for var in frame.vars|dictsort:"0" %}
                                     <tr>
                                       <td>{{ var.0|escape }}</td>
                                       <td class="code"><pre>{{ var.1|pprint|escape }}</pre></td>
                                     </tr>
                                   {% endfor %}
-                                  </tbody>
-                                </table>
-                              {% endif %}
+                                {% endif %}
+                                </tbody>
+                              </table>
                             </li>
                           {% endfor %}
                         </ul>
@@ -295,95 +294,129 @@
                     $('#chart').html('No data currently available.');
                     return;
                 }
-                new Highcharts.StockChart({
-                    chart: {
-                        renderTo: 'chart',
-                        // zoomType: 'x',
-                        // marginLeft: 50,
-                        // marginRight: 20,
-                        // marginTop: 20,
-                        // marginBottom: 40,
-                        backgroundColor: '#eeeeee',
-                        // showAxes: false,
-                        height: 300
-                    },
-                    title: {
-                        text: false
-                    },
-                    xAxis: {
-                        type: 'datetime',
-                        maxZoom: 24 * 3600000, // 1 day
-                        title: {
-                            text: false
-                        }
-                    },
-                    yAxis: {
-                        title: {
-                            text: false
-                        }
-                    },
-                    rangeSelector: {
-                        buttons: [{
-                            type: 'minute',
-                            count: 15,
-                            text: '15m'
-                        }, {
-                            type: 'hour',
-                            count: 1,
-                            text: '1h'
-                        }, {
-                            type: 'day',
-                            count: 1,
-                            text: '1d'
-                        }, {
-                            type: 'all',
-                            count: 1,
-                            text: 'All'
-                        }],
-                        selected: 1,
-                        inputEnabled: false
-                   },
-                    tooltip: {
-                        formatter: function() {
-                            var records = 0;
-                            $.each(this.points, function(_, point){
-                                records += point.y;
-                            });
-                            return '<strong>'+
-                                Highcharts.dateFormat('%A %B %e %Y<br/>%I:00 %p', this.x) + '</strong><br/>'+
-                                records+' records';
-                        }
-                    },
-                    series: [{
-                        pointStart: new Date() - data.length * 3600000,
-                        pointInterval: 3600 * 1000,
-                        type: 'area',
-                        data: data
-                    }],
-                    legend: {
-                        enabled: false
-                    },
-                    plotOptions: {
-                        area: {
+
+                var start = new Date().getTime() - data.length * 3600000;
+                var pairs = [];
+                // for (var i=0; i<1000; i++) {
+                //     pairs.push([start + (3600 * 1000) * i, Math.random()*1000]);
+                // }
+                for (var i=0; i<data.length; i++) {
+                    pairs.push([start + (3600 * 1000) * i, data[i]]);
+                }
+                $('#chart').height(200);
+                $.plot($("#chart"), [
+                    {
+                        data: pairs,
+                        color: '#3079d0',
+                        shadowSize: 0,
+                        lines: {
                             lineWidth: 1,
-                            marker: {
-                                enabled: false,
-                                states: {
-                                    hover: {
-                                        enabled: true,
-                                        radius: 5
-                                    }
-                                }
-                            },
-                            shadow: false,
-                            states: {
-                                hover: {
-                                    lineWidth: 1
-                                }
-                            }
-                        }
+                            show: true,
+                            fill: true
+                        },
                     }
+                ], {
+                    xaxis: {
+                       mode: "time"
+                    },
+                    grid: {
+                        borderColor: '#aaaaaa',
+                        borderWidth: 1,
+                        backgroundColor: '#eeeeee'
+                    },
+                    lines: { show: false }
+
                 });
+
+                // new Highcharts.StockChart({
+                //     chart: {
+                //         renderTo: 'chart',
+                //         // zoomType: 'x',
+                //         // marginLeft: 50,
+                //         // marginRight: 20,
+                //         // marginTop: 20,
+                //         // marginBottom: 40,
+                //         backgroundColor: '#eeeeee',
+                //         // showAxes: false,
+                //         height: 300
+                //     },
+                //     title: {
+                //         text: false
+                //     },
+                //     xAxis: {
+                //         type: 'datetime',
+                //         maxZoom: 24 * 3600000, // 1 day
+                //         title: {
+                //             text: false
+                //         }
+                //     },
+                //     yAxis: {
+                //         title: {
+                //             text: false
+                //         }
+                //     },
+                //     rangeSelector: {
+                //         buttons: [{
+                //             type: 'minute',
+                //             count: 15,
+                //             text: '15m'
+                //         }, {
+                //             type: 'hour',
+                //             count: 1,
+                //             text: '1h'
+                //         }, {
+                //             type: 'day',
+                //             count: 1,
+                //             text: '1d'
+                //         }, {
+                //             type: 'all',
+                //             count: 1,
+                //             text: 'All'
+                //         }],
+                //         selected: 1,
+                //         inputEnabled: false
+                //    },
+                //     tooltip: {
+                //         formatter: function() {
+                //             var records = 0;
+                //             $.each(this.points, function(_, point){
+                //                 records += point.y;
+                //             });
+                //             return '<strong>'+
+                //                 Highcharts.dateFormat('%A %B %e %Y<br/>%I:00 %p', this.x) + '</strong><br/>'+
+                //                 records+' records';
+                //         }
+                //     },
+                //     series: [{
+                //         pointStart: new Date() - data.length * 3600000,
+                //         pointInterval: 3600 * 1000,
+                //         type: 'area',
+                //         data: data
+                //     }],
+                //     legend: {
+                //         enabled: false
+                //     },
+                //     plotOptions: {
+                //         area: {
+                //             lineWidth: 1,
+                //             marker: {
+                //                 enabled: false,
+                //                 states: {
+                //                     hover: {
+                //                         enabled: true,
+                //                         radius: 5
+                //                     }
+                //                 }
+                //             },
+                //             shadow: false,
+                //             states: {
+                //                 hover: {
+                //                     lineWidth: 1
+                //                 }
+                //             }
+                //         }
+                //     }
+                // });
             }
         });
     });

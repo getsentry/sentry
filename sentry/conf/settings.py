@@ -27,11 +27,14 @@ for k in dir(settings):
 
 LOG_LEVELS = [(k, _(v)) for k, v in LOG_LEVELS]
 
-if REMOTE_URL:
+if locals().get('REMOTE_URL'):
     if isinstance(REMOTE_URL, basestring):
-        REMOTE_URL = [REMOTE_URL]
+        SERVERS = [REMOTE_URL]
     elif not isinstance(REMOTE_URL, (list, tuple)):
         raise ValueError("Sentry setting 'REMOTE_URL' must be of type list.")
+
+if locals().get('REMOTE_TIMEOUT'):
+    TIMEOUT = REMOTE_TIMEOUT
 
 def configure(**kwargs):
     for k, v in kwargs.iteritems():

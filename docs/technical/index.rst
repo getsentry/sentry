@@ -71,6 +71,8 @@ Writing a Client
 
 *work in progress!*
 
+For an example client, you may want to take a look at `Raven <http://github.com/dcramer/raven>`_.
+
 This section describes how to write a Sentry client.  As far as the
 writer is concerned, a Sentry client *is* a logging handler written in
 a language different than Python.  You will not find the
@@ -81,7 +83,7 @@ implement just a Sentry client in your own language or framework.
 In general, the action taken by a logging handler compatible with
 ``log4j`` and ``logging`` is doing something with a timestamped
 attributable formatted logging record.  Every logging record has its
-own severity level.  
+own severity level.
 
 :timestamped: ``timestamp`` is the time the event happened.
 :attributable: ``logger`` is the name of the logger that produced the record.
@@ -117,7 +119,7 @@ To generate the HMAC signature, take the following example (in Python)::
 
 The variables which are required within the signing of the message consist of the following:
 
-- The ``SENTRY_KEY`` is a the shared secret key between client and server. 
+- The ``SENTRY_KEY`` is a the shared secret key between client and server.
 - ``timestamp`` is the timestamp of which this message was generated
 - ``message`` is the encoded :ref:`POST Body`
 
@@ -126,7 +128,7 @@ POST Body
 
 The body of the post is a string representation of a JSON object and is
 (optionally and preferably) gzipped and then (necessarily) base64
-encoded.  
+encoded.
 
 This JSON object contains the following fields:
 

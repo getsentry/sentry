@@ -100,11 +100,11 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     # 'django.contrib.messages',
     'sentry',
-    'sentry.client',
+    'raven.contrib.django',
     'sentry.plugins.sentry_servers',
     'sentry.plugins.sentry_sites',
     'sentry.plugins.sentry_urls',
-    'haystack',
+    # 'haystack',
     'south',
 )
 

@@ -46,9 +46,9 @@ LOG_LEVELS = (
 )
 
 # This should be the full URL to sentries store view
-REMOTE_URL = None
+SERVERS = None
 
-REMOTE_TIMEOUT = 5
+TIMEOUT = 5
 
 ADMINS = []
 

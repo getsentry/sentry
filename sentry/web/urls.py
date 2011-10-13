@@ -44,8 +44,8 @@ urlpatterns = patterns('',
 
     # Feeds
 
-    url(r'^feeds/%s/messages.xml$' % re.escape(KEY), feeds.MessageFeed(), name='sentry-feed-messages'),
-    url(r'^feeds/%s/summaries.xml$' % re.escape(KEY), feeds.SummaryFeed(), name='sentry-feed-summaries'),
+    url(r'^feeds/messages.xml$', feeds.MessageFeed(), name='sentry-feed-messages'),
+    url(r'^feeds/summaries.xml$', feeds.SummaryFeed(), name='sentry-feed-summaries'),
 
     # JS
 

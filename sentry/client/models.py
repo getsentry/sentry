@@ -16,19 +16,21 @@ from django.core.signals import got_request_exception
 
 from sentry.conf import settings
 
+warnings.warn('sentry.client will be removed in version 1.14.0. You should switch to raven.client.django', DeprecationWarning)
+
 logger = logging.getLogger('sentry.errors')
 
-if settings.REMOTE_URL:
+if settings.SERVERS:
     class MockTransaction(object):
         def commit_on_success(self, func):
             return func
-        
+
         def is_dirty(self):
             return False
-    
+
         def rollback(self):
             pass
-    
+
     transaction = MockTransaction()
 else:
     from django.db import transaction
@@ -56,7 +58,7 @@ def sentry_exception_handler(request=None, **kwargs):
         extra = dict(
             request=request,
         )
-        
+
         message_id = get_client().create_from_exception(**extra)
     except Exception, exc:
         try:

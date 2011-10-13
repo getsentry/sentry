@@ -16,6 +16,15 @@ import datetime
 
 register = template.Library()
 
+@register.filter
+def pprint(value, break_after=10):
+    """A wrapper around pprint.pprint -- for debugging, really."""
+    from pprint import pformat
+
+    value = pformat(value).decode('utf-8', 'replace')
+
+    return u'\u200B'.join([value[i:i+break_after] for i in xrange(0, len(value), break_after)])
+
 # seriously Django?
 @register.filter
 def plus(value, amount):

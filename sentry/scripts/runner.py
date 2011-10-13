@@ -15,6 +15,55 @@ from eventlet import wsgi
 from optparse import OptionParser
 from sentry import VERSION
 
+KEY_LENGTH = 40
+
+SETTINGS_TEMPLATE = """
+import os.path
+
+from sentry.conf.server import *
+
+ROOT = os.path.dirname(__file__)
+
+DATABASES = {
+    'default': {
+        # You can swap out the engine for MySQL easily by changing this value
+        # to ``django.db.backends.mysql`` or to PostgreSQL with
+        # ``django.db.backends.postgresql_psycopg2``
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': os.path.join(ROOT, 'sentry.db'),
+        'USER': 'postgres',
+        'PASSWORD': '',
+        'HOST': '',
+        'PORT': '',
+    }
+}
+
+SENTRY_KEY = %(default_key)r
+
+# Set this to false to require authentication
+SENTRY_PUBLIC = True
+
+SENTRY_WEB_HOST = '0.0.0.0'
+SENTRY_WEB_PORT = 9000
+
+SENTRY_WEB_LOG_FILE = os.path.join(ROOT, 'sentry.log')
+SENTRY_WEB_PID_FILE = os.path.join(ROOT, 'sentry.pid')
+"""
+
+def copy_default_settings(filepath):
+    """
+    Creates a default settings file at ``filepath``.
+    """
+    dirname = os.path.dirname(filepath)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+
+    with open(filepath, 'w') as fp:
+        key = os.urandom(KEY_LENGTH)
+
+        output = SETTINGS_TEMPLATE % dict(default_key=key)
+        fp.write(output)
+
 def settings_from_file(filename, silent=False):
     """
     Configures django settings from an arbitrary (non sys.path) filename.
@@ -28,9 +77,9 @@ def settings_from_file(filename, silent=False):
             return False
         e.strerror = 'Unable to load configuration file (%s)' % e.strerror
         raise
-    
+
     tuple_settings = ("INSTALLED_APPS", "TEMPLATE_DIRS")
-    
+
     if not django_settings.configured:
         django_settings.configure()
 
@@ -54,7 +103,7 @@ class SentryServer(DaemonRunner):
 
         logfile = os.path.realpath(logfile)
         pidfile = os.path.realpath(pidfile or settings.WEB_PID_FILE)
-        
+
         if daemonize:
             detach_process = True
         else:
@@ -80,7 +129,7 @@ class SentryServer(DaemonRunner):
 
         # Upgrade needs to happen before forking
         upgrade()
-        
+
         if self.daemon_context.detach_process is False and self.action == 'start':
             # HACK:
             self.run()
@@ -92,7 +141,7 @@ class SentryServer(DaemonRunner):
 
         def inner_run():
             wsgi.server(eventlet.listen((self.host, self.port)), application)
-            
+
         if self.debug:
             from django.utils import autoreload
             autoreload.main(inner_run)
@@ -105,7 +154,7 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None):
     Deletes a portion of the trailing data in Sentry based on
     their creation dates. For example, if ``days`` is 30, this
     would attempt to clean up all data thats older than 30 days.
-    
+
     :param logger: limit all deletion scopes to messages from the
                    specified logger.
     :param site: limit the message deletion scope to the specified
@@ -123,7 +172,7 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None):
                               MessageFilterValue, FilterValue
     from sentry.utils.query import RangeQuerySetWrapper, SkinnyQuerySet
     import datetime
-    
+
     ts = datetime.datetime.now() - datetime.timedelta(days=days)
 
     # Message
@@ -136,13 +185,13 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None):
         qs = qs.filter(server_name=server)
     if level:
         qs = qs.filter(level__gte=level)
-    
+
     groups_to_check = set()
     for obj in RangeQuerySetWrapper(qs):
         print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
         obj.delete()
         groups_to_check.add(obj.group_id)
-    
+
     if not (server or site):
         # MessageCountByMinute
         qs = SkinnyQuerySet(MessageCountByMinute).filter(date__lte=ts)
@@ -187,7 +236,7 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None):
 
 def upgrade(interactive=True):
     from sentry.conf import settings
-    
+
     call_command('syncdb', database=settings.DATABASE_USING or 'default', interactive=interactive)
 
     if 'south' in django_settings.INSTALLED_APPS:
@@ -231,17 +280,19 @@ def main():
 
     (options, args) = parser.parse_args()
 
-    # Install default server values
-    if not django_settings.configured:
-        os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.conf.server'
-
     if options.config:
         # assumed to be a file
-        settings_from_file(options.config)
+        config_path = options.config
     else:
         config_path = os.path.expanduser(os.path.join('~', '.sentry', 'sentry.conf.py'))
-        if os.path.exists(config_path):
-            settings_from_file(config_path)
+
+    if not os.path.exists(config_path):
+        try:
+            copy_default_settings(config_path)
+        except OSError, e:
+            raise e.__class__, 'Unable to write default settings file to %r' % config_path
+
+    settings_from_file(config_path)
 
     if getattr(options, 'debug', False):
         django_settings.DEBUG = True
@@ -258,7 +309,7 @@ def main():
     elif args[0] == 'restart':
         app = SentryServer()
         app.execute(args[0])
-  
+
     elif args[0] == 'stop':
         app = SentryServer(pidfile=options.pidfile, logfile=options.logfile)
         app.execute(args[0])

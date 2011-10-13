@@ -10,31 +10,26 @@ except ImportError:
     from setuptools import setup, find_packages, Command
 
 tests_require = [
-    'Django>=1.2,<1.4',
-
     'nose',
     'django-nose',
 
     # celery
     'django-celery',
-
-    # django migrations
-    'south',
-
-    # haystack support
-    'django-haystack',
-    'whoosh',
-
-    # python-daemon and eventlet are required to run the Sentry independent webserver
-    'python-daemon>=1.6',
-    'eventlet>=0.9.15',
 ]
 
 install_requires = [
+    'Django>=1.2,<1.4',
     'django-bitfield',
     'django-paging>=0.2.4',
     'django-indexer>=0.3.0',
     'django-templatetag-sugar>=0.1.0',
+    'raven',
+    'python-daemon>=1.6',
+    'eventlet>=0.9.15',
+    'south',
+    # haystack support
+    # 'django-haystack',
+    # 'whoosh',
 ]
 
 if sys.version_info[:2] < (2, 5):
@@ -50,9 +45,9 @@ setup(
     packages=find_packages(exclude=("example_project", "tests")),
     zip_safe=False,
     install_requires=install_requires,
-    dependency_links=[
-        'https://github.com/disqus/django-haystack/tarball/master#egg=django-haystack',
-    ],
+    # dependency_links=[
+    #     'https://github.com/disqus/django-haystack/tarball/master#egg=django-haystack',
+    # ],
     tests_require=tests_require,
     extras_require={'test': tests_require},
     test_suite='runtests.runtests',

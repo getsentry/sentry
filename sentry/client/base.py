@@ -17,6 +17,7 @@ import time
 import traceback
 import urllib2
 import uuid
+import warnings
 
 from django.core.cache import cache
 from django.http import HttpRequest
@@ -29,6 +30,8 @@ from sentry.utils import construct_checksum, transform, get_installed_apps, forc
                            get_versions, shorten, varmap, json
 from sentry.utils.auth import get_signature, get_auth_header
 from sentry.utils.stacks import get_stack_info, iter_stack_frames, iter_traceback_frames
+
+warnings.warn('sentry.client will be removed in version 1.14.0. You should switch to raven.client.django', DeprecationWarning)
 
 logger = logging.getLogger('sentry.errors')
 
@@ -255,9 +258,9 @@ class SentryClient(object):
 
     def send(self, api_key=None, secret_key=None, **kwargs):
         "Sends the message to the server."
-        if settings.REMOTE_URL:
+        if settings.SERVERS:
             message = base64.b64encode(json.dumps(kwargs).encode('zlib'))
-            for url in settings.REMOTE_URL:
+            for url in settings.SERVERS:
                 timestamp = time.time()
                 signature = get_signature(message, timestamp, settings.SECRET_KEY)
                 headers = {

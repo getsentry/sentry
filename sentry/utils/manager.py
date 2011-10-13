@@ -15,6 +15,7 @@ from django.db import models
 from django.db.models import signals, Sum, F
 
 from sentry.conf import settings
+from sentry.signals import regression_signal
 from sentry.utils import construct_checksum, get_db_engine, should_mail
 from sentry.utils.charts import has_charts
 from sentry.utils.compat.db import connections
@@ -220,6 +221,7 @@ class SentryManager(models.Manager):
                 warnings.warn(u'Unable to process log entry: %s' % (exc,))
         else:
             if mail and should_mail(group):
+                regression_signal.send(sender=GroupedMessage, instance=group)
                 group.mail_admins()
 
             return instance
@@ -240,6 +242,7 @@ class GroupedMessageManager(SentryManager):
         conn = connections[db]
 
         engine = get_db_engine(db)
+        # TODO: does extract work for sqlite?
         if engine.startswith('oracle'):
             method = conn.ops.date_trunc_sql('hh24', 'date')
         else:
