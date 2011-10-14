@@ -105,9 +105,10 @@ with the following structure::
 
 You must also send along the following authentication headers::
 
-    Authorization: Sentry sentry_signature=<hmac signature>,
-    sentry_timestamp=<signature timestamp>,
-    sentry_version=<client version, arbitrary>
+    X-Sentry-Auth: Sentry sentry_signature=<hmac signature>,
+    sentry_timestamp=<signature timestamp>[,
+    sentry_key=<public api key>,[
+    sentry_version=<client version, arbitrary>]]
 
 The header is composed of a SHA1-signed HMAC, the timestamp from when the message
 was generated, and an arbitrary client version string. The client version should
@@ -117,9 +118,14 @@ To generate the HMAC signature, take the following example (in Python)::
 
     hmac.new(SENTRY_KEY, '%s %s' % (timestamp, message), hashlib.sha1).hexdigest()
 
+If you are using project auth, you should sign with your project-specific ``secret_key``
+instead of the global superuser key. If you are signing with your secret key, you will
+also need to ensure you're provided your ``public_key`` as ``sentry_key`` in the
+auth header.
+
 The variables which are required within the signing of the message consist of the following:
 
-- The ``SENTRY_KEY`` is a the shared secret key between client and server.
+- ``key`` is either the ``public_key`` or the shared global key between client and server.
 - ``timestamp`` is the timestamp of which this message was generated
 - ``message`` is the encoded :ref:`POST Body`
 

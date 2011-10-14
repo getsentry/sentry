@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 @require_http_methods(['POST'])
 def store(request):
     if request.META.get('HTTP_X_SENTRY_AUTH', '').startswith('Sentry'):
-        # Auth version 2.0
+        # Auth version 3.0 (same as 2.0, diff header)
         auth_vars = parse_auth_header(request.META['HTTP_X_SENTRY_AUTH'])
     elif request.META.get('HTTP_AUTHORIZATION', '').startswith('Sentry'):
         # Auth version 2.0
