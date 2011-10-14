@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import base64
 import eventlet
 import errno
 import imp
@@ -59,7 +60,7 @@ def copy_default_settings(filepath):
         os.makedirs(dirname)
 
     with open(filepath, 'w') as fp:
-        key = os.urandom(KEY_LENGTH)
+        key = base64.b64encode(os.urandom(KEY_LENGTH))
 
         output = SETTINGS_TEMPLATE % dict(default_key=key)
         fp.write(output)
@@ -235,12 +236,10 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None):
             obj.delete()
 
 def upgrade(interactive=True):
-    from sentry.conf import settings
-
-    call_command('syncdb', database=settings.DATABASE_USING or 'default', interactive=interactive)
+    call_command('syncdb', database='default', interactive=interactive)
 
     if 'south' in django_settings.INSTALLED_APPS:
-        call_command('migrate', database=settings.DATABASE_USING or 'default', interactive=interactive)
+        call_command('migrate', database='default', interactive=interactive)
 
 def main():
     command_list = ('start', 'stop', 'restart', 'cleanup', 'upgrade')

@@ -6,22 +6,14 @@ sentry.utils
 :license: BSD, see LICENSE for more details.
 """
 
+import hashlib
 import logging
-try:
-    import pkg_resources
-except ImportError:
-    pkg_resources = None
-import sys
-import uuid
 from pprint import pformat
-from types import ClassType, TypeType
 
 import django
 from django.conf import settings as django_settings
 from django.http import HttpRequest
 from django.utils.encoding import force_unicode
-from django.utils.functional import Promise
-from django.utils.hashcompat import md5_constructor
 
 from sentry.conf import settings
 
@@ -58,7 +50,7 @@ def get_db_engine(alias='default'):
     return value.rsplit('.', 1)[-1]
 
 def construct_checksum(level=logging.ERROR, class_name='', traceback='', message='', **kwargs):
-    checksum = md5_constructor(str(level))
+    checksum = hashlib.md5(str(level))
     checksum.update(class_name or '')
 
     if 'data' in kwargs and kwargs['data'] and '__sentry__' in kwargs['data'] and 'frames' in kwargs['data']['__sentry__']:
@@ -76,101 +68,6 @@ def construct_checksum(level=logging.ERROR, class_name='', traceback='', message
         checksum.update(message)
 
     return checksum.hexdigest()
-
-def varmap(func, var, context=None):
-    if context is None:
-        context = {}
-    objid = id(var)
-    if objid in context:
-        return func('<...>')
-    context[objid] = 1
-    if isinstance(var, dict):
-        ret = dict((k, varmap(func, v, context)) for k, v in var.iteritems())
-    elif isinstance(var, (list, tuple)):
-        ret = [varmap(func, f, context) for f in var]
-    else:
-        ret = func(var)
-    del context[objid]
-    return ret
-
-def has_sentry_metadata(value):
-    try:
-        return callable(value.__getattribute__("__sentry__"))
-    except:
-        return False
-
-def transform(value, stack=[], context=None):
-    # TODO: make this extendable
-    if context is None:
-        context = {}
-
-    objid = id(value)
-    if objid in context:
-        return '<...>'
-
-    context[objid] = 1
-    transform_rec = lambda o: transform(o, stack + [value], context)
-
-    if any(value is s for s in stack):
-        ret = 'cycle'
-    elif isinstance(value, (tuple, list, set, frozenset)):
-        try:
-            ret = type(value)(transform_rec(o) for o in value)
-        except TypeError:
-            # We may be dealing with a namedtuple
-            ret = type(value)(transform_rec(o) for o in value[:])
-    elif isinstance(value, uuid.UUID):
-        ret = repr(value)
-    elif isinstance(value, dict):
-        ret = dict((str(k), transform_rec(v)) for k, v in value.iteritems())
-    elif isinstance(value, unicode):
-        ret = to_unicode(value)
-    elif isinstance(value, str):
-        try:
-            ret = str(value.decode('utf-8').encode('utf-8'))
-        except:
-            ret = to_unicode(value)
-    elif not isinstance(value, (ClassType, TypeType)) and \
-            has_sentry_metadata(value):
-        ret = transform_rec(value.__sentry__())
-    elif isinstance(value, Promise):
-        # EPIC HACK
-        # handles lazy model instances (which are proxy values that dont easily give you the actual function)
-        pre = value.__class__.__name__[1:]
-        value = getattr(value, '%s__func' % pre)(*getattr(value, '%s__args' % pre), **getattr(value, '%s__kw' % pre))
-        return transform(value)
-    elif not isinstance(value, (int, bool)) and value is not None:
-        try:
-            ret = transform(repr(value))
-        except:
-            # It's common case that a model's __unicode__ definition may try to query the database
-            # which if it was not cleaned up correctly, would hit a transaction aborted exception
-            ret = u'<BadRepr: %s>' % type(value)
-    else:
-        ret = value
-    del context[objid]
-    return ret
-
-def to_unicode(value):
-    try:
-        value = unicode(force_unicode(value))
-    except (UnicodeEncodeError, UnicodeDecodeError):
-        value = '(Error decoding value)'
-    except Exception: # in some cases we get a different exception
-        try:
-            value = str(repr(type(value)))
-        except Exception:
-            value = '(Error decoding value)'
-    return value
-
-def get_installed_apps():
-    """
-    Generate a list of modules in settings.INSTALLED_APPS.
-    """
-    out = set()
-    for app in django_settings.INSTALLED_APPS:
-        out.add(app)
-    return out
 
 class _Missing(object):
 
@@ -236,70 +133,6 @@ class cached_property(object):
             obj.__dict__[self.__name__] = value
         return value
 
-# We store a cache of module_name->version string to avoid
-# continuous imports and lookups of modules
-_VERSION_CACHE = {}
-def get_versions(module_list=None):
-    if not module_list:
-        module_list = django_settings.INSTALLED_APPS + ['django']
-
-    ext_module_list = set()
-    for m in module_list:
-        parts = m.split('.')
-        ext_module_list.update('.'.join(parts[:idx]) for idx in xrange(1, len(parts)+1))
-
-    versions = {}
-    for module_name in ext_module_list:
-        if module_name not in _VERSION_CACHE:
-            __import__(module_name)
-            app = sys.modules[module_name]
-            if hasattr(app, 'get_version'):
-                get_version = app.get_version
-                if callable(get_version):
-                    version = get_version()
-                else:
-                    version = get_version
-            elif hasattr(app, 'VERSION'):
-                version = app.VERSION
-            elif hasattr(app, '__version__'):
-                version = app.__version__
-            elif pkg_resources:
-                # pull version from pkg_resources if distro exists
-                try:
-                    version = pkg_resources.get_distribution(module_name).version
-                except pkg_resources.DistributionNotFound:
-                    version = None
-            else:
-                version = None
-
-            if isinstance(version, (list, tuple)):
-                version = '.'.join(str(o) for o in version)
-            _VERSION_CACHE[module_name] = version
-        else:
-            version = _VERSION_CACHE[module_name]
-        if version is None:
-            continue
-        versions[module_name] = version
-    return versions
-
-def shorten(var):
-    var = transform(var)
-    if isinstance(var, basestring) and len(var) > settings.MAX_LENGTH_STRING:
-        var = var[:settings.MAX_LENGTH_STRING] + '...'
-    elif isinstance(var, (list, tuple, set, frozenset)) and len(var) > settings.MAX_LENGTH_LIST:
-        # TODO: we should write a real API for storing some metadata with vars when
-        # we get around to doing ref storage
-        # TODO: when we finish the above, we should also implement this for dicts
-        var = list(var)[:settings.MAX_LENGTH_LIST] + ['...', '(%d more elements)' % (len(var) - settings.MAX_LENGTH_LIST,)]
-    return var
-
-def is_float(var):
-    try:
-        float(var)
-    except ValueError:
-        return False
-    return True
-
 class MockDjangoRequest(HttpRequest):
     GET = {}
     POST = {}
@@ -343,5 +176,24 @@ def should_mail(group):
     if settings.MAIL_INCLUDE_LOGGERS is not None and group.logger not in settings.MAIL_INCLUDE_LOGGERS:
         return False
     if settings.MAIL_EXCLUDE_LOGGERS and group.logger in settings.MAIL_EXCLUDE_LOGGERS:
+        return False
+    return True
+
+def to_unicode(value):
+    try:
+        value = unicode(force_unicode(value))
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        value = '(Error decoding value)'
+    except Exception: # in some cases we get a different exception
+        try:
+            value = str(repr(type(value)))
+        except Exception:
+            value = '(Error decoding value)'
+    return value
+
+def is_float(var):
+    try:
+        float(var)
+    except ValueError:
         return False
     return True

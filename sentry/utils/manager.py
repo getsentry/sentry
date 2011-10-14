@@ -7,7 +7,6 @@ sentry.utils.manager
 """
 
 import datetime
-import django
 import logging
 import warnings
 
@@ -19,8 +18,6 @@ from sentry.signals import regression_signal
 from sentry.utils import construct_checksum, get_db_engine, should_mail
 from sentry.utils.charts import has_charts
 from sentry.utils.compat.db import connections
-
-assert not settings.DATABASE_USING or django.VERSION >= (1, 2), 'The `SENTRY_DATABASE_USING` setting requires Django >= 1.2'
 
 logger = logging.getLogger('sentry.errors')
 
@@ -76,14 +73,7 @@ def time_limit(silence): # ~ 3600 per hour
 class SentryManager(models.Manager):
     use_for_related_fields = True
 
-    def get_query_set(self):
-        qs = super(SentryManager, self).get_query_set()
-        if settings.DATABASE_USING:
-            qs = qs.using(settings.DATABASE_USING)
-        return qs
-
-
-    def from_kwargs(self, **kwargs):
+    def from_kwargs(self, project, **kwargs):
         from sentry.models import Message, GroupedMessage, FilterValue, Project
 
         URL_MAX_LENGTH = Message._meta.get_field_by_name('url')[0].max_length
@@ -92,10 +82,9 @@ class SentryManager(models.Manager):
         view = kwargs.pop('view', None)
         logger_name = kwargs.pop('logger', 'root')
         url = kwargs.pop('url', None)
-        server_name = kwargs.pop('server_name', settings.CLIENT)
+        server_name = kwargs.pop('server_name', None)
         site = kwargs.pop('site', None)
-        project_id = kwargs.pop('project', settings.PROJECT)
-        project = Project.objects.get(pk=project_id)
+        project = Project.objects.get(pk=project)
 
         data = kwargs.pop('data', {}) or {}
         message_id = kwargs.pop('message_id', None)

@@ -26,7 +26,7 @@ from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
-from sentry.utils import cached_property, construct_checksum, transform, get_filters, \
+from sentry.utils import cached_property, construct_checksum, get_filters, \
                          MockDjangoRequest
 from sentry.utils.compat import pickle
 from sentry.utils.manager import GroupedMessageManager, SentryManager
@@ -74,7 +74,7 @@ class GzippedDictField(models.TextField):
     def get_prep_value(self, value):
         if value is None:
             return
-        return base64.b64encode(pickle.dumps(transform(value)).encode('zlib'))
+        return base64.b64encode(pickle.dumps(value).encode('zlib'))
 
     def value_to_string(self, obj):
         value = self._get_val_from_obj(obj)

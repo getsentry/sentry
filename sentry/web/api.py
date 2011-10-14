@@ -25,6 +25,8 @@ from sentry.utils import is_float, json
 from sentry.utils.auth import get_signature, parse_auth_header
 from sentry.utils.compat import pickle
 
+logger = logging.getLogger(__name__)
+
 @csrf_exempt
 @require_http_methods(['POST'])
 def store(request):
@@ -83,6 +85,13 @@ def store(request):
         if not key:
             return HttpResponseForbidden('Invalid credentials')
 
+        try:
+            key = base64.b64decode(key)
+        except Exception, e:
+            logger.exception('Bad data received')
+            return HttpResponseForbidden('Bad data decoding key (%s, %s)' % (e.__class__.__name__, e))
+
+
         if key != settings.KEY:
             warnings.warn('A client is sending the `key` parameter, which will be removed in Sentry 2.0', DeprecationWarning)
             return HttpResponseForbidden('Invalid credentials')
@@ -97,8 +106,6 @@ def store(request):
             return HttpResponseBadRequest('Invalid format')
 
         project = None
-
-    logger = logging.getLogger('sentry.server')
 
     try:
         try:
@@ -150,6 +157,8 @@ def store(request):
     # signed project.
     if project and str(data.get('project', '')) != str(project.pk):
         return HttpResponseForbidden('Invalid credentials')
+    elif not project:
+        data['project'] = 1
 
     GroupedMessage.objects.from_kwargs(**data)
 

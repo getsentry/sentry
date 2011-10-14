@@ -1,5 +1,7 @@
 #!/usr/bin/env python
+import base64
 import logging
+import os
 import sys
 from os.path import dirname, abspath, join
 from optparse import OptionParser
@@ -36,8 +38,6 @@ if not settings.configured:
             'haystack',
 
             'sentry',
-            'sentry.client',
-            'sentry.client.celery',
 
             # included plugin tests
             'sentry.plugins.sentry_servers',
@@ -60,6 +60,7 @@ if not settings.configured:
         TEMPLATE_DEBUG=True,
         HAYSTACK_SITECONF='sentry.search_indexes',
         HAYSTACK_SEARCH_ENGINE='whoosh',
+        SENTRY_KEY=base64.b64encode(os.urandom(40)),
         SENTRY_SEARCH_ENGINE='whoosh',
         SENTRY_SEARCH_OPTIONS={
             'path': join(dirname(__file__), 'sentry_test_index'),

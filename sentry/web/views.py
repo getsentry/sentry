@@ -23,7 +23,7 @@ from sentry.models import GroupedMessage, Message, Project
 from sentry.plugins import GroupActionProvider
 from sentry.templatetags.sentry_helpers import with_priority
 from sentry.utils import get_filters, json
-from sentry.utils.stacks import get_template_info
+from sentry.utils.template_info import get_template_info
 from sentry.web.forms import EditProjectForm
 from sentry.web.helpers import login_required, render_to_response, get_search_query_set, \
     get_project_list, iter_data
@@ -236,7 +236,7 @@ def search(request, project):
         result = message_re.match(query)
         if result:
             # Forward to message if it exists
-            message_id = result.group(1)
+            # message_id = result.group(1)
             checksum = result.group(2)
             try:
                 message = GroupedMessage.objects.get(checksum=checksum)
