@@ -13,7 +13,7 @@ from django.core import mail
 from django.core.urlresolvers import reverse
 
 from sentry.conf import settings
-from sentry.models import Message, GroupedMessage, MessageCountByMinute, \
+from sentry.models import Event, Group, MessageCountByMinute, \
                           FilterValue, MessageFilterValue
 from sentry.web.helpers import get_login_url
 
@@ -95,7 +95,7 @@ class SentryViewsTest(TestCase):
         self.assertEquals(resp.status_code, 200, resp.content)
         self.assertTemplateUsed(resp, 'sentry/group/details.html')
         self.assertTrue('group' in resp.context)
-        group = GroupedMessage.objects.get(pk=2)
+        group = Group.objects.get(pk=2)
         self.assertEquals(resp.context['group'], group)
 
     def test_group_message_list(self):
@@ -104,7 +104,7 @@ class SentryViewsTest(TestCase):
         self.assertEquals(resp.status_code, 200, resp.content)
         self.assertTemplateUsed(resp, 'sentry/group/message_list.html')
         self.assertTrue('group' in resp.context)
-        group = GroupedMessage.objects.get(pk=2)
+        group = Group.objects.get(pk=2)
         self.assertEquals(resp.context['group'], group)
 
     def test_group_message_details(self):
@@ -113,7 +113,7 @@ class SentryViewsTest(TestCase):
         self.assertEquals(resp.status_code, 200, resp.content)
         self.assertTemplateUsed(resp, 'sentry/group/message.html')
         self.assertTrue('group' in resp.context)
-        group = GroupedMessage.objects.get(pk=2)
+        group = Group.objects.get(pk=2)
         self.assertEquals(resp.context['group'], group)
 
 class SentryRemoteTest(TestCase):
@@ -150,7 +150,7 @@ class SentryRemoteTest(TestCase):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
         resp = self._postWithSignature(kwargs)
         self.assertEquals(resp.status_code, 200)
-        instance = Message.objects.get()
+        instance = Event.objects.get()
         self.assertEquals(instance.message, 'hello')
         self.assertEquals(instance.server_name, 'not_dcramer.local')
         self.assertEquals(instance.level, 40)
@@ -160,7 +160,7 @@ class SentryRemoteTest(TestCase):
         kwargs = {u'message': 'hello', u'server_name': 'not_dcramer.local', u'level': 40, u'site': 'not_a_real_site'}
         resp = self._postWithSignature(kwargs)
         self.assertEquals(resp.status_code, 200, resp.content)
-        instance = Message.objects.get()
+        instance = Event.objects.get()
         self.assertEquals(instance.message, 'hello')
         self.assertEquals(instance.server_name, 'not_dcramer.local')
         self.assertEquals(instance.level, 40)
@@ -171,7 +171,7 @@ class SentryRemoteTest(TestCase):
         kwargs = {u'message': 'hello', 'timestamp': timestamp.strftime('%s.%f')}
         resp = self._postWithSignature(kwargs)
         self.assertEquals(resp.status_code, 200, resp.content)
-        instance = Message.objects.get()
+        instance = Event.objects.get()
         self.assertEquals(instance.message, 'hello')
         self.assertEquals(instance.datetime, timestamp)
         group = instance.group
@@ -183,7 +183,7 @@ class SentryRemoteTest(TestCase):
         kwargs = {u'message': 'hello', 'timestamp': timestamp.strftime('%Y-%m-%dT%H:%M:%S.%f')}
         resp = self._postWithSignature(kwargs)
         self.assertEquals(resp.status_code, 200, resp.content)
-        instance = Message.objects.get()
+        instance = Event.objects.get()
         self.assertEquals(instance.message, 'hello')
         self.assertEquals(instance.datetime, timestamp)
         group = instance.group
@@ -194,7 +194,7 @@ class SentryRemoteTest(TestCase):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
         resp = self._postWithSignature(kwargs)
         self.assertEquals(resp.status_code, 200)
-        instance = Message.objects.get()
+        instance = Event.objects.get()
         self.assertEquals(instance.message, 'hello')
         self.assertEquals(instance.server_name, 'not_dcramer.local')
         self.assertEquals(instance.site, 'not_a_real_site')
@@ -217,9 +217,9 @@ class SentryRemoteTest(TestCase):
 
         self.assertEquals(resp.status_code, 200)
 
-        self.assertEquals(Message.objects.count(), 1)
+        self.assertEquals(Event.objects.count(), 1)
 
-        instance = Message.objects.get()
+        instance = Event.objects.get()
 
         self.assertEquals(instance.message, 'invalid byte sequence for encoding "UTF8": 0xeda4ac\nHINT:  This error can also happen if the byte sequence does not match the encoding expected by the server, which is controlled by "client_encoding".\n')
         self.assertEquals(instance.server_name, 'shilling.disqus.net')
@@ -233,7 +233,7 @@ class SentryRemoteTest(TestCase):
 
         self.assertEquals(resp.status_code, 200, resp.content)
 
-        instance = Message.objects.get()
+        instance = Event.objects.get()
 
         self.assertEquals(instance.message, 'hello')
         self.assertEquals(instance.server_name, 'not_dcramer.local')
@@ -247,7 +247,7 @@ class SentryRemoteTest(TestCase):
 
         self.assertEquals(resp.status_code, 200, resp.content)
 
-        instance = Message.objects.get()
+        instance = Event.objects.get()
 
         self.assertEquals(instance.message, 'hello')
         self.assertEquals(instance.server_name, 'not_dcramer.local')
@@ -282,7 +282,7 @@ class SentryMailTest(TestCase):
         settings.ADMINS = ('%s@localhost' % getpass.getuser(),)
 
     def test_mail_admins(self):
-        group = GroupedMessage.objects.get()
+        group = Group.objects.get()
         self.assertEquals(len(mail.outbox), 0)
         group.mail_admins(fail_silently=False)
         self.assertEquals(len(mail.outbox), 1)
@@ -317,8 +317,8 @@ class SentryMailTest(TestCase):
     #     self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
     #     self.assertEquals(len(mail.outbox), 1)
     #     # XXX: why wont this work
-    #     # group = GroupedMessage.objects.update(status=1)
-    #     group = GroupedMessage.objects.all().order_by('-id')[0]
+    #     # group = Group.objects.update(status=1)
+    #     group = Group.objects.all().order_by('-id')[0]
     #     group.status = 1
     #     group.save()
     #     self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
@@ -335,7 +335,7 @@ class SentryMailTest(TestCase):
     def test_url_prefix(self):
         settings.URL_PREFIX = 'http://example.com'
 
-        group = GroupedMessage.objects.get()
+        group = Group.objects.get()
         group.mail_admins(fail_silently=False)
 
         out = mail.outbox[0]
@@ -372,8 +372,8 @@ class SentryCleanupTest(TestCase):
 
         cleanup(days=1)
 
-        self.assertEquals(Message.objects.count(), 0)
-        self.assertEquals(GroupedMessage.objects.count(), 0)
+        self.assertEquals(Event.objects.count(), 0)
+        self.assertEquals(Group.objects.count(), 0)
         self.assertEquals(MessageCountByMinute.objects.count(), 0)
         self.assertEquals(MessageFilterValue.objects.count(), 0)
 
@@ -382,26 +382,26 @@ class SentryCleanupTest(TestCase):
 
         cleanup(days=1, logger='sentry')
 
-        self.assertEquals(Message.objects.count(), 8)
-        for message in Message.objects.all():
+        self.assertEquals(Event.objects.count(), 8)
+        for message in Event.objects.all():
             self.assertNotEquals(message.logger, 'sentry')
-        self.assertEquals(GroupedMessage.objects.count(), 3)
-        for message in GroupedMessage.objects.all():
+        self.assertEquals(Group.objects.count(), 3)
+        for message in Group.objects.all():
             self.assertNotEquals(message.logger, 'sentry')
 
         cleanup(days=1, logger='awesome')
 
-        self.assertEquals(Message.objects.count(), 4)
-        for message in Message.objects.all():
+        self.assertEquals(Event.objects.count(), 4)
+        for message in Event.objects.all():
             self.assertNotEquals(message.logger, 'awesome')
-        self.assertEquals(GroupedMessage.objects.count(), 2)
-        for message in GroupedMessage.objects.all():
+        self.assertEquals(Group.objects.count(), 2)
+        for message in Group.objects.all():
             self.assertNotEquals(message.logger, 'awesome')
 
         cleanup(days=1, logger='root')
 
-        self.assertEquals(Message.objects.count(), 0)
-        self.assertEquals(GroupedMessage.objects.count(), 0)
+        self.assertEquals(Event.objects.count(), 0)
+        self.assertEquals(Group.objects.count(), 0)
         self.assertEquals(MessageCountByMinute.objects.count(), 0)
         self.assertEquals(MessageFilterValue.objects.count(), 0)
 
@@ -410,15 +410,15 @@ class SentryCleanupTest(TestCase):
 
         cleanup(days=1, server='dcramer.local')
 
-        self.assertEquals(Message.objects.count(), 2)
-        for message in Message.objects.all():
+        self.assertEquals(Event.objects.count(), 2)
+        for message in Event.objects.all():
             self.assertNotEquals(message.server_name, 'dcramer.local')
-        self.assertEquals(GroupedMessage.objects.count(), 1)
+        self.assertEquals(Group.objects.count(), 1)
 
         cleanup(days=1, server='node.local')
 
-        self.assertEquals(Message.objects.count(), 0)
-        self.assertEquals(GroupedMessage.objects.count(), 0)
+        self.assertEquals(Event.objects.count(), 0)
+        self.assertEquals(Group.objects.count(), 0)
         self.assertEquals(MessageCountByMinute.objects.count(), 0)
         self.assertEquals(MessageFilterValue.objects.count(), 0)
 
@@ -427,15 +427,15 @@ class SentryCleanupTest(TestCase):
 
         cleanup(days=1, level=logging.ERROR)
 
-        self.assertEquals(Message.objects.count(), 1)
-        for message in Message.objects.all():
+        self.assertEquals(Event.objects.count(), 1)
+        for message in Event.objects.all():
             self.assertNotEquals(message.level, logging.ERROR)
-        self.assertEquals(GroupedMessage.objects.count(), 1)
+        self.assertEquals(Group.objects.count(), 1)
 
         cleanup(days=1, level=logging.DEBUG)
 
-        self.assertEquals(Message.objects.count(), 0)
-        self.assertEquals(GroupedMessage.objects.count(), 0)
+        self.assertEquals(Event.objects.count(), 0)
+        self.assertEquals(Group.objects.count(), 0)
         self.assertEquals(MessageCountByMinute.objects.count(), 0)
         self.assertEquals(MessageFilterValue.objects.count(), 0)
 

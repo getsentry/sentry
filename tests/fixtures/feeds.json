@@ -14,7 +14,7 @@
       "message": "exceptions must be old-style classes or derived from BaseException, not NoneType",
       "last_seen": "2010-07-22 20:14:18"
     },
-    "model": "sentry.groupedmessage",
+    "model": "sentry.group",
     "pk": 1
   },
   {
@@ -32,7 +32,7 @@
       "logger": "root",
       "message": "exceptions must be old-style classes or derived from BaseException, not NoneType"
     },
-    "model": "sentry.message",
+    "model": "sentry.event",
     "pk": 1
   }
 ]

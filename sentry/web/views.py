@@ -19,7 +19,7 @@ from django.template.loader import render_to_string
 from django.views.decorators.csrf import csrf_protect
 
 from sentry.conf import settings
-from sentry.models import GroupedMessage, Message, Project
+from sentry.models import Group, Event, Project
 from sentry.plugins import GroupActionProvider
 from sentry.templatetags.sentry_helpers import with_priority
 from sentry.utils import get_filters, json
@@ -119,7 +119,7 @@ def ajax_handler(request):
 
         projects = get_project_list(request.user, 'read_message')
 
-        message_list = GroupedMessage.objects.filter(Q(project__in=projects.keys()) | Q(project__isnull=True))
+        message_list = Group.objects.filter(Q(project__in=projects.keys()) | Q(project__isnull=True))
 
         sort = request.GET.get('sort')
         if sort == 'date':
@@ -161,14 +161,14 @@ def ajax_handler(request):
         if not gid:
             return HttpResponseForbidden()
         try:
-            group = GroupedMessage.objects.get(pk=gid)
-        except GroupedMessage.DoesNotExist:
+            group = Group.objects.get(pk=gid)
+        except Group.DoesNotExist:
             return HttpResponseForbidden()
 
         if group.project and group.project.pk not in get_project_list(request.user, 'change_message_status'):
             return HttpResponseForbidden()
 
-        GroupedMessage.objects.filter(pk=group.pk).update(status=1)
+        Group.objects.filter(pk=group.pk).update(status=1)
         group.status = 1
 
         if not request.is_ajax():
@@ -190,7 +190,7 @@ def ajax_handler(request):
     def clear(request):
         projects = get_project_list(request.user, 'change_message_status')
 
-        message_list = GroupedMessage.objects.filter(Q(project__in=projects.keys()) | Q(project__isnull=True))
+        message_list = Group.objects.filter(Q(project__in=projects.keys()) | Q(project__isnull=True))
 
         message_list.update(status=1)
 
@@ -208,14 +208,14 @@ def ajax_handler(request):
             return HttpResponseForbidden()
 
         try:
-            group = GroupedMessage.objects.get(pk=gid)
-        except GroupedMessage.DoesNotExist:
+            group = Group.objects.get(pk=gid)
+        except Group.DoesNotExist:
             return HttpResponseForbidden()
 
         if group.project and group.project.pk not in get_project_list(request.user, 'read_message'):
             return HttpResponseForbidden()
 
-        data = GroupedMessage.objects.get_chart_data(group)
+        data = Group.objects.get_chart_data(group)
 
         response = HttpResponse(json.dumps(data))
         response['Content-Type'] = 'application/json'
@@ -239,8 +239,8 @@ def search(request, project):
             # message_id = result.group(1)
             checksum = result.group(2)
             try:
-                message = GroupedMessage.objects.get(checksum=checksum)
-            except GroupedMessage.DoesNotExist:
+                message = Group.objects.get(checksum=checksum)
+            except Group.DoesNotExist:
                 if not has_search:
                     return render_to_response('sentry/invalid_message_id.html')
                 else:
@@ -250,8 +250,8 @@ def search(request, project):
         elif uuid_re.match(query):
             # Forward to message if it exists
             try:
-                message = Message.objects.get(message_id=query)
-            except Message.DoesNotExist:
+                message = Event.objects.get(message_id=query)
+            except Event.DoesNotExist:
                 if not has_search:
                     return render_to_response('sentry/invalid_message_id.html')
                 else:
@@ -263,7 +263,7 @@ def search(request, project):
         else:
             message_list = get_search_query_set(query)
     else:
-        message_list = GroupedMessage.objects.none()
+        message_list = Group.objects.none()
 
     sort = request.GET.get('sort')
     if sort == 'date':
@@ -299,7 +299,7 @@ def index(request, project):
     except (TypeError, ValueError):
         page = 1
 
-    message_list = GroupedMessage.objects.filter(project=project)
+    message_list = Group.objects.filter(project=project)
 
     sort = request.GET.get('sort')
     if sort == 'date':
@@ -338,7 +338,7 @@ def index(request, project):
 @login_required
 @can_manage('read_message')
 def group(request, project, group_id):
-    group = get_object_or_404(GroupedMessage, pk=group_id)
+    group = get_object_or_404(Group, pk=group_id)
 
     if group.project and group.project != project:
         return HttpResponseRedirect(reverse('sentry-group', kwargs={'group_id': group.pk, 'project_id': group.project_id}))
@@ -348,7 +348,7 @@ def group(request, project, group_id):
     except IndexError:
         # It's possible that a message would not be created under certain circumstances
         # (such as a post_save signal failing)
-        obj = Message(group=group, data=group.data)
+        obj = Event(group=group, data=group.data)
 
     # template information
     template_info = None
@@ -410,7 +410,7 @@ def group(request, project, group_id):
 @login_required
 @can_manage('read_message')
 def group_message_list(request, project, group_id):
-    group = get_object_or_404(GroupedMessage, pk=group_id)
+    group = get_object_or_404(Group, pk=group_id)
 
     if group.project and group.project != project:
         return HttpResponseRedirect(reverse('sentry-group-messages', kwargs={'group_id': group.pk, 'project_id': group.project_id}))
@@ -428,7 +428,7 @@ def group_message_list(request, project, group_id):
 @login_required
 @can_manage('read_message')
 def group_message_details(request, project, group_id, message_id):
-    group = get_object_or_404(GroupedMessage, pk=group_id)
+    group = get_object_or_404(Group, pk=group_id)
 
     if group.project and group.project != project:
         return HttpResponseRedirect(reverse('sentry-group-message', kwargs={'group_id': group.pk, 'project_id': group.project_id, 'message_id': message_id}))
@@ -498,7 +498,7 @@ def group_message_details(request, project, group_id, message_id):
 @login_required
 @can_manage('read_message')
 def group_plugin_action(request, project, group_id, slug):
-    group = get_object_or_404(GroupedMessage, pk=group_id)
+    group = get_object_or_404(Group, pk=group_id)
 
     if group.project and group.project != project:
         return HttpResponseRedirect(reverse('sentry-group-action', kwargs={'group_id': group.pk, 'project_id': group.project_id, 'slug': slug}))

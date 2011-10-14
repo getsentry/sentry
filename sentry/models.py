@@ -29,7 +29,7 @@ from sentry.conf import settings
 from sentry.utils import cached_property, construct_checksum, get_filters, \
                          MockDjangoRequest
 from sentry.utils.compat import pickle
-from sentry.utils.manager import GroupedMessageManager, SentryManager
+from sentry.utils.manager import GroupManager
 from sentry.templatetags.sentry_helpers import truncatechars
 
 try:
@@ -37,7 +37,7 @@ try:
 except ImportError:
     Model = models.Model
 
-__all__ = ('Message', 'GroupedMessage')
+__all__ = ('Event', 'Group')
 
 STATUS_LEVELS = (
     (0, _('unresolved')),
@@ -146,8 +146,6 @@ class MessageBase(Model):
     checksum        = models.CharField(max_length=32, db_index=True)
     data            = GzippedDictField(blank=True, null=True)
 
-    objects         = SentryManager()
-
     class Meta:
         abstract = True
 
@@ -178,7 +176,7 @@ class MessageBase(Model):
     def message_top(self):
         return truncatechars(self.message.split('\n')[0], 100)
 
-class GroupedMessage(MessageBase):
+class Group(MessageBase):
     status          = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
     times_seen      = models.PositiveIntegerField(default=1, db_index=True)
     last_seen       = models.DateTimeField(default=datetime.now, db_index=True)
@@ -186,7 +184,7 @@ class GroupedMessage(MessageBase):
 
     score           = models.IntegerField(default=0)
 
-    objects         = GroupedMessageManager()
+    objects         = GroupManager()
 
     class Meta:
         unique_together = (('project', 'logger', 'view', 'checksum'),)
@@ -283,9 +281,9 @@ class GroupedMessage(MessageBase):
         module = self.data.get('module', 'ver')
         return module, self.data['version']
 
-class Message(MessageBase):
+class Event(MessageBase):
     message_id      = models.CharField(max_length=32, null=True, unique=True)
-    group           = models.ForeignKey(GroupedMessage, blank=True, null=True, related_name="message_set")
+    group           = models.ForeignKey(Group, blank=True, null=True, related_name="message_set")
     datetime        = models.DateTimeField(default=datetime.now, db_index=True)
     url             = models.URLField(verify_exists=False, null=True, blank=True)
     server_name     = models.CharField(max_length=128, db_index=True)
@@ -302,7 +300,7 @@ class Message(MessageBase):
     def save(self, *args, **kwargs):
         if not self.checksum:
             self.checksum = construct_checksum(**self.__dict__)
-        super(Message, self).save(*args, **kwargs)
+        super(Event, self).save(*args, **kwargs)
 
     @models.permalink
     def get_absolute_url(self):
@@ -372,7 +370,7 @@ class MessageFilterValue(models.Model):
     the given filter.
     """
     project = models.ForeignKey(Project, null=True)
-    group = models.ForeignKey(GroupedMessage)
+    group = models.ForeignKey(Group)
     times_seen = models.PositiveIntegerField(default=0)
     key = models.CharField(choices=FILTER_KEYS, max_length=32)
     value = models.CharField(max_length=200)
@@ -392,7 +390,7 @@ class MessageCountByMinute(Model):
     """
 
     project = models.ForeignKey(Project, null=True)
-    group = models.ForeignKey(GroupedMessage)
+    group = models.ForeignKey(Group)
     date = models.DateTimeField() # normalized to HH:MM:00
     times_seen = models.PositiveIntegerField(default=0)
 
@@ -406,7 +404,7 @@ class MessageCountByMinute(Model):
 ### django-indexer
 
 class MessageIndex(BaseIndex):
-    model = Message
+    model = Event
 
 ### Helper methods
 

@@ -70,13 +70,13 @@ def time_limit(silence): # ~ 3600 per hour
         return 60
     return 10000
 
-class SentryManager(models.Manager):
+class GroupManager(models.Manager):
     use_for_related_fields = True
 
     def from_kwargs(self, project, **kwargs):
-        from sentry.models import Message, GroupedMessage, FilterValue, Project
+        from sentry.models import Event, FilterValue, Project
 
-        URL_MAX_LENGTH = Message._meta.get_field_by_name('url')[0].max_length
+        URL_MAX_LENGTH = Event._meta.get_field_by_name('url')[0].max_length
         now = kwargs.pop('timestamp', None) or datetime.datetime.now()
 
         view = kwargs.pop('view', None)
@@ -114,7 +114,7 @@ class SentryManager(models.Manager):
                 'first_seen': now,
             })
 
-            group, created = GroupedMessage.objects.get_or_create(
+            group, created = self.get_or_create(
                 project=project,
                 view=view,
                 logger=logger_name,
@@ -132,21 +132,21 @@ class SentryManager(models.Manager):
                 group.status = 0
                 group.last_seen = now
                 group.times_seen += 1
-                GroupedMessage.objects.filter(pk=group.pk).update(
+                self.filter(pk=group.pk).update(
                     times_seen=F('times_seen') + 1,
                     status=0,
                     last_seen=now,
                     score=ScoreClause(group),
                 )
-                signals.post_save.send(sender=GroupedMessage, instance=group, created=False)
+                signals.post_save.send(sender=self.model, instance=group, created=False)
             else:
-                GroupedMessage.objects.filter(pk=group.pk).update(
+                self.filter(pk=group.pk).update(
                     score=ScoreClause(group),
                 )
                 silence = 0
                 mail = True
 
-            instance = Message(
+            instance = Event(
                 project=project,
                 message_id=message_id,
                 view=view,
@@ -210,12 +210,11 @@ class SentryManager(models.Manager):
                 warnings.warn(u'Unable to process log entry: %s' % (exc,))
         else:
             if mail and should_mail(group):
-                regression_signal.send(sender=GroupedMessage, instance=group)
+                regression_signal.send(sender=self.model, instance=group)
                 group.mail_admins()
 
             return instance
 
-class GroupedMessageManager(SentryManager):
     def get_by_natural_key(self, logger, view, checksum):
         return self.get(logger=logger, view=view, checksum=checksum)
 

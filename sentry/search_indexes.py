@@ -12,7 +12,7 @@ from haystack.sites import SearchSite
 
 from sentry.conf import settings
 from sentry.utils import to_unicode
-from sentry.models import GroupedMessage
+from sentry.models import Group
 
 if settings.SEARCH_ENGINE:
     # Ensure we stop here if we havent configure Sentry to work under haystack
@@ -24,7 +24,7 @@ if settings.SEARCH_ENGINE:
     site = SentrySearchSite()
     site.backend = backend.SearchBackend(site, **settings.SEARCH_OPTIONS)
 
-    class GroupedMessageIndex(RealTimeSearchIndex):
+    class GroupIndex(RealTimeSearchIndex):
         text = CharField(document=True, stored=False)
         status = IntegerField(model_attr='status', stored=False, null=True)
         level = IntegerField(model_attr='level', stored=False, null=True)
@@ -37,7 +37,7 @@ if settings.SEARCH_ENGINE:
 
         # def get_queryset(self):
         #     """Used when the entire index for model is updated."""
-        #     return GroupedMessage.objects.all()
+        #     return Group.objects.all()
 
         def get_updated_field(self):
             return 'last_seen'
@@ -60,4 +60,4 @@ if settings.SEARCH_ENGINE:
             return [to_unicode(s[0]) for s in instance.unique_urls]
 
 
-    site.register(GroupedMessage, GroupedMessageIndex)
+    site.register(Group, GroupIndex)

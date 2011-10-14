@@ -169,7 +169,7 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None):
     # and potentially just send out post_delete signals where
     # GroupedMessage can update itself accordingly
 
-    from sentry.models import GroupedMessage, Message, MessageCountByMinute, \
+    from sentry.models import Group, Event, MessageCountByMinute, \
                               MessageFilterValue, FilterValue
     from sentry.utils.query import RangeQuerySetWrapper, SkinnyQuerySet
     import datetime
@@ -177,7 +177,7 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None):
     ts = datetime.datetime.now() - datetime.timedelta(days=days)
 
     # Message
-    qs = SkinnyQuerySet(Message).filter(datetime__lte=ts)
+    qs = SkinnyQuerySet(Event).filter(datetime__lte=ts)
     if logger:
         qs = qs.filter(logger=logger)
     if site:
@@ -206,7 +206,7 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None):
             obj.delete()
 
         # GroupedMessage
-        qs = SkinnyQuerySet(GroupedMessage).filter(last_seen__lte=ts)
+        qs = SkinnyQuerySet(Group).filter(last_seen__lte=ts)
         if logger:
             qs = qs.filter(logger=logger)
         if level:
@@ -223,11 +223,11 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None):
     # attempt to cleanup any groups that may now be empty
     groups_to_delete = []
     for group_id in groups_to_check:
-        if not Message.objects.filter(group=group_id).exists():
+        if not Event.objects.filter(group=group_id).exists():
             groups_to_delete.append(group_id)
 
     if groups_to_delete:
-        for obj in SkinnyQuerySet(GroupedMessage).filter(pk__in=groups_to_delete):
+        for obj in SkinnyQuerySet(Group).filter(pk__in=groups_to_delete):
             for key, value in SkinnyQuerySet(MessageFilterValue).filter(group=obj).values_list('key', 'value'):
                 if not MessageFilterValue.objects.filter(key=key, value=value).exclude(group=obj).exists():
                     print ">>> Removing <FilterValue: key=%s, value=%s>" % (key, value)

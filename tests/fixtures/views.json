@@ -14,7 +14,7 @@
       "message": "'template'",
       "view": "sentry.web.views.group"
     },
-    "model": "sentry.groupedmessage",
+    "model": "sentry.group",
     "pk": 2
   },
   {
@@ -32,7 +32,7 @@
       "message": "global name 'bar' is not defined",
       "view": "sentry.web.views.group"
     },
-    "model": "sentry.groupedmessage",
+    "model": "sentry.group",
     "pk": 3
   },
   {
@@ -50,7 +50,7 @@
       "message": "'tuple' object has no attribute 'args'",
       "view": "sentry.web.views.group"
     },
-    "model": "sentry.groupedmessage",
+    "model": "sentry.group",
     "pk": 4
   },
   {
@@ -68,7 +68,7 @@
       "message": "type object 'datetime.datetime' has no attribute 'tomorrow'",
       "view": "sentry.web.views.index"
     },
-    "model": "sentry.groupedmessage",
+    "model": "sentry.group",
     "pk": 5
   },
   {
@@ -87,7 +87,7 @@
       "message": "'template'",
       "view": "sentry.web.views.group"
     },
-    "model": "sentry.message",
+    "model": "sentry.event",
     "pk": 4
   },
   {
@@ -106,7 +106,7 @@
       "message": "global name 'bar' is not defined",
       "view": "sentry.web.views.group"
     },
-    "model": "sentry.message",
+    "model": "sentry.event",
     "pk": 5
   },
   {
@@ -125,7 +125,7 @@
       "message": "global name 'bar' is not defined",
       "view": "sentry.web.views.group"
     },
-    "model": "sentry.message",
+    "model": "sentry.event",
     "pk": 6
   },
   {
@@ -144,7 +144,7 @@
       "message": "global name 'bar' is not defined",
       "view": "sentry.web.views.group"
     },
-    "model": "sentry.message",
+    "model": "sentry.event",
     "pk": 7
   },
   {
@@ -163,7 +163,7 @@
       "message": "'tuple' object has no attribute 'args'",
       "view": "sentry.web.views.group"
     },
-    "model": "sentry.message",
+    "model": "sentry.event",
     "pk": 9
   },
   {
@@ -182,7 +182,7 @@
       "message": "'tuple' object has no attribute 'args'",
       "view": "sentry.web.views.group"
     },
-    "model": "sentry.message",
+    "model": "sentry.event",
     "pk": 10
   },
   {
@@ -201,7 +201,7 @@
       "message": "'tuple' object has no attribute 'args'",
       "view": "sentry.web.views.group"
     },
-    "model": "sentry.message",
+    "model": "sentry.event",
     "pk": 11
   },
   {
@@ -220,7 +220,7 @@
       "message": "type object 'datetime.datetime' has no attribute 'tomorrow'",
       "view": "sentry.web.views.index"
     },
-    "model": "sentry.message",
+    "model": "sentry.event",
     "pk": 16
   },
   {
@@ -239,7 +239,7 @@
       "message": "type object 'datetime.datetime' has no attribute 'tomorrow'",
       "view": "sentry.web.views.index"
     },
-    "model": "sentry.message",
+    "model": "sentry.event",
     "pk": 17
   },
   {
@@ -258,7 +258,7 @@
       "message": "type object 'datetime.datetime' has no attribute 'tomorrow'",
       "view": "sentry.web.views.index"
     },
-    "model": "sentry.message",
+    "model": "sentry.event",
     "pk": 18
   }
 ]

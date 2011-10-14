@@ -11,10 +11,9 @@ Note: this does not test with API_KEY as that only works under a modified Redmin
 """
 
 from django.contrib.auth.models import User
-from django.core.urlresolvers import reverse
 from django.test import TestCase
 
-from sentry.models import GroupedMessage
+from sentry.models import Group
 from sentry.plugins.sentry_redmine import conf
 from sentry.plugins.sentry_redmine.models import CreateRedmineIssue, RedmineIssue
 
@@ -32,7 +31,7 @@ class CreateIssueTest(TestCase):
         conf.REDMINE_PROJECT_SLUG = 'sentry'
 
     def test_basic_response(self):
-        group = GroupedMessage.objects.all()[0]
+        group = Group.objects.all()[0]
 
         response = self.client.get(CreateRedmineIssue.get_url(group.pk))
         self.assertEquals(response.status_code, 200)
@@ -42,7 +41,7 @@ class CreateIssueTest(TestCase):
         conf.REDMINE_USERNAME = None
         conf.REDMINE_PASSWORD = None
 
-        group = GroupedMessage.objects.all()[0]
+        group = Group.objects.all()[0]
 
         response = self.client.post(CreateRedmineIssue.get_url(group.pk), {
             'subject': 'test',
@@ -53,14 +52,14 @@ class CreateIssueTest(TestCase):
 
         self.assertTrue(RedmineIssue.objects.filter(group=group).exists())
 
-        group = GroupedMessage.objects.get(pk=group.pk)
+        group = Group.objects.get(pk=group.pk)
         self.assertTrue(group.data['redmine']['issue_id'] > 0)
 
     def test_http_auth_issue_creation(self):
         conf.REDMINE_USERNAME = 'sentry'
         conf.REDMINE_PASSWORD = 'sentry'
 
-        group = GroupedMessage.objects.all()[0]
+        group = Group.objects.all()[0]
 
         response = self.client.post(CreateRedmineIssue.get_url(group.pk), {
             'subject': 'test',
@@ -71,5 +70,5 @@ class CreateIssueTest(TestCase):
 
         self.assertTrue(RedmineIssue.objects.filter(group=group).exists())
 
-        group = GroupedMessage.objects.get(pk=group.pk)
+        group = Group.objects.get(pk=group.pk)
         self.assertTrue(group.data['redmine']['issue_id'] > 0)

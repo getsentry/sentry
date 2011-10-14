@@ -20,7 +20,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from sentry.conf import settings
-from sentry.models import GroupedMessage, ProjectMember
+from sentry.models import Group, ProjectMember
 from sentry.utils import is_float, json
 from sentry.utils.auth import get_signature, parse_auth_header
 from sentry.utils.compat import pickle
@@ -153,6 +153,6 @@ def store(request):
     elif not project:
         data['project'] = 1
 
-    GroupedMessage.objects.from_kwargs(**data)
+    Group.objects.from_kwargs(**data)
 
     return HttpResponse()

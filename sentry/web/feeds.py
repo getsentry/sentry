@@ -11,7 +11,7 @@ from django.http import HttpResponse
 from django.utils import feedgenerator
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.models import Message, GroupedMessage
+from sentry.models import Event, Group
 
 class MessageFeed(object):
     def __call__(self, request):
@@ -46,7 +46,7 @@ class MessageFeed(object):
         return reverse('sentry')
 
     def get_model(self, request):
-        return Message
+        return Event
 
     def get_query_set(self, request):
         qs = self.get_model(request).objects.all().order_by(self.get_order_field(request))
@@ -79,7 +79,7 @@ class SummaryFeed(MessageFeed):
         return reverse('sentry')
 
     def get_model(self, request):
-        return GroupedMessage
+        return Group
 
     def get_query_set(self, request):
         qs = super(SummaryFeed, self).get_query_set(request)

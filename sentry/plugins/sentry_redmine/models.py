@@ -14,7 +14,7 @@ from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response
 from django.utils.safestring import mark_safe
 
-from sentry.models import GroupedMessage
+from sentry.models import Group
 from sentry.plugins import GroupActionProvider
 from sentry.plugins.sentry_redmine import conf
 from sentry.utils import json
@@ -24,7 +24,7 @@ import urllib
 import urllib2
 
 class RedmineIssue(models.Model):
-    group = models.ForeignKey(GroupedMessage)
+    group = models.ForeignKey(Group)
     issue_id = models.PositiveIntegerField()
 
 class RedmineIssueForm(forms.Form):
