@@ -85,13 +85,6 @@ def store(request):
         if not key:
             return HttpResponseForbidden('Invalid credentials')
 
-        try:
-            key = base64.b64decode(key)
-        except Exception, e:
-            logger.exception('Bad data received')
-            return HttpResponseForbidden('Bad data decoding key (%s, %s)' % (e.__class__.__name__, e))
-
-
         if key != settings.KEY:
             warnings.warn('A client is sending the `key` parameter, which will be removed in Sentry 2.0', DeprecationWarning)
             return HttpResponseForbidden('Invalid credentials')
