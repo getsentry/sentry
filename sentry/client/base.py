@@ -105,9 +105,9 @@ class SentryClient(object):
 
         request = kwargs.pop('request', None)
         if isinstance(request, HttpRequest):
-            if not request.POST and request.raw_post_data:
-                post_data = request.raw_post_data
-            else:
+            try:
+                post_data = not request.POST and request.raw_post_data or request.POST
+            except:
                 post_data = request.POST
 
             kwargs['data'].update(dict(
