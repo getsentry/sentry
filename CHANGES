@@ -1,3 +1,7 @@
+1.13.1
+
+* Search by message_id will now display a list of results if there are multiple matches.
+
 1.13.0
 
 * Deprecated the Sentry client, and added Raven to the as the default builtin.
