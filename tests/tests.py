@@ -1586,6 +1586,45 @@ class SentrySearchTest(TestCase):
         self.assertEquals(qs.count(), 1)
         self.assertEquals(qs[0:1][0].message, 'test search error')
 
+    def test_checksum_query(self):
+        checksum = 'a'*32
+        g = GroupedMessage.objects.create(
+            logger='root',
+            view='a',
+            checksum=checksum,
+            message='hi',
+        )
+
+        with Settings(SENTRY_PUBLIC=True):
+            response = self.client.get(reverse('sentry-search'), {'q': '%s$%s' % (checksum, checksum)})
+            self.assertEquals(response.status_code, 302)
+            self.assertEquals(response['Location'], 'http://testserver%s' % (g.get_absolute_url(),))
+
+    def test_dupe_checksum(self):
+        checksum = 'a'*32
+        g1 = GroupedMessage.objects.create(
+            logger='root',
+            view='a',
+            checksum=checksum,
+            message='hi',
+        )
+        g2 = GroupedMessage.objects.create(
+            logger='root',
+            view='b',
+            checksum=checksum,
+            message='hi',
+        )
+
+        with Settings(SENTRY_PUBLIC=True):
+            response = self.client.get(reverse('sentry-search'), {'q': '%s$%s' % (checksum, checksum)})
+            self.assertEquals(response.status_code, 200)
+            self.assertTemplateUsed(response, 'sentry/search.html')
+            context = response.context
+            self.assertTrue('message_list' in context)
+            self.assertEquals(len(context['message_list']), 2)
+            self.assertTrue(g1 in context['message_list'])
+            self.assertTrue(g2 in context['message_list'])
+
 class SentryPluginTest(TestCase):
     def test_registration(self):
         from sentry.plugins import GroupActionProvider

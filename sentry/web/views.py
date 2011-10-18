@@ -146,17 +146,17 @@ def search(request):
         result = message_re.match(query)
         if result:
             # Forward to message if it exists
-            message_id = result.group(1)
+            # message_id = result.group(1)
             checksum = result.group(2)
-            try:
-                message = GroupedMessage.objects.get(checksum=checksum)
-            except GroupedMessage.DoesNotExist:
+            message_list = GroupedMessage.objects.filter(checksum=checksum)
+            top_matches = message_list[:2]
+            if len(top_matches) == 0:
                 if not has_search:
                     return render_to_response('sentry/invalid_message_id.html')
                 else:
                     message_list = get_search_query_set(query)
-            else:
-                return HttpResponseRedirect(message.get_absolute_url())
+            elif len(top_matches) == 1:
+                return HttpResponseRedirect(top_matches[0].get_absolute_url())
         elif uuid_re.match(query):
             # Forward to message if it exists
             try:
