@@ -52,12 +52,14 @@ def small_count(v):
     z = [
         (1000000000, _('b')),
         (1000000, _('m')),
-        (10, _('k')),
+        (1000, _('k')),
     ]
     v = int(v)
     for x, y in z:
         o, p = divmod(v, x)
         if o > 1:
+            if len(str(o)) > 2:
+                return '%d%s' % (v, y)
             return '%.1f%s' % (v / float(x), y)
     return v
 
