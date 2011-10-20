@@ -5,10 +5,6 @@
 
 {% block title %}{{ group.error }} | {{ block.super }}{% endblock %}
 
-{% block meta %}
-    <script type="text/javascript" src="{% url sentry-media "scripts/highstock.js" %}"></script>
-{% endblock %}
-
 {% block heading %}
     {% trans "Message Details" %} <span><a href="{% url sentry %}">&laquo; {% trans "Back to list" %}</a></span>
 {% endblock %}
