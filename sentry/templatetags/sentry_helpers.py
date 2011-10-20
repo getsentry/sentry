@@ -48,6 +48,20 @@ def is_dict(value):
     return isinstance(value, dict)
 
 @register.filter
+def small_count(v):
+    z = [
+        (1000000000, _('b')),
+        (1000000, _('m')),
+        (10, _('k')),
+    ]
+    v = int(v)
+    for x, y in z:
+        o, p = divmod(v, x)
+        if o > 1:
+            return '%.1f%s' % (v / float(x), y)
+    return v
+
+@register.filter
 def with_priority(result_list, key='score'):
     if result_list:
         if isinstance(result_list[0], (dict, list, tuple)):

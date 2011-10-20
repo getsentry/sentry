@@ -12,7 +12,7 @@
     </div>
     <ul class="server-list">
         {% for site, times_seen in site_list.objects %}
-            <li><span class="count">{{ times_seen }}</span> <a href="{% url sentry %}?site={{ site }}">{{ site }}</a></li>
+            <li><span class="count">{{ times_seen|small_count }}</span> <a href="{% url sentry %}?site={{ site }}">{{ site }}</a></li>
         {% endfor %}
     </ul>
     <div class="paging-wrap">
