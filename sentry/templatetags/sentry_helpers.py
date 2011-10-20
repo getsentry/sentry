@@ -57,9 +57,9 @@ def small_count(v):
     v = int(v)
     for x, y in z:
         o, p = divmod(v, x)
-        if o > 1:
-            if len(str(o)) > 2:
-                return '%d%s' % (v, y)
+        if o:
+            if len(str(o)) > 2 or not p:
+                return '%d%s' % (o, y)
             return '%.1f%s' % (v / float(x), y)
     return v
 
