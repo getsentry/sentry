@@ -64,6 +64,9 @@ if not settings.configured:
         SENTRY_SEARCH_OPTIONS={
             'path': join(dirname(__file__), 'sentry_test_index'),
         },
+        SENTRY_PUBLIC=False,
+        # helpful in pdb'ing tests:
+        #NOSE_ARGS=['--nocapture']
     )
     import djcelery
     djcelery.setup_loader()

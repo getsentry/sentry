@@ -397,7 +397,8 @@ def group(request, group_id):
     else:
         lastframe = None
 
-    return render_to_response('sentry/group/details.html', {
+    context = csrf(request)
+    context.update({
         'page': 'details',
         'group': group,
         'json_data': iter_data(obj),
@@ -410,6 +411,15 @@ def group(request, group_id):
         'exception_value': exc_value,
         'request': request,
     })
+    return render_to_response('sentry/group/details.html', context)
+
+@login_required
+@require_http_methods(['POST'])
+def group_notes(request, group_id):
+    group = get_object_or_404(GroupedMessage, pk=group_id)
+    group.notes = request.POST.get('notes', '')
+    group.save()
+    return HttpResponseRedirect(reverse('sentry-group', args=(group_id,)))
 
 @login_required
 def group_message_list(request, group_id):

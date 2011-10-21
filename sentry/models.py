@@ -132,6 +132,7 @@ class GroupedMessage(MessageBase):
     first_seen      = models.DateTimeField(default=datetime.now, db_index=True)
 
     score           = models.IntegerField(default=0)
+    notes           = models.TextField(default='')
 
     objects         = GroupedMessageManager()
 

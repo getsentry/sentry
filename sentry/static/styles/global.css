@@ -149,6 +149,9 @@ pre {
     top: 1.4em;
     width: 300px;
 }
+#makegroupnotes {
+    position: relative;
+}
 #search input {
     width: 244px;
     padding: 6px 50px 6px 6px;
@@ -159,13 +162,7 @@ pre {
     -webkit-border-radius: 3px;
     border-radius: 3px;
 }
-#search button {
-    cursor: pointer;
-    position: absolute;
-    right: -2px;
-    top: 0;
-    padding: 6px;
-    height: 100%;
+#search button, #groupnotes button {
     line-height: 100%;
     font-weight: bold;
     text-transform: uppercase;
@@ -180,7 +177,36 @@ pre {
     -webkit-border-radius: 0 3px 3px 0;
     border-radius: 0 3px 3px 0;
 }
-#search button:hover {
+  
+#search button {
+    cursor: pointer;
+    position: absolute;
+    right: -2px;
+    top: 0;
+    padding: 6px;
+    height: 100%;
+}
+
+#makegroupnotes textarea {
+    width: 80%;
+    background: #000;
+    border:1px solid #666;
+    color: #fff;
+    -moz-border-radius: 3px;
+    -webkit-border-radius: 3px;
+    border-radius: 3px;
+}
+
+#makegroupnotes button {
+    cursor: pointer;
+    position: absolute;
+    right: 10px;
+    top: 0;
+    width: 20%;
+    padding: 6px;
+    height: 100%;
+}
+#search button:hover, #makegroupnotes button:hover {
     filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#777777', endColorstr='#555555'); /* for IE */
     background: -webkit-gradient(linear, left top, left bottom, from(#777777), to(#555555)); /* for webkit browsers */
     background: -moz-linear-gradient(top,  #777777,  #555555); /* for firefox 3.6+ */

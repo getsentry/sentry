@@ -1013,6 +1013,26 @@ class SentryViewsTest(TestCase):
         group = GroupedMessage.objects.get(pk=2)
         self.assertEquals(resp.context['group'], group)
 
+    def test_group_notes(self):
+        self.client.login(username='admin', password='admin')
+        group = GroupedMessage.objects.get(pk=2)
+        group_url = reverse('sentry-group', args=[2])
+        notes_url = reverse('sentry-group-notes', args=[2])
+        self.assertEqual(group.notes, '')
+        test_note = 'this is a test note'
+        resp = self.client.post(
+            notes_url,
+            {
+                'notes': test_note
+            },
+            follow=True)
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp.redirect_chain[0][0], 'http://testserver%s' % group_url)
+        self.assertTemplateUsed(resp, 'sentry/group/details.html')
+        self.assertTrue('group' in resp.context)
+        group_again = GroupedMessage.objects.get(pk=2)
+        self.assertEqual(group_again.notes, test_note)
+
     def test_group_message_list(self):
         self.client.login(username='admin', password='admin')
         resp = self.client.get(reverse('sentry-group-messages', args=[2]), follow=True)
