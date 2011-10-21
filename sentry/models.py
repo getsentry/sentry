@@ -8,7 +8,6 @@ sentry.models
 
 from __future__ import absolute_import
 
-import base64
 import logging
 import math
 import time
@@ -28,14 +27,9 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
 from sentry.utils import cached_property, construct_checksum, get_filters, \
                          MockDjangoRequest
-from sentry.utils.compat import pickle
+from sentry.utils.models import Model, GzippedDictField
 from sentry.utils.manager import GroupManager
 from sentry.templatetags.sentry_helpers import truncatechars
-
-try:
-    from idmapper.models import SharedMemoryModel as Model
-except ImportError:
-    Model = models.Model
 
 __all__ = ('Event', 'Group')
 
@@ -52,40 +46,6 @@ FILTER_KEYS = (
 )
 
 logger = logging.getLogger('sentry.errors')
-
-class GzippedDictField(models.TextField):
-    """
-    Slightly different from a JSONField in the sense that the default
-    value is a dictionary.
-    """
-    __metaclass__ = models.SubfieldBase
-
-    def to_python(self, value):
-        if isinstance(value, basestring) and value:
-            try:
-                value = pickle.loads(base64.b64decode(value).decode('zlib'))
-            except Exception, e:
-                logger.exception(e)
-                return {}
-        elif not value:
-            return {}
-        return value
-
-    def get_prep_value(self, value):
-        if value is None:
-            return
-        return base64.b64encode(pickle.dumps(value).encode('zlib'))
-
-    def value_to_string(self, obj):
-        value = self._get_val_from_obj(obj)
-        return self.get_db_prep_value(value)
-
-    def south_field_triple(self):
-        "Returns a suitable description of this field for South."
-        from south.modelsinspector import introspector
-        field_class = "django.db.models.fields.TextField"
-        args, kwargs = introspector(self)
-        return (field_class, args, kwargs)
 
 class Project(Model):
     name            = models.CharField(max_length=200)
@@ -282,7 +242,7 @@ class Group(MessageBase):
         return module, self.data['version']
 
 class Event(MessageBase):
-    message_id      = models.CharField(max_length=32, null=True, unique=True)
+    event_id        = models.CharField(max_length=32, null=True, unique=True, db_column="message_id")
     group           = models.ForeignKey(Group, blank=True, null=True, related_name="message_set")
     datetime        = models.DateTimeField(default=datetime.now, db_index=True)
     url             = models.URLField(verify_exists=False, null=True, blank=True)

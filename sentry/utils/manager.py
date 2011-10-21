@@ -11,7 +11,7 @@ import logging
 import warnings
 
 from django.db import models
-from django.db.models import signals, Sum, F
+from django.db.models import Sum, F
 
 from sentry.conf import settings
 from sentry.signals import regression_signal
@@ -73,25 +73,56 @@ def time_limit(silence): # ~ 3600 per hour
 class GroupManager(models.Manager):
     use_for_related_fields = True
 
+    def convert_legacy_kwargs(self, kwargs):
+        date = kwargs.pop('timestamp', None)
+
+        data = kwargs.pop('data', {}) or {}
+        sentry = data.get('__sentry__', {})
+        message_id = kwargs.pop('message_id', None)
+
+        if 'url' in data:
+            url = data['url']
+        elif 'url' in kwargs:
+            url = kwargs['url']
+        else:
+            url = None
+
+        if 'version' in sentry and 'module' in sentry:
+            version = [sentry['module'], sentry['version']]
+        else:
+            version = None
+
+        extra = {}
+
+        data = {
+            'version': version,
+        }
+
+        return {
+            'date': date,
+            'event_id': message_id,
+            'data': data,
+            'extra': extra,
+        }
+
     def from_kwargs(self, project, **kwargs):
         from sentry.models import Event, FilterValue, Project
 
         URL_MAX_LENGTH = Event._meta.get_field_by_name('url')[0].max_length
-        now = kwargs.pop('timestamp', None) or datetime.datetime.now()
-
         view = kwargs.pop('view', None)
+        if view:
+            # assume legacy
+            kwargs = self.convert_legacy_kwargs(kwargs)
+
         logger_name = kwargs.pop('logger', 'root')
-        url = kwargs.pop('url', None)
         server_name = kwargs.pop('server_name', None)
         site = kwargs.pop('site', None)
         project = Project.objects.get(pk=project)
 
-        data = kwargs.pop('data', {}) or {}
-        message_id = kwargs.pop('message_id', None)
+        date = kwargs.pop('date', None) or datetime.datetime.now()
 
-        if url:
-            data['url'] = url
-            url = url[:URL_MAX_LENGTH]
+        data = kwargs.pop('data', None) or {}
+        event_id = kwargs.pop('event_id', None)
 
         checksum = kwargs.pop('checksum', None)
         if not checksum:
@@ -99,19 +130,14 @@ class GroupManager(models.Manager):
 
         mail = False
         try:
-            kwargs['data'] = {}
-
-            if 'url' in data:
-                kwargs['data']['url'] = data['url']
-            if 'version' in data.get('__sentry__', {}):
-                kwargs['data']['version'] = data['__sentry__']['version']
-            if 'module' in data.get('__sentry__', {}):
-                kwargs['data']['module'] = data['__sentry__']['module']
+            if 'extra' in kwargs:
+                data['extra'] = kwargs.pop('extra')
+            kwargs['data'] = data
 
             group_kwargs = kwargs.copy()
             group_kwargs.update({
-                'last_seen': now,
-                'first_seen': now,
+                'last_seen': date,
+                'first_seen': date,
             })
 
             group, created = self.get_or_create(
@@ -127,37 +153,25 @@ class GroupManager(models.Manager):
                 # HACK: maintain appeared state
                 if group.status == 1:
                     mail = True
-                silence_timedelta = now - group.last_seen
+                silence_timedelta = date - group.last_seen
                 silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
-                group.status = 0
-                group.last_seen = now
-                group.times_seen += 1
-                self.filter(pk=group.pk).update(
-                    times_seen=F('times_seen') + 1,
-                    status=0,
-                    last_seen=now,
-                    score=ScoreClause(group),
-                )
-                signals.post_save.send(sender=self.model, instance=group, created=False)
+                group.update(status=0, last_seen=date, times_seen=F('times_seen') + 1, score=ScoreClause(group))
             else:
-                self.filter(pk=group.pk).update(
-                    score=ScoreClause(group),
-                )
+                group.update(score=ScoreClause(group))
                 silence = 0
                 mail = True
 
             instance = Event(
                 project=project,
-                message_id=message_id,
+                event_id=event_id,
                 view=view,
                 logger=logger_name,
                 data=data,
-                url=url,
                 server_name=server_name,
                 site=site,
                 checksum=checksum,
                 group=group,
-                datetime=now,
+                datetime=date,
                 **kwargs
             )
 
@@ -166,10 +180,10 @@ class GroupManager(models.Manager):
 
             # rounded down to the nearest interval
             if settings.MINUTE_NORMALIZATION:
-                minutes = (now.minute - (now.minute % settings.MINUTE_NORMALIZATION))
+                minutes = (date.minute - (date.minute % settings.MINUTE_NORMALIZATION))
             else:
-                minutes = now.minute
-            normalized_datetime = now.replace(second=0, microsecond=0, minute=minutes)
+                minutes = date.minute
+            normalized_datetime = date.replace(second=0, microsecond=0, minute=minutes)
 
             affected = group.messagecountbyminute_set.filter(date=normalized_datetime).update(times_seen=F('times_seen') + 1)
             if not affected:
