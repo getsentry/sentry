@@ -8,7 +8,8 @@ sentry.web.views
 
 from django.conf import settings as dj_settings
 from django.core.urlresolvers import reverse, resolve
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
+from django.template import loader
 
 from sentry.conf import settings
 from sentry.models import Project, ProjectMember
@@ -49,15 +50,17 @@ def iter_data(obj):
             continue
         yield k, v
 
-def render_to_response(template, context={}, status=200):
-    from django.shortcuts import render_to_response
-
+def render_to_string(template, context={}):
     context.update({
         'has_search': bool(settings.SEARCH_ENGINE),
     })
 
-    response = render_to_response(template, context)
+    return loader.render_to_string(template, context)
+
+def render_to_response(template, context={}, status=200):
+    response = HttpResponse(render_to_string(template, context))
     response.status_code = status
+
     return response
 
 def get_search_query_set(query):

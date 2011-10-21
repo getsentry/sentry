@@ -46,7 +46,7 @@ if settings.SEARCH_ENGINE:
             return 'text'
 
         def prepare_text(self, instance):
-            chunks = [instance.message, instance.class_name, instance.traceback, instance.view]
+            chunks = [instance.message, instance.class_name, instance.traceback, instance.culprit]
             chunks.extend(self.prepare_url(instance))
             return '\n'.join(map(to_unicode, filter(None, chunks)))
 

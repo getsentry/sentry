@@ -11,7 +11,7 @@ validated and rendered.
 
 import urlparse
 
-from flask import render_template
+from sentry.web.helpers import render_to_string
 
 # unserialization concept is based on pickle
 class _EmptyClass(object):
@@ -101,7 +101,7 @@ class Stacktrace(Interface):
         }
 
     def to_html(self, event):
-        return render_template('sentry/partial/interfaces/stacktrace.html', **{
+        return render_to_string('sentry/partial/interfaces/stacktrace.html', **{
             'frames': self.frames,
         })
 
@@ -117,7 +117,7 @@ class Exception(Interface):
         }
 
     def to_html(self, event):
-        return render_template('sentry/partial/interfaces/exception.html', **{
+        return render_to_string('sentry/partial/interfaces/exception.html', **{
             'exception_value': self.value,
             'exception_type': self.type,
         })
@@ -158,7 +158,7 @@ class Http(Interface):
         }
 
     def to_html(self, event):
-        return render_template('sentry/partial/interfaces/http.html', **{
+        return render_to_string('sentry/partial/interfaces/http.html', **{
             'full_url': '?'.join(filter(None, [self.url, self.query_string])),
             'url': self.url,
             'method': self.method,
@@ -199,7 +199,7 @@ class Template(Interface):
         }
 
     def to_html(self, event):
-        return render_template('sentry/partial/interfaces/template.html', **{
+        return render_to_string('sentry/partial/interfaces/template.html', **{
             'filename': self.filename,
             'context_line': self.context_line,
             'lineno': self.lineno,

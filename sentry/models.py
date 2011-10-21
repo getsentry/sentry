@@ -102,7 +102,7 @@ class MessageBase(Model):
     level           = models.PositiveIntegerField(choices=settings.LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
     message         = models.TextField()
     traceback       = models.TextField(blank=True, null=True)
-    view            = models.CharField(max_length=200, blank=True, null=True)
+    culprit         = models.CharField(max_length=200, blank=True, null=True, db_column='view')
     checksum        = models.CharField(max_length=32, db_index=True)
     data            = GzippedDictField(blank=True, null=True)
 
@@ -134,6 +134,8 @@ class MessageBase(Model):
         return '\n' in self.message.strip('\n') or len(self.message) > 100
 
     def message_top(self):
+        if self.culprit:
+            return self.culprit
         return truncatechars(self.message.split('\n')[0], 100)
 
 class Group(MessageBase):
@@ -147,7 +149,7 @@ class Group(MessageBase):
     objects         = GroupManager()
 
     class Meta:
-        unique_together = (('project', 'logger', 'view', 'checksum'),)
+        unique_together = (('project', 'logger', 'culprit', 'checksum'),)
         verbose_name_plural = _('grouped messages')
         verbose_name = _('grouped message')
         permissions = (
@@ -165,7 +167,7 @@ class Group(MessageBase):
         return ('sentry-group', [], {'group_id': self.pk})
 
     def natural_key(self):
-        return (self.logger, self.view, self.checksum)
+        return (self.logger, self.culprit, self.checksum)
 
     def get_score(self):
         return int(math.log(self.times_seen) * 600 + float(time.mktime(self.last_seen.timetuple())))

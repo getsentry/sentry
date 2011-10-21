@@ -74,18 +74,14 @@ class GroupManager(models.Manager):
     use_for_related_fields = True
 
     def convert_legacy_kwargs(self, kwargs):
+        from sentry.interfaces import Http, User, Exception, Stacktrace, Template
+        from sentry.utils.template_info import get_template_info
+
         date = kwargs.pop('timestamp', None)
 
         data = kwargs.pop('data', {}) or {}
         sentry = data.get('__sentry__', {})
         message_id = kwargs.pop('message_id', None)
-
-        if 'url' in data:
-            url = data['url']
-        elif 'url' in kwargs:
-            url = kwargs['url']
-        else:
-            url = None
 
         if 'version' in sentry and 'module' in sentry:
             version = [sentry['module'], sentry['version']]
@@ -98,7 +94,47 @@ class GroupManager(models.Manager):
             'version': version,
         }
 
+        if 'url' in data or 'url' in kwargs and 'META' in sentry:
+            meta = sentry['META']
+            data['sentry.interfaces.Http'] = Http(
+                url=data.get('url', kwargs['url']),
+                method=meta['REQUEST_METHOD'],
+                query_string=meta['QUERY_STRING'],
+                data=meta.get('POST') or meta.get('GET'),
+            ).serialize()
+
+        if 'user' in sentry:
+            user = sentry['user']
+            data['sentry.interfaces.User'] = User(
+                **user
+            ).serialize()
+
+        if 'exception' in sentry:
+            exc = sentry['exception']
+            data['sentry.interfaces.Exception'] = Exception(
+                type=exc[0],
+                value=' '.join(exc[1]),
+            ).serialize()
+
+        if 'frames' in sentry:
+            frames = []
+            keys = ('filename', 'function', 'vars', 'pre_context', 'context_line', 'post_context', 'lineno')
+            for frame in sentry['frames']:
+                frames.append(dict((k, v) for k, v in frame.iteritems() if k in keys))
+
+            data['sentry.interfaces.Traceback'] = Stacktrace(
+                frames=frames,
+            ).serialize()
+
+        if 'template' in sentry:
+            template = sentry['template']
+            data['sentry.interfaces.Template'] = Template(
+                **get_template_info(template)
+            ).serialize()
+
+
         return {
+            'culprit': kwargs.pop('view', None),
             'date': date,
             'event_id': message_id,
             'data': data,
@@ -108,11 +144,12 @@ class GroupManager(models.Manager):
     def from_kwargs(self, project, **kwargs):
         from sentry.models import Event, FilterValue, Project
 
-        URL_MAX_LENGTH = Event._meta.get_field_by_name('url')[0].max_length
         view = kwargs.pop('view', None)
         if view:
             # assume legacy
             kwargs = self.convert_legacy_kwargs(kwargs)
+
+        culprit = kwargs.pop('culprit', None)
 
         logger_name = kwargs.pop('logger', 'root')
         server_name = kwargs.pop('server_name', None)
@@ -142,7 +179,7 @@ class GroupManager(models.Manager):
 
             group, created = self.get_or_create(
                 project=project,
-                view=view,
+                culprit=culprit,
                 logger=logger_name,
                 checksum=checksum,
                 # we store some sample data for rendering
@@ -164,7 +201,7 @@ class GroupManager(models.Manager):
             instance = Event(
                 project=project,
                 event_id=event_id,
-                view=view,
+                culprit=culprit,
                 logger=logger_name,
                 data=data,
                 server_name=server_name,
@@ -229,8 +266,8 @@ class GroupManager(models.Manager):
 
             return instance
 
-    def get_by_natural_key(self, logger, view, checksum):
-        return self.get(logger=logger, view=view, checksum=checksum)
+    def get_by_natural_key(self, logger, culprit, checksum):
+        return self.get(logger=logger, view=culprit, checksum=checksum)
 
     def get_chart_data(self, group, max_days=90):
         if hasattr(group, '_state'):

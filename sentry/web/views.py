@@ -144,7 +144,7 @@ def ajax_handler(request):
                     'priority': p,
                     'request': request,
                 }).strip(),
-                'title': m.view or m.message_top(),
+                'title': m.message_top(),
                 'message': m.error(),
                 'level': m.get_level_display(),
                 'logger': m.logger,
