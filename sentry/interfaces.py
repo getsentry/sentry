@@ -104,7 +104,7 @@ class Stacktrace(Interface):
         }
 
     def to_html(self, event):
-        return render_to_string('sentry/partial/interfaces/stacktrace.html', **{
+        return render_to_string('sentry/partial/interfaces/stacktrace.html', {
             'frames': self.frames,
         })
 
@@ -126,7 +126,7 @@ class Exception(Interface):
         }
 
     def to_html(self, event):
-        return render_to_string('sentry/partial/interfaces/exception.html', **{
+        return render_to_string('sentry/partial/interfaces/exception.html', {
             'exception_value': self.value,
             'exception_type': self.type,
         })
@@ -181,7 +181,7 @@ class Http(Interface):
         }
 
     def to_html(self, event):
-        return render_to_string('sentry/partial/interfaces/http.html', **{
+        return render_to_string('sentry/partial/interfaces/http.html', {
             'full_url': '?'.join(filter(None, [self.url, self.query_string])),
             'url': self.url,
             'method': self.method,
@@ -224,11 +224,12 @@ class Template(Interface):
         }
 
     def to_html(self, event):
-        return render_to_string('sentry/partial/interfaces/template.html', **{
+        return render_to_string('sentry/partial/interfaces/template.html', {
             'filename': self.filename,
             'context_line': self.context_line,
             'lineno': self.lineno,
             'pre_context': self.pre_context,
+            'pre_context_lineno': self.lineno - len(self.pre_context),
             'post_context': self.post_context,
         })
 

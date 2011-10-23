@@ -1,0 +1,17 @@
+<div id="template" class="module">
+    <h2>Template error</h2>
+    <div class="module-content">
+        <p>In template <code>{{ filename }}</code>, error at line <strong>{{ lineno }}</strong></p>
+        {% if context_line %}
+            <ol start="{{ pre_context_lineno">
+                {% for num, line in pre_context %}
+                    <li value="{{ num }}"><pre>{{ line }}</pre></li>
+                {% endfor %}
+                <li value="{{ lineno }}" class="selected">{{ context_line }}</li>
+                {% for num, line in post_context %}
+                    <li value="{{ num }}"><pre>{{ line }}</pre></li>
+                {% endfor %}
+            </ol>
+        {% endif %}
+    </div>
+</div>

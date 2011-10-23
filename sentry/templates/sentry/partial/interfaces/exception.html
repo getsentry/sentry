@@ -1,0 +1,15 @@
+<div id="summary">
+  <h3>{% if exception_type %}{{ exception_type }}: {{ exception_value|escape }}{% else %}Summary{% endif %}</h3>
+  <table class="meta">
+    <tr>
+      <th>Exception Value:</th>
+      <td><pre>{{ exception_value|escape }}</pre></td>
+    </tr>
+    {% if lastframe %}
+    <tr>
+      <th>Exception Location:</th>
+      <td>{{ lastframe.filename|escape }} in {{ lastframe.function|escape }}, line {{ lastframe.lineno }}</td>
+    </tr>
+    {% endif %}
+  </table>
+</div>
