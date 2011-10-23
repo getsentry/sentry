@@ -77,41 +77,43 @@ class GroupManager(models.Manager):
         from sentry.interfaces import Http, User, Exception, Stacktrace, Template
         from sentry.utils.template_info import get_template_info
 
-        date = kwargs.pop('timestamp', None)
+        data = kwargs.pop('data', None) or {}
+        sentry = data.pop('__sentry__', None) or {}
 
-        data = kwargs.pop('data', {}) or {}
-        sentry = data.get('__sentry__', {})
-        message_id = kwargs.pop('message_id', None)
-
-        if 'version' in sentry and 'module' in sentry:
-            version = [sentry['module'], sentry['version']]
-        else:
-            version = None
-
-        extra = {}
-
-        data = {
-            'version': version,
+        result = {
+            'event_id': kwargs.pop('message_id', None),
+            'level': kwargs.pop('level', None),
+            'logger': kwargs.pop('logger', None),
+            'server_name': kwargs.pop('server_name', None),
+            'message': kwargs.pop('message'),
+            'culprit': kwargs.pop('view', None),
+            'date': kwargs.pop('timestamp', None),
         }
 
-        if 'url' in data or 'url' in kwargs and 'META' in sentry:
-            meta = sentry['META']
-            data['sentry.interfaces.Http'] = Http(
-                url=data.get('url', kwargs['url']),
+        class_name = kwargs.pop('class_name', None)
+        if class_name:
+            result['message'] = '%s: %s' % (class_name, result['message'])
+
+        if 'url' in data or 'url' in kwargs and 'META' in data:
+            meta = data.pop('META')
+            req_data = data.pop('POST', None) or data.pop('GET', None)
+            result['sentry.interfaces.Http'] = Http(
+                url=data.pop('url', kwargs['url']),
                 method=meta['REQUEST_METHOD'],
                 query_string=meta['QUERY_STRING'],
-                data=meta.get('POST') or meta.get('GET'),
+                data=req_data,
+                cookies=meta.get('COOKIES')
             ).serialize()
 
         if 'user' in sentry:
             user = sentry['user']
-            data['sentry.interfaces.User'] = User(
+            result['sentry.interfaces.User'] = User(
                 **user
             ).serialize()
 
         if 'exception' in sentry:
             exc = sentry['exception']
-            data['sentry.interfaces.Exception'] = Exception(
+            result['sentry.interfaces.Exception'] = Exception(
                 type=exc[0],
                 value=' '.join(exc[1]),
             ).serialize()
@@ -122,55 +124,57 @@ class GroupManager(models.Manager):
             for frame in sentry['frames']:
                 frames.append(dict((k, v) for k, v in frame.iteritems() if k in keys))
 
-            data['sentry.interfaces.Traceback'] = Stacktrace(
+            result['sentry.interfaces.Traceback'] = Stacktrace(
                 frames=frames,
             ).serialize()
 
         if 'template' in sentry:
             template = sentry['template']
-            data['sentry.interfaces.Template'] = Template(
+            result['sentry.interfaces.Template'] = Template(
                 **get_template_info(template)
             ).serialize()
 
-
-        return {
-            'culprit': kwargs.pop('view', None),
-            'date': date,
-            'event_id': message_id,
-            'data': data,
-            'extra': extra,
-        }
+        result['extra'] = data
+        return result
 
     def from_kwargs(self, project, **kwargs):
         from sentry.models import Event, FilterValue, Project
 
-        view = kwargs.pop('view', None)
-        if view:
-            # assume legacy
+        project = Project.objects.get(pk=project)
+
+        if any(k in kwargs for k in ('view', 'message_id', 'timestamp')):
+            # we must be passing legacy data, let's convert it
             kwargs = self.convert_legacy_kwargs(kwargs)
 
+        # First we pull out our top-level (non-data attr) kwargs
+        event_id = kwargs.pop('event_id', None)
+        message = kwargs.pop('message', None)
         culprit = kwargs.pop('culprit', None)
-
+        level = kwargs.pop('level', None) or logging.ERROR
         logger_name = kwargs.pop('logger', 'root')
         server_name = kwargs.pop('server_name', None)
         site = kwargs.pop('site', None)
-        project = Project.objects.get(pk=project)
-
         date = kwargs.pop('date', None) or datetime.datetime.now()
-
-        data = kwargs.pop('data', None) or {}
-        event_id = kwargs.pop('event_id', None)
+        extra = kwargs.pop('extra', None)
 
         checksum = kwargs.pop('checksum', None)
+        # TODO: should checksum still be optional? probably; we need to fix the method
         if not checksum:
             checksum = construct_checksum(**kwargs)
 
+        data = kwargs
+        # TODO: at this point we should validate what is left in kwargs (it should either
+        #       be an interface or it should be in ``extra``)
+        if extra:
+            data['extra'] = extra
+
+        kwargs = {
+            'level': level,
+            'message': message,
+        }
+
         mail = False
         try:
-            if 'extra' in kwargs:
-                data['extra'] = kwargs.pop('extra')
-            kwargs['data'] = data
-
             group_kwargs = kwargs.copy()
             group_kwargs.update({
                 'last_seen': date,
@@ -182,10 +186,8 @@ class GroupManager(models.Manager):
                 culprit=culprit,
                 logger=logger_name,
                 checksum=checksum,
-                # we store some sample data for rendering
                 defaults=group_kwargs
             )
-            kwargs.pop('data', None)
             if not created:
                 # HACK: maintain appeared state
                 if group.status == 1:

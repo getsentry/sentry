@@ -33,7 +33,7 @@ class MessageFeed(object):
             feed.add_item(
                 title=str(obj or ''),
                 link=link,
-                description=obj.description() or '',
+                description=obj.error() or '',
                 pubdate=self.get_item_date(request, obj) or '',
             )
 

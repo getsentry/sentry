@@ -98,10 +98,8 @@ class ProjectDomain(Model):
 class MessageBase(Model):
     project         = models.ForeignKey(Project, null=True)
     logger          = models.CharField(max_length=64, blank=True, default='root', db_index=True)
-    class_name      = models.CharField(_('type'), max_length=128, blank=True, null=True, db_index=True)
     level           = models.PositiveIntegerField(choices=settings.LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
     message         = models.TextField()
-    traceback       = models.TextField(blank=True, null=True)
     culprit         = models.CharField(max_length=200, blank=True, null=True, db_column='view')
     checksum        = models.CharField(max_length=32, db_index=True)
     data            = GzippedDictField(blank=True, null=True)
@@ -109,26 +107,15 @@ class MessageBase(Model):
     class Meta:
         abstract = True
 
-    def shortened_traceback(self):
-        return '\n'.join(self.traceback.split('\n')[-5:])
-    shortened_traceback.short_description = _('traceback')
-    shortened_traceback.admin_order_field = 'traceback'
-
     def error(self):
         if self.message:
             message = smart_unicode(self.message)
             if len(message) > 100:
                 message = message[:97] + '...'
-            if self.class_name:
-                return "%s: %s" % (self.class_name, message)
         else:
-            message = self.class_name or ''
+            message = '<unlabeled message>'
         return message
     error.short_description = _('error')
-
-    def description(self):
-        return self.traceback or ''
-    description.short_description = _('description')
 
     def has_two_part_message(self):
         return '\n' in self.message.strip('\n') or len(self.message) > 100
@@ -172,6 +159,9 @@ class Group(MessageBase):
     def get_score(self):
         return int(math.log(self.times_seen) * 600 + float(time.mktime(self.last_seen.timetuple())))
 
+    def get_latest_event(self):
+        return self.event_set.order_by('-id')[0]
+
     def mail_admins(self, request=None, fail_silently=True):
         from django.core.mail import send_mail
         from django.template.loader import render_to_string
@@ -179,20 +169,25 @@ class Group(MessageBase):
         if not settings.ADMINS:
             return
 
-        message = self.message_set.order_by('-id')[0]
+        event = self.get_latest_event()
 
-        obj_request = message.request
+        interfaces = event.interfaces
 
-        ip_repr = (obj_request.META.get('REMOTE_ADDR') in settings.INTERNAL_IPS and 'internal' or 'EXTERNAL')
+        if 'sentry.interfaces.Exception' in interfaces:
+            traceback = interfaces['sentry.interfaces.Exception'].to_string(event)
+        else:
+            traceback = None
 
-        subject = '%sError (%s IP): %s' % (settings.EMAIL_SUBJECT_PREFIX, ip_repr, obj_request.path)
+        http = interfaces.get('sentry.interfaces.Http')
 
-        if message.site:
-            subject  = '[%s] %s' % (message.site, subject)
-        try:
-            request_repr = repr(obj_request)
-        except:
-            request_repr = "Request repr() unavailable"
+        if http:
+            ip_repr = (http.env.get('REMOTE_ADDR') in settings.INTERNAL_IPS and 'internal' or 'EXTERNAL')
+            subject = '%sError (%s IP): %s' % (settings.EMAIL_SUBJECT_PREFIX, ip_repr, http.url)
+        else:
+            subject = '%sError: %s' % (settings.EMAIL_SUBJECT_PREFIX, event.message)
+
+        if event.site:
+            subject  = '[%s] %s' % (event.site, subject)
 
         if request:
             link = request.build_absolute_url(self.get_absolute_url())
@@ -200,10 +195,9 @@ class Group(MessageBase):
             link = '%s%s' % (settings.URL_PREFIX, self.get_absolute_url())
 
         body = render_to_string('sentry/emails/error.txt', {
-            'request_repr': request_repr,
-            'request': obj_request,
+            'traceback': traceback,
             'group': self,
-            'traceback': message.traceback,
+            'event': event,
             'link': link,
         })
 
@@ -245,9 +239,8 @@ class Group(MessageBase):
 
 class Event(MessageBase):
     event_id        = models.CharField(max_length=32, null=True, unique=True, db_column="message_id")
-    group           = models.ForeignKey(Group, blank=True, null=True, related_name="message_set")
+    group           = models.ForeignKey(Group, blank=True, null=True, related_name="event_set")
     datetime        = models.DateTimeField(default=datetime.now, db_index=True)
-    url             = models.URLField(verify_exists=False, null=True, blank=True)
     server_name     = models.CharField(max_length=128, db_index=True)
     site            = models.CharField(max_length=128, db_index=True, null=True)
 
@@ -270,37 +263,45 @@ class Event(MessageBase):
             return ('sentry-group-message', [], {'group_id': self.pk, 'message_id': self.pk, 'project_id': self.project_id})
         return ('sentry-group-message', [], {'group_id': self.pk, 'message_id': self.pk})
 
-    def shortened_url(self):
-        if not self.url:
-            return _('no data')
-        url = self.url
-        if len(url) > 60:
-            url = url[:60] + '...'
-        return url
-    shortened_url.short_description = _('url')
-    shortened_url.admin_order_field = 'url'
-
-    def full_url(self):
-        return self.data.get('url') or self.url
-    full_url.short_description = _('url')
-    full_url.admin_order_field = 'url'
-
     @cached_property
     def request(self):
-        fake_request = MockDjangoRequest(
-            META = self.data.get('META') or {},
-            GET = self.data.get('GET') or {},
-            POST = self.data.get('POST') or {},
-            FILES = self.data.get('FILES') or {},
-            COOKIES = self.data.get('COOKIES') or {},
-            url = self.url,
-        )
-        if self.url:
-            fake_request.path_info = '/' + self.url.split('/', 3)[-1]
+        data = self.data
+        if 'META' in data:
+            kwargs = {
+                'META': data.get('META'),
+                'GET': data.get('GET'),
+                'POST': data.get('POST'),
+                'FILES': data.get('FILES'),
+                'COOKIES': data.get('COOKIES'),
+                'url': data.get('url'),
+            }
+        elif 'sentry.interfaces.Http' in data:
+            http = data['sentry.interfaces.Http']
+            kwargs = {
+                'META': http
+            }
+        else:
+            return MockDjangoRequest()
+
+        fake_request = MockDjangoRequest(**kwargs)
+        if kwargs['url']:
+            fake_request.path_info = '/' + kwargs['url'].split('/', 3)[-1]
         else:
             fake_request.path_info = ''
         fake_request.path = fake_request.path_info
         return fake_request
+
+    @cached_property
+    def interfaces(self):
+        result = {}
+        for k, v in self.data.iteritems():
+            if '.' not in k:
+                continue
+            m, c = k.rsplit('.', 1)
+            cls = getattr(__import__(m, {}, {}, [c]), c)
+            v = cls(**v)
+            result[k] = v
+        return result
 
     def get_version(self):
         if not self.data:

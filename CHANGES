@@ -6,6 +6,12 @@
   mod_wsgi's "don't pass HTTP Authorization header".
 * sentry.client has been removed
 * The default key is now base64-encoded.
+* sentry.interfaces are now used for coercing and rendering structured data.
+* The store endpoint has a new API.
+* The from_kwargs method has a new API.
+* The ``class_name``, ``traceback``, an ``url`` fields have been removed.
+* GroupedMessage was renamed to Group.
+* Message was renamed to Event.
 
 1.13.0
 

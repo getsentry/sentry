@@ -16,6 +16,7 @@ from django.http import HttpResponse, HttpResponseBadRequest, \
     HttpResponseForbidden, HttpResponseRedirect, Http404, HttpResponseNotModified
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
+from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_protect
 
 from sentry.conf import settings
@@ -344,66 +345,19 @@ def group(request, project, group_id):
         return HttpResponseRedirect(reverse('sentry-group', kwargs={'group_id': group.pk, 'project_id': group.project_id}))
 
     try:
-        obj = group.message_set.all().order_by('-id')[0]
+        event = group.get_latest_event()
     except IndexError:
         # It's possible that a message would not be created under certain circumstances
         # (such as a post_save signal failing)
-        obj = Event(group=group, data=group.data)
-
-    # template information
-    template_info = None
-    # exception information
-    exc_type, exc_value = None, None
-    # stack frames
-    frames = None
-    # module versions
-    version_data = None
-    user_data = None
-
-    if '__sentry__' in obj.data:
-        sentry_data = obj.data['__sentry__']
-        if 'exc' in sentry_data:
-            module, args, frames = sentry_data['exc']
-        elif 'exception' in sentry_data:
-            module, args = sentry_data['exception']
-        else:
-            module, args = None, None
-
-        if 'frames' in sentry_data:
-            frames = sentry_data['frames']
-
-        if 'user' in sentry_data:
-            user_data = sentry_data['user']
-
-        if module and args:
-            # We fake the exception class due to many issues with imports/builtins/etc
-            exc_type = obj.class_name
-            exc_value = type(str(obj.class_name), (Exception,), {})(obj.message)
-            exc_value.args = args
-
-        if 'template' in sentry_data:
-            template_info = get_template_info(sentry_data['template'], exc_value)
-
-        if 'versions' in sentry_data:
-            version_data = sorted(sentry_data['versions'].iteritems())
-
-    if frames:
-        lastframe = frames[-1]
-    else:
-        lastframe = None
+        event = Event(group=group)
 
     return render_to_response('sentry/group/details.html', {
         'project': project,
         'page': 'details',
         'group': group,
-        'json_data': iter_data(obj),
-        'user_data': user_data,
-        'version_data': version_data,
-        'frames': frames,
-        'lastframe': lastframe,
-        'template_info': template_info,
-        'exception_type': exc_type,
-        'exception_value': exc_value,
+        'event': event,
+        'interface_list': filter(None, [mark_safe(i.to_html(event) or '') for i in event.interfaces.itervalues()]),
+        'json_data': event.data.get('extra', {}),
         'request': request,
     })
 
@@ -415,7 +369,7 @@ def group_message_list(request, project, group_id):
     if group.project and group.project != project:
         return HttpResponseRedirect(reverse('sentry-group-messages', kwargs={'group_id': group.pk, 'project_id': group.project_id}))
 
-    message_list = group.message_set.all().order_by('-datetime')
+    message_list = group.event_set.all().order_by('-datetime')
 
     return render_to_response('sentry/group/message_list.html', {
         'project': project,
@@ -433,64 +387,16 @@ def group_message_details(request, project, group_id, message_id):
     if group.project and group.project != project:
         return HttpResponseRedirect(reverse('sentry-group-message', kwargs={'group_id': group.pk, 'project_id': group.project_id, 'message_id': message_id}))
 
-    message = get_object_or_404(group.message_set, pk=message_id)
+    event = get_object_or_404(group.event_set, pk=message_id)
 
-    # template information
-    template_info = None
-    # exception information
-    exc_type, exc_value = None, None
-    # stack frames
-    frames = None
-    lastframe = None
-    # module versions
-    version_data = None
-    user_data = None
-
-    if '__sentry__' in message.data:
-        sentry_data = message.data['__sentry__']
-        if 'exc' in sentry_data:
-            module, args, frames = sentry_data['exc']
-        elif 'exception' in sentry_data:
-            module, args = sentry_data['exception']
-        else:
-            module, args = None, None
-
-        if 'frames' in sentry_data:
-            frames = sentry_data['frames']
-
-        if 'user' in sentry_data:
-            user_data = sentry_data['user']
-
-        if module and args:
-            # We fake the exception class due to many issues with imports/builtins/etc
-            exc_type = message.class_name
-            exc_value = type(str(message.class_name), (Exception,), {})(message.message)
-            exc_value.args = args
-
-        if 'template' in sentry_data:
-            template_info = get_template_info(sentry_data['template'], exc_value)
-
-        if 'versions' in sentry_data:
-            version_data = sorted(sentry_data['versions'].iteritems())
-
-    if frames:
-        lastframe = frames[-1]
-    else:
-        lastframe = None
 
     return render_to_response('sentry/group/message.html', {
         'project': project,
         'page': 'messages',
         'group': group,
-        'message': message,
-        'json_data': iter_data(message),
-        'user_data': user_data,
-        'version_data': version_data,
-        'frames': frames,
-        'lastframe': lastframe,
-        'template_info': template_info,
-        'exception_type': exc_type,
-        'exception_value': exc_value,
+        'event': event,
+        'interface_list': filter(None, [mark_safe(i.to_html(event) or '') for i in event.interfaces.itervalues()]),
+        'json_data': event.data.get('extra', {}),
         'request': request,
     })
 

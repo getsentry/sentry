@@ -48,6 +48,9 @@ class Interface(object):
     def to_html(self, event):
         return ''
 
+    def to_string(self, event):
+        return ''
+
 class Message(Interface):
     def __init__(self, message, params):
         self.message = message
@@ -105,6 +108,12 @@ class Stacktrace(Interface):
             'frames': self.frames,
         })
 
+    def to_string(self, event):
+        r = ['Stacktrace (most recent call last):']
+        for f in self.frames:
+            r.append('  File "%(filename)s", line %(lineno)s, in %(function)s\n    %(context_line)s' % f)
+        return '\n'.join(r)
+
 class Exception(Interface):
     def __init__(self, type, value):
         self.type = type
@@ -123,10 +132,20 @@ class Exception(Interface):
         })
 
 class Http(Interface):
-    # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html
+    """
+    {
+        url: 'http://absolute.uri/foo',
+        method: 'GET',
+        data: {foo: 'bar'},
+        query_string: 'hello=world&foo=bar',
+        cookies: 'foo=bar',
+        env: {REMOTE_ADDR: '192.168.0.1'}
+    }
+    """
+        # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html
     METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD', 'DELETE', 'TRACE', 'CONNECT')
 
-    def __init__(self, url, method, data=None, query_string=None, **kwargs):
+    def __init__(self, url, method, data=None, query_string=None, cookies=None, env=None, **kwargs):
         if data is None:
             data = {}
 
@@ -148,6 +167,8 @@ class Http(Interface):
         self.method = method
         self.data = data
         self.query_string = query_string
+        self.env = env or {}
+        self.cookies = cookies or {}
 
     def serialize(self):
         return {
@@ -155,6 +176,8 @@ class Http(Interface):
             'method': self.method,
             'data': self.data,
             'query_string': self.query_string,
+            'cookies': self.cookies,
+            'env': self.env,
         }
 
     def to_html(self, event):
@@ -164,6 +187,8 @@ class Http(Interface):
             'method': self.method,
             'data': self.data,
             'query_string': self.query_string,
+            'cookies': self.cookies,
+            'env': self.env,
         })
 
 class Template(Interface):

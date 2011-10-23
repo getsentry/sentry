@@ -133,7 +133,7 @@ class ServerNameFilter(SentryFilter):
     column = 'server_name'
 
     def get_query_set(self, queryset):
-        return queryset.filter(message_set__server_name=self.get_value()).distinct()
+        return queryset.filter(event_set__server_name=self.get_value()).distinct()
 
 class SiteFilter(SentryFilter):
     label = 'Site'
@@ -156,7 +156,7 @@ class SiteFilter(SentryFilter):
         return data
 
     def get_query_set(self, queryset):
-        return queryset.filter(message_set__site=self.get_value()).distinct()
+        return queryset.filter(event_set__site=self.get_value()).distinct()
 
 class LevelFilter(SentryFilter):
     label = 'Level'
@@ -189,4 +189,4 @@ class SiteFilter(SentryFilter):
         return data
 
     def get_query_set(self, queryset):
-        return queryset.filter(message_set__site=self.get_value()).distinct()
+        return queryset.filter(event_set__site=self.get_value()).distinct()

@@ -191,15 +191,6 @@
                         {% endautoescape %}
                     </div>
                 </div>
-            {% else %}
-                <div id="traceback" class="module">
-                    <h2>Traceback</h2>
-                    <div class="module-content">
-                        {% if group.traceback %}
-                            <pre>{{ group.traceback }}</pre>
-                        {% endif %}
-                    </div>
-                </div>
             {% endif %}
 
             {% if group|has_charts %}
