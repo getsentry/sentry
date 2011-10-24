@@ -20,6 +20,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from sentry.conf import settings
+from sentry.exceptions import InvalidData, InvalidInterface
 from sentry.models import Group, ProjectMember
 from sentry.utils import is_float, json
 from sentry.utils.auth import get_signature, parse_auth_header
@@ -153,6 +154,9 @@ def store(request):
     elif not project:
         data['project'] = 1
 
-    Group.objects.from_kwargs(**data)
+    try:
+        Group.objects.from_kwargs(**data)
+    except (InvalidInterface, InvalidData), e:
+        return HttpResponseBadRequest(e)
 
     return HttpResponse()
