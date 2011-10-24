@@ -25,7 +25,7 @@ from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
-from sentry.utils import cached_property, construct_checksum, get_filters, \
+from sentry.utils import cached_property, get_filters, \
                          MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField
 from sentry.utils.manager import GroupManager
@@ -251,11 +251,6 @@ class Event(MessageBase):
 
     def __unicode__(self):
         return self.error()
-
-    def save(self, *args, **kwargs):
-        if not self.checksum:
-            self.checksum = construct_checksum(**self.__dict__)
-        super(Event, self).save(*args, **kwargs)
 
     @models.permalink
     def get_absolute_url(self):

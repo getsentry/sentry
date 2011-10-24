@@ -13,8 +13,10 @@ from django.core import mail
 from django.core.urlresolvers import reverse
 
 from sentry.conf import settings
+from sentry.exceptions import InvalidInterface, InvalidData
+from sentry.interfaces import Interface
 from sentry.models import Event, Group, MessageCountByMinute, \
-                          FilterValue, MessageFilterValue
+                          FilterValue, MessageFilterValue, Project
 from sentry.web.helpers import get_login_url
 
 from tests.models import TestModel, DuplicateKeyModel
@@ -448,3 +450,58 @@ class SentrySearchTest(TestCase):
         qs = get_search_query_set('error')
         self.assertEquals(qs.count(), 1)
         self.assertEquals(qs[0:1][0].message, 'test search error')
+
+class DummyInterface(Interface):
+    def __init__(self, baz):
+        self.baz = baz
+
+class SentryManagerTest(TestCase):
+    def test_invalid_project(self):
+        self.assertRaises(Project.DoesNotExist, Group.objects.from_kwargs, 2, message='foo')
+
+    def test_invalid_interface_name(self):
+        self.assertRaises(InvalidInterface, Group.objects.from_kwargs, 1, message='foo', data={
+            'foo': 'bar',
+        })
+
+    def test_invalid_interface_import_path(self):
+        self.assertRaises(InvalidInterface, Group.objects.from_kwargs, 1, message='foo', data={
+            'sentry.interfaces.Exception2': 'bar',
+        })
+
+    def test_invalid_interface_args(self):
+        self.assertRaises(InvalidData, Group.objects.from_kwargs, 1, message='foo', data={
+            'tests.tests.DummyInterface': {'foo': 'bar'}
+        })
+
+    def test_missing_required_args(self):
+        self.assertRaises(InvalidData, Group.objects.from_kwargs, 1)
+
+    def test_valid_only_message(self):
+        group = Group.objects.from_kwargs(1, message='foo')
+        self.assertEquals(group.message, 'foo')
+        self.assertEquals(group.project_id, 1)
+
+    def test_legacy_data(self):
+        result = Group.objects.convert_legacy_kwargs({'message_id': '1234'})
+        self.assertEquals(result['event_id'], '1234')
+
+        result = Group.objects.convert_legacy_kwargs({'message': 'hello', 'class_name': 'ValueError'})
+        self.assertEquals(result['message'], 'ValueError: hello')
+
+        result = Group.objects.convert_legacy_kwargs({'view': 'foo.bar'})
+        self.assertEquals(result['culprit'], 'foo.bar')
+
+        result = Group.objects.convert_legacy_kwargs({'data': {
+            'url': 'http://foo.com',
+            'META': {
+                'REQUEST_METHOD': 'POST',
+                'QUERY_STRING': 'foo=bar'
+            }
+        }})
+        self.assertTrue('sentry.interfaces.Http' in result)
+        http = result['sentry.interfaces.Http']
+        self.assertEquals(http['url'], 'http://foo.com')
+        self.assertEquals(http['query_string'], 'foo=bar')
+        self.assertEquals(http['method'], 'POST')
+        self.assertEquals(http['data'], {})

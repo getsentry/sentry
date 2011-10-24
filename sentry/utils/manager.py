@@ -7,6 +7,7 @@ sentry.utils.manager
 """
 
 import datetime
+import hashlib
 import logging
 import warnings
 
@@ -14,8 +15,9 @@ from django.db import models
 from django.db.models import Sum, F
 
 from sentry.conf import settings
+from sentry.exceptions import InvalidInterface, InvalidData
 from sentry.signals import regression_signal
-from sentry.utils import construct_checksum, get_db_engine, should_mail
+from sentry.utils import get_db_engine, should_mail
 from sentry.utils.charts import has_charts
 from sentry.utils.compat.db import connections
 
@@ -70,8 +72,22 @@ def time_limit(silence): # ~ 3600 per hour
         return 60
     return 10000
 
+class ModuleProxyCache(dict):
+    def __missing__(self, key):
+        module, class_name = key.rsplit('.', 1)
+
+        handler = getattr(__import__(module, {}, {}, [class_name], -1), class_name)
+
+        self[key] = handler
+
+        return handler
+
 class GroupManager(models.Manager):
     use_for_related_fields = True
+
+    def __init__(self, *args, **kwargs):
+        super(GroupManager, self).__init__(*args, **kwargs)
+        self.module_cache = ModuleProxyCache()
 
     def convert_legacy_kwargs(self, kwargs):
         from sentry.interfaces import Http, User, Exception, Stacktrace, Template
@@ -85,7 +101,7 @@ class GroupManager(models.Manager):
             'level': kwargs.pop('level', None),
             'logger': kwargs.pop('logger', None),
             'server_name': kwargs.pop('server_name', None),
-            'message': kwargs.pop('message'),
+            'message': kwargs.pop('message', ''),
             'culprit': kwargs.pop('view', None),
             'date': kwargs.pop('timestamp', None),
         }
@@ -95,14 +111,15 @@ class GroupManager(models.Manager):
             result['message'] = '%s: %s' % (class_name, result['message'])
 
         if 'url' in data or 'url' in kwargs and 'META' in data:
-            meta = data.pop('META')
+            meta = data.pop('META', {})
             req_data = data.pop('POST', None) or data.pop('GET', None)
             result['sentry.interfaces.Http'] = Http(
-                url=data.pop('url', kwargs['url']),
-                method=meta['REQUEST_METHOD'],
-                query_string=meta['QUERY_STRING'],
+                url=data.pop('url', None) or kwargs['url'],
+                method=meta.get('REQUEST_METHOD'),
+                query_string=meta.get('QUERY_STRING'),
                 data=req_data,
-                cookies=meta.get('COOKIES')
+                cookies=meta.get('COOKIES'),
+                env=meta,
             ).serialize()
 
         if 'user' in sentry:
@@ -157,12 +174,28 @@ class GroupManager(models.Manager):
         date = kwargs.pop('date', None) or datetime.datetime.now()
         extra = kwargs.pop('extra', None)
 
+        if not message:
+            raise InvalidData('Missing required parameter: message')
+
         checksum = kwargs.pop('checksum', None)
-        # TODO: should checksum still be optional? probably; we need to fix the method
         if not checksum:
-            checksum = construct_checksum(**kwargs)
+            checksum = hashlib.md5(message).hexdigest()
 
         data = kwargs
+
+        for k, v in kwargs.iteritems():
+            if '.' not in k:
+                raise InvalidInterface('%r is not a valid interface name' % k)
+            try:
+                interface = self.module_cache[k]
+            except ImportError, e:
+                raise InvalidInterface('%r is not a valid interface name: %s' % (k, e))
+
+            try:
+                data[k] = interface(**v).serialize()
+            except Exception, e:
+                raise InvalidData('Unable to validate interface, %r: %s' % (k, e))
+
         # TODO: at this point we should validate what is left in kwargs (it should either
         #       be an interface or it should be in ``extra``)
         if extra:

@@ -6,7 +6,6 @@ sentry.utils
 :license: BSD, see LICENSE for more details.
 """
 
-import hashlib
 import logging
 from pprint import pformat
 
@@ -48,26 +47,6 @@ def get_db_engine(alias='default'):
         assert alias == 'default', 'You cannot fetch a database engine other than the default on Django < 1.2'
         value = django_settings.DATABASE_ENGINE
     return value.rsplit('.', 1)[-1]
-
-def construct_checksum(level=logging.ERROR, class_name='', traceback='', message='', **kwargs):
-    checksum = hashlib.md5(str(level))
-    checksum.update(class_name or '')
-
-    if 'data' in kwargs and kwargs['data'] and '__sentry__' in kwargs['data'] and 'frames' in kwargs['data']['__sentry__']:
-        frames = kwargs['data']['__sentry__']['frames']
-        for frame in frames:
-            checksum.update(frame['module'])
-            checksum.update(frame['function'])
-
-    elif traceback:
-        traceback = '\n'.join(traceback.split('\n')[:-3])
-
-    elif message:
-        if isinstance(message, unicode):
-            message = message.encode('utf-8', 'replace')
-        checksum.update(message)
-
-    return checksum.hexdigest()
 
 class _Missing(object):
 

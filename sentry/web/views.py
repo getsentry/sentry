@@ -284,7 +284,6 @@ def search(request, project):
 
 @login_required
 def dashboard(request):
-    raise
     return render_to_response('sentry/dashboard.html', {
         'request': request,
     })
