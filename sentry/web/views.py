@@ -236,6 +236,7 @@ def index(request):
         'filters': filters,
     })
 
+@csrf_exempt
 @login_required
 def ajax_handler(request):
     op = request.REQUEST.get('op')
