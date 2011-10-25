@@ -132,7 +132,6 @@ class GroupedMessage(MessageBase):
     first_seen      = models.DateTimeField(default=datetime.now, db_index=True)
 
     score           = models.IntegerField(default=0)
-    notes           = models.TextField(default='')
 
     objects         = GroupedMessageManager()
 
@@ -228,6 +227,10 @@ class GroupedMessage(MessageBase):
             return
         module = self.data.get('module', 'ver')
         return module, self.data['version']
+
+class GroupedMessageNote(models.Model):
+    group           = models.OneToOneField(GroupedMessage, related_name="notes")
+    notes           = models.TextField()
 
 class Message(MessageBase):
     message_id      = models.CharField(max_length=32, null=True, unique=True)

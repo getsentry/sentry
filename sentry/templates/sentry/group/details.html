@@ -276,7 +276,7 @@
                 <div class="module-content">
                     <form id="makegroupnotes" method="POST" action="{% url sentry-group-notes group.id %}">
                         {% csrf_token %}
-                        <textarea rows="5" cols="60" name="notes">{{ group.notes|safe }}</textarea>
+                        <textarea rows="5" cols="60" name="notes">{{ group.notes.notes|safe }}</textarea>
                         <button type="submit">{% trans "Save notes" %}</button>
                     </form>
                 </div>

@@ -27,7 +27,7 @@ from django.views.decorators.csrf import csrf_protect, csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from sentry.conf import settings
-from sentry.models import GroupedMessage, Message
+from sentry.models import GroupedMessage, Message, GroupedMessageNote
 from sentry.plugins import GroupActionProvider
 from sentry.templatetags.sentry_helpers import with_priority
 from sentry.utils import get_filters, is_float, get_signature, parse_auth_header, json
@@ -417,8 +417,12 @@ def group(request, group_id):
 @require_http_methods(['POST'])
 def group_notes(request, group_id):
     group = get_object_or_404(GroupedMessage, pk=group_id)
-    group.notes = request.POST.get('notes', '')
-    group.save()
+    notes = request.POST.get('notes', '')
+    note, created = GroupedMessageNote.objects.get_or_create(group=group,
+        defaults={'notes': notes})
+    if not created:
+        note.notes = notes
+        note.save()
     return HttpResponseRedirect(reverse('sentry-group', args=(group_id,)))
 
 @login_required

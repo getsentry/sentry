@@ -8,14 +8,19 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
         
-        # Adding field 'GroupedMessage.notes'
-        db.add_column('sentry_groupedmessage', 'notes', self.gf('django.db.models.fields.TextField')(default=''), keep_default=False)
+        # Adding model 'GroupedMessageNote'
+        db.create_table('sentry_groupedmessagenote', (
+            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('group', self.gf('django.db.models.fields.related.OneToOneField')(related_name='notes', unique=True, to=orm['sentry.GroupedMessage'])),
+            ('notes', self.gf('django.db.models.fields.TextField')()),
+        ))
+        db.send_create_signal('sentry', ['GroupedMessageNote'])
 
 
     def backwards(self, orm):
         
-        # Deleting field 'GroupedMessage.notes'
-        db.delete_column('sentry_groupedmessage', 'notes')
+        # Deleting model 'GroupedMessageNote'
+        db.delete_table('sentry_groupedmessagenote')
 
 
     models = {
@@ -36,12 +41,17 @@ class Migration(SchemaMigration):
             'level': ('django.db.models.fields.PositiveIntegerField', [], {'default': '40', 'db_index': 'True', 'blank': 'True'}),
             'logger': ('django.db.models.fields.CharField', [], {'default': "'root'", 'max_length': '64', 'db_index': 'True', 'blank': 'True'}),
             'message': ('django.db.models.fields.TextField', [], {}),
-            'notes': ('django.db.models.fields.TextField', [], {'default': "''"}),
             'score': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
             'status': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0', 'db_index': 'True'}),
             'times_seen': ('django.db.models.fields.PositiveIntegerField', [], {'default': '1', 'db_index': 'True'}),
             'traceback': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
             'view': ('django.db.models.fields.CharField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'})
+        },
+        'sentry.groupedmessagenote': {
+            'Meta': {'object_name': 'GroupedMessageNote'},
+            'group': ('django.db.models.fields.related.OneToOneField', [], {'related_name': "'notes'", 'unique': 'True', 'to': "orm['sentry.GroupedMessage']"}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'notes': ('django.db.models.fields.TextField', [], {})
         },
         'sentry.message': {
             'Meta': {'object_name': 'Message'},
