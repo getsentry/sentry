@@ -6,15 +6,19 @@
 {% block inner %}
     <h2>{% trans "Message List" %}</h2>
     {% paginate message_list from request as message_list per_page 15 %}
-    <div class="clearfix">
-        {{ message_list.paging }}
+    <div class="paging-wrap">
+        <div class="clearfix">
+            {{ message_list.paging }}
+        </div>
     </div>
     <ul class="messages" id="message_list">
         {% for message in message_list.objects %}
             {% include "sentry/partial/_message.html" %}
         {% endfor %}
     </ul>
-    <div class="clearfix">
-        {{ message_list.paging }}
+    <div class="paging-wrap">
+        <div class="clearfix">
+            {{ message_list.paging }}
+        </div>
     </div>
 {% endblock %}

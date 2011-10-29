@@ -1,5 +1,11 @@
 """
+sentry.conf.server
+~~~~~~~~~~~~~~~~~~
+
 These settings act as the default (base) settings for the Sentry-provided web-server
+
+:copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
 """
 
 from django.conf.global_settings import *
@@ -94,11 +100,11 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     # 'django.contrib.messages',
     'sentry',
-    'sentry.client',
+    'raven.contrib.django',
     'sentry.plugins.sentry_servers',
     'sentry.plugins.sentry_sites',
     'sentry.plugins.sentry_urls',
-    'haystack',
+    # 'haystack',
     'south',
 )
 
@@ -109,3 +115,6 @@ SENTRY_SEARCH_ENGINE = 'whoosh'
 SENTRY_SEARCH_OPTIONS = {
     'path': os.path.join(PROJECT_ROOT, 'sentry_index'),
 }
+
+
+SENTRY_PUBLIC = True

@@ -5,6 +5,10 @@
 
 {% block title %}{{ group.error }} | {{ block.super }}{% endblock %}
 
+{% block meta %}
+    <script type="text/javascript" src="{% url sentry-media "scripts/highstock.js" %}"></script>
+{% endblock %}
+
 {% block heading %}
     {% trans "Message Details" %} <span><a href="{% url sentry %}">&laquo; {% trans "Back to list" %}</a></span>
 {% endblock %}
@@ -16,7 +20,8 @@
             <li><a href="{{ link }}">{{ label }}</a></li>
         {% endfor %}
     </ul>
-    <h2>Meta</h2>
+
+    <h2>Aggregate Details</h2>
     <dl class="flat">
         <dt>{% trans "Logger:" %}</dt>
         <dd><a href="{% url sentry %}?logger={{ group.logger }}">{{ group.logger }}</a></dd>
@@ -25,29 +30,30 @@
         <dt>{% trans "Status:" %}</dt>
         <dd>{{ group.get_status_display|title }}</dd>
         <dt>{% trans "First Seen:" %}</dt>
-        <dd>{{ group.first_seen|timesince }}</dd>
+        <dd title="{{ group.first_seen }}">{{ group.first_seen|timesince }}</dd>
         <dt>{% trans "Last Seen:" %}</dt>
-        <dd>{{ group.last_seen|timesince }}</dd>
+        <dd title="{{ group.first_seen }}">{{ group.last_seen|timesince }}</dd>
     </dl>
-    
+
     {% for html in group|get_widgets:request %}
         {{ html|safe }}
     {% endfor %}
+
 {% endblock %}
 
 {% block main %}
     <ul class="messages" id="message_list">
         <li class="{% cycle 'row1' 'row2' %} level-{{ group.level }} active" id="group_{{ group.pk }}" data-sentry-count="{{ group.times_seen }}">
             <span class="count count-digits-{{ group.times_seen|num_digits }}">{{ group.times_seen }}</span>
-            <h3>{% if group.view %}{{ group.view }}{% else %}{{ group.message_top|truncatechars:100 }}{% endif %}</h3>
-            <span class="last_seen">{{ group.last_seen|timesince }}</span>
+            <h3>{% if group.view %}{{ group.view }}{% else %}{{ group.message_top }}{% endif %}</h3>
+            <span class="last_seen" title="{{ group.last_seen }}">{{ group.last_seen|timesince }}</span>
             <span class="status status-{{ group.status }}">{{ group.get_status_display }}</span>
             <p class="message">
-                <span class="tag tag-level">{{ group.get_level_display }}</span> 
-                <span class="tag tag-logger">{{ group.logger }}</span> 
+                <span class="tag tag-level">{{ group.get_level_display }}</span>
+                <span class="tag tag-logger">{{ group.logger }}</span>
                 {% with group.get_version as version %}
                     {% if version %}
-                        <span class="tag tag-version">{{ version.0 }} {{ version.1 }}</span> 
+                        <span class="tag tag-version">{{ version.0 }} {{ version.1 }}</span>
                     {% endif %}
                 {% endwith %}
                 {% for tag in group|get_tags:request %}<span class="tag">{{ tag }}</span> {% endfor %}
@@ -66,114 +72,156 @@
             <li{% if is_active %} class="active"{% endif %}><a href="{{ link }}">{{ label }}</a></li>
         {% endfor %}
     </ul>
-    
+
     {% block inner %}
         <div id="details">
-            {% if group.has_two_part_message %}
-                <h2>{% trans "Full Message" %}</h2>
-                <pre id="full-message">{{ group.message }}</pre>
-            {% endif %}
-            
-            {% if traceback %}
-                {{ traceback }}
-            {% endif %}
-            
-            {% with group|chart_data as chart_data %}
-                {% if chart_data %}
-                <script type="text/javascript">
-                $(document).ready(function() {
-                    new Highcharts.Chart({
-                        chart: {
-                            renderTo: 'chart',
-                            zoomType: 'x',
-                            marginLeft: 50,
-                            marginRight: 20,
-                            marginTop: 20,
-                            marginBottom: 40,
-                            backgroundColor: '#eeeeee',
-                            showAxes: false,
-                            height: 200
-                        },
-                        title: {
-                            text: false
-                        },
-                        xAxis: {
-                            type: 'datetime',
-                            maxZoom: 24 * 3600000, // 1 day
-                            title: {
-                                text: false
-                            },
-                            showFirstLabel: false,
-                            dateTimeLabelFormats: {
-                                second: '%H:%M:%S',
-                                minute: '%H:%M',
-                                hour: '%d %b %H:%M',
-                                day: '%e. %b',
-                                week: '%e. %b',
-                                month: '%b \'%y',
-                                year: '%Y'
-                            }
-                        },
-                        yAxis: {
-                            title: {
-                                text: false
-                            }
-                        },
-                        tooltip: {
-                            formatter: function() {
-                                return '<strong>'+
-                                    Highcharts.dateFormat('%A %B %e %Y<br/>%I:00 %p', this.x) + '</strong><br/>'+
-                                    this.y+' records';
-                            }
-                        },
-                        series: [{
-                            pointStart: new Date() - {{ chart_data.points|length }} * 3600000,
-                            pointInterval: 3600 * 1000,
-                            type: 'area',
-                            data: {{ chart_data.points|to_json }}
-                        }],
-                        legend: {
-                            enabled: false
-                        },
-                        plotOptions: {
-                            area: {
-                                lineWidth: 1,
-                                marker: {
-                                    enabled: false,
-                                    states: {
-                                        hover: {
-                                            enabled: true,
-                                            radius: 5
-                                        }
-                                    }
-                                },
-                                shadow: false,
-                                states: {
-                                    hover: {
-                                        lineWidth: 1
-                                    }
-                                }
-                            }
-                        },
-                    });
-                });
-                </script>
-                <h2>{% trans "Frequency" %}</h2>
-                <div id="chart">
-                    <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
-                </div>
-                {% endif %}
-            {% endwith %}
-
-            <div id="requestinfo">
-                <h2>{% trans "Additional Data" %}</h2>
-                <table>
-                    {% for k, v in json_data %}
+            <div id="summary">
+                <h3>{% if exception_type %}{{ exception_type }}: {{ exception_value|escape }}{% else %}Summary{% endif %}</h3>
+                <table class="meta">
+                    {% if exception_type %}
                         <tr>
-                            <th class="key">{{ k }}</th>
-                            <td class="values">
-                            {% if v %}
-                                {% if v|is_dict %}
+                          <th>Exception Value:</th>
+                          <td><pre>{{ exception_value|escape }}</pre></td>
+                        </tr>
+                    {% endif %}
+                    {% if group.data.url %}
+                        <tr>
+                          <th>URL:</th>
+                          <td><a href="{{ group.data.url }}">{{ group.data.url|truncatechars:100 }}</a></td>
+                        </tr>
+                    {% endif %}
+                    {% if lastframe %}
+                        <tr>
+                          <th>Location:</th>
+                          <td>{{ lastframe.filename|escape }} in {{ lastframe.function|escape }}, line {{ lastframe.lineno }}</td>
+                        </tr>
+                    {% endif %}
+                    {% if group.has_two_part_message %}
+                        <tr>
+                          <th>Full Message</th>
+                          <td><pre id="full-message">{{ group.message }}</pre></td>
+                        </tr>
+                    {% endif %}
+                </table>
+            </div>
+
+            {% if version_data %}
+                <div id="versioninfo" class="module">
+                    <h2>{% trans "Module Versions" %}</h2>
+                    <div class="module-content">
+                        <table class="inline">
+                            {% for k, v in version_data %}
+                                <tr>
+                                    <th class="key">{{ k }}</th>
+                                    <td class="values"><code>{{ v }}</code></td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if template_info %}
+                <div id="template" class="module">
+                    <h2>Template error</h2>
+                    <div class="module-content">
+                        <p>In template <code>{{ template_info.name }}</code>, error at line <strong>{{ template_info.line }}</strong></p>
+                        <h3>{{ template_info.message }}</h3>
+                        <ol>
+                        {% for source_line in template_info.source_lines %}
+                            <li class="{% if source_line.0 == template_info.line %} selected{% endif %}" value="{{ source_line.0 }}">
+                            {% if source_line.0 == template_info.line %}
+                                <pre>{{ template_info.before }}<span class="specific">{{ template_info.during }}</span>{{ template_info.after }}</pre>
+                            {% else %}
+                                <pre>{{ source_line.1 }}</pre>
+                            {% endif %}
+                        {% endfor %}
+                        </table>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if frames %}
+                <div id="traceback" class="module">
+                    <h2>Traceback</h2>
+                    <div class="module-content">
+                        {% autoescape off %}
+                        <div id="browserTraceback">
+                        <ul class="traceback">
+                          {% for frame in frames %}
+                            <li class="frame">
+                              <code>{{ frame.filename|escape }}</code> in <code>{{ frame.function|escape }}</code>
+
+                              {% if frame.context_line %}
+                                <div class="context" id="c{{ frame.id }}">
+                                  {% if frame.pre_context %}
+                                    <ol start="{{ frame.pre_context_lineno }}" class="pre-context" id="pre{{ frame.id }}">{% for line in frame.pre_context %}<li onclick="toggle('pre{{ frame.id }}', 'post{{ frame.id }}')">{{ line|escape }}</li>{% endfor %}</ol>
+                                  {% endif %}
+                                  <ol start="{{ frame.lineno }}" class="context-line"><li onclick="toggle('pre{{ frame.id }}', 'post{{ frame.id }}')">{{ frame.context_line|escape }} <span>...</span></li></ol>
+                                  {% if frame.post_context %}
+                                    <ol start='{{ frame.lineno|plus:1 }}' class="post-context" id="post{{ frame.id }}">{% for line in frame.post_context %}<li onclick="toggle('pre{{ frame.id }}', 'post{{ frame.id }}')">{{ line|escape }}</li>{% endfor %}</ol>
+                                  {% endif %}
+                                </div>
+                              {% endif %}
+                              <div class="commands">
+                                <a href="#" onclick="return varToggle(this, '{{ frame.id }}')"><span>&#x25b6;</span> Local vars</a>
+                              </div>
+                              <table class="vars" id="v{{ frame.id }}">
+                                <thead>
+                                  <tr>
+                                    <th>Variable</th>
+                                    <th>Value</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                {% if frame.vars %}
+                                  {% for var in frame.vars|dictsort:"0" %}
+                                    <tr>
+                                      <td>{{ var.0|escape }}</td>
+                                      <td class="code"><pre>{{ var.1|pprint|escape }}</pre></td>
+                                    </tr>
+                                  {% endfor %}
+                                {% endif %}
+                                </tbody>
+                              </table>
+                            </li>
+                          {% endfor %}
+                        </ul>
+                        </div>
+                        {% endautoescape %}
+                    </div>
+                </div>
+            {% else %}
+                <div id="traceback" class="module">
+                    <h2>Traceback</h2>
+                    <div class="module-content">
+                        {% if group.traceback %}
+                            <pre>{{ group.traceback }}</pre>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if group|has_charts %}
+                <div class="module">
+                    <h2>{% trans "Frequency" %}</h2>
+                    <div class="module-content">
+                        <div id="chart">
+                            <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
+                            <p>Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <div id="requestinfo" class="module">
+                <h2>{% trans "Additional Data" %}</h2>
+                <div class="module-content">
+                    <table>
+                        {% if user_data %}
+                            <tr>
+                                <th class="key">USER</th>
+                                <td class="values">
                                     <table class="vars">
                                         <thead>
                                             <tr>
@@ -182,7 +230,7 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {% for k_, v_ in v.iteritems|as_sorted %}
+                                            {% for k_, v_ in user_data.iteritems|as_sorted %}
                                             <tr>
                                                 <td>{{ k_ }}</td>
                                                 <td class="code"><pre>{{ v_|pprint }}</pre></td>
@@ -190,31 +238,187 @@
                                             {% endfor %}
                                         </tbody>
                                     </table>
-                                {% else %}
-                                    {{ v|pprint }}
-                                {% endif %}
-                            {% else %}
-                                <p>{% blocktrans with k as varname %}No data for {{ varname }}{% endblocktrans %}</p>
-                            {% endif %}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </table>
-            </div>
-            
-            {% if version_data %}
-                <div id="versioninfo">
-                    <h2>{% trans "Module Versions" %}</h2>
-                    <table>
-                        {% for k, v in version_data %}
+                                </td>
+                            </tr>
+                        {% endif %}
+                        {% for k, v in json_data %}
                             <tr>
                                 <th class="key">{{ k }}</th>
-                                <td class="values">{{ v }}</td>
+                                <td class="values">
+                                {% if v %}
+                                    {% if v|is_dict %}
+                                        <table class="vars">
+                                            <thead>
+                                                <tr>
+                                                    <th>{% trans "Variable" %}</th>
+                                                    <th>{% trans "Value" %}</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for k_, v_ in v.iteritems|as_sorted %}
+                                                <tr>
+                                                    <td>{{ k_ }}</td>
+                                                    <td class="code"><pre>{{ v_|pprint }}</pre></td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    {% else %}
+                                        <pre>{{ v|pprint }}</pre>
+                                    {% endif %}
+                                {% else %}
+                                    <p>{% blocktrans with k as varname %}No data for {{ varname }}{% endblocktrans %}</p>
+                                {% endif %}
+                                </td>
                             </tr>
                         {% endfor %}
                     </table>
                 </div>
-            {% endif %}
+            </div>
         </div>
     {% endblock %}
+    <script type="text/javascript">
+    $(document).ready(function() {
+        if (!$('#chart').length) return;
+
+        $.ajax({
+            url: Sentry.options.apiUrl,
+            type: 'post',
+            dataType: 'json',
+            data: {
+                op: 'chart',
+                gid: '{{ group.id }}'
+            },
+            success: function(data){
+                if (!data.length) {
+                    $('#chart').html('No data currently available.');
+                    return;
+                }
+
+                var start = new Date().getTime() - data.length * 3600000;
+                var pairs = [];
+                // for (var i=0; i<1000; i++) {
+                //     pairs.push([start + (3600 * 1000) * i, Math.random()*1000]);
+                // }
+                for (var i=0; i<data.length; i++) {
+                    pairs.push([start + (3600 * 1000) * i, data[i]]);
+                }
+                $('#chart').height(200);
+                $.plot($("#chart"), [
+                    {
+                        data: pairs,
+                        color: '#3079d0',
+                        shadowSize: 0,
+                        lines: {
+                            lineWidth: 1,
+                            show: true,
+                            fill: true
+                        },
+                    }
+                ], {
+                    xaxis: {
+                       mode: "time"
+                    },
+                    grid: {
+                        borderColor: '#aaaaaa',
+                        borderWidth: 1,
+                        backgroundColor: '#eeeeee'
+                    },
+                    lines: { show: false }
+
+                });
+
+                // new Highcharts.StockChart({
+                //     chart: {
+                //         renderTo: 'chart',
+                //         // zoomType: 'x',
+                //         // marginLeft: 50,
+                //         // marginRight: 20,
+                //         // marginTop: 20,
+                //         // marginBottom: 40,
+                //         backgroundColor: '#eeeeee',
+                //         // showAxes: false,
+                //         height: 300
+                //     },
+                //     title: {
+                //         text: false
+                //     },
+                //     xAxis: {
+                //         type: 'datetime',
+                //         maxZoom: 24 * 3600000, // 1 day
+                //         title: {
+                //             text: false
+                //         }
+                //     },
+                //     yAxis: {
+                //         title: {
+                //             text: false
+                //         }
+                //     },
+                //     rangeSelector: {
+                //         buttons: [{
+                //             type: 'minute',
+                //             count: 15,
+                //             text: '15m'
+                //         }, {
+                //             type: 'hour',
+                //             count: 1,
+                //             text: '1h'
+                //         }, {
+                //             type: 'day',
+                //             count: 1,
+                //             text: '1d'
+                //         }, {
+                //             type: 'all',
+                //             count: 1,
+                //             text: 'All'
+                //         }],
+                //         selected: 1,
+                //         inputEnabled: false
+                //    },
+                //     tooltip: {
+                //         formatter: function() {
+                //             var records = 0;
+                //             $.each(this.points, function(_, point){
+                //                 records += point.y;
+                //             });
+                //             return '<strong>'+
+                //                 Highcharts.dateFormat('%A %B %e %Y<br/>%I:00 %p', this.x) + '</strong><br/>'+
+                //                 records+' records';
+                //         }
+                //     },
+                //     series: [{
+                //         pointStart: new Date() - data.length * 3600000,
+                //         pointInterval: 3600 * 1000,
+                //         type: 'area',
+                //         data: data
+                //     }],
+                //     legend: {
+                //         enabled: false
+                //     },
+                //     plotOptions: {
+                //         area: {
+                //             lineWidth: 1,
+                //             marker: {
+                //                 enabled: false,
+                //                 states: {
+                //                     hover: {
+                //                         enabled: true,
+                //                         radius: 5
+                //                     }
+                //                 }
+                //             },
+                //             shadow: false,
+                //             states: {
+                //                 hover: {
+                //                     lineWidth: 1
+                //                 }
+                //             }
+                //         }
+                //     }
+                // });
+            }
+        });
+    });
+    </script>
 {% endblock %}

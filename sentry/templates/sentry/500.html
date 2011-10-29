@@ -1,0 +1,17 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Internal Server Error" %} | {{ block.super }}{% endblock %}
+
+{% block heading %}{% trans "Internal Server Error" %}{% endblock %}
+
+{% block search %}{% endblock %}
+
+{% block main %}
+    <h2>Error Processing Request</h2>
+    <p>{% trans "There was an internal server error while processing your request." %}</p>
+    {% if request.sentry.id %}
+        <p>{% blocktrans with request.sentry.id as id %}You may reference this error as <strong>{{ id }}</strong>.{% endblocktrans %}</p>
+    {% endif %}
+{% endblock %}

@@ -15,39 +15,31 @@ function getElementsByClassName(oElm, strTagName, strClassName){
     return (arrReturnElements);
 }
 function hideAll(elems) {
-  for (var e = 0; e < elems.length; e++) {
-    elems[e].style.display = 'none';
-  }
+    for (var e = 0; e < elems.length; e++) {
+        elems[e].style.display = 'none';
+    }
 }
 $(window).load(function() {
     $('.frame table.vars').hide();
     $('ol.pre-context').hide();
     $('ol.post-context').hide();
-    $('div.pastebin').hide();
 });
 function toggle() {
-  for (var i = 0; i < arguments.length; i++) {
-    var e = document.getElementById(arguments[i]);
-    if (e) {
-      e.style.display = e.style.display == 'none' ? 'block' : 'none';
+    for (var i = 0; i < arguments.length; i++) {
+        var e = document.getElementById(arguments[i]);
+        if (e) {
+            e.style.display = e.style.display == 'none' ? 'block' : 'none';
+        }
     }
-  }
-  return false;
+    return false;
 }
 function varToggle(link, id) {
-  toggle('v' + id);
-  var s = link.getElementsByTagName('span')[0];
-  var uarr = String.fromCharCode(0x25b6);
-  var darr = String.fromCharCode(0x25bc);
-  s.innerHTML = s.innerHTML == uarr ? darr : uarr;
-  return false;
-}
-function switchPastebinFriendly(link) {
-  s1 = "Switch to copy-and-paste view";
-  s2 = "Switch back to interactive view";
-  link.innerHTML = link.innerHTML == s1 ? s2 : s1;
-  toggle('browserTraceback', 'pastebinTraceback');
-  return false;
+    toggle('v' + id);
+    var s = link.getElementsByTagName('span')[0];
+    var uarr = String.fromCharCode(0x25b6);
+    var darr = String.fromCharCode(0x25bc);
+    s.innerHTML = s.innerHTML == uarr ? darr : uarr;
+    return false;
 }
 
 function getQueryParams()
@@ -79,12 +71,27 @@ var Sentry = {};
             Sentry.options[k] = v;
         });
     };
-    
+
     Sentry.stream = {};
+    Sentry.stream.clear = function() {
+        if (confirm("Are you sure you want to mark all your stream as resolved?")) {
+            $.ajax({
+                url: Sentry.options.apiUrl,
+                type: 'post',
+                dataType: 'json',
+                data: {
+                    op: 'clear'
+                },
+                success: function(groups){
+                	window.location.reload();
+                }
+            });
+        }
+    }
     Sentry.stream.resolve = function(gid, remove){
         if (typeof(remove) == 'undefined') {
             remove = true;
-        } 
+        }
         $.ajax({
             url: Sentry.options.apiUrl,
             type: 'post',
@@ -106,7 +113,7 @@ var Sentry = {};
             }
         });
     };
-    
+
     Sentry.realtime = {};
     Sentry.realtime.status = false;
 
@@ -123,7 +130,7 @@ var Sentry = {};
         $('#sentry_realtime').text('Go Live');
         Sentry.realtime.status = false;
     };
-    
+
     Sentry.realtime.refresh = function(){
         data = getQueryParams();
         data.op = 'poll';
@@ -162,7 +169,7 @@ var Sentry = {};
                         Sentry.notifications.show({'type': 'html', 'url': url});
                     }
                 }
-                $('#message_list .fresh').css('background-color', '#ccc').animate({backgroundColor: '#fff'}, 1200, function() { 
+                $('#message_list .fresh').css('background-color', '#ccc').animate({backgroundColor: '#fff'}, 1200, function() {
                     $(this).removeClass('fresh');
                 });
                 // make sure we limit the number shown
@@ -177,7 +184,7 @@ var Sentry = {};
             }
         });
     };
-    
+
     Sentry.notifications = {};
     Sentry.notifications.status = false;
 
@@ -209,12 +216,12 @@ var Sentry = {};
         } else {
             note = window.webkitNotifications.createNotification(options.image || Sentry.options.defaultImage, options.title, options.body);
         }
-        note.ondisplay = function() { 
+        note.ondisplay = function() {
             setTimeout(function(){ note.cancel(); }, 10000);
         };
         note.show();
     };
-    
+
     $(document).ready(function(){
         $('#sentry_realtime').click(function(){
             if (Sentry.realtime.status) {
@@ -225,7 +232,7 @@ var Sentry = {};
         });
 
         setTimeout(Sentry.realtime.refresh, 3000);
-    
+
         if (window.webkitNotifications){
             Sentry.notifications.status = (window.webkitNotifications.checkPermission() > 0);
             $('<li><a id="sentry_notify" href="javascript:void()">' + (Sentry.notifications.status ? 'Disable Notifications' : 'Enable Notifications') + '</a></li>').click(function(){
@@ -236,7 +243,7 @@ var Sentry = {};
                 }
             }).prependTo('#account');
         }
-    
+
         $('#sidebar .filter-list').each(function(_, el){
             var el = $(el);
             if (el.find('li').length > 6) {

@@ -1,0 +1,13 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Forbidden" %} | {{ block.super }}{% endblock %}
+
+{% block heading %}{% trans "Forbidden" %}{% endblock %}
+
+{% block search %}{% endblock %}
+
+{% block main %}
+    <p>{% trans "You do not have access to this page with your current permissions." %}</p>
+{% endblock %}

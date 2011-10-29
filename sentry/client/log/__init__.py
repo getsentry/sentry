@@ -1,3 +1,11 @@
+"""
+sentry.client.log
+~~~~~~~~~~~~~~~~~
+
+:copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
+
 from sentry.client.base import SentryClient
 
 import logging
@@ -13,6 +21,9 @@ class LoggingSentryClient(SentryClient):
     
     def send(self, **kwargs):
         exc_info = sys.exc_info()
-        self.logger.log(kwargs.pop('level', None) or self.default_level,
-                        kwargs.pop('message', None) or exc_info[0],
-                        exc_info=exc_info, extra=kwargs)
+        try:
+            self.logger.log(kwargs.pop('level', None) or self.default_level,
+                            kwargs.pop('message', None) or exc_info[0],
+                            exc_info=exc_info, extra=kwargs)
+        finally:
+            del exc_info
