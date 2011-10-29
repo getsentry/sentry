@@ -97,21 +97,25 @@ class Settings(object):
     def __init__(self, **overrides):
         self.overrides = overrides
         self._orig = {}
+        self._orig_sentry = {}
 
     def __enter__(self):
         for k, v in self.overrides.iteritems():
             self._orig[k] = getattr(django_settings, k, self.NotDefined)
             setattr(django_settings, k, v)
             if k.startswith('SENTRY_'):
-                setattr(settings, k.split('SENTRY_', 1)[1], v)
+                nk = k.split('SENTRY_', 1)[1]
+                self._orig_sentry[nk] = getattr(settings, nk, self.NotDefined)
+                setattr(settings, nk, v)
 
     def __exit__(self, exc_type, exc_value, traceback):
         for k, v in self._orig.iteritems():
             if v is self.NotDefined:
                 delattr(django_settings, k)
-                if k.startswith('SENTRY_'):
-                    delattr(settings, k.split('SENTRY_', 1)[1])
             else:
                 setattr(django_settings, k, v)
-                if k.startswith('SENTRY_'):
-                    setattr(settings, k.split('SENTRY_', 1)[1], v)
+        for k, v in self._orig_sentry.iteritems():
+            if v is self.NotDefined:
+                delattr(settings, k)
+            else:
+                setattr(settings, k, v)
