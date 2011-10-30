@@ -51,12 +51,12 @@ right at home.
     python runtests.py --failfast
 
 ::
-    
+
     # Run only SentryRemoteTest
     python runtests.py sentry.SentryRemoteTest
 
 ::
-    
+
     # Run only the testTimestamp test on SentryRemoteTest
     python runtests.py sentry.SentryRemoteTest.testTimestamp
 

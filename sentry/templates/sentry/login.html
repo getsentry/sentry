@@ -13,14 +13,14 @@
     <div id="body">
         <div class="login-area">
             <p>{% trans "You must log in to continue" %}</p>
-        
+
             {% if form.errors %}
                 <p class="error">{% trans "Your username and password didn't match. Please try again." %}</p>
             {% endif %}
 
             <form method="post" action="" class="login-form">
                 <input type="hidden" name="next" value="{{ next }}" />
-            
+
                 {% csrf_token %}
                 <table>
                     <colgroup>

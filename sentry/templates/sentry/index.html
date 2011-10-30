@@ -47,7 +47,7 @@
             {{ message_list.paging }}
         </div>
     </div>
-    
+
     {% if message_list.objects %}
         <ul class="messages" id="message_list">
             {% for group, priority in message_list.objects|with_priority %}
