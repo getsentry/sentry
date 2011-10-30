@@ -6,13 +6,13 @@
 clean:
 	dh_testdir
 	dh_testroot
-	
-	rm -rf build django-sentry.egg-info   
+
+	rm -rf build django-sentry.egg-info
 #	find django-sentry/ -name *.pyc | xargs rm -f
-	
+
 	dh_clean
 
-build: 
+build:
 	dh_testdir
 
 	python setup.py build
