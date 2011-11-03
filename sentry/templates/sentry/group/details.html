@@ -272,12 +272,12 @@
                 </div>
             </div>
         </div>
+        <div id="raw_traceback" style="display: none;">
+            {% if frames or message.traceback %}
+                <pre>{{ message.get_traceback }}</pre>
+            {% endif %}
+        </div>
     {% endblock %}
-    <div id="raw_traceback" style="display: none;">
-        {% if frames or message.traceback %}
-            <pre>{{ message.get_traceback }}</pre>
-        {% endif %}
-    </div>
     <script type="text/javascript">
     $('.popup').click(function(){
         var $this = $(this);
