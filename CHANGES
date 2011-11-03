@@ -1,3 +1,7 @@
+1.13.3
+
+* Added back in the "raw traceback" view.
+
 1.13.2
 
 * Counts will now render differently with large values (e.g. 13000 will now be 13k)
