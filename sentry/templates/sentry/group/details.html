@@ -149,20 +149,20 @@
                               <code>{{ frame.filename|escape }}</code> in <code>{{ frame.function|escape }}</code>
 
                               {% if frame.context_line %}
-                                <div class="context" id="c{{ frame.id }}">
+                                <div class="context" id="c{{ forloop.counter }}">
                                   {% if frame.pre_context %}
-                                    <ol start="{{ frame.pre_context_lineno }}" class="pre-context" id="pre{{ frame.id }}">{% for line in frame.pre_context %}<li onclick="toggle('pre{{ frame.id }}', 'post{{ frame.id }}')">{{ line|escape }}</li>{% endfor %}</ol>
+                                    <ol start="{{ frame.pre_context_lineno }}" class="pre-context" id="pre{{ forloop.counter }}">{% for line in frame.pre_context %}<li onclick="toggle('pre{{ forloop.counter }}', 'post{{ forloop.counter }}')">{{ line|escape }}</li>{% endfor %}</ol>
                                   {% endif %}
-                                  <ol start="{{ frame.lineno }}" class="context-line"><li onclick="toggle('pre{{ frame.id }}', 'post{{ frame.id }}')">{{ frame.context_line|escape }} <span>...</span></li></ol>
+                                  <ol start="{{ frame.lineno }}" class="context-line"><li onclick="toggle('pre{{ forloop.counter }}', 'post{{ forloop.counter }}')">{{ frame.context_line|escape }} <span>...</span></li></ol>
                                   {% if frame.post_context %}
-                                    <ol start='{{ frame.lineno|plus:1 }}' class="post-context" id="post{{ frame.id }}">{% for line in frame.post_context %}<li onclick="toggle('pre{{ frame.id }}', 'post{{ frame.id }}')">{{ line|escape }}</li>{% endfor %}</ol>
+                                    <ol start='{{ frame.lineno|plus:1 }}' class="post-context" id="post{{ forloop.counter }}">{% for line in frame.post_context %}<li onclick="toggle('pre{{ forloop.counter }}', 'post{{ forloop.counter }}')">{{ line|escape }}</li>{% endfor %}</ol>
                                   {% endif %}
                                 </div>
                               {% endif %}
                               <div class="commands">
-                                <a href="#" onclick="return varToggle(this, '{{ frame.id }}')"><span>&#x25b6;</span> Local vars</a>
+                                <a href="#" onclick="return varToggle(this, '{{ forloop.counter }}')"><span>&#x25b6;</span> Local vars</a>
                               </div>
-                              <table class="vars" id="v{{ frame.id }}">
+                              <table class="vars" id="v{{ forloop.counter }}">
                                 <thead>
                                   <tr>
                                     <th>Variable</th>
