@@ -401,6 +401,7 @@ def group(request, group_id):
     return render_to_response('sentry/group/details.html', {
         'page': 'details',
         'group': group,
+        'message': obj,
         'json_data': iter_data(obj),
         'user_data': user_data,
         'version_data': version_data,

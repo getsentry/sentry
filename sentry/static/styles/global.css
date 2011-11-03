@@ -108,6 +108,7 @@ pre {
 .module {
     margin-bottom: 10px;
     overflow: auto;
+    position: relative;
 }
 .module h2 {
     color: #fff;
@@ -123,6 +124,12 @@ pre {
     background: -webkit-gradient(linear, left top, left bottom, from(#4da2e5), to(#3079d0)); /* for webkit browsers */
     background: -moz-linear-gradient(top,  #4da2e5,  #3079d0); /* for firefox 3.6+ */
 }
+.module h2 span {
+    margin-left: 5px;
+    font-size: 0.8em;
+    color: #eee;
+}
+.module h2 span a { color: inherit; }
 .module-content {
     -moz-box-shadow: inset 0 0 1px #22579b, 0 1px 0 #fff;
     -webkit-box-shadow: inset 0 0 1px #22579b, 0 1px 0 #fff;
@@ -761,4 +768,10 @@ h2 .morelink { text-decoration: none; }
 
 table.inline tr {
     display: inline-block;
+}
+
+#popup {
+    background: #fff;
+    padding: 10px;
+    margin: 10px;
 }

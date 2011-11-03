@@ -139,7 +139,7 @@
 
             {% if frames %}
                 <div id="traceback" class="module">
-                    <h2>Traceback</h2>
+                    <h2>Traceback <span><a href="javascript:void(0)" class="popup" data-container="#raw_traceback">Raw Traceback</a></span></h2>
                     <div class="module-content">
                         {% autoescape off %}
                         <div id="browserTraceback">
@@ -273,7 +273,22 @@
             </div>
         </div>
     {% endblock %}
+    <div id="raw_traceback" style="display: none;">
+        {% if frames or message.traceback %}
+            <pre>{{ message.get_traceback }}</pre>
+        {% endif %}
+    </div>
     <script type="text/javascript">
+    $('.popup').click(function(){
+        var $this = $(this);
+        var $window = $(window);
+        var $container = $($this.attr('data-container'));
+        var content = $container.html();
+        var height = Math.min($window.height() - 100, $container.height() + 40);
+        var width = Math.min($window.width() - 100, $container.width() + 40);
+        var w = window.open("about:blank", "dsqApiExpand", "toolbar=0,status=0,location=0,menubar=0,height=" + height + ",width=" + width);
+        w.document.write("<!DOCTYPE html><html><title>Traceback</title><head><link href=\"{% url sentry-media "styles/global.css" %}\" rel=\"stylesheet\" type=\"text/css\"/></head><body><div id=\"popup\">" + content + "</div></body></html>");
+    });
     $(document).ready(function() {
         if (!$('#chart').length) return;
 

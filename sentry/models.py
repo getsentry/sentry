@@ -103,6 +103,37 @@ class MessageBase(Model):
     shortened_traceback.short_description = _('traceback')
     shortened_traceback.admin_order_field = 'traceback'
 
+    def get_traceback(self):
+        if self.traceback:
+            return self.traceback
+
+        data = self.data
+        if '__sentry__' not in data:
+            return
+
+        sentry_data = data['__sentry__']
+
+        if 'exc' in sentry_data:
+            module, args, frames = sentry_data['exc']
+        elif 'exception' in sentry_data:
+            (module, args), frames = sentry_data['exception'], sentry_data.get('frames')
+        else:
+            module, args, frames = None, None, sentry_data.get('frames')
+
+        if not frames:
+            return
+
+        result = ['Traceback (most recent call last):', '']
+        for frame in sentry_data['frames']:
+            result.append('  File "%(filename)s", line %(lineno)s, in %(function)s' % frame)
+            result.append('    %s' % frame['context_line'].strip())
+            result.append('')
+
+        if module and args:
+            result.append('%(class_name)s: %(message)s' % dict(class_name=self.class_name, message=self.message))
+
+        return '\n'.join(result)
+
     def error(self):
         if self.message:
             message = smart_unicode(self.message)
