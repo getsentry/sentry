@@ -290,7 +290,7 @@ class GroupManager(models.Manager):
                     project=project,
                     date=normalized_datetime,
                     times_seen=1,
-                    time_spent_total=time_spent,
+                    time_spent_total=time_spent or 0,
                     time_spent_count=time_spent and 1 or 0,
                 )
 
