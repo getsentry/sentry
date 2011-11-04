@@ -275,12 +275,23 @@ class GroupManager(models.Manager):
                 minutes = date.minute
             normalized_datetime = date.replace(second=0, microsecond=0, minute=minutes)
 
-            affected = group.messagecountbyminute_set.filter(date=normalized_datetime).update(times_seen=F('times_seen') + 1)
+            update_kwargs = {
+                'times_seen': F('times_seen') + 1,
+            }
+            if time_spent:
+                update_kwargs.update({
+                    'time_spent_total': F('time_spent_total') + time_spent,
+                    'time_spent': F('time_spent_count') + 1,
+                })
+
+            affected = group.messagecountbyminute_set.filter(date=normalized_datetime).update(**update_kwargs)
             if not affected:
                 group.messagecountbyminute_set.create(
                     project=project,
                     date=normalized_datetime,
                     times_seen=1,
+                    time_spent_total=time_spent,
+                    time_spent_count=time_spent and 1 or 0,
                 )
 
             for key, value in (

@@ -353,6 +353,8 @@ class MessageCountByMinute(Model):
     group = models.ForeignKey(Group)
     date = models.DateTimeField() # normalized to HH:MM:00
     times_seen = models.PositiveIntegerField(default=0)
+    time_spent_total= models.FloatField(default=0)
+    time_spent_count= models.IntegerField(default=0)
 
     class Meta:
         unique_together = (('project', 'group', 'date'),)
