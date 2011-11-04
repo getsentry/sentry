@@ -130,7 +130,8 @@ class Group(MessageBase):
     times_seen      = models.PositiveIntegerField(default=1, db_index=True)
     last_seen       = models.DateTimeField(default=datetime.now, db_index=True)
     first_seen      = models.DateTimeField(default=datetime.now, db_index=True)
-
+    time_spent_total= models.FloatField(default=0)
+    time_spent_count= models.IntegerField(default=0)
     score           = models.IntegerField(default=0)
 
     objects         = GroupManager()
@@ -241,6 +242,7 @@ class Event(MessageBase):
     event_id        = models.CharField(max_length=32, null=True, unique=True, db_column="message_id")
     group           = models.ForeignKey(Group, blank=True, null=True, related_name="event_set")
     datetime        = models.DateTimeField(default=datetime.now, db_index=True)
+    time_spent      = models.FloatField(null=True)
     server_name     = models.CharField(max_length=128, db_index=True)
     site            = models.CharField(max_length=128, db_index=True, null=True)
 

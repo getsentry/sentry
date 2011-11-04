@@ -168,11 +168,13 @@ class GroupManager(models.Manager):
         message = kwargs.pop('message', None)
         culprit = kwargs.pop('culprit', None)
         level = kwargs.pop('level', None) or logging.ERROR
+        time_spent = kwargs.pop('time_spent', None)
         logger_name = kwargs.pop('logger', 'root')
         server_name = kwargs.pop('server_name', None)
         site = kwargs.pop('site', None)
         date = kwargs.pop('date', None) or datetime.datetime.now()
         extra = kwargs.pop('extra', None)
+        modules = kwargs.pop('modules', None)
 
         if not message:
             raise InvalidData('Missing required parameter: message')
@@ -196,6 +198,8 @@ class GroupManager(models.Manager):
             except Exception, e:
                 raise InvalidData('Unable to validate interface, %r: %s' % (k, e))
 
+        data['modules'] = modules
+
         # TODO: at this point we should validate what is left in kwargs (it should either
         #       be an interface or it should be in ``extra``)
         if extra:
@@ -212,6 +216,8 @@ class GroupManager(models.Manager):
             group_kwargs.update({
                 'last_seen': date,
                 'first_seen': date,
+                'time_spent_total': time_spent or 0,
+                'time_spent_count': time_spent and 1 or 0,
             })
 
             group, created = self.get_or_create(
@@ -227,7 +233,18 @@ class GroupManager(models.Manager):
                     mail = True
                 silence_timedelta = date - group.last_seen
                 silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
-                group.update(status=0, last_seen=date, times_seen=F('times_seen') + 1, score=ScoreClause(group))
+                update_kwargs = {
+                    'status': 0,
+                    'last_seen': date,
+                    'times_seen': F('times_seen') + 1,
+                    'score': ScoreClause(group),
+                }
+                if time_spent:
+                    update_kwargs.update({
+                        'time_spent_total': F('time_spent_total') + time_spent,
+                        'time_spent_count': F('time_spent_count') + 1,
+                    })
+                group.update(**update_kwargs)
             else:
                 group.update(score=ScoreClause(group))
                 silence = 0
@@ -243,6 +260,7 @@ class GroupManager(models.Manager):
                 site=site,
                 checksum=checksum,
                 group=group,
+                time_spent=time_spent,
                 datetime=date,
                 **kwargs
             )
