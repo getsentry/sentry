@@ -1,6 +1,12 @@
-<div id="summary">
-  <h3>{% if exception_type %}{{ exception_type }}: {{ exception_value|escape }}{% else %}Summary{% endif %}</h3>
+{% comment %}
+<div id="exception" class="module">
+  <h2>Exception</h2>
+  <div class="module-content">
   <table class="meta">
+    <tr>
+      <th>Exception Type:</th>
+      <td><pre>{{ exception_type|escape }}</pre></td>
+    </tr>
     <tr>
       <th>Exception Value:</th>
       <td><pre>{{ exception_value|escape }}</pre></td>
@@ -12,4 +18,6 @@
     </tr>
     {% endif %}
   </table>
+  </div>
 </div>
+{% endcomment %}
