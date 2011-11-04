@@ -1,3 +1,7 @@
+1.13.5
+
+* Level filters are now precise (they no longer show their level + messages from higher levels).
+
 1.13.4
 
 * Updated message details page to resemble look and feel of group details.
