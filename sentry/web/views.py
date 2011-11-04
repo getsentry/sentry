@@ -284,7 +284,11 @@ def search(request, project):
 
 @login_required
 def dashboard(request):
+    project_list = get_project_list(request.user)
+    if len(project_list) == 1:
+        return HttpResponseRedirect(reverse('sentry', kwargs={'project_id': project_list.keys()[0]}))
     return render_to_response('sentry/dashboard.html', {
+        'project_list': project_list,
         'request': request,
     })
 

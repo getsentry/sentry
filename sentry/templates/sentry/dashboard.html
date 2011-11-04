@@ -1,0 +1,18 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Select a Project" %} | {{ block.super }}{% endblock %}
+
+{% block heading %}{% trans "Select a Project" %}{% endblock %}
+
+{% block content %}
+    <div id="body">
+        <p>Select a project...</p>
+        <ul>
+            {% for project in project_list.itervalues %}
+                <li><a href="{% url sentry project.pk %}">{{ project.name }}</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}
