@@ -5,10 +5,6 @@
 
 {% block title %}{{ group.error }} | {{ block.super }}{% endblock %}
 
-{% block meta %}
-    <script type="text/javascript" src="{% url sentry-media "scripts/highstock.js" %}"></script>
-{% endblock %}
-
 {% block heading %}
     {% trans "Message Details" %} <span><a href="{% url sentry project.pk %}">&laquo; {% trans "Back to list" %}</a></span>
 {% endblock %}
@@ -44,7 +40,7 @@
 {% block main %}
     <ul class="messages" id="message_list">
         <li class="{% cycle 'row1' 'row2' %} level-{{ group.level }} active" id="group_{{ group.pk }}" data-sentry-count="{{ group.times_seen }}">
-            <span class="count count-digits-{{ group.times_seen|num_digits }}">{{ group.times_seen }}</span>
+            <span class="count">{{ group.times_seen|small_count }}</span>
             <h3>{{ group.message_top }}</h3>
             <span class="last_seen" title="{{ group.last_seen }}">{{ group.last_seen|timesince }}</span>
             <span class="status status-{{ group.status }}">{{ group.get_status_display }}</span>
@@ -153,8 +149,23 @@
                 {% endif %}
             </div>
         </div>
+        <div id="raw_traceback" style="display: none;">
+            {% if frames or message.traceback %}
+                <pre>{{ message.get_traceback }}</pre>
+            {% endif %}
+        </div>
     {% endblock %}
     <script type="text/javascript">
+    $('.popup').click(function(){
+        var $this = $(this);
+        var $window = $(window);
+        var $container = $($this.attr('data-container'));
+        var content = $container.html();
+        var height = Math.min($window.height() - 100, $container.height() + 40);
+        var width = Math.min($window.width() - 100, $container.width() + 40);
+        var w = window.open("about:blank", "dsqApiExpand", "toolbar=0,status=0,location=0,menubar=0,height=" + height + ",width=" + width);
+        w.document.write("<!DOCTYPE html><html><title>Traceback</title><head><link href=\"{% url sentry-media "styles/global.css" %}\" rel=\"stylesheet\" type=\"text/css\"/></head><body><div id=\"popup\">" + content + "</div></body></html>");
+    });
     $(document).ready(function() {
         if (!$('#chart').length) return;
 

@@ -166,7 +166,7 @@ class LevelFilter(SentryFilter):
         return SortedDict((str(k), v) for k, v in settings.LOG_LEVELS)
 
     def get_query_set(self, queryset):
-        return queryset.filter(level__gte=self.get_value())
+        return queryset.filter(level=self.get_value())
 
 class SiteFilter(SentryFilter):
     label = 'Site'

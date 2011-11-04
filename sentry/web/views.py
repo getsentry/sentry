@@ -17,17 +17,16 @@ from django.http import HttpResponse, HttpResponseBadRequest, \
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_protect, csrf_exempt
 
 from sentry.conf import settings
 from sentry.models import Group, Event, Project
 from sentry.plugins import GroupActionProvider
 from sentry.templatetags.sentry_helpers import with_priority
 from sentry.utils import get_filters, json
-from sentry.utils.template_info import get_template_info
 from sentry.web.forms import EditProjectForm
 from sentry.web.helpers import login_required, render_to_response, get_search_query_set, \
-    get_project_list, iter_data
+    get_project_list
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$', re.I)
 message_re = re.compile(r'^(?P<message_id>[a-z0-9]{32})\$(?P<checksum>[a-z0-9]{32})$', re.I)
@@ -106,6 +105,7 @@ def logout(request):
     return HttpResponseRedirect(reverse('sentry'))
 
 @login_required
+@csrf_exempt
 def ajax_handler(request):
     # TODO: remove this awful idea of an API
     op = request.REQUEST.get('op')
@@ -239,15 +239,15 @@ def search(request, project):
             # Forward to message if it exists
             # message_id = result.group(1)
             checksum = result.group(2)
-            try:
-                message = Group.objects.get(checksum=checksum)
-            except Group.DoesNotExist:
+            message_list = Group.objects.filter(checksum=checksum)
+            top_matches = message_list[:2]
+            if len(top_matches) == 0:
                 if not has_search:
                     return render_to_response('sentry/invalid_message_id.html')
                 else:
                     message_list = get_search_query_set(query)
-            else:
-                return HttpResponseRedirect(message.get_absolute_url())
+            elif len(top_matches) == 1:
+                return HttpResponseRedirect(top_matches[0].get_absolute_url())
         elif uuid_re.match(query):
             # Forward to message if it exists
             try:

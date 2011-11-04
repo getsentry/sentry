@@ -451,9 +451,56 @@ class SentrySearchTest(TestCase):
         self.assertEquals(qs.count(), 1)
         self.assertEquals(qs[0:1][0].message, 'test search error')
 
+    def test_checksum_query(self):
+        checksum = 'a'*32
+        g = Group.objects.create(
+            project_id=1,
+            logger='root',
+            culprit='a',
+            checksum=checksum,
+            message='hi',
+        )
+
+        with Settings(SENTRY_PUBLIC=True):
+            response = self.client.get(reverse('sentry-search', kwargs={'project_id': 1}), {'q': '%s$%s' % (checksum, checksum)})
+            self.assertEquals(response.status_code, 302)
+            self.assertEquals(response['Location'], 'http://testserver%s' % (g.get_absolute_url(),))
+
+    def test_dupe_checksum(self):
+        checksum = 'a'*32
+        g1 = Group.objects.create(
+            project_id=1,
+            logger='root',
+            culprit='a',
+            checksum=checksum,
+            message='hi',
+        )
+        g2 = Group.objects.create(
+            project_id=1,
+            logger='root',
+            culprit='b',
+            checksum=checksum,
+            message='hi',
+        )
+
+        with Settings(SENTRY_PUBLIC=True):
+            response = self.client.get(reverse('sentry-search', kwargs={'project_id': 1}), {'q': '%s$%s' % (checksum, checksum)})
+            self.assertEquals(response.status_code, 200)
+            self.assertTemplateUsed(response, 'sentry/search.html')
+            context = response.context
+            self.assertTrue('message_list' in context)
+            self.assertEquals(len(context['message_list']), 2)
+            self.assertTrue(g1 in context['message_list'])
+            self.assertTrue(g2 in context['message_list'])
+
 class DummyInterface(Interface):
     def __init__(self, baz):
         self.baz = baz
+
+class SentryPluginTest(TestCase):
+    def test_registration(self):
+        from sentry.plugins import GroupActionProvider
+        self.assertEquals(len(GroupActionProvider.plugins), 4)
 
 class SentryManagerTest(TestCase):
     def test_invalid_project(self):

@@ -37,7 +37,7 @@ if sys.version_info[:2] < (2, 5):
 
 setup(
     name='django-sentry',
-    version='1.13.0',
+    version='1.13.5',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/django-sentry',

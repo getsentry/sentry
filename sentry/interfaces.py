@@ -114,6 +114,16 @@ class Stacktrace(Interface):
             r.append('  File "%(filename)s", line %(lineno)s, in %(function)s\n    %(context_line)s' % f)
         return '\n'.join(r)
 
+    # TODO: abstract this  to some kind of "raw" hook for rendering
+    def get_traceback(self, event):
+        result = ['Traceback (most recent call last):', '']
+        for frame in self.frames:
+            result.append('  File "%(filename)s", line %(lineno)s, in %(function)s' % frame)
+            result.append('    %s' % frame['context_line'].strip())
+            result.append('')
+
+        return '\n'.join(result)
+
 class Exception(Interface):
     def __init__(self, type, value):
         self.type = type

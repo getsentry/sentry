@@ -6,7 +6,7 @@
 
         <ul class="server-list">
             {% for server, priority in unique_servers|with_priority:1 %}
-                <li class="priority-{{ priority }}"><span class="count">{{ server.1 }}</span> <a href="{% url sentry group.project_id %}?server_name={{ server.0 }}">{{ server.0 }}</a></li>
+                <li class="priority-{{ priority }}"><span class="count">{{ server.1|small_count }}</span> <a href="{% url sentry group.project_id %}?server_name={{ server.0 }}">{{ server.0 }}</a></li>
             {% endfor %}
         </ul>
     {% endif %}

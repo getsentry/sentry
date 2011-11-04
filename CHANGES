@@ -13,6 +13,27 @@
 * GroupedMessage was renamed to Group.
 * Message was renamed to Event.
 
+1.13.5
+
+* Level filters are now precise (they no longer show their level + messages from higher levels).
+
+1.13.4
+
+* Updated message details page to resemble look and feel of group details.
+
+1.13.3
+
+* Added back in the "raw traceback" view.
+
+1.13.2
+
+* Counts will now render differently with large values (e.g. 13000 will now be 13k)
+
+1.13.1
+
+* Search by message_id will now display a list of results if there are multiple matches.
+>>>>>>> master
+
 1.13.0
 
 * Deprecated the Sentry client, and added Raven to the as the default builtin.
