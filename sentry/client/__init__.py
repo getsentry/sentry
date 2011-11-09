@@ -8,4 +8,4 @@ sentry.client
 
 import warnings
 
-warnings.warn('sentry.client will be removed in version 1.14.0. You should switch to raven.client.django', DeprecationWarning)
+warnings.warn('sentry.client will be removed in version 1.14.0. You should switch to raven.contrib.django', DeprecationWarning)
