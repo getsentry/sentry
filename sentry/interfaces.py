@@ -125,20 +125,26 @@ class Stacktrace(Interface):
         return '\n'.join(result)
 
 class Exception(Interface):
-    def __init__(self, type, value):
+    def __init__(self, type, value, module=None):
+        # The exception type name (e.g. TypeError)
         self.type = type
+        # A human readable value for the exception
         self.value = value
+        # Optional module of the exception type (e.g. __builtin__)
+        self.module = module
 
     def serialize(self):
         return {
             'type': self.type,
             'value': self.value,
+            'module': self.module,
         }
 
     def to_html(self, event):
         return render_to_string('sentry/partial/interfaces/exception.html', {
             'exception_value': self.value,
             'exception_type': self.type,
+            'exception_module': self.module,
         })
 
 class Http(Interface):
