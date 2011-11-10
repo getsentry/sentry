@@ -7,7 +7,7 @@
                 {% for num, line in pre_context %}
                     <li value="{{ num }}"><pre>{{ line }}</pre></li>
                 {% endfor %}
-                <li value="{{ lineno }}" class="selected">{{ context_line }}</li>
+                <li value="{{ lineno }}" class="selected"><pre>{{ context_line }}</pre></li>
                 {% for num, line in post_context %}
                     <li value="{{ num }}"><pre>{{ line }}</pre></li>
                 {% endfor %}
