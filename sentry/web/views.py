@@ -442,7 +442,7 @@ def group_plugin_action(request, project, group_id, slug):
 @login_required
 def project_list(request):
     return render_to_response('sentry/projects/list.html', {
-        'project_list': get_project_list(request.user),
+        'project_list': get_project_list(request.user).values(),
         'request': request,
     })
 
@@ -457,7 +457,7 @@ def manage_project(request, project):
     context.update({
         'form': form,
         'project': project,
-        'project_list': project_list.values(),
+        'project_list': get_project_list(request.user).values(),
         'request': request,
     })
 
