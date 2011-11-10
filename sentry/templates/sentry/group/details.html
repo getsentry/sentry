@@ -31,6 +31,8 @@
         <dd title="{{ group.first_seen }}">{{ group.last_seen|timesince }}</dd>
     </dl>
 
+    <p><a href="{% url sentry-group-json project_id=project.pk group_id=group.pk %}">Raw JSON Data</a></p>
+
     {% for html in group|get_widgets:request %}
         {{ html|safe }}
     {% endfor %}

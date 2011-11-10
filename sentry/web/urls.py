@@ -72,6 +72,7 @@ urlpatterns = patterns('',
     # Project specific
 
     url(r'^(?P<project_id>\d+)/group/(?P<group_id>\d+)$', views.group, name='sentry-group'),
+    url(r'^(?P<project_id>\d+)/group/(?P<group_id>\d+)/json$', views.group_json, name='sentry-group-json'),
     url(r'^(?P<project_id>\d+)/group/(?P<group_id>\d+)/messages$', views.group_message_list, name='sentry-group-messages'),
     url(r'^(?P<project_id>\d+)/group/(?P<group_id>\d+)/messages/(?P<message_id>\d+)$', views.group_message_details, name='sentry-group-message'),
     url(r'^(?P<project_id>\d+)/group/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)', views.group_plugin_action, name='sentry-group-plugin-action'),
