@@ -122,6 +122,8 @@ configuration via --config, you will likely want to preface the file with import
     #!/usr/bin/env python
     # filename: /etc/sentry.conf.py
 
+    from sentry.conf.server import *
+
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql_psycopg2',
