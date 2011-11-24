@@ -15,6 +15,7 @@ from django.utils.safestring import mark_safe
 from django.utils.html import escape
 
 from sentry.conf import settings
+from sentry.models import Group, Event, FilterValue, MessageIndex
 
 class Widget(object):
     def __init__(self, filter, request):
@@ -67,6 +68,7 @@ class SentryFilter(object):
     # This must be a string
     default = ''
     show_label = True
+    types = [Group, Event]
 
     def __init__(self, request):
         self.request = request
@@ -93,13 +95,11 @@ class SentryFilter(object):
         return '?' + query_dict.urlencode()
 
     def get_choices(self):
-        from sentry.models import FilterValue
         return SortedDict((l, l) for l in FilterValue.objects.filter(key=self.column)\
                                                      .values_list('value', flat=True)\
                                                      .order_by('value'))
 
     def get_query_set(self, queryset):
-        from sentry.models import MessageIndex
         kwargs = {self.column: self.get_value()}
         if self.column.startswith('data__'):
             return MessageIndex.objects.get_for_queryset(queryset, **kwargs)
@@ -113,7 +113,13 @@ class SentryFilter(object):
         widget = self.get_widget()
         return widget.render(self.get_value())
 
-class StatusFilter(SentryFilter):
+class EventFilter(SentryFilter):
+    types = [Event]
+
+class GroupFilter(SentryFilter):
+    types = [Group]
+
+class StatusFilter(GroupFilter):
     label = 'Status'
     column = 'status'
     default = '0'
@@ -133,7 +139,10 @@ class ServerNameFilter(SentryFilter):
     column = 'server_name'
 
     def get_query_set(self, queryset):
-        return queryset.filter(event_set__server_name=self.get_value()).distinct()
+        if queryset.model == Event:
+            return queryset.filter(server_name=self.get_value()).distinct()
+        else:
+            return queryset.filter(event_set__server_name=self.get_value()).distinct()
 
 class SiteFilter(SentryFilter):
     label = 'Site'
@@ -156,7 +165,10 @@ class SiteFilter(SentryFilter):
         return data
 
     def get_query_set(self, queryset):
-        return queryset.filter(event_set__site=self.get_value()).distinct()
+        if queryset.model == Event:
+            return queryset.filter(site=self.get_value()).distinct()
+        else:
+            return queryset.filter(event_set__site=self.get_value()).distinct()
 
 class LevelFilter(SentryFilter):
     label = 'Level'
@@ -189,4 +201,7 @@ class SiteFilter(SentryFilter):
         return data
 
     def get_query_set(self, queryset):
-        return queryset.filter(event_set__site=self.get_value()).distinct()
+        if queryset.model == Event:
+            return queryset.filter(site=self.get_value()).distinct()
+        else:
+            return queryset.filter(event_set__site=self.get_value()).distinct()

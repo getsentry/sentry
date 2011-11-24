@@ -82,3 +82,5 @@ WEB_HOST = 'localhost'
 WEB_PORT = 9000
 WEB_LOG_FILE = os.path.join(ROOT, 'sentry.log')
 WEB_PID_FILE = os.path.join(ROOT, 'sentry.pid')
+
+MESSAGES_PER_PAGE = 25

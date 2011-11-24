@@ -84,15 +84,3 @@ def get_search_query_set(query):
         site=site,
         query=backend.SearchQuery(backend=site.backend),
     ).filter(content=query)
-
-def login_required(func):
-    def wrapped(request, *args, **kwargs):
-        if not settings.PUBLIC:
-            if not request.user.is_authenticated():
-                return HttpResponseRedirect(get_login_url())
-            if not request.user.has_perm('sentry.can_view'):
-                return render_to_response('sentry/missing_permissions.html', status=400)
-        return func(request, *args, **kwargs)
-    wrapped.__doc__ = func.__doc__
-    wrapped.__name__ = func.__name__
-    return wrapped

@@ -25,7 +25,7 @@ from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
-from sentry.utils import cached_property, get_filters, \
+from sentry.utils import cached_property, \
                          MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField
 from sentry.utils.manager import GroupManager
@@ -369,6 +369,9 @@ class MessageIndex(BaseIndex):
     model = Event
 
 ### Helper methods
+
+# This comes later due to recursive imports
+from sentry.utils import get_filters
 
 def register_indexes():
     """

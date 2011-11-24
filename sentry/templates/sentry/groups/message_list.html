@@ -1,4 +1,4 @@
-{% extends "sentry/group/details.html" %}
+{% extends "sentry/groups/details.html" %}
 
 {% load i18n %}
 {% load sentry_helpers %}
@@ -12,8 +12,8 @@
         </div>
     </div>
     <ul class="messages" id="message_list">
-        {% for message in message_list.objects %}
-            {% include "sentry/partial/_message.html" %}
+        {% for event in message_list.objects %}
+            {% include "sentry/partial/_event.html" %}
         {% endfor %}
     </ul>
     <div class="paging-wrap">

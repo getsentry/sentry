@@ -17,11 +17,10 @@ from django.utils.encoding import force_unicode
 from sentry.conf import settings
 
 _FILTER_CACHE = None
-def get_filters():
+def get_filters(model=None):
     global _FILTER_CACHE
 
     if _FILTER_CACHE is None:
-
         filters = []
         for filter_ in settings.FILTERS:
             if filter_.endswith('sentry.filters.SearchFilter'):
@@ -36,7 +35,10 @@ def get_filters():
                 continue
             filters.append(filter_)
         _FILTER_CACHE = filters
+
     for f in _FILTER_CACHE:
+        if model and model not in f.types:
+            continue
         yield f
 
 def get_db_engine(alias='default'):

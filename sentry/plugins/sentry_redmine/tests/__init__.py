@@ -48,7 +48,7 @@ class CreateIssueTest(TestCase):
             'description': 'foo',
         }, follow=True)
         self.assertEquals(response.status_code, 200)
-        self.assertTemplateUsed(response, 'sentry/group/details.html')
+        self.assertTemplateUsed(response, 'sentry/groups/details.html')
 
         self.assertTrue(RedmineIssue.objects.filter(group=group).exists())
 
@@ -66,7 +66,7 @@ class CreateIssueTest(TestCase):
             'description': 'foo',
         }, follow=True)
         self.assertEquals(response.status_code, 200)
-        self.assertTemplateUsed(response, 'sentry/group/details.html')
+        self.assertTemplateUsed(response, 'sentry/groups/details.html')
 
         self.assertTrue(RedmineIssue.objects.filter(group=group).exists())
 

@@ -9,102 +9,26 @@ sentry.web.views
 import datetime
 import re
 
-from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.http import HttpResponse, HttpResponseBadRequest, \
-    HttpResponseForbidden, HttpResponseRedirect, Http404, HttpResponseNotModified
+    HttpResponseForbidden, HttpResponseRedirect, Http404
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
-from django.views.decorators.csrf import csrf_protect, csrf_exempt
+from django.views.decorators.csrf import csrf_exempt
 
 from sentry.conf import settings
-from sentry.models import Group, Event, Project
+from sentry.models import Group, Event
 from sentry.plugins import GroupActionProvider
 from sentry.templatetags.sentry_helpers import with_priority
 from sentry.utils import get_filters, json
-from sentry.web.forms import EditProjectForm
-from sentry.web.helpers import login_required, render_to_response, get_search_query_set, \
+from sentry.web.decorators import can_manage, login_required
+from sentry.web.helpers import render_to_response, get_search_query_set, \
     get_project_list
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$', re.I)
 message_re = re.compile(r'^(?P<message_id>[a-z0-9]{32})\$(?P<checksum>[a-z0-9]{32})$', re.I)
-
-MESSAGES_PER_PAGE = 25
-
-def can_manage(perm_or_func=None):
-    """
-    Tests and transforms project_id for permissions based on the requesting user. Passes
-    the actual project instance to the decorated view.
-
-    >>> @can_manage('read_message')
-    >>> def foo(request, project):
-    >>>     return
-
-    >>> @can_manage
-    >>> def foo(request, project):
-    >>>     return
-    """
-    if callable(perm_or_func):
-        return can_manage(None)(perm_or_func)
-
-    def wrapped(func):
-        def _wrapped(request, project_id=None, *args, **kwargs):
-            # XXX: if project_id isn't set, should we only allow superuser?
-            if request.user.is_superuser:
-                if project_id:
-                    try:
-                        project = Project.objects.get(pk=project_id)
-                    except Project.DoesNotExist:
-                        return HttpResponseRedirect(reverse('sentry'))
-                else:
-                    project = None
-                return func(request, project, *args, **kwargs)
-
-            if project_id:
-                project_list = get_project_list(request.user, perm_or_func)
-
-                try:
-                    project = project_list[int(project_id)]
-                except (KeyError, ValueError):
-                    return HttpResponseRedirect(reverse('sentry'))
-            else:
-                project = None
-
-            return func(request, project, *args, **kwargs)
-        return _wrapped
-    return wrapped
-
-@csrf_protect
-def login(request):
-    from django.contrib.auth import login as login_
-    from django.contrib.auth.forms import AuthenticationForm
-
-    if request.POST:
-        form = AuthenticationForm(request, request.POST)
-        if form.is_valid():
-            login_(request, form.get_user())
-            return HttpResponseRedirect(request.POST.get('next') or reverse('sentry'))
-        else:
-            request.session.set_test_cookie()
-    else:
-        form = AuthenticationForm(request)
-        request.session.set_test_cookie()
-
-    context = csrf(request)
-    context.update({
-        'form': form,
-        'request': request,
-    })
-    return render_to_response('sentry/login.html', context)
-
-def logout(request):
-    from django.contrib.auth import logout
-
-    logout(request)
-
-    return HttpResponseRedirect(reverse('sentry'))
 
 @login_required
 @csrf_exempt
@@ -122,10 +46,10 @@ def ajax_handler(request):
 
         projects = get_project_list(request.user, 'read_message')
 
-        message_list = Group.objects.filter(Q(project__in=projects.keys()) | Q(project__isnull=True))
-
         offset = 0
-        limit = MESSAGES_PER_PAGE
+        limit = settings.MESSAGES_PER_PAGE
+
+        message_list = Group.objects.filter(Q(project__in=projects.keys()) | Q(project__isnull=True))
 
         for filter_ in filters:
             if not filter_.is_set():
@@ -139,7 +63,7 @@ def ajax_handler(request):
             message_list = message_list.order_by('-first_seen')
         elif sort == 'freq':
             message_list = message_list.order_by('-times_seen')
-        elif sort.startswith('accel_'):
+        elif sort and sort.startswith('accel_'):
             message_list = Group.objects.get_accelerated(message_list, minutes=int(sort.split('_', 1)[1]))
         else:
             sort = 'priority'
@@ -290,26 +214,19 @@ def search(request, project):
     })
 
 @login_required
-def dashboard(request):
-    project_list = get_project_list(request.user)
-    if len(project_list) == 1:
-        return HttpResponseRedirect(reverse('sentry', kwargs={'project_id': project_list.keys()[0]}))
-    return render_to_response('sentry/dashboard.html', {
-        'project_list': project_list,
-        'request': request,
-    })
-
-@login_required
 @can_manage('read_message')
-def index(request, project):
+def group_list(request, project):
     filters = []
-    for filter_ in get_filters():
+    for filter_ in get_filters(Group):
         filters.append(filter_(request))
 
     try:
         page = int(request.GET.get('p', 1))
     except (TypeError, ValueError):
         page = 1
+
+    offset = (page - 1) * settings.MESSAGES_PER_PAGE
+    limit = page * settings.MESSAGES_PER_PAGE
 
     message_list = Group.objects.filter(project=project)
 
@@ -321,9 +238,6 @@ def index(request, project):
         any_filter = True
         message_list = filter_.get_query_set(message_list)
 
-    offset = (page-1)*MESSAGES_PER_PAGE
-    limit = page*MESSAGES_PER_PAGE
-
     sort = request.GET.get('sort')
     if sort == 'date':
         message_list = message_list.order_by('-last_seen')
@@ -331,7 +245,7 @@ def index(request, project):
         message_list = message_list.order_by('-first_seen')
     elif sort == 'freq':
         message_list = message_list.order_by('-times_seen')
-    elif sort.startswith('accel_'):
+    elif sort and sort.startswith('accel_'):
         message_list = Group.objects.get_accelerated(message_list, minutes=int(sort.split('_', 1)[1]))
     else:
         sort = 'priority'
@@ -341,7 +255,7 @@ def index(request, project):
 
     has_realtime = page == 1
 
-    return render_to_response('sentry/index.html', {
+    return render_to_response('sentry/groups/group_list.html', {
         'project': project,
         'has_realtime': has_realtime,
         'message_list': message_list[offset:limit],
@@ -384,7 +298,7 @@ def group(request, project, group_id):
         # (such as a post_save signal failing)
         event = Event(group=group)
 
-    return render_to_response('sentry/group/details.html', {
+    return render_to_response('sentry/groups/details.html', {
         'project': project,
         'page': 'details',
         'group': group,
@@ -404,7 +318,7 @@ def group_message_list(request, project, group_id):
 
     message_list = group.event_set.all().order_by('-datetime')
 
-    return render_to_response('sentry/group/message_list.html', {
+    return render_to_response('sentry/groups/message_list.html', {
         'project': project,
         'group': group,
         'message_list': message_list,
@@ -423,7 +337,7 @@ def group_message_details(request, project, group_id, message_id):
     event = get_object_or_404(group.event_set, pk=message_id)
 
 
-    return render_to_response('sentry/group/message.html', {
+    return render_to_response('sentry/groups/message.html', {
         'project': project,
         'page': 'messages',
         'group': group,
@@ -450,73 +364,3 @@ def group_plugin_action(request, project, group_id, slug):
     if response:
         return response
     return HttpResponseRedirect(request.META.get('HTTP_REFERER') or reverse('sentry', kwargs={'project_id': group.project_id}))
-
-@login_required
-def project_list(request):
-    return render_to_response('sentry/projects/list.html', {
-        'project_list': get_project_list(request.user).values(),
-        'request': request,
-    })
-
-@login_required
-@can_manage
-def manage_project(request, project):
-    form = EditProjectForm(request.POST or None, instance=project)
-    if form.is_valid():
-        project = form.save()
-
-    context = csrf(request)
-    context.update({
-        'form': form,
-        'project': project,
-        'project_list': get_project_list(request.user).values(),
-        'request': request,
-    })
-
-    return render_to_response('sentry/projects/manage.html', context)
-
-def static_media(request, path):
-    """
-    Serve static files below a given point in the directory structure.
-    """
-    from django.utils.http import http_date
-    from django.views.static import was_modified_since
-    import mimetypes
-    import os.path
-    import posixpath
-    import stat
-    import urllib
-
-    document_root = os.path.join(settings.ROOT, 'static')
-
-    path = posixpath.normpath(urllib.unquote(path))
-    path = path.lstrip('/')
-    newpath = ''
-    for part in path.split('/'):
-        if not part:
-            # Strip empty path components.
-            continue
-        drive, part = os.path.splitdrive(part)
-        head, part = os.path.split(part)
-        if part in (os.curdir, os.pardir):
-            # Strip '.' and '..' in path.
-            continue
-        newpath = os.path.join(newpath, part).replace('\\', '/')
-    if newpath and path != newpath:
-        return HttpResponseRedirect(newpath)
-    fullpath = os.path.join(document_root, newpath)
-    if os.path.isdir(fullpath):
-        raise Http404("Directory indexes are not allowed here.")
-    if not os.path.exists(fullpath):
-        raise Http404('"%s" does not exist' % fullpath)
-    # Respect the If-Modified-Since header.
-    statobj = os.stat(fullpath)
-    mimetype = mimetypes.guess_type(fullpath)[0] or 'application/octet-stream'
-    if not was_modified_since(request.META.get('HTTP_IF_MODIFIED_SINCE'),
-                              statobj[stat.ST_MTIME], statobj[stat.ST_SIZE]):
-        return HttpResponseNotModified(mimetype=mimetype)
-    contents = open(fullpath, 'rb').read()
-    response = HttpResponse(contents, mimetype=mimetype)
-    response["Last-Modified"] = http_date(statobj[stat.ST_MTIME])
-    response["Content-Length"] = len(contents)
-    return response

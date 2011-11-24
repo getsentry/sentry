@@ -1,0 +1,60 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block heading %}{% trans "Events (Individual)" %}{% endblock %}
+
+{% block sidebar %}
+    {% if chart_url %}
+        <h2>{% trans "Last 24 Hours" %}</h2>
+        <img src="{{ chart_url }}" class="chart" alt="chart"/>
+    {% endif %}
+
+    {% for filter in filters %}
+        <div class="sidebar-module sidebar-module-{{ filter.column }}">
+            {% if filter.show_label %}
+                <h2>{% trans filter.label %}</h2>
+            {% endif %}
+            <form method="get" action="{{ filter.get_query_string|safe }}">
+                {{ filter.render }}
+            </form>
+        </div>
+    {% endfor %}
+{% endblock %}
+
+{% block main %}
+    {% paginate event_list from request as event_list per_page 15 %}
+
+    <div class="paging-wrap">
+        <div class="clearfix">
+            <form method="GET" action="">
+                {% for k, v in request.GET.iteritems %}
+                    {% if k != 'sort' %}
+                        <input type="hidden" name="{{ k }}" value="{{ v }}"/>
+                    {% endif %}
+                {% endfor %}
+            </form>
+            <a id="clear_feed" href="{% url sentry-ajax %}?op=clear" onclick="Sentry.stream.clear();return false;" class="realtime realtime-pause">Clear Feed</a>
+            {{ event_list.paging }}
+        </div>
+    </div>
+
+    {% if event_list.objects %}
+        <ul class="messages" id="event_list">
+            {% for event in event_list.objects %}
+                {% include "sentry/partial/_event.html" %}
+            {% endfor %}
+        </ul>
+    {% else %}
+        <ul class="messages" id="event_list">
+            <li class="no-messages" id="no_messages">{% trans "No messages match your filters." %}</li>
+        </ul>
+    {% endif %}
+
+    <div class="paging-wrap">
+        <div class="clearfix">
+            {{ event_list.paging }}
+        </div>
+    </div>
+{% endblock %}

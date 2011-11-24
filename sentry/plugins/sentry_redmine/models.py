@@ -95,7 +95,7 @@ class CreateRedmineIssue(GroupActionProvider):
 
         global_errors = form.errors.get('__all__')
 
-        BASE_TEMPLATE = "sentry/group/details.html"
+        BASE_TEMPLATE = "sentry/groups/details.html"
 
         context = locals()
         context.update(csrf(request))
