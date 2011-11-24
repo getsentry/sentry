@@ -30,14 +30,20 @@
         <div class="clearfix">
             <form method="GET" action="">
                 {% for k, v in request.GET.iteritems %}
-                    <input type="hidden" name="{{ k }}" value="{{ v }}"/>
+                    {% if k != 'sort' %}
+                        <input type="hidden" name="{{ k }}" value="{{ v }}"/>
+                    {% endif %}
                 {% endfor %}
                 <div class="sort-by">{% trans "Sort by" %} <select name="sort" onchange="this.form.submit()">
                     <option value=""{% ifequal sort 'priority' %} selected="selected"{% endifequal %}>{% trans "Priority" %}</option>
-                    <option value="trending"{% ifequal sort 'trending' %} selected="selected"{% endifequal %}>{% trans "Trending" %}</option>
                     <option value="date"{% ifequal sort 'date' %} selected="selected"{% endifequal %}>{% trans "Last Seen" %}</option>
                     <option value="new"{% ifequal sort 'new' %} selected="selected"{% endifequal %}>{% trans "First Seen" %}</option>
                     <option value="freq"{% ifequal sort 'freq' %} selected="selected"{% endifequal %}>{% trans "Frequency" %}</option>
+                    <optgroup label="{% trans "Acceleration" %}">
+                        <option value="accel_18000"{% ifequal sort 'accel_18000' %} selected="selected"{% endifequal %}>{% trans "5 minutes" %}</option>
+                        <option value="accel_54000"{% ifequal sort 'accel_54000' %} selected="selected"{% endifequal %}>{% trans "15 minutes" %}</option>
+                        <option value="accel_216000"{% ifequal sort 'accel_216000' %} selected="selected"{% endifequal %}>{% trans "60 minutes" %}</option>
+                    </optgroup>
                 </select>
                 </div>
             </form>

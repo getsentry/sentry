@@ -139,8 +139,8 @@ def ajax_handler(request):
             message_list = message_list.order_by('-first_seen')
         elif sort == 'freq':
             message_list = message_list.order_by('-times_seen')
-        elif sort == 'trending':
-            message_list = Group.objects.get_trending(message_list)
+        elif sort.startswith('accel_'):
+            message_list = Group.objects.get_accelerated(message_list, seconds=int(sort.split('_', 1)[1]))
         else:
             sort = 'priority'
             message_list = message_list.order_by('-score', '-last_seen')
@@ -331,8 +331,8 @@ def index(request, project):
         message_list = message_list.order_by('-first_seen')
     elif sort == 'freq':
         message_list = message_list.order_by('-times_seen')
-    elif sort == 'trending':
-        message_list = Group.objects.get_trending(message_list)
+    elif sort.startswith('accel_'):
+        message_list = Group.objects.get_accelerated(message_list, seconds=int(sort.split('_', 1)[1]))
     else:
         sort = 'priority'
         message_list = message_list.order_by('-score', '-last_seen')
