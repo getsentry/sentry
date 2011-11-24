@@ -7,33 +7,33 @@
 
 {% block inner %}
     <ul class="messages" id="event_list">
-        <li class="row1 active level-{{ message.level }}" data-sentry-count="{{ message.times_seen }}">
+        <li class="row1 active level-{{ event.level }}" data-sentry-count="{{ event.times_seen }}">
             <h3>
-                {{ message.message_top }}
-                {% if message.url %}
-                     on {{ message.url }}
+                {{ event.message_top }}
+                {% if event.url %}
+                     on {{ event.url }}
                 {% endif %}
             </h3>
-            <span class="status status-{{ message.status }}">{{ message.get_status_display }}</span>
+            <span class="status status-{{ event.status }}">{{ event.get_status_display }}</span>
             <p class="message">
-                {% if message.message_id %}
-                    <span class="tag tag-id">{{ message.message_id }}</span>
+                {% if event.message_id %}
+                    <span class="tag tag-id">{{ event.message_id }}</span>
                 {% endif %}
-                <span class="tag tag-level">{{ message.get_level_display }}</span>
-                <span class="tag tag-server">{{ message.server_name }}</span>
-                {% with message.get_version as version %}
+                <span class="tag tag-level">{{ event.get_level_display }}</span>
+                <span class="tag tag-server">{{ event.server_name }}</span>
+                {% with event.get_version as version %}
                     {% if version %}
                         <span class="tag tag-version">{{ version.0 }} {{ version.1 }}</span>
                     {% endif %}
                 {% endwith %}
-                <span class="last_seen" title="{{ message.datetime }}">{{ message.datetime|timesince }}</span>
+                <span class="last_seen" title="{{ event.datetime }}">{{ event.datetime|timesince }}</span>
             </p>
         </li>
     </ul>
 
-    {% if message.has_two_part_message %}
+    {% if event.has_two_part_message %}
         <h2>{% trans "Full Message" %}</h2>
-        <pre id="full-message">{{ message.message }}</pre>
+        <pre id="full-message">{{ event.message }}</pre>
     {% endif %}
 
 
@@ -119,8 +119,8 @@
         </div>
     </div>
     <div id="raw_traceback" style="display: none;">
-        {% if frames or message.traceback %}
-            <pre>{{ message.get_traceback }}</pre>
+        {% if frames or event.traceback %}
+            <pre>{{ event.get_traceback }}</pre>
         {% endif %}
     </div>
 {% endblock %}

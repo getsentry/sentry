@@ -4,7 +4,7 @@
 {% load sentry_helpers %}
 
 {% block inner %}
-    <h2>{% trans "Message List" %}</h2>
+    <h2>{% trans "Event List" %}</h2>
     {% paginate event_list from request as event_list per_page MESSAGES_PER_PAGE %}
     <div class="paging-wrap">
         <div class="clearfix">
