@@ -378,29 +378,32 @@ class GroupManager(models.Manager):
 
         return [rows.get(today-datetime.timedelta(hours=d), 0) for d in xrange(first_seen, -1, -1)]
 
-    def get_accelerated(self, queryset=None, seconds=60*60*15):
+    def get_accelerated(self, queryset=None, minutes=15):
+        # mintues should
         from sentry.models import MessageCountByMinute
         mcbm_tbl = MessageCountByMinute._meta.db_table
         if queryset is None:
             queryset = self
 
-        queryset = queryset.extra(where=["%s.date >= now() - interval '%s seconds'" % (mcbm_tbl, seconds)]).annotate(x=Sum('messagecountbyminute__times_seen'))
+        assert minutes >= settings.MINUTE_NORMALIZATION
+
+        queryset = queryset.extra(where=["%s.date >= now() - interval '%s minutes'" % (mcbm_tbl, minutes)]).annotate(x=Sum('messagecountbyminute__times_seen'))
         sql, params = queryset.query.get_compiler(queryset.db).as_sql()
         before_select, after_select = str(sql).split('SELECT ', 1)
         before_where, after_where = after_select.split(' WHERE ', 1)
         before_group, after_group = after_where.split(' GROUP BY ', 1)
 
         query = """
-        SELECT (SUM(%(mcbm_tbl)s.times_seen) + 1.0) / (COALESCE(z.accel, 0) + 1.0) as accel, SUM(%(mcbm_tbl)s.times_seen) as total_seen, z.accel as prev_accel, %(before_where)s
-        LEFT JOIN (SELECT a.group_id, SUM(a.times_seen) / 3.0 as accel FROM %(mcbm_tbl)s as a WHERE a.date BETWEEN now() - interval '%(max_time)s seconds' AND now() - interval '%(min_time)s seconds'
-        GROUP BY a.group_id) as z ON z.group_id = %(mcbm_tbl)s.group_id WHERE %(before_group)s GROUP BY prev_accel, %(after_group)s ORDER BY accel DESC
+        SELECT (SUM(%(mcbm_tbl)s.times_seen) + 1.0) / (COALESCE(z.accel, 0) + 1.0) as accel, z.accel as prev_accel, %(before_where)s
+        LEFT JOIN (SELECT a.group_id, SUM(a.times_seen) / 3.0 as accel FROM %(mcbm_tbl)s as a WHERE a.date BETWEEN now() - interval '%(max_time)s minutes' AND now() - interval '%(min_time)s minutes'
+        GROUP BY a.group_id) as z ON z.group_id = %(mcbm_tbl)s.group_id WHERE %(before_group)s GROUP BY prev_accel, %(after_group)s HAVING SUM(%(mcbm_tbl)s.times_seen) > 0 ORDER BY accel DESC
         """ % dict(
             mcbm_tbl=mcbm_tbl,
             before_where=before_where,
             before_group=before_group,
             after_group=after_group,
-            min_time=seconds+1,
-            max_time=seconds*4,
+            min_time=minutes+1,
+            max_time=minutes*4,
         )
 
         return RawQuerySet(self, query, params)
