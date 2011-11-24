@@ -16,12 +16,11 @@ from sentry.conf import settings
 from sentry.exceptions import InvalidInterface, InvalidData
 from sentry.interfaces import Interface
 from sentry.models import Event, Group, MessageCountByMinute, \
-                          FilterValue, MessageFilterValue, Project
+  MessageFilterValue, Project, ProjectMember
 from sentry.web.helpers import get_login_url
 
-from tests.models import TestModel, DuplicateKeyModel
-from tests.testcases import TestCase, TransactionTestCase
-from tests.utils import TestServerThread, conditional_on_module, Settings
+from tests.testcases import TestCase
+from tests.utils import conditional_on_module, Settings
 
 # class NullHandler(logging.Handler):
 #     def emit(self, record):
@@ -55,7 +54,7 @@ class SentryViewsTest(TestCase):
             'password': 'admin',
         }, follow=True)
         self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/dashboard.html')
+        self.assertTemplateNotUsed(resp, 'sentry/login.html')
 
     def test_get_login_url(self):
         with Settings(LOGIN_URL='/really-a-404'):
@@ -77,6 +76,13 @@ class SentryViewsTest(TestCase):
 
     def test_dashboard(self):
         self.client.login(username='admin', password='admin')
+        resp = self.client.get(reverse('sentry'), follow=True)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateNotUsed(resp, 'sentry/dashboard.html')
+
+        # requires two projects to show dashboard
+        p = Project.objects.create(name='foo')
+        ProjectMember.objects.create(project=p, user=self.user)
         resp = self.client.get(reverse('sentry'), follow=True)
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/dashboard.html')

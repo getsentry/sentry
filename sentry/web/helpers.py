@@ -8,23 +8,20 @@ sentry.web.views
 
 from django.conf import settings as dj_settings
 from django.core.urlresolvers import reverse, resolve
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse
 from django.template import loader
 
 from sentry.conf import settings
-from sentry.models import Project, ProjectMember
+from sentry.models import Project
 
 def get_project_list(user=None, flag=None):
     """
     Returns a set of all projects a user has some level of access to.
     """
-    projects = set(Project.objects.filter(public=True))
+    projects = dict((p.pk, p) for p in Project.objects.filter(public=True))
     if user.is_authenticated():
-        pms = list(ProjectMember.objects.filter(user=user).select_related('project'))
-        if flag:
-            pms = filter(lambda x: x.has_perm(flag), pms)
-        projects.update(set(pms))
-    return dict((p.pk, p) for p in projects)
+        projects.update(dict((p.pk, p) for p in Project.objects.filter(member_set__user=user) if (not flag or p.has_perm(flag))))
+    return projects
 
 _LOGIN_URL = None
 def get_login_url(reset=False):
