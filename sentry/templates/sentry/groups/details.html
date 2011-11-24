@@ -6,7 +6,7 @@
 {% block title %}{{ group.error }} | {{ block.super }}{% endblock %}
 
 {% block heading %}
-    {% trans "Message Details" %} <span><a href="{% url sentry project.pk %}">&laquo; {% trans "Back to list" %}</a></span>
+    {% trans "Event Details" %} <span><a href="{% url sentry project.pk %}">&laquo; {% trans "Back to list" %}</a></span>
 {% endblock %}
 
 {% block sidebar %}
@@ -65,7 +65,7 @@
 
     <ul class="nav" id="group_nav">
         <li{% ifequal page 'details' %} class="active"{% endifequal %}><a href="{% url sentry-group group.project_id group.pk %}">Details</a></li>
-        <li{% ifequal page 'events' %} class="active"{% endifequal %}><a href="{% url sentry-group-events group.project_id group.pk %}">Messages</a></li>
+        <li{% ifequal page 'event_list' %} class="active"{% endifequal %}><a href="{% url sentry-group-events group.project_id group.pk %}">Events</a></li>
         {% for label, link, is_active in group|get_panels:request %}
             <li{% if is_active %} class="active"{% endif %}><a href="{{ link }}">{{ label }}</a></li>
         {% endfor %}
