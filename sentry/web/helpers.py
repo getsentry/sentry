@@ -50,6 +50,7 @@ def iter_data(obj):
 def render_to_string(template, context={}):
     context.update({
         'has_search': bool(settings.SEARCH_ENGINE),
+        'MESSAGES_PER_PAGE': settings.MESSAGES_PER_PAGE,
     })
 
     return loader.render_to_string(template, context)

@@ -5,7 +5,7 @@
 
 {% block inner %}
     <h2>{% trans "Message List" %}</h2>
-    {% paginate event_list from request as event_list per_page 15 %}
+    {% paginate event_list from request as event_list per_page MESSAGES_PER_PAGE %}
     <div class="paging-wrap">
         <div class="clearfix">
             {{ event_list.paging }}

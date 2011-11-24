@@ -258,7 +258,7 @@ def group_list(request, project):
     return render_to_response('sentry/groups/group_list.html', {
         'project': project,
         'has_realtime': has_realtime,
-        'event_list': event_list[offset:limit],
+        'event_list': event_list,
         'today': today,
         'sort': sort,
         'any_filter': any_filter,
