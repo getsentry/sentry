@@ -34,6 +34,7 @@
                 {% endfor %}
                 <div class="sort-by">{% trans "Sort by" %} <select name="sort" onchange="this.form.submit()">
                     <option value=""{% ifequal sort 'priority' %} selected="selected"{% endifequal %}>{% trans "Priority" %}</option>
+                    <option value="trending"{% ifequal sort 'trending' %} selected="selected"{% endifequal %}>{% trans "Trending" %}</option>
                     <option value="date"{% ifequal sort 'date' %} selected="selected"{% endifequal %}>{% trans "Last Seen" %}</option>
                     <option value="new"{% ifequal sort 'new' %} selected="selected"{% endifequal %}>{% trans "First Seen" %}</option>
                     <option value="freq"{% ifequal sort 'freq' %} selected="selected"{% endifequal %}>{% trans "Frequency" %}</option>

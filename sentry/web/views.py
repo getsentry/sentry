@@ -31,6 +31,8 @@ from sentry.web.helpers import login_required, render_to_response, get_search_qu
 uuid_re = re.compile(r'^[a-z0-9]{32}$', re.I)
 message_re = re.compile(r'^(?P<message_id>[a-z0-9]{32})\$(?P<checksum>[a-z0-9]{32})$', re.I)
 
+MESSAGES_PER_PAGE = 25
+
 def can_manage(perm_or_func=None):
     """
     Tests and transforms project_id for permissions based on the requesting user. Passes
@@ -122,6 +124,14 @@ def ajax_handler(request):
 
         message_list = Group.objects.filter(Q(project__in=projects.keys()) | Q(project__isnull=True))
 
+        offset = 0
+        limit = MESSAGES_PER_PAGE
+
+        for filter_ in filters:
+            if not filter_.is_set():
+                continue
+            message_list = filter_.get_query_set(message_list)
+
         sort = request.GET.get('sort')
         if sort == 'date':
             message_list = message_list.order_by('-last_seen')
@@ -129,14 +139,11 @@ def ajax_handler(request):
             message_list = message_list.order_by('-first_seen')
         elif sort == 'freq':
             message_list = message_list.order_by('-times_seen')
+        elif sort == 'trending':
+            message_list = Group.objects.get_trending(message_list)
         else:
             sort = 'priority'
             message_list = message_list.order_by('-score', '-last_seen')
-
-        for filter_ in filters:
-            if not filter_.is_set():
-                continue
-            message_list = filter_.get_query_set(message_list)
 
         data = [
             (m.pk, {
@@ -151,7 +158,7 @@ def ajax_handler(request):
                 'logger': m.logger,
                 'count': m.times_seen,
                 'priority': p,
-            }) for m, p in with_priority(message_list[0:15])]
+            }) for m, p in with_priority(message_list[offset:limit])]
 
         response = HttpResponse(json.dumps(data))
         response['Content-Type'] = 'application/json'
@@ -306,17 +313,6 @@ def index(request, project):
 
     message_list = Group.objects.filter(project=project)
 
-    sort = request.GET.get('sort')
-    if sort == 'date':
-        message_list = message_list.order_by('-last_seen')
-    elif sort == 'new':
-        message_list = message_list.order_by('-first_seen')
-    elif sort == 'freq':
-        message_list = message_list.order_by('-times_seen')
-    else:
-        sort = 'priority'
-        message_list = message_list.order_by('-score', '-last_seen')
-
     # Filters only apply if we're not searching
     any_filter = False
     for filter_ in filters:
@@ -325,6 +321,22 @@ def index(request, project):
         any_filter = True
         message_list = filter_.get_query_set(message_list)
 
+    offset = (page-1)*MESSAGES_PER_PAGE
+    limit = page*MESSAGES_PER_PAGE
+
+    sort = request.GET.get('sort')
+    if sort == 'date':
+        message_list = message_list.order_by('-last_seen')
+    elif sort == 'new':
+        message_list = message_list.order_by('-first_seen')
+    elif sort == 'freq':
+        message_list = message_list.order_by('-times_seen')
+    elif sort == 'trending':
+        message_list = Group.objects.get_trending(message_list)
+    else:
+        sort = 'priority'
+        message_list = message_list.order_by('-score', '-last_seen')
+
     today = datetime.datetime.now()
 
     has_realtime = page == 1
@@ -332,7 +344,7 @@ def index(request, project):
     return render_to_response('sentry/index.html', {
         'project': project,
         'has_realtime': has_realtime,
-        'message_list': message_list,
+        'message_list': message_list[offset:limit],
         'today': today,
         'sort': sort,
         'any_filter': any_filter,
