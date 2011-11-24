@@ -257,8 +257,8 @@ class Event(MessageBase):
     @models.permalink
     def get_absolute_url(self):
         if self.project_id:
-            return ('sentry-group-message', [], {'group_id': self.pk, 'message_id': self.pk, 'project_id': self.project_id})
-        return ('sentry-group-message', [], {'group_id': self.pk, 'message_id': self.pk})
+            return ('sentry-group-event', [], {'group_id': self.pk, 'event_id': self.pk, 'project_id': self.project_id})
+        return ('sentry-group-event', [], {'group_id': self.pk, 'event_id': self.pk})
 
     @cached_property
     def request(self):

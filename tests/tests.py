@@ -92,8 +92,8 @@ class SentryViewsTest(TestCase):
         resp = self.client.get(reverse('sentry', kwargs={'project_id': 1}) + '?sort=freq', follow=True)
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/groups/group_list.html')
-        self.assertEquals(len(resp.context['message_list']), 4)
-        group = resp.context['message_list'][0]
+        self.assertEquals(len(resp.context['event_list']), 4)
+        group = resp.context['event_list'][0]
         self.assertEquals(group.times_seen, 7)
         self.assertEquals(group.message, "'tuple' object has no attribute 'args'")
 
@@ -106,20 +106,20 @@ class SentryViewsTest(TestCase):
         group = Group.objects.get(pk=2)
         self.assertEquals(resp.context['group'], group)
 
-    def test_group_message_list(self):
+    def test_group_event_list(self):
         self.client.login(username='admin', password='admin')
-        resp = self.client.get(reverse('sentry-group-messages', args=[2]), follow=True)
+        resp = self.client.get(reverse('sentry-group-events', args=[2]), follow=True)
         self.assertEquals(resp.status_code, 200, resp.content)
-        self.assertTemplateUsed(resp, 'sentry/groups/message_list.html')
+        self.assertTemplateUsed(resp, 'sentry/groups/event_list.html')
         self.assertTrue('group' in resp.context)
         group = Group.objects.get(pk=2)
         self.assertEquals(resp.context['group'], group)
 
     def test_group_message_details(self):
         self.client.login(username='admin', password='admin')
-        resp = self.client.get(reverse('sentry-group-message', kwargs={'group_id': 2, 'message_id': 4}), follow=True)
+        resp = self.client.get(reverse('sentry-group-event', kwargs={'group_id': 2, 'event_id': 4}), follow=True)
         self.assertEquals(resp.status_code, 200, resp.content)
-        self.assertTemplateUsed(resp, 'sentry/groups/message.html')
+        self.assertTemplateUsed(resp, 'sentry/groups/event.html')
         self.assertTrue('group' in resp.context)
         group = Group.objects.get(pk=2)
         self.assertEquals(resp.context['group'], group)
@@ -494,10 +494,10 @@ class SentrySearchTest(TestCase):
             self.assertEquals(response.status_code, 200)
             self.assertTemplateUsed(response, 'sentry/search.html')
             context = response.context
-            self.assertTrue('message_list' in context)
-            self.assertEquals(len(context['message_list']), 2)
-            self.assertTrue(g1 in context['message_list'])
-            self.assertTrue(g2 in context['message_list'])
+            self.assertTrue('event_list' in context)
+            self.assertEquals(len(context['event_list']), 2)
+            self.assertTrue(g1 in context['event_list'])
+            self.assertTrue(g2 in context['event_list'])
 
 class DummyInterface(Interface):
     def __init__(self, baz):

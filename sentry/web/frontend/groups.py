@@ -28,7 +28,7 @@ from sentry.web.helpers import render_to_response, get_search_query_set, \
     get_project_list
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$', re.I)
-message_re = re.compile(r'^(?P<message_id>[a-z0-9]{32})\$(?P<checksum>[a-z0-9]{32})$', re.I)
+event_re = re.compile(r'^(?P<event_id>[a-z0-9]{32})\$(?P<checksum>[a-z0-9]{32})$', re.I)
 
 @login_required
 @csrf_exempt
@@ -49,25 +49,25 @@ def ajax_handler(request):
         offset = 0
         limit = settings.MESSAGES_PER_PAGE
 
-        message_list = Group.objects.filter(Q(project__in=projects.keys()) | Q(project__isnull=True))
+        event_list = Group.objects.filter(Q(project__in=projects.keys()) | Q(project__isnull=True))
 
         for filter_ in filters:
             if not filter_.is_set():
                 continue
-            message_list = filter_.get_query_set(message_list)
+            event_list = filter_.get_query_set(event_list)
 
         sort = request.GET.get('sort')
         if sort == 'date':
-            message_list = message_list.order_by('-last_seen')
+            event_list = event_list.order_by('-last_seen')
         elif sort == 'new':
-            message_list = message_list.order_by('-first_seen')
+            event_list = event_list.order_by('-first_seen')
         elif sort == 'freq':
-            message_list = message_list.order_by('-times_seen')
+            event_list = event_list.order_by('-times_seen')
         elif sort and sort.startswith('accel_'):
-            message_list = Group.objects.get_accelerated(message_list, minutes=int(sort.split('_', 1)[1]))
+            event_list = Group.objects.get_accelerated(event_list, minutes=int(sort.split('_', 1)[1]))
         else:
             sort = 'priority'
-            message_list = message_list.order_by('-score', '-last_seen')
+            event_list = event_list.order_by('-score', '-last_seen')
 
         data = [
             (m.pk, {
@@ -82,7 +82,7 @@ def ajax_handler(request):
                 'logger': m.logger,
                 'count': m.times_seen,
                 'priority': p,
-            }) for m, p in with_priority(message_list[offset:limit])]
+            }) for m, p in with_priority(event_list[offset:limit])]
 
         response = HttpResponse(json.dumps(data))
         response['Content-Type'] = 'application/json'
@@ -122,9 +122,9 @@ def ajax_handler(request):
     def clear(request):
         projects = get_project_list(request.user, 'change_message_status')
 
-        message_list = Group.objects.filter(Q(project__in=projects.keys()) | Q(project__isnull=True))
+        event_list = Group.objects.filter(Q(project__in=projects.keys()) | Q(project__isnull=True))
 
-        message_list.update(status=1)
+        event_list.update(status=1)
 
         if not request.is_ajax():
             return HttpResponseRedirect(request.META.get('HTTP_REFERER') or reverse('sentry'))
@@ -165,49 +165,49 @@ def search(request, project):
     has_search = bool(settings.SEARCH_ENGINE)
 
     if query:
-        result = message_re.match(query)
+        result = event_re.match(query)
         if result:
             # Forward to message if it exists
-            # message_id = result.group(1)
+            # event_id = result.group(1)
             checksum = result.group(2)
-            message_list = Group.objects.filter(checksum=checksum)
-            top_matches = message_list[:2]
+            event_list = Group.objects.filter(checksum=checksum)
+            top_matches = event_list[:2]
             if len(top_matches) == 0:
                 if not has_search:
                     return render_to_response('sentry/invalid_message_id.html')
                 else:
-                    message_list = get_search_query_set(query)
+                    event_list = get_search_query_set(query)
             elif len(top_matches) == 1:
                 return HttpResponseRedirect(top_matches[0].get_absolute_url())
         elif uuid_re.match(query):
             # Forward to message if it exists
             try:
-                message = Event.objects.get(message_id=query)
+                message = Event.objects.get(event_id=query)
             except Event.DoesNotExist:
                 if not has_search:
                     return render_to_response('sentry/invalid_message_id.html')
                 else:
-                    message_list = get_search_query_set(query)
+                    event_list = get_search_query_set(query)
             else:
                 return HttpResponseRedirect(message.get_absolute_url())
         elif not has_search:
             return render_to_response('sentry/invalid_message_id.html')
         else:
-            message_list = get_search_query_set(query)
+            event_list = get_search_query_set(query)
     else:
-        message_list = Group.objects.none()
+        event_list = Group.objects.none()
 
     sort = request.GET.get('sort')
     if sort == 'date':
-        message_list = message_list.order_by('-last_seen')
+        event_list = event_list.order_by('-last_seen')
     elif sort == 'new':
-        message_list = message_list.order_by('-first_seen')
+        event_list = event_list.order_by('-first_seen')
     else:
         sort = 'relevance'
 
     return render_to_response('sentry/search.html', {
         'project': project,
-        'message_list': message_list,
+        'event_list': event_list,
         'query': query,
         'sort': sort,
         'request': request,
@@ -228,7 +228,7 @@ def group_list(request, project):
     offset = (page - 1) * settings.MESSAGES_PER_PAGE
     limit = page * settings.MESSAGES_PER_PAGE
 
-    message_list = Group.objects.filter(project=project)
+    event_list = Group.objects.filter(project=project)
 
     # Filters only apply if we're not searching
     any_filter = False
@@ -236,20 +236,20 @@ def group_list(request, project):
         if not filter_.is_set():
             continue
         any_filter = True
-        message_list = filter_.get_query_set(message_list)
+        event_list = filter_.get_query_set(event_list)
 
     sort = request.GET.get('sort')
     if sort == 'date':
-        message_list = message_list.order_by('-last_seen')
+        event_list = event_list.order_by('-last_seen')
     elif sort == 'new':
-        message_list = message_list.order_by('-first_seen')
+        event_list = event_list.order_by('-first_seen')
     elif sort == 'freq':
-        message_list = message_list.order_by('-times_seen')
+        event_list = event_list.order_by('-times_seen')
     elif sort and sort.startswith('accel_'):
-        message_list = Group.objects.get_accelerated(message_list, minutes=int(sort.split('_', 1)[1]))
+        event_list = Group.objects.get_accelerated(event_list, minutes=int(sort.split('_', 1)[1]))
     else:
         sort = 'priority'
-        message_list = message_list.order_by('-score', '-last_seen')
+        event_list = event_list.order_by('-score', '-last_seen')
 
     today = datetime.datetime.now()
 
@@ -258,7 +258,7 @@ def group_list(request, project):
     return render_to_response('sentry/groups/group_list.html', {
         'project': project,
         'has_realtime': has_realtime,
-        'message_list': message_list[offset:limit],
+        'event_list': event_list[offset:limit],
         'today': today,
         'sort': sort,
         'any_filter': any_filter,
@@ -310,36 +310,36 @@ def group(request, project, group_id):
 
 @login_required
 @can_manage('read_message')
-def group_message_list(request, project, group_id):
+def group_event_list(request, project, group_id):
     group = get_object_or_404(Group, pk=group_id)
 
     if group.project and group.project != project:
-        return HttpResponseRedirect(reverse('sentry-group-messages', kwargs={'group_id': group.pk, 'project_id': group.project_id}))
+        return HttpResponseRedirect(reverse('sentry-group-events', kwargs={'group_id': group.pk, 'project_id': group.project_id}))
 
-    message_list = group.event_set.all().order_by('-datetime')
+    event_list = group.event_set.all().order_by('-datetime')
 
-    return render_to_response('sentry/groups/message_list.html', {
+    return render_to_response('sentry/groups/event_list.html', {
         'project': project,
         'group': group,
-        'message_list': message_list,
-        'page': 'messages',
+        'event_list': event_list,
+        'page': 'event_list',
         'request': request
     })
 
 @login_required
 @can_manage('read_message')
-def group_message_details(request, project, group_id, message_id):
+def group_event_details(request, project, group_id, event_id):
     group = get_object_or_404(Group, pk=group_id)
 
     if group.project and group.project != project:
-        return HttpResponseRedirect(reverse('sentry-group-message', kwargs={'group_id': group.pk, 'project_id': group.project_id, 'message_id': message_id}))
+        return HttpResponseRedirect(reverse('sentry-group-event', kwargs={'group_id': group.pk, 'project_id': group.project_id, 'event_id': event_id}))
 
-    event = get_object_or_404(group.event_set, pk=message_id)
+    event = get_object_or_404(group.event_set, pk=event_id)
 
 
-    return render_to_response('sentry/groups/message.html', {
+    return render_to_response('sentry/groups/event.html', {
         'project': project,
-        'page': 'messages',
+        'page': 'event_list',
         'group': group,
         'event': event,
         'interface_list': filter(None, [mark_safe(i.to_html(event) or '') for i in event.interfaces.itervalues()]),

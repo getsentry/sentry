@@ -6,7 +6,7 @@
 {% block title %}{{ group.error }} | {{ block.super }}{% endblock %}
 
 {% block inner %}
-    <ul class="messages" id="message_list">
+    <ul class="messages" id="event_list">
         <li class="row1 active level-{{ message.level }}" data-sentry-count="{{ message.times_seen }}">
             <h3>
                 {{ message.message_top }}

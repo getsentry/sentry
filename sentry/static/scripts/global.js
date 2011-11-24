@@ -106,7 +106,7 @@ var Sentry = {};
                     var data = el[1];
                     $('#group_' + id).remove();
                     if (!remove) {
-                        $('#message_list').prepend(data.html);
+                        $('#event_list').prepend(data.html);
                         $('#group_' + id).addClass('fresh');
                     }
                 }
@@ -151,7 +151,7 @@ var Sentry = {};
                     var data = el[1];
                     if ((row = $('#group_' + id))) {
                         row.remove();
-                        $('#message_list').prepend(data.html);
+                        $('#event_list').prepend(data.html);
                         if (row.attr('data-sentry-count') != data.count) {
                             $('#group_' + id).addClass('fresh');
                             var url = Sentry.options.apiUrl + '?' + $.param({
@@ -164,17 +164,17 @@ var Sentry = {};
                             });
                         }
                     } else {
-                        $('#message_list').prepend(data.html);
+                        $('#event_list').prepend(data.html);
                         $('#group_' + id).addClass('fresh');
                         Sentry.notifications.show({'type': 'html', 'url': url});
                     }
                 }
-                $('#message_list .fresh').css('background-color', '#ccc').animate({backgroundColor: '#fff'}, 1200, function() {
+                $('#event_list .fresh').css('background-color', '#ccc').animate({backgroundColor: '#fff'}, 1200, function() {
                     $(this).removeClass('fresh');
                 });
                 // make sure we limit the number shown
                 var count = 0;
-                $('#message_list li').each(function(){
+                $('#event_list li').each(function(){
                     count++;
                     if (count > 50) {
                         $(this).remove();

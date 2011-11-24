@@ -35,15 +35,17 @@ urlpatterns = patterns('',
     # Legacy redirects
     # TODO:
 
+    url(r'^feeds/messages.xml$', feeds.MessageFeed(), name='sentry-feed-messages'),
+    url(r'^feeds/summaries.xml$', feeds.SummaryFeed(), name='sentry-feed-summaries'),
     url(r'^group/(?P<group_id>\d+)$', groups.group, name='sentry-group'),
-    url(r'^group/(?P<group_id>\d+)/messages$', groups.group_message_list, name='sentry-group-messages'),
-    url(r'^group/(?P<group_id>\d+)/messages/(?P<message_id>\d+)$', groups.group_message_details, name='sentry-group-message'),
+    url(r'^group/(?P<group_id>\d+)/messages$', groups.group_event_list, name='sentry-group-events'),
+    url(r'^group/(?P<group_id>\d+)/messages/(?P<event_id>\d+)$', groups.group_event_details, name='sentry-group-event'),
     url(r'^group/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)', groups.group_plugin_action, name='sentry-group-plugin-action'),
 
     # Feeds
 
-    url(r'^feeds/messages.xml$', feeds.MessageFeed(), name='sentry-feed-messages'),
-    url(r'^feeds/summaries.xml$', feeds.SummaryFeed(), name='sentry-feed-summaries'),
+    url(r'^feeds/events.xml$', feeds.MessageFeed(), name='sentry-feed-events'),
+    url(r'^feeds/groups.xml$', feeds.SummaryFeed(), name='sentry-feed-groups'),
 
     # JS
 
@@ -71,8 +73,8 @@ urlpatterns = patterns('',
 
     url(r'^(?P<project_id>\d+)/group/(?P<group_id>\d+)$', groups.group, name='sentry-group'),
     url(r'^(?P<project_id>\d+)/group/(?P<group_id>\d+)/json$', groups.group_json, name='sentry-group-json'),
-    url(r'^(?P<project_id>\d+)/group/(?P<group_id>\d+)/events$', groups.group_message_list, name='sentry-group-messages'),
-    url(r'^(?P<project_id>\d+)/group/(?P<group_id>\d+)/events/(?P<message_id>\d+)$', groups.group_message_details, name='sentry-group-message'),
+    url(r'^(?P<project_id>\d+)/group/(?P<group_id>\d+)/events$', groups.group_event_list, name='sentry-group-events'),
+    url(r'^(?P<project_id>\d+)/group/(?P<group_id>\d+)/events/(?P<event_id>\d+)$', groups.group_event_details, name='sentry-group-event'),
     url(r'^(?P<project_id>\d+)/group/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)', groups.group_plugin_action, name='sentry-group-plugin-action'),
 
     url(r'^(?P<project_id>\d+)/events$', events.event_list, name='sentry'),

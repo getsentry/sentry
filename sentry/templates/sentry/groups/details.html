@@ -40,7 +40,7 @@
 {% endblock %}
 
 {% block main %}
-    <ul class="messages" id="message_list">
+    <ul class="messages" id="event_list">
         <li class="{% cycle 'row1' 'row2' %} level-{{ group.level }} active" id="group_{{ group.pk }}" data-sentry-count="{{ group.times_seen }}">
             <span class="count">{{ group.times_seen|small_count }}</span>
             <h3>{{ group.message_top }}</h3>
@@ -65,7 +65,7 @@
 
     <ul class="nav" id="group_nav">
         <li{% ifequal page 'details' %} class="active"{% endifequal %}><a href="{% url sentry-group group.project_id group.pk %}">Details</a></li>
-        <li{% ifequal page 'messages' %} class="active"{% endifequal %}><a href="{% url sentry-group-messages group.project_id group.pk %}">Messages</a></li>
+        <li{% ifequal page 'events' %} class="active"{% endifequal %}><a href="{% url sentry-group-events group.project_id group.pk %}">Messages</a></li>
         {% for label, link, is_active in group|get_panels:request %}
             <li{% if is_active %} class="active"{% endif %}><a href="{{ link }}">{{ label }}</a></li>
         {% endfor %}

@@ -24,7 +24,7 @@
 {% endblock %}
 
 {% block main %}
-    {% paginate message_list from request as message_list per_page 15 %}
+    {% paginate event_list from request as event_list per_page 15 %}
 
     <div class="paging-wrap">
         <div class="clearfix">
@@ -47,25 +47,25 @@
                 </div>
             </form>
             <a id="clear_feed" href="{% url sentry-ajax %}?op=clear" onclick="Sentry.stream.clear();return false;" class="realtime realtime-pause">Clear Feed</a>
-            {{ message_list.paging }}
+            {{ event_list.paging }}
         </div>
     </div>
 
-    {% if message_list.objects %}
-        <ul class="messages" id="message_list">
-            {% for group, priority in message_list.objects|with_priority %}
+    {% if event_list.objects %}
+        <ul class="messages" id="event_list">
+            {% for group, priority in event_list.objects|with_priority %}
                 {% include "sentry/partial/_group.html" %}
             {% endfor %}
         </ul>
     {% else %}
-        <ul class="messages" id="message_list">
+        <ul class="messages" id="event_list">
             <li class="no-messages" id="no_messages">{% trans "No messages match your filters." %}</li>
         </ul>
     {% endif %}
 
     <div class="paging-wrap">
         <div class="clearfix">
-            {{ message_list.paging }}
+            {{ event_list.paging }}
         </div>
     </div>
 {% endblock %}

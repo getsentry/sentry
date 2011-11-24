@@ -5,20 +5,20 @@
 
 {% block inner %}
     <h2>{% trans "Message List" %}</h2>
-    {% paginate message_list from request as message_list per_page 15 %}
+    {% paginate event_list from request as event_list per_page 15 %}
     <div class="paging-wrap">
         <div class="clearfix">
-            {{ message_list.paging }}
+            {{ event_list.paging }}
         </div>
     </div>
-    <ul class="messages" id="message_list">
-        {% for event in message_list.objects %}
+    <ul class="messages" id="event_list">
+        {% for event in event_list.objects %}
             {% include "sentry/partial/_event.html" %}
         {% endfor %}
     </ul>
     <div class="paging-wrap">
         <div class="clearfix">
-            {{ message_list.paging }}
+            {{ event_list.paging }}
         </div>
     </div>
 {% endblock %}
