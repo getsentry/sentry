@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import with_statement
 import eventlet
 import errno
 import imp
