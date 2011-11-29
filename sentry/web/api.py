@@ -66,11 +66,11 @@ def store(request):
         # Signed data packet
         if signature and timestamp:
             try:
-                timestamp = float(timestamp)
+                timestamp_float = float(timestamp)
             except ValueError:
                 return HttpResponseBadRequest('Invalid timestamp')
 
-            if timestamp < time.time() - 3600: # 1 hour
+            if timestamp_float < time.time() - 3600: # 1 hour
                 return HttpResponseGone('Message has expired')
 
             sig_hmac = get_signature(data, timestamp, secret_key)
