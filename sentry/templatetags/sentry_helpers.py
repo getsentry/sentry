@@ -114,7 +114,7 @@ def get_panels(group, request):
     panel_list = []
     for cls in GroupActionProvider.plugins.itervalues():
         inst = cls(group.pk)
-        panel_list = inst.panels(request, panel_list, group)
+        panel_list = inst.panels(request, panel_list, group.project, group)
     for panel in panel_list:
         yield panel[0], panel[1], request.path == panel[1]
 
@@ -122,7 +122,7 @@ def get_panels(group, request):
 def get_widgets(group, request):
     for cls in GroupActionProvider.plugins.itervalues():
         inst = cls(group.pk)
-        resp = inst.widget(request, group)
+        resp = inst.widget(request, group.project, group)
         if resp:
             yield resp
 
@@ -131,7 +131,7 @@ def get_tags(group, request):
     tag_list = []
     for cls in GroupActionProvider.plugins.itervalues():
         inst = cls(group.pk)
-        tag_list = inst.tags(request, tag_list, group)
+        tag_list = inst.tags(request, tag_list, group.project, group)
     for tag in tag_list:
         yield tag
 

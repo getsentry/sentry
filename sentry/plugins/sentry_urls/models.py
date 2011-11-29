@@ -20,12 +20,12 @@ class ServerUrlsPanel(GroupActionProvider):
     
     title = 'URLs'
 
-    def panels(self, request, panel_list, group):
-        panel_list.append((self.title, self.__class__.get_url(group.pk)))
+    def panels(self, request, panel_list, project, group):
+        panel_list.append((self.title, self.__class__.get_url(project.pk, group.pk)))
         return panel_list
 
-    def view(self, request, group):
+    def view(self, request, project, group):
         return render_to_response('sentry/plugins/sentry_urls/index.html', locals())
     
-    def widget(self, request, group):
+    def widget(self, request, project, group):
         return render_to_string('sentry/plugins/sentry_urls/widget.html', locals())

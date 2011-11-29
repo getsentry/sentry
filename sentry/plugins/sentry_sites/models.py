@@ -20,8 +20,8 @@ class SiteGroupPanel(GroupActionProvider):
     
     title = 'Sites'
 
-    def panels(self, request, panel_list, group):
-        panel_list.append((self.title, self.__class__.get_url(group.pk)))
+    def panels(self, request, panel_list, project, group):
+        panel_list.append((self.title, self.__class__.get_url(project.pk, group.pk)))
         return panel_list
 
     def view(self, request, group):
