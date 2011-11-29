@@ -354,13 +354,13 @@ def group_plugin_action(request, project, group_id, slug):
     group = get_object_or_404(Group, pk=group_id)
 
     if group.project and group.project != project:
-        return HttpResponseRedirect(reverse('sentry-group-action', kwargs={'group_id': group.pk, 'project_id': group.project_id, 'slug': slug}))
+        return HttpResponseRedirect(reverse('sentry-group-plugin-action', kwargs={'group_id': group.pk, 'project_id': group.project_id, 'slug': slug}))
 
     try:
         cls = GroupActionProvider.plugins[slug]
     except KeyError:
         raise Http404('Plugin not found')
-    response = cls(group_id)(request, group)
+    response = cls(group.project_id, group_id)(request, project, group)
     if response:
         return response
     return HttpResponseRedirect(request.META.get('HTTP_REFERER') or reverse('sentry', kwargs={'project_id': group.project_id}))

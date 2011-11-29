@@ -60,36 +60,36 @@ class GroupActionProvider:
     new_window = False
 
     @classmethod
-    def get_url(cls, group_id):
-        return reverse('sentry-group-plugin-action', args=(group_id, cls.slug))
+    def get_url(cls, project_id, group_id):
+        return reverse('sentry-group-plugin-action', args=(project_id, group_id, cls.slug))
 
-    def __init__(self, group_id):
-        self.url = self.__class__.get_url(group_id)
+    def __init__(self, project_id, group_id):
+        self.url = self.__class__.get_url(project_id, group_id)
 
-    def __call__(self, request, group):
+    def __call__(self, request, project, group):
         self.selected = request.path == self.url
         if not self.selected:
             return
-        return self.view(request, group)
+        return self.view(request, project, group)
 
     def view(self):
         """
         Handles the view logic. If no response is given, we continue to the next action provider.
         """
 
-    def tags(self, request, tag_list, group):
+    def tags(self, request, tag_list, project, group):
         """Modifies the tag list for a grouped message."""
         return tag_list
 
-    def actions(self, request, action_list, group):
+    def actions(self, request, action_list, project, group):
         """Modifies the action list for a grouped message."""
         return action_list
 
-    def panels(self, request, panel_list, group):
+    def panels(self, request, panel_list, project, group):
         """Modifies the panel list for a grouped message."""
         return panel_list
 
-    def widget(self, request, group):
+    def widget(self, request, project, group):
         """
         Renders as a widget in the group details sidebar.
         """
