@@ -27,8 +27,8 @@ def pprint(value, break_after=10):
 
 # seriously Django?
 @register.filter
-def plus(value, amount):
-    return int(value) + int(amount)
+def subtract(value, amount):
+    return int(value) - int(amount)
 
 @register.filter
 def has_charts(group):
