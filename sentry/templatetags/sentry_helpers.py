@@ -104,8 +104,8 @@ def sentry_version():
 def get_actions(group, request):
     action_list = []
     for cls in GroupActionProvider.plugins.itervalues():
-        inst = cls(group.pk)
-        action_list = inst.actions(request, action_list, group)
+        inst = cls(group.project_id, group.pk)
+        action_list = inst.actions(request, action_list, group.project, group)
     for action in action_list:
         yield action[0], action[1], request.path == action[1]
 
@@ -113,7 +113,7 @@ def get_actions(group, request):
 def get_panels(group, request):
     panel_list = []
     for cls in GroupActionProvider.plugins.itervalues():
-        inst = cls(group.pk)
+        inst = cls(group.project_id, group.pk)
         panel_list = inst.panels(request, panel_list, group.project, group)
     for panel in panel_list:
         yield panel[0], panel[1], request.path == panel[1]
@@ -121,7 +121,7 @@ def get_panels(group, request):
 @register.filter
 def get_widgets(group, request):
     for cls in GroupActionProvider.plugins.itervalues():
-        inst = cls(group.pk)
+        inst = cls(group.project_id, group.pk)
         resp = inst.widget(request, group.project, group)
         if resp:
             yield resp
@@ -130,7 +130,7 @@ def get_widgets(group, request):
 def get_tags(group, request):
     tag_list = []
     for cls in GroupActionProvider.plugins.itervalues():
-        inst = cls(group.pk)
+        inst = cls(group.project_id, group.pk)
         tag_list = inst.tags(request, tag_list, group.project, group)
     for tag in tag_list:
         yield tag
