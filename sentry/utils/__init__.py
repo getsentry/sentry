@@ -124,7 +124,8 @@ def transform(value, stack=[], context=None):
     elif isinstance(value, uuid.UUID):
         ret = repr(value)
     elif isinstance(value, dict):
-        ret = dict((str(k), transform_rec(v)) for k, v in value.iteritems())
+        ret = dict((k if isinstance(k, str) or isinstance(k, unicode) else repr(k),
+                    transform_rec(v)) for k, v in value.iteritems())
     elif isinstance(value, unicode):
         ret = to_unicode(value)
     elif isinstance(value, str):
