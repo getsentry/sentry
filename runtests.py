@@ -60,10 +60,13 @@ if not settings.configured:
         TEMPLATE_DEBUG=True,
         HAYSTACK_SITECONF='sentry.search_indexes',
         HAYSTACK_SEARCH_ENGINE='whoosh',
-        SENTRY_SEARCH_ENGINE='whoosh',
-        SENTRY_SEARCH_OPTIONS={
-            'path': join(dirname(__file__), 'sentry_test_index'),
-        },
+        # SENTRY_SEARCH_ENGINE='whoosh',
+        # SENTRY_SEARCH_OPTIONS={
+        #     'path': join(dirname(__file__), 'sentry_test_index'),
+        # },
+        SENTRY_PUBLIC=False,
+        # helpful in pdb'ing tests:
+        #NOSE_ARGS=['--nocapture']
     )
     import djcelery
     djcelery.setup_loader()

@@ -271,6 +271,16 @@
                     </table>
                 </div>
             </div>
+            <div id="groupnotes" class="module">
+                <h2>{% trans "Notes" %}</h2>
+                <div class="module-content">
+                    <form id="makegroupnotes" method="POST" action="{% url sentry-group-notes group.id %}">
+                        {% csrf_token %}
+                        <textarea rows="5" cols="60" name="notes">{{ group.notes.notes|safe }}</textarea>
+                        <button type="submit">{% trans "Save notes" %}</button>
+                    </form>
+                </div>
+            </div>
         </div>
         <div id="raw_traceback" style="display: none;">
             {% if frames or message.traceback %}

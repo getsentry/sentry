@@ -259,6 +259,10 @@ class GroupedMessage(MessageBase):
         module = self.data.get('module', 'ver')
         return module, self.data['version']
 
+class GroupedMessageNote(models.Model):
+    group           = models.OneToOneField(GroupedMessage, related_name="notes")
+    notes           = models.TextField()
+
 class Message(MessageBase):
     message_id      = models.CharField(max_length=32, null=True, unique=True)
     group           = models.ForeignKey(GroupedMessage, blank=True, null=True, related_name="message_set")

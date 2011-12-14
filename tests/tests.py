@@ -21,8 +21,8 @@ from sentry.client.base import SentryClient
 from sentry.client.handlers import SentryHandler
 from sentry.client.models import get_client
 from sentry.conf import settings
-from sentry.models import Message, GroupedMessage, MessageCountByMinute, \
-                          FilterValue, MessageFilterValue
+from sentry.models import Message, GroupedMessage, GroupedMessageNote, \
+    MessageCountByMinute, FilterValue, MessageFilterValue
 from sentry.utils import transform, MockDjangoRequest
 from sentry.utils.compat import pickle
 from sentry.web.views import get_login_url
@@ -1012,6 +1012,26 @@ class SentryViewsTest(TestCase):
         self.assertTrue('group' in resp.context)
         group = GroupedMessage.objects.get(pk=2)
         self.assertEquals(resp.context['group'], group)
+
+    def test_group_notes(self):
+        self.client.login(username='admin', password='admin')
+        group = GroupedMessage.objects.get(pk=2)
+        group_url = reverse('sentry-group', args=[2])
+        notes_url = reverse('sentry-group-notes', args=[2])
+        self.assertRaises(GroupedMessageNote.DoesNotExist, lambda:group.notes)
+        test_note = 'this is a test note'
+        resp = self.client.post(
+            notes_url,
+            {
+                'notes': test_note
+            },
+            follow=True)
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp.redirect_chain[0][0], 'http://testserver%s' % group_url)
+        self.assertTemplateUsed(resp, 'sentry/group/details.html')
+        self.assertTrue('group' in resp.context)
+        group_again = GroupedMessage.objects.get(pk=2)
+        self.assertEqual(group_again.notes.notes, test_note)
 
     def test_group_message_list(self):
         self.client.login(username='admin', password='admin')
