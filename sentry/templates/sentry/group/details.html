@@ -39,7 +39,7 @@
 
 {% block main %}
     <ul class="messages" id="message_list">
-        <li class="{% cycle 'row1' 'row2' %} level-{{ group.level }} active" id="group_{{ group.pk }}" data-sentry-count="{{ group.times_seen }}">
+        <li class="{% cycle 'row1' 'row2' %} level-{{ group.level }} active" id="group_{{ group.pk|safe }}" data-sentry-count="{{ group.times_seen }}">
             <span class="count">{{ group.times_seen|small_count }}</span>
             <h3>{% if group.view %}{{ group.view }}{% else %}{{ group.message_top }}{% endif %}</h3>
             <span class="last_seen" title="{{ group.last_seen }}">{{ group.last_seen|timesince }}</span>
@@ -56,7 +56,7 @@
                 {{ group.error }}
             </p>
             {% if group.status == 0 %}
-                <a href="{% url sentry-ajax %}?op=resolve&amp;gid={{ group.pk }}" class="hidden button button_resolve">&#10003;</a>
+                <a href="{% url sentry-ajax %}?op=resolve&amp;gid={{ group.pk|safe }}" class="hidden button button_resolve">&#10003;</a>
             {% endif %}
         </li>
     </ul>

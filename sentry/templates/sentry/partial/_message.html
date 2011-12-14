@@ -1,6 +1,6 @@
 {% load sentry_helpers %}
 
-<li class="{% cycle 'row1' 'row2' %} level-{{ message.level }}{% if priority %} priority-{{ priority }}{% endif %}" id="message_{{ message.pk }}" data-sentry-count="{{ message.times_seen }}">
+<li class="{% cycle 'row1' 'row2' %} level-{{ message.level }}{% if priority %} priority-{{ priority }}{% endif %}" id="message_{{ message.pk|safe }}" data-sentry-count="{{ message.times_seen }}">
     <h3><a href="{% url sentry-group-message group.pk message.pk %}">
         {{ message.message_top }}
         {% if message.url %}
