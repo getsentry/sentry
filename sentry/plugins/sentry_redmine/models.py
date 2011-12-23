@@ -34,9 +34,9 @@ class RedmineIssueForm(forms.Form):
 class CreateRedmineIssue(GroupActionProvider):
     title = 'Create Redmine Issue'
 
-    def actions(self, request, action_list, group):
+    def actions(self, request, action_list, project, group):
         if 'redmine' not in group.data:
-            action_list.append((self.title, self.__class__.get_url(group.pk)))
+            action_list.append((self.title, self.__class__.get_url(project.pk, group.pk)))
         return action_list
 
     def view(self, request, group):
@@ -102,7 +102,7 @@ class CreateRedmineIssue(GroupActionProvider):
 
         return render_to_response('sentry/plugins/redmine/create_issue.html', context)
 
-    def tags(self, request, tags, group):
+    def tags(self, request, tags, project, group):
         if 'redmine' in group.data:
             issue_id = group.data['redmine']['issue_id']
             tags.append(mark_safe('<a href="%s">#%s</a>' % (
