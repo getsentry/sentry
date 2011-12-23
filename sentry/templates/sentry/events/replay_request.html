@@ -1,0 +1,53 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Replay Request" %} | {{ block.super }}{% endblock %}
+
+{% block heading %}{% trans "Replay Request" %}{% endblock %}
+
+{% block content %}
+    <div id="body">
+        <h2>Request</h2>
+        {% if form.errors %}
+            <p class="error">{% trans "Please fill out all fields." %}</p>
+        {% endif %}
+
+        <form method="post" action="" class="replay-form">
+            {% csrf_token %}
+            <table>
+                <colgroup>
+                    <col width="100px"/>
+                    <col/>
+                </colgroup>
+                <tr>
+                    <td>{{ form.url.label_tag }}</td>
+                    <td>{{ form.url }}</td>
+                </tr>
+                <tr>
+                    <td>{{ form.method.label_tag }}</td>
+                    <td>{{ form.method }}</td>
+                </tr>
+                <tr>
+                    <td>{{ form.headers.label_tag }}</td>
+                    <td>{{ form.headers }}</td>
+                </tr>
+                <tr>
+                    <td>{{ form.data.label_tag }}</td>
+                    <td>{{ form.data }}</td>
+                </tr>
+            </table>
+            <div class="submit">
+                <button type="submit" class="button">{% trans "Submit" %}</button>
+            </div>
+        </form>
+
+        {% if result %}
+            <h2>Result</h2>
+            <pre><strong>{{ result.status }} {{ result.reason }}</strong>
+{% for key, value in result.headers %}{{ key }}: {{ value }}
+{% endfor %}
+{{ result.body }}</pre>
+        {% endif %}
+    </div>
+{% endblock %}

@@ -1,0 +1,16 @@
+<div id="request" class="module">
+    <h2>Request</h2>
+    <div class="module-content">
+        <table class="meta">
+            <tr>
+                <th>URL:</th>
+                <td><a href="{{ url }}">{{ url|escape }}</a></td>
+            </tr>
+            <tr>
+                <th>Method:</th>
+                <td>{{ method }}</td>
+            </tr>
+        </table>
+        <p><a href="{% url sentry-replay event.project_id event.id %}">Replay this request</a></p>
+    </div>
+</div>

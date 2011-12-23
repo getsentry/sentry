@@ -32,6 +32,8 @@ class Interface(object):
     render differently than the default ``extra`` metadata in an event.
     """
 
+    score = 0
+
     def __init__(self, **kwargs):
         self.attrs = kwargs.keys()
         self.__dict__.update(kwargs)
@@ -111,6 +113,7 @@ class Stacktrace(Interface):
 
     def to_html(self, event):
         return render_to_string('sentry/partial/interfaces/stacktrace.html', {
+            'event': event,
             'frames': self.frames,
         })
 
@@ -149,6 +152,7 @@ class Exception(Interface):
 
     def to_html(self, event):
         return render_to_string('sentry/partial/interfaces/exception.html', {
+            'event': event,
             'exception_value': self.value,
             'exception_type': self.type,
             'exception_module': self.module,
@@ -166,7 +170,9 @@ class Http(Interface):
         env: {REMOTE_ADDR: '192.168.0.1'}
     }
     """
-        # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html
+    score = 100
+
+    # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html
     METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD', 'DELETE', 'TRACE', 'CONNECT')
 
     def __init__(self, url, method, data=None, query_string=None, cookies=None, env=None, **kwargs):
@@ -206,6 +212,7 @@ class Http(Interface):
 
     def to_html(self, event):
         return render_to_string('sentry/partial/interfaces/http.html', {
+            'event': event,
             'full_url': '?'.join(filter(None, [self.url, self.query_string])),
             'url': self.url,
             'method': self.method,
@@ -250,6 +257,7 @@ class Template(Interface):
 
     def to_html(self, event):
         return render_to_string('sentry/partial/interfaces/template.html', {
+            'event': event,
             'filename': self.filename,
             'context_line': self.context_line,
             'lineno': self.lineno,

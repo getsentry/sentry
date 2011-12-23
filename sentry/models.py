@@ -21,6 +21,7 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import Sum
 from django.db.models.signals import post_syncdb
+from django.utils.datastructures import SortedDict
 from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
@@ -296,15 +297,15 @@ class Event(MessageBase):
 
     @cached_property
     def interfaces(self):
-        result = {}
+        result = []
         for k, v in self.data.iteritems():
             if '.' not in k:
                 continue
             m, c = k.rsplit('.', 1)
             cls = getattr(__import__(m, {}, {}, [c]), c)
             v = cls(**v)
-            result[k] = v
-        return result
+            result.append((v.score, k,  v))
+        return SortedDict((k, v) for _, k, v in sorted(result, key=lambda x: x[0], reverse=True))
 
     def get_version(self):
         if not self.data:

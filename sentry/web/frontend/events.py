@@ -1,9 +1,14 @@
 import datetime
 
+from django.core.context_processors import csrf
+from django.views.decorators.csrf import csrf_protect
+
 from sentry.conf import settings
 from sentry.models import Event
 from sentry.web.decorators import login_required, can_manage, render_to_response
+from sentry.web.forms import ReplayForm
 from sentry.utils import get_filters
+from sentry.replays import Replayer
 
 
 @login_required
@@ -44,3 +49,42 @@ def event_list(request, project):
         'request': request,
         'filters': filters,
     })
+
+
+@login_required
+@csrf_protect
+def replay_event(request, project_id, event_id):
+    event = Event.objects.get(pk=event_id)
+    interfaces = event.interfaces
+    if 'sentry.interfaces.Http' not in interfaces:
+        # TODO: show a proper error
+        raise ValueError
+    http = interfaces['sentry.interfaces.Http']
+
+    initial = {
+        'url': http.url,
+        'method': http.method,
+        'headers': '\n'.join('%s: %v' % (k, v) for k, v in http.env.iteritems()),
+        'data': http.data,
+    }
+
+    form = ReplayForm(request.POST or None, initial=initial)
+    if form.is_valid():
+        result = Replayer(
+            url=form.cleaned_data['url'],
+            method=form.cleaned_data['method'],
+            data=form.cleaned_data['data'],
+            headers=form.cleaned_data['headers'],
+        ).replay()
+    else:
+        result = None
+
+    context = {
+        'request': request,
+        'event': event,
+        'form': form,
+        'result': result,
+    }
+    context.update(csrf(request))
+
+    return render_to_response('sentry/events/replay_request.html', context)
