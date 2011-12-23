@@ -13,15 +13,18 @@ import urlparse
 
 from sentry.web.helpers import render_to_string
 
+
 # unserialization concept is based on pickle
 class _EmptyClass(object):
     pass
+
 
 def unserialize(klass, data):
     value = _EmptyClass()
     value.__class__ = klass
     value.__setstate__(data)
     return value
+
 
 class Interface(object):
     """
@@ -51,6 +54,7 @@ class Interface(object):
     def to_string(self, event):
         return ''
 
+
 class Message(Interface):
     def __init__(self, message, params):
         self.message = message
@@ -62,6 +66,7 @@ class Message(Interface):
             'params': self.params,
         }
 
+
 class Query(Interface):
     def __init__(self, query, engine):
         self.query = query
@@ -72,6 +77,7 @@ class Query(Interface):
             'query': self.query,
             'engine': self.engine,
         }
+
 
 class Stacktrace(Interface):
     """
@@ -124,6 +130,7 @@ class Stacktrace(Interface):
 
         return '\n'.join(result)
 
+
 class Exception(Interface):
     def __init__(self, type, value, module=None):
         # The exception type name (e.g. TypeError)
@@ -146,6 +153,7 @@ class Exception(Interface):
             'exception_type': self.type,
             'exception_module': self.module,
         })
+
 
 class Http(Interface):
     """
@@ -207,6 +215,7 @@ class Http(Interface):
             'env': self.env,
         })
 
+
 class Template(Interface):
     """
     {
@@ -248,6 +257,7 @@ class Template(Interface):
             'pre_context_lineno': self.lineno - len(self.pre_context),
             'post_context': self.post_context,
         })
+
 
 class User(Interface):
     """
