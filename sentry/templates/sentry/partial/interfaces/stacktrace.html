@@ -33,10 +33,10 @@
                   </thead>
                   <tbody>
                   {% if frame.vars %}
-                    {% for var in frame.vars|dictsort:"0" %}
+                    {% for key, value in frame.vars.iteritems %}
                       <tr>
-                        <td>{{ var.0|escape }}</td>
-                        <td class="code"><pre>{{ var.1|pprint|escape }}</pre></td>
+                        <td>{{ key|escape }}</td>
+                        <td class="code"><pre>{{ value|pprint|escape }}</pre></td>
                       </tr>
                     {% endfor %}
                   {% endif %}
