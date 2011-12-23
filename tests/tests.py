@@ -585,8 +585,8 @@ class SentryManagerTest(TestCase):
             }
         }})
         self.assertTrue('sentry.interfaces.Stacktrace' in result)
-        frames = result['sentry.interfaces.Stacktrace']
-        self.assertEquals(len(frames), 1)
-        frame = frames[0]
+        stack = result['sentry.interfaces.Stacktrace']
+        self.assertEquals(len(stack['frames']), 1)
+        frame = stack['frames'][0]
         self.assertEquals(frame['filename'], 'foo.py')
         self.assertEquals(frame['function'], 'hello_world')
