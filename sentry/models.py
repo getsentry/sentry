@@ -47,19 +47,21 @@ FILTER_KEYS = (
 
 logger = logging.getLogger('sentry.errors')
 
+
 class Project(Model):
-    name            = models.CharField(max_length=200)
-    owner           = models.ForeignKey(User, related_name="owned_project_set", null=True)
-    public          = models.BooleanField(default=False)
-    date_added      = models.DateTimeField(default=datetime.now)
+    name = models.CharField(max_length=200)
+    owner = models.ForeignKey(User, related_name="owned_project_set", null=True)
+    public = models.BooleanField(default=False)
+    date_added = models.DateTimeField(default=datetime.now)
+
 
 class ProjectMember(Model):
-    project         = models.ForeignKey(Project, related_name="member_set")
-    user            = models.ForeignKey(User, related_name="project_set")
-    is_superuser    = models.BooleanField(default=False)
-    public_key      = models.CharField(max_length=32, unique=True, null=True)
-    secret_key      = models.CharField(max_length=32, unique=True, null=True)
-    permissions     = BitField(flags=(
+    project = models.ForeignKey(Project, related_name="member_set")
+    user = models.ForeignKey(User, related_name="project_set")
+    is_superuser = models.BooleanField(default=False)
+    public_key = models.CharField(max_length=32, unique=True, null=True)
+    secret_key = models.CharField(max_length=32, unique=True, null=True)
+    permissions = BitField(flags=(
         'read_message',
         'change_message_status',
         'add_member',
@@ -67,7 +69,7 @@ class ProjectMember(Model):
         'delete_member',
         'add_message',
     ))
-    date_added      = models.DateTimeField(default=datetime.now)
+    date_added = models.DateTimeField(default=datetime.now)
 
     class Meta:
         unique_together = (('project', 'user'),)
@@ -88,21 +90,23 @@ class ProjectMember(Model):
     def generate_api_key(cls):
         return uuid.uuid4().hex
 
+
 class ProjectDomain(Model):
-    project         = models.ForeignKey(Project, related_name="domain_set")
-    domain          = models.CharField(max_length=128)
+    project = models.ForeignKey(Project, related_name="domain_set")
+    domain = models.CharField(max_length=128)
 
     class Meta:
         unique_together = (('project', 'domain'),)
 
+
 class MessageBase(Model):
-    project         = models.ForeignKey(Project, null=True)
-    logger          = models.CharField(max_length=64, blank=True, default='root', db_index=True)
-    level           = models.PositiveIntegerField(choices=settings.LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
-    message         = models.TextField()
-    culprit         = models.CharField(max_length=200, blank=True, null=True, db_column='view')
-    checksum        = models.CharField(max_length=32, db_index=True)
-    data            = GzippedDictField(blank=True, null=True)
+    project = models.ForeignKey(Project, null=True)
+    logger = models.CharField(max_length=64, blank=True, default='root', db_index=True)
+    level = models.PositiveIntegerField(choices=settings.LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
+    message = models.TextField()
+    culprit = models.CharField(max_length=200, blank=True, null=True, db_column='view')
+    checksum = models.CharField(max_length=32, db_index=True)
+    data = GzippedDictField(blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -125,16 +129,17 @@ class MessageBase(Model):
             return self.culprit
         return truncatechars(self.message.split('\n')[0], 100)
 
-class Group(MessageBase):
-    status          = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
-    times_seen      = models.PositiveIntegerField(default=1, db_index=True)
-    last_seen       = models.DateTimeField(default=datetime.now, db_index=True)
-    first_seen      = models.DateTimeField(default=datetime.now, db_index=True)
-    time_spent_total= models.FloatField(default=0)
-    time_spent_count= models.IntegerField(default=0)
-    score           = models.IntegerField(default=0)
 
-    objects         = GroupManager()
+class Group(MessageBase):
+    status = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
+    times_seen = models.PositiveIntegerField(default=1, db_index=True)
+    last_seen = models.DateTimeField(default=datetime.now, db_index=True)
+    first_seen = models.DateTimeField(default=datetime.now, db_index=True)
+    time_spent_total = models.FloatField(default=0)
+    time_spent_count = models.IntegerField(default=0)
+    score = models.IntegerField(default=0)
+
+    objects = GroupManager()
 
     class Meta:
         unique_together = (('project', 'logger', 'culprit', 'checksum'),)
@@ -188,7 +193,7 @@ class Group(MessageBase):
             subject = '%sError: %s' % (settings.EMAIL_SUBJECT_PREFIX, event.message)
 
         if event.site:
-            subject  = '[%s] %s' % (event.site, subject)
+            subject = '[%s] %s' % (event.site, subject)
 
         if request:
             link = request.build_absolute_url(self.get_absolute_url())
@@ -238,13 +243,14 @@ class Group(MessageBase):
         module = self.data.get('module', 'ver')
         return module, self.data['version']
 
+
 class Event(MessageBase):
-    event_id        = models.CharField(max_length=32, null=True, unique=True, db_column="message_id")
-    group           = models.ForeignKey(Group, blank=True, null=True, related_name="event_set")
-    datetime        = models.DateTimeField(default=datetime.now, db_index=True)
-    time_spent      = models.FloatField(null=True)
-    server_name     = models.CharField(max_length=128, db_index=True)
-    site            = models.CharField(max_length=128, db_index=True, null=True)
+    event_id = models.CharField(max_length=32, null=True, unique=True, db_column="message_id")
+    group = models.ForeignKey(Group, blank=True, null=True, related_name="event_set")
+    datetime = models.DateTimeField(default=datetime.now, db_index=True)
+    time_spent = models.FloatField(null=True)
+    server_name = models.CharField(max_length=128, db_index=True)
+    site = models.CharField(max_length=128, db_index=True, null=True)
 
     class Meta:
         verbose_name = _('message')
@@ -310,6 +316,7 @@ class Event(MessageBase):
         module = self.data['__sentry__'].get('module', 'ver')
         return module, self.data['__sentry__']['version']
 
+
 class FilterValue(models.Model):
     """
     Stores references to available filters.
@@ -323,6 +330,7 @@ class FilterValue(models.Model):
 
     def __unicode__(self):
         return u'key=%s, value=%s' % (self.key, self.value)
+
 
 class MessageFilterValue(models.Model):
     """
@@ -342,6 +350,7 @@ class MessageFilterValue(models.Model):
         return u'group_id=%s, times_seen=%s, key=%s, value=%s' % (self.group_id, self.times_seen,
                                                                   self.key, self.value)
 
+
 class MessageCountByMinute(Model):
     """
     Stores the total number of messages seen by a group at 5 minute intervals
@@ -351,10 +360,10 @@ class MessageCountByMinute(Model):
 
     project = models.ForeignKey(Project, null=True)
     group = models.ForeignKey(Group)
-    date = models.DateTimeField() # normalized to HH:MM:00
+    date = models.DateTimeField()  # normalized to HH:MM:00
     times_seen = models.PositiveIntegerField(default=0)
-    time_spent_total= models.FloatField(default=0)
-    time_spent_count= models.IntegerField(default=0)
+    time_spent_total = models.FloatField(default=0)
+    time_spent_count = models.IntegerField(default=0)
 
     class Meta:
         unique_together = (('project', 'group', 'date'),)
@@ -373,6 +382,7 @@ class MessageIndex(BaseIndex):
 # This comes later due to recursive imports
 from sentry.utils import get_filters
 
+
 def register_indexes():
     """
     Grabs all required indexes from filters and registers them.
@@ -383,6 +393,7 @@ def register_indexes():
             MessageIndex.objects.register_index(filter_.column, index_to='group')
             logger.debug('Registered index for for %s' % filter_.column)
 register_indexes()
+
 
 def create_default_project(created_models, verbosity=2, **kwargs):
     if Project in created_models:

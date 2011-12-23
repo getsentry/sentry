@@ -17,6 +17,7 @@ from django.utils.html import escape
 from sentry.conf import settings
 from sentry.models import Group, Event, FilterValue, MessageIndex
 
+
 class Widget(object):
     def __init__(self, filter, request):
         self.filter = filter
@@ -25,6 +26,7 @@ class Widget(object):
     def get_query_string(self):
         return self.filter.get_query_string()
 
+
 class TextWidget(Widget):
     def render(self, value, placeholder='', **kwargs):
         return mark_safe('<div class="filter-text"><p class="textfield"><input type="text" name="%(name)s" value="%(value)s" placeholder="%(placeholder)s"/></p><p class="submit"><input type="submit" class="search-submit"/></p></div>' % dict(
@@ -32,6 +34,7 @@ class TextWidget(Widget):
             value=escape(value),
             placeholder=escape(placeholder or 'enter %s' % self.filter.label.lower()),
         ))
+
 
 class ChoiceWidget(Widget):
     allow_any = True
@@ -60,6 +63,7 @@ class ChoiceWidget(Widget):
             ))
         output.append('</ul>')
         return mark_safe('\n'.join(output))
+
 
 class SentryFilter(object):
     label = ''
@@ -113,11 +117,14 @@ class SentryFilter(object):
         widget = self.get_widget()
         return widget.render(self.get_value())
 
+
 class EventFilter(SentryFilter):
     types = [Event]
 
+
 class GroupFilter(SentryFilter):
     types = [Group]
+
 
 class StatusFilter(GroupFilter):
     label = 'Status'
@@ -130,9 +137,11 @@ class StatusFilter(GroupFilter):
             (1, 'Resolved'),
         ])
 
+
 class LoggerFilter(SentryFilter):
     label = 'Logger'
     column = 'logger'
+
 
 class ServerNameFilter(SentryFilter):
     label = 'Server Name'
@@ -143,6 +152,7 @@ class ServerNameFilter(SentryFilter):
             return queryset.filter(server_name=self.get_value()).distinct()
         else:
             return queryset.filter(event_set__server_name=self.get_value()).distinct()
+
 
 class SiteFilter(SentryFilter):
     label = 'Site'
@@ -170,6 +180,7 @@ class SiteFilter(SentryFilter):
         else:
             return queryset.filter(event_set__site=self.get_value()).distinct()
 
+
 class LevelFilter(SentryFilter):
     label = 'Level'
     column = 'level'
@@ -179,6 +190,7 @@ class LevelFilter(SentryFilter):
 
     def get_query_set(self, queryset):
         return queryset.filter(level=self.get_value())
+
 
 class SiteFilter(SentryFilter):
     label = 'Site'
