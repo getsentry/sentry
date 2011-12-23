@@ -10,8 +10,8 @@ except ImportError:
     from setuptools import setup, find_packages, Command
 
 tests_require = [
-    'nose',
-    'django-nose',
+    'nose==1.1.2',
+    'django-nose==0.1.3',
 
     # celery
     'django-celery',
@@ -26,10 +26,7 @@ install_requires = [
     'raven>=2.0.0',
     'python-daemon>=1.6',
     'eventlet>=0.9.15',
-    'south',
-    # haystack support
-    # 'django-haystack',
-    # 'whoosh',
+    'South>=0.7',
 ]
 
 if sys.version_info[:2] < (2, 5):

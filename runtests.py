@@ -35,7 +35,6 @@ if not settings.configured:
 
             'south',
             'djcelery', # celery client
-            'haystack',
 
             'sentry',
 
