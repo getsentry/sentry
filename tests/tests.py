@@ -568,3 +568,25 @@ class SentryManagerTest(TestCase):
         exc = result['sentry.interfaces.Exception']
         self.assertEquals(exc['type'], 'TypeError')
         self.assertEquals(exc['value'], 'hello world')
+
+        result = Group.objects.convert_legacy_kwargs({'data': {
+            '__sentry__': {
+                'frames': [
+                    {
+                        'filename': 'foo.py',
+                        'function': 'hello_world',
+                        'vars': {},
+                        'pre_context': ['before i did something'],
+                        'context_line': 'i did something',
+                        'post_context': ['after i did something'],
+                        'lineno': 15,
+                    },
+                ],
+            }
+        }})
+        self.assertTrue('sentry.interfaces.Stacktrace' in result)
+        frames = result['sentry.interfaces.Stacktrace']
+        self.assertEquals(len(frames), 1)
+        frame = frames[0]
+        self.assertEquals(frame['filename'], 'foo.py')
+        self.assertEquals(frame['function'], 'hello_world')

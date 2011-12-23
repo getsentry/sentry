@@ -106,6 +106,8 @@ class GroupManager(models.Manager):
             'date': kwargs.pop('timestamp', None),
         }
 
+        result = dict((k, v) for k, v in result.iteritems() if v is not None)
+
         class_name = kwargs.pop('class_name', None)
         if class_name:
             result['message'] = '%s: %s' % (class_name, result['message'])
@@ -141,9 +143,10 @@ class GroupManager(models.Manager):
             for frame in sentry['frames']:
                 frames.append(dict((k, v) for k, v in frame.iteritems() if k in keys))
 
-            result['sentry.interfaces.Traceback'] = Stacktrace(
-                frames=frames,
-            ).serialize()
+            if frames:
+                result['sentry.interfaces.Stacktrace'] = Stacktrace(
+                    frames=frames,
+                ).serialize()
 
         if 'template' in sentry:
             template = sentry['template']
