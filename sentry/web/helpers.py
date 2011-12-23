@@ -49,7 +49,7 @@ def iter_data(obj):
 
 def render_to_string(template, context={}):
     context.update({
-        'has_search': bool(settings.SEARCH_ENGINE),
+        'has_search': False,
         'MESSAGES_PER_PAGE': settings.MESSAGES_PER_PAGE,
     })
 
@@ -60,25 +60,3 @@ def render_to_response(template, context={}, status=200):
     response.status_code = status
 
     return response
-
-def get_search_query_set(query):
-    from haystack.query import SearchQuerySet
-    from sentry.search_indexes import site, backend
-
-    class SentrySearchQuerySet(SearchQuerySet):
-        "Returns actual instances rather than search results."
-
-        def __getitem__(self, k):
-            result = []
-            for r in super(SentrySearchQuerySet, self).__getitem__(k):
-                inst = r.object
-                if not inst:
-                    continue
-                inst.score = r.score
-                result.append(inst)
-            return result
-
-    return SentrySearchQuerySet(
-        site=site,
-        query=backend.SearchQuery(backend=site.backend),
-    ).filter(content=query)

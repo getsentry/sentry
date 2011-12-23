@@ -105,7 +105,6 @@ INSTALLED_APPS = (
     'sentry.plugins.sentry_servers',
     'sentry.plugins.sentry_sites',
     'sentry.plugins.sentry_urls',
-    'haystack',
     'south',
     # Uncomment the next line to enable the admin:
     # 'django.contrib.admin',
@@ -127,10 +126,6 @@ SENTRY_FILTERS = (
     'sentry.filters.ServerNameFilter',
     'sentry.filters.SiteFilter',
 )
-SENTRY_SEARCH_ENGINE = 'whoosh'
-SENTRY_SEARCH_OPTIONS = {
-    'path': os.path.join(PROJECT_ROOT, 'sentry_index'),
-}
 
 try:
     import debug_toolbar

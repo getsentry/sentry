@@ -24,7 +24,7 @@ from sentry.plugins import GroupActionProvider
 from sentry.templatetags.sentry_helpers import with_priority
 from sentry.utils import get_filters, json
 from sentry.web.decorators import can_manage, login_required
-from sentry.web.helpers import render_to_response, get_search_query_set, \
+from sentry.web.helpers import render_to_response, \
     get_project_list
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$', re.I)
@@ -164,7 +164,6 @@ def ajax_handler(request):
 @can_manage('read_message')
 def search(request, project):
     query = request.GET.get('q')
-    has_search = bool(settings.SEARCH_ENGINE)
 
     if query:
         result = event_re.match(query)
@@ -175,10 +174,7 @@ def search(request, project):
             event_list = Group.objects.filter(checksum=checksum)
             top_matches = event_list[:2]
             if len(top_matches) == 0:
-                if not has_search:
-                    return render_to_response('sentry/invalid_message_id.html')
-                else:
-                    event_list = get_search_query_set(query)
+                return render_to_response('sentry/invalid_message_id.html')
             elif len(top_matches) == 1:
                 return HttpResponseRedirect(top_matches[0].get_absolute_url())
         elif uuid_re.match(query):
@@ -186,16 +182,11 @@ def search(request, project):
             try:
                 message = Event.objects.get(event_id=query)
             except Event.DoesNotExist:
-                if not has_search:
-                    return render_to_response('sentry/invalid_message_id.html')
-                else:
-                    event_list = get_search_query_set(query)
+                return render_to_response('sentry/invalid_message_id.html')
             else:
                 return HttpResponseRedirect(message.get_absolute_url())
-        elif not has_search:
-            return render_to_response('sentry/invalid_message_id.html')
         else:
-            event_list = get_search_query_set(query)
+            return render_to_response('sentry/invalid_message_id.html')
     else:
         event_list = Group.objects.none()
 

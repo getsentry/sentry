@@ -28,10 +28,6 @@ FILTERS = (
     'sentry.filters.SiteFilter',
 )
 
-# Sentry allows you to specify an alternative search backend for itself
-SEARCH_ENGINE = None
-SEARCH_OPTIONS = {}
-
 KEY = None
 
 LOG_LEVELS = (

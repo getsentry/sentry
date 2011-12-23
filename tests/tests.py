@@ -448,15 +448,6 @@ class SentryCleanupTest(TestCase):
         self.assertEquals(MessageFilterValue.objects.count(), 0)
 
 class SentrySearchTest(TestCase):
-    @conditional_on_module('haystack')
-    def test_build_index(self):
-        from sentry.web.views import get_search_query_set
-        logger.error('test search error')
-
-        qs = get_search_query_set('error')
-        self.assertEquals(qs.count(), 1)
-        self.assertEquals(qs[0:1][0].message, 'test search error')
-
     def test_checksum_query(self):
         checksum = 'a'*32
         g = Group.objects.create(

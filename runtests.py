@@ -57,13 +57,7 @@ if not settings.configured:
         CELERY_ALWAYS_EAGER=True,
         SENTRY_THRASHING_LIMIT=0,
         TEMPLATE_DEBUG=True,
-        HAYSTACK_SITECONF='sentry.search_indexes',
-        HAYSTACK_SEARCH_ENGINE='whoosh',
         SENTRY_KEY=base64.b64encode(os.urandom(40)),
-        SENTRY_SEARCH_ENGINE='whoosh',
-        SENTRY_SEARCH_OPTIONS={
-            'path': join(dirname(__file__), 'sentry_test_index'),
-        },
     )
     import djcelery
     djcelery.setup_loader()
