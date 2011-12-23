@@ -5,6 +5,7 @@ from sentry.models import Event
 from sentry.web.decorators import login_required, can_manage, render_to_response
 from sentry.utils import get_filters
 
+
 @login_required
 @can_manage('read_message')
 def event_list(request, project):
@@ -32,7 +33,7 @@ def event_list(request, project):
 
     today = datetime.datetime.now()
 
-    has_realtime = page == 1
+    has_realtime = False
 
     return render_to_response('sentry/events/event_list.html', {
         'project': project,
