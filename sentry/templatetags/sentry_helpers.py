@@ -19,12 +19,15 @@ register = template.Library()
 
 @register.filter
 def pprint(value, break_after=10):
-    """A wrapper around pprint.pprint -- for debugging, really."""
+    """
+    A wrapper around pprint.pprint -- for debugging, really.
+
+    break_after is currently ignored.
+    """
     from pprint import pformat
 
-    value = pformat(value).decode('utf-8', 'replace')
-
-    return u'\u200B'.join([value[i:(i + break_after)] for i in xrange(0, len(value), break_after)])
+    # return u'\u200B'.join([value[i:(i + break_after)] for i in xrange(0, len(value), break_after)])
+    return pformat(value).decode('utf-8', 'replace')
 
 
 # seriously Django?
