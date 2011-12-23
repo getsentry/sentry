@@ -5,6 +5,7 @@ from django.views.decorators.csrf import csrf_protect
 
 from sentry.web.helpers import render_to_response
 
+
 @csrf_protect
 def login(request):
     from django.contrib.auth import login as login_
@@ -27,6 +28,7 @@ def login(request):
         'request': request,
     })
     return render_to_response('sentry/login.html', context)
+
 
 def logout(request):
     from django.contrib.auth import logout

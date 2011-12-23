@@ -14,6 +14,7 @@ from sentry.web.frontend import accounts, generic, groups, events, projects
 
 handler404 = lambda x: page_not_found(x, template_name='sentry/404.html')
 
+
 def handler500(request):
     """
     500 error handler.

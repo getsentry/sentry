@@ -6,6 +6,7 @@ from sentry.conf import settings
 from sentry.web.decorators import login_required
 from sentry.web.helpers import get_project_list, render_to_response
 
+
 @login_required
 def dashboard(request):
     project_list = get_project_list(request.user)
@@ -16,6 +17,7 @@ def dashboard(request):
         'project_list': project_list,
         'request': request,
     })
+
 
 def static_media(request, path):
     """

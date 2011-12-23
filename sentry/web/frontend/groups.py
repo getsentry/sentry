@@ -30,6 +30,7 @@ from sentry.web.helpers import render_to_response, get_search_query_set, \
 uuid_re = re.compile(r'^[a-z0-9]{32}$', re.I)
 event_re = re.compile(r'^(?P<event_id>[a-z0-9]{32})\$(?P<checksum>[a-z0-9]{32})$', re.I)
 
+
 @login_required
 @csrf_exempt
 def ajax_handler(request):
@@ -158,6 +159,7 @@ def ajax_handler(request):
     else:
         return HttpResponseBadRequest()
 
+
 @login_required
 @can_manage('read_message')
 def search(request, project):
@@ -213,6 +215,7 @@ def search(request, project):
         'request': request,
     })
 
+
 @login_required
 @can_manage('read_message')
 def group_list(request, project):
@@ -224,9 +227,6 @@ def group_list(request, project):
         page = int(request.GET.get('p', 1))
     except (TypeError, ValueError):
         page = 1
-
-    offset = (page - 1) * settings.MESSAGES_PER_PAGE
-    limit = page * settings.MESSAGES_PER_PAGE
 
     event_list = Group.objects.filter(project=project)
 
@@ -266,6 +266,7 @@ def group_list(request, project):
         'filters': filters,
     })
 
+
 @login_required
 @can_manage('read_message')
 def group_json(request, project, group_id):
@@ -282,6 +283,7 @@ def group_json(request, project, group_id):
         event = Event(group=group)
 
     return HttpResponse(json.dumps(event.data), mimetype='application/json')
+
 
 @login_required
 @can_manage('read_message')
@@ -308,6 +310,7 @@ def group(request, project, group_id):
         'request': request,
     })
 
+
 @login_required
 @can_manage('read_message')
 def group_event_list(request, project, group_id):
@@ -326,6 +329,7 @@ def group_event_list(request, project, group_id):
         'request': request
     })
 
+
 @login_required
 @can_manage('read_message')
 def group_event_details(request, project, group_id, event_id):
@@ -335,7 +339,6 @@ def group_event_details(request, project, group_id, event_id):
         return HttpResponseRedirect(reverse('sentry-group-event', kwargs={'group_id': group.pk, 'project_id': group.project_id, 'event_id': event_id}))
 
     event = get_object_or_404(group.event_set, pk=event_id)
-
 
     return render_to_response('sentry/groups/event.html', {
         'project': project,
