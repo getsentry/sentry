@@ -9,6 +9,7 @@ sentry.plugins
 # Based on http://martyalchin.com/2008/jan/10/simple-plugin-framework/
 from django.core.urlresolvers import reverse
 
+
 class PluginMount(type):
     def __init__(cls, name, bases, attrs):
         if not hasattr(cls, 'plugins'):
@@ -24,7 +25,8 @@ class PluginMount(type):
             cls.slug = getattr(cls, 'slug', None) or cls.title.replace(' ', '-').lower()
             cls.plugins[cls.slug] = cls
 
-class ActionProvider:
+
+class ActionProvider(object):
     """
     Base interface for adding action providers.
 
@@ -52,7 +54,8 @@ class ActionProvider:
 
         return self.perform(request)
 
-class GroupActionProvider:
+
+class GroupActionProvider(object):
     # TODO: should be able to specify modal support
 
     __metaclass__ = PluginMount

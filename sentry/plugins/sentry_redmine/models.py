@@ -23,13 +23,16 @@ import base64
 import urllib
 import urllib2
 
+
 class RedmineIssue(models.Model):
     group = models.ForeignKey(Group)
     issue_id = models.PositiveIntegerField()
 
+
 class RedmineIssueForm(forms.Form):
     subject = forms.CharField(max_length=200)
     description = forms.CharField(widget=forms.Textarea())
+
 
 class CreateRedmineIssue(GroupActionProvider):
     title = 'Create Redmine Issue'
@@ -93,11 +96,13 @@ class CreateRedmineIssue(GroupActionProvider):
                 'description': description,
             })
 
-        global_errors = form.errors.get('__all__')
-
-        BASE_TEMPLATE = "sentry/groups/details.html"
-
-        context = locals()
+        context = {
+            'request': request,
+            'group': group,
+            'form': form,
+            'global_errors': form.errors.get('__all__'),
+            'BASE_TEMPLATE': 'sentry/groups/details.html',
+        }
         context.update(csrf(request))
 
         return render_to_response('sentry/plugins/redmine/create_issue.html', context)

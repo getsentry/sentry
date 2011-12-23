@@ -36,6 +36,7 @@ if locals().get('REMOTE_URL'):
 if locals().get('REMOTE_TIMEOUT'):
     TIMEOUT = REMOTE_TIMEOUT
 
+
 def configure(**kwargs):
     for k, v in kwargs.iteritems():
         if k.upper() != k:

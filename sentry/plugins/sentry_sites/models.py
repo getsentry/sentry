@@ -11,13 +11,14 @@ from django.template.loader import render_to_string
 
 from sentry.plugins import GroupActionProvider
 
+
 class SiteGroupPanel(GroupActionProvider):
     """Adds additional support for showing information about sites including:
-    
+
     * A panel which shows all sites a message was seen on.
     * A sidebar module which shows the sites most actively seen on.
     """
-    
+
     title = 'Sites'
 
     def panels(self, request, panel_list, project, group):
@@ -25,7 +26,15 @@ class SiteGroupPanel(GroupActionProvider):
         return panel_list
 
     def view(self, request, project, group):
-        return render_to_response('sentry/plugins/sentry_sites/index.html', locals())
-    
+        return render_to_response('sentry/plugins/sentry_sites/index.html', {
+            'request': request,
+            'project': project,
+            'group': group,
+        })
+
     def widget(self, request, project, group):
-        return render_to_string('sentry/plugins/sentry_sites/widget.html', locals())
+        return render_to_string('sentry/plugins/sentry_sites/widget.html', {
+            'request': request,
+            'project': project,
+            'group': group,
+        })

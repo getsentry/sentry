@@ -16,6 +16,7 @@ import datetime
 
 register = template.Library()
 
+
 @register.filter
 def pprint(value, break_after=10):
     """A wrapper around pprint.pprint -- for debugging, really."""
@@ -23,12 +24,14 @@ def pprint(value, break_after=10):
 
     value = pformat(value).decode('utf-8', 'replace')
 
-    return u'\u200B'.join([value[i:i+break_after] for i in xrange(0, len(value), break_after)])
+    return u'\u200B'.join([value[i:(i + break_after)] for i in xrange(0, len(value), break_after)])
+
 
 # seriously Django?
 @register.filter
 def subtract(value, amount):
     return int(value) - int(amount)
+
 
 @register.filter
 def has_charts(group):
@@ -39,13 +42,16 @@ def has_charts(group):
         db = 'default'
     return has_charts(db)
 
+
 @register.filter
 def as_sorted(value):
     return sorted(value)
 
+
 @register.filter
 def is_dict(value):
     return isinstance(value, dict)
+
 
 @register.filter
 def small_count(v):
@@ -62,6 +68,7 @@ def small_count(v):
                 return '%d%s' % (o, y)
             return '%.1f%s' % (v / float(x), y)
     return v
+
 
 @register.filter
 def with_priority(result_list, key='score'):
@@ -87,18 +94,22 @@ def with_priority(result_list, key='score'):
                 priority = 'verylow'
             yield result, priority
 
+
 @register.filter
 def num_digits(value):
     return len(str(value))
+
 
 @register.filter
 def to_json(data):
     return json.dumps(data)
 
+
 @register.simple_tag
 def sentry_version():
     import sentry
     return sentry.VERSION
+
 
 @register.filter
 def get_actions(group, request):
@@ -109,6 +120,7 @@ def get_actions(group, request):
     for action in action_list:
         yield action[0], action[1], request.path == action[1]
 
+
 @register.filter
 def get_panels(group, request):
     panel_list = []
@@ -118,6 +130,7 @@ def get_panels(group, request):
     for panel in panel_list:
         yield panel[0], panel[1], request.path == panel[1]
 
+
 @register.filter
 def get_widgets(group, request):
     for cls in GroupActionProvider.plugins.itervalues():
@@ -125,6 +138,7 @@ def get_widgets(group, request):
         resp = inst.widget(request, group.project, group)
         if resp:
             yield resp
+
 
 @register.filter
 def get_tags(group, request):
@@ -134,6 +148,7 @@ def get_tags(group, request):
         tag_list = inst.tags(request, tag_list, group.project, group)
     for tag in tag_list:
         yield tag
+
 
 @register.filter
 def timesince(value):
@@ -149,6 +164,7 @@ def timesince(value):
         return _('Yesterday')
     return value + _(' ago')
 
+
 @register.filter(name='truncatechars')
 @stringfilter
 def truncatechars(value, arg):
@@ -159,12 +175,13 @@ def truncatechars(value, arg):
     """
     try:
         length = int(arg)
-    except ValueError: # Invalid literal for int().
-        return value # Fail silently.
+    except ValueError:  # Invalid literal for int().
+        return value  # Fail silently.
     if len(value) > length:
         return value[:length] + '...'
     return value
 truncatechars.is_safe = True
+
 
 # XXX: this is taken from django-paging so that we may render
 #      a custom template, and not worry about INSTALLED_APPS

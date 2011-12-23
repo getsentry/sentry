@@ -17,6 +17,7 @@ from sentry.models import Group
 from sentry.plugins.sentry_redmine import conf
 from sentry.plugins.sentry_redmine.models import CreateRedmineIssue, RedmineIssue
 
+
 class CreateIssueTest(TestCase):
     fixtures = ['sentry/plugins/sentry_redmine/tests/fixtures/regression.json']
     urls = 'sentry.web.urls'

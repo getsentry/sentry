@@ -23,6 +23,7 @@ from sentry.utils.compat.db import connections
 
 logger = logging.getLogger('sentry.errors')
 
+
 class ScoreClause(object):
     def __init__(self, group):
         self.group = group
@@ -49,21 +50,22 @@ class ScoreClause(object):
 def count_limit(count):
     # TODO: could we do something like num_to_store = max(math.sqrt(100*count)+59, 200) ?
     # ~ 150 * ((log(n) - 1.5) ^ 2 - 0.25)
-    if count <= 50: # 200
+    if count <= 50:  # 200
         return 1
-    if count <= 1000: # 400
+    if count <= 1000:  # 400
         return 2
-    if count <= 10000: # 900
+    if count <= 10000:  # 900
         return 10
-    if count <= 100000: # 1800
+    if count <= 100000:  # 1800
         return 50
-    if count <= 1000000: # 3000
+    if count <= 1000000:  # 3000
         return 300
-    if count <= 10000000: # 4500
+    if count <= 10000000:  # 4500
         return 2000
     return 10000
 
-def time_limit(silence): # ~ 3600 per hour
+
+def time_limit(silence):  # ~ 3600 per hour
     if silence >= 3600:
         return 1
     if silence >= 360:
@@ -71,6 +73,7 @@ def time_limit(silence): # ~ 3600 per hour
     if silence >= 60:
         return 60
     return 10000
+
 
 class ModuleProxyCache(dict):
     def __missing__(self, key):
@@ -81,6 +84,7 @@ class ModuleProxyCache(dict):
         self[key] = handler
 
         return handler
+
 
 class GroupManager(models.Manager):
     use_for_related_fields = True
@@ -357,7 +361,7 @@ class GroupManager(models.Manager):
         if not has_charts(db):
             return []
 
-        hours = max_days*24
+        hours = max_days * 24
         today = datetime.datetime.now().replace(microsecond=0, second=0, minute=0)
         min_date = today - datetime.timedelta(hours=hours)
 
@@ -379,7 +383,7 @@ class GroupManager(models.Manager):
         while not rows.get(today - datetime.timedelta(hours=first_seen)) and first_seen > 24:
             first_seen -= 1
 
-        return [rows.get(today-datetime.timedelta(hours=d), 0) for d in xrange(first_seen, -1, -1)]
+        return [rows.get(today - datetime.timedelta(hours=d), 0) for d in xrange(first_seen, -1, -1)]
 
     def get_accelerated(self, queryset=None, minutes=15):
         # mintues should
@@ -405,11 +409,12 @@ class GroupManager(models.Manager):
             before_where=before_where,
             before_group=before_group,
             after_group=after_group,
-            min_time=minutes+1,
-            max_time=minutes*4,
+            min_time=minutes + 1,
+            max_time=minutes * 4,
         )
 
         return RawQuerySet(self, query, params)
+
 
 class RawQuerySet(object):
     def __init__(self, queryset, query, params):

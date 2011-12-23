@@ -19,9 +19,7 @@ import sys
 DEBUG = False
 TEMPLATE_DEBUG = True
 
-ADMINS = (
-    # ('Your Name', 'your_email@domain.com'),
-)
+ADMINS = ()
 
 INTERNAL_IPS = ('127.0.0.1',)
 
@@ -33,12 +31,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(PROJECT_ROOT, '..')))
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'sentry.db',                      # Or path to database file if using sqlite3.
-        'USER': '',                      # Not used with sqlite3.
-        'PASSWORD': '',                  # Not used with sqlite3.
-        'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
-        'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': 'sentry.db',
+        'USER': '',
+        'PASSWORD': '',
+        'HOST': '',
+        'PORT': '',
     }
 }
 
