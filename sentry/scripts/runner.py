@@ -51,6 +51,7 @@ SENTRY_WEB_LOG_FILE = os.path.join(ROOT, 'sentry.log')
 SENTRY_WEB_PID_FILE = os.path.join(ROOT, 'sentry.pid')
 """
 
+
 def copy_default_settings(filepath):
     """
     Creates a default settings file at ``filepath``.
@@ -64,6 +65,7 @@ def copy_default_settings(filepath):
 
         output = SETTINGS_TEMPLATE % dict(default_key=key)
         fp.write(output)
+
 
 def settings_from_file(filename, silent=False):
     """
@@ -88,8 +90,9 @@ def settings_from_file(filename, silent=False):
         if setting == setting.upper():
             setting_value = getattr(mod, setting)
             if setting in tuple_settings and type(setting_value) == str:
-                setting_value = (setting_value,) # In case the user forgot the comma.
+                setting_value = (setting_value,)  # In case the user forgot the comma.
             setattr(django_settings, setting, setting_value)
+
 
 class SentryServer(DaemonRunner):
     pidfile_timeout = 10
@@ -235,11 +238,13 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None):
             print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
             obj.delete()
 
+
 def upgrade(interactive=True):
     call_command('syncdb', database='default', interactive=interactive)
 
     if 'south' in django_settings.INSTALLED_APPS:
         call_command('migrate', database='default', interactive=interactive)
+
 
 def main():
     command_list = ('start', 'stop', 'restart', 'cleanup', 'upgrade')
