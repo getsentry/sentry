@@ -1,17 +1,23 @@
 Sentry
 ======
 
-Sentry provides you with a generic interface to view and interact with your error logs. By
-default, it will catch any exception thrown by Django and store it in a database. With this
-it allows you to interact and view near real-time information to discover issues and more
-easily trace them in your application.
+Sentry is a realtime event logging and aggregation platform. At it's core it
+specializes in monitoring errors and extracting all the information needed
+to do a proper post-mortum without any of the hassle of the standard user
+feedback loop.
 
-Sentry Client Changes
----------------------
+Sentry is a Server
+------------------
 
-As of 1.13.0 the built-in client has been deprecated. A new standalone project (which doesn't require Django)
-called `Raven <http://github.com/dcramer/raven>`_ will replace it. If you're just getting started
-with Sentry, or you want to use a client in a non-Django application, we suggest taking a look at Raven.
+The Sentry package at its core is just a simply server and web UI. It will
+handle authentication clients (such as `Raven <https://github.com/dcramer/raven>`_)
+and all of the logic behind storage and aggregation.
 
+The said, Sentry is not limited to Python. The primary implementation is in
+Python, but it contains a full API for sending events from any language, in
+any application.
+
+Documentation
+-------------
 
 Docs: http://readthedocs.org/docs/sentry/en/latest/index.html
