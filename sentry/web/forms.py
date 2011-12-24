@@ -1,7 +1,7 @@
 from django import forms
 
 from sentry.models import Project
-
+from sentry.interfaces import Http
 
 class EditProjectForm(forms.ModelForm):
     class Meta:
@@ -11,12 +11,9 @@ class EditProjectForm(forms.ModelForm):
 
 class ReplayForm(forms.Form):
     url = forms.URLField()
-    method = forms.ChoiceField(choices=((k, k) for k in (
-        'POST', 'GET', 'PUT', 'DELETE', 'HEAD', 'OPTIONS',
-        'CONNECT', 'TRACE',
-    )))
-    headers = forms.CharField(required=False, widget=forms.Textarea())
+    method = forms.ChoiceField(choices=((k, k) for k in Http.METHODS))
     data = forms.CharField(required=False, widget=forms.Textarea())
+    headers = forms.CharField(required=False, widget=forms.Textarea())
 
     def clean_headers(self):
         value = self.cleaned_data.get('headers')

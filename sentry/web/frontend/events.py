@@ -1,4 +1,5 @@
 import datetime
+import urllib
 
 from django.core.context_processors import csrf
 from django.views.decorators.csrf import csrf_protect
@@ -60,12 +61,11 @@ def replay_event(request, project_id, event_id):
         # TODO: show a proper error
         raise ValueError
     http = interfaces['sentry.interfaces.Http']
-
     initial = {
         'url': http.url,
         'method': http.method,
-        'headers': '\n'.join('%s: %v' % (k, v) for k, v in http.env.iteritems()),
-        'data': http.data,
+        'headers': '\n'.join('%s: %s' % (k, v) for k, v in http.env.iteritems()),
+        'data': urllib.urlencode(http.data),
     }
 
     form = ReplayForm(request.POST or None, initial=initial)
