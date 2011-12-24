@@ -1,4 +1,24 @@
 #!/usr/bin/env python
+"""
+Sentry
+======
+
+Sentry is a realtime event logging and aggregation platform. At it's core it
+specializes in monitoring errors and extracting all the information needed
+to do a proper post-mortum without any of the hassle of the standard user
+feedback loop.
+
+Sentry is a Server
+------------------
+
+The Sentry package at its core is just a simply server and web UI. It will
+handle authentication clients (such as `Raven <https://github.com/dcramer/raven>`_)
+and all of the logic behind storage and aggregation.
+
+The said, Sentry is not limited to Python. The primary implementation is in
+Python, but it contains a full API for sending events from any language, in
+any application.
+"""
 
 import sys
 
@@ -38,7 +58,8 @@ setup(
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/django-sentry',
-    description = 'Exception Logging to a Database in Django',
+    description='A realtime logging an aggregation server.',
+    long_description=__doc__,
     packages=find_packages(exclude=("example_project", "tests")),
     zip_safe=False,
     install_requires=install_requires,
@@ -46,7 +67,7 @@ setup(
     extras_require={'test': tests_require},
     test_suite='runtests.runtests',
     include_package_data=True,
-    entry_points = {
+    entry_points={
         'console_scripts': [
             'sentry = sentry.scripts.runner:main',
         ],
