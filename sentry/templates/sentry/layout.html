@@ -1,17 +1,19 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!DOCTYPE html>
 <html lang="en">
     <head>
         <meta http-equiv="content-type" content="text/html; charset=utf-8">
         <meta name="robots" content="NONE,NOARCHIVE">
+        <link href="{% url sentry-media "styles/bootstrap.min.css" %}" rel="stylesheet" type="text/css"/>
         <link href="{% url sentry-media "styles/global.css" %}" rel="stylesheet" type="text/css"/>
         <link href="{% url sentry-media "images/sentry.png" %}" rel="shortcut icon"/>
         <title>{% block title %}Sentry{% endblock %}</title>
         <script type="text/javascript" src="{% url sentry-media "scripts/jquery.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/jquery.flot.min.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/jquery.animate-colors-min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "scripts/bootstrap-dropdown.min.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/global.js" %}"></script>
         <script type="text/javascript">
         Sentry.config({
@@ -29,50 +31,78 @@
 
     <body>
         {% block body %}
-        <div id="header">
-            <div class="container">
-                <h1><a href="{% url sentry %}"><img src="{% url sentry-media "images/sentry.png" %}" border="0" width="32"/>Sentry</a></h1>
-                <h2>{% block heading %}{% trans "Dashboard" %}{% endblock %}</h2>
-                {% block search %}
-                    {% if project %}
-                        <form id="search" method="GET" action="{% url sentry-search project.pk %}">
-                            <input type="hidden" name="sort" value="{% if sort %}{{ sort }}{% endif %}"/>
-                            <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="{% if has_search %}search query or message id{% else %}message id{% endif %}"/>
-                            <button type="submit">{% trans "Go" %}</button>
-                        </form>
-                    {% endif %}
-                {% endblock %}
-            </div>
-        </div>
-        <div id="content">
-            {% block content_before %}
-            {% endblock %}
-            <div class="container">
-                {% block content %}
-                    <div id="sidebar" class="column">
-                        {% block sidebar %}
+        <header id="header">
+            <div class="topbar">
+                <div class="fill">
+                    <div class="container">
+                        <a class="brand" href="{% url sentry %}">Sentry</a>
+                        <ul class="nav">
+                            <li class="active"><a href="#">Home</a></li>
+                            <li><a href="#about">About</a></li>
+                            <li><a href="#contact">Contact</a></li>
+                        </ul>
+                        {% block search %}
+                        {% if project %}
+                            <form action="{% url sentry-search project.pk %}" class="pull-left" id="search">
+                                <input type="hidden" name="sort" value="{% if sort %}{{ sort }}{% endif %}"/>
+                                <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="{% if has_search %}search query or message id{% else %}message id{% endif %}"/>
+                            </form>
+                        {% endif %}
                         {% endblock %}
+                        <ul class="nav secondary-nav">
+                            {% if request.user.is_authenticated %}
+                                <li class="dropdown" data-dropdown="dropdown">
+                                    <a href="#" class="dropdown-toggle">{% trans "Account" %}</a>
+                                    <ul class="dropdown-menu">
+                                        <li><a href="{% url sentry-project-list %}">{% trans "Projects" %}</a></li>
+                                        <li class="divider"></li>
+                                        <li><a href="{% url sentry-logout %}">{% trans "Logout" %}</a></li>
+                                    </ul>
+                                </li>
+                            {% else %}
+                                <li><a href="{% url sentry-login %}">{% trans "Login" %}</a></li>
+                            {% endif %}
+                        </ul>
+<!--                   <form action="" class="pull-right">
+                    <input class="input-small" type="text" placeholder="Username">
+                    <input class="input-small" type="password" placeholder="Password">
+                    <button class="btn" type="submit">Sign in</button>
+                  </form>
+ -->                </div>
+                </div>
+            </div>
+        </header>
+        <section id="content">
+            <div class="container">
+                <div class="content">
+                    <div class="page-header">
+                        <h1>{% block heading %}Sentry <small>Supporting text or tagline</small>{% endblock %}</h1>
                     </div>
+                    <div class="row">
+                    {% block content_before %}
+                    {% endblock %}
+                    {% block content %}
+                        <div class="span12">
+                            {% block main %}
+                            {% endblock %}
+                        </div>
 
-                    <div id="body" class="with-sidebar column">
-                        {% block main %}
-                        {% endblock %}
+                        <div class="span4" id="sidebar">
+                            {% block sidebar %}
+                            {% endblock %}
+                        </div>
+                    {% endblock %}
+                    {% block content_after %}
+                    {% endblock %}
                     </div>
-                {% endblock %}
+                </div>
             </div>
-         </div>
-        <div id="footer">
+        </section>
+        <footer>
             <div class="container">
                 Sentry {% sentry_version %} | {% trans "Powered by sexy Django magic" %} | Conjured up by the <a href="http://code.disqus.com">DISQUS</a> team and other noble <a href="https://github.com/dcramer/django-sentry/contributors">sorcerers</a>. | <a href="https://github.com/dcramer/django-sentry">Contribute to Sentry</a>
-                <ul class="nav" id="account">
-                    {% if request.user.is_authenticated %}
-                        <li><a href="{% url sentry-logout %}">{% trans "Logout" %}</a></li>
-                    {% else %}
-                        <li><a href="{% url sentry-login %}">{% trans "Login" %}</a></li>
-                    {% endif %}
-                </ul>
             </div>
-        </div>
+        </footer>
         {% endblock %}
     </body>
 </html>
