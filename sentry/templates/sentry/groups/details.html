@@ -6,7 +6,7 @@
 {% block title %}{{ group.error }} | {{ block.super }}{% endblock %}
 
 {% block heading %}
-    {% trans "Event Details" %} <span><a href="{% url sentry project.pk %}">&laquo; {% trans "Back to list" %}</a></span>
+    {% trans "Event Details" %}</span>
 {% endblock %}
 
 {% block sidebar %}
@@ -63,7 +63,7 @@
         </li>
     </ul>
 
-    <ul class="nav" id="group_nav">
+    <ul class="tabs">
         <li{% ifequal page 'details' %} class="active"{% endifequal %}><a href="{% url sentry-group group.project_id group.pk %}">Details</a></li>
         <li{% ifequal page 'event_list' %} class="active"{% endifequal %}><a href="{% url sentry-group-events group.project_id group.pk %}">Events</a></li>
         {% for label, link, is_active in group|get_panels:request %}
@@ -148,15 +148,18 @@
                         {% endfor %}
                     </table>
                 </div>
-                {% endif %}
-            </div>
-        </div>
-        <div id="raw_traceback" style="display: none;">
-            {% if frames or message.traceback %}
-                <pre>{{ message.get_traceback }}</pre>
             {% endif %}
         </div>
     {% endblock %}
+{% endblock %}
+
+{% block content_after %}
+    {# TODO #}
+    <div id="raw_traceback" style="display: none;">
+        {% if frames or group.traceback %}
+            <pre>{{ group.get_traceback }}</pre>
+        {% endif %}
+    </div>
     <script type="text/javascript">
     $('.popup').click(function(){
         var $this = $(this);
@@ -217,96 +220,6 @@
                     lines: { show: false }
 
                 });
-
-                // new Highcharts.StockChart({
-                //     chart: {
-                //         renderTo: 'chart',
-                //         // zoomType: 'x',
-                //         // marginLeft: 50,
-                //         // marginRight: 20,
-                //         // marginTop: 20,
-                //         // marginBottom: 40,
-                //         backgroundColor: '#eeeeee',
-                //         // showAxes: false,
-                //         height: 300
-                //     },
-                //     title: {
-                //         text: false
-                //     },
-                //     xAxis: {
-                //         type: 'datetime',
-                //         maxZoom: 24 * 3600000, // 1 day
-                //         title: {
-                //             text: false
-                //         }
-                //     },
-                //     yAxis: {
-                //         title: {
-                //             text: false
-                //         }
-                //     },
-                //     rangeSelector: {
-                //         buttons: [{
-                //             type: 'minute',
-                //             count: 15,
-                //             text: '15m'
-                //         }, {
-                //             type: 'hour',
-                //             count: 1,
-                //             text: '1h'
-                //         }, {
-                //             type: 'day',
-                //             count: 1,
-                //             text: '1d'
-                //         }, {
-                //             type: 'all',
-                //             count: 1,
-                //             text: 'All'
-                //         }],
-                //         selected: 1,
-                //         inputEnabled: false
-                //    },
-                //     tooltip: {
-                //         formatter: function() {
-                //             var records = 0;
-                //             $.each(this.points, function(_, point){
-                //                 records += point.y;
-                //             });
-                //             return '<strong>'+
-                //                 Highcharts.dateFormat('%A %B %e %Y<br/>%I:00 %p', this.x) + '</strong><br/>'+
-                //                 records+' records';
-                //         }
-                //     },
-                //     series: [{
-                //         pointStart: new Date() - data.length * 3600000,
-                //         pointInterval: 3600 * 1000,
-                //         type: 'area',
-                //         data: data
-                //     }],
-                //     legend: {
-                //         enabled: false
-                //     },
-                //     plotOptions: {
-                //         area: {
-                //             lineWidth: 1,
-                //             marker: {
-                //                 enabled: false,
-                //                 states: {
-                //                     hover: {
-                //                         enabled: true,
-                //                         radius: 5
-                //                     }
-                //                 }
-                //             },
-                //             shadow: false,
-                //             states: {
-                //                 hover: {
-                //                     lineWidth: 1
-                //                 }
-                //             }
-                //         }
-                //     }
-                // });
             }
         });
     });
