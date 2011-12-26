@@ -12,7 +12,8 @@ from django.http import HttpResponse
 from django.template import loader
 
 from sentry.conf import settings
-from sentry.models import Project
+from sentry.models import ProjectMember, Project
+
 
 def get_project_list(user=None, flag=None):
     """
@@ -20,10 +21,15 @@ def get_project_list(user=None, flag=None):
     """
     projects = dict((p.pk, p) for p in Project.objects.filter(public=True))
     if user.is_authenticated():
-        projects.update(dict((p.pk, p) for p in Project.objects.filter(member_set__user=user) if (not flag or p.has_perm(flag))))
+        projects.update(dict(
+            (pm.project_id, pm.project)
+            for pm in ProjectMember.objects.filter(user=user).select_related('project')
+            if (not flag or pm.has_perm(flag))))
     return projects
 
 _LOGIN_URL = None
+
+
 def get_login_url(reset=False):
     global _LOGIN_URL
 
@@ -38,14 +44,16 @@ def get_login_url(reset=False):
             _LOGIN_URL = dj_settings.LOGIN_URL
 
         if _LOGIN_URL is None:
-             _LOGIN_URL = reverse('sentry-login')
+            _LOGIN_URL = reverse('sentry-login')
     return _LOGIN_URL
+
 
 def iter_data(obj):
     for k, v in obj.data.iteritems():
         if k.startswith('_') or k in ['url']:
             continue
         yield k, v
+
 
 def render_to_string(template, context={}):
     context.update({
@@ -54,6 +62,7 @@ def render_to_string(template, context={}):
     })
 
     return loader.render_to_string(template, context)
+
 
 def render_to_response(template, context={}, status=200):
     response = HttpResponse(render_to_string(template, context))
