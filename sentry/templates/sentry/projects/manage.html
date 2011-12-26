@@ -22,19 +22,21 @@
         <li><a href="{% url sentry-project-list %}">{% trans "Projects" %}</a> <span class="divider">/</span></li>
         <li class="active">{% trans "Manage Project" %}</li>
     </ul>
-    <p>Here you can edit project information, as well as control the access list for a project with fine-grained permissions.</p>
+    <p>{% trans "Here you can edit project information, as well as control the access list for a project with fine-grained permissions." %}</p>
     <hr>
+    <div class="page-header">
+        <h2>{% trans "Project Details" %}</h2>
+    </div>
     {% if request.GET.success %}
-        <div class="alert-message success">Changes to your project were saved successfully.</div>
+        <div class="alert-message success">{% trans "Changes to your project were saved successfully." %}</div>
     {% else %}
-        {% if form.errors or pm_formset.errors %}
-            <div class="alert-message error">Please correct the errors below.</div>
+        {% if form.errors %}
+            <div class="alert-message error">{% trans "Please correct the errors below." %}</div>
         {% endif %}
     {% endif %}
     <form class="form-stacked" action="" method="post">
         {% csrf_token %}
         <fieldset>
-            <legend>{% trans "Project Details" %}</legend>
             {% for field in form %}
                 <div class="clearfix{% if field.errors %} error{% endif %}">
                     {{ field.label_tag }}
@@ -45,52 +47,50 @@
                 </div>
             {% endfor %}
         </fieldset>
-        <fieldset>
-            {{ pm_formset.management_form }}
-            <legend>{% trans "Access" %}</legend>
-            <table class="bordered-table zebra-striped">
-                <colgroup>
-                    <col width="100px"/>
-                    <col/>
-                    <col width="16px"/>
-                </colgroup>
-                <thead>
-                    <tr>
-                        <th>Username</th>
-                        <th>Access</th>
-                        <th>X</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for pm_form in pm_formset %}
-                        <tr>
-                            <td{% if pm_form.errors.user %} class="error"{% endif %}>
-                                {{ pm_form.user }}
-                                {% if pm_form.errors.user %}
-                                    <ul class="unstyled">
-                                        {% for error in pm_form.errors.user %}
-                                            <li>{{ error }}</li>
-                                        {% endfor %}
-                                    </ul>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div class="clearfix">
-                                    <label>{{ pm_form.is_superuser }} Superuser (all permissions)</label>
-                                </div>
-                                {{ pm_form.permissions }}
-                            </td>
-                            <td>
-                                {{ pm_form.id }}
-                                {{ pm_form.DELETE }}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </fieldset>
         <p class="actions">
             <button type="submit" class="btn primary">{% trans "Save Changes" %}</button>
         </p>
     </form>
+    <div class="page-header">
+        <a href="{% url sentry-new-project-member project.pk %}" class="btn pull-right small primary">+ New Member</a>
+        <h2>{% trans "Members" %}</h2>
+    </div>
+    <table class="bordered-table zebra-striped">
+        <colgroup>
+            <col width="100px"/>
+            <col/>
+            <col width="50px"/>
+        </colgroup>
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Access</th>
+                <th>&nbsp;</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for member, user, permissions in member_list %}
+                <tr>
+                    <td><a href="{% url sentry-edit-project-member project.pk member.pk %}">{{ user.username }}</a></td>
+                    <td>
+                        {% if member.is_superuser %}
+                            <strong>superuser</strong>
+                        {% else %}
+                            {% for perm in permissions %}
+                                {{ perm }}
+                                {% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user == project.owner %}
+                            <em>owner</em>
+                        {% else %}
+                            <a href="" class="btn small danger">Delete</a>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 {% endblock %}

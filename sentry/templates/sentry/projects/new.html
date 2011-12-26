@@ -4,16 +4,14 @@
 
 {% block title %}{% trans "New Project" %} | {{ block.super }}{% endblock %}
 
-{% block heading %}
-    {% blocktrans with project.name as name %}New Project{% endblocktrans %}
-{% endblock %}
+{% block heading %}{% trans "New Project" %}{% endblock %}
 
 {% block main %}
     <ul class="breadcrumb">
         <li><a href="{% url sentry-project-list %}">{% trans "Projects" %}</a> <span class="divider">/</span></li>
         <li class="active">{% trans "New Project" %}</li>
     </ul>
-    <p>Use this page to create a new project within Sentry. Once done, you'll be able to add members (whether they're system or actual users), as well as configure your client to send messages to this project.</p>
+    <p>{% trans "Use this page to create a new project within Sentry. Once done, you'll be able to add members (whether they're system or actual users), as well as configure your client to send messages to this project." %}</p>
     <hr>
     <form class="form-stacked" action="" method="post">
         {% csrf_token %}

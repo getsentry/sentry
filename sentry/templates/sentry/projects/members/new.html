@@ -1,0 +1,61 @@
+{% extends "sentry/projects/manage.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "New Member" %} | {{ block.super }}{% endblock %}
+
+{% block heading %}{% trans "New Member" %}{% endblock %}
+
+{% block main %}
+    <ul class="breadcrumb">
+        <li><a href="{% url sentry-project-list %}">{% trans "Projects" %}</a> <span class="divider">/</span></li>
+        <li><a href="{% url sentry-manage-project project.pk %}">{% trans "Manage Project" %}</a> <span class="divider">/</span></li>
+        <li class="active">{% trans "New Member" %}</li>
+    </ul>
+    {% if form.errors %}
+        <div class="alert-message error">{% trans "Please correct the errors below." %}</div>
+    {% endif %}
+    <form class="form-stacked" action="" method="post">
+        {% csrf_token %}
+        <fieldset>
+            <div class="page-header">
+                <h2>{% trans "Details" %}</h2>
+            </div>
+            <div class="clearfix{% if form.user.errors %} error{% endif %}">
+                {{ form.user.label_tag }}
+                <div class="input">{{ form.user }}</div>
+                {% if form.user.help_text %}
+                    <span class="help-inline">{{ form.user.help_text }}</span>
+                {% endif %}
+                {% if form.user.errors %}
+                    {% for error in form.user.errors %}
+                        <span class="help-block error">{{ error }}</span>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </fieldset>
+        <fieldset>
+            <div class="page-header">
+                <h2>{% trans "Access" %}</h2>
+            </div>
+            <div class="clearfix{% if form.is_superuser.errors %} error{% endif %}">
+                <div class="input">
+                    <label>{{ form.is_superuser }} This member is a <strong>superuser</strong></label>
+                </div>
+                {% if form.is_superuser.help_text %}
+                    <span class="help-block">{{ form.is_superuser.help_text }}</span>
+                {% endif %}
+            </div>
+            <div class="clearfix{% if form.permissions.errors %} error{% endif %}">
+                {{ form.permissions.label_tag }}
+                <div class="input">{{ form.permissions }}</div>
+                {% if form.permissions.help_text %}
+                    <span class="help-block">{{ form.permissions.help_text }}</span>
+                {% endif %}
+            </div>
+        </fieldset>
+        <div class="actions">
+            <button type="submit" class="btn primary">{% trans "Save Changes" %}</button>
+        </div>
+    </form>
+{% endblock %}

@@ -96,28 +96,17 @@ class EditProjectForm(forms.ModelForm):
         model = Project
 
 
-class ProjectMemberForm(forms.ModelForm):
-    user = UserField()
+class BaseProjectMemberForm(forms.ModelForm):
     permissions = forms.MultipleChoiceField(choices=PERMISSIONS, widget=BitFieldCheckboxSelectMultiple(), required=False)
-    is_superuser = forms.BooleanField(required=False)
+    is_superuser = forms.BooleanField(required=False, help_text="Grants the user all permissions")
 
     class Meta:
-        fields = ('is_superuser', 'permissions', 'user')
+        fields = ('is_superuser', 'permissions')
         model = ProjectMember
 
-    # def __init__(self, project, *args, **kwargs):
-    #     self.project = project
-    #     super(ProjectMemberForm, self).__init__(*args, **kwargs)
-
-    def clean_user(self):
-        value = self.cleaned_data['user']
-        if not value:
-            return None
-
-        # if self.project.member_set.filter(user=value).exists():
-        #     raise forms.ValidationError('User already a member of project')
-
-        return value
+    def __init__(self, project, *args, **kwargs):
+        self.project = project
+        super(BaseProjectMemberForm, self).__init__(*args, **kwargs)
 
     def clean_permissions(self):
         value = self.cleaned_data['permissions']
@@ -128,6 +117,27 @@ class ProjectMemberForm(forms.ModelForm):
         for k in value:
             setattr(result, k, True)
         return int(result)
+
+
+EditProjectMemberForm = BaseProjectMemberForm
+
+
+class NewProjectMemberForm(BaseProjectMemberForm):
+    user = UserField()
+
+    class Meta:
+        fields = ('user', 'is_superuser', 'permissions')
+        model = ProjectMember
+
+    def clean_user(self):
+        value = self.cleaned_data['user']
+        if not value:
+            return None
+
+        if self.project.member_set.filter(user=value).exists():
+            raise forms.ValidationError('User already a member of project')
+
+        return value
 
 
 class ReplayForm(forms.Form):
