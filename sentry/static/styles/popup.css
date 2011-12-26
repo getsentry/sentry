@@ -1,0 +1,15 @@
+html, body {
+    background-color: #eee;
+    padding: 5px;
+    margin: 0;
+}
+pre {
+    margin: 0;
+    padding: 10px;
+    background-color: #f5f5f5;
+    display: block;
+    font-size: 12px;
+    white-space: pre;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}

@@ -3,7 +3,7 @@
 
 <div id="request" class="module">
     <div class="page-header">
-        <a href="{% url sentry-replay event.project_id event.id %}" class="btn small pull-right">Replay this request</a>
+        <a href="{% url sentry-replay event.project_id event.id %}" class="btn small pull-right">{% trans "Replay this request" %}</a>
         <h2>{% trans "Request" %}</h2>
     </div>
     <div class="module-content">
@@ -13,23 +13,29 @@
             </colgroup>
             <tbody>
                 <tr>
-                    <th>URL:</th>
+                    <th>{% trans "URL:" %}</th>
                     <td><a href="{{ url }}">{{ url|escape }}</a></td>
                 </tr>
                 <tr>
-                    <th>Method:</th>
+                    <th>{% trans "Method:" %}</th>
                     <td>{{ method }}</td>
                 </tr>
                 <tr>
-                    <th>Query:</th>
-                    <td>{{ query_string }}</td>
+                    <th>{% trans "Query:" %}</th>
+                    <td>
+                        {% if query_string %}
+                            {{ query_string }}
+                        {% else %}
+                            <em>{% trans "No query string." %}</em>
+                        {% endif %}
+                    </td>
                 </tr>
                 <tr>
-                    <th>Body:</th>
+                    <th>{% trans "Body:" %}</th>
                     <td>
                         {% if data %}
                             {% if data|length > 5 %}
-                                <a href="#" onclick="return varToggle(this, 'HttpBody')"><span>&#x25b6;</span> Body</a>
+                                <a href="#" onclick="return varToggle(this, 'HttpBody')"><span>&#x25b6;</span> {% trans "Body" %}</a>
                                 <div id="vHttpBody" style="display:none;">
                                     <pre>{{ printed_data|escape }}</pre>
                                 </div>
@@ -37,16 +43,16 @@
                                 <pre>{{ data|pprint|escape }}</pre>
                             {% endif %}
                         {% else %}
-                            <em>No post body.</em>
+                            <em>{% trans "No post body." %}</em>
                         {% endif %}
                     </td>
                 </tr>
                 <tr>
-                    <th>Headers:</th>
+                    <th>{% trans "Headers:" %}</th>
                     <td>
                         {% if headers %}
                             {% if headers|length > 5 %}
-                                <a href="#" onclick="return varToggle(this, 'HttpHeaders')"><span>&#x25b6;</span> Headers</a>
+                                <a href="#" onclick="return varToggle(this, 'HttpHeaders')"><span>&#x25b6;</span> {% trans "Headers" %}</a>
                                 <table class="vars" id="vHttpHeaders" style="display:none;">
                                   <tbody>
                                     {% for key, value in headers.iteritems|as_sorted %}
@@ -70,16 +76,16 @@
                                 </table>
                             {% endif %}
                         {% else %}
-                            <em>No headers recorded.</em>
+                            <em>{% trans "No headers recorded." %}</em>
                         {% endif %}
                     </td>
                 </tr>
                 <tr>
-                    <th>Environment:</th>
+                    <th>{% trans "Environment:" %}</th>
                     <td>
                         {% if env %}
                             {% if env|length > 5 %}
-                                <a href="#" onclick="return varToggle(this, 'HttpEnv')"><span>&#x25b6;</span> Environment</a>
+                                <a href="#" onclick="return varToggle(this, 'HttpEnv')"><span>&#x25b6;</span> {% trans "Environment" %}</a>
                                 <table class="vars" id="vHttpEnv" style="display:none;">
                                   <tbody>
                                     {% for key, value in env.iteritems|as_sorted %}
@@ -103,7 +109,7 @@
                                 </table>
                             {% endif %}
                         {% else %}
-                            <em>No environment recorded.</em>
+                            <em>{% trans "No environment recorded." %}</em>
                         {% endif %}
                     </td>
                 </tr>

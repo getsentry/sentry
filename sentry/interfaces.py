@@ -137,6 +137,7 @@ class Stacktrace(Interface):
         return render_to_string('sentry/partial/interfaces/stacktrace.html', {
             'event': event,
             'frames': frames,
+            'stacktrace': self.get_traceback(event),
         })
 
     def to_string(self, event):

@@ -2,6 +2,7 @@
 
 <div id="traceback" class="module">
     <div class="page-header">
+      <a href="" data-container="#raw_stacktrace" data-title="Stacktrace" class="popup btn small pull-right">Raw Stacktrace</a>
       <h2>{% trans "Stacktrace" %}</h2>
     </div>
     <div class="module-content">
@@ -48,4 +49,8 @@
         </div>
         {% endautoescape %}
     </div>
+</div>
+
+<div id="raw_stacktrace" style="display: none;">
+    <pre>{{ stacktrace }}</pre>
 </div>
