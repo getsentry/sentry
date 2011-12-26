@@ -55,7 +55,9 @@ def iter_data(obj):
         yield k, v
 
 
-def render_to_string(template, context={}, request=None):
+def render_to_string(template, context=None, request=None):
+    if context is None:
+        context = {}
     context.update({
         'has_search': False,
         'MESSAGES_PER_PAGE': settings.MESSAGES_PER_PAGE,
@@ -69,7 +71,7 @@ def render_to_string(template, context={}, request=None):
     return loader.render_to_string(template, context)
 
 
-def render_to_response(template, context={}, request=None, status=200):
+def render_to_response(template, context=None, request=None, status=200):
     response = HttpResponse(render_to_string(template, context, request))
     response.status_code = status
 

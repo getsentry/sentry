@@ -102,6 +102,20 @@
             <pre id="full-message">{{ group.message }}</pre>
         {% endif %}
 
+        {% if group|has_charts %}
+            <div class="module">
+                <div class="page-header">
+                    <h2>{% trans "Frequency" %}</h2>
+                </div>
+                <div class="module-content">
+                    <div id="chart">
+                        <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
+                        <p>Loading...</p>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
         {% if version_data %}
             <div id="versioninfo" class="module">
                 <div class="page-header">
@@ -123,20 +137,6 @@
         {% for interface in interface_list %}
             {{ interface }}
         {% endfor %}
-
-        {% if group|has_charts %}
-            <div class="module">
-                <div class="page-header">
-                    <h2>{% trans "Frequency" %}</h2>
-                </div>
-                <div class="module-content">
-                    <div id="chart">
-                        <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
-                        <p>Loading...</p>
-                    </div>
-                </div>
-            </div>
-        {% endif %}
 
         {% if json_data %}
         <div id="requestinfo" class="module">
@@ -223,7 +223,7 @@
                 for (var i=0; i<data.length; i++) {
                     pairs.push([start + (3600 * 1000) * i, data[i]]);
                 }
-                $('#chart').height(200);
+                $('#chart').height(120);
                 $.plot($("#chart"), [
                     {
                         data: pairs,
@@ -240,9 +240,9 @@
                        mode: "time"
                     },
                     grid: {
-                        borderColor: '#aaaaaa',
+                        borderColor: '#dddddd',
                         borderWidth: 1,
-                        backgroundColor: '#eeeeee'
+                        backgroundColor: '#F5F5F5'
                     },
                     lines: { show: false }
 
