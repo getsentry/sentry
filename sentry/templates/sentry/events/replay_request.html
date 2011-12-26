@@ -7,43 +7,33 @@
 {% block heading %}{% trans "Replay Request" %}{% endblock %}
 
 {% block content %}
-    <div id="body">
-        <h2>Request</h2>
+    <div class="span16">
         {% if form.errors %}
             <p class="error">{% trans "Please fill out all fields." %}</p>
         {% endif %}
 
-        <form method="post" action="" class="replay-form">
+        <form class="form-stacked" action="" method="post">
             {% csrf_token %}
-            <table>
-                <colgroup>
-                    <col width="100px"/>
-                    <col/>
-                </colgroup>
-                <tr>
-                    <td>{{ form.url.label_tag }}</td>
-                    <td>{{ form.url }}</td>
-                </tr>
-                <tr>
-                    <td>{{ form.method.label_tag }}</td>
-                    <td>{{ form.method }}</td>
-                </tr>
-                <tr>
-                    <td>{{ form.data.label_tag }}</td>
-                    <td>{{ form.data }}</td>
-                </tr>
-                <tr>
-                    <td>{{ form.headers.label_tag }}</td>
-                    <td>{{ form.headers }}</td>
-                </tr>
-            </table>
-            <div class="submit">
-                <button type="submit" class="button">{% trans "Submit" %}</button>
-            </div>
+            <fieldset>
+                {% for field in form %}
+                    <div class="clearfix{% if field.errors %} error{% endif %}">
+                        {{ field.label_tag }}
+                        <div class="input">{{ field }}</div>
+                        {% if field.help_text %}
+                            <span class="help-block">{{ field.help_text }}</span>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </fieldset>
+            <p class="actions">
+                <button type="submit" class="btn primary">{% trans "Submit" %}</button>
+            </p>
         </form>
 
         {% if result %}
-            <h2>Result</h2>
+            <div class="page-header">
+                <h2>Result</h2>
+            </div>
             <pre><strong>{{ result.status }} {{ result.reason }}</strong>
 {% for key, value in result.headers %}{{ key }}: {{ value }}
 {% endfor %}

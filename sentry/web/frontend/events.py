@@ -63,7 +63,7 @@ def replay_event(request, project_id, event_id):
     initial = {
         'url': http.url,
         'method': http.method,
-        'headers': '\n'.join('%s: %s' % (k, v) for k, v in http.env.iteritems()),
+        'headers': '\n'.join('%s: %s' % (k, v) for k, v in http.env.iteritems() if k[0].upper() == k[0]),
         'data': urllib.urlencode(http.data),
     }
 

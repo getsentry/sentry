@@ -141,10 +141,10 @@ class NewProjectMemberForm(BaseProjectMemberForm):
 
 
 class ReplayForm(forms.Form):
-    url = forms.URLField()
+    url = forms.URLField(widget=forms.TextInput(attrs={'class': 'span8'}))
     method = forms.ChoiceField(choices=((k, k) for k in Http.METHODS))
-    data = forms.CharField(required=False, widget=forms.Textarea())
-    headers = forms.CharField(required=False, widget=forms.Textarea())
+    data = forms.CharField(required=False, widget=forms.Textarea(attrs={'class': 'span8'}))
+    headers = forms.CharField(required=False, widget=forms.Textarea(attrs={'class': 'span8'}))
 
     def clean_headers(self):
         value = self.cleaned_data.get('headers')
