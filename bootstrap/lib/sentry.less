@@ -145,9 +145,21 @@ ol.context-line {
   }
 }
 
+
+// Vars display
 table.vars {
   .condensed-table;
+  td.code {
+    > pre {
+      background-color: lighten(@orange, 40%);
+      color: rgba(0,0,0,.75);
+      padding: 1px 3px;
+      border: 0;
+    }
+  }
 }
+
+// Generic module stuff
 
 .module {
   margin-bottom: 20px;
