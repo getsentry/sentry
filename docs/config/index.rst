@@ -75,6 +75,21 @@ This document describes additional configuration options available to the Sentry
 		    'sentry.filters.SiteFilter',
 		)
 
+.. data:: sentry.conf.LOG_LEVELS
+    :noindex:
+
+    A list of log levels, with their numeric value, as well as their short name.
+
+    ::
+
+        LOG_LEVELS = (
+            (logging.DEBUG, 'debug'),
+            (logging.INFO, 'info'),
+            (logging.WARNING, 'warning'),
+            (logging.ERROR, 'error'),
+            (logging.FATAL, 'fatal'),
+        )
+
 Notifications
 -------------
 
