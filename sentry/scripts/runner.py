@@ -12,9 +12,12 @@ from daemon.daemon import DaemonContext
 from daemon.runner import DaemonRunner, make_pidlockfile
 from django.conf import settings as django_settings
 from django.core.management import call_command
-from eventlet import wsgi
+from eventlet import wsgi, patcher
 from optparse import OptionParser
 from sentry import VERSION
+
+patcher.monkey_patch()
+
 
 KEY_LENGTH = 40
 
