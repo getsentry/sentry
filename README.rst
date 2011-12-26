@@ -17,7 +17,9 @@ The said, Sentry is not limited to Python. The primary implementation is in
 Python, but it contains a full API for sending events from any language, in
 any application.
 
-Documentation
--------------
+Links
+-----
 
-Docs: http://readthedocs.org/docs/sentry/en/latest/index.html
+* `Documentation <http://readthedocs.org/docs/sentry/en/latest/index.html>`_
+* `Bug Tracker <http://github.com/dcramer/django-sentry/issues>`_
+* `Code <http://github.com/dcramer/django-sentry>`_
