@@ -3,98 +3,109 @@ Configuration
 
 This document describes additional configuration options available to the Sentry server. If you are looking for documentation for the client, it is maintained in the `Raven <http://github.com/dcramer/raven>`_ project.
 
-Integration with ``haystack`` (Search)
---------------------------------------
+.. note:: While the optiosn below are labeled without the ``SENTRY_`` prefix, when you are configuring them via your ``settings.py`` you **must* specify the prefix.
 
-(This support is still under development)
+.. data:: sentry.conf.ADMINS
+    :noindex:
 
-Note: You will need to install a forked version of Haystack which supports additional configuration. It can be obtained on `GitHub <http://github.com/disqus/django-haystack>`_.
+    A list of email address to send notification emails to.
 
-Start by configuring your Sentry search backend::
+    Defaults to ``[]``.
 
-	SENTRY_SEARCH_ENGINE = 'solr'
-	SENTRY_SEARCH_OPTIONS = {
-	    'url': 'http://127.0.0.1:8983/solr'
-	}
+	On smaller sites you may wish to enable throttled emails, we recommend doing this by first
+	removing the ``ADMINS`` setting in Django, and adding in ``SENTRY_ADMINS``::
 
-Or if you want to use Whoosh (you shouldn't)::
+		# Disable the default admins (for email)
+		ADMINS = ()
+		# Set Sentry's ADMINS to a raw list of email addresses
+		SENTRY_ADMINS = ('root@localhost',)
 
-	SENTRY_SEARCH_ENGINE = 'whoosh'
-	SENTRY_SEARCH_OPTIONS = {
-	    'path': os.path.join(PROJECT_ROOT, 'sentry_index')
-	}
+	This will send out a notification the first time an error is seen, and the first time an error is
+	seen after it has been resolved.
 
-Now ensure you've added ``haystack`` to the ``INSTALLED_APPS`` on Sentry's server::
+.. data:: sentry.conf.MAIL_LEVEL
+    :noindex:
 
-	INSTALLED_APPS = INSTALLED_APPS + ('haystack',)
+	.. versionadded:: 1.10.0
 
-When calling Haystack's Django management commands, you'll need to identify Sentry to Haystack by explicitly including the ``--site`` parameter::
+	The threshold level to restrict emails to.
 
-	python manage.py build_solr_schema --site=sentry.search_indexes.site
+	Defaults to ``logging.DEBUG``.
 
-Enjoy!
+	::
 
-Other Settings
---------------
+		SENTRY_MAIL_LEVEL = logging.DEBUG
 
-Several options exist to configure django-sentry via your configuration module:
+.. data:: sentry.conf.MAIL_INCLUDE_LOGGERS
+    :noindex:
 
-SENTRY_ADMINS
-~~~~~~~~~~~~~
+	.. versionadded:: 1.10.0
 
-On smaller sites you may wish to enable throttled emails, we recommend doing this by first
-removing the ``ADMINS`` setting in Django, and adding in ``SENTRY_ADMINS``::
+	An explicit list of all logger names to restrict emails to.
 
-	ADMINS = ()
-	SENTRY_ADMINS = ('root@localhost',)
+	Defaults to ``None``, which means to "all loggers".
 
-This will send out a notification the first time an error is seen, and the first time an error is
-seen after it has been resolved.
+	::
 
-SENTRY_MAIL_LEVEL
-~~~~~~~~~~~~~~~~~
+		SENTRY_MAIL_INCLUDE_LOGGERS = (
+		  'my.custom.logger.name',
+		)
 
-.. versionadded:: 1.10.0
+.. data:: sentry.conf.MAIL_INCLUDE_LOGGERS
+    :noindex:
 
-The threshold level to restrict emails to. Defaults to ``logging.DEBUG``.
+	.. versionadded:: 1.10.0
 
-SENTRY_MAIL_INCLUDE_LOGGERS
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	An explicit list of all logger names to exclude from emails.
 
-.. versionadded:: 1.10.0
+	Defaults to ``[]``.
 
-An explicit list of all logger names to restrict emails to. Defaults to ``None``, which
-translates to "all loggers".
+	::
 
-SENTRY_MAIL_EXCLUDE_LOGGERS
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+		SENTRY_MAIL_EXCLUDE_LOGGERS = (
+		  'some.annoying.logger',
+		)
 
-.. versionadded:: 1.10.0
+.. data:: sentry.conf.URL_PREFIX
+    :noindex:
 
-An explicit list of all logger names to exclude from emails. Defaults to ``[]``.
+	Absolute URL to the sentry root directory. Should not include a trailing slash.
 
-SENTRY_URL_PREFIX
-~~~~~~~~~~~~~~~~~
+	Defaults to ``""``.
 
-Absolute URL to the sentry root directory. Should not include a trailing slash. Defaults to ``""``.
+	::
 
-SENTRY_PUBLIC
-~~~~~~~~~~~~~
+		SENTRY_URL_PREFIX = '/sentry'
 
-Should Sentry be protected by a username and password (using @login_required) or be publicly accessible. Defaults to ``False`` (password protection).
+.. data:: sentry.conf.PUBLIC
+    :noindex:
 
-SENTRY_SAMPLE_DATA
-~~~~~~~~~~~~~~~~~~
+	Should Sentry be protected by a username and password (using @login_required) or be publicly accessible.
 
-.. versionadded:: 1.10.0
+	Defaults to ``False`` (password protection).
 
-Controls sampling of data. Defaults to ``True``.
+	::
 
-If this is enabled, data will be sampled in a manner similar to the following:
+		SENTRY_PUBLIC = True
 
-* 50 messages stores ~50 results
-* 1000 messages stores ~400 results
-* 10000 messages stores ~900 results
-* 100000 messages stores ~1800 results
-* 1000000 messages stores ~3600 results
-* 10000000 messages stores ~4500 results
+.. data:: sentry.conf.SAMPLE_DATA
+    :noindex:
+
+	.. versionadded:: 1.10.0
+
+	Controls sampling of data.
+
+	Defaults to ``True``.
+
+	If this is enabled, data will be sampled in a manner similar to the following:
+
+	* 50 messages stores ~50 results
+	* 1000 messages stores ~400 results
+	* 10000 messages stores ~900 results
+	* 100000 messages stores ~1800 results
+	* 1000000 messages stores ~3600 results
+	* 10000000 messages stores ~4500 results
+
+	::
+
+		SENTRY_SAMPLE_DATA = False
