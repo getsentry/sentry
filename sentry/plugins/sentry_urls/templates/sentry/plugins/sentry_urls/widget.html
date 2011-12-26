@@ -1,12 +1,15 @@
+{% load i18n %}
 {% load sentry_helpers %}
 
 {% with group.unique_urls|slice:"10" as unique_urls %}
     {% if unique_urls %}
-        <h2>URLs</h2>
+        <div class="page-header">
+            <h3>{% trans "URLs" %}</h3>
+        </div>
 
         <ul class="url-list">
-            {% for link, priority in unique_urls|with_priority:1 %}
-                <li class="priority-{{ priority }}"><span class="count">{{ link.1|small_count }}</span> <a href="{{ link.0 }}">{{ link.0 }}</a></li>
+            {% for link in unique_urls %}
+                <li><span class="count">{{ link.1|small_count }}</span> <a href="{{ link.0 }}">{{ link.0 }}</a></li>
             {% endfor %}
         </ul>
     {% endif %}

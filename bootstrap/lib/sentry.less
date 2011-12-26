@@ -23,10 +23,17 @@
     color: @grayLight;
   }
 }
-.dropdown-menu > li.active a {
+.dropdown-menu > li.active a,
+.dropdown-menu > li.disabled a {
   color: @grayLight;
   border-color: transparent;
   cursor: default;
+}
+
+.tabs {
+  > li.pull-right {
+    float: right;
+  }
 }
 
 // Tweaks to Topbar

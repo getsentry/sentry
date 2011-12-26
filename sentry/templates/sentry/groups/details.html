@@ -19,14 +19,10 @@
 {% endblock %}
 
 {% block sidebar %}
-    <ul>
-        {# We're going to move these to the resolve action location #}
-        {% for label, link, is_active in group|get_actions:request %}
-            <li><a href="{{ link }}">{{ label }}</a></li>
-        {% endfor %}
-    </ul>
+    <div class="page-header">
+        <h3>Aggregate Details</h3>
+    </div>
 
-    <h2>Aggregate Details</h2>
     <dl class="flat">
         <dt>{% trans "Logger:" %}</dt>
         <dd><a href="{% url sentry project.pk %}?logger={{ group.logger }}">{{ group.logger }}</a></dd>
@@ -66,18 +62,38 @@
                 {% for tag in group|get_tags:request %}<span class="tag">{{ tag }}</span> {% endfor %}
                 {{ group.error }}
             </p>
-            {% if group.status == 0 %}
-                <a href="{% url sentry-ajax group.project_id %}?op=resolve&amp;gid={{ group.pk }}" class="hidden button button_resolve">&#10003;</a>
-            {% endif %}
         </li>
     </ul>
 
     <ul class="tabs">
-        <li{% ifequal page 'details' %} class="active"{% endifequal %}><a href="{% url sentry-group group.project_id group.pk %}">Details</a></li>
-        <li{% ifequal page 'event_list' %} class="active"{% endifequal %}><a href="{% url sentry-group-events group.project_id group.pk %}">Events</a></li>
+        <li{% ifequal page 'details' %} class="active"{% endifequal %}>
+            <a href="{% url sentry-group group.project_id group.pk %}">{% trans "Details" %}</a>
+        </li>
+        <li{% ifequal page 'event_list' %} class="active"{% endifequal %}>
+            <a href="{% url sentry-group-events group.project_id group.pk %}">{% trans "Events" %}</a>
+        </li>
         {% for label, link, is_active in group|get_panels:request %}
             <li{% if is_active %} class="active"{% endif %}><a href="{{ link }}">{{ label }}</a></li>
         {% endfor %}
+        <li class="dropdown pull-right" data-dropdown="dropdown">
+            <a class="dropdown-toggle">{% trans "Actions" %}</a>
+            <ul class="dropdown-menu">
+                {# We're going to move these to the resolve action location #}
+                {% if group.status == 0 %}
+                    <li><a href="{% url sentry-ajax group.project_id %}?op=resolve&amp;gid={{ group.pk }}">{% trans "&#10003; Mark as Resolved" %}</a></li>
+                {% else %}
+                    <li class="disabled"><a>{% trans "&#10003; Already Resolved" %}</a></li>
+                {% endif %}
+                {% for label, link, is_active in group|get_actions:request %}
+                    {% if forloop.first %}
+                        <li class="divider"></li>
+                    {% endif %}
+                    <li><a href="{{ link }}">{{ label }}</a></li>
+                {% endfor %}
+            </ul>
+        </li>
+    </ul>
+
     </ul>
 
     {% block inner %}

@@ -1,12 +1,15 @@
+{% load i18n %}
 {% load sentry_helpers %}
 
 {% with group.unique_sites|slice:"10" as unique_sites %}
     {% if unique_sites %}
-        <h2>Sites</h2>
+        <div class="page-header">
+            <h3>{% trans "Sites" %}</h3>
+        </div>
 
         <ul class="server-list">
-            {% for site, priority in unique_sites|with_priority:1 %}
-                <li class="priority-{{ priority }}"><span class="count">{{ site.1|small_count }}</span> <a href="{% url sentry group.project_id %}?site={{ site.0 }}">{{ site.0 }}</a></li>
+            {% for site in unique_sites %}
+                <li><span class="count">{{ site.1|small_count }}</span> <a href="{% url sentry group.project_id %}?site={{ site.0 }}">{{ site.0 }}</a></li>
             {% endfor %}
         </ul>
     {% endif %}
