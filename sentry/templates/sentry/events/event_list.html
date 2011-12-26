@@ -3,7 +3,7 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block heading %}{% trans "Events (Individual)" %}{% endblock %}
+{% block heading %}{% trans "Events <small>Stream</small>" %}{% endblock %}
 
 {% block sidebar %}
     {% if chart_url %}
@@ -26,23 +26,26 @@
 {% block main %}
     {% paginate event_list from request as event_list per_page MESSAGES_PER_PAGE %}
 
-    <div class="paging-wrap">
-        <div class="clearfix">
-            <form method="GET" action="">
-                {% for k, v in request.GET.iteritems %}
-                    {% if k != 'sort' %}
-                        <input type="hidden" name="{{ k }}" value="{{ v }}"/>
-                    {% endif %}
-                {% endfor %}
-            </form>
-            <a id="clear_feed" href="{% url sentry-ajax %}?op=clear" onclick="Sentry.stream.clear();return false;" class="realtime realtime-pause">Clear Feed</a>
-            {{ event_list.paging }}
-        </div>
-    </div>
+    <ul class="options">
+        <li class="prev{% if not event_list.paginator.has_previous %} disabled{% endif %}">
+            {% if event_list.paginator.has_previous %}
+                <a href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}">&larr; {% trans "Previous" %}</a>
+            {% else %}
+                <a>&larr; {% trans "Previous" %}</a>
+            {% endif %}
+        </li>
+        <li class="next{% if not event_list.paginator.has_next %} disabled{% endif %}">
+            {% if event_list.paginator.has_next %}
+                <a href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}">{% trans "Next" %} &rarr;</a>
+            {% else %}
+                <a>{% trans "Next" %} &rarr;</a>
+            {% endif %}
+        </li>
+    </ul>
 
-    {% if event_list.objects %}
+    {% if event_list.paginator.objects %}
         <ul class="messages" id="event_list">
-            {% for event in event_list.objects %}
+            {% for event in event_list.paginator.objects %}
                 {% include "sentry/partial/_event.html" %}
             {% endfor %}
         </ul>
@@ -52,9 +55,4 @@
         </ul>
     {% endif %}
 
-    <div class="paging-wrap">
-        <div class="clearfix">
-            {{ event_list.paging }}
-        </div>
-    </div>
 {% endblock %}

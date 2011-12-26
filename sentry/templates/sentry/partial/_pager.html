@@ -41,16 +41,16 @@
         <ul>
             <li class="prev{% if not paginator.has_previous %} disabled{% endif %}">
                 {% if paginator.has_previous %}
-                    <a href="?{{ query_string|escape }}&amp;p={{ paginator.previous_page }}">{% trans "Previous Page" %}</a>
+                    <a href="?{{ query_string|escape }}&amp;p={{ paginator.previous_page }}">&larr; {% trans "Previous" %}</a>
                 {% else %}
-                    <span>{% trans "Previous Page" %}</span>
+                    <a>&larr; {% trans "Previous" %}</a>
                 {% endif %}
             </li>
             <li class="next{% if not paginator.has_next %} disabled{% endif %}">
                 {% if paginator.has_next %}
-                    <a href="?{{ query_string|escape }}&amp;p={{ paginator.next_page }}">{% trans "Next Page" %}</a>
+                    <a href="?{{ query_string|escape }}&amp;p={{ paginator.next_page }}">{% trans "Next" %} &rarr;</a>
                 {% else %}
-                    <span>{% trans "Next Page" %}</span>
+                    <a>{% trans "Next" %} &rarr;</a>
                 {% endif %}
             </li>
         </ul>

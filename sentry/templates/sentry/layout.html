@@ -37,17 +37,10 @@
                     <div class="container">
                         <a class="brand" href="{% url sentry %}">Sentry</a>
                         <ul class="nav">
-                            <li class="active"><a href="#">Home</a></li>
+<!--                             <li class="active"><a href="#">Home</a></li>
                             <li><a href="#about">About</a></li>
                             <li><a href="#contact">Contact</a></li>
-                        </ul>
-                        {% block search %}
-                        {% if project %}
-                            <form action="{% url sentry-search project.pk %}" class="pull-left" id="search">
-                                <input type="hidden" name="sort" value="{% if sort %}{{ sort }}{% endif %}"/>
-                                <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="{% if has_search %}search query or message id{% else %}message id{% endif %}"/>
-                            </form>
-                        {% endif %}
+ -->                        </ul>
                         {% endblock %}
                         <ul class="nav secondary-nav">
                             {% if request.user.is_authenticated %}
@@ -63,6 +56,13 @@
                                 <li><a href="{% url sentry-login %}">{% trans "Login" %}</a></li>
                             {% endif %}
                         </ul>
+                        {% block search %}
+                        {% if project %}
+                            <form action="{% url sentry-search project.pk %}" class="pull-right" id="search">
+                                <input type="hidden" name="sort" value="{% if sort %}{{ sort }}{% endif %}"/>
+                                <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="{% if has_search %}search query or message id{% else %}message id{% endif %}"/>
+                            </form>
+                        {% endif %}
 <!--                   <form action="" class="pull-right">
                     <input class="input-small" type="text" placeholder="Username">
                     <input class="input-small" type="password" placeholder="Password">

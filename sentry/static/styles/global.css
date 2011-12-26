@@ -25,15 +25,10 @@ body {
 /* Page header tweaks */
 .page-header {
     background-color: #f5f5f5;
-    padding: 20px 20px 10px;
+    padding: 10px 20px 0px;
     margin: -20px -20px 20px;
 }
 /* Give a quick and non-cross-browser friendly divider */
-.content .span4 {
-    margin-left: 0;
-    padding-left: 19px;
-    border-left: 1px solid #eee;
-}
 .topbar .btn {
     border: 0;
 }
@@ -59,7 +54,6 @@ ul { margin: 0 0 15px 20px; }
 
 a { color: #333; }
 a:visited { color: inherit; }*/
-
 
 /* sidebar */
 
