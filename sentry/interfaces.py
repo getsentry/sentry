@@ -148,7 +148,10 @@ class Stacktrace(Interface):
 
     # TODO: abstract this  to some kind of "raw" hook for rendering
     def get_traceback(self, event):
-        result = ['Traceback (most recent call last):', '']
+        result = [
+            event.message, '',
+            'Traceback (most recent call last):', '',
+        ]
         for frame in self.frames:
             result.append('  File "%(filename)s", line %(lineno)s, in %(function)s' % frame)
             result.append('    %s' % frame['context_line'].strip())
