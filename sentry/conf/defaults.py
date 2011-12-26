@@ -17,9 +17,6 @@ ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir))
 # Allow local testing of Sentry even if DEBUG is enabled
 DEBUG = False
 
-THRASHING_TIMEOUT = 60
-THRASHING_LIMIT = 10
-
 FILTERS = (
     'sentry.filters.StatusFilter',
     'sentry.filters.LoggerFilter',
