@@ -79,7 +79,7 @@ Finally, run ``python manage.py syncdb`` to create the database tables.
 
 .. seealso::
 
-   See :doc:`../extensions` for information on additional plugins and functionality included.
+   See :doc:`../technical/index` for information on additional plugins and functionality included.
 
 Upgrading
 ~~~~~~~~~
