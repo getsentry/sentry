@@ -173,7 +173,9 @@ def search(request, project):
             event_list = Group.objects.filter(checksum=checksum)
             top_matches = event_list[:2]
             if len(top_matches) == 0:
-                return render_to_response('sentry/invalid_message_id.html')
+                return render_to_response('sentry/invalid_message_id.html', {
+                    'project': project,
+                }, request)
             elif len(top_matches) == 1:
                 return HttpResponseRedirect(top_matches[0].get_absolute_url())
         elif uuid_re.match(query):
@@ -181,11 +183,15 @@ def search(request, project):
             try:
                 message = Event.objects.get(event_id=query)
             except Event.DoesNotExist:
-                return render_to_response('sentry/invalid_message_id.html')
+                return render_to_response('sentry/invalid_message_id.html', {
+                    'project': project,
+                }, request)
             else:
                 return HttpResponseRedirect(message.get_absolute_url())
         else:
-            return render_to_response('sentry/invalid_message_id.html')
+            return render_to_response('sentry/invalid_message_id.html', {
+                    'project': project,
+                }, request)
     else:
         event_list = Group.objects.none()
 
