@@ -28,6 +28,7 @@ from sentry.utils.compat import pickle
 
 logger = logging.getLogger(__name__)
 
+
 @csrf_exempt
 @require_http_methods(['POST'])
 def store(request):
@@ -70,7 +71,7 @@ def store(request):
             except ValueError:
                 return HttpResponseBadRequest('Invalid timestamp')
 
-            if timestamp_float < time.time() - 3600: # 1 hour
+            if timestamp_float < time.time() - 3600:  # 1 hour
                 return HttpResponseGone('Message has expired')
 
             sig_hmac = get_signature(data, timestamp, secret_key)
@@ -139,7 +140,7 @@ def store(request):
             else:
                 format = '%Y-%m-%dT%H:%M:%S'
             if 'Z' in data['timestamp']:
-                # support GMT market, but not other timestamps
+                # support UTC market, but not other timestamps
                 format += 'Z'
             try:
                 data['timestamp'] = datetime.datetime.strptime(data['timestamp'], format)
@@ -159,4 +160,4 @@ def store(request):
     except (InvalidInterface, InvalidData), e:
         return HttpResponseBadRequest(e)
 
-    return HttpResponse()
+    return HttpResponse('')
