@@ -5,7 +5,7 @@
 {% block title %}{% blocktrans with project.name as name %}Manage Project: {{ name }}{% endblocktrans %} | {{ block.super }}{% endblock %}
 
 {% block heading %}
-    {% trans "Project List" %}
+    {% blocktrans with project.name as name %}Manage Project <small>{{ name }}</small>{% endblocktrans %}
 {% endblock %}
 
 {% block sidebar %}
@@ -18,58 +18,79 @@
 {% endblock %}
 
 {% block main %}
-    <h1>{% blocktrans with project.name as name %}Manage Project: {{ name }}{% endblocktrans %}</h1>
-    <form action="" method="post" style="width: 500px">
-        <div class="module">
-            <h2>{% trans "Project Details" %}</h2>
-            <div class="module-content">
-                {% csrf_token %}
-                <table style="width: 480px">
-                    <colgroup>
-                        <col width="100px"/>
-                        <col/>
-                    </colgroup>
-                    {% for field in form %}
-                        <tr{% if field.errors %} class="has-errors"{% endif %}>
-                            <td>{{ field.label_tag }}</td>
-                            <td>{{ field }}</td>
+    <ul class="breadcrumb">
+        <li><a href="{% url sentry-project-list %}">{% trans "Projects" %}</a> <span class="divider">/</span></li>
+        <li class="active">{% trans "Manage Project" %}</li>
+    </ul>
+    <p>Here you can edit project information, as well as control the access list for a project with fine-grained permissions.</p>
+    <hr>
+    {% if request.GET.success %}
+        <div class="alert-message success">Changes to your project were saved successfully.</div>
+    {% else %}
+        {% if form.errors or pm_formset.errors %}
+            <div class="alert-message error">Please correct the errors below.</div>
+        {% endif %}
+    {% endif %}
+    <form class="form-stacked" action="" method="post">
+        {% csrf_token %}
+        <fieldset>
+            <legend>{% trans "Project Details" %}</legend>
+            {% for field in form %}
+                <div class="clearfix{% if field.errors %} error{% endif %}">
+                    {{ field.label_tag }}
+                    <div class="input">{{ field }}</div>
+                    {% if field.help_text %}
+                        <span class="help-block">{{ field.help_text }}</span>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </fieldset>
+        <fieldset>
+            {{ pm_formset.management_form }}
+            <legend>{% trans "Access" %}</legend>
+            <table class="bordered-table zebra-striped">
+                <colgroup>
+                    <col width="100px"/>
+                    <col/>
+                    <col width="16px"/>
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Access</th>
+                        <th>X</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pm_form in pm_formset %}
+                        <tr>
+                            <td{% if pm_form.errors.user %} class="error"{% endif %}>
+                                {{ pm_form.user }}
+                                {% if pm_form.errors.user %}
+                                    <ul class="unstyled">
+                                        {% for error in pm_form.errors.user %}
+                                            <li>{{ error }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="clearfix">
+                                    <label>{{ pm_form.is_superuser }} Superuser (all permissions)</label>
+                                </div>
+                                {{ pm_form.permissions }}
+                            </td>
+                            <td>
+                                {{ pm_form.id }}
+                                {{ pm_form.DELETE }}
+                            </td>
                         </tr>
                     {% endfor %}
-                </table>
-                <p class="submit">
-                    <button type="submit" class="button">{% trans "Save Changes" %}</button>
-                </p>
-            </div>
-        </div>
-        <div class="module">
-            <h2>{% trans "Access" %}</h2>
-            <div class="module-content">
-                <table style="width: 480px">
-                    <colgroup>
-                        <col width="100px"/>
-                        <col/>
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th>Username</th>
-                            <th>Access</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>zeeg</td>
-                            <td><strong>superuser</strong></td>
-                        </tr>
-                        <tr>
-                            <td>chriskjennings</td>
-                            <td>read_message, submit_message</td>
-                        </tr>
-                    </tbody>
-                </table>
-                <p class="submit">
-                    <button type="submit" class="button">{% trans "Save Changes" %}</button>
-                </p>
-            </div>
-        </div>
+                </tbody>
+            </table>
+        </fieldset>
+        <p class="actions">
+            <button type="submit" class="btn primary">{% trans "Save Changes" %}</button>
+        </p>
     </form>
 {% endblock %}

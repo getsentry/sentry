@@ -46,7 +46,15 @@ FILTER_KEYS = (
     ('site', _('site')),
 )
 
-logger = logging.getLogger('sentry.errors')
+PERMISSIONS = (
+    ('read_message', 'View events'),
+    ('change_message_status', 'Change event status'),
+    ('add_member', 'Add project members'),
+    ('change_member', 'Change project members'),
+    ('delete_member', 'Delete project members'),
+    ('add_message', 'Store new events'),
+)
+PERMISSIONS_DICT = dict(PERMISSIONS)
 
 
 class Project(Model):
@@ -62,14 +70,7 @@ class ProjectMember(Model):
     is_superuser = models.BooleanField(default=False)
     public_key = models.CharField(max_length=32, unique=True, null=True)
     secret_key = models.CharField(max_length=32, unique=True, null=True)
-    permissions = BitField(flags=(
-        'read_message',
-        'change_message_status',
-        'add_member',
-        'change_member',
-        'delete_member',
-        'add_message',
-    ))
+    permissions = BitField(flags=[p[0] for p in PERMISSIONS])
     date_added = models.DateTimeField(default=datetime.now)
 
     class Meta:

@@ -12,10 +12,13 @@
 {% endblock %}
 
 {% block main %}
-    <h2>{% trans "Project List" %}</h2>
+    <p>You have access to the following projects:</p>
     <ul>
         {% for project in project_list %}
             <li><a href="{% url sentry-manage-project project.pk %}">{{ project.name }}</a></li>
         {% endfor %}
     </ul>
+    {% if can_create_projects %}
+        <p><a href="{% url sentry-new-project %}">Create a new project</a></p>
+    {% endif %}
 {% endblock %}

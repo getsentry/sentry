@@ -10,7 +10,6 @@ from sentry.web.helpers import get_project_list, render_to_response
 @login_required
 def dashboard(request):
     project_list = get_project_list(request.user)
-    print project_list
     if len(project_list) == 1:
         return HttpResponseRedirect(reverse('sentry', kwargs={'project_id': project_list.keys()[0]}))
     return render_to_response('sentry/dashboard.html', {

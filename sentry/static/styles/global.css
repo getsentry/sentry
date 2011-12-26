@@ -172,7 +172,6 @@ table.vars td.code { overflow: hidden; }
 table.vars td.code pre { margin-bottom: 0; }
 div.pastebin textarea { padding: 10px; background: #f9f9f9; border-color: #ddd; }
 table.vars { border-collapse: collapse; background:white; margin-bottom: 10px; }
-table tbody td, table tbody th { vertical-align:top; padding:2px 3px; }
 table.meta th { text-align: right; white-space: nowrap; }
 table.vars thead th { padding:3px 6px 3px 3px; background:#eee; text-align:left; font-weight:bold; border:1px solid #ddd; border-width: 1px 0; font-size:11px; }
 
@@ -405,33 +404,7 @@ dl.flat dd {
 }
 .login-form table { width: 295px; }
 .login-form td { padding: 2px 0; }
-form table {
-    border: 0;
-    margin: 1em 0;
-    background: inherit;
-}
-form table td { padding: 5px; }
-form .submit { text-align: right; }
-form .has-errors input,
-form .has-errors textarea { border-color: red; }
-form td .errors { color: red; margin-top: 5px; font-size: 0.9em; }
 
-form td textarea {
-    min-height: 250px;
-}
-form td textarea,
-form td input {
-    width: 100%;
-    padding: 3px;
-    border: 1px solid #ccc;
-    -moz-border-radius: 5px;
-    -webkit-border-radius: 5px;
-    border-radius: 5px;
-}
-form td textarea:focus,
-form td input:focus {
-    border-color: #333;
-}
 
 h2 .morelink { text-decoration: none; }
 

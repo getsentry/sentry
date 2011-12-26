@@ -5,6 +5,7 @@ from sentry.conf import settings
 from sentry.models import Project
 from sentry.web.helpers import get_project_list, render_to_response, get_login_url
 
+
 def can_manage(perm_or_func=None):
     """
     Tests and transforms project_id for permissions based on the requesting user. Passes
@@ -48,6 +49,7 @@ def can_manage(perm_or_func=None):
         return _wrapped
     return wrapped
 
+
 def login_required(func):
     def wrapped(request, *args, **kwargs):
         if not settings.PUBLIC:
@@ -58,4 +60,20 @@ def login_required(func):
         return func(request, *args, **kwargs)
     wrapped.__doc__ = func.__doc__
     wrapped.__name__ = func.__name__
+    return wrapped
+
+
+def permission_required(perm):
+    def wrapped(func):
+        def _wrapped(request, *args, **kwargs):
+            if not request.user.is_authenticated():
+                return HttpResponseRedirect(get_login_url())
+            if not request.user.has_perm('sentry.can_view'):
+                return render_to_response('sentry/missing_permissions.html', status=400)
+            if not request.user.has_perm(perm):
+                return render_to_response('sentry/missing_permissions.html', status=400)
+            return func(request, *args, **kwargs)
+        _wrapped.__doc__ = func.__doc__
+        _wrapped.__name__ = func.__name__
+        return _wrapped
     return wrapped

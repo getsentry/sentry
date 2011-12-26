@@ -64,6 +64,7 @@ urlpatterns = patterns('',
     # Management
 
     url(r'^projects$', projects.project_list, name='sentry-project-list'),
+    url(r'^projects/new$', projects.new_project, name='sentry-new-project'),
     url(r'^projects/(?P<project_id>\d+)/edit$', projects.manage_project, name='sentry-manage-project'),
 
     # Global

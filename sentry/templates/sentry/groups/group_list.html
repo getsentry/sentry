@@ -43,7 +43,7 @@
             {% endif %}
         </li>
         <li class="dropdown pull-right" data-dropdown="dropdown">
-            <a href="#" class="dropdown-toggle">{% trans "Sort by:" %} {{ sort_label }}</a>
+            <a href="#" class="dropdown-toggle">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %}</a>
             <ul class="dropdown-menu">
                 <li{% ifequal sort 'priority' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}">{% trans "Priority" %}</a></li>
                 <li{% ifequal sort 'date' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=date">{% trans "Last Seen" %}</a></li>
