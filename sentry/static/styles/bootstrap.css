@@ -6,7 +6,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Designed and built with all the love in the world @twitter by @mdo and @fat.
- * Date: Mon Dec 26 06:01:56 PST 2011
+ * Date: Mon Dec 26 06:19:02 PST 2011
  */
 /* Reset.less
  * Props to Eric Meyer (meyerweb.com) for his CSS reset file. We're using an adapted version here	that cuts out some of the reset HTML elements we will never need here (i.e., dfn, samp, etc).
@@ -2612,7 +2612,7 @@ button.btn::-moz-focus-inner, input[type=submit].btn::-moz-focus-inner {
 .main-header h1 {
   margin-bottom: 8px;
 }
-.sparkline {
+.main-header .sparkline {
   left: 0;
   position: absolute;
   width: 100%;
@@ -2673,4 +2673,50 @@ table.vars th, table.vars td {
 }
 .module-content table pre {
   margin-bottom: 0;
+}
+.sparkline-grid {
+  margin-left: -20px;
+  margin-bottom: 0;
+  zoom: 1;
+}
+.sparkline-grid:before, .sparkline-grid:after {
+  display: table;
+  content: "";
+  zoom: 1;
+}
+.sparkline-grid:after {
+  clear: both;
+}
+.sparkline-grid li {
+  display: inline;
+}
+.sparkline-grid a {
+  float: left;
+  padding: 4px;
+  margin: 0 0 18px 20px;
+  border: 1px solid #ddd;
+  -webkit-border-radius: 4px;
+  -moz-border-radius: 4px;
+  border-radius: 4px;
+  -webkit-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075);
+  -moz-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075);
+}
+.sparkline-grid a img {
+  display: block;
+}
+.sparkline-grid a:hover {
+  border-color: #0069d6;
+  -webkit-box-shadow: 0 1px 4px rgba(0, 105, 214, 0.25);
+  -moz-box-shadow: 0 1px 4px rgba(0, 105, 214, 0.25);
+  box-shadow: 0 1px 4px rgba(0, 105, 214, 0.25);
+}
+.sparkline-grid a {
+  width: 250px;
+  height: 160px;
+  display: inline-block;
+  text-align: center;
+}
+.sparkline-grid .sparkline {
+  height: 120px;
 }
