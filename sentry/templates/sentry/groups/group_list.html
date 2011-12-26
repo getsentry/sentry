@@ -26,9 +26,23 @@
 {% block main %}
     {% paginate event_list from request as event_list per_page MESSAGES_PER_PAGE %}
 
-    <ul class="tabs">
-        <li class="dropdown" data-dropdown="dropdown">
-            <a href="#" class="dropdown-toggle">{% trans "Sort by" %}</a>
+    <ul class="options">
+        <li class="prev{% if not event_list.paginator.has_previous %} disabled{% endif %}">
+            {% if event_list.paginator.has_previous %}
+                <a href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}">&larr; {% trans "Previous" %}</a>
+            {% else %}
+                <a>&larr; {% trans "Previous" %}</a>
+            {% endif %}
+        </li>
+        <li class="next{% if not event_list.paginator.has_next %} disabled{% endif %}">
+            {% if event_list.paginator.has_next %}
+                <a href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}">{% trans "Next" %} &rarr;</a>
+            {% else %}
+                <a>{% trans "Next" %} &rarr;</a>
+            {% endif %}
+        </li>
+        <li class="dropdown pull-right" data-dropdown="dropdown">
+            <a href="#" class="dropdown-toggle">{% trans "Sort by:" %} {% trans "Priority" %}</a>
             <ul class="dropdown-menu">
                 <li value=""{% ifequal sort 'priority' %} selected="selected"{% endifequal %}><a href="#">{% trans "Priority" %}</a></li>
                 <li value="date"{% ifequal sort 'date' %} selected="selected"{% endifequal %}><a href="#">{% trans "Last Seen" %}</a></li>
@@ -39,36 +53,12 @@
                 <li value="accel_60"{% ifequal sort 'accel_60' %} selected="selected"{% endifequal %}><a href="#">{% trans "Trending: 60 minutes" %}</a></li>
             </ul>
         </li>
+        <li class="pull-right"><a href="{% url sentry-ajax %}?op=clear" onclick="Sentry.stream.clear();return false;">Clear Feed</a>
     </ul>
 
-    <div class="paging-wrap">
-        <div class="clearfix">
-            {{ event_list.paging }}
-            <form method="GET" action="" class="pull-right">
-                {% for k, v in request.GET.iteritems %}
-                    {% if k != 'sort' %}
-                        <input type="hidden" name="{{ k }}" value="{{ v }}"/>
-                    {% endif %}
-                {% endfor %}
-                <a href="{% url sentry-ajax %}?op=clear" onclick="Sentry.stream.clear();return false;" class="btn">Clear Feed</a>
-                <span class="sort-by"><label for="id_sort">{% trans "Sort by" %}</label> <select name="sort" id="id_sort" onchange="this.form.submit()">
-                    <option value=""{% ifequal sort 'priority' %} selected="selected"{% endifequal %}>{% trans "Priority" %}</option>
-                    <option value="date"{% ifequal sort 'date' %} selected="selected"{% endifequal %}>{% trans "Last Seen" %}</option>
-                    <option value="new"{% ifequal sort 'new' %} selected="selected"{% endifequal %}>{% trans "First Seen" %}</option>
-                    <option value="freq"{% ifequal sort 'freq' %} selected="selected"{% endifequal %}>{% trans "Frequency" %}</option>
-                    <optgroup label="{% trans "Trending" %}">
-                        <option value="accel_15"{% ifequal sort 'accel_15' %} selected="selected"{% endifequal %}>{% trans "15 minutes" %}</option>
-                        <option value="accel_60"{% ifequal sort 'accel_60' %} selected="selected"{% endifequal %}>{% trans "60 minutes" %}</option>
-                    </optgroup>
-                </select>
-                </span>
-            </form>
-        </div>
-    </div>
-
-    {% if event_list.objects %}
+    {% if event_list.paginator.objects %}
         <ul class="messages" id="event_list">
-            {% for group, priority in event_list.objects|with_priority %}
+            {% for group, priority in event_list.paginator.objects|with_priority %}
                 {% include "sentry/partial/_group.html" %}
             {% endfor %}
         </ul>
@@ -77,10 +67,4 @@
             <li class="no-messages" id="no_messages">{% trans "No messages match your filters." %}</li>
         </ul>
     {% endif %}
-
-    <div class="paging-wrap">
-        <div class="clearfix">
-            {{ event_list.paging }}
-        </div>
-    </div>
 {% endblock %}

@@ -1,0 +1,23 @@
+.options {
+  .tabs;
+  height: @baseline * 2;
+  margin: 0 0 @baseline;
+  > li {
+    > a {
+      line-height: (@baseline * 2) - 2;
+      border: 0;
+      .border-radius(4px);
+      &:hover {
+        border-bottom: 0;
+      }
+    }
+  }
+  > li.pull-right {
+    float: right;
+  }
+  .disabled a,
+  .disabled a:hover {
+    background-color: transparent;
+    color: @grayLight;
+  }
+}

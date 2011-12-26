@@ -354,3 +354,15 @@ button.btn::-moz-focus-inner,input[type=submit].btn::-moz-focus-inner{padding:0;
 .media-grid li{display:inline;}
 .media-grid a{float:left;padding:4px;margin:0 0 18px 20px;border:1px solid #ddd;-webkit-border-radius:4px;-moz-border-radius:4px;border-radius:4px;-webkit-box-shadow:0 1px 1px rgba(0, 0, 0, 0.075);-moz-box-shadow:0 1px 1px rgba(0, 0, 0, 0.075);box-shadow:0 1px 1px rgba(0, 0, 0, 0.075);}.media-grid a img{display:block;}
 .media-grid a:hover{border-color:#0069d6;-webkit-box-shadow:0 1px 4px rgba(0, 105, 214, 0.25);-moz-box-shadow:0 1px 4px rgba(0, 105, 214, 0.25);box-shadow:0 1px 4px rgba(0, 105, 214, 0.25);}
+.options{margin:0 0 18px;padding:0;list-style:none;zoom:1;border-color:#ddd;border-style:solid;border-width:0 0 1px;height:36px;margin:0 0 18px;}.options:before,.options:after{display:table;content:"";zoom:1;}
+.options:after{clear:both;}
+.options>li{float:left;}.options>li>a{display:block;}
+.options>li{position:relative;margin-bottom:-1px;}.options>li>a{padding:0 15px;margin-right:2px;line-height:34px;border:1px solid transparent;-webkit-border-radius:4px 4px 0 0;-moz-border-radius:4px 4px 0 0;border-radius:4px 4px 0 0;}.options>li>a:hover{text-decoration:none;background-color:#eee;border-color:#eee #eee #ddd;}
+.options .active>a,.options .active>a:hover{color:#808080;background-color:#ffffff;border:1px solid #ddd;border-bottom-color:transparent;cursor:default;}
+.options .menu-dropdown,.options .dropdown-menu{top:35px;border-width:1px;-webkit-border-radius:0 6px 6px 6px;-moz-border-radius:0 6px 6px 6px;border-radius:0 6px 6px 6px;}
+.options a.menu:after,.options .dropdown-toggle:after{border-top-color:#999;margin-top:15px;margin-left:5px;}
+.options li.open.menu .menu,.options .open.dropdown .dropdown-toggle{border-color:#999;}
+.options li.open a.menu:after,.options .dropdown.open .dropdown-toggle:after{border-top-color:#555;}
+.options>li>a{line-height:34px;border:0;-webkit-border-radius:4px;-moz-border-radius:4px;border-radius:4px;}.options>li>a:hover{border-bottom:0;}
+.options>li.pull-right{float:right;}
+.options .disabled a,.options .disabled a:hover{background-color:transparent;color:#bfbfbf;}
