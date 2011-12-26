@@ -15,6 +15,7 @@ from django.http import HttpResponse, HttpResponseBadRequest, \
     HttpResponseForbidden, HttpResponseRedirect, Http404
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
+from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_exempt
 
@@ -273,7 +274,18 @@ def group_json(request, project, group_id):
         # (such as a post_save signal failing)
         event = Event(group=group)
 
-    return HttpResponse(json.dumps(event.data), mimetype='application/json')
+    # We use a SortedDict to keep elements ordered for the JSON serializer
+    data = SortedDict()
+    data['id'] = event.event_id
+    data['checksum'] = event.checksum
+    data['project'] = event.project_id
+    data['logger'] = event.logger
+    data['level'] = event.get_level_display()
+    data['culprit'] = event.culprit
+    for k, v in sorted(event.data.iteritems()):
+        data[k] = v
+
+    return HttpResponse(json.dumps(data), mimetype='application/json')
 
 
 @login_required
