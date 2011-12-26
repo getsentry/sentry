@@ -5,7 +5,7 @@
         {% if context %}
             <ol start="{{ start_lineno }}" class="context expandable">
                 {% for num, line in context %}
-                    <li{% if num == lineno %} class="active"{% else %} class="template{{ forloop.parentloop.counter0 }} closed"{% endif %} onclick="$('.template{{ forloop.parentloop.counter0 }}').toggle()"><pre>{{ line }}</pre></li>
+                    <li{% if num == lineno %} class="active"{% else %} class="template{{ forloop.parentloop.counter0 }}"{% endif %} onclick="$('.template{{ forloop.parentloop.counter0 }}').toggle()"><pre>{{ line }}</pre></li>
                 {% endfor %}
             </ol>
         {% endif %}
