@@ -98,7 +98,9 @@
 
     {% block inner %}
         {% if group.has_two_part_message %}
-            <h2>{% trans "Full Message" %}</h2>
+            <div class="page-header">
+                <h2>{% trans "Full Message" %}</h2>
+            </div>
             <pre id="full-message">{{ group.message }}</pre>
         {% endif %}
 
