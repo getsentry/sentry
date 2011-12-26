@@ -105,9 +105,13 @@ Sentry implements data interfaces for storing structured data. At it's core, an 
             },
             "query_string": "hello=world",
             "cookies": "foo=bar",
+            "headers": {
+                "Content-Type": "text/html"
+            },
             "env": {
                 "REMOTE_ADDR": "192.168.0.1"
             }
+
         }
 
 .. class:: sentry.interfaces.User

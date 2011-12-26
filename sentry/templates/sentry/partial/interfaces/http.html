@@ -1,4 +1,5 @@
 {% load i18n %}
+{% load sentry_helpers %}
 
 <div id="request" class="module">
     <div class="page-header">
@@ -48,7 +49,7 @@
                                 <a href="#" onclick="return varToggle(this, 'HttpEnv')"><span>&#x25b6;</span> Environment and Headers</a>
                                 <table class="vars" id="vHttpEnv" style="display:none;">
                                   <tbody>
-                                    {% for key, value in env.iteritems %}
+                                    {% for key, value in env.iteritems|as_sorted %}
                                       <tr>
                                         <td>{{ key|escape }}</td>
                                         <td class="code"><pre>{{ value|pprint|escape }}</pre></td>
@@ -59,7 +60,7 @@
                             {% else %}
                                 <table class="vars">
                                   <tbody>
-                                    {% for key, value in env.iteritems %}
+                                    {% for key, value in env.iteritems|as_sorted %}
                                       <tr>
                                         <td>{{ key|escape }}</td>
                                         <td class="code"><pre>{{ value|pprint|escape }}</pre></td>

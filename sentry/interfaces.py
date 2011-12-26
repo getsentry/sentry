@@ -187,7 +187,7 @@ class Http(Interface):
     # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html
     METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD', 'DELETE', 'TRACE', 'CONNECT')
 
-    def __init__(self, url, method, data=None, query_string=None, cookies=None, env=None, **kwargs):
+    def __init__(self, url, method, data=None, query_string=None, cookies=None, headers=None, env=None, **kwargs):
         if data is None:
             data = {}
 
@@ -209,6 +209,7 @@ class Http(Interface):
         self.method = method
         self.data = data
         self.query_string = query_string
+        self.headers = headers or {}
         self.env = env or {}
         self.cookies = cookies or None
 
@@ -219,6 +220,7 @@ class Http(Interface):
             'data': self.data,
             'query_string': self.query_string,
             'cookies': self.cookies,
+            'headers': self.headers,
             'env': self.env,
         }
 
@@ -231,6 +233,7 @@ class Http(Interface):
             'data': self.data,
             'query_string': self.query_string,
             'cookies': self.cookies,
+            'headers': self.headers,
             'env': self.env,
         })
 
