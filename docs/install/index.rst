@@ -23,6 +23,16 @@ You now have two choices:
    most compatibility with your application, as well as ensuring it does not impact your
    primary application servers.
 
+Uprading from 1.x
+-----------------
+
+If you are upgrading Sentry from a 1.x version, you should take note that the database migrations
+are much more significant than they were in the past. We recommend performing them **before**
+upgrading the actual Sentry server.
+
+As an example, all existing events need to be migrated to the new project structure. This means
+that every event gets backfilled with the new "default" project once it's created.
+
 Integrating with an existing Django install
 -------------------------------------------
 
