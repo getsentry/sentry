@@ -86,7 +86,54 @@ class ModuleProxyCache(dict):
         return handler
 
 
-class GroupManager(models.Manager):
+class ChartMixin(object):
+    def _get_date_trunc(self, col, db='default'):
+        conn = connections[db]
+
+        engine = get_db_engine(db)
+        # TODO: does extract work for sqlite?
+        if engine.startswith('oracle'):
+            method = conn.ops.date_trunc_sql('hh24', col)
+        else:
+            method = conn.ops.date_trunc_sql('hour', col)
+
+        return method
+
+    def get_chart_data(self, instance, max_days=90):
+        if hasattr(instance, '_state'):
+            db = instance._state.db
+        else:
+            db = 'default'
+
+        if not has_charts(db):
+            return []
+
+        hours = max_days * 24
+        today = datetime.datetime.now().replace(microsecond=0, second=0, minute=0)
+        min_date = today - datetime.timedelta(hours=hours)
+
+        method = self._get_date_trunc('date', db)
+
+        chart_qs = list(instance.messagecountbyminute_set\
+                          .filter(date__gte=min_date)\
+                          .extra(select={'grouper': method}).values('grouper')\
+                          .annotate(num=Sum('times_seen')).values_list('grouper', 'num')\
+                          .order_by('grouper'))
+
+        if not chart_qs:
+            return []
+
+        rows = dict(chart_qs)
+
+        #just skip zeroes
+        first_seen = hours
+        while not rows.get(today - datetime.timedelta(hours=first_seen)) and first_seen > 24:
+            first_seen -= 1
+
+        return [rows.get(today - datetime.timedelta(hours=d), 0) for d in xrange(first_seen, -1, -1)]
+
+
+class GroupManager(models.Manager, ChartMixin):
     use_for_related_fields = True
 
     def __init__(self, *args, **kwargs):
@@ -337,53 +384,8 @@ class GroupManager(models.Manager):
 
             return instance
 
-    def _get_date_trunc(self, col, db='default'):
-        conn = connections[db]
-
-        engine = get_db_engine(db)
-        # TODO: does extract work for sqlite?
-        if engine.startswith('oracle'):
-            method = conn.ops.date_trunc_sql('hh24', col)
-        else:
-            method = conn.ops.date_trunc_sql('hour', col)
-
-        return method
-
     def get_by_natural_key(self, logger, culprit, checksum):
         return self.get(logger=logger, view=culprit, checksum=checksum)
-
-    def get_chart_data(self, group, max_days=90):
-        if hasattr(group, '_state'):
-            db = group._state.db
-        else:
-            db = 'default'
-
-        if not has_charts(db):
-            return []
-
-        hours = max_days * 24
-        today = datetime.datetime.now().replace(microsecond=0, second=0, minute=0)
-        min_date = today - datetime.timedelta(hours=hours)
-
-        method = self._get_date_trunc('date', db)
-
-        chart_qs = list(group.messagecountbyminute_set.all()\
-                          .filter(date__gte=min_date)\
-                          .extra(select={'grouper': method}).values('grouper')\
-                          .annotate(num=Sum('times_seen')).values_list('grouper', 'num')\
-                          .order_by('grouper'))
-
-        if not chart_qs:
-            return []
-
-        rows = dict(chart_qs)
-
-        #just skip zeroes
-        first_seen = hours
-        while not rows.get(today - datetime.timedelta(hours=first_seen)) and first_seen > 24:
-            first_seen -= 1
-
-        return [rows.get(today - datetime.timedelta(hours=d), 0) for d in xrange(first_seen, -1, -1)]
 
     def get_accelerated(self, queryset=None, minutes=15):
         # mintues should
@@ -431,3 +433,7 @@ class RawQuerySet(object):
         query = self.query + limit_clause
 
         return self.queryset.raw(query, self.params)
+
+
+class ProjectManager(models.Manager, ChartMixin):
+    pass

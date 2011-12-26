@@ -97,7 +97,6 @@ class EditProjectForm(forms.ModelForm):
 
 
 class ProjectMemberForm(forms.ModelForm):
-    project = forms.ModelChoiceField(queryset=Project.objects.all(), widget=forms.HiddenInput())
     user = UserField()
     permissions = forms.MultipleChoiceField(choices=PERMISSIONS, widget=BitFieldCheckboxSelectMultiple(), required=False)
     is_superuser = forms.BooleanField(required=False)

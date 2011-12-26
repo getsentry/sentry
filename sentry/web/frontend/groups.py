@@ -20,7 +20,7 @@ from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.conf import settings
-from sentry.models import Group, Event
+from sentry.models import Group, Event, Project
 from sentry.plugins import GroupActionProvider
 from sentry.templatetags.sentry_helpers import with_priority
 from sentry.utils import get_filters, json
@@ -137,18 +137,20 @@ def ajax_handler(request, project):
 
     def chart(request, project):
         gid = request.REQUEST.get('gid')
-        if not gid:
-            return HttpResponseForbidden()
+        days = int(request.REQUEST.get('days', '90'))
 
-        try:
-            group = Group.objects.get(pk=gid)
-        except Group.DoesNotExist:
-            return HttpResponseForbidden()
+        if gid:
+            try:
+                group = Group.objects.get(pk=gid)
+            except Group.DoesNotExist:
+                return HttpResponseForbidden()
 
-        if group.project and group.project.pk not in get_project_list(request.user, 'read_message'):
-            return HttpResponseForbidden()
+            if group.project and group.project.pk not in get_project_list(request.user, 'read_message'):
+                return HttpResponseForbidden()
 
-        data = Group.objects.get_chart_data(group)
+            data = Group.objects.get_chart_data(group, max_days=days)
+        else:
+            data = Project.objects.get_chart_data(project, max_days=days)
 
         response = HttpResponse(json.dumps(data))
         response['Content-Type'] = 'application/json'

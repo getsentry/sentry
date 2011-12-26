@@ -15,15 +15,14 @@
     </script>
 {% endblock %}
 
+{% block page_header %}
+    <div class="sparkline" id="sparkline"></div>
+    {{ block.super }}
+{% endblock %}
 
 {% block heading %}{% trans "Events <small>Aggregated</small>" %}{% endblock %}
 
 {% block sidebar %}
-    {% if chart_url %}
-        <h2>{% trans "Last 24 Hours" %}</h2>
-        <img src="{{ chart_url }}" class="chart" alt="chart"/>
-    {% endif %}
-
     {% for filter in filters %}
         <div class="sidebar-module sidebar-module-{{ filter.column }}">
             {% if filter.show_label %}
@@ -81,4 +80,58 @@
             <li class="no-messages" id="no_messages">{% trans "No messages match your filters." %}</li>
         </ul>
     {% endif %}
+{% endblock %}
+
+{% block content_after %}
+    <script type="text/javascript">
+    $(document).ready(function() {
+        $.ajax({
+            url: Sentry.options.apiUrl,
+            type: 'get',
+            dataType: 'json',
+            data: {
+                op: 'chart',
+                days: 1
+            },
+            success: function(data){
+                if (!data.length) {
+                    $('#sparkline').html('No data currently available.');
+                    return;
+                }
+
+                var start = new Date().getTime() - data.length * 3600000;
+                var pairs = [];
+                // for (var i=0; i<1000; i++) {
+                //     pairs.push([start + (3600 * 1000) * i, Math.random()*1000]);
+                // }
+                for (var i=0; i<data.length; i++) {
+                    pairs.push([start + (3600 * 1000) * i, data[i]]);
+                }
+                $('#sparkline').height($('.page-header').height());
+                $.plot($("#sparkline"), [
+                    {
+                        data: pairs,
+                        color: '#3079d0',
+                        shadowSize: 0,
+                        lines: {
+                            lineWidth: 1,
+                            show: true,
+                            fill: true
+                        },
+                    }
+                ], {
+                    xaxis: {
+                       mode: "time"
+                    },
+                    grid: {
+                        show: false,
+                        backgroundColor: '#eeeeee'
+                    },
+                    lines: { show: false }
+
+                });
+            }
+        });
+    });
+    </script>
 {% endblock %}

@@ -72,7 +72,9 @@
             <div class="container">
                 <div class="content">
                     <div class="page-header">
-                        <h1>{% block heading %}Sentry <small>Supporting text or tagline</small>{% endblock %}</h1>
+                        {% block page_header %}
+                            <h1>{% block heading %}Sentry <small>Supporting text or tagline</small>{% endblock %}</h1>
+                        {% endblock %}
                     </div>
                     <div class="row">
                     {% block content_before %}

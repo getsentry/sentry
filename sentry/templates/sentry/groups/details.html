@@ -5,6 +5,15 @@
 
 {% block title %}{{ group.error }} | {{ block.super }}{% endblock %}
 
+{% block meta %}
+    {{ block.super }}
+    <script>
+    Sentry.config({
+        apiUrl: '{% url sentry-ajax project.id %}'
+    });
+    </script>
+{% endblock %}
+
 {% block heading %}
     {% trans "Event Details" %} <small>{{ group.error|truncatechars:100 }}</small>
 {% endblock %}

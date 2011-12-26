@@ -1,3 +1,5 @@
+// Options
+
 .options {
   .tabs;
   height: @baseline * 2;
@@ -26,6 +28,8 @@
   border-color: transparent;
   cursor: default;
 }
+
+// Tweaks to Topbar
 
 .topbar {
   input {
@@ -60,4 +64,16 @@
       text-shadow: none;
     }
   }
+}
+
+// Sparkline (page header)
+
+.page-header {
+  position: relative;
+}
+.sparkline {
+  left: 0;
+  position: absolute;
+  width: 100%;
+  .opacity(60);
 }

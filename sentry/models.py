@@ -29,7 +29,7 @@ from sentry.conf import settings
 from sentry.utils import cached_property, \
                          MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField
-from sentry.utils.manager import GroupManager
+from sentry.utils.manager import GroupManager, ProjectManager
 from sentry.templatetags.sentry_helpers import truncatechars
 
 __all__ = ('Event', 'Group')
@@ -62,6 +62,8 @@ class Project(Model):
     owner = models.ForeignKey(User, related_name="owned_project_set", null=True)
     public = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=datetime.now)
+
+    objects = ProjectManager()
 
 
 class ProjectMember(Model):
