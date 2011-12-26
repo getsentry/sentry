@@ -220,3 +220,19 @@ def paginator(context, queryset_or_list, request, asvar=None, per_page=settings.
         context[asvar] = result
         return ''
     return result
+
+
+@tag(register, [Constant('from'), Variable('request'),
+                Optional([Constant('without'), Name('withoutvar')]),
+                Optional([Constant('as'), Name('asvar')])])
+def querystring(context, request, withoutvar, asvar=None):
+    params = request.GET.copy()
+
+    if withoutvar in params:
+        del params[withoutvar]
+
+    result = params.urlencode()
+    if asvar:
+        context[asvar] = result
+        return ''
+    return result

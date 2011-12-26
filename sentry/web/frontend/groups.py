@@ -208,6 +208,13 @@ def search(request, project):
     })
 
 
+SORT_CHOICES = (
+    ('priority', 'Priority'),
+    ('date', 'Last Seeen'),
+    ('new', 'First Seen'),
+    ('freq', 'Frequency'),
+)
+
 @login_required
 @can_manage('read_message')
 def group_list(request, project):
@@ -232,14 +239,20 @@ def group_list(request, project):
 
     sort = request.GET.get('sort')
     if sort == 'date':
+        sort_label = 'Last Seen'
         event_list = event_list.order_by('-last_seen')
     elif sort == 'new':
+        sort_label = 'First Seen'
         event_list = event_list.order_by('-first_seen')
     elif sort == 'freq':
+        sort_label = 'Frequency'
         event_list = event_list.order_by('-times_seen')
     elif sort and sort.startswith('accel_'):
-        event_list = Group.objects.get_accelerated(event_list, minutes=int(sort.split('_', 1)[1]))
+        minutes = int(sort.split('_', 1)[1])
+        sort_label = 'Trending: {0} minutes'.format(minutes)
+        event_list = Group.objects.get_accelerated(event_list, minutes=minutes)
     else:
+        sort_label = 'Priority'
         sort = 'priority'
         event_list = event_list.order_by('-score', '-last_seen')
 
@@ -253,6 +266,7 @@ def group_list(request, project):
         'event_list': event_list,
         'today': today,
         'sort': sort,
+        'sort_label': sort_label,
         'any_filter': any_filter,
         'request': request,
         'filters': filters,
