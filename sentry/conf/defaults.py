@@ -51,9 +51,6 @@ SERVER_EMAIL = 'root@localhost'
 
 LOGIN_URL = None
 
-# Automatically log frame stacks from all ``logging`` messages.
-AUTO_LOG_STACKS = False
-
 # Only store a portion of all messages per unique group.
 SAMPLE_DATA = True
 
