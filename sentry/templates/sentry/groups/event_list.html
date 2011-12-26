@@ -4,10 +4,10 @@
 {% load sentry_helpers %}
 
 {% block inner %}
-    {% paginate event_list from request as event_list per_page MESSAGES_PER_PAGE %}
+    {% paginate event_list from request contextual as event_list per_page MESSAGES_PER_PAGE %}
 
     {% if event_list.paginator.objects %}
-        <p class="alert-message notice">This list only contains a portion of all events seen. For more information about how Sentry samples events, see the <a href="#">documentation</a>.</p>
+        <p class="alert-message info">This list only contains a portion of all events seen. For more information about how Sentry samples events, see the <a href="#">documentation</a>.</p>
         <div class="pagination">
             <ul>
                 <li class="prev{% if not event_list.paginator.has_previous %} disabled{% endif %}">
@@ -52,9 +52,7 @@
             </ul>
         </div>
     {% else %}
-        <ul class="messages">
-            <li class="no-messages" id="no_messages">{% trans "No messages match your filters." %}</li>
-        </ul>
+        <p class="alert-message notice">{% trans "There are no records recorded for this event." %}</p>
     {% endif %}
 
 {% endblock %}

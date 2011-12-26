@@ -24,7 +24,7 @@
 {% endblock %}
 
 {% block main %}
-    {% paginate event_list from request as event_list per_page MESSAGES_PER_PAGE %}
+    {% paginate event_list from request contextual as event_list per_page MESSAGES_PER_PAGE %}
 
     <ul class="options">
         <li class="prev{% if not event_list.paginator.has_previous %} disabled{% endif %}">

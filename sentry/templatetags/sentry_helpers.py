@@ -190,12 +190,19 @@ truncatechars.is_safe = True
 #      a custom template, and not worry about INSTALLED_APPS
 @tag(register, [Variable('queryset_or_list'),
                 Constant('from'), Variable('request'),
+                Optional([Name('contextual')]),
                 Optional([Constant('as'), Name('asvar')]),
                 Optional([Constant('per_page'), Variable('per_page')]),
                 Optional([Variable('is_endless')])])
-def paginate(context, queryset_or_list, request, asvar, per_page=25, is_endless=True):
+def paginate(context, queryset_or_list, request, contextual=False, asvar=None, per_page=25, is_endless=True):
     """{% paginate queryset_or_list from request as foo[ per_page 25][ is_endless False %}"""
     result = paginate_func(request, queryset_or_list, per_page, endless=is_endless)
+
+    if not contextual:
+        context_instance = RequestContext(request)
+        paging = mark_safe(render_to_string('sentry/partial/_pager.html', result, context_instance))
+
+        result = dict(objects=result['paginator'].get('objects', []), paging=paging)
 
     if asvar:
         context[asvar] = result
