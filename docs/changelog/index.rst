@@ -25,6 +25,7 @@ to test your extensions before upgrading.
 * Switched to Bootstrap framework.
 * Added "Replay Request" action for events.
 * Graphs can now be generated for Projects.
+* There is now a trends sort option for aggregated events.
 
 Version 1.13.5
 --------------
