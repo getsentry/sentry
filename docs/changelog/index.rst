@@ -1,4 +1,14 @@
-2.0-DEV
+Changelog
+=========
+
+Version 2.0
+-----------
+
+Sentry 2.0 is a major release which contains many new features as well as some large
+rearchitecting of the codebase.
+
+If you were previous extending Sentry, it would be wise
+to test your extensions before upgrading.
 
 * Added project scoping to all data in sentry.
 * Added permissions to projects.
@@ -12,77 +22,95 @@
 * The ``class_name``, ``traceback``, an ``url`` fields have been removed.
 * GroupedMessage was renamed to Group.
 * Message was renamed to Event.
+* Switched to Bootstrap framework.
+* Added "Replay Request" action for events.
+* Graphs can now be generated for Projects.
 
-1.13.5
+Version 1.13.5
+--------------
 
 * Level filters are now precise (they no longer show their level + messages from higher levels).
 
-1.13.4
+Version 1.13.4
+--------------
 
 * Updated message details page to resemble look and feel of group details.
 
-1.13.3
+Version 1.13.3
+--------------
 
 * Added back in the "raw traceback" view.
 
-1.13.2
+Version 1.13.2
+--------------
 
 * Counts will now render differently with large values (e.g. 13000 will now be 13k)
 
-1.13.1
+Version 1.13.1
+--------------
 
 * Search by message_id will now display a list of results if there are multiple matches.
->>>>>>> master
 
-1.13.0
+Version 1.13.0
+--------------
 
 * Deprecated the Sentry client, and added Raven to the as the default builtin.
 * Removed Highstock and replaced it with an awesome OPEN SOURCE alternative, jQuery Flot.
 * Default Sentry server options should now work out of the box.
 * Packaged Google Web Font as part of Sentry.
 
-1.12.2
+Version 1.12.2
+--------------
 
 * Fixed infinite loop.
 
-1.12.1
+Version 1.12.1
+--------------
 
 * Stabilize migration schema (solves problem with index creation fail introduced in 1.12.0).
 
-1.12.0
+Version 1.12.0
+--------------
 
 * Adjusted message_id to include the checksum to avoid situations were the message_id
   that was generated did not exist due to sampling.
 
-1.11.4
+Version 1.11.4
+--------------
 
 * Several design improvements for group/message details panes.
 
-1.11.3
+Version 1.11.3
+--------------
 
 * Fixed a bug that was causing exception summary to not show.
 
-1.11.2
+Version 1.11.2
+--------------
 
 * Cleaned up message and group details pages (adding back some missing information).
 * Cleaned up some design around odd margins/padding.
 
-1.11.1
+Version 1.11.1
+--------------
 
 * Fixed a bug that would cause the admin (and potentially other modules) to get loaded multiple times.
 
-1.11.0
+Version 1.11.0
+--------------
 
 * Added license headers.
 * Removed ``sentry.helpers`` and ``sentry.routers``.
 * Global module versions are now cached to avoid continuous path walking and
   import overhead.
 
-1.10.1
+Version 1.10.1
+--------------
 
 * Fixed an issue that was causing servers to show logger names.
 
-1.10.0
+Version 1.10.0
+--------------
 
 * You can now pass ``extra={'stack': True}`` to logging methods to capture
   the current frames and their locals.
@@ -100,27 +128,32 @@
   stacktraces to ignore the ``message`` and line numbers.
 * Much improved test coverage.
 
-1.9.0
+Version 1.9.0
+-------------
 
 * Load the Frequency chart asynchronously.
 * Frequency chart no longer shows for SQLite.
 * Switch graphing library to Highstock from Highcharts.
 
-1.8.10
+Version 1.8.10
+--------------
 
 * Ensure dictionary keys are coerced to strings.
 * Fixed path to missing_permissions.html.
 
-1.8.9
+Version 1.8.9
+-------------
 
 * Safely handle unpickling objects that may not have been stored in a
   valid format.
 
-1.8.8
+Version 1.8.8
+-------------
 
 * Changed ``sentry cleanup`` to use a range query.
 
-1.8.7
+Version 1.8.7
+-------------
 
 * Added "Clear Feed" option.
 * Version information will be read from pkg_resources if possible.
@@ -130,51 +163,61 @@
 * Added support for Django's LOGIN_URL setting.
 * Fixed a memory leak in the client (thanks to Ben Bangert).
 
-1.8.6.2
+Version 1.8.6.2
+---------------
 
 * Reverted change which required distribute.
 * Cleaned up configuration defaults.
 
-1.8.6.1
+Version 1.8.6.1
+---------------
 
 * Include distribute_setup.py in the MANIFEST to ship it in sdists.
 
-1.8.6
+Version 1.8.6
+-------------
 
 * Corrected an issue which was causing certain settings (like WEB_HOST) to
   not take affect in custom configuration files.
 * The Sentry server will now pull in default server settings, as well as
   ~/.sentry/sentry.conf.py if --config is not passed to it.
 
-1.8.5.1
+Version 1.8.5.1
+---------------
 
 * Fixed a bug which caused thrashing prevention to not function correctly.
 * Corrected an error in transform()'s recursion safety.
 * Changed packaging to use Distribute.
 
-1.8.5
+Version 1.8.5
+-------------
 
 * Pulled test suite out of the Sentry namespace to avoid conflicts in projects.
 
-1.8.4.2
+Version 1.8.4.2
+---------------
 
 * Added missing invalid_message_id template.
 
-1.8.4.1
+Version 1.8.4.1
+---------------
 
 * Fixed an error that was causing LOG_LEVELS to not display correctly.
 
-1.8.4
+Version 1.8.4
+-------------
 
 * The Sentry base client will now pass along the timestamp from when the
   message was generated.
 
-1.8.3.1
+Version 1.8.3.1
+---------------
 
 * Fixed a case where the client may hit a transaction aborted error when
   transforming variables.
 
-1.8.3
+Version 1.8.3
+-------------
 
 * Added several settings which were Django specific so that they can be
   configured isolated to the Sentry instance.
@@ -183,28 +226,33 @@
 * Better rendering of non-dict variables when passed within extra data.
 * Graceful failover for searching on message_id's that aren't found.
 
-1.8.0
+Version 1.8.0
+-------------
 
 * Refactored Sentry server to run standalone (sentry --help).
 
-1.7.5
+Version 1.7.5
+-------------
 
 * Implemented new client/server storage API and signing methods.
 * Fixed a bug where accessing __sentry__ would sometimes cause errors on
   certain code paths.
 
-1.7.4
+Version 1.7.4
+-------------
 
 * Fixed a bug with potential recursion issues.
 * Fixed a bug with the storage API and unicode keys.
 
-1.7.3
+Version 1.7.3
+-------------
 
 * Storage API has better responses when data fails to decode, or
   you send a bad request.
 * Documentation improvements for JSON storage API.
 
-1.7.2
+Version 1.7.2
+-------------
 
 * All strings, lists, tuples, and sets are now shortened before sending
   to the server. Iterable data structures are truncated to the first
@@ -212,11 +260,13 @@
 
   Both shorteners have configurable values in the settings.
 
-1.7.1
+Version 1.7.1
+-------------
 
 * Fixed a bug that slipped through with blocktrans usage.
 
-1.7.0
+Version 1.7.0
+-------------
 
 * Added ``score`` to ``GroupedMessage`` (schema change).
 * Added ``MessageIndex`` (schema change).
@@ -231,25 +281,30 @@
 * Respect TIME_ZONE by using auto_now_* on DateTimeField's.
 * Tests required Haystack and Celery are now skipped if module is not found.
 
-1.6.10
+Version 1.6.10
+--------------
 
 * Added JSON support to storage API.
 * Changed default client to use JSON format.
 
-1.6.9.1
+Version 1.6.9.1
+---------------
 
 * Fixed an issue with encoding to UTF-8 for Haystack.
 
-1.6.9
+Version 1.6.9
+-------------
 
 * Added URLs to default search parameters.
 * Fixed a bug to ensure template information is only added if its the correct loader
 
-1.6.8.1
+Version 1.6.8.1
+-------------
 
 * Search will now show when unauthenticated (e.g. when SENTRY_PUBLIC is enabled)
 
-1.6.8
+Version 1.6.8
+-------------
 
 * Search no longer allows filters.
 * Search no longer allows arbitrary queries without Haystack.
@@ -257,39 +312,46 @@
 * Haystack has been updated for further flexibility.
 * SearchFilter is now unused (you should update your configs).
 
-1.6.7
+Version 1.6.7
+-------------
 
 * Moved static media into /static/.
 * Added serve_static view to handle static media solely within Sentry.
 * Added SENTRY_STATIC_URL_PREFIX setting.
 
-1.6.6
+Version 1.6.6
+-------------
 
 * setup.py install will no longer install example_project.
 * Fixed an issue where __sentry__ would be called even if it wasn't a callable.
 * Fixed an issue where transactions would attempt a rollback when not managed while creating
   the sort index.
 
-1.6.5
+Version 1.8.8
+-------------
 
 * Set a last_message_id so when thrashing is hit there is still a point of reference for tracing.
 * Check correct permissions for Sentry.
 
-1.6.4
+Version 1.6.4
+-------------
 
 * Fixed a memory leak due to TextNode's being created from leading whitespace in realtime packets.
 
-1.6.3
+Version 1.6.3
+-------------
 
 * Fixed a critical bug in the Sentry JS namespace preventing it from loading.
 
-1.6.2
+Version 1.6.2
+-------------
 
 * LogHandler will attempt to pick up the request automatically using SentryLogMiddleware.
 * Updated AJAX CSRF support for Django 1.2.5.
 * request.sentry is now set in any event which has request as part of the parameters.
 
-1.6.0
+Version 1.6.0
+-------------
 
 * Added message references (uuid's) as message_id in Message
 * Fixed css compatibility issues with TextWidget

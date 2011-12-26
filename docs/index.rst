@@ -14,6 +14,7 @@ easily trace them in your application.
    interfaces/index
    technical/index
    contributing/index
+   changelog/index
 
 Screenshots
 -----------
