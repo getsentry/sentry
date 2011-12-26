@@ -1,47 +1,47 @@
-{% load sentry_helpers %}
+{% load i18n %}
 
 <div id="traceback" class="module">
-    <h2>Stacktrace</h2>
+    <div class="page-header">
+      <h2>{% trans "Stacktrace" %}</h2>
+    </div>
     <div class="module-content">
         {% autoescape off %}
         <div id="browserTraceback">
         <ul class="traceback">
           {% for frame in frames %}
             <li class="frame">
-              <code>{{ frame.filename|escape }}</code> in <code>{{ frame.function|escape }}</code>
+              <p><code>{{ frame.filename|escape }}</code> in <code>{{ frame.function|escape }}</code></p>
 
-              {% if frame.context_line %}
-                <div class="context" id="c{{ forloop.counter0 }}">
-                  {% if frame.pre_context %}{% with num_lines=frame.pre_context|length %}
-                    <ol start="{{ frame.lineno|subtract:num_lines }}" class="pre-context" id="pre{{ forloop.counter0 }}">{% for line in frame.pre_context %}<li onclick="toggle('pre{{ forloop.parentloop.counter0 }}', 'post{{ forloop.parentloop.counter0 }}')">{{ line|escape }}</li>{% endfor %}</ol>
-                  {% endwith %}{% endif %}
-                  <ol start="{{ frame.lineno }}" class="context-line"><li onclick="toggle('pre{{ forloop.counter0 }}', 'post{{ forloop.counter0 }}')">{{ frame.context_line|escape }} <span>...</span></li></ol>
-                  {% if frame.post_context %}
-                    <ol start='{{ frame.lineno|add:1 }}' class="post-context" id="post{{ forloop.counter0 }}">{% for line in frame.post_context %}<li onclick="toggle('pre{{ forloop.parentloop.counter0 }}', 'post{{ forloop.parentloop.counter0 }}')">{{ line|escape }}</li>{% endfor %}</ol>
-                  {% endif %}
-                </div>
+              {% if frame.context %}
+                  <ol start="{{ frame.start_lineno }}" class="context expandable" id="c{{ forloop.counter0 }}">
+                      {% for num, line in frame.context %}
+                          <li{% if num == frame.lineno %} class="active"{% else %} class="stack{{ forloop.parentloop.counter0 }} closed"{% endif %} onclick="$('.stack{{ forloop.parentloop.counter0 }}').toggle()"><pre>{{ line|escape }}</pre></li>
+                      {% endfor %}
+                  </ol>
               {% endif %}
-              <div class="commands">
-                <a href="#" onclick="return varToggle(this, '{{ forloop.counter0 }}')"><span>&#x25b6;</span> Local vars</a>
-              </div>
-              <table class="vars" id="v{{ forloop.counter0 }}">
-                <thead>
-                  <tr>
-                    <th>Variable</th>
-                    <th>Value</th>
-                  </tr>
-                </thead>
-                <tbody>
-                {% if frame.vars %}
-                  {% for key, value in frame.vars.iteritems %}
+              {% if frame.vars %}
+                <div class="commands">
+                  <a href="#" onclick="return varToggle(this, '{{ forloop.counter0 }}')"><span>&#x25b6;</span> Local vars</a>
+                </div>
+                <table class="vars" id="v{{ forloop.counter0 }}" style="display:none;">
+                  <thead>
                     <tr>
-                      <td>{{ key|escape }}</td>
-                      <td class="code"><pre>{{ value|pprint|escape }}</pre></td>
+                      <th>Variable</th>
+                      <th>Value</th>
                     </tr>
-                  {% endfor %}
-                {% endif %}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                  {% if frame.vars %}
+                    {% for key, value in frame.vars.iteritems %}
+                      <tr>
+                        <td>{{ key|escape }}</td>
+                        <td class="code"><pre>{{ value|pprint|escape }}</pre></td>
+                      </tr>
+                    {% endfor %}
+                  {% endif %}
+                  </tbody>
+                </table>
+              {% endif %}
             </li>
           {% endfor %}
         </ul>

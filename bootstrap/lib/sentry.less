@@ -66,14 +66,85 @@
   }
 }
 
+// Main header
+.main-header {
+  background-color: #f5f5f5;
+  padding: 10px 20px 0px;
+  margin: -20px -20px 20px;
+  border-bottom: 1px solid #ddd;
+  .box-shadow(0 1px 0 rgba(255,255,255,.5));
+  position: relative;
+  h1 {
+    margin-bottom: (@baseline / 2) - 1px;
+  }
+}
+
 // Sparkline (page header)
 
-.page-header {
-  position: relative;
-}
 .sparkline {
   left: 0;
   position: absolute;
   width: 100%;
   .opacity(60);
+}
+
+// Code styles
+
+ol.context {
+  margin: 0;
+  list-style-position: inside;
+  border: 1px solid #ccc;
+  border: 1px solid rgba(0,0,0,.15);
+  .border-radius(3px);
+  > li {
+    padding-left: 20px;
+    font-family:monospace;
+    white-space:pre;
+    color:rgba(0,0,0,.75);
+    background-color: #f5f5f5;
+    > pre {
+      background-color: inherit;
+      color: rgba(0,0,0,.5);
+      margin: 0;
+      padding: 0;
+      border: 0;
+      display: block;
+      line-height: @baseline;
+      font-size: 12px;
+      white-space: pre;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+  }
+  > li.active {
+    background-color: #ddd;
+    pre {
+      color: @black;
+    }
+  }
+}
+ol.context-line {
+  > li {
+    > span {
+      float: right;
+    }
+  }
+}
+
+.expandable {
+  cursor: pointer;
+  .closed {
+    display: none;
+  }
+}
+
+table.vars {
+  .condensed-table;
+}
+
+.module {
+  margin-bottom: 20px;
+}
+.module-content table pre {
+  margin-bottom: 0;
 }

@@ -6,7 +6,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Designed and built with all the love in the world @twitter by @mdo and @fat.
- * Date: Mon Dec 26 04:35:56 PST 2011
+ * Date: Mon Dec 26 05:54:01 PST 2011
  */
 /* Reset.less
  * Props to Eric Meyer (meyerweb.com) for his CSS reset file. We're using an adapted version here	that cuts out some of the reset HTML elements we will never need here (i.e., dfn, samp, etc).
@@ -190,7 +190,7 @@ body {
   color: #404040;
 }
 .container {
-  width: 940px;
+  width: 1100px;
   margin-left: auto;
   margin-right: auto;
   zoom: 1;
@@ -267,112 +267,112 @@ a:hover {
   margin-left: 20px;
 }
 .span1 {
-  width: 40px;
+  width: 50px;
 }
 .span2 {
-  width: 100px;
+  width: 120px;
 }
 .span3 {
-  width: 160px;
+  width: 190px;
 }
 .span4 {
-  width: 220px;
+  width: 260px;
 }
 .span5 {
-  width: 280px;
+  width: 330px;
 }
 .span6 {
-  width: 340px;
-}
-.span7 {
   width: 400px;
 }
+.span7 {
+  width: 470px;
+}
 .span8 {
-  width: 460px;
+  width: 540px;
 }
 .span9 {
-  width: 520px;
+  width: 610px;
 }
 .span10 {
-  width: 580px;
+  width: 680px;
 }
 .span11 {
-  width: 640px;
+  width: 750px;
 }
 .span12 {
-  width: 700px;
-}
-.span13 {
-  width: 760px;
-}
-.span14 {
   width: 820px;
 }
+.span13 {
+  width: 890px;
+}
+.span14 {
+  width: 960px;
+}
 .span15 {
-  width: 880px;
+  width: 1030px;
 }
 .span16 {
-  width: 940px;
+  width: 1100px;
 }
 .span17 {
-  width: 1000px;
+  width: 1170px;
 }
 .span18 {
-  width: 1060px;
-}
-.span19 {
-  width: 1120px;
-}
-.span20 {
-  width: 1180px;
-}
-.span21 {
   width: 1240px;
 }
+.span19 {
+  width: 1310px;
+}
+.span20 {
+  width: 1380px;
+}
+.span21 {
+  width: 1450px;
+}
 .span22 {
-  width: 1300px;
+  width: 1520px;
 }
 .span23 {
-  width: 1360px;
+  width: 1590px;
 }
 .span24 {
-  width: 1420px;
+  width: 1660px;
 }
 .row > .offset1 {
-  margin-left: 80px;
+  margin-left: 90px;
 }
 .row > .offset2 {
-  margin-left: 140px;
+  margin-left: 160px;
 }
 .row > .offset3 {
-  margin-left: 200px;
+  margin-left: 230px;
 }
 .row > .offset4 {
-  margin-left: 260px;
+  margin-left: 300px;
 }
 .row > .offset5 {
-  margin-left: 320px;
+  margin-left: 370px;
 }
 .row > .offset6 {
-  margin-left: 380px;
-}
-.row > .offset7 {
   margin-left: 440px;
 }
+.row > .offset7 {
+  margin-left: 510px;
+}
 .row > .offset8 {
-  margin-left: 500px;
+  margin-left: 580px;
 }
 .row > .offset9 {
-  margin-left: 560px;
+  margin-left: 650px;
 }
 .row > .offset10 {
-  margin-left: 620px;
+  margin-left: 720px;
 }
 .row > .offset11 {
-  margin-left: 680px;
+  margin-left: 790px;
 }
 .row > .offset12 {
-  margin-left: 740px;
+  margin-left: 860px;
 }
 .span-one-third {
   width: 300px;
@@ -816,97 +816,97 @@ textarea.xxlarge {
 input.span1, textarea.span1 {
   display: inline-block;
   float: none;
-  width: 30px;
+  width: 40px;
   margin-left: 0;
 }
 input.span2, textarea.span2 {
   display: inline-block;
   float: none;
-  width: 90px;
+  width: 110px;
   margin-left: 0;
 }
 input.span3, textarea.span3 {
   display: inline-block;
   float: none;
-  width: 150px;
+  width: 180px;
   margin-left: 0;
 }
 input.span4, textarea.span4 {
   display: inline-block;
   float: none;
-  width: 210px;
+  width: 250px;
   margin-left: 0;
 }
 input.span5, textarea.span5 {
   display: inline-block;
   float: none;
-  width: 270px;
+  width: 320px;
   margin-left: 0;
 }
 input.span6, textarea.span6 {
   display: inline-block;
   float: none;
-  width: 330px;
+  width: 390px;
   margin-left: 0;
 }
 input.span7, textarea.span7 {
   display: inline-block;
   float: none;
-  width: 390px;
+  width: 460px;
   margin-left: 0;
 }
 input.span8, textarea.span8 {
   display: inline-block;
   float: none;
-  width: 450px;
+  width: 530px;
   margin-left: 0;
 }
 input.span9, textarea.span9 {
   display: inline-block;
   float: none;
-  width: 510px;
+  width: 600px;
   margin-left: 0;
 }
 input.span10, textarea.span10 {
   display: inline-block;
   float: none;
-  width: 570px;
+  width: 670px;
   margin-left: 0;
 }
 input.span11, textarea.span11 {
   display: inline-block;
   float: none;
-  width: 630px;
+  width: 740px;
   margin-left: 0;
 }
 input.span12, textarea.span12 {
   display: inline-block;
   float: none;
-  width: 690px;
+  width: 810px;
   margin-left: 0;
 }
 input.span13, textarea.span13 {
   display: inline-block;
   float: none;
-  width: 750px;
+  width: 880px;
   margin-left: 0;
 }
 input.span14, textarea.span14 {
   display: inline-block;
   float: none;
-  width: 810px;
+  width: 950px;
   margin-left: 0;
 }
 input.span15, textarea.span15 {
   display: inline-block;
   float: none;
-  width: 870px;
+  width: 1020px;
   margin-left: 0;
 }
 input.span16, textarea.span16 {
   display: inline-block;
   float: none;
-  width: 930px;
+  width: 1090px;
   margin-left: 0;
 }
 input[disabled],
@@ -1163,52 +1163,52 @@ table tbody th {
   border-radius: 0 0 4px 0;
 }
 table .span1 {
-  width: 20px;
+  width: 30px;
 }
 table .span2 {
-  width: 60px;
+  width: 90px;
 }
 table .span3 {
-  width: 100px;
+  width: 150px;
 }
 table .span4 {
-  width: 140px;
+  width: 210px;
 }
 table .span5 {
-  width: 180px;
+  width: 270px;
 }
 table .span6 {
-  width: 220px;
+  width: 330px;
 }
 table .span7 {
-  width: 260px;
+  width: 390px;
 }
 table .span8 {
-  width: 300px;
+  width: 450px;
 }
 table .span9 {
-  width: 340px;
+  width: 510px;
 }
 table .span10 {
-  width: 380px;
+  width: 570px;
 }
 table .span11 {
-  width: 420px;
+  width: 630px;
 }
 table .span12 {
-  width: 460px;
+  width: 690px;
 }
 table .span13 {
-  width: 500px;
+  width: 750px;
 }
 table .span14 {
-  width: 540px;
+  width: 810px;
 }
 table .span15 {
-  width: 580px;
+  width: 870px;
 }
 table .span16 {
-  width: 620px;
+  width: 930px;
 }
 .zebra-striped tbody tr:nth-child(odd) td, .zebra-striped tbody tr:nth-child(odd) th {
   background-color: #f9f9f9;
@@ -2593,8 +2593,18 @@ button.btn::-moz-focus-inner, input[type=submit].btn::-moz-focus-inner {
   color: #bfbfbf;
   text-shadow: none;
 }
-.page-header {
+.main-header {
+  background-color: #f5f5f5;
+  padding: 10px 20px 0px;
+  margin: -20px -20px 20px;
+  border-bottom: 1px solid #ddd;
+  -webkit-box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  -moz-box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
   position: relative;
+}
+.main-header h1 {
+  margin-bottom: 8px;
 }
 .sparkline {
   left: 0;
@@ -2604,4 +2614,57 @@ button.btn::-moz-focus-inner, input[type=submit].btn::-moz-focus-inner {
   -khtml-opacity: 0.6;
   -moz-opacity: 0.6;
   opacity: 0.6;
+}
+ol.context {
+  margin: 0;
+  list-style-position: inside;
+  border: 1px solid #ccc;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+}
+ol.context > li {
+  padding-left: 20px;
+  font-family: monospace;
+  white-space: pre;
+  color: rgba(0, 0, 0, 0.75);
+  background-color: #f5f5f5;
+}
+ol.context > li > pre {
+  background-color: inherit;
+  color: rgba(0, 0, 0, 0.5);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: block;
+  line-height: 18px;
+  font-size: 12px;
+  white-space: pre;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+ol.context > li.active {
+  background-color: #ddd;
+}
+ol.context > li.active pre {
+  color: #000000;
+}
+ol.context-line > li > span {
+  float: right;
+}
+.expandable {
+  cursor: pointer;
+}
+.expandable .closed {
+  display: none;
+}
+table.vars th, table.vars td {
+  padding: 5px 5px 4px;
+}
+.module {
+  margin-bottom: 20px;
+}
+.module-content table pre {
+  margin-bottom: 0;
 }

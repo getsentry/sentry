@@ -88,7 +88,9 @@
 
         {% if version_data %}
             <div id="versioninfo" class="module">
-                <h2>{% trans "Module Versions" %}</h2>
+                <div class="page-header">
+                    <h2>{% trans "Module Versions" %}</h2>
+                </div>
                 <div class="module-content">
                     <table class="inline">
                         {% for k, v in version_data %}
@@ -108,7 +110,9 @@
 
         {% if group|has_charts %}
             <div class="module">
-                <h2>{% trans "Frequency" %}</h2>
+                <div class="page-header">
+                    <h2>{% trans "Frequency" %}</h2>
+                </div>
                 <div class="module-content">
                     <div id="chart">
                         <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>

@@ -26,6 +26,30 @@ def unserialize(klass, data):
     return value
 
 
+def get_context(lineno, context_line, pre_context=None, post_context=None):
+    context = []
+    start_lineno = lineno - len(pre_context or [])
+    if pre_context:
+        start_lineno = lineno - len(pre_context)
+        at_lineno = start_lineno
+        for line in pre_context:
+            context.append((at_lineno, line))
+            at_lineno += 1
+    else:
+        start_lineno = lineno
+        at_lineno = lineno
+
+    context.append((at_lineno, context_line))
+    at_lineno += 1
+
+    if post_context:
+        for line in post_context:
+            context.append((at_lineno, line))
+            at_lineno += 1
+
+    return context
+
+
 class Interface(object):
     """
     An interface is a structured represntation of data, which may
@@ -91,9 +115,21 @@ class Stacktrace(Interface):
         }
 
     def to_html(self, event):
+        frames = []
+        for frame in self.frames:
+            context = get_context(frame['lineno'], frame['context_line'], frame.get('pre_context'), frame.get('post_context'))
+            frames.append({
+                'filename': frame.get('filename'),
+                'function': frame.get('function'),
+                'start_lineno': context[0][0],
+                'lineno': frame.get('lineno'),
+                'context': context,
+                'vars': frame.get('vars') or {},
+            })
+
         return render_to_string('sentry/partial/interfaces/stacktrace.html', {
             'event': event,
-            'frames': self.frames,
+            'frames': frames,
         })
 
     def to_string(self, event):
@@ -210,14 +246,14 @@ class Template(Interface):
         }
 
     def to_html(self, event):
+        context = get_context(self.lineno, self.context_line, self.pre_context, self.post_context)
+
         return render_to_string('sentry/partial/interfaces/template.html', {
             'event': event,
             'filename': self.filename,
-            'context_line': self.context_line,
             'lineno': self.lineno,
-            'pre_context': self.pre_context,
-            'pre_context_lineno': self.lineno - len(self.pre_context),
-            'post_context': self.post_context,
+            'start_lineno': context[0][0],
+            'context': context,
         })
 
 

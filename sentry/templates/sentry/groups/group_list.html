@@ -85,6 +85,7 @@
 {% block content_after %}
     <script type="text/javascript">
     $(document).ready(function() {
+        $sparkline = $('#sparkline');
         $.ajax({
             url: Sentry.options.apiUrl,
             type: 'get',
@@ -95,7 +96,6 @@
             },
             success: function(data){
                 if (!data.length) {
-                    $('#sparkline').html('No data currently available.');
                     return;
                 }
 
@@ -107,8 +107,8 @@
                 for (var i=0; i<data.length; i++) {
                     pairs.push([start + (3600 * 1000) * i, data[i]]);
                 }
-                $('#sparkline').height($('.page-header').height());
-                $.plot($("#sparkline"), [
+                $sparkline.height($sparkline.parent().height());
+                $.plot($sparkline, [
                     {
                         data: pairs,
                         color: '#3079d0',

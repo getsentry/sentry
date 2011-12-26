@@ -25,12 +25,6 @@ footer {
     -moz-box-shadow: 0 1px 2px rgba(0,0,0,.15);
     box-shadow: 0 1px 2px rgba(0,0,0,.15);
 }
-/* Page header tweaks */
-.page-header {
-    background-color: #f5f5f5;
-    padding: 10px 20px 0px;
-    margin: -20px -20px 20px;
-}
 /* Give a quick and non-cross-browser friendly divider */
 .topbar .btn {
     border: 0;
@@ -168,7 +162,7 @@ a:visited { color: inherit; }*/
 #chart { margin-bottom: 15px; overflow: hidden; }
 
 /* tracebacks */
-.frame table.vars { margin:5px 0 2px 40px; }
+.frame table.vars { margin:5px 0 2px 35px; }
 table.vars tbody td:first-child { padding-right: 20px; }
 table.vars td { font-family:monospace; }
 table.vars td.code { overflow: hidden; }
@@ -182,24 +176,9 @@ table.source th { color:#666; }
 table.source td { font-family:monospace; white-space:pre; border-bottom:1px solid #eee; }
 ul.traceback { list-style-type: none; margin-left: 0;}
 ul.traceback li.frame { margin-bottom: 1em; overflow: hidden; position: relative; }
-div.context { margin: 10px 0; }
-div.context ol { padding-left: 20px; margin:0 0px; list-style-position: inside; }
-div.context ol li { font-family:monospace; white-space:pre; color:#666; cursor:pointer; }
-div.context ol.context-line li { color:black; background-color:#ccc; }
-div.context ol.context-line li span { float: right; }
-div.commands { margin-left: 20px; }
+div.commands { margin-top: 10px; margin-left: 20px; }
 div.commands a { color:black; text-decoration:none; }
-#template, #template-not-exist { overflow: hidden; }
-#template li {
-    margin-left: 38px;
-    line-height: 1.5em;
-    font-family: monospace;
-}
-#template pre {
-    color: #000;
-    margin-bottom: 0;
-}
-#template-not-exist ul { margin: 0 0 0 20px; }
+div.commands span { font-size: 0.9em; }
 #unicode-hint { background:#eee; }
 #summary { margin-bottom: 15px; }
 #summary table, #summary pre { margin-bottom: 0; }

@@ -1,16 +1,79 @@
+{% load i18n %}
+
 <div id="request" class="module">
-    <h2>Request</h2>
+    <div class="page-header">
+      <h2>{% trans "Request" %}</h2>
+    </div>
     <div class="module-content">
-        <table class="meta">
-            <tr>
-                <th>URL:</th>
-                <td><a href="{{ url }}">{{ url|escape }}</a></td>
-            </tr>
-            <tr>
-                <th>Method:</th>
-                <td>{{ method }}</td>
-            </tr>
+        <table class="bordered-table">
+            <colgroup>
+                <col style="width:60px;">
+            </colgroup>
+            <tbody>
+                <tr>
+                    <th>URL:</th>
+                    <td><a href="{{ url }}">{{ url|escape }}</a></td>
+                </tr>
+                <tr>
+                    <th>Method:</th>
+                    <td>{{ method }}</td>
+                </tr>
+                <tr>
+                    <th>Query:</th>
+                    <td>{{ query_string }}</td>
+                </tr>
+                <tr>
+                    <th>Body:</th>
+                    <td>
+                        {% if data %}
+                            {% if data|length > 5 %}
+                                <a href="#" onclick="return varToggle(this, 'HttpBody')"><span>&#x25b6;</span> Body</a>
+                                <div id="vHttpBody" style="display:none;">
+                                    <pre>{{ printed_data|escape }}</pre>
+                                </div>
+                            {% else %}
+                                <pre>{{ data|pprint|escape }}</pre>
+                            {% endif %}
+                        {% else %}
+                            <em>No post body.</em>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Env:</th>
+                    <td>
+                        {% if env %}
+                            {% if env|length > 5 %}
+                                <a href="#" onclick="return varToggle(this, 'HttpEnv')"><span>&#x25b6;</span> Environment and Headers</a>
+                                <table class="vars" id="vHttpEnv" style="display:none;">
+                                  <tbody>
+                                    {% for key, value in env.iteritems %}
+                                      <tr>
+                                        <td>{{ key|escape }}</td>
+                                        <td class="code"><pre>{{ value|pprint|escape }}</pre></td>
+                                      </tr>
+                                    {% endfor %}
+                                  </tbody>
+                                </table>
+                            {% else %}
+                                <table class="vars">
+                                  <tbody>
+                                    {% for key, value in env.iteritems %}
+                                      <tr>
+                                        <td>{{ key|escape }}</td>
+                                        <td class="code"><pre>{{ value|pprint|escape }}</pre></td>
+                                      </tr>
+                                    {% endfor %}
+                                  </tbody>
+                                </table>
+                            {% endif %}
+                        {% else %}
+                            <em>No environment recorded.</em>
+                        {% endif %}
+                    </td>
+                </tr>
+            </tbody>
         </table>
-        <p><a href="{% url sentry-replay event.project_id event.id %}">Replay this request</a></p>
+        <a href="{% url sentry-replay event.project_id event.id %}" class="btn">Replay this request</a>
     </div>
 </div>
