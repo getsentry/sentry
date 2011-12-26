@@ -10,7 +10,7 @@
 {% endblock %}
 
 {% block sidebar %}
-    <ul class="actions">
+    <ul>
         {# We're going to move these to the resolve action location #}
         {% for label, link, is_active in group|get_actions:request %}
             <li><a href="{{ link }}">{{ label }}</a></li>
@@ -77,79 +77,77 @@
             <pre id="full-message">{{ group.message }}</pre>
         {% endif %}
 
-
-            {% if version_data %}
-                <div id="versioninfo" class="module">
-                    <h2>{% trans "Module Versions" %}</h2>
-                    <div class="module-content">
-                        <table class="inline">
-                            {% for k, v in version_data %}
-                                <tr>
-                                    <th class="key">{{ k }}</th>
-                                    <td class="values"><code>{{ v }}</code></td>
-                                </tr>
-                            {% endfor %}
-                        </table>
-                    </div>
-                </div>
-            {% endif %}
-
-            {% for interface in interface_list %}
-                {{ interface }}
-            {% endfor %}
-
-            {% if group|has_charts %}
-                <div class="module">
-                    <h2>{% trans "Frequency" %}</h2>
-                    <div class="module-content">
-                        <div id="chart">
-                            <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
-                            <p>Loading...</p>
-                        </div>
-                    </div>
-                </div>
-            {% endif %}
-
-            {% if json_data %}
-            <div id="requestinfo" class="module">
-                <h2>{% trans "Additional Data" %}</h2>
+        {% if version_data %}
+            <div id="versioninfo" class="module">
+                <h2>{% trans "Module Versions" %}</h2>
                 <div class="module-content">
-                    <table>
-                        {% for k, v in json_data %}
+                    <table class="inline">
+                        {% for k, v in version_data %}
                             <tr>
                                 <th class="key">{{ k }}</th>
-                                <td class="values">
-                                {% if v %}
-                                    {% if v|is_dict %}
-                                        <table class="vars">
-                                            <thead>
-                                                <tr>
-                                                    <th>{% trans "Variable" %}</th>
-                                                    <th>{% trans "Value" %}</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {% for k_, v_ in v.iteritems|as_sorted %}
-                                                <tr>
-                                                    <td>{{ k_ }}</td>
-                                                    <td class="code"><pre>{{ v_|pprint }}</pre></td>
-                                                </tr>
-                                                {% endfor %}
-                                            </tbody>
-                                        </table>
-                                    {% else %}
-                                        <pre>{{ v|pprint }}</pre>
-                                    {% endif %}
-                                {% else %}
-                                    <p>{% blocktrans with k as varname %}No data for {{ varname }}{% endblocktrans %}</p>
-                                {% endif %}
-                                </td>
+                                <td class="values"><code>{{ v }}</code></td>
                             </tr>
                         {% endfor %}
                     </table>
                 </div>
-            {% endif %}
-        </div>
+            </div>
+        {% endif %}
+
+        {% for interface in interface_list %}
+            {{ interface }}
+        {% endfor %}
+
+        {% if group|has_charts %}
+            <div class="module">
+                <h2>{% trans "Frequency" %}</h2>
+                <div class="module-content">
+                    <div id="chart">
+                        <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
+                        <p>Loading...</p>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        {% if json_data %}
+        <div id="requestinfo" class="module">
+            <h2>{% trans "Additional Data" %}</h2>
+            <div class="module-content">
+                <table>
+                    {% for k, v in json_data %}
+                        <tr>
+                            <th class="key">{{ k }}</th>
+                            <td class="values">
+                            {% if v %}
+                                {% if v|is_dict %}
+                                    <table class="vars">
+                                        <thead>
+                                            <tr>
+                                                <th>{% trans "Variable" %}</th>
+                                                <th>{% trans "Value" %}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for k_, v_ in v.iteritems|as_sorted %}
+                                            <tr>
+                                                <td>{{ k_ }}</td>
+                                                <td class="code"><pre>{{ v_|pprint }}</pre></td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                {% else %}
+                                    <pre>{{ v|pprint }}</pre>
+                                {% endif %}
+                            {% else %}
+                                <p>{% blocktrans with k as varname %}No data for {{ varname }}{% endblocktrans %}</p>
+                            {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        {% endif %}
     {% endblock %}
 {% endblock %}
 
