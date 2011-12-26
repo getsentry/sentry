@@ -19,6 +19,7 @@ with Sentry, or you want to use a client in a non-Django application, we suggest
 
    install/index
    config/index
+   interfaces/index
    technical/index
    contributing/index
 

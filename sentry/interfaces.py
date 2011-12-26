@@ -70,7 +70,7 @@ class Message(Interface):
 
 
 class Query(Interface):
-    def __init__(self, query, engine):
+    def __init__(self, query, engine=None):
         self.query = query
         self.engine = engine
 
@@ -82,27 +82,6 @@ class Query(Interface):
 
 
 class Stacktrace(Interface):
-    """
-    {
-        frames: {
-            filename: '/real/file/name.py',
-            function: 'myfunction',
-            vars: {
-                key: value
-            },
-            pre_context: [
-                'line1',
-                'line2'
-            ],
-            context_line: 'line3',
-            lineno: 7,
-            post_context: [
-                'line4',
-                'line5'
-            ],
-        }
-    }
-    """
     def __init__(self, frames):
         self.frames = frames
 
@@ -160,16 +139,6 @@ class Exception(Interface):
 
 
 class Http(Interface):
-    """
-    {
-        url: 'http://absolute.uri/foo',
-        method: 'GET',
-        data: {foo: 'bar'},
-        query_string: 'hello=world&foo=bar',
-        cookies: 'foo=bar',
-        env: {REMOTE_ADDR: '192.168.0.1'}
-    }
-    """
     score = 100
 
     # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html
@@ -198,7 +167,7 @@ class Http(Interface):
         self.data = data
         self.query_string = query_string
         self.env = env or {}
-        self.cookies = cookies or {}
+        self.cookies = cookies or None
 
     def serialize(self):
         return {
@@ -224,21 +193,6 @@ class Http(Interface):
 
 
 class Template(Interface):
-    """
-    {
-        filename: '/real/file/name.html',
-        pre_context: [
-            'line1',
-            'line2'
-        ],
-        context_line: 'line3',
-        lineno: 7,
-        post_context: [
-            'line4',
-            'line5'
-        ],
-    }
-    """
     def __init__(self, filename, context_line, lineno, pre_context=None, post_context=None):
         self.filename = filename
         self.context_line = context_line
@@ -268,11 +222,4 @@ class Template(Interface):
 
 
 class User(Interface):
-    """
-    {
-        is_authenticated: true,
-        id: 'unique_id',
-        username: 'foo',
-        email: 'foo@example.com'
-    }
-    """
+    pass
