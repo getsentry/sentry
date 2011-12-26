@@ -237,6 +237,9 @@ dl.flat dd {
     color: #fff;
     display: inline-block;
     font-size: 0.8em;
+    background: #ff7800;
+    background:-moz-linear-gradient(center top , #FAA51A, #F47A20) repeat scroll 0 0 transparent;
+    background:-webkit-gradient(linear, 0% 0%, 0% 100%, from(#FAA51A), to(#F47A20));
 }
 
 /* message list */
@@ -257,9 +260,6 @@ dl.flat dd {
     color: #fff;
     display: inline-block;
     margin-right: 5px;
-    background: #ff7800;
-    background:-moz-linear-gradient(center top , #FAA51A, #F47A20) repeat scroll 0 0 transparent;
-    background:-webkit-gradient(linear, 0% 0%, 0% 100%, from(#FAA51A), to(#F47A20));
 }
 .messages h3 {
     vertical-align: middle;
