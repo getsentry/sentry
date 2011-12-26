@@ -7,6 +7,7 @@ from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 from paging.helpers import paginate as paginate_func
+from sentry.conf import settings
 from sentry.plugins import GroupActionProvider
 from sentry.utils import json
 from templatetag_sugar.register import tag
@@ -191,15 +192,30 @@ truncatechars.is_safe = True
 @tag(register, [Variable('queryset_or_list'),
                 Constant('from'), Variable('request'),
                 Optional([Constant('as'), Name('asvar')]),
-                Optional([Constant('per_page'), Variable('per_page')]),
-                Optional([Variable('is_endless')])])
-def paginate(context, queryset_or_list, request, asvar, per_page=25, is_endless=True):
-    """{% paginate queryset_or_list from request as foo[ per_page 25][ is_endless False %}"""
-    context_instance = RequestContext(request)
-    paging_context = paginate_func(request, queryset_or_list, per_page, endless=is_endless)
-    paging = mark_safe(render_to_string('sentry/partial/_pager.html', paging_context, context_instance))
+                Optional([Constant('per_page'), Variable('per_page')])])
+def paginate(context, queryset_or_list, request, asvar=None, per_page=settings.MESSAGES_PER_PAGE):
+    """{% paginate queryset_or_list from request as foo[ per_page 25] %}"""
+    result = paginate_func(request, queryset_or_list, per_page, endless=True)
 
-    result = dict(objects=paging_context['paginator'].get('objects', []), paging=paging)
+    context_instance = RequestContext(request)
+    paging = mark_safe(render_to_string('sentry/partial/_pager.html', result, context_instance))
+
+    result = dict(objects=result['paginator'].get('objects', []), paging=paging)
+
+    if asvar:
+        context[asvar] = result
+        return ''
+    return result
+
+
+@tag(register, [Variable('queryset_or_list'),
+                Constant('from'), Variable('request'),
+                Optional([Constant('as'), Name('asvar')]),
+                Optional([Constant('per_page'), Variable('per_page')])])
+def paginator(context, queryset_or_list, request, asvar=None, per_page=settings.MESSAGES_PER_PAGE):
+    """{% paginator queryset_or_list from request as foo[ per_page 25] %}"""
+    result = paginate_func(request, queryset_or_list, per_page, endless=True)
+
     if asvar:
         context[asvar] = result
         return ''

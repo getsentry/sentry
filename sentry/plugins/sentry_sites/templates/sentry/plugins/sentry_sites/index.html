@@ -1,23 +1,22 @@
 {% extends "sentry/groups/details.html" %}
 
+{% load i18n %}
 {% load sentry_helpers %}
 
 {% block inner %}
-    <h2>Site List</h2>
     {% paginate group.unique_sites from request as site_list per_page 25 %}
-    <div class="paging-wrap">
-        <div class="clearfix">
-            {{ site_list.paging }}
-        </div>
-    </div>
-    <ul class="server-list">
-        {% for site, times_seen in site_list.objects %}
-            <li><span class="count">{{ times_seen|small_count }}</span> <a href="{% url sentry group.project_id %}?site={{ site }}">{{ site }}</a></li>
-        {% endfor %}
-    </ul>
-    <div class="paging-wrap">
-        <div class="clearfix">
-            {{ site_list.paging }}
-        </div>
-    </div>
+
+    {% if site_list.objects %}
+        {{ site_list.paging }}
+
+        <ul class="site-list unstyled">
+            {% for site, times_seen in site_list.objects %}
+                <li><span class="count">{{ times_seen|small_count }}</span> <a href="{% url sentry group.project_id %}?site={{ site }}">{{ site }}</a></li>
+            {% endfor %}
+        </ul>
+
+        {{ site_list.paging }}
+    {% else %}
+        <p class="alert-message notice">{% trans "There are no records recorded for this event." %}</p>
+    {% endif %}
 {% endblock %}
