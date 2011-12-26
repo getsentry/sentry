@@ -7,7 +7,7 @@ Version 2.0
 Sentry 2.0 is a major release which contains many new features as well as some large
 rearchitecting of the codebase.
 
-If you were previous extending Sentry, it would be wise
+If you were previously extending Sentry, it would be wise
 to test your extensions before upgrading.
 
 * Added project scoping to all data in sentry.
