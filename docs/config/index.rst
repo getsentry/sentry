@@ -5,6 +5,80 @@ This document describes additional configuration options available to the Sentry
 
 .. note:: While the optiosn below are labeled without the ``SENTRY_`` prefix, when you are configuring them via your ``settings.py`` you **must* specify the prefix.
 
+.. data:: sentry.conf.KEY
+    :noindex:
+
+    The shared secret for global administration privileges via the API.
+
+    We recommend using Project API keys to maintain access, as using a shared key provides a potential security risk.
+
+    ::
+
+    	SENTRY_KEY = '0123456789abcde'
+
+.. data:: sentry.conf.URL_PREFIX
+    :noindex:
+
+	Absolute URL to the sentry root directory. Should not include a trailing slash.
+
+	Defaults to ``""``.
+
+	::
+
+		SENTRY_URL_PREFIX = '/sentry'
+
+.. data:: sentry.conf.PUBLIC
+    :noindex:
+
+	Should Sentry be protected by a username and password (using @login_required) or be publicly accessible.
+
+	Defaults to ``False`` (password protection).
+
+	::
+
+		SENTRY_PUBLIC = True
+
+.. data:: sentry.conf.SAMPLE_DATA
+    :noindex:
+
+	.. versionadded:: 1.10.0
+
+	Controls sampling of data.
+
+	Defaults to ``True``.
+
+	If this is enabled, data will be sampled in a manner similar to the following:
+
+	* 50 messages stores ~50 results
+	* 1000 messages stores ~400 results
+	* 10000 messages stores ~900 results
+	* 100000 messages stores ~1800 results
+	* 1000000 messages stores ~3600 results
+	* 10000000 messages stores ~4500 results
+
+	::
+
+		SENTRY_SAMPLE_DATA = False
+
+.. data:: sentry.conf.FILTERS
+    :noindex:
+
+    A list of filters for extending the Sentry interface (as well as post-processing of data).
+
+    ::
+
+		SENTRY_FILTERS = (
+		    'sentry.filters.StatusFilter',
+		    'sentry.filters.LoggerFilter',
+		    'sentry.filters.LevelFilter',
+		    'sentry.filters.ServerNameFilter',
+		    'sentry.filters.SiteFilter',
+		)
+
+Notifications
+-------------
+
+
 .. data:: sentry.conf.ADMINS
     :noindex:
 
@@ -66,46 +140,75 @@ This document describes additional configuration options available to the Sentry
 		  'some.annoying.logger',
 		)
 
-.. data:: sentry.conf.URL_PREFIX
+.. data:: sentry.conf.EMAIL_SUBJECT_PREFIX
     :noindex:
 
-	Absolute URL to the sentry root directory. Should not include a trailing slash.
+	The prefix to apply to outgoing emails.
 
 	Defaults to ``""``.
 
 	::
 
-		SENTRY_URL_PREFIX = '/sentry'
+		SENTRY_EMAIL_SUBJECT_PREFIX = '[Sentry] '
 
-.. data:: sentry.conf.PUBLIC
+
+.. data:: sentry.conf.SERVER_EMAIL
     :noindex:
 
-	Should Sentry be protected by a username and password (using @login_required) or be publicly accessible.
+	The reply-to email address for outgoing mail.
 
-	Defaults to ``False`` (password protection).
+	Defaults to ``root@localhost``.
 
 	::
 
-		SENTRY_PUBLIC = True
+		SENTRY_SERVER_EMAIL = 'sentry@example.com'
 
-.. data:: sentry.conf.SAMPLE_DATA
+Web Server
+----------
+
+The following settings are available for the built-in webserver:
+
+.. data:: sentry.conf.WEB_HOST
     :noindex:
 
-	.. versionadded:: 1.10.0
+    The hostname which the webserver should bind to.
 
-	Controls sampling of data.
+    Defaults to ``localhost``.
 
-	Defaults to ``True``.
+    ::
 
-	If this is enabled, data will be sampled in a manner similar to the following:
+        SENTRY_WEB_HOST = '0.0.0.0'  # bind to all addresses
 
-	* 50 messages stores ~50 results
-	* 1000 messages stores ~400 results
-	* 10000 messages stores ~900 results
-	* 100000 messages stores ~1800 results
-	* 1000000 messages stores ~3600 results
-	* 10000000 messages stores ~4500 results
+.. data:: sentry.conf.WEB_PORT
+    :noindex:
 
-	::
+    The port which the webserver should listen on.
 
-		SENTRY_SAMPLE_DATA = False
+    Defaults to ``9000``.
+
+    ::
+
+        SENTRY_WEB_PORT = 9000
+
+.. data:: sentry.conf.WEB_PID_FILE
+    :noindex:
+
+    The location to store the PID file.
+
+    Defaults to ``%SENTRY%/sentry.pid``.
+
+    ::
+
+        SENTRY_WEB_PID_FILE = '/var/run/sentry.pid'
+
+.. data:: sentry.conf.WEB_LOG_FILE
+    :noindex:
+
+
+    The location to store the log file.
+
+    Defaults to ``%SENTRY%/sentry.log``.
+
+    ::
+
+        SENTRY_WEB_LOG_FILE = '/var/log/sentry.log'

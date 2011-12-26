@@ -118,6 +118,7 @@ configuration via --config, you will likely want to preface the file with import
     SENTRY_LOG_FILE = '/var/log/sentry.log'
     SENTRY_WEB_HOST = '0.0.0.0'
     SENTRY_WEB_PORT = 9000
+    SENTRY_KEY = '0123456789abcde'
 
 By default, Sentry will also look for ``~/.sentry/sentry.conf.py`` and load it if it exists, and ``--config`` is not passed.
 
@@ -125,26 +126,6 @@ By default, Sentry will also look for ``~/.sentry/sentry.conf.py`` and load it i
 
    The default database is SQLite, which generally does not perform very well.
 
-The following settings are available for the built-in webserver:
-
-WEB_HOST
-````````
-
-The hostname which the webserver should bind to. Defaults to ``localhost``.
-
-WEB_PORT
-````````
-The port which the webserver should listen on. Defaults to ``9000``.
-
-WEB_PID_FILE
-````````````
-
-The location to store the PID file. Defaults to ``/var/run/sentry.pid``.
-
-WEB_LOG_FILE
-````````````
-
-The location to store the log file. Defaults to ``/var/log/sentry.log``.
 
 Configuring a Sentry WSGI app
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
