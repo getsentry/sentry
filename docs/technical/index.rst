@@ -17,43 +17,43 @@ your ``INSTALLED_APPS``::
 	  'sentry.plugins.sentry_urls',
 	]
 
-sentry.plugins.sentry_server
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. data:: sentry.plugins.sentry_server
+    :noindex:
 
-Enables a list of most seen servers in the message details sidebar, as well
-as a dedicated panel to view all servers a message has been seen on.
+    Enables a list of most seen servers in the message details sidebar, as well
+    as a dedicated panel to view all servers a message has been seen on.
 
-::
+    ::
 
-	INSTALLED_APPS = [
-	  'sentry.plugins.sentry_servers',
-	]
+    	INSTALLED_APPS = [
+    	  'sentry.plugins.sentry_servers',
+    	]
 
-sentry.plugins.sentry_urls
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. data:: sentry.plugins.sentry_urls
+    :noindex:
 
-Enables a list of most seen urls in the message details sidebar, as well
-as a dedicated panel to view all urls a message has been seen on.
+    Enables a list of most seen urls in the message details sidebar, as well
+    as a dedicated panel to view all urls a message has been seen on.
 
-::
+    ::
 
-	INSTALLED_APPS = [
-	  'sentry.plugins.sentry_urls',
-	]
+    	INSTALLED_APPS = [
+    	  'sentry.plugins.sentry_urls',
+    	]
 
-sentry.plugins.sentry_sites
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. data:: sentry.plugins.sentry_sites
+    :noindex:
 
-.. versionadded:: 1.3.13
+    .. versionadded:: 1.3.13
 
-Enables a list of most seen sites in the message details sidebar, as well
-as a dedicated panel to view all sites a message has been seen on.
+    Enables a list of most seen sites in the message details sidebar, as well
+    as a dedicated panel to view all sites a message has been seen on.
 
-::
+    ::
 
-	INSTALLED_APPS = [
-	  'sentry.plugins.sentry_sites',
-	]
+    	INSTALLED_APPS = [
+    	  'sentry.plugins.sentry_sites',
+    	]
 
 Writing a Plugin
 ----------------
@@ -136,20 +136,155 @@ The body of the post is a string representation of a JSON object and is
 (optionally and preferably) gzipped and then (necessarily) base64
 encoded.
 
-This JSON object contains the following fields:
+The following attributes are required for all events:
 
-    :``message``: the text of the formatted logging record.
-    :``timestamp``: indicates when the logging record was created (in the Sentry client).  The Sentry server assumes the time is in UTC.
-                    The timestamp should be in ISO 8601 format, without a timezone. For example: 2011-05-02T17:41:36
-    :``level``: the record severity.
-    :``message_id``: hexadecimal string representing a uuid4 value.
-    :``logger``: which logger created the record.  If missing, defaults to the string ``root``, not to the root logger.
-    :``view``: function call which was the primary perpetrator.
-    :``server_name``: optional, identifies the Sentry client from which the record comes.
-    :``url``: optional.
-    :``site``: optional, makes sense if you use sites.
-    :``data``: a further JSON hash containing optional metadata and some Sentry magic. (to avoid confusion, it would be nice to call this field ``metadata``).
+.. data:: event_id
 
-Some of the above fields (``server_name``, ``url``, ``site``) are
-optional and actually a legacy of the first Sentry client, a
-Django application. They may eventually be moved to the ``metadata`` field.
+    Hexadecimal string representing a uuid4 value.
+
+    ::
+
+        {
+            "event_id": "fc6d8c0c43fc4630ad850ee518f1b9d0"
+        }
+
+.. data:: message
+
+    User-readable representation of this event
+
+    ::
+
+        {
+            "message": "SyntaxError: Wattttt!"
+        }
+
+.. data:: timestamp
+
+    Indicates when the logging record was created (in the Sentry client).
+
+    Defaults to the ``datetime.datetime.utcnow()``
+
+    The Sentry server assumes the time is in UTC.
+
+    The timestamp should be in ISO 8601 format, without a timezone.
+
+    ::
+
+        {
+            "timestamp": "2011-05-02T17:41:36"
+        }
+
+.. data:: level
+
+    The record severity.
+
+    Defaults to ``logging.ERROR``.
+
+    The value can either be the integar value or the string label
+    as specified in ``SENTRY_LOG_LEVELS``.
+
+    ::
+
+        {
+            "level": "warn"
+        }
+
+.. data:: logger
+
+    The name of the logger which logger created the record.
+
+    If missing, defaults to the string ``root``.
+
+    ::
+
+        {
+            "logger": "my.logger.name"
+        }
+
+Additionally, there are several optional values which Sentry recognizes:
+
+.. data:: culprit
+
+    Function call which was the primary perpetrator of this event.
+
+    ::
+
+        {
+            "culprit": "my.module.function_name"
+        }
+
+.. data:: server_name
+
+    Identifies the host client from which the event was recorded.
+
+    ::
+
+        {
+            "server_name": "foo.example.com"
+        }
+
+.. data:: url
+
+    The full HTTP URI from which the event was recorded.
+
+    ::
+
+        {
+            "url": "http://example.com/path"
+        }
+
+.. data:: site
+
+    An arbitrary value for per-site aggregation.
+
+    ::
+
+        {
+            "site": "My Site"
+        }
+
+.. data:: modules
+
+    A list of relevant modules and their versions.
+
+    ::
+
+        {
+            "modules": [
+                ["my.module.name", "1.0"]
+            ]
+        }
+
+.. data:: extra
+
+    An arbitrary mapping of additional metadata to store with the event.
+
+    ::
+
+        {
+            "extra": {
+                "my_key": 1,
+                "some_other_value": "foo bar"
+            }
+        }
+
+Any additional value is assumed to be a data interface, where the key is the Python path to the interface
+class name, and the value is the data expected by the interface.
+
+For example, with an included Exception event, a basic JSON body might resemble the following::
+
+        {
+            "event_id": "fc6d8c0c43fc4630ad850ee518f1b9d0",
+            "culprit": "my.module.function_name",
+            "timestamp": "2011-05-02T17:41:36",
+            "message": "SyntaxError: Wattttt!"
+            "sentry.interfaces.Exception": {
+                "type": "SyntaxError":
+                "value": "Wattttt!",
+                "module": "__builtins__"
+            }
+        }
+
+.. seealso::
+
+   See :doc:`../interfaces/index` for information on Sentry's builtin interfaces and how to create your own.
