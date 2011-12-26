@@ -41,7 +41,8 @@ Sentry implements data interfaces for storing structured data. At it's core, an 
 
         {
             "frames": {
-                "filename": "/real/file/name.py",
+                "abs_path": "/real/file/name.py"
+                "filename": "file/name.py",
                 "function": "myfunction",
                 "vars": {
                     "key": "value"
@@ -67,7 +68,8 @@ Sentry implements data interfaces for storing structured data. At it's core, an 
     ::
 
         {
-            "filename": "/real/file/name.html",
+            "abs_path": "/real/file/name.html"
+            "filename": "file/name.html",
             "pre_context": [
                 "line1",
                 "line2"

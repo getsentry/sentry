@@ -108,6 +108,12 @@ class Query(Interface):
 class Stacktrace(Interface):
     def __init__(self, frames):
         self.frames = frames
+        for frame in frames:
+            # ensure we've got the correct required values
+            assert 'filename' in frame
+            assert 'function' in frame
+            assert 'lineno' in frame
+            assert 'context_line' in frame
 
     def serialize(self):
         return {
@@ -119,6 +125,7 @@ class Stacktrace(Interface):
         for frame in self.frames:
             context = get_context(frame['lineno'], frame['context_line'], frame.get('pre_context'), frame.get('post_context'))
             frames.append({
+                'abs_path': frame.get('abs_path'),
                 'filename': frame.get('filename'),
                 'function': frame.get('function'),
                 'start_lineno': context[0][0],
@@ -229,7 +236,9 @@ class Http(Interface):
 
 
 class Template(Interface):
-    def __init__(self, filename, context_line, lineno, pre_context=None, post_context=None):
+    def __init__(self, filename, context_line, lineno, pre_context=None, post_context=None,
+                 abs_path=None):
+        self.abs_path = abs_path
         self.filename = filename
         self.context_line = context_line
         self.lineno = lineno
@@ -238,6 +247,7 @@ class Template(Interface):
 
     def serialize(self):
         return {
+            'abs_path': self.abs_path,
             'filename': self.filename,
             'context_line': self.context_line,
             'lineno': self.lineno,
@@ -250,6 +260,7 @@ class Template(Interface):
 
         return render_to_string('sentry/partial/interfaces/template.html', {
             'event': event,
+            'abs_path': self.abs_path,
             'filename': self.filename,
             'lineno': self.lineno,
             'start_lineno': context[0][0],

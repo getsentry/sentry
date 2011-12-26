@@ -48,10 +48,6 @@ urlpatterns = patterns('',
     url(r'^feeds/events.xml$', feeds.MessageFeed(), name='sentry-feed-events'),
     url(r'^feeds/groups.xml$', feeds.SummaryFeed(), name='sentry-feed-groups'),
 
-    # JS
-
-    url(r'^(?P<project_id>\d+)/jsapi$', groups.ajax_handler, name='sentry-ajax'),
-
     # API
 
     url(r'^store/$', api.store, name='sentry-store'),
@@ -70,6 +66,10 @@ urlpatterns = patterns('',
     # Global
 
     url(r'^$', generic.dashboard, name='sentry'),
+
+    # JS
+
+    url(r'^(?P<project_id>\d+)/jsapi$', groups.ajax_handler, name='sentry-ajax'),
 
     # Project specific
 
