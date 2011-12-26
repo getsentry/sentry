@@ -49,11 +49,11 @@ var Sentry = {};
                     op: 'clear'
                 },
                 success: function(groups){
-                	window.location.reload();
+                    window.location.reload();
                 }
             });
         }
-    }
+    };
     Sentry.stream.resolve = function(gid, remove){
         if (typeof(remove) == 'undefined') {
             remove = true;
@@ -211,48 +211,61 @@ var Sentry = {};
         }
 
         $('#sidebar .filter-list').each(function(_, el){
-            var el = $(el);
-            if (el.find('li').length > 6) {
+            var $el = $(el);
+            if ($el.find('li').length > 6) {
                 // rebuild this widget as a dropdown select
                 var select = $('<select></select>');
-                var parent = $('<div class="filter-select sidebar-module">').appendTo(el.parent());
+                var parent = $('<div class="filter-select sidebar-module">').appendTo($el.parent());
 
-                el.find('li a').each(function(_, a){
+                $el.find('li a').each(function(_, a){
                     a = $(a);
                     var opt = $('<option value="' + a.attr('href') + '">' + a.text() + '</option>').appendTo(select);
                     if (a.parent().hasClass('active')) {
                         opt.attr('selected', 'selected');
                     }
                 });
-                el.remove();
+                $el.remove();
                 select.appendTo(parent).change(function(){
                     window.location.href = $(this).val();
                 });
             }
         });
     });
+}());
 
-    // Ensure that the CSRF token is sent with AJAX POSTs sent by jQuery
-    // Taken from the documentation: http://docs.djangoproject.com/en/dev/ref/contrib/csrf/
-    $('html').ajaxSend(function(event, xhr, settings) {
-        function getCookie(name) {
-            var cookieValue = null;
-            if (document.cookie && document.cookie != '') {
-                var cookies = document.cookie.split(';');
-                for (var i = 0; i < cookies.length; i++) {
-                    var cookie = jQuery.trim(cookies[i]);
-                    // Does this cookie string begin with the name we want?
-                    if (cookie.substring(0, name.length + 1) == (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
+$(document).ajaxSend(function(event, xhr, settings) {
+    function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = jQuery.trim(cookies[i]);
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
                 }
             }
-            return cookieValue;
         }
-        if (!(/^http:.*/.test(settings.url) || (/^https:.*/.test(settings.url)))) {
-            // Only send the token to relative URLs i.e. locally.
-            xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
-        }
-    });
-}());
+        return cookieValue;
+    }
+    function sameOrigin(url) {
+        // url could be relative or scheme relative or absolute
+        var host = document.location.host; // host + port
+        var protocol = document.location.protocol;
+        var sr_origin = '//' + host;
+        var origin = protocol + sr_origin;
+        // Allow absolute or scheme relative URLs to same origin
+        return (url == origin || url.slice(0, origin.length + 1) == origin + '/') ||
+            (url == sr_origin || url.slice(0, sr_origin.length + 1) == sr_origin + '/') ||
+            // or any other URL that isn't scheme relative or absolute i.e relative.
+            !(/^(\/\/|http:|https:).*/.test(url));
+    }
+    function safeMethod(method) {
+        return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+    }
+
+    if (!safeMethod(settings.type) && sameOrigin(settings.url)) {
+        xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+    }
+});
