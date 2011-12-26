@@ -23,7 +23,19 @@ with Sentry, or you want to use a client in a non-Django application, we suggest
    technical/index
    contributing/index
 
-.. image:: http://dl.dropbox.com/u/116385/Screenshots/l6xk.png
+Screenshots
+-----------
+
+Aggregated Events
+`````````````````
+
+.. image:: images/group_list.png
+   :alt: aggregated events
+
+Event Details
+`````````````
+.. image:: images/event.png
+   :alt: event details
 
 Deprecation Notes
 -----------------
