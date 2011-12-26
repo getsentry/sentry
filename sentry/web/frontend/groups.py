@@ -205,8 +205,7 @@ def search(request, project):
         'event_list': event_list,
         'query': query,
         'sort': sort,
-        'request': request,
-    })
+    }, request)
 
 
 @login_required
@@ -262,9 +261,8 @@ def group_list(request, project):
         'sort': sort,
         'sort_label': sort_label,
         'any_filter': any_filter,
-        'request': request,
         'filters': filters,
-    })
+    }, request)
 
 
 @login_required
@@ -318,8 +316,7 @@ def group(request, project, group_id):
         'event': event,
         'interface_list': filter(None, [mark_safe(i.to_html(event) or '') for i in event.interfaces.itervalues()]),
         'json_data': event.data.get('extra', {}),
-        'request': request,
-    })
+    }, request)
 
 
 @login_required
@@ -337,8 +334,7 @@ def group_event_list(request, project, group_id):
         'group': group,
         'event_list': event_list,
         'page': 'event_list',
-        'request': request
-    })
+    }, request)
 
 
 @login_required
@@ -358,8 +354,7 @@ def group_event_details(request, project, group_id, event_id):
         'event': event,
         'interface_list': filter(None, [mark_safe(i.to_html(event) or '') for i in event.interfaces.itervalues()]),
         'json_data': event.data.get('extra', {}),
-        'request': request,
-    })
+    }, request)
 
 
 @login_required

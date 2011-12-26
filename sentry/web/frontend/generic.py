@@ -13,9 +13,7 @@ def dashboard(request):
     if len(project_list) == 1:
         return HttpResponseRedirect(reverse('sentry', kwargs={'project_id': project_list.keys()[0]}))
     return render_to_response('sentry/dashboard.html', {
-        'project_list': project_list,
-        'request': request,
-    })
+    }, request)
 
 
 def static_media(request, path):

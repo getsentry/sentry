@@ -47,9 +47,8 @@ def event_list(request, project):
         'event_list': event_list[offset:limit],
         'today': today,
         'any_filter': any_filter,
-        'request': request,
         'filters': filters,
-    })
+    }, request)
 
 
 @login_required
@@ -80,11 +79,10 @@ def replay_event(request, project_id, event_id):
         result = None
 
     context = {
-        'request': request,
         'event': event,
         'form': form,
         'result': result,
     }
     context.update(csrf(request))
 
-    return render_to_response('sentry/events/replay_request.html', context)
+    return render_to_response('sentry/events/replay_request.html', context, request)

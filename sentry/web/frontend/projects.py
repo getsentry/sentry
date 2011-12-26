@@ -1,5 +1,3 @@
-from functools import partial
-
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.forms.models import modelformset_factory
@@ -11,16 +9,14 @@ from sentry.web.decorators import login_required, can_manage, \
      permission_required
 from sentry.web.forms import EditProjectForm, NewProjectForm, \
      ProjectMemberForm
-from sentry.web.helpers import render_to_response, get_project_list
+from sentry.web.helpers import render_to_response
 
 
 @login_required
 def project_list(request):
     return render_to_response('sentry/projects/list.html', {
-        'project_list': get_project_list(request.user).values(),
-        'request': request,
         'can_create_projects': request.user.has_perm('sentry.add_project'),
-    })
+    }, request)
 
 
 @permission_required('sentry.add_project')
@@ -41,11 +37,9 @@ def new_project(request):
     context = csrf(request)
     context.update({
         'form': form,
-        'project_list': get_project_list(request.user).values(),
-        'request': request,
     })
 
-    return render_to_response('sentry/projects/new.html', context)
+    return render_to_response('sentry/projects/new.html', context, request)
 
 
 @login_required
@@ -86,8 +80,6 @@ def manage_project(request, project):
         'form': form,
         'pm_formset': pm_formset,
         'project': project,
-        'project_list': get_project_list(request.user).values(),
-        'request': request,
     })
 
-    return render_to_response('sentry/projects/manage.html', context)
+    return render_to_response('sentry/projects/manage.html', context, request)

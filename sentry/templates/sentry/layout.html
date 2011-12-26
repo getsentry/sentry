@@ -39,6 +39,16 @@
  -->                        </ul>
                         <ul class="nav secondary-nav">
                             {% if request.user.is_authenticated %}
+                                {% if project_list %}
+                                    <li class="dropdown" data-dropdown="dropdown">
+                                        <a href="#" class="dropdown-toggle">{% trans "Projects" %}</a>
+                                        <ul class="dropdown-menu">
+                                            {% for p in project_list %}
+                                                <li{% if project == p %} class="active"{% endif %}><a href="{% url sentry p.pk %}">{{ p.name }}</a></li>
+                                            {% endfor %}
+                                        </ul>
+                                    </li>
+                                {% endif %}
                                 <li class="dropdown" data-dropdown="dropdown">
                                     <a href="#" class="dropdown-toggle">{% trans "Account" %}</a>
                                     <ul class="dropdown-menu">

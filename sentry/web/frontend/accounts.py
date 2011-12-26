@@ -25,9 +25,8 @@ def login(request):
     context = csrf(request)
     context.update({
         'form': form,
-        'request': request,
     })
-    return render_to_response('sentry/login.html', context)
+    return render_to_response('sentry/login.html', context, request)
 
 
 def logout(request):

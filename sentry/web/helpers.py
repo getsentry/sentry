@@ -55,17 +55,22 @@ def iter_data(obj):
         yield k, v
 
 
-def render_to_string(template, context={}):
+def render_to_string(template, context={}, request=None):
     context.update({
         'has_search': False,
         'MESSAGES_PER_PAGE': settings.MESSAGES_PER_PAGE,
     })
+    if request:
+        context.update({
+            'request': request,
+            'project_list': get_project_list(request.user).values(),
+        })
 
     return loader.render_to_string(template, context)
 
 
-def render_to_response(template, context={}, status=200):
-    response = HttpResponse(render_to_string(template, context))
+def render_to_response(template, context={}, request=None, status=200):
+    response = HttpResponse(render_to_string(template, context, request))
     response.status_code = status
 
     return response
