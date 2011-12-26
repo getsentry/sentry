@@ -11,6 +11,9 @@ html, body {
 body {
     padding-top: 60px; /* 40px to make the container go all the way to the bottom of the topbar */
 }
+footer {
+    padding: 40px 0;
+}
 .container > .content {
     background-color: #fff;
     padding: 20px;
