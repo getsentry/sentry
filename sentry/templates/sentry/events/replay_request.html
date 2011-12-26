@@ -8,36 +8,45 @@
 
 {% block content %}
     <div class="span16">
-        {% if form.errors %}
-            <p class="error">{% trans "Please fill out all fields." %}</p>
-        {% endif %}
+        <ul class="tabs" data-tabs="tabs">
+            <li{% if not result %} class="active"{% endif %}><a href="#request">Request</a></li>
+            {% if result %}
+                <li class="active"><a href="#result">Result</a></li>
+            {% endif %}
+        </ul>
 
-        <form class="form-stacked" action="" method="post">
-            {% csrf_token %}
-            <fieldset>
-                {% for field in form %}
-                    <div class="clearfix{% if field.errors %} error{% endif %}">
-                        {{ field.label_tag }}
-                        <div class="input">{{ field }}</div>
-                        {% if field.help_text %}
-                            <span class="help-block">{{ field.help_text }}</span>
-                        {% endif %}
-                    </div>
-                {% endfor %}
-            </fieldset>
-            <p class="actions">
-                <button type="submit" class="btn primary">{% trans "Submit" %}</button>
-            </p>
-        </form>
+        <div class="tab-content">
+            <div{% if not result %} class="active"{% endif %} id="request">
+                {% if form.errors %}
+                    <p class="error">{% trans "Please fill out all fields." %}</p>
+                {% endif %}
 
-        {% if result %}
-            <div class="page-header">
-                <h2>Result</h2>
+                <form class="form-stacked" action="" method="post">
+                    {% csrf_token %}
+                    <fieldset>
+                        {% for field in form %}
+                            <div class="clearfix{% if field.errors %} error{% endif %}">
+                                {{ field.label_tag }}
+                                <div class="input">{{ field }}</div>
+                                {% if field.help_text %}
+                                    <span class="help-block">{{ field.help_text }}</span>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </fieldset>
+                    <p class="actions">
+                        <button type="submit" class="btn primary">{% trans "Submit" %}</button>
+                    </p>
+                </form>
             </div>
-            <pre><strong>{{ result.status }} {{ result.reason }}</strong>
+            {% if result %}
+                <div class="active" id="result">
+                    <pre><strong>{{ result.status }} {{ result.reason }}</strong>
 {% for key, value in result.headers %}{{ key }}: {{ value }}
 {% endfor %}
 {{ result.body }}</pre>
-        {% endif %}
+                </div>
+            {% endif %}
+        </div>
     </div>
 {% endblock %}
