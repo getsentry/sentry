@@ -15,8 +15,8 @@ Sentry implements data interfaces for storing structured data. At it's core, an 
     ::
 
         {
-            message: 'My raw message with interpreted strings like %s',
-            params: ['this']
+            "message": "My raw message with interpreted strings like %s",
+            "params": ["this"]
         }
 
 .. class:: sentry.interfaces.Exception
@@ -27,9 +27,9 @@ Sentry implements data interfaces for storing structured data. At it's core, an 
     ::
 
         {
-            type: 'ValueError',
-            value: 'My exception value',
-            module: '__builtins__'
+            "type": "ValueError",
+            "value": "My exception value",
+            "module": "__builtins__"
         }
 
 .. class:: sentry.interfaces.Stacktrace
@@ -40,21 +40,21 @@ Sentry implements data interfaces for storing structured data. At it's core, an 
     ::
 
         {
-            frames: {
-                filename: '/real/file/name.py',
-                function: 'myfunction',
-                vars: {
-                    key: value
+            "frames": {
+                "filename": "/real/file/name.py",
+                "function": "myfunction",
+                "vars": {
+                    "key": "value"
                 },
-                pre_context: [
-                    'line1',
-                    'line2'
+                "pre_context": [
+                    "line1",
+                    "line2"
                 ],
-                context_line: 'line3',
-                lineno: 3,
-                post_context: [
-                    'line4',
-                    'line5'
+                "context_line": "line3",
+                "lineno": 3,
+                "post_context": [
+                    "line4",
+                    "line5"
                 ],
             }
         }
@@ -67,16 +67,16 @@ Sentry implements data interfaces for storing structured data. At it's core, an 
     ::
 
         {
-            filename: '/real/file/name.html',
-            pre_context: [
-                'line1',
-                'line2'
+            "filename": "/real/file/name.html",
+            "pre_context": [
+                "line1",
+                "line2"
             ],
-            context_line: 'line3',
-            lineno: 3,
-            post_context: [
-                'line4',
-                'line5'
+            "context_line": "line3",
+            "lineno": 3,
+            "post_context": [
+                "line4",
+                "line5"
             ],
         }
 
@@ -96,12 +96,16 @@ Sentry implements data interfaces for storing structured data. At it's core, an 
     ::
 
         {
-            url: 'http://absolute.uri/foo',
-            method: 'POST',
-            data: {foo: 'bar'},
-            query_string: 'hello=world',
-            cookies: 'foo=bar',
-            env: {REMOTE_ADDR: '192.168.0.1'}
+            "url": "http://absolute.uri/foo",
+            "method": "POST',
+            "data": {
+                "foo": "bar"
+            },
+            "query_string": "hello=world",
+            "cookies": "foo=bar",
+            "env": {
+                "REMOTE_ADDR": "192.168.0.1"
+            }
         }
 
 .. class:: sentry.interfaces.User
@@ -114,10 +118,10 @@ Sentry implements data interfaces for storing structured data. At it's core, an 
     ::
 
         {
-            is_authenticated: true,
-            id: 'unique_id',
-            username: 'foo',
-            email: 'foo@example.com'
+            "is_authenticated": true,
+            "id": "unique_id",
+            "username": "foo",
+            "email": "foo@example.com"
         }
 
 
@@ -128,6 +132,6 @@ Sentry implements data interfaces for storing structured data. At it's core, an 
     ::
 
         {
-            query: 'SELECT 1'
-            engine: 'psycopg2'
+            "query": "SELECT 1"
+            "engine": "psycopg2"
         }
