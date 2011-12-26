@@ -4,53 +4,20 @@
 {% load sentry_helpers %}
 
 {% block inner %}
-    {% paginate event_list from request contextual as event_list per_page MESSAGES_PER_PAGE %}
+    {% paginate event_list from request as event_list per_page MESSAGES_PER_PAGE %}
 
-    {% if event_list.paginator.objects %}
+    {% if event_list.objects %}
         <p class="alert-message info">This list only contains a portion of all events seen. For more information about how Sentry samples events, see the <a href="#">documentation</a>.</p>
-        <div class="pagination">
-            <ul>
-                <li class="prev{% if not event_list.paginator.has_previous %} disabled{% endif %}">
-                    {% if event_list.paginator.has_previous %}
-                        <a href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}">&larr; {% trans "Previous" %}</a>
-                    {% else %}
-                        <a>&larr; {% trans "Previous" %}</a>
-                    {% endif %}
-                </li>
-                <li class="next{% if not event_list.paginator.has_next %} disabled{% endif %}">
-                    {% if event_list.paginator.has_next %}
-                        <a href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}">{% trans "Next" %} &rarr;</a>
-                    {% else %}
-                        <a>{% trans "Next" %} &rarr;</a>
-                    {% endif %}
-                </li>
-            </ul>
-        </div>
+
+        {{ event_list.paging }}
 
         <ul class="messages">
-            {% for event in event_list.paginator.objects %}
+            {% for event in event_list.objects %}
                 {% include "sentry/partial/_event.html" %}
             {% endfor %}
         </ul>
 
-        <div class="pagination">
-            <ul>
-                <li class="prev{% if not event_list.paginator.has_previous %} disabled{% endif %}">
-                    {% if event_list.paginator.has_previous %}
-                        <a href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}">&larr; {% trans "Previous" %}</a>
-                    {% else %}
-                        <a>&larr; {% trans "Previous" %}</a>
-                    {% endif %}
-                </li>
-                <li class="next{% if not event_list.paginator.has_next %} disabled{% endif %}">
-                    {% if event_list.paginator.has_next %}
-                        <a href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}">{% trans "Next" %} &rarr;</a>
-                    {% else %}
-                        <a>{% trans "Next" %} &rarr;</a>
-                    {% endif %}
-                </li>
-            </ul>
-        </div>
+        {{ event_list.paging }}
     {% else %}
         <p class="alert-message notice">{% trans "There are no records recorded for this event." %}</p>
     {% endif %}
