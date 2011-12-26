@@ -9,22 +9,6 @@ Or with *setuptools*::
 
 	easy_install -U django-sentry
 
-Requirements
-------------
-
-If you installed using pip or setuptools you shouldn't need to worry about requirements. Otherwise
-you will need to install the following packages in your Sentry server environment:
-
- - ``Django >= 1.2``
- - ``django-indexer >= 0.3.0`` (stores metadata indexes)
- - ``django-paging >= 0.2.4``
- - ``django-templatetag-sugar >= 0.1.0``
- - ``raven >= 0.2``
-
-.. note::
-
-   The built-in webserver's dependencies are not installed by default.
-
 You now have two choices:
 
 1. Run an integrated setup where your webapp runs both the Sentry client and server.
@@ -39,8 +23,8 @@ You now have two choices:
    most compatibility with your application, as well as ensuring it does not impact your
    primary application servers.
 
-Integrated Setup
-----------------
+Integrating with an existing Django install
+-------------------------------------------
 
 The integrated setup is the easiest to get up and running. It simply requires you to plug the Sentry application into your existing
 Django project. Once installed, you simply need to update your settings.py and add ``sentry`` and ``raven.contrib.django`` to ``INSTALLED_APPS``::
@@ -68,10 +52,6 @@ We also highly recommend setting ``TEMPLATE_DEBUG=True`` in your environment (no
 Sentry to receive template debug information when it hits a syntax error.
 
 Finally, run ``python manage.py syncdb`` to create the database tables.
-
-.. note::
-
-   If you are using mod_wsgi/Apache, you will need to ensure that you set ``WSGIPassAuthorization On`` for the Sentry authentication to work.
 
 .. note::
 
