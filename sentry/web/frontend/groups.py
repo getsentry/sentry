@@ -22,7 +22,6 @@ from django.views.decorators.csrf import csrf_exempt
 from sentry.conf import settings
 from sentry.models import Group, Event, Project
 from sentry.plugins import GroupActionProvider
-from sentry.templatetags.sentry_helpers import with_priority
 from sentry.utils import get_filters, json
 from sentry.web.decorators import can_manage, login_required
 from sentry.web.helpers import render_to_response, \
@@ -74,7 +73,6 @@ def ajax_handler(request, project):
             (m.pk, {
                 'html': render_to_string('sentry/partial/_group.html', {
                     'group': m,
-                    'priority': p,
                     'request': request,
                 }).strip(),
                 'title': m.message_top(),
@@ -82,8 +80,7 @@ def ajax_handler(request, project):
                 'level': m.get_level_display(),
                 'logger': m.logger,
                 'count': m.times_seen,
-                'priority': p,
-            }) for m, p in with_priority(event_list[offset:limit])]
+            }) for m in event_list[offset:limit]]
 
         response = HttpResponse(json.dumps(data))
         response['Content-Type'] = 'application/json'

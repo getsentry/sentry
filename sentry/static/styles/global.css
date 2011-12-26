@@ -257,6 +257,9 @@ dl.flat dd {
     color: #fff;
     display: inline-block;
     margin-right: 5px;
+    background: #ff7800;
+    background:-moz-linear-gradient(center top , #FAA51A, #F47A20) repeat scroll 0 0 transparent;
+    background:-webkit-gradient(linear, 0% 0%, 0% 100%, from(#FAA51A), to(#F47A20));
 }
 .messages h3 {
     vertical-align: middle;
@@ -276,15 +279,14 @@ dl.flat dd {
     white-space: nowrap;
 }
 
-.messages .tag { display: inline-block; padding: 2px 5px; background: #eaeaea; margin-right: 5px;}
+.messages .tag { display: inline-block; padding: 2px 5px; background: #F5F5F5; -moz-border-radius: 4px; border-radius: 4px; margin-right: 5px;}
 .messages .traceback { display: none; }
 .messages li { clear: both; padding: 8px; position: relative; padding-right: 50px; overflow: hidden; }
-.messages .row1 { background: #f9f9f9; }
 .messages .hidden {
     position: absolute;
     right: 15px;
     top: 21px;
-    visibility: hidden;;
+    visibility: hidden;
 }
 .messages li:hover .hidden {
     visibility: visible;
@@ -310,7 +312,7 @@ dl.flat dd {
 .messages .status-0 { display: none; }
 .messages .status-1 { color: red; }
 .messages li:hover, .messages .active {
-    background: #eaeaea;
+    background: #F5F5F5;
     -webkit-border-radius: 5px;
     -moz-border-radius: 5px;
     border-radius: 5px;

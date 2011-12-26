@@ -71,7 +71,7 @@
 
     {% if event_list.paginator.objects %}
         <ul class="messages" id="event_list">
-            {% for group, priority in event_list.paginator.objects|with_priority %}
+            {% for group in event_list.paginator.objects %}
                 {% include "sentry/partial/_group.html" %}
             {% endfor %}
         </ul>
