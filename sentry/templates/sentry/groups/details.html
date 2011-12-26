@@ -58,7 +58,7 @@
                 {{ group.error }}
             </p>
             {% if group.status == 0 %}
-                <a href="{% url sentry-ajax %}?op=resolve&amp;gid={{ group.pk }}" class="hidden button button_resolve">&#10003;</a>
+                <a href="{% url sentry-ajax group.project_id %}?op=resolve&amp;gid={{ group.pk }}" class="hidden button button_resolve">&#10003;</a>
             {% endif %}
         </li>
     </ul>

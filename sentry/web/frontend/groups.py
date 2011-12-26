@@ -34,24 +34,23 @@ event_re = re.compile(r'^(?P<event_id>[a-z0-9]{32})\$(?P<checksum>[a-z0-9]{32})$
 
 @login_required
 @csrf_exempt
-def ajax_handler(request):
+@can_manage
+def ajax_handler(request, project):
     # TODO: remove this awful idea of an API
     op = request.REQUEST.get('op')
 
-    def notification(request):
+    def notification(request, project):
         return render_to_response('sentry/partial/_notification.html', request.GET)
 
-    def poll(request):
+    def poll(request, project):
         filters = []
         for filter_ in get_filters():
             filters.append(filter_(request))
 
-        projects = get_project_list(request.user, 'read_message')
-
         offset = 0
         limit = settings.MESSAGES_PER_PAGE
 
-        event_list = Group.objects.filter(Q(project__in=projects.keys()) | Q(project__isnull=True))
+        event_list = Group.objects.filter(project=project)
 
         for filter_ in filters:
             if not filter_.is_set():
@@ -90,7 +89,7 @@ def ajax_handler(request):
         response['Content-Type'] = 'application/json'
         return response
 
-    def resolve(request):
+    def resolve(request, project):
         gid = request.REQUEST.get('gid')
         if not gid:
             return HttpResponseForbidden()
@@ -121,7 +120,7 @@ def ajax_handler(request):
         response['Content-Type'] = 'application/json'
         return response
 
-    def clear(request):
+    def clear(request, project):
         projects = get_project_list(request.user, 'change_message_status')
 
         event_list = Group.objects.filter(Q(project__in=projects.keys()) | Q(project__isnull=True))
@@ -136,7 +135,7 @@ def ajax_handler(request):
         response['Content-Type'] = 'application/json'
         return response
 
-    def chart(request):
+    def chart(request, project):
         gid = request.REQUEST.get('gid')
         if not gid:
             return HttpResponseForbidden()
@@ -156,7 +155,7 @@ def ajax_handler(request):
         return response
 
     if op in ['notification', 'poll', 'resolve', 'clear', 'chart']:
-        return locals()[op](request)
+        return locals()[op](request, project)
     else:
         return HttpResponseBadRequest()
 
@@ -207,13 +206,6 @@ def search(request, project):
         'request': request,
     })
 
-
-SORT_CHOICES = (
-    ('priority', 'Priority'),
-    ('date', 'Last Seeen'),
-    ('new', 'First Seen'),
-    ('freq', 'Frequency'),
-)
 
 @login_required
 @can_manage('read_message')

@@ -3,6 +3,19 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
+{% block meta %}
+    {{ block.super }}
+    <script>
+    Sentry.config({
+        apiUrl: '{% url sentry-ajax project.id %}'
+    });
+    {% if has_realtime %}
+        Sentry.realtime.enable();
+    {% endif %}
+    </script>
+{% endblock %}
+
+
 {% block heading %}{% trans "Events <small>Aggregated</small>" %}{% endblock %}
 
 {% block sidebar %}
@@ -54,7 +67,7 @@
                 <li{% ifequal sort 'accel_60' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=accel_60">{% trans "Trending: 60 minutes" %}</a></li>
             </ul>
         </li>
-        <li class="pull-right"><a href="{% url sentry-ajax %}?op=clear" onclick="Sentry.stream.clear();return false;">Clear Feed</a>
+        <li class="pull-right"><a href="{% url sentry-ajax project.pk %}?op=clear" onclick="Sentry.stream.clear();return false;">Clear Feed</a>
     </ul>
 
     {% if event_list.paginator.objects %}

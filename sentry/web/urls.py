@@ -50,7 +50,7 @@ urlpatterns = patterns('',
 
     # JS
 
-    url(r'^jsapi/$', groups.ajax_handler, name='sentry-ajax'),
+    url(r'^(?P<project_id>\d+)/jsapi$', groups.ajax_handler, name='sentry-ajax'),
 
     # API
 

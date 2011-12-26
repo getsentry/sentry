@@ -18,12 +18,8 @@
         <script type="text/javascript">
         Sentry.config({
             mediaUrl: '{% url sentry-media '' %}',
-            apiUrl: '{% url sentry-ajax %}',
             defaultImage: '{% url sentry-media 'images/sentry.png' %}'
         });
-        {% if has_realtime %}
-        Sentry.realtime.enable();
-        {% endif %}
         </script>
         {% block meta %}
         {% endblock %}
