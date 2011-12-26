@@ -44,13 +44,13 @@
         <li class="dropdown pull-right" data-dropdown="dropdown">
             <a href="#" class="dropdown-toggle">{% trans "Sort by:" %} {% trans "Priority" %}</a>
             <ul class="dropdown-menu">
-                <li value=""{% ifequal sort 'priority' %} selected="selected"{% endifequal %}><a href="#">{% trans "Priority" %}</a></li>
-                <li value="date"{% ifequal sort 'date' %} selected="selected"{% endifequal %}><a href="#">{% trans "Last Seen" %}</a></li>
-                <li value="new"{% ifequal sort 'new' %} selected="selected"{% endifequal %}><a href="#">{% trans "First Seen" %}</a></li>
-                <li value="freq"{% ifequal sort 'freq' %} selected="selected"{% endifequal %}><a href="#">{% trans "Frequency" %}</a></li>
+                <li value=""{% ifequal sort 'priority' %} class="active"{% endifequal %}><a href="#">{% trans "Priority" %}</a></li>
+                <li value="date"{% ifequal sort 'date' %} class="active"{% endifequal %}><a href="#">{% trans "Last Seen" %}</a></li>
+                <li value="new"{% ifequal sort 'new' %} class="active"{% endifequal %}><a href="#">{% trans "First Seen" %}</a></li>
+                <li value="freq"{% ifequal sort 'freq' %} class="active"{% endifequal %}><a href="#">{% trans "Frequency" %}</a></li>
                 <li class="divider"></li>
-                <li value="accel_15"{% ifequal sort 'accel_15' %} selected="selected"{% endifequal %}><a href="#">{% trans "Trending: 15 minutes" %}</a></li>
-                <li value="accel_60"{% ifequal sort 'accel_60' %} selected="selected"{% endifequal %}><a href="#">{% trans "Trending: 60 minutes" %}</a></li>
+                <li value="accel_15"{% ifequal sort 'accel_15' %} class="active"{% endifequal %}><a href="#">{% trans "Trending: 15 minutes" %}</a></li>
+                <li value="accel_60"{% ifequal sort 'accel_60' %} class="active"{% endifequal %}><a href="#">{% trans "Trending: 60 minutes" %}</a></li>
             </ul>
         </li>
         <li class="pull-right"><a href="{% url sentry-ajax %}?op=clear" onclick="Sentry.stream.clear();return false;">Clear Feed</a>

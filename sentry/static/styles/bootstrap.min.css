@@ -366,3 +366,4 @@ button.btn::-moz-focus-inner,input[type=submit].btn::-moz-focus-inner{padding:0;
 .options>li>a{line-height:34px;border:0;-webkit-border-radius:4px;-moz-border-radius:4px;border-radius:4px;}.options>li>a:hover{border-bottom:0;}
 .options>li.pull-right{float:right;}
 .options .disabled a,.options .disabled a:hover{background-color:transparent;color:#bfbfbf;}
+.dropdown-menu>li.active a{color:#bfbfbf;border-color:transparent;cursor:default;}
