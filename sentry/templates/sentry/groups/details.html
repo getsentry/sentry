@@ -6,7 +6,7 @@
 {% block title %}{{ group.error }} | {{ block.super }}{% endblock %}
 
 {% block heading %}
-    {% trans "Event Details" %}</span>
+    {% trans "Event Details" %} <small>{{ group.error|truncatechars:100 }}</small>
 {% endblock %}
 
 {% block sidebar %}
