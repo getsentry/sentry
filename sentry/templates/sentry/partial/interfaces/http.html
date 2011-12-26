@@ -42,11 +42,44 @@
                     </td>
                 </tr>
                 <tr>
-                    <th>Env:</th>
+                    <th>Headers:</th>
+                    <td>
+                        {% if headers %}
+                            {% if headers|length > 5 %}
+                                <a href="#" onclick="return varToggle(this, 'HttpHeaders')"><span>&#x25b6;</span> Headers</a>
+                                <table class="vars" id="vHttpHeaders" style="display:none;">
+                                  <tbody>
+                                    {% for key, value in headers.iteritems|as_sorted %}
+                                      <tr>
+                                        <td>{{ key|escape }}</td>
+                                        <td class="code"><pre>{{ value|pprint|escape }}</pre></td>
+                                      </tr>
+                                    {% endfor %}
+                                  </tbody>
+                                </table>
+                            {% else %}
+                                <table class="vars">
+                                  <tbody>
+                                    {% for key, value in headers.iteritems|as_sorted %}
+                                      <tr>
+                                        <td>{{ key|escape }}</td>
+                                        <td class="code"><pre>{{ value|pprint|escape }}</pre></td>
+                                      </tr>
+                                    {% endfor %}
+                                  </tbody>
+                                </table>
+                            {% endif %}
+                        {% else %}
+                            <em>No headers recorded.</em>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Environment:</th>
                     <td>
                         {% if env %}
                             {% if env|length > 5 %}
-                                <a href="#" onclick="return varToggle(this, 'HttpEnv')"><span>&#x25b6;</span> Environment and Headers</a>
+                                <a href="#" onclick="return varToggle(this, 'HttpEnv')"><span>&#x25b6;</span> Environment</a>
                                 <table class="vars" id="vHttpEnv" style="display:none;">
                                   <tbody>
                                     {% for key, value in env.iteritems|as_sorted %}

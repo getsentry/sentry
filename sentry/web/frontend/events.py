@@ -60,10 +60,15 @@ def replay_event(request, project_id, event_id):
         # TODO: show a proper error
         raise ValueError
     http = interfaces['sentry.interfaces.Http']
+    if http.headers:
+        headers = '\n'.join('%s: %s' % (k, v) for k, v in http.headers.iteritems() if k[0].upper() == k[0])
+    else:
+        headers = ''
+
     initial = {
         'url': http.url,
         'method': http.method,
-        'headers': '\n'.join('%s: %s' % (k, v) for k, v in http.env.iteritems() if k[0].upper() == k[0]),
+        'headers': headers,
         'data': urllib.urlencode(http.data),
     }
 
