@@ -10,7 +10,7 @@
     <div class="span16">
         <div class="alert-message info">Select a project to view the stream of events...</div>
         <ul class="sparkline-grid">
-            {% for project in project_list.itervalues %}
+            {% for project in project_list %}
                 <li>
                     <a href="{% url sentry project.pk %}">
                         <h3>{{ project.name }}</h3>
@@ -67,7 +67,7 @@
                         },
                         grid: {
                             show: false,
-                            backgroundColor: '#eeeeee'
+                            backgroundColor: '#F5F5F5'
                         },
                         lines: { show: false }
 
