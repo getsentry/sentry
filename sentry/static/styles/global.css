@@ -392,20 +392,6 @@ dl.flat dd {
 
 .no-messages { font-size: 1.1em; padding: 10px 0; }
 
-.login-area {
-    width: 300px;
-    margin: 50px auto;
-    background: #eee;
-    border: 1px solid #ddd;
-    padding: 10px;
-}
-.login-area p {
-    margin-bottom: 10px;
-}
-.login-form table { width: 295px; }
-.login-form td { padding: 2px 0; }
-
-
 h2 .morelink { text-decoration: none; }
 
 #full-message {

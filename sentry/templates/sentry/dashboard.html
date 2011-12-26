@@ -7,8 +7,8 @@
 {% block heading %}{% trans "Select a Project" %}{% endblock %}
 
 {% block content %}
-    <div id="body">
-        <p>Select a project...</p>
+    <div class="span16">
+        <p>Select a project to view the stream of events...</p>
         <ul>
             {% for project in project_list.itervalues %}
                 <li><a href="{% url sentry project.pk %}">{{ project.name }}</a></li>

@@ -41,7 +41,6 @@
                             <li><a href="#about">About</a></li>
                             <li><a href="#contact">Contact</a></li>
  -->                        </ul>
-                        {% endblock %}
                         <ul class="nav secondary-nav">
                             {% if request.user.is_authenticated %}
                                 <li class="dropdown" data-dropdown="dropdown">
@@ -63,6 +62,7 @@
                                 <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="{% if has_search %}search query or message id{% else %}message id{% endif %}"/>
                             </form>
                         {% endif %}
+                        {% endblock %}
 <!--                   <form action="" class="pull-right">
                     <input class="input-small" type="text" placeholder="Username">
                     <input class="input-small" type="password" placeholder="Password">
