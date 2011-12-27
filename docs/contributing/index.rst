@@ -51,12 +51,12 @@ right at home.
     python runtests.py --failfast
 
 ::
-    
+
     # Run only SentryRemoteTest
     python runtests.py sentry.SentryRemoteTest
 
 ::
-    
+
     # Run only the testTimestamp test on SentryRemoteTest
     python runtests.py sentry.SentryRemoteTest.testTimestamp
 
@@ -65,4 +65,4 @@ Contributing Back Code
 
 Ideally all patches should be sent as a pull request on GitHub, and include tests. If you're fixing a bug or making a large change the patch **must** include test coverage.
 
-You can see a list of open pull requests (pending changes) by visiting https://github.com/dcramer/django-sentry/pulls
+You can see a list of open pull requests (pending changes) by visiting https://github.com/dcramer/sentry/pulls

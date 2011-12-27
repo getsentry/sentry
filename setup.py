@@ -57,7 +57,7 @@ setup(
     version='2.0.0',
     author='David Cramer',
     author_email='dcramer@gmail.com',
-    url='http://github.com/dcramer/django-sentry',
+    url='http://github.com/dcramer/sentry',
     description='A realtime logging an aggregation server.',
     long_description=__doc__,
     packages=find_packages(exclude=("example_project", "tests")),
