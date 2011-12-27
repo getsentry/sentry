@@ -79,28 +79,6 @@ def store(request):
                 return HttpResponseForbidden('Invalid signature')
         else:
             return HttpResponse('Unauthorized', status_code=401)
-    else:
-        # Auth version 1.0
-        # deprecated
-        key = request.POST.get('key')
-
-        if not key:
-            return HttpResponseForbidden('Invalid credentials')
-
-        if key != settings.KEY:
-            warnings.warn('A client is sending the `key` parameter, which will be removed in Sentry 2.0', DeprecationWarning)
-            return HttpResponseForbidden('Invalid credentials')
-
-        data = request.POST.get('data')
-        if not data:
-            return HttpResponseBadRequest('Missing data')
-
-        format = request.POST.get('format', 'pickle')
-
-        if format not in ('pickle', 'json'):
-            return HttpResponseBadRequest('Invalid format')
-
-        project = None
 
     try:
         try:
