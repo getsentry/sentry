@@ -4,6 +4,9 @@
     <span class="count">{{ group.times_seen }}</span>
     <h3><a href="{% url sentry-group group.project_id group.pk %}">{% if group.view %}{{ group.view }}{% else %}{{ group.message_top|truncatechars:100 }}{% endif %}</a></h3>
     <span class="last_seen">{{ group.last_seen|timesince }}</span>
+    {% if group.avg_time_spent %}
+        <span class="time_spent">{{ group.avg_time_spent|duration }}</span>
+    {% endif %}
     <span class="status status-{{ group.status }}">{{ group.get_status_display }}</span>
     <p class="message" title="{{ group.message }}">
         <span class="tag tag-level">{{ group.get_level_display }}</span>

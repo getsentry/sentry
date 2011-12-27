@@ -253,6 +253,12 @@ class Group(MessageBase):
         module = self.data.get('module', 'ver')
         return module, self.data['version']
 
+    @property
+    def avg_time_spent(self):
+        if not self.time_spent_count:
+            return
+        return float(self.time_spent_total / self.time_spent_count)
+
 
 class Event(MessageBase):
     event_id = models.CharField(max_length=32, null=True, unique=True, db_column="message_id")

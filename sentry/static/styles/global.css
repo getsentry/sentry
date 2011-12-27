@@ -284,14 +284,17 @@ dl.flat dd {
     position: absolute;
 }
 
-.messages .last_seen {
+.messages .last_seen,
+.messages .time_spent {
     color: #bbb;
     font-size: 0.9em;
-    margin-left: 5px;
+    margin-left: 8px;
+    margin-top: 3px;
     white-space: nowrap;
     vertical-align: middle;
     display: inline-block;
 }
+
 .messages .status { margin-left: 5px; text-transform: uppercase; font-size: 0.9em; }
 .messages .status-0 { display: none; }
 .messages .status-1 { color: red; }
@@ -305,7 +308,10 @@ dl.flat dd {
 .messages li:hover h3 a {
     color: #0099dc;
 }
-.messages li:hover .last_seen, .messages .active .last_seen { color: #777; }
+.messages li:hover .last_seen,
+.messages .active .last_seen,
+.messages li:hover .time_spent,
+.messages .active .time_spent { color: #777; }
 
 .button {
     cursor: pointer;

@@ -169,6 +169,28 @@ def timesince(value):
     return value + _(' ago')
 
 
+@register.filter
+def duration(value):
+    if not value:
+        return '0s'
+    hours, minutes, seconds = 0, 0, 0
+    if value > 3600:
+        hours = value / 3600
+        value = value % 3600
+    if value > 60:
+        minutes = value / 60
+        value = value % 60
+    seconds = value / 60
+    output = []
+    if hours:
+        output.append('%sh' % hours[-2:])
+    if minutes:
+        output.append('%sm' % minutes[-2:])
+    if seconds:
+        output.append('%ss' % seconds[-2:])
+    return ''.join(output)
+
+
 @register.filter(name='truncatechars')
 @stringfilter
 def truncatechars(value, arg):
