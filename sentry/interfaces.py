@@ -161,11 +161,11 @@ class Stacktrace(Interface):
 
 
 class Exception(Interface):
-    def __init__(self, type, value, module=None):
-        # The exception type name (e.g. TypeError)
-        self.type = type
+    def __init__(self, value, type=None, module=None):
         # A human readable value for the exception
         self.value = value
+        # The exception type name (e.g. TypeError)
+        self.type = type
         # Optional module of the exception type (e.g. __builtin__)
         self.module = module
 
