@@ -40,7 +40,7 @@
  -->                        </ul>
                         <ul class="nav secondary-nav">
                             {% if request.user.is_authenticated %}
-                                {% if project_list %}
+                                {% if project_list and project_list|length > 1 %}
                                     <li class="dropdown" data-dropdown="dropdown">
                                         <a href="#" class="dropdown-toggle">{% trans "Projects" %}</a>
                                         <ul class="dropdown-menu">
