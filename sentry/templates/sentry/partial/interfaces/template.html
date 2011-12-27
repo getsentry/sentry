@@ -1,7 +1,12 @@
+{% load i18n %}
+
 <div id="template" class="module">
-    <h2>Template error</h2>
+    <div class="page-header">
+        <a href="javascript:void(0)" data-container="#raw_template" data-title="Template" class="popup btn small pull-right">Raw</a>
+        <h2>{% trans "Template Error" %}</h2>
+    </div>
     <div class="module-content">
-        <p>In template <code>{{ filename }}</code>, error at line <strong>{{ lineno }}</strong></p>
+        <p>In <code>{{ filename }}</code>, error at line <strong>{{ lineno }}</strong></p>
         {% if context %}
             <ol start="{{ start_lineno }}" class="context expandable">
                 {% for num, line in context %}
@@ -10,4 +15,8 @@
             </ol>
         {% endif %}
     </div>
+</div>
+
+<div id="raw_template" style="display: none;">
+    <pre>{{ template }}</pre>
 </div>

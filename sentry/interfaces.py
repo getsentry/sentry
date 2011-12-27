@@ -273,6 +273,7 @@ class Template(Interface):
             'lineno': self.lineno,
             'start_lineno': context[0][0],
             'context': context,
+            'template': '\n'.join([event.message, ''] + [n[1].strip('\n') for n in context]),
         })
 
 
