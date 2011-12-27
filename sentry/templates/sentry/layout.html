@@ -7,9 +7,21 @@
         <meta http-equiv="content-type" content="text/html; charset=utf-8">
         <meta name="robots" content="NONE,NOARCHIVE">
         <link href="{% url sentry-media "styles/bootstrap.min.css" %}" rel="stylesheet" type="text/css"/>
+
         <link href="{% url sentry-media "styles/global.css" %}" rel="stylesheet" type="text/css"/>
         <link href="{% url sentry-media "images/sentry.png" %}" rel="shortcut icon"/>
+
         <title>{% block title %}Sentry{% endblock %}</title>
+
+        <script type="text/javascript" src="{% url sentry-media "scripts/client.js" %}"></script>
+        <script type="text/javascript">
+        Sentry.client.config({
+            server: '{% url sentry-store %}',
+            projectId: '{{ PROJECT_ID }}'
+        })
+        Sentry.client.registerGlobalHandler();
+        </script>
+
         <script type="text/javascript" src="{% url sentry-media "scripts/jquery.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/jquery.flot.min.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/jquery.animate-colors-min.js" %}"></script>
@@ -22,6 +34,7 @@
             defaultImage: '{% url sentry-media 'images/sentry.png' %}'
         });
         </script>
+
         {% block meta %}
         {% endblock %}
     </head>

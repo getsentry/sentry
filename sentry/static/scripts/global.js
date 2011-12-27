@@ -20,8 +20,12 @@ function getQueryParams()
     return vars;
 }
 
-var Sentry = {};
+if (Sentry === undefined) {
+    var Sentry = {};
+}
 (function(){
+    var self = Sentry;
+
     Sentry.options = {
         mediaUrl: '/media/',
         apiUrl: '/api/',
@@ -30,7 +34,7 @@ var Sentry = {};
 
     Sentry.config = function(data){
         $.each(data, function(k, v){
-            Sentry.options[k] = v;
+            self.options[k] = v;
         });
     };
 
@@ -111,19 +115,19 @@ var Sentry = {};
                 for (var i=groups.length-1, el, row; (el=groups[i]); i--) {
                     var id = el[0];
                     var data = el[1];
+                    var url = Sentry.options.apiUrl + '?' + $.param({
+                        op: 'notification',
+                        count: data.count,
+                        title: data.title,
+                        message: data.message,
+                        level: data.level,
+                        logger: data.logger
+                    });
                     if ((row = $('#group_' + id))) {
                         row.remove();
                         $('#event_list').prepend(data.html);
                         if (row.attr('data-sentry-count') != data.count) {
                             $('#group_' + id).addClass('fresh');
-                            var url = Sentry.options.apiUrl + '?' + $.param({
-                                op: 'notification',
-                                count: data.count,
-                                title: data.title,
-                                message: data.message,
-                                level: data.level,
-                                logger: data.logger
-                            });
                         }
                     } else {
                         $('#event_list').prepend(data.html);
