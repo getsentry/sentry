@@ -259,7 +259,7 @@ class Event(MessageBase):
     group = models.ForeignKey(Group, blank=True, null=True, related_name="event_set")
     datetime = models.DateTimeField(default=datetime.now, db_index=True)
     time_spent = models.FloatField(null=True)
-    server_name = models.CharField(max_length=128, db_index=True)
+    server_name = models.CharField(max_length=128, db_index=True, null=True)
     site = models.CharField(max_length=128, db_index=True, null=True)
 
     class Meta:
