@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import base64
+import datetime
 import eventlet
 import errno
 import imp
@@ -14,7 +15,7 @@ from django.conf import settings as django_settings
 from django.core.management import call_command
 from eventlet import wsgi, patcher
 from optparse import OptionParser
-from sentry import VERSION
+from sentry import VERSION, environment
 
 patcher.monkey_patch()
 
@@ -298,6 +299,9 @@ def main():
             copy_default_settings(config_path)
         except OSError, e:
             raise e.__class__, 'Unable to write default settings file to %r' % config_path
+
+    environment['config'] = config_path
+    environment['start_date'] = datetime.datetime.now()
 
     settings_from_file(config_path)
 

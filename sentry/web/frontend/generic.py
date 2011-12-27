@@ -2,6 +2,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, Http404, HttpResponseNotModified, \
   HttpResponse
 
+from sentry import environment
 from sentry.conf import settings
 from sentry.web.decorators import login_required
 from sentry.web.helpers import get_project_list, render_to_response
@@ -13,6 +14,24 @@ def dashboard(request):
     if len(project_list) == 1:
         return HttpResponseRedirect(reverse('sentry', kwargs={'project_id': project_list.keys()[0]}))
     return render_to_response('sentry/dashboard.html', request=request)
+
+
+@login_required
+def status(request):
+    config = []
+    for k in sorted(dir(settings)):
+        if k == 'KEY':
+            continue
+        if k.startswith('_'):
+            continue
+        if k.upper() != k:
+            continue
+        config.append((k, getattr(settings, k)))
+
+    return render_to_response('sentry/status.html', {
+        'config': config,
+        'environment': environment,
+    }, request)
 
 
 def static_media(request, path):

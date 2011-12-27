@@ -1,0 +1,56 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Sentry Status" %} | {{ block.super }}{% endblock %}
+
+{% block heading %}{% trans "Sentry Status" %}{% endblock %}
+
+{% block content %}
+    <div class="span16">
+        <div class="page-header">
+            <h2>Environment</h2>
+        </div>
+        {% if environment %}
+            <table class="vars bordered-table zebra-striped">
+                <colgroup>
+                    <col style="width:220px">
+                </colgroup>
+                <tbody>
+                    <tr>
+                        <th>Server Version</th>
+                        <td>{% sentry_version %}</td>
+                    </tr>
+                    <tr>
+                        <th>Configuration File</th>
+                        <td>{{ environment.config }}</td>
+                    </tr>
+                    <tr>
+                        <th>Uptime</th>
+                        <td>{{ environment.start_date|timesince }} (since {{ environment.start_date|date }})</td>
+                    </tr>
+                </tbody>
+            </table>
+        {% else %}
+            <p>Environment not found (are you using the builtin Sentry webserver?).</p>
+        {% endif %}
+
+        <div class="page-header">
+            <h2>Configuration{% if environment.config %} <small>{{ environment.config }}</small>{% endif %}</h2>
+        </div>
+        <table class="vars bordered-table zebra-striped">
+            <colgroup>
+                <col style="width:220px">
+            </colgroup>
+            <tbody>
+                {% for key, value in config %}
+                    <tr>
+                        <th>{{ key }}</th>
+                        <td class="code"><pre>{{ value|pprint }}</pre></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

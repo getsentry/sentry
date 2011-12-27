@@ -11,3 +11,6 @@ try:
         .get_distribution('django-sentry').version
 except Exception, e:
     VERSION = 'unknown'
+
+# We store global interpreter state in here
+environment = {}

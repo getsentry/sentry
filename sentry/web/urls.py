@@ -70,6 +70,7 @@ urlpatterns = patterns('',
     # Global
 
     url(r'^$', generic.dashboard, name='sentry'),
+    url(r'^status$', generic.status, name='sentry-status'),
 
     # JS
 
