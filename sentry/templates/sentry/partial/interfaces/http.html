@@ -14,11 +14,11 @@
             <tbody>
                 <tr>
                     <th>{% trans "URL:" %}</th>
-                    <td><a href="{{ url }}">{{ url|escape }}</a></td>
+                    <td><a href="{{ url }}">{{ url }}</a></td>
                 </tr>
                 <tr>
                     <th>{% trans "Method:" %}</th>
-                    <td>{{ method }}</td>
+                    <td>{% if method %}{{ method }}{% else %}<em>No method recorded.</em>{% endif %}</td>
                 </tr>
                 <tr>
                     <th>{% trans "Query:" %}</th>

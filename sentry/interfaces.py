@@ -191,13 +191,14 @@ class Http(Interface):
     # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html
     METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD', 'DELETE', 'TRACE', 'CONNECT')
 
-    def __init__(self, url, method, data=None, query_string=None, cookies=None, headers=None, env=None, **kwargs):
+    def __init__(self, url, method=None, data=None, query_string=None, cookies=None, headers=None, env=None, **kwargs):
         if data is None:
             data = {}
 
-        method = method.upper()
+        if method:
+            method = method.upper()
 
-        assert method in self.METHODS
+            assert method in self.METHODS
 
         urlparts = urlparse.urlsplit(url)
 
