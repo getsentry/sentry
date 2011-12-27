@@ -37,7 +37,7 @@
                             {% if data|length > 5 %}
                                 <a href="#" onclick="return varToggle(this, 'HttpBody')"><span>&#x25b6;</span> {% trans "Body" %}</a>
                                 <div id="vHttpBody" style="display:none;">
-                                    <pre>{{ printed_data|escape }}</pre>
+                                    <pre>{{ data|pprint|escape }}</pre>
                                 </div>
                             {% else %}
                                 <pre>{{ data|pprint|escape }}</pre>
