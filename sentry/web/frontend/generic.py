@@ -1,9 +1,13 @@
+import pkg_resources
+import sys
+
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, Http404, HttpResponseNotModified, \
   HttpResponse
 
 from sentry import environment
 from sentry.conf import settings
+from sentry.plugins import GroupActionProvider
 from sentry.web.decorators import login_required
 from sentry.web.helpers import get_project_list, render_to_response
 
@@ -31,6 +35,9 @@ def status(request):
     return render_to_response('sentry/status.html', {
         'config': config,
         'environment': environment,
+        'python_version': sys.version,
+        'modules': sorted([(p.project_name, p.version) for p in pkg_resources.working_set]),
+        'extensions': [(cls.title, cls.__module__.rsplit('.', 1)[0]) for cls in GroupActionProvider.plugins.itervalues()],
     }, request)
 
 
