@@ -15,16 +15,28 @@ from sentry.conf import settings
 from sentry.models import ProjectMember, Project
 
 
-def get_project_list(user=None, flag=None):
+def get_project_list(user=None, flag=None, hidden=False):
     """
     Returns a set of all projects a user has some level of access to.
     """
-    projects = dict((p.pk, p) for p in Project.objects.filter(public=True))
-    if user.is_authenticated():
+
+    # First we fetch public projects
+    qs = Project.objects.filter(public=True)
+    if not hidden:
+        qs = qs.filter(status=0)
+    projects = dict((p.pk, p) for p in qs)
+
+    # If the user is authenticated, include their memberships
+    if user and user.is_authenticated():
+        qs = ProjectMember.objects.filter(user=user)\
+              .select_related('project')
+        if not hidden:
+            qs = qs.filter(project__status=0)
         projects.update(dict(
             (pm.project_id, pm.project)
-            for pm in ProjectMember.objects.filter(user=user).select_related('project')
+            for pm in qs
             if (not flag or pm.has_perm(flag))))
+
     return projects
 
 _LOGIN_URL = None
@@ -63,10 +75,9 @@ def render_to_string(template, context=None, request=None):
         'MESSAGES_PER_PAGE': settings.MESSAGES_PER_PAGE,
     })
     if request:
-        context.update({
-            'request': request,
-            'project_list': get_project_list(request.user).values(),
-        })
+        context['request'] = request
+        if 'project_list' not in context:
+            context['project_list'] = get_project_list(request.user).values()
 
     return loader.render_to_string(template, context)
 

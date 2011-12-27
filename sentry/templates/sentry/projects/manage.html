@@ -49,6 +49,7 @@
         </fieldset>
         <p class="actions">
             <button type="submit" class="btn primary">{% trans "Save Changes" %}</button>
+            <a href="{% url sentry-remove-project project.pk %}" class="btn danger">{% trans "Remove Project" %}</a>
         </p>
     </form>
     <div class="page-header">

@@ -11,6 +11,19 @@ from sentry.models import Project, ProjectMember, PERMISSIONS
 from sentry.interfaces import Http
 
 
+class RadioFieldRenderer(forms.widgets.RadioFieldRenderer):
+    """
+    This is identical to Django's builtin widget, except that
+    it renders as <ul.inputs-list>. Would be great if we didn't
+    have to create this stupid code, but Django widgets are not
+    flexible.
+    """
+    def render(self):
+        """Outputs a <ul> for this set of radio fields."""
+        return mark_safe(u'<ul class="inputs-list">\n%s\n</ul>' % u'\n'.join([u'<li>%s</li>'
+                % force_unicode(w) for w in self]))
+
+
 class CheckboxSelectMultiple(forms.CheckboxSelectMultiple):
     """
     This is identical to Django's builtin widget, except that
@@ -84,6 +97,30 @@ class UserField(forms.CharField):
             raise forms.ValidationError(u'invalid user name')
 
 
+class RemoveProjectForm(forms.Form):
+    removal_type = forms.ChoiceField(choices=(
+        ('1', 'Remove all attached events.'),
+        ('2', 'Migrate events to another project.'),
+        ('3', 'Hide this project.'),
+    ), widget=forms.RadioSelect(renderer=RadioFieldRenderer))
+    project = forms.ChoiceField(choices=(), required=False)
+
+    def __init__(self, project_list, *args, **kwargs):
+        super(RemoveProjectForm, self).__init__(*args, **kwargs)
+        if not project_list:
+            del self.fields['project']
+            self.fields['removal_type'].choices = filter(lambda x: x[0] != 2, self.fields['removal_type'].choices)
+        else:
+            self.fields['project'].choices = [(p.pk, p.name) for p in project_list]
+            self.fields['project'].widget.choices = self.fields['project'].choices
+
+    def clean(self):
+        data = self.cleaned_data
+        if data.get('removal_type') == 2 and not data.get('project'):
+            raise forms.ValidationError('You must select a project to migrate data')
+        return data
+
+
 class NewProjectForm(forms.ModelForm):
     class Meta:
         fields = ('name',)
@@ -92,7 +129,7 @@ class NewProjectForm(forms.ModelForm):
 
 class EditProjectForm(forms.ModelForm):
     class Meta:
-        fields = ('name',)
+        fields = ('name', 'status')
         model = Project
 
 

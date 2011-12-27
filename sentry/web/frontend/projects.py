@@ -3,18 +3,20 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponseForbidden
 from django.views.decorators.csrf import csrf_protect
 
-from sentry.models import PERMISSIONS_DICT
+from sentry.models import PERMISSIONS_DICT, Group, Event, FilterValue, \
+     MessageFilterValue, MessageCountByMinute
 from sentry.web.decorators import login_required, can_manage, \
      permission_required
 from sentry.web.forms import EditProjectForm, NewProjectForm, \
-     EditProjectMemberForm, NewProjectMemberForm
-from sentry.web.helpers import render_to_response
+     EditProjectMemberForm, NewProjectMemberForm, RemoveProjectForm
+from sentry.web.helpers import render_to_response, get_project_list
 
 
 @login_required
 def project_list(request):
     return render_to_response('sentry/projects/list.html', {
         'can_create_projects': request.user.has_perm('sentry.add_project'),
+        'project_list': get_project_list(request.user, hidden=True).values(),
     }, request)
 
 
@@ -42,7 +44,46 @@ def new_project(request):
 
 
 @login_required
-@can_manage
+@can_manage('remove_project')
+@csrf_protect
+def remove_project(request, project):
+    project_list = filter(lambda x: x != project, get_project_list(request.user).itervalues())
+
+    form = RemoveProjectForm(project_list, request.POST or None)
+
+    if form.is_valid():
+        removal_type = form.cleaned_data['removal_type']
+        if removal_type == '1':
+            # TODO: this doesnt clean up the index
+            for model in (Event, Group, FilterValue, MessageFilterValue, MessageCountByMinute):
+                model.objects.filter(project=project).delete()
+            project.delete()
+        elif removal_type == '2':
+            new_project = form.cleaned_data['project']
+            for model in (Event, Group, MessageFilterValue, MessageCountByMinute):
+                model.objects.filter(project=project).update(project=new_project)
+            for fv in FilterValue.objects.filter(project=project):
+                FilterValue.objects.get_or_create(project=project, key=fv.key, value=fv.value)
+                fv.delete()
+            project.delete()
+        elif removal_type == '3':
+            project.update(status=1)
+        else:
+            raise ValueError(removal_type)
+
+        return HttpResponseRedirect(reverse('sentry-project-list'))
+
+    context = csrf(request)
+    context.update({
+        'form': form,
+        'project': project,
+    })
+
+    return render_to_response('sentry/projects/remove.html', context, request)
+
+
+@login_required
+@can_manage('change_project')
 @csrf_protect
 def manage_project(request, project):
     form = EditProjectForm(request.POST or None, instance=project)

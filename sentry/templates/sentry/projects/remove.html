@@ -1,0 +1,36 @@
+{% extends "sentry/projects/manage.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Remove Project" %} | {{ block.super }}{% endblock %}
+
+{% block heading %}{% trans "Remove Project" %}{% endblock %}
+
+{% block main %}
+    <ul class="breadcrumb">
+        <li><a href="{% url sentry-project-list %}">{% trans "Projects" %}</a> <span class="divider">/</span></li>
+        <li><a href="{% url sentry-manage-project project.pk %}">{% trans "Manage Project" %}</a> <span class="divider">/</span></li>
+        <li class="active">{% trans "Remove Project" %}</li>
+    </ul>
+    <form class="form-stacked" action="" method="post">
+        {% csrf_token %}
+        <p>Select an option to remove this project:</p>
+        <div class="clearfix{% if form.removal_type.errors %} error{% endif %}">
+            {{ form.removal_type.label_tag }}
+            <div class="input">{{ form.removal_type }}</div>
+            {% if form.removal_type.help_text %}
+                <span class="help-block">{{ form.removal_type.help_text }}</span>
+            {% endif %}
+        </div>
+        <div class="clearfix{% if form.project.errors %} error{% endif %}">
+            {{ form.project.label_tag }}
+            <div class="input">{{ form.project }}</div>
+            {% if form.project.help_text %}
+                <span class="help-block">{{ form.project.help_text }}</span>
+            {% endif %}
+        </div>
+        <div class="actions">
+            <button type="submit" class="btn danger">{% trans "Confirm" %}</button> <a href="{% url sentry-manage-project project.pk %}" class="btn">{% trans "Cancel" %}</a>
+        </div>
+    </form>
+{% endblock %}

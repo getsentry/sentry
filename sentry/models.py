@@ -53,6 +53,8 @@ PERMISSIONS = (
     ('change_member', 'Change project members'),
     ('delete_member', 'Delete project members'),
     ('add_message', 'Store new events'),
+    ('change_project', 'Change project details'),
+    ('remove_project', 'Delete or merge project'),
 )
 PERMISSIONS_DICT = dict(PERMISSIONS)
 
@@ -62,6 +64,10 @@ class Project(Model):
     owner = models.ForeignKey(User, related_name="owned_project_set", null=True)
     public = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=datetime.now)
+    status = models.PositiveIntegerField(default=0, choices=(
+        (0, 'Visible'),
+        (1, 'Hidden'),
+    ), db_index=True)
 
     objects = ProjectManager()
 
