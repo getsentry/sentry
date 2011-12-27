@@ -13,7 +13,8 @@ if (Sentry === undefined) {
         fetchHeaders: false,
         publicKey: null,
         server: '/sentry/store/', // JS client only supports a single server
-        projectId: 1
+        projectId: 1,
+        logger: 'javascript'
     };
 
     Sentry.client.config = function(data){
@@ -60,6 +61,7 @@ if (Sentry === undefined) {
 
     Sentry.client.process = function(data) {
         data.project = self.options.projectId;
+        data.logger = self.options.logger;
 
         var req = new XMLHttpRequest();
         // req.setRequestHeader('User-Agent', 'Sentry:JS/1.0');
