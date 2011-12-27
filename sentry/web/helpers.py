@@ -6,6 +6,8 @@ sentry.web.views
 :license: BSD, see LICENSE for more details.
 """
 
+import logging
+
 from django.conf import settings as dj_settings
 from django.core.urlresolvers import reverse, resolve
 from django.http import HttpResponse
@@ -13,6 +15,8 @@ from django.template import loader
 
 from sentry.conf import settings
 from sentry.models import ProjectMember, Project
+
+logger = logging.getLogger('sentry.errors')
 
 
 def get_project_list(user=None, flag=None, hidden=False):
@@ -70,10 +74,13 @@ def iter_data(obj):
 def render_to_string(template, context=None, request=None):
     if context is None:
         context = {}
+
     context.update({
         'has_search': False,
         'MESSAGES_PER_PAGE': settings.MESSAGES_PER_PAGE,
+        'PROJECT_ID': settings.PROJECT,
     })
+
     if request:
         context['request'] = request
         if 'project_list' not in context:

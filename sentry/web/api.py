@@ -10,7 +10,6 @@ import base64
 import datetime
 import logging
 import time
-import warnings
 import zlib
 
 from django.http import HttpResponse, HttpResponseBadRequest, \
@@ -41,6 +40,8 @@ def store(request):
     else:
         auth_vars = None
 
+    data = request.raw_post_data
+
     if auth_vars:
         signature = auth_vars.get('sentry_signature')
         timestamp = auth_vars.get('sentry_timestamp')
@@ -60,10 +61,6 @@ def store(request):
             project = None
             secret_key = settings.KEY
 
-        format = 'json'
-
-        data = request.raw_post_data
-
         # Signed data packet
         if signature and timestamp:
             try:
@@ -78,24 +75,55 @@ def store(request):
             if sig_hmac != signature:
                 return HttpResponseForbidden('Invalid signature')
         else:
-            return HttpResponse('Unauthorized', status_code=401)
+            return HttpResponse('Unauthorized', status=401)
 
-    try:
+    # SSL requests dont need a signature
+    elif request.GET.get('api_key') and request.GET.get('project_id'):
+        if not request.is_secure():
+            return HttpResponse('Unauthorized', status=401)
+
+        api_key = request.GET['api_key']
+        project = request.GET['project_id']
+
         try:
-            data = base64.b64decode(data).decode('zlib')
-        except zlib.error:
-            data = base64.b64decode(data)
-    except Exception, e:
-        # This error should be caught as it suggests that there's a
-        # bug somewhere in the client's code.
-        logger.exception('Bad data received')
-        return HttpResponseForbidden('Bad data decoding request (%s, %s)' % (e.__class__.__name__, e))
+            pm = ProjectMember.objects.get(api_key=api_key, project=project)
+            if not pm.has_perm('add_message'):
+                raise ProjectMember.DoesNotExist
+        except ProjectMember.DoesNotExist:
+            return HttpResponse('Unauthorized', status=401)
+
+        project = pm.project
+
+    # Support client side requests from our server from the authenticated user
+    elif request.GET.get('project_id') and request.user.is_authenticated():
+        try:
+            pm = ProjectMember.objects.get(user=request.user, project=request.GET['project_id'])
+            # TODO: do we need this check?
+            # if not pm.has_perm('add_message'):
+            #     raise ProjectMember.DoesNotExist
+        except ProjectMember.DoesNotExist:
+            return HttpResponse('Unauthorized', status=401)
+
+        project = pm.project
+
+    else:
+        return HttpResponse('Unauthorized', status=401)
+
+    if not data.startswith('{'):
+        print "Decoding"
+        try:
+            try:
+                data = base64.b64decode(data).decode('zlib')
+            except zlib.error:
+                data = base64.b64decode(data)
+        except Exception, e:
+            # This error should be caught as it suggests that there's a
+            # bug somewhere in the client's code.
+            logger.exception('Bad data received')
+            return HttpResponseForbidden('Bad data decoding request (%s, %s)' % (e.__class__.__name__, e))
 
     try:
-        if format == 'pickle':
-            data = pickle.loads(data)
-        elif format == 'json':
-            data = json.loads(data)
+        data = json.loads(data)
     except Exception, e:
         # This error should be caught as it suggests that there's a
         # bug somewhere in the client's code.
