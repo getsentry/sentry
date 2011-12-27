@@ -65,11 +65,16 @@ def replay_event(request, project_id, event_id):
     else:
         headers = ''
 
+    if isinstance(http.data, dict):
+        data = urllib.urlencode(http.data)
+    else:
+        data = http.data
+
     initial = {
         'url': http.url,
         'method': http.method,
         'headers': headers,
-        'data': urllib.urlencode(http.data),
+        'data': data,
     }
 
     form = ReplayForm(request.POST or None, initial=initial)
