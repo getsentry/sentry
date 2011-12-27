@@ -20,7 +20,7 @@
 
 {% block sidebar %}
     <div class="page-header">
-        <h3>Aggregate Details</h3>
+        <h3>{% trans "Aggregate Details" %}</h3>
     </div>
 
     <dl class="flat">
@@ -39,8 +39,6 @@
         <dt>{% trans "Checksum:" %}</dt>
         <dd>{{ group.checksum }}</dd>
     </dl>
-
-    <p><a href="{% url sentry-group-json project_id=project.pk group_id=group.pk %}">Raw JSON Data</a></p>
 
     {% for html in group|get_widgets:request %}
         {{ html|safe }}
@@ -88,6 +86,7 @@
                 {% else %}
                     <li class="disabled"><a>{% trans "&#10003; Already Resolved" %}</a></li>
                 {% endif %}
+                <li><a href="{% url sentry-group-json project_id=project.pk group_id=group.pk %}">{% trans "Raw JSON Data" %}</a></li>
                 {% for label, link, is_active in group|get_actions:request %}
                     {% if forloop.first %}
                         <li class="divider"></li>
