@@ -226,7 +226,7 @@ class GroupManager(models.Manager, ChartMixin):
         logger_name = kwargs.pop('logger', 'root')
         server_name = kwargs.pop('server_name', None)
         site = kwargs.pop('site', None)
-        date = kwargs.pop('date', None) or datetime.datetime.utcnow()
+        date = kwargs.pop('date', None) or datetime.datetime.now()
         extra = kwargs.pop('extra', None)
         modules = kwargs.pop('modules', None)
 
