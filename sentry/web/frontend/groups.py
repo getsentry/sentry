@@ -63,6 +63,13 @@ def ajax_handler(request, project):
             event_list = event_list.order_by('-first_seen')
         elif sort == 'freq':
             event_list = event_list.order_by('-times_seen')
+        elif sort == 'tottime':
+            event_list = event_list.filter(time_spent_count__gt=0)\
+                                    .order_by('-time_spent_total')
+        elif sort == 'avgtime':
+            event_list = event_list.filter(time_spent_count__gt=0)\
+                                   .extra(select={'avg_time_spent': 'time_spent_total / time_spent_count'})\
+                                   .order_by('-avg_time_spent')
         elif sort and sort.startswith('accel_'):
             event_list = Group.objects.get_accelerated(event_list, minutes=int(sort.split('_', 1)[1]))
         else:
@@ -243,6 +250,15 @@ def group_list(request, project):
     elif sort == 'freq':
         sort_label = 'Frequency'
         event_list = event_list.order_by('-times_seen')
+    elif sort == 'tottime':
+        sort_label = 'Total Time Spent'
+        event_list = event_list.filter(time_spent_count__gt=0)\
+                                .order_by('-time_spent_total')
+    elif sort == 'avgtime':
+        sort_label = 'Average Time Spent'
+        event_list = event_list.filter(time_spent_count__gt=0)\
+                               .extra(select={'avg_time_spent': 'time_spent_total / time_spent_count'})\
+                               .order_by('-avg_time_spent')
     elif sort and sort.startswith('accel_'):
         minutes = int(sort.split('_', 1)[1])
         sort_label = 'Trending: {0} minutes'.format(minutes)

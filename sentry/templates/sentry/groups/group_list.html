@@ -62,6 +62,9 @@
                 <li{% ifequal sort 'new' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=new">{% trans "First Seen" %}</a></li>
                 <li{% ifequal sort 'freq' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=freq">{% trans "Frequency" %}</a></li>
                 <li class="divider"></li>
+                <li{% ifequal sort 'tottime' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=tottime">{% trans "Total Time Spent" %}</a></li>
+                <li{% ifequal sort 'avgtime' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=avgtime">{% trans "Average Time Spent" %}</a></li>
+                <li class="divider"></li>
                 <li{% ifequal sort 'accel_15' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=accel_15">{% trans "Trending: 15 minutes" %}</a></li>
                 <li{% ifequal sort 'accel_60' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=accel_60">{% trans "Trending: 60 minutes" %}</a></li>
             </ul>
