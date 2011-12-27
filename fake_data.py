@@ -15,16 +15,16 @@ def funcs():
 
     def query(client):
         duration = random.randint(0, 10000) / 1000.0
-        return client.capture('Query', query=queries.next(), engine=engine.next(), time_spent=duration, site='sql', logger=loggers.next())
+        return client.capture('Query', query=queries.next(), engine=engine.next(), time_spent=duration, data={'logger': loggers.next(), 'site': 'sql'})
 
     def exception(client):
         try:
             raise exceptions.next()(messages.next())
         except:
-            return client.capture('Exception', site='web', logger=loggers.next())
+            return client.capture('Exception', data={'logger': loggers.next(), 'site': 'web'})
 
     def message(client):
-        return client.capture('Message', message=messages.next(), site='web', logger=loggers.next())
+        return client.capture('Message', message=messages.next(), data={'logger': loggers.next(), 'site': 'web'})
 
     return [query, exception, message]
 

@@ -51,6 +51,8 @@ SERVER_EMAIL = 'root@localhost'
 
 LOGIN_URL = None
 
+PROJECT = 1
+
 # Only store a portion of all messages per unique group.
 SAMPLE_DATA = True
 
