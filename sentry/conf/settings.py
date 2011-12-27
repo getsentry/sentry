@@ -10,7 +10,6 @@ from sentry.conf.defaults import *
 
 from django.conf import settings
 from django.utils.hashcompat import md5_constructor
-from django.utils.translation import ugettext_lazy as _
 
 import warnings
 
@@ -24,8 +23,6 @@ SERVER_EMAIL = getattr(settings, 'SERVER_EMAIL', SERVER_EMAIL)
 for k in dir(settings):
     if k.startswith('SENTRY_'):
         locals()[k.split('SENTRY_', 1)[1]] = getattr(settings, k)
-
-LOG_LEVELS = [(k, _(v)) for k, v in LOG_LEVELS]
 
 if locals().get('REMOTE_URL'):
     if isinstance(REMOTE_URL, basestring):
