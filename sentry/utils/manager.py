@@ -335,7 +335,7 @@ class GroupManager(models.Manager, ChartMixin):
             if time_spent:
                 update_kwargs.update({
                     'time_spent_total': F('time_spent_total') + time_spent,
-                    'time_spent': F('time_spent_count') + 1,
+                    'time_spent_count': F('time_spent_count') + 1,
                 })
 
             affected = group.messagecountbyminute_set.filter(date=normalized_datetime).update(**update_kwargs)

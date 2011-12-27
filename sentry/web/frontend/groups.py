@@ -257,8 +257,8 @@ def group_list(request, project):
     elif sort == 'avgtime':
         sort_label = 'Average Time Spent'
         event_list = event_list.filter(time_spent_count__gt=0)\
-                               .extra(select={'avg_time_spent': 'time_spent_total / time_spent_count'})\
-                               .order_by('-avg_time_spent')
+                               .extra(select={'_avg_time_spent': 'time_spent_total / time_spent_count'})\
+                               .order_by('-_avg_time_spent')
     elif sort and sort.startswith('accel_'):
         minutes = int(sort.split('_', 1)[1])
         sort_label = 'Trending: {0} minutes'.format(minutes)

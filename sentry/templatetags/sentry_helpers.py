@@ -183,11 +183,13 @@ def duration(value):
     seconds = value / 60
     output = []
     if hours:
-        output.append('%sh' % hours[-2:])
+        output.append('%dh' % hours)
     if minutes:
-        output.append('%sm' % minutes[-2:])
-    if seconds:
-        output.append('%ss' % seconds[-2:])
+        output.append('%dm' % minutes)
+    if seconds > 1:
+        output.append('%0.2fs' % seconds)
+    elif seconds:
+        output.append('%dms' % (seconds * 1000))
     return ''.join(output)
 
 

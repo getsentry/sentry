@@ -257,7 +257,7 @@ class Group(MessageBase):
     def avg_time_spent(self):
         if not self.time_spent_count:
             return
-        return float(self.time_spent_total / self.time_spent_count)
+        return float(self.time_spent_total) / self.time_spent_count
 
 
 class Event(MessageBase):
