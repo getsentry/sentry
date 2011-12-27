@@ -32,7 +32,9 @@
     </ul>
 
     {% if event.has_two_part_message %}
-        <h2>{% trans "Full Message" %}</h2>
+        <div class="page-header">
+            <h2>{% trans "Full Message" %}</h2>
+        </div>
         <pre id="full-message">{{ event.message }}</pre>
     {% endif %}
 
@@ -57,70 +59,46 @@
         {{ interface }}
     {% endfor %}
 
-    <div id="requestinfo" class="module">
-        <h2>{% trans "Additional Data" %}</h2>
-        <div class="module-content">
-            <table>
-                {% if user_data %}
-                    <tr>
-                        <th class="key">USER</th>
-                        <td class="values">
-                            <table class="vars">
-                                <thead>
-                                    <tr>
-                                        <th>{% trans "Variable" %}</th>
-                                        <th>{% trans "Value" %}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for k_, v_ in user_data.iteritems|as_sorted %}
-                                    <tr>
-                                        <td>{{ k_ }}</td>
-                                        <td class="code"><pre>{{ v_|pprint }}</pre></td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </td>
-                    </tr>
-                {% endif %}
-                {% for k, v in json_data %}
-                    <tr>
-                        <th class="key">{{ k }}</th>
-                        <td class="values">
-                        {% if v %}
-                            {% if v|is_dict %}
-                                <table class="vars">
-                                    <thead>
-                                        <tr>
-                                            <th>{% trans "Variable" %}</th>
-                                            <th>{% trans "Value" %}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for k_, v_ in v.iteritems|as_sorted %}
-                                        <tr>
-                                            <td>{{ k_ }}</td>
-                                            <td class="code"><pre>{{ v_|pprint }}</pre></td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
+    {% if json_data %}
+        <div id="requestinfo" class="module">
+            <div class="page-header">
+                <h2>{% trans "Additional Data" %}</h2>
+            </div>
+            <div class="module-content">
+                <table>
+                    {% for k, v in json_data %}
+                        <tr>
+                            <th class="key">{{ k }}</th>
+                            <td class="values">
+                            {% if v %}
+                                {% if v|is_dict %}
+                                    <table class="vars">
+                                        <thead>
+                                            <tr>
+                                                <th>{% trans "Variable" %}</th>
+                                                <th>{% trans "Value" %}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for k_, v_ in v.iteritems|as_sorted %}
+                                            <tr>
+                                                <td>{{ k_ }}</td>
+                                                <td class="code"><pre>{{ v_|pprint }}</pre></td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                {% else %}
+                                    <pre>{{ v|pprint }}</pre>
+                                {% endif %}
                             {% else %}
-                                <pre>{{ v|pprint }}</pre>
+                                <p>{% blocktrans with k as varname %}No data for {{ varname }}{% endblocktrans %}</p>
                             {% endif %}
-                        {% else %}
-                            <p>{% blocktrans with k as varname %}No data for {{ varname }}{% endblocktrans %}</p>
-                        {% endif %}
-                        </td>
-                    </tr>
-                {% endfor %}
-            </table>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            </div>
         </div>
-    </div>
-    <div id="raw_traceback" style="display: none;">
-        {% if frames or event.traceback %}
-            <pre>{{ event.get_traceback }}</pre>
-        {% endif %}
     </div>
 {% endblock %}
