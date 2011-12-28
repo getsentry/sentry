@@ -53,8 +53,8 @@ if sys.version_info[:2] < (2, 5):
     install_requires.append('uuid')
 
 setup(
-    name='django-sentry',
-    version='2.0.0',
+    name='sentry',
+    version='2.0.0-Alpha1',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/sentry',

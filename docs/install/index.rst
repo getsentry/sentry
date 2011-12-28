@@ -3,11 +3,11 @@ Install
 
 If you haven't already, start by downloading Sentry. The easiest way is with *pip*::
 
-	pip install django-sentry --upgrade
+	pip install sentry --upgrade
 
 Or with *setuptools*::
 
-	easy_install -U django-sentry
+	easy_install -U sentry
 
 You now have two choices:
 
@@ -30,8 +30,8 @@ If you are upgrading Sentry from a 1.x version, you should take note that the da
 are much more significant than they were in the past. We recommend performing them **before**
 upgrading the actual Sentry server.
 
-As an example, all existing events need to be migrated to the new project structure. This means
-that every event gets backfilled with the new "default" project once it's created.
+This includes several new tables (such as Project), and alters on almost all existing tables. It
+also means it needs to backfill the project_id column on all related tables.
 
 Integrating with an existing Django install
 -------------------------------------------

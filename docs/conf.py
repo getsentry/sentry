@@ -50,7 +50,7 @@ copyright = u'2011, David Cramer'
 #
 # The short X.Y version.
 
-version = __import__('pkg_resources').get_distribution('django-sentry').version
+version = __import__('pkg_resources').get_distribution('sentry').version
 # The full version, including alpha/beta/rc tags.
 release = version
 

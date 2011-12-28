@@ -21,5 +21,5 @@ Links
 -----
 
 * `Documentation <http://readthedocs.org/docs/sentry/en/latest/index.html>`_
-* `Bug Tracker <http://github.com/dcramer/django-sentry/issues>`_
-* `Code <http://github.com/dcramer/django-sentry>`_
+* `Bug Tracker <http://github.com/dcramer/sentry/issues>`_
+* `Code <http://github.com/dcramer/sentry>`_
