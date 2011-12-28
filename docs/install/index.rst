@@ -53,7 +53,7 @@ logging. This means that any number of Sentry clients simply pass on this inform
 server. If you run into a situation where one of Sentry's requirements conflict with your own, or you simply
 need to ensure quality of service within your project, this is for you.
 
-.. note:: Currently the standalone Sentry server does run on Windows.
+.. note:: Currently the standalone Sentry server does not run on Windows.
 
 The Built-in Server
 ~~~~~~~~~~~~~~~~~~~
