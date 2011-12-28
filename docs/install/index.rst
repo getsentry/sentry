@@ -1,6 +1,9 @@
 Install
 =======
 
+Sentry requires at least Django 1.2 (it will generally take care of this by itself),
+and Python 2.5. Currently Sentry does not work with Python 3.
+
 If you haven't already, start by downloading Sentry. The easiest way is with *pip*::
 
 	pip install sentry --upgrade
