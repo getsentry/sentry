@@ -26,6 +26,9 @@ You now have two choices:
 Upgrading
 ---------
 
+**Always upgrade the Sentry server before upgrading your clients** unless
+the client states otherwise.
+
 Upgrading Sentry simply requires you to run migrations and restart your web services. We recommend
 you run the migrations from a separate install so that they can be completed before updating the
 code which runs the webserver.
@@ -41,9 +44,6 @@ upgrading the actual Sentry server.
 
 This includes several new tables (such as Project), and alters on almost all existing tables. It
 also means it needs to backfill the project_id column on all related tables.
-
-It is important to note that you should **upgrade the Sentry server before upgrading your clients**
-as the server maintains backwards compatible with the 1.x API, but many clients will not.
 
 Running a Sentry Server
 -----------------------
