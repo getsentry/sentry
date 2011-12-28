@@ -1,5 +1,0 @@
-python-django-sentry (1.5.1-0) testing; urgency=high
-
-  * Initial Debian package
-
- -- Bruno Clermont <bruno.clermont@gmail.com>  Tue, 14 Dec 2010 16:25:00 -0500
