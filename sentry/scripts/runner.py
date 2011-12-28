@@ -243,6 +243,12 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None):
             obj.delete()
 
 
+def manage(argv):
+    from django.core.management import ManagementUtility
+    utility = ManagementUtility(argv)
+    utility.execute()
+
+
 def upgrade(interactive=True):
     call_command('syncdb', database='default', interactive=interactive)
 
@@ -251,7 +257,7 @@ def upgrade(interactive=True):
 
 
 def main():
-    command_list = ('start', 'stop', 'restart', 'cleanup', 'upgrade')
+    command_list = ('start', 'stop', 'restart', 'cleanup', 'upgrade', 'manage')
     args = sys.argv
     if len(args) < 2 or args[1] not in command_list:
         print "usage: sentry [command] [options]"
@@ -310,7 +316,8 @@ def main():
 
     if args[0] == 'upgrade':
         upgrade()
-
+    elif args[0] == 'manage':  # wrapper around manage.py
+        manage(args)
     elif args[0] == 'start':
         app = SentryServer(host=options.host, port=options.port,
                            pidfile=options.pidfile, logfile=options.logfile,
