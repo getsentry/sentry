@@ -17,8 +17,6 @@ from eventlet import wsgi, patcher
 from optparse import OptionParser
 from sentry import VERSION, environment
 
-patcher.monkey_patch()
-
 
 KEY_LENGTH = 40
 
@@ -148,6 +146,10 @@ class SentryServer(DaemonRunner):
         from sentry.wsgi import application
 
         def inner_run():
+            # Install eventlet patches after everything else has been run,
+            # and inside our server thread
+            patcher.monkey_patch()
+
             wsgi.server(eventlet.listen((self.host, self.port)), application)
 
         if self.debug:
