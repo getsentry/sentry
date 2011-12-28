@@ -439,4 +439,16 @@ def create_default_project(created_models, verbosity=2, **kwargs):
         if verbosity > 0:
             print 'Created default Sentry project owned by %s' % owner
 
+        # Iterate all groups to update their relations
+        for model in (Group, Event, FilterValue, MessageFilterValue,
+                      MessageCountByMinute):
+            if verbosity > 0:
+                print ('Backfilling project ids for %s.. ' % model),
+            model.objects.filter(project__isnull=True).update(
+                project=project,
+            )
+            if verbosity > 0:
+                print 'done!'
+
+
 post_syncdb.connect(create_default_project)
