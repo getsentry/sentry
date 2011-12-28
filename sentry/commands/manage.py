@@ -9,7 +9,7 @@ from sentry.commands.utils import consume_args
 
 
 @consume_args
-def manage(args, options):
+def manage(args):
     from django.core.management import ManagementUtility
     utility = ManagementUtility(args)
     utility.execute()
