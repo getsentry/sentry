@@ -1,10 +1,13 @@
 Sentry
 ======
 
-Sentry provides you with a generic interface to view and interact with your error logs. By
-default, it will catch any exception thrown by Django and store it in a database. With this
-it allows you to interact and view near real-time information to discover issues and more
-easily trace them in your application.
+Sentry is a realtime event logging and aggregation platform. At it's core it
+specializes in monitoring errors and extracting all the information needed
+to do a proper post-mortum without any of the hassle of the standard user
+feedback loop.
+
+Users Guide
+-----------
 
 .. toctree::
    :maxdepth: 2
@@ -15,8 +18,22 @@ easily trace them in your application.
    client/index
    interfaces/index
    plugins/index
+
+Reference
+---------
+
+.. toctree::
+   :maxdepth: 1
+
    contributing/index
    changelog/index
+   license/index
+
+Other Links
+-----
+
+* `Bug Tracker <http://github.com/dcramer/sentry/issues>`_
+* `Code <http://github.com/dcramer/sentry>`_
 
 Screenshots
 -----------
