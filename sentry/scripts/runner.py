@@ -146,7 +146,8 @@ def main():
     # execute command
     if getattr(command, 'consume_args', False):
         command(args, **kwargs)
-    command(**kwargs)
+    else:
+        command(**kwargs)
 
     sys.exit(0)
 
