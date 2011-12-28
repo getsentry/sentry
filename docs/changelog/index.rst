@@ -301,7 +301,7 @@ Version 1.6.9
 * Fixed a bug to ensure template information is only added if its the correct loader
 
 Version 1.6.8.1
--------------
+---------------
 
 * Search will now show when unauthenticated (e.g. when SENTRY_PUBLIC is enabled)
 
@@ -360,6 +360,6 @@ Version 1.6.0
 * SearchFilter now allows searching by message reference id
 * Added Sentry404CatchMiddleware
 * Added SentryResponseErrorIdMiddleware
-* The `request` argument can now be passed into any create_from_ method.
+* The `request` argument can now be passed into any ``create_from_`` method.
 
 (History beyond 1.6.0 is not present)

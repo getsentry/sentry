@@ -1,11 +1,10 @@
 Interfaces
 ==========
 
-.. contents::
-    :local:
-.. currentmodule:: disqus.interfaces
-
 Sentry implements data interfaces for storing structured data. At it's core, an interface describes what it's storing, and optionally how it's data should be rendered.
+
+Bundled Interfaces
+------------------
 
 .. class:: sentry.interfaces.Message
 
@@ -141,3 +140,8 @@ Sentry implements data interfaces for storing structured data. At it's core, an 
             "query": "SELECT 1"
             "engine": "psycopg2"
         }
+
+Writing an Interface
+--------------------
+
+TODO

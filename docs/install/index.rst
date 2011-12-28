@@ -11,20 +11,29 @@ Or with *setuptools*::
 
 You now have two choices:
 
-1. Run an integrated setup where your webapp runs both the Sentry client and server.
-
-   If you run on a single web server, or don't expect high load, this is the quickest
-   configuration to get up and running.
-
-2. (Recommended) Runs the server in a separate web instance to isolate your application.
+1. **(Recommended)** Run the server in a separate web instance to isolate your application.
 
    The recommended setup for apps which have any kind of quality of service requirements.
    Your Sentry server (web) application will run in its own environment which ensures the
    most compatibility with your application, as well as ensuring it does not impact your
    primary application servers.
 
-Uprading from 1.x
------------------
+2. Run an integrated setup where your webapp runs both the Sentry client and server.
+
+   If you run on a single web server, or don't expect high load, this is the quickest
+   configuration to get up and running.
+
+Upgrading
+---------
+
+Upgrading Sentry simply requires you to run migrations and restart your web services. We recommend
+you run the migrations from a separate install so that they can be completed before updating the
+code which runs the webserver.
+
+To run the migrations, simply run ``sentry upgrade`` in your environment.
+
+Upgrading from 1.x
+~~~~~~~~~~~~~~~~~~
 
 If you are upgrading Sentry from a 1.x version, you should take note that the database migrations
 are much more significant than they were in the past. We recommend performing them **before**
@@ -33,50 +42,8 @@ upgrading the actual Sentry server.
 This includes several new tables (such as Project), and alters on almost all existing tables. It
 also means it needs to backfill the project_id column on all related tables.
 
-Integrating with an existing Django install
--------------------------------------------
-
-The integrated setup is the easiest to get up and running. It simply requires you to plug the Sentry application into your existing
-Django project. Once installed, you simply need to update your settings.py and add ``sentry`` and ``raven.contrib.django`` to ``INSTALLED_APPS``::
-
-	INSTALLED_APPS = (
-	    'django.contrib.admin',
-	    'django.contrib.auth',
-	    'django.contrib.contenttypes',
-	    'django.contrib.sessions',
-
-	    'sentry',
-	    'raven.contrib.django',
-	    ...
-	)
-
-.. note:: Raven is a seperate project, and the official Python client for Sentry.
-
-You will also need to add ``sentry.web.urls`` to your url patterns::
-
-	urlpatterns = patterns('',
-	    (r'^sentry/', include('sentry.web.urls')),
-	)
-
-We also highly recommend setting ``TEMPLATE_DEBUG=True`` in your environment (not to be confused with ``DEBUG``). This will allow
-Sentry to receive template debug information when it hits a syntax error.
-
-Finally, run ``python manage.py syncdb`` to create the database tables.
-
-.. note::
-
-   We recommend using South for migrations. Initial migrations have already been created for Sentry in sentry/migrations/ so you only need to run ``python manage.py migrate sentry`` instead of ``syncdb``
-
-.. seealso::
-
-   See :doc:`../technical/index` for information on additional plugins and functionality included.
-
-Upgrading
-~~~~~~~~~
-
-Upgrading Sentry is fairly painless with South migrations. If you're not using South then you're on your own::
-
-	python manage.py migrate sentry
+It is important to note that you should **upgrade the Sentry server before upgrading your clients**
+as the server maintains backwards compatible with the 1.x API, but many clients will not.
 
 Running a Sentry Server
 -----------------------
@@ -101,14 +68,13 @@ Sentry provides the start, stop, and restart commands available via the command 
 
 .. note::
 
-   The ``start`` command will also automatically run the ``upgrade`` command, which handles data and schema migrations.
+   Calling ``sentry start`` will also automatically launch all required services, as well as
+   run ``upgrade`` command, which handles data and schema migrations.
 
 The configuration for the server is based on ``sentry.conf.server``, which contains a basic Django project configuration, as well
-as the default Sentry configuration values. It will use SQLite for the database, and Haystack using Whoosh. If you specify your own
-configuration via --config, you will likely want to preface the file with importing the global defaults::
+as the default Sentry configuration values. It will use SQLite for the database.::
 
-    #!/usr/bin/env python
-    # filename: /etc/sentry.conf.py
+    # ~/.sentry/sentry.conf.py
 
     DATABASES = {
         'default': {
@@ -126,52 +92,72 @@ configuration via --config, you will likely want to preface the file with import
     SENTRY_WEB_PORT = 9000
     SENTRY_KEY = '0123456789abcde'
 
-By default, Sentry will also look for ``~/.sentry/sentry.conf.py`` and load it if it exists, and ``--config`` is not passed.
+By default, Sentry will look for ``~/.sentry/sentry.conf.py`` and load it if it exists, and ``--config`` is not passed.
 
 .. note::
 
    The default database is SQLite, which generally does not perform very well.
 
+Configuring a Proxy
+~~~~~~~~~~~~~~~~~~~
 
-Configuring a Sentry WSGI app
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+By default, Sentry runs on port 9000. Even if you change this, under normal conditions you won't be able to bind to
+port 80. To get around this (and to avoid running Sentry as a privileged user, which you shouldn't), we recommend
+you setup a simple web proxy.
 
-If you need more flexibility in your Sentry server, you may want to setup the server project manually. While this guide does not
-cover configuring your webserver, it does describe the required attributes of your WSGI app to run in a standalone server mode.
+Proxying with Apache
+````````````````````
 
-First you're going to need to add Sentry to your server's INSTALLED_APPS::
+Apache requires the use of mod_proxy for forwarding requests::
 
-	INSTALLED_APPS = [
-	  ...
-	  'sentry',
-	  # We recommend adding the client to capture errors
-	  # seen on this server as well
-	  'raven.contrib.django',
-	]
+    ProxyPass / http://localhost:9000
+    ProxyPassReverse / http://localhost:9000
 
-You will also need to ensure that your ``SENTRY_KEY`` matches across your client and server configurations::
+Proxying with Nginx
+```````````````````
 
-	SENTRY_KEY = '0123456789abcde'
+You'll use the builtin HttpProxyModule within Nginx to handle proxying::
 
+    location / {
+      proxy_pass         http://localhost:9000;
+      proxy_redirect     off;
 
-Configure your Clients
-~~~~~~~~~~~~~~~~~~~~~~
+      proxy_set_header   Host             $host;
+      proxy_set_header   X-Real-IP        $remote_addr;
+      proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
+    }
 
-On each of your application servers, you will need to configure Sentry to communicate with your remote Sentry server.
+Integrating with an existing Django install
+-------------------------------------------
 
-Start with adding the client to your ``INSTALLED_APPS``::
+The integrated setup is not recommended for production environments, but can be fairly easy to get up and running. It
+simply requires you to plug the Sentry application into your existing Django project. Once installed, you simply
+need to update your settings.py and add ``sentry`` and ``raven.contrib.django`` to ``INSTALLED_APPS``::
 
-	INSTALLED_APPS = [
-	  ...
-	  'raven.contrib.django',
-	]
+    INSTALLED_APPS = (
+        'django.contrib.admin',
+        'django.contrib.auth',
+        'django.contrib.contenttypes',
+        'django.contrib.sessions',
 
-Add the ``SENTRY_SERVERS`` configuration variable, to point to the absolute location to the ``/store/`` view on your
-Sentry server::
+        'sentry',
+        'raven.contrib.django',
+        ...
+    )
 
-	# This should be the absolute URI of sentries store view
-	SENTRY_SERVERS = ['http://your.sentry.server/sentry/store/']
+.. note:: Raven is a seperate project, and the official Python client for Sentry.
 
-You will also need to ensure that your ``SENTRY_KEY`` matches across your client and server configurations::
+You will also need to add ``sentry.web.urls`` to your url patterns::
 
-	SENTRY_KEY = '0123456789abcde'
+    urlpatterns = patterns('',
+        (r'^sentry/', include('sentry.web.urls')),
+    )
+
+We also highly recommend setting ``TEMPLATE_DEBUG = True`` in your environment (not to be confused with ``DEBUG``). This will allow
+Sentry to receive template debug information when it hits a syntax error.
+
+Finally, run ``python manage.py syncdb`` to create the database tables.
+
+.. note::
+
+   We recommend using South for migrations. Initial migrations have already been created for Sentry in sentry/migrations/ so you only need to run ``python manage.py migrate sentry`` instead of ``syncdb``

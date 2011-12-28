@@ -11,8 +11,9 @@ easily trace them in your application.
 
    install/index
    config/index
+   client/index
    interfaces/index
-   technical/index
+   plugins/index
    contributing/index
    changelog/index
 
