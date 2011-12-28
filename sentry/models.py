@@ -55,8 +55,14 @@ PERMISSIONS = (
     ('add_message', 'Store new events'),
     ('change_project', 'Change project details'),
     ('remove_project', 'Delete or merge project'),
+    ('change_project_options', 'Change project options'),
 )
 PERMISSIONS_DICT = dict(PERMISSIONS)
+
+PROJECT_OPTIONS = (
+    # ('event_cutoff', 'Time (in seconds) before an event should be trimmed'),
+    # ('event_max', 'Maximum number of events to store'),
+)
 
 
 class Project(Model):
@@ -84,6 +90,15 @@ class Project(Model):
             FilterValue.objects.get_or_create(project=project, key=fv.key, value=fv.value)
             fv.delete()
         self.delete()
+
+
+class ProjectOptions(Model):
+    project = models.ForeignKey(Project)
+    key = models.CharField(max_length=32, choices=PROJECT_OPTIONS)
+    value = models.CharField(max_length=200)
+
+    class Meta:
+        unique_together = (('project', 'key', 'value'),)
 
 
 class ProjectMember(Model):
