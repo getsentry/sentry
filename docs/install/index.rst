@@ -91,11 +91,7 @@ need to ensure quality of service within your project, this is for you.
 The Built-in Server
 ~~~~~~~~~~~~~~~~~~~
 
-Sentry provides a built-in webserver (powered by eventlet) to get you off the ground quickly. It's powered by two open source
-libraries, eventlet and python-daemon. To get started, you will need to manually install those dependicies::
-
-	easy_install eventlet>=0.9.15
-	easy_install python-daemon>=1.6
+Sentry provides a built-in webserver (powered by eventlet) to get you off the ground quickly.
 
 Sentry provides the start, stop, and restart commands available via the command line interface to manage the server process::
 
