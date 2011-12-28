@@ -1,7 +1,7 @@
 Command Line Usage
 ==================
 
-Sentry installs a command line script under the name ``sentry`. This will allow you to
+Sentry installs a command line script under the name ``sentry``. This will allow you to
 perform most required operations that are unachievable within the web UI.
 
 For a list of commands, you can also use ``sentry help``, or ``sentry [command] --help``
