@@ -129,7 +129,7 @@ class NewProjectForm(forms.ModelForm):
 
 class EditProjectForm(forms.ModelForm):
     class Meta:
-        fields = ('name', 'status')
+        fields = ('name', 'status', 'public')
         model = Project
 
 
