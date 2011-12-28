@@ -26,6 +26,7 @@ to test your extensions before upgrading.
 * Added "Replay Request" action for events.
 * Graphs can now be generated for Projects.
 * There is now a trends sort option for aggregated events.
+* Added ``sentry manage`` command.
 
 Version 1.13.5
 --------------
