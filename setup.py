@@ -19,15 +19,8 @@ The said, Sentry is not limited to Python. The primary implementation is in
 Python, but it contains a full API for sending events from any language, in
 any application.
 """
+from setuptools import setup, find_packages
 
-import sys
-
-try:
-    from setuptools import setup, find_packages, Command
-except ImportError:
-    from ez_setup import use_setuptools
-    use_setuptools()
-    from setuptools import setup, find_packages, Command
 
 tests_require = [
     'nose==1.1.2',
@@ -48,9 +41,6 @@ install_requires = [
     'eventlet>=0.9.15',
     'South>=0.7',
 ]
-
-if sys.version_info[:2] < (2, 5):
-    install_requires.append('uuid')
 
 setup(
     name='sentry',
