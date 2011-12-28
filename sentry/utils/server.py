@@ -57,6 +57,7 @@ class SentryServer(DaemonRunner):
         else:
             self.do_action()
 
+class SentryHTTPServer(SentryServer):
     def run(self):
         from sentry.wsgi import application
 

@@ -16,11 +16,14 @@ from sentry.commands.utils import options, opt
     opt('--debug', action='store_true', default=False, dest='debug'),
     opt('--pidfile', dest='pidfile'),
     opt('--logfile', dest='logfile'),
+    opt('--service', dest='service', default='http', choices=['http']),
 )
-def start(daemonize=False, host=None, port=None, debug=False, pidfile=None, logfile=None):
-    from sentry.utils.server import SentryServer
-
-    app = SentryServer(
+def start(daemonize=False, host=None, port=None, debug=False, pidfile=None, logfile=None, service='http'):
+    from sentry.utils import server
+    app_class = {
+        'http': server.SentryHTTPServer,
+    }[service]
+    app = app_class(
         host=host,
         port=port,
         pidfile=pidfile,
