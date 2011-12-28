@@ -362,7 +362,7 @@ class SentryCleanupTest(TestCase):
     fixtures = ['tests/fixtures/cleanup.json']
 
     def test_simple(self):
-        from sentry.scripts.runner import cleanup
+        from sentry.commands.cleanup import cleanup
 
         cleanup(days=1)
 
@@ -372,7 +372,7 @@ class SentryCleanupTest(TestCase):
         self.assertEquals(MessageFilterValue.objects.count(), 0)
 
     def test_logger(self):
-        from sentry.scripts.runner import cleanup
+        from sentry.commands.cleanup import cleanup
 
         cleanup(days=1, logger='sentry')
 
@@ -400,7 +400,7 @@ class SentryCleanupTest(TestCase):
         self.assertEquals(MessageFilterValue.objects.count(), 0)
 
     def test_server_name(self):
-        from sentry.scripts.runner import cleanup
+        from sentry.commands.cleanup import cleanup
 
         cleanup(days=1, server='dcramer.local')
 
@@ -417,7 +417,7 @@ class SentryCleanupTest(TestCase):
         self.assertEquals(MessageFilterValue.objects.count(), 0)
 
     def test_level(self):
-        from sentry.scripts.runner import cleanup
+        from sentry.commands.cleanup import cleanup
 
         cleanup(days=1, level=logging.ERROR)
 
