@@ -71,6 +71,20 @@ class Project(Model):
 
     objects = ProjectManager()
 
+    def delete(self):
+        # This hadles cascades properly
+        # TODO: this doesnt clean up the index
+        for model in (Event, Group, FilterValue, MessageFilterValue, MessageCountByMinute):
+            model.objects.filter(project=self).delete()
+
+    def merge_to(self, project):
+        for model in (Event, Group, MessageFilterValue, MessageCountByMinute):
+            model.objects.filter(project=self).update(project=project)
+        for fv in FilterValue.objects.filter(project=self):
+            FilterValue.objects.get_or_create(project=project, key=fv.key, value=fv.value)
+            fv.delete()
+        self.delete()
+
 
 class ProjectMember(Model):
     project = models.ForeignKey(Project, related_name="member_set")

@@ -54,18 +54,10 @@ def remove_project(request, project):
     if form.is_valid():
         removal_type = form.cleaned_data['removal_type']
         if removal_type == '1':
-            # TODO: this doesnt clean up the index
-            for model in (Event, Group, FilterValue, MessageFilterValue, MessageCountByMinute):
-                model.objects.filter(project=project).delete()
             project.delete()
         elif removal_type == '2':
             new_project = form.cleaned_data['project']
-            for model in (Event, Group, MessageFilterValue, MessageCountByMinute):
-                model.objects.filter(project=project).update(project=new_project)
-            for fv in FilterValue.objects.filter(project=project):
-                FilterValue.objects.get_or_create(project=project, key=fv.key, value=fv.value)
-                fv.delete()
-            project.delete()
+            project.merge_to(new_project)
         elif removal_type == '3':
             project.update(status=1)
         else:
