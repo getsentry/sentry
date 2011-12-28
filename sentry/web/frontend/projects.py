@@ -3,8 +3,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponseForbidden
 from django.views.decorators.csrf import csrf_protect
 
-from sentry.models import PERMISSIONS_DICT, Group, Event, FilterValue, \
-     MessageFilterValue, MessageCountByMinute
+from sentry.models import PERMISSIONS_DICT
 from sentry.web.decorators import login_required, can_manage, \
      permission_required
 from sentry.web.forms import EditProjectForm, NewProjectForm, \
