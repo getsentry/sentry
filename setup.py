@@ -25,9 +25,6 @@ from setuptools import setup, find_packages
 tests_require = [
     'nose==1.1.2',
     'django-nose==0.1.3',
-
-    # celery
-    'django-celery',
 ]
 
 install_requires = [
@@ -40,6 +37,8 @@ install_requires = [
     'python-daemon>=1.6',
     'eventlet>=0.9.15',
     'South>=0.7',
+    'kombu>=1.5.1',
+    'django-kombu==0.9.4',
 ]
 
 setup(

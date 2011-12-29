@@ -76,3 +76,12 @@ WEB_LOG_FILE = os.path.join(ROOT, 'sentry.log')
 WEB_PID_FILE = os.path.join(ROOT, 'sentry.pid')
 
 MESSAGES_PER_PAGE = 15
+
+QUEUE = {
+    'transport': 'djkombu.transport.DatabaseTransport',
+# BROKER_HOST = 'localhost',
+# BROKER_PORT = 5672
+# BROKER_USER = "guest"
+# BROKER_PASSWORD = "guest"
+# BROKER_VHOST = "/"
+}
