@@ -16,6 +16,9 @@ from sentry.queue.queues import task_queues, task_exchange
 class Broker(object):
     def __init__(self, config):
         self.connection = BrokerConnection(**config)
+        with producers[self.connection].acquire(block=False) as producer:
+            for queue in task_queues:
+                maybe_declare(queue, producer.channel)
 
     def delay(self, func, *args, **kwargs):
         payload = {
@@ -25,8 +28,6 @@ class Broker(object):
         }
 
         with producers[self.connection].acquire(block=False) as producer:
-            for queue in task_queues:
-                maybe_declare(queue, producer.channel)
             producer.publish(payload,
                 exchange=task_exchange,
                 serializer="pickle",
