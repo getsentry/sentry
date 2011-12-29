@@ -17,6 +17,8 @@ from django.utils.encoding import force_unicode
 from sentry.conf import settings
 
 _FILTER_CACHE = None
+
+
 def get_filters(model=None):
     global _FILTER_CACHE
 
@@ -41,6 +43,7 @@ def get_filters(model=None):
             continue
         yield f
 
+
 def get_db_engine(alias='default'):
     has_multidb = django.VERSION >= (1, 2)
     if has_multidb:
@@ -50,8 +53,8 @@ def get_db_engine(alias='default'):
         value = django_settings.DATABASE_ENGINE
     return value.rsplit('.', 1)[-1]
 
-class _Missing(object):
 
+class _Missing(object):
     def __repr__(self):
         return 'no value'
 
@@ -59,6 +62,7 @@ class _Missing(object):
         return '_missing'
 
 _missing = _Missing()
+
 
 class cached_property(object):
     # This is borrowed from werkzeug : http://bytebucket.org/mitsuhiko/werkzeug-main
@@ -114,6 +118,7 @@ class cached_property(object):
             obj.__dict__[self.__name__] = value
         return value
 
+
 class MockDjangoRequest(HttpRequest):
     GET = {}
     POST = {}
@@ -149,7 +154,9 @@ class MockDjangoRequest(HttpRequest):
         return '<Request\nGET:%s,\nPOST:%s,\nCOOKIES:%s,\nMETA:%s>' % \
             (get, post, cookies, meta)
 
-    def build_absolute_uri(self): return self.url
+    def build_absolute_uri(self):
+        return self.url
+
 
 def should_mail(group):
     if int(group.level) < settings.MAIL_LEVEL:
@@ -160,17 +167,19 @@ def should_mail(group):
         return False
     return True
 
+
 def to_unicode(value):
     try:
         value = unicode(force_unicode(value))
     except (UnicodeEncodeError, UnicodeDecodeError):
         value = '(Error decoding value)'
-    except Exception: # in some cases we get a different exception
+    except Exception:  # in some cases we get a different exception
         try:
             value = str(repr(type(value)))
         except Exception:
             value = '(Error decoding value)'
     return value
+
 
 def is_float(var):
     try:
