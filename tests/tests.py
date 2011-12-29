@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
+from __future__ import absolute_import, with_statement
 
 import datetime
 import getpass
@@ -18,6 +18,7 @@ from sentry.interfaces import Interface
 from sentry.models import Event, Group, MessageCountByMinute, \
   MessageFilterValue, Project, ProjectMember
 from sentry.web.helpers import get_login_url
+from sentry.utils import MockDjangoRequest
 
 from tests.testcases import TestCase
 from tests.utils import conditional_on_module, Settings
@@ -484,6 +485,9 @@ class SentryPluginTest(TestCase):
     def test_registration(self):
         from sentry.plugins import GroupActionProvider
         self.assertEquals(len(GroupActionProvider.plugins), 4)
+        group = Group.objects.get()
+        widgets = list(get_actions(group, MockDjangoRequest()))
+        self.assertEquals(len(widgets), 1)
 
 class SentryManagerTest(TestCase):
     def test_invalid_project(self):

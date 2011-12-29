@@ -1,7 +1,7 @@
 {% load sentry_helpers %}
 
-<li class="{% cycle 'row1' 'row2' %} level-{{ group.level }}{% if priority %} priority-{{ priority }}{% endif %}" id="group_{{ group.pk }}" data-sentry-count="{{ group.times_seen }}">
-    <span class="count">{{ group.times_seen }}</span>
+<li class="{% cycle 'row1' 'row2' %} level-{{ group.level }}{% if priority %} priority-{{ priority }}{% endif %}" id="group_{{ group.pk|safe }}" data-sentry-count="{{ group.times_seen }}">
+    <span class="count">{{ group.times_seen|small_count }}</span>
     <h3><a href="{% url sentry-group group.project_id group.pk %}">{% if group.view %}{{ group.view }}{% else %}{{ group.message_top|truncatechars:100 }}{% endif %}</a></h3>
     <span class="last_seen">{{ group.last_seen|timesince }}</span>
     {% if group.avg_time_spent %}
@@ -21,6 +21,6 @@
     </p>
     <a href="{% url sentry-group group.project_id group.pk %}" class="row_link"></a>
     {% if group.status == 0 %}
-        <a href="{% url sentry-ajax group.project_id %}?op=resolve&amp;gid={{ group.pk }}" onclick="Sentry.stream.resolve({{ group.pk }});return false;" class="button resolve_button hidden">&#10003;</a>
+        <a href="{% url sentry-ajax group.project_id %}?op=resolve&amp;gid={{ group.pk|safe }}" onclick="Sentry.stream.resolve({{ group.pk|safe }});return false;" class="button resolve_button hidden">&#10003;</a>
     {% endif %}
 </li>

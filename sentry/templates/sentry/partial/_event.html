@@ -1,6 +1,6 @@
 {% load sentry_helpers %}
 
-<li class="{% cycle 'row1' 'row2' %} level-{{ event.level }}{% if priority %} priority-{{ priority }}{% endif %}" id="message_{{ event.pk }}">
+<li class="{% cycle 'row1' 'row2' %} level-{{ event.level }}{% if priority %} priority-{{ priority }}{% endif %}" id="message_{{ event.pk|safe }}">
     <h3><a href="{% url sentry-group-event event.project_id event.group_id event.pk %}">{% if event.view %}{{ event.view }}{% else %}{{ event.message_top|truncatechars:100 }}{% endif %}</a></h3>
     <span class="last_seen">{{ event.datetime|timesince }}</span>
     {% if event.time_spent %}
