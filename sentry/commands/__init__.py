@@ -7,7 +7,5 @@ sentry.commands
 """
 from sentry.commands.cleanup import cleanup
 from sentry.commands.manage import manage
-from sentry.commands.restart import restart
-from sentry.commands.start import start
-from sentry.commands.stop import stop
+from sentry.commands.control import start, stop
 from sentry.commands.upgrade import upgrade

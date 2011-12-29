@@ -70,18 +70,20 @@ MAIL_EXCLUDE_LOGGERS = []
 # accuracy provided.
 MINUTE_NORMALIZATION = 15
 
-WEB_HOST = 'localhost'
-WEB_PORT = 9000
-WEB_LOG_FILE = os.path.join(ROOT, 'sentry.log')
-WEB_PID_FILE = os.path.join(ROOT, 'sentry.pid')
-
+# The number of events to display per page
 MESSAGES_PER_PAGE = 15
 
+# Directory to stash log files in
+LOG_DIR = os.path.join(ROOT, 'log')
+
+# Directory to stash pid files in
+RUN_DIR = os.path.join(ROOT, 'run')
+
+# Web Service
+WEB_HOST = 'localhost'
+WEB_PORT = 9000
+
+# Queue (Kombu)
 QUEUE = {
     'transport': 'djkombu.transport.DatabaseTransport',
-# BROKER_HOST = 'localhost',
-# BROKER_PORT = 5672
-# BROKER_USER = "guest"
-# BROKER_PASSWORD = "guest"
-# BROKER_VHOST = "/"
 }
