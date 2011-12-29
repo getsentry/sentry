@@ -5,7 +5,6 @@ from __future__ import absolute_import, with_statement
 import datetime
 import getpass
 import logging
-import os.path
 
 from django.conf import settings as django_settings
 from django.contrib.auth.models import User
@@ -21,7 +20,7 @@ from sentry.web.helpers import get_login_url
 from sentry.utils import MockDjangoRequest
 
 from tests.testcases import TestCase
-from tests.utils import conditional_on_module, Settings
+from tests.utils import Settings
 
 # class NullHandler(logging.Handler):
 #     def emit(self, record):
@@ -36,6 +35,7 @@ from tests.utils import conditional_on_module, Settings
 # Configure our test handler
 
 logger = logging.getLogger(__name__)
+
 
 class SentryViewsTest(TestCase):
     fixtures = ['tests/fixtures/views.json']
@@ -125,8 +125,8 @@ class SentryViewsTest(TestCase):
         group = Group.objects.get(pk=2)
         self.assertEquals(resp.context['group'], group)
 
-class SentryRemoteTest(TestCase):
 
+class SentryRemoteTest(TestCase):
     def setUp(self):
         settings.REMOTE_URL = ['http://localhost:8000%s' % reverse('sentry-store')]
         logger = logging.getLogger('sentry')
@@ -248,6 +248,7 @@ class SentryRemoteTest(TestCase):
         self.assertEquals(instance.site, 'not_a_real_site')
         self.assertEquals(instance.level, 40)
 
+
 class SentryFeedsTest(TestCase):
     fixtures = ['tests/fixtures/feeds.json']
 
@@ -268,6 +269,7 @@ class SentryFeedsTest(TestCase):
         self.assertTrue('<title>log summaries</title>' in response.content)
         self.assertTrue('<link>http://testserver/1/group/1</link>' in response.content, response.content)
         self.assertTrue('<title>(1) exceptions must be old-style classes or derived from BaseException, not NoneType</title>' in response.content)
+
 
 class SentryMailTest(TestCase):
     fixtures = ['tests/fixtures/mail.json']
@@ -337,6 +339,7 @@ class SentryMailTest(TestCase):
 
         self.assertTrue('http://example.com/group/2' in out.body, out.body)
 
+
 class SentryHelpersTest(TestCase):
     def test_get_db_engine(self):
         from sentry.utils import get_db_engine
@@ -358,6 +361,7 @@ class SentryHelpersTest(TestCase):
 
         django_settings.DATABASES = _databases
         django_settings.DATABASE_ENGINE = _engine
+
 
 class SentryCleanupTest(TestCase):
     fixtures = ['tests/fixtures/cleanup.json']
@@ -434,9 +438,10 @@ class SentryCleanupTest(TestCase):
         self.assertEquals(MessageCountByMinute.objects.count(), 0)
         self.assertEquals(MessageFilterValue.objects.count(), 0)
 
+
 class SentrySearchTest(TestCase):
     def test_checksum_query(self):
-        checksum = 'a'*32
+        checksum = 'a' * 32
         g = Group.objects.create(
             project_id=1,
             logger='root',
@@ -451,7 +456,7 @@ class SentrySearchTest(TestCase):
             self.assertEquals(response['Location'], 'http://testserver%s' % (g.get_absolute_url(),))
 
     def test_dupe_checksum(self):
-        checksum = 'a'*32
+        checksum = 'a' * 32
         g1 = Group.objects.create(
             project_id=1,
             logger='root',
@@ -477,17 +482,31 @@ class SentrySearchTest(TestCase):
             self.assertTrue(g1 in context['event_list'])
             self.assertTrue(g2 in context['event_list'])
 
+
 class DummyInterface(Interface):
     def __init__(self, baz):
         self.baz = baz
+
 
 class SentryPluginTest(TestCase):
     def test_registration(self):
         from sentry.plugins import GroupActionProvider
         self.assertEquals(len(GroupActionProvider.plugins), 4)
-        group = Group.objects.get()
+
+    def test_get_actions(self):
+        from sentry.templatetags.sentry_helpers import get_actions
+        checksum = 'a' * 32
+        group = Group.objects.create(
+            project_id=1,
+            logger='root',
+            culprit='a',
+            checksum=checksum,
+            message='hi',
+        )
+
         widgets = list(get_actions(group, MockDjangoRequest()))
         self.assertEquals(len(widgets), 1)
+
 
 class SentryManagerTest(TestCase):
     def test_invalid_project(self):
