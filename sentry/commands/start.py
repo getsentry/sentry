@@ -24,9 +24,6 @@ class SentryWorker(object):
         from kombu.utils.debug import setup_logging
         setup_logging(loglevel="INFO")
 
-        from sentry.queue.tasks import test
-        broker.delay(test, 'foo', bar='baz')
-
         try:
             Worker(broker.connection).run()
         except KeyboardInterrupt:
