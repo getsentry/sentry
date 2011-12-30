@@ -23,10 +23,14 @@ class BaseTestCase(object):
         })
         return resp
 
-    def _postWithSignature(self, data, key=None):
+    def _makeMessage(self, data, key=None):
         ts = time.time()
         message = base64.b64encode(json.dumps(data))
         sig = get_signature(message, ts, key)
+        return ts, message, sig
+
+    def _postWithSignature(self, data, key=None):
+        ts, message, sig = self._makeMessage(data, key)
 
         resp = self.client.post(reverse('sentry-store'), message,
             content_type='application/octet-stream',
@@ -35,9 +39,7 @@ class BaseTestCase(object):
         return resp
 
     def _postWithNewSignature(self, data, key=None):
-        ts = time.time()
-        message = base64.b64encode(json.dumps(data))
-        sig = get_signature(message, ts, key)
+        ts, message, sig = self._makeMessage(data, key)
 
         resp = self.client.post(reverse('sentry-store'), message,
             content_type='application/octet-stream',
