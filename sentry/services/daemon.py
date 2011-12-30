@@ -19,12 +19,6 @@ import sys
 class Daemon(object):
     """
     Controller for a callable running in a separate background process.
-
-    The first command-line argument is the action to take:
-
-    * 'start': Become a daemon and call `app.run()`.
-    * 'stop': Exit the daemon process specified in the PID file.
-    * 'restart': Stop, then start.
     """
 
     start_message = u"started with pid {0}"
