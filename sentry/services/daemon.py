@@ -93,9 +93,7 @@ class Daemon(object):
         """
         Stop, then start.
         """
-        print "stopping"
-        self.daemon_context.close()
-        print "starting"
+        self.stop()
         self.start()
 
     def _terminate_daemon_process(self):

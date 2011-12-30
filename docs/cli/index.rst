@@ -10,17 +10,27 @@ for help on a specific command.
 Builtin Commands
 ----------------
 
-.. data:: start
+.. data:: start [services]
 
     Starts all background services.
+
+    If services are passed, only starts the given services.
 
     ::
 
         sentry start --daemon
 
-.. data:: stop
+.. data:: stop [services]
 
     Stops all background services.
+
+    If services are passed, only stops the given services.
+
+.. data:: restart [services]
+
+    Stops all background services.
+
+    If services are passed, only restarts the given services.
 
 .. data:: upgrade
 
@@ -30,7 +40,7 @@ Builtin Commands
 
     Performs all trim operations based on your configuration.
 
-.. data:: manage
+.. data:: manage [command] [args]
 
     A wrapper around ``django-admin.py`` (aka ``manage.py``).
 

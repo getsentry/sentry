@@ -84,3 +84,14 @@ def stop(args):
     proc = get_daemon_for_service(service)
 
     proc.stop()
+
+
+@consume_args
+def restart(args):
+    # TODO: we should improve upon this so it just discovers the PID
+    # for an app and sends the signal
+    service = get_service_from_args(args)
+
+    proc = get_daemon_for_service(service)
+
+    proc.restart()
