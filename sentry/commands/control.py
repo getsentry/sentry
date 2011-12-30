@@ -11,16 +11,28 @@ import os
 import os.path
 
 
-SERVICES = {
+services = {
     'http': http.SentryHTTPServer,
     'worker': worker.SentryWorker,
 }
 
 
+def get_service_from_args(args):
+    if len(args) == 2:
+        service = args[1]
+    else:
+        service = 'http'
+
+    if service not in services:
+        raise ValueError(service)
+
+    return service
+
+
 def get_daemon_for_service(service, daemonize=True, **options):
     from sentry.conf import settings
 
-    service_class = SERVICES[service]
+    service_class = services[service]
 
     app = service_class(**options)
 
@@ -42,65 +54,44 @@ def get_daemon_for_service(service, daemonize=True, **options):
 
 
 @options(
-    opt('--daemon', '-d', action='store_true', default=True, dest='daemonize'),
-    opt('--no-daemon', '-f', action='store_false', default=True, dest='daemonize'),
+    opt('--daemon', '-d', action='store_true', default=False, dest='daemonize'),
+    opt('--no-daemon', '-f', action='store_false', default=False, dest='daemonize'),
     opt('--debug', action='store_true', default=False, dest='debug'),
 )
 @consume_args
-def start(args, daemonize=True, debug=False):
+def start(args, daemonize=False, debug=False):
     from sentry.conf import settings
 
-    services = args[1:]
-    if not services:
-        services = SERVICES.keys()
+    service = get_service_from_args(args)
 
-    if len(services) > 1 and not daemonize:
-        raise ValueError('You can not start all services in the foreground.')
+    if not os.path.exists(settings.LOG_DIR):
+        os.makedirs(settings.LOG_DIR)
 
-    for service in services:
-        if service not in services:
-            raise ValueError('Service not found: %r' % service)
+    if not os.path.exists(settings.RUN_DIR):
+        os.makedirs(settings.RUN_DIR)
 
-        if not os.path.exists(settings.LOG_DIR):
-            os.makedirs(settings.LOG_DIR)
+    proc = get_daemon_for_service(service, daemonize, debug=debug)
 
-        if not os.path.exists(settings.RUN_DIR):
-            os.makedirs(settings.RUN_DIR)
-
-        proc = get_daemon_for_service(service, daemonize, debug=debug)
-
-        proc.start()
+    proc.start()
 
 
 @consume_args
 def stop(args):
     # TODO: we should improve upon this so it just discovers the PID
     # for an app and sends the signal
-    services = args[1:]
-    if not services:
-        services = SERVICES.keys()
+    service = get_service_from_args(args)
 
-    for service in services:
-        if service not in services:
-            raise ValueError('Service not found: %r' % service)
+    proc = get_daemon_for_service(service)
 
-        proc = get_daemon_for_service(service)
-
-        proc.stop()
+    proc.stop()
 
 
 @consume_args
 def restart(args):
     # TODO: we should improve upon this so it just discovers the PID
     # for an app and sends the signal
-    services = args[1:]
-    if not services:
-        services = SERVICES.keys()
+    service = get_service_from_args(args)
 
-    for service in services:
-        if service not in services:
-            raise ValueError('Service not found: %r' % service)
+    proc = get_daemon_for_service(service)
 
-        proc = get_daemon_for_service(service)
-
-        proc.restart()
+    proc.restart()
