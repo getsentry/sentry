@@ -2,8 +2,10 @@ import pkg_resources
 import sys
 
 from django.core.urlresolvers import reverse
+from django.db.models import Sum
 from django.http import HttpResponseRedirect, Http404, HttpResponseNotModified, \
   HttpResponse
+from djkombu.models import Queue
 
 from sentry import environment
 from sentry.conf import settings
@@ -32,12 +34,26 @@ def status(request):
             continue
         config.append((k, getattr(settings, k)))
 
+    worker_status = (settings.QUEUE['transport'] == 'djkombu.transport.DatabaseTransport')
+    if worker_status:
+        pending_tasks = list(Queue.objects.filter(
+            messages__visible=True,
+        ).annotate(num=Sum('messages__id')).values_list('name', 'num'))
+        # fetch queues which had no pending tasks
+        pending_tasks.extend((q, 0) for q in Queue.objects.exclude(
+            name__in=[p[0] for p in pending_tasks],
+        ).values_list('name', flat=True))
+    else:
+        pending_tasks = None
+
     return render_to_response('sentry/status.html', {
         'config': config,
         'environment': environment,
         'python_version': sys.version,
         'modules': sorted([(p.project_name, p.version) for p in pkg_resources.working_set]),
         'extensions': [(cls.title, cls.__module__.rsplit('.', 1)[0]) for cls in GroupActionProvider.plugins.itervalues()],
+        'pending_tasks': pending_tasks,
+        'worker_status': worker_status,
     }, request)
 
 

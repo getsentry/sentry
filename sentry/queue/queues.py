@@ -7,7 +7,8 @@ sentry.queue.queues
 """
 from kombu import Exchange, Queue
 
+# All queues should be prefixed with "sentry."
 task_exchange = Exchange("tasks", type="direct")
 task_queues = [
-    Queue("default", task_exchange, routing_key="default"),
+    Queue("sentry.default", task_exchange, routing_key="sentry.default"),
 ]

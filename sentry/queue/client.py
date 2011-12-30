@@ -32,8 +32,8 @@ class Broker(object):
                 exchange=task_exchange,
                 serializer="pickle",
                 compression="bzip2",
-                queue='default',
-                routing_key='default',
+                queue='sentry.default',
+                routing_key='sentry.default',
             )
 
 broker = Broker(settings.QUEUE)
