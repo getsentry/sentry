@@ -51,9 +51,6 @@ SENTRY_PUBLIC = True
 
 SENTRY_WEB_HOST = '0.0.0.0'
 SENTRY_WEB_PORT = 9000
-
-SENTRY_WEB_LOG_FILE = os.path.join(ROOT, 'sentry.log')
-SENTRY_WEB_PID_FILE = os.path.join(ROOT, 'sentry.pid')
 """
 
 

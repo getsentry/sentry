@@ -205,25 +205,25 @@ The following settings are available for the built-in webserver:
 
         SENTRY_WEB_PORT = 9000
 
-.. data:: sentry.conf.WEB_PID_FILE
+.. data:: sentry.conf.RUN_DIR
     :noindex:
 
-    The location to store the PID file.
+    The location to store PID files for services.
 
-    Defaults to ``%SENTRY%/sentry.pid``.
+    Defaults to ``%SENTRY%/run/``.
 
     ::
 
-        SENTRY_WEB_PID_FILE = '/var/run/sentry.pid'
+        SENTRY_WEB_RUN_DIR = '/var/run/'
 
 .. data:: sentry.conf.WEB_LOG_FILE
     :noindex:
 
 
-    The location to store the log file.
+    The location to store log files for services.
 
-    Defaults to ``%SENTRY%/sentry.log``.
+    Defaults to ``%SENTRY%/log/``.
 
     ::
 
-        SENTRY_WEB_LOG_FILE = '/var/log/sentry.log'
+        SENTRY_WEB_LOG_DIR = '/var/log/'
