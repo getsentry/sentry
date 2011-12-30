@@ -21,7 +21,7 @@ class Daemon(object):
     Controller for a callable running in a separate background process.
     """
 
-    start_message = u"started with pid {0}"
+    start_message = u"{1} started with pid {0}"
 
     def __init__(self, app, pidfile=None, stdout=sys.stdout, stderr=sys.stderr, **options):
         """
@@ -60,7 +60,7 @@ class Daemon(object):
                   self.pidfile.path))
 
         pid = os.getpid()
-        message = self.start_message.format(pid)
+        message = self.start_message.format(pid, self.app.name)
 
         emit_message(message)
         signal.signal(signal.SIGHUP, self.restart)
