@@ -14,6 +14,7 @@ from sentry.coreapi import (parse_auth_header, project_from_auth_vars, project_f
                             project_from_id, decode_and_decompress_data, safely_load_json_string,
                             ensure_valid_project_id, insert_data_to_database, APIError, APIUnauthorized)
 
+
 def extract_auth_vars(request):
     if request.META.get('HTTP_X_SENTRY_AUTH', '').startswith('Sentry'):
         # Auth version 3.0 (same as 2.0, diff header)
@@ -23,6 +24,7 @@ def extract_auth_vars(request):
         return parse_auth_header(request.META['HTTP_AUTHORIZATION'])
     else:
         return None
+
 
 @csrf_exempt
 @require_http_methods(['POST'])
@@ -52,4 +54,4 @@ def store(request):
     except APIError, error:
         return HttpResponse(error.msg, status=error.http_status)
     return HttpResponse('')
-    
+

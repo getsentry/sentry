@@ -3,8 +3,8 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponseForbidden
 from django.views.decorators.csrf import csrf_protect
 
-from sentry.models import PERMISSIONS_DICT
-from sentry.web.decorators import login_required, can_manage, \
+from sentry.models import MEMBER_USER, MEMBER_OWNER
+from sentry.web.decorators import login_required, has_access, \
      permission_required
 from sentry.web.forms import EditProjectForm, NewProjectForm, \
      EditProjectMemberForm, NewProjectMemberForm, RemoveProjectForm
@@ -14,7 +14,6 @@ from sentry.web.helpers import render_to_response, get_project_list
 @login_required
 def project_list(request):
     return render_to_response('sentry/projects/list.html', {
-        'can_create_projects': request.user.has_perm('sentry.add_project'),
         'project_list': get_project_list(request.user, hidden=True).values(),
     }, request)
 
@@ -30,7 +29,7 @@ def new_project(request):
 
         project.member_set.create(
             user=project.owner,
-            is_superuser=True,
+            type=MEMBER_OWNER,
         )
         return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
 
@@ -43,7 +42,7 @@ def new_project(request):
 
 
 @login_required
-@can_manage('remove_project')
+@has_access('remove_project')
 @csrf_protect
 def remove_project(request, project):
     project_list = filter(lambda x: x != project, get_project_list(request.user).itervalues())
@@ -74,7 +73,7 @@ def remove_project(request, project):
 
 
 @login_required
-@can_manage('change_project')
+@has_access('change_project')
 @csrf_protect
 def manage_project(request, project):
     form = EditProjectForm(request.POST or None, instance=project)
@@ -84,10 +83,7 @@ def manage_project(request, project):
 
         return HttpResponseRedirect(request.path + '?success=1')
 
-    member_list = [
-        (pm, pm.user, [(k, PERMISSIONS_DICT[k]) for k, v in pm.permissions if v])
-        for pm in project.member_set.select_related('user')
-    ]
+    member_list = [(pm, pm.user) for pm in project.member_set.select_related('user')]
 
     context = csrf(request)
     context.update({
@@ -100,9 +96,11 @@ def manage_project(request, project):
 
 
 @csrf_protect
-@can_manage('add_member')
+@has_access('owner')
 def new_project_member(request, project):
-    form = NewProjectMemberForm(project, request.POST or None)
+    form = NewProjectMemberForm(project, request.POST or None, initial={
+        'type': MEMBER_USER,
+    })
     if form.is_valid():
         pm = form.save(commit=False)
         pm.project = project
@@ -120,7 +118,7 @@ def new_project_member(request, project):
 
 
 @csrf_protect
-@can_manage('change_member')
+@has_access('change_member')
 def edit_project_member(request, project, member_id):
     member = project.member_set.get(pk=member_id)
 
@@ -141,7 +139,7 @@ def edit_project_member(request, project, member_id):
 
 
 @csrf_protect
-@can_manage('delete_member')
+@has_access('delete_member')
 def remove_project_member(request, project, member_id):
     member = project.member_set.get(pk=member_id)
     if member.user == project.owner:

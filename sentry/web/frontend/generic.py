@@ -11,7 +11,8 @@ from sentry import environment
 from sentry.conf import settings
 from sentry.plugins import GroupActionProvider
 from sentry.web.decorators import login_required
-from sentry.web.helpers import get_project_list, render_to_response
+from sentry.web.helpers import get_project_list, render_to_response, \
+  get_login_url
 
 
 @login_required
@@ -19,6 +20,8 @@ def dashboard(request):
     project_list = get_project_list(request.user)
     if len(project_list) == 1:
         return HttpResponseRedirect(reverse('sentry', kwargs={'project_id': project_list.keys()[0]}))
+    if len(project_list) == 0 and not request.user.is_authenticated():
+        return HttpResponseRedirect(get_login_url())
     return render_to_response('sentry/dashboard.html', request=request)
 
 

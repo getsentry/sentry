@@ -6,21 +6,23 @@ from sentry.models import Project
 from sentry.web.helpers import get_project_list, render_to_response, get_login_url
 
 
-def can_manage(perm_or_func=None):
+def has_access(group_or_func=None):
     """
     Tests and transforms project_id for permissions based on the requesting user. Passes
     the actual project instance to the decorated view.
 
-    >>> @can_manage('read_message')
+    The default permission scope is 'user'.
+
+    >>> @has_access('owner')
     >>> def foo(request, project):
     >>>     return
 
-    >>> @can_manage
+    >>> @has_access
     >>> def foo(request, project):
     >>>     return
     """
-    if callable(perm_or_func):
-        return can_manage(None)(perm_or_func)
+    if callable(group_or_func):
+        return has_access(None)(group_or_func)
 
     def wrapped(func):
         def _wrapped(request, project_id=None, *args, **kwargs):
@@ -36,7 +38,7 @@ def can_manage(perm_or_func=None):
                 return func(request, project, *args, **kwargs)
 
             if project_id:
-                project_list = get_project_list(request.user, perm_or_func)
+                project_list = get_project_list(request.user, group_or_func)
 
                 try:
                     project = project_list[int(project_id)]

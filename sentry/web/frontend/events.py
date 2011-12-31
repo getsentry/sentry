@@ -6,14 +6,14 @@ from django.views.decorators.csrf import csrf_protect
 
 from sentry.conf import settings
 from sentry.models import Event
-from sentry.web.decorators import login_required, can_manage, render_to_response
+from sentry.web.decorators import login_required, has_access, render_to_response
 from sentry.web.forms import ReplayForm
 from sentry.utils import get_filters
 from sentry.replays import Replayer
 
 
 @login_required
-@can_manage('read_message')
+@has_access
 def event_list(request, project):
     filters = []
     for filter_ in get_filters(Event):
