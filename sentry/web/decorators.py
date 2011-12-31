@@ -3,15 +3,17 @@ from django.http import HttpResponseRedirect
 
 from sentry.conf import settings
 from sentry.models import Project
-from sentry.web.helpers import get_project_list, render_to_response, get_login_url
+from sentry.web.helpers import get_project_list, render_to_response, \
+  get_login_url
 
 
 def has_access(group_or_func=None):
     """
-    Tests and transforms project_id for permissions based on the requesting user. Passes
-    the actual project instance to the decorated view.
+    Tests and transforms project_id for permissions based on the requesting
+    user. Passes the actual project instance to the decorated view.
 
-    The default permission scope is 'user'.
+    The default permission scope is 'user', which
+    allows both 'user' and 'owner' access, but not 'system agent'.
 
     >>> @has_access('owner')
     >>> def foo(request, project):
@@ -39,7 +41,6 @@ def has_access(group_or_func=None):
 
             if project_id:
                 project_list = get_project_list(request.user, group_or_func)
-
                 try:
                     project = project_list[int(project_id)]
                 except (KeyError, ValueError):

@@ -58,8 +58,6 @@ def project_from_auth_vars(auth_vars, data):
     if api_key:
         try:
             pm = ProjectMember.objects.get(api_key=api_key)
-            if not pm.has_perm('add_message'):
-                raise ProjectMember.DoesNotExist
         except ProjectMember.DoesNotExist:
             raise APIForbidden('Invalid signature')
         project = pm.project
@@ -93,18 +91,12 @@ def project_from_api_key_and_id(api_key, project):
     except ProjectMember.DoesNotExist:
         raise APIUnauthorized()
 
-    if not pm.has_perm('add_message'):
-        raise ProjectMember.DoesNotExist
-
     return pm.project
 
 
 def project_from_id(request):
     try:
         pm = ProjectMember.objects.get(user=request.user, project=request.GET['project_id'])
-        # TODO: do we need this check?
-        # if not pm.has_perm('add_message'):
-        #     raise ProjectMember.DoesNotExist
     except ProjectMember.DoesNotExist:
         raise APIUnauthorized()
 

@@ -42,7 +42,7 @@ def new_project(request):
 
 
 @login_required
-@has_access('remove_project')
+@has_access('owner')
 @csrf_protect
 def remove_project(request, project):
     project_list = filter(lambda x: x != project, get_project_list(request.user).itervalues())
@@ -73,7 +73,7 @@ def remove_project(request, project):
 
 
 @login_required
-@has_access('change_project')
+@has_access('owner')
 @csrf_protect
 def manage_project(request, project):
     form = EditProjectForm(request.POST or None, instance=project)
@@ -118,7 +118,7 @@ def new_project_member(request, project):
 
 
 @csrf_protect
-@has_access('change_member')
+@has_access('owner')
 def edit_project_member(request, project, member_id):
     member = project.member_set.get(pk=member_id)
 
@@ -139,7 +139,7 @@ def edit_project_member(request, project, member_id):
 
 
 @csrf_protect
-@has_access('delete_member')
+@has_access('owner')
 def remove_project_member(request, project, member_id):
     member = project.member_set.get(pk=member_id)
     if member.user == project.owner:

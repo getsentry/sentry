@@ -102,7 +102,7 @@ def ajax_handler(request, project):
         except Group.DoesNotExist:
             return HttpResponseForbidden()
 
-        if group.project and group.project.pk not in get_project_list(request.user, 'change_message_status'):
+        if group.project and group.project.pk not in get_project_list(request.user):
             return HttpResponseForbidden()
 
         Group.objects.filter(pk=group.pk).update(status=1)
@@ -125,7 +125,7 @@ def ajax_handler(request, project):
         return response
 
     def clear(request, project):
-        projects = get_project_list(request.user, 'change_message_status')
+        projects = get_project_list(request.user)
 
         event_list = Group.objects.filter(Q(project__in=projects.keys()) | Q(project__isnull=True))
 
@@ -149,7 +149,7 @@ def ajax_handler(request, project):
             except Group.DoesNotExist:
                 return HttpResponseForbidden()
 
-            if group.project and group.project.pk not in get_project_list(request.user, 'read_message'):
+            if group.project and group.project.pk not in get_project_list(request.user):
                 return HttpResponseForbidden()
 
             data = Group.objects.get_chart_data(group, max_days=days)

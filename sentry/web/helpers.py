@@ -14,12 +14,12 @@ from django.http import HttpResponse
 from django.template import loader
 
 from sentry.conf import settings
-from sentry.models import ProjectMember, Project
+from sentry.models import ProjectMember, Project, MEMBER_USER
 
 logger = logging.getLogger('sentry.errors')
 
 
-def get_project_list(user=None, flag=None, hidden=False):
+def get_project_list(user=None, access=MEMBER_USER, hidden=False):
     """
     Returns a set of all projects a user has some level of access to.
     """
@@ -36,10 +36,8 @@ def get_project_list(user=None, flag=None, hidden=False):
               .select_related('project')
         if not hidden:
             qs = qs.filter(project__status=0)
-        projects.update(dict(
-            (pm.project_id, pm.project)
-            for pm in qs
-            if (not flag or pm.has_perm(flag))))
+        projects.update(dict((pm.project_id, pm.project)
+            for pm in qs if pm.type <= access))
 
     return projects
 
