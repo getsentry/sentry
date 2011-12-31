@@ -17,9 +17,11 @@ The said, Sentry is not limited to Python. The primary implementation is in
 Python, but it contains a full API for sending events from any language, in
 any application.
 
-Links
------
+Resources
+---------
 
-* `Documentation <http://readthedocs.org/docs/sentry/en/latest/index.html>`_
+* `Documentation <http://sentry.readthedocs.org/>`_
 * `Bug Tracker <http://github.com/dcramer/sentry/issues>`_
 * `Code <http://github.com/dcramer/sentry>`_
+* `Mailing List <https://groups.google.com/group/disqus-opensource>`_
+* `IRC <irc://irc.freenode.net/sentry>`_  (irc.freenode.net, #sentry)
