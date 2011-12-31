@@ -18,6 +18,8 @@ from sentry.models import Event, Group, MessageCountByMinute, \
   MessageFilterValue, Project, ProjectMember
 from sentry.web.helpers import get_login_url
 from sentry.utils import MockDjangoRequest
+from sentry.utils.auth import get_auth_header
+from sentry.services.udp import SentryUDPServer
 
 from tests.testcases import TestCase
 from tests.utils import Settings
@@ -590,3 +592,15 @@ class SentryManagerTest(TestCase):
         frame = stack['frames'][0]
         self.assertEquals(frame['filename'], 'foo.py')
         self.assertEquals(frame['function'], 'hello_world')
+
+class SentryUDPTest(TestCase):
+    def setUp(self):
+        self.address = (('0.0.0.0', 0))
+        self.server = SentryUDPServer(*self.address)
+    def test_failure(self):
+        self.assertNotEquals(None, self.server.handle('deadbeef', self.address))
+    def test_success(self):
+        data = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
+        ts, message, sig = self._makeMessage(data)
+        packet = get_auth_header(sig, ts, 'udpTest') + '\n\n' + message
+        self.assertEquals(None, self.server.handle(packet, self.address))

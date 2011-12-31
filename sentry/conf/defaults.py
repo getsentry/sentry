@@ -83,6 +83,10 @@ RUN_DIR = os.path.join(ROOT, 'run')
 WEB_HOST = 'localhost'
 WEB_PORT = 9000
 
+# UDP Service
+UDP_HOST = 'localhost'
+UDP_PORT = 9001
+
 # Queue (Kombu)
 QUEUE = {
     'transport': 'djkombu.transport.DatabaseTransport',
