@@ -76,11 +76,11 @@
                     <td>
                         {{ member.get_type_display }}
                     </td>
-                    <td>
+                    <td style="text-align:center;">
                         {% if user == project.owner %}
                             <em>owner</em>
                         {% else %}
-                            <a href="" class="btn small danger">Delete</a>
+                            <a href="{% url sentry-remove-project-member project.pk member.pk %}">Revoke</a>
                         {% endif %}
                     </td>
                 </tr>
