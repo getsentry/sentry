@@ -29,11 +29,13 @@ Reference
    changelog/index
    license/index
 
-Other Links
------
+Resources
+---------
 
 * `Bug Tracker <http://github.com/dcramer/sentry/issues>`_
 * `Code <http://github.com/dcramer/sentry>`_
+* `Mailing List <https://groups.google.com/group/disqus-opensource>`_
+* `IRC <irc://irc.freenode.net/sentry>`_  (irc.freenode.net, #sentry)
 
 Screenshots
 -----------
