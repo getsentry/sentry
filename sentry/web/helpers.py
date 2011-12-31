@@ -77,11 +77,13 @@ def render_to_string(template, context=None, request=None):
         'has_search': False,
         'MESSAGES_PER_PAGE': settings.MESSAGES_PER_PAGE,
         'PROJECT_ID': settings.PROJECT,
-        'can_create_projects': request.user.has_perm('sentry.add_project'),
     })
 
     if request:
-        context['request'] = request
+        context.update({
+            'request': request,
+            'can_create_projects': request.user.has_perm('sentry.add_project'),
+        })
         if 'project_list' not in context:
             context['project_list'] = get_project_list(request.user).values()
 
