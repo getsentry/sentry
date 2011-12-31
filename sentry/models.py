@@ -390,7 +390,7 @@ class MessageFilterValue(models.Model):
 
 class MessageCountByMinute(Model):
     """
-    Stores the total number of messages seen by a group at 5 minute intervals
+    Stores the total number of messages seen by a group at N minute intervals.
 
     e.g. if it happened at 08:34:55 the time would be normalized to 08:30:00
     """
