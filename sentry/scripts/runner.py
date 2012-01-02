@@ -23,7 +23,8 @@ ALL_COMMANDS = ('start', 'stop', 'restart', 'cleanup', 'upgrade', 'manage', 'ini
 
 KEY_LENGTH = 40
 
-DEFAULT_CONFIG_PATH = os.path.expanduser(os.path.join('~', '.sentry', 'sentry.conf.py'))
+DEFAULT_CONFIG_PATH = os.environ.get('SENTRY_CONFIG',
+  os.path.expanduser(os.path.join('~', '.sentry', 'sentry.conf.py')))
 
 CONFIG_TEMPLATE = """
 import os.path
