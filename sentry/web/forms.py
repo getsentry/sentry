@@ -1,3 +1,10 @@
+"""
+sentry.web.forms
+~~~~~~~~~~~~~~~~
+
+:copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
 from django import forms
 from django.contrib.auth.models import User
 from django.utils.encoding import force_unicode
