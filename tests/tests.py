@@ -620,5 +620,7 @@ class SentryProcessorsTest(TestCase):
     def test_processors_called(self):
         self.create_event()
         self.create_event()
-        from . import processor
-        self.assertEqual(processor.CALLED, 2)
+        import sentry.processors
+        processors = sentry.processors.PROCESSORS_CACHE
+        self.assertEqual(len(processors), 1)
+        self.assertEqual(processors[0].called, 2)

@@ -1,10 +1,11 @@
 
 from sentry.processors import BaseProcessor
 
-CALLED = 0
-
 
 class TestProcessor(BaseProcessor):
+
+    def __init__(self, *args, **kwargs):
+        self.called = 0
+
     def post_processing(self, event):
-        global CALLED
-        CALLED += 1
+        self.called += 1
