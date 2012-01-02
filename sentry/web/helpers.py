@@ -11,7 +11,7 @@ import logging
 from django.conf import settings as dj_settings
 from django.core.urlresolvers import reverse, resolve
 from django.http import HttpResponse
-from django.template import loader
+from django.template import loader, RequestContext, Context
 
 from sentry.conf import settings
 from sentry.models import ProjectMember, Project, MEMBER_USER
@@ -89,7 +89,11 @@ def render_to_string(template, context=None, request=None):
         if 'project_list' not in context:
             context['project_list'] = get_project_list(request.user).values()
 
-    return loader.render_to_string(template, context)
+        context_cls = RequestContext
+    else:
+        context_cls = Context
+
+    return loader.render_to_string(template, context_cls(context))
 
 
 def render_to_response(template, context=None, request=None, status=200):
