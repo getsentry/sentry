@@ -63,16 +63,16 @@ The Built-in Server
 
 Sentry provides a built-in webserver (powered by eventlet) to get you off the ground quickly.
 
-Sentry provides the start, stop, and restart commands available via the command line interface to manage the server process::
+The first thing you're going to need to do is initialize your configuration (likely because you'll want to switch
+off of sqlite, which is the default database). To do this, run ``sentry init``. You can specify an alternative configuration
+path as the argument to init, otherwise it will use the default of ``~/.sentry/sentry.conf.py``.
+
+The command line runner ``sentry`` also provides control commands for all system processes. For example, to
+run the webserver you simply use the ``start`` command::
 
 	# Sentry's server runs on port 9000 by default. Make sure your ``SENTRY_SERVERS`` settings reflects
 	# the correct host and port!
 	sentry start --config=/etc/sentry.conf.py
-
-.. note::
-
-   Calling ``sentry start`` will also automatically launch all required services, as well as
-   run ``upgrade`` command, which handles data and schema migrations.
 
 The configuration for the server is based on ``sentry.conf.server``, which contains a basic Django project configuration, as well
 as the default Sentry configuration values. It will use SQLite for the database.::
@@ -95,11 +95,8 @@ as the default Sentry configuration values. It will use SQLite for the database.
     SENTRY_WEB_PORT = 9000
     SENTRY_KEY = '0123456789abcde'
 
-By default, Sentry will look for ``~/.sentry/sentry.conf.py`` and load it if it exists, and ``--config`` is not passed.
-
-.. note::
-
-   The default database is SQLite, which generally does not perform very well.
+By default, Sentry will look for ``~/.sentry/sentry.conf.py`` and load it if it exists, and ``--config`` is not passed. You
+may also set the ``SENTRY_CONFIG`` environment variable to override the default value of --config.
 
 Configuring a Proxy
 ~~~~~~~~~~~~~~~~~~~
