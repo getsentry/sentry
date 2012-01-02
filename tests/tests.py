@@ -11,6 +11,7 @@ from django.contrib.auth.models import User
 from django.core import mail
 from django.core.urlresolvers import reverse
 
+from sentry import processors
 from sentry.conf import settings
 from sentry.exceptions import InvalidInterface, InvalidData
 from sentry.interfaces import Interface
@@ -593,6 +594,7 @@ class SentryManagerTest(TestCase):
         self.assertEquals(frame['filename'], 'foo.py')
         self.assertEquals(frame['function'], 'hello_world')
 
+<<<<<<< HEAD
 class SentryUDPTest(TestCase):
     def setUp(self):
         self.address = (('0.0.0.0', 0))
@@ -604,3 +606,37 @@ class SentryUDPTest(TestCase):
         ts, message, sig = self._makeMessage(data)
         packet = get_auth_header(sig, ts, 'udpTest') + '\n\n' + message
         self.assertEquals(None, self.server.handle(packet, self.address))
+=======
+
+class SentryProcessorsTest(TestCase):
+
+    def setUp(self):
+        processors.PROCESSORS_CACHE = None
+        django_settings.SENTRY_PROCESSORS = (
+            'tests.processor.TestProcessor',
+        )
+        from . import processor
+        processor.CALLED = 0
+
+    def tearDown(self):
+        django_settings.SENTRY_PROCESSORS = ()
+        processors.PROCESSORS_CACHE = None
+
+    def create_event(self):
+        kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
+        resp = self._postWithSignature(kwargs)
+        self.assertEquals(resp.status_code, 200)
+
+    def test_processors_cache(self):
+        self.assertEqual(processors.PROCESSORS_CACHE, None)
+        self.create_event()
+        self.assertEqual(len(processors.PROCESSORS_CACHE), 1)
+
+    def test_processors_called(self):
+        self.create_event()
+        self.create_event()
+        import sentry.processors
+        processors = sentry.processors.PROCESSORS_CACHE
+        self.assertEqual(len(processors), 1)
+        self.assertEqual(processors[0].called, 2)
+>>>>>>> 8fb6916d90e6cb57eaa617b39381353aa63719aa

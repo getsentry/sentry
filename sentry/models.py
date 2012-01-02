@@ -22,6 +22,7 @@ from django.db.models import Sum
 from django.db.models.signals import post_syncdb
 from django.utils.datastructures import SortedDict
 from django.utils.encoding import smart_unicode
+from django.db.models.signals import post_save
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
@@ -30,6 +31,7 @@ from sentry.utils import cached_property, \
 from sentry.utils.models import Model, GzippedDictField
 from sentry.utils.manager import GroupManager, ProjectManager
 from sentry.templatetags.sentry_helpers import truncatechars
+import sentry.processors
 
 __all__ = ('Event', 'Group')
 
@@ -351,6 +353,12 @@ class Event(MessageBase):
             return
         module = self.data['__sentry__'].get('module', 'ver')
         return module, self.data['__sentry__']['version']
+
+post_save.connect(
+    sentry.processors.post_save_processors,
+    sender=Event,
+    dispatch_uid="processors_post_save"
+)
 
 
 class FilterValue(models.Model):
