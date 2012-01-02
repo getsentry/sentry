@@ -19,10 +19,12 @@ from sentry.models import ProjectMember, Project, MEMBER_USER
 logger = logging.getLogger('sentry.errors')
 
 
-def get_project_list(user=None, access=MEMBER_USER, hidden=False):
+def get_project_list(user=None, access=None, hidden=False):
     """
     Returns a set of all projects a user has some level of access to.
     """
+    if access is None:
+        access = MEMBER_USER
 
     # First we fetch public projects
     qs = Project.objects.filter(public=True)
