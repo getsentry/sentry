@@ -19,22 +19,13 @@ class BaseProcessor(object):
         """
         return
 
-#
-# Connect to Events post_save
-#
-
-# from django.db.models.signals import pre_save
-# from django.dispatch import receiver
+PROCESSORS_CACHE = None
 
 
-PROCESSORS_CACHE = []
-
-
-#@receiver(pre_save, sender=Events)
 def post_save_processors(sender, **kwargs):
     global PROCESSORS_CACHE
 
-    if PROCESSORS_CACHE:
+    if PROCESSORS_CACHE is not None:
         for processor in PROCESSORS_CACHE:
             processor.post_processing(sender)
 
@@ -49,7 +40,8 @@ def post_save_processors(sender, **kwargs):
             module_name, class_name = processor_.rsplit('.', 1)
             try:
                 module = __import__(module_name, {}, {}, class_name)
-                processor_ = getattr(module, class_name)
+                processor_class = getattr(module, class_name)
+                processor_ = processor_class()
             except Exception:
                 logger = logging.getLogger('sentry.errors')
                 logger.exception('Unable to import %s' % (processor_,))

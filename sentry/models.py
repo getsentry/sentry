@@ -363,7 +363,11 @@ class Event(MessageBase):
         module = self.data['__sentry__'].get('module', 'ver')
         return module, self.data['__sentry__']['version']
 
-post_save.connect(sentry.processors.post_save_processors)
+post_save.connect(
+    sentry.processors.post_save_processors,
+    sender=Event,
+    dispatch_uid="processors_post_save"
+)
 
 
 class FilterValue(models.Model):

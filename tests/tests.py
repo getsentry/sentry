@@ -595,14 +595,15 @@ class SentryManagerTest(TestCase):
 
 class SentryProcessorsTest(TestCase):
 
-    def setup(self):
-        settings.SENTRY_PROCESSORS = (
-            'tests.processor',
+    def setUp(self):
+        processors.PROCESSORS_CACHE = None
+        django_settings.SENTRY_PROCESSORS = (
+            'tests.processor.TestProcessor',
         )
 
     def tearDown(self):
-        settings.SENTRY_PROCESSORS = ()
-        processors.PROCESSORS_CACHE = []
+        django_settings.SENTRY_PROCESSORS = ()
+        processors.PROCESSORS_CACHE = None
 
     def create_event(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
@@ -610,8 +611,9 @@ class SentryProcessorsTest(TestCase):
         self.assertEquals(resp.status_code, 200)
 
     def test_processors_cache(self):
-        self.assertEqual(processors.PROCESSORS_CACHE, [])
+        self.assertEqual(processors.PROCESSORS_CACHE, None)
         self.create_event()
+        print '[', django_settings.SENTRY_PROCESSORS, ']', processors.PROCESSORS_CACHE
         self.assertEqual(len(processors.PROCESSORS_CACHE), 1)
 
     def test_processors_called(self):
