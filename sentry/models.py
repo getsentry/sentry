@@ -12,7 +12,6 @@ import logging
 import math
 import time
 import uuid
-from bitfield import BitField
 from datetime import datetime
 from indexer.models import BaseIndex
 
