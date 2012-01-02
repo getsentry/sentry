@@ -150,8 +150,7 @@ def main():
     environment['config'] = config_path
     environment['start_date'] = datetime.datetime.now()
 
-    if args[1] != 'init':
-        settings_from_file(config_path)
+    settings_from_file(config_path)
 
     # set debug
     if getattr(options, 'debug', False):
