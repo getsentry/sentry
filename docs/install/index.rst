@@ -58,17 +58,27 @@ need to ensure quality of service within your project, this is for you.
 
 .. note:: Currently the standalone Sentry server does not run on Windows.
 
+Initializing the Configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The first thing you're going to need to do is initialize your configuration (likely because you'll want to switch
+off of sqlite, which is the default database).
+
+To do this, you'll use the "init" command. You can specify an alternative configuration
+path as the argument to init, otherwise it will use the default of ``~/.sentry/sentry.conf.py``.
+
+::
+
+    # the path is optional
+    sentry init /etc/sentry.conf.py
+
 The Built-in Server
 ~~~~~~~~~~~~~~~~~~~
 
 Sentry provides a built-in webserver (powered by eventlet) to get you off the ground quickly.
 
-The first thing you're going to need to do is initialize your configuration (likely because you'll want to switch
-off of sqlite, which is the default database). To do this, run ``sentry init``. You can specify an alternative configuration
-path as the argument to init, otherwise it will use the default of ``~/.sentry/sentry.conf.py``.
-
-The command line runner ``sentry`` also provides control commands for all system processes. For example, to
-run the webserver you simply use the ``start`` command::
+The CLI runner has three commands for controlling processes: start, stop, and restart. For example,
+to start the HTTP server, you can simply use "sentry start"::
 
 	# Sentry's server runs on port 9000 by default. Make sure your ``SENTRY_SERVERS`` settings reflects
 	# the correct host and port!
