@@ -594,22 +594,23 @@ class SentryManagerTest(TestCase):
         self.assertEquals(frame['filename'], 'foo.py')
         self.assertEquals(frame['function'], 'hello_world')
 
-<<<<<<< HEAD
+
 class SentryUDPTest(TestCase):
     def setUp(self):
         self.address = (('0.0.0.0', 0))
         self.server = SentryUDPServer(*self.address)
+
     def test_failure(self):
         self.assertNotEquals(None, self.server.handle('deadbeef', self.address))
+
     def test_success(self):
         data = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
         ts, message, sig = self._makeMessage(data)
         packet = get_auth_header(sig, ts, 'udpTest') + '\n\n' + message
         self.assertEquals(None, self.server.handle(packet, self.address))
-=======
+
 
 class SentryProcessorsTest(TestCase):
-
     def setUp(self):
         processors.PROCESSORS_CACHE = None
         django_settings.SENTRY_PROCESSORS = (
@@ -639,4 +640,3 @@ class SentryProcessorsTest(TestCase):
         processors = sentry.processors.PROCESSORS_CACHE
         self.assertEqual(len(processors), 1)
         self.assertEqual(processors[0].called, 2)
->>>>>>> 8fb6916d90e6cb57eaa617b39381353aa63719aa
