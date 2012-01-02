@@ -89,11 +89,12 @@ def render_to_string(template, context=None, request=None):
         if 'project_list' not in context:
             context['project_list'] = get_project_list(request.user).values()
 
-        context_cls = RequestContext
+    if request:
+        context = RequestContext(request, context)
     else:
-        context_cls = Context
+        context = Context(context)
 
-    return loader.render_to_string(template, context_cls(context))
+    return loader.render_to_string(template, context)
 
 
 def render_to_response(template, context=None, request=None, status=200):
