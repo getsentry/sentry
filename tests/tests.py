@@ -600,6 +600,8 @@ class SentryProcessorsTest(TestCase):
         django_settings.SENTRY_PROCESSORS = (
             'tests.processor.TestProcessor',
         )
+        from . import processor
+        processor.CALLED = 0
 
     def tearDown(self):
         django_settings.SENTRY_PROCESSORS = ()
@@ -613,9 +615,10 @@ class SentryProcessorsTest(TestCase):
     def test_processors_cache(self):
         self.assertEqual(processors.PROCESSORS_CACHE, None)
         self.create_event()
-        print '[', django_settings.SENTRY_PROCESSORS, ']', processors.PROCESSORS_CACHE
         self.assertEqual(len(processors.PROCESSORS_CACHE), 1)
 
     def test_processors_called(self):
         self.create_event()
-        self.assertTrue(False)
+        self.create_event()
+        from . import processor
+        self.assertEqual(processor.CALLED, 2)

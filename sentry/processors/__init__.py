@@ -25,10 +25,6 @@ PROCESSORS_CACHE = None
 def post_save_processors(sender, **kwargs):
     global PROCESSORS_CACHE
 
-    if PROCESSORS_CACHE is not None:
-        for processor in PROCESSORS_CACHE:
-            processor.post_processing(sender)
-
     from django.conf import settings
 
     if not hasattr(settings, 'SENTRY_PROCESSORS'):
@@ -49,6 +45,5 @@ def post_save_processors(sender, **kwargs):
             processors.append(processor_)
         PROCESSORS_CACHE = processors
 
-    for processor in settings.SENTRY_PROCESSORS:
-        print 'Calling processor: %s' % processor
-        print '  Sender:', sender
+    for processor in PROCESSORS_CACHE:
+        processor.post_processing(sender)

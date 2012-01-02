@@ -1,6 +1,10 @@
 
 from sentry.processors import BaseProcessor
 
+CALLED = 0
+
 
 class TestProcessor(BaseProcessor):
-    pass
+    def post_processing(self, event):
+        global CALLED
+        CALLED += 1
