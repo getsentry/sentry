@@ -91,3 +91,7 @@ UDP_PORT = 9001
 QUEUE = {
     'transport': 'djkombu.transport.DatabaseTransport',
 }
+
+# List of event handlers
+PROCESSORS = (
+)

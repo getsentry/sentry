@@ -612,15 +612,16 @@ class SentryUDPTest(TestCase):
 
 class SentryProcessorsTest(TestCase):
     def setUp(self):
+        self.orig_processors = settings.PROCESSORS
         processors.PROCESSORS_CACHE = None
-        django_settings.SENTRY_PROCESSORS = (
+        settings.PROCESSORS = (
             'tests.processor.TestProcessor',
         )
         from . import processor
         processor.CALLED = 0
 
     def tearDown(self):
-        django_settings.SENTRY_PROCESSORS = ()
+        settings.PROCESSORS = self.orig_processors
         processors.PROCESSORS_CACHE = None
 
     def create_event(self):
@@ -636,7 +637,6 @@ class SentryProcessorsTest(TestCase):
     def test_processors_called(self):
         self.create_event()
         self.create_event()
-        import sentry.processors
-        processors = sentry.processors.PROCESSORS_CACHE
-        self.assertEqual(len(processors), 1)
-        self.assertEqual(processors[0].called, 2)
+        proc_list = processors.PROCESSORS_CACHE
+        self.assertEqual(len(proc_list), 1)
+        self.assertEqual(proc_list[0].called, 2)
