@@ -19,11 +19,14 @@ from optparse import OptionParser
 from sentry import VERSION, environment, commands
 
 
-ALL_COMMANDS = ('start', 'stop', 'restart', 'cleanup', 'upgrade', 'manage')
+ALL_COMMANDS = ('start', 'stop', 'restart', 'cleanup', 'upgrade', 'manage', 'init')
 
 KEY_LENGTH = 40
 
-SETTINGS_TEMPLATE = """
+DEFAULT_CONFIG_PATH = os.environ.get('SENTRY_CONFIG',
+  os.path.expanduser(os.path.join('~', '.sentry', 'sentry.conf.py')))
+
+CONFIG_TEMPLATE = """
 import os.path
 
 from sentry.conf.server import *
@@ -51,9 +54,6 @@ SENTRY_PUBLIC = True
 
 SENTRY_WEB_HOST = '0.0.0.0'
 SENTRY_WEB_PORT = 9000
-
-SENTRY_WEB_LOG_FILE = os.path.join(ROOT, 'sentry.log')
-SENTRY_WEB_PID_FILE = os.path.join(ROOT, 'sentry.pid')
 """
 
 
@@ -68,7 +68,7 @@ def copy_default_settings(filepath):
     with open(filepath, 'w') as fp:
         key = base64.b64encode(os.urandom(KEY_LENGTH))
 
-        output = SETTINGS_TEMPLATE % dict(default_key=key)
+        output = CONFIG_TEMPLATE % dict(default_key=key)
         fp.write(output)
 
 
@@ -109,32 +109,49 @@ def main():
             print "  ", cmd
         sys.exit(1)
 
-    command = getattr(commands, args[1])
-
     parser = OptionParser(version="%%prog %s" % VERSION)
-    parser.add_option('--config', metavar='CONFIG')
-    for option in getattr(command, 'options', []):
-        parser.add_option(option)
+    if args[1] == 'init':
+        (options, args) = parser.parse_args()
 
-    (options, args) = parser.parse_args()
+        config_path = ' '.join(args[1:]) or DEFAULT_CONFIG_PATH
 
-    # parse our options and load them before anything else
-    if options.config:
-        # assumed to be a file
-        config_path = options.config
-    else:
-        config_path = os.path.expanduser(os.path.join('~', '.sentry', 'sentry.conf.py'))
+        if os.path.exists(config_path):
+            resp = None
+            while resp not in ('Y', 'n'):
+                resp = raw_input('File already exists at %r, overwrite? [nY] ' % config_path)
+                if resp == 'n':
+                    print "Aborted!"
+                    return
 
-    if not os.path.exists(config_path):
         try:
             copy_default_settings(config_path)
         except OSError, e:
             raise e.__class__, 'Unable to write default settings file to %r' % config_path
 
+        print "Configuration file created at %r" % config_path
+
+        return
+
+    parser.add_option('--config', metavar='CONFIG', default=DEFAULT_CONFIG_PATH)
+
+    command = getattr(commands, args[1])
+
+    for option in getattr(command, 'options', []):
+        parser.add_option(option)
+
+    (options, args) = parser.parse_args()
+
+    config_path = options.config
+
+    # We hardcode skipping this check via init
+    if not os.path.exists(config_path):
+        raise ValueError("Configuration file does not exist. Use 'init' to initialize the file.")
+
     environment['config'] = config_path
     environment['start_date'] = datetime.datetime.now()
 
-    settings_from_file(config_path)
+    if args[1] != 'init':
+        settings_from_file(config_path)
 
     # set debug
     if getattr(options, 'debug', False):

@@ -42,19 +42,11 @@
             <div class="page-header">
                 <h2>{% trans "Access" %}</h2>
             </div>
-            <div class="clearfix{% if form.is_superuser.errors %} error{% endif %}">
-                <div class="input">
-                    <label>{{ form.is_superuser }} This member is a <strong>superuser</strong></label>
-                </div>
-                {% if form.is_superuser.help_text %}
-                    <span class="help-block">{{ form.is_superuser.help_text }}</span>
-                {% endif %}
-            </div>
-            <div class="clearfix{% if form.permissions.errors %} error{% endif %}">
-                {{ form.permissions.label_tag }}
-                <div class="input">{{ form.permissions }}</div>
-                {% if form.permissions.help_text %}
-                    <span class="help-block">{{ form.permissions.help_text }}</span>
+            <div class="clearfix{% if form.type.errors %} error{% endif %}">
+                {{ form.type.label_tag }}
+                <div class="input">{{ form.type }}</div>
+                {% if form.type.help_text %}
+                    <span class="help-block">{{ form.type.help_text }}</span>
                 {% endif %}
             </div>
         </fieldset>

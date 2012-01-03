@@ -70,24 +70,17 @@
             </tr>
         </thead>
         <tbody>
-            {% for member, user, permissions in member_list %}
+            {% for member, user in member_list %}
                 <tr>
                     <td><a href="{% url sentry-edit-project-member project.pk member.pk %}">{{ user.username }}</a></td>
                     <td>
-                        {% if member.is_superuser %}
-                            <strong>superuser</strong>
-                        {% else %}
-                            {% for perm in permissions %}
-                                {{ perm }}
-                                {% if not loop.last %}, {% endif %}
-                            {% endfor %}
-                        {% endif %}
+                        {{ member.get_type_display }}
                     </td>
-                    <td>
+                    <td style="text-align:center;">
                         {% if user == project.owner %}
                             <em>owner</em>
                         {% else %}
-                            <a href="" class="btn small danger">Delete</a>
+                            <a href="{% url sentry-remove-project-member project.pk member.pk %}">Revoke</a>
                         {% endif %}
                     </td>
                 </tr>

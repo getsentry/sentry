@@ -8,17 +8,25 @@
 
 {% block content %}
     <div class="span16">
-        <div class="alert-message info">Select a project to view the stream of events...</div>
-        <ul class="sparkline-grid">
-            {% for project in project_list %}
-                <li>
-                    <a href="{% url sentry project.pk %}">
-                        <h3>{{ project.name }}</h3>
-                        <div class="sparkline" data-project="{{ project.pk }}" data-api-url="{% url sentry-ajax project.pk %}"></div>
-                    </a>
-                </li>
-            {% endfor %}
-        </ul>
+        {% if project_list %}
+            <div class="alert-message info">Select a project to view the stream of events...</div>
+            <ul class="sparkline-grid">
+                {% for project in project_list %}
+                    <li>
+                        <a href="{% url sentry project.pk %}">
+                            <h3>{{ project.name }}</h3>
+                            <div class="sparkline" data-project="{{ project.pk }}" data-api-url="{% url sentry-ajax project.pk %}"></div>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            {% if can_create_projects %}
+                <div class="alert-message info">You do not have access to any projects. Would you like to <a href="{% url sentry-new-project %}">create a new project</a>?</div>
+            {% else %}
+                <div class="alert-message notice">You do not have access to any projects. Ask an administrator to add you as a member.</div>
+            {% endif %}
+        {% endif %}
     </div>
 {% endblock %}
 

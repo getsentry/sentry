@@ -14,19 +14,28 @@ from sentry.utils.auth import get_signature, parse_auth_header
 
 logger = logging.getLogger(__name__)
 
+
 class APIError(Exception):
     http_status = 400
     msg = 'Invalid request'
+
     def __init__(self, msg=None):
         if msg:
             self.msg = msg
+
+
 class APIUnauthorized(APIError):
     http_status = 401
     msg = 'Unauthorized'
+
+
 class APIForbidden(APIError):
     http_status = 403
+
+
 class APITimestampExpired(APIError):
     http_status = 410
+
 
 def extract_auth_vars(request):
     if request.META.get('HTTP_X_SENTRY_AUTH', '').startswith('Sentry'):
@@ -38,6 +47,7 @@ def extract_auth_vars(request):
     else:
         return None
 
+
 def project_from_auth_vars(auth_vars, data):
     signature = auth_vars.get('sentry_signature')
     timestamp = auth_vars.get('sentry_timestamp')
@@ -48,8 +58,6 @@ def project_from_auth_vars(auth_vars, data):
     if api_key:
         try:
             pm = ProjectMember.objects.get(api_key=api_key)
-            if not pm.has_perm('add_message'):
-                raise ProjectMember.DoesNotExist
         except ProjectMember.DoesNotExist:
             raise APIForbidden('Invalid signature')
         project = pm.project
@@ -61,6 +69,7 @@ def project_from_auth_vars(auth_vars, data):
     validate_hmac(data, signature, timestamp, secret_key)
 
     return project
+
 
 def validate_hmac(message, signature, timestamp, secret_key):
     try:
@@ -75,27 +84,24 @@ def validate_hmac(message, signature, timestamp, secret_key):
     if sig_hmac != signature:
         raise APIForbidden('Invalid signature')
 
+
 def project_from_api_key_and_id(api_key, project):
     try:
         pm = ProjectMember.objects.get(api_key=api_key, project=project)
     except ProjectMember.DoesNotExist:
         raise APIUnauthorized()
 
-    if not pm.has_perm('add_message'):
-        raise ProjectMember.DoesNotExist
-
     return pm.project
+
 
 def project_from_id(request):
     try:
         pm = ProjectMember.objects.get(user=request.user, project=request.GET['project_id'])
-        # TODO: do we need this check?
-        # if not pm.has_perm('add_message'):
-        #     raise ProjectMember.DoesNotExist
     except ProjectMember.DoesNotExist:
         raise APIUnauthorized()
 
     return pm.project
+
 
 def decode_and_decompress_data(encoded_data):
     try:
@@ -108,6 +114,7 @@ def decode_and_decompress_data(encoded_data):
         # bug somewhere in the client's code.
         logger.exception('Bad data received')
         raise APIForbidden('Bad data decoding request (%s, %s)' % (e.__class__.__name__, e))
+
 
 def safely_load_json_string(json_string):
     try:
@@ -129,6 +136,7 @@ def ensure_valid_project_id(desired_project, data):
         raise APIForbidden('Invalid credentials')
     elif not desired_project:
         data['project'] = 1
+
 
 def insert_data_to_database(data):
     def process_data_timestamp(data):

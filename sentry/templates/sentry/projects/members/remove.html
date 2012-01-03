@@ -14,7 +14,7 @@
     </ul>
     <form class="form-stacked" action="" method="post">
         {% csrf_token %}
-        <div class="alert-message block-message error">{% trans "Are you sure you wish to remove this user? <strong>This change is permanent and will revoke their API keys immediately.</strong>" %}</div>
+        <div class="alert-message block-message error">{% trans "Are you sure you wish to revoke this user's access? <strong>This change is permanent and will revoke their API keys immediately.</strong>" %}</div>
         <div class="actions">
             <button type="submit" class="btn danger">{% trans "Confirm" %}</button> <a href="{% url sentry-manage-project project.pk %}" class="btn">{% trans "Cancel" %}</a>
         </div>

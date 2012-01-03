@@ -10,6 +10,16 @@ for help on a specific command.
 Builtin Commands
 ----------------
 
+.. data:: init [config]
+
+    Initializes the configuration file for Sentry.
+
+    Defaults to ~/.sentry/sentry.conf.py
+
+    ::
+
+        sentry init /etc/sentry.conf.py
+
 .. data:: start [services]
 
     Starts all background services.

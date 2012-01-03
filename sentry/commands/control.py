@@ -6,7 +6,7 @@ sentry.commands.control
 :license: BSD, see LICENSE for more details.
 """
 from sentry.commands.utils import options, opt, consume_args
-from sentry.services import http, worker, daemon
+from sentry.services import http, worker, daemon, udp
 import os
 import os.path
 
@@ -14,6 +14,7 @@ import os.path
 services = {
     'http': http.SentryHTTPServer,
     'worker': worker.SentryWorker,
+    'udp': udp.SentryUDPServer,
 }
 
 

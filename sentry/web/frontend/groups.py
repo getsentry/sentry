@@ -23,7 +23,7 @@ from sentry.conf import settings
 from sentry.models import Group, Event, Project
 from sentry.plugins import GroupActionProvider
 from sentry.utils import get_filters, json
-from sentry.web.decorators import can_manage, login_required
+from sentry.web.decorators import has_access, login_required
 from sentry.web.helpers import render_to_response, \
     get_project_list
 
@@ -33,7 +33,7 @@ event_re = re.compile(r'^(?P<event_id>[a-z0-9]{32})\$(?P<checksum>[a-z0-9]{32})$
 
 @login_required
 @csrf_exempt
-@can_manage
+@has_access
 def ajax_handler(request, project):
     # TODO: remove this awful idea of an API
     op = request.REQUEST.get('op')
@@ -102,7 +102,7 @@ def ajax_handler(request, project):
         except Group.DoesNotExist:
             return HttpResponseForbidden()
 
-        if group.project and group.project.pk not in get_project_list(request.user, 'change_message_status'):
+        if group.project and group.project.pk not in get_project_list(request.user):
             return HttpResponseForbidden()
 
         Group.objects.filter(pk=group.pk).update(status=1)
@@ -125,7 +125,7 @@ def ajax_handler(request, project):
         return response
 
     def clear(request, project):
-        projects = get_project_list(request.user, 'change_message_status')
+        projects = get_project_list(request.user)
 
         event_list = Group.objects.filter(Q(project__in=projects.keys()) | Q(project__isnull=True))
 
@@ -149,7 +149,7 @@ def ajax_handler(request, project):
             except Group.DoesNotExist:
                 return HttpResponseForbidden()
 
-            if group.project and group.project.pk not in get_project_list(request.user, 'read_message'):
+            if group.project and group.project.pk not in get_project_list(request.user):
                 return HttpResponseForbidden()
 
             data = Group.objects.get_chart_data(group, max_days=days)
@@ -167,7 +167,7 @@ def ajax_handler(request, project):
 
 
 @login_required
-@can_manage('read_message')
+@has_access
 def search(request, project):
     query = request.GET.get('q')
 
@@ -219,7 +219,7 @@ def search(request, project):
 
 
 @login_required
-@can_manage('read_message')
+@has_access
 def group_list(request, project):
     filters = []
     for filter_ in get_filters(Group):
@@ -285,7 +285,7 @@ def group_list(request, project):
 
 
 @login_required
-@can_manage('read_message')
+@has_access
 def group_json(request, project, group_id):
     group = get_object_or_404(Group, pk=group_id)
 
@@ -314,7 +314,7 @@ def group_json(request, project, group_id):
 
 
 @login_required
-@can_manage('read_message')
+@has_access
 def group(request, project, group_id):
     group = get_object_or_404(Group, pk=group_id)
 
@@ -339,7 +339,7 @@ def group(request, project, group_id):
 
 
 @login_required
-@can_manage('read_message')
+@has_access
 def group_event_list(request, project, group_id):
     group = get_object_or_404(Group, pk=group_id)
 
@@ -357,7 +357,7 @@ def group_event_list(request, project, group_id):
 
 
 @login_required
-@can_manage('read_message')
+@has_access
 def group_event_details(request, project, group_id, event_id):
     group = get_object_or_404(Group, pk=group_id)
 
@@ -377,7 +377,7 @@ def group_event_details(request, project, group_id, event_id):
 
 
 @login_required
-@can_manage('read_message')
+@has_access
 def group_plugin_action(request, project, group_id, slug):
     group = get_object_or_404(Group, pk=group_id)
 

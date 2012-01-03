@@ -12,6 +12,7 @@
         <ul class="tabs" data-tabs="tabs">
             <li class="active"><a href="#main">Environment</a></li>
             <li><a href="#packages">Packages</a></li>
+            <li><a href="#workers">Workers</a></li>
         </ul>
         <div class="tab-content">
             <div id="main" class="active">
@@ -97,6 +98,47 @@
                     </tbody>
                 </table>
             </div>
+            {% if worker_status %}
+            <div id="workers">
+                <div class="page-header">
+                    <h2>Background Processes</h2>
+                </div>
+                {% if background_procs %}
+                    <table class="vars bordered-table zebra-striped">
+                        <colgroup>
+                            <col style="width:220px">
+                        </colgroup>
+                        <tbody>
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>No information available.</p>
+                {% endif %}
+                <div class="page-header">
+                    <h2>Pending Tasks</h2>
+                </div>
+                <table class="vars bordered-table zebra-striped">
+                    <colgroup>
+                        <col>
+                        <col style="width:150px">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th>Queue</th>
+                            <th>Pending Tasks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for queue, num_pending in pending_tasks %}
+                            <tr>
+                                <td>{{ queue }}</td>
+                                <td>{{ num_pending }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
         </div>
     </div>
 {% endblock %}

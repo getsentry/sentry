@@ -18,27 +18,23 @@
             <p class="error">{% trans "Your username and password didn't match. Please try again." %}</p>
         {% endif %}
 
-        <form method="post" action="">
+        <form class="form-stacked" action="" method="post">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ next }}" />
-
-            <div class="clearfix">
-                {{ form.username.label_tag }}
-                <div class="input">
-                    {{ form.username }}
-                </div>
-            </div>
-
-            <div class="clearfix">
-                {{ form.password.label_tag }}
-                <div class="input">
-                    {{ form.password }}
-                </div>
-            </div>
-
-            <div class="actions">
-                <button type="submit" class="btn primary">{% trans "Login" %}</button>
-            </div>
+            <fieldset>
+                {% for field in form %}
+                    <div class="clearfix{% if field.errors %} error{% endif %}">
+                        {{ field.label_tag }}
+                        <div class="input">{{ field }}</div>
+                        {% if field.help_text %}
+                            <span class="help-block">{{ field.help_text }}</span>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </fieldset>
+            <p class="actions">
+                <button type="submit" class="btn primary">{% trans "Register" %}</button>
+            </p>
         </form>
     </div>
 {% endblock %}

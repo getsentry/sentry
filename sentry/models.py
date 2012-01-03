@@ -12,7 +12,6 @@ import logging
 import math
 import time
 import uuid
-from bitfield import BitField
 from datetime import datetime
 from indexer.models import BaseIndex
 
@@ -23,6 +22,7 @@ from django.db.models import Sum
 from django.db.models.signals import post_syncdb
 from django.utils.datastructures import SortedDict
 from django.utils.encoding import smart_unicode
+from django.db.models.signals import post_save
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
@@ -31,12 +31,15 @@ from sentry.utils import cached_property, \
 from sentry.utils.models import Model, GzippedDictField
 from sentry.utils.manager import GroupManager, ProjectManager
 from sentry.templatetags.sentry_helpers import truncatechars
+import sentry.processors
 
 __all__ = ('Event', 'Group')
 
+STATUS_UNRESOLVED = 0
+STATUS_RESOLVED = 1
 STATUS_LEVELS = (
-    (0, _('unresolved')),
-    (1, _('resolved')),
+    (STATUS_UNRESOLVED, _('unresolved')),
+    (STATUS_RESOLVED, _('resolved')),
 )
 
 # These are predefined builtin's
@@ -46,18 +49,14 @@ FILTER_KEYS = (
     ('site', _('site')),
 )
 
-PERMISSIONS = (
-    ('read_message', 'View events'),
-    ('change_message_status', 'Change event status'),
-    ('add_member', 'Add project members'),
-    ('change_member', 'Change project members'),
-    ('delete_member', 'Delete project members'),
-    ('add_message', 'Store new events'),
-    ('change_project', 'Change project details'),
-    ('remove_project', 'Delete or merge project'),
-    ('change_project_options', 'Change project options'),
+MEMBER_OWNER = 0
+MEMBER_USER = 50
+MEMBER_SYSTEM = 100
+MEMBER_TYPES = (
+    (0, _('owner')),
+    (50, _('user')),
+    (100, _('system agent')),
 )
-PERMISSIONS_DICT = dict(PERMISSIONS)
 
 PROJECT_OPTIONS = (
     # ('event_cutoff', 'Time (in seconds) before an event should be trimmed'),
@@ -104,10 +103,9 @@ class ProjectOptions(Model):
 class ProjectMember(Model):
     project = models.ForeignKey(Project, related_name="member_set")
     user = models.ForeignKey(User, related_name="project_set")
-    is_superuser = models.BooleanField(default=False)
     public_key = models.CharField(max_length=32, unique=True, null=True)
     secret_key = models.CharField(max_length=32, unique=True, null=True)
-    permissions = BitField(flags=[p[0] for p in PERMISSIONS])
+    type = models.IntegerField(choices=MEMBER_TYPES, default=MEMBER_OWNER)
     date_added = models.DateTimeField(default=datetime.now)
 
     class Meta:
@@ -119,11 +117,6 @@ class ProjectMember(Model):
         if not self.secret_key:
             self.secret_key = ProjectMember.generate_api_key()
         super(ProjectMember, self).save(*args, **kwargs)
-
-    def has_perm(self, flag):
-        if self.is_superuser:
-            return True
-        return getattr(self.permissions, flag, False)
 
     @classmethod
     def generate_api_key(cls):
@@ -361,6 +354,12 @@ class Event(MessageBase):
         module = self.data['__sentry__'].get('module', 'ver')
         return module, self.data['__sentry__']['version']
 
+post_save.connect(
+    sentry.processors.post_save_processors,
+    sender=Event,
+    dispatch_uid="processors_post_save"
+)
+
 
 class FilterValue(models.Model):
     """
@@ -398,7 +397,7 @@ class MessageFilterValue(models.Model):
 
 class MessageCountByMinute(Model):
     """
-    Stores the total number of messages seen by a group at 5 minute intervals
+    Stores the total number of messages seen by a group at N minute intervals.
 
     e.g. if it happened at 08:34:55 the time would be normalized to 08:30:00
     """
@@ -462,7 +461,7 @@ def create_default_project(created_models, verbosity=2, **kwargs):
             ProjectMember.objects.create(
                 project=project,
                 user=owner,
-                is_superuser=True,
+                type=MEMBER_OWNER,
             )
 
         if verbosity > 0:

@@ -11,18 +11,20 @@ import logging
 from django.conf import settings as dj_settings
 from django.core.urlresolvers import reverse, resolve
 from django.http import HttpResponse
-from django.template import loader
+from django.template import loader, RequestContext, Context
 
 from sentry.conf import settings
-from sentry.models import ProjectMember, Project
+from sentry.models import ProjectMember, Project, MEMBER_USER
 
 logger = logging.getLogger('sentry.errors')
 
 
-def get_project_list(user=None, flag=None, hidden=False):
+def get_project_list(user=None, access=None, hidden=False):
     """
     Returns a set of all projects a user has some level of access to.
     """
+    if access is None:
+        access = MEMBER_USER
 
     # First we fetch public projects
     qs = Project.objects.filter(public=True)
@@ -36,10 +38,8 @@ def get_project_list(user=None, flag=None, hidden=False):
               .select_related('project')
         if not hidden:
             qs = qs.filter(project__status=0)
-        projects.update(dict(
-            (pm.project_id, pm.project)
-            for pm in qs
-            if (not flag or pm.has_perm(flag))))
+        projects.update(dict((pm.project_id, pm.project)
+            for pm in qs if pm.type <= access))
 
     return projects
 
@@ -82,9 +82,17 @@ def render_to_string(template, context=None, request=None):
     })
 
     if request:
-        context['request'] = request
+        context.update({
+            'request': request,
+            'can_create_projects': request.user.has_perm('sentry.add_project'),
+        })
         if 'project_list' not in context:
             context['project_list'] = get_project_list(request.user).values()
+
+    if request:
+        context = RequestContext(request, context)
+    else:
+        context = Context(context)
 
     return loader.render_to_string(template, context)
 

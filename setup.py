@@ -29,7 +29,6 @@ tests_require = [
 
 install_requires = [
     'Django>=1.2,<1.4',
-    'django-bitfield',
     'django-paging>=0.2.4',
     'django-indexer>=0.3.0',
     'django-templatetag-sugar>=0.1.0',

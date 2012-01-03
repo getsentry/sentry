@@ -11,6 +11,7 @@ from django.contrib.auth.models import User
 from django.core import mail
 from django.core.urlresolvers import reverse
 
+from sentry import processors
 from sentry.conf import settings
 from sentry.exceptions import InvalidInterface, InvalidData
 from sentry.interfaces import Interface
@@ -18,6 +19,8 @@ from sentry.models import Event, Group, MessageCountByMinute, \
   MessageFilterValue, Project, ProjectMember
 from sentry.web.helpers import get_login_url
 from sentry.utils import MockDjangoRequest
+from sentry.utils.auth import get_auth_header
+from sentry.services.udp import SentryUDPServer
 
 from tests.testcases import TestCase
 from tests.utils import Settings
@@ -590,3 +593,50 @@ class SentryManagerTest(TestCase):
         frame = stack['frames'][0]
         self.assertEquals(frame['filename'], 'foo.py')
         self.assertEquals(frame['function'], 'hello_world')
+
+
+class SentryUDPTest(TestCase):
+    def setUp(self):
+        self.address = (('0.0.0.0', 0))
+        self.server = SentryUDPServer(*self.address)
+
+    def test_failure(self):
+        self.assertNotEquals(None, self.server.handle('deadbeef', self.address))
+
+    def test_success(self):
+        data = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
+        ts, message, sig = self._makeMessage(data)
+        packet = get_auth_header(sig, ts, 'udpTest') + '\n\n' + message
+        self.assertEquals(None, self.server.handle(packet, self.address))
+
+
+class SentryProcessorsTest(TestCase):
+    def setUp(self):
+        self.orig_processors = settings.PROCESSORS
+        processors.PROCESSORS_CACHE = None
+        settings.PROCESSORS = (
+            'tests.processor.TestProcessor',
+        )
+        from . import processor
+        processor.CALLED = 0
+
+    def tearDown(self):
+        settings.PROCESSORS = self.orig_processors
+        processors.PROCESSORS_CACHE = None
+
+    def create_event(self):
+        kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
+        resp = self._postWithSignature(kwargs)
+        self.assertEquals(resp.status_code, 200)
+
+    def test_processors_cache(self):
+        self.assertEqual(processors.PROCESSORS_CACHE, None)
+        self.create_event()
+        self.assertEqual(len(processors.PROCESSORS_CACHE), 1)
+
+    def test_processors_called(self):
+        self.create_event()
+        self.create_event()
+        proc_list = processors.PROCESSORS_CACHE
+        self.assertEqual(len(proc_list), 1)
+        self.assertEqual(proc_list[0].called, 2)
