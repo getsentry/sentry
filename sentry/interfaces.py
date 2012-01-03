@@ -82,7 +82,7 @@ class Interface(object):
 
 
 class Message(Interface):
-    def __init__(self, message, params):
+    def __init__(self, message, params=()):
         self.message = message
         self.params = params
 
