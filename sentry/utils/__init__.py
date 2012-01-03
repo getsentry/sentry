@@ -18,7 +18,8 @@ from sentry.conf import settings
 
 
 class InstanceManager(object):
-    def __init__(self, class_list):
+    def __init__(self, class_list, instances=True):
+        self.instances = instances
         self.update(class_list)
 
     def update(self, class_list):
@@ -44,42 +45,17 @@ class InstanceManager(object):
             try:
                 module = __import__(module_name, {}, {}, class_name)
                 cls = getattr(module, class_name)
-                instance = cls()
+                if self.instances:
+                    results.append(cls())
+                else:
+                    results.append(cls)
             except Exception:
                 logger = logging.getLogger('sentry.errors')
                 logger.exception('Unable to import %s' % (cls_path,))
                 continue
-            results.append(instance)
         self.cache = results
 
         return results
-
-_FILTER_CACHE = None
-
-
-def get_filters(model=None):
-    global _FILTER_CACHE
-
-    if _FILTER_CACHE is None:
-        filters = []
-        for filter_ in settings.FILTERS:
-            if filter_.endswith('sentry.filters.SearchFilter'):
-                continue
-            module_name, class_name = filter_.rsplit('.', 1)
-            try:
-                module = __import__(module_name, {}, {}, class_name)
-                filter_ = getattr(module, class_name)
-            except Exception:
-                logger = logging.getLogger('sentry.errors')
-                logger.exception('Unable to import %s' % (filter_,))
-                continue
-            filters.append(filter_)
-        _FILTER_CACHE = filters
-
-    for f in _FILTER_CACHE:
-        if model and model not in f.types:
-            continue
-        yield f
 
 
 def get_db_engine(alias='default'):

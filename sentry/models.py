@@ -412,24 +412,22 @@ class MessageCountByMinute(Model):
 
 ### django-indexer
 
+
 class MessageIndex(BaseIndex):
     model = Event
 
 ### Helper methods
-
-# This comes later due to recursive imports
-from sentry.utils import get_filters
 
 
 def register_indexes():
     """
     Grabs all required indexes from filters and registers them.
     """
+    from sentry.filters import Filter
     logger = logging.getLogger('sentry.setup')
-    for filter_ in get_filters():
-        if filter_.column.startswith('data__'):
-            MessageIndex.objects.register_index(filter_.column, index_to='group')
-            logger.debug('Registered index for for %s' % filter_.column)
+    for cls in (f for f in Filter.objects.all() if f.column.startswith('data__')):
+        MessageIndex.objects.register_index(cls.column, index_to='group')
+        logger.debug('Registered index for for %r' % cls.column)
 register_indexes()
 
 

@@ -20,9 +20,10 @@ from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.conf import settings
+from sentry.filters import Filter
 from sentry.models import Group, Event, Project
 from sentry.plugins import GroupActionProvider
-from sentry.utils import get_filters, json
+from sentry.utils import json
 from sentry.web.decorators import has_access, login_required
 from sentry.web.helpers import render_to_response, \
     get_project_list
@@ -43,8 +44,8 @@ def ajax_handler(request, project):
 
     def poll(request, project):
         filters = []
-        for filter_ in get_filters():
-            filters.append(filter_(request))
+        for cls in Filter.objects.filter(Group):
+            filters.append(cls(request))
 
         offset = 0
         limit = settings.MESSAGES_PER_PAGE
@@ -222,8 +223,8 @@ def search(request, project):
 @has_access
 def group_list(request, project):
     filters = []
-    for filter_ in get_filters(Group):
-        filters.append(filter_(request))
+    for cls in Filter.objects.filter(Group):
+        filters.append(cls(request))
 
     try:
         page = int(request.GET.get('p', 1))
