@@ -7,31 +7,21 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        
+
         # Adding field 'View.verbose_name'
         db.add_column('sentry_view', 'verbose_name', self.gf('django.db.models.fields.CharField')(max_length=200, null=True), keep_default=False)
 
         # Adding field 'View.verbose_name_plural'
         db.add_column('sentry_view', 'verbose_name_plural', self.gf('django.db.models.fields.CharField')(max_length=200, null=True), keep_default=False)
 
-        # Renaming column for 'Event.group' to match new field type.
-        db.rename_column('sentry_message', 'group', 'group_id')
-        # Changing field 'Event.group'
-        db.alter_column('sentry_message', 'group_id', self.gf('django.db.models.fields.related.ForeignKey')(null=True, to=orm['sentry.Group']))
-
 
     def backwards(self, orm):
-        
+
         # Deleting field 'View.verbose_name'
         db.delete_column('sentry_view', 'verbose_name')
 
         # Deleting field 'View.verbose_name_plural'
         db.delete_column('sentry_view', 'verbose_name_plural')
-
-        # Renaming column for 'Event.group' to match new field type.
-        db.rename_column('sentry_message', 'group_id', 'group')
-        # Changing field 'Event.group'
-        db.alter_column('sentry_message', 'group', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.Group'], null=True, db_column='group'))
 
 
     models = {
