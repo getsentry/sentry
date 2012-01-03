@@ -296,11 +296,11 @@ class GroupManager(models.Manager, ChartMixin):
                 if not viewhandler.should_store(event):
                     continue
 
-                path = '%s.%s' % (viewhandler.__module__, viewhandler.__name__)
+                path = '%s.%s' % (viewhandler.__module__, viewhandler.__class__.__name__)
 
                 if not viewhandler.ref:
                     # TODO: this should handle race conditions
-                    viewhandler.ref = View.objects.get_or_create(path=path)
+                    viewhandler.ref = View.objects.get_or_create(path=path)[0]
 
                 views.add(viewhandler.ref)
 

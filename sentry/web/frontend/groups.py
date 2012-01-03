@@ -21,7 +21,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from sentry.conf import settings
 from sentry.filters import Filter
-from sentry.models import Group, Event, Project
+from sentry.models import Group, Event, Project, View
 from sentry.plugins import GroupActionProvider
 from sentry.utils import json
 from sentry.web.decorators import has_access, login_required
@@ -221,7 +221,13 @@ def search(request, project):
 
 @login_required
 @has_access
-def group_list(request, project):
+def group_list(request, project, view=None):
+    if view:
+        try:
+            view = View.objects.get(pk=view)
+        except View.DoesNotExist:
+            return HttpResponseRedirect(reverse('sentry', args=[project.pk]))
+
     filters = []
     for cls in Filter.handlers.filter(Group):
         filters.append(cls(request))
@@ -232,6 +238,9 @@ def group_list(request, project):
         page = 1
 
     event_list = Group.objects.filter(project=project)
+
+    if view:
+        event_list = event_list.filter(views=view)
 
     # Filters only apply if we're not searching
     any_filter = False

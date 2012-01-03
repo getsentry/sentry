@@ -15,3 +15,6 @@ __all__ = ('Message',)
 class Message(View):
     verbose_name = _('message')
     verbose_name_plural = _('messages')
+
+    def should_store(self, event):
+        return 'sentry.interfaces.Message' in event.interfaces
