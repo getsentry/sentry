@@ -89,5 +89,6 @@ urlpatterns = patterns('',
 
     url(r'^(?P<project_id>\d+)/search$', groups.search, name='sentry-search'),
 
+    url(r'^(?P<project_id>\d+)/view/(?P<view_id>\d+)$', groups.group_list, name='sentry'),
     url(r'^(?P<project_id>\d+)$', groups.group_list, name='sentry'),
 )

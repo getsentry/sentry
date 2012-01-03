@@ -26,12 +26,12 @@ from django.db.models.signals import post_save
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
+from sentry.manager import GroupManager, ProjectManager
 from sentry.utils import cached_property, \
                          MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField
-from sentry.utils.manager import GroupManager, ProjectManager
 from sentry.templatetags.sentry_helpers import truncatechars
-import sentry.processors
+import sentry.processors.base
 
 __all__ = ('Event', 'Group')
 
@@ -131,6 +131,12 @@ class ProjectDomain(Model):
         unique_together = (('project', 'domain'),)
 
 
+class View(Model):
+    path = models.CharField(max_length=100, unique=True)
+    verbose_name = models.CharField(max_length=200, null=True)
+    verbose_name_plural = models.CharField(max_length=200, null=True)
+
+
 class MessageBase(Model):
     project = models.ForeignKey(Project, null=True)
     logger = models.CharField(max_length=64, blank=True, default='root', db_index=True)
@@ -163,6 +169,7 @@ class MessageBase(Model):
 
 
 class Group(MessageBase):
+    # if view is null it means its from the global aggregate
     status = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
     times_seen = models.PositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=datetime.now, db_index=True)
@@ -170,6 +177,7 @@ class Group(MessageBase):
     time_spent_total = models.FloatField(default=0)
     time_spent_count = models.IntegerField(default=0)
     score = models.IntegerField(default=0)
+    views = models.ManyToManyField(View, blank=True)
 
     objects = GroupManager()
 
@@ -283,8 +291,8 @@ class Group(MessageBase):
 
 
 class Event(MessageBase):
-    event_id = models.CharField(max_length=32, null=True, unique=True, db_column="message_id")
     group = models.ForeignKey(Group, blank=True, null=True, related_name="event_set")
+    event_id = models.CharField(max_length=32, null=True, unique=True, db_column="message_id")
     datetime = models.DateTimeField(default=datetime.now, db_index=True)
     time_spent = models.FloatField(null=True)
     server_name = models.CharField(max_length=128, db_index=True, null=True)
@@ -354,14 +362,8 @@ class Event(MessageBase):
         module = self.data['__sentry__'].get('module', 'ver')
         return module, self.data['__sentry__']['version']
 
-post_save.connect(
-    sentry.processors.post_save_processors,
-    sender=Event,
-    dispatch_uid="processors_post_save"
-)
 
-
-class FilterValue(models.Model):
+class FilterValue(Model):
     """
     Stores references to available filters.
     """
@@ -376,7 +378,7 @@ class FilterValue(models.Model):
         return u'key=%s, value=%s' % (self.key, self.value)
 
 
-class MessageFilterValue(models.Model):
+class MessageFilterValue(Model):
     """
     Stores the total number of messages seen by a group matching
     the given filter.
@@ -418,24 +420,22 @@ class MessageCountByMinute(Model):
 
 ### django-indexer
 
+
 class MessageIndex(BaseIndex):
     model = Event
 
 ### Helper methods
-
-# This comes later due to recursive imports
-from sentry.utils import get_filters
 
 
 def register_indexes():
     """
     Grabs all required indexes from filters and registers them.
     """
+    from sentry.filters import Filter
     logger = logging.getLogger('sentry.setup')
-    for filter_ in get_filters():
-        if filter_.column.startswith('data__'):
-            MessageIndex.objects.register_index(filter_.column, index_to='group')
-            logger.debug('Registered index for for %s' % filter_.column)
+    for cls in (f for f in Filter.handlers.all() if f.column.startswith('data__')):
+        MessageIndex.objects.register_index(cls.column, index_to='group')
+        logger.debug('Registered index for for %r' % cls.column)
 register_indexes()
 
 
@@ -478,5 +478,13 @@ def create_default_project(created_models, verbosity=2, **kwargs):
             if verbosity > 0:
                 print 'done!'
 
-
-post_syncdb.connect(create_default_project)
+# Signal registration
+post_save.connect(
+    sentry.processors.base.post_save_processors,
+    sender=Event,
+    dispatch_uid="processors_post_save"
+)
+post_syncdb.connect(
+    create_default_project,
+    dispatch_uid="create_default_project"
+)

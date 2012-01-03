@@ -6,18 +6,18 @@ from django.views.decorators.csrf import csrf_protect
 
 from sentry.conf import settings
 from sentry.models import Event
+from sentry.filters import Filter
+from sentry.replays import Replayer
 from sentry.web.decorators import login_required, has_access, render_to_response
 from sentry.web.forms import ReplayForm
-from sentry.utils import get_filters
-from sentry.replays import Replayer
 
 
 @login_required
 @has_access
 def event_list(request, project):
     filters = []
-    for filter_ in get_filters(Event):
-        filters.append(filter_(request))
+    for cls in Filter.handlers.filter(Event):
+        filters.append(cls(request))
 
     try:
         page = int(request.GET.get('p', 1))

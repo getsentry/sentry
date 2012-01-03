@@ -7,9 +7,13 @@
     {{ block.super }}
     <script>
     Sentry.config({
-        apiUrl: '{% url sentry-ajax project.id %}'
+        apiUrl: '{% url sentry-ajax project.id %}',
     });
     {% if has_realtime %}
+        Sentry.realtime.config({
+            projectId: {{ project.pk }},
+            viewId: {% if view %}{{ view.pk }}{% else %}null{% endif %}
+        })
         Sentry.realtime.enable();
     {% endif %}
     </script>
@@ -17,6 +21,14 @@
 
 {% block page_header %}
     <div class="sparkline" id="sparkline"></div>
+    {% if VIEWS %}
+        <ul class="pills">
+            <li{% if not view %} class="active"{% endif %}><a href="{% url sentry project.pk %}">All</a></li>
+            {% for v in VIEWS %}
+                <li{% if view == v %} class="active"{% endif %}><a href="{% url sentry project.pk v.pk %}">{{ v.verbose_name_plural }}</a></li>
+            {% endfor %}
+        </ul>
+    {% endif %}
     {{ block.super }}
 {% endblock %}
 

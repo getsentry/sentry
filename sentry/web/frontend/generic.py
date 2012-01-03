@@ -34,6 +34,9 @@ def dashboard(request):
 
 @login_required
 def status(request):
+    from sentry.views import View
+    from sentry.processors import Processor
+
     config = []
     for k in sorted(dir(settings)):
         if k == 'KEY':
@@ -62,6 +65,8 @@ def status(request):
         'python_version': sys.version,
         'modules': sorted([(p.project_name, p.version) for p in pkg_resources.working_set]),
         'extensions': [(cls.title, cls.__module__.rsplit('.', 1)[0]) for cls in GroupActionProvider.plugins.itervalues()],
+        'views': [(x.__class__.__name__, x.__module__) for x in View.handlers.all()],
+        'processors': [(x.__class__.__name__, x.__module__) for x in Processor.handlers.all()],
         'pending_tasks': pending_tasks,
         'worker_status': worker_status,
     }, request)

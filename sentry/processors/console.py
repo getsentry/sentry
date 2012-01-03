@@ -6,11 +6,10 @@ sentry.processors.console
 :license: BSD, see LICENSE for more details.
 """
 
-from sentry.processors import BaseProcessor
+from .base import Processor
 
 
-class ConsoleProcessor(BaseProcessor):
-
+class ConsoleProcessor(Processor):
     def post_processing(self, event):
         print 'Received an event:'
         print '  ID:', event.event_id

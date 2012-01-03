@@ -18,3 +18,35 @@ def upgrade(interactive=True):
 
     if 'south' in settings.INSTALLED_APPS:
         call_command('migrate', database='default', interactive=interactive)
+
+    register_views()
+
+
+def register_views():
+    from sentry.views import View as ViewHandler
+    from sentry.models import View
+
+    for viewhandler in ViewHandler.handlers.all():
+        path = '%s.%s' % (viewhandler.__module__, viewhandler.__class__.__name__)
+
+        defaults = dict(
+            verbose_name=viewhandler.verbose_name,
+            verbose_name_plural=viewhandler.verbose_name_plural,
+        )
+
+        # TODO: this should handle race conditions
+        view, created = View.objects.get_or_create(
+            path=path,
+            defaults=defaults,
+        )
+        if created:
+            continue
+
+        save = False
+        for k, v in defaults.iteritems():
+            if getattr(view, k) != getattr(viewhandler, k):
+                save = True
+                setattr(view, k, v)
+
+        if save:
+            view.save()

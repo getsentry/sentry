@@ -48,7 +48,7 @@ setup(
     url='http://github.com/dcramer/sentry',
     description='A realtime logging an aggregation server.',
     long_description=__doc__,
-    packages=find_packages(exclude=("example_project", "tests")),
+    packages=find_packages(exclude=['tests']),
     zip_safe=False,
     install_requires=install_requires,
     tests_require=tests_require,

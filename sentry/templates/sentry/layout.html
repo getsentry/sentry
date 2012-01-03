@@ -17,7 +17,8 @@
         <script type="text/javascript">
         Sentry.client.config({
             server: '{% url sentry-store %}',
-            projectId: '{{ PROJECT_ID }}'
+            projectId: '{{ PROJECT_ID }}',
+            logger: 'sentry.errors.javascript'
         })
         Sentry.client.registerGlobalHandler();
         </script>

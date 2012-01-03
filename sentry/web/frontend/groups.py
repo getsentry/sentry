@@ -20,9 +20,10 @@ from django.utils.safestring import mark_safe
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.conf import settings
-from sentry.models import Group, Event, Project
+from sentry.filters import Filter
+from sentry.models import Group, Event, Project, View
 from sentry.plugins import GroupActionProvider
-from sentry.utils import get_filters, json
+from sentry.utils import json
 from sentry.web.decorators import has_access, login_required
 from sentry.web.helpers import render_to_response, \
     get_project_list
@@ -43,13 +44,22 @@ def ajax_handler(request, project):
 
     def poll(request, project):
         filters = []
-        for filter_ in get_filters():
-            filters.append(filter_(request))
+        for cls in Filter.handlers.filter(Group):
+            filters.append(cls(request))
 
         offset = 0
         limit = settings.MESSAGES_PER_PAGE
 
         event_list = Group.objects.filter(project=project)
+
+        view_id = request.GET.get('view_id')
+        if view_id:
+            try:
+                view = View.objects.get(pk=view_id)
+            except View.DoesNotExist:
+                return HttpResponseRedirect(reverse('sentry', args=[project.pk]))
+
+            event_list = event_list.filter(views=view)
 
         for filter_ in filters:
             if not filter_.is_set():
@@ -220,10 +230,10 @@ def search(request, project):
 
 @login_required
 @has_access
-def group_list(request, project):
+def group_list(request, project, view_id=None):
     filters = []
-    for filter_ in get_filters(Group):
-        filters.append(filter_(request))
+    for cls in Filter.handlers.filter(Group):
+        filters.append(cls(request))
 
     try:
         page = int(request.GET.get('p', 1))
@@ -231,6 +241,16 @@ def group_list(request, project):
         page = 1
 
     event_list = Group.objects.filter(project=project)
+
+    if view_id:
+        try:
+            view = View.objects.get(pk=view_id)
+        except View.DoesNotExist:
+            return HttpResponseRedirect(reverse('sentry', args=[project.pk]))
+
+        event_list = event_list.filter(views=view)
+    else:
+        view = None
 
     # Filters only apply if we're not searching
     any_filter = False
@@ -281,6 +301,7 @@ def group_list(request, project):
         'sort_label': sort_label,
         'any_filter': any_filter,
         'filters': filters,
+        'view': view,
     }, request)
 
 
@@ -297,7 +318,7 @@ def group_json(request, project, group_id):
     except IndexError:
         # It's possible that a message would not be created under certain circumstances
         # (such as a post_save signal failing)
-        event = Event(group=group)
+        event = Event()
 
     # We use a SortedDict to keep elements ordered for the JSON serializer
     data = SortedDict()

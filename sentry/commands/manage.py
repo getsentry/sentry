@@ -13,3 +13,13 @@ def manage(args):
     from django.core.management import ManagementUtility
     utility = ManagementUtility(args)
     utility.execute()
+
+
+def update_migrations():
+    """
+    Creates schemamigrations for sentry.
+    """
+    from django.core.management import ManagementUtility
+    args = 'manage.py schemamigration sentry --auto'.split(' ')
+    utility = ManagementUtility(args)
+    utility.execute()

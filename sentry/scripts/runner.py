@@ -19,7 +19,18 @@ from optparse import OptionParser
 from sentry import VERSION, environment, commands
 
 
-ALL_COMMANDS = ('start', 'stop', 'restart', 'cleanup', 'upgrade', 'manage', 'init')
+ALL_COMMANDS = (
+    # General use commands
+    'init',
+    'upgrade',
+    'start',
+    'stop',
+    'restart',
+    'cleanup',
+
+    # These should probably be hidden by default
+    'manage',
+)
 
 KEY_LENGTH = 40
 
@@ -150,8 +161,7 @@ def main():
     environment['config'] = config_path
     environment['start_date'] = datetime.datetime.now()
 
-    if args[1] != 'init':
-        settings_from_file(config_path)
+    settings_from_file(config_path)
 
     # set debug
     if getattr(options, 'debug', False):

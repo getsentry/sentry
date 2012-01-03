@@ -13,6 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import Event, Group
 
+
 class MessageFeed(object):
     def __call__(self, request):
         feed_dict = {
@@ -40,7 +41,7 @@ class MessageFeed(object):
         return HttpResponse(feed.writeString('utf-8'), mimetype='application/xml')
 
     def get_title(self, request):
-        return _('log messages')
+        return _('events')
 
     def get_link(self, request):
         return reverse('sentry')
@@ -71,9 +72,10 @@ class MessageFeed(object):
     def get_item_date(self, request, obj):
         return obj.datetime
 
+
 class SummaryFeed(MessageFeed):
     def get_title(self, request):
-        return _('log summaries')
+        return _('events (aggregated)')
 
     def get_link(self, request):
         return reverse('sentry')

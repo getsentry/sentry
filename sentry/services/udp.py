@@ -16,6 +16,7 @@ class SentryUDPServer(Service):
 
         self.host = host or settings.UDP_HOST
         self.port = port or settings.UDP_PORT
+
     def handle(self, data, address):
         from sentry.utils.auth import parse_auth_header
         from sentry.coreapi import (project_from_auth_vars, decode_and_decompress_data, safely_load_json_string,
@@ -37,7 +38,7 @@ class SentryUDPServer(Service):
         except APIError, error:
             logger.error('bad message from %s: %s' % (address, error.msg))
             return error
-       
+
     def run(self):
         from eventlet.green import socket
 

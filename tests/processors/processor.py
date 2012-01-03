@@ -1,8 +1,7 @@
+from sentry.processors import Processor
 
-from sentry.processors import BaseProcessor
 
-
-class TestProcessor(BaseProcessor):
+class TestProcessor(Processor):
 
     def __init__(self, *args, **kwargs):
         self.called = 0
