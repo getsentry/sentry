@@ -209,7 +209,11 @@ class GroupManager(models.Manager, ChartMixin):
         return result
 
     def from_kwargs(self, project, **kwargs):
-        from sentry.models import Event, FilterValue, Project
+        # TODO: this function is way too damn long and needs refactored
+        # the inner imports also suck so let's try to move it away from
+        # the objects manager
+        from sentry.models import Event, Project, View
+        from sentry.views import View as ViewHandler
 
         project = Project.objects.get(pk=project)
 
@@ -264,125 +268,168 @@ class GroupManager(models.Manager, ChartMixin):
             'message': message,
         }
 
-        mail = False
-        try:
-            group_kwargs = kwargs.copy()
-            group_kwargs.update({
-                'last_seen': date,
-                'first_seen': date,
-                'time_spent_total': time_spent or 0,
-                'time_spent_count': time_spent and 1 or 0,
-            })
+        event = Event(
+            project=project,
+            event_id=event_id,
+            culprit=culprit,
+            logger=logger_name,
+            data=data,
+            server_name=server_name,
+            site=site,
+            checksum=checksum,
+            time_spent=time_spent,
+            datetime=date,
+            **kwargs
+        )
 
-            group, created = self.get_or_create(
-                project=project,
-                culprit=culprit,
-                logger=logger_name,
-                checksum=checksum,
-                defaults=group_kwargs
-            )
-            if not created:
-                # HACK: maintain appeared state
-                if group.status == 1:
-                    mail = True
-                silence_timedelta = date - group.last_seen
-                silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
-                update_kwargs = {
-                    'status': 0,
-                    'last_seen': date,
-                    'times_seen': F('times_seen') + 1,
-                    'score': ScoreClause(group),
-                }
-                if time_spent:
-                    update_kwargs.update({
-                        'time_spent_total': F('time_spent_total') + time_spent,
-                        'time_spent_count': F('time_spent_count') + 1,
-                    })
-                group.update(**update_kwargs)
-            else:
-                group.update(score=ScoreClause(group))
-                silence = 0
-                mail = True
+        group_kwargs = kwargs.copy()
+        group_kwargs.update({
+            'last_seen': date,
+            'first_seen': date,
+            'time_spent_total': time_spent or 0,
+            'time_spent_count': time_spent and 1 or 0,
+        })
 
-            instance = Event(
-                project=project,
-                event_id=event_id,
-                culprit=culprit,
-                logger=logger_name,
-                data=data,
-                server_name=server_name,
-                site=site,
-                checksum=checksum,
-                group=group,
-                time_spent=time_spent,
-                datetime=date,
-                **kwargs
-            )
-
-            if not settings.SAMPLE_DATA or group.times_seen % min(count_limit(group.times_seen), time_limit(silence)) == 0:
-                instance.save()
-
-            # rounded down to the nearest interval
-            if settings.MINUTE_NORMALIZATION:
-                minutes = (date.minute - (date.minute % settings.MINUTE_NORMALIZATION))
-            else:
-                minutes = date.minute
-            normalized_datetime = date.replace(second=0, microsecond=0, minute=minutes)
-
-            update_kwargs = {
-                'times_seen': F('times_seen') + 1,
-            }
-            if time_spent:
-                update_kwargs.update({
-                    'time_spent_total': F('time_spent_total') + time_spent,
-                    'time_spent_count': F('time_spent_count') + 1,
-                })
-
-            affected = group.messagecountbyminute_set.filter(date=normalized_datetime).update(**update_kwargs)
-            if not affected:
-                group.messagecountbyminute_set.create(
-                    project=project,
-                    date=normalized_datetime,
-                    times_seen=1,
-                    time_spent_total=time_spent or 0,
-                    time_spent_count=time_spent and 1 or 0,
-                )
-
-            for key, value in (
-                    ('server_name', server_name),
-                    ('site', site),
-                    ('logger', logger_name),
-                ):
-                if not value:
+        views = set()
+        for viewhandler in ViewHandler.handlers.all():
+            try:
+                if not viewhandler.should_store(event):
                     continue
 
-                FilterValue.objects.get_or_create(
-                    project=project,
-                    key=key,
-                    value=value,
-                )
+                path = '%s.%s' % (viewhandler.__module__, viewhandler.__name__)
 
-                affected = group.messagefiltervalue_set.filter(key=key, value=value).update(times_seen=F('times_seen') + 1)
-                if not affected:
-                    group.messagefiltervalue_set.create(
-                        project=project,
-                        key=key,
-                        value=value,
-                        times_seen=1,
-                    )
+                if not viewhandler.ref:
+                    # TODO: this should handle race conditions
+                    viewhandler.ref = View.objects.get_or_create(path=path)
 
+                views.add(viewhandler.ref)
+
+            except Exception, exc:
+                # TODO: should we mail admins when there are failures?
+                try:
+                    logger.exception(exc)
+                except Exception, exc:
+                    warnings.warn(exc)
+
+        try:
+            group, is_new, is_sample = self._create_group(event, **group_kwargs)
         except Exception, exc:
             # TODO: should we mail admins when there are failures?
             try:
                 logger.exception(u'Unable to process log entry: %s' % (exc,))
             except Exception, exc:
                 warnings.warn(u'Unable to process log entry: %s' % (exc,))
-        else:
-            if mail and should_mail(group):
-                regression_signal.send(sender=self.model, instance=group)
-                group.mail_admins()
 
-            return instance
+            return
+
+        event.group = group
+
+        for view in views:
+            group.views.add(view)
+
+        # save the event unless its been sampled
+        if not is_sample:
+            event.save()
+
+        # TODO: this should be moved into the processor framework
+        if is_new and should_mail(group):
+            regression_signal.send(sender=self.model, instance=group)
+            group.mail_admins()
+
+        return event
+
+    def _create_group(self, event, **kwargs):
+        from sentry.models import FilterValue, STATUS_RESOLVED
+
+        date = event.datetime
+        time_spent = event.time_spent
+        project = event.project
+
+        group, is_new = self.get_or_create(
+            project=project,
+            culprit=event.culprit,
+            logger=event.logger,
+            checksum=event.checksum,
+            defaults=kwargs
+        )
+        if not is_new:
+            if group.status == STATUS_RESOLVED:
+                # Group has changed from resolved -> unresolved
+                is_new = True
+            silence_timedelta = date - group.last_seen
+            silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
+            update_kwargs = {
+                'status': 0,
+                'last_seen': date,
+                'times_seen': F('times_seen') + 1,
+                'score': ScoreClause(group),
+            }
+            if time_spent:
+                update_kwargs.update({
+                    'time_spent_total': F('time_spent_total') + time_spent,
+                    'time_spent_count': F('time_spent_count') + 1,
+                })
+            group.update(**update_kwargs)
+        else:
+            group.update(score=ScoreClause(group))
+            silence = 0
+
+        # Determine if we've sampled enough data to store this event
+        if not settings.SAMPLE_DATA or group.times_seen % min(count_limit(group.times_seen), time_limit(silence)) == 0:
+            is_sample = False
+        else:
+            is_sample = True
+
+        # Rounded down to the nearest interval
+        if settings.MINUTE_NORMALIZATION:
+            minutes = (date.minute - (date.minute % settings.MINUTE_NORMALIZATION))
+        else:
+            minutes = date.minute
+        normalized_datetime = date.replace(second=0, microsecond=0, minute=minutes)
+
+        update_kwargs = {
+            'times_seen': F('times_seen') + 1,
+        }
+        if time_spent:
+            update_kwargs.update({
+                'time_spent_total': F('time_spent_total') + time_spent,
+                'time_spent_count': F('time_spent_count') + 1,
+            })
+
+        affected = group.messagecountbyminute_set.filter(date=normalized_datetime).update(**update_kwargs)
+        if not affected:
+            group.messagecountbyminute_set.create(
+                project=project,
+                date=normalized_datetime,
+                times_seen=1,
+                time_spent_total=time_spent or 0,
+                time_spent_count=time_spent and 1 or 0,
+            )
+
+        for key, value in (
+                ('server_name', event.server_name),
+                ('site', event.site),
+                ('logger', event.logger),
+            ):
+            if not value:
+                continue
+
+            FilterValue.objects.get_or_create(
+                project=project,
+                key=key,
+                value=value,
+            )
+
+            affected = group.messagefiltervalue_set.filter(key=key, value=value).update(times_seen=F('times_seen') + 1)
+            if not affected:
+                group.messagefiltervalue_set.create(
+                    project=project,
+                    key=key,
+                    value=value,
+                    times_seen=1,
+                )
+
+        return group, is_new, is_sample
 
     def get_by_natural_key(self, logger, culprit, checksum):
         return self.get(logger=logger, view=culprit, checksum=checksum)

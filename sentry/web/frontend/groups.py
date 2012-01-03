@@ -44,7 +44,7 @@ def ajax_handler(request, project):
 
     def poll(request, project):
         filters = []
-        for cls in Filter.objects.filter(Group):
+        for cls in Filter.handlers.filter(Group):
             filters.append(cls(request))
 
         offset = 0
@@ -223,7 +223,7 @@ def search(request, project):
 @has_access
 def group_list(request, project):
     filters = []
-    for cls in Filter.objects.filter(Group):
+    for cls in Filter.handlers.filter(Group):
         filters.append(cls(request))
 
     try:
@@ -298,7 +298,7 @@ def group_json(request, project, group_id):
     except IndexError:
         # It's possible that a message would not be created under certain circumstances
         # (such as a post_save signal failing)
-        event = Event(group=group)
+        event = Event()
 
     # We use a SortedDict to keep elements ordered for the JSON serializer
     data = SortedDict()

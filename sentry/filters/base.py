@@ -79,7 +79,7 @@ class Filter(object):
         widget = self.get_widget()
         return widget.render(self.get_value())
 
-    objects = FilterInstanceManager(settings.FILTERS, instances=False)
+    handlers = FilterInstanceManager(settings.FILTERS, instances=False)
 
 
 class EventFilter(Filter):

@@ -131,6 +131,10 @@ class ProjectDomain(Model):
         unique_together = (('project', 'domain'),)
 
 
+class View(Model):
+    path = models.CharField(max_length=100, unique=True)
+
+
 class MessageBase(Model):
     project = models.ForeignKey(Project, null=True)
     logger = models.CharField(max_length=64, blank=True, default='root', db_index=True)
@@ -163,6 +167,7 @@ class MessageBase(Model):
 
 
 class Group(MessageBase):
+    # if view is null it means its from the global aggregate
     status = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
     times_seen = models.PositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=datetime.now, db_index=True)
@@ -170,6 +175,7 @@ class Group(MessageBase):
     time_spent_total = models.FloatField(default=0)
     time_spent_count = models.IntegerField(default=0)
     score = models.IntegerField(default=0)
+    views = models.ManyToManyField(View, blank=True)
 
     objects = GroupManager()
 
@@ -283,8 +289,8 @@ class Group(MessageBase):
 
 
 class Event(MessageBase):
-    event_id = models.CharField(max_length=32, null=True, unique=True, db_column="message_id")
     group = models.ForeignKey(Group, blank=True, null=True, related_name="event_set")
+    event_id = models.CharField(max_length=32, null=True, unique=True, db_column="message_id")
     datetime = models.DateTimeField(default=datetime.now, db_index=True)
     time_spent = models.FloatField(null=True)
     server_name = models.CharField(max_length=128, db_index=True, null=True)
@@ -355,7 +361,7 @@ class Event(MessageBase):
         return module, self.data['__sentry__']['version']
 
 
-class FilterValue(models.Model):
+class FilterValue(Model):
     """
     Stores references to available filters.
     """
@@ -370,7 +376,7 @@ class FilterValue(models.Model):
         return u'key=%s, value=%s' % (self.key, self.value)
 
 
-class MessageFilterValue(models.Model):
+class MessageFilterValue(Model):
     """
     Stores the total number of messages seen by a group matching
     the given filter.
@@ -425,7 +431,7 @@ def register_indexes():
     """
     from sentry.filters import Filter
     logger = logging.getLogger('sentry.setup')
-    for cls in (f for f in Filter.objects.all() if f.column.startswith('data__')):
+    for cls in (f for f in Filter.handlers.all() if f.column.startswith('data__')):
         MessageIndex.objects.register_index(cls.column, index_to='group')
         logger.debug('Registered index for for %r' % cls.column)
 register_indexes()

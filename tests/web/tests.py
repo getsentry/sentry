@@ -251,7 +251,7 @@ class SentryFeedsTest(TestCase):
         self.assertEquals(response.status_code, 200)
         self.assertTrue(response.content.startswith('<?xml version="1.0" encoding="utf-8"?>'))
         self.assertTrue('<link>http://testserver/</link>' in response.content)
-        self.assertTrue('<title>log messages</title>' in response.content)
+        self.assertTrue('<title>events</title>' in response.content)
         self.assertTrue('<link>http://testserver/1/group/1</link>' in response.content, response.content)
         self.assertTrue('<title>exceptions must be old-style classes or derived from BaseException, not NoneType</title>' in response.content)
 
@@ -260,7 +260,7 @@ class SentryFeedsTest(TestCase):
         self.assertEquals(response.status_code, 200)
         self.assertTrue(response.content.startswith('<?xml version="1.0" encoding="utf-8"?>'))
         self.assertTrue('<link>http://testserver/</link>' in response.content)
-        self.assertTrue('<title>log summaries</title>' in response.content)
+        self.assertTrue('<title>events (aggregated)</title>' in response.content)
         self.assertTrue('<link>http://testserver/1/group/1</link>' in response.content, response.content)
         self.assertTrue('<title>(1) exceptions must be old-style classes or derived from BaseException, not NoneType</title>' in response.content)
 

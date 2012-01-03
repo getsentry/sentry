@@ -34,6 +34,7 @@ class InstanceManager(object):
         Returns a list of cached instances.
         """
         if not self.class_list:
+            self.cache = []
             return []
 
         if self.cache is not None:

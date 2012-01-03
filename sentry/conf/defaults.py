@@ -95,3 +95,10 @@ QUEUE = {
 # List of event handlers
 PROCESSORS = (
 )
+
+# List of event aggregation views
+VIEWS = (
+    # 'sentry.views.Exception',
+    # 'sentry.views.Message',
+    # 'sentry.views.Query',
+)
