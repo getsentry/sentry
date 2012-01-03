@@ -6,7 +6,7 @@ import logging
 
 from sentry.models import Event, Group, MessageCountByMinute, \
   MessageFilterValue
-from tests.testcases import TestCase
+from tests.base import TestCase
 
 
 class SentryCleanupTest(TestCase):

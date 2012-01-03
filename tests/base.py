@@ -1,5 +1,7 @@
-import time
+from __future__ import absolute_import
+
 import base64
+import time
 
 from sentry.conf import settings
 from sentry.utils import json
@@ -7,14 +9,56 @@ from sentry.utils.auth import get_signature, get_auth_header
 from sentry.utils.compat import pickle
 from sentry.utils.compat.db import connections
 
+
+from django.conf import settings as django_settings
 from django.core.management import call_command
 from django.core.urlresolvers import reverse
 from django.db import DEFAULT_DB_ALIAS
 from django.test import TestCase, TransactionTestCase
 from django.test.client import Client
 
+
+class Settings(object):
+    """
+    Allows you to define settings that are required for this function to work.
+
+    >>> with Settings(SENTRY_LOGIN_URL='foo'): #doctest: +SKIP
+    >>>     print settings.SENTRY_LOGIN_URL #doctest: +SKIP
+    """
+
+    NotDefined = object()
+
+    def __init__(self, **overrides):
+        self.overrides = overrides
+        self._orig = {}
+        self._orig_sentry = {}
+
+    def __enter__(self):
+        for k, v in self.overrides.iteritems():
+            self._orig[k] = getattr(django_settings, k, self.NotDefined)
+            setattr(django_settings, k, v)
+            if k.startswith('SENTRY_'):
+                nk = k.split('SENTRY_', 1)[1]
+                self._orig_sentry[nk] = getattr(settings, nk, self.NotDefined)
+                setattr(settings, nk, v)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        for k, v in self._orig.iteritems():
+            if v is self.NotDefined:
+                delattr(django_settings, k)
+            else:
+                setattr(django_settings, k, v)
+        for k, v in self._orig_sentry.iteritems():
+            if v is self.NotDefined:
+                delattr(settings, k)
+            else:
+                setattr(settings, k, v)
+
+
 class BaseTestCase(object):
-    urls = 'tests.urls'
+    urls = 'tests.web.urls'
+
+    Settings = Settings
 
     def _postWithKey(self, data, key=None):
         resp = self.client.post(reverse('sentry-store'), {
@@ -47,8 +91,10 @@ class BaseTestCase(object):
         )
         return resp
 
+
 class TestCase(BaseTestCase, TestCase):
     pass
+
 
 class TransactionTestCase(BaseTestCase, TransactionTestCase):
     """

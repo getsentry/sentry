@@ -6,7 +6,7 @@ from __future__ import absolute_import, with_statement
 from sentry.processors import Processor
 from sentry.conf import settings
 
-from tests.testcases import TestCase
+from tests.base import TestCase
 
 from . import processor
 
