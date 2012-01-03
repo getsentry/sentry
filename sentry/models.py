@@ -31,7 +31,7 @@ from sentry.utils import cached_property, \
 from sentry.utils.models import Model, GzippedDictField
 from sentry.utils.manager import GroupManager, ProjectManager
 from sentry.templatetags.sentry_helpers import truncatechars
-import sentry.processors
+import sentry.processors.base
 
 __all__ = ('Event', 'Group')
 
@@ -354,12 +354,6 @@ class Event(MessageBase):
         module = self.data['__sentry__'].get('module', 'ver')
         return module, self.data['__sentry__']['version']
 
-post_save.connect(
-    sentry.processors.post_save_processors,
-    sender=Event,
-    dispatch_uid="processors_post_save"
-)
-
 
 class FilterValue(models.Model):
     """
@@ -478,5 +472,13 @@ def create_default_project(created_models, verbosity=2, **kwargs):
             if verbosity > 0:
                 print 'done!'
 
-
-post_syncdb.connect(create_default_project)
+# Signal registration
+post_save.connect(
+    sentry.processors.base.post_save_processors,
+    sender=Event,
+    dispatch_uid="processors_post_save"
+)
+post_syncdb.connect(
+    create_default_project,
+    dispatch_uid="create_default_project"
+)

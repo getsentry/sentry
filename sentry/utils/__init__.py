@@ -16,6 +16,44 @@ from django.utils.encoding import force_unicode
 
 from sentry.conf import settings
 
+
+class InstanceManager(object):
+    def __init__(self, class_list):
+        self.update(class_list)
+
+    def update(self, class_list):
+        """
+        Updates the class list and wipes the cache.
+        """
+        self.cache = None
+        self.class_list = class_list
+
+    def all(self):
+        """
+        Returns a list of cached instances.
+        """
+        if not self.class_list:
+            return []
+
+        if self.cache is not None:
+            return self.cache
+
+        results = []
+        for cls_path in self.class_list:
+            module_name, class_name = cls_path.rsplit('.', 1)
+            try:
+                module = __import__(module_name, {}, {}, class_name)
+                cls = getattr(module, class_name)
+                instance = cls()
+            except Exception:
+                logger = logging.getLogger('sentry.errors')
+                logger.exception('Unable to import %s' % (cls_path,))
+                continue
+            results.append(instance)
+        self.cache = results
+
+        return results
+
 _FILTER_CACHE = None
 
 
