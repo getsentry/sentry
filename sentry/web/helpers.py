@@ -14,7 +14,8 @@ from django.http import HttpResponse
 from django.template import loader, RequestContext, Context
 
 from sentry.conf import settings
-from sentry.models import ProjectMember, Project, MEMBER_USER
+from sentry.models import ProjectMember, Project, View, \
+  MEMBER_USER
 
 logger = logging.getLogger('sentry.errors')
 
@@ -79,6 +80,7 @@ def render_to_string(template, context=None, request=None):
         'has_search': False,
         'MESSAGES_PER_PAGE': settings.MESSAGES_PER_PAGE,
         'PROJECT_ID': settings.PROJECT,
+        'VIEWS': list(View.objects.all()),
     })
 
     if request:

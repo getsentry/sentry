@@ -26,10 +26,10 @@ from django.db.models.signals import post_save
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
+from sentry.manager import GroupManager, ProjectManager
 from sentry.utils import cached_property, \
                          MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField
-from sentry.utils.manager import GroupManager, ProjectManager
 from sentry.templatetags.sentry_helpers import truncatechars
 import sentry.processors.base
 
