@@ -68,19 +68,63 @@
                 <div class="page-header">
                     <h2>Extensions</h2>
                 </div>
-                <table class="vars bordered-table zebra-striped">
-                    <colgroup>
-                        <col style="width:220px">
-                    </colgroup>
-                    <tbody>
-                        {% for key, value in extensions %}
-                            <tr>
-                                <th>{{ key }}</th>
-                                <td>{{ value }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                {% if extensions %}
+                    <table class="vars bordered-table zebra-striped">
+                        <colgroup>
+                            <col style="width:220px">
+                        </colgroup>
+                        <tbody>
+                            {% for key, value in extensions %}
+                                <tr>
+                                    <th>{{ key }}</th>
+                                    <td>{{ value }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>No extensions registered.</p>
+                {% endif %}
+                <div class="page-header">
+                    <h2>Views</h2>
+                </div>
+                {% if views %}
+                    <table class="vars bordered-table zebra-striped">
+                        <colgroup>
+                            <col style="width:220px">
+                        </colgroup>
+                        <tbody>
+                            {% for key, value in views %}
+                                <tr>
+                                    <th>{{ key }}</th>
+                                    <td>{{ value }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>No views registered.</p>
+                {% endif %}
+                <div class="page-header">
+                    <h2>Processors</h2>
+                </div>
+                {% if processors %}
+                    <table class="vars bordered-table zebra-striped">
+                        <colgroup>
+                            <col style="width:220px">
+                        </colgroup>
+                        <tbody>
+                            {% for key, value in processors %}
+                                <tr>
+                                    <th>{{ key }}</th>
+                                    <td>{{ value }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>No event processors registered.</p>
+                {% endif %}
                 <div class="page-header">
                     <h2>Modules</h2>
                 </div>
