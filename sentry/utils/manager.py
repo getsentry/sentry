@@ -300,7 +300,13 @@ class GroupManager(models.Manager, ChartMixin):
 
                 if not viewhandler.ref:
                     # TODO: this should handle race conditions
-                    viewhandler.ref = View.objects.get_or_create(path=path)[0]
+                    viewhandler.ref = View.objects.get_or_create(
+                        path=path,
+                        defaults=dict(
+                            verbose_name=viewhandler.verbose_name,
+                            verbose_name_plural=viewhandler.verbose_name_plural,
+                        ),
+                    )[0]
 
                 views.add(viewhandler.ref)
 

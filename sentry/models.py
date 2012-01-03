@@ -133,6 +133,8 @@ class ProjectDomain(Model):
 
 class View(Model):
     path = models.CharField(max_length=100, unique=True)
+    verbose_name = models.CharField(max_length=200, null=True)
+    verbose_name_plural = models.CharField(max_length=200, null=True)
 
 
 class MessageBase(Model):
