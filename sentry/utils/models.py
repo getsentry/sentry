@@ -95,7 +95,7 @@ class GzippedDictField(models.TextField):
 
     def value_to_string(self, obj):
         value = self._get_val_from_obj(obj)
-        return self.get_db_prep_value(value)
+        return self.get_prep_value(value)
 
     def south_field_triple(self):
         "Returns a suitable description of this field for South."
