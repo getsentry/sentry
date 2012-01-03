@@ -8,7 +8,7 @@ sentry.processors.base
 from sentry.conf import settings
 from sentry.utils import InstanceManager
 
-__all__ = ('Processors',)
+__all__ = ('Processor',)
 
 
 class Processor(object):
@@ -20,9 +20,9 @@ class Processor(object):
         """
         return
 
-    objects = InstanceManager(settings.PROCESSORS)
+    handlers = InstanceManager(settings.PROCESSORS)
 
 
 def post_save_processors(sender, **kwargs):
-    for processor in Processor.objects.all():
+    for processor in Processor.handlers.all():
         processor.post_processing(sender)
