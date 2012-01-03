@@ -98,7 +98,7 @@ PROCESSORS = (
 
 # List of event aggregation views
 VIEWS = (
-    # 'sentry.views.Exception',
-    # 'sentry.views.Message',
-    # 'sentry.views.Query',
+    'sentry.views.Exception',
+    'sentry.views.Message',
+    'sentry.views.Query',
 )

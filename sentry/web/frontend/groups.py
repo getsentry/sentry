@@ -52,6 +52,15 @@ def ajax_handler(request, project):
 
         event_list = Group.objects.filter(project=project)
 
+        view_id = request.GET.get('view_id')
+        if view_id:
+            try:
+                view = View.objects.get(pk=view_id)
+            except View.DoesNotExist:
+                return HttpResponseRedirect(reverse('sentry', args=[project.pk]))
+
+            event_list = event_list.filter(views=view)
+
         for filter_ in filters:
             if not filter_.is_set():
                 continue
@@ -221,13 +230,7 @@ def search(request, project):
 
 @login_required
 @has_access
-def group_list(request, project, view=None):
-    if view:
-        try:
-            view = View.objects.get(pk=view)
-        except View.DoesNotExist:
-            return HttpResponseRedirect(reverse('sentry', args=[project.pk]))
-
+def group_list(request, project, view_id=None):
     filters = []
     for cls in Filter.handlers.filter(Group):
         filters.append(cls(request))
@@ -239,8 +242,15 @@ def group_list(request, project, view=None):
 
     event_list = Group.objects.filter(project=project)
 
-    if view:
+    if view_id:
+        try:
+            view = View.objects.get(pk=view_id)
+        except View.DoesNotExist:
+            return HttpResponseRedirect(reverse('sentry', args=[project.pk]))
+
         event_list = event_list.filter(views=view)
+    else:
+        view = None
 
     # Filters only apply if we're not searching
     any_filter = False
@@ -291,6 +301,7 @@ def group_list(request, project, view=None):
         'sort_label': sort_label,
         'any_filter': any_filter,
         'filters': filters,
+        'view': view,
     }, request)
 
 

@@ -34,7 +34,7 @@ if (Sentry === undefined) {
 
     Sentry.config = function(data){
         $.each(data, function(k, v){
-            self.options[k] = v;
+            Sentry.options[k] = v;
         });
     };
 
@@ -81,6 +81,17 @@ if (Sentry === undefined) {
     };
 
     Sentry.realtime = {};
+    Sentry.realtime.options = {
+        viewId: null,
+        projectId: null
+    };
+
+    Sentry.realtime.config = function(data){
+        $.each(data, function(k, v){
+            Sentry.realtime.options[k] = v;
+        });
+    };
+
     Sentry.realtime.status = false;
 
     Sentry.realtime.enable = function(){
@@ -99,6 +110,7 @@ if (Sentry === undefined) {
 
     Sentry.realtime.refresh = function(){
         data = getQueryParams();
+        data.view_id = Sentry.realtime.options.viewId;
         data.op = 'poll';
         if (!Sentry.realtime.status) {
             return;

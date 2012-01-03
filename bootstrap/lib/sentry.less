@@ -81,21 +81,34 @@
   border-bottom: 1px solid #ddd;
   .box-shadow(0 1px 0 rgba(255,255,255,.5));
   position: relative;
+
   h1 {
     margin-bottom: (@baseline / 2) - 1px;
   }
-}
 
-// Sparkline (page header)
+  // Tabbed nav in main header
+   .pills {
+    z-index: 1000;
+    position: absolute;
+    right: 20px;
+    top: 10px;
+  }
 
-.main-header .sparkline {
-  left: 0;
-  position: absolute;
-  width: 100%;
-  .opacity(60);
-}
-.main-header .btn {
-  margin-top: 5px;
+  // Sparkline (page header)
+  .sparkline {
+    z-index: 999;
+    left: 0;
+    position: absolute;
+    width: 100%;
+    .opacity(60);
+    * {
+      z-index: 999;
+    }
+  }
+
+  .btn {
+    margin-top: 5px;
+  }
 }
 
 // Code styles
