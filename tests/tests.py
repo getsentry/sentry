@@ -11,20 +11,8 @@ from sentry.conf import settings
 from sentry.exceptions import InvalidInterface, InvalidData
 from sentry.interfaces import Interface
 from sentry.models import Group, Project
-from sentry.utils.auth import get_auth_header
-from sentry.services.udp import SentryUDPServer
 
 from tests.base import TestCase
-
-# class NullHandler(logging.Handler):
-#     def emit(self, record):
-#         pass
-#
-# # Configure our "oh shit" handler, so that we dont output a bunch of unused
-# # information to stderr
-#
-# logger = logging.getLogger('sentry.error')
-# logger.addHandler(NullHandler())
 
 # Configure our test handler
 
@@ -187,18 +175,3 @@ class SentryManagerTest(TestCase):
         frame = stack['frames'][0]
         self.assertEquals(frame['filename'], 'foo.py')
         self.assertEquals(frame['function'], 'hello_world')
-
-
-class SentryUDPTest(TestCase):
-    def setUp(self):
-        self.address = (('0.0.0.0', 0))
-        self.server = SentryUDPServer(*self.address)
-
-    def test_failure(self):
-        self.assertNotEquals(None, self.server.handle('deadbeef', self.address))
-
-    def test_success(self):
-        data = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
-        ts, message, sig = self._makeMessage(data)
-        packet = get_auth_header(sig, ts, 'udpTest') + '\n\n' + message
-        self.assertEquals(None, self.server.handle(packet, self.address))
