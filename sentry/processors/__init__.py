@@ -6,4 +6,4 @@ sentry.processors
 :license: BSD, see LICENSE for more details.
 """
 
-from .base import Processor
+from .base import *

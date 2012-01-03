@@ -8,6 +8,8 @@ sentry.processors.base
 from sentry.conf import settings
 from sentry.utils import InstanceManager
 
+__all__ = ('Processors',)
+
 
 class Processor(object):
     conditions = {}
