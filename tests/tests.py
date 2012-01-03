@@ -1,18 +1,16 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import absolute_import, with_statement
+from __future__ import absolute_import
 
 import getpass
 import logging
 
 from django.core import mail
-from django.core.urlresolvers import reverse
 
 from sentry.conf import settings
 from sentry.exceptions import InvalidInterface, InvalidData
 from sentry.interfaces import Interface
 from sentry.models import Group, Project
-from sentry.utils import MockDjangoRequest
 from sentry.utils.auth import get_auth_header
 from sentry.services.udp import SentryUDPServer
 
@@ -102,73 +100,9 @@ class SentryMailTest(TestCase):
         self.assertTrue('http://example.com/group/2' in out.body, out.body)
 
 
-class SentrySearchTest(TestCase):
-    def test_checksum_query(self):
-        checksum = 'a' * 32
-        g = Group.objects.create(
-            project_id=1,
-            logger='root',
-            culprit='a',
-            checksum=checksum,
-            message='hi',
-        )
-
-        with self.Settings(SENTRY_PUBLIC=True):
-            response = self.client.get(reverse('sentry-search', kwargs={'project_id': 1}), {'q': '%s$%s' % (checksum, checksum)})
-            self.assertEquals(response.status_code, 302)
-            self.assertEquals(response['Location'], 'http://testserver%s' % (g.get_absolute_url(),))
-
-    def test_dupe_checksum(self):
-        checksum = 'a' * 32
-        g1 = Group.objects.create(
-            project_id=1,
-            logger='root',
-            culprit='a',
-            checksum=checksum,
-            message='hi',
-        )
-        g2 = Group.objects.create(
-            project_id=1,
-            logger='root',
-            culprit='b',
-            checksum=checksum,
-            message='hi',
-        )
-
-        with self.Settings(SENTRY_PUBLIC=True):
-            response = self.client.get(reverse('sentry-search', kwargs={'project_id': 1}), {'q': '%s$%s' % (checksum, checksum)})
-            self.assertEquals(response.status_code, 200)
-            self.assertTemplateUsed(response, 'sentry/search.html')
-            context = response.context
-            self.assertTrue('event_list' in context)
-            self.assertEquals(len(context['event_list']), 2)
-            self.assertTrue(g1 in context['event_list'])
-            self.assertTrue(g2 in context['event_list'])
-
-
 class DummyInterface(Interface):
     def __init__(self, baz):
         self.baz = baz
-
-
-class SentryPluginTest(TestCase):
-    def test_registration(self):
-        from sentry.plugins import GroupActionProvider
-        self.assertEquals(len(GroupActionProvider.plugins), 4)
-
-    def test_get_actions(self):
-        from sentry.templatetags.sentry_helpers import get_actions
-        checksum = 'a' * 32
-        group = Group.objects.create(
-            project_id=1,
-            logger='root',
-            culprit='a',
-            checksum=checksum,
-            message='hi',
-        )
-
-        widgets = list(get_actions(group, MockDjangoRequest()))
-        self.assertEquals(len(widgets), 1)
 
 
 class SentryManagerTest(TestCase):
