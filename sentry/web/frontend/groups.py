@@ -23,13 +23,16 @@ from sentry.conf import settings
 from sentry.filters import Filter
 from sentry.models import Group, Event, Project, View
 from sentry.plugins import GroupActionProvider
-from sentry.utils import json
+from sentry.utils import json, get_db_engine
 from sentry.web.decorators import has_access, login_required
 from sentry.web.helpers import render_to_response, \
     get_project_list
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$', re.I)
 event_re = re.compile(r'^(?P<event_id>[a-z0-9]{32})\$(?P<checksum>[a-z0-9]{32})$', re.I)
+
+
+HAS_TRENDING = not get_db_engine('default').startswith('sqlite')
 
 
 @login_required
@@ -80,7 +83,7 @@ def ajax_handler(request, project):
             event_list = event_list.filter(time_spent_count__gt=0)\
                                    .extra(select={'avg_time_spent': 'time_spent_total / time_spent_count'})\
                                    .order_by('-avg_time_spent')
-        elif sort and sort.startswith('accel_'):
+        elif HAS_TRENDING and sort and sort.startswith('accel_'):
             event_list = Group.objects.get_accelerated(event_list, minutes=int(sort.split('_', 1)[1]))
         else:
             sort = 'priority'
@@ -279,7 +282,7 @@ def group_list(request, project, view_id=None):
         event_list = event_list.filter(time_spent_count__gt=0)\
                                .extra(select={'_avg_time_spent': 'time_spent_total / time_spent_count'})\
                                .order_by('-_avg_time_spent')
-    elif sort and sort.startswith('accel_'):
+    elif HAS_TRENDING and sort and sort.startswith('accel_'):
         minutes = int(sort.split('_', 1)[1])
         sort_label = 'Trending: {0} minutes'.format(minutes)
         event_list = Group.objects.get_accelerated(event_list, minutes=minutes)
@@ -302,6 +305,7 @@ def group_list(request, project, view_id=None):
         'any_filter': any_filter,
         'filters': filters,
         'view': view,
+        'HAS_TRENDING': HAS_TRENDING,
     }, request)
 
 

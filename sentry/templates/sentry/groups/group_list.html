@@ -76,9 +76,11 @@
                 <li class="divider"></li>
                 <li{% ifequal sort 'tottime' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=tottime">{% trans "Total Time Spent" %}</a></li>
                 <li{% ifequal sort 'avgtime' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=avgtime">{% trans "Average Time Spent" %}</a></li>
-                <li class="divider"></li>
-                <li{% ifequal sort 'accel_15' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=accel_15">{% trans "Trending: 15 minutes" %}</a></li>
-                <li{% ifequal sort 'accel_60' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=accel_60">{% trans "Trending: 60 minutes" %}</a></li>
+                {% if HAS_TRENDING %}
+                    <li class="divider"></li>
+                    <li{% ifequal sort 'accel_15' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=accel_15">{% trans "Trending: 15 minutes" %}</a></li>
+                    <li{% ifequal sort 'accel_60' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=accel_60">{% trans "Trending: 60 minutes" %}</a></li>
+                {% endif %}
             </ul>
         </li>
         <li class="pull-right"><a href="{% url sentry-ajax project.pk %}?op=clear" onclick="Sentry.stream.clear();return false;">Clear Feed</a>
