@@ -83,7 +83,9 @@
                 {% endif %}
             </ul>
         </li>
-        <li class="pull-right"><a href="{% url sentry-ajax project.pk %}?op=clear" onclick="Sentry.stream.clear();return false;">Clear Feed</a>
+        <li class="pull-right">
+            <a href="{% url sentry-ajax project.pk %}?op=clear" onclick="Sentry.stream.clear();return false;">{% trans "Resolve Feed" %}</a>
+        </li>
     </ul>
 
     {% if event_list.paginator.objects %}
