@@ -53,8 +53,6 @@ def ajax_handler(request, project):
         event_list = Group.objects.filter(project=project)
 
         view_id = request.GET.get('view_id')
-        if view_id.lower() == u'null':
-            view_id = None
         if view_id:
             try:
                 view = View.objects.get(pk=view_id)
