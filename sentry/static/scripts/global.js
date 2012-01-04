@@ -109,12 +109,12 @@ if (Sentry === undefined) {
     };
 
     Sentry.realtime.refresh = function(){
-        data = getQueryParams();
-        data.view_id = Sentry.realtime.options.viewId;
-        data.op = 'poll';
         if (!Sentry.realtime.status) {
             return;
         }
+        data = getQueryParams();
+        data.view_id = Sentry.realtime.options.viewId || undefined;
+        data.op = 'poll';
         $.ajax({
             url: Sentry.options.apiUrl,
             type: 'get',
