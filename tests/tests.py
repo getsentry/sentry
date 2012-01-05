@@ -175,3 +175,41 @@ class SentryManagerTest(TestCase):
         frame = stack['frames'][0]
         self.assertEquals(frame['filename'], 'foo.py')
         self.assertEquals(frame['function'], 'hello_world')
+
+        result = Group.objects.convert_legacy_kwargs({'data': {
+            '__sentry__': {
+                'user': {
+                    'is_authenticated': True,
+                    'id': 1,
+                },
+            }
+        }})
+        self.assertTrue('sentry.interfaces.User' in result)
+        user = result['sentry.interfaces.User']
+        self.assertTrue('is_authenticated' in user)
+        self.assertEquals(user['is_authenticated'], True)
+        self.assertTrue('id' in user)
+        self.assertEquals(user['id'], 1)
+
+        result = Group.objects.convert_legacy_kwargs({'data': {
+            '__sentry__': {
+                'template': [
+                    "foo\nbar\nbaz\nbiz\nbin",
+                    5,
+                    3,
+                    'foo.html',
+                ],
+            }
+        }})
+        self.assertTrue('sentry.interfaces.Template' in result)
+        user = result['sentry.interfaces.Template']
+        # 'post_context': [(2, 'bar\n'), (3, 'baz\n'), (4, 'biz\n')], 'pre_context': [(0, '')], 'lineno': 1, 'context_line': (1, 'foo\n'), 'filename': 'foo.html'}
+
+        self.assertTrue('pre_context' in user)
+        self.assertEquals(user['pre_context'], [(0, ''), (1, 'foo\n')])
+        self.assertTrue('post_context' in user)
+        self.assertEquals(user['post_context'], [(3, 'baz\n'), (4, 'biz\n'), (5, 'bin')])
+        self.assertTrue('lineno' in user)
+        self.assertEquals(user['lineno'], 2)
+        self.assertTrue('context_line' in user)
+        self.assertEquals(user['context_line'], 'bar\n')
