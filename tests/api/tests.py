@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 
 from sentry.models import Project
 from sentry.coreapi import project_from_id, project_from_api_key_and_id, \
-  APIUnauthorized
+  extract_auth_vars, APIUnauthorized
 
 from tests.base import TestCase
 
@@ -51,3 +51,35 @@ class APITest(TestCase):
         # invalid api_key
         with self.assertRaises(APIUnauthorized):
             project_from_api_key_and_id(1, self.project.id)
+
+    def test_valid_extract_auth_vars_v3(self):
+        request = mock.Mock()
+        request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry key=value, biz=baz'}
+        result = extract_auth_vars(request)
+        self.assertNotEquals(result, None)
+        self.assertTrue('key' in result)
+        self.assertEquals(result['key'], 'value')
+        self.assertTrue('biz' in result)
+        self.assertEquals(result['biz'], 'baz')
+
+    def test_invalid_extract_auth_vars_v3(self):
+        request = mock.Mock()
+        request.META = {'HTTP_X_SENTRY_AUTH': 'foobar'}
+        result = extract_auth_vars(request)
+        self.assertEquals(result, None)
+
+    def test_valid_extract_auth_vars_v2(self):
+        request = mock.Mock()
+        request.META = {'HTTP_AUTHORIZATION': 'Sentry key=value, biz=baz'}
+        result = extract_auth_vars(request)
+        self.assertNotEquals(result, None)
+        self.assertTrue('key' in result)
+        self.assertEquals(result['key'], 'value')
+        self.assertTrue('biz' in result)
+        self.assertEquals(result['biz'], 'baz')
+
+    def test_invalid_extract_auth_vars_v2(self):
+        request = mock.Mock()
+        request.META = {'HTTP_AUTHORIZATION': 'foobar'}
+        result = extract_auth_vars(request)
+        self.assertEquals(result, None)

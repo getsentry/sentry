@@ -1,3 +1,10 @@
+"""
+sentry.coreapi
+~~~~~~~~~~~~~~
+
+:copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
 import base64
 import datetime
 import logging
