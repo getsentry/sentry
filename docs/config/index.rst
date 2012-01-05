@@ -27,17 +27,6 @@ This document describes additional configuration options available to the Sentry
 
 		SENTRY_URL_PREFIX = '/sentry'
 
-.. data:: sentry.conf.PUBLIC
-    :noindex:
-
-	Should Sentry be protected by a username and password (using @login_required) or be publicly accessible.
-
-	Defaults to ``False`` (password protection).
-
-	::
-
-		SENTRY_PUBLIC = True
-
 .. data:: sentry.conf.SAMPLE_DATA
     :noindex:
 
@@ -75,6 +64,30 @@ This document describes additional configuration options available to the Sentry
 		    'sentry.filters.SiteFilter',
 		)
 
+.. data:: sentry.conf.PROCESSORS
+    :noindex:
+
+    A list of processors for acting on Sentry events.
+
+    ::
+
+        SENTRY_PROCESSORS = (
+            'my.custom.IRCNotifier',
+        )
+
+.. data:: sentry.conf.VIEWS
+    :noindex:
+
+    A list of views for enhancing the event aggregation dashboard.
+
+    ::
+
+        SENTRY_VIEWS = (
+            'sentry.views.Exception',
+            'sentry.views.Message',
+            'sentry.views.Query',
+        )
+
 .. data:: sentry.conf.LOG_LEVELS
     :noindex:
 
@@ -89,6 +102,32 @@ This document describes additional configuration options available to the Sentry
             (logging.ERROR, 'error'),
             (logging.FATAL, 'fatal'),
         )
+
+Authentication
+--------------
+
+.. data:: sentry.conf.PUBLIC
+    :noindex:
+
+    Should Sentry be protected by a username and password (using @login_required) or be publicly accessible.
+
+    Defaults to ``False`` (password protection).
+
+    ::
+
+        SENTRY_PUBLIC = True
+
+.. data:: sentry.conf.ALLOW_PROJECT_CREATION
+    :noindex:
+
+    Should sentry allow users without the 'sentry.add_project' permission to
+    create new projects?
+
+    Defaults to ``False`` (require permission).
+
+    ::
+
+        SENTRY_ALLOW_PROJECT_CREATION = True
 
 Notifications
 -------------
