@@ -7,7 +7,9 @@ sentry.wsgi
 """
 
 #!/usr/bin/env python
-import os, sys, os.path
+import os
+import os.path
+import sys
 
 # Add the project to the python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))

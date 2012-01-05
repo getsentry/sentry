@@ -12,6 +12,7 @@ from django.utils import simplejson
 import datetime
 import uuid
 
+
 class BetterJSONEncoder(DjangoJSONEncoder):
     def default(self, obj):
         if isinstance(obj, uuid.UUID):
@@ -22,11 +23,14 @@ class BetterJSONEncoder(DjangoJSONEncoder):
             return list(obj)
         return super(BetterJSONEncoder, self).default(obj)
 
+
 def better_decoder(data):
     return data
 
+
 def dumps(value, **kwargs):
     return simplejson.dumps(value, cls=BetterJSONEncoder, **kwargs)
+
 
 def loads(value, **kwargs):
     return simplejson.loads(value, object_hook=better_decoder)

@@ -8,6 +8,7 @@ sentry.utils.router
 
 from sentry.conf import settings
 
+
 class SentryRouter(object):
     def db_for_write(self, model, **hints):
         if model._meta.app_label == 'sentry':

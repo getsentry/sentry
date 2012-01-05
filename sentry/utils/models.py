@@ -1,3 +1,11 @@
+"""
+sentry.utils.models
+~~~~~~~~~~~~~~~~~~~
+
+:copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
+
 import base64
 import logging
 import operator
@@ -20,8 +28,10 @@ EXPRESSION_NODE_CALLBACKS = {
     ExpressionNode.OR: operator.or_,
 }
 
+
 class CannotResolve(Exception):
     pass
+
 
 def resolve_expression_node(instance, node):
     def _resolve(instance, node):
@@ -38,6 +48,7 @@ def resolve_expression_node(instance, node):
     for n in node.children[1:]:
         runner = op(runner, _resolve(instance, n))
     return runner
+
 
 class Model(models.Model):
     class Meta:
@@ -56,7 +67,7 @@ class Model(models.Model):
                 kwargs[field.name] = field.pre_save(self, False)
 
         affected = self.__class__._base_manager.using(using).filter(pk=self.pk).update(**kwargs)
-        for k,v in kwargs.iteritems():
+        for k, v in kwargs.iteritems():
             if isinstance(v, ExpressionNode):
                 v = resolve_expression_node(self, v)
             setattr(self, k, v)
@@ -69,6 +80,7 @@ class Model(models.Model):
             raise ValueError("Somehow we have updated multiple rows, and you are now royally fucked.")
 
     update.alters_data = True
+
 
 class GzippedDictField(models.TextField):
     """

@@ -5,8 +5,8 @@ sentry.coreapi
 :copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from datetime import datetime
 import base64
-import datetime
 import logging
 import time
 import zlib
@@ -111,7 +111,10 @@ def project_from_id(request):
     APIUnauthorized.
     """
     try:
-        pm = ProjectMember.objects.get(user=request.user, project=request.GET['project_id'])
+        pm = ProjectMember.objects.get(
+            user=request.user,
+            project=request.GET['project_id'],
+        )
     except ProjectMember.DoesNotExist:
         raise APIUnauthorized()
 
@@ -128,7 +131,8 @@ def decode_and_decompress_data(encoded_data):
         # This error should be caught as it suggests that there's a
         # bug somewhere in the client's code.
         logger.exception('Bad data received')
-        raise APIForbidden('Bad data decoding request (%s, %s)' % (e.__class__.__name__, e))
+        raise APIForbidden('Bad data decoding request (%s, %s)' % (
+            e.__class__.__name__, e))
 
 
 def safely_load_json_string(json_string):
@@ -138,15 +142,16 @@ def safely_load_json_string(json_string):
         # This error should be caught as it suggests that there's a
         # bug somewhere in the client's code.
         logger.exception('Bad data received')
-        raise APIForbidden('Bad data reconstructing object (%s, %s)' % (e.__class__.__name__, e))
+        raise APIForbidden('Bad data reconstructing object (%s, %s)' % (
+            e.__class__.__name__, e))
 
     # XXX: ensure keys are coerced to strings
     return dict((smart_str(k), v) for k, v in obj.iteritems())
 
 
 def ensure_valid_project_id(desired_project, data):
-    # Confirm they're using either the master key, or their specified project matches with the
-    # signed project.
+    # Confirm they're using either the master key, or their specified project
+    # matches with the signed project.
     if desired_project and str(data.get('project', '')) != str(desired_project.pk):
         raise APIForbidden('Invalid credentials')
     elif not desired_project:
@@ -157,11 +162,11 @@ def insert_data_to_database(data):
     def process_data_timestamp(data):
         if is_float(data['timestamp']):
             try:
-                data['timestamp'] = datetime.datetime.fromtimestamp(float(data['timestamp']))
+                data['timestamp'] = datetime.fromtimestamp(float(data['timestamp']))
             except:
                 logger.exception('Failed reading timestamp')
                 del data['timestamp']
-        elif not isinstance(data['timestamp'], datetime.datetime):
+        elif not isinstance(data['timestamp'], datetime):
             if '.' in data['timestamp']:
                 format = '%Y-%m-%dT%H:%M:%S.%f'
             else:
@@ -170,7 +175,7 @@ def insert_data_to_database(data):
                 # support UTC market, but not other timestamps
                 format += 'Z'
             try:
-                data['timestamp'] = datetime.datetime.strptime(data['timestamp'], format)
+                data['timestamp'] = datetime.strptime(data['timestamp'], format)
             except:
                 logger.exception('Failed reading timestamp')
                 del data['timestamp']
@@ -181,4 +186,3 @@ def insert_data_to_database(data):
         Group.objects.from_kwargs(**data)
     except (InvalidInterface, InvalidData), e:
         raise APIError(e)
-

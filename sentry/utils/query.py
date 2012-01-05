@@ -10,11 +10,15 @@ from django.db.models import Min, Max
 from django.db.models.fields import AutoField, IntegerField
 from django.db.models.query import QuerySet
 
+
 class QuerySetDoubleIteration(Exception):
     "A QuerySet was iterated over twice, you probably want to list() it."
     pass
 
-class InvalidQuerySetError(ValueError): pass
+
+class InvalidQuerySetError(ValueError):
+    pass
+
 
 class SkinnyQuerySet(QuerySet):
     def __len__(self):
@@ -36,6 +40,7 @@ class SkinnyQuerySet(QuerySet):
 
     def list(self):
         return list(self)
+
 
 class RangeQuerySetWrapper(object):
     """
@@ -85,7 +90,10 @@ class RangeQuerySetWrapper(object):
             limit = self.limit or max_id
 
             while at <= max_id and (not self.limit or num < self.limit):
-                results = self.queryset.filter(id__gte=at, id__lte=min(at+self.step-1, max_id))
+                results = self.queryset.filter(
+                    id__gte=at,
+                    id__lte=min(at + self.step - 1, max_id),
+                )
                 if self.sorted:
                     results = results.order_by('id')
                 results = results.iterator()
