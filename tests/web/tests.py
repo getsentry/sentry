@@ -8,7 +8,8 @@ from django.conf import settings as django_settings
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
-from sentry.models import Group, Project, ProjectMember
+from sentry.models import Group, Project, ProjectMember, \
+  MEMBER_OWNER, MEMBER_USER
 from sentry.web.helpers import get_login_url
 
 from tests.base import TestCase
@@ -124,93 +125,127 @@ class SentryViewsTest(TestCase):
         # self.assertEquals(resp.status_code, 200)
         # self.assertTemplateUsed(resp, 'sentry/events/replay.html')
 
+
+class ViewPermissionTest(TestCase):
+    """
+    These tests simply ensure permission requirements for various views.
+    """
+    fixtures = ['tests/fixtures/views.json']
+
+    def setUp(self):
+        self.user = User(username="admin", email="admin@localhost", is_staff=True, is_superuser=True)
+        self.user.set_password('admin')
+        self.user.save()
+        self.user2 = User(username="member", email="member@localhost")
+        self.user2.set_password('member')
+        self.user2.save()
+        self.user3 = User(username="nobody", email="nobody@localhost")
+        self.user3.set_password('nobody')
+        self.user3.save()
+        self.user4 = User(username="owner", email="owner@localhost")
+        self.user4.set_password('owner')
+        self.user4.save()
+        self.pm = ProjectMember.objects.create(
+            user_id=2,
+            project_id=1,
+            type=MEMBER_USER,
+        )
+        self.pm = ProjectMember.objects.create(
+            user_id=4,
+            project_id=1,
+            type=MEMBER_OWNER,
+        )
+        self.project = Project.objects.get(id=1)
+        self.project.update(public=False)
+
+    def _assertPerm(self, path, template, account=None, want=True):
+        """
+        Requests ``path`` and asserts that ``template`` is
+        rendered for ``account`` (Anonymous if None) given ``want``
+        is Trueish.
+        """
+        if account:
+            self.assertTrue(self.client.login(username=account, password=account))
+        else:
+            self.client.logout()
+        resp = self.client.get(path)
+        if want:
+            self.assertEquals(resp.status_code, 200)
+            self.assertTemplateUsed(resp, template)
+        else:
+            self.assertEquals(resp.status_code, 302)
+            self.assertTemplateNotUsed(resp, template)
+
     def test_project_list(self):
-        self.client.login(username='admin', password='admin')
-        resp = self.client.get(reverse('sentry-project-list'))
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/projects/list.html')
+        path = reverse('sentry-project-list')
+        template = 'sentry/projects/list.html'
+
+        self._assertPerm(path, template, 'admin')
+        self._assertPerm(path, template, 'nobody')
+        self._assertPerm(path, template, None, False)
 
     def test_new_project(self):
         path = reverse('sentry-new-project')
+        template = 'sentry/projects/new.html'
 
-        # unauthenticated
-        resp = self.client.get(path)
-        self.assertEquals(resp.status_code, 302)
+        self._assertPerm(path, template, 'admin')
+        self._assertPerm(path, template, 'nobody', False)
+        self._assertPerm(path, template, None, False)
 
-        # superuser
-        self.client.login(username='admin', password='admin')
-        resp = self.client.get(path)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/projects/new.html')
+        with self.Settings(SENTRY_ALLOW_PROJECT_CREATION=True):
+            self._assertPerm(path, template, 'admin')
+            self._assertPerm(path, template, 'nobody')
+            self._assertPerm(path, template, None, False)
 
     def test_manage_project(self):
         path = reverse('sentry-manage-project', kwargs={'project_id': 1})
+        template = 'sentry/projects/manage.html'
 
-        # unauthenticated
-        resp = self.client.get(path)
-        self.assertEquals(resp.status_code, 302)
-
-        # superuser
-        self.client.login(username='admin', password='admin')
-        resp = self.client.get(path)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/projects/manage.html')
+        self._assertPerm(path, template, 'admin')
+        self._assertPerm(path, template, 'owner')
+        self._assertPerm(path, template, None, False)
+        self._assertPerm(path, template, 'nobody', False)
+        self._assertPerm(path, template, 'member', False)
 
     def test_remove_project(self):
         path = reverse('sentry-remove-project', kwargs={'project_id': 1})
+        template = 'sentry/projects/remove.html'
 
-        # unauthenticated
-        resp = self.client.get(path)
-        self.assertEquals(resp.status_code, 302)
-
-        # superuser
-        self.client.login(username='admin', password='admin')
-        resp = self.client.get(path)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/projects/remove.html')
+        self._assertPerm(path, template, 'admin')
+        self._assertPerm(path, template, 'owner')
+        self._assertPerm(path, template, None, False)
+        self._assertPerm(path, template, 'nobody', False)
+        self._assertPerm(path, template, 'member', False)
 
     def test_new_project_member(self):
         path = reverse('sentry-new-project-member', kwargs={'project_id': 1})
+        template = 'sentry/projects/members/new.html'
 
-        # unauthenticated
-        resp = self.client.get(path)
-        self.assertEquals(resp.status_code, 302)
-
-        # superuser
-        self.client.login(username='admin', password='admin')
-        resp = self.client.get(path)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/projects/members/new.html')
+        self._assertPerm(path, template, 'admin')
+        self._assertPerm(path, template, 'owner')
+        self._assertPerm(path, template, None, False)
+        self._assertPerm(path, template, 'nobody', False)
+        self._assertPerm(path, template, 'member', False)
 
     def test_edit_project_member(self):
-        ProjectMember.objects.create(project_id=1, user_id=1)
-
         path = reverse('sentry-edit-project-member', kwargs={'project_id': 1, 'member_id': 1})
+        template = 'sentry/projects/members/edit.html'
 
-        # unauthenticated
-        resp = self.client.get(path)
-        self.assertEquals(resp.status_code, 302)
-
-        # superuser
-        self.client.login(username='admin', password='admin')
-        resp = self.client.get(path)
-        self.assertEquals(resp.status_code, 200, resp.content)
-        self.assertTemplateUsed(resp, 'sentry/projects/members/edit.html')
+        self._assertPerm(path, template, 'admin')
+        self._assertPerm(path, template, 'owner')
+        self._assertPerm(path, template, None, False)
+        self._assertPerm(path, template, 'nobody', False)
+        self._assertPerm(path, template, 'member', False)
 
     def test_remove_project_member(self):
-        ProjectMember.objects.create(project_id=1, user_id=1)
-
         path = reverse('sentry-remove-project-member', kwargs={'project_id': 1, 'member_id': 1})
+        template = 'sentry/projects/members/remove.html'
 
-        # unauthenticated
-        resp = self.client.get(path)
-        self.assertEquals(resp.status_code, 302, resp.content)
-
-        # superuser
-        self.client.login(username='admin', password='admin')
-        resp = self.client.get(path)
-        self.assertEquals(resp.status_code, 200, resp.content)
-        self.assertTemplateUsed(resp, 'sentry/projects/members/remove.html')
+        self._assertPerm(path, template, 'admin')
+        self._assertPerm(path, template, 'owner')
+        self._assertPerm(path, template, None, False)
+        self._assertPerm(path, template, 'nobody', False)
+        self._assertPerm(path, template, 'member', False)
 
 
 class SentryFeedsTest(TestCase):

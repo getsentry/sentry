@@ -102,3 +102,7 @@ VIEWS = (
     'sentry.views.Message',
     'sentry.views.Query',
 )
+
+# Should users without 'sentry.add_project' permissions be allowed
+# to create new projects
+ALLOW_PROJECT_CREATION = False

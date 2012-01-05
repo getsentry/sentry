@@ -1,11 +1,11 @@
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect, HttpResponseForbidden
+from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
+from sentry.conf import settings
 from sentry.models import MEMBER_USER, MEMBER_OWNER
-from sentry.web.decorators import login_required, has_access, \
-     permission_required
+from sentry.web.decorators import login_required, has_access
 from sentry.web.forms import EditProjectForm, NewProjectForm, \
      EditProjectMemberForm, NewProjectMemberForm, RemoveProjectForm
 from sentry.web.helpers import render_to_response, get_project_list
@@ -18,9 +18,12 @@ def project_list(request):
     }, request)
 
 
-@permission_required('sentry.add_project')
+@login_required
 @csrf_protect
 def new_project(request):
+    if not (settings.ALLOW_PROJECT_CREATION or request.user.has_perm('sentry.add_project')):
+        return HttpResponseRedirect(reverse('sentry'))
+
     form = NewProjectForm(request.POST or None)
     if form.is_valid():
         project = form.save(commit=False)
@@ -42,7 +45,7 @@ def new_project(request):
 
 
 @login_required
-@has_access('owner')
+@has_access(MEMBER_OWNER)
 @csrf_protect
 def remove_project(request, project):
     project_list = filter(lambda x: x != project, get_project_list(request.user).itervalues())
@@ -73,7 +76,7 @@ def remove_project(request, project):
 
 
 @login_required
-@has_access('owner')
+@has_access(MEMBER_OWNER)
 @csrf_protect
 def manage_project(request, project):
     form = EditProjectForm(request.POST or None, instance=project)
@@ -96,7 +99,7 @@ def manage_project(request, project):
 
 
 @csrf_protect
-@has_access('owner')
+@has_access(MEMBER_OWNER)
 def new_project_member(request, project):
     form = NewProjectMemberForm(project, request.POST or None, initial={
         'type': MEMBER_USER,
@@ -118,7 +121,7 @@ def new_project_member(request, project):
 
 
 @csrf_protect
-@has_access('owner')
+@has_access(MEMBER_OWNER)
 def edit_project_member(request, project, member_id):
     member = project.member_set.get(pk=member_id)
 
@@ -139,11 +142,11 @@ def edit_project_member(request, project, member_id):
 
 
 @csrf_protect
-@has_access('owner')
+@has_access(MEMBER_OWNER)
 def remove_project_member(request, project, member_id):
     member = project.member_set.get(pk=member_id)
     if member.user == project.owner:
-        return HttpResponseForbidden()
+        return HttpResponseRedirect(reverse('sentry-project-list'))
 
     if request.POST:
         member.delete()

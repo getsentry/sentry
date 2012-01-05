@@ -15,7 +15,7 @@ def has_access(group_or_func=None):
     The default permission scope is 'user', which
     allows both 'user' and 'owner' access, but not 'system agent'.
 
-    >>> @has_access('owner')
+    >>> @has_access(MEMBER_OWNER)
     >>> def foo(request, project):
     >>>     return
 
