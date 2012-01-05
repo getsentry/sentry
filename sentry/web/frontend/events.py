@@ -2,6 +2,8 @@ import datetime
 import urllib
 
 from django.core.context_processors import csrf
+from django.core.urlresolvers import reverse
+from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
 from sentry.conf import settings
@@ -54,11 +56,16 @@ def event_list(request, project):
 @login_required
 @csrf_protect
 def replay_event(request, project_id, event_id):
-    event = Event.objects.get(pk=event_id)
+    try:
+        event = Event.objects.get(pk=event_id)
+    except Event.DoesNotExist:
+        return HttpResponseRedirect(reverse('sentry'))
+
     interfaces = event.interfaces
     if 'sentry.interfaces.Http' not in interfaces:
         # TODO: show a proper error
-        raise ValueError
+        return HttpResponseRedirect(reverse('sentry'))
+
     http = interfaces['sentry.interfaces.Http']
     if http.headers:
         headers = '\n'.join('%s: %s' % (k, v) for k, v in http.headers.iteritems() if k[0].upper() == k[0])

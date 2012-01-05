@@ -33,6 +33,7 @@ if not settings.configured:
             # Included to fix Disqus' test Django which solves IntegrityMessage case
             'django.contrib.contenttypes',
 
+            'djkombu',
             'south',
 
             'sentry',

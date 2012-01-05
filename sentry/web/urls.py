@@ -84,7 +84,7 @@ urlpatterns = patterns('',
     url(r'^(?P<project_id>\d+)/group/(?P<group_id>\d+)/events/(?P<event_id>\d+)$', groups.group_event_details, name='sentry-group-event'),
     url(r'^(?P<project_id>\d+)/group/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)', groups.group_plugin_action, name='sentry-group-plugin-action'),
 
-    url(r'^(?P<project_id>\d+)/events$', events.event_list, name='sentry'),
+    url(r'^(?P<project_id>\d+)/events$', events.event_list, name='sentry-events'),
     url(r'^(?P<project_id>\d+)/events/(?P<event_id>\d+)/replay$', events.replay_event, name='sentry-replay'),
 
     url(r'^(?P<project_id>\d+)/search$', groups.search, name='sentry-search'),

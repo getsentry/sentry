@@ -27,11 +27,15 @@ def get_project_list(user=None, access=None, hidden=False):
     if access is None:
         access = MEMBER_USER
 
-    # First we fetch public projects
-    qs = Project.objects.filter(public=True)
-    if not hidden:
-        qs = qs.filter(status=0)
-    projects = dict((p.pk, p) for p in qs)
+    # If we're not requesting specific access include all
+    # public projects
+    if access <= MEMBER_USER:
+        qs = Project.objects.filter(public=True)
+        if not hidden:
+            qs = qs.filter(status=0)
+        projects = dict((p.pk, p) for p in qs)
+    else:
+        projects = dict()
 
     # If the user is authenticated, include their memberships
     if user and user.is_authenticated():

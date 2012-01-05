@@ -1,7 +1,7 @@
 {% load sentry_helpers %}
 
 <li class="{% cycle 'row1' 'row2' %} level-{{ event.level }}{% if priority %} priority-{{ priority }}{% endif %}" id="message_{{ event.pk|safe }}">
-    <h3><a href="{% url sentry-group-event event.project_id group.pk event.pk %}">{% if event.view %}{{ event.view }}{% else %}{{ event.message_top|truncatechars:100 }}{% endif %}</a></h3>
+    <h3><a href="{% url sentry-group-event event.project_id event.group_id event.pk %}">{% if event.view %}{{ event.view }}{% else %}{{ event.message_top|truncatechars:100 }}{% endif %}</a></h3>
     <span class="last_seen">{{ event.datetime|timesince }}</span>
     {% if event.time_spent %}
         <span class="time_spent">{{ event.time_spent|duration }}</span>
@@ -18,6 +18,6 @@
         {% for tag in event|get_tags:request %}<span class="tag">{{ tag }}</span> {% endfor %}
         {{ event.error }}
     </p>
-    <a href="{% url sentry-group-event event.project_id group.pk event.pk %}" class="row_link"></a>
+    <a href="{% url sentry-group-event event.project_id event.group_id event.pk %}" class="row_link"></a>
 </li>
 

@@ -93,6 +93,125 @@ class SentryViewsTest(TestCase):
         group = Group.objects.get(pk=2)
         self.assertEquals(resp.context['group'], group)
 
+    # TODO: improve upon these tests
+    def test_group_json(self):
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(reverse('sentry-group-json', kwargs={'project_id': 1, 'group_id': 2}))
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp['Content-Type'], 'application/json')
+
+    def test_status(self):
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(reverse('sentry-status'), follow=True)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/status.html')
+
+    def test_event_list(self):
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(reverse('sentry-events', kwargs={'project_id': 1}))
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/events/event_list.html')
+
+    def test_replay_event(self):
+        # bad event_id
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(reverse('sentry-replay', kwargs={'project_id': 1, 'event_id': 1}))
+        self.assertEquals(resp.status_code, 302)
+
+        # valid params
+        # self.client.login(username='admin', password='admin')
+        # resp = self.client.get(reverse('sentry-replay', kwargs={'project_id': 1, 'event_id': 4}))
+        # self.assertEquals(resp.status_code, 200)
+        # self.assertTemplateUsed(resp, 'sentry/events/replay.html')
+
+    def test_project_list(self):
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(reverse('sentry-project-list'))
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/projects/list.html')
+
+    def test_new_project(self):
+        path = reverse('sentry-new-project')
+
+        # unauthenticated
+        resp = self.client.get(path)
+        self.assertEquals(resp.status_code, 302)
+
+        # superuser
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(path)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/projects/new.html')
+
+    def test_manage_project(self):
+        path = reverse('sentry-manage-project', kwargs={'project_id': 1})
+
+        # unauthenticated
+        resp = self.client.get(path)
+        self.assertEquals(resp.status_code, 302)
+
+        # superuser
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(path)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/projects/manage.html')
+
+    def test_remove_project(self):
+        path = reverse('sentry-remove-project', kwargs={'project_id': 1})
+
+        # unauthenticated
+        resp = self.client.get(path)
+        self.assertEquals(resp.status_code, 302)
+
+        # superuser
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(path)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/projects/remove.html')
+
+    def test_new_project_member(self):
+        path = reverse('sentry-new-project-member', kwargs={'project_id': 1})
+
+        # unauthenticated
+        resp = self.client.get(path)
+        self.assertEquals(resp.status_code, 302)
+
+        # superuser
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(path)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/projects/members/new.html')
+
+    def test_edit_project_member(self):
+        ProjectMember.objects.create(project_id=1, user_id=1)
+
+        path = reverse('sentry-edit-project-member', kwargs={'project_id': 1, 'member_id': 1})
+
+        # unauthenticated
+        resp = self.client.get(path)
+        self.assertEquals(resp.status_code, 302)
+
+        # superuser
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(path)
+        self.assertEquals(resp.status_code, 200, resp.content)
+        self.assertTemplateUsed(resp, 'sentry/projects/members/edit.html')
+
+    def test_remove_project_member(self):
+        ProjectMember.objects.create(project_id=1, user_id=1)
+
+        path = reverse('sentry-remove-project-member', kwargs={'project_id': 1, 'member_id': 1})
+
+        # unauthenticated
+        resp = self.client.get(path)
+        self.assertEquals(resp.status_code, 302, resp.content)
+
+        # superuser
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(path)
+        self.assertEquals(resp.status_code, 200, resp.content)
+        self.assertTemplateUsed(resp, 'sentry/projects/members/remove.html')
+
 
 class SentryFeedsTest(TestCase):
     fixtures = ['tests/fixtures/feeds.json']
