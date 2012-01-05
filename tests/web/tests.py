@@ -36,24 +36,6 @@ class SentryViewsTest(TestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateNotUsed(resp, 'sentry/login.html')
 
-    def test_get_login_url(self):
-        with self.Settings(LOGIN_URL='/really-a-404'):
-            url = get_login_url(True)
-            self.assertEquals(url, reverse('sentry-login'))
-
-        with self.Settings(LOGIN_URL=reverse('sentry-fake-login')):
-            url = get_login_url(True)
-            self.assertEquals(url, reverse('sentry-fake-login'))
-
-        # should still be cached
-        with self.Settings(LOGIN_URL='/really-a-404'):
-            url = get_login_url(False)
-            self.assertEquals(url, reverse('sentry-fake-login'))
-
-        with self.Settings(SENTRY_LOGIN_URL=None):
-            url = get_login_url(True)
-            self.assertEquals(url, reverse('sentry-login'))
-
     def test_dashboard(self):
         self.client.login(username='admin', password='admin')
         resp = self.client.get(reverse('sentry'), follow=True)
@@ -199,3 +181,21 @@ class SentryHelpersTest(TestCase):
 
         django_settings.DATABASES = _databases
         django_settings.DATABASE_ENGINE = _engine
+
+    def test_get_login_url(self):
+        with self.Settings(LOGIN_URL='/really-a-404'):
+            url = get_login_url(True)
+            self.assertEquals(url, reverse('sentry-login'))
+
+        with self.Settings(LOGIN_URL=reverse('sentry-fake-login')):
+            url = get_login_url(True)
+            self.assertEquals(url, reverse('sentry-fake-login'))
+
+        # should still be cached
+        with self.Settings(LOGIN_URL='/really-a-404'):
+            url = get_login_url(False)
+            self.assertEquals(url, reverse('sentry-fake-login'))
+
+        with self.Settings(SENTRY_LOGIN_URL=None):
+            url = get_login_url(True)
+            self.assertEquals(url, reverse('sentry-login'))
