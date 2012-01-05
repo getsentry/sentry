@@ -3,12 +3,14 @@
 from __future__ import absolute_import
 
 import mock
+import time
 
 from django.contrib.auth.models import User
 
 from sentry.models import Project
 from sentry.coreapi import project_from_id, project_from_api_key_and_id, \
-  extract_auth_vars, APIUnauthorized
+  extract_auth_vars, project_from_auth_vars, validate_hmac, APIUnauthorized, \
+  APIForbidden, APITimestampExpired, APIError
 
 from tests.base import TestCase
 
@@ -83,3 +85,47 @@ class APITest(TestCase):
         request.META = {'HTTP_AUTHORIZATION': 'foobar'}
         result = extract_auth_vars(request)
         self.assertEquals(result, None)
+
+    def test_valid_project_from_auth_vars_without_key(self):
+        auth_vars = {
+            'sentry_signature': 'adf',
+            'sentry_timestamp': time.time(),
+        }
+        with mock.patch('sentry.coreapi.validate_hmac') as validate_hmac:
+            validate_hmac.return_value = True
+
+            # without key
+            result = project_from_auth_vars(auth_vars, '')
+            self.assertEquals(result, None)
+
+            # with key
+            auth_vars['sentry_key'] = self.pm.public_key
+            result = project_from_auth_vars(auth_vars, '')
+            self.assertEquals(result, self.project)
+
+    def test_valid_validate_hmac(self):
+        with mock.patch('sentry.coreapi.get_signature') as get_signature:
+            get_signature.return_value = 'signature'
+
+            validate_hmac('foo', 'signature', time.time(), 'foo')
+
+    def test_invalid_validate_hmac_signature(self):
+        with mock.patch('sentry.coreapi.get_signature') as get_signature:
+            get_signature.return_value = 'notsignature'
+
+            with self.assertRaises(APIForbidden):
+                validate_hmac('foo', 'signature', time.time(), 'foo')
+
+    def test_invalid_validate_hmac_expired(self):
+        with mock.patch('sentry.coreapi.get_signature') as get_signature:
+            get_signature.return_value = 'signature'
+
+            with self.assertRaises(APITimestampExpired):
+                validate_hmac('foo', 'signature', time.time() - 3601, 'foo')
+
+    def test_invalid_validate_hmac_bad_timestamp(self):
+        with mock.patch('sentry.coreapi.get_signature') as get_signature:
+            get_signature.return_value = 'signature'
+
+            with self.assertRaises(APIError):
+                validate_hmac('foo', 'signature', 'foo', 'foo')

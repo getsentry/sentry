@@ -64,7 +64,7 @@ def project_from_auth_vars(auth_vars, data):
 
     if api_key:
         try:
-            pm = ProjectMember.objects.get(api_key=api_key)
+            pm = ProjectMember.objects.get(public_key=api_key)
         except ProjectMember.DoesNotExist:
             raise APIForbidden('Invalid signature')
         project = pm.project
