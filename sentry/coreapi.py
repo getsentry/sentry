@@ -85,9 +85,13 @@ def validate_hmac(message, signature, timestamp, secret_key):
         raise APIForbidden('Invalid signature')
 
 
-def project_from_api_key_and_id(api_key, project):
+def project_from_api_key_and_id(api_key, project_id):
+    """
+    Given a public api key and a project id returns
+    a project instance or throws APIUnauthorized.
+    """
     try:
-        pm = ProjectMember.objects.get(api_key=api_key, project=project)
+        pm = ProjectMember.objects.get(public_key=api_key, project=project_id)
     except ProjectMember.DoesNotExist:
         raise APIUnauthorized()
 
@@ -95,6 +99,10 @@ def project_from_api_key_and_id(api_key, project):
 
 
 def project_from_id(request):
+    """
+    Given a request returns a project instance or throws
+    APIUnauthorized.
+    """
     try:
         pm = ProjectMember.objects.get(user=request.user, project=request.GET['project_id'])
     except ProjectMember.DoesNotExist:
