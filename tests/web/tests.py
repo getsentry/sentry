@@ -125,6 +125,34 @@ class SentryViewsTest(TestCase):
         # self.assertEquals(resp.status_code, 200)
         # self.assertTemplateUsed(resp, 'sentry/events/replay.html')
 
+    def test_new_project(self):
+        self.client.login(username='admin', password='admin')
+
+        # missing name
+        path = reverse('sentry-new-project')
+        resp = self.client.post(path, {})
+        self.assertEquals(resp.status_code, 200)
+
+        # valid params
+        path = reverse('sentry-new-project')
+        resp = self.client.post(path, {
+            'name': 'Test Project',
+        })
+        self.assertNotEquals(resp.status_code, 200)
+
+        project = Project.objects.filter(name='Test Project')
+        self.assertTrue(project.exists())
+        project = project.get()
+
+        self.assertEquals(project.owner, self.user)
+
+        member_set = list(project.member_set.all())
+
+        self.assertEquals(len(member_set), 1)
+        member = member_set[0]
+        self.assertEquals(member.user, self.user)
+        self.assertEquals(member.type, MEMBER_OWNER)
+
 
 class ViewPermissionTest(TestCase):
     """
