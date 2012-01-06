@@ -9,6 +9,7 @@ import pkg_resources
 import sys
 
 from django.core.urlresolvers import reverse
+from django.shortcuts import redirect
 from django.db.models import Sum
 from django.http import HttpResponseRedirect, Http404, HttpResponseNotModified, \
   HttpResponse
@@ -36,6 +37,23 @@ def dashboard(request):
 def status(request):
     from sentry.views import View
     from sentry.processors import Processor
+
+    # Deal with the plugins
+    site_configs = []
+    for name, cls in GroupActionProvider.plugins.iteritems():
+        if hasattr(cls, 'global_setting_view'):
+            view = cls.global_setting_view(request)
+            if view is True:
+                return redirect(request.path)
+            item = {
+                'title': cls.title,
+                'slug': cls.slug,
+                'view': view,
+            }
+            for prop in ('site_config_title',):
+                if hasattr(cls, prop):
+                    item[prop] = getattr(cls, prop)
+            site_configs.append(item)
 
     config = []
     for k in sorted(dir(settings)):
@@ -69,6 +87,7 @@ def status(request):
         'processors': [(x.__class__.__name__, x.__module__) for x in Processor.handlers.all()],
         'pending_tasks': pending_tasks,
         'worker_status': worker_status,
+        'site_configs': site_configs,
     }, request)
 
 
