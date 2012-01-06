@@ -34,13 +34,30 @@
                     <th>{% trans "Body:" %}</th>
                     <td>
                         {% if data %}
-                            {% if data|length > 5 %}
-                                <a href="#" onclick="return varToggle(this, 'HttpBody')"><span>&#x25b6;</span> {% trans "Body" %}</a>
-                                <div id="vHttpBody" style="display:none;">
-                                    <pre>{{ data|pprint|escape }}</pre>
-                                </div>
+                            {% if data_is_dict %}
+                                {% if data|length > 5 %}
+                                    <a href="#" onclick="return varToggle(this, 'HttpBody')"><span>&#x25b6;</span> {% trans "Body" %}</a>
+                                {% endif %}
+                                <table class="vars" id="vHttpHeaders"{% if data|length > 5 %} style="display:none;"{% endif %}>
+                                    <colgroup>
+                                        <col style="width:100px;">
+                                    </colgroup>
+                                    <tbody>
+                                        {% for key, value in data.iteritems|as_sorted %}
+                                            <tr>
+                                                <td>{{ key|escape }}</td>
+                                                <td class="code"><pre>{{ value|pprint|escape }}</pre></td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
                             {% else %}
-                                <pre>{{ data|pprint|escape }}</pre>
+                                {% if data|length > 5 %}
+                                    <a href="#" onclick="return varToggle(this, 'HttpBody')"><span>&#x25b6;</span> {% trans "Body" %}</a>
+                                {% endif %}
+                                <div id="vHttpBody"{% if data|length > 5 %} style="display:none;"{% endif %}>
+                                    <pre>{{ data|pprint }}</pre>
+                                </div>
                             {% endif %}
                         {% else %}
                             <em>{% trans "No post body." %}</em>
@@ -53,34 +70,20 @@
                         {% if headers %}
                             {% if headers|length > 5 %}
                                 <a href="#" onclick="return varToggle(this, 'HttpHeaders')"><span>&#x25b6;</span> {% trans "Headers" %}</a>
-                                <table class="vars" id="vHttpHeaders" style="display:none;">
-                                    <colgroup>
-                                        <col style="width:100px;">
-                                    </colgroup>
-                                    <tbody>
-                                        {% for key, value in headers.iteritems|as_sorted %}
-                                            <tr>
-                                                <td>{{ key|escape }}</td>
-                                                <td class="code"><pre>{{ value|pprint|escape }}</pre></td>
-                                            </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            {% else %}
-                                <table class="vars">
-                                    <colgroup>
-                                        <col style="width:100px;">
-                                    </colgroup>
-                                    <tbody>
-                                        {% for key, value in headers.iteritems|as_sorted %}
-                                            <tr>
-                                                <td>{{ key|escape }}</td>
-                                                <td class="code"><pre>{{ value|pprint|escape }}</pre></td>
-                                            </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
                             {% endif %}
+                            <table class="vars" id="vHttpHeaders"{% if headers|length > 5 %} style="display:none;"{% endif %}>
+                                <colgroup>
+                                    <col style="width:100px;">
+                                </colgroup>
+                                <tbody>
+                                    {% for key, value in headers.iteritems|as_sorted %}
+                                        <tr>
+                                            <td>{{ key|escape }}</td>
+                                            <td class="code"><pre>{{ value|pprint|escape }}</pre></td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         {% else %}
                             <em>{% trans "No headers recorded." %}</em>
                         {% endif %}
@@ -92,34 +95,20 @@
                         {% if env %}
                             {% if env|length > 5 %}
                                 <a href="#" onclick="return varToggle(this, 'HttpEnv')"><span>&#x25b6;</span> {% trans "Environment" %}</a>
-                                <table class="vars" id="vHttpEnv" style="display:none;">
-                                    <colgroup>
-                                        <col style="width:120px;">
-                                    </colgroup>
-                                    <tbody>
-                                        {% for key, value in env.iteritems|as_sorted %}
-                                            <tr>
-                                                <td>{{ key|escape }}</td>
-                                                <td class="code"><pre>{{ value|pprint|escape }}</pre></td>
-                                            </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            {% else %}
-                                <table class="vars">
-                                    <colgroup>
-                                        <col style="width:120px;">
-                                    </colgroup>
-                                    <tbody>
-                                        {% for key, value in env.iteritems|as_sorted %}
-                                            <tr>
-                                                <td>{{ key|escape }}</td>
-                                                <td class="code"><pre>{{ value|pprint|escape }}</pre></td>
-                                            </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
                             {% endif %}
+                            <table class="vars" id="vHttpEnv"{% if env|length > 5 %} style="display:none;"{% endif %}>
+                                <colgroup>
+                                    <col style="width:120px;">
+                                </colgroup>
+                                <tbody>
+                                    {% for key, value in env.iteritems|as_sorted %}
+                                        <tr>
+                                            <td>{{ key|escape }}</td>
+                                            <td class="code"><pre>{{ value|pprint|escape }}</pre></td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         {% else %}
                             <em>{% trans "No environment recorded." %}</em>
                         {% endif %}
