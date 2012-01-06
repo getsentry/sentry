@@ -16,8 +16,9 @@ class Response(object):
         self.template = template
         self.context = context
 
-    def respond(self, request, context):
-        context.update(self.context)
+    def respond(self, request, context=None):
+        if self.context:
+            context.update(self.context)
         return render_to_response(self.template, context, request)
 
 
@@ -38,25 +39,30 @@ class PluginMount(type):
 
 
 class PluginProxy(object):
+    """
+    Proxy for plugins to delay configuration until they're accessed.
+    """
     def __init__(self, plugin, project):
         self.project = project
         self.__configured = False
         self.__plugin = plugin
 
-    def __getattr__(self, attr):
-        """
-        We hook getattr to enable lazy configuration.
+    def __call__(self, *args, **kwargs):
+        if not self.__configured:
+            self._configure()
+        return self.__plugin.__call__(*args, **kwargs)
 
-        This ensures that we don't bother configuring
-        a plugin unless it gets executed.
-        """
+    def __getattr__(self, attr):
         f = getattr(self.__plugin, attr)
         if self.__configured:
             return f
         if callable(f):
-            self.__plugin.configure(self.project)
-            self.__configured = True
+            self._configure()
         return f
+
+    def _configure(self):
+        self.__plugin.configure(self.project)
+        self.__configured = True
 
 
 class Plugin(object):
