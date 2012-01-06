@@ -527,8 +527,8 @@ class MetaManager(models.Manager):
         if not hasattr(self, '_metadata'):
             self._metadata = {}
         if instance.pk not in self._metadata:
-            result = self.filter(**{
+            result = dict(self.filter(**{
                 self.field_name: instance,
-            }).values('key', 'value')
+            }).values_list('key', 'value'))
             self._metadata[instance.pk] = result
         return self._metadata[instance.pk]
