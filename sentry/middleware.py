@@ -1,12 +1,11 @@
 from sentry.models import Project
-from sentry.plugins import Plugin
+from sentry.plugins import Plugin, PluginProxy
 
 
 def get_plugins(request, project):
     plugins = []
     for cls in Plugin.plugins.itervalues():
-        plugin = cls(request)
-        plugin.configure(project)
+        plugin = PluginProxy(cls(request), project)
         plugins.append(plugin)
     return plugins
 

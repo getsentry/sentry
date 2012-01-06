@@ -37,6 +37,28 @@ class PluginMount(type):
             cls.plugins[cls.slug] = cls
 
 
+class PluginProxy(object):
+    def __init__(self, plugin, project):
+        self.project = project
+        self.__configured = False
+        self.__plugin = plugin
+
+    def __getattr__(self, attr):
+        """
+        We hook getattr to enable lazy configuration.
+
+        This ensures that we don't bother configuring
+        a plugin unless it gets executed.
+        """
+        f = getattr(self.__plugin, attr)
+        if self.__configured:
+            return f
+        if callable(f):
+            self.__plugin.configure(self.project)
+            self.__configured = True
+        return f
+
+
 class Plugin(object):
     """
     All children should allow **kwargs on all inherited methods.
@@ -77,11 +99,13 @@ class Plugin(object):
     def render(self, template, context=None):
         return Response(template, context)
 
-    def configure(self, project):
-        pass
-
     def get_url(self, group):
         return reverse('sentry-group-plugin-action', args=(group.project_id, group.pk, self.slug))
+
+    def configure(self, project):
+        """
+        Called when plugin is initialized to perform any pre-configuration.
+        """
 
     def view(self, group, **kwargs):
         """
