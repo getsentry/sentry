@@ -54,6 +54,7 @@ setup(
     tests_require=tests_require,
     extras_require={'test': tests_require},
     test_suite='runtests.runtests',
+    license='BSD',
     include_package_data=True,
     entry_points={
         'console_scripts': [
