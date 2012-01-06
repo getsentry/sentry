@@ -11,6 +11,8 @@ validated and rendered.
 
 import urlparse
 
+from django.http import QueryDict
+
 from sentry.web.helpers import render_to_string
 
 
@@ -230,12 +232,22 @@ class Http(Interface):
         }
 
     def to_html(self, event):
+        data = self.data
+        data_is_dict = False
+        if self.headers.get('Content-Type') == 'application/x-www-form-urlencoded':
+            try:
+                data = QueryDict(data)
+            except:
+                pass
+            else:
+                data_is_dict = True
         return render_to_string('sentry/partial/interfaces/http.html', {
             'event': event,
             'full_url': '?'.join(filter(None, [self.url, self.query_string])),
             'url': self.url,
             'method': self.method,
-            'data': self.data,
+            'data': data,
+            'data_is_dict': data_is_dict,
             'query_string': self.query_string,
             'cookies': self.cookies,
             'headers': self.headers,
