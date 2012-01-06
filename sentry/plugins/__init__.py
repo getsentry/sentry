@@ -16,8 +16,9 @@ class Response(object):
         self.template = template
         self.context = context
 
-    def respond(self, request, context):
-        context.update(self.context)
+    def respond(self, request, context=None):
+        if self.context:
+            context.update(self.context)
         return render_to_response(self.template, context, request)
 
 
@@ -35,6 +36,33 @@ class PluginMount(type):
             # track of it later.
             cls.slug = getattr(cls, 'slug', None) or cls.title.replace(' ', '-').lower()
             cls.plugins[cls.slug] = cls
+
+
+class PluginProxy(object):
+    """
+    Proxy for plugins to delay configuration until they're accessed.
+    """
+    def __init__(self, plugin, project):
+        self.project = project
+        self.__configured = False
+        self.__plugin = plugin
+
+    def __repr__(self):
+        return repr(self.__plugin)
+
+    def __call__(self, *args, **kwargs):
+        if not self.__configured:
+            self._configure()
+        return self.__plugin.__call__(*args, **kwargs)
+
+    def __getattr__(self, attr):
+        if not self.__configured:
+            self._configure()
+        return getattr(self.__plugin, attr)
+
+    def _configure(self):
+        self.__plugin.configure(self.project)
+        self.__configured = True
 
 
 class Plugin(object):
@@ -77,11 +105,13 @@ class Plugin(object):
     def render(self, template, context=None):
         return Response(template, context)
 
-    def configure(self, project):
-        pass
-
     def get_url(self, group):
         return reverse('sentry-group-plugin-action', args=(group.project_id, group.pk, self.slug))
+
+    def configure(self, project):
+        """
+        Called when plugin is initialized to perform any pre-configuration.
+        """
 
     def view(self, group, **kwargs):
         """

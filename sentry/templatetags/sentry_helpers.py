@@ -2,7 +2,7 @@
 #      INSTALLED_APPS
 from django import template
 from django.template import RequestContext
-from django.template.defaultfilters import stringfilter
+from django.template.defaultfilters import stringfilter, escape
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
@@ -22,12 +22,15 @@ def pprint(value, break_after=10):
     """
     A wrapper around pprint.pprint -- for debugging, really.
 
-    break_after is currently ignored.
+    break_after is used to define how often a <span> is
+    inserted (for soft wrapping).
     """
     from pprint import pformat
 
-    # return u'\u200B'.join([value[i:(i + break_after)] for i in xrange(0, len(value), break_after)])
-    return pformat(value).decode('utf-8', 'replace')
+    value = pformat(value).decode('utf-8', 'replace')
+    return mark_safe(u'<span></span>'.join(
+        [escape(value[i:(i + break_after)]) for i in xrange(0, len(value), break_after)]
+    ))
 
 
 # seriously Django?
