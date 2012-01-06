@@ -516,7 +516,7 @@ class MetaManager(models.Manager):
             return
         self._metadata[key] = value
 
-    def get_all_values(self, instance):
+    def get_all_values(self):
         if not hasattr(self, '_metadata'):
             self._metadata = dict(self.values_list('key', 'value'))
         return self._metadata
