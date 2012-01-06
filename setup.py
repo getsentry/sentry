@@ -18,6 +18,9 @@ and all of the logic behind storage and aggregation.
 The said, Sentry is not limited to Python. The primary implementation is in
 Python, but it contains a full API for sending events from any language, in
 any application.
+
+:copyright: (c) 2011 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
 """
 from setuptools import setup, find_packages
 
