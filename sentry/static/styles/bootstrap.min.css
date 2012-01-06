@@ -354,6 +354,7 @@ button.btn::-moz-focus-inner,input[type=submit].btn::-moz-focus-inner{padding:0;
 .media-grid li{display:inline;}
 .media-grid a{float:left;padding:4px;margin:0 0 18px 20px;border:1px solid #ddd;-webkit-border-radius:4px;-moz-border-radius:4px;border-radius:4px;-webkit-box-shadow:0 1px 1px rgba(0, 0, 0, 0.075);-moz-box-shadow:0 1px 1px rgba(0, 0, 0, 0.075);box-shadow:0 1px 1px rgba(0, 0, 0, 0.075);}.media-grid a img{display:block;}
 .media-grid a:hover{border-color:#0069d6;-webkit-box-shadow:0 1px 4px rgba(0, 105, 214, 0.25);-moz-box-shadow:0 1px 4px rgba(0, 105, 214, 0.25);box-shadow:0 1px 4px rgba(0, 105, 214, 0.25);}
+code{background-color:inherit;color:#666666;}
 .options{margin:0 0 18px;padding:0;list-style:none;zoom:1;border-color:#ddd;border-style:solid;border-width:0 0 1px;height:36px;margin:0 0 18px;}.options:before,.options:after{display:table;content:"";zoom:1;}
 .options:after{clear:both;}
 .options>li{float:left;}.options>li>a{display:block;}
@@ -382,7 +383,7 @@ ol.context>li.active{background-color:#ddd;}ol.context>li.active pre{color:#0000
 ol.context-line>li>span{float:right;}
 .expandable{cursor:pointer;}.expandable .closed{display:none;}
 table.vars th,table.vars td{padding:5px 5px 4px;}
-table.vars td.code>pre{background-color:#fee9cc;color:rgba(0, 0, 0, 0.75);padding:1px 3px;border:0;}
+table.vars td.code>pre{background-color:inherit;color:rgba(0, 0, 0, 0.75);padding:1px 3px;border:0;}
 td table.vars{margin-bottom:0;}
 .module{margin-bottom:20px;}
 .module-content table pre{margin-bottom:0;}
