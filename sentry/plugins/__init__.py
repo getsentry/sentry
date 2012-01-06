@@ -47,18 +47,18 @@ class PluginProxy(object):
         self.__configured = False
         self.__plugin = plugin
 
+    def __repr__(self):
+        return repr(self.__plugin)
+
     def __call__(self, *args, **kwargs):
         if not self.__configured:
             self._configure()
         return self.__plugin.__call__(*args, **kwargs)
 
     def __getattr__(self, attr):
-        f = getattr(self.__plugin, attr)
-        if self.__configured:
-            return f
-        if callable(f):
+        if not self.__configured:
             self._configure()
-        return f
+        return getattr(self.__plugin, attr)
 
     def _configure(self):
         self.__plugin.configure(self.project)
