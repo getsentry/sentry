@@ -38,7 +38,7 @@
                                 {% if data|length > 5 %}
                                     <a href="#" onclick="return varToggle(this, 'HttpBody')"><span>&#x25b6;</span> {% trans "Body" %}</a>
                                 {% endif %}
-                                <table class="vars" id="vHttpHeaders"{% if data|length > 5 %} style="display:none;"{% endif %}>
+                                <table class="vars" id="vHttpBody"{% if data|length > 5 %} style="display:none;"{% endif %}>
                                     <colgroup>
                                         <col style="width:100px;">
                                     </colgroup>
