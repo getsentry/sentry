@@ -75,7 +75,7 @@ class GroupActionProvider(object):
             return
         return self.view(request, project, group)
 
-    def view(self):
+    def view(self, request, project, group):
         """
         Handles the view logic. If no response is given, we continue to the next action provider.
         """

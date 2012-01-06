@@ -491,3 +491,44 @@ class RawQuerySet(object):
 
 class ProjectManager(models.Manager, ChartMixin):
     pass
+
+
+class MetaManager(models.Manager):
+    NOTSET = object()
+
+    def __init__(self, field_name, *args, **kwargs):
+        super(MetaManager, self).__init__(*args, **kwargs)
+        self.field_name = field_name
+
+    def get_value(self, instance, key, default=NOTSET):
+        result = self.get_all_values(instance)
+        if default is self.NOTSET:
+            return result[key]
+        return result.get(key, default)
+
+    def set_value(self, instance, key, value):
+        inst, created = self.objects.get_or_create(**{
+            self.field_name: instance,
+            'key': key,
+            'defaults': {
+                'value': value,
+            }
+        })
+        if not created and inst.value != value:
+            inst.update(value=value)
+
+        if not hasattr(self, '_metadata'):
+            return
+        if instance.pk not in self._metadata:
+            return
+        self._metadata[instance.pk] = value
+
+    def get_all_values(self, instance):
+        if not hasattr(self, '_metadata'):
+            self._metadata = {}
+        if instance.pk not in self._metadata:
+            result = dict(self.filter(**{
+                self.field_name: instance,
+            }).values_list('key', 'value'))
+            self._metadata[instance.pk] = result
+        return self._metadata[instance.pk]

@@ -26,7 +26,8 @@ from django.db.models.signals import post_save
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
-from sentry.manager import GroupManager, ProjectManager
+from sentry.manager import GroupManager, ProjectManager, \
+  MetaManager
 from sentry.utils import cached_property, \
                          MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField
@@ -91,12 +92,15 @@ class Project(Model):
         self.delete()
 
 
-class ProjectOptions(Model):
+class ProjectOption(Model):
     project = models.ForeignKey(Project)
-    key = models.CharField(max_length=32, choices=PROJECT_OPTIONS)
+    key = models.CharField(max_length=64, choices=PROJECT_OPTIONS)
     value = models.CharField(max_length=200)
 
+    objects = MetaManager('project')
+
     class Meta:
+        db_table = 'sentry_projectoptions'
         unique_together = (('project', 'key', 'value'),)
 
 
@@ -288,6 +292,23 @@ class Group(MessageBase):
         if not self.time_spent_count:
             return
         return float(self.time_spent_total) / self.time_spent_count
+
+
+class GroupMeta(Model):
+    """
+    Arbitrary key/value store for Groups.
+
+    Generally useful for things like storing metadata
+    provided by plugins.
+    """
+    group = models.ForeignKey(Group)
+    key = models.CharField(max_length=64)
+    value = models.TextField()
+
+    objects = MetaManager('group')
+
+    class Meta:
+        unique_together = (('group', 'key', 'value'),)
 
 
 class Event(MessageBase):
