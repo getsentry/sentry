@@ -20,7 +20,7 @@ settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + (
     'tests',
 )
 settings.SENTRY_KEY = base64.b64encode(os.urandom(40))
-
+settings.SENTRY_PUBLIC = False
 
 from django_nose import NoseTestSuiteRunner
 
