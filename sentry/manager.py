@@ -501,7 +501,7 @@ class MetaManager(models.Manager):
         self.field_name = field_name
 
     def get_value(self, instance, key, default=NOTSET):
-        result = self.get_all_values()
+        result = self.get_all_values(instance)
         if default is self.NOTSET:
             return result[key]
         return result.get(key, default)
