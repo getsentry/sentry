@@ -17,7 +17,7 @@ class Response(object):
         self.context = context
 
     def respond(self, request, context):
-        context.update(self.context or {})
+        context.update(self.context)
         return render_to_response(self.template, context, request)
 
 
