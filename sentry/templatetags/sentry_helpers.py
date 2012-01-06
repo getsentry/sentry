@@ -22,7 +22,8 @@ def pprint(value, break_after=10):
     """
     A wrapper around pprint.pprint -- for debugging, really.
 
-    break_after is currently ignored.
+    break_after is used to define how often a <span> is
+    inserted (for soft wrapping).
     """
     from pprint import pformat
 
