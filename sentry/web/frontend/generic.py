@@ -40,9 +40,9 @@ def status(request):
 
     # Deal with the plugins
     site_configs = []
-    for name, cls in GroupActionProvider.plugins.iteritems():
+    for name, cls in Plugin.plugins.iteritems():
         if hasattr(cls, 'global_setting_view'):
-            view = cls.global_setting_view(request)
+            view = cls.global_setting_view(request, project=None)
             if view is True:
                 return redirect(request.path)
             item = {

@@ -1,27 +1,23 @@
 """
-sentry.plugins.sentry_redmine.models
+sentry.plugins.sentry_bugzilla.models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 
-from sentry.plugins import GroupActionProvider
-
 from django import forms
 from django.db import models
 from django.template.loader import render_to_string
 from django.template import RequestContext
 
-
-class BugzillaServer(models.Model):
-    url = models.CharField(max_length=128)
-    product = models.CharField(max_length=128)
+from sentry.plugins import Plugin
+from sentry.models import Option
 
 
-class BugzillaConfigurationForm(forms.ModelForm):
-    class Meta:
-        model = BugzillaServer
+class BugzillaConfigurationForm(forms.Form):
+    url = forms.CharField(max_length=128)
+    product = forms.CharField(max_length=128)
 
 
 class BugzillaSubmitForm(forms.Form):
@@ -30,13 +26,13 @@ class BugzillaSubmitForm(forms.Form):
     version = forms.CharField(max_length=64)
 
 
-class CreateBugzillaIssue(GroupActionProvider):
+class CreateBugzillaIssue(Plugin):
     title = 'Create Bugzilla Issue'
     slug = 'create-bugzilla-issue'
     site_config_title = 'Bugzilla'
 
     @classmethod
-    def global_setting_view(cls, request):
+    def global_setting_view(cls, request, project=None):
         """
         Configure the plugin per project.
 
@@ -44,17 +40,24 @@ class CreateBugzillaIssue(GroupActionProvider):
         return True to redirect.
         Otherwise just return the view to display.
         """
-        try:
-            instance = BugzillaServer.objects.all()[0]
-        except:
-            instance = None
+
+        initials = {}
+        for field in BugzillaConfigurationForm.base_fields:
+            key = 'bugzilla:%s' % (field, )
+            value = Option.objects.get_value(key, None)
+            if value:
+                initials[field] = value
+
         form = BugzillaConfigurationForm(
             request.POST or None,
-            instance=instance,
+            initial=initials,
             prefix="bugzilla"
         )
         if form.is_valid():
-            form.save()
+            for key, value in form.cleaned_data.iteritems():
+                option_key = 'bugzilla:%s' % key
+                Option.objects.set_value(option_key, value)
+
             return True
 
         return render_to_string(
