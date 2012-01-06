@@ -16,7 +16,7 @@ from djkombu.models import Queue
 
 from sentry import environment
 from sentry.conf import settings
-from sentry.plugins import GroupActionProvider
+from sentry.plugins import Plugin
 from sentry.web.decorators import login_required
 from sentry.web.helpers import get_project_list, render_to_response, \
   get_login_url
@@ -64,7 +64,7 @@ def status(request):
         'environment': environment,
         'python_version': sys.version,
         'modules': sorted([(p.project_name, p.version) for p in pkg_resources.working_set]),
-        'extensions': [(cls.title, cls.__module__.rsplit('.', 1)[0]) for cls in GroupActionProvider.plugins.itervalues()],
+        'extensions': [(cls.title, cls.__module__.rsplit('.', 1)[0]) for cls in Plugin.plugins.itervalues()],
         'views': [(x.__class__.__name__, x.__module__) for x in View.handlers.all()],
         'processors': [(x.__class__.__name__, x.__module__) for x in Processor.handlers.all()],
         'pending_tasks': pending_tasks,

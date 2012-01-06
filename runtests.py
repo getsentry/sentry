@@ -13,46 +13,14 @@ logging.getLogger('sentry').addHandler(logging.StreamHandler())
 from django.conf import settings
 
 if not settings.configured:
-    settings.configure(
-        DATABASE_ENGINE='sqlite3',
-        DATABASES={
-            'default': {
-                'ENGINE': 'sqlite3',
-                'TEST_NAME': 'sentry_tests.db',
-            },
-        },
-        # HACK: this fixes our threaded runserver remote tests
-        # DATABASE_NAME='test_sentry',
-        TEST_DATABASE_NAME='sentry_tests.db',
-        INSTALLED_APPS=[
-            'django.contrib.auth',
-            'django.contrib.admin',
-            'django.contrib.sessions',
-            'django.contrib.sites',
+    os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.conf.server'
 
-            # Included to fix Disqus' test Django which solves IntegrityMessage case
-            'django.contrib.contenttypes',
+# override a few things with our test specifics
+settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + (
+    'tests',
+)
+settings.SENTRY_KEY = base64.b64encode(os.urandom(40))
 
-            'djkombu',
-            'south',
-
-            'sentry',
-
-            # included plugin tests
-            'sentry.plugins.sentry_servers',
-            'sentry.plugins.sentry_sites',
-            'sentry.plugins.sentry_urls',
-            'sentry.plugins.sentry_redmine',
-
-            'tests',
-        ],
-        ROOT_URLCONF='',
-        DEBUG=False,
-        SITE_ID=1,
-        SENTRY_THRASHING_LIMIT=0,
-        TEMPLATE_DEBUG=True,
-        SENTRY_KEY=base64.b64encode(os.urandom(40)),
-    )
 
 from django_nose import NoseTestSuiteRunner
 

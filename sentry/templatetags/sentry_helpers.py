@@ -8,7 +8,6 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 from paging.helpers import paginate as paginate_func
 from sentry.conf import settings
-from sentry.plugins import GroupActionProvider
 from sentry.utils import json
 from templatetag_sugar.register import tag
 from templatetag_sugar.parser import Name, Variable, Constant, Optional
@@ -118,9 +117,8 @@ def sentry_version():
 @register.filter
 def get_actions(group, request):
     action_list = []
-    for cls in GroupActionProvider.plugins.itervalues():
-        inst = cls(group.project_id, group.pk)
-        action_list = inst.actions(request, action_list, group.project, group)
+    for inst in request.plugins:
+        action_list = inst.actions(group, action_list)
     for action in action_list:
         yield action[0], action[1], request.path == action[1]
 
@@ -128,18 +126,16 @@ def get_actions(group, request):
 @register.filter
 def get_panels(group, request):
     panel_list = []
-    for cls in GroupActionProvider.plugins.itervalues():
-        inst = cls(group.project_id, group.pk)
-        panel_list = inst.panels(request, panel_list, group.project, group)
+    for inst in request.plugins:
+        panel_list = inst.panels(group, panel_list)
     for panel in panel_list:
         yield panel[0], panel[1], request.path == panel[1]
 
 
 @register.filter
 def get_widgets(group, request):
-    for cls in GroupActionProvider.plugins.itervalues():
-        inst = cls(group.project_id, group.pk)
-        resp = inst.widget(request, group.project, group)
+    for inst in request.plugins:
+        resp = inst.widget(group)
         if resp:
             yield resp
 
@@ -147,9 +143,8 @@ def get_widgets(group, request):
 @register.filter
 def get_tags(group, request):
     tag_list = []
-    for cls in GroupActionProvider.plugins.itervalues():
-        inst = cls(group.project_id, group.pk)
-        tag_list = inst.tags(request, tag_list, group.project, group)
+    for inst in request.plugins:
+        tag_list = inst.tags(group, tag_list)
     for tag in tag_list:
         yield tag
 

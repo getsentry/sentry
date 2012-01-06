@@ -48,6 +48,8 @@ upgrading the actual Sentry server.
 This includes several new tables (such as Project), and alters on almost all existing tables. It
 also means it needs to backfill the project_id column on all related tables.
 
+You should also read over the installation guide again, as some things have likely changed.
+
 Running a Sentry Server
 -----------------------
 
@@ -156,6 +158,15 @@ need to update your settings.py and add ``sentry`` and ``raven.contrib.django`` 
     )
 
 .. note:: Raven is a seperate project, and the official Python client for Sentry.
+
+Next, add the required middleware to your settings::
+
+    MIDDLEWARE_CLASSES = (
+        ...
+        'sentry.middleware.SentryMiddleware',
+    )
+
+
 
 You will also need to add ``sentry.web.urls`` to your url patterns::
 

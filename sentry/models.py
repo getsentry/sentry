@@ -210,7 +210,12 @@ class Group(MessageBase):
         return int(math.log(self.times_seen) * 600 + float(time.mktime(self.last_seen.timetuple())))
 
     def get_latest_event(self):
-        return self.event_set.order_by('-id')[0]
+        if not hasattr(self, '_latest_event'):
+            try:
+                self._latest_event = self.event_set.order_by('-id')[0]
+            except IndexError:
+                self._latest_event = None
+        return self._latest_event
 
     def mail_admins(self, request=None, fail_silently=True):
         from django.core.mail import send_mail
