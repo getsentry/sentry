@@ -503,7 +503,7 @@ class MetaManager(models.Manager):
         return result.get(key, default)
 
     def set_value(self, key, value):
-        inst, created = self.objects.get_or_create(
+        inst, created = self.get_or_create(
             key=key,
             defaults={
                 'value': value,
@@ -536,7 +536,7 @@ class InstanceMetaManager(models.Manager):
         return result.get(key, default)
 
     def set_value(self, instance, key, value):
-        inst, created = self.objects.get_or_create(**{
+        inst, created = self.get_or_create(**{
             self.field_name: instance,
             'key': key,
             'defaults': {
