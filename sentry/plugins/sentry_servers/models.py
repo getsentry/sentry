@@ -6,13 +6,10 @@ sentry.plugins.sentry_servers.models
 :license: BSD, see LICENSE for more details.
 """
 
-from django.shortcuts import render_to_response
-from django.template.loader import render_to_string
-
-from sentry.plugins import GroupActionProvider
+from sentry.plugins import Plugin
 
 
-class ServerGroupPanel(GroupActionProvider):
+class ServerGroupPanel(Plugin):
     """Adds additional support for showing information about servers including:
 
     * A panel which shows all servers a message was seen on.
@@ -21,20 +18,12 @@ class ServerGroupPanel(GroupActionProvider):
 
     title = 'Servers'
 
-    def panels(self, request, panel_list, project, group):
-        panel_list.append((self.title, self.__class__.get_url(project.pk, group.pk)))
+    def panels(self, group, panel_list, **kwargs):
+        panel_list.append((self.title, self.get_url(group)))
         return panel_list
 
-    def view(self, request, project, group):
-        return render_to_response('sentry/plugins/sentry_servers/index.html', {
-            'request': request,
-            'project': project,
-            'group': group,
-        })
+    def view(self, group, **kwargs):
+        return self.render('sentry/plugins/sentry_servers/index.html')
 
-    def widget(self, request, project, group):
-        return render_to_string('sentry/plugins/sentry_servers/widget.html', {
-            'request': request,
-            'project': project,
-            'group': group,
-        })
+    def widget(self, group, **kwargs):
+        return self.render('sentry/plugins/sentry_servers/widget.html')

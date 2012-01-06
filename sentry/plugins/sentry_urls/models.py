@@ -6,13 +6,10 @@ sentry.plugins.sentry_urls.models
 :license: BSD, see LICENSE for more details.
 """
 
-from django.shortcuts import render_to_response
-from django.template.loader import render_to_string
-
-from sentry.plugins import GroupActionProvider
+from sentry.plugins import Plugin
 
 
-class ServerUrlsPanel(GroupActionProvider):
+class ServerUrlsPanel(Plugin):
     """Adds additional support for showing information about urls including:
 
     * A panel which shows all urls a message was seen on.
@@ -21,20 +18,12 @@ class ServerUrlsPanel(GroupActionProvider):
 
     title = 'URLs'
 
-    def panels(self, request, panel_list, project, group):
-        panel_list.append((self.title, self.__class__.get_url(project.pk, group.pk)))
+    def panels(self, group, panel_list, **kwargs):
+        panel_list.append((self.title, self.get_url(group)))
         return panel_list
 
-    def view(self, request, project, group):
-        return render_to_response('sentry/plugins/sentry_urls/index.html', {
-            'request': request,
-            'project': project,
-            'group': group,
-        })
+    def view(self, group, **kwargs):
+        return self.render('sentry/plugins/sentry_urls/index.html')
 
-    def widget(self, request, project, group):
-        return render_to_string('sentry/plugins/sentry_urls/widget.html', {
-            'request': request,
-            'project': project,
-            'group': group,
-        })
+    def widget(self, group, **kwargs):
+        return self.render('sentry/plugins/sentry_urls/widget.html')

@@ -496,8 +496,37 @@ class ProjectManager(models.Manager, ChartMixin):
 class MetaManager(models.Manager):
     NOTSET = object()
 
+    def get_value(self, key, default=NOTSET):
+        result = self.get_all_values()
+        if default is self.NOTSET:
+            return result[key]
+        return result.get(key, default)
+
+    def set_value(self, key, value):
+        inst, created = self.objects.get_or_create(
+            key=key,
+            defaults={
+                'value': value,
+            }
+        )
+        if not created and inst.value != value:
+            inst.update(value=value)
+
+        if not hasattr(self, '_metadata'):
+            return
+        self._metadata[key] = value
+
+    def get_all_values(self, instance):
+        if not hasattr(self, '_metadata'):
+            self._metadata = dict(self.values_list('key', 'value'))
+        return self._metadata
+
+
+class InstanceMetaManager(models.Manager):
+    NOTSET = object()
+
     def __init__(self, field_name, *args, **kwargs):
-        super(MetaManager, self).__init__(*args, **kwargs)
+        super(InstanceMetaManager, self).__init__(*args, **kwargs)
         self.field_name = field_name
 
     def get_value(self, instance, key, default=NOTSET):
@@ -521,7 +550,7 @@ class MetaManager(models.Manager):
             return
         if instance.pk not in self._metadata:
             return
-        self._metadata[instance.pk] = value
+        self._metadata[instance.pk][key] = value
 
     def get_all_values(self, instance):
         if not hasattr(self, '_metadata'):

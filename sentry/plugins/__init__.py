@@ -6,8 +6,19 @@ sentry.plugins
 :license: BSD, see LICENSE for more details.
 """
 
-# Based on http://martyalchin.com/2008/jan/10/simple-plugin-framework/
 from django.core.urlresolvers import reverse
+from django.http import HttpResponseRedirect
+from sentry.web.helpers import render_to_response
+
+
+class Response(object):
+    def __init__(self, template, context=None):
+        self.template = template
+        self.context = context
+
+    def respond(self, request, context):
+        context.update(self.context)
+        return render_to_response(self.template, context, request)
 
 
 class PluginMount(type):
@@ -26,73 +37,70 @@ class PluginMount(type):
             cls.plugins[cls.slug] = cls
 
 
-class ActionProvider(object):
+class Plugin(object):
     """
-    Base interface for adding action providers.
-
-    Plugins implementing this reference should provide the following attributes:
-
-    ========  ========================================================
-    title     The text to be displayed, describing the action
-
-    view      The view which will perform this action
-
-    selected  Boolean indicating whether the action is the one
-              currently being performed
-
-    ========  ========================================================
+    All children should allow **kwargs on all inherited methods.
     """
-    __metaclass__ = PluginMount
-
-    def __init__(self):
-        self.url = reverse('sentry-plugin-action', args=(self.slug,))
-
-    def __call__(self, request):
-        self.selected = request.path == self.url
-        if not self.selected:
-            return
-
-        return self.perform(request)
-
-
-class GroupActionProvider(object):
-    # TODO: should be able to specify modal support
 
     __metaclass__ = PluginMount
 
-    new_window = False
+    enabled = True
 
-    @classmethod
-    def get_url(cls, project_id, group_id):
-        return reverse('sentry-group-plugin-action', args=(project_id, group_id, cls.slug))
+    def __init__(self, request):
+        self.request = request
 
-    def __init__(self, project_id, group_id):
-        self.url = self.__class__.get_url(project_id, group_id)
+    def __call__(self, group):
+        self.selected = self.request.path == self.get_url(group)
 
-    def __call__(self, request, project, group):
-        self.selected = request.path == self.url
         if not self.selected:
             return
-        return self.view(request, project, group)
 
-    def view(self, request, project, group):
+        response = self.view(group)
+
+        if not response:
+            return
+
+        if isinstance(response, HttpResponseRedirect):
+            return response
+
+        if not isinstance(response, Response):
+            raise NotImplementedError('Please use self.render() when returning responses.')
+
+        return response.respond(self.request, {
+            'project': group.project,
+            'group': group,
+        })
+
+    def redirect(self, url):
+        return HttpResponseRedirect(url)
+
+    def render(self, template, context=None):
+        return Response(template, context)
+
+    def configure(self, project):
+        pass
+
+    def get_url(self, group):
+        return reverse('sentry-group-plugin-action', args=(group.project_id, group.pk, self.slug))
+
+    def view(self, group, **kwargs):
         """
         Handles the view logic. If no response is given, we continue to the next action provider.
         """
 
-    def tags(self, request, tag_list, project, group):
+    def tags(self, group, tag_list, **kwargs):
         """Modifies the tag list for a grouped message."""
         return tag_list
 
-    def actions(self, request, action_list, project, group):
+    def actions(self, group, action_list, **kwargs):
         """Modifies the action list for a grouped message."""
         return action_list
 
-    def panels(self, request, panel_list, project, group):
+    def panels(self, group, panel_list, **kwargs):
         """Modifies the panel list for a grouped message."""
         return panel_list
 
-    def widget(self, request, project, group):
+    def widget(self, group, **kwargs):
         """
         Renders as a widget in the group details sidebar.
         """

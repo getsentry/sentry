@@ -11,11 +11,10 @@ from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.http import HttpResponseRedirect
-from django.shortcuts import render_to_response
 from django.utils.safestring import mark_safe
 
 from sentry.models import Group
-from sentry.plugins import GroupActionProvider
+from sentry.plugins import Plugin
 from sentry.plugins.sentry_redmine import conf
 from sentry.utils import json
 
@@ -34,17 +33,17 @@ class RedmineIssueForm(forms.Form):
     description = forms.CharField(widget=forms.Textarea())
 
 
-class CreateRedmineIssue(GroupActionProvider):
+class CreateRedmineIssue(Plugin):
     title = 'Create Redmine Issue'
 
-    def actions(self, request, action_list, project, group):
+    def actions(self, group, action_list, **kwargs):
         if 'redmine' not in group.data:
-            action_list.append((self.title, self.__class__.get_url(project.pk, group.pk)))
+            action_list.append((self.title, self.get_url(group)))
         return action_list
 
-    def view(self, request, group):
-        if request.POST:
-            form = RedmineIssueForm(request.POST)
+    def view(self, group, **kwargs):
+        if self.request.POST:
+            form = RedmineIssueForm(self.request.POST)
             if form.is_valid():
                 data = json.dumps({
                     'key': conf.REDMINE_API_KEY,
@@ -86,9 +85,9 @@ class CreateRedmineIssue(GroupActionProvider):
                     RedmineIssue.objects.create(group=group, issue_id=data['issue']['id'])
                     group.data['redmine'] = {'issue_id': data['issue']['id']}
                     group.save()
-                    return HttpResponseRedirect(reverse('sentry-group', args=[group.project_id, group.pk]))
+                    return HttpResponseRedirect(reverse('sentry-group', args=[group.project.pk, group.pk]))
         else:
-            description = 'Sentry Message: %s' % request.build_absolute_uri(group.get_absolute_url())
+            description = 'Sentry Message: %s' % self.request.build_absolute_uri(group.get_absolute_url())
             description += '\n\n<pre>' + (group.traceback or group.message) + '</pre>'
 
             form = RedmineIssueForm(initial={
@@ -97,21 +96,19 @@ class CreateRedmineIssue(GroupActionProvider):
             })
 
         context = {
-            'request': request,
-            'group': group,
             'form': form,
             'global_errors': form.errors.get('__all__'),
             'BASE_TEMPLATE': 'sentry/groups/details.html',
         }
-        context.update(csrf(request))
+        context.update(csrf(self.request))
 
-        return render_to_response('sentry/plugins/redmine/create_issue.html', context)
+        return self.render('sentry/plugins/redmine/create_issue.html', context)
 
-    def tags(self, request, tags, project, group):
+    def tags(self, group, tag_list):
         if 'redmine' in group.data:
             issue_id = group.data['redmine']['issue_id']
-            tags.append(mark_safe('<a href="%s">#%s</a>' % (
+            tag_list.append(mark_safe('<a href="%s">#%s</a>' % (
                 '%s/issues/%s' % (conf.REDMINE_URL, issue_id),
                 issue_id,
             )))
-        return tags
+        return tag_list

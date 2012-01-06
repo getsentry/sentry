@@ -27,7 +27,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
 from sentry.manager import GroupManager, ProjectManager, \
-  MetaManager
+  MetaManager, InstanceMetaManager
 from sentry.utils import cached_property, \
                          MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField
@@ -59,10 +59,19 @@ MEMBER_TYPES = (
     (100, _('system agent')),
 )
 
-PROJECT_OPTIONS = (
-    # ('event_cutoff', 'Time (in seconds) before an event should be trimmed'),
-    # ('event_max', 'Maximum number of events to store'),
-)
+
+class Option(Model):
+    """
+    Global options which apply in most situations as defaults,
+    and generally can be overwritten by per-project options.
+    """
+    key = models.CharField(max_length=64)
+    value = models.CharField(max_length=200)
+
+    objects = MetaManager()
+
+    class Meta:
+        unique_together = (('key', 'value'),)
 
 
 class Project(Model):
@@ -94,10 +103,10 @@ class Project(Model):
 
 class ProjectOption(Model):
     project = models.ForeignKey(Project)
-    key = models.CharField(max_length=64, choices=PROJECT_OPTIONS)
+    key = models.CharField(max_length=64)
     value = models.CharField(max_length=200)
 
-    objects = MetaManager('project')
+    objects = InstanceMetaManager('project')
 
     class Meta:
         db_table = 'sentry_projectoptions'
@@ -210,7 +219,12 @@ class Group(MessageBase):
         return int(math.log(self.times_seen) * 600 + float(time.mktime(self.last_seen.timetuple())))
 
     def get_latest_event(self):
-        return self.event_set.order_by('-id')[0]
+        if not hasattr(self, '_latest_event'):
+            try:
+                self._latest_event = self.event_set.order_by('-id')[0]
+            except IndexError:
+                self._latest_event = None
+        return self._latest_event
 
     def mail_admins(self, request=None, fail_silently=True):
         from django.core.mail import send_mail
@@ -305,7 +319,7 @@ class GroupMeta(Model):
     key = models.CharField(max_length=64)
     value = models.TextField()
 
-    objects = MetaManager('group')
+    objects = InstanceMetaManager('group')
 
     class Meta:
         unique_together = (('group', 'key', 'value'),)

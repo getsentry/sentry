@@ -22,7 +22,6 @@ from django.views.decorators.csrf import csrf_exempt
 from sentry.conf import settings
 from sentry.filters import Filter
 from sentry.models import Group, Event, Project, View
-from sentry.plugins import GroupActionProvider
 from sentry.utils import json, get_db_engine
 from sentry.web.decorators import has_access, login_required
 from sentry.web.helpers import render_to_response, \
@@ -409,11 +408,14 @@ def group_plugin_action(request, project, group_id, slug):
     if group.project and group.project != project:
         return HttpResponseRedirect(reverse('sentry-group-plugin-action', kwargs={'group_id': group.pk, 'project_id': group.project_id, 'slug': slug}))
 
-    try:
-        cls = GroupActionProvider.plugins[slug]
-    except KeyError:
+    plugin = None
+    for inst in request.plugins:
+        if inst.slug == slug:
+            plugin = inst
+            break
+    if not plugin:
         raise Http404('Plugin not found')
-    response = cls(group.project_id, group_id)(request, project, group)
+    response = inst(group)
     if response:
         return response
     return HttpResponseRedirect(request.META.get('HTTP_REFERER') or reverse('sentry', kwargs={'project_id': group.project_id}))
