@@ -48,7 +48,7 @@ DEFAULT_SORT_OPTION = 'priority'
 def _get_sort_label(sort):
     if sort.startswith('accel_'):
         n = sort.split('accel_', 1)[-1]
-        return _('Trending: %d minutes', n)
+        return _('Trending: %(minutes)d minutes' % {'minutes': int(n)})
 
     return {
         'date': _('Last Seen'),
