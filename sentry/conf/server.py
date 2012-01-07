@@ -29,6 +29,8 @@ PROJECT_ROOT = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
 
 sys.path.insert(0, os.path.abspath(os.path.join(PROJECT_ROOT, '..')))
 
+CACHE_BACKEND = 'locmem:///'
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
