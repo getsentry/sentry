@@ -14,9 +14,12 @@ from django.db.models import Sum
 from django.http import HttpResponseRedirect, Http404, HttpResponseNotModified, \
   HttpResponse
 from djkombu.models import Queue
+from django.template.loader import render_to_string
+from django.template import RequestContext
 
 from sentry import environment
 from sentry.conf import settings
+from sentry.models import Option
 from sentry.plugins import Plugin
 from sentry.web.decorators import login_required
 from sentry.web.helpers import get_project_list, render_to_response, \
@@ -33,6 +36,39 @@ def dashboard(request):
     return render_to_response('sentry/dashboard.html', request=request)
 
 
+def _site_config(plugin, request):
+    """
+    Configure the plugin site wide.
+
+    returns a tuple composed of a redirection boolean and the content to
+    be displayed.
+    """
+
+    plugin_key = plugin.site_conf_title.lower()
+    initials = {}
+    for field in plugin.site_conf_form.base_fields:
+        key = '%s:%s' % (plugin_key, field)
+        value = Option.objects.get_value(key, None)
+        if value:
+            initials[field] = value
+
+    form = plugin.site_conf_form(
+        request.POST or None,
+        initial=initials,
+        prefix=plugin_key
+    )
+    if form.is_valid():
+        for key, value in form.cleaned_data.iteritems():
+            option_key = '%s:%s' % (plugin_key, key)
+            Option.objects.set_value(option_key, value)
+
+        return ('redirect', None)
+
+    return ('display', render_to_string(plugin.site_conf_template, {
+            'form': form,
+        }, context_instance=RequestContext(request)))
+
+
 @login_required
 def status(request):
     from sentry.views import View
@@ -41,13 +77,14 @@ def status(request):
     # Deal with the plugins
     site_configs = []
     for name, cls in Plugin.plugins.iteritems():
-        if hasattr(cls, 'global_setting_view'):
-            view = cls.global_setting_view(request, project=None)
-            if view is True:
+        if hasattr(cls, 'site_conf_form'):
+            action, view = _site_config(cls, request)
+            if action == 'redirect':
                 return redirect(request.path)
             item = {
                 'title': cls.title,
                 'slug': cls.slug,
+                'site_conf_title': cls.site_conf_title,
                 'view': view,
             }
             for prop in ('site_config_title',):

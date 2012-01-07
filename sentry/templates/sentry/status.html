@@ -14,7 +14,7 @@
             <li><a href="#packages">Packages</a></li>
             <li><a href="#workers">Workers</a></li>
             {% for conf in site_configs %}
-            <li><a href="#config_{{conf.slug}}">{{conf.site_config_title|default:conf.title}}</a></li>
+            <li><a href="#config_{{conf.slug}}">{{conf.site_conf_title|default:conf.title}}</a></li>
             {% endfor %}
         </ul>
         <div class="tab-content">
