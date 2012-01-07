@@ -1,0 +1,17 @@
+<form class="form-stacked" action="" method="post">
+    {% csrf_token %}
+    {% for field in form %}
+        <div class="clearfix{% if field.errors %} error{% endif %}">
+            {{ field.label_tag }}
+            <div class="input">{{ field }}</div>
+            {% if field.help_text %}
+                <span class="help-inline">{{ field.help_text }}</span>
+            {% endif %}
+            {% if field.errors %}
+                {% for error in field.errors %}
+                    <span class="help-block error">{{ error }}</span>
+                {% endfor %}
+            {% endif %}
+        </div>
+    {% endfor %}
+</form>

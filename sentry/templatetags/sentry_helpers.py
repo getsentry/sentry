@@ -258,3 +258,8 @@ def querystring(context, request, withoutvar, asvar=None):
         context[asvar] = result
         return ''
     return result
+
+
+@register.inclusion_tag('sentry/partial/_form.html')
+def render_form(form):
+    return {'form': form}
