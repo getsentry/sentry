@@ -1,0 +1,18 @@
+    {% load i18n %}
+    <form class="form-stacked" action="" method="post">
+        {% csrf_token %}
+        <fieldset>
+            {% for field in form %}
+                <div class="clearfix{% if field.errors %} error{% endif %}">
+                    {{ field.label_tag }}
+                    <div class="input">{{ field }}</div>
+                    {% if field.help_text %}
+                        <span class="help-block">{{ field.help_text }}</span>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </fieldset>
+        <p class="actions">
+            <button type="submit" class="btn primary">{% trans "Save Changes" %}</button>
+        </p>
+    </form>
