@@ -64,6 +64,9 @@ class Option(Model):
     """
     Global options which apply in most situations as defaults,
     and generally can be overwritten by per-project options.
+
+    Options which are specific to a plugin should namespace
+    their key. e.g. key='myplugin:optname'
     """
     key = models.CharField(max_length=64)
     value = models.CharField(max_length=200)
@@ -75,6 +78,10 @@ class Option(Model):
 
 
 class Project(Model):
+    """
+    Projects are permission based namespaces which generally
+    are the top level entry point for all data.
+    """
     name = models.CharField(max_length=200)
     owner = models.ForeignKey(User, related_name="owned_project_set", null=True)
     public = models.BooleanField(default=False)
@@ -102,6 +109,12 @@ class Project(Model):
 
 
 class ProjectOption(Model):
+    """
+    Project options apply only to an instance of a project.
+
+    Options which are specific to a plugin should namespace
+    their key. e.g. key='myplugin:optname'
+    """
     project = models.ForeignKey(Project)
     key = models.CharField(max_length=64)
     value = models.CharField(max_length=200)
@@ -114,6 +127,10 @@ class ProjectOption(Model):
 
 
 class ProjectMember(Model):
+    """
+    Identifies relationships between projects and users, including
+    their API access and permissions.
+    """
     project = models.ForeignKey(Project, related_name="member_set")
     user = models.ForeignKey(User, related_name="project_set")
     public_key = models.CharField(max_length=32, unique=True, null=True)
@@ -137,6 +154,9 @@ class ProjectMember(Model):
 
 
 class ProjectDomain(Model):
+    """
+    Currently unused. Planned for 'trusted domains' for JS apis.
+    """
     project = models.ForeignKey(Project, related_name="domain_set")
     domain = models.CharField(max_length=128)
 
@@ -145,12 +165,19 @@ class ProjectDomain(Model):
 
 
 class View(Model):
+    """
+    A view ties directly to a view extension and simply
+    identifies it at the db level.
+    """
     path = models.CharField(max_length=100, unique=True)
     verbose_name = models.CharField(max_length=200, null=True)
     verbose_name_plural = models.CharField(max_length=200, null=True)
 
 
 class MessageBase(Model):
+    """
+    Abstract base class for both Event and Group.
+    """
     project = models.ForeignKey(Project, null=True)
     logger = models.CharField(max_length=64, blank=True, default='root', db_index=True)
     level = models.PositiveIntegerField(choices=settings.LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
@@ -182,6 +209,9 @@ class MessageBase(Model):
 
 
 class Group(MessageBase):
+    """
+    Aggregated message which summarizes a set of Events.
+    """
     # if view is null it means its from the global aggregate
     status = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
     times_seen = models.PositiveIntegerField(default=1, db_index=True)
@@ -326,6 +356,9 @@ class GroupMeta(Model):
 
 
 class Event(MessageBase):
+    """
+    An individual event.
+    """
     group = models.ForeignKey(Group, blank=True, null=True, related_name="event_set")
     event_id = models.CharField(max_length=32, null=True, unique=True, db_column="message_id")
     datetime = models.DateTimeField(default=datetime.now, db_index=True)
