@@ -10,23 +10,18 @@ import datetime
 import re
 
 from django.core.urlresolvers import reverse
-from django.db.models import Q
-from django.http import HttpResponse, HttpResponseBadRequest, \
-    HttpResponseForbidden, HttpResponseRedirect, Http404
+from django.http import HttpResponse, \
+  HttpResponseRedirect, Http404
 from django.shortcuts import get_object_or_404
-from django.template.loader import render_to_string
 from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
-from django.views.decorators.csrf import csrf_exempt
 
-from sentry.conf import settings
 from sentry.filters import Filter
-from sentry.models import Group, Event, Project, View
+from sentry.models import Group, Event, View
 from sentry.utils import json, has_trending
 from sentry.web.decorators import has_access, login_required
-from sentry.web.helpers import render_to_response, \
-    get_project_list
+from sentry.web.helpers import render_to_response
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$', re.I)
 event_re = re.compile(r'^(?P<event_id>[a-z0-9]{32})\$(?P<checksum>[a-z0-9]{32})$', re.I)
@@ -108,125 +103,6 @@ def _get_group_list(request, project, view=None):
         raise NotImplementedError('Sort not implemented: %r' % sort)
 
     return filters, event_list
-
-
-@login_required
-@csrf_exempt
-@has_access
-def ajax_handler(request, project):
-    # TODO: remove this awful idea of an API
-    op = request.REQUEST.get('op')
-
-    def notification(request, project):
-        return render_to_response('sentry/partial/_notification.html', request.GET)
-
-    def poll(request, project):
-        offset = 0
-        limit = settings.MESSAGES_PER_PAGE
-
-        view_id = request.GET.get('view_id')
-        if view_id:
-            try:
-                view = View.objects.get(pk=view_id)
-            except View.DoesNotExist:
-                return HttpResponseRedirect(reverse('sentry', args=[project.pk]))
-        else:
-            view = None
-
-        filters, event_list = _get_group_list(
-            request=request,
-            project=project,
-            view=view,
-        )
-
-        data = [
-            (m.pk, {
-                'html': render_to_string('sentry/partial/_group.html', {
-                    'group': m,
-                    'request': request,
-                }).strip(),
-                'title': m.message_top(),
-                'message': m.error(),
-                'level': m.get_level_display(),
-                'logger': m.logger,
-                'count': m.times_seen,
-            }) for m in event_list[offset:limit]]
-
-        response = HttpResponse(json.dumps(data))
-        response['Content-Type'] = 'application/json'
-        return response
-
-    def resolve(request, project):
-        gid = request.REQUEST.get('gid')
-        if not gid:
-            return HttpResponseForbidden()
-        try:
-            group = Group.objects.get(pk=gid)
-        except Group.DoesNotExist:
-            return HttpResponseForbidden()
-
-        if group.project and group.project.pk not in get_project_list(request.user):
-            return HttpResponseForbidden()
-
-        Group.objects.filter(pk=group.pk).update(status=1)
-        group.status = 1
-
-        if not request.is_ajax():
-            return HttpResponseRedirect(request.META.get('HTTP_REFERER') or reverse('sentry'))
-
-        data = [
-            (m.pk, {
-                'html': render_to_string('sentry/partial/_group.html', {
-                    'group': m,
-                    'request': request,
-                }).strip(),
-                'count': m.times_seen,
-            }) for m in [group]]
-
-        response = HttpResponse(json.dumps(data))
-        response['Content-Type'] = 'application/json'
-        return response
-
-    def clear(request, project):
-        projects = get_project_list(request.user)
-
-        event_list = Group.objects.filter(Q(project__in=projects.keys()) | Q(project__isnull=True))
-
-        event_list.update(status=1)
-
-        if not request.is_ajax():
-            return HttpResponseRedirect(request.META.get('HTTP_REFERER') or reverse('sentry'))
-
-        data = []
-        response = HttpResponse(json.dumps(data))
-        response['Content-Type'] = 'application/json'
-        return response
-
-    def chart(request, project):
-        gid = request.REQUEST.get('gid')
-        days = int(request.REQUEST.get('days', '90'))
-
-        if gid:
-            try:
-                group = Group.objects.get(pk=gid)
-            except Group.DoesNotExist:
-                return HttpResponseForbidden()
-
-            if group.project and group.project.pk not in get_project_list(request.user):
-                return HttpResponseForbidden()
-
-            data = Group.objects.get_chart_data(group, max_days=days)
-        else:
-            data = Project.objects.get_chart_data(project, max_days=days)
-
-        response = HttpResponse(json.dumps(data))
-        response['Content-Type'] = 'application/json'
-        return response
-
-    if op in ['notification', 'poll', 'resolve', 'clear', 'chart']:
-        return locals()[op](request, project)
-    else:
-        return HttpResponseBadRequest()
 
 
 @login_required

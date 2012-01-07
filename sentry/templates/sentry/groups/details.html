@@ -5,15 +5,6 @@
 
 {% block title %}{{ group.error }} | {{ block.super }}{% endblock %}
 
-{% block meta %}
-    {{ block.super }}
-    <script>
-    Sentry.config({
-        apiUrl: '{% url sentry-ajax project.id %}'
-    });
-    </script>
-{% endblock %}
-
 {% block heading %}
     {% trans "Event Details" %} <small>{{ group.error }}</small>
 {% endblock %}
@@ -82,7 +73,7 @@
             <ul class="dropdown-menu">
                 {# We're going to move these to the resolve action location #}
                 {% if group.status == 0 %}
-                    <li><a href="{% url sentry-ajax group.project_id %}?op=resolve&amp;gid={{ group.pk|safe }}">{% trans "&#10003; Mark as Resolved" %}</a></li>
+                    <li><a href="javascript:void(0)">{% trans "&#10003; Mark as Resolved" %}</a></li>
                 {% else %}
                     <li class="disabled"><a>{% trans "&#10003; Already Resolved" %}</a></li>
                 {% endif %}

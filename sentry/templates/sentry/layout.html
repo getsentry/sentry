@@ -34,7 +34,19 @@
             mediaUrl: '{% url sentry-media '' %}',
             defaultImage: '{% url sentry-media 'images/sentry.png' %}'
         });
-        </script>
+        {% if project %}
+        Sentry.config({
+            urlMap: {
+                notification: '{% url sentry-api-notification project.pk %}',
+                resolve: '{% url sentry-api-resolve project.pk %}',
+                clear: '{% url sentry-api-clear project.pk %}',
+                poll: '{% url sentry-api-poll project.pk %}',
+                bookmark: '{% url sentry-api-bookmark project.pk %}',
+                chart: '{% url sentry-api-chart project.pk %}',
+            }
+        });
+        {% endif %}
+            </script>
 
         {% block meta %}
         {% endblock %}

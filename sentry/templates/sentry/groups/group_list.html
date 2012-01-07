@@ -6,9 +6,6 @@
 {% block meta %}
     {{ block.super }}
     <script>
-    Sentry.config({
-        apiUrl: '{% url sentry-ajax project.id %}',
-    });
     {% if has_realtime %}
         Sentry.realtime.config({
             projectId: {{ project.pk }},
@@ -93,7 +90,7 @@
             </ul>
         </li>
         <li class="pull-right">
-            <a href="{% url sentry-ajax project.pk %}?op=clear" onclick="Sentry.stream.clear();return false;">{% trans "Resolve Feed" %}</a>
+            <a href="javascript:void(0)" onclick="Sentry.stream.clear();">{% trans "Resolve Feed" %}</a>
         </li>
         <li class="pull-right">
             <a href="javascript:void(0)" id="sentry_realtime" class="realtime-play" onclick="Sentry.realtime.pause();">{% trans "Pause Feed" %}</a>

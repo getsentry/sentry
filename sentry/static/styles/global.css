@@ -227,8 +227,6 @@ dl.flat dd {
 }
 
 /* message list */
-.messages { list-style: none; margin-left: 0; }
-.messages li { list-style: none; }
 .messages .no-messages {
     font-weight: bold;
 }
@@ -265,16 +263,6 @@ dl.flat dd {
 
 .messages .tag { display: inline-block; padding: 2px 5px; background: #F5F5F5; -moz-border-radius: 4px; border-radius: 4px; margin-right: 5px;}
 .messages .traceback { display: none; }
-.messages li { clear: both; padding: 8px; position: relative; padding-right: 50px; overflow: hidden; }
-.messages .hidden {
-    position: absolute;
-    right: 15px;
-    top: 21px;
-    visibility: hidden;
-}
-.messages li:hover .hidden {
-    visibility: visible;
-}
 
 .messages .row_link {
     top: 0;
@@ -312,33 +300,6 @@ dl.flat dd {
 .messages .active .last_seen,
 .messages li:hover .time_spent,
 .messages .active .time_spent { color: #777; }
-
-.button {
-    cursor: pointer;
-    display: inline-block;
-    color: #888;
-    padding: 5px 8px 5px 8px;
-    font-size: 12px;
-    line-height: 12px;
-    border:1px solid #C5C5C5;
-    text-decoration: none;
-    -webkit-border-radius: 5px;
-    -moz-border-radius: 5px;
-    border-radius: 5px;
-    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#FFF', endColorstr='#DCDCDC'); /* for IE */
-    background: -webkit-gradient(linear, left top, left bottom, from(#FFF), to(#DCDCDC)); /* for webkit browsers */
-    background:-moz-linear-gradient(center top , #FFFFFF 0pt, #DCDCDC 100%) repeat scroll 0 0 transparent;
-}
-
-.button:hover {
-    border:1px solid #3079d0;
-    color: #fff;
-    text-shadow: 0 -1px 0 #3079d0;
-    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#4da2e5', endColorstr='#3079d0'); /* for IE */
-    background: -webkit-gradient(linear, left top, left bottom, from(#4da2e5), to(#3079d0)); /* for webkit browsers */
-    background: -moz-linear-gradient(top,  #4da2e5,  #3079d0); /* for firefox 3.6+ */
-
-}
 .priority-veryhigh .count {
     background: #e22e2e;
     -webkit-box-shadow: 0 1px 2px rgba(0,0,0,.2);

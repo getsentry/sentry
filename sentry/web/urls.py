@@ -74,7 +74,12 @@ urlpatterns = patterns('',
 
     # JS
 
-    url(r'^(?P<project_id>\d+)/jsapi$', groups.ajax_handler, name='sentry-ajax'),
+    url(r'^(?P<project_id>\d+)/api/notification/$', api.notification, name='sentry-api-notification'),
+    url(r'^(?P<project_id>\d+)/api/poll/$', api.poll, name='sentry-api-poll'),
+    url(r'^(?P<project_id>\d+)/api/resolve/$', api.resolve, name='sentry-api-resolve'),
+    url(r'^(?P<project_id>\d+)/api/bookmark/$', api.bookmark, name='sentry-api-bookmark'),
+    url(r'^(?P<project_id>\d+)/api/clear/$', api.clear, name='sentry-api-clear'),
+    url(r'^(?P<project_id>\d+)/api/chart/$', api.chart, name='sentry-api-chart'),
 
     # Project specific
 

@@ -28,7 +28,7 @@ if (Sentry === undefined) {
 
     Sentry.options = {
         mediaUrl: '/media/',
-        apiUrl: '/api/',
+        urlMap: {},
         defaultImage: '/media/images/sentry.png'
     };
 
@@ -42,12 +42,9 @@ if (Sentry === undefined) {
     Sentry.stream.clear = function() {
         if (confirm("Are you sure you want to mark all your stream as resolved?")) {
             $.ajax({
-                url: Sentry.options.apiUrl,
+                url: Sentry.options.urlMap.clear,
                 type: 'post',
                 dataType: 'json',
-                data: {
-                    op: 'clear'
-                },
                 success: function(groups){
                     window.location.reload();
                 }
@@ -59,11 +56,10 @@ if (Sentry === undefined) {
             remove = true;
         }
         $.ajax({
-            url: Sentry.options.apiUrl,
+            url: Sentry.options.urlMap.resolve,
             type: 'post',
             dataType: 'json',
             data: {
-                op: 'resolve',
                 gid: gid
             },
             success: function(groups){
@@ -76,6 +72,19 @@ if (Sentry === undefined) {
                         $('#group_' + id).addClass('fresh');
                     }
                 }
+            }
+        });
+    };
+    Sentry.stream.bookmark = function(gid){
+        $.ajax({
+            url: Sentry.options.urlMap.bookmark,
+            type: 'post',
+            dataType: 'json',
+            data: {
+                gid: gid
+            },
+            success: function(data){
+                var is_bookmarked = data.bookmarked;
             }
         });
     };
@@ -114,9 +123,8 @@ if (Sentry === undefined) {
         }
         data = getQueryParams();
         data.view_id = Sentry.realtime.options.viewId || undefined;
-        data.op = 'poll';
         $.ajax({
-            url: Sentry.options.apiUrl,
+            url: Sentry.options.urlMap.poll,
             type: 'get',
             dataType: 'json',
             data: data,
@@ -127,8 +135,7 @@ if (Sentry === undefined) {
                 for (var i=groups.length-1, el, row; (el=groups[i]); i--) {
                     var id = el[0];
                     var data = el[1];
-                    var url = Sentry.options.apiUrl + '?' + $.param({
-                        op: 'notification',
+                    var url = Sentry.options.urlMap.notification + '?' + $.param({
                         count: data.count,
                         title: data.title,
                         message: data.message,

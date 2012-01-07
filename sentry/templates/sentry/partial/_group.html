@@ -20,7 +20,14 @@
         {{ group.error }}
     </p>
     <a href="{% url sentry-group group.project_id group.pk %}" class="row_link"></a>
-    {% if group.status == 0 %}
-        <a href="{% url sentry-ajax group.project_id %}?op=resolve&amp;gid={{ group.pk|safe }}" onclick="Sentry.stream.resolve({{ group.pk|safe }});return false;" class="button resolve_button hidden">&#10003;</a>
-    {% endif %}
+    <ul class="actions">
+        <li>
+            {% if group.status == 0 %}
+                <a href="javascript:void(0)" onclick="Sentry.stream.resolve({{ group.pk|safe }});" class="btn small">&#10003;</a>
+            {% else %}
+                <a href="javascript:void(0)" class="btn disabled small">&#10003;</a>
+            {% endif %}
+        </li>
+        <li><a href="javascript:void(0)" onclick="Sentry.stream.bookmark({{ group.pk|safe }});" class="btn small">&#9829;</a></li>
+    </ul>
 </li>
