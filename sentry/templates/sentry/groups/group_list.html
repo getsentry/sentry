@@ -115,11 +115,10 @@
     $(document).ready(function() {
         $sparkline = $('#sparkline');
         $.ajax({
-            url: Sentry.options.apiUrl,
+            url: Sentry.options.urlMap.chart,
             type: 'get',
             dataType: 'json',
             data: {
-                op: 'chart',
                 days: 1
             },
             success: function(data){

@@ -195,11 +195,10 @@
         if (!$('#chart').length) return;
 
         $.ajax({
-            url: Sentry.options.apiUrl,
+            url: Sentry.options.urlMap.char,
             type: 'post',
             dataType: 'json',
             data: {
-                op: 'chart',
                 gid: '{{ group.id }}'
             },
             success: function(data){
