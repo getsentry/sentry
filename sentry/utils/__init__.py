@@ -203,3 +203,7 @@ def is_float(var):
     except ValueError:
         return False
     return True
+
+
+def has_trending(alias='default'):
+    return not get_db_engine('default').startswith('sqlite')

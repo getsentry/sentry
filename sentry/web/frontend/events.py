@@ -36,11 +36,9 @@ def event_list(request, project):
     event_list = Event.objects.filter(project=project).order_by('-datetime')
 
     # TODO: implement separate API for messages
-    any_filter = False
     for filter_ in filters:
         if not filter_.is_set():
             continue
-        any_filter = True
         event_list = filter_.get_query_set(event_list)
 
     offset = (page - 1) * settings.MESSAGES_PER_PAGE
@@ -55,7 +53,6 @@ def event_list(request, project):
         'has_realtime': has_realtime,
         'event_list': event_list[offset:limit],
         'today': today,
-        'any_filter': any_filter,
         'filters': filters,
     }, request)
 

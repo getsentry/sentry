@@ -431,6 +431,20 @@ class Event(MessageBase):
         return module, self.data['__sentry__']['version']
 
 
+class GroupBookmark(Model):
+    """
+    Identifies a bookmark relationship between a user and an
+    aggregated event (Group).
+    """
+    project = models.ForeignKey(Project)  # denormalized
+    group = models.ForeignKey(Group, related_name="bookmark_set")
+    user = models.ForeignKey(User, related_name="bookmark_set")
+
+    class Meta:
+        # composite index includes project for efficient queries
+        unique_together = (('project', 'user', 'group'),)
+
+
 class FilterValue(Model):
     """
     Stores references to available filters.

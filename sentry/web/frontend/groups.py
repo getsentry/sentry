@@ -1,6 +1,6 @@
 """
-sentry.web.views
-~~~~~~~~~~~~~~~~
+sentry.web.frontend.groups
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
@@ -17,12 +17,13 @@ from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.conf import settings
 from sentry.filters import Filter
 from sentry.models import Group, Event, Project, View
-from sentry.utils import json, get_db_engine
+from sentry.utils import json, has_trending
 from sentry.web.decorators import has_access, login_required
 from sentry.web.helpers import render_to_response, \
     get_project_list
@@ -31,7 +32,82 @@ uuid_re = re.compile(r'^[a-z0-9]{32}$', re.I)
 event_re = re.compile(r'^(?P<event_id>[a-z0-9]{32})\$(?P<checksum>[a-z0-9]{32})$', re.I)
 
 
-HAS_TRENDING = not get_db_engine('default').startswith('sqlite')
+SORT_OPTIONS = (
+    'priority',
+    'date',
+    'new',
+    'freq',
+    'tottime',
+    'avgtime',
+    'accel_15',
+    'accel_60',
+)
+DEFAULT_SORT_OPTION = 'priority'
+
+
+def _get_sort_label(sort):
+    if sort.startswith('accel_'):
+        n = sort.split('accel_', 1)[-1]
+        return _('Trending: %d minutes', n)
+
+    return {
+        'date': _('Last Seen'),
+        'new': _('First Seen'),
+        'freq': _('Frequency'),
+        'tottime': _('Total Time Spent'),
+        'avgtime': _('Average Time Spent'),
+        'priority': _('Priority'),
+    }[sort]
+
+
+def _get_group_list(request, project, view=None):
+    filters = []
+    for cls in Filter.handlers.filter(Group):
+        filters.append(cls(request))
+
+    event_list = Group.objects
+    if request.GET.get('bookmarks'):
+        event_list = event_list.filter(
+            bookmark_set__project=project,
+            bookmark_set__user=request.user,
+        )
+    else:
+        event_list = event_list.filter(project=project)
+
+    if view:
+        event_list = event_list.filter(views=view)
+
+    for filter_ in filters:
+        if not filter_.is_set():
+            continue
+        event_list = filter_.get_query_set(event_list)
+
+    sort = request.GET.get('sort')
+    if sort not in SORT_OPTIONS:
+        sort = DEFAULT_SORT_OPTION
+
+    if sort == 'date':
+        event_list = event_list.order_by('-last_seen')
+    elif sort == 'new':
+        event_list = event_list.order_by('-first_seen')
+    elif sort == 'freq':
+        event_list = event_list.order_by('-times_seen')
+    elif sort == 'tottime':
+        event_list = event_list.filter(time_spent_count__gt=0)\
+                                .order_by('-time_spent_total')
+    elif sort == 'avgtime':
+        event_list = event_list.filter(time_spent_count__gt=0)\
+                               .extra(select={'avg_time_spent': 'time_spent_total / time_spent_count'})\
+                               .order_by('-avg_time_spent')
+    elif has_trending() and sort and sort.startswith('accel_'):
+        event_list = Group.objects.get_accelerated(event_list, minutes=int(sort.split('_', 1)[1]))
+    elif sort == 'priority':
+        sort = 'priority'
+        event_list = event_list.order_by('-score', '-last_seen')
+    else:
+        raise NotImplementedError('Sort not implemented: %r' % sort)
+
+    return filters, event_list
 
 
 @login_required
@@ -45,14 +121,8 @@ def ajax_handler(request, project):
         return render_to_response('sentry/partial/_notification.html', request.GET)
 
     def poll(request, project):
-        filters = []
-        for cls in Filter.handlers.filter(Group):
-            filters.append(cls(request))
-
         offset = 0
         limit = settings.MESSAGES_PER_PAGE
-
-        event_list = Group.objects.filter(project=project)
 
         view_id = request.GET.get('view_id')
         if view_id:
@@ -60,33 +130,14 @@ def ajax_handler(request, project):
                 view = View.objects.get(pk=view_id)
             except View.DoesNotExist:
                 return HttpResponseRedirect(reverse('sentry', args=[project.pk]))
-
-            event_list = event_list.filter(views=view)
-
-        for filter_ in filters:
-            if not filter_.is_set():
-                continue
-            event_list = filter_.get_query_set(event_list)
-
-        sort = request.GET.get('sort')
-        if sort == 'date':
-            event_list = event_list.order_by('-last_seen')
-        elif sort == 'new':
-            event_list = event_list.order_by('-first_seen')
-        elif sort == 'freq':
-            event_list = event_list.order_by('-times_seen')
-        elif sort == 'tottime':
-            event_list = event_list.filter(time_spent_count__gt=0)\
-                                    .order_by('-time_spent_total')
-        elif sort == 'avgtime':
-            event_list = event_list.filter(time_spent_count__gt=0)\
-                                   .extra(select={'avg_time_spent': 'time_spent_total / time_spent_count'})\
-                                   .order_by('-avg_time_spent')
-        elif HAS_TRENDING and sort and sort.startswith('accel_'):
-            event_list = Group.objects.get_accelerated(event_list, minutes=int(sort.split('_', 1)[1]))
         else:
-            sort = 'priority'
-            event_list = event_list.order_by('-score', '-last_seen')
+            view = None
+
+        filters, event_list = _get_group_list(
+            request=request,
+            project=project,
+            view=view,
+        )
 
         data = [
             (m.pk, {
@@ -233,62 +284,30 @@ def search(request, project):
 @login_required
 @has_access
 def group_list(request, project, view_id=None):
-    filters = []
-    for cls in Filter.handlers.filter(Group):
-        filters.append(cls(request))
-
     try:
         page = int(request.GET.get('p', 1))
     except (TypeError, ValueError):
         page = 1
-
-    event_list = Group.objects.filter(project=project)
 
     if view_id:
         try:
             view = View.objects.get(pk=view_id)
         except View.DoesNotExist:
             return HttpResponseRedirect(reverse('sentry', args=[project.pk]))
-
-        event_list = event_list.filter(views=view)
     else:
         view = None
 
-    # Filters only apply if we're not searching
-    any_filter = False
-    for filter_ in filters:
-        if not filter_.is_set():
-            continue
-        any_filter = True
-        event_list = filter_.get_query_set(event_list)
+    filters, event_list = _get_group_list(
+        request=request,
+        project=project,
+        view=view,
+    )
 
+    # XXX: this is duplicate in _get_group_list
     sort = request.GET.get('sort')
-    if sort == 'date':
-        sort_label = 'Last Seen'
-        event_list = event_list.order_by('-last_seen')
-    elif sort == 'new':
-        sort_label = 'First Seen'
-        event_list = event_list.order_by('-first_seen')
-    elif sort == 'freq':
-        sort_label = 'Frequency'
-        event_list = event_list.order_by('-times_seen')
-    elif sort == 'tottime':
-        sort_label = 'Total Time Spent'
-        event_list = event_list.filter(time_spent_count__gt=0)\
-                                .order_by('-time_spent_total')
-    elif sort == 'avgtime':
-        sort_label = 'Average Time Spent'
-        event_list = event_list.filter(time_spent_count__gt=0)\
-                               .extra(select={'_avg_time_spent': 'time_spent_total / time_spent_count'})\
-                               .order_by('-_avg_time_spent')
-    elif HAS_TRENDING and sort and sort.startswith('accel_'):
-        minutes = int(sort.split('_', 1)[1])
-        sort_label = 'Trending: {0} minutes'.format(minutes)
-        event_list = Group.objects.get_accelerated(event_list, minutes=minutes)
-    else:
-        sort_label = 'Priority'
-        sort = 'priority'
-        event_list = event_list.order_by('-score', '-last_seen')
+    if sort not in SORT_OPTIONS:
+        sort = DEFAULT_SORT_OPTION
+    sort_label = _get_sort_label(sort)
 
     today = datetime.datetime.now()
 
@@ -301,10 +320,9 @@ def group_list(request, project, view_id=None):
         'today': today,
         'sort': sort,
         'sort_label': sort_label,
-        'any_filter': any_filter,
         'filters': filters,
         'view': view,
-        'HAS_TRENDING': HAS_TRENDING,
+        'HAS_TRENDING': has_trending(),
     }, request)
 
 

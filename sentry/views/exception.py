@@ -13,8 +13,8 @@ __all__ = ('Exception',)
 
 
 class Exception(View):
-    verbose_name = _('exception')
-    verbose_name_plural = _('exceptions')
+    verbose_name = _('Exception')
+    verbose_name_plural = _('Exceptions')
 
     def should_store(self, event):
         return 'sentry.interfaces.Exception' in event.interfaces

@@ -13,8 +13,8 @@ __all__ = ('Query',)
 
 
 class Query(View):
-    verbose_name = _('query')
-    verbose_name_plural = _('queries')
+    verbose_name = _('Query')
+    verbose_name_plural = _('Queries')
 
     def should_store(self, event):
         return 'sentry.interfaces.Query' in event.interfaces

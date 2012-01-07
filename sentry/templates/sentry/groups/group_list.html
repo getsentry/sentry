@@ -23,7 +23,7 @@
     <div class="sparkline" id="sparkline"></div>
     {% if VIEWS %}
         <ul class="pills">
-            <li{% if not view %} class="active"{% endif %}><a href="{% url sentry project.pk %}">All</a></li>
+            <li{% if not view %} class="active"{% endif %}><a href="{% url sentry project.pk %}">{% trans "All" %}</a></li>
             {% for v in VIEWS %}
                 <li{% if view == v %} class="active"{% endif %}><a href="{% url sentry project.pk v.pk %}">{{ v.verbose_name_plural }}</a></li>
             {% endfor %}
@@ -35,6 +35,15 @@
 {% block heading %}{% trans "Events <small>Aggregated</small>" %}{% endblock %}
 
 {% block sidebar %}
+    {% querystring from request without bookmarks as bookmark_querystring %}
+    <div class="sidebar-module sidebar-module-{{ filter.column }}">
+        <h2>{% trans "Bookmarks" %}</h2>
+        <ul class="bookmarks-list filter-list">
+            <li{% if not request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ querystring }}">{% trans "All Events" %}</a></li>
+            <li{% if request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ querystring }}&amp;bookmarks=1">{% trans "Only Bookmarks" %}</a></li>
+        </ul>
+    </div>
+
     {% for filter in filters %}
         <div class="sidebar-module sidebar-module-{{ filter.column }}">
             {% if filter.show_label %}
