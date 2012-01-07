@@ -13,6 +13,9 @@
             <li class="active"><a href="#main">Environment</a></li>
             <li><a href="#packages">Packages</a></li>
             <li><a href="#workers">Workers</a></li>
+            {% for conf in site_configs %}
+            <li><a href="#config_{{conf.slug}}">{{conf.site_conf_title|default:conf.title}}</a></li>
+            {% endfor %}
         </ul>
         <div class="tab-content">
             <div id="main" class="active">
@@ -183,6 +186,16 @@
                 </table>
             </div>
             {% endif %}
+            {% for conf in site_configs %}
+            <div id="config_{{conf.slug}}">
+                <div class="page-header">
+                    <div class="page-header">
+                        <h2>{{conf.site_config_title|default:conf.title}} configuration</h2>
+                    </div>
+                    {{ conf.view|safe }}
+                </div>
+            </div>
+            {% endfor %}
         </div>
     </div>
 {% endblock %}
