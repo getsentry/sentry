@@ -100,7 +100,6 @@ if (Sentry === undefined) {
         var traceback;
         var stack;
         var headers;
-        var message = e.toString();
         var fileurl;
 
         if (e.line) { // WebKit
@@ -123,7 +122,7 @@ if (Sentry === undefined) {
         }
 
         var urlparts = self.parseUrl(url);
-        var label = e.name + ": " + message;
+        var label = e.toString();
         if (lineno) {
             label = label + " at " + lineno;
         }
@@ -150,7 +149,7 @@ if (Sentry === undefined) {
             "sentry.interfaces.Stacktrace": stack || undefined,
             "sentry.interfaces.Exception": {
                 "type": e.name,
-                "value": message
+                "value": e.message
             },
             "sentry.interfaces.Http": {
                 "url": urlparts.url,
