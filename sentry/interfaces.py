@@ -305,5 +305,6 @@ class Template(Interface):
 
         return '\n'.join(result)
 
+
 class User(Interface):
     pass
