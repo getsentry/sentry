@@ -74,12 +74,12 @@ urlpatterns = patterns('',
 
     # JS
 
-    url(r'^(?P<project_id>\d+)/api/notification/$', api.notification, name='sentry-api-notification'),
-    url(r'^(?P<project_id>\d+)/api/poll/$', api.poll, name='sentry-api-poll'),
-    url(r'^(?P<project_id>\d+)/api/resolve/$', api.resolve, name='sentry-api-resolve'),
-    url(r'^(?P<project_id>\d+)/api/bookmark/$', api.bookmark, name='sentry-api-bookmark'),
-    url(r'^(?P<project_id>\d+)/api/clear/$', api.clear, name='sentry-api-clear'),
-    url(r'^(?P<project_id>\d+)/api/chart/$', api.chart, name='sentry-api-chart'),
+    url(r'^api/notification/$', api.notification, name='sentry-api-notification'),
+    url(r'^api/(?P<project_id>\d+)/poll/$', api.poll, name='sentry-api-poll'),
+    url(r'^api/(?P<project_id>\d+)/resolve/$', api.resolve, name='sentry-api-resolve'),
+    url(r'^api/(?P<project_id>\d+)/bookmark/$', api.bookmark, name='sentry-api-bookmark'),
+    url(r'^api/(?P<project_id>\d+)/clear/$', api.clear, name='sentry-api-clear'),
+    url(r'^api/(?P<project_id>\d+)/chart/$', api.chart, name='sentry-api-chart'),
 
     # Project specific
 

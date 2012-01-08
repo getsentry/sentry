@@ -85,6 +85,7 @@ def render_to_string(template, context=None, request=None):
         'MESSAGES_PER_PAGE': settings.MESSAGES_PER_PAGE,
         'PROJECT_ID': settings.PROJECT,
         'VIEWS': list(View.objects.all()),
+        'URL_PREFIX': settings.URL_PREFIX,
     })
 
     if request:

@@ -27,8 +27,8 @@ if (Sentry === undefined) {
     var self = Sentry;
 
     Sentry.options = {
+        urlPrefix: '',
         mediaUrl: '/media/',
-        urlMap: {},
         defaultImage: '/media/images/sentry.png'
     };
 
@@ -39,10 +39,10 @@ if (Sentry === undefined) {
     };
 
     Sentry.stream = {};
-    Sentry.stream.clear = function() {
+    Sentry.stream.clear = function(project_id) {
         if (confirm("Are you sure you want to mark all your stream as resolved?")) {
             $.ajax({
-                url: Sentry.options.urlMap.clear,
+                url: Sentry.options.urlPrefix + '/api/' + project_id + '/clear',
                 type: 'post',
                 dataType: 'json',
                 success: function(groups){
@@ -51,12 +51,12 @@ if (Sentry === undefined) {
             });
         }
     };
-    Sentry.stream.resolve = function(gid, remove){
+    Sentry.stream.resolve = function(project_id, gid, remove){
         if (typeof(remove) == 'undefined') {
             remove = true;
         }
         $.ajax({
-            url: Sentry.options.urlMap.resolve,
+            url: Sentry.options.urlPrefix + '/api/' + project_id + '/resolve',
             type: 'post',
             dataType: 'json',
             data: {
@@ -75,9 +75,9 @@ if (Sentry === undefined) {
             }
         });
     };
-    Sentry.stream.bookmark = function(gid){
+    Sentry.stream.bookmark = function(project_id, gid){
         $.ajax({
-            url: Sentry.options.urlMap.bookmark,
+            url: Sentry.options.urlPrefix + '/api/' + project_id + '/bookmark',
             type: 'post',
             dataType: 'json',
             data: {
@@ -124,7 +124,7 @@ if (Sentry === undefined) {
         data = getQueryParams();
         data.view_id = Sentry.realtime.options.viewId || undefined;
         $.ajax({
-            url: Sentry.options.urlMap.poll,
+            url: Sentry.options.urlPrefix + '/api/' + self.options.projectId + '/poll',
             type: 'get',
             dataType: 'json',
             data: data,
@@ -135,7 +135,7 @@ if (Sentry === undefined) {
                 for (var i=groups.length-1, el, row; (el=groups[i]); i--) {
                     var id = el[0];
                     var data = el[1];
-                    var url = Sentry.options.urlMap.notification + '?' + $.param({
+                    var url = Sentry.options.urlPrefix + '/api/notification?' + $.param({
                         count: data.count,
                         title: data.title,
                         message: data.message,
@@ -166,6 +166,59 @@ if (Sentry === undefined) {
                     }
                 });
                 setTimeout(Sentry.realtime.refresh, 3000);
+            }
+        });
+    };
+
+    Sentry.charts = {};
+    Sentry.charts.render = function(el, project_id, group_id, grid){
+        var $sparkline = $(el);
+        $.ajax({
+            url: Sentry.options.urlPrefix + '/api/' + project_id + '/chart',
+            type: 'get',
+            dataType: 'json',
+            data: {
+                days: 1,
+                gid: group_id || undefined
+            },
+            success: function(data){
+                if (!data.length) {
+                    return;
+                }
+
+                var start = new Date().getTime() - data.length * 3600000;
+                var pairs = [];
+                // for (var i=0; i<1000; i++) {
+                //     pairs.push([start + (3600 * 1000) * i, Math.random()*1000]);
+                // }
+                for (var i=0; i<data.length; i++) {
+                    pairs.push([start + (3600 * 1000) * i, data[i]]);
+                }
+                $sparkline.height($sparkline.parent().height());
+                $.plot($sparkline, [
+                    {
+                        data: pairs,
+                        color: '#3079d0',
+                        shadowSize: 0,
+                        lines: {
+                            lineWidth: 1,
+                            show: true,
+                            fill: true
+                        }
+                    }
+                ], {
+                    xaxis: {
+                       mode: "time"
+                    },
+                    grid: {
+                        show: grid || false,
+                        borderColor: '#dddddd',
+                        borderWidth: 1,
+                        backgroundColor: '#F5F5F5'
+                    },
+                    lines: { show: false }
+
+                });
             }
         });
     };
@@ -287,4 +340,22 @@ $(document).ajaxSend(function(event, xhr, settings) {
     if (!safeMethod(settings.type) && sameOrigin(settings.url)) {
         xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
     }
+});
+
+$('.popup').click(function(){
+    var $this = $(this);
+    var $window = $(window);
+    var $container = $($this.attr('data-container'));
+    var title = $this.attr('data-title') || 'Untitled';
+    var content = $container.html();
+    var height = Math.min($window.height() - 100, $container.height() + 40);
+    var width = Math.min($window.width() - 100, $container.width() + 40);
+    var w = window.open("about:blank", "dsqApiExpand", "toolbar=0,status=0,location=0,menubar=0,height=" + height + ",width=" + width);
+    w.document.write("<!DOCTYPE html><html>" +
+        "<head>" +
+            "<title>" + title + "</title>" +
+            "<link href=\"" + Sentry.options.popupCss + "\" rel=\"stylesheet\" type=\"text/css\"/>" +
+        "</head><body>" +
+            "<div id=\"popup\">" + content + "</div></body>" +
+        "</html>");
 });
