@@ -101,6 +101,7 @@ if (Sentry === undefined) {
         var stack;
         var headers;
         var message = e.toString();
+        var fileurl;
 
         if (e.line) { // WebKit
             lineno = e.line;
@@ -112,10 +113,7 @@ if (Sentry === undefined) {
             fileurl = e.sourceURL;
         } else if (e.fileName) { // Mozilla
             fileurl = e.fileName;
-        } else {
-            fileurl = window.location.href;
         }
-
         if (e.stack) {
             try {
                 traceback = self.parseTraceback(e.stack);
@@ -134,7 +132,8 @@ if (Sentry === undefined) {
             stack = {
                 "frames": traceback
             };
-        } else {
+            fileurl = traceback[0].filename;
+        } else if (fileurl) {
             stack = {
                 "frames": [
                     {
@@ -147,7 +146,7 @@ if (Sentry === undefined) {
 
         var data = {
             "message": label,
-            "culprit": fileurl,
+            "culprit": fileurl || undefined,
             "sentry.interfaces.Stacktrace": stack || undefined,
             "sentry.interfaces.Exception": {
                 "type": e.name,
