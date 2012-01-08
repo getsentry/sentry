@@ -153,7 +153,6 @@ class Stacktrace(Interface):
             r.append('  File "%(filename)s", line %(lineno)s, in %(function)s\n    %(context_line)s' % f)
         return '\n'.join(r)
 
-    # TODO: abstract this  to some kind of "raw" hook for rendering
     def get_traceback(self, event):
         result = [
             event.message, '',
@@ -294,9 +293,17 @@ class Template(Interface):
             'lineno': self.lineno,
             'start_lineno': context[0][0],
             'context': context,
-            'template': '\n'.join([event.message, ''] + [n[1].strip('\n') for n in context]),
+            'template': self.get_traceback(event, context),
         })
 
+    def get_traceback(self, event, context):
+        result = [
+            event.message, '',
+            'File "%s", line %s' % (self.filename, self.lineno), '',
+        ]
+        result.extend([n[1].strip('\n') for n in context])
+
+        return '\n'.join(result)
 
 class User(Interface):
     pass
