@@ -70,14 +70,35 @@ if (Sentry === undefined) {
         // req.setRequestHeader('Content-type', 'application/json');
         // req.setRequestHeader("X-Requested-With", "XMLHttpRequest");
         req.open('POST', self.options.server + '?project_id=' + self.options.projectId, false);
-        console.log(JSON.stringify(data));
         req.send(JSON.stringify(data));
+    };
+
+    Sentry.client.parseTraceback = function(tb) {
+        // first line is simply the repeated message:
+        // ReferenceError: aldfjalksdjf is not defined
+
+        // following lines (in Chrome at least) contain
+        // a line of context
+        //     at http://localhost:9000/1/group/306:41:5
+        var stack = [];
+        var lines = tb.split('\n');
+        for (var i=1, line; (line = lines[i]); i++) {
+            var chunks = line.split(':');
+            var lineno = chunks.slice(-2)[0];
+            var filename = chunks.slice(0, -2).join(':').split(' at ')[1];
+            stack.push({
+                'lineno': lineno,
+                'filename': filename
+            });
+        }
+        return stack;
     };
 
     Sentry.client.captureException = function(e) {
         var lineno;
-        var url;
+        var url = window.location.href;
         var traceback;
+        var stack;
         var headers;
         var message = e.toString();
 
@@ -88,29 +109,46 @@ if (Sentry === undefined) {
         }
 
         if (e.sourceURL) { // Webkit
-            url = e.sourceURL;
+            fileurl = e.sourceURL;
         } else if (e.fileName) { // Mozilla
-            url = e.fileName;
+            fileurl = e.fileName;
         } else {
-            url = window.location;
+            fileurl = window.location.href;
         }
 
-        // Currently Mozilla only:
         if (e.stack) {
-            traceback = e.stack;
+            try {
+                traceback = self.parseTraceback(e.stack);
+            } catch (ex) {
+
+            }
         }
 
         var urlparts = self.parseUrl(url);
+        var label = e.name + ": " + message;
+        if (lineno) {
+            label = label + " at " + lineno;
+        }
+
+        if (traceback) {
+            stack = {
+                "frames": traceback
+            };
+        } else {
+            stack = {
+                "frames": [
+                    {
+                        "filename": fileurl,
+                        "lineno": lineno
+                    }
+                ]
+            };
+        }
 
         var data = {
-            "message": e.name + ": " + message,
-            // "sentry.interfaces.Stacktrace": {
-            //     "frames": [
-            //         {
-            //             "lineno": lineno
-            //         }
-            //     ]
-            // },
+            "message": label,
+            "culprit": fileurl,
+            "sentry.interfaces.Stacktrace": stack || undefined,
             "sentry.interfaces.Exception": {
                 "type": e.name,
                 "value": message
@@ -135,17 +173,21 @@ if (Sentry === undefined) {
             http://code.google.com/p/chromium/issues/detail?id=7771
         */
 
-        window.onerror = function(message, url, lineno, stack) {
+        window.onerror = function(message, fileurl, lineno, stack) {
+            var url = window.location.href;
             var urlparts = self.parseUrl(url);
+            var label = message + ' at line ' + lineno;
             var data = {
-                "message": message,
-                // "sentry.interfaces.Stacktrace": {
-                //     "frames": [
-                //         {
-                //             "lineno": lineno
-                //         }
-                //     ]
-                // },
+                "message": label,
+                "culprit": fileurl,
+                "sentry.interfaces.Stacktrace": {
+                    "frames": [
+                        {
+                            "filename": fileurl,
+                            "lineno": lineno
+                        }
+                    ]
+                },
                 "sentry.interfaces.Exception": {
                     "value": message
                 },
