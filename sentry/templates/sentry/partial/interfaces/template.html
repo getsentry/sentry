@@ -6,7 +6,7 @@
         <h2>{% trans "Template Error" %}</h2>
     </div>
     <div class="module-content">
-        <p>In <code>{{ filename }}</code>, error at line <strong>{{ lineno }}</strong></p>
+        <p><code>{{ filename }}</code> at line <code>{{ lineno }}</code></p>
         {% if context %}
             <ol start="{{ start_lineno }}" class="context expandable">
                 {% for num, line in context %}
