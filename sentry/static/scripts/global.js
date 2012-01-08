@@ -124,7 +124,7 @@ if (Sentry === undefined) {
         data = getQueryParams();
         data.view_id = Sentry.realtime.options.viewId || undefined;
         $.ajax({
-            url: Sentry.options.urlPrefix + '/api/' + self.options.projectId + '/poll',
+            url: Sentry.options.urlPrefix + '/api/' + Sentry.realtime.options.projectId + '/poll',
             type: 'get',
             dataType: 'json',
             data: data,
