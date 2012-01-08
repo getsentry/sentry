@@ -148,6 +148,7 @@ def plugin_config(plugin, project, request):
 
         return ('redirect', None)
 
+    from django.template.loader import render_to_string
     return ('display', render_to_string(plugin.site_conf_template, {
             'form': form,
         }, context_instance=RequestContext(request)))
