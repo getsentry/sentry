@@ -99,7 +99,7 @@
 
     {% if event_list.paginator.objects %}
         <ul class="messages" id="event_list">
-            {% for group in event_list.paginator.objects %}
+            {% for group, is_bookmarked in event_list.paginator.objects|as_bookmarks:request.user %}
                 {% include "sentry/partial/_group.html" %}
             {% endfor %}
         </ul>

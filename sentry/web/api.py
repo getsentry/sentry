@@ -64,6 +64,8 @@ def notification(request, project):
 @csrf_exempt
 @has_access
 def poll(request, project):
+    from sentry.templatetags.sentry_helpers import as_bookmarks
+
     offset = 0
     limit = settings.MESSAGES_PER_PAGE
 
@@ -87,13 +89,14 @@ def poll(request, project):
             'html': render_to_string('sentry/partial/_group.html', {
                 'group': m,
                 'request': request,
+                'is_bookmarked': b,
             }).strip(),
             'title': m.message_top(),
             'message': m.error(),
             'level': m.get_level_display(),
             'logger': m.logger,
             'count': m.times_seen,
-        }) for m in event_list[offset:limit]]
+        }) for m, b in as_bookmarks(event_list[offset:limit], request.user)]
 
     response = HttpResponse(json.dumps(data))
     response['Content-Type'] = 'application/json'
@@ -137,6 +140,10 @@ def bookmark(request, project):
     gid = request.REQUEST.get('gid')
     if not gid:
         return HttpResponseForbidden()
+
+    if not request.user.is_authenticated():
+        return HttpResponseForbidden()
+
     try:
         group = Group.objects.get(pk=gid)
     except Group.DoesNotExist:
@@ -153,7 +160,7 @@ def bookmark(request, project):
     if not created:
         gb.delete()
 
-    response = HttpResponse({'bookmarked': not created})
+    response = HttpResponse(json.dumps({'bookmarked': created}))
     response['Content-Type'] = 'application/json'
     return response
 

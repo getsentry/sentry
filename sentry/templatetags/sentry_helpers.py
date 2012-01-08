@@ -263,3 +263,19 @@ def querystring(context, request, withoutvar, asvar=None):
 @register.inclusion_tag('sentry/partial/_form.html')
 def render_form(form):
     return {'form': form}
+
+
+@register.filter
+def as_bookmarks(group_list, user):
+    if user.is_authenticated():
+        group_list = list(group_list)
+        project = group_list[0].project
+        bookmarks = set(project.bookmark_set.filter(
+            user=user,
+            group__in=group_list,
+        ).values_list('group_id', flat=True))
+    else:
+        bookmarks = set()
+
+    for g in group_list:
+        yield g, g.pk in bookmarks

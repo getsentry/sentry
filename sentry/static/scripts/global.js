@@ -75,7 +75,7 @@ if (Sentry === undefined) {
             }
         });
     };
-    Sentry.stream.bookmark = function(project_id, gid){
+    Sentry.stream.bookmark = function(project_id, gid, el){
         $.ajax({
             url: Sentry.options.urlPrefix + '/api/' + project_id + '/bookmark',
             type: 'post',
@@ -84,7 +84,16 @@ if (Sentry === undefined) {
                 gid: gid
             },
             success: function(data){
-                var is_bookmarked = data.bookmarked;
+                if (!el) {
+                    return;
+                }
+                var $el = $(el);
+                console.log($el);
+                if (data.bookmarked) {
+                    $el.addClass('checked');
+                } else {
+                    $el.removeClass('checked');
+                }
             }
         });
     };
@@ -143,8 +152,9 @@ if (Sentry === undefined) {
                         logger: data.logger
                     });
                     if ((row = $('#group_' + id))) {
-                        row.remove();
-                        $('#event_list').prepend(data.html);
+                        // TODO: move this to the correct position
+                        //row.remove();
+                        //$('#event_list').prepend(data.html);
                         if (row.attr('data-sentry-count') != data.count) {
                             $('#group_' + id).addClass('fresh');
                         }
