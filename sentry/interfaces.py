@@ -113,9 +113,9 @@ class Stacktrace(Interface):
         for frame in frames:
             # ensure we've got the correct required values
             assert 'filename' in frame
-            assert 'function' in frame
             assert 'lineno' in frame
-            assert 'context_line' in frame
+            # assert 'context_line' in frame
+            # assert 'function' in frame
 
     def serialize(self):
         return {
@@ -125,12 +125,17 @@ class Stacktrace(Interface):
     def to_html(self, event):
         frames = []
         for frame in self.frames:
-            context = get_context(frame['lineno'], frame['context_line'], frame.get('pre_context'), frame.get('post_context'))
+            if 'context_line' in frame:
+                context = get_context(frame['lineno'], frame['context_line'], frame.get('pre_context'), frame.get('post_context'))
+                start_lineno = context[0][0]
+            else:
+                context = []
+                start_lineno = None
             frames.append({
                 'abs_path': frame.get('abs_path'),
-                'filename': frame.get('filename'),
+                'filename': frame['filename'],
                 'function': frame.get('function'),
-                'start_lineno': context[0][0],
+                'start_lineno': start_lineno,
                 'lineno': frame.get('lineno'),
                 'context': context,
                 'vars': frame.get('vars') or {},
@@ -155,8 +160,12 @@ class Stacktrace(Interface):
             'Traceback (most recent call last):', '',
         ]
         for frame in self.frames:
-            result.append('  File "%(filename)s", line %(lineno)s, in %(function)s' % frame)
-            result.append('    %s' % frame['context_line'].strip())
+            if 'function' in frame:
+                result.append('  File "%(filename)s", line %(lineno)s, in %(function)s' % frame)
+            else:
+                result.append('  File "%(filename)s", line %(lineno)s' % frame)
+            if 'context_line' in frame:
+                result.append('    %s' % frame['context_line'].strip())
             result.append('')
 
         return '\n'.join(result)
