@@ -14,8 +14,6 @@ from django.db.models import Sum
 from django.http import HttpResponseRedirect, Http404, HttpResponseNotModified, \
   HttpResponse
 from djkombu.models import Queue
-from django.template.loader import render_to_string
-from django.template import RequestContext
 
 from sentry import environment
 from sentry.conf import settings
