@@ -352,7 +352,7 @@ $(document).ajaxSend(function(event, xhr, settings) {
     }
 });
 
-$('.popup').click(function(){
+$('.popup').live('click', function(){
     var $this = $(this);
     var $window = $(window);
     var $container = $($this.attr('data-container'));
