@@ -267,8 +267,8 @@ def render_form(form):
 
 @register.filter
 def as_bookmarks(group_list, user):
-    if user.is_authenticated():
-        group_list = list(group_list)
+    group_list = list(group_list)
+    if user.is_authenticated() and group_list:
         project = group_list[0].project
         bookmarks = set(project.bookmark_set.filter(
             user=user,
