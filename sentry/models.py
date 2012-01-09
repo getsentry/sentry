@@ -98,6 +98,7 @@ class Project(Model):
         # TODO: this doesnt clean up the index
         for model in (Event, Group, FilterValue, MessageFilterValue, MessageCountByMinute):
             model.objects.filter(project=self).delete()
+        super(Project, self).delete()
 
     def merge_to(self, project):
         for model in (Event, Group, MessageFilterValue, MessageCountByMinute):
