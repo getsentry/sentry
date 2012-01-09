@@ -9,7 +9,11 @@
         <ul class="traceback">
             {% for frame in frames %}
                 <li class="frame">
-                    <p><code>{{ frame.filename }}</code> in <code>{{ frame.function }}</code></p>
+                    <p>
+                        <code>{{ frame.filename }}</code>
+                        {% if frame.function %} in <code>{{ frame.function }}</code>{% endif %}
+                        {% if not frame.context %} at line <code>{{ frame.lineno }}</code>{% endif %}
+                    </p>
 
                     {% if frame.context %}
                         <ol start="{{ frame.start_lineno }}" class="context expandable" id="c{{ forloop.counter0 }}">

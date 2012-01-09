@@ -31,22 +31,12 @@
         <script type="text/javascript" src="{% url sentry-media "scripts/global.js" %}"></script>
         <script type="text/javascript">
         Sentry.config({
+            urlPrefix: '{{ URL_PREFIX }}',
             mediaUrl: '{% url sentry-media '' %}',
-            defaultImage: '{% url sentry-media 'images/sentry.png' %}'
+            defaultImage: '{% url sentry-media 'images/sentry.png' %}',
+            popupCss: '{% url sentry-media 'styles/popup.css' %}'
         });
-        {% if project %}
-        Sentry.config({
-            urlMap: {
-                notification: '{% url sentry-api-notification project.pk %}',
-                resolve: '{% url sentry-api-resolve project.pk %}',
-                clear: '{% url sentry-api-clear project.pk %}',
-                poll: '{% url sentry-api-poll project.pk %}',
-                bookmark: '{% url sentry-api-bookmark project.pk %}',
-                chart: '{% url sentry-api-chart project.pk %}',
-            }
-        });
-        {% endif %}
-            </script>
+        </script>
 
         {% block meta %}
         {% endblock %}

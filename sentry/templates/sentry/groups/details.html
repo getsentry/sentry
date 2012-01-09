@@ -103,7 +103,7 @@
                 <div class="page-header">
                     <h2>{% trans "Frequency" %}</h2>
                 </div>
-                <div class="module-content">
+                <div class="module-content" style="height: 120px;">
                     <div id="chart">
                         <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
                         <p>Loading...</p>
@@ -180,67 +180,8 @@
 
 {% block content_after %}
     <script type="text/javascript">
-    $('.popup').click(function(){
-        var $this = $(this);
-        var $window = $(window);
-        var $container = $($this.attr('data-container'));
-        var title = $this.attr('data-title') || 'Untitled';
-        var content = $container.html();
-        var height = Math.min($window.height() - 100, $container.height() + 40);
-        var width = Math.min($window.width() - 100, $container.width() + 40);
-        var w = window.open("about:blank", "dsqApiExpand", "toolbar=0,status=0,location=0,menubar=0,height=" + height + ",width=" + width);
-        w.document.write("<!DOCTYPE html><html><title>" + title + "</title><head><link href=\"{% url sentry-media "styles/popup.css" %}\" rel=\"stylesheet\" type=\"text/css\"/></head><body><div id=\"popup\">" + content + "</div></body></html>");
-    });
     $(document).ready(function() {
-        if (!$('#chart').length) return;
-
-        $.ajax({
-            url: Sentry.options.urlMap.char,
-            type: 'post',
-            dataType: 'json',
-            data: {
-                gid: '{{ group.id }}'
-            },
-            success: function(data){
-                if (!data.length) {
-                    $('#chart').html('No data currently available.');
-                    return;
-                }
-
-                var start = new Date().getTime() - data.length * 3600000;
-                var pairs = [];
-                // for (var i=0; i<1000; i++) {
-                //     pairs.push([start + (3600 * 1000) * i, Math.random()*1000]);
-                // }
-                for (var i=0; i<data.length; i++) {
-                    pairs.push([start + (3600 * 1000) * i, data[i]]);
-                }
-                $('#chart').height(120);
-                $.plot($("#chart"), [
-                    {
-                        data: pairs,
-                        color: '#3079d0',
-                        shadowSize: 0,
-                        lines: {
-                            lineWidth: 1,
-                            show: true,
-                            fill: true
-                        },
-                    }
-                ], {
-                    xaxis: {
-                       mode: "time"
-                    },
-                    grid: {
-                        borderColor: '#dddddd',
-                        borderWidth: 1,
-                        backgroundColor: '#F5F5F5'
-                    },
-                    lines: { show: false }
-
-                });
-            }
-        });
+        Sentry.charts.render("#chart", {{ group.project.id }}, {{ group.id }}, true);
     });
     </script>
 {% endblock %}

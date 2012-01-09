@@ -2,8 +2,10 @@
 
 from __future__ import absolute_import
 
+import datetime
 import getpass
 import logging
+import pytz
 
 from django.core import mail
 
@@ -116,9 +118,26 @@ class SentryManagerTest(TestCase):
         self.assertRaises(InvalidData, Group.objects.from_kwargs, 1)
 
     def test_valid_only_message(self):
-        group = Group.objects.from_kwargs(1, message='foo')
-        self.assertEquals(group.message, 'foo')
-        self.assertEquals(group.project_id, 1)
+        event = Group.objects.from_kwargs(1, message='foo')
+        self.assertEquals(event.message, 'foo')
+        self.assertEquals(event.project_id, 1)
+
+    def test_valid_timestamp_with_tz(self):
+        with self.Settings(USE_TZ=True):
+            date = datetime.datetime.now().replace(tzinfo=pytz.utc)
+            event = Group.objects.from_kwargs(1, message='foo', timestamp=date)
+            self.assertEquals(event.message, 'foo')
+            self.assertEquals(event.project_id, 1)
+            self.assertEquals(event.datetime, date)
+
+    def test_valid_timestamp_without_tz(self):
+        # TODO: this doesnt error, but it will throw a warning. What should we do?
+        with self.Settings(USE_TZ=True):
+            date = datetime.datetime.now()
+            event = Group.objects.from_kwargs(1, message='foo', timestamp=date)
+            self.assertEquals(event.message, 'foo')
+            self.assertEquals(event.project_id, 1)
+            self.assertEquals(event.datetime, date)
 
     def test_legacy_data(self):
         result = Group.objects.convert_legacy_kwargs({'message_id': '1234'})

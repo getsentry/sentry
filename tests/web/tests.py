@@ -346,14 +346,8 @@ class SentryHelpersTest(TestCase):
     def test_get_db_engine(self):
         from sentry.utils import get_db_engine
         _databases = getattr(django_settings, 'DATABASES', {}).copy()
-        _engine = django_settings.DATABASE_ENGINE
 
-        django_settings.DATABASE_ENGINE = ''
         django_settings.DATABASES['default'] = {'ENGINE': 'blah.sqlite3'}
-
-        self.assertEquals(get_db_engine(), 'sqlite3')
-
-        django_settings.DATABASE_ENGINE = 'mysql'
 
         self.assertEquals(get_db_engine(), 'sqlite3')
 
@@ -362,7 +356,6 @@ class SentryHelpersTest(TestCase):
         self.assertEquals(get_db_engine(), 'mysql')
 
         django_settings.DATABASES = _databases
-        django_settings.DATABASE_ENGINE = _engine
 
     def test_get_login_url(self):
         with self.Settings(LOGIN_URL='/really-a-404'):

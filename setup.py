@@ -28,6 +28,7 @@ from setuptools import setup, find_packages
 tests_require = [
     'nose==1.1.2',
     'django-nose==0.1.3',
+    'pytz==2011n',
 ]
 
 install_requires = [

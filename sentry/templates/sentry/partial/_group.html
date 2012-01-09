@@ -23,11 +23,13 @@
     <ul class="actions">
         <li>
             {% if group.status == 0 %}
-                <a href="javascript:void(0)" onclick="Sentry.stream.resolve({{ group.pk|safe }});" class="btn small">&#10003;</a>
+                <a href="javascript:void(0)" onclick="Sentry.stream.resolve({{ group.project_id|safe }}, {{ group.pk|safe }}, this);" class="btn small">&#10003;</a>
             {% else %}
                 <a href="javascript:void(0)" class="btn disabled small">&#10003;</a>
             {% endif %}
         </li>
-        <li><a href="javascript:void(0)" onclick="Sentry.stream.bookmark({{ group.pk|safe }});" class="btn small">&#9829;</a></li>
+        {% if request.user.is_authenticated %}
+            <li><a href="javascript:void(0)" onclick="Sentry.stream.bookmark({{ group.project_id|safe }}, {{ group.pk|safe }}, this);" class="btn small bookmark{% if is_bookmarked %} checked{% endif %}">&#9829;</a></li>
+        {% endif %}
     </ul>
 </li>
