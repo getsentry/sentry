@@ -48,6 +48,9 @@ def new_project(request):
 @has_access(MEMBER_OWNER)
 @csrf_protect
 def remove_project(request, project):
+    if str(project.id) == str(settings.PROJECT):
+        return HttpResponseRedirect(reverse('sentry-project-list'))
+
     project_list = filter(lambda x: x != project, get_project_list(request.user).itervalues())
 
     form = RemoveProjectForm(project_list, request.POST or None)
