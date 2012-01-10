@@ -71,6 +71,10 @@ class RemoveProjectForm(forms.Form):
             raise forms.ValidationError('You must select a project to migrate data')
         return data
 
+    def clean_project(self):
+        project_id = self.cleaned_data['project']
+        return Project.objects.get(id=project_id)
+
 
 class NewProjectForm(forms.ModelForm):
     class Meta:
