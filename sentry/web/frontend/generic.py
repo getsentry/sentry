@@ -38,6 +38,11 @@ def status(request):
     from sentry.views import View
     from sentry.processors import Processor
 
+    if not request.user.is_staff:
+        return render_to_response('sentry/status.html', {
+            'restricted': True,
+        }, request)
+
     # Deal with the plugins
     site_configs = []
     for name, cls in Plugin.plugins.iteritems():
