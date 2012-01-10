@@ -18,7 +18,7 @@ from indexer.models import BaseIndex
 
 from django.contrib.auth.models import User
 from django.db import models
-from django.db.models import Sum
+from django.db.models import Sum, F
 from django.db.models.signals import post_syncdb
 from django.utils.datastructures import SortedDict
 from django.utils.encoding import smart_unicode
@@ -101,10 +101,56 @@ class Project(Model):
         # TODO: this doesnt clean up the index
         for model in (Event, Group, FilterValue, MessageFilterValue, MessageCountByMinute):
             model.objects.filter(project=self).delete()
+        super(Project, self).delete()
 
     def merge_to(self, project):
-        for model in (Event, Group, MessageFilterValue, MessageCountByMinute):
-            model.objects.filter(project=self).update(project=project)
+        if not isinstance(project, Project):
+            project = Project.objects.get(pk=project)
+
+        for group in Group.objects.filter(project=self):
+            try:
+                other = Group.objects.get(
+                    project=project,
+                    logger=group.logger,
+                    culprit=group.culprit,
+                    checksum=group.checksum,
+                )
+            except Group.DoesNotExist:
+                group.update(project=project)
+                for model in (Event, MessageFilterValue, MessageCountByMinute):
+                    model.objects.filter(project=self, group=group).update(project=project)
+            else:
+                Event.objects.filter(group=group).update(group=other)
+
+                for obj in MessageFilterValue.objects.filter(group=group):
+                    obj2, created = MessageFilterValue.objects.get_or_create(
+                        project=project,
+                        group=group,
+                        key=obj.key,
+                        value=obj.value,
+                        defaults={'times_seen': obj.times_seen}
+                    )
+                    if not created:
+                        obj2.update(times_seen=F('times_seen') + obj.times_seen)
+
+                for obj in MessageCountByMinute.objects.filter(group=group):
+                    obj2, created = MessageCountByMinute.objects.get_or_create(
+                        project=project,
+                        group=group,
+                        date=obj.date,
+                        defaults={
+                            'times_seen': obj.times_seen,
+                            'time_spent_total': obj.time_spent_total,
+                            'time_spent_count': obj.time_spent_count,
+                        }
+                    )
+                    if not created:
+                        obj2.update(
+                            times_seen=F('times_seen') + obj.times_seen,
+                            time_spent_total=F('time_spent_total') + obj.time_spent_total,
+                            time_spent_count=F('times_seen') + obj.time_spent_count,
+                        )
+
         for fv in FilterValue.objects.filter(project=self):
             FilterValue.objects.get_or_create(project=project, key=fv.key, value=fv.value)
             fv.delete()
