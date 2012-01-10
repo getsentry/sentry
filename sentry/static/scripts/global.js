@@ -150,7 +150,7 @@ if (Sentry === undefined) {
                 if (groups.length) {
                     $('#no_messages').remove();
                 }
-                for (var i=groups.length-1, el, row; (el=groups[i]); i--) {
+                $(groups.reverse()).each(function(i, el){
                     var id = el[0];
                     var data = el[1];
                     var url = Sentry.options.urlPrefix + '/api/notification?' + $.param({
@@ -160,18 +160,18 @@ if (Sentry === undefined) {
                         level: data.level,
                         logger: data.logger
                     });
-                    if ((row = $('#group_' + id)).length) {
-                        if (row.attr('data-sentry-count') != data.count) {
-                            row.attr('data-sentry-count', data.count);
-                            row.find('.count').html(data.count);
-                            $('#group_' + id).addClass('fresh');
+                    if ((row = $('#group_' + id))) {
+                        if (row.attr('data-sentry-count') == data.count) {
+                            return;
                         }
+                        row.remove();
                     } else {
-                        $('#event_list').prepend(data.html);
-                        $('#group_' + id).addClass('fresh');
                         //Sentry.notifications.show({'type': 'html', 'url': url});
                     }
-                }
+                    $('#event_list').prepend(data.html);
+                    $('#group_' + id).addClass('fresh');
+                });
+
                 $('#event_list .fresh').css('background-color', '#ccc').animate({backgroundColor: '#fff'}, 1200, function() {
                     $(this).removeClass('fresh');
                 });
