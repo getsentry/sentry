@@ -15,7 +15,7 @@ from django.template import loader, RequestContext, Context
 
 from sentry.conf import settings
 from sentry.models import ProjectMember, Project, View, \
-  MEMBER_USER
+  MEMBER_USER, Option, ProjectOption
 
 logger = logging.getLogger('sentry.errors')
 
@@ -109,3 +109,47 @@ def render_to_response(template, context=None, request=None, status=200):
     response.status_code = status
 
     return response
+
+
+def plugin_config(plugin, project, request):
+    """
+    Configure the plugin site wide.
+
+    returns a tuple composed of a redirection boolean and the content to
+    be displayed.
+    """
+
+    plugin_key = plugin.site_conf_title.lower()
+    if project:
+        form_class = plugin.project_conf_form
+    else:
+        form_class = plugin.site_conf_form
+    initials = {}
+    for field in form_class.base_fields:
+        key = '%s:%s' % (plugin_key, field)
+        if project:
+            value = ProjectOption.objects.get_value(project, key, None)
+        else:
+            value = Option.objects.get_value(key, None)
+        if value:
+            initials[field] = value
+
+    form = form_class(
+        request.POST or None,
+        initial=initials,
+        prefix=plugin_key
+    )
+    if form.is_valid():
+        for field, value in form.cleaned_data.iteritems():
+            key = '%s:%s' % (plugin_key, field)
+            if project:
+                ProjectOption.objects.set_value(project, key, value)
+            else:
+                Option.objects.set_value(key, value)
+
+        return ('redirect', None)
+
+    from django.template.loader import render_to_string
+    return ('display', render_to_string(plugin.site_conf_template, {
+            'form': form,
+        }, context_instance=RequestContext(request)))
