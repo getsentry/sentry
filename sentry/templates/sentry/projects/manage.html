@@ -49,7 +49,11 @@
         </fieldset>
         <p class="actions">
             <button type="submit" class="btn primary">{% trans "Save Changes" %}</button>
-            <a href="{% url sentry-remove-project project.pk %}" class="btn danger">{% trans "Remove Project" %}</a>
+            {% if PROJECT_ID != project.pk %}
+                <a href="{% url sentry-remove-project project.pk %}" class="btn danger">{% trans "Remove Project" %}</a>
+            {% else %}
+                <a href="#" class="btn disabled danger">{% trans "Cannot remove default project" %}</a>
+            {% endif %}
         </p>
     </form>
     <div class="page-header">
