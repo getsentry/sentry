@@ -90,10 +90,10 @@
             </ul>
         </li>
         <li class="pull-right">
-            <a href="javascript:void(0)" onclick="Sentry.stream.clear();">{% trans "Resolve Feed" %}</a>
+            <a href="javascript:void(0)" onclick="Sentry.stream.clear({{ project.id }});">{% trans "Resolve Feed" %}</a>
         </li>
         <li class="pull-right">
-            <a href="javascript:void(0)" id="sentry_realtime" class="realtime-play" onclick="Sentry.realtime.pause();">{% trans "Pause Feed" %}</a>
+            <a href="javascript:void(0)" id="sentry_realtime" class="realtime-play" onclick="Sentry.realtime.toggle();">{% trans "Pause Feed" %}</a>
         </li>
     </ul>
 
