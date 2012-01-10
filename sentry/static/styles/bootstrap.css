@@ -6,7 +6,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Designed and built with all the love in the world @twitter by @mdo and @fat.
- * Date: Sun Jan  8 11:19:21 PST 2012
+ * Date: Mon Jan  9 17:28:28 PST 2012
  */
 /* Reset.less
  * Props to Eric Meyer (meyerweb.com) for his CSS reset file. We're using an adapted version here	that cuts out some of the reset HTML elements we will never need here (i.e., dfn, samp, etc).
@@ -2683,7 +2683,8 @@ ol.context-line > li > span {
   cursor: pointer;
 }
 .expandable .closed {
-  display: none;
+  height: 0;
+  overflow: hidden;
 }
 table.vars th, table.vars td {
   padding: 5px 5px 4px;

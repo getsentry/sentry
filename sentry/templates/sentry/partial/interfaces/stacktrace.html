@@ -18,7 +18,7 @@
                     {% if frame.context %}
                         <ol start="{{ frame.start_lineno }}" class="context expandable" id="c{{ forloop.counter0 }}">
                         {% for num, line in frame.context %}
-                            <li{% if num == frame.lineno %} class="active"{% else %} class="stack{{ forloop.parentloop.counter0 }} closed"{% endif %} onclick="$('.stack{{ forloop.parentloop.counter0 }}').toggle()"><pre>{{ line }}</pre></li>
+                            <li{% if num == frame.lineno %} class="active"{% else %} class="stack{{ forloop.parentloop.counter0 }} closed"{% endif %} onclick="$('.stack{{ forloop.parentloop.counter0 }}').toggleClass('closed')"><pre>{{ line }}</pre></li>
                         {% endfor %}
                         </ol>
                     {% endif %}
