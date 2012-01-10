@@ -34,7 +34,7 @@ from sentry.utils.models import Model, GzippedDictField
 from sentry.templatetags.sentry_helpers import truncatechars
 import sentry.processors.base
 
-__all__ = ('Event', 'Group')
+__all__ = ('Event', 'Group', 'Project')
 
 STATUS_UNRESOLVED = 0
 STATUS_RESOLVED = 1
@@ -92,6 +92,9 @@ class Project(Model):
     ), db_index=True)
 
     objects = ProjectManager()
+
+    def __unicode__(self):
+        return u'#%s %r' % (self.pk, self.name)
 
     def delete(self):
         # This hadles cascades properly
