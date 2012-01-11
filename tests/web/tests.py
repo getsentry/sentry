@@ -236,14 +236,16 @@ class ViewPermissionTest(TestCase):
         self._assertPerm(path, template, 'member', False)
 
     def test_remove_project(self):
-        path = reverse('sentry-remove-project', kwargs={'project_id': 1})
-        template = 'sentry/projects/remove.html'
+        # We cant delete the default project
+        with self.Settings(SENTRY_PROJECT=2):
+            path = reverse('sentry-remove-project', kwargs={'project_id': 1})
+            template = 'sentry/projects/remove.html'
 
-        self._assertPerm(path, template, 'admin')
-        self._assertPerm(path, template, 'owner')
-        self._assertPerm(path, template, None, False)
-        self._assertPerm(path, template, 'nobody', False)
-        self._assertPerm(path, template, 'member', False)
+            self._assertPerm(path, template, 'admin')
+            self._assertPerm(path, template, 'owner')
+            self._assertPerm(path, template, None, False)
+            self._assertPerm(path, template, 'nobody', False)
+            self._assertPerm(path, template, 'member', False)
 
     def test_new_project_member(self):
         path = reverse('sentry-new-project-member', kwargs={'project_id': 1})
