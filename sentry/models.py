@@ -573,8 +573,8 @@ register_indexes()
 def create_default_project(created_models, verbosity=2, **kwargs):
     if Project in created_models:
         try:
-            owner = User.objects.filter(is_staff=True, is_superuser=True).order_by('id').get()
-        except User.DoesNotExist:
+            owner = User.objects.filter(is_staff=True, is_superuser=True).order_by('id')[0]
+        except IndexError:
             owner = None
 
         project, created = Project.objects.get_or_create(

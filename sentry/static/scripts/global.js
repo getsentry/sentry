@@ -88,7 +88,6 @@ if (Sentry === undefined) {
                     return;
                 }
                 var $el = $(el);
-                console.log($el);
                 if (data.bookmarked) {
                     $el.addClass('checked');
                 } else {
@@ -112,17 +111,27 @@ if (Sentry === undefined) {
 
     Sentry.realtime.status = false;
 
+    Sentry.realtime.toggle = function(){
+        if (Sentry.realtime.status) {
+            Sentry.realtime.enable();
+        } else {
+            Sentry.realtime.disable();
+        }
+    };
+
     Sentry.realtime.enable = function(){
-        $('#sentry_realtime').removeClass('realtime-play');
-        $('#sentry_realtime').addClass('realtime-pause');
-        $('#sentry_realtime').text('Pause Feed');
+        var $el = $('#sentry_realtime');
+        $el.removeClass('realtime-play');
+        $el.addClass('realtime-pause');
+        $el.text('Pause Feed');
         Sentry.realtime.status = true;
     };
 
     Sentry.realtime.disable = function(){
-        $('#sentry_realtime').addClass('realtime-play');
-        $('#sentry_realtime').removeClass('realtime-pause');
-        $('#sentry_realtime').text('Go Live');
+        var $el = $('#sentry_realtime');
+        $el.addClass('realtime-play');
+        $el.removeClass('realtime-pause');
+        $el.text('Go Live');
         Sentry.realtime.status = false;
     };
 
@@ -141,7 +150,7 @@ if (Sentry === undefined) {
                 if (groups.length) {
                     $('#no_messages').remove();
                 }
-                for (var i=groups.length-1, el, row; (el=groups[i]); i--) {
+                $(groups.reverse()).each(function(i, el){
                     var id = el[0];
                     var data = el[1];
                     var url = Sentry.options.urlPrefix + '/api/notification?' + $.param({
@@ -152,18 +161,17 @@ if (Sentry === undefined) {
                         logger: data.logger
                     });
                     if ((row = $('#group_' + id))) {
-                        // TODO: move this to the correct position
-                        //row.remove();
-                        //$('#event_list').prepend(data.html);
-                        if (row.attr('data-sentry-count') != data.count) {
-                            $('#group_' + id).addClass('fresh');
+                        if (row.attr('data-sentry-count') == data.count) {
+                            return;
                         }
+                        row.remove();
                     } else {
-                        $('#event_list').prepend(data.html);
-                        $('#group_' + id).addClass('fresh');
-                        Sentry.notifications.show({'type': 'html', 'url': url});
+                        //Sentry.notifications.show({'type': 'html', 'url': url});
                     }
-                }
+                    $('#event_list').prepend(data.html);
+                    $('#group_' + id).addClass('fresh');
+                });
+
                 $('#event_list .fresh').css('background-color', '#ccc').animate({backgroundColor: '#fff'}, 1200, function() {
                     $(this).removeClass('fresh');
                 });
