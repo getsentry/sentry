@@ -152,6 +152,13 @@ def get_tags(group, request):
         yield tag
 
 
+@register.simple_tag
+def handle_before_events(request, event_list):
+    for inst in request.plugins:
+        inst.before_events(event_list)
+    return ''
+
+
 @register.filter
 def timesince(value):
     from django.template.defaultfilters import timesince

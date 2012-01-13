@@ -533,6 +533,11 @@ class InstanceMetaManager(models.Manager):
         super(InstanceMetaManager, self).__init__(*args, **kwargs)
         self.field_name = field_name
 
+    def get_value_bulk(self, instances, key):
+        return dict(self.filter(**{
+            '%s__in' % self.field_name: instances,
+        }).values_list(self.field_name, 'value'))
+
     def get_value(self, instance, key, default=NOTSET):
         result = self.get_all_values(instance)
         if default is self.NOTSET:
