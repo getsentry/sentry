@@ -55,6 +55,13 @@ your ``INSTALLED_APPS``::
     	  'sentry.plugins.sentry_sites',
     	]
 
+Recognized 3rd Party Extensions
+-------------------------------
+
+The extensions are officially recognized and support the current Sentry protocol:
+
+* `sentry-phabricator <https://github.com/dcramer/sentry-phabricator>`_
+
 Writing a Plugin
 ----------------
 
