@@ -1,6 +1,16 @@
 {% load i18n %}
 <form class="form-stacked" action="" method="post">
     {% csrf_token %}
+    {% if form.non_field_errors %}
+        <div class="error block-message alert-message">
+            <p>There were errors saving your changes:</p>
+            <ul>
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
     {% for field in form %}
         <div class="clearfix{% if field.errors %} error{% endif %}">
             {{ field.label_tag }}
