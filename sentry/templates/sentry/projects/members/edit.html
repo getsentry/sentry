@@ -4,7 +4,7 @@
 
 {% block title %}{% trans "Edit Member" %} | {{ block.super }}{% endblock %}
 
-{% block heading %}{% trans "Edit Member" %}{% endblock %}
+{% block heading %}{% trans "Edit Member" %} <small>{{ member.user.username }}</small>{% endblock %}
 
 {% block main %}
     <ul class="breadcrumb">
