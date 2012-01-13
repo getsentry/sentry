@@ -41,7 +41,7 @@ urlpatterns = patterns('',
     url(r'^group/(?P<group_id>\d+)$', groups.group),
     url(r'^group/(?P<group_id>\d+)/messages$', groups.group_event_list),
     url(r'^group/(?P<group_id>\d+)/messages/(?P<event_id>\d+)$', groups.group_event_details),
-    url(r'^group/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)', groups.group_plugin_action),
+    url(r'^group/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)$', groups.group_plugin_action),
 
     # Account
 
