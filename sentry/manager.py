@@ -8,6 +8,7 @@ sentry.manager
 
 import datetime
 import hashlib
+import itertools
 import logging
 import warnings
 
@@ -165,11 +166,13 @@ class GroupManager(models.Manager, ChartMixin):
 
         if 'url' in data or 'url' in kwargs and 'META' in data:
             meta = data.pop('META', {})
+            if 'GET' in data:
+                del data['GET']
             result['sentry.interfaces.Http'] = Http(
                 url=data.pop('url', None) or kwargs['url'],
                 method=meta.get('REQUEST_METHOD'),
                 query_string=meta.get('QUERY_STRING'),
-                data=data.pop('POST'),
+                data=data.pop('POST', None),
                 cookies=meta.get('COOKIES'),
                 env=meta,
             ).serialize()
@@ -184,7 +187,7 @@ class GroupManager(models.Manager, ChartMixin):
             exc = sentry['exception']
             result['sentry.interfaces.Exception'] = Exception(
                 type=exc[0],
-                value=' '.join(exc[1]),
+                value=u' '.join(itertools.imap(unicode, exc[1])),
             ).serialize()
 
         if 'frames' in sentry:
