@@ -118,7 +118,7 @@
                     <h2>{% trans "Module Versions" %}</h2>
                 </div>
                 <table class="inline">
-                    {% for k, v in version_data %}
+                    {% for k, v in version_data.iteritems %}
                         <tr>
                             <th class="key">{{ k }}</th>
                             <td class="values"><code>{{ v }}</code></td>
