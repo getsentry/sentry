@@ -69,7 +69,7 @@ class Option(Model):
     their key. e.g. key='myplugin:optname'
     """
     key = models.CharField(max_length=64)
-    value = models.CharField(max_length=200)
+    value = models.TextField()
 
     objects = MetaManager()
 
@@ -166,7 +166,7 @@ class ProjectOption(Model):
     """
     project = models.ForeignKey(Project)
     key = models.CharField(max_length=64)
-    value = models.CharField(max_length=200)
+    value = models.TextField()
 
     objects = InstanceMetaManager('project')
 
