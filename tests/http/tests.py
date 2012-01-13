@@ -15,7 +15,7 @@ from tests.base import TestCase
 
 class SentryRemoteTest(TestCase):
     def setUp(self):
-        settings.REMOTE_URL = ['http://localhost:8000%s' % reverse('sentry-store')]
+        settings.REMOTE_URL = ['http://localhost:8000%s' % reverse('sentry-api-store')]
         logger = logging.getLogger('sentry')
         for h in logger.handlers:
             logger.removeHandler(h)
@@ -25,17 +25,17 @@ class SentryRemoteTest(TestCase):
         settings.REMOTE_URL = None
 
     def test_no_key(self):
-        resp = self.client.post(reverse('sentry-store'))
+        resp = self.client.post(reverse('sentry-api-store'))
         self.assertEquals(resp.status_code, 401)
 
     # def test_no_data(self):
-    #     resp = self.client.post(reverse('sentry-store'), {
+    #     resp = self.client.post(reverse('sentry-api-store'), {
     #         'key': settings.KEY,
     #     })
     #     self.assertEquals(resp.status_code, 400)
 
     # def test_bad_data(self):
-    #     resp = self.client.post(reverse('sentry-store'), {
+    #     resp = self.client.post(reverse('sentry-api-store'), {
     #         'key': settings.KEY,
     #         'data': 'hello world',
     #     })
@@ -106,7 +106,7 @@ class SentryRemoteTest(TestCase):
     #     fname = os.path.join(os.path.dirname(__file__), 'fixtures/bad_data.json')
     #     data = open(fname).read()
 
-    #     resp = self.client.post(reverse('sentry-store'), {
+    #     resp = self.client.post(reverse('sentry-api-store'), {
     #         'data': data,
     #         'key': settings.KEY,
     #     })

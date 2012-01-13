@@ -42,7 +42,7 @@ if (Sentry === undefined) {
     Sentry.stream.clear = function(project_id) {
         if (confirm("Are you sure you want to mark all your stream as resolved?")) {
             $.ajax({
-                url: Sentry.options.urlPrefix + '/api/' + project_id + '/clear',
+                url: Sentry.options.urlPrefix + '/api/' + project_id + '/clear/',
                 type: 'post',
                 dataType: 'json',
                 success: function(groups){
@@ -56,7 +56,7 @@ if (Sentry === undefined) {
             remove = true;
         }
         $.ajax({
-            url: Sentry.options.urlPrefix + '/api/' + project_id + '/resolve',
+            url: Sentry.options.urlPrefix + '/api/' + project_id + '/resolve/',
             type: 'post',
             dataType: 'json',
             data: {
@@ -77,7 +77,7 @@ if (Sentry === undefined) {
     };
     Sentry.stream.bookmark = function(project_id, gid, el){
         $.ajax({
-            url: Sentry.options.urlPrefix + '/api/' + project_id + '/bookmark',
+            url: Sentry.options.urlPrefix + '/api/' + project_id + '/bookmark/',
             type: 'post',
             dataType: 'json',
             data: {
@@ -142,7 +142,7 @@ if (Sentry === undefined) {
         data = getQueryParams();
         data.view_id = Sentry.realtime.options.viewId || undefined;
         $.ajax({
-            url: Sentry.options.urlPrefix + '/api/' + Sentry.realtime.options.projectId + '/poll',
+            url: Sentry.options.urlPrefix + '/api/' + Sentry.realtime.options.projectId + '/poll/',
             type: 'get',
             dataType: 'json',
             data: data,
@@ -153,7 +153,7 @@ if (Sentry === undefined) {
                 $(groups.reverse()).each(function(i, el){
                     var id = el[0];
                     var data = el[1];
-                    var url = Sentry.options.urlPrefix + '/api/notification?' + $.param({
+                    var url = Sentry.options.urlPrefix + '/api/notification/?' + $.param({
                         count: data.count,
                         title: data.title,
                         message: data.message,
@@ -192,7 +192,7 @@ if (Sentry === undefined) {
     Sentry.charts.render = function(el, project_id, group_id, grid){
         var $sparkline = $(el);
         $.ajax({
-            url: Sentry.options.urlPrefix + '/api/' + project_id + '/chart',
+            url: Sentry.options.urlPrefix + '/api/' + project_id + '/chart/',
             type: 'get',
             dataType: 'json',
             data: {

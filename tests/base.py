@@ -61,7 +61,7 @@ class BaseTestCase(object):
     Settings = Settings
 
     def _postWithKey(self, data, key=None):
-        resp = self.client.post(reverse('sentry-store'), {
+        resp = self.client.post(reverse('sentry-api-store'), {
             'data': base64.b64encode(pickle.dumps(data)),
             'key': settings.KEY,
         })
@@ -76,7 +76,7 @@ class BaseTestCase(object):
     def _postWithSignature(self, data, key=None):
         ts, message, sig = self._makeMessage(data, key)
 
-        resp = self.client.post(reverse('sentry-store'), message,
+        resp = self.client.post(reverse('sentry-api-store'), message,
             content_type='application/octet-stream',
             HTTP_AUTHORIZATION=get_auth_header(sig, ts, '_postWithSignature', key),
         )
@@ -85,7 +85,7 @@ class BaseTestCase(object):
     def _postWithNewSignature(self, data, key=None):
         ts, message, sig = self._makeMessage(data, key)
 
-        resp = self.client.post(reverse('sentry-store'), message,
+        resp = self.client.post(reverse('sentry-api-store'), message,
             content_type='application/octet-stream',
             HTTP_X_SENTRY_AUTH=get_auth_header(sig, ts, '_postWithSignature', key),
         )

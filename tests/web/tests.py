@@ -69,7 +69,7 @@ class SentryViewsTest(TestCase):
 
     def test_group_details(self):
         self.client.login(username='admin', password='admin')
-        resp = self.client.get(reverse('sentry-group', kwargs={'group_id': 2}), follow=True)
+        resp = self.client.get(reverse('sentry-group', kwargs={'project_id': 1, 'group_id': 2}), follow=True)
         self.assertEquals(resp.status_code, 200, resp.content)
         self.assertTemplateUsed(resp, 'sentry/groups/details.html')
         self.assertTrue('group' in resp.context)
@@ -78,7 +78,7 @@ class SentryViewsTest(TestCase):
 
     def test_group_event_list(self):
         self.client.login(username='admin', password='admin')
-        resp = self.client.get(reverse('sentry-group-events', args=[2]), follow=True)
+        resp = self.client.get(reverse('sentry-group-events', kwargs={'project_id': 1, 'group_id': 2}), follow=True)
         self.assertEquals(resp.status_code, 200, resp.content)
         self.assertTemplateUsed(resp, 'sentry/groups/event_list.html')
         self.assertTrue('group' in resp.context)
@@ -87,7 +87,7 @@ class SentryViewsTest(TestCase):
 
     def test_group_message_details(self):
         self.client.login(username='admin', password='admin')
-        resp = self.client.get(reverse('sentry-group-event', kwargs={'group_id': 2, 'event_id': 4}), follow=True)
+        resp = self.client.get(reverse('sentry-group-event', kwargs={'project_id': 1, 'group_id': 2, 'event_id': 4}), follow=True)
         self.assertEquals(resp.status_code, 200, resp.content)
         self.assertTemplateUsed(resp, 'sentry/groups/event.html')
         self.assertTrue('group' in resp.context)
@@ -276,28 +276,6 @@ class ViewPermissionTest(TestCase):
         self._assertPerm(path, template, None, False)
         self._assertPerm(path, template, 'nobody', False)
         self._assertPerm(path, template, 'member', False)
-
-
-class SentryFeedsTest(TestCase):
-    fixtures = ['tests/fixtures/feeds.json']
-
-    def test_message_feed(self):
-        response = self.client.get(reverse('sentry-feed-messages'))
-        self.assertEquals(response.status_code, 200)
-        self.assertTrue(response.content.startswith('<?xml version="1.0" encoding="utf-8"?>'))
-        self.assertTrue('<link>http://testserver/</link>' in response.content)
-        self.assertTrue('<title>events</title>' in response.content)
-        self.assertTrue('<link>http://testserver/1/group/1</link>' in response.content, response.content)
-        self.assertTrue('<title>exceptions must be old-style classes or derived from BaseException, not NoneType</title>' in response.content)
-
-    def test_summary_feed(self):
-        response = self.client.get(reverse('sentry-feed-summaries'))
-        self.assertEquals(response.status_code, 200)
-        self.assertTrue(response.content.startswith('<?xml version="1.0" encoding="utf-8"?>'))
-        self.assertTrue('<link>http://testserver/</link>' in response.content)
-        self.assertTrue('<title>events (aggregated)</title>' in response.content)
-        self.assertTrue('<link>http://testserver/1/group/1</link>' in response.content, response.content)
-        self.assertTrue('<title>(1) exceptions must be old-style classes or derived from BaseException, not NoneType</title>' in response.content)
 
 
 class SentrySearchTest(TestCase):
