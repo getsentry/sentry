@@ -13,7 +13,7 @@ from sentry.conf import settings
 def get_signature(message, timestamp, key=None):
     if not key:
         key = settings.KEY
-    return hmac.new(key, '%s %s' % (timestamp, message), hashlib.sha1).hexdigest()
+    return hmac.new(str(key), '%s %s' % (timestamp, message), hashlib.sha1).hexdigest()
 
 
 def get_auth_header(signature, timestamp, client, api_key=None):
