@@ -200,10 +200,6 @@ if (Sentry === undefined) {
                 gid: group_id || undefined
             },
             success: function(data){
-                if (!data.length) {
-                    return;
-                }
-
                 var start = new Date().getTime() - data.length * 3600000;
                 var pairs = [];
                 // for (var i=0; i<1000; i++) {
