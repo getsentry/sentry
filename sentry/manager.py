@@ -154,7 +154,7 @@ class GroupManager(models.Manager, ChartMixin):
             'server_name': kwargs.pop('server_name', None),
             'message': kwargs.pop('message', ''),
             'culprit': kwargs.pop('view', None),
-            'date': kwargs.pop('timestamp', None),
+            'timestamp': kwargs.pop('timestamp', None),
         }
 
         result = dict((k, v) for k, v in result.iteritems() if v is not None)
