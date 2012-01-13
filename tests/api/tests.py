@@ -11,6 +11,7 @@ from sentry.models import Project
 from sentry.coreapi import project_from_id, project_from_api_key_and_id, \
   extract_auth_vars, project_from_auth_vars, validate_hmac, APIUnauthorized, \
   APIForbidden, APITimestampExpired, APIError
+from sentry.utils.auth import get_signature
 
 from tests.base import TestCase
 
@@ -20,6 +21,10 @@ class APITest(TestCase):
         self.user = User.objects.create(username='coreapi')
         self.project = Project.objects.get(id=1)
         self.pm = self.project.member_set.create(user=self.user)
+
+    def test_get_signature(self):
+        self.assertEquals(get_signature('x', 'y', 'z'), '77e1f5656ddc2e93f64469cc18f9f195fe665428')
+        self.assertEquals(get_signature(u'x', u'y', u'z'), '77e1f5656ddc2e93f64469cc18f9f195fe665428')
 
     def test_valid_project_from_id(self):
         request = mock.Mock()
