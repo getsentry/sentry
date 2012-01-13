@@ -168,13 +168,13 @@ class SentryManagerTest(TestCase):
 
         result = Group.objects.convert_legacy_kwargs({'data': {
             '__sentry__': {
-                'exception': ('TypeError', ('hello world',)),
+                'exception': ('TypeError', ('hello world', 1, 3, 'foo')),
             }
         }})
         self.assertTrue('sentry.interfaces.Exception' in result)
         exc = result['sentry.interfaces.Exception']
         self.assertEquals(exc['type'], 'TypeError')
-        self.assertEquals(exc['value'], 'hello world')
+        self.assertEquals(exc['value'], 'hello world 1 3 foo')
 
         result = Group.objects.convert_legacy_kwargs({'data': {
             '__sentry__': {
