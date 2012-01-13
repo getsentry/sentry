@@ -173,7 +173,7 @@ class GroupManager(models.Manager, ChartMixin):
                 method=meta.get('REQUEST_METHOD'),
                 query_string=meta.get('QUERY_STRING'),
                 data=data.pop('POST', None),
-                cookies=meta.get('COOKIES'),
+                cookies=data.pop('COOKIES', None),
                 env=meta,
             ).serialize()
 
