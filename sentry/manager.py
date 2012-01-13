@@ -165,12 +165,11 @@ class GroupManager(models.Manager, ChartMixin):
 
         if 'url' in data or 'url' in kwargs and 'META' in data:
             meta = data.pop('META', {})
-            req_data = data.pop('POST', None) or data.pop('GET', None)
             result['sentry.interfaces.Http'] = Http(
                 url=data.pop('url', None) or kwargs['url'],
                 method=meta.get('REQUEST_METHOD'),
                 query_string=meta.get('QUERY_STRING'),
-                data=req_data,
+                data=data.pop('POST'),
                 cookies=meta.get('COOKIES'),
                 env=meta,
             ).serialize()
