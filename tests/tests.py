@@ -140,6 +140,9 @@ class SentryManagerTest(TestCase):
             self.assertEquals(event.datetime, date)
 
     def test_legacy_data(self):
+        result = Group.objects.convert_legacy_kwargs({'timestamp': '1234'})
+        self.assertEquals(result['timestamp'], '1234')
+
         result = Group.objects.convert_legacy_kwargs({'message_id': '1234'})
         self.assertEquals(result['event_id'], '1234')
 
