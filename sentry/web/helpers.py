@@ -119,7 +119,7 @@ def plugin_config(plugin, project, request):
     be displayed.
     """
 
-    plugin_key = plugin.site_conf_title.lower()
+    plugin_key = plugin.get_conf_key()
     if project:
         form_class = plugin.project_conf_form
     else:

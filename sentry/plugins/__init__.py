@@ -38,33 +38,6 @@ class PluginMount(type):
             cls.plugins[cls.slug] = cls
 
 
-class PluginProxy(object):
-    """
-    Proxy for plugins to delay configuration until they're accessed.
-    """
-    def __init__(self, plugin, project):
-        self.project = project
-        self.__configured = False
-        self.__plugin = plugin
-
-    def __repr__(self):
-        return repr(self.__plugin)
-
-    def __call__(self, *args, **kwargs):
-        if not self.__configured:
-            self._configure()
-        return self.__plugin.__call__(*args, **kwargs)
-
-    def __getattr__(self, attr):
-        if not self.__configured:
-            self._configure()
-        return getattr(self.__plugin, attr)
-
-    def _configure(self):
-        self.__plugin.configure(self.project)
-        self.__configured = True
-
-
 class Plugin(object):
     """
     All children should allow **kwargs on all inherited methods.
@@ -72,12 +45,23 @@ class Plugin(object):
 
     __metaclass__ = PluginMount
 
+    conf_key = None
+    conf_title = None
+
+    project_conf_form = None
+    project_conf_template = 'sentry/plugins/project_configuration.html'
+
+    site_conf_form = None
+    site_conf_template = 'sentry/plugins/site_configuration.html'
+
+    title = None
+
     enabled = True
 
     def __init__(self, request):
         self.request = request
 
-    def __call__(self, group):
+    def get_view_response(self, group):
         self.selected = self.request.path == self.get_url(group)
 
         if not self.selected:
@@ -99,6 +83,17 @@ class Plugin(object):
             'group': group,
         })
 
+    def get_conf_key(self):
+        if not self.conf_key:
+            return self.conf_title.lower().replace(' ', '_')
+        return self.conf_key
+
+    def get_conf_title(self):
+        return self.conf_title or self.get_title()
+
+    def get_title(self):
+        return self.title
+
     def redirect(self, url):
         return HttpResponseRedirect(url)
 
@@ -116,6 +111,15 @@ class Plugin(object):
     def view(self, group, **kwargs):
         """
         Handles the view logic. If no response is given, we continue to the next action provider.
+        """
+
+    def before_events(self, group_list, **kwargs):
+        """
+        Allows preprocessing of groups in the list view.
+
+        This is generally useful if you need to cache lookups
+        for something like ``tags`` which would otherwise do
+        multiple queries.
         """
 
     def tags(self, group, tag_list, **kwargs):

@@ -304,14 +304,12 @@ def group_plugin_action(request, project, group_id, slug):
     if group.project and group.project != project:
         return HttpResponseRedirect(reverse('sentry-group-plugin-action', kwargs={'group_id': group.pk, 'project_id': group.project_id, 'slug': slug}))
 
-    plugin = None
-    for inst in request.plugins:
-        if inst.slug == slug:
-            plugin = inst
-            break
-    if not plugin:
+    try:
+        plugin = request.plugins[slug]
+    except KeyError:
+
         raise Http404('Plugin not found')
-    response = inst(group)
+    response = plugin.get_view_response(group)
     if response:
         return response
     return HttpResponseRedirect(request.META.get('HTTP_REFERER') or reverse('sentry', kwargs={'project_id': group.project_id}))

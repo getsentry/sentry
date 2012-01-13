@@ -7,8 +7,9 @@ from sentry.conf import settings
 from sentry.models import MEMBER_USER, MEMBER_OWNER
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms import EditProjectForm, NewProjectForm, \
-     EditProjectMemberForm, NewProjectMemberForm, RemoveProjectForm
-from sentry.web.helpers import render_to_response, get_project_list
+  EditProjectMemberForm, NewProjectMemberForm, RemoveProjectForm
+from sentry.web.helpers import render_to_response, get_project_list, \
+  plugin_config
 
 
 @login_required
@@ -93,6 +94,7 @@ def manage_project(request, project):
 
     context = csrf(request)
     context.update({
+        'page': 'details',
         'form': form,
         'project': project,
         'member_list': member_list
@@ -163,3 +165,32 @@ def remove_project_member(request, project, member_id):
     })
 
     return render_to_response('sentry/projects/members/remove.html', context, request)
+
+
+@login_required
+@has_access(MEMBER_OWNER)
+@csrf_protect
+def configure_project_plugin(request, project, slug):
+    try:
+        plugin = request.plugins[slug]
+    except KeyError:
+        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+
+    form = plugin.project_conf_form
+    if form is None:
+        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+
+    action, view = plugin_config(plugin, project, request)
+    if action == 'redirect':
+        return HttpResponseRedirect(request.path + '?success=1')
+
+    context = csrf(request)
+    context.update({
+        'page': 'plugin',
+        'title': plugin.get_title(),
+        'view': view,
+        'project': project,
+        'plugin': plugin,
+    })
+
+    return render_to_response('sentry/projects/plugins/configure.html', context, request)

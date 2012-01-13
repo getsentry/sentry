@@ -12,6 +12,17 @@ from django.views.defaults import page_not_found
 from sentry.web import api
 from sentry.web.frontend import accounts, generic, groups, events, projects
 
+
+def init_plugins():
+    from django.db.models import get_apps, get_models
+    for app in get_apps():
+        try:
+            get_models(app)
+        except:
+            continue
+init_plugins()
+
+
 handler404 = lambda x: page_not_found(x, template_name='sentry/404.html')
 
 
@@ -53,6 +64,7 @@ urlpatterns = patterns('',
     url(r'^projects/$', projects.project_list, name='sentry-project-list'),
     url(r'^projects/new/$', projects.new_project, name='sentry-new-project'),
     url(r'^projects/(?P<project_id>\d+)/edit/$', projects.manage_project, name='sentry-manage-project'),
+    url(r'^projects/(?P<project_id>\d+)/plugins/(?P<slug>[\w_-]+)/$', projects.configure_project_plugin, name='sentry-configure-project-plugin'),
     url(r'^projects/(?P<project_id>\d+)/remove/$', projects.remove_project, name='sentry-remove-project'),
     url(r'^projects/(?P<project_id>\d+)/members/new/$', projects.new_project_member, name='sentry-new-project-member'),
     url(r'^projects/(?P<project_id>\d+)/members/(?P<member_id>\d+)/edit/$', projects.edit_project_member, name='sentry-edit-project-member'),

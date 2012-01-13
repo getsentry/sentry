@@ -26,6 +26,7 @@ class CreateBugzillaIssue(Plugin):
     title = 'Create Bugzilla Issue'
     slug = 'create-bugzilla-issue'
 
-    site_conf_title = 'Bugzilla'
+    conf_title = 'Bugzilla'
+    conf_key = 'bugzilla'
     site_conf_form = BugzillaConfigurationForm
     site_conf_template = 'sentry/plugins/bugzilla/site_configuration.html'
