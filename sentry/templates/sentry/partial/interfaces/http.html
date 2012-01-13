@@ -26,7 +26,7 @@
                     <tr>
                         <th>{% trans "Query:" %}</th>
                         <td>
-                            {{ query_string }}
+                            {{ query_string|pprint }}
                         </td>
                     </tr>
                 {% endif %}
@@ -45,8 +45,8 @@
                                     <tbody>
                                         {% for key, value in data.iteritems|as_sorted %}
                                             <tr>
-                                                <td>{{ key|escape }}</td>
-                                                <td class="code"><pre>{{ value|pprint|escape }}</pre></td>
+                                                <td>{{ key }}</td>
+                                                <td class="code"><pre>{{ value|pprint }}</pre></td>
                                             </tr>
                                         {% endfor %}
                                     </tbody>
@@ -76,8 +76,8 @@
                                 <tbody>
                                     {% for key, value in headers.iteritems|as_sorted %}
                                         <tr>
-                                            <td>{{ key|escape }}</td>
-                                            <td class="code"><pre>{{ value|pprint|escape }}</pre></td>
+                                            <td>{{ key }}</td>
+                                            <td class="code"><pre>{{ value|pprint }}</pre></td>
                                         </tr>
                                     {% endfor %}
                                 </tbody>
@@ -99,8 +99,8 @@
                                 <tbody>
                                     {% for key, value in env.iteritems|as_sorted %}
                                         <tr>
-                                            <td>{{ key|escape }}</td>
-                                            <td class="code"><pre>{{ value|pprint|escape }}</pre></td>
+                                            <td>{{ key }}</td>
+                                            <td class="code"><pre>{{ value|pprint }}</pre></td>
                                         </tr>
                                     {% endfor %}
                                 </tbody>
