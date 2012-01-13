@@ -154,7 +154,7 @@ class GroupManager(models.Manager, ChartMixin):
             'server_name': kwargs.pop('server_name', None),
             'message': kwargs.pop('message', ''),
             'culprit': kwargs.pop('view', None),
-            'date': kwargs.pop('timestamp', None),
+            'date': kwargs.pop('date', None),
         }
 
         result = dict((k, v) for k, v in result.iteritems() if v is not None)
@@ -218,7 +218,7 @@ class GroupManager(models.Manager, ChartMixin):
 
         project = Project.objects.get(pk=project)
 
-        if any(k in kwargs for k in ('view', 'message_id')):
+        if any(k in kwargs for k in ('view', 'message_id', 'date')):
             # we must be passing legacy data, let's convert it
             kwargs = self.convert_legacy_kwargs(kwargs)
 
