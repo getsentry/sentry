@@ -194,6 +194,8 @@ class GroupManager(models.Manager, ChartMixin):
             frames = []
             keys = ('filename', 'function', 'vars', 'pre_context', 'context_line', 'post_context', 'lineno')
             for frame in sentry['frames']:
+                if 'vars' in frame:
+                    frame['vars'] = dict(frame['vars'])
                 frames.append(dict((k, v) for k, v in frame.iteritems() if k in keys))
 
             if frames:
