@@ -253,6 +253,7 @@ def group(request, project, group_id):
         'event': event,
         'interface_list': filter(None, [mark_safe(i.to_html(event) or '') for i in event.interfaces.itervalues()]),
         'json_data': event.data.get('extra', {}),
+        'version_data': event.data.get('modules', []),
     }, request)
 
 
@@ -291,6 +292,7 @@ def group_event_details(request, project, group_id, event_id):
         'event': event,
         'interface_list': filter(None, [mark_safe(i.to_html(event) or '') for i in event.interfaces.itervalues()]),
         'json_data': event.data.get('extra', {}),
+        'version_data': event.data.get('modules', []),
     }, request)
 
 
