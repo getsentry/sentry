@@ -38,6 +38,7 @@
 {% endblock %}
 
 {% block main %}
+    {% handle_before_events request group %}
     <ul class="messages" id="event_list">
         <li class="{% cycle 'row1' 'row2' %} level-{{ group.level }} active" id="group_{{ group.pk|safe }}" data-sentry-count="{{ group.times_seen }}">
             <span class="count">{{ group.times_seen|small_count }}</span>
