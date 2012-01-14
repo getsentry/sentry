@@ -8,25 +8,62 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
 
-        # Adding model 'Option'
-        db.create_table('sentry_option', (
-            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('key', self.gf('django.db.models.fields.CharField')(max_length=64)),
-            ('value', self.gf('django.db.models.fields.CharField')(max_length=200)),
-        ))
-        db.send_create_signal('sentry', ['Option'])
+        # Removing unique constraint on 'ProjectOption', fields ['project', 'value', 'key']
+        try:
+            db.delete_unique('sentry_projectoptions', ['project_id', 'value', 'key'])
+        except:
+            pass
 
-        # Adding unique constraint on 'Option', fields ['key', 'value']
-        db.create_unique('sentry_option', ['key'])
+        # Removing unique constraint on 'GroupMeta', fields ['group', 'value', 'key']
+        try:
+            db.delete_unique('sentry_groupmeta', ['group_id', 'value', 'key'])
+        except:
+            pass
+
+        # Removing unique constraint on 'Option', fields ['value', 'key']
+        try:
+            db.delete_unique('sentry_option', ['value', 'key'])
+        except:
+            pass
+
+        # Adding unique constraint on 'Option', fields ['key']
+        try:
+            db.create_unique('sentry_option', ['key'])
+        except:
+            pass
+
+        # Adding unique constraint on 'GroupMeta', fields ['group', 'key']
+        try:
+            db.create_unique('sentry_groupmeta', ['group_id', 'key'])
+        except:
+            pass
+
+        # Adding unique constraint on 'ProjectOption', fields ['project', 'key']
+        try:
+            db.create_unique('sentry_projectoptions', ['project_id', 'key'])
+        except:
+            pass
 
 
     def backwards(self, orm):
 
-        # Removing unique constraint on 'Option', fields ['key', 'value']
+        # Removing unique constraint on 'ProjectOption', fields ['project', 'key']
+        db.delete_unique('sentry_projectoptions', ['project_id', 'key'])
+
+        # Removing unique constraint on 'GroupMeta', fields ['group', 'key']
+        db.delete_unique('sentry_groupmeta', ['group_id', 'key'])
+
+        # Removing unique constraint on 'Option', fields ['key']
         db.delete_unique('sentry_option', ['key'])
 
-        # Deleting model 'Option'
-        db.delete_table('sentry_option')
+        # Adding unique constraint on 'Option', fields ['value', 'key']
+        db.create_unique('sentry_option', ['value', 'key'])
+
+        # Adding unique constraint on 'GroupMeta', fields ['group', 'value', 'key']
+        db.create_unique('sentry_groupmeta', ['group_id', 'value', 'key'])
+
+        # Adding unique constraint on 'ProjectOption', fields ['project', 'value', 'key']
+        db.create_unique('sentry_projectoptions', ['project_id', 'value', 'key'])
 
 
     models = {
@@ -109,8 +146,15 @@ class Migration(SchemaMigration):
             'times_seen': ('django.db.models.fields.PositiveIntegerField', [], {'default': '1', 'db_index': 'True'}),
             'views': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['sentry.View']", 'symmetrical': 'False', 'blank': 'True'})
         },
+        'sentry.groupbookmark': {
+            'Meta': {'unique_together': "(('project', 'user', 'group'),)", 'object_name': 'GroupBookmark'},
+            'group': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'bookmark_set'", 'to': "orm['sentry.Group']"}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'project': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'bookmark_set'", 'to': "orm['sentry.Project']"}),
+            'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'bookmark_set'", 'to': "orm['auth.User']"})
+        },
         'sentry.groupmeta': {
-            'Meta': {'unique_together': "(('group', 'key', 'value'),)", 'object_name': 'GroupMeta'},
+            'Meta': {'unique_together': "(('group', 'key'),)", 'object_name': 'GroupMeta'},
             'group': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Group']"}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'key': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
@@ -143,10 +187,10 @@ class Migration(SchemaMigration):
             'value': ('django.db.models.fields.CharField', [], {'max_length': '128'})
         },
         'sentry.option': {
-            'Meta': {'unique_together': "(('key', 'value'),)", 'object_name': 'Option'},
+            'Meta': {'object_name': 'Option'},
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'key': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
-            'value': ('django.db.models.fields.CharField', [], {'max_length': '200'})
+            'key': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '64'}),
+            'value': ('django.db.models.fields.TextField', [], {})
         },
         'sentry.project': {
             'Meta': {'object_name': 'Project'},
@@ -174,11 +218,11 @@ class Migration(SchemaMigration):
             'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'project_set'", 'to': "orm['auth.User']"})
         },
         'sentry.projectoption': {
-            'Meta': {'unique_together': "(('project', 'key', 'value'),)", 'object_name': 'ProjectOption', 'db_table': "'sentry_projectoptions'"},
+            'Meta': {'unique_together': "(('project', 'key'),)", 'object_name': 'ProjectOption', 'db_table': "'sentry_projectoptions'"},
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'key': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
             'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']"}),
-            'value': ('django.db.models.fields.CharField', [], {'max_length': '200'})
+            'value': ('django.db.models.fields.TextField', [], {})
         },
         'sentry.view': {
             'Meta': {'object_name': 'View'},

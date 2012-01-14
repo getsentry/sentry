@@ -18,13 +18,13 @@ class Migration(SchemaMigration):
         db.send_create_signal('sentry', ['GroupMeta'])
 
         # Adding unique constraint on 'GroupMeta', fields ['group', 'key', 'value']
-        db.create_unique('sentry_groupmeta', ['group_id', 'key', 'value'])
+        db.create_unique('sentry_groupmeta', ['group_id', 'key'])
 
 
     def backwards(self, orm):
 
         # Removing unique constraint on 'GroupMeta', fields ['group', 'key', 'value']
-        db.delete_unique('sentry_groupmeta', ['group_id', 'key', 'value'])
+        db.delete_unique('sentry_groupmeta', ['group_id', 'key'])
 
         # Deleting model 'GroupMeta'
         db.delete_table('sentry_groupmeta')

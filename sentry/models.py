@@ -68,13 +68,10 @@ class Option(Model):
     Options which are specific to a plugin should namespace
     their key. e.g. key='myplugin:optname'
     """
-    key = models.CharField(max_length=64)
+    key = models.CharField(max_length=64, unique=True)
     value = models.TextField()
 
     objects = MetaManager()
-
-    class Meta:
-        unique_together = (('key', 'value'),)
 
 
 class Project(Model):
@@ -172,7 +169,7 @@ class ProjectOption(Model):
 
     class Meta:
         db_table = 'sentry_projectoptions'
-        unique_together = (('project', 'key', 'value'),)
+        unique_together = (('project', 'key',),)
 
 
 class ProjectMember(Model):
@@ -400,7 +397,7 @@ class GroupMeta(Model):
     objects = InstanceMetaManager('group')
 
     class Meta:
-        unique_together = (('group', 'key', 'value'),)
+        unique_together = (('group', 'key'),)
 
 
 class Event(MessageBase):
