@@ -31,7 +31,7 @@
                                 <col style="width:100px;">
                             </colgroup>
                             <tbody>
-                                {% for key, value in frame.vars.iteritems %}
+                                {% for key, value in frame.vars.iteritems|as_sorted %}
                                     <tr>
                                         <td>{{ key }}</td>
                                         <td class="code"><pre>{{ value|pprint }}</pre></td>

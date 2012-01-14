@@ -45,7 +45,7 @@
                 <h2>{% trans "Module Versions" %}</h2>
             </div>
             <table class="inline">
-                {% for k, v in version_data.iteritems %}
+                {% for k, v in version_data.iteritems|as_sorted %}
                     <tr>
                         <th class="key">{{ k }}</th>
                         <td class="values"><code>{{ v }}</code></td>
@@ -65,7 +65,7 @@
                 <h2>{% trans "Additional Data" %}</h2>
             </div>
             <table>
-                {% for k, v in json_data.iteritems %}
+                {% for k, v in json_data.iteritems|as_sorted %}
                     <tr>
                         <th class="key">{{ k }}</th>
                         <td class="values">
