@@ -1,6 +1,13 @@
 Clients
 =======
 
+Recognized Clients
+------------------
+
+The following clients are officially recognized and support the current Sentry protocol:
+
+* Python (`Raven <http://github.com/dcramer/raven>`_)
+
 Writing a Client
 ----------------
 

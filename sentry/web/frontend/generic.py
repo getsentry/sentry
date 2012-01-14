@@ -9,7 +9,6 @@ import pkg_resources
 import sys
 
 from django.core.urlresolvers import reverse
-from django.shortcuts import redirect
 from django.db.models import Sum
 from django.http import HttpResponseRedirect, Http404, HttpResponseNotModified, \
   HttpResponse
@@ -45,21 +44,19 @@ def status(request):
 
     # Deal with the plugins
     site_configs = []
-    for name, cls in Plugin.plugins.iteritems():
-        if hasattr(cls, 'site_conf_form'):
-            action, view = plugin_config(cls, None, request)
-            if action == 'redirect':
-                return redirect(request.path)
-            item = {
-                'title': cls.title,
-                'slug': cls.slug,
-                'site_conf_title': cls.site_conf_title,
-                'view': view,
-            }
-            for prop in ('site_config_title',):
-                if hasattr(cls, prop):
-                    item[prop] = getattr(cls, prop)
-            site_configs.append(item)
+    for slug, title in request.plugins.for_site():
+        plugin = request.plugins[slug]
+        action, view = plugin_config(plugin, None, request)
+        if action == 'redirect':
+            return HttpResponseRedirect(request.path)
+        item = {
+            'plugin': plugin,
+            'title': plugin.get_title(),
+            'slug': plugin.slug,
+            'site_conf_title': plugin.get_conf_title(),
+            'view': view,
+        }
+        site_configs.append(item)
 
     config = []
     for k in sorted(dir(settings)):

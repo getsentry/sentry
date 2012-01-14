@@ -17,12 +17,12 @@ from indexer.models import BaseIndex
 
 
 from django.contrib.auth.models import User
+from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models import Sum, F
-from django.db.models.signals import post_syncdb
+from django.db.models.signals import post_syncdb, post_save
 from django.utils.datastructures import SortedDict
 from django.utils.encoding import smart_unicode
-from django.db.models.signals import post_save
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
@@ -69,7 +69,7 @@ class Option(Model):
     their key. e.g. key='myplugin:optname'
     """
     key = models.CharField(max_length=64)
-    value = models.CharField(max_length=200)
+    value = models.TextField()
 
     objects = MetaManager()
 
@@ -166,7 +166,7 @@ class ProjectOption(Model):
     """
     project = models.ForeignKey(Project)
     key = models.CharField(max_length=64)
-    value = models.CharField(max_length=200)
+    value = models.TextField()
 
     objects = InstanceMetaManager('project')
 
@@ -285,11 +285,10 @@ class Group(MessageBase):
     def __unicode__(self):
         return "(%s) %s" % (self.times_seen, self.error())
 
-    @models.permalink
     def get_absolute_url(self):
         if self.project_id:
-            return ('sentry-group', [], {'group_id': self.pk, 'project_id': self.project_id})
-        return ('sentry-group', [], {'group_id': self.pk})
+            return reverse('sentry-group', kwargs={'group_id': self.pk, 'project_id': self.project_id})
+        return '#'
 
     def natural_key(self):
         return (self.logger, self.culprit, self.checksum)
@@ -423,11 +422,10 @@ class Event(MessageBase):
     def __unicode__(self):
         return self.error()
 
-    @models.permalink
     def get_absolute_url(self):
         if self.project_id:
-            return ('sentry-group-event', [], {'group_id': self.group_id, 'event_id': self.pk, 'project_id': self.project_id})
-        return ('sentry-group-event', [], {'group_id': self.group_id, 'event_id': self.pk})
+            return reverse('sentry-group-event', kwargs={'group_id': self.group_id, 'event_id': self.pk, 'project_id': self.project_id})
+        return '#'
 
     @cached_property
     def request(self):

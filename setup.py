@@ -3,19 +3,18 @@
 Sentry
 ======
 
-Sentry is a realtime event logging and aggregation platform. At it's core it
-specializes in monitoring errors and extracting all the information needed
-to do a proper post-mortum without any of the hassle of the standard user
-feedback loop.
+Sentry is a realtime event logging and aggregation platform. It specializes
+in monitoring errors and extracting all the information needed to do a proper
+post-mortem without any of the hassle of the standard user feedback loop.
 
 Sentry is a Server
 ------------------
 
-The Sentry package at its core is just a simply server and web UI. It will
+The Sentry package, at its core, is just a simple server and web UI. It will
 handle authentication clients (such as `Raven <https://github.com/dcramer/raven>`_)
 and all of the logic behind storage and aggregation.
 
-The said, Sentry is not limited to Python. The primary implementation is in
+That said, Sentry is not limited to Python. The primary implementation is in
 Python, but it contains a full API for sending events from any language, in
 any application.
 
@@ -46,7 +45,7 @@ install_requires = [
 
 setup(
     name='sentry',
-    version='2.0.0-Alpha1',
+    version='2.0.0-RC1',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/sentry',

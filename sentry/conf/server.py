@@ -25,7 +25,7 @@ INTERNAL_IPS = ('127.0.0.1',)
 
 MANAGERS = ADMINS
 
-APPEND_SLASH = False
+APPEND_SLASH = True
 
 PROJECT_ROOT = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
 

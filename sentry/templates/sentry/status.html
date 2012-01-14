@@ -15,17 +15,17 @@
     {% else %}
     <div class="span16">
         <ul class="tabs" data-tabs="tabs">
-            <li class="active"><a href="#main">Environment</a></li>
-            <li><a href="#packages">Packages</a></li>
-            <li><a href="#workers">Workers</a></li>
+            <li class="active"><a href="#main">{% trans "Environment" %}</a></li>
+            <li><a href="#packages">{% trans "Packages" %}</a></li>
+            <li><a href="#workers">{% trans "Workers" %}</a></li>
             {% for conf in site_configs %}
-            <li><a href="#config_{{conf.slug}}">{{conf.site_conf_title|default:conf.title}}</a></li>
+                <li><a href="#config_{{ conf.slug }}">{{ conf.site_conf_title }}</a></li>
             {% endfor %}
         </ul>
         <div class="tab-content">
             <div id="main" class="active">
                 <div class="page-header">
-                    <h2>Environment</h2>
+                    <h2>{% trans "Environment" %}</h2>
                 </div>
                 {% if environment %}
                     <table class="vars bordered-table zebra-striped">
@@ -34,29 +34,29 @@
                         </colgroup>
                         <tbody>
                             <tr>
-                                <th>Server Version</th>
+                                <th>{% trans "Server Version" %}</th>
                                 <td>{% sentry_version %}</td>
                             </tr>
                             <tr>
-                                <th>Python Version</th>
+                                <th>{% trans "Python Version" %}</th>
                                 <td>{{ python_version }}</td>
                             </tr>
                             <tr>
-                                <th>Configuration File</th>
+                                <th>{% trans "Configuration File" %}</th>
                                 <td>{{ environment.config }}</td>
                             </tr>
                             <tr>
-                                <th>Uptime</th>
+                                <th>{% trans "Uptime" %}</th>
                                 <td>{{ environment.start_date|timesince }} (since {{ environment.start_date|date }})</td>
                             </tr>
                         </tbody>
                     </table>
                 {% else %}
-                    <p>Environment not found (are you using the builtin Sentry webserver?).</p>
+                    <p>{% trans "Environment not found (are you using the builtin Sentry webserver?)." %}</p>
                 {% endif %}
 
                 <div class="page-header">
-                    <h2>Configuration{% if environment.config %} <small>{{ environment.config }}</small>{% endif %}</h2>
+                    <h2>{% trans "Configuration" %}{% if environment.config %} <small>{{ environment.config }}</small>{% endif %}</h2>
                 </div>
                 <table class="vars bordered-table zebra-striped">
                     <colgroup>
@@ -74,7 +74,7 @@
             </div>
             <div id="packages">
                 <div class="page-header">
-                    <h2>Extensions</h2>
+                    <h2>{% trans "Extensions" %}</h2>
                 </div>
                 {% if extensions %}
                     <table class="vars bordered-table zebra-striped">
@@ -91,10 +91,10 @@
                         </tbody>
                     </table>
                 {% else %}
-                    <p>No extensions registered.</p>
+                    <p>{% trans "No extensions registered." %}</p>
                 {% endif %}
                 <div class="page-header">
-                    <h2>Views</h2>
+                    <h2>{% trans "Views" %}</h2>
                 </div>
                 {% if views %}
                     <table class="vars bordered-table zebra-striped">
@@ -111,10 +111,10 @@
                         </tbody>
                     </table>
                 {% else %}
-                    <p>No views registered.</p>
+                    <p>{% trans "No views registered." %}</p>
                 {% endif %}
                 <div class="page-header">
-                    <h2>Processors</h2>
+                    <h2>{% trans "Processors" %}</h2>
                 </div>
                 {% if processors %}
                     <table class="vars bordered-table zebra-striped">
@@ -131,10 +131,10 @@
                         </tbody>
                     </table>
                 {% else %}
-                    <p>No event processors registered.</p>
+                    <p>{% trans "No event processors registered." %}</p>
                 {% endif %}
                 <div class="page-header">
-                    <h2>Modules</h2>
+                    <h2>{% trans "Modules" %}</h2>
                 </div>
                 <table class="vars bordered-table zebra-striped">
                     <colgroup>
@@ -151,55 +151,55 @@
                 </table>
             </div>
             {% if worker_status %}
-            <div id="workers">
-                <div class="page-header">
-                    <h2>Background Processes</h2>
-                </div>
-                {% if background_procs %}
+                <div id="workers">
+                    <div class="page-header">
+                        <h2>{% trans "Background Processes" %}</h2>
+                    </div>
+                    {% if background_procs %}
+                        <table class="vars bordered-table zebra-striped">
+                            <colgroup>
+                                <col style="width:220px">
+                            </colgroup>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <p>{% trans "No information available." %}</p>
+                    {% endif %}
+                    <div class="page-header">
+                        <h2>{% trans "Pending Tasks" %}</h2>
+                    </div>
                     <table class="vars bordered-table zebra-striped">
                         <colgroup>
-                            <col style="width:220px">
+                            <col>
+                            <col style="width:150px">
                         </colgroup>
+                        <thead>
+                            <tr>
+                                <th>{% trans "Queue" %}</th>
+                                <th>{% trans "Pending Tasks" %}</th>
+                            </tr>
+                        </thead>
                         <tbody>
+                            {% for queue, num_pending in pending_tasks %}
+                                <tr>
+                                    <td>{{ queue }}</td>
+                                    <td>{{ num_pending }}</td>
+                                </tr>
+                            {% endfor %}
                         </tbody>
                     </table>
-                {% else %}
-                    <p>No information available.</p>
-                {% endif %}
-                <div class="page-header">
-                    <h2>Pending Tasks</h2>
                 </div>
-                <table class="vars bordered-table zebra-striped">
-                    <colgroup>
-                        <col>
-                        <col style="width:150px">
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th>Queue</th>
-                            <th>Pending Tasks</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for queue, num_pending in pending_tasks %}
-                            <tr>
-                                <td>{{ queue }}</td>
-                                <td>{{ num_pending }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
             {% endif %}
             {% for conf in site_configs %}
-            <div id="config_{{conf.slug}}">
-                <div class="page-header">
+                <div id="config_{{ conf.slug }}">
                     <div class="page-header">
-                        <h2>{{conf.site_config_title|default:conf.title}} configuration</h2>
+                        <div class="page-header">
+                            <h2>{{ conf.site_config_title|default:conf.title }} configuration</h2>
+                        </div>
+                        {{ conf.view|safe }}
                     </div>
-                    {{ conf.view|safe }}
                 </div>
-            </div>
             {% endfor %}
         </div>
     </div>

@@ -8,6 +8,7 @@ sentry.manager
 
 import datetime
 import hashlib
+import itertools
 import logging
 import warnings
 
@@ -154,7 +155,7 @@ class GroupManager(models.Manager, ChartMixin):
             'server_name': kwargs.pop('server_name', None),
             'message': kwargs.pop('message', ''),
             'culprit': kwargs.pop('view', None),
-            'date': kwargs.pop('timestamp', None),
+            'timestamp': kwargs.pop('timestamp', None),
         }
 
         result = dict((k, v) for k, v in result.iteritems() if v is not None)
@@ -165,13 +166,14 @@ class GroupManager(models.Manager, ChartMixin):
 
         if 'url' in data or 'url' in kwargs and 'META' in data:
             meta = data.pop('META', {})
-            req_data = data.pop('POST', None) or data.pop('GET', None)
+            if 'GET' in data:
+                del data['GET']
             result['sentry.interfaces.Http'] = Http(
                 url=data.pop('url', None) or kwargs['url'],
                 method=meta.get('REQUEST_METHOD'),
                 query_string=meta.get('QUERY_STRING'),
-                data=req_data,
-                cookies=meta.get('COOKIES'),
+                data=data.pop('POST', None),
+                cookies=data.pop('COOKIES', None),
                 env=meta,
             ).serialize()
 
@@ -185,13 +187,15 @@ class GroupManager(models.Manager, ChartMixin):
             exc = sentry['exception']
             result['sentry.interfaces.Exception'] = Exception(
                 type=exc[0],
-                value=' '.join(exc[1]),
+                value=u' '.join(itertools.imap(unicode, exc[1])),
             ).serialize()
 
         if 'frames' in sentry:
             frames = []
             keys = ('filename', 'function', 'vars', 'pre_context', 'context_line', 'post_context', 'lineno')
             for frame in sentry['frames']:
+                if 'vars' in frame:
+                    frame['vars'] = dict(frame['vars'])
                 frames.append(dict((k, v) for k, v in frame.iteritems() if k in keys))
 
             if frames:
@@ -528,6 +532,11 @@ class InstanceMetaManager(models.Manager):
     def __init__(self, field_name, *args, **kwargs):
         super(InstanceMetaManager, self).__init__(*args, **kwargs)
         self.field_name = field_name
+
+    def get_value_bulk(self, instances, key):
+        return dict(self.filter(**{
+            '%s__in' % self.field_name: instances,
+        }).values_list(self.field_name, 'value'))
 
     def get_value(self, instance, key, default=NOTSET):
         result = self.get_all_values(instance)

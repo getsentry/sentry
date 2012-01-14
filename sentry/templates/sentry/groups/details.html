@@ -38,6 +38,7 @@
 {% endblock %}
 
 {% block main %}
+    {% handle_before_events request group %}
     <ul class="messages" id="event_list">
         <li class="{% cycle 'row1' 'row2' %} level-{{ group.level }} active" id="group_{{ group.pk|safe }}" data-sentry-count="{{ group.times_seen }}">
             <span class="count">{{ group.times_seen|small_count }}</span>
@@ -113,20 +114,18 @@
         {% endif %}
 
         {% if version_data %}
-            <div id="versioninfo" class="module">
+            <div id="versioninfo">
                 <div class="page-header">
                     <h2>{% trans "Module Versions" %}</h2>
                 </div>
-                <div class="module-content">
-                    <table class="inline">
-                        {% for k, v in version_data %}
-                            <tr>
-                                <th class="key">{{ k }}</th>
-                                <td class="values"><code>{{ v }}</code></td>
-                            </tr>
-                        {% endfor %}
-                    </table>
-                </div>
+                <table class="inline">
+                    {% for k, v in version_data.iteritems %}
+                        <tr>
+                            <th class="key">{{ k }}</th>
+                            <td class="values"><code>{{ v }}</code></td>
+                        </tr>
+                    {% endfor %}
+                </table>
             </div>
         {% endif %}
 
@@ -135,11 +134,10 @@
         {% endfor %}
 
         {% if json_data %}
-        <div id="requestinfo" class="module">
-            <div class="page-header">
-                <h2>{% trans "Additional Data" %}</h2>
-            </div>
-            <div class="module-content">
+            <div id="extra">
+                <div class="page-header">
+                    <h2>{% trans "Additional Data" %}</h2>
+                </div>
                 <table>
                     {% for k, v in json_data.iteritems %}
                         <tr>
@@ -147,19 +145,19 @@
                             <td class="values">
                             {% if v %}
                                 {% if v|is_dict %}
-                                    <table class="vars">
-                                        <thead>
-                                            <tr>
-                                                <th>{% trans "Variable" %}</th>
-                                                <th>{% trans "Value" %}</th>
-                                            </tr>
-                                        </thead>
+                                    {% if v|length > 5 %}
+                                        <a href="#" onclick="return varToggle(this, 'Extra{{ forloop.index }}')"><span>&#x25b6;</span> {% trans "Body" %}</a>
+                                    {% endif %}
+                                    <table class="vars" id="vExtra{{ forloop.index }}"{% if v|length > 5 %} style="display:none;"{% endif %}>
+                                        <colgroup>
+                                            <col style="width:100px;">
+                                        </colgroup>
                                         <tbody>
                                             {% for k_, v_ in v.iteritems|as_sorted %}
-                                            <tr>
-                                                <td>{{ k_ }}</td>
-                                                <td class="code"><pre>{{ v_|pprint }}</pre></td>
-                                            </tr>
+                                                <tr>
+                                                    <td>{{ k_ }}</td>
+                                                    <td class="code"><pre>{{ v_|pprint }}</pre></td>
+                                                </tr>
                                             {% endfor %}
                                         </tbody>
                                     </table>
