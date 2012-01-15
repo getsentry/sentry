@@ -8,11 +8,6 @@
 {% block heading %}{% trans "Status" %}{% endblock %}
 
 {% block content %}
-    {% if restricted %}
-    <div class="span16">
-        <div class="alert-message notice">Restricted to administrators.</div>
-    </div>
-    {% else %}
     <div class="span16">
         <ul class="tabs" data-tabs="tabs">
             <li class="active"><a href="#main">{% trans "Environment" %}</a></li>
@@ -203,5 +198,4 @@
             {% endfor %}
         </div>
     </div>
-    {% endif %}
 {% endblock %}
