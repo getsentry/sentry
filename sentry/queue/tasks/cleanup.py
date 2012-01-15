@@ -7,7 +7,8 @@ sentry.queue.tasks.cleanup
 """
 
 
-def cleanup(days=30, logger=None, site=None, server=None, level=None):
+def cleanup(days=30, logger=None, site=None, server=None, level=None,
+            project=None):
     """
     Deletes a portion of the trailing data in Sentry based on
     their creation dates. For example, if ``days`` is 30, this
@@ -43,6 +44,8 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None):
         qs = qs.filter(server_name=server)
     if level:
         qs = qs.filter(level__gte=level)
+    if project:
+        qs = qs.filter(project=project)
 
     groups_to_check = set()
     for obj in RangeQuerySetWrapper(qs):
@@ -57,6 +60,8 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None):
             qs = qs.filter(group__logger=logger)
         if level:
             qs = qs.filter(group__level__gte=level)
+        if project:
+            qs = qs.filter(project=project)
 
         for obj in RangeQuerySetWrapper(qs):
             print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
@@ -68,6 +73,8 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None):
             qs = qs.filter(logger=logger)
         if level:
             qs = qs.filter(level__gte=level)
+        if project:
+            qs = qs.filter(project=project)
 
         for obj in RangeQuerySetWrapper(qs):
             for key, value in SkinnyQuerySet(MessageFilterValue).filter(group=obj).values_list('key', 'value'):
