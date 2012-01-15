@@ -6,7 +6,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Designed and built with all the love in the world @twitter by @mdo and @fat.
- * Date: Mon Jan  9 17:28:28 PST 2012
+ * Date: Sun Jan 15 14:10:49 PST 2012
  */
 /* Reset.less
  * Props to Eric Meyer (meyerweb.com) for his CSS reset file. We're using an adapted version here	that cuts out some of the reset HTML elements we will never need here (i.e., dfn, samp, etc).
@@ -2769,6 +2769,7 @@ td table.vars {
   position: absolute;
   right: 8px;
   top: 8px;
+  border: 0;
   list-style-type: none;
   visibility: hidden;
 }
