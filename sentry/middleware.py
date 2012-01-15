@@ -41,7 +41,10 @@ class PluginList(object):
 class SentryMiddleware(object):
     def process_view(self, request, view_func, view_args, view_kwargs):
         if 'project_id' in view_kwargs:
-            project = Project.objects.get(pk=view_kwargs['project_id'])
+            try:
+                project = Project.objects.get(pk=view_kwargs['project_id'])
+            except Project.DoesNotExist:
+                project = None
         else:
             project = None
 
