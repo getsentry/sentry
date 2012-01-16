@@ -63,7 +63,7 @@ class SentryRemoteTest(TestCase):
         self.assertEquals(instance.site, 'not_a_real_site')
 
     def test_timestamp(self):
-        timestamp = datetime.datetime.now() - datetime.timedelta(hours=1)
+        timestamp = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
         kwargs = {u'message': 'hello', 'timestamp': timestamp.strftime('%s.%f')}
         resp = self._postWithSignature(kwargs)
         self.assertEquals(resp.status_code, 200, resp.content)
@@ -75,7 +75,7 @@ class SentryRemoteTest(TestCase):
         self.assertEquals(group.last_seen, timestamp)
 
     def test_timestamp_as_iso(self):
-        timestamp = datetime.datetime.now() - datetime.timedelta(hours=1)
+        timestamp = datetime.datetime.utcnow() - datetime.timedelta(hours=1)
         kwargs = {u'message': 'hello', 'timestamp': timestamp.strftime('%Y-%m-%dT%H:%M:%S.%f')}
         resp = self._postWithSignature(kwargs)
         self.assertEquals(resp.status_code, 200, resp.content)

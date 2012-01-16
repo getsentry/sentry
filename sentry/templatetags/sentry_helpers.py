@@ -166,7 +166,7 @@ def timesince(value):
     from django.template.defaultfilters import timesince
     if not value:
         return _('Never')
-    if value < datetime.datetime.now() - datetime.timedelta(days=5):
+    if value < datetime.datetime.utcnow() - datetime.timedelta(days=5):
         return value.date()
     value = (' '.join(timesince(value).split(' ')[0:2])).strip(',')
     if value == _('0 minutes'):

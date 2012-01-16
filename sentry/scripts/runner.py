@@ -159,7 +159,7 @@ def main():
         raise ValueError("Configuration file does not exist. Use 'init' to initialize the file.")
 
     environment['config'] = config_path
-    environment['start_date'] = datetime.datetime.now()
+    environment['start_date'] = datetime.datetime.utcnow()
 
     settings_from_file(config_path)
 

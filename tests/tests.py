@@ -126,7 +126,7 @@ class SentryManagerTest(TestCase):
 
     def test_valid_timestamp_with_tz(self):
         with self.Settings(USE_TZ=True):
-            date = datetime.datetime.now().replace(tzinfo=pytz.utc)
+            date = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
             event = Group.objects.from_kwargs(1, message='foo', timestamp=date)
             self.assertEquals(event.message, 'foo')
             self.assertEquals(event.project_id, 1)
@@ -135,7 +135,7 @@ class SentryManagerTest(TestCase):
     def test_valid_timestamp_without_tz(self):
         # TODO: this doesnt error, but it will throw a warning. What should we do?
         with self.Settings(USE_TZ=True):
-            date = datetime.datetime.now()
+            date = datetime.datetime.utcnow()
             event = Group.objects.from_kwargs(1, message='foo', timestamp=date)
             self.assertEquals(event.message, 'foo')
             self.assertEquals(event.project_id, 1)

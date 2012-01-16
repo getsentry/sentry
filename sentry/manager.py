@@ -110,7 +110,7 @@ class ChartMixin(object):
             return []
 
         hours = max_days * 24
-        today = datetime.datetime.now().replace(microsecond=0, second=0, minute=0)
+        today = datetime.datetime.utcnow().replace(microsecond=0, second=0, minute=0)
         min_date = today - datetime.timedelta(hours=hours)
 
         method = self._get_date_trunc('date', db)
@@ -235,7 +235,7 @@ class GroupManager(models.Manager, ChartMixin):
         logger_name = kwargs.pop('logger', 'root')
         server_name = kwargs.pop('server_name', None)
         site = kwargs.pop('site', None)
-        date = kwargs.pop('timestamp', None) or datetime.datetime.now()
+        date = kwargs.pop('timestamp', None) or datetime.datetime.utcnow()
         extra = kwargs.pop('extra', None)
         modules = kwargs.pop('modules', None)
 

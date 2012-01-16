@@ -44,7 +44,7 @@ def event_list(request, project):
     offset = (page - 1) * settings.MESSAGES_PER_PAGE
     limit = page * settings.MESSAGES_PER_PAGE
 
-    today = datetime.datetime.now()
+    today = datetime.datetime.utcnow()
 
     has_realtime = False
 

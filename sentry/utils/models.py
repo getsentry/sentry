@@ -6,6 +6,7 @@ sentry.utils.models
 :license: BSD, see LICENSE for more details.
 """
 
+import datetime
 import base64
 import logging
 import operator

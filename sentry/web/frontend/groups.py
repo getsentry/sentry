@@ -185,7 +185,7 @@ def group_list(request, project, view_id=None):
         sort = DEFAULT_SORT_OPTION
     sort_label = _get_sort_label(sort)
 
-    today = datetime.datetime.now()
+    today = datetime.datetime.utcnow()
 
     has_realtime = page == 1
 

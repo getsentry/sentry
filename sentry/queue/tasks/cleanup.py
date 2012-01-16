@@ -32,7 +32,7 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
     # TODO: we should collect which messages above were deleted
     # and potentially just send out post_delete signals where
     # GroupedMessage can update itself accordingly
-    ts = datetime.datetime.now() - datetime.timedelta(days=days)
+    ts = datetime.datetime.utcnow() - datetime.timedelta(days=days)
 
     # Message
     qs = SkinnyQuerySet(Event).filter(datetime__lte=ts)
