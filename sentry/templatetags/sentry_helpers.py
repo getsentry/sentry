@@ -2,8 +2,9 @@
 #      INSTALLED_APPS
 from django import template
 from django.template import RequestContext
-from django.template.defaultfilters import stringfilter, escape
+from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
+from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 from paging.helpers import paginate as paginate_func
