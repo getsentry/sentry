@@ -144,7 +144,7 @@ Integrating with an existing Django install
 
 The integrated setup is not recommended for production environments, but can be fairly easy to get up and running. It
 simply requires you to plug the Sentry application into your existing Django project. Once installed, you simply
-need to update your settings.py and add ``sentry`` and ``raven.contrib.django`` to ``INSTALLED_APPS``::
+need to update your settings.py and add ``sentry``, ``dkombu``, and ``raven.contrib.django`` to ``INSTALLED_APPS``::
 
     INSTALLED_APPS = (
         'django.contrib.admin',
@@ -152,6 +152,8 @@ need to update your settings.py and add ``sentry`` and ``raven.contrib.django`` 
         'django.contrib.contenttypes',
         'django.contrib.sessions',
 
+        # Make sure you add all three required apps
+        'djkombu'
         'sentry',
         'raven.contrib.django',
         ...
