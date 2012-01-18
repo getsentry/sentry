@@ -33,6 +33,14 @@ def store(request):
         data = request.raw_post_data
 
         if auth_vars:
+            server_version = auth_vars.get('sentry_version', '1.0')
+        else:
+            server_version = request.GET.get('version', '1.0')
+
+        if server_version not in ('1.0', '2.0'):
+            raise APIError('Client/server version mismatch. Unsupported version: %r' % server_version)
+
+        if auth_vars:
             project = project_from_auth_vars(auth_vars, data)
         elif request.GET.get('api_key') and request.GET.get('project_id') and request.is_secure():
             # ssl requests dont have to have signature verification
