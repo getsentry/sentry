@@ -153,7 +153,7 @@ need to update your settings.py and add ``sentry``, ``dkombu``, and ``raven.cont
         'django.contrib.sessions',
 
         # Make sure you add all three required apps
-        'djkombu'
+        'djkombu',
         'sentry',
         'raven.contrib.django',
         ...
