@@ -174,16 +174,6 @@ class MockDjangoRequest(HttpRequest):
         return self.url
 
 
-def should_mail(group):
-    if int(group.level) < settings.MAIL_LEVEL:
-        return False
-    if settings.MAIL_INCLUDE_LOGGERS is not None and group.logger not in settings.MAIL_INCLUDE_LOGGERS:
-        return False
-    if settings.MAIL_EXCLUDE_LOGGERS and group.logger in settings.MAIL_EXCLUDE_LOGGERS:
-        return False
-    return True
-
-
 def to_unicode(value):
     try:
         value = unicode(force_unicode(value))

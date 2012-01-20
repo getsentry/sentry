@@ -94,6 +94,7 @@ QUEUE = {
 
 # List of event handlers
 PROCESSORS = (
+    'sentry.processors.mail.MailProcessor',
 )
 
 # List of event aggregation views

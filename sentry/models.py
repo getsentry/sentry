@@ -20,7 +20,7 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models import Sum, F
-from django.db.models.signals import post_syncdb, post_save
+from django.db.models.signals import post_syncdb
 from django.utils.datastructures import SortedDict
 from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
@@ -32,7 +32,6 @@ from sentry.utils import cached_property, \
                          MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField
 from sentry.templatetags.sentry_helpers import truncatechars
-import sentry.processors.base
 
 __all__ = ('Event', 'Group', 'Project')
 
@@ -605,11 +604,6 @@ def create_default_project(created_models, verbosity=2, **kwargs):
                 print 'done!'
 
 # Signal registration
-post_save.connect(
-    sentry.processors.base.post_save_processors,
-    sender=Event,
-    dispatch_uid="processors_post_save"
-)
 post_syncdb.connect(
     create_default_project,
     dispatch_uid="create_default_project"

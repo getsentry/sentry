@@ -10,7 +10,7 @@ from .base import Processor
 
 
 class ConsoleProcessor(Processor):
-    def post_processing(self, event, **kwargs):
+    def post_process(self, event, **kwargs):
         print 'Received an event:'
         print '  ID:', event.event_id
         print '  Project:', event.project.name

@@ -8,13 +8,13 @@ sentry.processors.base
 from sentry.conf import settings
 from sentry.utils import InstanceManager
 
-__all__ = ('Processor', 'post_save_processors')
+__all__ = ('Processor', 'send_group_processors')
 
 
 class Processor(object):
     conditions = {}
 
-    def post_processing(self, event):
+    def post_process(self, event):
         """
         Called every time an event is created
         """
@@ -23,6 +23,6 @@ class Processor(object):
     handlers = InstanceManager(settings.PROCESSORS)
 
 
-def post_save_processors(sender, **kwargs):
+def send_group_processors(**kwargs):
     for processor in Processor.handlers.all():
-        processor.post_processing(sender)
+        processor.post_process(**kwargs)

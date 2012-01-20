@@ -18,9 +18,10 @@ from django.db.models import Sum, F
 from sentry.conf import settings
 from sentry.exceptions import InvalidInterface, InvalidData
 from sentry.signals import regression_signal
-from sentry.utils import get_db_engine, should_mail
+from sentry.utils import get_db_engine
 from sentry.utils.charts import has_charts
 from sentry.utils.compat.db import connections
+from sentry.processors.base import send_group_processors
 
 logger = logging.getLogger('sentry.errors')
 
@@ -342,10 +343,9 @@ class GroupManager(models.Manager, ChartMixin):
         if not is_sample:
             event.save()
 
-        # TODO: this should be moved into the processor framework
-        if is_new and should_mail(group):
-            regression_signal.send(sender=self.model, instance=group)
-            group.mail_admins()
+        regression_signal.send(sender=self.model, instance=group)
+
+        send_group_processors(group=group, event=event, is_new=is_new, is_sample=is_sample)
 
         return event
 
