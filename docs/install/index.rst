@@ -122,8 +122,8 @@ Proxying with Apache
 
 Apache requires the use of mod_proxy for forwarding requests::
 
-    ProxyPass / http://localhost:9000
-    ProxyPassReverse / http://localhost:9000
+    ProxyPass / http://localhost:9000/
+    ProxyPassReverse / http://localhost:9000/
 
 Proxying with Nginx
 ```````````````````
