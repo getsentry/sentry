@@ -8,8 +8,8 @@
     <script>
     {% if has_realtime %}
         Sentry.realtime.config({
-            projectId: {{ project.pk }},
-            viewId: {% if view %}{{ view.pk }}{% else %}null{% endif %}
+            projectId: {{ project.pk|safe }},
+            viewId: {% if view %}{{ view.pk|safe }}{% else %}null{% endif %}
         })
         Sentry.realtime.enable();
     {% endif %}
@@ -90,7 +90,7 @@
             </ul>
         </li>
         <li class="pull-right">
-            <a href="javascript:void(0)" onclick="Sentry.stream.clear({{ project.id }});">{% trans "Resolve Feed" %}</a>
+            <a href="javascript:void(0)" onclick="Sentry.stream.clear({{ project.id|safe }});">{% trans "Resolve Feed" %}</a>
         </li>
         <li class="pull-right">
             <a href="javascript:void(0)" id="sentry_realtime" class="realtime-play" onclick="Sentry.realtime.toggle();">{% trans "Pause Feed" %}</a>
@@ -114,7 +114,7 @@
 {% block content_after %}
     <script type="text/javascript">
     $(document).ready(function() {
-        Sentry.charts.render("#sparkline", {{ project.id }});
+        Sentry.charts.render("#sparkline", {{ project.id|safe }});
     });
     </script>
 {% endblock %}

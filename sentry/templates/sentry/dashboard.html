@@ -15,7 +15,7 @@
                     <li>
                         <a href="{% url sentry project.pk %}">
                             <h3>{{ project.name }}</h3>
-                            <div class="sparkline" data-project="{{ project.pk }}" data-api-url="{% url sentry-api-chart project.pk %}"></div>
+                            <div class="sparkline" data-project="{{ project.pk|safe }}" data-api-url="{% url sentry-api-chart project.pk %}"></div>
                         </a>
                     </li>
                 {% endfor %}

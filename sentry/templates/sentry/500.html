@@ -17,7 +17,7 @@
         <p>{% blocktrans with request.sentry.id as id %}You may reference this error as <strong>{{ id }}</strong>.{% endblocktrans %}</p>
 
         {% if request.sentry.project_id %}
-            <p><a href="{% url sentry-search request.sentry.project_id %}?q={{ request.sentry.id }}">View this error in Sentry</a></p>
+            <p><a href="{% url sentry-search request.sentry.project_id %}?q={{ request.sentry.id|safe }}">View this error in Sentry</a></p>
         {% endif %}
     {% endif %}
 {% endblock %}

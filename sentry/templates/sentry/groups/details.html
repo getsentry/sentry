@@ -179,7 +179,7 @@
 {% block content_after %}
     <script type="text/javascript">
     $(document).ready(function() {
-        Sentry.charts.render("#chart", {{ group.project.id }}, {{ group.id }}, true);
+        Sentry.charts.render("#chart", {{ group.project.id|safe }}, {{ group.id|safe }}, true);
     });
     </script>
 {% endblock %}
