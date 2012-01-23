@@ -14,8 +14,6 @@ from django.conf import settings as django_settings
 from django.http import HttpRequest
 from django.utils.encoding import force_unicode
 
-from sentry.conf import settings
-
 
 class InstanceManager(object):
     def __init__(self, class_list, instances=True):
