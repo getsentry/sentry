@@ -86,7 +86,7 @@ MIDDLEWARE_CLASSES = (
     # 'django.contrib.messages.middleware.MessageMiddleware',
 )
 
-ROOT_URLCONF = 'sentry.web.urls'
+ROOT_URLCONF = 'sentry.conf.urls'
 
 TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
@@ -117,3 +117,5 @@ logging.basicConfig(level=logging.WARNING)
 
 SENTRY_PUBLIC = True
 SENTRY_PROJECT = 1
+
+ADMIN_MEDIA_PREFIX = '/_admin_media/'
