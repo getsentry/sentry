@@ -92,7 +92,7 @@ def status(request):
     }, request)
 
 
-def static_media(request, path):
+def static_media(request, path, root=None):
     """
     Serve static files below a given point in the directory structure.
     """
@@ -104,7 +104,7 @@ def static_media(request, path):
     import stat
     import urllib
 
-    document_root = os.path.join(settings.ROOT, 'static')
+    document_root = root or os.path.join(settings.ROOT, 'static')
 
     path = posixpath.normpath(urllib.unquote(path))
     path = path.lstrip('/')
