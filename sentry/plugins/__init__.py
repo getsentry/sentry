@@ -123,15 +123,21 @@ class Plugin(object):
         """
 
     def tags(self, group, tag_list, **kwargs):
-        """Modifies the tag list for a grouped message."""
+        """
+        Modifies the tag list for a grouped message.
+        """
         return tag_list
 
     def actions(self, group, action_list, **kwargs):
-        """Modifies the action list for a grouped message."""
+        """
+        Modifies the action list for a grouped message.
+        """
         return action_list
 
     def panels(self, group, panel_list, **kwargs):
-        """Modifies the panel list for a grouped message."""
+        """
+        Modifies the panel list for a grouped message.
+        """
         return panel_list
 
     def widget(self, group, **kwargs):
