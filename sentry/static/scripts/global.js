@@ -191,6 +191,11 @@ if (Sentry === undefined) {
     Sentry.charts = {};
     Sentry.charts.render = function(el, project_id, group_id, grid){
         var $sparkline = $(el);
+
+        if ($sparkline.length < 1) {
+            return; // Supress an empty chart
+        }
+
         $.ajax({
             url: Sentry.options.urlPrefix + '/api/' + project_id + '/chart/',
             type: 'get',
