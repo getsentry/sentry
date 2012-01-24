@@ -417,10 +417,16 @@ class GroupManager(models.Manager, ChartMixin):
                 time_spent_count=time_spent and 1 or 0,
             )
 
+        http = event.interfaces.get('sentry.interfaces.Http')
+        if http:
+            url = http.url
+        else:
+            url = None
+
         for key, value in (
                 ('server_name', event.server_name),
                 ('site', event.site),
-                ('logger', event.logger),
+                ('url', url),
             ):
             if not value:
                 continue

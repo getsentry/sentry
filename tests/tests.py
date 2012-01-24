@@ -141,6 +141,108 @@ class SentryManagerTest(TestCase):
             self.assertEquals(event.project_id, 1)
             self.assertEquals(event.datetime, date)
 
+    def test_url_filter(self):
+        event = Group.objects.from_kwargs(1, message='foo')
+        group = event.group
+        self.assertEquals(group.messagefiltervalue_set.filter(key='url').count(), 0)
+
+        event = Group.objects.from_kwargs(1, message='foo', **{
+            'sentry.interfaces.Http': {
+                'url': 'http://example.com',
+            }
+        })
+        group = event.group
+        self.assertEquals(group.messagefiltervalue_set.filter(key='url').count(), 1)
+        res = group.messagefiltervalue_set.filter(key='url').get()
+        self.assertEquals(res.value, 'http://example.com')
+        self.assertEquals(res.times_seen, 1)
+
+        event = Group.objects.from_kwargs(1, message='foo', **{
+            'sentry.interfaces.Http': {
+                'url': 'http://example.com',
+            }
+        })
+        group = event.group
+        self.assertEquals(group.messagefiltervalue_set.filter(key='url').count(), 1)
+        res = group.messagefiltervalue_set.filter(key='url').get()
+        self.assertEquals(res.value, 'http://example.com')
+        self.assertEquals(res.times_seen, 2)
+
+        event = Group.objects.from_kwargs(1, message='foo', **{
+            'sentry.interfaces.Http': {
+                'url': 'http://example.com/2',
+            }
+        })
+        group = event.group
+        self.assertEquals(group.messagefiltervalue_set.filter(key='url').count(), 2)
+        results = list(group.messagefiltervalue_set.filter(key='url').order_by('id'))
+        res = results[0]
+        self.assertEquals(res.value, 'http://example.com')
+        self.assertEquals(res.times_seen, 2)
+        res = results[1]
+        self.assertEquals(res.value, 'http://example.com/2')
+        self.assertEquals(res.times_seen, 1)
+
+    def test_site_filter(self):
+        event = Group.objects.from_kwargs(1, message='foo')
+        group = event.group
+        self.assertEquals(group.messagefiltervalue_set.filter(key='site').count(), 0)
+
+        event = Group.objects.from_kwargs(1, message='foo', site='foo')
+        group = event.group
+        self.assertEquals(group.messagefiltervalue_set.filter(key='site').count(), 1)
+        res = group.messagefiltervalue_set.filter(key='site').get()
+        self.assertEquals(res.value, 'foo')
+        self.assertEquals(res.times_seen, 1)
+
+        event = Group.objects.from_kwargs(1, message='foo', site='foo')
+        group = event.group
+        self.assertEquals(group.messagefiltervalue_set.filter(key='site').count(), 1)
+        res = group.messagefiltervalue_set.filter(key='site').get()
+        self.assertEquals(res.value, 'foo')
+        self.assertEquals(res.times_seen, 2)
+
+        event = Group.objects.from_kwargs(1, message='foo', site='bar')
+        group = event.group
+        self.assertEquals(group.messagefiltervalue_set.filter(key='site').count(), 2)
+        results = list(group.messagefiltervalue_set.filter(key='site').order_by('id'))
+        res = results[0]
+        self.assertEquals(res.value, 'foo')
+        self.assertEquals(res.times_seen, 2)
+        res = results[1]
+        self.assertEquals(res.value, 'bar')
+        self.assertEquals(res.times_seen, 1)
+
+    def test_server_name_filter(self):
+        event = Group.objects.from_kwargs(1, message='foo')
+        group = event.group
+        self.assertEquals(group.messagefiltervalue_set.filter(key='server_name').count(), 0)
+
+        event = Group.objects.from_kwargs(1, message='foo', server_name='foo')
+        group = event.group
+        self.assertEquals(group.messagefiltervalue_set.filter(key='server_name').count(), 1)
+        res = group.messagefiltervalue_set.filter(key='server_name').get()
+        self.assertEquals(res.value, 'foo')
+        self.assertEquals(res.times_seen, 1)
+
+        event = Group.objects.from_kwargs(1, message='foo', server_name='foo')
+        group = event.group
+        self.assertEquals(group.messagefiltervalue_set.filter(key='server_name').count(), 1)
+        res = group.messagefiltervalue_set.filter(key='server_name').get()
+        self.assertEquals(res.value, 'foo')
+        self.assertEquals(res.times_seen, 2)
+
+        event = Group.objects.from_kwargs(1, message='foo', server_name='bar')
+        group = event.group
+        self.assertEquals(group.messagefiltervalue_set.filter(key='server_name').count(), 2)
+        results = list(group.messagefiltervalue_set.filter(key='server_name').order_by('id'))
+        res = results[0]
+        self.assertEquals(res.value, 'foo')
+        self.assertEquals(res.times_seen, 2)
+        res = results[1]
+        self.assertEquals(res.value, 'bar')
+        self.assertEquals(res.times_seen, 1)
+
     def test_legacy_data(self):
         result = Group.objects.convert_legacy_kwargs({'timestamp': '1234'})
         self.assertEquals(result['timestamp'], '1234')
