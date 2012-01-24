@@ -16,4 +16,4 @@ REDMINE_URL = getattr(settings, 'SENTRY_REDMINE_URL', None)
 REDMINE_PROJECT_SLUG = getattr(settings, 'SENTRY_REDMINE_PROJECT_SLUG', None)
 
 REDMINE_USERNAME = getattr(settings, 'SENTRY_REDMINE_USERNAME', None)
-REDMINE_PASSWORD = getattr(settings, 'SENTRY_REDMINE_PASSWORd', None)
+REDMINE_PASSWORD = getattr(settings, 'SENTRY_REDMINE_PASSWORD', None)
