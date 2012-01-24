@@ -22,14 +22,12 @@
                         <td>{{ method }}</td>
                     </tr>
                 {% endif %}
-                {% if query_string %}
-                    <tr>
-                        <th>{% trans "Query:" %}</th>
-                        <td>
-                            <code>{{ query_string|pprint }}</code>
-                        </td>
-                    </tr>
-                {% endif %}
+                <tr>
+                    <th>{% trans "Query:" %}</th>
+                    <td>
+                        <code>{{ query_string|pprint }}</code>
+                    </td>
+                </tr>
                 {% if data %}
                     <tr>
                         <th>{% trans "Body:" %}</th>
@@ -57,6 +55,38 @@
                                 {% endif %}
                                 <div id="vHttpBody"{% if data|length > 5 %} style="display:none;"{% endif %}>
                                     <pre>{{ data|pprint }}</pre>
+                                </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endif %}
+                {% if cookies %}
+                    <tr>
+                        <th>{% trans "Cookies:" %}</th>
+                        <td>
+                            {% if cookies_is_dict %}
+                                {% if cookies|length > 5 %}
+                                    <a href="#" onclick="return varToggle(this, 'HttpCookies')"><span>&#x25b6;</span> {% trans "Cookies" %}</a>
+                                {% endif %}
+                                <table class="vars" id="vHttpCookies"{% if cookies|length > 5 %} style="display:none;"{% endif %}>
+                                    <colgroup>
+                                        <col style="width:100px;">
+                                    </colgroup>
+                                    <tbody>
+                                        {% for key, value in cookies.iteritems|as_sorted %}
+                                            <tr>
+                                                <td>{{ key|to_str }}</td>
+                                                <td class="code"><pre>{{ value|pprint }}</pre></td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            {% else %}
+                                {% if cookies|length > 5 %}
+                                    <a href="#" onclick="return varToggle(this, 'HttpCookies')"><span>&#x25b6;</span> {% trans "Cookies" %}</a>
+                                {% endif %}
+                                <div id="vHttpCookies"{% if cookies|length > 5 %} style="display:none;"{% endif %}>
+                                    <pre>{{ cookies|pprint }}</pre>
                                 </div>
                             {% endif %}
                         </td>

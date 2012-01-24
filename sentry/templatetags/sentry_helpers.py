@@ -112,6 +112,11 @@ def to_json(data):
     return json.dumps(data)
 
 
+@register.filter
+def to_str(data):
+    return str(data)
+
+
 @register.simple_tag
 def sentry_version():
     import sentry

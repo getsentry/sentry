@@ -226,7 +226,14 @@ class Http(Interface):
         self.query_string = query_string
         self.headers = headers or {}
         self.env = env or {}
-        self.cookies = cookies or None
+        if cookies:
+            self.cookies = cookies
+        else:
+            self.cookies = {}
+        if 'Cookie' in headers:
+            cookies = headers.pop('Cookie')
+            if not self.cookies:
+                cookies = self.cookies
 
     def serialize(self):
         return {
@@ -249,6 +256,18 @@ class Http(Interface):
                 pass
             else:
                 data_is_dict = True
+
+        # It's kind of silly we store this twice
+        cookies = self.cookies or self.headers.pop('Cookie', {})
+        cookies_is_dict = isinstance(cookies, dict)
+        if not cookies_is_dict:
+            try:
+                cookies = QueryDict(cookies)
+            except:
+                pass
+            else:
+                cookies_is_dict = True
+
         return render_to_string('sentry/partial/interfaces/http.html', {
             'event': event,
             'full_url': '?'.join(filter(None, [self.url, self.query_string])),
@@ -257,7 +276,8 @@ class Http(Interface):
             'data': data,
             'data_is_dict': data_is_dict,
             'query_string': self.query_string,
-            'cookies': self.cookies,
+            'cookies': cookies,
+            'cookies_is_dict': cookies_is_dict,
             'headers': self.headers,
             'env': self.env,
         })
