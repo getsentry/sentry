@@ -210,12 +210,9 @@ def group_json(request, project, group_id):
     if group.project and group.project != project:
         return HttpResponse(status_code=404)
 
-    try:
-        event = group.get_latest_event()
-    except IndexError:
-        # It's possible that a message would not be created under certain circumstances
-        # (such as a post_save signal failing)
-        event = Event()
+    # It's possible that a message would not be created under certain
+    # circumstances (such as a post_save signal failing)
+    event = group.get_latest_event() or Event()
 
     # We use a SortedDict to keep elements ordered for the JSON serializer
     data = SortedDict()
