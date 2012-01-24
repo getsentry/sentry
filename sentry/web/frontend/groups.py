@@ -236,12 +236,9 @@ def group(request, project, group_id):
     if group.project and group.project != project:
         return HttpResponseRedirect(reverse('sentry-group', kwargs={'group_id': group.pk, 'project_id': group.project_id}))
 
-    try:
-        event = group.get_latest_event()
-    except IndexError:
-        # It's possible that a message would not be created under certain circumstances
-        # (such as a post_save signal failing)
-        event = Event(group=group)
+    # It's possible that a message would not be created under certain
+    # circumstances (such as a post_save signal failing)
+    event = group.get_latest_event() or Event(group=group)
 
     return render_to_response('sentry/groups/details.html', {
         'project': project,
