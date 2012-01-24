@@ -224,16 +224,18 @@ class Http(Interface):
         self.method = method
         self.data = data
         self.query_string = query_string
-        self.headers = headers or {}
-        self.env = env or {}
         if cookies:
             self.cookies = cookies
         else:
             self.cookies = {}
-        if 'Cookie' in headers:
+        # if cookies were [also] included in headers we
+        # strip them out
+        if headers and 'Cookie' in headers:
             cookies = headers.pop('Cookie')
             if not self.cookies:
                 cookies = self.cookies
+        self.headers = headers or {}
+        self.env = env or {}
 
     def serialize(self):
         return {
