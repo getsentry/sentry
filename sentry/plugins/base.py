@@ -28,7 +28,7 @@ class Response(object):
 
 
 class PluginManager(InstanceManager):
-    def for_project(self, project):
+    def for_project(self):
         for plugin in self.all():
             if not plugin.project_conf_form:
                 continue

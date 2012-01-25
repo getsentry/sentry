@@ -23,8 +23,8 @@
             <a href="{% url sentry-manage-project project.pk %}">{% trans "Details" %}</a>
         </li>
         {% for p in PLUGINS.for_project %}
-            <li{% if page == 'plugin' and p.slug == slug %} class="active"{% endif %}>
-                <a href="{% url sentry-configure-project-plugin project.pk slug %}">{{ p.get_title }}</a>
+            <li{% if page == 'plugin' and plugin.slug == p.slug %} class="active"{% endif %}>
+                <a href="{% url sentry-configure-project-plugin project.pk p.slug %}">{{ p.get_title }}</a>
             </li>
         {% endfor %}
     </ul>
