@@ -12,6 +12,7 @@ from django.conf import settings as dj_settings
 from django.core.urlresolvers import reverse, resolve
 from django.http import HttpResponse
 from django.template import loader, RequestContext, Context
+from django.utils.datastructures import SortedDict
 
 from sentry.conf import settings
 from sentry.models import ProjectMember, Project, View, \
@@ -33,9 +34,9 @@ def get_project_list(user=None, access=None, hidden=False):
         qs = Project.objects.filter(public=True)
         if not hidden:
             qs = qs.filter(status=0)
-        projects = dict((p.pk, p) for p in qs)
+        projects = SortedDict((p.pk, p) for p in qs)
     else:
-        projects = dict()
+        projects = SortedDict()
 
     # If the user is authenticated, include their memberships
     if user and user.is_authenticated():
@@ -43,7 +44,7 @@ def get_project_list(user=None, access=None, hidden=False):
               .select_related('project')
         if not hidden:
             qs = qs.filter(project__status=0)
-        projects.update(dict((pm.project_id, pm.project)
+        projects.update(SortedDict((pm.project_id, pm.project)
             for pm in qs if pm.type <= access))
 
     return projects
