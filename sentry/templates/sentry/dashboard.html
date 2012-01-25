@@ -10,9 +10,9 @@
     <div class="span12">
         {% if project_list %}
             <div class="alert alert-info">Select a project to view the stream of events...</div>
-            <ul class="sparkline-grid">
+            <ul class="thumbnails sparkline-grid">
                 {% for project in project_list %}
-                    <li>
+                    <li class="thumbnail">
                         <a href="{% url sentry project.pk %}">
                             <h3>{{ project.name }}</h3>
                             <div class="sparkline" data-project="{{ project.pk|safe }}" data-api-url="{% url sentry-api-chart project.pk %}"></div>
