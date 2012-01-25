@@ -13,10 +13,10 @@
         <li class="active">{% trans "Edit Member" %}</li>
     </ul>
     {% if request.GET.success %}
-        <div class="alert-message success">{% trans "Changes to your project were saved successfully." %}</div>
+        <div class="alert alert-success">{% trans "Changes to your project were saved successfully." %}</div>
     {% else %}
         {% if form.errors %}
-            <div class="alert-message error">{% trans "Please correct the errors below." %}</div>
+            <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
         {% endif %}
     {% endif %}
     <form class="form-stacked" action="" method="post">

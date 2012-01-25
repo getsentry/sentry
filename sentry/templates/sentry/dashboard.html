@@ -7,9 +7,9 @@
 {% block heading %}{% trans "Select a Project" %}{% endblock %}
 
 {% block content %}
-    <div class="span16">
+    <div class="span12">
         {% if project_list %}
-            <div class="alert-message info">Select a project to view the stream of events...</div>
+            <div class="alert alert-info">Select a project to view the stream of events...</div>
             <ul class="sparkline-grid">
                 {% for project in project_list %}
                     <li>
@@ -22,9 +22,9 @@
             </ul>
         {% else %}
             {% if can_create_projects %}
-                <div class="alert-message info">You do not have access to any projects. Would you like to <a href="{% url sentry-new-project %}">create a new project</a>?</div>
+                <div class="alert alert-info">You do not have access to any projects. Would you like to <a href="{% url sentry-new-project %}">create a new project</a>?</div>
             {% else %}
-                <div class="alert-message notice">You do not have access to any projects. Ask an administrator to add you as a member.</div>
+                <div class="alert alert-notice">You do not have access to any projects. Ask an administrator to add you as a member.</div>
             {% endif %}
         {% endif %}
     </div>

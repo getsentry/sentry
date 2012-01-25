@@ -5,6 +5,7 @@ pre, code {
 }
 
 code {
+  border: 0;
   background-color: inherit;
   color: lighten(@black, 40%);
 }
@@ -12,12 +13,14 @@ code {
 // Options
 
 .options {
+  .nav;
   .tabs;
-  height: @baseline * 2;
-  margin: 0 0 @baseline;
+  height: @baseLineHeight * 2;
+  margin: 0 0 @baseLineHeight;
   > li {
+    display: inline-block;
     > a {
-      line-height: (@baseline * 2) - 2;
+      line-height: (@baseLineHeight * 2) - 2;
       border: 0;
       .border-radius(4px);
       &:hover {
@@ -34,53 +37,21 @@ code {
     color: @grayLight;
   }
 }
-.dropdown-menu > li.active a,
-.dropdown-menu > li.disabled a {
-  color: @grayLight;
-  border-color: transparent;
-  cursor: default;
-}
 
 .tabs {
   > li.pull-right {
     float: right;
   }
 }
+.table th {
+  vertical-align: top;
+}
 
 // Tweaks to Topbar
 
-.topbar {
+.navbar {
   input {
-    // Placeholder text gets special styles; can't be bundled together though for some reason
-    &:-moz-placeholder {
-      color: @grayDark;
-    }
-    &::-webkit-input-placeholder {
-      color: @grayDark;
-    }
-    // Hover states
-    &:hover {
-      background-color: #444;
-      background-color: rgba(255,255,255,.3);
-      color: @grayDark;
-    }
-    // Focus states (we use .focused since IE8 and down doesn't support :focus)
-    &:focus,
-    &.focused {
-      background-color: #444;
-      background-color: rgba(255,255,255,.3);
-      #font > .sans-serif(13px, normal, 1);
-      padding: 4px 9px;
-      color: @white;
-      color: rgba(255,255,255,.75);
-      border: 1px solid #111;
-      .border-radius(4px);
-      @shadow: inset 0 1px 2px rgba(0,0,0,.1), 0 1px 0px rgba(255,255,255,.25);
-      .box-shadow(@shadow);
-      .transition(none);
-      color: @grayLight;
-      text-shadow: none;
-    }
+    margin-bottom: 0;
   }
 }
 
@@ -94,7 +65,7 @@ code {
   position: relative;
 
   h1 {
-    margin-bottom: (@baseline / 2) - 1px;
+    margin-bottom: (@baseLineHeight / 2) - 1px;
   }
 
   // Tabbed nav in main header
@@ -102,7 +73,7 @@ code {
     z-index: 1000;
     position: absolute;
     right: 20px;
-    top: 10px;
+    top: 15px;
   }
 
   // Sparkline (page header)
@@ -143,7 +114,7 @@ ol.context {
       padding: 0;
       border: 0;
       display: block;
-      line-height: @baseline;
+      line-height: @baseLineHeight;
       font-size: 12px;
       white-space: pre;
       white-space: pre-wrap;
@@ -176,7 +147,7 @@ ol.context-line {
 
 // Vars display
 table.vars {
-  .condensed-table;
+  .table-condensed;
   td.code {
     > pre {
 
@@ -207,7 +178,7 @@ td table.vars {
 }
 
 .sparkline-grid {
-  .media-grid;
+  .thumbnails;
   a {
     .innerColumn(4);
     height: 160px;
@@ -261,4 +232,8 @@ td table.vars {
       }
     }
   }
+}
+
+h1 {
+  font-family: 'Yanone Kaffeesatz';
 }

@@ -26,10 +26,10 @@ footer {
     box-shadow: 0 1px 2px rgba(0,0,0,.15);
 }
 /* Give a quick and non-cross-browser friendly divider */
-.topbar .btn {
+.navbar .btn {
     border: 0;
 }
-.topbar .brand {
+.navbar .brand {
     background: url('../images/sentry.png') 20px center no-repeat;
     padding-left: 80px;
     text-indent: -10000em;

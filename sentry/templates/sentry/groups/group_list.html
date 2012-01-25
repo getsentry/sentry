@@ -19,7 +19,7 @@
 {% block page_header %}
     <div class="sparkline" id="sparkline"></div>
     {% if VIEWS %}
-        <ul class="pills">
+        <ul class="nav pills">
             <li{% if not view %} class="active"{% endif %}><a href="{% url sentry project.pk %}">{% trans "All" %}</a></li>
             {% for v in VIEWS %}
                 <li{% if view == v %} class="active"{% endif %}><a href="{% url sentry project.pk v.pk %}">{{ v.verbose_name_plural }}</a></li>

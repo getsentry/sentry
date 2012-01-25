@@ -17,10 +17,10 @@
 {% endblock %}
 
 {% block content %}
-    <div class="span16">
+    <div class="span12">
         {% if project_list %}
             <p>You have access to the following projects:</p>
-            <table class="zebra-striped bordered-table">
+            <table class="table table-zebra table-bordered">
                 <colgroup>
                     <col>
                     <col style="width:150px;">
@@ -45,9 +45,9 @@
             </table>
         {% else %}
             {% if can_create_projects %}
-                <div class="alert-message info">You do not have access to any projects. Would you like to <a href="{% url sentry-new-project %}">create a new project</a>?</div>
+                <div class="alert alert-info">You do not have access to any projects. Would you like to <a href="{% url sentry-new-project %}">create a new project</a>?</div>
             {% else %}
-                <div class="alert-message notice">You do not have access to any projects. Ask an administrator to add you as a member.</div>
+                <div class="alert alert-notice">You do not have access to any projects. Ask an administrator to add you as a member.</div>
             {% endif %}
         {% endif %}
     </div>

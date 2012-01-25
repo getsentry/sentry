@@ -44,7 +44,7 @@
             <div class="page-header">
                 <h2>{% trans "Module Versions" %}</h2>
             </div>
-            <table class="inline">
+            <table class="table inline">
                 {% for k, v in version_data.iteritems|as_sorted %}
                     <tr>
                         <th class="key">{{ k }}</th>
@@ -74,7 +74,7 @@
                                 {% if v|length > 5 %}
                                     <a href="#" onclick="return varToggle(this, 'Extra{{ forloop.index }}')"><span>&#x25b6;</span> {% trans "Body" %}</a>
                                 {% endif %}
-                                <table class="vars" id="vExtra{{ forloop.index }}"{% if v|length > 5 %} style="display:none;"{% endif %}>
+                                <table class="table vars" id="vExtra{{ forloop.index }}"{% if v|length > 5 %} style="display:none;"{% endif %}>
                                     <colgroup>
                                         <col style="width:100px;">
                                     </colgroup>

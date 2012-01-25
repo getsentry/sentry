@@ -26,8 +26,6 @@
         <script type="text/javascript" src="{% url sentry-media "scripts/jquery.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/jquery.flot.min.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/jquery.animate-colors-min.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "scripts/bootstrap-dropdown.min.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "scripts/bootstrap-tabs.min.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/global.js" %}"></script>
         <script type="text/javascript">
         Sentry.config({
@@ -59,12 +57,12 @@
                     {% block content_before %}
                     {% endblock %}
                     {% block content %}
-                        <div class="span12">
+                        <div class="span9">
                             {% block main %}
                             {% endblock %}
                         </div>
 
-                        <div class="span4" id="sidebar">
+                        <div class="span3" id="sidebar">
                             {% block sidebar %}
                             {% endblock %}
                         </div>
@@ -81,5 +79,12 @@
             </div>
         </footer>
         {% endblock %}
+
+        <script type="text/javascript" src="{% url sentry-media "scripts/bootstrap-dropdown.min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "scripts/bootstrap-tabs.min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "scripts/bootstrap-alerts.min.js" %}"></script>
+        <script type="text/javascript">
+        $(".alert").alert();
+        </script>
     </body>
 </html>

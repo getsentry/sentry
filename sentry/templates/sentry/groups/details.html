@@ -59,7 +59,7 @@
         </li>
     </ul>
 
-    <ul class="tabs">
+    <ul class="nav tabs">
         <li{% ifequal page 'details' %} class="active"{% endifequal %}>
             <a href="{% url sentry-group group.project_id group.pk %}">{% trans "Details" %}</a>
         </li>
@@ -70,7 +70,7 @@
             <li{% if is_active %} class="active"{% endif %}><a href="{{ link }}">{{ label }}</a></li>
         {% endfor %}
         <li class="dropdown pull-right" data-dropdown="dropdown">
-            <a class="dropdown-toggle">{% trans "Actions" %}</a>
+            <a class="dropdown-toggle">{% trans "Actions" %} <b class="caret"></b></a>
             <ul class="dropdown-menu">
                 {# We're going to move these to the resolve action location #}
                 {% if group.status == 0 %}
@@ -113,22 +113,6 @@
             </div>
         {% endif %}
 
-        {% if version_data %}
-            <div id="versioninfo">
-                <div class="page-header">
-                    <h2>{% trans "Module Versions" %}</h2>
-                </div>
-                <table class="inline">
-                    {% for k, v in version_data.iteritems|as_sorted %}
-                        <tr>
-                            <th class="key">{{ k }}</th>
-                            <td class="values"><code>{{ v }}</code></td>
-                        </tr>
-                    {% endfor %}
-                </table>
-            </div>
-        {% endif %}
-
         {% for interface in interface_list %}
             {{ interface }}
         {% endfor %}
@@ -148,7 +132,7 @@
                                     {% if v|length > 5 %}
                                         <a href="#" onclick="return varToggle(this, 'Extra{{ forloop.index }}')"><span>&#x25b6;</span> {% trans "Body" %}</a>
                                     {% endif %}
-                                    <table class="vars" id="vExtra{{ forloop.index }}"{% if v|length > 5 %} style="display:none;"{% endif %}>
+                                    <table class="table vars" id="vExtra{{ forloop.index }}"{% if v|length > 5 %} style="display:none;"{% endif %}>
                                         <colgroup>
                                             <col style="width:100px;">
                                         </colgroup>
@@ -168,6 +152,22 @@
                                 <p>{% blocktrans with k as varname %}No data for {{ varname }}{% endblocktrans %}</p>
                             {% endif %}
                             </td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        {% endif %}
+
+        {% if version_data %}
+            <div id="versioninfo">
+                <div class="page-header">
+                    <h2>{% trans "Module Versions" %}</h2>
+                </div>
+                <table class="table table-bordered">
+                    {% for k, v in version_data.iteritems|as_sorted %}
+                        <tr>
+                            <th class="key">{{ k }}</th>
+                            <td class="values"><code>{{ v }}</code></td>
                         </tr>
                     {% endfor %}
                 </table>

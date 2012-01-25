@@ -8,22 +8,22 @@
 {% block heading %}{% trans "Status" %}{% endblock %}
 
 {% block content %}
-    <div class="span16">
-        <ul class="tabs" data-tabs="tabs">
-            <li class="active"><a href="#main">{% trans "Environment" %}</a></li>
-            <li><a href="#packages">{% trans "Packages" %}</a></li>
-            <li><a href="#workers">{% trans "Workers" %}</a></li>
+    <div class="span12">
+        <ul class="nav tabs" data-tabs="tabs">
+            <li class="active"><a href="#main" data-toggle="tab">{% trans "Environment" %}</a></li>
+            <li><a href="#packages" data-toggle="tab">{% trans "Packages" %}</a></li>
+            <li><a href="#workers" data-toggle="tab">{% trans "Workers" %}</a></li>
             {% for conf in site_configs %}
-                <li><a href="#config_{{ conf.slug }}">{{ conf.site_conf_title }}</a></li>
+                <li><a href="#config_{{ conf.slug }}" data-toggle="tab">{{ conf.site_conf_title }}</a></li>
             {% endfor %}
         </ul>
         <div class="tab-content">
-            <div id="main" class="active">
+            <div id="main" class="active tab-pane">
                 <div class="page-header">
                     <h2>{% trans "Environment" %}</h2>
                 </div>
                 {% if environment %}
-                    <table class="vars bordered-table zebra-striped">
+                    <table class="table vars table-bordered table-zebra">
                         <colgroup>
                             <col style="width:220px">
                         </colgroup>
@@ -53,7 +53,7 @@
                 <div class="page-header">
                     <h2>{% trans "Configuration" %}{% if environment.config %} <small>{{ environment.config }}</small>{% endif %}</h2>
                 </div>
-                <table class="vars bordered-table zebra-striped">
+                <table class="table vars table-bordered table-zebra">
                     <colgroup>
                         <col style="width:220px">
                     </colgroup>
@@ -67,12 +67,12 @@
                     </tbody>
                 </table>
             </div>
-            <div id="packages">
+            <div id="packages" class="tab-pane">
                 <div class="page-header">
                     <h2>{% trans "Extensions" %}</h2>
                 </div>
                 {% if extensions %}
-                    <table class="vars bordered-table zebra-striped">
+                    <table class="table vars table-bordered table-zebra">
                         <colgroup>
                             <col style="width:220px">
                         </colgroup>
@@ -92,7 +92,7 @@
                     <h2>{% trans "Views" %}</h2>
                 </div>
                 {% if views %}
-                    <table class="vars bordered-table zebra-striped">
+                    <table class="table vars table-bordered table-zebra">
                         <colgroup>
                             <col style="width:220px">
                         </colgroup>
@@ -112,7 +112,7 @@
                     <h2>{% trans "Processors" %}</h2>
                 </div>
                 {% if processors %}
-                    <table class="vars bordered-table zebra-striped">
+                    <table class="table vars table-bordered table-zebra">
                         <colgroup>
                             <col style="width:220px">
                         </colgroup>
@@ -131,7 +131,7 @@
                 <div class="page-header">
                     <h2>{% trans "Modules" %}</h2>
                 </div>
-                <table class="vars bordered-table zebra-striped">
+                <table class="table vars table-bordered table-zebra">
                     <colgroup>
                         <col style="width:220px">
                     </colgroup>
@@ -146,12 +146,12 @@
                 </table>
             </div>
             {% if worker_status %}
-                <div id="workers">
+                <div id="workers" class="tab-pane">
                     <div class="page-header">
                         <h2>{% trans "Background Processes" %}</h2>
                     </div>
                     {% if background_procs %}
-                        <table class="vars bordered-table zebra-striped">
+                        <table class="table vars table-bordered table-zebra">
                             <colgroup>
                                 <col style="width:220px">
                             </colgroup>
@@ -164,7 +164,7 @@
                     <div class="page-header">
                         <h2>{% trans "Pending Tasks" %}</h2>
                     </div>
-                    <table class="vars bordered-table zebra-striped">
+                    <table class="table vars table-bordered table-zebra">
                         <colgroup>
                             <col>
                             <col style="width:150px">
@@ -187,13 +187,12 @@
                 </div>
             {% endif %}
             {% for conf in site_configs %}
-                <div id="config_{{ conf.slug }}">
+                <div id="config_{{ conf.slug }}" class="tab-pane">
                     <div class="page-header">
-                        <div class="page-header">
-                            <h2>{{ conf.site_config_title|default:conf.title }} configuration</h2>
-                        </div>
-                        {{ conf.view|safe }}
+                        <h2>{{ conf.site_config_title|default:conf.title }} configuration</h2>
                     </div>
+                    <br/>
+                    {{ conf.view|safe }}
                 </div>
             {% endfor %}
         </div>

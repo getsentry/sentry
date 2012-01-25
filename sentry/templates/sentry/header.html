@@ -1,8 +1,8 @@
 {% load i18n %}
 
 <header id="header">
-    <div class="topbar">
-        <div class="fill">
+    <div class="navbar navbar-fixed">
+        <div class="navbar-inner">
             <div class="container">
                 <a class="brand" href="{% url sentry %}">Sentry</a>
                 <ul class="nav">
@@ -14,7 +14,7 @@
                     <li><a href="{% url sentry-status %}">Status</a></li>
                     {% endif %}
                 </ul>
-                <ul class="nav secondary-nav">
+                <ul class="nav pull-right">
                     {% if request.user.is_authenticated %}
                         {% if project_list and project_list|length > 1 %}
                             <li class="dropdown" data-dropdown="dropdown">
@@ -27,7 +27,7 @@
                             </li>
                         {% endif %}
                         <li class="dropdown" data-dropdown="dropdown">
-                            <a href="#" class="dropdown-toggle">{% trans "Account" %}</a>
+                            <a href="#" class="dropdown-toggle">{% trans "Account" %} <b class="caret"></b></a>
                             <ul class="dropdown-menu">
                                 <li><a href="{% url sentry-project-list %}">{% trans "Manage Projects" %}</a></li>
                                 <li class="divider"></li>
@@ -40,18 +40,13 @@
                 </ul>
                 {% block search %}
                 {% if project %}
-                    <form action="{% url sentry-search project.pk %}" class="pull-right" id="search">
+                    <form action="{% url sentry-search project.pk %}" class="navbar-search pull-right" id="search">
                         <input type="hidden" name="sort" value="{% if sort %}{{ sort }}{% endif %}"/>
                         <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="{% if has_search %}search query or message id{% else %}message id{% endif %}"/>
                     </form>
                 {% endif %}
                 {% endblock %}
-<!--                   <form action="" class="pull-right">
-            <input class="input-small" type="text" placeholder="Username">
-            <input class="input-small" type="password" placeholder="Password">
-            <button class="btn" type="submit">Sign in</button>
-          </form>
--->                </div>
+             </div>
         </div>
     </div>
 </header>

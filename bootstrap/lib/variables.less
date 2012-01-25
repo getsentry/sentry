@@ -1,60 +1,90 @@
-/* Variables.less
- * Variables to customize the look and feel of Bootstrap
- * ----------------------------------------------------- */
+// Variables.less
+// Variables to customize the look and feel of Bootstrap
+// -----------------------------------------------------
 
+
+
+// GLOBAL VALUES
+// --------------------------------------------------
 
 // Links
-@linkColor:         #0069d6;
-@linkColorHover:    darken(@linkColor, 15);
+@linkColor:             #08c;
+@linkColorHover:        darken(@linkColor, 15%);
 
 // Grays
-@black:             #000;
-@grayDark:          lighten(@black, 25%);
-@gray:              lighten(@black, 50%);
-@grayLight:         lighten(@black, 75%);
-@grayLighter:       lighten(@black, 90%);
-@white:             #fff;
+@black:                 #000;
+@grayDarker:            #222;
+@grayDark:              #333;
+@gray:                  #555;
+@grayLight:             #999;
+@grayLighter:           #eee;
+@white:                 #fff;
 
-// Accent Colors
-@blue:              #049CDB;
-@blueDark:          #0064CD;
-@green:             #46a546;
-@red:               #9d261d;
-@yellow:            #ffc40d;
-@orange:            #f89406;
-@pink:              #c3325f;
-@purple:            #7a43b6;
+// Accent colors
+@blue:                  #049cdb;
+@blueDark:              #0064cd;
+@green:                 #46a546;
+@red:                   #9d261d;
+@yellow:                #ffc40d;
+@orange:                #f89406;
+@pink:                  #c3325f;
+@purple:                #7a43b6;
 
-// Baseline grid
-@basefont:          13px;
-@baseline:          18px;
-
-// Griditude
+// Grid system
 // Modify the grid styles in mixins.less
-@gridColumns:       16;
-@gridColumnWidth:   50px;
-@gridGutterWidth:   20px;
-@extraSpace:        (@gridGutterWidth * 2); // For our grid calculations
-@siteWidth:         (@gridColumns * @gridColumnWidth) + (@gridGutterWidth * (@gridColumns - 1));
+@gridColumns:           12;
+@gridColumnWidth:       60px;
+@gridGutterWidth:       20px;
+@siteWidth:             (@gridColumns * @gridColumnWidth) + (@gridGutterWidth * (@gridColumns - 1));
+// Fluid width sidebar
+@fluidSidebarWidth:     220px;
 
-// Color Scheme
-// Use this to roll your own color schemes if you like (unused by Bootstrap by default)
-@baseColor:         @blue;                  // Set a base color
-@complement:        spin(@baseColor, 180);  // Determine a complementary color
-@split1:            spin(@baseColor, 158);  // Split complements
-@split2:            spin(@baseColor, -158);
-@triad1:            spin(@baseColor, 135);  // Triads colors
-@triad2:            spin(@baseColor, -135);
-@tetra1:            spin(@baseColor, 90);   // Tetra colors
-@tetra2:            spin(@baseColor, -90);
-@analog1:           spin(@baseColor, 22);   // Analogs colors
-@analog2:           spin(@baseColor, -22);
+// Typography
+@baseFontSize:          13px;
+@baseFontFamily:        "Helvetica Neue", Helvetica, Arial, sans-serif;
+@baseLineHeight:        18px;
+
+// Buttons
+@primaryButtonColor:    @blue;
 
 
 
-// More variables coming soon:
-// - @basefont to @baseFontSize
-// - @baseline to @baseLineHeight
-// - @baseFontFamily
-// - @primaryButtonColor
-// - anything else? File an issue on GitHub
+// COMPONENT VARIABLES
+// --------------------------------------------------
+
+// Z-index master list
+// Used for a bird's eye view of components dependent on the z-axis
+// Try to avoid customizing these :)
+@zindexDropdown:        1000;
+@zindexPopover:         1010;
+@zindexTooltip:         1020;
+@zindexFixedNavbar:     1030;
+@zindexModalBackdrop:   1040;
+@zindexModal:           1050;
+
+// Input placeholder text color
+@placeholderText:       @grayLight;
+
+// Navbar
+@navbarHeight:                    40px;
+@navbarBackground:                @grayDarker;
+@navbarBackgroundHighlight:       @grayDark;
+
+// Form states and alerts
+@warningText:             #c09853;
+@warningBackground:       #fcf8e3;
+@warningBorder:           #f3edd2;
+
+@errorText:               #b94a48;
+@errorBackground:         #f2dede;
+@errorBorder:             #e9c7c7;
+
+@successText:             #468847;
+@successBackground:       #dff0d8;
+@successBorder:           #cfe8c4;
+
+@infoText:                #3a87ad;
+@infoBackground:          #d9edf7;
+@infoBorder:              #bfe1f2;
+
+

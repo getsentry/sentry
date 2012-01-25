@@ -1,78 +1,82 @@
-/* Typography.less
- * Headings, body text, lists, code, and more for a versatile and durable typography system
- * ---------------------------------------------------------------------------------------- */
+// Typography.less
+// Headings, body text, lists, code, and more for a versatile and durable typography system
+// ----------------------------------------------------------------------------------------
 
 
 // BODY TEXT
 // ---------
 
 p {
-  #font > .shorthand(normal,@basefont,@baseline);
-  margin-bottom: @baseline / 2;
+  margin: 0 0 @baseLineHeight / 2;
+  font-family: @baseFontFamily;
+  font-size: @baseFontSize;
+  line-height: @baseLineHeight;
   small {
-    font-size: @basefont - 2;
+    font-size: @baseFontSize - 2;
     color: @grayLight;
   }
 }
-
 
 // HEADINGS
 // --------
 
 h1, h2, h3, h4, h5, h6 {
+  margin: 0;
   font-weight: bold;
   color: @grayDark;
+  text-rendering: optimizelegibility; // Fix the character spacing for headings
   small {
+    font-weight: normal;
     color: @grayLight;
   }
 }
 h1 {
-  font-family: 'Yanone Kaffeesatz';
-  margin-bottom: @baseline;
   font-size: 30px;
-  line-height: @baseline * 2;
+  line-height: @baseLineHeight * 2;
   small {
     font-size: 18px;
   }
 }
 h2 {
   font-size: 24px;
-  line-height: @baseline * 2;
+  line-height: @baseLineHeight * 2;
   small {
-    font-size: 14px;
+    font-size: 18px;
   }
 }
-h3, h4, h5, h6 {
-  line-height: @baseline * 2;
-}
 h3 {
+  line-height: @baseLineHeight * 1.5;
   font-size: 18px;
   small {
     font-size: 14px;
   }
 }
+h4, h5, h6 {
+  line-height: @baseLineHeight;
+}
 h4 {
-  font-size: 16px;
+  font-size: 14px;
   small {
     font-size: 12px;
   }
 }
 h5 {
-  font-size: 14px;
+  font-size: 12px;
 }
 h6 {
-  font-size: 13px;
+  font-size: 11px;
   color: @grayLight;
   text-transform: uppercase;
 }
 
 
-// COLORS
-// ------
+// LISTS
+// -----
 
 // Unordered and Ordered lists
 ul, ol {
-  margin: 0 0 @baseline 25px;
+  padding: 0;
+  margin: 0 0 @baseLineHeight / 2 25px;
 }
 ul ul,
 ul ol,
@@ -87,26 +91,26 @@ ol {
   list-style: decimal;
 }
 li {
-  line-height: @baseline;
-  color: @gray;
+  line-height: @baseLineHeight;
 }
 ul.unstyled {
-  list-style: none;
   margin-left: 0;
+  list-style: none;
 }
 
 // Description Lists
 dl {
-  margin-bottom: @baseline;
-  dt, dd {
-    line-height: @baseline;
-  }
-  dt {
-    font-weight: bold;
-  }
-  dd {
-    margin-left: @baseline / 2;
-  }
+  margin-bottom: @baseLineHeight;
+}
+dt,
+dd {
+  line-height: @baseLineHeight;
+}
+dt {
+  font-weight: bold;
+}
+dd {
+  margin-left: @baseLineHeight / 2;
 }
 
 // MISC
@@ -114,75 +118,125 @@ dl {
 
 // Horizontal rules
 hr {
-  margin: 20px 0 19px;
+  margin: @baseLineHeight 0;
   border: 0;
-  border-bottom: 1px solid #eee;
+  border-top: 1px solid #e5e5e5;
+  border-bottom: 1px solid @white;
 }
 
 // Emphasis
 strong {
-  font-style: inherit;
   font-weight: bold;
 }
 em {
   font-style: italic;
-  font-weight: inherit;
-  line-height: inherit;
 }
 .muted {
   color: @grayLight;
 }
 
+// Abbreviations and acronyms
+abbr {
+  font-size: 90%;
+  text-transform: uppercase;
+  border-bottom: 1px dotted #ddd;
+  cursor: help;
+}
+
 // Blockquotes
 blockquote {
-  margin-bottom: @baseline;
-  border-left: 5px solid #eee;
-  padding-left: 15px;
+  padding: 0 0 0 15px;
+  margin: 0 0 @baseLineHeight;
+  border-left: 5px solid @grayLighter;
   p {
-    #font > .shorthand(300,14px,@baseline);
     margin-bottom: 0;
+    #font > .shorthand(16px,300,@baseLineHeight * 1.25);
   }
   small {
     display: block;
-    #font > .shorthand(300,12px,@baseline);
+    line-height: @baseLineHeight;
     color: @grayLight;
     &:before {
       content: '\2014 \00A0';
     }
   }
+
+  // Float right with text-align: right
+  &.pull-right {
+    float: right;
+    padding-left: 0;
+    padding-right: 15px;
+    border-left: 0;
+    border-right: 5px solid @grayLighter;
+    p,
+    small {
+      text-align: right;
+    }
+  }
+}
+
+// Quotes
+q:before,
+q:after,
+blockquote:before, 
+blockquote:after {
+  content: "";
 }
 
 // Addresses
 address {
   display: block;
-  line-height: @baseline;
-  margin-bottom: @baseline;
+  margin-bottom: @baseLineHeight;
+  line-height: @baseLineHeight;
+  font-style: normal;
 }
 
 // Inline and block code styles
-code, pre {
+code,
+pre {
   padding: 0 3px 2px;
-  font-family: Monaco, Andale Mono, Courier New, monospace;
-  font-size: 12px;
+  #font > #family > .monospace;
+  font-size: @baseFontSize - 1;
+  color: @grayDark;
   .border-radius(3px);
 }
 code {
+  padding: 3px 4px;
   background-color: lighten(@orange, 40%);
-  color: rgba(0,0,0,.75);
-  padding: 1px 3px;
+  color: #d14;
+  background-color: #f7f7f9;
+  border: 1px solid #e1e1e8;
 }
 pre {
-  background-color: #f5f5f5;
   display: block;
-  padding: (@baseline - 1) / 2;
-  margin: 0 0 @baseline;
-  line-height: @baseline;
+  padding: (@baseLineHeight - 1) / 2;
+  margin: 0 0 @baseLineHeight / 2;
   font-size: 12px;
-  border: 1px solid #ccc;
+  line-height: @baseLineHeight;
+  background-color: #f5f5f5;
+  border: 1px solid #ccc; // fallback for IE7-8
   border: 1px solid rgba(0,0,0,.15);
-  .border-radius(3px);
+  .border-radius(4px);
   white-space: pre;
   white-space: pre-wrap;
-  word-wrap: break-word;
+  word-break: break-all;
 
+  // Make prettyprint styles more spaced out for readability
+  &.prettyprint {
+    margin-bottom: @baseLineHeight;
+  }
+
+  // Account for some code outputs that place code tags in pre tags
+  code {
+    padding: 0;
+    background-color: transparent;
+  }
+}
+
+small {
+  font-size: 100%;
+}
+
+cite {
+  font-style: normal;
 }

@@ -9,16 +9,16 @@
 {% endblock %}
 
 {% block sidebar %}
-    <h2>{% trans "Project List" %}</h2>
-    <ul>
-        {% for project in project_list %}
-            <li><a href="{% url sentry-manage-project project.pk %}">{{ project.name }}</a></li>
+    <ul class="nav list">
+        <li class="nav-header">{% trans "Your Projects" %}</li>
+        {% for p in project_list %}
+            <li{% if p == project %} class="active"{% endif %}><a href="{% url sentry-manage-project p.pk %}">{{ p.name }}</a></li>
         {% endfor %}
     </ul>
 {% endblock %}
 
 {% block main %}
-    <ul class="tabs">
+    <ul class="nav tabs">
         <li{% if page == 'details' %} class="active"{% endif %}>
             <a href="{% url sentry-manage-project project.pk %}">{% trans "Details" %}</a>
         </li>
@@ -35,39 +35,33 @@
             <h2>{% trans "Project Details" %}</h2>
         </div>
         {% if request.GET.success %}
-            <div class="alert-message success">{% trans "Changes to your project were saved successfully." %}</div>
+            <div class="alert alert-success">{% trans "Changes to your project were saved successfully." %}</div>
         {% else %}
             {% if form.errors %}
-                <div class="alert-message error">{% trans "Please correct the errors below." %}</div>
+                <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
             {% endif %}
         {% endif %}
         <form class="form-stacked" action="" method="post">
             {% csrf_token %}
             <fieldset>
                 {% for field in form %}
-                    <div class="clearfix{% if field.errors %} error{% endif %}">
-                        {{ field.label_tag }}
-                        <div class="input">{{ field }}</div>
-                        {% if field.help_text %}
-                            <span class="help-block">{{ field.help_text }}</span>
-                        {% endif %}
-                    </div>
+                    {% include "sentry/partial/_form_field.html" %}
                 {% endfor %}
             </fieldset>
-            <p class="actions">
+            <fieldset class="form-actions">
                 <button type="submit" class="btn primary">{% trans "Save Changes" %}</button>
                 {% if PROJECT_ID != project.pk %}
                     <a href="{% url sentry-remove-project project.pk %}" class="btn danger">{% trans "Remove Project" %}</a>
                 {% else %}
                     <a href="#" class="btn disabled danger">{% trans "Cannot remove default project" %}</a>
                 {% endif %}
-            </p>
+            </fieldset>
         </form>
         <div class="page-header">
             <a href="{% url sentry-new-project-member project.pk %}" class="btn pull-right small primary">{% trans "+ New Member" %}</a>
             <h2>{% trans "Members" %}</h2>
         </div>
-        <table class="bordered-table zebra-striped">
+        <table class="table table-bordered table-zebra">
             <colgroup>
                 <col width="100px"/>
                 <col/>

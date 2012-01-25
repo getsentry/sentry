@@ -9,31 +9,25 @@
 {% block search %}{% endblock %}
 
 {% block content %}
-    <div class="span16">
+    <div class="span12">
         {% if next %}
-            <p class="alert-message info">{% trans "Please login to continue." %}</p>
+            <p class="alert alert-info">{% trans "Please login to continue." %}</p>
         {% endif %}
 
         {% if form.errors %}
-            <p class="error">{% trans "Your username and password didn't match. Please try again." %}</p>
+            <p class="alert alert-error">{% trans "Your username and password didn't match. Please try again." %}</p>
         {% endif %}
 
         <form class="form-stacked" action="" method="post">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ next }}" />
-            <fieldset>
-                {% for field in form %}
-                    <div class="clearfix{% if field.errors %} error{% endif %}">
-                        {{ field.label_tag }}
-                        <div class="input">{{ field }}</div>
-                        {% if field.help_text %}
-                            <span class="help-block">{{ field.help_text }}</span>
-                        {% endif %}
-                    </div>
-                {% endfor %}
-            </fieldset>
-            <p class="actions">
-                <button type="submit" class="btn primary">{% trans "Register" %}</button>
+
+            {% for field in form %}
+                {% include "sentry/partial/_form_field.html" %}
+            {% endfor %}
+
+            <fieldset class="form-actions">
+                <button type="submit" class="btn primary">{% trans "Login" %}</button>
             </p>
         </form>
     </div>

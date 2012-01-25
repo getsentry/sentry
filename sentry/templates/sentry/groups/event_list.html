@@ -7,7 +7,7 @@
     {% paginate event_list from request as event_list per_page MESSAGES_PER_PAGE %}
 
     {% if event_list.objects %}
-        <p class="alert-message info">This list only contains a portion of all events seen. For more information about how Sentry samples events, see the <a href="http://sentry.readthedocs.org">documentation</a>.</p>
+        <p class="alert alert-info">This list only contains a portion of all events seen. For more information about how Sentry samples events, see the <a href="http://sentry.readthedocs.org">documentation</a>.</p>
 
         {{ event_list.paging }}
 
@@ -19,7 +19,7 @@
 
         {{ event_list.paging }}
     {% else %}
-        <p class="alert-message notice">{% trans "There are no records recorded for this event." %}</p>
+        <p class="alert alert-notice">{% trans "There are no records recorded for this event." %}</p>
     {% endif %}
 
 {% endblock %}
