@@ -5,15 +5,27 @@ sentry.plugins.sentry_mail
 :copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from django import forms
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from sentry.conf import settings
+from sentry.models import ProjectOption
 from sentry.plugins import Plugin
 
 NOTSET = object()
 
 
+class MailConfigurationForm(forms.Form):
+    send_to = forms.EmailField(max_length=128)
+    # product = forms.CharField(max_length=128)
+
+
 class MailProcessor(Plugin):
+    title = 'Mail'
+    conf_key = 'mail'
+    site_conf_form = MailConfigurationForm
+    project_conf_form = MailConfigurationForm
+
     def __init__(self, min_level=NOTSET, include_loggers=NOTSET, exclude_loggers=NOTSET,
                  send_to=NOTSET, *args, **kwargs):
 
@@ -37,6 +49,11 @@ class MailProcessor(Plugin):
     def mail_admins(self, group, event, fail_silently=True):
         interfaces = event.interfaces
 
+        project = group.project
+
+        send_to = ProjectOption.objects.get_value(project, 'mail:send_to', self.send_to)
+        subject_prefix = ProjectOption.objects.get_value(project, 'mail:subject_prefix', self.subject_prefix)
+
         if 'sentry.interfaces.Exception' in interfaces:
             traceback = interfaces['sentry.interfaces.Exception'].to_string(event)
         else:
@@ -46,9 +63,9 @@ class MailProcessor(Plugin):
 
         if http:
             ip_repr = (http.env.get('REMOTE_ADDR') in settings.INTERNAL_IPS and 'internal' or 'EXTERNAL')
-            subject = '%sError (%s IP): %s' % (self.subject_prefix, ip_repr, http.url)
+            subject = '%sError (%s IP): %s' % (subject_prefix, ip_repr, http.url)
         else:
-            subject = '%sError: %s' % (self.subject_prefix, event.message)
+            subject = '%sError: %s' % (subject_prefix, event.message)
 
         if event.site:
             subject = '[%s] %s' % (event.site, subject)
@@ -63,17 +80,22 @@ class MailProcessor(Plugin):
         })
 
         send_mail(subject, body,
-                  settings.SERVER_EMAIL, self.send_to,
+                  settings.SERVER_EMAIL, send_to,
                   fail_silently=fail_silently)
 
     def should_mail(self, group, event):
-        if not self.send_to:
+        project = group.project
+        send_to = ProjectOption.objects.get_value(project, 'mail:send_to', self.send_to)
+        if not send_to:
             return False
-        if int(group.level) < self.min_level:
+        min_level = ProjectOption.objects.get_value(project, 'mail:min_level', self.min_level)
+        if min_level is not None and int(group.level) < min_level:
             return False
-        if self.include_loggers is not None and group.logger not in self.include_loggers:
+        include_loggers = ProjectOption.objects.get_value(project, 'mail:include_loggers', self.include_loggers)
+        if include_loggers is not None and group.logger not in include_loggers:
             return False
-        if self.exclude_loggers and group.logger in self.exclude_loggers:
+        exclude_loggers = ProjectOption.objects.get_value(project, 'mail:exclude_loggers', self.exclude_loggers)
+        if exclude_loggers and group.logger in exclude_loggers:
             return False
         return True
 
