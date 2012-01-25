@@ -123,6 +123,7 @@ SENTRY_PROJECT = 1
 from raven.conf import setup_logging
 from raven.contrib.django.logging import SentryHandler
 import logging
-logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger()
+logger.setLevel(logging.ERROR)
 
 setup_logging(SentryHandler())
