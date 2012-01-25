@@ -70,10 +70,9 @@ Writing a Plugin
 Several interfaces exist for extending Sentry:
 
 * Event Filters (sentry.filters)
-* Data Processors (sentry.processors)
 * Data Interfaces (sentry.interfaces)
 * Aggregate Views (sentry.views)
-* UI Plugins (sentry.plugins)
+* Plugins (sentry.plugins)
 
 Until we get sample docs up, it's suggested that you review the builtin plugins
 and the base classes to understand how the system works.

@@ -1,5 +1,5 @@
 """
-sentry.processors.mail
+sentry.plugins.sentry_mail
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
@@ -8,13 +8,12 @@ sentry.processors.mail
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from sentry.conf import settings
-
-from .base import Processor
+from sentry.plugins import Plugin
 
 NOTSET = object()
 
 
-class MailProcessor(Processor):
+class MailProcessor(Plugin):
     def __init__(self, min_level=NOTSET, include_loggers=NOTSET, exclude_loggers=NOTSET,
                  send_to=NOTSET, *args, **kwargs):
 

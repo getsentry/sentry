@@ -19,6 +19,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.filters import Filter
 from sentry.models import Group, Event, View
+from sentry.plugins import plugins
 from sentry.utils import json, has_trending
 from sentry.web.decorators import has_access, login_required
 from sentry.web.helpers import render_to_response
@@ -57,7 +58,7 @@ def _get_sort_label(sort):
 
 def _get_group_list(request, project, view=None):
     filters = []
-    for cls in Filter.handlers.filter(Group):
+    for cls in Filter.objects.filter(Group):
         filters.append(cls(request))
 
     event_list = Group.objects
@@ -305,11 +306,11 @@ def group_plugin_action(request, project, group_id, slug):
         return HttpResponseRedirect(reverse('sentry-group-plugin-action', kwargs={'group_id': group.pk, 'project_id': group.project_id, 'slug': slug}))
 
     try:
-        plugin = request.plugins[slug]
+        plugin = plugins.get(slug)
     except KeyError:
 
         raise Http404('Plugin not found')
-    response = plugin.get_view_response(group)
+    response = plugin.get_view_response(request, group)
     if response:
         return response
     return HttpResponseRedirect(request.META.get('HTTP_REFERER') or reverse('sentry', kwargs={'project_id': group.project_id}))

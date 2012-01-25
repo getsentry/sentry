@@ -5,6 +5,7 @@ from django.views.decorators.csrf import csrf_protect
 
 from sentry.conf import settings
 from sentry.models import MEMBER_USER, MEMBER_OWNER
+from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms import EditProjectForm, NewProjectForm, \
   EditProjectMemberForm, NewProjectMemberForm, RemoveProjectForm
@@ -172,7 +173,7 @@ def remove_project_member(request, project, member_id):
 @csrf_protect
 def configure_project_plugin(request, project, slug):
     try:
-        plugin = request.plugins[slug]
+        plugin = plugins.get(slug)
     except KeyError:
         return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
 

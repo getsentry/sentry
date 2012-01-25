@@ -297,7 +297,7 @@ class GroupManager(models.Manager, ChartMixin):
         })
 
         views = set()
-        for viewhandler in ViewHandler.handlers.all():
+        for viewhandler in ViewHandler.objects.all():
             try:
                 if not viewhandler.should_store(event):
                     continue

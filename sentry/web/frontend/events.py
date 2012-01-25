@@ -25,7 +25,7 @@ from sentry.web.forms import ReplayForm
 @has_access
 def event_list(request, project):
     filters = []
-    for cls in Filter.handlers.filter(Event):
+    for cls in Filter.objects.filter(Event):
         filters.append(cls(request))
 
     try:

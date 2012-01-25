@@ -36,14 +36,14 @@ class RedmineIssueForm(forms.Form):
 class CreateRedmineIssue(Plugin):
     title = 'Create Redmine Issue'
 
-    def actions(self, group, action_list, **kwargs):
+    def actions(self, request, group, action_list, **kwargs):
         if 'redmine' not in group.data:
             action_list.append((self.title, self.get_url(group)))
         return action_list
 
-    def view(self, group, **kwargs):
-        if self.request.POST:
-            form = RedmineIssueForm(self.request.POST)
+    def view(self, request, group, **kwargs):
+        if request.POST:
+            form = RedmineIssueForm(request.POST)
             if form.is_valid():
                 data = json.dumps({
                     'key': conf.REDMINE_API_KEY,
@@ -87,7 +87,7 @@ class CreateRedmineIssue(Plugin):
                     group.save()
                     return HttpResponseRedirect(reverse('sentry-group', args=[group.project.pk, group.pk]))
         else:
-            description = 'Sentry Message: %s' % self.request.build_absolute_uri(group.get_absolute_url())
+            description = 'Sentry Message: %s' % request.build_absolute_uri(group.get_absolute_url())
             description += '\n\n<pre>' + (group.traceback or group.message) + '</pre>'
 
             form = RedmineIssueForm(initial={
@@ -100,11 +100,11 @@ class CreateRedmineIssue(Plugin):
             'global_errors': form.errors.get('__all__'),
             'BASE_TEMPLATE': 'sentry/groups/details.html',
         }
-        context.update(csrf(self.request))
+        context.update(csrf(request))
 
         return self.render('sentry/plugins/redmine/create_issue.html', context)
 
-    def tags(self, group, tag_list):
+    def tags(self, request, group, tag_list):
         if 'redmine' in group.data:
             issue_id = group.data['redmine']['issue_id']
             tag_list.append(mark_safe('<a href="%s">#%s</a>' % (

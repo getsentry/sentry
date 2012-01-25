@@ -20,4 +20,4 @@ class View(object):
     def should_store(self, event):
         return False
 
-    handlers = InstanceManager(settings.VIEWS)
+    objects = InstanceManager(settings.VIEWS)

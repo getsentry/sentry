@@ -77,6 +77,8 @@ def iter_data(obj):
 
 
 def render_to_string(template, context=None, request=None):
+    from sentry.plugins import plugins
+
     if context is None:
         context = {}
 
@@ -86,6 +88,7 @@ def render_to_string(template, context=None, request=None):
         'PROJECT_ID': int(settings.PROJECT),
         'VIEWS': list(View.objects.all()),
         'URL_PREFIX': settings.URL_PREFIX,
+        'PLUGINS': plugins,
     })
 
     if request:

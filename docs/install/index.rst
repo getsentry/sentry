@@ -161,13 +161,6 @@ need to update your settings.py and add ``sentry``, ``dkombu``, and ``raven.cont
 
 .. note:: Raven is a seperate project, and the official Python client for Sentry.
 
-Next, add the required middleware to your settings::
-
-    MIDDLEWARE_CLASSES = (
-        ...
-        'sentry.middleware.SentryMiddleware',
-    )
-
 
 
 You will also need to add ``sentry.web.urls`` to your url patterns::

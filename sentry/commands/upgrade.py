@@ -26,7 +26,7 @@ def register_views():
     from sentry.views import View as ViewHandler
     from sentry.models import View
 
-    for viewhandler in ViewHandler.handlers.all():
+    for viewhandler in ViewHandler.objects.all():
         path = '%s.%s' % (viewhandler.__module__, viewhandler.__class__.__name__)
 
         defaults = dict(

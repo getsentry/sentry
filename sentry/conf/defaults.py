@@ -92,11 +92,6 @@ QUEUE = {
     'transport': 'djkombu.transport.DatabaseTransport',
 }
 
-# List of event handlers
-PROCESSORS = (
-    'sentry.processors.mail.MailProcessor',
-)
-
 # List of event aggregation views
 VIEWS = (
     'sentry.views.Exception',

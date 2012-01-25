@@ -64,17 +64,6 @@ This document describes additional configuration options available to the Sentry
 		    'sentry.filters.SiteFilter',
 		)
 
-.. data:: sentry.conf.PROCESSORS
-    :noindex:
-
-    A list of processors for acting on Sentry events.
-
-    ::
-
-        SENTRY_PROCESSORS = (
-            'my.custom.IRCNotifier',
-        )
-
 .. data:: sentry.conf.VIEWS
     :noindex:
 

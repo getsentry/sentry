@@ -82,7 +82,6 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'sentry.middleware.SentryMiddleware',
     # 'django.contrib.messages.middleware.MessageMiddleware',
 )
 
@@ -107,15 +106,23 @@ INSTALLED_APPS = (
     'raven.contrib.django',
     'sentry',
     'sentry.plugins.sentry_servers',
-    'sentry.plugins.sentry_sites',
     'sentry.plugins.sentry_urls',
+    'sentry.plugins.sentry_sites',
+    'sentry.plugins.sentry_mail',
     'south',
 )
 
-import logging
-logging.basicConfig(level=logging.WARNING)
+ADMIN_MEDIA_PREFIX = '/_admin_media/'
+
+# Sentry and Raven configuration
 
 SENTRY_PUBLIC = True
 SENTRY_PROJECT = 1
 
-ADMIN_MEDIA_PREFIX = '/_admin_media/'
+# Configure logging
+from raven.conf import setup_logging
+from raven.contrib.django.logging import SentryHandler
+import logging
+logging.basicConfig(level=logging.WARNING)
+
+setup_logging(SentryHandler())

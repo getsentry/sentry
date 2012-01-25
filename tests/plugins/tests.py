@@ -6,6 +6,4 @@ from tests.base import TestCase
 
 
 class SentryPluginTest(TestCase):
-    def test_registration(self):
-        from sentry.plugins import Plugin
-        self.assertEquals(len(Plugin.plugins), 3)
+    pass

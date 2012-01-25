@@ -16,9 +16,15 @@ from django.utils.encoding import force_unicode
 
 
 class InstanceManager(object):
-    def __init__(self, class_list, instances=True):
+    def __init__(self, class_list=None, instances=True):
+        if class_list is None:
+            class_list = []
         self.instances = instances
         self.update(class_list)
+
+    def add(self, class_path):
+        self.cache = None
+        self.class_list.append(class_path)
 
     def update(self, class_list):
         """

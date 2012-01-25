@@ -16,7 +16,7 @@ from djkombu.models import Queue
 
 from sentry import environment
 from sentry.conf import settings
-from sentry.plugins import Plugin
+from sentry.plugins import plugins
 from sentry.web.decorators import login_required
 from sentry.web.helpers import get_project_list, render_to_response, \
   get_login_url, plugin_config
@@ -35,15 +35,13 @@ def dashboard(request):
 @login_required
 def status(request):
     from sentry.views import View
-    from sentry.processors import Processor
 
     if not request.user.is_staff:
         return HttpResponseRedirect(reverse('sentry'))
 
     # Deal with the plugins
     site_configs = []
-    for slug, title in request.plugins.for_site():
-        plugin = request.plugins[slug]
+    for plugin in plugins.for_site():
         action, view = plugin_config(plugin, None, request)
         if action == 'redirect':
             return HttpResponseRedirect(request.path)
@@ -83,9 +81,8 @@ def status(request):
         'environment': environment,
         'python_version': sys.version,
         'modules': sorted([(p.project_name, p.version) for p in pkg_resources.working_set]),
-        'extensions': [(cls.title, cls.__module__.rsplit('.', 1)[0]) for cls in Plugin.plugins.itervalues()],
-        'views': [(x.__class__.__name__, x.__module__) for x in View.handlers.all()],
-        'processors': [(x.__class__.__name__, x.__module__) for x in Processor.handlers.all()],
+        'extensions': [(p.get_title(), '%s.%s' % (p.__module__, p.__class__.__name__)) for p in plugins.all()],
+        'views': [(x.__class__.__name__, x.__module__) for x in View.objects.all()],
         'pending_tasks': pending_tasks,
         'worker_status': worker_status,
         'site_configs': site_configs,

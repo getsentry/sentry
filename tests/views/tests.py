@@ -14,16 +14,16 @@ from tests.base import TestCase
 class ViewIntegrationTest(TestCase):
     def setUp(self):
         self.orig = settings.VIEWS
-        View.handlers.update((
+        View.objects.update((
             'sentry.views.Exception',
             'sentry.views.Query',
             'sentry.views.Message',
         ))
-        assert len(View.handlers.all()) == 3
+        assert len(View.objects.all()) == 3
 
     def tearDown(self):
         settings.VIEWS = self.orig
-        View.handlers.update(settings.VIEWS)
+        View.objects.update(settings.VIEWS)
 
     def create_event(self, data):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
