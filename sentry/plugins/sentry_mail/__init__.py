@@ -23,7 +23,7 @@ class MailConfigurationForm(forms.Form):
 class MailProcessor(Plugin):
     title = 'Mail'
     conf_key = 'mail'
-    site_conf_form = MailConfigurationForm
+    # site_conf_form = MailConfigurationForm
     project_conf_form = MailConfigurationForm
 
     def __init__(self, min_level=NOTSET, include_loggers=NOTSET, exclude_loggers=NOTSET,
