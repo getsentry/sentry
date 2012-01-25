@@ -35,10 +35,12 @@
     {% querystring from request without bookmarks as bookmark_querystring %}
     <div class="sidebar-module sidebar-module-{{ filter.column }}">
         <h2>{% trans "Bookmarks" %}</h2>
+        <form>
         <ul class="bookmarks-list filter-list">
             <li{% if not request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ querystring }}">{% trans "All Events" %}</a></li>
             <li{% if request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ querystring }}&amp;bookmarks=1">{% trans "Only Bookmarks" %}</a></li>
         </ul>
+        </form>
     </div>
 
     {% for filter in filters %}
@@ -57,7 +59,7 @@
     {% paginator event_list from request as event_list per_page MESSAGES_PER_PAGE %}
     {% querystring from request without sort as sort_querystring %}
 
-    <ul class="options">
+    <ul class="nav tabs options">
         <li class="prev{% if not event_list.paginator.has_previous %} disabled{% endif %}">
             {% if event_list.paginator.has_previous %}
                 <a href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}">&larr; {% trans "Previous" %}</a>
@@ -73,7 +75,7 @@
             {% endif %}
         </li>
         <li class="dropdown pull-right" data-dropdown="dropdown">
-            <a href="#" class="dropdown-toggle">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %}</a>
+            <a href="#" class="dropdown-toggle">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <b class="caret"></b></a>
             <ul class="dropdown-menu">
                 <li{% ifequal sort 'priority' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}">{% trans "Priority" %}</a></li>
                 <li{% ifequal sort 'date' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=date">{% trans "Last Seen" %}</a></li>
