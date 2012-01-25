@@ -3,14 +3,14 @@
 <div class="pagination">
     {% if paginator.num_pages %}
         <ul>
-            <li class="prev{% if paginator.is_first %} disabled{% endif %}">
+            <li class="previous{% if paginator.is_first %} disabled{% endif %}">
                 {% if not paginator.is_first %}
                     <a href="?{{ query_string|escape }}&amp;p=1">{% trans "First" %}</a>
                 {% else %}
                     <span>{% trans "First" %}</span>
                 {% endif %}
             </li>
-            <li class="prev{% if not paginator.has_previous %} disabled{% endif %}">
+            <li class="previous{% if not paginator.has_previous %} disabled{% endif %}">
                 {% if paginator.has_previous %}
                     <a href="?{{ query_string|escape }}&amp;p={{ paginator.previous_page }}">{% trans "Previous" %}</a>
                 {% else %}
@@ -39,7 +39,7 @@
         </ul>
     {% else %}
         <ul>
-            <li class="prev{% if not paginator.has_previous %} disabled{% endif %}">
+            <li class="previous{% if not paginator.has_previous %} disabled{% endif %}">
                 {% if paginator.has_previous %}
                     <a href="?{{ query_string|escape }}&amp;p={{ paginator.previous_page }}">&larr; {% trans "Previous" %}</a>
                 {% else %}

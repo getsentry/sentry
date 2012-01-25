@@ -60,7 +60,7 @@
     {% querystring from request without sort as sort_querystring %}
 
     <ul class="nav tabs options">
-        <li class="prev{% if not event_list.paginator.has_previous %} disabled{% endif %}">
+        <li class="previous{% if not event_list.paginator.has_previous %} disabled{% endif %}">
             {% if event_list.paginator.has_previous %}
                 <a href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}">&larr; {% trans "Previous" %}</a>
             {% else %}
