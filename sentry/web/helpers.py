@@ -125,8 +125,11 @@ def plugin_config(plugin, project, request):
     plugin_key = plugin.get_conf_key()
     if project:
         form_class = plugin.project_conf_form
+        template = plugin.project_conf_template
     else:
         form_class = plugin.site_conf_form
+        template = plugin.site_conf_template
+
     initials = {}
     for field in form_class.base_fields:
         key = '%s:%s' % (plugin_key, field)
@@ -153,6 +156,7 @@ def plugin_config(plugin, project, request):
         return ('redirect', None)
 
     from django.template.loader import render_to_string
-    return ('display', render_to_string(plugin.site_conf_template, {
+    return ('display', render_to_string(template, {
             'form': form,
+            'request': request,
         }, context_instance=RequestContext(request)))

@@ -1,1 +1,7 @@
+{% load i18n %}
+
+{% if request.GET.success %}
+    <div class="alert-message success">{% trans "Changes to your configuration were saved successfully." %}</div>
+{% endif %}
+
 {% include "sentry/partial/_form.html" %}
