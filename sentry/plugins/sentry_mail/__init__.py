@@ -16,8 +16,9 @@ NOTSET = object()
 
 
 class MailConfigurationForm(forms.Form):
-    send_to = forms.EmailField(max_length=128)
-    # product = forms.CharField(max_length=128)
+    send_to = forms.EmailField(max_length=128, widget=forms.TextInput(attrs={
+        'placeholder': 'you@example.com',
+    }))
 
 
 class MailProcessor(Plugin):
