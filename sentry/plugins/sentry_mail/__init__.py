@@ -5,6 +5,7 @@ sentry.plugins.sentry_mail
 :copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from django import forms
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from sentry.conf import settings
@@ -14,7 +15,17 @@ from sentry.plugins import Plugin
 NOTSET = object()
 
 
+class MailConfigurationForm(forms.Form):
+    send_to = forms.EmailField(max_length=128)
+    # product = forms.CharField(max_length=128)
+
+
 class MailProcessor(Plugin):
+    title = 'Mail'
+    conf_key = 'mail'
+    site_conf_form = MailConfigurationForm
+    project_conf_form = MailConfigurationForm
+
     def __init__(self, min_level=NOTSET, include_loggers=NOTSET, exclude_loggers=NOTSET,
                  send_to=NOTSET, *args, **kwargs):
 
