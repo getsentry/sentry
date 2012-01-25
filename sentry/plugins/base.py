@@ -113,7 +113,7 @@ class IPlugin(object):
     # The following methods are specific to web requests
 
     def get_view_response(self, request, group):
-        self.selected = self.request.path == self.get_url(group)
+        self.selected = request.path == self.get_url(group)
 
         if not self.selected:
             return
@@ -129,7 +129,7 @@ class IPlugin(object):
         if not isinstance(response, Response):
             raise NotImplementedError('Please use self.render() when returning responses.')
 
-        return response.respond(self.request, {
+        return response.respond(request, {
             'project': group.project,
             'group': group,
         })
