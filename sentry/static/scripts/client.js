@@ -163,12 +163,10 @@ if (Sentry === undefined) {
 
     Sentry.client.registerGlobalHandler = function() {
         /*
-            NOTE: Currently this will only work on Firefox and Internet Explorer.
-
-            Safari and Chrome have open feature requests for global error handlers:
-
-            https://bugs.webkit.org/show_bug.cgi?id=8519
-            http://code.google.com/p/chromium/issues/detail?id=7771
+            NOTE: window.onerror support was added to WebKit in 2011 and will
+            not be available in older versions. See:
+                https://bugs.webkit.org/show_bug.cgi?id=8519
+                http://code.google.com/p/chromium/issues/detail?id=7771
         */
 
         window.onerror = function(message, fileurl, lineno, stack) {
