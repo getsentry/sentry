@@ -234,7 +234,7 @@ class MessageBase(Model):
         abstract = True
 
     def save(self, *args, **kwargs):
-        if len(self.logger) > 64: 
+        if len(self.logger) > 64:
             self.logger = self.logger[0:61] + u"..."
         super(MessageBase, self).save(*args, **kwargs)
 
@@ -485,7 +485,8 @@ class GroupBookmark(Model):
     """
     project = models.ForeignKey(Project, related_name="bookmark_set")  # denormalized
     group = models.ForeignKey(Group, related_name="bookmark_set")
-    user = models.ForeignKey(User, related_name="bookmark_set")
+    # namespace related_name on User since we dont own the model
+    user = models.ForeignKey(User, related_name="sentry_bookmark_set")
 
     class Meta:
         # composite index includes project for efficient queries
