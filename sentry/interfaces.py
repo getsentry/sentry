@@ -29,6 +29,7 @@ def unserialize(klass, data):
 
 
 def get_context(lineno, context_line, pre_context=None, post_context=None):
+    lineno = int(lineno)
     context = []
     start_lineno = lineno - len(pre_context or [])
     if pre_context:
