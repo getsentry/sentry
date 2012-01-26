@@ -74,6 +74,13 @@ path as the argument to init, otherwise it will use the default of ``~/.sentry/s
     # the path is optional
     sentry init /etc/sentry.conf.py
 
+Running migrations
+~~~~~~~~~~~~~~~~~~
+
+Schema changes are handled via the ``upgrade`` command::
+
+    sentry upgrade
+
 The Built-in Server
 ~~~~~~~~~~~~~~~~~~~
 
