@@ -72,7 +72,7 @@ def notification(request, project):
 @csrf_exempt
 @has_access
 def poll(request, project):
-    from sentry.templatetags.sentry_helpers import as_bookmarks
+    from sentry.templatetags.sentry_helpers import as_bookmarks, handle_before_events
 
     offset = 0
     limit = settings.MESSAGES_PER_PAGE
@@ -92,6 +92,9 @@ def poll(request, project):
         view=view,
     )
 
+    event_list = list(event_list[offset:limit])
+    handle_before_events(request, event_list)
+
     data = [
         (m.pk, {
             'html': render_to_string('sentry/partial/_group.html', {
@@ -104,7 +107,7 @@ def poll(request, project):
             'level': m.get_level_display(),
             'logger': m.logger,
             'count': m.times_seen,
-        }) for m, b in as_bookmarks(event_list[offset:limit], request.user)]
+        }) for m, b in as_bookmarks(event_list, request.user)]
 
     response = HttpResponse(json.dumps(data))
     response['Content-Type'] = 'application/json'
