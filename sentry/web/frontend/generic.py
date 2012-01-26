@@ -5,6 +5,7 @@ sentry.web.frontend.generic
 :copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+import datetime
 import pkg_resources
 import sys
 
@@ -16,6 +17,7 @@ from djkombu.models import Queue
 
 from sentry import environment
 from sentry.conf import settings
+from sentry.models import Project, MessageCountByMinute
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required
 from sentry.web.helpers import get_project_list, render_to_response, \
@@ -76,6 +78,17 @@ def status(request):
     else:
         pending_tasks = None
 
+    statistics = (
+        ('Projects', Project.objects.count()),
+        ('Projects (24h)', Project.objects.filter(
+            date_added__gte=datetime.datetime.now() - datetime.timedelta(hours=24),
+        ).count()),
+        ('Events', MessageCountByMinute.objects.aggregate(x=Sum('times_seen'))['x'] or 0),
+        ('Events (24h)', MessageCountByMinute.objects.filter(
+            date__gte=datetime.datetime.now() - datetime.timedelta(hours=24),
+        ).aggregate(x=Sum('times_seen'))['x'] or 0)
+    )
+
     return render_to_response('sentry/status.html', {
         'config': config,
         'environment': environment,
@@ -86,6 +99,7 @@ def status(request):
         'pending_tasks': pending_tasks,
         'worker_status': worker_status,
         'site_configs': site_configs,
+        'statistics': statistics,
     }, request)
 
 

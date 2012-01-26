@@ -13,6 +13,7 @@
             <li class="active"><a href="#main" data-toggle="tab">{% trans "Environment" %}</a></li>
             <li><a href="#packages" data-toggle="tab">{% trans "Packages" %}</a></li>
             <li><a href="#workers" data-toggle="tab">{% trans "Workers" %}</a></li>
+            <li><a href="#statistics" data-toggle="tab">{% trans "Statistics" %}</a></li>
             {% for conf in site_configs %}
                 <li><a href="#config_{{ conf.slug }}" data-toggle="tab">{{ conf.site_conf_title }}</a></li>
             {% endfor %}
@@ -186,6 +187,24 @@
                     </table>
                 </div>
             {% endif %}
+            <div id="statistics" class="tab-pane">
+                <div class="page-header">
+                    <h2>{% trans "Statistics" %}</h2>
+                </div>
+                <table class="table vars table-bordered table-zebra">
+                    <colgroup>
+                        <col style="width:220px">
+                    </colgroup>
+                    <tbody>
+                        {% for key, value in statistics %}
+                            <tr>
+                                <td>{{ key }}</td>
+                                <td>{{ value }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
             {% for conf in site_configs %}
                 <div id="config_{{ conf.slug }}" class="tab-pane">
                     <div class="page-header">
