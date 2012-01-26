@@ -111,7 +111,7 @@ class MailProcessor(Plugin):
         return True
 
     def post_process(self, group, event, is_new, is_sample, **kwargs):
-        if not is_sample:
+        if not is_new:
             return
 
         if not self.should_mail(group, event):
