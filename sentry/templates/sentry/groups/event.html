@@ -38,23 +38,6 @@
         <pre id="full-message">{{ event.message }}</pre>
     {% endif %}
 
-
-    {% if version_data %}
-        <div id="versioninfo">
-            <div class="page-header">
-                <h2>{% trans "Module Versions" %}</h2>
-            </div>
-            <table class="table inline">
-                {% for k, v in version_data.iteritems|as_sorted %}
-                    <tr>
-                        <th class="key">{{ k }}</th>
-                        <td class="values"><code>{{ v }}</code></td>
-                    </tr>
-                {% endfor %}
-            </table>
-        </div>
-    {% endif %}
-
     {% for interface in interface_list %}
         {{ interface }}
     {% endfor %}
@@ -94,6 +77,22 @@
                             <p>{% blocktrans with k as varname %}No data for {{ varname }}{% endblocktrans %}</p>
                         {% endif %}
                         </td>
+                    </tr>
+                {% endfor %}
+            </table>
+        </div>
+    {% endif %}
+
+    {% if version_data %}
+        <div id="versioninfo">
+            <div class="page-header">
+                <h2>{% trans "Module Versions" %}</h2>
+            </div>
+            <table class="table table-bordered">
+                {% for k, v in version_data.iteritems|as_sorted %}
+                    <tr>
+                        <th class="key">{{ k }}</th>
+                        <td class="values"><code>{{ v }}</code></td>
                     </tr>
                 {% endfor %}
             </table>
