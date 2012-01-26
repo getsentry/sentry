@@ -6,7 +6,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Designed and built with all the love in the world @twitter by @mdo and @fat.
- * Date: Tue Jan 24 22:18:51 PST 2012
+ * Date: Wed Jan 25 21:00:05 PST 2012
  */
 article,
 aside,
@@ -3251,7 +3251,13 @@ a.thumbnail:hover {
   .offset12  { .offset(12); }
 
 }
-*/pre span, code span {
+*/h1 {
+  font-family: 'Yanone Kaffeesatz';
+}
+h2 {
+  font-size: 20px;
+}
+pre span, code span {
   display: inline-block;
 }
 code {
@@ -3336,6 +3342,13 @@ code {
 }
 .main-header .btn {
   margin-top: 5px;
+}
+.page-header {
+  margin-bottom: 17px;
+  border-bottom: 1px solid #ddd;
+}
+.page-header > h1, .page-header > h2, .page-header > h3 {
+  margin-bottom: 5px;
 }
 ol.context {
   margin: 0;
@@ -3469,7 +3482,4 @@ td table.vars {
 }
 .messages > li:hover .actions {
   visibility: visible;
-}
-h1 {
-  font-family: 'Yanone Kaffeesatz';
 }
