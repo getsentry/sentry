@@ -85,6 +85,21 @@ class IPlugin(object):
 
     enabled = True
 
+    def _get_option_key(self, key):
+        return '%s:%s' % (self.get_conf_key(), key)
+
+    def get_option(self, key, project=None):
+        from .helpers import get_option
+        return get_option(self._get_option_key(key), project)
+
+    def set_option(self, key, value, project=None):
+        from .helpers import set_option
+        return set_option(self._get_option_key(key), value, project)
+
+    def unset_option(self, key, project=None):
+        from .helpers import unset_option
+        return unset_option(self._get_option_key(key), project)
+
     def get_conf_key(self):
         if not self.conf_key:
             return self.conf_title.lower().replace(' ', '_')
