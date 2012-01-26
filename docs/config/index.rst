@@ -168,7 +168,7 @@ Notifications
 		  'my.custom.logger.name',
 		)
 
-.. data:: sentry.conf.MAIL_INCLUDE_LOGGERS
+.. data:: sentry.conf.SENTRY_MAIL_EXCLUDE_LOGGERS
     :noindex:
 
 	.. versionadded:: 1.10.0
