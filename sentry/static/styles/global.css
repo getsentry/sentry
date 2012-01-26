@@ -210,7 +210,34 @@ dl.flat dd {
     padding-bottom: 5px;
 }
 /* messages generic */
+.level-10 .count {
+    background: #999;
+    background:-moz-linear-gradient(center top, #999, #444) repeat scroll 0 0 transparent;
+    background:-webkit-gradient(linear, 0% 0%, 0% 100%, from(#999), to(#444));
+}
+.level-20 .count {
+    background: #0C7AD8;
+    background:-moz-linear-gradient(center top, #0C7AD8, #004F92) repeat scroll 0 0 transparent;
+    background:-webkit-gradient(linear, 0% 0%, 0% 100%, from(#0C7AD8), to(#004F92));
+}
+.level-30 .count {
+    background: #F4B63E;
+    background:-moz-linear-gradient(center top, #F4B63E, #D18A00) repeat scroll 0 0 transparent;
+    background:-webkit-gradient(linear, 0% 0%, 0% 100%, from(#F4B63E), to(#D18A00));
+}
+.level-40 .count {
+    background: #CC0000;
+    background:-moz-linear-gradient(center top, #CC0000, #4E0303) repeat scroll 0 0 transparent;
+    background:-webkit-gradient(linear, 0% 0%, 0% 100%, from(#CC0000), to(#4E0303));
+}
+.level-50 .count {
+    background: #FF9797;
+    background:-moz-linear-gradient(center top, #FF9797, #FF0000) repeat scroll 0 0 transparent;
+    background:-webkit-gradient(linear, 0% 0%, 0% 100%, from(#FF9797), to(#FF0000));
+}
+
 .count {
+    text-shadow: -1px -1px 0px rgba(0,0,0.4);
     background: #000;
     -moz-border-radius: 5px;
     -webkit-border-radius: 5px;
