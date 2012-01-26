@@ -41,11 +41,11 @@ class SentryPluginTest(TestCase):
             result = get_option('key', project)
             self.assertEquals(result, get_value.return_value)
 
-            get_value.assert_called_once_with(project, 'key')
+            get_value.assert_called_once_with(project, 'key', None)
 
     def test_get_option_without_project(self):
         with mock.patch('sentry.models.Option.objects.get_value') as get_value:
             result = get_option('key')
             self.assertEquals(result, get_value.return_value)
 
-            get_value.assert_called_once_with('key')
+            get_value.assert_called_once_with('key', None)

@@ -22,9 +22,9 @@ def set_option(key, value, project=None):
 
 def get_option(key, project=None):
     if project:
-        result = ProjectOption.objects.get_value(project, key)
+        result = ProjectOption.objects.get_value(project, key, None)
     else:
-        result = Option.objects.get_value(key)
+        result = Option.objects.get_value(key, None)
 
     return result
 
