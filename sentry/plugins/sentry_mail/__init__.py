@@ -59,6 +59,7 @@ class MailProcessor(Plugin):
             subject='Test Email',
             body='This email was requested as a test of Sentry\'s outgoing email',
             project=project,
+            fail_silently=False,
         )
 
     def mail_admins(self, group, event, fail_silently=True):
