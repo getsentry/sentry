@@ -512,6 +512,12 @@ class MetaManager(models.Manager):
             return result[key]
         return result.get(key, default)
 
+    def unset_value(self, key):
+        self.filter(key=key).delete()
+        if not hasattr(self, '_metadata'):
+            return
+        self._metadata.pop(key, None)
+
     def set_value(self, key, value):
         inst, created = self.get_or_create(
             key=key,
@@ -549,6 +555,14 @@ class InstanceMetaManager(models.Manager):
         if default is self.NOTSET:
             return result[key]
         return result.get(key, default)
+
+    def unset_value(self, instance, key):
+        self.filter(**{self.field_name: instance, 'key': key}).delete()
+        if not hasattr(self, '_metadata'):
+            return
+        if instance.pk not in self._metadata:
+            return
+        self._metadata[instance.pk].pop(key, None)
 
     def set_value(self, instance, key, value):
         inst, created = self.get_or_create(**{
