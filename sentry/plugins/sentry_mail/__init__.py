@@ -51,7 +51,7 @@ class MailProcessor(Plugin):
         subject_prefix = self.get_option('subject_prefix', project) or self.subject_prefix
 
         send_mail('%s%s' % (subject_prefix, subject), body,
-                  settings.SERVER_EMAIL, send_to,
+                  settings.SERVER_EMAIL, send_to.split('; '),
                   fail_silently=fail_silently)
 
     def send_test_mail(self, project=None):
