@@ -233,6 +233,11 @@ class MessageBase(Model):
     class Meta:
         abstract = True
 
+    def save(self, *args, **kwargs):
+        if len(self.logger) > 64: 
+            self.logger = self.logger[0:61] + u"..."
+        super(MessageBase, self).save(*args, **kwargs)
+
     def error(self):
         if self.message:
             message = smart_unicode(self.message)

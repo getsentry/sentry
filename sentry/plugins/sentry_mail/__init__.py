@@ -38,7 +38,7 @@ class MailProcessor(Plugin):
         if exclude_loggers is NOTSET:
             exclude_loggers = settings.MAIL_EXCLUDE_LOGGERS
         if send_to is NOTSET:
-            send_to = settings.ADMINS
+            send_to = ';'.join(settings.ADMINS)
 
         self.min_level = min_level
         self.include_loggers = include_loggers
@@ -83,7 +83,7 @@ class MailProcessor(Plugin):
         if event.site:
             subject = '[%s] %s' % (event.site, subject)
 
-        link = '%s%s' % (settings.URL_PREFIX, self.get_absolute_url())
+        link = '%s%s' % (settings.URL_PREFIX, group.get_absolute_url())
 
         body = render_to_string('sentry/emails/error.txt', {
             'traceback': traceback,
@@ -111,7 +111,7 @@ class MailProcessor(Plugin):
         return True
 
     def post_process(self, group, event, is_new, is_sample, **kwargs):
-        if not is_sample:
+        if not is_new:
             return
 
         if not self.should_mail(group, event):
