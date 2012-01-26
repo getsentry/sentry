@@ -7,6 +7,7 @@ sentry.web.frontend.groups
 """
 
 import datetime
+import logging
 import re
 
 from django.core.urlresolvers import reverse
@@ -39,6 +40,20 @@ SORT_OPTIONS = (
     'accel_60',
 )
 DEFAULT_SORT_OPTION = 'priority'
+
+
+def _get_rendered_interfaces(event):
+    interface_list = []
+    for interface in event.interfaces.itervalues():
+        try:
+            html = interface.to_html(event)
+        except:
+            logger = logging.getLogger('sentry.interfaces')
+            logger.exception('Error rendering interface %r', interface.__class__)
+        if not html:
+            continue
+        interface_list.append(mark_safe(html))
+    return interface_list
 
 
 def _get_sort_label(sort):
@@ -246,7 +261,7 @@ def group(request, project, group_id):
         'page': 'details',
         'group': group,
         'event': event,
-        'interface_list': filter(None, [mark_safe(i.to_html(event) or '') for i in event.interfaces.itervalues()]),
+        'interface_list': _get_rendered_interfaces(event),
         'json_data': event.data.get('extra', {}),
         'version_data': event.data.get('modules', None),
     }, request)
@@ -285,7 +300,7 @@ def group_event_details(request, project, group_id, event_id):
         'page': 'event_list',
         'group': group,
         'event': event,
-        'interface_list': filter(None, [mark_safe(i.to_html(event) or '') for i in event.interfaces.itervalues()]),
+        'interface_list': _get_rendered_interfaces(event),
         'json_data': event.data.get('extra', {}),
         'version_data': event.data.get('modules', None),
     }, request)
