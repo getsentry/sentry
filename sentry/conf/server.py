@@ -126,4 +126,8 @@ import logging
 logger = logging.getLogger()
 logger.setLevel(logging.ERROR)
 
+logger = logging.getLogger('south')
+logger.handlers = []
+logger.propagate = False
+
 setup_logging(SentryHandler())
