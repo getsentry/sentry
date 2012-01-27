@@ -62,14 +62,18 @@ def get_daemon_for_service(service, daemonize=True, **options):
 @consume_args
 def start(args, daemonize=False, debug=False):
     from sentry.conf import settings
-
-    service = get_service_from_args(args)
+    from sentry.commands.upgrade import upgrade
 
     if not os.path.exists(settings.LOG_DIR):
         os.makedirs(settings.LOG_DIR)
 
     if not os.path.exists(settings.RUN_DIR):
         os.makedirs(settings.RUN_DIR)
+
+    # Ensure we force an environment upgrade before we start the server
+    upgrade()
+
+    service = get_service_from_args(args)
 
     proc = get_daemon_for_service(service, daemonize, debug=debug)
 
