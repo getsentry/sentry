@@ -14,6 +14,7 @@ Users Guide
 
    install/index
    config/index
+   queue/index
    cli/index
    client/index
    interfaces/index
