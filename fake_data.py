@@ -3,6 +3,7 @@ import os.path
 import random
 import time
 
+from django.conf import settings
 from sentry.scripts.runner import settings_from_file
 
 
@@ -32,9 +33,9 @@ def funcs():
 def main():
     settings_from_file(os.path.expanduser(os.path.join('~', '.sentry', 'sentry.conf.py')))
 
-    from raven.contrib.django import DjangoClient
+    from raven.contrib.django.models import get_client
 
-    client = DjangoClient()
+    client = get_client()
     functions = funcs()
 
     while True:
