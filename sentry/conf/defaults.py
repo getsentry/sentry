@@ -102,3 +102,7 @@ VIEWS = (
 # Should users without 'sentry.add_project' permissions be allowed
 # to create new projects
 ALLOW_PROJECT_CREATION = False
+
+# Instructs Sentry to utilize it's queue for background jobs. You will
+# need to ensure that you have workers running if you enable the queue.
+USE_QUEUE = False

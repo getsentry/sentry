@@ -16,6 +16,7 @@ from django.utils.encoding import smart_str
 from sentry.conf import settings
 from sentry.exceptions import InvalidData, InvalidInterface
 from sentry.models import Group, ProjectMember
+from sentry.queue.client import delay
 from sentry.utils import is_float, json
 from sentry.utils.auth import get_signature, parse_auth_header
 
@@ -158,31 +159,47 @@ def ensure_valid_project_id(desired_project, data):
         data['project'] = 1
 
 
-def insert_data_to_database(data):
-    def process_data_timestamp(data):
-        if is_float(data['timestamp']):
-            try:
-                data['timestamp'] = datetime.fromtimestamp(float(data['timestamp']))
-            except:
-                logger.exception('Failed reading timestamp')
-                del data['timestamp']
-        elif not isinstance(data['timestamp'], datetime):
-            if '.' in data['timestamp']:
-                format = '%Y-%m-%dT%H:%M:%S.%f'
-            else:
-                format = '%Y-%m-%dT%H:%M:%S'
-            if 'Z' in data['timestamp']:
-                # support UTC market, but not other timestamps
-                format += 'Z'
-            try:
-                data['timestamp'] = datetime.strptime(data['timestamp'], format)
-            except:
-                logger.exception('Failed reading timestamp')
-                del data['timestamp']
+def process_data_timestamp(data):
+    if is_float(data['timestamp']):
+        try:
+            data['timestamp'] = datetime.fromtimestamp(float(data['timestamp']))
+        except:
+            logger.exception('Failed reading timestamp')
+            del data['timestamp']
+    elif not isinstance(data['timestamp'], datetime):
+        if '.' in data['timestamp']:
+            format = '%Y-%m-%dT%H:%M:%S.%f'
+        else:
+            format = '%Y-%m-%dT%H:%M:%S'
+        if 'Z' in data['timestamp']:
+            # support UTC market, but not other timestamps
+            format += 'Z'
+        try:
+            data['timestamp'] = datetime.strptime(data['timestamp'], format)
+        except:
+            logger.exception('Failed reading timestamp')
+            del data['timestamp']
+
+    return data
+
+
+def validate_data(project, data):
+    ensure_valid_project_id(project, data)
+
     if 'timestamp' in data:
         process_data_timestamp(data)
 
-    try:
-        Group.objects.from_kwargs(**data)
-    except (InvalidInterface, InvalidData), e:
-        raise APIError(e)
+    return data
+
+
+def insert_data_to_database(data, queue=None):
+    if queue is None:
+        queue = settings.USE_QUEUE
+
+    if queue:
+        delay(insert_data_to_database, data, queue=False)
+    else:
+        try:
+            Group.objects.from_kwargs(**data)
+        except (InvalidInterface, InvalidData), e:
+            raise APIError(e)

@@ -15,7 +15,7 @@ from django.views.decorators.http import require_http_methods
 from sentry.conf import settings
 from sentry.coreapi import project_from_auth_vars, project_from_api_key_and_id, \
   project_from_id, decode_and_decompress_data, safely_load_json_string, \
-  ensure_valid_project_id, insert_data_to_database, APIError, APIUnauthorized, \
+  validate_data, insert_data_to_database, APIError, APIUnauthorized, \
   extract_auth_vars
 from sentry.models import Group, GroupBookmark, Project, View
 from sentry.utils import json
@@ -55,7 +55,7 @@ def store(request):
             data = decode_and_decompress_data(data)
         data = safely_load_json_string(data)
 
-        ensure_valid_project_id(project, data)
+        validate_data(project, data)
 
         insert_data_to_database(data)
     except APIError, error:

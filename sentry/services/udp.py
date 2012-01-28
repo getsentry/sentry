@@ -28,7 +28,7 @@ class SentryUDPServer(Service):
     def handle(self, data, address):
         from sentry.utils.auth import parse_auth_header
         from sentry.coreapi import (project_from_auth_vars, decode_and_decompress_data, safely_load_json_string,
-                                    ensure_valid_project_id, insert_data_to_database, APIError)
+                                    validate_data, insert_data_to_database, APIError)
         try:
             try:
                 auth_header, data = data.split("\n\n", 1)
@@ -40,7 +40,7 @@ class SentryUDPServer(Service):
                 data = decode_and_decompress_data(data)
             data = safely_load_json_string(data)
 
-            ensure_valid_project_id(project, data)
+            validate_data(project, data)
 
             return insert_data_to_database(data)
         except APIError, error:

@@ -37,3 +37,4 @@ class Broker(object):
             )
 
 broker = Broker(settings.QUEUE)
+delay = broker.delay

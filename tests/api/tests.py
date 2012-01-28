@@ -2,15 +2,18 @@
 
 from __future__ import absolute_import
 
+import datetime
 import mock
 import time
 
 from django.contrib.auth.models import User
+from djkombu.models import Message
 
 from sentry.models import Project
 from sentry.coreapi import project_from_id, project_from_api_key_and_id, \
   extract_auth_vars, project_from_auth_vars, validate_hmac, APIUnauthorized, \
-  APIForbidden, APITimestampExpired, APIError
+  APIForbidden, APITimestampExpired, APIError, process_data_timestamp, \
+  insert_data_to_database
 from sentry.utils.auth import get_signature
 
 from tests.base import TestCase
@@ -134,3 +137,40 @@ class APITest(TestCase):
 
             with self.assertRaises(APIError):
                 validate_hmac('foo', 'signature', 'foo', 'foo')
+
+    def test_process_data_timestamp_iso_timestamp(self):
+        data = process_data_timestamp({
+            'timestamp': '2012-01-01T10:30:45'
+        })
+        d = datetime.datetime(2012, 01, 01, 10, 30, 45)
+        self.assertTrue('timestamp' in data)
+        self.assertEquals(data['timestamp'], d)
+
+    def test_process_data_timestamp_iso_timestamp_with_ms(self):
+        data = process_data_timestamp({
+            'timestamp': '2012-01-01T10:30:45.434'
+        })
+        d = datetime.datetime(2012, 01, 01, 10, 30, 45, 434000)
+        self.assertTrue('timestamp' in data)
+        self.assertEquals(data['timestamp'], d)
+
+    def test_process_data_timestamp_iso_timestamp_with_Z(self):
+        data = process_data_timestamp({
+            'timestamp': '2012-01-01T10:30:45Z'
+        })
+        d = datetime.datetime(2012, 01, 01, 10, 30, 45)
+        self.assertTrue('timestamp' in data)
+        self.assertEquals(data['timestamp'], d)
+
+    def test_insert_data_to_database_with_queue(self):
+        insert_data_to_database({
+            'foo': 'bar'
+        }, True)
+        self.assertEquals(Message.objects.filter(visible=True).count(), 1)
+
+    def test_insert_data_to_database_without_queue(self):
+        with mock.patch('sentry.models.Group.objects.from_kwargs') as from_kwargs:
+            insert_data_to_database({
+                'foo': 'bar'
+            }, False)
+            from_kwargs.assert_called_once_with(foo='bar')
