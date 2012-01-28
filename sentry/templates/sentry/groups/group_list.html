@@ -37,8 +37,8 @@
         <h2>{% trans "Bookmarks" %}</h2>
         <form>
         <ul class="bookmarks-list filter-list">
-            <li{% if not request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ querystring }}">{% trans "All Events" %}</a></li>
-            <li{% if request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ querystring }}&amp;bookmarks=1">{% trans "Only Bookmarks" %}</a></li>
+            <li{% if not request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ bookmark_querystring }}">{% trans "All Events" %}</a></li>
+            <li{% if request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ bookmark_querystring }}&amp;bookmarks=1">{% trans "Only Bookmarks" %}</a></li>
         </ul>
         </form>
     </div>
