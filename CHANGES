@@ -1,3 +1,15 @@
+Version 2.0.1
+-------------
+
+* Skip logging of south in default server configuration as it proves to be problematic.
+* Remove use of deprecated logging handler in default server configuration.
+* Run ``upgrade`` as part of ``start``.
+* Fix GroupBookmark related_name to be sentry namespaced.
+* Correctly handle before_events() hook in polling responses.
+* Removed integrated install documentation as it is no longer officially supported.
+* Gracefully handle rendering errors with interfaces.
+* Correct a bug with default email options.
+
 Version 2.0
 -----------
 

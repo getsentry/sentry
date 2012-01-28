@@ -35,7 +35,7 @@ install_requires = [
     'django-paging>=0.2.4',
     'django-indexer>=0.3.0',
     'django-templatetag-sugar>=0.1.0',
-    'raven>=1.1.5',
+    'raven>=1.1.6',
     'python-daemon>=1.6',
     'eventlet>=0.9.15',
     'South>=0.7',
@@ -45,7 +45,7 @@ install_requires = [
 
 setup(
     name='sentry',
-    version='2.0.0',
+    version='2.0.1',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/sentry',
