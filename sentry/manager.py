@@ -11,6 +11,7 @@ import datetime
 import hashlib
 import itertools
 import logging
+import re
 import warnings
 
 from django.db import models
@@ -594,8 +595,27 @@ class InstanceMetaManager(models.Manager):
 
 
 class SearchDocumentManager(models.Manager):
+    # Words which should not be indexed
+    STOP_WORDS = set('the', 'of', 'to', 'and', 'a', 'in', 'is', 'it', 'you', 'that')
+
+    # Do not index any words shorter than this
+    MIN_WORD_LENGTH = 3
+
+    # Consider these characters to be punctuation (they will be replaced with spaces prior to word extraction)
+    PUNCTUATION_CHARS = re.compile('[%s]' % re.escape(".,;:!?@$%^&*()-<>[]{}\\|/`~'\""))
+
     def _tokenize(self, text):
-        return [t for t in text.split(' ') if len(t) < 3]
+        """
+        Given a string, returns a list of tokens.
+        """
+        if not text:
+            return []
+
+        text = self.PUNCTUATION_CHARS.sub(' ', text)
+
+        words = [t for t in text.split() if len(t) >= self.MIN_WORD_LENGTH and t.lower() not in self.STOP_WORDS]
+
+        return words
 
     def search(self, query):
         tokens = self._tokenize(query)
