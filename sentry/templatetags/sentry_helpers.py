@@ -11,6 +11,7 @@ from paging.helpers import paginate as paginate_func
 from sentry.conf import settings
 from sentry.plugins import plugins
 from sentry.utils import json
+from sentry.utils.dates import utc_to_local
 from templatetag_sugar.register import tag
 from templatetag_sugar.parser import Name, Variable, Constant, Optional
 
@@ -196,11 +197,12 @@ def handle_before_events(request, event_list):
 @register.filter
 def timesince(value):
     from django.template.defaultfilters import timesince
+    now = utc_to_local(datetime.datetime.utcnow())
     if not value:
         return _('Never')
-    if value < datetime.datetime.utcnow() - datetime.timedelta(days=5):
+    if value < (now - datetime.timedelta(days=5)):
         return value.date()
-    value = (' '.join(timesince(value).split(' ')[0:2])).strip(',')
+    value = (' '.join(timesince(value, now).split(' ')[0:2])).strip(',')
     if value == _('0 minutes'):
         return _('Just now')
     if value == _('1 day'):

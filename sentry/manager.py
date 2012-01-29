@@ -21,6 +21,7 @@ from sentry.signals import regression_signal
 from sentry.utils import get_db_engine
 from sentry.utils.charts import has_charts
 from sentry.utils.compat.db import connections
+from sentry.utils.dates import utc_to_local
 from sentry.processors.base import send_group_processors
 
 logger = logging.getLogger('sentry.errors')
@@ -239,6 +240,10 @@ class GroupManager(models.Manager, ChartMixin):
         date = kwargs.pop('timestamp', None) or datetime.datetime.utcnow()
         extra = kwargs.pop('extra', None)
         modules = kwargs.pop('modules', None)
+
+        # We must convert date to local time so Django doesn't mess it up
+        # based on TIME_ZONE
+        date = utc_to_local(date)
 
         if not message:
             raise InvalidData('Missing required parameter: message')
