@@ -1,3 +1,11 @@
+Version 2.0.2
+-------------
+
+* ``start`` no longer performs ``upgrade`` as its problematic.
+* Initial queue usage (optional).
+* Fix reference to bookmark_querystring.
+* Added DSN to project member details page.
+
 Version 2.0.1
 -------------
 
