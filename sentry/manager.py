@@ -6,6 +6,7 @@ sentry.manager
 :license: BSD, see LICENSE for more details.
 """
 
+from collections import defaultdict
 import datetime
 import hashlib
 import itertools
@@ -590,3 +591,71 @@ class InstanceMetaManager(models.Manager):
             }).values_list('key', 'value'))
             self._metadata[instance.pk] = result
         return self._metadata[instance.pk]
+
+
+class SearchDocumentManager(models.Manager):
+    def _tokenize(self, text):
+        return text.split(' ')
+
+    def search(self, query):
+        tokens = self._tokenize(query)
+        return self.raw("""
+            SELECT SUM(st.times_seen) / sd.total_events as score, sd.group_id
+            FROM sentry_searchdocument as sd
+            INNER JOIN sentry_searchtoken as st
+                ON st.document_id = sd.id
+            WHERE st.field = ''
+                AND st.token IN (%s)
+            GROUP BY score, group_id
+            ORDER BY SUM(st.times_seen) / sd.total_events DESC
+            LIMIT 100 OFFSET 0
+        """ % (', '.join('%s' for i in range(len(tokens))),), tokens)
+
+    def index(self, event):
+        group = event.group
+        document, created = self.get_or_create(
+            project=event.project,
+            group=group,
+            defaults={
+                'total_events': 1,
+                'date_added': group.first_seen,
+                'date_changed': group.last_seen,
+            }
+        )
+        if not created:
+            document.update(
+                total_events=F('total_events') + 1,
+                date_changed=group.last_seen,
+            )
+
+        context = defaultdict(list)
+        for interface in event.interfaces.itervalues():
+            for k, v in interface.get_search_context(event).iteritems():
+                context[k].extend(v)
+
+        context[''].extend([event.message, event.logger, event.server_name])
+
+        token_counts = defaultdict(lambda: defaultdict(int))
+        for field, values in context.iteritems():
+            if field == '':
+                # we only tokenize the base text field
+                values = itertools.chain(*[self._tokenize(v) for v in values])
+            for value in values:
+                if not value:
+                    continue
+                token_counts[field][value] += 1
+
+        # TODO: might be worthwhile to make this update then create
+        for field, tokens in token_counts.iteritems():
+            for token, count in tokens.iteritems():
+                token, created = document.token_set.get_or_create(
+                    field=field,
+                    token=token.lower(),
+                    defaults={
+                        'times_seen': count,
+                    }
+                )
+                if not created:
+                    token.update(
+                        times_seen=F('times_seen') + count,
+                    )

@@ -26,9 +26,9 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
 from sentry.manager import GroupManager, ProjectManager, \
-  MetaManager, InstanceMetaManager
+  MetaManager, InstanceMetaManager, SearchDocumentManager
 from sentry.utils import cached_property, \
-                         MockDjangoRequest
+  MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField
 from sentry.templatetags.sentry_helpers import truncatechars
 
@@ -556,6 +556,28 @@ class MessageCountByMinute(Model):
     def __unicode__(self):
         return u'group_id=%s, times_seen=%s, date=%s' % (self.group_id, self.times_seen, self.date)
 
+
+class SearchDocument(Model):
+    project = models.ForeignKey(Project)
+    group = models.ForeignKey(Group)
+    total_events = models.PositiveIntegerField(default=1)
+    date_added = models.DateTimeField(default=datetime.now)
+    date_changed = models.DateTimeField(default=datetime.now)
+
+    objects = SearchDocumentManager()
+
+    class Meta:
+        unique_together = (('project', 'group'),)
+
+
+class SearchToken(Model):
+    document = models.ForeignKey(SearchDocument, related_name="token_set")
+    field = models.CharField(max_length=64, default='text')
+    token = models.CharField(max_length=128)
+    times_seen = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        unique_together = (('document', 'field', 'token'),)
 
 ### django-indexer
 

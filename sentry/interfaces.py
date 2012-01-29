@@ -9,6 +9,7 @@ validated and rendered.
 :license: BSD, see LICENSE for more details.
 """
 
+import itertools
 import urlparse
 
 from django.http import QueryDict
@@ -83,6 +84,12 @@ class Interface(object):
     def to_string(self, event):
         return ''
 
+    def get_search_context(self, event):
+        return {
+            # '': ['...'],
+            # 'field_name': ['...'],
+        }
+
 
 class Message(Interface):
     def __init__(self, message, params=()):
@@ -95,6 +102,11 @@ class Message(Interface):
             'params': self.params,
         }
 
+    def get_search_context(self, event):
+        return {
+            '': [self.message] + self.params,
+        }
+
 
 class Query(Interface):
     def __init__(self, query, engine=None):
@@ -105,6 +117,11 @@ class Query(Interface):
         return {
             'query': self.query,
             'engine': self.engine,
+        }
+
+    def get_search_context(self, event):
+        return {
+            '': [self.query],
         }
 
 
@@ -170,6 +187,11 @@ class Stacktrace(Interface):
 
         return '\n'.join(result)
 
+    def get_search_context(self, event):
+        return {
+            '': list(itertools.chain(*[[f['filename'], f['function'], f['context_line']] for f in self.frames])),
+        }
+
 
 class Exception(Interface):
     def __init__(self, value, type=None, module=None):
@@ -194,6 +216,11 @@ class Exception(Interface):
             'exception_type': self.type,
             'exception_module': self.module,
         })
+
+    def get_search_context(self, event):
+        return {
+            '': [self.value, self.type, self.module]
+        }
 
 
 class Http(Interface):
@@ -285,6 +312,11 @@ class Http(Interface):
             'env': self.env,
         })
 
+    def get_search_context(self, event):
+        return {
+            'url': [self.url],
+        }
+
 
 class Template(Interface):
     def __init__(self, filename, context_line, lineno, pre_context=None, post_context=None,
@@ -327,6 +359,11 @@ class Template(Interface):
         result.extend([n[1].strip('\n') for n in context])
 
         return '\n'.join(result)
+
+    def get_search_context(self, event):
+        return {
+            '': [self.abs_path, self.filename, self.context_line, self.pre_context, self.post_context],
+        }
 
 
 class User(Interface):
