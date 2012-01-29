@@ -113,7 +113,7 @@ class Message(Interface):
 
     def get_search_context(self, event):
         return {
-            'text': [self.message] + self.params,
+            'text': [self.message] + list(self.params),
         }
 
 
