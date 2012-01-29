@@ -621,7 +621,8 @@ class SearchDocumentManager(models.Manager):
         return words
 
     def search(self, project, query, sort_by='score', offset=0, limit=100):
-        tokens = self._tokenize(query)
+        # tokens = self._tokenize(query)
+        tokens = [query]
 
         if sort_by == 'score':
             order_by = 'SUM(st.times_seen) / sd.total_events DESC'
@@ -638,8 +639,7 @@ class SearchDocumentManager(models.Manager):
             FROM sentry_searchdocument as sd
             INNER JOIN sentry_searchtoken as st
                 ON st.document_id = sd.id
-            WHERE st.field = 'text'
-                AND st.token IN (%s)
+            WHERE st.token IN (%s)
                 AND sd.project_id = %s
             GROUP BY sd.id, sd.group_id, sd.total_events, sd.date_changed, sd.date_added
             ORDER BY %s
@@ -677,7 +677,12 @@ class SearchDocumentManager(models.Manager):
             for k, v in interface.get_search_context(event).iteritems():
                 context[k].extend(v)
 
-        context['text'].extend([event.message, event.logger, event.server_name])
+        context['text'].extend([
+            event.message,
+            event.logger,
+            event.server_name,
+            event.culprit,
+        ])
 
         token_counts = defaultdict(lambda: defaultdict(int))
         for field, values in context.iteritems():
