@@ -220,7 +220,7 @@ class GroupManager(models.Manager, ChartMixin):
         # TODO: this function is way too damn long and needs refactored
         # the inner imports also suck so let's try to move it away from
         # the objects manager
-        from sentry.models import Event, Project, View
+        from sentry.models import Event, Project, View, SearchDocument
         from sentry.views import View as ViewHandler
 
         project = Project.objects.get(pk=project)
@@ -344,6 +344,9 @@ class GroupManager(models.Manager, ChartMixin):
         # save the event unless its been sampled
         if not is_sample:
             event.save()
+
+        if settings.USE_SEARCH:
+            SearchDocument.objects.index(event)
 
         regression_signal.send(sender=self.model, instance=group)
 
