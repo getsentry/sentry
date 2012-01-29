@@ -122,7 +122,7 @@
                 <div class="page-header">
                     <h2>{% trans "Additional Data" %}</h2>
                 </div>
-                <table>
+                <table class="table table-bordered">
                     {% for k, v in json_data.iteritems|as_sorted %}
                         <tr>
                             <th class="key">{{ k }}</th>
