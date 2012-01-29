@@ -18,8 +18,9 @@ from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.conf import settings
 from sentry.filters import Filter
-from sentry.models import Group, Event, View
+from sentry.models import Group, Event, View, SearchDocument
 from sentry.plugins import plugins
 from sentry.utils import json, has_trending
 from sentry.web.decorators import has_access, login_required
@@ -40,6 +41,13 @@ SORT_OPTIONS = (
     'accel_60',
 )
 DEFAULT_SORT_OPTION = 'priority'
+
+SEARCH_SORT_OPTIONS = (
+    'score',
+    'date',
+    'new',
+)
+SEARCH_DEFAULT_SORT_OPTION = 'date'
 
 
 def _get_rendered_interfaces(event):
@@ -68,6 +76,7 @@ def _get_sort_label(sort):
         'tottime': _('Total Time Spent'),
         'avgtime': _('Average Time Spent'),
         'priority': _('Priority'),
+        'score': _('Score'),
     }[sort]
 
 
@@ -126,50 +135,58 @@ def _get_group_list(request, project, view=None):
 def search(request, project):
     query = request.GET.get('q')
 
-    if query:
-        result = event_re.match(query)
-        if result:
-            # Forward to message if it exists
-            # event_id = result.group(1)
-            checksum = result.group(2)
-            event_list = Group.objects.filter(checksum=checksum)
-            top_matches = event_list[:2]
-            if len(top_matches) == 0:
-                return render_to_response('sentry/invalid_message_id.html', {
-                    'project': project,
-                }, request)
-            elif len(top_matches) == 1:
-                return HttpResponseRedirect(top_matches[0].get_absolute_url())
-        elif uuid_re.match(query):
-            # Forward to message if it exists
-            try:
-                message = Event.objects.get(event_id=query)
-            except Event.DoesNotExist:
-                return render_to_response('sentry/invalid_message_id.html', {
-                    'project': project,
-                }, request)
-            else:
-                return HttpResponseRedirect(message.get_absolute_url())
-        else:
+    if not query:
+        return HttpResponseRedirect(reverse('sentry', args=[project.pk]))
+
+    result = event_re.match(query)
+    if result:
+        # Forward to message if it exists
+        # event_id = result.group(1)
+        checksum = result.group(2)
+        event_list = Group.objects.filter(checksum=checksum)
+        top_matches = event_list[:2]
+        if len(top_matches) == 0:
             return render_to_response('sentry/invalid_message_id.html', {
-                    'project': project,
-                }, request)
-    else:
-        event_list = Group.objects.none()
+                'project': project,
+            }, request)
+        elif len(top_matches) == 1:
+            return HttpResponseRedirect(top_matches[0].get_absolute_url())
+    elif uuid_re.match(query):
+        # Forward to message if it exists
+        try:
+            message = Event.objects.get(event_id=query)
+        except Event.DoesNotExist:
+            return render_to_response('sentry/invalid_message_id.html', {
+                'project': project,
+            }, request)
+        else:
+            return HttpResponseRedirect(message.get_absolute_url())
+    elif not settings.USE_SEARCH:
+        return render_to_response('sentry/invalid_message_id.html', {
+                'project': project,
+            }, request)
 
     sort = request.GET.get('sort')
-    if sort == 'date':
-        event_list = event_list.order_by('-last_seen')
-    elif sort == 'new':
-        event_list = event_list.order_by('-first_seen')
-    else:
-        sort = 'relevance'
+    if sort not in SEARCH_SORT_OPTIONS:
+        sort = SEARCH_DEFAULT_SORT_OPTION
+    sort_label = _get_sort_label(sort)
+
+    documents = list(SearchDocument.objects.search(project, query, sort_by=sort))
+    groups = Group.objects.in_bulk([d.group_id for d in documents])
+
+    event_list = []
+    for doc in documents:
+        try:
+            event_list.append(groups[doc.group_id])
+        except KeyError:
+            continue
 
     return render_to_response('sentry/search.html', {
         'project': project,
         'event_list': event_list,
         'query': query,
         'sort': sort,
+        'sort_label': sort_label,
     }, request)
 
 
