@@ -12,16 +12,5 @@
         <li><a href="{% url sentry-manage-project project.pk %}">{% trans "Manage Project" %}</a> <span class="divider">/</span></li>
         <li class="active">{% trans "New Member" %}</li>
     </ul>
-    {% if form.errors %}
-        <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
-    {% endif %}
-    <form action="" method="post">
-        {% csrf_token %}
-        {% for field in form %}
-            {% include "sentry/partial/_form_field.html" %}
-        {% endfor %}
-        <div class="actions">
-            <button type="submit" class="btn primary">{% trans "Save Changes" %}</button>
-        </div>
-    </form>
+    {% include "sentry/partial/_form.html" %}
 {% endblock %}
