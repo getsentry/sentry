@@ -596,7 +596,7 @@ class InstanceMetaManager(models.Manager):
 
 class SearchDocumentManager(models.Manager):
     # Words which should not be indexed
-    STOP_WORDS = set('the', 'of', 'to', 'and', 'a', 'in', 'is', 'it', 'you', 'that')
+    STOP_WORDS = set(['the', 'of', 'to', 'and', 'a', 'in', 'is', 'it', 'you', 'that'])
 
     # Do not index any words shorter than this
     MIN_WORD_LENGTH = 3
@@ -680,3 +680,5 @@ class SearchDocumentManager(models.Manager):
                     token.update(
                         times_seen=F('times_seen') + count,
                     )
+
+        return document
