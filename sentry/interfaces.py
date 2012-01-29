@@ -85,9 +85,18 @@ class Interface(object):
         return ''
 
     def get_search_context(self, event):
+        """
+        Returns a dictionary describing the data that should be indexed
+        by the search engine. Several fields are accepted:
+
+        - text: a list of text items to index as part of the generic query
+        - filters: a map of fields which are used for precise matching
+        """
         return {
-            # '': ['...'],
-            # 'field_name': ['...'],
+            # 'text': ['...'],
+            # 'filters': {
+            #     'field": ['...'],
+            # },
         }
 
 
@@ -104,7 +113,7 @@ class Message(Interface):
 
     def get_search_context(self, event):
         return {
-            '': [self.message] + self.params,
+            'text': [self.message] + self.params,
         }
 
 
@@ -121,7 +130,7 @@ class Query(Interface):
 
     def get_search_context(self, event):
         return {
-            '': [self.query],
+            'text': [self.query],
         }
 
 
@@ -189,7 +198,7 @@ class Stacktrace(Interface):
 
     def get_search_context(self, event):
         return {
-            '': list(itertools.chain(*[[f['filename'], f['function'], f['context_line']] for f in self.frames])),
+            'text': list(itertools.chain(*[[f['filename'], f['function'], f['context_line']] for f in self.frames])),
         }
 
 
@@ -219,7 +228,7 @@ class Exception(Interface):
 
     def get_search_context(self, event):
         return {
-            '': [self.value, self.type, self.module]
+            'text': [self.value, self.type, self.module]
         }
 
 
@@ -314,7 +323,9 @@ class Http(Interface):
 
     def get_search_context(self, event):
         return {
-            'url': [self.url],
+            'filters': {
+                'url': [self.url],
+            }
         }
 
 
@@ -362,7 +373,7 @@ class Template(Interface):
 
     def get_search_context(self, event):
         return {
-            '': [self.abs_path, self.filename, self.context_line, self.pre_context, self.post_context],
+            'text': [self.abs_path, self.filename, self.context_line, self.pre_context, self.post_context],
         }
 
 

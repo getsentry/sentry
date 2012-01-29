@@ -595,7 +595,7 @@ class InstanceMetaManager(models.Manager):
 
 class SearchDocumentManager(models.Manager):
     def _tokenize(self, text):
-        return text.split(' ')
+        return [t for t in text.split(' ') if len(t) < 3]
 
     def search(self, query):
         tokens = self._tokenize(query)
@@ -633,24 +633,25 @@ class SearchDocumentManager(models.Manager):
             for k, v in interface.get_search_context(event).iteritems():
                 context[k].extend(v)
 
-        context[''].extend([event.message, event.logger, event.server_name])
+        context['text'].extend([event.message, event.logger, event.server_name])
 
         token_counts = defaultdict(lambda: defaultdict(int))
         for field, values in context.iteritems():
-            if field == '':
+            field = field.lower()
+            if field == 'text':
                 # we only tokenize the base text field
                 values = itertools.chain(*[self._tokenize(v) for v in values])
             for value in values:
                 if not value:
                     continue
-                token_counts[field][value] += 1
+                token_counts[field][value.lower()] += 1
 
         # TODO: might be worthwhile to make this update then create
         for field, tokens in token_counts.iteritems():
             for token, count in tokens.iteritems():
                 token, created = document.token_set.get_or_create(
                     field=field,
-                    token=token.lower(),
+                    token=token,
                     defaults={
                         'times_seen': count,
                     }
