@@ -196,6 +196,15 @@ class ProjectMember(Model):
     def generate_api_key(cls):
         return uuid.uuid4().hex
 
+    def get_dsn(self, domain, secure=True):
+        return 'http%s://%s:%s@%s/%s' % (
+            secure and 's' or '',
+            self.public_key,
+            self.secret_key,
+            domain,
+            self.project_id,
+        )
+
 
 class ProjectDomain(Model):
     """

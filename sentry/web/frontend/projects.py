@@ -142,6 +142,7 @@ def edit_project_member(request, project, member_id):
         'member': member,
         'project': project,
         'form': form,
+        'dsn': member.get_dsn(request.META['HTTP_HOST'], secure=request.is_secure()),
     })
 
     return render_to_response('sentry/projects/members/edit.html', context, request)
