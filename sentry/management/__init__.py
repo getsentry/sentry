@@ -8,10 +8,10 @@ sentry.management
 
 import logging
 from django.contrib.auth.models import User
-from django.db.models.signals import post_syncdb
+from django.db.models.signals import post_syncdb, post_save
 from sentry.models import Project, ProjectMember, MessageIndex, \
   Group, Event, FilterValue, MessageFilterValue, MessageCountByMinute, \
-  MEMBER_OWNER
+  SearchDocument, MEMBER_OWNER
 
 
 def register_indexes():
@@ -65,8 +65,23 @@ def create_default_project(created_models, verbosity=2, **kwargs):
             if verbosity > 0:
                 print 'done!'
 
+
+def update_document(instance, created, **kwargs):
+    if created:
+        return
+
+    SearchDocument.objects.filter(
+        project=instance.project,
+        group=instance,
+    ).update(status=instance.status)
+
 # Signal registration
 post_syncdb.connect(
     create_default_project,
     dispatch_uid="create_default_project"
+)
+
+post_save.connect(
+    update_document,
+    sender=Group,
 )

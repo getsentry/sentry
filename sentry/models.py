@@ -561,6 +561,7 @@ class SearchDocument(Model):
     project = models.ForeignKey(Project)
     group = models.ForeignKey(Group)
     total_events = models.PositiveIntegerField(default=1)
+    status = models.PositiveIntegerField(default=0)
     date_added = models.DateTimeField(default=datetime.now)
     date_changed = models.DateTimeField(default=datetime.now)
 

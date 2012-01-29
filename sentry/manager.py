@@ -621,8 +621,7 @@ class SearchDocumentManager(models.Manager):
         return words
 
     def search(self, project, query, sort_by='score', offset=0, limit=100):
-        # tokens = self._tokenize(query)
-        tokens = [query]
+        tokens = self._tokenize(query)
 
         if sort_by == 'score':
             order_by = 'SUM(st.times_seen) / sd.total_events DESC'
@@ -661,6 +660,7 @@ class SearchDocumentManager(models.Manager):
             project=event.project,
             group=group,
             defaults={
+                'status': group.status,
                 'total_events': 1,
                 'date_added': group.first_seen,
                 'date_changed': group.last_seen,
@@ -668,6 +668,7 @@ class SearchDocumentManager(models.Manager):
         )
         if not created:
             document.update(
+                status=group.status,
                 total_events=F('total_events') + 1,
                 date_changed=group.last_seen,
             )
