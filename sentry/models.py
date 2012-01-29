@@ -32,7 +32,7 @@ from sentry.utils import cached_property, \
 from sentry.utils.models import Model, GzippedDictField
 from sentry.templatetags.sentry_helpers import truncatechars
 
-__all__ = ('Event', 'Group', 'Project')
+__all__ = ('Event', 'Group', 'Project', 'SearchDocument')
 
 STATUS_UNRESOLVED = 0
 STATUS_RESOLVED = 1
