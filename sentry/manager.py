@@ -620,19 +620,40 @@ class SearchDocumentManager(models.Manager):
 
         return words
 
-    def search(self, query):
+    def search(self, project, query, sort_by='score', offset=0, limit=100):
         tokens = self._tokenize(query)
-        return self.raw("""
-            SELECT SUM(st.times_seen) / sd.total_events as score, sd.group_id
+
+        if sort_by == 'score':
+            order_by = 'SUM(st.times_seen) / sd.total_events DESC'
+        elif sort_by == 'new':
+            order_by = 'sd.date_added DESC'
+        elif sort_by == 'date':
+            order_by = 'sd.date_changed DESC'
+        else:
+            raise ValueError('sort_by: %r' % sort_by)
+
+        sql = """
+            SELECT sd.id, sd.group_id, SUM(st.times_seen) / sd.total_events as score,
+                sd.date_changed, sd.date_added
             FROM sentry_searchdocument as sd
             INNER JOIN sentry_searchtoken as st
                 ON st.document_id = sd.id
-            WHERE st.field = ''
+            WHERE st.field = 'text'
                 AND st.token IN (%s)
-            GROUP BY score, group_id
-            ORDER BY SUM(st.times_seen) / sd.total_events DESC
-            LIMIT 100 OFFSET 0
-        """ % (', '.join('%s' for i in range(len(tokens))),), tokens)
+                AND sd.project_id = %s
+            GROUP BY sd.id, sd.group_id, sd.total_events, sd.date_changed, sd.date_added
+            ORDER BY %s
+            LIMIT %d OFFSET %d
+        """ % (
+            ', '.join('%s' for i in range(len(tokens))),
+            project.id,
+            order_by,
+            limit,
+            offset,
+        )
+        params = tokens
+
+        return self.raw(sql, params)
 
     def index(self, event):
         group = event.group
