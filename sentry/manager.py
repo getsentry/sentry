@@ -343,7 +343,8 @@ class GroupManager(models.Manager, ChartMixin):
         if not is_sample:
             event.save()
 
-        regression_signal.send(sender=self.model, instance=group)
+        if is_new:
+            regression_signal.send(sender=self.model, instance=group)
 
         send_group_processors(group=group, event=event, is_new=is_new, is_sample=is_sample)
 
