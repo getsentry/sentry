@@ -9,8 +9,8 @@
 {% endblock %}
 
 {% block sidebar %}
-    <ul class="nav list">
-        <li class="nav-header">{% trans "Your Projects" %}</li>
+    <h6>{% trans "Your Projects" %}</h6>
+    <ul class="nav tabs stacked">
         {% for p in project_list %}
             <li{% if p == project %} class="active"{% endif %}><a href="{% url sentry-manage-project p.pk %}">{{ p.name }}</a></li>
         {% endfor %}
@@ -18,79 +18,81 @@
 {% endblock %}
 
 {% block main %}
-    <ul class="nav tabs">
-        <li{% if page == 'details' %} class="active"{% endif %}>
-            <a href="{% url sentry-manage-project project.pk %}">{% trans "Details" %}</a>
-        </li>
-        {% for p in PLUGINS.for_project %}
-            <li{% if page == 'plugin' and plugin.slug == p.slug %} class="active"{% endif %}>
-                <a href="{% url sentry-configure-project-plugin project.pk p.slug %}">{{ p.get_title }}</a>
+    <section class="body">
+        <ul class="nav tabs">
+            <li{% if page == 'details' %} class="active"{% endif %}>
+                <a href="{% url sentry-manage-project project.pk %}">{% trans "Details" %}</a>
             </li>
-        {% endfor %}
-    </ul>
-    {% block inner %}
-        <p>{% trans "Here you can edit project information, as well as control the access list for a project with fine-grained permissions." %}</p>
-        <hr>
-        <div class="page-header">
-            <h2>{% trans "Project Details" %}</h2>
-        </div>
-        {% if request.GET.success %}
-            <div class="alert alert-success">{% trans "Changes to your project were saved successfully." %}</div>
-        {% else %}
-            {% if form.errors %}
-                <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
-            {% endif %}
-        {% endif %}
-        <form class="form-stacked" action="" method="post">
-            {% csrf_token %}
-            <fieldset>
-                {% for field in form %}
-                    {% include "sentry/partial/_form_field.html" %}
-                {% endfor %}
-            </fieldset>
-            <fieldset class="form-actions">
-                <button type="submit" class="btn primary">{% trans "Save Changes" %}</button>
-                {% if PROJECT_ID != project.pk %}
-                    <a href="{% url sentry-remove-project project.pk %}" class="btn danger">{% trans "Remove Project" %}</a>
-                {% else %}
-                    <a href="#" class="btn disabled danger">{% trans "Cannot remove default project" %}</a>
+            {% for p in PLUGINS.for_project %}
+                <li{% if page == 'plugin' and plugin.slug == p.slug %} class="active"{% endif %}>
+                    <a href="{% url sentry-configure-project-plugin project.pk p.slug %}">{{ p.get_title }}</a>
+                </li>
+            {% endfor %}
+        </ul>
+        {% block inner %}
+            <p>{% trans "Here you can edit project information, as well as control the access list for a project with fine-grained permissions." %}</p>
+            <hr>
+            <div class="page-header">
+                <h2>{% trans "Project Details" %}</h2>
+            </div>
+            {% if request.GET.success %}
+                <div class="alert alert-success">{% trans "Changes to your project were saved successfully." %}</div>
+            {% else %}
+                {% if form.errors %}
+                    <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
                 {% endif %}
-            </fieldset>
-        </form>
-        <div class="page-header">
-            <a href="{% url sentry-new-project-member project.pk %}" class="btn pull-right small primary">{% trans "+ New Member" %}</a>
-            <h2>{% trans "Members" %}</h2>
-        </div>
-        <table class="table table-bordered table-zebra">
-            <colgroup>
-                <col width="100px"/>
-                <col/>
-                <col width="50px"/>
-            </colgroup>
-            <thead>
-                <tr>
-                    <th>{% trans "Username" %}</th>
-                    <th>{% trans "Access" %}</th>
-                    <th>&nbsp;</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for member, user in member_list %}
+            {% endif %}
+            <form class="form-stacked" action="" method="post">
+                {% csrf_token %}
+                <fieldset>
+                    {% for field in form %}
+                        {% include "sentry/partial/_form_field.html" %}
+                    {% endfor %}
+                </fieldset>
+                <fieldset class="form-actions">
+                    <button type="submit" class="btn primary">{% trans "Save Changes" %}</button>
+                    {% if PROJECT_ID != project.pk %}
+                        <a href="{% url sentry-remove-project project.pk %}" class="btn danger">{% trans "Remove Project" %}</a>
+                    {% else %}
+                        <a href="#" class="btn disabled danger">{% trans "Cannot remove default project" %}</a>
+                    {% endif %}
+                </fieldset>
+            </form>
+            <div class="page-header">
+                <a href="{% url sentry-new-project-member project.pk %}" class="btn pull-right small primary">{% trans "+ New Member" %}</a>
+                <h2>{% trans "Members" %}</h2>
+            </div>
+            <table class="table table-bordered table-zebra">
+                <colgroup>
+                    <col width="100px"/>
+                    <col/>
+                    <col width="50px"/>
+                </colgroup>
+                <thead>
                     <tr>
-                        <td><a href="{% url sentry-edit-project-member project.pk member.pk %}">{{ user.username }}</a></td>
-                        <td>
-                            {{ member.get_type_display }}
-                        </td>
-                        <td style="text-align:center;">
-                            {% if user == project.owner %}
-                                <em>owner</em>
-                            {% else %}
-                                <a href="{% url sentry-remove-project-member project.pk member.pk %}">{% trans "Revoke" %}</a>
-                            {% endif %}
-                        </td>
+                        <th>{% trans "Username" %}</th>
+                        <th>{% trans "Access" %}</th>
+                        <th>&nbsp;</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% endblock %}
+                </thead>
+                <tbody>
+                    {% for member, user in member_list %}
+                        <tr>
+                            <td><a href="{% url sentry-edit-project-member project.pk member.pk %}">{{ user.username }}</a></td>
+                            <td>
+                                {{ member.get_type_display }}
+                            </td>
+                            <td style="text-align:center;">
+                                {% if user == project.owner %}
+                                    <em>owner</em>
+                                {% else %}
+                                    <a href="{% url sentry-remove-project-member project.pk member.pk %}">{% trans "Revoke" %}</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endblock %}
+    </section>
 {% endblock %}

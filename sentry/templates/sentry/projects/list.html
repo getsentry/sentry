@@ -4,6 +4,8 @@
 
 {% block title %}{% trans "Project List" %} | {{ block.super }}{% endblock %}
 
+{% block bodyclass %}{% endblock %}
+
 {% block page_header %}
     <a href="{% url sentry-new-project %}" class="btn pull-right primary">+ Create a new project</a>
     {{ block.super }}
@@ -13,11 +15,8 @@
     {% trans "Project List" %}
 {% endblock %}
 
-{% block sidebar %}
-{% endblock %}
-
 {% block content %}
-    <div class="span12">
+    <section class="body">
         {% if project_list %}
             <p>You have access to the following projects:</p>
             <table class="table table-zebra table-bordered">
@@ -50,5 +49,5 @@
                 <div class="alert alert-notice">You do not have access to any projects. Ask an administrator to add you as a member.</div>
             {% endif %}
         {% endif %}
-    </div>
+    </section>
 {% endblock %}
