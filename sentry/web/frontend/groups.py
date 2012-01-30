@@ -138,6 +138,11 @@ def search(request, project):
     if not query:
         return HttpResponseRedirect(reverse('sentry', args=[project.pk]))
 
+    sort = request.GET.get('sort')
+    if sort not in SEARCH_SORT_OPTIONS:
+        sort = SEARCH_DEFAULT_SORT_OPTION
+    sort_label = _get_sort_label(sort)
+
     result = event_re.match(query)
     if result:
         # Forward to message if it exists
@@ -162,24 +167,20 @@ def search(request, project):
         else:
             return HttpResponseRedirect(message.get_absolute_url())
     elif not settings.USE_SEARCH:
-        return render_to_response('sentry/invalid_message_id.html', {
-                'project': project,
-            }, request)
+        event_list = Group.objects.none()
+        # return render_to_response('sentry/invalid_message_id.html', {
+        #         'project': project,
+        #     }, request)
+    else:
+        documents = list(SearchDocument.objects.search(project, query, sort_by=sort))
+        groups = Group.objects.in_bulk([d.group_id for d in documents])
 
-    sort = request.GET.get('sort')
-    if sort not in SEARCH_SORT_OPTIONS:
-        sort = SEARCH_DEFAULT_SORT_OPTION
-    sort_label = _get_sort_label(sort)
-
-    documents = list(SearchDocument.objects.search(project, query, sort_by=sort))
-    groups = Group.objects.in_bulk([d.group_id for d in documents])
-
-    event_list = []
-    for doc in documents:
-        try:
-            event_list.append(groups[doc.group_id])
-        except KeyError:
-            continue
+        event_list = []
+        for doc in documents:
+            try:
+                event_list.append(groups[doc.group_id])
+            except KeyError:
+                continue
 
     return render_to_response('sentry/search.html', {
         'project': project,

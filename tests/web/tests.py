@@ -311,7 +311,7 @@ class SentrySearchTest(TestCase):
             message='hi',
         )
 
-        with self.Settings(SENTRY_PUBLIC=True):
+        with self.Settings(SENTRY_PUBLIC=True, SENTRY_USE_SEARCH=False):
             response = self.client.get(reverse('sentry-search', kwargs={'project_id': 1}), {'q': '%s$%s' % (checksum, checksum)})
             self.assertEquals(response.status_code, 200)
             self.assertTemplateUsed(response, 'sentry/search.html')
