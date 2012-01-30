@@ -44,8 +44,7 @@ class SentryViewsTest(TestCase):
         self.assertTemplateNotUsed(resp, 'sentry/dashboard.html')
 
         # requires two projects to show dashboard
-        p = Project.objects.create(name='foo')
-        ProjectMember.objects.create(project=p, user=self.user)
+        Project.objects.create(name='foo', owner=self.user)
         resp = self.client.get(reverse('sentry'), follow=True)
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/dashboard.html')

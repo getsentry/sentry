@@ -31,11 +31,6 @@ def new_project(request):
         project = form.save(commit=False)
         project.owner = request.user
         project.save()
-
-        project.member_set.create(
-            user=project.owner,
-            type=MEMBER_OWNER,
-        )
         return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
 
     context = csrf(request)

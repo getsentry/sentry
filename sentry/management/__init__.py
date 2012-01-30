@@ -9,9 +9,9 @@ sentry.management
 import logging
 from django.contrib.auth.models import User
 from django.db.models.signals import post_syncdb, post_save
-from sentry.models import Project, ProjectMember, MessageIndex, \
+from sentry.models import Project, MessageIndex, SearchDocument, \
   Group, Event, FilterValue, MessageFilterValue, MessageCountByMinute, \
-  SearchDocument, MEMBER_OWNER
+  MEMBER_OWNER
 
 
 def register_indexes():
@@ -44,13 +44,6 @@ def create_default_project(created_models, verbosity=2, **kwargs):
         if not created:
             return
 
-        if owner:
-            ProjectMember.objects.create(
-                project=project,
-                user=owner,
-                type=MEMBER_OWNER,
-            )
-
         if verbosity > 0:
             print 'Created default Sentry project owned by %s' % owner
 
@@ -64,6 +57,19 @@ def create_default_project(created_models, verbosity=2, **kwargs):
             )
             if verbosity > 0:
                 print 'done!'
+
+
+def create_project_member_for_owner(instance, created, **kwargs):
+    if not created:
+        return
+
+    if not instance.owner:
+        return
+
+    instance.member_set.create(
+        user=instance.owner,
+        type=MEMBER_OWNER
+    )
 
 
 def update_document(instance, created, **kwargs):
@@ -80,8 +86,13 @@ post_syncdb.connect(
     create_default_project,
     dispatch_uid="create_default_project"
 )
-
+post_save.connect(
+    create_project_member_for_owner,
+    sender=Project,
+    dispatch_uid="create_project_member_for_owner"
+)
 post_save.connect(
     update_document,
     sender=Group,
+    dispatch_uid="update_document"
 )
