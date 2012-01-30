@@ -30,13 +30,13 @@ class Response(object):
 class PluginManager(InstanceManager):
     def for_project(self):
         for plugin in self.all():
-            if not plugin.project_conf_form:
+            if not plugin.has_project_conf():
                 continue
             yield plugin
 
     def for_site(self):
         for plugin in self.all():
-            if not plugin.site_conf_form:
+            if not plugin.has_site_conf():
                 continue
             yield plugin
 
@@ -107,6 +107,12 @@ class IPlugin(object):
 
     def get_conf_title(self):
         return self.conf_title or self.get_title()
+
+    def has_site_conf(self):
+        return self.site_conf_form is not None
+
+    def has_project_conf(self):
+        return self.site_project_form is not None
 
     def get_title(self):
         return self.title

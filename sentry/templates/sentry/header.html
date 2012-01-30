@@ -10,15 +10,17 @@
                         <input type="hidden" name="sort" value="{% if sort %}{{ sort }}{% endif %}"/>
                         <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="{% if HAS_SEARCH %}search query or message id{% else %}message id{% endif %}" class="search-query pull-left" />
                     </form>
+                {% else %}
+                    <form class="navbar-search pull-right" id="search">
+                        <input type="hidden" name="sort" value="{% if sort %}{{ sort }}{% endif %}"/>
+                        <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="select a project to enable search" class="search-query pull-left disabled" disabled="disabled" />
+                    </form>
                 {% endif %}
 
                 <ul class="nav">
-                    <li><a href="{% url sentry %}">{% trans "Dashboard" %}</a></li>
                     {% if project %}
+                        <li><a href="{% url sentry %}">{% trans "Dashboard" %}</a></li>
                         <li><a href="{% url sentry-events project.pk %}">{% trans "Stream" %}</a></li>
-                    {% endif %}
-                    {% if user.is_staff %}
-                        <li><a href="{% url sentry-status %}">{% trans "Status" %}</a></li>
                     {% endif %}
                 </ul>
                 <ul class="nav pull-right">
@@ -37,6 +39,10 @@
                             <a href="#" class="dropdown-toggle">{% trans "Account" %} <b class="caret"></b></a>
                             <ul class="dropdown-menu">
                                 <li><a href="{% url sentry-project-list %}">{% trans "Manage Projects" %}</a></li>
+                                {% if request.user.is_staff %}
+                                    <li class="divider"></li>
+                                    <li><a href="{% url sentry-admin-status %}">{% trans "Admin" %}</a></li>
+                                {% endif %}
                                 <li class="divider"></li>
                                 <li><a href="{% url sentry-logout %}">{% trans "Logout" %}</a></li>
                             </ul>

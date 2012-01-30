@@ -10,7 +10,10 @@ from django.conf.urls.defaults import *
 from django.views.defaults import page_not_found
 
 from sentry.web import api
-from sentry.web.frontend import accounts, generic, groups, events, projects
+from sentry.web.frontend import accounts, generic, groups, events, \
+  projects, admin
+
+__all__ = ('handler404', 'handler500', 'urlpatterns')
 
 
 def init_plugins():
@@ -73,7 +76,8 @@ urlpatterns = patterns('',
     # Global
 
     url(r'^$', generic.dashboard, name='sentry'),
-    url(r'^status/$', generic.status, name='sentry-status'),
+    url(r'^admin/status/$', admin.status, name='sentry-admin-status'),
+    url(r'^admin/plugins/(?P<slug>[\w_-]+)/$', admin.configure_plugin, name='sentry-admin-configure-plugin'),
 
     # API / JS
 

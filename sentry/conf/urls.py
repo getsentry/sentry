@@ -10,10 +10,11 @@ These are additional urls used by the Sentry-provided web server
 
 import os
 
-from django.contrib import admin
-
 from sentry.web.urls import *
+from sentry.web.frontend import generic
+from django.conf.urls.defaults import *
 
+from django.contrib import admin
 
 admin.autodiscover()
 admin_media_dir = os.path.join(os.path.dirname(admin.__file__), 'media')

@@ -13,6 +13,7 @@ from django.core.urlresolvers import reverse, resolve
 from django.http import HttpResponse
 from django.template import loader, RequestContext, Context
 from django.utils.datastructures import SortedDict
+from django.utils.safestring import mark_safe
 
 from sentry.conf import settings
 from sentry.models import ProjectMember, Project, View, \
@@ -157,7 +158,7 @@ def plugin_config(plugin, project, request):
         return ('redirect', None)
 
     from django.template.loader import render_to_string
-    return ('display', render_to_string(template, {
+    return ('display', mark_safe(render_to_string(template, {
             'form': form,
             'request': request,
-        }, context_instance=RequestContext(request)))
+        }, context_instance=RequestContext(request))))

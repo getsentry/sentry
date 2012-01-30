@@ -24,7 +24,7 @@ class BugzillaSubmitForm(forms.Form):
 
 class CreateBugzillaIssue(Plugin):
     title = 'Create Bugzilla Issue'
-    slug = 'create-bugzilla-issue'
+    slug = 'bugzilla'
 
     conf_title = 'Bugzilla'
     conf_key = 'bugzilla'

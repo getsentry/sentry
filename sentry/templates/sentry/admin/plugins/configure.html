@@ -1,0 +1,15 @@
+{% extends "sentry/admin/base.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}Configure {{ title }} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-admin-configure-plugin plugin.slug %}">Configure {{ title }}</a></li>
+{% endblock %}
+
+{% block inner %}
+    {{ view }}
+{% endblock %}

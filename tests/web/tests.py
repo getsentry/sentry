@@ -102,9 +102,9 @@ class SentryViewsTest(TestCase):
 
     def test_status(self):
         self.client.login(username='admin', password='admin')
-        resp = self.client.get(reverse('sentry-status'), follow=True)
+        resp = self.client.get(reverse('sentry-admin-status'), follow=True)
         self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/status.html')
+        self.assertTemplateUsed(resp, 'sentry/admin/status.html')
 
     def test_event_list(self):
         self.client.login(username='admin', password='admin')
