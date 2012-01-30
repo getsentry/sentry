@@ -7,10 +7,6 @@
                 <a class="brand" href="{% url sentry %}">Sentry</a>
                 <ul class="nav">
                     <li><a href="{% url sentry %}">Home</a></li>
-                    {% if project and project_list|length > 1 %}
-                        <li><a href="{% url sentry project.pk %}">{{ project.name }}</a></li>
-                    {% endif %}
-                    {% if user.is_staff %}
                     <li><a href="{% url sentry-status %}">Status</a></li>
                     {% endif %}
                 </ul>
