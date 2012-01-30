@@ -84,15 +84,18 @@ def update_document(instance, created, **kwargs):
 # Signal registration
 post_syncdb.connect(
     create_default_project,
-    dispatch_uid="create_default_project"
+    dispatch_uid="create_default_project",
+    weak=False,
 )
 post_save.connect(
     create_project_member_for_owner,
     sender=Project,
-    dispatch_uid="create_project_member_for_owner"
+    dispatch_uid="create_project_member_for_owner",
+    weak=False,
 )
 post_save.connect(
     update_document,
     sender=Group,
-    dispatch_uid="update_document"
+    dispatch_uid="update_document",
+    weak=False,
 )
