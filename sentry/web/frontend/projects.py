@@ -4,7 +4,7 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
 from sentry.conf import settings
-from sentry.models import MEMBER_USER, MEMBER_OWNER
+from sentry.models import MEMBER_USER, MEMBER_OWNER, Project, ProjectMember
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms import EditProjectForm, NewProjectForm, \
@@ -15,8 +15,14 @@ from sentry.web.helpers import render_to_response, get_project_list, \
 
 @login_required
 def project_list(request):
+    # make lost projects visible to superuser
+    if request.user.is_superuser:
+        projects = Project.objects.all()
+    else:
+        projects.get_project_list(request.user, hidden=True)
+  
     return render_to_response('sentry/projects/list.html', {
-        'project_list': get_project_list(request.user, hidden=True).values(),
+        'project_list': projects.values(),
     }, request)
 
 
@@ -31,6 +37,8 @@ def new_project(request):
         project = form.save(commit=False)
         project.owner = request.user
         project.save()
+        #prevent projects becoming lost
+        ProjectMember.objects.create(project=project, user=request.user)
         return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
 
     context = csrf(request)
