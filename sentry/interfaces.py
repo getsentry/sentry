@@ -373,7 +373,7 @@ class Template(Interface):
 
     def get_search_context(self, event):
         return {
-            'text': [self.abs_path, self.filename, self.context_line, self.pre_context, self.post_context],
+            'text': [self.abs_path, self.filename, self.context_line],
         }
 
 
