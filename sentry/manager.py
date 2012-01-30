@@ -6,10 +6,12 @@ sentry.manager
 :license: BSD, see LICENSE for more details.
 """
 
+from collections import defaultdict
 import datetime
 import hashlib
 import itertools
 import logging
+import re
 import warnings
 
 from django.db import models
@@ -219,7 +221,7 @@ class GroupManager(models.Manager, ChartMixin):
         # TODO: this function is way too damn long and needs refactored
         # the inner imports also suck so let's try to move it away from
         # the objects manager
-        from sentry.models import Event, Project, View
+        from sentry.models import Event, Project, View, SearchDocument
         from sentry.views import View as ViewHandler
 
         project = Project.objects.get(pk=project)
@@ -347,6 +349,9 @@ class GroupManager(models.Manager, ChartMixin):
         # save the event unless its been sampled
         if not is_sample:
             event.save()
+
+        if settings.USE_SEARCH:
+            SearchDocument.objects.index(event)
 
         if is_new:
             regression_signal.send(sender=self.model, instance=group)
@@ -596,3 +601,120 @@ class InstanceMetaManager(models.Manager):
             }).values_list('key', 'value'))
             self._metadata[instance.pk] = result
         return self._metadata[instance.pk]
+
+
+class SearchDocumentManager(models.Manager):
+    # Words which should not be indexed
+    STOP_WORDS = set(['the', 'of', 'to', 'and', 'a', 'in', 'is', 'it', 'you', 'that'])
+
+    # Do not index any words shorter than this
+    MIN_WORD_LENGTH = 3
+
+    # Consider these characters to be punctuation (they will be replaced with spaces prior to word extraction)
+    PUNCTUATION_CHARS = re.compile('[%s]' % re.escape(".,;:!?@$%^&*()-<>[]{}\\|/`~'\""))
+
+    def _tokenize(self, text):
+        """
+        Given a string, returns a list of tokens.
+        """
+        if not text:
+            return []
+
+        text = self.PUNCTUATION_CHARS.sub(' ', text)
+
+        words = [t for t in text.split() if len(t) >= self.MIN_WORD_LENGTH and t.lower() not in self.STOP_WORDS]
+
+        return words
+
+    def search(self, project, query, sort_by='score', offset=0, limit=100):
+        tokens = self._tokenize(query)
+
+        if sort_by == 'score':
+            order_by = 'SUM(st.times_seen) / sd.total_events DESC'
+        elif sort_by == 'new':
+            order_by = 'sd.date_added DESC'
+        elif sort_by == 'date':
+            order_by = 'sd.date_changed DESC'
+        else:
+            raise ValueError('sort_by: %r' % sort_by)
+
+        sql = """
+            SELECT sd.id, sd.group_id, SUM(st.times_seen) / sd.total_events as score,
+                sd.date_changed, sd.date_added
+            FROM sentry_searchdocument as sd
+            INNER JOIN sentry_searchtoken as st
+                ON st.document_id = sd.id
+            WHERE st.token IN (%s)
+                AND sd.project_id = %s
+            GROUP BY sd.id, sd.group_id, sd.total_events, sd.date_changed, sd.date_added
+            ORDER BY %s
+            LIMIT %d OFFSET %d
+        """ % (
+            ', '.join('%s' for i in range(len(tokens))),
+            project.id,
+            order_by,
+            limit,
+            offset,
+        )
+        params = tokens
+
+        return self.raw(sql, params)
+
+    def index(self, event):
+        group = event.group
+        document, created = self.get_or_create(
+            project=event.project,
+            group=group,
+            defaults={
+                'status': group.status,
+                'total_events': 1,
+                'date_added': group.first_seen,
+                'date_changed': group.last_seen,
+            }
+        )
+        if not created:
+            document.update(
+                status=group.status,
+                total_events=F('total_events') + 1,
+                date_changed=group.last_seen,
+            )
+
+        context = defaultdict(list)
+        for interface in event.interfaces.itervalues():
+            for k, v in interface.get_search_context(event).iteritems():
+                context[k].extend(v)
+
+        context['text'].extend([
+            event.message,
+            event.logger,
+            event.server_name,
+            event.culprit,
+        ])
+
+        token_counts = defaultdict(lambda: defaultdict(int))
+        for field, values in context.iteritems():
+            field = field.lower()
+            if field == 'text':
+                # we only tokenize the base text field
+                values = itertools.chain(*[self._tokenize(v) for v in values])
+            for value in values:
+                if not value:
+                    continue
+                token_counts[field][value.lower()] += 1
+
+        # TODO: might be worthwhile to make this update then create
+        for field, tokens in token_counts.iteritems():
+            for token, count in tokens.iteritems():
+                token, created = document.token_set.get_or_create(
+                    field=field,
+                    token=token,
+                    defaults={
+                        'times_seen': count,
+                    }
+                )
+                if not created:
+                    token.update(
+                        times_seen=F('times_seen') + count,
+                    )
+
+        return document

@@ -84,7 +84,7 @@ def render_to_string(template, context=None, request=None):
         context = {}
 
     context.update({
-        'has_search': False,
+        'HAS_SEARCH': settings.USE_SEARCH,
         'MESSAGES_PER_PAGE': settings.MESSAGES_PER_PAGE,
         'PROJECT_ID': int(settings.PROJECT),
         'VIEWS': list(View.objects.all()),
