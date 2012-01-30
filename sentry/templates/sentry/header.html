@@ -18,7 +18,7 @@
                     {% if request.user.is_authenticated %}
                         {% if project_list and project_list|length > 1 %}
                             <li class="dropdown" data-dropdown="dropdown">
-                                <a href="#" class="dropdown-toggle">{% trans "Projects" %}</a>
+                                <a href="#" class="dropdown-toggle">{% trans "Projects" %} <b class="caret"></b></a>
                                 <ul class="dropdown-menu">
                                     {% for p in project_list %}
                                         <li{% if project == p %} class="active"{% endif %}><a href="{% url sentry p.pk %}">{{ p.name }}</a></li>
