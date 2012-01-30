@@ -1,4 +1,11 @@
+Version 2.1.2
+-------------
+
+* Fixed an issue that was causing signals to not be registered.
+* Made date the default sort order for aggregate stream.
+
 Version 2.1.1
+-------------
 
 * Fixed an issue with indexing pre and post context on templates.
 
