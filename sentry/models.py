@@ -585,3 +585,5 @@ class SearchToken(Model):
 
 class MessageIndex(BaseIndex):
     model = Event
+
+from . import management
