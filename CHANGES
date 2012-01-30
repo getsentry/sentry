@@ -1,3 +1,15 @@
+Version 2.1.0
+-------------
+
+* ``pytz`` is now a requirement.
+* Changed default TIME_ZONE to be "UTC".
+* Corrected some issues around how dates were localized.
+* Initial implementation of full-text search.
+* Fixed sending of regression_signal so it only happens if event
+  has been marked as new.
+* Changed ProjectMember.get_dsn() to use request.get_host() which
+  corrects a bug in some webservers.
+
 Version 2.0.2
 -------------
 
