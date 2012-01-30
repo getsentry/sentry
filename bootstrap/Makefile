@@ -1,7 +1,7 @@
 VERSION=2.0.0
-BOOTSTRAP = ../sentry/static/styles/bootstrap.css
-BOOTSTRAP_MIN = ../sentry/static/styles/bootstrap.min.css
-BOOTSTRAP_LESS = ./lib/bootstrap.less
+BOOTSTRAP = ../sentry/static/styles/global.css
+BOOTSTRAP_MIN = ../sentry/static/styles/global.min.css
+BOOTSTRAP_LESS = ./sentry.less
 LESS_COMPRESSOR ?= `which lessc`
 UGLIFY_JS ?= `which uglifyjs`
 WATCHR ?= `which watchr`

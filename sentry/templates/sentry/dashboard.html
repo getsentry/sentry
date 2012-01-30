@@ -2,12 +2,14 @@
 
 {% load i18n %}
 
+{% block bodyclass %}{% endblock %}
+
 {% block title %}{% trans "Select a Project" %} | {{ block.super }}{% endblock %}
 
-{% block heading %}{% trans "Select a Project" %}{% endblock %}
+{% block page_header %}{% endblock %}
 
 {% block content %}
-    <div class="span12">
+    <section class="body">
         {% if project_list %}
             <div class="alert alert-info">Select a project to view the stream of events...</div>
             <ul class="thumbnails sparkline-grid">
@@ -27,7 +29,7 @@
                 <div class="alert alert-notice">You do not have access to any projects. Ask an administrator to add you as a member.</div>
             {% endif %}
         {% endif %}
-    </div>
+    </section>
 {% endblock %}
 
 

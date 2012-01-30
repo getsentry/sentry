@@ -17,41 +17,35 @@
 {% endblock %}
 
 {% block page_header %}
-    <div class="sparkline" id="sparkline"></div>
-    {% if VIEWS %}
-        <ul class="nav pills">
-            <li{% if not view %} class="active"{% endif %}><a href="{% url sentry project.pk %}">{% trans "All" %}</a></li>
+    <div class="btn-group pull-right">
+        {% if VIEWS %}
+            <a class="btn small{% if not view %} active{% endif %}" href="{% url sentry project.pk %}">{% trans "All" %}</a>
             {% for v in VIEWS %}
-                <li{% if view == v %} class="active"{% endif %}><a href="{% url sentry project.pk v.pk %}">{{ v.verbose_name_plural }}</a></li>
+                <a class="btn small{% if view == v %} active{% endif %}" href="{% url sentry project.pk v.pk %}">{{ v.verbose_name_plural }}</a>
             {% endfor %}
-        </ul>
-    {% endif %}
+        {% endif %}
+    </div>
     {{ block.super }}
 {% endblock %}
 
-{% block heading %}{% trans "Events <small>Aggregated</small>" %}{% endblock %}
+{% block breadcrumb %}{% endblock %}
 
 {% block sidebar %}
     {% querystring from request without bookmarks as bookmark_querystring %}
-    <div class="sidebar-module sidebar-module-{{ filter.column }}">
-        <h2>{% trans "Bookmarks" %}</h2>
-        <form>
-        <ul class="bookmarks-list filter-list">
-            <li{% if not request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ bookmark_querystring }}">{% trans "All Events" %}</a></li>
-            <li{% if request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ bookmark_querystring }}&amp;bookmarks=1">{% trans "Only Bookmarks" %}</a></li>
-        </ul>
-        </form>
-    </div>
+    <h6>{% trans "Bookmarks" %}</h6>
+    <form>
+    <ul class="nav tabs stacked">
+        <li{% if not request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ bookmark_querystring }}">{% trans "All Events" %}</a></li>
+        <li{% if request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ bookmark_querystring }}&amp;bookmarks=1">{% trans "Only Bookmarks" %}</a></li>
+    </ul>
 
     {% for filter in filters %}
-        <div class="sidebar-module sidebar-module-{{ filter.column }}">
-            {% if filter.show_label %}
-                <h2>{% trans filter.label %}</h2>
-            {% endif %}
-            <form method="get" action="{{ filter.get_query_string|safe }}">
-                {{ filter.render }}
-            </form>
-        </div>
+        {% if filter.show_label %}
+            <h6>{% trans filter.label %}</h6>
+        {% endif %}
+        <form method="get" action="{{ filter.get_query_string|safe }}">
+            {{ filter.render }}
+        </form>
     {% endfor %}
 {% endblock %}
 
@@ -59,23 +53,11 @@
     {% paginator event_list from request as event_list per_page MESSAGES_PER_PAGE %}
     {% querystring from request without sort as sort_querystring %}
 
-    <ul class="nav tabs options">
-        <li class="previous{% if not event_list.paginator.has_previous %} disabled{% endif %}">
-            {% if event_list.paginator.has_previous %}
-                <a href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}">&larr; {% trans "Previous" %}</a>
-            {% else %}
-                <a>&larr; {% trans "Previous" %}</a>
-            {% endif %}
-        </li>
-        <li class="next{% if not event_list.paginator.has_next %} disabled{% endif %}">
-            {% if event_list.paginator.has_next %}
-                <a href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}">{% trans "Next" %} &rarr;</a>
-            {% else %}
-                <a>{% trans "Next" %} &rarr;</a>
-            {% endif %}
-        </li>
-        <li class="dropdown pull-right" data-dropdown="dropdown">
-            <a href="#" class="dropdown-toggle">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <b class="caret"></b></a>
+    <div class="actionbar">
+        <a class="btn" href="javascript:void(0)" onclick="Sentry.stream.clear({{ project.id|safe }});">{% trans "Resolve Feed" %}</a>
+        <a class="btn" href="javascript:void(0)" id="sentry_realtime" class="realtime-play" onclick="Sentry.realtime.toggle();">{% trans "Pause Feed" %}</a>
+        <div class="dropdown" data-dropdown="dropdown">
+            <a href="#" class="dropdown-toggle btn">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <b class="caret"></b></a>
             <ul class="dropdown-menu">
                 <li{% ifequal sort 'priority' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}">{% trans "Priority" %}</a></li>
                 <li{% ifequal sort 'date' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=date">{% trans "Last Seen" %}</a></li>
@@ -90,33 +72,23 @@
                     <li{% ifequal sort 'accel_60' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=accel_60">{% trans "Trending: 60 minutes" %}</a></li>
                 {% endif %}
             </ul>
-        </li>
-        <li class="pull-right">
-            <a href="javascript:void(0)" onclick="Sentry.stream.clear({{ project.id|safe }});">{% trans "Resolve Feed" %}</a>
-        </li>
-        <li class="pull-right">
-            <a href="javascript:void(0)" id="sentry_realtime" class="realtime-play" onclick="Sentry.realtime.toggle();">{% trans "Pause Feed" %}</a>
-        </li>
-    </ul>
+        </div>
+        <div class="btn-group pull-right">
+            <a class="btn prev{% if not event_list.paginator.has_next %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}">&larr;</a>
+            <a class="btn next{% if not event_list.paginator.has_next %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}">&rarr;</a>
+        </div>
+    </div>
 
     {% if event_list.paginator.objects %}
         {% handle_before_events request event_list.paginator.objects %}
-        <ul class="messages" id="event_list">
+        <ul class="events" id="event_list">
             {% for group, is_bookmarked in event_list.paginator.objects|as_bookmarks:request.user %}
                 {% include "sentry/partial/_group.html" %}
             {% endfor %}
         </ul>
     {% else %}
-        <ul class="messages" id="event_list">
+        <ul class="events" id="event_list">
             <li class="no-messages" id="no_messages">{% trans "No events match your filters." %}</li>
         </ul>
     {% endif %}
-{% endblock %}
-
-{% block content_after %}
-    <script type="text/javascript">
-    $(document).ready(function() {
-        Sentry.charts.render("#sparkline", {{ project.id|safe }});
-    });
-    </script>
 {% endblock %}

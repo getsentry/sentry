@@ -5,8 +5,10 @@
 
 {% block title %}{{ group.error }} | {{ block.super }}{% endblock %}
 
-{% block heading %}
-    {% trans "Event Details" %} <small>{{ group.error }}</small>
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-group group.project_id group.id %}">{{ group.message|truncatechars:30 }}</a></li>
 {% endblock %}
 
 {% block sidebar %}
@@ -39,141 +41,125 @@
 
 {% block main %}
     {% handle_before_events request group %}
-    <ul class="messages" id="event_list">
-        <li class="{% cycle 'row1' 'row2' %} level-{{ group.level }} active" id="group_{{ group.pk|safe }}" data-sentry-count="{{ group.times_seen }}">
-            <span class="count">{{ group.times_seen|small_count }}</span>
-            <h3>{{ group.message_top }}</h3>
-            <span class="last_seen" title="{{ group.last_seen }}">{{ group.last_seen|timesince }}</span>
-            <span class="status status-{{ group.status }}">{{ group.get_status_display }}</span>
-            <p class="message">
-                <span class="tag tag-level">{{ group.get_level_display }}</span>
-                <span class="tag tag-logger">{{ group.logger }}</span>
-                {% with group.get_version as version %}
-                    {% if version %}
-                        <span class="tag tag-version">{{ version.0 }} {{ version.1 }}</span>
+    <ul class="events" id="event_list">
+        {% include "sentry/partial/_group.html" %}
+    </ul>
+
+    <section class="body">
+        <ul class="nav tabs">
+            <li{% ifequal page 'details' %} class="active"{% endifequal %}>
+                <a href="{% url sentry-group group.project_id group.pk %}">{% trans "Details" %}</a>
+            </li>
+            <li{% ifequal page 'event_list' %} class="active"{% endifequal %}>
+                <a href="{% url sentry-group-events group.project_id group.pk %}">{% trans "Events" %}</a>
+            </li>
+            {% for label, link, is_active in group|get_panels:request %}
+                <li{% if is_active %} class="active"{% endif %}><a href="{{ link }}">{{ label }}</a></li>
+            {% endfor %}
+            <li class="dropdown pull-right" data-dropdown="dropdown">
+                <a class="dropdown-toggle">{% trans "Actions" %} <b class="caret"></b></a>
+                <ul class="dropdown-menu">
+                    {# We're going to move these to the resolve action location #}
+                    {% if group.status == 0 %}
+                        <li><a href="javascript:void(0)">{% trans "&#10003; Mark as Resolved" %}</a></li>
+                    {% else %}
+                        <li class="disabled"><a>{% trans "&#10003; Already Resolved" %}</a></li>
                     {% endif %}
-                {% endwith %}
-                {% for tag in group|get_tags:request %}<span class="tag">{{ tag }}</span> {% endfor %}
-                {{ group.error }}
-            </p>
-        </li>
-    </ul>
+                    <li><a href="{% url sentry-group-json project_id=project.pk group_id=group.pk %}">{% trans "Raw JSON Data" %}</a></li>
+                    {% for label, link, is_active in group|get_actions:request %}
+                        {% if forloop.first %}
+                            <li class="divider"></li>
+                        {% endif %}
+                        <li><a href="{{ link }}">{{ label }}</a></li>
+                    {% endfor %}
+                </ul>
+            </li>
+        </ul>
 
-    <ul class="nav tabs">
-        <li{% ifequal page 'details' %} class="active"{% endifequal %}>
-            <a href="{% url sentry-group group.project_id group.pk %}">{% trans "Details" %}</a>
-        </li>
-        <li{% ifequal page 'event_list' %} class="active"{% endifequal %}>
-            <a href="{% url sentry-group-events group.project_id group.pk %}">{% trans "Events" %}</a>
-        </li>
-        {% for label, link, is_active in group|get_panels:request %}
-            <li{% if is_active %} class="active"{% endif %}><a href="{{ link }}">{{ label }}</a></li>
-        {% endfor %}
-        <li class="dropdown pull-right" data-dropdown="dropdown">
-            <a class="dropdown-toggle">{% trans "Actions" %} <b class="caret"></b></a>
-            <ul class="dropdown-menu">
-                {# We're going to move these to the resolve action location #}
-                {% if group.status == 0 %}
-                    <li><a href="javascript:void(0)">{% trans "&#10003; Mark as Resolved" %}</a></li>
-                {% else %}
-                    <li class="disabled"><a>{% trans "&#10003; Already Resolved" %}</a></li>
-                {% endif %}
-                <li><a href="{% url sentry-group-json project_id=project.pk group_id=group.pk %}">{% trans "Raw JSON Data" %}</a></li>
-                {% for label, link, is_active in group|get_actions:request %}
-                    {% if forloop.first %}
-                        <li class="divider"></li>
-                    {% endif %}
-                    <li><a href="{{ link }}">{{ label }}</a></li>
-                {% endfor %}
-            </ul>
-        </li>
-    </ul>
-
-    </ul>
-
-    {% block inner %}
-        {% if group.has_two_part_message %}
-            <div class="page-header">
-                <h2>{% trans "Full Message" %}</h2>
-            </div>
-            <pre id="full-message">{{ group.message }}</pre>
-        {% endif %}
-
-        {% if group|has_charts %}
-            <div class="module">
+        {% block inner %}
+            {% if group.has_two_part_message %}
                 <div class="page-header">
-                    <h2>{% trans "Frequency" %}</h2>
+                    <h2>{% trans "Full Message" %}</h2>
                 </div>
-                <div class="module-content" style="height: 120px;">
-                    <div id="chart">
-                        <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
-                        <p>Loading...</p>
+                <pre id="full-message">{{ group.message }}</pre>
+            {% endif %}
+
+            {% if group|has_charts %}
+                <div class="module">
+                    <div class="page-header">
+                        <h2>{% trans "Frequency" %}</h2>
+                    </div>
+                    <div class="module-content" style="height: 120px;">
+                        <div id="chart">
+                            <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
+                            <p>Loading...</p>
+                        </div>
                     </div>
                 </div>
-            </div>
-        {% endif %}
+            {% endif %}
 
-        {% for interface in interface_list %}
-            {{ interface }}
-        {% endfor %}
+            {% for interface in interface_list %}
+                {{ interface }}
+            {% endfor %}
 
-        {% if json_data %}
-            <div id="extra">
-                <div class="page-header">
-                    <h2>{% trans "Additional Data" %}</h2>
-                </div>
-                <table class="table table-bordered">
-                    {% for k, v in json_data.iteritems|as_sorted %}
-                        <tr>
-                            <th class="key">{{ k }}</th>
-                            <td class="values">
-                            {% if v %}
-                                {% if v|is_dict %}
-                                    {% if v|length > 5 %}
-                                        <a href="#" onclick="return varToggle(this, 'Extra{{ forloop.index }}')"><span>&#x25b6;</span> {% trans "Body" %}</a>
+            {% if json_data %}
+                <div id="extra">
+                    <div class="page-header">
+                        <h2>{% trans "Additional Data" %}</h2>
+                    </div>
+                    <table class="table table-bordered">
+                        {% for k, v in json_data.iteritems|as_sorted %}
+                            <tr>
+                                <th class="key">{{ k }}</th>
+                                <td class="values">
+                                {% if v %}
+                                    {% if v|is_dict %}
+                                        {% if v|length > 5 %}
+                                            <a href="#" onclick="return varToggle(this, 'Extra{{ forloop.index }}')"><span>&#x25b6;</span> {% trans "Body" %}</a>
+                                        {% endif %}
+                                        <table class="table vars" id="vExtra{{ forloop.index }}"{% if v|length > 5 %} style="display:none;"{% endif %}>
+                                            <colgroup>
+                                                <col style="width:100px;">
+                                            </colgroup>
+                                            <tbody>
+                                                {% for k_, v_ in v.iteritems|as_sorted %}
+                                                    <tr>
+                                                        <td>{{ k_ }}</td>
+                                                        <td class="code"><pre>{{ v_|pprint }}</pre></td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    {% else %}
+                                        <pre>{{ v|pprint }}</pre>
                                     {% endif %}
-                                    <table class="table vars" id="vExtra{{ forloop.index }}"{% if v|length > 5 %} style="display:none;"{% endif %}>
-                                        <colgroup>
-                                            <col style="width:100px;">
-                                        </colgroup>
-                                        <tbody>
-                                            {% for k_, v_ in v.iteritems|as_sorted %}
-                                                <tr>
-                                                    <td>{{ k_ }}</td>
-                                                    <td class="code"><pre>{{ v_|pprint }}</pre></td>
-                                                </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
                                 {% else %}
-                                    <pre>{{ v|pprint }}</pre>
+                                    <p>{% blocktrans with k as varname %}No data for {{ varname }}{% endblocktrans %}</p>
                                 {% endif %}
-                            {% else %}
-                                <p>{% blocktrans with k as varname %}No data for {{ varname }}{% endblocktrans %}</p>
-                            {% endif %}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </table>
-            </div>
-        {% endif %}
-
-        {% if version_data %}
-            <div id="versioninfo">
-                <div class="page-header">
-                    <h2>{% trans "Module Versions" %}</h2>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </table>
                 </div>
-                <table class="table table-bordered">
-                    {% for k, v in version_data.iteritems|as_sorted %}
-                        <tr>
-                            <th class="key">{{ k }}</th>
-                            <td class="values"><code>{{ v }}</code></td>
-                        </tr>
-                    {% endfor %}
-                </table>
-            </div>
-        {% endif %}
-    {% endblock %}
+            {% endif %}
+
+            {% if version_data %}
+                <div id="versioninfo">
+                    <div class="page-header">
+                        <h2>{% trans "Module Versions" %}</h2>
+                    </div>
+                    <table class="table table-bordered">
+                        {% for k, v in version_data.iteritems|as_sorted %}
+                            <tr>
+                                <th class="key">{{ k }}</th>
+                                <td class="values"><code>{{ v }}</code></td>
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            {% endif %}
+        {% endblock %}
+    </section>
 {% endblock %}
 
 {% block content_after %}

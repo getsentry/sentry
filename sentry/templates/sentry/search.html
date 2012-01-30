@@ -19,13 +19,13 @@
 
     {% if event_list %}
         {% handle_before_events request event_list %}
-        <ul class="messages" id="event_list">
+        <ul class="events" id="event_list">
             {% for group, is_bookmarked in event_list|as_bookmarks:request.user %}
                 {% include "sentry/partial/_group.html" %}
             {% endfor %}
         </ul>
     {% else %}
-        <ul class="messages" id="event_list">
+        <ul class="events" id="event_list">
             <li class="no-messages" id="no_messages">{% trans "No events match your search query." %}</li>
         </ul>
     {% endif %}
