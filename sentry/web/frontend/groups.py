@@ -40,14 +40,11 @@ SORT_OPTIONS = (
     'accel_15',
     'accel_60',
 )
-DEFAULT_SORT_OPTION = 'priority'
-
 SEARCH_SORT_OPTIONS = (
     'score',
     'date',
     'new',
 )
-SEARCH_DEFAULT_SORT_OPTION = 'date'
 
 
 def _get_rendered_interfaces(event):
@@ -104,7 +101,7 @@ def _get_group_list(request, project, view=None):
 
     sort = request.GET.get('sort')
     if sort not in SORT_OPTIONS:
-        sort = DEFAULT_SORT_OPTION
+        sort = settings.DEFAULT_SORT_OPTION
 
     if sort == 'date':
         event_list = event_list.order_by('-last_seen')
@@ -140,7 +137,7 @@ def search(request, project):
 
     sort = request.GET.get('sort')
     if sort not in SEARCH_SORT_OPTIONS:
-        sort = SEARCH_DEFAULT_SORT_OPTION
+        sort = settings.SEARCH_DEFAULT_SORT_OPTION
     sort_label = _get_sort_label(sort)
 
     result = event_re.match(query)
@@ -216,7 +213,7 @@ def group_list(request, project, view_id=None):
     # XXX: this is duplicate in _get_group_list
     sort = request.GET.get('sort')
     if sort not in SORT_OPTIONS:
-        sort = DEFAULT_SORT_OPTION
+        sort = settings.DEFAULT_SORT_OPTION
     sort_label = _get_sort_label(sort)
 
     today = datetime.datetime.utcnow()
