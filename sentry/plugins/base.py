@@ -112,7 +112,7 @@ class IPlugin(object):
         return self.site_conf_form is not None
 
     def has_project_conf(self):
-        return self.site_project_form is not None
+        return self.project_conf_form is not None
 
     def get_title(self):
         return self.title
