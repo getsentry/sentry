@@ -19,7 +19,7 @@
 
                 <ul class="nav">
                     {% if project %}
-                        <li><a href="{% url sentry %}">{% trans "Dashboard" %}</a></li>
+                        <li><a href="{% url sentry project.pk %}">{% trans "Dashboard" %}</a></li>
                         <li><a href="{% url sentry-events project.pk %}">{% trans "Stream" %}</a></li>
                     {% endif %}
                 </ul>
