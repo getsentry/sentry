@@ -27,7 +27,6 @@ from setuptools import setup, find_packages
 tests_require = [
     'nose==1.1.2',
     'django-nose==0.1.3',
-    'pytz==2011n',
 ]
 
 install_requires = [
@@ -41,6 +40,7 @@ install_requires = [
     'South>=0.7',
     'kombu>=1.5.1',
     'django-kombu==0.9.4',
+    'pytz>=2011n',
 ]
 
 setup(
