@@ -26,8 +26,19 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
     import datetime
 
     from sentry.models import Group, Event, MessageCountByMinute, \
-                              MessageFilterValue, FilterValue
+      MessageFilterValue, FilterValue, SearchDocument
     from sentry.utils.query import RangeQuerySetWrapper, SkinnyQuerySet
+
+    def cleanup_groups(iterable):
+        for obj in iterable:
+            for key, value in SkinnyQuerySet(MessageFilterValue).filter(group=obj).values_list('key', 'value'):
+                if not MessageFilterValue.objects.filter(key=key, value=value).exclude(group=obj).exists():
+                    print ">>> Removing <FilterValue: key=%s, value=%s>" % (key, value)
+                    FilterValue.objects.filter(key=key, value=value).delete()
+            print ">>> Removing all matching <SearchDocument: group=%s>" % (obj.pk)
+            SearchDocument.objects.filter(group=obj).delete()
+            print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
+            obj.delete()
 
     # TODO: we should collect which messages above were deleted
     # and potentially just send out post_delete signals where
@@ -67,7 +78,7 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
             print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
             obj.delete()
 
-        # GroupedMessage
+        # Group
         qs = SkinnyQuerySet(Group).filter(last_seen__lte=ts)
         if logger:
             qs = qs.filter(logger=logger)
@@ -76,13 +87,7 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
         if project:
             qs = qs.filter(project=project)
 
-        for obj in RangeQuerySetWrapper(qs):
-            for key, value in SkinnyQuerySet(MessageFilterValue).filter(group=obj).values_list('key', 'value'):
-                if not MessageFilterValue.objects.filter(key=key, value=value).exclude(group=obj).exists():
-                    print ">>> Removing <FilterValue: key=%s, value=%s>" % (key, value)
-                    FilterValue.objects.filter(key=key, value=value).delete()
-            print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
-            obj.delete()
+        cleanup_groups(RangeQuerySetWrapper(qs))
 
     # attempt to cleanup any groups that may now be empty
     groups_to_delete = []
@@ -91,10 +96,4 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
             groups_to_delete.append(group_id)
 
     if groups_to_delete:
-        for obj in SkinnyQuerySet(Group).filter(pk__in=groups_to_delete):
-            for key, value in SkinnyQuerySet(MessageFilterValue).filter(group=obj).values_list('key', 'value'):
-                if not MessageFilterValue.objects.filter(key=key, value=value).exclude(group=obj).exists():
-                    print ">>> Removing <FilterValue: key=%s, value=%s>" % (key, value)
-                    FilterValue.objects.filter(key=key, value=value).delete()
-            print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
-            obj.delete()
+        cleanup_groups(SkinnyQuerySet(Group).filter(pk__in=groups_to_delete))
