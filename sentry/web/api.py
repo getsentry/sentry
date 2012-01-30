@@ -125,9 +125,6 @@ def resolve(request, project):
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    if group.project and group.project.pk not in get_project_list(request.user):
-        return HttpResponseForbidden()
-
     Group.objects.filter(pk=group.pk).update(status=1)
     group.status = 1
 
@@ -158,9 +155,6 @@ def bookmark(request, project):
     try:
         group = Group.objects.get(pk=gid)
     except Group.DoesNotExist:
-        return HttpResponseForbidden()
-
-    if group.project and group.project.pk not in get_project_list(request.user):
         return HttpResponseForbidden()
 
     gb, created = GroupBookmark.objects.get_or_create(
@@ -201,9 +195,6 @@ def chart(request, project):
         try:
             group = Group.objects.get(pk=gid)
         except Group.DoesNotExist:
-            return HttpResponseForbidden()
-
-        if group.project and group.project.pk not in get_project_list(request.user):
             return HttpResponseForbidden()
 
         data = Group.objects.get_chart_data(group, max_days=days)
