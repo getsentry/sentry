@@ -120,11 +120,6 @@ class IPlugin(object):
     def get_url(self, group):
         return reverse('sentry-group-plugin-action', args=(group.project_id, group.pk, self.slug))
 
-    def configure(self, project):
-        """
-        Called when plugin is initialized to perform any pre-configuration.
-        """
-
     # The following methods are specific to web requests
 
     def get_view_response(self, request, group):
