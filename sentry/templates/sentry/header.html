@@ -8,7 +8,6 @@
                 <ul class="nav">
                     <li><a href="{% url sentry %}">Home</a></li>
                     <li><a href="{% url sentry-status %}">Status</a></li>
-                    {% endif %}
                 </ul>
                 <ul class="nav pull-right">
                     {% if request.user.is_authenticated %}
