@@ -1,3 +1,7 @@
+Version 2.1.1
+
+* Fixed an issue with indexing pre and post context on templates.
+
 Version 2.1.0
 -------------
 
