@@ -145,3 +145,98 @@ You'll use the builtin HttpProxyModule within Nginx to handle proxying::
       proxy_set_header   X-Real-IP        $remote_addr;
       proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
     }
+
+Running Sentry on DotCloud.com
+------------------------------
+
+If you would like to run Sentry on `DotCloud.com <http://DotCloud.com>`_, you will need to run Sentry in integrated mode instead of using the built in Sentry server. Doing this requires that you have a normal django project with all of the settings configured correctly. 
+
+The following steps will guide you through the process of setting up Sentry on DotCloud using a django project that is already created and lives on github.com. This should make deploying your Sentry server to DotCloud fairly straightforward.
+
+1. Create a place on your local computer to store your new project::
+
+    $ mkdir -p ~/projects
+
+2. Go into the new projects directory::
+
+    $ cd ~/projects
+
+3. Clone the sentry-on-dotcloud git repo from github, (requires `git <http://git-scm.com>`_ client)::
+
+    $ git clone git://github.com/kencochrane/sentry-on-dotcloud.git
+
+4. Go into the new sentry-on-dotcloud project directory::
+
+    $ cd sentry-on-dotcloud
+
+5. Create a new virtualenv (using `virtualenvwrapper <http://www.doughellmann.com/projects/virtualenvwrapper/>`_, `virtualenv <http://pypi.python.org/pypi/virtualenv>`_, and `pip <http://www.pip-installer.org/>`_)::
+
+    $ mkvirtualenv --no-site-packages --distribute sentry-on-dotcloud
+
+6. Install all of the Sentry requirements via pip and the ``requirements.txt`` file::
+
+    $ pip install -r requirements.txt
+
+7. Installing the DotCloud client  http://docs.dotcloud.com/firststeps/install/ (here are the steps for Linux and Mac OSX)::
+
+    $ sudo pip install -U dotcloud
+
+8. Sign up for a DotCloud account https://www.dotcloud.com/accounts/register/ if you haven't already.
+
+9. The first time you use the DotCloud account you will need to add your api key. So type dotcloud and follow the steps. You can find your API key at http://www.dotcloud.com/account/settings::
+
+    $ dotcloud
+
+10. Create your new Sentry application on DotCloud::
+
+    $ dotcloud create sentry
+
+11. Open up the following files and change the ``SENTRY_KEY`` settings, to the same unique value.
+
+    - sentry_conf.py
+    - sentryproj/settings.py
+    
+Here is an example on how to generate a good unique key that you can use in the files above::
+
+    >>> import base64
+    >>> import os
+    >>> KEY_LENGTH = 40
+    >>> base64.b64encode(os.urandom(KEY_LENGTH))
+    '6+tSEh1qYwDuTaaQRcxUjMDkvlj4z9BU/caCFV5QKtvnH7ZF3i0knA=='
+
+12. Add your email address to ``SENTRY_ADMINS`` in sentryproj/settings.py . This will send you emails when an error occurs.::
+
+     SENTRY_ADMINS = ('youremail@example.com',)
+
+13. Push your code into DotCloud::
+
+     $ dotcloud push sentry .
+
+14. Find out the url for your application::
+
+     $ dotcloud url sentry
+
+15. Open the url from step 14 in your browser and start using sentry on DotCloud.
+
+16. Open up the django admin and change the admin password from the default one that was created on deployment.
+
+17. Test out sentry using the raven client to make sure it is working as it should. Open up a python shell on your local machine and do the following. 
+
+Replace the ``server_url`` with your sentry url you found out in step 14. Make sure it ends in /store/ . Also make sure you replace ``my_key`` with your sentry key::
+
+    >>> from raven import Client
+    >>> server_url = "http://sentry-username.dotcloud.com/store/"
+    >>> my_key='1234-CHANGEME-WITH-YOUR-OWN-KEY-567890'
+    >>> client = Client(servers=[server_url], key=my_key)
+    >>> client.create_from_text('My event just happened!')
+    ('48ba88039e0f425399118f82173682dd', '3313fc5636650cccaee55dfc2f2ee7dd')
+
+If you go to the sentry webpage you should see your test message. If not, double check everything, and see if there was any errors during the send.
+
+Once this is all up and running you can install the raven client in your applications, and start sending your logs to sentry.
+
+17. Optional: If you don't like the URL they gave you, you can use your custom domain. Assuming your application was ``sentry.www`` and your domain was ``www.example.com`` you would do the following::
+
+     $ dotcloud alias add sentry.www www.example.com
+
+18. Once you get everything working, change your django DEBUG setting to False in ``sentryproj/settings.py``.
