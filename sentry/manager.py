@@ -209,7 +209,6 @@ class GroupManager(models.Manager, ChartMixin):
 
         if 'template' in sentry:
             template = sentry['template']
-            print get_template_info(template)
             result['sentry.interfaces.Template'] = Template(
                 **get_template_info(template)
             ).serialize()
