@@ -350,10 +350,16 @@ class GroupManager(models.Manager, ChartMixin):
             event.save()
 
         if settings.USE_SEARCH:
-            SearchDocument.objects.index(event)
+            try:
+                SearchDocument.objects.index(event)
+            except Exception, e:
+                logger.exception(u'Error indexing document: %s', e)
 
         if is_new:
-            regression_signal.send(sender=self.model, instance=group)
+            try:
+                regression_signal.send(sender=self.model, instance=group)
+            except Exception, e:
+                logger.exception(u'Error sending regression signal: %s', e)
 
         send_group_processors(group=group, event=event, is_new=is_new, is_sample=is_sample)
 
@@ -621,7 +627,7 @@ class SearchDocumentManager(models.Manager):
 
         text = self.PUNCTUATION_CHARS.sub(' ', text)
 
-        words = [t for t in text.split() if len(t) >= self.MIN_WORD_LENGTH and t.lower() not in self.STOP_WORDS]
+        words = [t[:128] for t in text.split() if len(t) >= self.MIN_WORD_LENGTH and t.lower() not in self.STOP_WORDS]
 
         return words
 
