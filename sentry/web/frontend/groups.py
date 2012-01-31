@@ -156,7 +156,7 @@ def search(request, project):
     elif uuid_re.match(query):
         # Forward to message if it exists
         try:
-            message = Event.objects.get(event_id=query)
+            message = Event.objects.get(project=project, event_id=query)
         except Event.DoesNotExist:
             return render_to_response('sentry/invalid_message_id.html', {
                 'project': project,
