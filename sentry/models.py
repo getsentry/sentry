@@ -374,7 +374,7 @@ class Event(MessageBase):
     An individual event.
     """
     group = models.ForeignKey(Group, blank=True, null=True, related_name="event_set")
-    event_id = models.CharField(max_length=32, null=True, unique=True, db_column="message_id")
+    event_id = models.CharField(max_length=32, null=True, db_column="message_id")
     datetime = models.DateTimeField(default=datetime.now, db_index=True)
     time_spent = models.FloatField(null=True)
     server_name = models.CharField(max_length=128, db_index=True, null=True)
@@ -384,6 +384,7 @@ class Event(MessageBase):
         verbose_name = _('message')
         verbose_name_plural = _('messages')
         db_table = 'sentry_message'
+        unique_together = ('project', 'event_id')
 
     def __unicode__(self):
         return self.error()
