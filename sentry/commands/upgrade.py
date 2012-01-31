@@ -12,6 +12,7 @@ from sentry.commands.utils import options, opt
 
 @options(
     opt('--interactive', default=False, action='store_true'),
+    opt('--delete-ghost-migrations', default=True, dest='delete_ghosts'),
 )
 def upgrade(interactive=True):
     call_command('syncdb', database='default', interactive=interactive)
