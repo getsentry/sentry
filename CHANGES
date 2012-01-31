@@ -1,3 +1,10 @@
+Version 2.2.3
+-------------
+
+* Lower font size of counts on event list.
+* Align actions to right side (vertical).
+* Fix issue with long filters not transforming to selects.
+
 Version 2.2.2
 -------------
 
