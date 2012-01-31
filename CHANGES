@@ -4,6 +4,8 @@ Version 2.2.2
 * Corrected event_id key to contain (project_id, event_id).
 * Adjusted project form to default the user to the current user
   when accessed by an admin.
+* Change sentry admin to be /manage/ to avoid any unintentional
+  conflict with the Django admin.
 
 Version 2.2.1
 -------------
