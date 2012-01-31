@@ -56,8 +56,8 @@ urlpatterns = patterns('',
     # Global
 
     url(r'^$', generic.dashboard, name='sentry'),
-    url(r'^admin/status/$', admin.status, name='sentry-admin-status'),
-    url(r'^admin/plugins/(?P<slug>[\w_-]+)/$', admin.configure_plugin, name='sentry-admin-configure-plugin'),
+    url(r'^manage/status/$', admin.status, name='sentry-admin-status'),
+    url(r'^manage/plugins/(?P<slug>[\w_-]+)/$', admin.configure_plugin, name='sentry-admin-configure-plugin'),
 
     # API / JS
 

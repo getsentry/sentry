@@ -87,7 +87,7 @@ class NewProjectAdminForm(forms.ModelForm):
         attrs={
             'placeholder': 'username',
         }
-    ))
+    ), required=False)
 
     class Meta:
         fields = ('name', 'owner')

@@ -29,10 +29,14 @@ def new_project(request):
 
     if request.user.has_perm('sentry.can_admin_project'):
         form_cls = NewProjectAdminForm
+        initial = {
+            'owner': request.user.username,
+        }
     else:
         form_cls = NewProjectForm
+        initial = {}
 
-    form = form_cls(request.POST or None)
+    form = form_cls(request.POST or None, initial=initial)
     if form.is_valid():
         project = form.save(commit=False)
         if not project.owner:

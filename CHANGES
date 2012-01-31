@@ -1,3 +1,10 @@
+Version 2.2.2
+-------------
+
+* Corrected event_id key to contain (project_id, event_id).
+* Adjusted project form to default the user to the current user
+  when accessed by an admin.
+
 Version 2.2.1
 -------------
 
