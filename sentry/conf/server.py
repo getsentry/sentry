@@ -123,11 +123,14 @@ SENTRY_PROJECT = 1
 from raven.conf import setup_logging
 from raven.contrib.django.handlers import SentryHandler
 import logging
+
+# Configure root logger
 logger = logging.getLogger()
 logger.setLevel(logging.ERROR)
 
+# Configure South logger
 logger = logging.getLogger('south')
-logger.handlers = []
-logger.propagate = False
+logger.setLevel(logging.DEBUG)
 
-setup_logging(SentryHandler())
+# Configure default sentry logging
+setup_logging(SentryHandler(), exclude=['south'])
