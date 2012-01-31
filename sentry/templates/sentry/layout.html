@@ -70,6 +70,12 @@
 
                         <div class="sidebar">
                             {% block sidebar %}
+                                <h6>{% trans "Your Projects" %}</h6>
+                                <ul class="nav tabs stacked">
+                                    {% for p in project_list %}
+                                        <li{% if p == project %} class="active"{% endif %}><a href="{% url sentry-manage-project p.pk %}">{{ p.name }}</a></li>
+                                    {% endfor %}
+                                </ul>
                             {% endblock %}
                         </div>
                     {% endblock %}

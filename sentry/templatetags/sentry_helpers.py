@@ -199,14 +199,14 @@ def timesince(value):
     from django.template.defaultfilters import timesince
     now = utc_to_local(datetime.datetime.utcnow())
     if not value:
-        return _('Never')
+        return _('never')
     if value < (now - datetime.timedelta(days=5)):
         return value.date()
     value = (' '.join(timesince(value, now).split(' ')[0:2])).strip(',')
     if value == _('0 minutes'):
-        return _('Just now')
+        return _('just now')
     if value == _('1 day'):
-        return _('Yesterday')
+        return _('yesterday')
     return value + _(' ago')
 
 

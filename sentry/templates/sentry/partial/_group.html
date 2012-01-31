@@ -11,7 +11,7 @@
                     {{ group.message_top|truncatechars:100 }}
                 {% endif %}
             </a>
-            <span class="last_seen" title="{{ group.last_seen }}">{{ group.last_seen|timesince }}</span>
+            <span class="last_seen pretty-date" title="{{ group.last_seen|date:"Y-m-dTH:i:s" }}Z">{{ group.last_seen|timesince }}</span>
             {% if group.avg_time_spent %}
                 <span class="time_spent">{{ group.avg_time_spent|duration }}</span>
             {% endif %}

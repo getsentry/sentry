@@ -372,6 +372,7 @@ p{font-family:"proxima-nova","helvetica neue",helvetica,sans-serif;font-size:14p
 footer{*zoom:1;background:#6d757e;text-align:center;padding:30px;color:#fff;}footer:before,footer:after{display:table;content:"";}
 footer:after{clear:both;}
 footer a{color:#fff;font-weight:bold;}
+.btn span{text-indent:-1000em;}
 .btn.prev,.btn.next{padding:6px 8px;}
 .btn.prev span{display:block;width:13px;height:13px;background:url(../images/dashboard/pagination.png);}
 .btn.next span{display:block;width:13px;height:13px;background:url(../images/dashboard/pagination.png) -13px 0;}
@@ -380,7 +381,7 @@ footer a{color:#fff;font-weight:bold;}
 .events .event h3{font-family:"proxima nova","proxima-nova","heletica-neue",sans-serif;margin:4px 0 0;font-size:20px;}.events .event h3 span{margin-left:10px;font-weight:300;padding:0 5px;font-size:13px;}
 .events .event .count{color:#fff;position:absolute;width:60px;height:60px;background:#cfd3da;-webkit-border-radius:60px;-moz-border-radius:60px;border-radius:60px;line-height:62px;text-align:center;font-size:26px;font-weight:400;letter-spacing:-1px;font-family:"proxima nova","proxima-nova","heletica-neue",sans-serif;}
 .events .event .details{margin:0 0 0 80px;}
-.events .event .message{margin-bottom:0;font-size:14px;}
+.events .event .message{margin-bottom:0;font-size:14px;}.events .event .message .tag{font-size:12px;float:right;-webkit-border-radius:6px;-moz-border-radius:6px;border-radius:6px;background:#fff;padding:1px 6px;color:#aec9d7;}
 .events .event .actions{display:none;}
 .events .event .row_link{top:0;left:0;width:100%;height:100%;position:absolute;}
 .events .event.level-20 .count{background:#ffa101;}

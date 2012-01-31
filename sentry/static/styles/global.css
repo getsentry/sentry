@@ -2320,6 +2320,9 @@ footer a {
   font-weight: bold;
 }
 /* =============================  Modules  ============================== */
+.btn span {
+  text-indent: -1000em;
+}
 .btn.prev, .btn.next {
   padding: 6px 8px;
 }
@@ -2408,6 +2411,16 @@ footer a {
   font-size: 14px;
   /*font-family: "proxima nova", "proxima-nova", "heletica-neue", sans-serif;*/
 
+}
+.events .event .message .tag {
+  font-size: 12px;
+  float: right;
+  -webkit-border-radius: 6px;
+  -moz-border-radius: 6px;
+  border-radius: 6px;
+  background: #fff;
+  padding: 1px 6px;
+  color: #aec9d7;
 }
 .events .event .actions {
   display: none;
