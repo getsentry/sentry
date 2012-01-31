@@ -1,13 +1,19 @@
-{% extends "sentry/layout.html" %}
+{% extends "sentry/groups/details.html" %}
 
 {% load i18n %}
 
 {% block title %}{% trans "Replay Request" %} | {{ block.super }}{% endblock %}
 
-{% block heading %}{% trans "Replay Request" %}{% endblock %}
+{% block bodyclass %}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{{ request.path }}">{% trans "Replay Request" %}</a></li>
+{% endblock %}
 
 {% block content %}
-    <div class="span12">
+    <section class="body">
         <ul class="nav nav-tabs" data-tabs="tabs">
             <li{% if not result %} class="active"{% endif %}><a href="#request" data-toggle="tab">Request</a></li>
             {% if result %}
@@ -40,5 +46,5 @@
                 </div>
             {% endif %}
         </div>
-    </div>
+    </section>
 {% endblock %}

@@ -100,6 +100,7 @@ def replay_event(request, project_id, event_id):
         result = None
 
     context = {
+        'group': event.group,
         'event': event,
         'form': form,
         'result': result,
