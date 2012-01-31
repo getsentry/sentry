@@ -82,6 +82,18 @@ class NewProjectForm(forms.ModelForm):
         model = Project
 
 
+class NewProjectAdminForm(forms.ModelForm):
+    owner = forms.ModelChoiceField(queryset=User.objects.all(), widget=forms.TextInput(
+        attrs={
+            'placeholder': 'username',
+        }
+    ))
+
+    class Meta:
+        fields = ('name', 'owner')
+        model = Project
+
+
 class EditProjectForm(forms.ModelForm):
     class Meta:
         fields = ('name', 'status', 'public')

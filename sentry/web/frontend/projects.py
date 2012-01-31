@@ -8,7 +8,8 @@ from sentry.models import MEMBER_USER, MEMBER_OWNER
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms import EditProjectForm, NewProjectForm, \
-  EditProjectMemberForm, NewProjectMemberForm, RemoveProjectForm
+  EditProjectMemberForm, NewProjectMemberForm, RemoveProjectForm, \
+  NewProjectAdminForm
 from sentry.web.helpers import render_to_response, get_project_list, \
   plugin_config
 
@@ -23,13 +24,19 @@ def project_list(request):
 @login_required
 @csrf_protect
 def new_project(request):
-    if not (settings.ALLOW_PROJECT_CREATION or request.user.has_perm('sentry.add_project')):
+    if not (settings.ALLOW_PROJECT_CREATION or request.user.has_perm('sentry.can_add_project')):
         return HttpResponseRedirect(reverse('sentry'))
 
-    form = NewProjectForm(request.POST or None)
+    if request.user.has_perm('sentry.can_admin_project'):
+        form_cls = NewProjectAdminForm
+    else:
+        form_cls = NewProjectForm
+
+    form = form_cls(request.POST or None)
     if form.is_valid():
         project = form.save(commit=False)
-        project.owner = request.user
+        if not project.owner:
+            project.owner = request.user
         project.save()
         return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
 
