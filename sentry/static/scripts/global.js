@@ -322,7 +322,7 @@ if (Sentry === undefined) {
     };
 
     $(document).ready(function(){
-        $('#sentry_realtime').click(function(){
+        $('#sentry-realtime').click(function(){
             if (Sentry.realtime.status) {
                 Sentry.realtime.disable();
             } else {
