@@ -77,7 +77,7 @@
         <li class="dropdown pull-right" data-dropdown="dropdown">
             <a href="#" class="dropdown-toggle">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <b class="caret"></b></a>
             <ul class="dropdown-menu">
-                <li{% ifequal sort 'priority' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}">{% trans "Priority" %}</a></li>
+                <li{% ifequal sort 'priority' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=priority">{% trans "Priority" %}</a></li>
                 <li{% ifequal sort 'date' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=date">{% trans "Last Seen" %}</a></li>
                 <li{% ifequal sort 'new' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=new">{% trans "First Seen" %}</a></li>
                 <li{% ifequal sort 'freq' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=freq">{% trans "Frequency" %}</a></li>
