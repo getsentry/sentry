@@ -11,7 +11,7 @@ function varToggle(link, id) {
 function getQueryParams()
 {
     var vars = {}, hash;
-    var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+    var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1, window.location.href.indexOf('#') || -1).split('&');
     for(var i = 0; i < hashes.length; i++)
     {
         hash = hashes[i].split('=');
@@ -162,7 +162,7 @@ if (Sentry === undefined) {
     };
 
     Sentry.realtime.enable = function(){
-        var $el = $('#sentry_realtime');
+        var $el = $('#sentry-realtime');
         $el.removeClass('realtime-play');
         $el.addClass('realtime-pause');
         $el.text('Pause Feed');
@@ -170,7 +170,7 @@ if (Sentry === undefined) {
     };
 
     Sentry.realtime.disable = function(){
-        var $el = $('#sentry_realtime');
+        var $el = $('#sentry-realtime');
         $el.addClass('realtime-play');
         $el.removeClass('realtime-pause');
         $el.text('Go Live');

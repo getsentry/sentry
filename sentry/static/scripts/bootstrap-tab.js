@@ -36,14 +36,9 @@
   , show: function () {
       var $this = this.element
         , $ul = $this.closest('ul:not(.dropdown-menu)')
-        , selector = $this.attr('data-target')
+        , href = $this.attr('data-target') || $this.attr('href')
         , previous
-        , $target
-
-      if (!selector) {
-        selector = $this.attr('href')
-        selector = selector && selector.replace(/.*(?=#[^\s]*$)/, '') //strip for ie7
-      }
+        , $href
 
       if ( $this.parent('li').hasClass('active') ) return
 
@@ -54,10 +49,10 @@
       , relatedTarget: previous
       })
 
-      $target = $(selector)
+      $href = $(href)
 
       this.activate($this.parent('li'), $ul)
-      this.activate($target, $target.parent(), function () {
+      this.activate($href, $href.parent(), function () {
         $this.trigger({
           type: 'shown'
         , relatedTarget: previous

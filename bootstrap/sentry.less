@@ -212,11 +212,11 @@ p {
     padding: 20px;
   }
   .btn-toolbar {
+    line-height: @baseLineHeight - 2;
     .clearfix();
     margin: 0;
     list-style: none;
-    padding: 12px 20px;
-    border-bottom: 1px solid #e5e6e7;
+    padding: 15px 20px;
   }
   .sidebar {
     position: relative;
@@ -293,6 +293,7 @@ footer {
   margin: 0;
   padding: 0;
   list-style: none;
+  border-top: 1px solid #e5e6e7;
   .empty-result {
     padding: 15px 20px;
     min-height: 60px; /* count height */
@@ -370,6 +371,8 @@ footer {
       margin: 0;
       padding: 0;
       li {
+        padding: 2px;
+        font-size: 14px;
         margin-left: 10px;
         display: inline-block;
         .checked {

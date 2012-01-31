@@ -729,7 +729,7 @@ button.btn.small, input[type="submit"].btn.small {
 .btn-navbar:active, .btn-navbar.active {
   background-color: #080808 \9;
 }
-.btn-navbar .i-bar {
+.btn-navbar .icon-bar {
   display: block;
   width: 18px;
   height: 2px;
@@ -741,7 +741,7 @@ button.btn.small, input[type="submit"].btn.small {
   -moz-box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
 }
-.btn-navbar .i-bar + .i-bar {
+.btn-navbar .icon-bar + .icon-bar {
   margin-top: 3px;
 }
 .nav-collapse.collapse {
@@ -2290,11 +2290,11 @@ p {
   padding: 20px;
 }
 #content .btn-toolbar {
+  line-height: 16px;
   *zoom: 1;
   margin: 0;
   list-style: none;
-  padding: 12px 20px;
-  border-bottom: 1px solid #e5e6e7;
+  padding: 15px 20px;
 }
 #content .btn-toolbar:before, #content .btn-toolbar:after {
   display: table;
@@ -2389,6 +2389,7 @@ footer a {
   margin: 0;
   padding: 0;
   list-style: none;
+  border-top: 1px solid #e5e6e7;
 }
 .events .empty-result {
   padding: 15px 20px;
@@ -2485,6 +2486,8 @@ footer a {
   padding: 0;
 }
 .events .event .actions li {
+  padding: 2px;
+  font-size: 14px;
   margin-left: 10px;
   display: inline-block;
 }
@@ -2510,7 +2513,6 @@ footer a {
 .events .event.level-50 .count {
   background: #f0431c;
 }
-/* ====== SHIT I ADDED AFTER CHRIS ======== */
 label {
   font-weight: bold;
 }

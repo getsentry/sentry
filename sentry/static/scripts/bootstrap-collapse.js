@@ -71,7 +71,7 @@
 
       this.$element
         .removeClass('collapse')
-        [dimension](size || 'auto')
+        [dimension](size || '')
         [0].offsetWidth
 
       this.$element.addClass('collapse')
@@ -124,10 +124,8 @@
 
   $(function () {
     $('body').on('click.collapse.data-api', '[data-toggle=collapse]', function ( e ) {
-      var $this = $(this), href
-        , target = $this.attr('data-target')
-          || e.preventDefault()
-          || (href = $this.attr('href')) && href.replace(/.*(?=#[^\s]+$)/, '') //strip for ie7
+      var $this = $(this)
+        , target = $this.attr('data-target') || e.preventDefault() || $this.attr('href')
         , option = $(target).data('collapse') ? 'toggle' : $this.data()
       $(target).collapse(option)
     })

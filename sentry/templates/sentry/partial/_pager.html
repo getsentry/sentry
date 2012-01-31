@@ -1,8 +1,8 @@
 {% load i18n %}
 
-<div class="actionbar">
+<div class="btn-toolbar">
     <div class="btn-group pull-right">
-        <a class="btn prev{% if not paginator.has_previous %} disabled{% endif %}"{% if paginator.has_previous %} href="?{{ query_string|escape }}&amp;p={{ paginator.previous_page }}"{% endif %}>&larr;</a>
-        <a class="btn next{% if not paginator.has_next %} disabled{% endif %}"{% if paginator.has_next %} href="?{{ query_string|escape }}&amp;p={{ paginator.next_page }}"{% endif %}>&rarr;</a>
+        <a class="btn prev{% if not paginator.has_previous %} disabled{% endif %}" href="?{{ query_string|escape }}&amp;p={{paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
+        <a class="btn next{% if not paginator.has_next %} disabled{% endif %}" href="?{{ query_string|escape }}&amp;p={{ paginator.next_page }}"><span>{% trans "Next" %}</span></a>
     </div>
 </div>

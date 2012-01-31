@@ -27,10 +27,7 @@
 
   var toggle = '[data-toggle="dropdown"]'
     , Dropdown = function ( element ) {
-        var $el = $(element).on('click.dropdown.data-api', this.toggle)
-        $('html').on('click.dropdown.data-api', function () {
-          $el.parent().removeClass('open')
-        })
+        $(element).bind('click', this.toggle)
       }
 
   Dropdown.prototype = {
@@ -39,21 +36,17 @@
 
   , toggle: function ( e ) {
       var $this = $(this)
-        , selector = $this.attr('data-target')
-        , $parent
+        , selector = $this.attr('data-target') || $this.attr('href')
+        , $parent = $(selector)
         , isActive
 
-      if (!selector) {
-        selector = $this.attr('href')
-        selector = selector && selector.replace(/.*(?=#[^\s]*$)/, '') //strip for ie7
-      }
+      console.log(this);
 
-      $parent = $(selector)
       $parent.length || ($parent = $this.parent())
-
       isActive = $parent.hasClass('open')
 
       clearMenus()
+
       !isActive && $parent.toggleClass('open')
 
       return false
@@ -85,7 +78,7 @@
    * =================================== */
 
   $(function () {
-    $('html').on('click.dropdown.data-api', clearMenus)
+    $(window).on('click.dropdown.data-api', clearMenus)
     $('body').on('click.dropdown.data-api', toggle, Dropdown.prototype.toggle)
   })
 

@@ -1,6 +1,8 @@
 VERSION=2.0.0
 BOOTSTRAP = ../sentry/static/styles/global.css
 BOOTSTRAP_MIN = ../sentry/static/styles/global.min.css
+BOOTSTRAP_JS = ../sentry/static/scripts/bootstrap.js
+BOOTSTRAP_JS_MIN = ../sentry/static/scripts/bootstrap.min.js
 BOOTSTRAP_LESS = ./sentry.less
 LESS_COMPRESSOR ?= `which lessc`
 UGLIFY_JS ?= `which uglifyjs`
@@ -11,36 +13,18 @@ WATCHR ?= `which watchr`
 #
 
 build:
-	@@if test ! -z ${LESS_COMPRESSOR}; then \
-		sed -e 's/@VERSION/'"v${VERSION}"'/' -e 's/@DATE/'"`date`"'/' <${BOOTSTRAP_LESS} >${BOOTSTRAP_LESS}.tmp; \
-		lessc ${BOOTSTRAP_LESS}.tmp > ${BOOTSTRAP}; \
-		lessc ${BOOTSTRAP_LESS}.tmp > ${BOOTSTRAP_MIN} --compress; \
-		rm -f ${BOOTSTRAP_LESS}.tmp; \
-		echo "Bootstrap successfully built! - `date`"; \
-	else \
-		echo "You must have the LESS compiler installed in order to build Bootstrap."; \
-		echo "You can install it by running: npm install less -g"; \
-	fi
+	lessc ${BOOTSTRAP_LESS} > ${BOOTSTRAP};
+	lessc ${BOOTSTRAP_LESS} > ${BOOTSTRAP_MIN} --compress;
+	cat js/bootstrap-alert.js js/bootstrap-dropdown.js js/bootstrap-tooltip.js js/bootstrap-tab.js > ${BOOTSTRAP_JS};
+	uglifyjs -nc ${BOOTSTRAP_JS} > ${BOOTSTRAP_JS_MIN};
+	echo "Bootstrap successfully built! - `date`";
 
 #
 # Watch less files
 #
 
 watch:
-	@@if test ! -z ${WATCHR}; then \
-	  echo "Watching less files..."; \
-	  watchr -e "watch('lib/.*\.less') { system 'make' }"; \
-	else \
-		echo "You must have the watchr installed in order to watch Bootstrap Less files."; \
-		echo "You can install it by running: gem install watchr"; \
-	fi
+	echo "Watching less files..."; \
+	watchr -e "watch('less/.*\.less') { system 'make' }"
 
-#
-# Build docs from templates
-#
-
-docs:
-	@ node docs/build
-
-
-.PHONY: build watch docs
+.PHONY: build watch
