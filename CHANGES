@@ -1,3 +1,13 @@
+Version 2.1.3
+-------------
+
+* Ensure we truncate tokens to 128 characters for SearchDocument.
+* Gracefully handle errors with indexing.
+* Gracefully handle errors with post_process.
+* Gracefully handle errors with regression_signal.
+* Fixed priority sort option not activating.
+
+
 Version 2.1.2
 -------------
 
