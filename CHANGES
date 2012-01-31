@@ -1,3 +1,9 @@
+Version 2.2.0
+-------------
+
+* Sentry has a brand new design utlizing Bootstrap 2.
+* Superusers can now create projects for users.
+
 Version 2.1.3
 -------------
 
