@@ -39,7 +39,7 @@ class ChoiceWidget(Widget):
         query_string = self.get_query_string()
         column = self.filter.get_query_param()
 
-        output = ['<ul class="nav nav-tabs nav-stacked" rel="%s">' % (column,)]
+        output = ['<ul class="nav nav-tabs nav-stacked filter-list" rel="%s">' % (column,)]
         if self.allow_any:
             output.append('<li%(active)s><a href="%(query_string)s&amp;%(column)s=">Any %(label)s</a></li>' % dict(
                 active=not value and ' class="active"' or '',

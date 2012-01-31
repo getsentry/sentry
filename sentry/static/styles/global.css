@@ -2447,7 +2447,7 @@ footer a {
   border-radius: 60px;
   line-height: 62px;
   text-align: center;
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 400;
   letter-spacing: -1px;
   font-family: "proxima nova", "proxima-nova", "heletica-neue", sans-serif;
@@ -2460,11 +2460,12 @@ footer a {
   font-size: 14px;
   /*font-family: "proxima nova", "proxima-nova", "heletica-neue", sans-serif;*/
 
+  padding-right: 14px;
 }
 .events .event .message .tag {
+  margin-left: 5px;
   font-size: 12px;
   float: right;
-  margin-right: 50px;
   -webkit-border-radius: 6px;
   -moz-border-radius: 6px;
   border-radius: 6px;
@@ -2474,22 +2475,21 @@ footer a {
 }
 .events .event .meta {
   position: absolute;
-  right: 15px;
+  right: 40px;
   top: 20px;
 }
 .events .event .actions {
   position: absolute;
   right: 15px;
-  bottom: 20px;
+  top: 20px;
   list-style-type: none;
   margin: 0;
   padding: 0;
 }
 .events .event .actions li {
-  padding: 2px;
+  margin-bottom: 12px;
   font-size: 14px;
-  margin-left: 10px;
-  display: inline-block;
+  line-height: 18px;
 }
 .events .event .actions li .checked {
   color: orange;

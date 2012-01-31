@@ -343,7 +343,7 @@ if (Sentry === undefined) {
             }).prependTo('#account');
         }
 
-        $('#sidebar .filter-list').each(function(_, el){
+        $('.filter-list').each(function(_, el){
             var $el = $(el);
             if ($el.find('li').length > 6) {
                 // rebuild this widget as a dropdown select
