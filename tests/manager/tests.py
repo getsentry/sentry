@@ -3,93 +3,13 @@
 from __future__ import absolute_import
 
 import datetime
-import getpass
-import logging
-import pytz
+import mock
 
-from django.core import mail
-
-from sentry.conf import settings
 from sentry.exceptions import InvalidInterface, InvalidData
 from sentry.interfaces import Interface
 from sentry.models import Group, Project
 
 from tests.base import TestCase
-
-# Configure our test handler
-
-logger = logging.getLogger(__name__)
-
-
-class SentryMailTest(TestCase):
-    fixtures = ['tests/fixtures/mail.json']
-
-    def setUp(self):
-        settings.ADMINS = ('%s@localhost' % getpass.getuser(),)
-
-    def test_mail_admins(self):
-        group = Group.objects.get()
-        self.assertEquals(len(mail.outbox), 0)
-        group.mail_admins(fail_silently=False)
-        self.assertEquals(len(mail.outbox), 1)
-
-        # TODO: needs a new fixture
-        # out = mail.outbox[0]
-
-        # self.assertTrue('Traceback (most recent call last):' in out.body)
-        # self.assertTrue("COOKIES:{'commenter_name': 'admin'," in out.body, out.body)
-        # self.assertEquals(out.subject, '[Django] Error (EXTERNAL IP): /group/1/')
-
-    # def test_mail_on_creation(self):
-    #     settings.MAIL = True
-
-    #     self.assertEquals(len(mail.outbox), 0)
-    #     self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
-    #     self.assertEquals(len(mail.outbox), 1)
-    #     self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
-    #     self.assertEquals(len(mail.outbox), 1)
-
-    #     out = mail.outbox[0]
-
-    #     self.assertTrue('Traceback (most recent call last):' in out.body)
-    #     self.assertTrue("<Request" in out.body)
-    #     self.assertEquals(out.subject, '[example.com] [Django] Error (EXTERNAL IP): /trigger-500')
-
-    # def test_mail_on_duplication(self):
-    #     settings.MAIL = True
-
-    #     self.assertEquals(len(mail.outbox), 0)
-    #     self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
-    #     self.assertEquals(len(mail.outbox), 1)
-    #     self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
-    #     self.assertEquals(len(mail.outbox), 1)
-    #     # XXX: why wont this work
-    #     # group = Group.objects.update(status=1)
-    #     group = Group.objects.all().order_by('-id')[0]
-    #     group.status = 1
-    #     group.save()
-    #     self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
-    #     self.assertEquals(len(mail.outbox), 2)
-    #     self.assertRaises(Exception, self.client.get, reverse('sentry-raise-exc'))
-    #     self.assertEquals(len(mail.outbox), 2)
-
-    #     out = mail.outbox[1]
-
-    #     self.assertTrue('Traceback (most recent call last):' in out.body)
-    #     self.assertTrue("<Request" in out.body)
-    #     self.assertEquals(out.subject, '[example.com] [Django] Error (EXTERNAL IP): /trigger-500')
-
-    def test_url_prefix(self):
-        settings.URL_PREFIX = 'http://example.com'
-
-        group = Group.objects.get()
-        group.mail_admins(fail_silently=False)
-
-        self.assertEquals(len(mail.outbox), 1)
-
-        # out = mail.outbox[0]
-
-        # self.assertTrue('http://example.com/group/2/' in out.body, out.body)
 
 
 class DummyInterface(Interface):
@@ -98,6 +18,22 @@ class DummyInterface(Interface):
 
 
 class SentryManagerTest(TestCase):
+    @mock.patch('sentry.models.SearchDocument.objects.index')
+    def test_broken_search_index(self, index):
+        index.side_effect = Exception()
+
+        event = Group.objects.from_kwargs(1, message='foo')
+        self.assertEquals(event.message, 'foo')
+        self.assertEquals(event.project_id, 1)
+
+    @mock.patch('sentry.signals.regression_signal.send')
+    def test_broken_regression_signal(self, send):
+        send.side_effect = Exception()
+
+        event = Group.objects.from_kwargs(1, message='foo')
+        self.assertEquals(event.message, 'foo')
+        self.assertEquals(event.project_id, 1)
+
     def test_invalid_project(self):
         self.assertRaises(Project.DoesNotExist, Group.objects.from_kwargs, 2, message='foo')
 
@@ -113,7 +49,7 @@ class SentryManagerTest(TestCase):
 
     def test_invalid_interface_args(self):
         self.assertRaises(InvalidData, Group.objects.from_kwargs, 1, message='foo', data={
-            'tests.tests.DummyInterface': {'foo': 'bar'}
+            'tests.manager.tests.DummyInterface': {'foo': 'bar'}
         })
 
     def test_missing_required_args(self):
