@@ -543,4 +543,5 @@ class SearchToken(Model):
 class MessageIndex(BaseIndex):
     model = Event
 
+# Import modules to register various things
 from . import management
