@@ -7,13 +7,12 @@ sentry.web.urls
 """
 
 from django.conf.urls.defaults import *
-from django.views.defaults import page_not_found
 
 from sentry.web import api
 from sentry.web.frontend import accounts, generic, groups, events, \
   projects, admin
 
-__all__ = ('handler404', 'handler500', 'urlpatterns')
+__all__ = ('urlpatterns',)
 
 
 def init_plugins():
@@ -24,25 +23,6 @@ def init_plugins():
         except:
             continue
 init_plugins()
-
-
-handler404 = lambda x: page_not_found(x, template_name='sentry/404.html')
-
-
-def handler500(request):
-    """
-    500 error handler.
-
-    Templates: `500.html`
-    Context: None
-    """
-    from django.template import Context, loader
-    from django.http import HttpResponseServerError
-
-    context = {'request': request}
-
-    t = loader.get_template('sentry/500.html')
-    return HttpResponseServerError(t.render(Context(context)))
 
 urlpatterns = patterns('',
     url(r'^_static/(?P<path>.*)$', generic.static_media, name='sentry-media'),
