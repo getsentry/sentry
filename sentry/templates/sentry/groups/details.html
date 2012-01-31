@@ -56,8 +56,8 @@
             {% for label, link, is_active in group|get_panels:request %}
                 <li{% if is_active %} class="active"{% endif %}><a href="{{ link }}">{{ label }}</a></li>
             {% endfor %}
-            <li class="dropdown pull-right" data-dropdown="dropdown">
-                <a class="dropdown-toggle" href="#">{% trans "Actions" %} <span class="caret"></span></a>
+            <li class="dropdown pull-right">
+                <a class="dropdown-toggle" href="#" data-toggle="dropdown">{% trans "Actions" %} <span class="caret"></span></a>
                 <ul class="dropdown-menu">
                     {# We're going to move these to the resolve action location #}
                     {% if group.status == 0 %}
