@@ -1,10 +1,8 @@
-{% extends "sentry/layout.html" %}
+{% extends "sentry/search.html" %}
 
 {% load i18n %}
 
 {% block title %}{% trans "Search" %} | {{ block.super }}{% endblock %}
-
-{% block heading %}{% trans "Search" %}{% endblock %}
 
 {% block main %}
     <p>{% trans "We were unable to find a message matching the ID you entered." %}</p>

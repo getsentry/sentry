@@ -4,13 +4,14 @@
 
 {% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
 
-{% block heading %}{% trans "Login" %}{% endblock %}
-
 {% block search %}{% endblock %}
 
+{% block page_header %}{% endblock %}
+{% block bodyclass %}{% endblock %}
+
 {% block content %}
-    <div class="span12">
-        {% if next %}
+    <section class="body">
+       {% if next %}
             <p class="alert alert-info">{% trans "Please login to continue." %}</p>
         {% endif %}
 
@@ -30,5 +31,5 @@
                 <button type="submit" class="btn primary">{% trans "Login" %}</button>
             </fieldset>
         </form>
-    </div>
+    </section>
 {% endblock %}

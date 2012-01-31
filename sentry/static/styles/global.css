@@ -2756,10 +2756,6 @@ dl.flat dd {
   background: -moz-linear-gradient(center top, #ff9797, #ff0000) repeat scroll 0 0 transparent;
   background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#ff9797), to(#ff0000));
 }
-.no-messages {
-  font-size: 1.1em;
-  padding: 10px 0;
-}
 #full-message {
   line-height: 1.5em;
 }
