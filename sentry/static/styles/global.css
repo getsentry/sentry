@@ -2250,7 +2250,6 @@ p {
   width: 100%;
   position: relative;
   float: left;
-  overflow: hidden;
 }
 #content .body {
   padding: 20px;

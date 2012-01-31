@@ -361,7 +361,7 @@ p{font-family:"proxima-nova","helvetica neue",helvetica,sans-serif;font-size:14p
 #content{background:#fff;}#content.with-sidebar{background:#ffffff url(../images/dashboard/sidebar-bg.gif) top right repeat-y;}#content.with-sidebar .content{padding-right:300px;}
 #content .content{*zoom:1;position:relative;}#content .content:before,#content .content:after{display:table;content:"";}
 #content .content:after{clear:both;}
-#content .main{width:100%;position:relative;float:left;overflow:hidden;}
+#content .main{width:100%;position:relative;float:left;}
 #content .body{padding:20px;}
 #content .actionbar{*zoom:1;margin:0;list-style:none;padding:12px 20px;border-bottom:1px solid #e5e6e7;}#content .actionbar:before,#content .actionbar:after{display:table;content:"";}
 #content .actionbar:after{clear:both;}

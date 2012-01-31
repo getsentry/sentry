@@ -9,11 +9,26 @@
     {% if site_list.objects %}
         {{ site_list.paging }}
 
-        <ul class="site-list unstyled">
-            {% for site, times_seen in site_list.objects %}
-                <li><span class="count">{{ times_seen|small_count }}</span> <a href="{% url sentry group.project_id %}?site={{ site }}">{{ site }}</a></li>
-            {% endfor %}
-        </ul>
+        <table class="table table-bordered">
+            <colgroup>
+                <col>
+                <col style="width: 100px;">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>{% trans "Site Name" %}</th>
+                    <td>{% trans "Times Seen" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for site, times_seen in site_list.objects %}
+                    <tr>
+                        <td><a href="{% url sentry group.project_id %}?site={{ site }}">{{ site }}</a></td>
+                        <td style="text-align:center">{{ times_seen|small_count }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
 
         {{ site_list.paging }}
     {% else %}

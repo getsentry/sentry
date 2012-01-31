@@ -4,8 +4,10 @@
 
 {% block title %}{% blocktrans with project.name as name %}Manage Project: {{ name }}{% endblocktrans %} | {{ block.super }}{% endblock %}
 
-{% block heading %}
-    {% blocktrans with project.name as name %}Manage Project <small>{{ name }}</small>{% endblocktrans %}
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-manage-project project.pk %}">Manage</a></li>
 {% endblock %}
 
 {% block sidebar %}

@@ -9,11 +9,26 @@
     {% if server_list.objects %}
         {{ server_list.paging }}
 
-        <ul class="server-list">
-            {% for server_name, times_seen in server_list.objects %}
-                <li><span class="count">{{ times_seen|small_count }}</span> <a href="{% url sentry group.project_id %}?server_name={{ server_name }}">{{ server_name }}</a></li>
-            {% endfor %}
-        </ul>
+        <table class="table table-bordered">
+            <colgroup>
+                <col>
+                <col style="width: 100px;">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>{% trans "Server Name" %}</th>
+                    <td>{% trans "Times Seen" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for server_name, times_seen in server_list.objects %}
+                    <tr>
+                        <td><a href="{% url sentry group.project_id %}?server_name={{ server_name }}">{{ server_name }}</a></td>
+                        <td style="text-align:center">{{ times_seen|small_count }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
 
         {{ server_list.paging }}
     {% else %}

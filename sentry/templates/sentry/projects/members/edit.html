@@ -1,58 +1,60 @@
 {% extends "sentry/projects/manage.html" %}
 
 {% load i18n %}
+{% load sentry_helpers %}
 
 {% block title %}{% trans "Edit Member" %} | {{ block.super }}{% endblock %}
 
-{% block heading %}{% trans "Edit Member" %} <small>{{ member.user.username }}</small>{% endblock %}
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-new-project %}">Member: {{ member.user.username|truncatechars:30 }}</a></li>
+{% endblock %}
 
 {% block main %}
-    <ul class="breadcrumb">
-        <li><a href="{% url sentry-project-list %}">{% trans "Projects" %}</a> <span class="divider">/</span></li>
-        <li><a href="{% url sentry-manage-project project.pk %}">{% trans "Manage Project" %}</a> <span class="divider">/</span></li>
-        <li class="active">{% trans "Edit Member" %}</li>
-    </ul>
-    {% if request.GET.success %}
-        <div class="alert alert-success">{% trans "Changes to your project were saved successfully." %}</div>
-    {% else %}
-        {% if form.errors %}
-            <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
+    <section class="body">
+        {% if request.GET.success %}
+            <div class="alert alert-success">{% trans "Changes to your project were saved successfully." %}</div>
+        {% else %}
+            {% if form.errors %}
+                <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
+            {% endif %}
         {% endif %}
-    {% endif %}
-    <form class="form-stacked" action="" method="post">
-        {% csrf_token %}
-        <legend>{% trans "Details" %}</legend>
-        <fieldset class="control-group">
-            <label>{% trans "User" %}</label>
-            <div class="controls">
-                {{ member.user.username }}
-            </div>
-        </fieldset>
-        <fieldset class="control-group">
-            <label>{% trans "Public Key" %}</label>
-            <div class="controls">
-                {{ member.public_key }}
-            </div>
-        </fieldset>
-        <fieldset class="control-group">
-            <label>{% trans "Secret Key" %}</label>
-            <div class="controls">
-                {{ member.secret_key }}
-            </div>
-        </fieldset>
-        <fieldset class="control-group">
-            <label>{% trans "Client DSN" %}</label>
-            <div class="controls">
-                {{ dsn }}
-            </div>
-        </fieldset>
-        <br/>
-        <legend>{% trans "Access" %}</legend>
-        {% for field in form %}
-            {% include "sentry/partial/_form_field.html" %}
-        {% endfor %}
-        <fieldset class="form-actions">
-            <button type="submit" class="btn primary">{% trans "Save Changes" %}</button>
-        </fieldset>
-    </form>
+        <form class="form-stacked" action="" method="post">
+            {% csrf_token %}
+            <legend>{% trans "Details" %}</legend>
+            <fieldset class="control-group">
+                <label>{% trans "User" %}</label>
+                <div class="controls">
+                    {{ member.user.username }}
+                </div>
+            </fieldset>
+            <fieldset class="control-group">
+                <label>{% trans "Public Key" %}</label>
+                <div class="controls">
+                    {{ member.public_key }}
+                </div>
+            </fieldset>
+            <fieldset class="control-group">
+                <label>{% trans "Secret Key" %}</label>
+                <div class="controls">
+                    {{ member.secret_key }}
+                </div>
+            </fieldset>
+            <fieldset class="control-group">
+                <label>{% trans "Client DSN" %}</label>
+                <div class="controls">
+                    {{ dsn }}
+                </div>
+            </fieldset>
+            <br/>
+            <legend>{% trans "Access" %}</legend>
+            {% for field in form %}
+                {% include "sentry/partial/_form_field.html" %}
+            {% endfor %}
+            <fieldset class="form-actions">
+                <button type="submit" class="btn primary">{% trans "Save Changes" %}</button>
+            </fieldset>
+        </form>
+    </section>
 {% endblock %}

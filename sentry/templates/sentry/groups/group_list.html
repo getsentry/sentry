@@ -74,7 +74,7 @@
             </ul>
         </div>
         <div class="btn-group pull-right">
-            <a class="btn prev{% if not event_list.paginator.has_next %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}">&larr;</a>
+            <a class="btn prev{% if not event_list.paginator.has_previous %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}">&larr;</a>
             <a class="btn next{% if not event_list.paginator.has_next %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}">&rarr;</a>
         </div>
     </div>
@@ -88,7 +88,14 @@
         </ul>
     {% else %}
         <ul class="events" id="event_list">
-            <li class="no-messages" id="no_messages">{% trans "No events match your filters." %}</li>
+            <li class="empty-result" id="no_messages">{% trans "No events match your filters." %}</li>
         </ul>
     {% endif %}
+
+    <div class="actionbar">
+        <div class="btn-group pull-right">
+            <a class="btn prev{% if not event_list.paginator.has_next %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}">&larr;</a>
+            <a class="btn next{% if not event_list.paginator.has_next %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}">&rarr;</a>
+        </div>
+    </div>
 {% endblock %}

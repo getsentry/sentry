@@ -9,11 +9,26 @@
     {% if url_list.objects %}
         {{ url_list.paging }}
 
-        <ul class="url-list">
-            {% for url, times_seen in url_list.objects %}
-                <li><span class="count">{{ times_seen|small_count }}</span> <a href="{{ url }}">{{ url }}</a></li>
-            {% endfor %}
-        </ul>
+        <table class="table table-bordered">
+            <colgroup>
+                <col>
+                <col style="width: 100px;">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>{% trans "URL" %}</th>
+                    <td>{% trans "Times Seen" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for url, times_seen in url_list.objects %}
+                    <tr>
+                        <td><a href="{{ url }}">{{ url }}</a></td>
+                        <td style="text-align:center">{{ times_seen|small_count }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
 
         {{ url_list.paging }}
     {% else %}
