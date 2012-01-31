@@ -71,7 +71,7 @@
                         <div class="sidebar">
                             {% block sidebar %}
                                 <h6>{% trans "Your Projects" %}</h6>
-                                <ul class="nav tabs stacked">
+                                <ul class="nav nav-tabs nav-stacked">
                                     {% for p in project_list %}
                                         <li{% if p == project %} class="active"{% endif %}><a href="{% url sentry-manage-project p.pk %}">{{ p.name }}</a></li>
                                     {% endfor %}
@@ -95,9 +95,5 @@
         <script type="text/javascript" src="{% url sentry-media "scripts/bootstrap-dropdown.min.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/bootstrap-tabs.min.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/bootstrap-alerts.min.js" %}"></script>
-        <script type="text/javascript">
-        $(".alert").alert();
-        $('.dropdown-toggle').dropdown();
-        </script>
     </body>
 </html>

@@ -46,7 +46,7 @@
     </ul>
 
     <section class="body">
-        <ul class="nav tabs">
+        <ul class="nav nav-tabs">
             <li{% ifequal page 'details' %} class="active"{% endifequal %}>
                 <a href="{% url sentry-group group.project_id group.pk %}">{% trans "Details" %}</a>
             </li>
@@ -57,7 +57,7 @@
                 <li{% if is_active %} class="active"{% endif %}><a href="{{ link }}">{{ label }}</a></li>
             {% endfor %}
             <li class="dropdown pull-right" data-dropdown="dropdown">
-                <a class="dropdown-toggle">{% trans "Actions" %} <b class="caret"></b></a>
+                <a class="dropdown-toggle" href="#">{% trans "Actions" %} <span class="caret"></span></a>
                 <ul class="dropdown-menu">
                     {# We're going to move these to the resolve action location #}
                     {% if group.status == 0 %}

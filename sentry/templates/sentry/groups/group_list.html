@@ -34,7 +34,7 @@
     {% querystring from request without bookmarks as bookmark_querystring %}
     <h6>{% trans "Bookmarks" %}</h6>
     <form>
-    <ul class="nav tabs stacked">
+    <ul class="nav nav-tabs nav-stacked">
         <li{% if not request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ bookmark_querystring }}">{% trans "All Events" %}</a></li>
         <li{% if request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ bookmark_querystring }}&amp;bookmarks=1">{% trans "Only Bookmarks" %}</a></li>
     </ul>
@@ -53,11 +53,15 @@
     {% paginator event_list from request as event_list per_page MESSAGES_PER_PAGE %}
     {% querystring from request without sort as sort_querystring %}
 
-    <div class="actionbar">
-        <a class="btn" href="javascript:void(0)" onclick="Sentry.stream.clear({{ project.id|safe }});">{% trans "Resolve Feed" %}</a>
-        <a class="btn" href="javascript:void(0)" id="sentry_realtime" class="realtime-play" onclick="Sentry.realtime.toggle();">{% trans "Pause Feed" %}</a>
-        <div class="dropdown" data-dropdown="dropdown">
-            <a href="#" class="dropdown-toggle btn">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <b class="caret"></b></a>
+    <div class="btn-toolbar">
+        <div class="btn-group">
+            <a class="btn" href="javascript:void(0)" onclick="Sentry.stream.clear({{ project.id|safe }});">{% trans "Resolve Feed" %}</a>
+        </div>
+        <div class="btn-group">
+            <a class="btn" href="javascript:void(0)" id="sentry_realtime" class="realtime-play" onclick="Sentry.realtime.toggle();">{% trans "Pause Feed" %}</a>
+        </div>
+        <div class="btn-group">
+            <a href="#" class="btn dropdown-toggle" data-toggle="dropdown">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <span class="caret"></span></a>
             <ul class="dropdown-menu">
                 <li{% ifequal sort 'priority' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=priority">{% trans "Priority" %}</a></li>
                 <li{% ifequal sort 'date' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=date">{% trans "Last Seen" %}</a></li>
@@ -92,7 +96,7 @@
         </ul>
     {% endif %}
 
-    <div class="actionbar">
+    <div class="btn-toolbar">
         <div class="btn-group pull-right">
             <a class="btn prev{% if not event_list.paginator.has_previous %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
             <a class="btn next{% if not event_list.paginator.has_next %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>

@@ -26,7 +26,7 @@
                 <ul class="nav pull-right">
                     {% if request.user.is_authenticated %}
                         <li class="dropdown" data-dropdown="dropdown">
-                            <a href="#" class="dropdown-toggle">{% trans "Projects" %} <b class="caret"></b></a>
+                            <a href="#" class="dropdown-toggle">{% trans "Projects" %} <span class="caret"></span></a>
                             <ul class="dropdown-menu">
                                 <li><a href="{% url sentry-project-list %}">{% trans "Manage" %}</a></li>
                                 {% if project_list %}
@@ -38,7 +38,7 @@
                             </ul>
                         </li>
                         <li class="dropdown" data-dropdown="dropdown">
-                            <a href="#" class="dropdown-toggle">{% trans "Account" %} <b class="caret"></b></a>
+                            <a href="#" class="dropdown-toggle">{% trans "Account" %} <span class="caret"></span></a>
                             <ul class="dropdown-menu">
                                 {% if request.user.is_staff %}
                                     <li><a href="{% url sentry-admin-status %}">{% trans "Admin" %}</a></li>

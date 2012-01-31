@@ -4,6 +4,7 @@
 @import url("less/code.less");
 @import url("less/type.less");
 @import url("less/buttons.less");
+@import url("less/button-groups.less");
 @import url("less/navbar.less");
 @import url("less/navs.less");
 @import url("less/alerts.less");
@@ -12,7 +13,6 @@
 @import url("less/breadcrumbs.less");
 @import url("less/thumbnails.less");
 @import url("less/dropdowns.less");
-@import url("less/button-groups.less");
 @import url("less/utilities.less");
 
 @grayDark: #404f60;
@@ -211,29 +211,12 @@ p {
   .body {
     padding: 20px;
   }
-  .actionbar {
+  .btn-toolbar {
     .clearfix();
     margin: 0;
     list-style: none;
     padding: 12px 20px;
     border-bottom: 1px solid #e5e6e7;
-    .dropdown {
-      display: inline-block;
-    }
-    .btn {
-      display: inline-block;
-      float: left;
-      margin: 0 10px 0 0;
-      > a {
-        display: block;
-      }
-    }
-    .btn-group {
-      display: block;
-      .btn {
-        margin: 0 0 0 -1px;
-      }
-    }
   }
   .sidebar {
     position: relative;
@@ -250,6 +233,25 @@ p {
       text-shadow: 0 1px 0 rgba(255,255,255, .5);
       margin: 0 0 10px;
       font-family: "proxima nova", "proxima-nova", "helvetica neue", helvetica, sans-serif;
+    }
+
+    .nav.nav-tabs.nav-stacked {
+      .box-shadow(0 2px 0 rgba(255,255,255, .8));
+      a {
+        background-color: #fff;
+        color: #9ba0a3;
+        border-color: #ccc !important;
+      }
+
+      li.active a {
+        position: relative;
+        #gradient > .vertical(#f7f7f7, #f0f0f0);
+        color: @linkColor;
+        border-color: #ccc !important;
+        .box-shadow(inset 0 1px rgba(255,255,255, .6));
+        font-weight: 500;
+        text-shadow: 0 1px rgba(255,255,255, .75);
+      }
     }
   }
 }
@@ -296,6 +298,7 @@ footer {
     min-height: 60px; /* count height */
   }
   .event {
+    position: relative;
     padding: 15px 20px;
     position: relative;
     border: 1px solid #e5e6e7;
@@ -347,14 +350,32 @@ footer {
       .tag {
         font-size: 12px;
         .pull-right;
+        margin-right: 50px;
         .border-radius(6px);
         background: #fff;
-        padding: 1px 6px;
+        padding: 2px 6px;
         color: #aec9d7;
       }
     }
+    .meta {
+      position: absolute;
+      right: 15px;
+      top: 20px;
+    }
     .actions {
-      display: none;
+      position: absolute;
+      right: 15px;
+      bottom: 20px;
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+      li {
+        margin-left: 10px;
+        display: inline-block;
+        .checked {
+          color: orange;
+        }
+      }
     }
 
     .row_link {
@@ -373,27 +394,6 @@ footer {
   }
 }
 
-.nav.tabs.stacked {
-  .box-shadow(0 2px 0 rgba(255,255,255, .8));
-  a {
-    background-color: #fff;
-    color: #9ba0a3;
-    border-color: #ccc !important;
-  }
-
-  li.active a {
-    position: relative;
-    #gradient > .vertical(#f7f7f7, #f0f0f0);
-    color: @linkColor;
-    border-color: #ccc !important;
-    .box-shadow(inset 0 1px rgba(255,255,255, .6));
-    font-weight: 500;
-    text-shadow: 0 1px rgba(255,255,255, .75);
-  }
-}
-
-/* ====== SHIT I ADDED AFTER CHRIS ======== */
-
 label { font-weight: bold; }
 
 pre, code {
@@ -408,35 +408,7 @@ code {
   color: lighten(@black, 40%);
 }
 
-// Options
-
-.options {
-  .nav;
-  .pills;
-  height: @baseLineHeight * 2;
-  margin: 0 0 @baseLineHeight;
-  > li {
-    display: inline-block;
-    > a {
-      line-height: @baseLineHeight - 2;
-      border: 0;
-      .border-radius(4px);
-      &:hover {
-        border-bottom: 0;
-      }
-    }
-  }
-  > li.pull-right {
-    float: right;
-  }
-  .disabled a,
-  .disabled a:hover {
-    background-color: transparent;
-    color: @grayLight;
-  }
-}
-
-.tabs {
+.nav-tabs {
   > li.pull-right {
     float: right;
   }
@@ -622,39 +594,6 @@ dl.flat dd {
 
 #full-message {
     line-height: 1.5em;
-}
-
-/* breadcrumbs */
-
-#breadcrumbs {
-    font-size: 0.9em;
-    height: 16px;
-    line-height: 16px;
-    margin: 0 0 20px;
-}
-#breadcrumbs li {
-    list-style: none;
-    display: inline;
-    float: left;
-}
-#breadcrumbs a,
-#breadcrumbs span {
-    font-weight: normal;
-    background: url('../images/breadcrumb.png') right center no-repeat;
-    padding: 0 12px 0 0;
-    margin: 0 8px 0 0;
-}
-#breadcrumbs li:last-child {
-    background: none;
-    font-weight: bold;
-}
-#breadcrumbs li:last-child a,
-#breadcrumbs li:last-child span {
-    background: none;
-    text-decoration: none;
-    font-weight: inherit;
-    padding-right: 0;
-    margin-right: 0;
 }
 
 table.inline tr {

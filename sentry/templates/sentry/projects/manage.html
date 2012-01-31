@@ -12,7 +12,7 @@
 
 {% block main %}
     <section class="body">
-        <ul class="nav tabs">
+        <ul class="nav nav-tabs">
             <li{% if page == 'details' %} class="active"{% endif %}>
                 <a href="{% url sentry-manage-project project.pk %}">{% trans "Details" %}</a>
             </li>

@@ -13,20 +13,20 @@
 
 {% block sidebar %}
 <!--     <h6>Overview</h6>
-    <ul class="nav tabs stacked">
+    <ul class="nav nav-tabs nav-stacked">
         <li><a href="#">Projects</a></li>
         <li><a href="#">Users</a></li>
         <li><a href="#">Data Use</a></li>
     </ul>
  -->
     <h6>Plugins</h6>
-    <ul class="nav tabs stacked">
+    <ul class="nav nav-tabs nav-stacked">
         {% for plugin in PLUGINS.for_site %}
             <li><a href="{% url sentry-admin-configure-plugin plugin.slug %}">{{ plugin.get_conf_title }}</a></li>
         {% endfor %}
     </ul>
     <h6>Utilities</h6>
-    <ul class="nav tabs stacked">
+    <ul class="nav nav-tabs nav-stacked">
         <li><a href="{% url sentry-admin-status %}">Server Status</a></li>
     </ul>
 {% endblock %}

@@ -416,7 +416,6 @@ if (Sentry === undefined) {
             var title = $el.attr('title');
             if (title) {
                 var date = Sentry.prettyDate(title);
-                console.log(date);
                 if (date) {
                     $el.text(date);
                 }

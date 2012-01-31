@@ -6,9 +6,9 @@
 {% block heading %}{% trans "Search" %}{% endblock %}
 
 {% block main %}
-    <ul class="nav tabs options">
+    <ul class="btn-toolbar">
         <li class="dropdown pull-right" data-dropdown="dropdown">
-            <a href="#" class="dropdown-toggle">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <b class="caret"></b></a>
+            <a href="#" class="dropdown-toggle">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <span class="caret"></span></a>
             <ul class="dropdown-menu">
                 <li{% ifequal sort 'date' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}">{% trans "Last Seen" %}</a></li>
                 <li{% ifequal sort 'score' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=score">{% trans "Score" %}</a></li>
