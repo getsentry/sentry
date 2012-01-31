@@ -1,2 +1,3 @@
-- Remove middleware (we probably need some kind of global method decorator or singular entry point for all views)
 - API needs to work with key authentication globally (not just the store view)
+- Record errors with client information in API
+- Record client information with each event
