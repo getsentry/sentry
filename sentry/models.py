@@ -313,49 +313,6 @@ class Group(MessageBase):
                 self._latest_event = None
         return self._latest_event
 
-    def mail_admins(self, request=None, fail_silently=True):
-        from django.core.mail import send_mail
-        from django.template.loader import render_to_string
-
-        if not settings.ADMINS:
-            return
-
-        event = self.get_latest_event()
-
-        interfaces = event.interfaces
-
-        if 'sentry.interfaces.Exception' in interfaces:
-            traceback = interfaces['sentry.interfaces.Exception'].to_string(event)
-        else:
-            traceback = None
-
-        http = interfaces.get('sentry.interfaces.Http')
-
-        if http:
-            ip_repr = (http.env.get('REMOTE_ADDR') in settings.INTERNAL_IPS and 'internal' or 'EXTERNAL')
-            subject = '%sError (%s IP): %s' % (settings.EMAIL_SUBJECT_PREFIX, ip_repr, http.url)
-        else:
-            subject = '%sError: %s' % (settings.EMAIL_SUBJECT_PREFIX, event.message)
-
-        if event.site:
-            subject = '[%s] %s' % (event.site, subject)
-
-        if request:
-            link = request.build_absolute_url(self.get_absolute_url())
-        else:
-            link = '%s%s' % (settings.URL_PREFIX, self.get_absolute_url())
-
-        body = render_to_string('sentry/emails/error.txt', {
-            'traceback': traceback,
-            'group': self,
-            'event': event,
-            'link': link,
-        })
-
-        send_mail(subject, body,
-                  settings.SERVER_EMAIL, settings.ADMINS,
-                  fail_silently=fail_silently)
-
     @property
     def unique_urls(self):
         return self.messagefiltervalue_set.filter(key='url')\
