@@ -21,13 +21,15 @@
  -->
     <h6>Plugins</h6>
     <ul class="nav nav-tabs nav-stacked">
-        {% for plugin in PLUGINS.for_site %}
-            <li><a href="{% url sentry-admin-configure-plugin plugin.slug %}">{{ plugin.get_conf_title }}</a></li>
+        {% for p in PLUGINS.for_site %}
+            <li{% if plugin and plugin.slug == p.slug %} class="active"{% endif %}>
+                <a href="{% url sentry-admin-configure-plugin p.slug %}">{{ p.get_conf_title }}</a>
+            </li>
         {% endfor %}
     </ul>
     <h6>Utilities</h6>
     <ul class="nav nav-tabs nav-stacked">
-        <li><a href="{% url sentry-admin-status %}">Server Status</a></li>
+        <li{% block admin-nav-status %}{% endblock %}><a href="{% url sentry-admin-status %}">Server Status</a></li>
     </ul>
 {% endblock %}
 
