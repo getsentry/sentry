@@ -368,7 +368,17 @@ if (Sentry === undefined) {
     Sentry.prettyDate = function(date_str) {
         // we need to zero out at CST
         var time = Date.parse(date_str);
-        var seconds = (new Date() - time) / 1000;
+        var now = new Date();
+        var now_utc = Date.UTC(
+            now.getUTCFullYear(),
+            now.getUTCMonth(),
+            now.getUTCDate(),
+            now.getUTCHours(),
+            now.getUTCMinutes(),
+            now.getUTCSeconds()
+        );
+
+        var seconds = (now - time) / 1000;
         // var offset = (new Date().getTimezoneOffset() - 300) * 60;
         // seconds = seconds + offset;
         var token = 'ago';
