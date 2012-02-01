@@ -378,7 +378,7 @@ if (Sentry === undefined) {
             now.getUTCSeconds()
         );
 
-        var seconds = (now - time) / 1000;
+        var seconds = (now_utc - time) / 1000;
         // var offset = (new Date().getTimezoneOffset() - 300) * 60;
         // seconds = seconds + offset;
         var token = 'ago';
