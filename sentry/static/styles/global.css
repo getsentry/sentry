@@ -2397,9 +2397,12 @@ footer a {
   /* count height */
 
 }
+.events.no-counts .event {
+  padding-left: 20px;
+}
 .events .event {
   position: relative;
-  padding: 15px 20px;
+  padding: 15px 20px 15px 100px;
   position: relative;
   border: 1px solid #e5e6e7;
   border-width: 0 0 1px 1px;
@@ -2439,6 +2442,7 @@ footer a {
 .events .event .count {
   color: #fff;
   position: absolute;
+  left: 20px;
   width: 60px;
   height: 60px;
   background: #cfd3da;
@@ -2451,9 +2455,6 @@ footer a {
   font-weight: 400;
   letter-spacing: -1px;
   font-family: "proxima nova", "proxima-nova", "heletica-neue", sans-serif;
-}
-.events .event .details {
-  margin: 0 0 0 80px;
 }
 .events .event .message {
   margin-bottom: 0;

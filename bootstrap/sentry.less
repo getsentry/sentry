@@ -294,18 +294,25 @@ footer {
   padding: 0;
   list-style: none;
   border-top: 1px solid #e5e6e7;
+
   .empty-result {
     padding: 15px 20px;
     min-height: 60px; /* count height */
   }
+
+  &.no-counts {
+    .event {
+      padding-left: 20px;
+    }
+  }
+
   .event {
     position: relative;
-    padding: 15px 20px;
+    padding: 15px 20px 15px 100px;
     position: relative;
     border: 1px solid #e5e6e7;
     border-width: 0 0 1px 1px;
     min-height: 60px; /* count height */
-
     &:hover {
       #gradient > .vertical(#f7fbfe, #eff8fd);
       border-color: #aec9d7;
@@ -331,6 +338,7 @@ footer {
     .count {
       color: #fff;
       position: absolute;
+      left: 20px;
       .square(60px);
       background: #cfd3da;
       .border-radius(60px);
@@ -340,9 +348,6 @@ footer {
       font-weight: 400;
       letter-spacing: -1px;
       font-family: "proxima nova", "proxima-nova", "heletica-neue", sans-serif;
-    }
-    .details {
-      margin: 0 0 0 80px;
     }
     .message {
       margin-bottom: 0;

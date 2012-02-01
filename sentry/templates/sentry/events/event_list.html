@@ -31,7 +31,7 @@
     </div>
 
     {% if event_list.paginator.objects %}
-        <ul class="events" id="event_list">
+        <ul class="events no-counts" id="event_list">
             {% for event in event_list.paginator.objects %}
                 {% include "sentry/partial/_event.html" %}
             {% endfor %}
