@@ -40,7 +40,16 @@ class SentryUDPServer(Service):
                 data = decode_and_decompress_data(data)
             data = safely_load_json_string(data)
 
-            validate_data(project, data)
+            try:
+                validate_data(project, data)
+            except InvalidTimestamp:
+                # Log the error, remove the timestamp, and revalidate
+                logger.error('Client %r passed an invalid value for timestamp %r' % (
+                    data['timestamp'],
+                    client or '<unknown client>',
+                ))
+                del data['timestamp']
+                validate_data(project, data)
 
             return insert_data_to_database(data)
         except APIError, error:
