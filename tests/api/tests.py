@@ -13,7 +13,7 @@ from sentry.models import Project
 from sentry.coreapi import project_from_id, project_from_api_key_and_id, \
   extract_auth_vars, project_from_auth_vars, validate_hmac, APIUnauthorized, \
   APIForbidden, APITimestampExpired, APIError, process_data_timestamp, \
-  insert_data_to_database
+  insert_data_to_database, InvalidTimestamp
 from sentry.utils.auth import get_signature
 
 from tests.base import TestCase
@@ -161,6 +161,11 @@ class APITest(TestCase):
         d = datetime.datetime(2012, 01, 01, 10, 30, 45)
         self.assertTrue('timestamp' in data)
         self.assertEquals(data['timestamp'], d)
+
+    def test_process_data_timestamp_invalid_timestamp(self):
+        self.assertRaises(InvalidTimestamp, process_data_timestamp, {
+            'timestamp': 'foo'
+        })
 
     def test_insert_data_to_database_with_queue(self):
         insert_data_to_database({

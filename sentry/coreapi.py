@@ -20,7 +20,11 @@ from sentry.queue.client import delay
 from sentry.utils import is_float, json
 from sentry.utils.auth import get_signature, parse_auth_header
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('sentry.errors.coreapi')
+
+
+class InvalidTimestamp(ValueError):
+    pass
 
 
 class APIError(Exception):
@@ -177,8 +181,7 @@ def process_data_timestamp(data):
         try:
             data['timestamp'] = datetime.strptime(data['timestamp'], format)
         except:
-            logger.exception('Failed reading timestamp')
-            del data['timestamp']
+            raise InvalidTimestamp('Invalid value for timestamp: %r' % data['timestamp'])
 
     return data
 

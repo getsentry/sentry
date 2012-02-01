@@ -5,6 +5,7 @@ sentry.web.views
 :copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+import logging
 
 from django.db.models import Q
 from django.http import HttpResponse, HttpResponseBadRequest, \
@@ -16,13 +17,15 @@ from sentry.conf import settings
 from sentry.coreapi import project_from_auth_vars, project_from_api_key_and_id, \
   project_from_id, decode_and_decompress_data, safely_load_json_string, \
   validate_data, insert_data_to_database, APIError, APIUnauthorized, \
-  extract_auth_vars
+  extract_auth_vars, InvalidTimestamp
 from sentry.models import Group, GroupBookmark, Project, View
 from sentry.utils import json
 from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
 from sentry.web.helpers import render_to_response, \
   get_project_list, render_to_string
+
+logger = logging.getLogger('sentry.errors.coreapi')
 
 
 @csrf_exempt
@@ -34,8 +37,10 @@ def store(request):
 
         if auth_vars:
             server_version = auth_vars.get('sentry_version', '1.0')
+            client = auth_vars.get('sentry_client', '<unknown client>')
         else:
             server_version = request.GET.get('version', '1.0')
+            client = request.META.get('HTTP_REFERER', request.GET.get('client'))
 
         if server_version not in ('1.0', '2.0'):
             raise APIError('Client/server version mismatch. Unsupported version: %r' % server_version)
@@ -55,7 +60,16 @@ def store(request):
             data = decode_and_decompress_data(data)
         data = safely_load_json_string(data)
 
-        validate_data(project, data)
+        try:
+            validate_data(project, data)
+        except InvalidTimestamp:
+            # Log the error, remove the timestamp, and revalidate
+            logger.error('Client %r passed an invalid value for timestamp %r' % (
+                data['timestamp'],
+                client,
+            ))
+            del data['timestamp']
+            validate_data(project, data)
 
         insert_data_to_database(data)
     except APIError, error:
