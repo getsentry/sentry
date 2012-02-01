@@ -45,7 +45,7 @@ def store(request):
         if server_version not in ('1.0', '2.0'):
             raise APIError('Client/server version mismatch: Unsupported version: %r' % server_version)
 
-        if server_version != '2.0' and not client:
+        if server_version != '1.0' and not client:
             raise APIError('Client request error: Missing client version identifier.')
 
         if auth_vars:
