@@ -37,13 +37,16 @@ def store(request):
 
         if auth_vars:
             server_version = auth_vars.get('sentry_version', '1.0')
-            client = auth_vars.get('sentry_client', '<unknown client>')
+            client = auth_vars.get('sentry_client')
         else:
             server_version = request.GET.get('version', '1.0')
-            client = request.META.get('HTTP_REFERER', request.GET.get('client'))
+            client = request.META.get('HTTP_USER_AGENT', request.GET.get('client'))
 
         if server_version not in ('1.0', '2.0'):
-            raise APIError('Client/server version mismatch. Unsupported version: %r' % server_version)
+            raise APIError('Client/server version mismatch: Unsupported version: %r' % server_version)
+
+        if server_version != '2.0' and not client:
+            raise APIError('Client request error: Missing client version identifier.')
 
         if auth_vars:
             project = project_from_auth_vars(auth_vars, data)
@@ -66,7 +69,7 @@ def store(request):
             # Log the error, remove the timestamp, and revalidate
             logger.error('Client %r passed an invalid value for timestamp %r' % (
                 data['timestamp'],
-                client,
+                client or '<unknown client>',
             ))
             del data['timestamp']
             validate_data(project, data)
