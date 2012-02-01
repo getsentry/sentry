@@ -17,14 +17,12 @@ from sentry.interfaces import Http
 class RadioFieldRenderer(forms.widgets.RadioFieldRenderer):
     """
     This is identical to Django's builtin widget, except that
-    it renders as <ul.inputs-list>. Would be great if we didn't
-    have to create this stupid code, but Django widgets are not
+    it renders as a Bootstrap2 compatible widget. Would be great if
+    we didn't have to create this stupid code, but Django widgets are not
     flexible.
     """
     def render(self):
-        """Outputs a <ul> for this set of radio fields."""
-        return mark_safe(u'<ul class="inputs-list">\n%s\n</ul>' % u'\n'.join([u'<li>%s</li>'
-                % force_unicode(w) for w in self]))
+        return mark_safe(u'\n<div class="inputs-list">%s</div>\n' % u'\n'.join([force_unicode(w) for w in self]))
 
 
 class UserField(forms.CharField):

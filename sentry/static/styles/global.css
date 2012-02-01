@@ -2767,3 +2767,13 @@ table.inline tr {
   padding: 10px;
   margin: 10px;
 }
+.inputs-list label {
+  padding-left: 18px;
+}
+.inputs-list label input[type="radio"], .inputs-list label input[type="checkbox"] {
+  float: left;
+  margin-left: -18px;
+}
+.controls > .inputs-list label:first-child, .controls > .inputs-list label:first-child {
+  padding-top: 5px;
+}

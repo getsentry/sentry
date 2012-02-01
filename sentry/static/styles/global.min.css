@@ -446,3 +446,6 @@ dl.flat dd{padding-bottom:5px;}
 #full-message{line-height:1.5em;}
 table.inline tr{display:inline-block;}
 #popup{background:#fff;padding:10px;margin:10px;}
+.inputs-list label{padding-left:18px;}
+.inputs-list label input[type="radio"],.inputs-list label input[type="checkbox"]{float:left;margin-left:-18px;}
+.controls>.inputs-list label:first-child,.controls>.inputs-list label:first-child{padding-top:5px;}
