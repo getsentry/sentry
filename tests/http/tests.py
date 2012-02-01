@@ -3,44 +3,54 @@
 from __future__ import absolute_import
 
 import datetime
-import logging
+import mock
 
 from django.core.urlresolvers import reverse
 
+from raven import Client
 from sentry.conf import settings
 from sentry.models import Event
 
 from tests.base import TestCase
 
 
-class SentryRemoteTest(TestCase):
-    def setUp(self):
-        settings.REMOTE_URL = ['http://localhost:8000%s' % reverse('sentry-api-store')]
-        logger = logging.getLogger('sentry')
-        for h in logger.handlers:
-            logger.removeHandler(h)
-        logger.addHandler(logging.StreamHandler())
+class RavenIntegrationTest(TestCase):
+    """
+    This mocks the test server and specifically tests behavior that would
+    happen between Raven <--> Sentry over HTTP communication.
+    """
+    def sendRemote(self, url, data, headers={}):
+        content_type = headers.pop('Content-Type', None)
+        headers = dict(('HTTP_' + k.replace('-', '_').upper(), v) for k, v in headers.iteritems())
+        resp = self.client.post(reverse('sentry-api-store'),
+            data=data,
+            content_type=content_type,
+            **headers)
+        self.assertEquals(resp.status_code, 200, resp.content)
 
-    def tearDown(self):
-        settings.REMOTE_URL = None
+    @mock.patch('raven.base.Client.send_remote')
+    def test_basic(self, send_remote):
+        send_remote.side_effect = self.sendRemote
+        client = Client(
+            project=settings.PROJECT,
+            servers=['http://localhost:8000%s' % reverse('sentry-api-store')],
+            key=settings.KEY,
+        )
+        client.capture('Message', message='foo')
+
+        self.assertEquals(Event.objects.count(), 1)
+        instance = Event.objects.get()
+        self.assertEquals(instance.message, 'foo')
+
+
+class SentryRemoteTest(TestCase):
+    def test_no_client_version(self):
+        resp = self.client.post(reverse('sentry-api-store') + '?version=2.0')
+        self.assertEquals(resp.status_code, 400, resp.content)
 
     def test_no_key(self):
         resp = self.client.post(reverse('sentry-api-store'))
-        self.assertEquals(resp.status_code, 401)
-
-    # def test_no_data(self):
-    #     resp = self.client.post(reverse('sentry-api-store'), {
-    #         'key': settings.KEY,
-    #     })
-    #     self.assertEquals(resp.status_code, 400)
-
-    # def test_bad_data(self):
-    #     resp = self.client.post(reverse('sentry-api-store'), {
-    #         'key': settings.KEY,
-    #         'data': 'hello world',
-    #     })
-    #     self.assertEquals(resp.status_code, 401)
-        # self.assertEquals(resp.content, 'Bad data decoding request (TypeError, Incorrect padding)')
+        self.assertEquals(resp.status_code, 401, resp.content)
 
     def test_correct_data(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
