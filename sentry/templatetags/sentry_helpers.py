@@ -11,7 +11,7 @@ from paging.helpers import paginate as paginate_func
 from sentry.conf import settings
 from sentry.plugins import plugins
 from sentry.utils import json
-from sentry.utils.dates import utc_to_local
+from sentry.utils.dates import utc_to_local, local_to_utc
 from templatetag_sugar.register import tag
 from templatetag_sugar.parser import Name, Variable, Constant, Optional
 
@@ -322,3 +322,9 @@ def as_bookmarks(group_list, user):
 
     for g in group_list:
         yield g, g.pk in bookmarks
+
+
+@register.filter
+def date(datetime, arg=None):
+    from django.template.defaultfilters import date
+    return date(local_to_utc(datetime), arg)

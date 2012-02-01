@@ -10,11 +10,13 @@
                     {{ event.message_top|truncatechars:100 }}
                 {% endif %}
             </a>
-            <span class="last_seen">{{ event.datetime|timesince }}</span>
-            {% if event.time_spent %}
-                <span class="time_spent">{{ event.time_spent|duration }}</span>
-            {% endif %}
         </h3>
+        <div class="meta">
+            <span class="last-seen pretty-date" title="{{ event.datetime|date:"c" }}Z">{{ event.datetime|timesince }}</span>
+            {% if event.time_spent %}
+                <span class="time-spent">{{ event.time_spent|duration }}</span>
+            {% endif %}
+        </div>
         <p class="message" title="{{ event.message }}">
             <span class="tag tag-logger">{{ event.logger }}</span>
             {% with event.get_version as version %}

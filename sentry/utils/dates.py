@@ -12,6 +12,9 @@ from django.conf import settings
 
 def utc_to_local(dt):
     tz = pytz.timezone(settings.TIME_ZONE)
-    # return datetime(*time.gmtime(time.mktime(dt.timetuple()))[:6])
-    # return dt.replace(tzinfo=pytz.utc)
     return dt.replace(tzinfo=pytz.utc).astimezone(tz).replace(tzinfo=None)
+
+
+def local_to_utc(dt):
+    tz = pytz.timezone(settings.TIME_ZONE)
+    return dt.replace(tzinfo=tz).astimezone(pytz.utc).replace(tzinfo=None)
