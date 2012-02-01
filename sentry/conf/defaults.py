@@ -56,6 +56,26 @@ PROJECT = 1
 # Only store a portion of all messages per unique group.
 SAMPLE_DATA = True
 
+# The following values control the sampling rates
+SAMPLE_RATES = (
+    (50, 1),
+    (1000, 2),
+    (10000, 10),
+    (100000, 50),
+    (1000000, 300),
+    (10000000, 2000),
+)
+
+MAX_SAMPLE_RATE = 10000
+
+SAMPLE_TIMES = (
+    (3600, 1),
+    (360, 10),
+    (60, 60),
+)
+
+MAX_SAMPLE_TIME = 10000
+
 # Restrict emails to only ``messages >= this value``.
 MAIL_LEVEL = logging.DEBUG
 

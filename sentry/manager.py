@@ -55,29 +55,17 @@ class ScoreClause(object):
 def count_limit(count):
     # TODO: could we do something like num_to_store = max(math.sqrt(100*count)+59, 200) ?
     # ~ 150 * ((log(n) - 1.5) ^ 2 - 0.25)
-    if count <= 50:  # 200
-        return 1
-    if count <= 1000:  # 400
-        return 2
-    if count <= 10000:  # 900
-        return 10
-    if count <= 100000:  # 1800
-        return 50
-    if count <= 1000000:  # 3000
-        return 300
-    if count <= 10000000:  # 4500
-        return 2000
-    return 10000
+    for amount, sample_rate in settings.SAMPLE_RATES:
+        if count <= amount:
+            return sample_rate
+    return settings.MAX_SAMPLE_RATE
 
 
 def time_limit(silence):  # ~ 3600 per hour
-    if silence >= 3600:
-        return 1
-    if silence >= 360:
-        return 10
-    if silence >= 60:
-        return 60
-    return 10000
+    for amount, sample_rate in settings.SAMPLE_TIMES:
+        if silence >= amount:
+            return sample_rate
+    return settings.MAX_SAMPLE_TIME
 
 
 class ModuleProxyCache(dict):
