@@ -230,6 +230,7 @@ def group_list(request, project, view_id=None):
         'filters': filters,
         'view': view,
         'HAS_TRENDING': has_trending(),
+        'PAGE': 'dashboard',
     }, request)
 
 

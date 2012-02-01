@@ -21,8 +21,8 @@
 
                 <ul class="nav">
                     {% if project %}
-                        <li><a href="{% url sentry project.pk %}">{% trans "Dashboard" %}</a></li>
-                        <li><a href="{% url sentry-events project.pk %}">{% trans "Stream" %}</a></li>
+                        <li{% if PAGE == 'dashboard' %} class="active"{% endif %}><a href="{% url sentry project.pk %}">{% trans "Dashboard" %}</a></li>
+                        <li{% if PAGE == 'stream' %} class="active"{% endif %}><a href="{% url sentry-events project.pk %}">{% trans "Stream" %}</a></li>
                     {% endif %}
                 </ul>
                 <ul class="nav pull-right">

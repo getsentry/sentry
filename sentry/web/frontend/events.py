@@ -54,6 +54,7 @@ def event_list(request, project):
         'event_list': event_list[offset:limit],
         'today': today,
         'filters': filters,
+        'PAGE': 'stream',
     }, request)
 
 
