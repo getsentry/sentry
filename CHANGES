@@ -1,3 +1,15 @@
+Version 2.2.4
+-------------
+
+* Improve error logging in API.
+* Update Celery client code to use new send_encoded interfaces.
+* Change JS datetimes to use UTC.
+* Force clients which specify version 2.0 or newer to pass identification.
+* Better default logging configuration.
+* Adjust eventlet to monkey patch the world before any imports happen.
+* Adjust default configuration to specify LOG and RUN directories.
+* upgrade now correctly handles the delete ghosts argument.
+
 Version 2.2.3
 -------------
 
