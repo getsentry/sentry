@@ -328,6 +328,8 @@ footer {
       font-family: "proxima nova", "proxima-nova", "heletica-neue", sans-serif;
       margin: 4px 0 0;
       font-size: 20px;
+      color: @gray;
+      font-weight: normal;
       span {
         margin-left: 10px;
         font-weight: 300;
@@ -398,10 +400,19 @@ footer {
     }
 
     &.level-10 .count {}
-    &.level-20 .count { background: #ffa101;}
-    &.level-30 .count { background: #ffa101;}
-    &.level-40 .count { background: #f0431c;}
-    &.level-50 .count { background: #f0431c;}
+    &.level-20 .count { background: #ffa101; }
+    &.level-30 .count { background: #ffa101; }
+    &.level-40 .count { background: #f0431c; }
+    &.level-50 .count { background: #f0431c; }
+
+    &.resolved {
+      h3 {
+        text-decoration: line-through;
+      }
+      .count {
+        .opacity(50);
+      }
+    }
   }
 }
 

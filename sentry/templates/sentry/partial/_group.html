@@ -1,6 +1,6 @@
 {% load sentry_helpers %}
 
-<li class="event level-{{ group.level }}" id="group_{{ group.pk|safe }}" data-count="{{ group.times_seen }}" data-score="{{ group.sort_value }}">
+<li class="event level-{{ group.level }}{% if group.status == 0 %} resolved{% endif %}" id="group_{{ group.pk|safe }}" data-count="{{ group.times_seen }}" data-score="{{ group.sort_value }}">
     <div class="count"><span>{{ group.times_seen|small_count }}</span></div>
     <div class="details">
         <h3>

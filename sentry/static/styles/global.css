@@ -2432,6 +2432,8 @@ footer a {
   font-family: "proxima nova", "proxima-nova", "heletica-neue", sans-serif;
   margin: 4px 0 0;
   font-size: 20px;
+  color: #6d757e;
+  font-weight: normal;
 }
 .events .event h3 span {
   margin-left: 10px;
@@ -2516,6 +2518,13 @@ footer a {
 }
 .events .event.level-50 .count {
   background: #f0431c;
+}
+.events .event.resolved h3 {
+  text-decoration: line-through;
+}
+.events .event.resolved .count {
+  opacity: 0.5;
+  filter: alpha(opacity=50);
 }
 label {
   font-weight: bold;

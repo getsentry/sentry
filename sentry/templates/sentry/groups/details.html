@@ -42,17 +42,15 @@
 {% block main %}
     {% handle_before_events request group %}
     <ul class="events" id="event_list">
-        <li class="event level-{{ group.level }}" id="group_{{ group.pk|safe }}" data-count="{{ group.times_seen }}" data-score="{{ group.sort_value }}">
+        <li class="event level-{{ group.level }}{% if group.status == 0 %} resolved{% endif %}" id="group_{{ group.pk|safe }}" data-count="{{ group.times_seen }}" data-score="{{ group.sort_value }}">
             <div class="count"><span>{{ group.times_seen|small_count }}</span></div>
             <div class="details">
                 <h3>
-                    <a href="{% url sentry-group group.project_id group.pk %}">
-                        {% if group.view %}
-                            {{ group.view }}
-                        {% else %}
-                            {{ group.message_top|truncatechars:100 }}
-                        {% endif %}
-                    </a>
+                    {% if group.view %}
+                        {{ group.view }}
+                    {% else %}
+                        {{ group.message_top|truncatechars:100 }}
+                    {% endif %}
                 </h3>
                 <p class="message" title="{{ group.message }}">
                     <span class="tag tag-logger">{{ group.logger }}</span>
