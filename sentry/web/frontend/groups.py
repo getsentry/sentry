@@ -104,23 +104,34 @@ def _get_group_list(request, project, view=None):
         sort = settings.DEFAULT_SORT_OPTION
 
     if sort == 'date':
-        event_list = event_list.order_by('-last_seen')
+        event_list = event_list.extra(
+            select={'sort_value': 'EXTRACT(EPOCH FROM last_seen)'},
+        ).order_by('-sort_value')
     elif sort == 'new':
-        event_list = event_list.order_by('-first_seen')
+        event_list = event_list.extra(
+            select={'sort_value': 'EXTRACT(EPOCH FROM first_seen)'},
+        ).order_by('-sort_value')
     elif sort == 'freq':
-        event_list = event_list.order_by('-times_seen')
+        event_list = event_list.extra(
+            select={'sort_value': 'times_seen'},
+        ).order_by('-sort_value')
     elif sort == 'tottime':
-        event_list = event_list.filter(time_spent_count__gt=0)\
-                                .order_by('-time_spent_total')
+        event_list = event_list.extra(
+            select={'sort_value': 'time_spent_total'},
+        ).filter(time_spent_count__gt=0).order_by('-sort_value')
     elif sort == 'avgtime':
-        event_list = event_list.filter(time_spent_count__gt=0)\
-                               .extra(select={'avg_time_spent': 'time_spent_total / time_spent_count'})\
-                               .order_by('-avg_time_spent')
+        event_list = event_list.extra(
+            select={
+                'sort_value': '(time_spent_total / time_spent_count)'
+            }
+        ).filter(time_spent_count__gt=0).order_by('-sort_value')
     elif has_trending() and sort and sort.startswith('accel_'):
         event_list = Group.objects.get_accelerated(event_list, minutes=int(sort.split('_', 1)[1]))
     elif sort == 'priority':
         sort = 'priority'
-        event_list = event_list.order_by('-score', '-last_seen')
+        event_list = event_list.extra(
+            select={'sort_value': 'score'}
+        ).order_by('-sort_value', '-last_seen')
     else:
         raise NotImplementedError('Sort not implemented: %r' % sort)
 

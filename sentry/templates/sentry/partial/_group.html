@@ -1,7 +1,7 @@
 {% load sentry_helpers %}
 
-<li class="event level-{{ group.level }}" id="group_{{ group.pk|safe }}" data-sentry-count="{{ group.times_seen }}">
-    <div class="count">{{ group.times_seen|small_count }}</div>
+<li class="event level-{{ group.level }}" id="group_{{ group.pk|safe }}" data-count="{{ group.times_seen }}" data-score="{{ group.sort_value }}">
+    <div class="count"><span>{{ group.times_seen|small_count }}</span></div>
     <div class="details">
         <h3>
             <a href="{% url sentry-group group.project_id group.pk %}">

@@ -11,7 +11,8 @@ function varToggle(link, id) {
 function getQueryParams()
 {
     var vars = {}, hash;
-    var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1, window.location.href.indexOf('#') || -1).split('&');
+    var href = window.location.href;
+    var hashes = href.slice(href.indexOf('?') + 1, (href.indexOf('#') !== -1 ? href.indexOf('#') : href.length)).split('&');
     for(var i = 0; i < hashes.length; i++)
     {
         hash = hashes[i].split('=');
@@ -192,7 +193,12 @@ if (Sentry === undefined) {
                 if (groups.length) {
                     $('#no_messages').remove();
                 }
-                $(groups.reverse()).each(function(i, el){
+                // highest score should be index 0
+                var sorted = [];
+                $('#event_list .event').each(function(i, el){
+                    sorted.push([el, $(el).attr('data-score')]);
+                });
+                $(groups).each(function(i, el){
                     var id = el[0];
                     var data = el[1];
                     var url = Sentry.options.urlPrefix + '/api/notification/?' + $.param({
@@ -202,15 +208,32 @@ if (Sentry === undefined) {
                         level: data.level,
                         logger: data.logger
                     });
-                    if ((row = $('#group_' + id))) {
-                        if (row.attr('data-sentry-count') == data.count) {
+                    var row, next;
+                    var is_new = !(row = $('#group_' + id)).length;
+                    if (!is_new) {
+                        if (row.attr('data-count') == data.count) {
                             return;
                         }
-                        row.remove();
                     } else {
-                        //Sentry.notifications.show({'type': 'html', 'url': url});
+                        row = $(data.html);
                     }
-                    $('#event_list').prepend(data.html);
+                    function getPosition(score, list) {
+                        for (var i=0; i<list.length; i++) {
+                            if (score > list[i][1]) {
+                                return i;
+                            }
+                        }
+                        return -1;
+                    }
+                    pos = getPosition(data.score, sorted);
+                    if (is_new) {
+                        sorted.splice(pos, 0, [data.score, row]);
+                    }
+                    if (pos === -1) {
+                        $('#event_list').append(row);
+                    } else {
+                        $($('#event_list .event')[pos]).before(row);
+                    }
                     $('#group_' + id).addClass('fresh');
                 });
 

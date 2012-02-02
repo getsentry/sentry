@@ -124,6 +124,7 @@ def poll(request, project):
             'level': m.get_level_display(),
             'logger': m.logger,
             'count': m.times_seen,
+            'score': getattr(m, 'sort_value', None),
         }) for m, b in as_bookmarks(event_list, request.user)]
 
     response = HttpResponse(json.dumps(data))
