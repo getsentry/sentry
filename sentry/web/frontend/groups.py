@@ -22,7 +22,7 @@ from sentry.conf import settings
 from sentry.filters import Filter
 from sentry.models import Group, Event, View, SearchDocument
 from sentry.plugins import plugins
-from sentry.utils import json, has_trending
+from sentry.utils import json, has_trending, get_db_engine
 from sentry.web.decorators import has_access, login_required
 from sentry.web.helpers import render_to_response
 
@@ -47,6 +47,11 @@ SORT_CLAUSES = {
     'tottime': 'time_spent_total',
     'avgtime': '(time_spent_total / time_spent_count)',
 }
+SQLITE_SORT_CLAUSES = SORT_CLAUSES.copy()
+SQLITE_SORT_CLAUSES.update({
+    'date': 'last_seen',
+    'new': 'first_seen',
+})
 SEARCH_SORT_OPTIONS = (
     'score',
     'date',
@@ -110,7 +115,11 @@ def _get_group_list(request, project, view=None):
     if sort not in SORT_OPTIONS:
         sort = settings.DEFAULT_SORT_OPTION
 
-    sort_clause = SORT_CLAUSES.get(sort)
+    sqlite = get_db_engine('default').startswith('sqlite')
+    if sqlite:
+        sort_clause = SQLITE_SORT_CLAUSES.get(sort)
+    else:
+        sort_clause = SORT_CLAUSES.get(sort)
 
     if sort == 'tottime':
         event_list = event_list.filter(time_spent_count__gt=0)

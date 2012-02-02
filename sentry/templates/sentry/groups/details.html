@@ -61,7 +61,7 @@
                 <ul class="dropdown-menu">
                     {# We're going to move these to the resolve action location #}
                     {% if group.status == 0 %}
-                        <li><a href="javascript:void(0)">{% trans "&#10003; Mark as Resolved" %}</a></li>
+                        <li><a href="javascript:void(0)" onclick="Sentry.stream.resolve({{ group.project_id|safe }}, {{ group.pk|safe }});">{% trans "&#10003; Mark as Resolved" %}</a></li>
                     {% else %}
                         <li class="disabled"><a>{% trans "&#10003; Already Resolved" %}</a></li>
                     {% endif %}
