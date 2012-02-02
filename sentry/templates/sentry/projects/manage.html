@@ -43,16 +43,16 @@
                     {% endfor %}
                 </fieldset>
                 <fieldset class="form-actions">
-                    <button type="submit" class="btn primary">{% trans "Save Changes" %}</button>
+                    <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
                     {% if PROJECT_ID != project.pk %}
-                        <a href="{% url sentry-remove-project project.pk %}" class="btn danger">{% trans "Remove Project" %}</a>
+                        <a href="{% url sentry-remove-project project.pk %}" class="btn btn-danger">{% trans "Remove Project" %}</a>
                     {% else %}
-                        <a href="#" class="btn disabled danger">{% trans "Cannot remove default project" %}</a>
+                        <a href="#" class="btn disabled btn-danger">{% trans "Cannot remove default project" %}</a>
                     {% endif %}
                 </fieldset>
             </form>
             <div class="page-header">
-                <a href="{% url sentry-new-project-member project.pk %}" class="btn pull-right small primary">{% trans "+ New Member" %}</a>
+                <a href="{% url sentry-new-project-member project.pk %}" class="btn pull-right small btn-primary">{% trans "+ New Member" %}</a>
                 <h2>{% trans "Members" %}</h2>
             </div>
             <table class="table table-bordered table-zebra">

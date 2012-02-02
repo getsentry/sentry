@@ -19,7 +19,7 @@ from indexer.models import BaseIndex
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.db import models
-from django.db.models import Sum, F
+from django.db.models import F
 from django.utils.datastructures import SortedDict
 from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
@@ -78,7 +78,7 @@ class Project(Model):
     are the top level entry point for all data.
     """
     name = models.CharField(max_length=200)
-    owner = models.ForeignKey(User, related_name="owned_project_set", null=True)
+    owner = models.ForeignKey(User, related_name="sentry_owned_project_set", null=True)
     public = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=datetime.now)
     status = models.PositiveIntegerField(default=0, choices=(
@@ -176,10 +176,10 @@ class ProjectMember(Model):
     their API access and permissions.
     """
     project = models.ForeignKey(Project, related_name="member_set")
-    user = models.ForeignKey(User, related_name="project_set")
+    user = models.ForeignKey(User, related_name="sentry_project_set")
     public_key = models.CharField(max_length=32, unique=True, null=True)
     secret_key = models.CharField(max_length=32, unique=True, null=True)
-    type = models.IntegerField(choices=MEMBER_TYPES, default=MEMBER_OWNER)
+    type = models.IntegerField(choices=MEMBER_TYPES, default=globals().get(settings.DEFAULT_PROJECT_ACCESS))
     date_added = models.DateTimeField(default=datetime.now)
 
     class Meta:

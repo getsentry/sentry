@@ -3,7 +3,7 @@
     {% csrf_token %}
     {% if form.non_field_errors %}
         <div class="alert alert-block alert-error">
-            <p>There were errors saving your changes:</p>
+            <p>{% trans "There were errors saving your changes:" %}</p>
             <ul>
                 {% for error in form.non_field_errors %}
                     <li>{{ error }}</li>
@@ -15,6 +15,6 @@
         {% include "sentry/partial/_form_field.html" %}
     {% endfor %}
     <fieldset class="form-actions">
-        <button type="submit" class="btn primary">{% trans "Save Changes" %}</button>
+        <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
     </fieldset>
 </form>

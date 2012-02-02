@@ -7,11 +7,14 @@ sentry.management
 """
 
 import logging
+
 from django.contrib.auth.models import User
 from django.db.models.signals import post_syncdb, post_save
+
+from sentry.conf import settings
 from sentry.models import Project, MessageIndex, SearchDocument, \
   Group, Event, FilterValue, MessageFilterValue, MessageCountByMinute, \
-  MEMBER_OWNER
+  MEMBER_OWNER, MEMBER_USER, MEMBER_SYSTEM
 
 
 def register_indexes():
@@ -68,7 +71,7 @@ def create_project_member_for_owner(instance, created, **kwargs):
 
     instance.member_set.create(
         user=instance.owner,
-        type=MEMBER_OWNER
+        type=globals()[settings.DEFAULT_PROJECT_ACCESS]
     )
 
 

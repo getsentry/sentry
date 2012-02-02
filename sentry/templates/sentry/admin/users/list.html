@@ -1,0 +1,75 @@
+{% extends "sentry/admin/base.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Manage Users" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-admin-users %}">{% trans "Users" %}</a></li>
+{% endblock %}
+
+{% block page_header %}
+    <a href="{% url sentry-admin-new-user %}" class="btn pull-right btn-primary">+ {% trans "Create a new user" %}</a>
+    {{ block.super }}
+{% endblock %}
+
+{% block inner %}
+    {% paginate user_list from request as user_list per_page 50 %}
+
+    {% if user_list.objects %}
+        {{ user_list.paging }}
+
+        <table class="table table-bordered">
+            <colgroup>
+                <col>
+                <col style="width:150px;">
+                <col style="width:150px;">
+                <col style="width:50px;">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>{% trans "Name" %}</th>
+                    <th style="text-align:center;">{% trans "Joined" %}</th>
+                    <th style="text-align:center;">{% trans "Last Login" %}</th>
+                    <th style="text-align:center;">{% trans "Projects" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in user_list.objects %}
+                    <tr>
+                        <td>
+                            <a href="{% url sentry-admin-edit-user user.pk %}">
+                                {% if user.first_name %}
+                                    {{ user.first_name }} ({{ user.email }})
+                                {% else %}
+                                    {{ user.email }}
+                                {% endif %}
+                            </a>
+                            {% if not user.is_active %}
+                                <em>inactive account</em>
+                            {% endif %}
+                            <br/>
+                            <small>{{ user.username }}</small>
+                        </td>
+                        <td style="text-align:center; vertical-align:middle;">
+                            {{ user.date_joined|date }}
+                        </td>
+                        <td style="text-align:center; vertical-align:middle;">
+                            {{ user.last_login|date }}
+                        </td>
+                        <td style="text-align:center; vertical-align:middle;">
+                            {{ user.num_projects }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {{ user_list.paging }}
+
+    {% else %}
+        <p class="alert alert-notice">{% trans "There are no active users in Sentry." %}</p>
+    {% endif %}
+{% endblock %}

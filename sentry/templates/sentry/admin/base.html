@@ -12,13 +12,11 @@
 {% endblock %}
 
 {% block sidebar %}
-<!--     <h6>Overview</h6>
+    <h6>Overview</h6>
     <ul class="nav nav-tabs nav-stacked">
-        <li><a href="#">Projects</a></li>
-        <li><a href="#">Users</a></li>
-        <li><a href="#">Data Use</a></li>
+        <li><a href="{% url sentry-admin-users %}">Users</a></li>
     </ul>
- -->
+
     <h6>Plugins</h6>
     <ul class="nav nav-tabs nav-stacked">
         {% for p in PLUGINS.for_site %}

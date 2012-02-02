@@ -1,13 +1,13 @@
-{% extends "sentry/projects/manage.html" %}
+{% extends "sentry/admin/users/edit.html" %}
 
 {% load i18n %}
 
-{% block title %}{% trans "Remove Project" %} | {{ block.super }}{% endblock %}
+{% block title %}{% trans "Remove User" %} | {{ block.super }}{% endblock %}
 
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider">/</li>
-    <li><a href="{% url sentry-remove-project project.pk %}">{% trans "Remove Project" %}</a></li>
+    <li><a href="{% url sentry-admin-remove-user the_user.pk %}">{% trans "Remove User" %}</a></li>
 {% endblock %}
 
 {% block main %}
@@ -28,7 +28,7 @@
                 {% include "sentry/partial/_form_field.html" %}
             {% endfor %}
             <fieldset class="form-actions">
-                <button type="submit" class="btn btn-danger">{% trans "Confirm" %}</button> <a href="{% url sentry-manage-project project.pk %}" class="btn">{% trans "Cancel" %}</a>
+                <button type="submit" class="btn btn-danger">{% trans "Confirm" %}</button> <a href="{% url sentry-admin-edit-user the_user.pk %}" class="btn">{% trans "Cancel" %}</a>
             </fieldset>
         </form>
     </section>

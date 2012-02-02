@@ -1,0 +1,18 @@
+{% extends "sentry/admin/users/list.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "New User" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-admin-new-user %}">{% trans "Create New User" %}</a></li>
+{% endblock %}
+
+{% block main %}
+    <section class="body">
+        {% include "sentry/partial/_form.html" %}
+    </section>
+{% endblock %}

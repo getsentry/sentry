@@ -141,3 +141,32 @@ class ReplayForm(forms.Form):
             return
 
         return dict(line.split(': ') for line in value.split('\n'))
+
+
+class BaseUserForm(forms.ModelForm):
+    email = forms.EmailField()
+    first_name = forms.CharField(required=True, label='Name')
+
+
+class NewUserForm(BaseUserForm):
+    create_project = forms.BooleanField(required=False,
+        help_text="Create a project for this user.")
+    send_welcome_mail = forms.BooleanField(required=False,
+        help_text="Send this user a welcome email which will contain their generated password.")
+
+    class Meta:
+        fields = ('first_name', 'username', 'email')
+        model = User
+
+
+class ChangeUserForm(BaseUserForm):
+    class Meta:
+        fields = ('first_name', 'username', 'email', 'is_active')
+        model = User
+
+
+class RemoveUserForm(forms.Form):
+    removal_type = forms.ChoiceField(choices=(
+        ('1', 'Disable the account.'),
+        ('2', 'Permanently remove the user and their data.'),
+    ), widget=forms.RadioSelect(renderer=RadioFieldRenderer))

@@ -1,7 +1,14 @@
+Version 2.4.0
+-------------
+
+* Added user management for admins.
+* Resolved events should now appear differently.
+* Default membership access is now configurable.
+
 Version 2.3.2
 -------------
 
-* Maintaining *some* level of support for SQLite
+* Maintaining *some* level of support for SQLite.
 
 Version 2.3.1
 -------------

@@ -8,18 +8,26 @@ sentry.web.frontend.generic
 import datetime
 import pkg_resources
 import sys
+import uuid
 
+from django.contrib.auth.models import User
+from django.core.context_processors import csrf
+from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
-from django.db.models import Sum
+from django.db import transaction
+from django.db.models import Sum, Count
 from django.http import HttpResponseRedirect
+from django.views.decorators.csrf import csrf_protect
 from djkombu.models import Queue
 
 from sentry import environment
 from sentry.conf import settings
 from sentry.models import Project, MessageCountByMinute
 from sentry.plugins import plugins
+from sentry.web.forms import NewUserForm, ChangeUserForm, RemoveUserForm
 from sentry.web.decorators import requires_admin
-from sentry.web.helpers import render_to_response, plugin_config
+from sentry.web.helpers import render_to_response, plugin_config, \
+  render_to_string
 
 
 def configure_plugin(request, slug):
@@ -40,11 +48,130 @@ def configure_plugin(request, slug):
 
 
 @requires_admin
+def manage_users(request):
+    if not request.user.has_perm('auth.can_add_user'):
+        return HttpResponseRedirect(reverse('sentry'))
+
+    users = User.objects.annotate(num_projects=Count('sentry_project_set'))\
+                .order_by('-last_login')
+
+    return render_to_response('sentry/admin/users/list.html', {
+        'user_list': users,
+    }, request)
+
+
+@requires_admin
+@transaction.commit_on_success
+@csrf_protect
+def create_new_user(request):
+    if not request.user.has_perm('auth.can_add_user'):
+        return HttpResponseRedirect(reverse('sentry'))
+
+    form = NewUserForm(request.POST or None, initial={
+        'send_welcome_mail': True,
+        'create_project': True,
+    })
+    if form.is_valid():
+        user = form.save(commit=False)
+
+        # create a random password
+        password = uuid.uuid4().hex
+        user.set_password(password)
+
+        user.save()
+
+        if form.cleaned_data['create_project']:
+            project = Project.objects.create(
+                owner=user,
+                name='New Project',
+            )
+            member = project.member_set.get()
+
+        if form.cleaned_data['send_welcome_mail']:
+            context = {
+                'username': user.username,
+                'password': password,
+                'url': request.build_absolute_uri(reverse('sentry')),
+            }
+            if form.cleaned_data['create_project']:
+                context.update({
+                    'project': project,
+                    'member': member,
+                    'dsn': member.get_dsn(request.get_host(), secure=request.is_secure()),
+                })
+            body = render_to_string('sentry/emails/welcome_mail.txt', context, request)
+
+            send_mail('%s Welcome to Sentry' % (settings.EMAIL_SUBJECT_PREFIX,),
+                body, settings.SERVER_EMAIL, [user.email],
+                fail_silently=True)
+
+        return HttpResponseRedirect(reverse('sentry-admin-users'))
+
+    context = {
+        'form': form,
+    }
+    context.update(csrf(request))
+
+    return render_to_response('sentry/admin/users/new.html', context, request)
+
+
+@requires_admin
+@csrf_protect
+def edit_user(request, user_id):
+    if not request.user.has_perm('auth.can_change_user'):
+        return HttpResponseRedirect(reverse('sentry'))
+
+    try:
+        user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        return HttpResponseRedirect(reverse('sentry-admin-users'))
+
+    form = ChangeUserForm(request.POST or None, instance=user)
+    if form.is_valid():
+        user = form.save()
+        return HttpResponseRedirect(reverse('sentry-admin-users'))
+
+    context = {
+        'form': form,
+        'the_user': user,
+    }
+    context.update(csrf(request))
+
+    return render_to_response('sentry/admin/users/edit.html', context, request)
+
+
+@requires_admin
+@csrf_protect
+def remove_user(request, user_id):
+    if str(user_id) == str(request.user.id):
+        return HttpResponseRedirect(reverse('sentry-admin-users'))
+
+    try:
+        user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        return HttpResponseRedirect(reverse('sentry-admin-users'))
+
+    form = RemoveUserForm(request.POST or None)
+    if form.is_valid():
+        if form.cleaned_data['removal_type'] == '2':
+            user.delete()
+        else:
+            User.objects.filter(pk=user.pk).update(is_active=False)
+
+        return HttpResponseRedirect(reverse('sentry-admin-users'))
+
+    context = csrf(request)
+    context.update({
+        'form': form,
+        'the_user': user,
+    })
+
+    return render_to_response('sentry/admin/users/remove.html', context, request)
+
+
+@requires_admin
 def status(request):
     from sentry.views import View
-
-    if not request.user.is_staff:
-        return HttpResponseRedirect(reverse('sentry'))
 
     config = []
     for k in sorted(dir(settings)):

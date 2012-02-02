@@ -136,3 +136,6 @@ DEFAULT_SORT_OPTION = 'date'
 
 # Default sort option for the search results
 SEARCH_DEFAULT_SORT_OPTION = 'date'
+
+# Default project access when a project owner is created
+DEFAULT_PROJECT_ACCESS = 'MEMBER_OWNER'

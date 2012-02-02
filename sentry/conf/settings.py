@@ -33,6 +33,9 @@ if locals().get('REMOTE_URL'):
 if locals().get('REMOTE_TIMEOUT'):
     TIMEOUT = REMOTE_TIMEOUT
 
+if locals().get('DEFAULT_PROJECT_ACCESS') not in ('MEMBER_OWNER', 'MEMBER_USER', 'MEMBER_SYSTEM'):
+    DEFAULT_PROJECT_ACCESS = 'MEMBER_OWNER'
+
 
 def configure(**kwargs):
     for k, v in kwargs.iteritems():
