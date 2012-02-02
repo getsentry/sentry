@@ -2731,32 +2731,6 @@ dl.flat dt {
 dl.flat dd {
   padding-bottom: 5px;
 }
-/* messages generic */
-.level-10 .count {
-  background: #999;
-  background: -moz-linear-gradient(center top, #999999, #444444) repeat scroll 0 0 transparent;
-  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#999999), to(#444444));
-}
-.level-20 .count {
-  background: #0C7AD8;
-  background: -moz-linear-gradient(center top, #0c7ad8, #004f92) repeat scroll 0 0 transparent;
-  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#0c7ad8), to(#004f92));
-}
-.level-30 .count {
-  background: #F4B63E;
-  background: -moz-linear-gradient(center top, #f4b63e, #d18a00) repeat scroll 0 0 transparent;
-  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#f4b63e), to(#d18a00));
-}
-.level-40 .count {
-  background: #CC0000;
-  background: -moz-linear-gradient(center top, #cc0000, #4e0303) repeat scroll 0 0 transparent;
-  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#cc0000), to(#4e0303));
-}
-.level-50 .count {
-  background: #FF9797;
-  background: -moz-linear-gradient(center top, #ff9797, #ff0000) repeat scroll 0 0 transparent;
-  background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#ff9797), to(#ff0000));
-}
 #full-message {
   line-height: 1.5em;
 }
