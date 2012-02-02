@@ -2,9 +2,7 @@
 {% load sentry_helpers %}
 
 {% if unique_servers %}
-    <div class="page-header">
-        <h3>{% trans "Servers" %}</h3>
-    </div>
+    <h6>{% trans "Servers" %}</h6>
 
     <ul class="server-list">
         {% for server in unique_servers %}
