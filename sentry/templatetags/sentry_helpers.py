@@ -134,7 +134,9 @@ def get_actions(group, request):
             action_list = inst.actions(request, group, action_list)
         except:
             logger = logging.getLogger('sentry.plugins')
-            logger.exception('Error processing actions() on %r', inst.__class__)
+            logger.exception('Error processing actions() on %r', inst.__class__, extra={
+                'request': request,
+            })
 
     for action in action_list:
         yield action[0], action[1], request.path == action[1]
@@ -148,7 +150,9 @@ def get_panels(group, request):
             panel_list = inst.panels(request, group, panel_list)
         except:
             logger = logging.getLogger('sentry.plugins')
-            logger.exception('Error processing panels() on %r', inst.__class__)
+            logger.exception('Error processing panels() on %r', inst.__class__, extra={
+                'request': request,
+            })
 
     for panel in panel_list:
         yield panel[0], panel[1], request.path == panel[1]
@@ -163,7 +167,9 @@ def get_widgets(group, request):
                 resp = resp.render(request)
         except:
             logger = logging.getLogger('sentry.plugins')
-            logger.exception('Error processing widget() on %r', inst.__class__)
+            logger.exception('Error processing widget() on %r', inst.__class__, extra={
+                'request': request,
+            })
             continue
         if resp:
             yield resp
@@ -177,7 +183,9 @@ def get_tags(group, request):
             tag_list = inst.tags(request, group, tag_list)
         except:
             logger = logging.getLogger('sentry.plugins')
-            logger.exception('Error processing tags() on %r', inst.__class__)
+            logger.exception('Error processing tags() on %r', inst.__class__, extra={
+                'request': request,
+            })
 
     for tag in tag_list:
         yield tag
@@ -192,7 +200,9 @@ def handle_before_events(request, event_list):
             inst.before_events(request, event_list)
         except:
             logger = logging.getLogger('sentry.plugins')
-            logger.exception('Error processing before_events() on %r', inst.__class__)
+            logger.exception('Error processing before_events() on %r', inst.__class__, extra={
+                'request': request,
+            })
     return ''
 
 
