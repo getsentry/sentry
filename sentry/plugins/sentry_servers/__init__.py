@@ -32,7 +32,10 @@ class ServersPlugin(Plugin):
         return panel_list
 
     def view(self, request, group, **kwargs):
-        return self.render('sentry/plugins/sentry_servers/index.html')
+        return self.render('sentry/plugins/sentry_servers/index.html', {
+            'unique_servers': self.get_unique_servers(group),
+            'group': group,
+        })
 
     def widget(self, request, group, **kwargs):
         return self.render('sentry/plugins/sentry_servers/widget.html', {

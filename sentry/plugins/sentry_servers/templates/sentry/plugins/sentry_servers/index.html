@@ -4,7 +4,7 @@
 {% load sentry_helpers %}
 
 {% block inner %}
-    {% paginate group.unique_servers from request as server_list per_page 25 %}
+    {% paginate unique_servers from request as server_list per_page 25 %}
 
     {% if server_list.objects %}
         {{ server_list.paging }}

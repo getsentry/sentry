@@ -4,7 +4,7 @@
 {% load sentry_helpers %}
 
 {% block inner %}
-    {% paginate group.unique_urls from request as url_list per_page 25 %}
+    {% paginate unique_urls from request as url_list per_page 25 %}
 
     {% if url_list.objects %}
         {{ url_list.paging }}

@@ -31,7 +31,10 @@ class SitesPlugin(Plugin):
         return panel_list
 
     def view(self, request, group, **kwargs):
-        return self.render('sentry/plugins/sentry_sites/index.html')
+        return self.render('sentry/plugins/sentry_sites/index.html', {
+            'group': group,
+            'unique_sites': self.get_unique_sites(group),
+        })
 
     def widget(self, request, group, **kwargs):
         return self.render('sentry/plugins/sentry_sites/widget.html', {

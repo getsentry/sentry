@@ -31,7 +31,10 @@ class UrlsPlugin(Plugin):
         return panel_list
 
     def view(self, request, group, **kwargs):
-        return self.render('sentry/plugins/sentry_urls/index.html')
+        return self.render('sentry/plugins/sentry_urls/index.html', {
+            'group': group,
+            'unique_urls': self.get_unique_urls(group),
+        })
 
     def widget(self, request, group, **kwargs):
         return self.render('sentry/plugins/sentry_urls/widget.html', {
