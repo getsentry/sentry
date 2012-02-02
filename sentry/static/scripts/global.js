@@ -21,6 +21,158 @@ function getQueryParams()
     return vars;
 }
 
+(function() {
+  /**
+   * @private
+   */
+  var prioritySortLow = function(a, b) {
+    return b.priority - a.priority;
+  };
+
+  /**
+   * @private
+   */
+  var prioritySortHigh = function(a, b) {
+    return a.priority - b.priority;
+  };
+
+  /**
+   * @constructor
+   * @class Queue manages a queue of elements with priorities. Default
+   * is highest priority first.
+   *
+   * @param [options] If low is set to true returns lowest first.
+   */
+  Queue = function(options) {
+    var contents = [];
+
+    var sorted = false;
+    var sortStyle;
+    if(options === undefined) {
+        options = {};
+    }
+
+    if(options.low) {
+      sortStyle = prioritySortLow;
+    } else if(options.high) {
+      sortStyle = prioritySortHigh;
+    }
+
+    /**
+     * @private
+     */
+    var sort = function() {
+      contents.sort(sortStyle);
+      sorted = true;
+    };
+
+    var self = {
+      /**
+       * Removes and returns the next element in the queue.
+       * @member Queue
+       * @return The next element in the queue. If the queue is empty returns
+       * undefined.
+       *
+       * @see PrioirtyQueue#top
+       */
+      pop: function() {
+        if(!sorted && sortStyle) {
+          sort();
+        }
+
+        var element = contents.pop();
+
+        if(element) {
+          return element.object;
+        } else {
+          return undefined;
+        }
+      },
+
+      /**
+       * Returns but does not remove the next element in the queue.
+       * @member Queue
+       * @return The next element in the queue. If the queue is empty returns
+       * undefined.
+       *
+       * @see Queue#pop
+       */
+      top: function() {
+        if(!sorted) {
+          sort();
+        }
+
+        var element = contents[contents.length - 1];
+
+        if(element) {
+          return element.object;
+        } else {
+          return undefined;
+        }
+      },
+
+      /**
+       * @member Queue
+       * @param object The object to check the queue for.
+       * @returns true if the object is in the queue, false otherwise.
+       */
+      includes: function(object) {
+        for(var i = contents.length - 1; i >= 0; i--) {
+          if(contents[i].object === object) {
+            return true;
+          }
+        }
+
+        return false;
+      },
+
+      /**
+       * @member Queue
+       * @param object The object to check the queue for.
+       * @returns true if the object was replaced, false if it was pushed.
+       */
+      replace: function(object, priority, key) {
+        for(var i = contents.length - 1; i >= 0; i--) {
+          if(contents[i].object[key] === object[key]) {
+            contents[i] = {object: object, priority: priority};
+            return true;
+          }
+        }
+        self.push(object, priority);
+        return false;
+      },
+
+      /**
+       * @member Queue
+       * @returns the current number of elements in the queue.
+       */
+      size: function() {
+        return contents.length;
+      },
+
+      /**
+       * @member Queue
+       * @returns true if the queue is empty, false otherwise.
+       */
+      empty: function() {
+        return contents.length === 0;
+      },
+
+      /**
+       * @member Queue
+       * @param object The object to be pushed onto the queue.
+       * @param priority The priority of the object.
+       */
+      push: function(object, priority) {
+        contents.push({object: object, priority: priority});
+        sorted = false;
+      }
+    };
+
+    return self;
+  };
+})();
+
 /**
  * Date.parse with progressive enhancement for ISO 8601 <https://github.com/csnover/js-iso8601>
  * © 2011 Colin Snover <http://zetafleet.com>
@@ -140,10 +292,40 @@ if (Sentry === undefined) {
         });
     };
 
+    function getPosition(list, value, idx) {
+        for (var i=0, item; (item = list[i]); i++) {
+            if (value > item[idx]) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     Sentry.realtime = {};
     Sentry.realtime.options = {
         viewId: null,
         projectId: null
+    };
+    Sentry.realtime.status = false;
+    Sentry.realtime.queue = Queue({high: true});
+
+    Sentry.realtime.init = function(){
+        var sorted = [];
+        $('#event_list .event').each(function(i, el){
+            var $el = $(el);
+            sorted.push([$el.attr('data-score'), $el.attr('id')]);
+        });
+        Sentry.realtime.events = sorted;
+
+        $('#sentry-realtime').click(function(){
+            if (Sentry.realtime.status) {
+                Sentry.realtime.disable();
+            } else {
+                Sentry.realtime.enable();
+            }
+        });
+        Sentry.realtime.poll();
+        setInterval(Sentry.realtime.tick, 300);
     };
 
     Sentry.realtime.config = function(data){
@@ -151,8 +333,6 @@ if (Sentry === undefined) {
             Sentry.realtime.options[k] = v;
         });
     };
-
-    Sentry.realtime.status = false;
 
     Sentry.realtime.toggle = function(){
         if (Sentry.realtime.status) {
@@ -178,79 +358,76 @@ if (Sentry === undefined) {
         Sentry.realtime.status = false;
     };
 
-    Sentry.realtime.refresh = function(){
+    Sentry.realtime.tick = function(){
+        if (Sentry.realtime.queue.empty()) {
+            return;
+        }
+        var data = Sentry.realtime.queue.pop();
+        var id = 'group_' + data.id;
+        var is_new = !(row = $('#' + id)).length;
+        // ensure "no messages" is cleaned up
+        $('#no_messages').remove();
+        // resort because we suck at javascript
+        Sentry.realtime.events.sort(function(a, b){
+            return b[0] - a[0];
+        });
+        if (!is_new) {
+            if (row.attr('data-count') == data.count) {
+                return;
+            }
+            row.replaceWith($(data.html));
+        } else {
+            row = $(data.html);
+        }
+        pos = getPosition(Sentry.realtime.events, data.score, 0);
+        if (!is_new) {
+            old_pos = getPosition(Sentry.realtime.events, id, 1);
+            Sentry.realtime.events[old_pos][0] = data.score;
+            if (old_pos == pos) {
+                return;
+            }
+        }
+        if (pos === -1) {
+            $('#event_list').append(row);
+        } else {
+            $('#' + Sentry.realtime.events[pos][1]).before(row);
+        }
+        if (is_new) {
+            Sentry.realtime.events.splice(pos, 0, [data.score, id]);
+        }
+        row.css('background-color', '#ddd').animate({backgroundColor: '#fff'}, 1200);
+    };
+
+    Sentry.realtime.poll = function(){
         if (!Sentry.realtime.status) {
             return;
         }
         data = getQueryParams();
         data.view_id = Sentry.realtime.options.viewId || undefined;
+        data.cursor = Sentry.realtime.cursor || undefined;
         $.ajax({
             url: Sentry.options.urlPrefix + '/api/' + Sentry.realtime.options.projectId + '/poll/',
             type: 'get',
             dataType: 'json',
             data: data,
             success: function(groups){
-                if (groups.length) {
-                    $('#no_messages').remove();
+                if (!groups.length) {
+                    setTimeout(Sentry.realtime.poll, 5000);
+                    return;
                 }
-                // highest score should be index 0
-                var sorted = [];
-                $('#event_list .event').each(function(i, el){
-                    sorted.push([el, $(el).attr('data-score')]);
+                Sentry.realtime.cursor = groups[0].score || undefined;
+                $(groups).each(function(i, data){
+                    Sentry.realtime.queue.replace(data, data.score, 'id');
                 });
-                $(groups).each(function(i, el){
-                    var id = el[0];
-                    var data = el[1];
-                    var url = Sentry.options.urlPrefix + '/api/notification/?' + $.param({
-                        count: data.count,
-                        title: data.title,
-                        message: data.message,
-                        level: data.level,
-                        logger: data.logger
-                    });
-                    var row, next;
-                    var is_new = !(row = $('#group_' + id)).length;
-                    if (!is_new) {
-                        if (row.attr('data-count') == data.count) {
-                            return;
-                        }
-                    } else {
-                        row = $(data.html);
-                    }
-                    function getPosition(score, list) {
-                        for (var i=0; i<list.length; i++) {
-                            if (score > list[i][1]) {
-                                return i;
-                            }
-                        }
-                        return -1;
-                    }
-                    pos = getPosition(data.score, sorted);
-                    if (is_new) {
-                        sorted.splice(pos, 0, [data.score, row]);
-                    }
-                    if (pos === -1) {
-                        $('#event_list').append(row);
-                    } else {
-                        $($('#event_list .event')[pos]).before(row);
-                    }
-                    $('#group_' + id).addClass('fresh');
-                });
-
-                $('#event_list .fresh').css('background-color', '#ccc').animate({backgroundColor: '#fff'}, 1200, function() {
-                    $(this).removeClass('fresh');
-                });
-                // make sure we limit the number shown
-                var count = 0;
-                $('#event_list li').each(function(){
-                    count++;
-                    if (count > 50) {
-                        $(this).remove();
-                    }
-                });
-                setTimeout(Sentry.realtime.refresh, 3000);
+                setTimeout(Sentry.realtime.poll, 1000);
             }
         });
+
+        // make sure we limit the number shown
+        while (Sentry.realtime.events.length > 50) {
+            var item = Sentry.realtime.events.pop();
+            $("#" + item[1]).remove();
+        }
     };
 
     Sentry.charts = {};
@@ -345,15 +522,7 @@ if (Sentry === undefined) {
     };
 
     $(document).ready(function(){
-        $('#sentry-realtime').click(function(){
-            if (Sentry.realtime.status) {
-                Sentry.realtime.disable();
-            } else {
-                Sentry.realtime.enable();
-            }
-        });
-
-        setTimeout(Sentry.realtime.refresh, 3000);
+        Sentry.realtime.init();
 
         if (window.webkitNotifications){
             Sentry.notifications.status = (window.webkitNotifications.checkPermission() > 0);

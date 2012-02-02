@@ -40,6 +40,13 @@ SORT_OPTIONS = (
     'accel_15',
     'accel_60',
 )
+SORT_CLAUSES = {
+    'date': 'EXTRACT(EPOCH FROM last_seen)',
+    'new': 'EXTRACT(EPOCH FROM first_seen)',
+    'freq': 'times_seen',
+    'tottime': 'time_spent_total',
+    'avgtime': '(time_spent_total / time_spent_count)',
+}
 SEARCH_SORT_OPTIONS = (
     'score',
     'date',
@@ -103,37 +110,25 @@ def _get_group_list(request, project, view=None):
     if sort not in SORT_OPTIONS:
         sort = settings.DEFAULT_SORT_OPTION
 
-    if sort == 'date':
-        event_list = event_list.extra(
-            select={'sort_value': 'EXTRACT(EPOCH FROM last_seen)'},
-        ).order_by('-sort_value')
-    elif sort == 'new':
-        event_list = event_list.extra(
-            select={'sort_value': 'EXTRACT(EPOCH FROM first_seen)'},
-        ).order_by('-sort_value')
-    elif sort == 'freq':
-        event_list = event_list.extra(
-            select={'sort_value': 'times_seen'},
-        ).order_by('-sort_value')
-    elif sort == 'tottime':
-        event_list = event_list.extra(
-            select={'sort_value': 'time_spent_total'},
-        ).filter(time_spent_count__gt=0).order_by('-sort_value')
+    sort_clause = SORT_CLAUSES.get(sort)
+
+    if sort == 'tottime':
+        event_list = event_list.filter(time_spent_count__gt=0)
     elif sort == 'avgtime':
-        event_list = event_list.extra(
-            select={
-                'sort_value': '(time_spent_total / time_spent_count)'
-            }
-        ).filter(time_spent_count__gt=0).order_by('-sort_value')
+        event_list = event_list.filter(time_spent_count__gt=0)
     elif has_trending() and sort and sort.startswith('accel_'):
         event_list = Group.objects.get_accelerated(event_list, minutes=int(sort.split('_', 1)[1]))
-    elif sort == 'priority':
-        sort = 'priority'
+
+    if sort_clause:
         event_list = event_list.extra(
-            select={'sort_value': 'score'}
+            select={'sort_value': sort_clause},
         ).order_by('-sort_value', '-last_seen')
-    else:
-        raise NotImplementedError('Sort not implemented: %r' % sort)
+        cursor = request.GET.get('cursor')
+        if cursor:
+            event_list = event_list.extra(
+                where=['%s > %%s' % sort_clause],
+                params=[cursor],
+            )
 
     return filters, event_list
 

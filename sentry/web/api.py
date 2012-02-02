@@ -113,7 +113,8 @@ def poll(request, project):
     handle_before_events(request, event_list)
 
     data = [
-        (m.pk, {
+        {
+            'id': m.pk,
             'html': render_to_string('sentry/partial/_group.html', {
                 'group': m,
                 'request': request,
@@ -125,7 +126,7 @@ def poll(request, project):
             'logger': m.logger,
             'count': m.times_seen,
             'score': getattr(m, 'sort_value', None),
-        }) for m, b in as_bookmarks(event_list, request.user)]
+        } for m, b in as_bookmarks(event_list, request.user)]
 
     response = HttpResponse(json.dumps(data))
     response['Content-Type'] = 'application/json'
