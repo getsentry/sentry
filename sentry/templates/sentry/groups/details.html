@@ -42,7 +42,50 @@
 {% block main %}
     {% handle_before_events request group %}
     <ul class="events" id="event_list">
-        {% include "sentry/partial/_group.html" %}
+        <li class="event level-{{ group.level }}" id="group_{{ group.pk|safe }}" data-count="{{ group.times_seen }}" data-score="{{ group.sort_value }}">
+            <div class="count"><span>{{ group.times_seen|small_count }}</span></div>
+            <div class="details">
+                <h3>
+                    <a href="{% url sentry-group group.project_id group.pk %}">
+                        {% if group.view %}
+                            {{ group.view }}
+                        {% else %}
+                            {{ group.message_top|truncatechars:100 }}
+                        {% endif %}
+                    </a>
+                </h3>
+                <p class="message" title="{{ group.message }}">
+                    <span class="tag tag-logger">{{ group.logger }}</span>
+                    {% with group.get_version as version %}
+                        {% if version %}
+                            <span class="tag tag-version">{{ version.0 }} {{ version.1 }}</span>
+                        {% endif %}
+                    {% endwith %}
+                    {% for tag in group|get_tags:request %}<span class="tag">{{ tag }}</span> {% endfor %}
+                    {{ group.error }}
+                </p>
+                <div class="meta">
+                    <span class="last-seen pretty-date" title="{{ group.last_seen|date:"c" }}Z">{{ group.last_seen|timesince }}</span>
+                    {% if group.avg_time_spent %}
+                        <span class="time-spent">{{ group.avg_time_spent|duration }}</span>
+                    {% endif %}
+                </div>
+                <ul class="actions">
+                    <li>
+                        {% if group.status == 0 %}
+                            <a href="javascript:void(0)" onclick="Sentry.stream.resolve({{ group.project_id|safe }}, {{ group.pk|safe }}, false);" class="resolve">&#10003;</a>
+                        {% else %}
+                            <a href="javascript:void(0)" class="resolve disabled">&#10003;</a>
+                        {% endif %}
+                    </li>
+                    {% if request.user.is_authenticated %}
+                        <li><a href="javascript:void(0)" onclick="Sentry.stream.bookmark({{ group.project_id|safe }}, {{ group.pk|safe }}, this);" class="bookmark{% if is_bookmarked %} checked{% endif %}">&#9829;</a></li>
+                    {% endif %}
+                </ul>
+        <!--         <a href="{% url sentry-group group.project_id group.pk %}" class="row_link"></a>
+         -->
+            </div>
+        </li>
     </ul>
 
     <section class="body">
@@ -60,11 +103,6 @@
                 <a class="dropdown-toggle" href="#" data-toggle="dropdown">{% trans "Actions" %} <span class="caret"></span></a>
                 <ul class="dropdown-menu">
                     {# We're going to move these to the resolve action location #}
-                    {% if group.status == 0 %}
-                        <li><a href="javascript:void(0)" onclick="Sentry.stream.resolve({{ group.project_id|safe }}, {{ group.pk|safe }});">{% trans "&#10003; Mark as Resolved" %}</a></li>
-                    {% else %}
-                        <li class="disabled"><a>{% trans "&#10003; Already Resolved" %}</a></li>
-                    {% endif %}
                     <li><a href="{% url sentry-group-json project_id=project.pk group_id=group.pk %}">{% trans "Raw JSON Data" %}</a></li>
                     {% for label, link, is_active in group|get_actions:request %}
                         {% if forloop.first %}

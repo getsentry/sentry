@@ -2495,6 +2495,9 @@ footer a {
 .events .event .actions li .checked {
   color: orange;
 }
+.events .event .actions li .disabled {
+  color: #6d757e;
+}
 .events .event .row_link {
   top: 0;
   left: 0;

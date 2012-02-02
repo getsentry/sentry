@@ -387,6 +387,7 @@ footer a{color:#fff;font-weight:bold;}
 .events .event .message{margin-bottom:0;font-size:14px;padding-right:14px;}.events .event .message .tag{margin-left:5px;font-size:12px;float:right;-webkit-border-radius:6px;-moz-border-radius:6px;border-radius:6px;background:#fff;padding:2px 6px;color:#aec9d7;}
 .events .event .meta{position:absolute;right:40px;top:20px;}
 .events .event .actions{position:absolute;right:15px;top:20px;list-style-type:none;margin:0;padding:0;}.events .event .actions li{margin-bottom:12px;font-size:14px;line-height:18px;}.events .event .actions li .checked{color:orange;}
+.events .event .actions li .disabled{color:#6d757e;}
 .events .event .row_link{top:0;left:0;width:100%;height:100%;position:absolute;}
 .events .event.level-20 .count{background:#ffa101;}
 .events .event.level-30 .count{background:#ffa101;}
