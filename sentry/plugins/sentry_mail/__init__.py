@@ -38,7 +38,7 @@ class MailProcessor(Plugin):
         if exclude_loggers is NOTSET:
             exclude_loggers = settings.MAIL_EXCLUDE_LOGGERS
         if send_to is NOTSET:
-            send_to = ';'.join(settings.ADMINS)
+            send_to = ','.join(settings.ADMINS)
 
         self.min_level = min_level
         self.include_loggers = include_loggers
@@ -51,7 +51,7 @@ class MailProcessor(Plugin):
         subject_prefix = self.get_option('subject_prefix', project) or self.subject_prefix
 
         send_mail('%s%s' % (subject_prefix, subject), body,
-                  settings.SERVER_EMAIL, send_to.split('; '),
+                  settings.SERVER_EMAIL, send_to.split(','),
                   fail_silently=fail_silently)
 
     def send_test_mail(self, project=None):
