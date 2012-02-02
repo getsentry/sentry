@@ -6,11 +6,6 @@ sentry.scripts.runner
 :copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from eventlet import patcher
-
-patcher.monkey_patch()
-
-
 import base64
 import datetime
 import errno
