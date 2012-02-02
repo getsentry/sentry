@@ -1,3 +1,10 @@
+Version 2.4.3
+-------------
+
+* Correct some behavior with MySQL on the groups pane.
+* Correct generated configuration behavior to use absolute
+  paths for run and log folders.
+
 Version 2.4.2
 -------------
 
