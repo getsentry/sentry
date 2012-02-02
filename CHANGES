@@ -1,3 +1,11 @@
+Version 2.4.4
+-------------
+
+* Mail configuration value of send_to now correctly uses ',' as a separator
+  (rather than ';').
+* Changed rendering of sidebar widgets for all builtin extensions.
+* Added an event details slot to the sidebar pane for individual events.
+
 Version 2.4.3
 -------------
 

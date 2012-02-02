@@ -45,7 +45,7 @@ install_requires = [
 
 setup(
     name='sentry',
-    version='2.4.3',
+    version='2.4.4',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/sentry',
@@ -59,11 +59,10 @@ setup(
     test_suite='runtests.runtests',
     license='BSD',
     include_package_data=True,
-    entry_points={
-        'console_scripts': [
-            'sentry = sentry.scripts.runner:main',
-        ],
-    },
+    entry_points="""
+    [console_scripts]
+    sentry = sentry.scripts.runner:main
+    """,
     classifiers=[
         'Framework :: Django',
         'Intended Audience :: Developers',
