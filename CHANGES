@@ -1,3 +1,16 @@
+Version 2.3.0
+-------------
+
+* The polling API and JavaScript have been refactored.
+
+  Events now stream in (they generally do not update if they already
+  exist), and will maintain correct ordering in the feed.
+
+  This API is available for most sort options, excluding trends.
+* The builtin plugin's widgets have been fixed.
+* Sampling rates are now configurable.
+* Some minor design tweaks.
+
 Version 2.2.5
 -------------
 

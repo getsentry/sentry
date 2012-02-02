@@ -1,8 +1,6 @@
 - API needs to work with key authentication globally (not just the store view)
 - Record errors with client information in API
 - Record client information with each event
-- Widgets dont seem to be rendering
-- Polling API is awful
 - Pause/Play, Sort By, and Notification settings should be saved in a cookie
 - Add first_seen, last_seen for all filter values
 - Potentially add graphs per server/url/etc ?
