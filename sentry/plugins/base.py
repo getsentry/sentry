@@ -9,7 +9,7 @@ sentry.plugins.base
 __all__ = ('Plugin', 'plugins')
 
 from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 
 from sentry.utils import InstanceManager
 
@@ -20,11 +20,17 @@ class Response(object):
         self.context = context
 
     def respond(self, request, context=None):
-        from sentry.web.helpers import render_to_response
+        return HttpResponse(self.render(request, context))
 
+    def render(self, request, context=None):
+        from sentry.web.helpers import render_to_string
+
+        if not context:
+            context = {}
         if self.context:
             context.update(self.context)
-        return render_to_response(self.template, context, request)
+
+        return render_to_string(self.template, context, request)
 
 
 class PluginManager(InstanceManager):

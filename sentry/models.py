@@ -313,30 +313,6 @@ class Group(MessageBase):
                 self._latest_event = None
         return self._latest_event
 
-    @property
-    def unique_urls(self):
-        return self.messagefiltervalue_set.filter(key='url')\
-                   .values_list('value')\
-                   .annotate(times_seen=Sum('times_seen'))\
-                   .values_list('value', 'times_seen')\
-                   .order_by('-times_seen')
-
-    @property
-    def unique_servers(self):
-        return self.messagefiltervalue_set.filter(key='server_name')\
-                   .values_list('value')\
-                   .annotate(times_seen=Sum('times_seen'))\
-                   .values_list('value', 'times_seen')\
-                   .order_by('-times_seen')
-
-    @property
-    def unique_sites(self):
-        return self.messagefiltervalue_set.filter(key='site')\
-                   .values_list('value')\
-                   .annotate(times_seen=Sum('times_seen'))\
-                   .values_list('value', 'times_seen')\
-                   .order_by('-times_seen')
-
     def get_version(self):
         if not self.data:
             return

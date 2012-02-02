@@ -159,6 +159,8 @@ def get_widgets(group, request):
     for inst in plugins.all():
         try:
             resp = inst.widget(request, group)
+            if resp:
+                resp = resp.render(request)
         except:
             logger = logging.getLogger('sentry.plugins')
             logger.exception('Error processing widget() on %r', inst.__class__)

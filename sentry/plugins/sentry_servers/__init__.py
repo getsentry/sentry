@@ -6,6 +6,7 @@ sentry.plugins.sentry_servers
 :license: BSD, see LICENSE for more details.
 """
 
+from django.db.models import Sum
 from sentry.plugins import Plugin
 
 
@@ -19,6 +20,13 @@ class ServersPlugin(Plugin):
 
     title = 'Servers'
 
+    def get_unique_servers(self, group):
+        return group.messagefiltervalue_set.filter(key='server_name')\
+                   .values_list('value')\
+                   .annotate(times_seen=Sum('times_seen'))\
+                   .values_list('value', 'times_seen')\
+                   .order_by('-times_seen')
+
     def panels(self, request, group, panel_list, **kwargs):
         panel_list.append((self.get_title(), self.get_url(group)))
         return panel_list
@@ -27,4 +35,7 @@ class ServersPlugin(Plugin):
         return self.render('sentry/plugins/sentry_servers/index.html')
 
     def widget(self, request, group, **kwargs):
-        return self.render('sentry/plugins/sentry_servers/widget.html')
+        return self.render('sentry/plugins/sentry_servers/widget.html', {
+            'unique_servers': list(self.get_unique_servers(group)[:10]),
+            'group': group,
+        })
