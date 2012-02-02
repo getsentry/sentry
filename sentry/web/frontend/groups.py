@@ -52,6 +52,11 @@ SQLITE_SORT_CLAUSES.update({
     'date': 'last_seen',
     'new': 'first_seen',
 })
+MYSQL_SORT_CLAUSES = SORT_CLAUSES.copy()
+MYSQL_SORT_CLAUSES.update({
+    'date': 'UNIX_TIMESTAMP(last_seen)',
+    'new': 'UNIX_TIMESTAMP(first_seen)',
+})
 SEARCH_SORT_OPTIONS = (
     'score',
     'date',
@@ -115,9 +120,11 @@ def _get_group_list(request, project, view=None):
     if sort not in SORT_OPTIONS:
         sort = settings.DEFAULT_SORT_OPTION
 
-    sqlite = get_db_engine('default').startswith('sqlite')
-    if sqlite:
+    engine = get_db_engine('default')
+    if engine.startswith('sqlite'):
         sort_clause = SQLITE_SORT_CLAUSES.get(sort)
+    elif engine.startswith('mysql'):
+        sort_clause = MYSQL_SORT_CLAUSES.get(sort)
     else:
         sort_clause = SORT_CLAUSES.get(sort)
 
