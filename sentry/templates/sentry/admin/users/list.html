@@ -41,17 +41,19 @@
                     <tr>
                         <td>
                             <a href="{% url sentry-admin-edit-user user.pk %}">
-                                {% if user.first_name %}
-                                    {{ user.first_name }} ({{ user.email }})
-                                {% else %}
-                                    {{ user.email }}
-                                {% endif %}
+                                {{ user.username }}
                             </a>
                             {% if not user.is_active %}
                                 <em>inactive account</em>
                             {% endif %}
                             <br/>
-                            <small>{{ user.username }}</small>
+                            <small>
+                                {% if user.first_name %}
+                                    {{ user.first_name }} ({{ user.email }})
+                                {% else %}
+                                    {{ user.email }}
+                                {% endif %}
+                            </small>
                         </td>
                         <td style="text-align:center; vertical-align:middle;">
                             {{ user.date_joined|date }}

@@ -1,3 +1,10 @@
+Version 2.4.1
+-------------
+
+* Change appearance of resolve states.
+* Adjust user management to link username (which is required) and not
+  optional fields.
+
 Version 2.4.0
 -------------
 
