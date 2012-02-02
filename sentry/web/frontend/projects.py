@@ -4,7 +4,7 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
 from sentry.conf import settings
-from sentry.models import MEMBER_USER, MEMBER_OWNER
+from sentry.models import ProjectMember, MEMBER_USER, MEMBER_OWNER
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms import EditProjectForm, NewProjectForm, \
@@ -16,8 +16,17 @@ from sentry.web.helpers import render_to_response, get_project_list, \
 
 @login_required
 def project_list(request):
+    project_list = get_project_list(request.user, hidden=True)
+    memberships = dict(
+        (p.project_id, p)
+        for p in ProjectMember.objects.filter(user=request.user, project__in=project_list)
+    )
+    for project_id, member in memberships.iteritems():
+        project_list[project_id].member_dsn = member.get_dsn(request.get_host(), secure=request.is_secure())
+        project_list[project_id].member_type = member.get_type_display()
+
     return render_to_response('sentry/projects/list.html', {
-        'project_list': get_project_list(request.user, hidden=True).values(),
+        'project_list': project_list.values(),
     }, request)
 
 

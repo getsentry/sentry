@@ -18,26 +18,38 @@
 {% block content %}
     <section class="body">
         {% if project_list %}
-            <p>You have access to the following projects:</p>
+            <p>The following is a list of projects that you are a member of.</p>
             <table class="table table-zebra table-bordered">
                 <colgroup>
                     <col>
+                    <col style="width:100px;">
                     <col style="width:150px;">
                     <col style="width:100px;">
                 </colgroup>
                 <thead>
                     <tr>
                         <th>Name</th>
-                        <th>Owner</th>
-                        <th>Status</th>
+                        <th style="text-align:center;">Membership</th>
+                        <th style="text-align:center;">Owner</th>
+                        <th style="text-align:center;">Status</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for project in project_list %}
                         <tr>
-                            <td><a href="{% url sentry-manage-project project.pk %}">{{ project.name }}</a></td>
-                            <td>{% if project.owner %}{{ project.owner.username }}{% else %}<em>no owner</em>{% endif %}</td>
-                            <td>{{ project.get_status_display }}</td>
+                            <td>
+                                <a href="{% url sentry-manage-project project.pk %}">{{ project.name }}</a><br/>
+                                {% if project.member_dsn %}<small>{{ project.member_dsn }}</small>{% endif %}
+                            </td>
+                            <td style="text-align:center;vertical-align:middle;">{{ project.member_type }}</td>
+                            <td style="text-align:center;vertical-align:middle;">
+                                {% if project.owner %}
+                                    {{ project.owner.username }}
+                                {% else %}
+                                    <em>no owner</em>
+                                {% endif %}
+                            </td>
+                            <td style="text-align:center;vertical-align:middle;">{{ project.get_status_display }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>
