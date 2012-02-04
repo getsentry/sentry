@@ -1,9 +1,11 @@
+import eventlet.patcher
 import itertools
 import os.path
 import random
 import time
 
-from django.conf import settings
+eventlet.patcher.monkey_patch()
+
 from sentry.scripts.runner import settings_from_file
 
 
@@ -38,11 +40,20 @@ def main():
     client = get_client()
     functions = funcs()
 
-    while True:
-        random.choice(functions)(client)
-
-        time.sleep(1)
-
+    s = time.time()
+    r = 0
+    try:
+        while True:
+            random.choice(functions)(client)
+            r += 1
+            eventlet.sleep(0.1)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        total_time = time.time() - s
+        print '%d requests serviced in %.3fs' % (r, total_time)
+        avg = total_time / r
+        print 'avg of %.3fs/req, %d req/s' % (avg, 60 / avg)
 
 if __name__ == '__main__':
     main()
