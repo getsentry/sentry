@@ -198,7 +198,7 @@ class Stacktrace(Interface):
 
     def get_search_context(self, event):
         return {
-            'text': list(itertools.chain(*[[f['filename'], f['function'], f['context_line']] for f in self.frames])),
+            'text': list(itertools.chain(*[[f.get('filename'), f.get('function'), f.get('context_line')] for f in self.frames])),
         }
 
 
