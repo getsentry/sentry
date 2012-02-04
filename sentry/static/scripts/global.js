@@ -292,7 +292,7 @@ if (Sentry === undefined) {
         });
     };
 
-    function getPosition(list, value, idx) {
+    function getRankedPosition(list, value, idx) {
         for (var i=0, item; (item = list[i]); i++) {
             if (value > item[idx]) {
                 return i;
@@ -300,7 +300,14 @@ if (Sentry === undefined) {
         }
         return -1;
     }
-
+    function getPosition(list, value, idx) {
+        for (var i=0, item; (item = list[i]); i++) {
+            if (value == item[idx]) {
+                return i;
+            }
+        }
+        return -1;
+    }
     Sentry.realtime = {};
     Sentry.realtime.options = {
         viewId: null,
@@ -379,7 +386,7 @@ if (Sentry === undefined) {
         } else {
             row = $(data.html);
         }
-        pos = getPosition(Sentry.realtime.events, data.score, 0);
+        pos = getRankedPosition(Sentry.realtime.events, data.score, 0);
         old_pos = getPosition(Sentry.realtime.events, id, 1);
         if (old_pos !== -1) {
             Sentry.realtime.events[old_pos][0] = data.score;
