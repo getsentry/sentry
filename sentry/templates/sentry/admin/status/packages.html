@@ -1,0 +1,92 @@
+{% extends "sentry/admin/base.html" %}
+
+{% block admin-nav-packages %} class="active"{% endblock %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Packages" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-admin-packages-status %}">{% trans "Packages" %}</a></li>
+{% endblock %}
+
+{% block inner %}
+    <div class="page-header">
+        <h2>{% trans "Extensions" %}</h2>
+    </div>
+    {% if extensions %}
+        <table class="table vars table-bordered table-zebra">
+            <colgroup>
+                <col style="width:220px">
+            </colgroup>
+            <tbody>
+                {% for key, value in extensions %}
+                    <tr>
+                        <th>{{ key }}</th>
+                        <td>{{ value }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>{% trans "No extensions registered." %}</p>
+    {% endif %}
+    <div class="page-header">
+        <h2>{% trans "Views" %}</h2>
+    </div>
+    {% if views %}
+        <table class="table vars table-bordered table-zebra">
+            <colgroup>
+                <col style="width:220px">
+            </colgroup>
+            <tbody>
+                {% for key, value in views %}
+                    <tr>
+                        <th>{{ key }}</th>
+                        <td>{{ value }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>{% trans "No views registered." %}</p>
+    {% endif %}
+    <div class="page-header">
+        <h2>{% trans "Processors" %}</h2>
+    </div>
+    {% if processors %}
+        <table class="table vars table-bordered table-zebra">
+            <colgroup>
+                <col style="width:220px">
+            </colgroup>
+            <tbody>
+                {% for key, value in processors %}
+                    <tr>
+                        <th>{{ key }}</th>
+                        <td>{{ value }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>{% trans "No event processors registered." %}</p>
+    {% endif %}
+    <div class="page-header">
+        <h2>{% trans "Modules" %}</h2>
+    </div>
+    <table class="table vars table-bordered table-zebra">
+        <colgroup>
+            <col style="width:220px">
+        </colgroup>
+        <tbody>
+            {% for key, value in modules %}
+                <tr>
+                    <th>{{ key }}</th>
+                    <td>{{ value }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

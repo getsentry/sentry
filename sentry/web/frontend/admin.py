@@ -170,7 +170,26 @@ def remove_user(request, user_id):
 
 
 @requires_admin
-def status(request):
+def status_env(request):
+    config = []
+    for k in sorted(dir(settings)):
+        if k == 'KEY':
+            continue
+        if k.startswith('_'):
+            continue
+        if k.upper() != k:
+            continue
+        config.append((k, getattr(settings, k)))
+
+    return render_to_response('sentry/admin/status/env.html', {
+        'python_version': sys.version,
+        'config': config,
+        'environment': environment,
+    }, request)
+
+
+@requires_admin
+def status_packages(request):
     from sentry.views import View
 
     config = []
@@ -183,6 +202,15 @@ def status(request):
             continue
         config.append((k, getattr(settings, k)))
 
+    return render_to_response('sentry/admin/status/packages.html', {
+        'modules': sorted([(p.project_name, p.version) for p in pkg_resources.working_set]),
+        'extensions': [(p.get_title(), '%s.%s' % (p.__module__, p.__class__.__name__)) for p in plugins.all()],
+        'views': [(x.__class__.__name__, x.__module__) for x in View.objects.all()],
+    }, request)
+
+
+@requires_admin
+def status_queue(request):
     worker_status = (settings.QUEUE['transport'] == 'djkombu.transport.DatabaseTransport')
     if worker_status:
         pending_tasks = list(Queue.objects.filter(
@@ -195,6 +223,14 @@ def status(request):
     else:
         pending_tasks = None
 
+    return render_to_response('sentry/admin/status/queue.html', {
+        'pending_tasks': pending_tasks,
+        'worker_status': worker_status,
+    }, request)
+
+
+@requires_admin
+def stats(request):
     statistics = (
         ('Projects', Project.objects.count()),
         ('Projects (24h)', Project.objects.filter(
@@ -206,14 +242,6 @@ def status(request):
         ).aggregate(x=Sum('times_seen'))['x'] or 0)
     )
 
-    return render_to_response('sentry/admin/status.html', {
-        'config': config,
-        'environment': environment,
-        'python_version': sys.version,
-        'modules': sorted([(p.project_name, p.version) for p in pkg_resources.working_set]),
-        'extensions': [(p.get_title(), '%s.%s' % (p.__module__, p.__class__.__name__)) for p in plugins.all()],
-        'views': [(x.__class__.__name__, x.__module__) for x in View.objects.all()],
-        'pending_tasks': pending_tasks,
-        'worker_status': worker_status,
+    return render_to_response('sentry/admin/stats.html', {
         'statistics': statistics,
     }, request)

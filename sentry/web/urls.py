@@ -56,7 +56,10 @@ urlpatterns = patterns('',
     # Global
 
     url(r'^$', generic.dashboard, name='sentry'),
-    url(r'^manage/status/$', admin.status, name='sentry-admin-status'),
+    url(r'^manage/status/$', admin.status_env, name='sentry-admin-status'),
+    url(r'^manage/status/packages/$', admin.status_packages, name='sentry-admin-packages-status'),
+    url(r'^manage/status/queue/$', admin.status_queue, name='sentry-admin-queue-status'),
+    url(r'^manage/stats/$', admin.stats, name='sentry-admin-stats'),
     url(r'^manage/users/$', admin.manage_users, name='sentry-admin-users'),
     url(r'^manage/users/new/$', admin.create_new_user, name='sentry-admin-new-user'),
     url(r'^manage/users/(?P<user_id>\d+)/$', admin.edit_user, name='sentry-admin-edit-user'),

@@ -1,0 +1,55 @@
+{% extends "sentry/admin/base.html" %}
+
+{% block admin-nav-queue %} class="active"{% endblock %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Queue Status" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-admin-queue-status %}">{% trans "Queue Status" %}</a></li>
+{% endblock %}
+
+{% block inner %}
+    <div id="workers" class="tab-pane">
+        <div class="page-header">
+            <h2>{% trans "Background Processes" %}</h2>
+        </div>
+        {% if background_procs %}
+            <table class="table vars table-bordered table-zebra">
+                <colgroup>
+                    <col style="width:220px">
+                </colgroup>
+                <tbody>
+                </tbody>
+            </table>
+        {% else %}
+            <p>{% trans "No information available." %}</p>
+        {% endif %}
+        <div class="page-header">
+            <h2>{% trans "Pending Tasks" %}</h2>
+        </div>
+        <table class="table vars table-bordered table-zebra">
+            <colgroup>
+                <col>
+                <col style="width:150px">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>{% trans "Queue" %}</th>
+                    <th>{% trans "Pending Tasks" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for queue, num_pending in pending_tasks %}
+                    <tr>
+                        <td>{{ queue }}</td>
+                        <td>{{ num_pending }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
