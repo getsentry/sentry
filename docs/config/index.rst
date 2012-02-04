@@ -220,7 +220,7 @@ Services
 
         SENTRY_RUN_DIR = '/var/run/'
 
-.. data:: sentry.conf.WEB_LOG_FILE
+.. data:: sentry.conf.LOG_FILE
     :noindex:
 
 

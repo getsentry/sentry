@@ -109,7 +109,8 @@ as the default Sentry configuration values. It will use SQLite for the database.
         }
     }
 
-    SENTRY_LOG_FILE = '/var/log/sentry.log'
+    SENTRY_LOG_DIR= '/var/log/'
+    SENTRY_RUN_DIR= '/var/run/'
     SENTRY_WEB_HOST = '0.0.0.0'
     SENTRY_WEB_PORT = 9000
     SENTRY_KEY = '0123456789abcde'
