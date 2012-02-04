@@ -1,3 +1,10 @@
+Version 2.4.5
+-------------
+
+* Corrected indexing behavior to handle non strings.
+* If queuing is enabled the indexer will now queue it's jobs.
+* Moved group creation into a transaction.
+
 Version 2.4.4
 -------------
 
