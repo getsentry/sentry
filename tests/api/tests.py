@@ -167,15 +167,9 @@ class APITest(TestCase):
             'timestamp': 'foo'
         })
 
-    def test_insert_data_to_database_with_queue(self):
+    @mock.patch('sentry.models.Group.objects.from_kwargs')
+    def test_insert_data_to_database(self, from_kwargs):
         insert_data_to_database({
             'foo': 'bar'
-        }, True)
-        self.assertEquals(Message.objects.filter(visible=True).count(), 1)
-
-    def test_insert_data_to_database_without_queue(self):
-        with mock.patch('sentry.models.Group.objects.from_kwargs') as from_kwargs:
-            insert_data_to_database({
-                'foo': 'bar'
-            }, False)
-            from_kwargs.assert_called_once_with(foo='bar')
+        })
+        from_kwargs.assert_called_once_with(foo='bar')

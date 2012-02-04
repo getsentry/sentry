@@ -14,17 +14,18 @@ import logging
 import re
 import warnings
 
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Sum, F
 
 from sentry.conf import settings
 from sentry.exceptions import InvalidInterface, InvalidData
+from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
 from sentry.utils import get_db_engine
 from sentry.utils.charts import has_charts
 from sentry.utils.compat.db import connections
 from sentry.utils.dates import utc_to_local
-from sentry.processors.base import send_group_processors
+from sentry.queue.client import delay
 
 logger = logging.getLogger('sentry.errors')
 
@@ -204,6 +205,7 @@ class GroupManager(models.Manager, ChartMixin):
         result['extra'] = data
         return result
 
+    @transaction.commit_on_success
     def from_kwargs(self, project, **kwargs):
         # TODO: this function is way too damn long and needs refactored
         # the inner imports also suck so let's try to move it away from
@@ -337,16 +339,20 @@ class GroupManager(models.Manager, ChartMixin):
         if not is_sample:
             event.save()
 
+        transaction.commit_unless_managed(using=group._state.db)
+
         if settings.USE_SEARCH:
             try:
-                SearchDocument.objects.index(event)
+                delay(SearchDocument.objects.index, event)
             except Exception, e:
+                transaction.rollback_unless_managed(using=group._state.db)
                 logger.exception(u'Error indexing document: %s', e)
 
         if is_new:
             try:
                 regression_signal.send(sender=self.model, instance=group)
             except Exception, e:
+                transaction.rollback_unless_managed(using=group._state.db)
                 logger.exception(u'Error sending regression signal: %s', e)
 
         send_group_processors(group=group, event=event, is_new=is_new, is_sample=is_sample)

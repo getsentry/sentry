@@ -199,14 +199,8 @@ def validate_data(project, data):
     return data
 
 
-def insert_data_to_database(data, queue=None):
-    if queue is None:
-        queue = settings.USE_QUEUE
-
-    if queue:
-        delay(insert_data_to_database, data, queue=False)
-    else:
-        try:
-            Group.objects.from_kwargs(**data)
-        except (InvalidInterface, InvalidData), e:
-            raise APIError(e)
+def insert_data_to_database(data):
+    try:
+        delay(Group.objects.from_kwargs, **data)
+    except (InvalidInterface, InvalidData), e:
+        raise APIError(e)
