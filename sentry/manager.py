@@ -349,7 +349,6 @@ class GroupManager(models.Manager, ChartMixin):
             except Exception, e:
                 transaction.rollback_unless_managed(using=group._state.db)
                 logger.exception(u'Error indexing document: %s', e)
-                import traceback; traceback.print_exc()
 
         if is_new:
             try:
