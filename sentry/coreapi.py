@@ -201,7 +201,7 @@ def validate_data(project, data):
 
 def really_insert_data(data):
     try:
-        delay(Group.objects.from_kwargs, **data)
+        Group.objects.from_kwargs(**data)
     except (InvalidInterface, InvalidData), e:
         raise APIError(e)
 
