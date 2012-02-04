@@ -206,8 +206,35 @@ Notifications
 
 		SENTRY_SERVER_EMAIL = 'sentry@example.com'
 
+Services
+--------
+
+.. data:: sentry.conf.RUN_DIR
+    :noindex:
+
+    The location to store PID files for services.
+
+    Defaults to ``%SENTRY%/run/``.
+
+    ::
+
+        SENTRY_RUN_DIR = '/var/run/'
+
+.. data:: sentry.conf.WEB_LOG_FILE
+    :noindex:
+
+
+    The location to store log files for services.
+
+    Defaults to ``%SENTRY%/log/``.
+
+    ::
+
+        SENTRY_LOG_DIR = '/var/log/'
+
+
 Web Server
-----------
+~~~~~~~~~~
 
 The following settings are available for the built-in webserver:
 
@@ -233,25 +260,29 @@ The following settings are available for the built-in webserver:
 
         SENTRY_WEB_PORT = 9000
 
-.. data:: sentry.conf.RUN_DIR
+UDP Server
+~~~~~~~~~~
+
+The following settings are available for the built-in UDP API server:
+
+.. data:: sentry.conf.UDP_HOST
     :noindex:
 
-    The location to store PID files for services.
+    The hostname which the udp server should bind to.
 
-    Defaults to ``%SENTRY%/run/``.
+    Defaults to ``localhost``.
 
     ::
 
-        SENTRY_WEB_RUN_DIR = '/var/run/'
+        SENTRY_UDP_HOST = '0.0.0.0'  # bind to all addresses
 
-.. data:: sentry.conf.WEB_LOG_FILE
+.. data:: sentry.conf.WEB_PORT
     :noindex:
 
+    The port which the udp server should listen on.
 
-    The location to store log files for services.
-
-    Defaults to ``%SENTRY%/log/``.
+    Defaults to ``9001``.
 
     ::
 
-        SENTRY_WEB_LOG_DIR = '/var/log/'
+        SENTRY_UDP_PORT = 9001
