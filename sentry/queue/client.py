@@ -28,6 +28,8 @@ class Broker(object):
         with producers[self.connection].acquire(block=False) as producer:
             for queue in task_queues:
                 maybe_declare(queue, producer.channel)
+
+        return self._connection
     connection = property(_get_connection)
 
     def delay(self, func, *args, **kwargs):

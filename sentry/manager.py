@@ -27,6 +27,7 @@ from sentry.utils.charts import has_charts
 from sentry.utils.compat.db import connections
 from sentry.utils.dates import utc_to_local
 from sentry.queue.client import delay
+from sentry.queue.tasks.index import index_event
 
 logger = logging.getLogger('sentry.errors')
 
@@ -344,10 +345,11 @@ class GroupManager(models.Manager, ChartMixin):
 
         if settings.USE_SEARCH:
             try:
-                delay(SearchDocument.objects.index, event)
+                delay(index_event, event)
             except Exception, e:
                 transaction.rollback_unless_managed(using=group._state.db)
                 logger.exception(u'Error indexing document: %s', e)
+                import traceback; traceback.print_exc()
 
         if is_new:
             try:
