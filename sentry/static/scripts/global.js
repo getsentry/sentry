@@ -380,8 +380,8 @@ if (Sentry === undefined) {
             row = $(data.html);
         }
         pos = getPosition(Sentry.realtime.events, data.score, 0);
-        if (!is_new) {
-            old_pos = getPosition(Sentry.realtime.events, id, 1);
+        old_pos = getPosition(Sentry.realtime.events, id, 1);
+        if (old_pos !== -1) {
             Sentry.realtime.events[old_pos][0] = data.score;
             if (old_pos == pos) {
                 return;
