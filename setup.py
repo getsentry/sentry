@@ -31,21 +31,22 @@ tests_require = [
 
 install_requires = [
     'Django>=1.2,<1.4',
-    'django-paging>=0.2.4',
     'django-indexer>=0.3.0',
-    'django-templatetag-sugar>=0.1.0',
-    'raven>=1.3.3',
-    'python-daemon>=1.6',
-    'eventlet>=0.9.15',
-    'South>=0.7',
-    'kombu>=1.5.1',
     'django-kombu==0.9.4',
+    'django-paging>=0.2.4',
+    'django-templatetag-sugar>=0.1.0',
+    'eventlet>=0.9.15',
+    'kombu>=1.5.1',
+    'gunicorn>=0.13.4',
+    'python-daemon>=1.6',
     'pytz>=2011n',
+    'raven>=1.3.3',
+    'South>=0.7',
 ]
 
 setup(
     name='sentry',
-    version='2.5.2',
+    version='2.6.0',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/sentry',
