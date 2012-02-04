@@ -16,6 +16,7 @@ import warnings
 
 from django.db import models, transaction
 from django.db.models import Sum, F
+from django.utils.encoding import force_unicode
 
 from sentry.conf import settings
 from sentry.exceptions import InvalidInterface, InvalidData
@@ -695,7 +696,7 @@ class SearchDocumentManager(models.Manager):
             field = field.lower()
             if field == 'text':
                 # we only tokenize the base text field
-                values = itertools.chain(*[self._tokenize(v) for v in values])
+                values = itertools.chain(*[self._tokenize(force_unicode(v)) for v in values])
             for value in values:
                 if not value:
                     continue
