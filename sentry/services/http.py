@@ -32,6 +32,9 @@ class SentryApplication(DjangoApplication):
 
     def load(self):
         from sentry.wsgi import application
+        import eventlet.patcher
+
+        eventlet.patcher.monkey_patch()
 
         self.activate_translation()
 
