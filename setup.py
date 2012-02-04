@@ -40,7 +40,7 @@ install_requires = [
     'gunicorn>=0.13.4',
     'python-daemon>=1.6',
     'pytz>=2011n',
-    'raven>=1.3.3',
+    'raven>=1.3.6',
     'South>=0.7',
 ]
 
