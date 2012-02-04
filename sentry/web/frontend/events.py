@@ -6,7 +6,6 @@ sentry.web.frontend.events
 :license: BSD, see LICENSE for more details.
 """
 import datetime
-import urllib
 
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
@@ -17,6 +16,7 @@ from sentry.conf import settings
 from sentry.models import Event
 from sentry.filters import Filter
 from sentry.replays import Replayer
+from sentry.utils.http import safe_urlencode
 from sentry.web.decorators import login_required, has_access, render_to_response
 from sentry.web.forms import ReplayForm
 
@@ -78,7 +78,7 @@ def replay_event(request, project_id, event_id):
         headers = ''
 
     if isinstance(http.data, dict):
-        data = urllib.urlencode(http.data)
+        data = safe_urlencode(http.data)
     else:
         data = http.data
 
