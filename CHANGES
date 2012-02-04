@@ -1,3 +1,12 @@
+Version 2.5.0
+-------------
+
+* Corrected some queue behavior.
+* Resolve Feed now only resolves items active within current filters.
+* Handle unicode characters in POST body for replay request.
+* Ensure client side requests run checks on HTTP_REFERER
+* Adjust documentation for service settings.
+
 Version 2.4.5
 -------------
 
