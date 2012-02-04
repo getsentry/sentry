@@ -6,6 +6,7 @@ sentry.utils.http
 :license: BSD, see LICENSE for more details.
 """
 import urllib
+from urlparse import urlparse
 
 
 def safe_urlencode(params, doseq=0):
@@ -33,3 +34,13 @@ def safe_urlencode(params, doseq=0):
             new_params.append((k, unicode(v)))
 
     return urllib.urlencode(new_params, doseq)
+
+
+def is_same_domain(url1, url2):
+    """
+    Returns true if the two urls should be treated as if they're from the same
+    domain (trusted).
+    """
+    url1 = urlparse(url1)
+    url2 = urlparse(url2)
+    return url1.netloc == url2.netloc

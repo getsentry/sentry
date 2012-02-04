@@ -12,6 +12,7 @@ import logging
 import math
 import time
 import uuid
+import urlparse
 from datetime import datetime
 from indexer.models import BaseIndex
 
@@ -215,6 +216,29 @@ class ProjectDomain(Model):
 
     class Meta:
         unique_together = (('project', 'domain'),)
+
+    @classmethod
+    def test(cls, project, url, strict=False):
+        """
+        Tests whether the ``url`` is a trusted domain for the given project.
+        """
+        if not url:
+            return False
+        url = urlparse.urlsplit(url).hostname
+        if not url:
+            # If we fail to parse the referral url
+            return False
+        if url in ('127.0.0.1', 'localhost'):
+            return True
+        if url.endswith('.local'):
+            return True
+        url = url.split('.')
+        domains = ProjectDomain.objects.filter(project=project).values_list('domain', flat=True)
+        for d in domains:
+            d = d.split('.')
+            if url[-len(d):] == d:
+                return True
+        return False
 
 
 class View(Model):
