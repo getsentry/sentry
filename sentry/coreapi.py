@@ -199,8 +199,12 @@ def validate_data(project, data):
     return data
 
 
-def insert_data_to_database(data):
+def really_insert_data(data):
     try:
         delay(Group.objects.from_kwargs, **data)
     except (InvalidInterface, InvalidData), e:
         raise APIError(e)
+
+
+def insert_data_to_database(data):
+    delay(really_insert_data, data)
