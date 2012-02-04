@@ -1,3 +1,9 @@
+Version 2.6.0
+-------------
+
+* The built-in webserver is now powered by gunicorn.
+* Cleaned up several admin pages and split them into sub-pages.
+
 Version 2.5.0
 -------------
 
