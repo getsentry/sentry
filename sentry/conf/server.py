@@ -133,4 +133,4 @@ logger = logging.getLogger('south')
 logger.setLevel(logging.DEBUG)
 
 # Configure default sentry logging
-setup_logging(SentryHandler(), exclude=['south'])
+setup_logging(SentryHandler())
