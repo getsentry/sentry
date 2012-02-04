@@ -53,7 +53,7 @@ def main():
         total_time = time.time() - s
         print '%d requests serviced in %.3fs' % (r, total_time)
         avg = total_time / r
-        print 'avg of %.3fs/req, %d req/s' % (avg, 60 / avg)
+        print 'avg of %.3fs/req, %d req/s' % (avg, 1 / avg)
 
 if __name__ == '__main__':
     main()
