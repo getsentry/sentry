@@ -70,9 +70,19 @@ def start(args, daemonize=False, debug=False):
         os.makedirs(settings.RUN_DIR)
 
     # Ensure we force an environment upgrade before we start the server
+
     service = get_service_from_args(args)
 
-    proc = get_daemon_for_service(service, daemonize, debug=debug)
+    # Special handling for http
+    if args[0] == 'http':
+        proc = service(
+            debug=debug,
+            daemonize=daemonize,
+            pidfile=os.path.join(settings.RUN_DIR, '%s.pid' % (args[0],)),
+            logfile=os.path.join(settings.LOG_DIR, '%s.log' % (args[0],)),
+        )
+    else:
+        proc = get_daemon_for_service(service, daemonize, debug=debug)
 
     proc.start()
 
