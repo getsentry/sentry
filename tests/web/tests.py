@@ -100,11 +100,35 @@ class SentryViewsTest(TestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp['Content-Type'], 'application/json')
 
-    def test_status(self):
+    def test_status_env(self):
         self.client.login(username='admin', password='admin')
         resp = self.client.get(reverse('sentry-admin-status'), follow=True)
         self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/admin/status.html')
+        self.assertTemplateUsed(resp, 'sentry/admin/status/env.html')
+
+    def test_status_packages(self):
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(reverse('sentry-admin-packages-status'), follow=True)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/admin/status/packages.html')
+
+    def test_status_queue(self):
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(reverse('sentry-admin-queue-status'), follow=True)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/admin/status/queue.html')
+
+    def test_stats(self):
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(reverse('sentry-admin-stats'), follow=True)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/admin/stats.html')
+
+    def test_manage_users(self):
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(reverse('sentry-admin-users'), follow=True)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/admin/users/list.html')
 
     def test_event_list(self):
         self.client.login(username='admin', password='admin')
