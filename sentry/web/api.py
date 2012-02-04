@@ -192,9 +192,20 @@ def bookmark(request, project):
 @csrf_exempt
 @has_access
 def clear(request, project):
-    projects = get_project_list(request.user)
+    view_id = request.GET.get('view_id')
+    if view_id:
+        try:
+            view = View.objects.get(pk=view_id)
+        except View.DoesNotExist:
+            return HttpResponseBadRequest()
+    else:
+        view = None
 
-    event_list = Group.objects.filter(Q(project__in=projects.keys()) | Q(project__isnull=True))
+    _, event_list = _get_group_list(
+        request=request,
+        project=project,
+        view=view,
+    )
 
     event_list.update(status=1)
 
