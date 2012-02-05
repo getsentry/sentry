@@ -102,6 +102,9 @@ RUN_DIR = os.path.join(ROOT, 'run')
 # Web Service
 WEB_HOST = 'localhost'
 WEB_PORT = 9000
+WEB_OPTIONS = {
+    'workers': 3,
+}
 
 # UDP Service
 UDP_HOST = 'localhost'

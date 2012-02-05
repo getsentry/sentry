@@ -51,13 +51,30 @@ class SentryHTTPServer(Service):
         self.host = host or settings.WEB_HOST
         self.port = port or settings.WEB_PORT
 
-        self.app = SentryApplication({
+        # import cProfile, os
+
+        # def post_fork(server, worker):
+        #     orig_init_process_ = worker.init_process
+
+        #     def profiling_init_process(self):
+        #         orig_init_process = orig_init_process_
+        #         ofile = '/tmp/.profile%s' % (os.getpid(),)
+        #         print 'Profiling worker %s, output file: %s' % (worker, ofile)
+        #         cProfile.runctx('orig_init_process()', globals(), locals(), ofile)
+        #     worker.init_process = profiling_init_process.__get__(worker)
+
+        options = {
             'bind': '%s:%s' % (self.host, self.port),
+            'worker_class': 'eventlet',
             'debug': debug,
             'daemon': daemonize,
             'pidfile': pidfile,
             'errorlog': logfile,
-        })
+            # 'post_fork': post_fork,
+        }
+        options.update(settings.WEB_OPTIONS or {})
+
+        self.app = SentryApplication(options)
 
     def run(self):
         try:
