@@ -50,7 +50,7 @@ You must also send along the following authentication headers::
     sentry_signature=<hmac signature>,
     sentry_timestamp=<signature timestamp>[,
     sentry_key=<public api key>,[
-    sentry_version=<client version, arbitrary>]]
+    sentry_client=<client version, arbitrary>]]
 
 The header is composed of a SHA1-signed HMAC, the timestamp from when the message
 was generated, and an arbitrary client version string. The client version should
