@@ -46,7 +46,8 @@ with the following structure::
 
 You must also send along the following authentication headers::
 
-    X-Sentry-Auth: sentry_signature=<hmac signature>,
+    X-Sentry-Auth: Sentry sentry_version=2.0,
+    sentry_signature=<hmac signature>,
     sentry_timestamp=<signature timestamp>[,
     sentry_key=<public api key>,[
     sentry_version=<client version, arbitrary>]]
