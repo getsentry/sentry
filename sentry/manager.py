@@ -419,7 +419,10 @@ class GroupManager(models.Manager, ChartMixin):
                 'time_spent_count': F('time_spent_count') + 1,
             })
 
-        affected = group.messagecountbyminute_set.filter(date=normalized_datetime).update(**update_kwargs)
+        affected = group.messagecountbyminute_set.filter(
+            project=project,
+            date=normalized_datetime,
+        ).update(**update_kwargs)
         if not affected:
             group.messagecountbyminute_set.create(
                 project=project,
@@ -449,7 +452,11 @@ class GroupManager(models.Manager, ChartMixin):
                 value=value,
             )
 
-            affected = group.messagefiltervalue_set.filter(key=key, value=value).update(times_seen=F('times_seen') + 1)
+            affected = group.messagefiltervalue_set.filter(
+                project=project,
+                key=key,
+                value=value,
+            ).update(times_seen=F('times_seen') + 1)
             if not affected:
                 group.messagefiltervalue_set.create(
                     project=project,
