@@ -78,6 +78,22 @@ The body of the post is a string representation of a JSON object and is
 (optionally and preferably) gzipped and then (necessarily) base64
 encoded.
 
+
+For example, with an included Exception event, a basic JSON body might resemble the following::
+
+        {
+            "event_id": "fc6d8c0c43fc4630ad850ee518f1b9d0",
+            "checksum": "968d033d0219d0d84c95e58431523796",
+            "culprit": "my.module.function_name",
+            "timestamp": "2011-05-02T17:41:36",
+            "message": "SyntaxError: Wattttt!"
+            "sentry.interfaces.Exception": {
+                "type": "SyntaxError":
+                "value": "Wattttt!",
+                "module": "__builtins__"
+            }
+        }
+
 The following attributes are required for all events:
 
 .. data:: event_id
@@ -143,7 +159,18 @@ The following attributes are required for all events:
             "logger": "my.logger.name"
         }
 
-Additionally, there are several optional values which Sentry recognizes:
+Additionally, there are several optional values which Sentry recognizes and are
+highly encouraged:
+
+.. data:: checksum
+
+    An almost-unique hash identifying the this event to improve aggregation.
+
+    ::
+
+        {
+            "checksum": "968d033d0219d0d84c95e58431523796"
+        }
 
 .. data:: culprit
 
@@ -163,16 +190,6 @@ Additionally, there are several optional values which Sentry recognizes:
 
         {
             "server_name": "foo.example.com"
-        }
-
-.. data:: url
-
-    The full HTTP URI from which the event was recorded.
-
-    ::
-
-        {
-            "url": "http://example.com/path"
         }
 
 .. data:: site
@@ -211,22 +228,7 @@ Additionally, there are several optional values which Sentry recognizes:
         }
 
 Any additional value is assumed to be a data interface, where the key is the Python path to the interface
-class name, and the value is the data expected by the interface.
+class name, and the value is the data expected by the interface. Interfaces are used in a variety of ways
+including storing stacktraces, HTTP request information, and other metadata.
 
-For example, with an included Exception event, a basic JSON body might resemble the following::
-
-        {
-            "event_id": "fc6d8c0c43fc4630ad850ee518f1b9d0",
-            "culprit": "my.module.function_name",
-            "timestamp": "2011-05-02T17:41:36",
-            "message": "SyntaxError: Wattttt!"
-            "sentry.interfaces.Exception": {
-                "type": "SyntaxError":
-                "value": "Wattttt!",
-                "module": "__builtins__"
-            }
-        }
-
-.. seealso::
-
-   See :doc:`../interfaces/index` for information on Sentry's builtin interfaces and how to create your own.
+See :doc:`../interfaces/index` for information on Sentry's builtin interfaces and how to create your own.
