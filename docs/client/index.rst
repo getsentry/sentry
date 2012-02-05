@@ -58,11 +58,11 @@ be something distinct to your client, and is simply for reporting purposes.
 
 To generate the HMAC signature, take the following example (in Python)::
 
-    hmac.new(SENTRY_KEY, '%s %s' % (timestamp, message), hashlib.sha1).hexdigest()
+    hmac.new(public_key, '%s %s' % (timestamp, message), hashlib.sha1).hexdigest()
 
 If you are using project auth, you should sign with your project-specific ``secret_key``
 instead of the global superuser key. If you are signing with your secret key, you will
-also need to ensure you're provided your ``public_key`` as ``sentry_key`` in the
+also need to ensure you've provided your ``public_key`` as ``sentry_key`` in the
 auth header.
 
 The variables which are required within the signing of the message consist of the following:
@@ -120,7 +120,7 @@ The following attributes are required for all events:
 
     Indicates when the logging record was created (in the Sentry client).
 
-    Defaults to the ``datetime.datetime.utcnow()``
+    Defaults to ``datetime.datetime.utcnow()``
 
     The Sentry server assumes the time is in UTC.
 
@@ -149,7 +149,7 @@ The following attributes are required for all events:
 
 .. data:: logger
 
-    The name of the logger which logger created the record.
+    The name of the logger which created the record.
 
     If missing, defaults to the string ``root``.
 
