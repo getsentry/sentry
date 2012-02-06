@@ -19,7 +19,7 @@ from sentry.coreapi import project_from_auth_vars, project_from_api_key_and_id, 
   extract_auth_vars, InvalidTimestamp
 from sentry.models import Group, GroupBookmark, Project, View, ProjectDomain
 from sentry.utils import json
-from sentry.utils.http import is_same_domain
+from sentry.utils.http import is_same_domain, apply_access_control_headers
 from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
 from sentry.web.helpers import render_to_response, render_to_string
@@ -108,8 +108,10 @@ def store(request):
 
         insert_data_to_database(data)
     except APIError, error:
-        return HttpResponse(error.msg, status=error.http_status)
-    return HttpResponse('')
+        response = HttpResponse(error.msg, status=error.http_status)
+    else:
+        response = HttpResponse('')
+    return apply_access_control_headers(response)
 
 
 @csrf_exempt
