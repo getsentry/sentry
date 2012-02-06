@@ -118,6 +118,24 @@ Authentication
 
         SENTRY_ALLOW_PROJECT_CREATION = True
 
+.. data:: sentry.conf.ALLOW_ORIGIN
+    :noindex:
+    
+    If provided, Sentry will set the Access-Control-Allow-Origin header to this
+    value on /api/store/ responses. In addition, the
+    Access-Control-Allow-Headers header will be set to 'X-Sentry-Auth'. This
+    allows JavaScript clients to submit cross-domain error reports.
+    
+    You can read more about these headers in the `Mozilla developer docs`_.
+    
+    Defaults to ``None`` (don't add the Access-Control headers)
+    
+    ::
+    
+        SENTRY_ALLOW_ORIGIN = "http://foo.example"
+
+.. _Mozilla developer docs: https://developer.mozilla.org/En/HTTP_access_control#Simple_requests
+
 Notifications
 -------------
 
