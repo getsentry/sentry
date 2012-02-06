@@ -55,8 +55,7 @@ def apply_access_control_headers(response):
     about these headers here:
     https://developer.mozilla.org/En/HTTP_access_control#Simple_requests
     """
-    origin = getattr(settings, 'ALLOW_ORIGIN', None)
-    if origin:
-        response['Access-Control-Allow-Origin'] = origin
+    if settings.ALLOW_ORIGIN:
+        response['Access-Control-Allow-Origin'] = settings.ALLOW_ORIGIN
         response['Access-Control-Allow-Headers'] = 'X-Sentry-Auth'
     return response
