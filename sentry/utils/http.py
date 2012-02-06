@@ -8,6 +8,8 @@ sentry.utils.http
 import urllib
 from urlparse import urlparse
 
+from sentry.conf import settings
+
 
 def safe_urlencode(params, doseq=0):
     """
@@ -44,3 +46,17 @@ def is_same_domain(url1, url2):
     url1 = urlparse(url1)
     url2 = urlparse(url2)
     return url1.netloc == url2.netloc
+
+
+def apply_access_control_headers(response):
+    """
+    Provides the Access-Control-Allow-Origin and Access-Control-Allow-Headers
+    headers to enable cross-site HTTP requests. You can find more information
+    about these headers here:
+    https://developer.mozilla.org/En/HTTP_access_control#Simple_requests
+    """
+    origin = getattr(settings, 'ALLOW_ORIGIN', None)
+    if origin:
+        response['Access-Control-Allow-Origin'] = origin
+        response['Access-Control-Allow-Headers'] = 'X-Sentry-Auth'
+    return response
