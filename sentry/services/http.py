@@ -36,6 +36,7 @@ class SentryApplication(DjangoApplication):
 
         eventlet.patcher.monkey_patch()
 
+        self.validate()
         self.activate_translation()
 
         return application
