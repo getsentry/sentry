@@ -36,7 +36,7 @@ def new_project(request):
     if not (settings.ALLOW_PROJECT_CREATION or request.user.has_perm('sentry.can_add_project')):
         return HttpResponseRedirect(reverse('sentry'))
 
-    if request.user.has_perm('sentry.can_admin_project'):
+    if request.user.has_perm('sentry.can_add_project'):
         form_cls = NewProjectAdminForm
         initial = {
             'owner': request.user.username,
