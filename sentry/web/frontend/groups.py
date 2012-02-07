@@ -16,9 +16,10 @@ from django.http import HttpResponse, \
 from django.shortcuts import get_object_or_404
 from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
+from sentry.constants import SORT_OPTIONS, SEARCH_SORT_OPTIONS, DATE_OPTIONS, \
+  SORT_CLAUSES, MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES, DATE_VALUES
 from sentry.filters import Filter
 from sentry.models import Group, Event, View, SearchDocument
 from sentry.plugins import plugins
@@ -28,40 +29,6 @@ from sentry.web.helpers import render_to_response
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$', re.I)
 event_re = re.compile(r'^(?P<event_id>[a-z0-9]{32})\$(?P<checksum>[a-z0-9]{32})$', re.I)
-
-
-SORT_OPTIONS = (
-    'priority',
-    'date',
-    'new',
-    'freq',
-    'tottime',
-    'avgtime',
-    'accel_15',
-    'accel_60',
-)
-SORT_CLAUSES = {
-    'date': 'EXTRACT(EPOCH FROM last_seen)',
-    'new': 'EXTRACT(EPOCH FROM first_seen)',
-    'freq': 'times_seen',
-    'tottime': 'time_spent_total',
-    'avgtime': '(time_spent_total / time_spent_count)',
-}
-SQLITE_SORT_CLAUSES = SORT_CLAUSES.copy()
-SQLITE_SORT_CLAUSES.update({
-    'date': 'last_seen',
-    'new': 'first_seen',
-})
-MYSQL_SORT_CLAUSES = SORT_CLAUSES.copy()
-MYSQL_SORT_CLAUSES.update({
-    'date': 'UNIX_TIMESTAMP(last_seen)',
-    'new': 'UNIX_TIMESTAMP(first_seen)',
-})
-SEARCH_SORT_OPTIONS = (
-    'score',
-    'date',
-    'new',
-)
 
 
 def _get_rendered_interfaces(event):
@@ -77,22 +44,6 @@ def _get_rendered_interfaces(event):
             continue
         interface_list.append(mark_safe(html))
     return interface_list
-
-
-def _get_sort_label(sort):
-    if sort.startswith('accel_'):
-        n = sort.split('accel_', 1)[-1]
-        return _('Trending: %(minutes)d minutes' % {'minutes': int(n)})
-
-    return {
-        'date': _('Last Seen'),
-        'new': _('First Seen'),
-        'freq': _('Frequency'),
-        'tottime': _('Total Time Spent'),
-        'avgtime': _('Average Time Spent'),
-        'priority': _('Priority'),
-        'score': _('Score'),
-    }[sort]
 
 
 def _get_group_list(request, project, view=None):
@@ -121,6 +72,13 @@ def _get_group_list(request, project, view=None):
     if sort not in SORT_OPTIONS:
         sort = settings.DEFAULT_SORT_OPTION
 
+    if sort.startswith('accel_') and not has_trending():
+        sort = settings.DEFAULT_SORT_OPTION
+    else:
+        since = request.GET.get('since', '')
+        if since not in DATE_OPTIONS:
+            since = settings.DEFAULT_DATE_OPTION
+
     engine = get_db_engine('default')
     if engine.startswith('sqlite'):
         sort_clause = SQLITE_SORT_CLAUSES.get(sort)
@@ -133,8 +91,11 @@ def _get_group_list(request, project, view=None):
         event_list = event_list.filter(time_spent_count__gt=0)
     elif sort == 'avgtime':
         event_list = event_list.filter(time_spent_count__gt=0)
-    elif has_trending() and sort and sort.startswith('accel_'):
+    elif sort.startswith('accel_'):
         event_list = Group.objects.get_accelerated(event_list, minutes=int(sort.split('_', 1)[1]))
+
+    if since in DATE_VALUES:
+        event_list = event_list.filter(last_seen__gte=datetime.datetime.now() - DATE_VALUES[since])
 
     if sort_clause:
         event_list = event_list.extra(
@@ -161,7 +122,7 @@ def search(request, project):
     sort = request.GET.get('sort')
     if sort not in SEARCH_SORT_OPTIONS:
         sort = settings.SEARCH_DEFAULT_SORT_OPTION
-    sort_label = _get_sort_label(sort)
+    sort_label = SEARCH_SORT_OPTIONS[sort]
 
     result = event_re.match(query)
     if result:
@@ -237,7 +198,12 @@ def group_list(request, project, view_id=None):
     sort = request.GET.get('sort')
     if sort not in SORT_OPTIONS:
         sort = settings.DEFAULT_SORT_OPTION
-    sort_label = _get_sort_label(sort)
+    sort_label = SORT_OPTIONS[sort]
+
+    since = request.GET.get('since')
+    if since not in DATE_OPTIONS:
+        since = settings.DEFAULT_DATE_OPTION
+    since_label = DATE_OPTIONS[since]
 
     today = datetime.datetime.utcnow()
 
@@ -250,8 +216,12 @@ def group_list(request, project, view_id=None):
         'today': today,
         'sort': sort,
         'sort_label': sort_label,
+        'since': since,
+        'since_label': since_label,
         'filters': filters,
         'view': view,
+        'SORT_OPTIONS': SORT_OPTIONS,
+        'DATE_OPTIONS': DATE_OPTIONS,
         'HAS_TRENDING': has_trending(),
         'PAGE': 'dashboard',
     }, request)
