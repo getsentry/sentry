@@ -8,7 +8,7 @@ sentry.queue.tasks.cleanup
 
 
 def cleanup(days=30, logger=None, site=None, server=None, level=None,
-            project=None):
+            project=None, resolved=None):
     """
     Deletes a portion of the trailing data in Sentry based on
     their creation dates. For example, if ``days`` is 30, this
@@ -20,8 +20,11 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
                  site.
     :param server: limit the message deletion scope to the specified
                    server.
-    :param level: limit all deleteion scopes to messages that are greater
+    :param level: limit all deletion scopes to messages that are greater
                   than or equal to level.
+    :param project: limit all deletion scopes to messages that are part
+                    of the given project
+    :param resolved: limit all deletion scopes to messages that are resolved.
     """
     import datetime
 
@@ -59,10 +62,11 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
         qs = qs.filter(project=project)
 
     groups_to_check = set()
-    for obj in RangeQuerySetWrapper(qs):
-        print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
-        obj.delete()
-        groups_to_check.add(obj.group_id)
+    if resolved is None:
+        for obj in RangeQuerySetWrapper(qs):
+            print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
+            obj.delete()
+            groups_to_check.add(obj.group_id)
 
     if not (server or site):
         # MessageCountByMinute
@@ -73,6 +77,10 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
             qs = qs.filter(group__level__gte=level)
         if project:
             qs = qs.filter(project=project)
+        if resolved is True:
+            qs = qs.filter(status=1)
+        elif resolved is False:
+            qs = qs.filter(status=0)
 
         for obj in RangeQuerySetWrapper(qs):
             print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
