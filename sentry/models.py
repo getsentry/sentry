@@ -485,6 +485,8 @@ class MessageFilterValue(Model):
     times_seen = models.PositiveIntegerField(default=0)
     key = models.CharField(choices=FILTER_KEYS, max_length=32)
     value = models.CharField(max_length=200)
+    last_seen = models.DateTimeField(default=datetime.now, db_index=True, null=True)
+    first_seen = models.DateTimeField(default=datetime.now, db_index=True, null=True)
 
     class Meta:
         unique_together = (('project', 'key', 'value', 'group'),)

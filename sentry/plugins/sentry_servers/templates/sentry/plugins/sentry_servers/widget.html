@@ -5,8 +5,8 @@
     <h6>{% trans "Servers" %}</h6>
 
     <ul class="server-list">
-        {% for server in unique_servers %}
-            <li><span class="count">{{ server.1|small_count }}</span> <a href="{% url sentry group.project_id %}?server_name={{ server.0 }}">{{ server.0 }}</a></li>
+        {% for server, times_seen, _, _ in unique_servers %}
+            <li><span class="count">{{ times_seen|small_count }}</span> <a href="{% url sentry group.project_id %}?server_name={{ server }}">{{ server }}</a></li>
         {% endfor %}
     </ul>
 {% endif %}

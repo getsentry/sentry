@@ -21,10 +21,10 @@ class UrlsPlugin(Plugin):
 
     def get_unique_urls(self, group):
         return group.messagefiltervalue_set.filter(key='url')\
-           .values_list('value')\
-           .annotate(times_seen=Sum('times_seen'))\
-           .values_list('value', 'times_seen')\
-           .order_by('-times_seen')
+                    .values_list('value')\
+                    .annotate(times_seen=Sum('times_seen'))\
+                    .values_list('value', 'times_seen', 'first_seen', 'last_seen')\
+                    .order_by('-times_seen')
 
     def panels(self, request, group, panel_list, **kwargs):
         panel_list.append((self.get_title(), self.get_url(group)))

@@ -456,13 +456,15 @@ class GroupManager(models.Manager, ChartMixin):
                 project=project,
                 key=key,
                 value=value,
-            ).update(times_seen=F('times_seen') + 1)
+            ).update(times_seen=F('times_seen') + 1, last_seen=date)
             if not affected:
                 group.messagefiltervalue_set.create(
                     project=project,
                     key=key,
                     value=value,
                     times_seen=1,
+                    last_seen=date,
+                    first_seen=date,
                 )
 
         return group, is_new, is_sample

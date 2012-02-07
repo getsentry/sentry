@@ -13,18 +13,24 @@
             <colgroup>
                 <col>
                 <col style="width: 100px;">
+                <col style="width: 120px;">
+                <col style="width: 120px;">
             </colgroup>
             <thead>
                 <tr>
                     <th>{% trans "Server Name" %}</th>
-                    <td>{% trans "Times Seen" %}</th>
+                    <td class="text-align:center">{% trans "Times Seen" %}</th>
+                    <td class="text-align:center">{% trans "First Seen" %}</th>
+                    <td class="text-align:center">{% trans "Last Seen" %}</th>
                 </tr>
             </thead>
             <tbody>
-                {% for server_name, times_seen in server_list.objects %}
+                {% for server_name, times_seen, first_seen, last_seen in server_list.objects %}
                     <tr>
                         <td><a href="{% url sentry group.project_id %}?server_name={{ server_name }}">{{ server_name }}</a></td>
                         <td style="text-align:center">{{ times_seen|small_count }}</td>
+                        <td style="text-align:center">{% if first_seen %}{{ first_seen|timesince }}{% else %}<em>n/a</em>{% endif %}</td>
+                        <td style="text-align:center">{% if last_seen %}{{ last_seen|timesince }}{% else %}<em>n/a</em>{% endif %}</td>
                     </tr>
                 {% endfor %}
             </tbody>
