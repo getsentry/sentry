@@ -1,3 +1,9 @@
+Version 2.7.0
+-------------
+
+* Added first_seen and last_seen to all message filter values.
+* Added a new "since" option to the dashboard with a default value of 3 days.
+
 Version 2.6.0
 -------------
 
