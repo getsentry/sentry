@@ -142,3 +142,6 @@ SEARCH_DEFAULT_SORT_OPTION = 'date'
 
 # Default project access when a project owner is created
 DEFAULT_PROJECT_ACCESS = 'MEMBER_OWNER'
+
+# Default to not sending the Access-Control-Allow-Origin header on api/store
+ALLOW_ORIGIN = None
