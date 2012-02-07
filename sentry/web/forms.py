@@ -81,11 +81,7 @@ class NewProjectForm(forms.ModelForm):
 
 
 class NewProjectAdminForm(forms.ModelForm):
-    owner = forms.ModelChoiceField(queryset=User.objects.all(), widget=forms.TextInput(
-        attrs={
-            'placeholder': 'username',
-        }
-    ), required=False)
+    owner = UserField(required=False)
 
     class Meta:
         fields = ('name', 'owner')
