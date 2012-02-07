@@ -42,7 +42,9 @@
                         <li class="dropdown">
                             <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Account" %} <span class="caret"></span></a>
                             <ul class="dropdown-menu">
+                                <li><a href="{% url sentry-account-settings %}">{% trans "Settings" %}</a></li>
                                 {% if request.user.is_staff %}
+                                    <li class="divider"></li>
                                     <li><a href="{% url sentry-admin-status %}">{% trans "Admin" %}</a></li>
                                 {% endif %}
                                 <li class="divider"></li>

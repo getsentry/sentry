@@ -6,9 +6,11 @@ sentry.web.forms
 :license: BSD, see LICENSE for more details.
 """
 from django import forms
+from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User
 from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import Project, ProjectMember
 from sentry.interfaces import Http
@@ -166,3 +168,41 @@ class RemoveUserForm(forms.Form):
         ('1', 'Disable the account.'),
         ('2', 'Permanently remove the user and their data.'),
     ), widget=forms.RadioSelect(renderer=RadioFieldRenderer))
+
+
+class AccountSettingsForm(forms.Form):
+    old_password = forms.CharField(label=_("Old password"), widget=forms.PasswordInput)
+    email = forms.EmailField()
+    first_name = forms.CharField(required=True, label='Name')
+    new_password1 = forms.CharField(label=_("New password"), widget=forms.PasswordInput, required=False)
+    new_password2 = forms.CharField(label=_("New password confirmation"), widget=forms.PasswordInput, required=False)
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super(AccountSettingsForm, self).__init__(*args, **kwargs)
+
+    def clean_new_password2(self):
+        password1 = self.cleaned_data.get('new_password1')
+        password2 = self.cleaned_data.get('new_password2')
+        if password1 and password2:
+            if password1 != password2:
+                raise forms.ValidationError(_("The two password fields didn't match."))
+        return password2
+
+    def clean_old_password(self):
+        """
+        Validates that the old_password field is correct.
+        """
+        old_password = self.cleaned_data["old_password"]
+        if not self.user.check_password(old_password):
+            raise forms.ValidationError(_("Your old password was entered incorrectly. Please enter it again."))
+        return old_password
+
+    def save(self, commit=True):
+        if self.cleaned_data['new_password2']:
+            self.user.set_password(self.cleaned_data['new_password1'])
+        self.user.first_name = self.cleaned_data['first_name']
+        self.user.email = self.cleaned_data['email']
+        if commit:
+            self.user.save()
+        return self.user

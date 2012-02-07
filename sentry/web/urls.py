@@ -41,6 +41,7 @@ urlpatterns = patterns('',
 
     url(r'^login/$', accounts.login, name='sentry-login'),
     url(r'^logout/$', accounts.logout, name='sentry-logout'),
+    url(r'^account/settings/$', accounts.settings, name='sentry-account-settings'),
 
     # Management
 

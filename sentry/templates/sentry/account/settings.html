@@ -1,0 +1,58 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Account Settings" %} | {{ block.super }}{% endblock %}
+
+{% block bodyclass %}{% endblock %}
+
+{% block page_header %}
+    <ul class="breadcrumb">
+        <li><a href="#">{% trans "Account Settings" %}</a></li>
+        {% block breadcrumb %}{% endblock %}
+    </ul>
+{% endblock %}
+
+{% block heading %}
+    {% trans "Account Settings" %}
+{% endblock %}
+
+{% block content %}
+    <section class="body">
+        <form action="" method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="alert alert-block alert-error">
+                    <p>{% trans "There were errors saving your changes:" %}</p>
+                    <ul>
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            <p>To make changes to your account, you must first enter your current password.</p>
+            {% with form.old_password as field %}
+                {% include "sentry/partial/_form_field.html" %}
+            {% endwith %}
+            <hr>
+            {% with form.first_name as field %}
+                {% include "sentry/partial/_form_field.html" %}
+            {% endwith %}
+            {% with form.email as field %}
+                {% include "sentry/partial/_form_field.html" %}
+            {% endwith %}
+            <hr>
+            <p>You may also optionally change your password.</p>
+            {% with form.new_password1 as field %}
+                {% include "sentry/partial/_form_field.html" %}
+            {% endwith %}
+            {% with form.new_password2 as field %}
+                {% include "sentry/partial/_form_field.html" %}
+            {% endwith %}
+            <fieldset class="form-actions">
+                <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+            </fieldset>
+        </form>
+    </section>
+{% endblock %}
