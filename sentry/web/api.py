@@ -59,7 +59,7 @@ def store(request):
 
     """
     try:
-        if request.METHOD == 'POST':
+        if request.method == 'POST':
             auth_vars = extract_auth_vars(request)
             data = request.raw_post_data
 
