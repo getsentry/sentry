@@ -371,38 +371,56 @@ if (Sentry === undefined) {
         }
         var data = Sentry.realtime.queue.pop();
         var id = 'group_' + data.id;
-        var is_new = !(row = $('#' + id)).length;
+        var $row = $('#' + id);
+        var is_new = ($row.length === 0);
+
         // ensure "no messages" is cleaned up
         $('#no_messages').remove();
+
         // resort because we suck at javascript
         Sentry.realtime.events.sort(function(a, b){
             return b[0] - a[0];
         });
+
+        // if the row already was present, let's make sure
+        // the count changed
         if (!is_new) {
-            if (row.attr('data-count') == data.count) {
+            if ($row.attr('data-count') == data.count) {
                 return;
             }
-            row.replaceWith($(data.html));
-        } else {
-            row = $(data.html);
+            $row.remove();
         }
+        $row = $(data.html);
+
+        // get the ranked position based on data.score
         pos = getRankedPosition(Sentry.realtime.events, data.score, 0);
+
+        // check to see if the row already exists in the sort,
+        // and get the current position
         old_pos = getPosition(Sentry.realtime.events, id, 1);
+
+        // if the row was already present, adjust its score
         if (old_pos !== -1) {
             Sentry.realtime.events[old_pos][0] = data.score;
             if (old_pos == pos) {
                 return;
             }
         }
+
+        // if the row doesnt outrank any existing elements
         if (pos === -1) {
-            $('#event_list').append(row);
+            $('#event_list').append($row);
         } else {
-            $('#' + Sentry.realtime.events[pos][1]).before(row);
+            $('#' + Sentry.realtime.events[pos][1]).before($row);
         }
+
+        // insert it into the events list at the current position
         if (is_new) {
             Sentry.realtime.events.splice(pos, 0, [data.score, id]);
         }
-        row.css('background-color', '#ddd').animate({backgroundColor: '#fff'}, 1200);
+
+        // shiny fx
+        $row.css('background-color', '#ddd').animate({backgroundColor: '#fff'}, 1200);
     };
 
     Sentry.realtime.poll = function(){
