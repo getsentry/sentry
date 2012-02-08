@@ -23,9 +23,10 @@ if not settings.configured:
 os.environ['CELERY_LOADER'] = 'django'
 
 import django.core.handlers.wsgi
+from raven.contrib.django.middleware.wsgi import Sentry
 
 # Run WSGI handler for the application
-application = django.core.handlers.wsgi.WSGIHandler()
+application = Sentry(django.core.handlers.wsgi.WSGIHandler())
 
 if settings.SESSION_FILE_PATH:
     try:
