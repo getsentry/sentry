@@ -28,7 +28,7 @@ logger = logging.getLogger('sentry.errors.coreapi')
 
 
 @csrf_exempt
-@require_http_methods(['POST'])
+@require_http_methods(['POST', 'OPTIONS'])
 def store(request):
     """
     The primary endpoint for storing new events.
