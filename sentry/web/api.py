@@ -28,7 +28,7 @@ logger = logging.getLogger('sentry.errors.coreapi')
 
 
 @csrf_exempt
-@require_http_methods(['POST'])
+@require_http_methods(['POST', 'OPTIONS'])
 def store(request):
     """
     The primary endpoint for storing new events.
@@ -59,54 +59,55 @@ def store(request):
 
     """
     try:
-        auth_vars = extract_auth_vars(request)
-        data = request.raw_post_data
+        if request.method == 'POST':
+            auth_vars = extract_auth_vars(request)
+            data = request.raw_post_data
 
-        if auth_vars:
-            server_version = auth_vars.get('sentry_version', '1.0')
-            client = auth_vars.get('sentry_client')
-        else:
-            server_version = request.GET.get('version', '1.0')
-            client = request.META.get('HTTP_USER_AGENT', request.GET.get('client'))
+            if auth_vars:
+                server_version = auth_vars.get('sentry_version', '1.0')
+                client = auth_vars.get('sentry_client')
+            else:
+                server_version = request.GET.get('version', '1.0')
+                client = request.META.get('HTTP_USER_AGENT', request.GET.get('client'))
 
-        if server_version not in ('1.0', '2.0'):
-            raise APIError('Client/server version mismatch: Unsupported version: %r' % server_version)
+            if server_version not in ('1.0', '2.0'):
+                raise APIError('Client/server version mismatch: Unsupported version: %r' % server_version)
 
-        if server_version != '1.0' and not client:
-            raise APIError('Client request error: Missing client version identifier.')
+            if server_version != '1.0' and not client:
+                raise APIError('Client request error: Missing client version identifier.')
 
-        referrer = request.META.get('HTTP_REFERER')
+            referrer = request.META.get('HTTP_REFERER')
 
-        if auth_vars:
-            project = project_from_auth_vars(auth_vars, data)
-        elif request.GET.get('api_key') and request.GET.get('project_id'):
-            # public requests only need referrer validation for CSRF
-            project = project_from_api_key_and_id(request.GET['api_key'], request.GET['project_id'])
-            if not ProjectDomain.test(project, referrer):
+            if auth_vars:
+                project = project_from_auth_vars(auth_vars, data)
+            elif request.GET.get('api_key') and request.GET.get('project_id'):
+                # public requests only need referrer validation for CSRF
+                project = project_from_api_key_and_id(request.GET['api_key'], request.GET['project_id'])
+                if not ProjectDomain.test(project, referrer):
+                    raise APIUnauthorized()
+            elif request.GET.get('project_id') and request.user.is_authenticated() and \
+                 is_same_domain(request.build_absolute_uri(), referrer):
+                # authenticated users are simply trusted to provide the right id
+                project = project_from_id(request)
+            else:
                 raise APIUnauthorized()
-        elif request.GET.get('project_id') and request.user.is_authenticated() and \
-             is_same_domain(request.build_absolute_uri(), referrer):
-            # authenticated users are simply trusted to provide the right id
-            project = project_from_id(request)
-        else:
-            raise APIUnauthorized()
 
-        if not data.startswith('{'):
-            data = decode_and_decompress_data(data)
-        data = safely_load_json_string(data)
+            if not data.startswith('{'):
+                data = decode_and_decompress_data(data)
+            data = safely_load_json_string(data)
 
-        try:
-            validate_data(project, data)
-        except InvalidTimestamp:
-            # Log the error, remove the timestamp, and revalidate
-            logger.error('Client %r passed an invalid value for timestamp %r' % (
-                data['timestamp'],
-                client or '<unknown client>',
-            ))
-            del data['timestamp']
-            validate_data(project, data)
+            try:
+                validate_data(project, data)
+            except InvalidTimestamp:
+                # Log the error, remove the timestamp, and revalidate
+                logger.error('Client %r passed an invalid value for timestamp %r' % (
+                    data['timestamp'],
+                    client or '<unknown client>',
+                ))
+                del data['timestamp']
+                validate_data(project, data)
 
-        insert_data_to_database(data)
+            insert_data_to_database(data)
     except APIError, error:
         response = HttpResponse(error.msg, status=error.http_status)
     else:

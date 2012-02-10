@@ -50,12 +50,12 @@ def is_same_domain(url1, url2):
 
 def apply_access_control_headers(response):
     """
-    Provides the Access-Control-Allow-Origin and Access-Control-Allow-Headers
-    headers to enable cross-site HTTP requests. You can find more information
-    about these headers here:
+    Provides the Access-Control headers to enable cross-site HTTP requests. You
+    can find more information about these headers here:
     https://developer.mozilla.org/En/HTTP_access_control#Simple_requests
     """
     if settings.ALLOW_ORIGIN:
         response['Access-Control-Allow-Origin'] = settings.ALLOW_ORIGIN
         response['Access-Control-Allow-Headers'] = 'X-Sentry-Auth'
+        response['Access-Control-Allow-Methods'] = 'POST'
     return response
