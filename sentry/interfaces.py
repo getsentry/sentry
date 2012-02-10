@@ -144,6 +144,19 @@ class Stacktrace(Interface):
             # assert 'context_line' in frame
             # assert 'function' in frame
 
+    def _shorten(self, value, depth=1):
+        if depth > 5:
+            return type(value)
+        if isinstance(value, dict):
+            return dict((k, self._shorten(v, depth + 1)) for k, v in sorted(value.iteritems())[:100 / depth])
+        elif isinstance(value, (list, tuple, set, frozenset)):
+            return tuple(self._shorten(v, depth + 1) for v in value)[:100 / depth]
+        elif isinstance(value, (int, long, float)):
+            return value
+        elif not value:
+            return value
+        return value[:100]
+
     def serialize(self):
         return {
             'frames': self.frames,
@@ -158,6 +171,13 @@ class Stacktrace(Interface):
             else:
                 context = []
                 start_lineno = None
+
+            context_vars = []
+            if 'vars' in frame:
+                context_vars = self._shorten(frame['vars'])
+            else:
+                context_vars = []
+
             frames.append({
                 'abs_path': frame.get('abs_path'),
                 'filename': frame['filename'],
@@ -165,7 +185,7 @@ class Stacktrace(Interface):
                 'start_lineno': start_lineno,
                 'lineno': frame.get('lineno'),
                 'context': context,
-                'vars': frame.get('vars') or {},
+                'vars': context_vars,
             })
 
         return render_to_string('sentry/partial/interfaces/stacktrace.html', {
