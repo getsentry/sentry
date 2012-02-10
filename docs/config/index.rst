@@ -294,7 +294,7 @@ The following settings are available for the built-in UDP API server:
 
         SENTRY_UDP_HOST = '0.0.0.0'  # bind to all addresses
 
-.. data:: sentry.conf.WEB_PORT
+.. data:: sentry.conf.UDP_PORT
     :noindex:
 
     The port which the udp server should listen on.
