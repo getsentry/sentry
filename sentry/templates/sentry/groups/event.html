@@ -53,7 +53,7 @@
                 {% for k, v in json_data.iteritems|as_sorted %}
                     <tr>
                         <th class="key">{{ k }}</th>
-                        <td class="values">
+                        <td class="values{% if v and not v|is_dict %} code{% endif %}">
                         {% if v %}
                             {% if v|is_dict %}
                                 {% if v|length > 5 %}
