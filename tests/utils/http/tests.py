@@ -39,6 +39,8 @@ class AccessControlTestCase(TestCase):
                              None)
             self.assertEqual(response.get('Access-Control-Allow-Headers', None),
                              None)
+            self.assertEqual(response.get('Access-Control-Allow-Methods', None),
+                             None)
     
     def test_allow_origin(self):
         with self.Settings(SENTRY_ALLOW_ORIGIN="http://foo.example"):
@@ -47,3 +49,5 @@ class AccessControlTestCase(TestCase):
                              "http://foo.example")
             self.assertEqual(response.get('Access-Control-Allow-Headers', None),
                              "X-Sentry-Auth")
+            self.assertEqual(response.get('Access-Control-Allow-Methods', None),
+                             "POST")
