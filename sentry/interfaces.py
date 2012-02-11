@@ -112,8 +112,14 @@ class Message(Interface):
         }
 
     def get_search_context(self, event):
+        if isinstance(self.params, (list, tuple)):
+            params = list(self.params)
+        elif isinstance(self.params, dict):
+            params = self.params.values()
+        else:
+            params = ()
         return {
-            'text': [self.message] + list(self.params),
+            'text': [self.message] + params,
         }
 
 
