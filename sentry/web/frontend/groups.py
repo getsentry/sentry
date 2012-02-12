@@ -74,7 +74,8 @@ def _get_group_list(request, project, view=None):
 
     if sort.startswith('accel_') and not has_trending():
         sort = settings.DEFAULT_SORT_OPTION
-    else:
+
+    if not sort.startswith('accel_'):
         since = request.GET.get('since', '')
         if since not in DATE_OPTIONS:
             since = settings.DEFAULT_DATE_OPTION
