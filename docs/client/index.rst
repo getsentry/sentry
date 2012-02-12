@@ -83,7 +83,6 @@ For example, with an included Exception event, a basic JSON body might resemble 
 
         {
             "event_id": "fc6d8c0c43fc4630ad850ee518f1b9d0",
-            "checksum": "968d033d0219d0d84c95e58431523796",
             "culprit": "my.module.function_name",
             "timestamp": "2011-05-02T17:41:36",
             "message": "SyntaxError: Wattttt!"
@@ -161,16 +160,6 @@ The following attributes are required for all events:
 
 Additionally, there are several optional values which Sentry recognizes and are
 highly encouraged:
-
-.. data:: checksum
-
-    An almost-unique hash identifying the this event to improve aggregation.
-
-    ::
-
-        {
-            "checksum": "968d033d0219d0d84c95e58431523796"
-        }
 
 .. data:: culprit
 
