@@ -78,6 +78,9 @@ class Interface(object):
     def serialize(self):
         return dict((k, self.__dict__[k]) for k in self.attrs)
 
+    def get_hash(self):
+        return []
+
     def to_html(self, event):
         return ''
 
@@ -111,6 +114,9 @@ class Message(Interface):
             'params': self.params,
         }
 
+    def get_hash(self):
+        return [self.message]
+
     def get_search_context(self, event):
         if isinstance(self.params, (list, tuple)):
             params = list(self.params)
@@ -128,6 +134,9 @@ class Query(Interface):
         self.query = query
         self.engine = engine
 
+    def get_hash(self):
+        return [self.query]
+
     def serialize(self):
         return {
             'query': self.query,
@@ -141,6 +150,8 @@ class Query(Interface):
 
 
 class Stacktrace(Interface):
+    score = 1000
+
     def __init__(self, frames):
         self.frames = frames
         for frame in frames:
@@ -167,6 +178,13 @@ class Stacktrace(Interface):
         return {
             'frames': self.frames,
         }
+
+    def get_hash(self):
+        output = []
+        for frame in self.frames:
+            output.append(frame['module'])
+            output.append(frame['function'])
+        return output
 
     def to_html(self, event):
         frames = []
@@ -243,6 +261,12 @@ class Exception(Interface):
             'value': self.value,
             'module': self.module,
         }
+
+    def get_hash(self):
+        output = filter(bool, [self.module, self.type])
+        if not output:
+            output = [self.value]
+        return output
 
     def to_html(self, event):
         return render_to_string('sentry/partial/interfaces/exception.html', {
@@ -374,6 +398,9 @@ class Template(Interface):
             'pre_context': self.pre_context,
             'post_context': self.post_context,
         }
+
+    def get_hash(self):
+        return [self.filename, self.context_line]
 
     def to_html(self, event):
         context = get_context(self.lineno, self.context_line, self.pre_context, self.post_context)

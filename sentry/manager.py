@@ -32,6 +32,17 @@ from sentry.queue.tasks.index import index_event
 logger = logging.getLogger('sentry.errors')
 
 
+def get_checksum_from_event(event):
+    for interface in event.interfaces.itervalues():
+        result = interface.get_hash()
+        if result:
+            hash = hashlib.md5()
+            for r in result:
+                hash.update(r)
+            return hash.hexdigest()
+    return hashlib.md5(event.message).hexdigest()
+
+
 class ScoreClause(object):
     def __init__(self, group):
         self.group = group
@@ -212,7 +223,7 @@ class GroupManager(models.Manager, ChartMixin):
         # TODO: this function is way too damn long and needs refactored
         # the inner imports also suck so let's try to move it away from
         # the objects manager
-        from sentry.models import Event, Project, View, SearchDocument
+        from sentry.models import Event, Project, View
         from sentry.views import View as ViewHandler
 
         project = Project.objects.get(pk=project)
@@ -242,8 +253,6 @@ class GroupManager(models.Manager, ChartMixin):
             raise InvalidData('Missing required parameter: message')
 
         checksum = kwargs.pop('checksum', None)
-        if not checksum:
-            checksum = hashlib.md5(message).hexdigest()
 
         data = kwargs
 
@@ -285,6 +294,10 @@ class GroupManager(models.Manager, ChartMixin):
             datetime=date,
             **kwargs
         )
+
+        # Calculcate the checksum from the first highest scoring interface
+        if not checksum:
+            checksum = get_checksum_from_event(event)
 
         group_kwargs = kwargs.copy()
         group_kwargs.update({
