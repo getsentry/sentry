@@ -120,18 +120,18 @@ Authentication
 
 .. data:: sentry.conf.ALLOW_ORIGIN
     :noindex:
-    
+
     If provided, Sentry will set the Access-Control-Allow-Origin header to this
     value on /api/store/ responses. In addition, the
     Access-Control-Allow-Headers header will be set to 'X-Sentry-Auth'. This
     allows JavaScript clients to submit cross-domain error reports.
-    
+
     You can read more about these headers in the `Mozilla developer docs`_.
-    
+
     Defaults to ``None`` (don't add the Access-Control headers)
-    
+
     ::
-    
+
         SENTRY_ALLOW_ORIGIN = "http://foo.example"
 
 .. _Mozilla developer docs: https://developer.mozilla.org/En/HTTP_access_control#Simple_requests
@@ -139,6 +139,12 @@ Authentication
 Notifications
 -------------
 
+As of the current release, Sentry now designates its notification processing to plugins. Specifically, the email
+notifications have been moved to the ``sentry.plugins.sentry_mail``. You'll need to add this plugin to your
+``INSTALLED_APPS`` if you wish to continue using email notifications.
+
+The following settings now act as default values for the ``sentry_mail`` plugin, and can be overwritten per-project
+by visiting the plugin configuration page for that project.
 
 .. data:: sentry.conf.ADMINS
     :noindex:
