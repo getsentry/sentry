@@ -6,7 +6,6 @@ sentry.web.forms
 :license: BSD, see LICENSE for more details.
 """
 from django import forms
-from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User
 from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
