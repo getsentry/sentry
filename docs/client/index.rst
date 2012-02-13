@@ -6,8 +6,10 @@ Recognized Clients
 
 The following clients are officially recognized and support the current Sentry protocol:
 
-* Python (`Raven <http://github.com/dcramer/raven>`_)
+* Python (`raven-python <http://github.com/dcramer/raven>`_)
 * PHP (`raven-php <http://github.com/getsentry/raven-php>`_)
+* Java (`raven-java <https://github.com/kencochrane/raven-java>`_)
+* JavaScript (`raven-js <https://github.com/lincolnloop/raven-js>`_)
 
 To become a recognized client, a library is expected to meet several criteria:
 
