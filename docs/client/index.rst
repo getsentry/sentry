@@ -187,16 +187,6 @@ highly encouraged:
             "server_name": "foo.example.com"
         }
 
-.. data:: site
-
-    An arbitrary value for per-site aggregation.
-
-    ::
-
-        {
-            "site": "My Site"
-        }
-
 .. data:: modules
 
     A list of relevant modules and their versions.
