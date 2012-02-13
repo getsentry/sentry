@@ -14,7 +14,7 @@ from django.http import HttpResponseRedirect
 from django.utils.safestring import mark_safe
 
 from sentry.models import Group
-from sentry.plugins import Plugin
+from sentry.plugins import Plugin, register
 from sentry.plugins.sentry_redmine import conf
 from sentry.utils import json
 
@@ -33,6 +33,7 @@ class RedmineIssueForm(forms.Form):
     description = forms.CharField(widget=forms.Textarea())
 
 
+@register
 class CreateRedmineIssue(Plugin):
     title = 'Create Redmine Issue'
 

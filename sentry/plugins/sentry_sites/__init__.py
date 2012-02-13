@@ -6,9 +6,10 @@ sentry.plugins.sentry_sites
 :license: BSD, see LICENSE for more details.
 """
 from django.db.models import Sum
-from sentry.plugins import Plugin
+from sentry.plugins import Plugin, register
 
 
+@register
 class SitesPlugin(Plugin):
     """
     Adds additional support for showing information about sites including:

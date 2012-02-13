@@ -26,6 +26,10 @@ class InstanceManager(object):
         self.cache = None
         self.class_list.append(class_path)
 
+    def remove(self, class_path):
+        self.cache = None
+        self.class_list.remove(class_path)
+
     def update(self, class_list):
         """
         Updates the class list and wipes the cache.

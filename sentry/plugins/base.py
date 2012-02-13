@@ -6,7 +6,7 @@ sentry.plugins.base
 :license: BSD, see LICENSE for more details.
 """
 
-__all__ = ('Plugin', 'plugins')
+__all__ = ('Plugin', 'plugins', 'register')
 
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponse
@@ -52,23 +52,27 @@ class PluginManager(InstanceManager):
                 return plugin
         raise KeyError
 
+    def register(self, cls):
+        self.add('%s.%s' % (cls.__module__, cls.__name__))
+
+    def unregister(self, cls):
+        self.remove('%s.%s' % (cls.__module__, cls.__name__))
 
 plugins = PluginManager()
+register = plugins.register
+unregister = plugins.unregister
 
 
-def PluginMount(manager):
-    class PluginMount(type):
-        def __new__(cls, name, bases, attrs):
-            new_cls = type.__new__(cls, name, bases, attrs)
-            if IPlugin in bases:
-                return new_cls
-            if not new_cls.title:
-                new_cls.title = new_cls.__name__
-            if not new_cls.slug:
-                new_cls.slug = new_cls.title.replace(' ', '-').lower()
-            manager.add('%s.%s' % (new_cls.__module__, new_cls.__name__))
+class PluginMount(type):
+    def __new__(cls, name, bases, attrs):
+        new_cls = type.__new__(cls, name, bases, attrs)
+        if IPlugin in bases:
             return new_cls
-    return PluginMount
+        if not new_cls.title:
+            new_cls.title = new_cls.__name__
+        if not new_cls.slug:
+            new_cls.slug = new_cls.title.replace(' ', '-').lower()
+        return new_cls
 
 
 class IPlugin(object):
@@ -203,6 +207,9 @@ class IPlugin(object):
 
 class Plugin(IPlugin):
     """
+    A plugin should be treated as if it were a singleton. The owner does not
+    control when or how the plugin gets instantiated, nor is it guaranteed that
+    it will happen, or happen more than once.
     """
-    __metaclass__ = PluginMount(plugins)
+    __metaclass__ = PluginMount
 

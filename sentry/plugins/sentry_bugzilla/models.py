@@ -8,7 +8,7 @@ sentry.plugins.sentry_bugzilla.models
 
 from django import forms
 
-from sentry.plugins import Plugin
+from sentry.plugins import Plugin, register
 
 
 class BugzillaConfigurationForm(forms.Form):
@@ -22,6 +22,7 @@ class BugzillaSubmitForm(forms.Form):
     version = forms.CharField(max_length=64)
 
 
+@register
 class CreateBugzillaIssue(Plugin):
     title = 'Create Bugzilla Issue'
     slug = 'bugzilla'

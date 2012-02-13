@@ -9,7 +9,7 @@ from django import forms
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from sentry.conf import settings
-from sentry.plugins import Plugin
+from sentry.plugins import Plugin, register
 
 NOTSET = object()
 
@@ -20,6 +20,7 @@ class MailConfigurationForm(forms.Form):
     }))
 
 
+@register
 class MailProcessor(Plugin):
     title = 'Mail'
     conf_key = 'mail'

@@ -6,9 +6,10 @@ sentry.plugins.sentry_urls
 :license: BSD, see LICENSE for more details.
 """
 from django.db.models import Sum
-from sentry.plugins import Plugin
+from sentry.plugins import Plugin, register
 
 
+@register
 class UrlsPlugin(Plugin):
     """
     Adds additional support for showing information about urls including:
