@@ -1,6 +1,7 @@
 from httplib import HTTPConnection, HTTPSConnection
 from urllib import urlencode
 from urlparse import urlparse
+import socket
 
 
 class Replayer(object):
@@ -24,9 +25,15 @@ class Replayer(object):
             data = urlencode(data)
 
         conn = conn_cls(urlparts.netloc, timeout=5)
-        conn.request(self.method, urlparts.path, data, self.headers or {})
+        try:
+            conn.request(self.method, urlparts.path, data, self.headers or {})
 
-        response = conn.getresponse()
+            response = conn.getresponse()
+        except socket.error, e:
+            return {
+                'status': 'error',
+                'reason': str(e),
+            }
 
         return {
             'status': response.status,
