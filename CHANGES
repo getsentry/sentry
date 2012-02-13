@@ -3,6 +3,7 @@ Version 2.9.0
 
 * Plugins must now behave as singletons and be registered with a newly provided
   sentry.plugins.@register decorator.
+* The Bugzilla and Redmine extensions are no longer part of Sentry core.
 
 Version 2.8.0
 -------------
