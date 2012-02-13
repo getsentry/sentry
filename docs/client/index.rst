@@ -13,13 +13,13 @@ The following clients are officially recognized and support the current Sentry p
 
 To become a recognized client, a library is expected to meet several criteria:
 
-# It must fully implement the current version of the Sentry protocol.
+* It must fully implement the current version of the Sentry protocol.
 
-# It must conform to the standard DSN configuration method.
+* It must conform to the standard DSN configuration method.
 
-# It must contain an acceptable level of documentation and tests.
+* It must contain an acceptable level of documentation and tests.
 
-# The client must be properly packaged, and named raven-<language>.
+* The client must be properly packaged, and named raven-<language>.
 
 Writing a Client
 ----------------
@@ -32,19 +32,19 @@ method.
 Generally, a client consists of three steps to the end user, which should look
 almost identical no matter the language:
 
-# Creation of the client (sometimes this is hidden to the user)
+1. Creation of the client (sometimes this is hidden to the user)
 
   ::
 
       var myClient = new RavenClient('http://public_key:secret_key@example.com/1');
 
-# Capturing an event
+2. Capturing an event
 
   ::
 
       var $resultId = myClient->captureException($myException);
 
-# Using the result of an event capture
+3. Using the result of an event capture
 
   ::
 
