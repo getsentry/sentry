@@ -235,29 +235,41 @@ An authentication header is expected to be sent along with the message body, whi
 for the message, as well as an ownership identifier::
 
     X-Sentry-Auth: Sentry sentry_version=2.0,
-    sentry_signature=<hmac signature>,
+    sentry_client=<client version, arbitrary>]]
     sentry_timestamp=<signature timestamp>[,
     sentry_key=<public api key>,[
-    sentry_client=<client version, arbitrary>]]
+    sentry_signature=<hmac signature>,
 
-The header is composed of a SHA1-signed HMAC, the timestamp from when the message
-was generated, and an arbitrary client version string. The client version should
-be something distinct to your client, and is simply for reporting purposes.
+.. data:: sentry_version
 
-To generate the HMAC signature, take the following example (in Python)::
+    The protocol version. This should be sent as the value "2.0".
 
-    hmac.new(public_key, '%s %s' % (timestamp, message), hashlib.sha1).hexdigest()
+.. data:: sentry_client
 
-If you are using project auth, you should sign with your project-specific ``secret_key``
-instead of the global superuser key. If you are signing with your secret key, you will
-also need to ensure you've provided your ``public_key`` as ``sentry_key`` in the
-auth header.
+    An arbitrary string which identifies your client, including it's version.
 
-The variables which are required within the signing of the message consist of the following:
+    For example, the Python client might send this as "raven-python/1.0"
 
-- ``key`` is either the ``public_key`` or the shared global key between client and server.
-- ``timestamp`` is the timestamp of which this message was generated
-- ``message`` is the encoded :ref:`POST Body`
+.. data:: sentry_timestamp
+
+    The unix timestamp representing the time at which this POST request was generated.
+
+.. data:: sentry_key
+
+    The public key which should be provided as part of the client configuration
+
+.. data:: sentry_signature
+
+    A SHA1-signed HMAC, for example::
+
+        hmac.new(secret_key, '%s %s' % (timestamp, message), hashlib.sha1).hexdigest()
+
+    The variables which are required within the signing of the message consist of the following:
+
+    - ``secret_key`` is provided as part of the client configuration.
+    - ``timestamp`` is the timestamp of which this message was generated
+    - ``message`` is the encoded JSON body
+
 
 A Working Example
 ~~~~~~~~~~~~~~~~~
