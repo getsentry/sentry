@@ -98,7 +98,6 @@ if (Sentry === undefined) {
             if ($row.attr('data-count') == data.count) {
                 return;
             }
-            $row.remove();
         }
         $row = $(data.html);
 
@@ -115,6 +114,7 @@ if (Sentry === undefined) {
             if (old_pos == pos) {
                 return;
             }
+            $row.remove();
         }
 
         // if the row doesnt outrank any existing elements
