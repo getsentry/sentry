@@ -9,75 +9,79 @@ The following clients are officially recognized and support the current Sentry p
 * Python (`Raven <http://github.com/dcramer/raven>`_)
 * PHP (`raven-php <http://github.com/getsentry/raven-php>`_)
 
+To become a recognized client, a library is expected to meet several criteria:
+
+# It must fully implement the current version of the Sentry protocol.
+
+# It must conform to the standard DSN configuration method.
+
+# It must contain an acceptable level of documentation and tests.
+
+# The client must be properly packaged, and named raven-<language>.
+
 Writing a Client
 ----------------
 
-For an example client, you may want to take a look at `Raven <http://github.com/dcramer/raven>`_.
+A client at it's core is simply a set of utilities for capturing various
+logging parameters. Given these parameters, it then builds a JSON payload
+which it will send to a the Sentry server, using some sort of authentication
+method.
 
-This section describes how to write a Sentry client.  As far as the
-writer is concerned, a Sentry client *is* a logging handler written in
-a language different than Python.  You will not find the
-implementation details of a specific Sentry logging handler, since these are
-language dependent, but a description of the steps that are needed to
-implement just a Sentry client in your own language or framework.
+Generally, a client consists of three steps to the end user, which should look
+almost identical no matter the language:
 
-In general, the action taken by a logging handler compatible with
-``log4j`` and ``logging`` is doing something with a timestamped
-attributable formatted logging record.  Every logging record has its
-own severity level.
+# Creation of the client (sometimes this is hidden to the user)
 
-:timestamped: ``timestamp`` is the time the event happened.
-:attributable: ``logger`` is the name of the logger that produced the record.
-:formatted: The finalized message of the action, stored as ``message``.
-:severity level: ``level`` is a numeric value, corresponding to the ``logging`` levels.
+  ::
 
-On top of these, Sentry suggests the logger report the ``view``,
-the name of the function that has caused the logging record.
+      var myClient = new RavenClient('http://public_key:secret_key@example.com/1');
 
-Authentication
-~~~~~~~~~~~~~~
+# Capturing an event
 
-A logging handler integrating with Sentry sends the records it handles
-to the Sentry server.  The server listens for JSON POST requests,
-with the following structure::
+  ::
 
-    POST /store/
-    <the encoded record>
+      var $resultId = myClient->captureException($myException);
 
-You must also send along the following authentication headers::
+# Using the result of an event capture
 
-    X-Sentry-Auth: Sentry sentry_version=2.0,
-    sentry_signature=<hmac signature>,
-    sentry_timestamp=<signature timestamp>[,
-    sentry_key=<public api key>,[
-    sentry_client=<client version, arbitrary>]]
+  ::
 
-The header is composed of a SHA1-signed HMAC, the timestamp from when the message
-was generated, and an arbitrary client version string. The client version should
-be something distinct to your client, and is simply for reporting purposes.
+      println("Your exception was recorded as %s", $resultId);
 
-To generate the HMAC signature, take the following example (in Python)::
+The standard methods as of writing which all clients are expected to provide are:
 
-    hmac.new(public_key, '%s %s' % (timestamp, message), hashlib.sha1).hexdigest()
+* RavenClient::captureMessage(string $message)
+* RavenClient::captureException(exception $exception)
 
-If you are using project auth, you should sign with your project-specific ``secret_key``
-instead of the global superuser key. If you are signing with your secret key, you will
-also need to ensure you've provided your ``public_key`` as ``sentry_key`` in the
-auth header.
+Parsing the DSN
+~~~~~~~~~~~~~~~
 
-The variables which are required within the signing of the message consist of the following:
+Clients are encouraged to allow arbitrary options via the constructor, but must
+allow the first argument as a DSN string. This string contains the following bits:
 
-- ``key`` is either the ``public_key`` or the shared global key between client and server.
-- ``timestamp`` is the timestamp of which this message was generated
-- ``message`` is the encoded :ref:`POST Body`
+::
 
-POST Body
-~~~~~~~~~
+    '{PROTOCOL}://{PUBLIC_KEY}:{SECRET_KEY}@{HOST}/{PATH}{PROJECT_ID}'
 
-The body of the post is a string representation of a JSON object and is
-(optionally and preferably) gzipped and then (necessarily) base64
-encoded.
+For example, given the following constructor::
 
+    new RavenClient('https://public:secret@example.com/sentry/1')
+
+You should parse the following settings:
+
+* URI = https://example.com/sentry/
+* Public Key = Public
+* Secret Key = Secret
+* Project ID = 1
+
+If any of these values are not present, the client should notify the user immediately
+that they've misconfigured the client.
+
+Building the JSON Packet
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The body of the post is a string representation of a JSON object. It is also preferabblly gzipped encoding,
+which also means its expected to be base64-encoded.
 
 For example, with an included Exception event, a basic JSON body might resemble the following::
 
@@ -221,3 +225,61 @@ class name, and the value is the data expected by the interface. Interfaces are 
 including storing stacktraces, HTTP request information, and other metadata.
 
 See :doc:`../interfaces/index` for information on Sentry's builtin interfaces and how to create your own.
+
+Authentication
+~~~~~~~~~~~~~~
+
+An authentication header is expected to be sent along with the message body, which acts as both a signature
+for the message, as well as an ownership identifier::
+
+    X-Sentry-Auth: Sentry sentry_version=2.0,
+    sentry_signature=<hmac signature>,
+    sentry_timestamp=<signature timestamp>[,
+    sentry_key=<public api key>,[
+    sentry_client=<client version, arbitrary>]]
+
+The header is composed of a SHA1-signed HMAC, the timestamp from when the message
+was generated, and an arbitrary client version string. The client version should
+be something distinct to your client, and is simply for reporting purposes.
+
+To generate the HMAC signature, take the following example (in Python)::
+
+    hmac.new(public_key, '%s %s' % (timestamp, message), hashlib.sha1).hexdigest()
+
+If you are using project auth, you should sign with your project-specific ``secret_key``
+instead of the global superuser key. If you are signing with your secret key, you will
+also need to ensure you've provided your ``public_key`` as ``sentry_key`` in the
+auth header.
+
+The variables which are required within the signing of the message consist of the following:
+
+- ``key`` is either the ``public_key`` or the shared global key between client and server.
+- ``timestamp`` is the timestamp of which this message was generated
+- ``message`` is the encoded :ref:`POST Body`
+
+A Working Example
+~~~~~~~~~~~~~~~~~
+
+When all is said and done, you should be sending an HTTP POST request to a Sentry webserver, where
+the path is the BASE_URI/api/store/. So given the following DSN::
+
+    https://b70a31b3510c4cf793964a185cfe1fd0:b7d80b520139450f903720eb7991bf3d@example.com/1
+
+The request body should then somewhat resemble the following::
+
+    POST /api/store/
+    X-Sentry-Auth: Sentry sentry_version=2.0, sentry_signature=a3901c854752a61636560638937237c8d7a9561d,
+        sentry_timestamp=1329096377, sentry_key=b70a31b3510c4cf793964a185cfe1fd0,
+        sentry_client=raven-python/1.0
+
+    {
+        "event_id": "fc6d8c0c43fc4630ad850ee518f1b9d0",
+        "culprit": "my.module.function_name",
+        "timestamp": "2011-05-02T17:41:36",
+        "message": "SyntaxError: Wattttt!"
+        "sentry.interfaces.Exception": {
+            "type": "SyntaxError":
+            "value": "Wattttt!",
+            "module": "__builtins__"
+        }
+    }
