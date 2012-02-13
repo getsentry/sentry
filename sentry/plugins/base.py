@@ -54,9 +54,11 @@ class PluginManager(InstanceManager):
 
     def register(self, cls):
         self.add('%s.%s' % (cls.__module__, cls.__name__))
+        return cls
 
     def unregister(self, cls):
         self.remove('%s.%s' % (cls.__module__, cls.__name__))
+        return cls
 
 plugins = PluginManager()
 register = plugins.register
