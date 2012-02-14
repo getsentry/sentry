@@ -38,8 +38,16 @@
                     {% for project in project_list.objects %}
                         <tr>
                             <td>
-                                {{ project.name }} <a href="{% url sentry project.pk %}">[view]</a>
-                                </a>
+                                <strong>{{ project.name }}</strong> <a href="{% url sentry project.pk %}">[view]</a><br/>
+                                {% if project.owner %}
+                                    <small>Owned by <a href="{% url sentry-admin-edit-user project.owner.pk %}">
+                                        {% if project.owner.email %}
+                                            {{ project.owner.email }}
+                                        {% else %}
+                                            {{ project.owner.username }}
+                                        {% endif %}
+                                    </a></smalL>
+                                {% endif %}
                             </td>
                             <td style="text-align:center; vertical-align:middle;">
                                 <em>~{{ project|avg_events_per_day }}</em>

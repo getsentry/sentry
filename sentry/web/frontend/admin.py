@@ -57,7 +57,7 @@ def manage_projects(request):
         last_event=Max('messagecountbyminute__date'),
         avg_events_per_n=Sum('projectcountbyminute__times_seen'),
         n_value=Count('projectcountbyminute__times_seen')
-    ).order_by('-date_added')
+    ).select_related('owner').order_by('-date_added')
 
     context = {
         'project_list': project_list,

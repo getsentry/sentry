@@ -2754,6 +2754,9 @@ table.inline tr {
   padding: 10px;
   margin: 10px;
 }
+small {
+  font-size: 0.9em;
+}
 .inputs-list label {
   padding-left: 18px;
 }
