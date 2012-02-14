@@ -64,7 +64,7 @@
                             {{ user.last_login|date }}
                         </td>
                         <td style="text-align:center; vertical-align:middle;">
-                            {{ user.num_projects }}
+                            <a href="{% url sentry-admin-list-user-projects user.pk %}">{{ user.num_projects }}</a>
                         </td>
                     </tr>
                 {% endfor %}

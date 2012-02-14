@@ -8,6 +8,8 @@ sentry.utils.dates
 import pytz
 
 from django.conf import settings
+from django.db import connections
+from sentry.utils import get_db_engine
 
 
 def utc_to_local(dt):
@@ -18,3 +20,16 @@ def utc_to_local(dt):
 def local_to_utc(dt):
     tz = pytz.timezone(settings.TIME_ZONE)
     return dt.replace(tzinfo=tz).astimezone(pytz.utc).replace(tzinfo=None)
+
+
+def get_sql_date_trunc(col, db='default'):
+    conn = connections[db]
+
+    engine = get_db_engine(db)
+    # TODO: does extract work for sqlite?
+    if engine.startswith('oracle'):
+        method = conn.ops.date_trunc_sql('hh24', col)
+    else:
+        method = conn.ops.date_trunc_sql('hour', col)
+
+    return method

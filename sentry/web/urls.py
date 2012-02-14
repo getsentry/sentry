@@ -61,10 +61,18 @@ urlpatterns = patterns('',
     url(r'^manage/status/packages/$', admin.status_packages, name='sentry-admin-packages-status'),
     url(r'^manage/status/queue/$', admin.status_queue, name='sentry-admin-queue-status'),
     url(r'^manage/stats/$', admin.stats, name='sentry-admin-stats'),
+
+    # Admin - Projects
+    url(r'^manage/projects/$', admin.manage_projects, name='sentry-admin-projects'),
+
+    # Admin - Users
     url(r'^manage/users/$', admin.manage_users, name='sentry-admin-users'),
     url(r'^manage/users/new/$', admin.create_new_user, name='sentry-admin-new-user'),
     url(r'^manage/users/(?P<user_id>\d+)/$', admin.edit_user, name='sentry-admin-edit-user'),
     url(r'^manage/users/(?P<user_id>\d+)/remove/$', admin.remove_user, name='sentry-admin-remove-user'),
+    url(r'^manage/users/(?P<user_id>\d+)/projects/$', admin.list_user_projects, name='sentry-admin-list-user-projects'),
+
+    # Admin - Plugins
     url(r'^manage/plugins/(?P<slug>[\w_-]+)/$', admin.configure_plugin, name='sentry-admin-configure-plugin'),
 
     # API / JS

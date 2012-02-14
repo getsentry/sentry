@@ -128,9 +128,5 @@ import logging
 logger = logging.getLogger()
 logger.setLevel(logging.ERROR)
 
-# Configure South logger
-logger = logging.getLogger('south')
-logger.setLevel(logging.DEBUG)
-
 # Configure default sentry logging
 setup_logging(SentryHandler())

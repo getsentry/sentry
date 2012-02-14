@@ -1,0 +1,63 @@
+{% extends "sentry/admin/base.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_admin_helpers %}
+
+{% block title %}{% trans "Manage Projects" %} | {{ block.super }}{% endblock %}
+
+{% block admin-nav-projects %} class="active"{% endblock %}
+
+{% block breadcrumb %}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-admin-projects %}">{% trans "Projects" %}</a></li>
+{% endblock %}
+
+{% block page_header %}
+{% endblock %}
+{% block main %}
+    {% paginate project_list from request as project_list per_page 50 %}
+
+    <section class="body">
+        {% if project_list.objects %}
+            {{ project_list.paging }}
+
+            <table class="table table-bordered">
+                <colgroup>
+                    <col>
+                    <col style="width:150px;">
+                    <col style="width:150px;">
+                    <col style="width:50px;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>{% trans "Project" %}</th>
+                        <th style="text-align:center;">{% trans "Daily Events" %}</th>
+                        <th style="text-align:center;">{% trans "Last Event" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for project in project_list.objects %}
+                        <tr>
+                            <td>
+                                {{ project.name }} <a href="{% url sentry project.pk %}">[view]</a>
+                                </a>
+                            </td>
+                            <td style="text-align:center; vertical-align:middle;">
+                                <em>~{{ project|avg_events_per_day }}</em>
+                            </td>
+                            <td style="text-align:center; vertical-align:middle;">
+                                {{ project.last_event|timesince }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            {{ project_list.paging }}
+        {% else %}
+            <p class="alert alert-notice">{% trans "There are no active projects in Sentry." %}</p>
+        {% endif %}
+
+    </section>
+{% endblock %}

@@ -517,6 +517,23 @@ class MessageCountByMinute(Model):
         return u'group_id=%s, times_seen=%s, date=%s' % (self.group_id, self.times_seen, self.date)
 
 
+class ProjectCountByMinute(Model):
+    """
+    Stores the total number of messages seen by a project at N minute intervals.
+
+    e.g. if it happened at 08:34:55 the time would be normalized to 08:30:00
+    """
+
+    project = models.ForeignKey(Project, null=True)
+    date = models.DateTimeField()  # normalized to HH:MM:00
+    times_seen = models.PositiveIntegerField(default=0)
+    time_spent_total = models.FloatField(default=0)
+    time_spent_count = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = (('project', 'date'),)
+
+
 class SearchDocument(Model):
     project = models.ForeignKey(Project)
     group = models.ForeignKey(Group)

@@ -380,6 +380,8 @@ class Http(Interface):
 
 
 class Template(Interface):
+    score = 1001
+
     def __init__(self, filename, context_line, lineno, pre_context=None, post_context=None,
                  abs_path=None):
         self.abs_path = abs_path

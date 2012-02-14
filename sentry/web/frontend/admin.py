@@ -15,7 +15,7 @@ from django.core.context_processors import csrf
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
 from django.db import transaction
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count, Max
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 from djkombu.models import Queue
@@ -48,12 +48,28 @@ def configure_plugin(request, slug):
 
 
 @requires_admin
-def manage_users(request):
-    if not request.user.has_perm('auth.can_add_user'):
-        return HttpResponseRedirect(reverse('sentry'))
+def manage_projects(request):
+    project_list = Project.objects.filter(
+        status=0,
+    ).exclude(
+        projectcountbyminute__date__lte=datetime.datetime.now() - datetime.timedelta(days=30),
+    ).annotate(
+        last_event=Max('messagecountbyminute__date'),
+        avg_events_per_n=Sum('projectcountbyminute__times_seen'),
+        n_value=Count('projectcountbyminute__times_seen')
+    ).order_by('-date_added')
 
+    context = {
+        'project_list': project_list,
+    }
+
+    return render_to_response('sentry/admin/projects/list.html', context, request)
+
+
+@requires_admin
+def manage_users(request):
     users = User.objects.annotate(num_projects=Count('sentry_project_set'))\
-                .order_by('-last_login')
+                .order_by('-date_joined')
 
     return render_to_response('sentry/admin/users/list.html', {
         'user_list': users,
@@ -167,6 +183,32 @@ def remove_user(request, user_id):
     })
 
     return render_to_response('sentry/admin/users/remove.html', context, request)
+
+
+@requires_admin
+def list_user_projects(request, user_id):
+    try:
+        user = User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        return HttpResponseRedirect(reverse('sentry-admin-users'))
+
+    project_list = Project.objects.filter(
+        status=0,
+        member_set__user=user,
+    ).exclude(
+        projectcountbyminute__date__lte=datetime.datetime.now() - datetime.timedelta(days=30),
+    ).annotate(
+        last_event=Max('messagecountbyminute__date'),
+        avg_events_per_n=Sum('projectcountbyminute__times_seen'),
+        n_value=Count('projectcountbyminute__times_seen')
+    ).order_by('-date_added')
+
+    context = {
+        'project_list': project_list,
+        'the_user': user,
+    }
+
+    return render_to_response('sentry/admin/users/list_projects.html', context, request)
 
 
 @requires_admin

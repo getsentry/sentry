@@ -24,8 +24,7 @@ from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
 from sentry.utils import get_db_engine
 from sentry.utils.charts import has_charts
-from sentry.utils.compat.db import connections
-from sentry.utils.dates import utc_to_local
+from sentry.utils.dates import utc_to_local, get_sql_date_trunc
 from sentry.queue.client import delay
 from sentry.queue.tasks.index import index_event
 
@@ -94,18 +93,6 @@ class ModuleProxyCache(dict):
 
 
 class ChartMixin(object):
-    def _get_date_trunc(self, col, db='default'):
-        conn = connections[db]
-
-        engine = get_db_engine(db)
-        # TODO: does extract work for sqlite?
-        if engine.startswith('oracle'):
-            method = conn.ops.date_trunc_sql('hh24', col)
-        else:
-            method = conn.ops.date_trunc_sql('hour', col)
-
-        return method
-
     def get_chart_data(self, instance, max_days=90):
         if hasattr(instance, '_state'):
             db = instance._state.db
@@ -116,10 +103,10 @@ class ChartMixin(object):
             return []
 
         hours = max_days * 24
-        today = datetime.datetime.utcnow().replace(microsecond=0, second=0, minute=0)
+        today = datetime.datetime.now().replace(microsecond=0, second=0, minute=0)
         min_date = today - datetime.timedelta(hours=hours)
 
-        method = self._get_date_trunc('date', db)
+        method = get_sql_date_trunc('date', db)
 
         chart_qs = list(instance.messagecountbyminute_set\
                           .filter(date__gte=min_date)\
@@ -439,6 +426,17 @@ class GroupManager(models.Manager, ChartMixin):
         if not affected:
             group.messagecountbyminute_set.create(
                 project=project,
+                date=normalized_datetime,
+                times_seen=1,
+                time_spent_total=time_spent or 0,
+                time_spent_count=time_spent and 1 or 0,
+            )
+
+        affected = project.projectcountbyminute_set.filter(
+            date=normalized_datetime,
+        ).update(**update_kwargs)
+        if not affected:
+            project.projectcountbyminute_set.create(
                 date=normalized_datetime,
                 times_seen=1,
                 time_spent_total=time_spent or 0,
