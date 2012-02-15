@@ -49,7 +49,7 @@ like the following::
   usage: sentry [--config=/path/to/settings.py] [command] [options]
 
 Initializing the Configuration
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------
 
 Now you're going to want to initialize your configuration from a template, likely because you'll want to switch
 off of sqlite, which is the default database.
@@ -86,7 +86,7 @@ configuration, as well as the default Sentry configuration values. It will use S
     SENTRY_KEY = '0123456789abcde'
 
 Running Migrations
-~~~~~~~~~~~~~~~~~~
+------------------
 
 If you changed from the default SQLite database, make sure you start by creating the database Sentry
 is expecting. Once done, you can create the initial database using the ``upgrade`` command::
@@ -99,7 +99,7 @@ thing you'll want to run when upgrading to future versions of Sentry.
 .. note:: Internally, this uses `South <south.aeracode.org>`_ to manage migrations.
 
 Starting the Web Service
-~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------
 
 Sentry provides a built-in webserver (powered by gunicorn and eventlet) to get you off the ground quickly.
 
@@ -113,14 +113,14 @@ you can pass that via the --config option.
 You should now be able to test the web service by visiting `http://localhost:9000/`.
 
 Configuring a Proxy
-~~~~~~~~~~~~~~~~~~~
+-------------------
 
 By default, Sentry runs on port 9000. Even if you change this, under normal conditions you won't be able to bind to
 port 80. To get around this (and to avoid running Sentry as a privileged user, which you shouldn't), we recommend
 you setup a simple web proxy.
 
 Proxying with Apache
-````````````````````
+~~~~~~~~~~~~~~~~~~~~
 
 Apache requires the use of mod_proxy for forwarding requests::
 
@@ -128,7 +128,7 @@ Apache requires the use of mod_proxy for forwarding requests::
     ProxyPassReverse / http://localhost:9000/
 
 Proxying with Nginx
-```````````````````
+~~~~~~~~~~~~~~~~~~~
 
 You'll use the builtin HttpProxyModule within Nginx to handle proxying::
 
@@ -142,13 +142,13 @@ You'll use the builtin HttpProxyModule within Nginx to handle proxying::
     }
 
 Running Sentry as a Service
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------
 
 We recommend using whatever software you are most familiar with for managing Sentry processes. For us, that software
 of choice is `Supervisor <http://supervisord.org/>`_.
 
 Configure ``supervisord``
-`````````````````````````
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Configuring Supervisor couldn't be more simple. Just point it to the ``sentry`` executable in your virtualenv's bin/
 folder and you're good to go.
