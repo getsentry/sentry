@@ -12,7 +12,8 @@ Users Guide
 .. toctree::
    :maxdepth: 2
 
-   install/index
+   quickstart/index
+   upgrading/index
    config/index
    queue/index
    cli/index

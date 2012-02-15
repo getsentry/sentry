@@ -233,30 +233,6 @@ by visiting the plugin configuration page for that project.
 Services
 --------
 
-.. data:: sentry.conf.RUN_DIR
-    :noindex:
-
-    The location to store PID files for services.
-
-    Defaults to ``%SENTRY%/run/``.
-
-    ::
-
-        SENTRY_RUN_DIR = '/var/run/'
-
-.. data:: sentry.conf.LOG_FILE
-    :noindex:
-
-
-    The location to store log files for services.
-
-    Defaults to ``%SENTRY%/log/``.
-
-    ::
-
-        SENTRY_LOG_DIR = '/var/log/'
-
-
 Web Server
 ~~~~~~~~~~
 
