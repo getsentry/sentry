@@ -45,8 +45,7 @@ class SentryApplication(DjangoApplication):
 class SentryHTTPServer(Service):
     name = 'http'
 
-    def __init__(self, host=None, port=None, debug=False, daemonize=False, pidfile=None,
-                 logfile=None):
+    def __init__(self, host=None, port=None, debug=False):
         from sentry.conf import settings
 
         self.host = host or settings.WEB_HOST
@@ -68,9 +67,7 @@ class SentryHTTPServer(Service):
             'bind': '%s:%s' % (self.host, self.port),
             'worker_class': 'eventlet',
             'debug': debug,
-            'daemon': daemonize,
-            'pidfile': pidfile,
-            'errorlog': logfile,
+            'daemon': False,
             # 'post_fork': post_fork,
         }
         options.update(settings.WEB_OPTIONS or {})
@@ -84,5 +81,3 @@ class SentryHTTPServer(Service):
             sys.stderr.write("\nError: %s\n\n" % e)
             sys.stderr.flush()
             sys.exit(1)
-
-    start = run

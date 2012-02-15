@@ -1,3 +1,14 @@
+Version 3.0.0
+-------------
+
+Version 3 of Sentry is centered around a restructure of the internal services and
+the architecture for running those.
+
+* Sentry no longer provides the ability to daemonize processes. This should now be
+  done at the system level.
+* All of Sentry's CLI is now handled through Logan (https://github.com/dcramer/logan),
+  which simply pipes commands to Django's internal system utilizing custom configuration.
+
 Version 2.9.0
 -------------
 

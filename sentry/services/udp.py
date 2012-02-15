@@ -28,13 +28,17 @@ class SentryUDPServer(Service):
     def handle(self, data, address):
         from sentry.utils.auth import parse_auth_header
         from sentry.coreapi import (project_from_auth_vars, decode_and_decompress_data, safely_load_json_string,
-                                    validate_data, insert_data_to_database, APIError)
+                                    validate_data, insert_data_to_database, APIError, InvalidTimestamp)
         try:
             try:
                 auth_header, data = data.split("\n\n", 1)
             except ValueError:
                 raise APIError("missing auth header")
-            project = project_from_auth_vars(parse_auth_header(auth_header), data)
+
+            auth_vars = parse_auth_header(auth_header)
+            project = project_from_auth_vars(auth_vars, data)
+
+            client = auth_vars.get('sentry_client')
 
             if not data.startswith('{'):
                 data = decode_and_decompress_data(data)

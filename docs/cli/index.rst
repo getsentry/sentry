@@ -7,6 +7,9 @@ perform most required operations that are unachievable within the web UI.
 For a list of commands, you can also use ``sentry help``, or ``sentry [command] --help``
 for help on a specific command.
 
+.. note:: The script is powered by a library called `Logan <https://github.com/dcramer/logan>`_
+          and simply acts as a conduit to django-admin.py.
+
 Builtin Commands
 ----------------
 
@@ -22,39 +25,21 @@ Builtin Commands
 
 .. data:: start [services]
 
-    Starts all background services.
+    Starts a Sentry service. By default this value is 'http'.
 
-    If services are passed, only starts the given services.
+    Other services are 'worker', for a queue worker, and 'udp',
+    for the UDP server.
 
     ::
 
-        sentry start --daemon
-
-.. data:: stop [services]
-
-    Stops all background services.
-
-    If services are passed, only stops the given services.
-
-.. data:: restart [services]
-
-    Stops all background services.
-
-    If services are passed, only restarts the given services.
+        sentry start worker
 
 .. data:: upgrade
 
-    Performs any needed database migrations.
+    Performs any needed database migrations. This is similar to running
+    ``django-admin.py syncdb --migrate``.
 
 .. data:: cleanup
 
     Performs all trim operations based on your configuration.
-
-.. data:: manage [command] [args]
-
-    A wrapper around ``django-admin.py`` (aka ``manage.py``).
-
-    ::
-
-        sentry manage createsuperuser
 

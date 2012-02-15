@@ -38,6 +38,7 @@ install_requires = [
     'eventlet>=0.9.15',
     'kombu>=1.5.1',
     'gunicorn>=0.13.4',
+    'logan>=0.1.0',
     'python-daemon>=1.6',
     'pytz>=2011n',
     'raven>=1.4.3',
@@ -46,7 +47,7 @@ install_requires = [
 
 setup(
     name='sentry',
-    version='2.9.0',
+    version='3.0.0',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/sentry',
@@ -60,10 +61,11 @@ setup(
     test_suite='runtests.runtests',
     license='BSD',
     include_package_data=True,
-    entry_points="""
-    [console_scripts]
-    sentry = sentry.scripts.runner:main
-    """,
+    entry_points={
+        'console_scripts': [
+            'sentry = sentry.utils.runner:main',
+        ],
+    },
     classifiers=[
         'Framework :: Django',
         'Intended Audience :: Developers',
