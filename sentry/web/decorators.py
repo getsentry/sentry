@@ -1,3 +1,4 @@
+from functools import wraps
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 
@@ -27,6 +28,7 @@ def has_access(group_or_func=None):
         return has_access(None)(group_or_func)
 
     def wrapped(func):
+        @wraps(func)
         def _wrapped(request, project_id=None, *args, **kwargs):
             # XXX: if project_id isn't set, should we only allow superuser?
             if request.user.is_superuser:
@@ -54,37 +56,34 @@ def has_access(group_or_func=None):
 
 
 def login_required(func):
+    @wraps(func)
     def wrapped(request, *args, **kwargs):
         if not settings.PUBLIC:
             if not request.user.is_authenticated():
                 return HttpResponseRedirect(get_login_url())
         return func(request, *args, **kwargs)
-    wrapped.__doc__ = func.__doc__
-    wrapped.__name__ = func.__name__
     return wrapped
 
 
 def requires_admin(func):
+    @wraps(func)
     def wrapped(request, *args, **kwargs):
         if not request.user.is_authenticated():
             return HttpResponseRedirect(get_login_url())
         if not request.user.is_staff:
             return render_to_response('sentry/missing_permissions.html', status=400)
         return func(request, *args, **kwargs)
-    wrapped.__doc__ = func.__doc__
-    wrapped.__name__ = func.__name__
     return wrapped
 
 
 def permission_required(perm):
     def wrapped(func):
+        @wraps(func)
         def _wrapped(request, *args, **kwargs):
             if not request.user.is_authenticated():
                 return HttpResponseRedirect(get_login_url())
             if not request.user.has_perm(perm):
                 return render_to_response('sentry/missing_permissions.html', status=400)
             return func(request, *args, **kwargs)
-        _wrapped.__doc__ = func.__doc__
-        _wrapped.__name__ = func.__name__
         return _wrapped
     return wrapped
