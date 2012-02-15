@@ -10,10 +10,7 @@ from django.core.management.base import BaseCommand, CommandError
 
 from optparse import make_option
 
-from sentry.conf import settings
 from sentry.services import http, worker, udp
-
-import os
 
 services = {
     'http': http.SentryHTTPServer,
@@ -34,12 +31,6 @@ class Command(BaseCommand):
     )
 
     def handle(self, service_name='http', **options):
-        if not os.path.exists(settings.LOG_DIR):
-            os.makedirs(settings.LOG_DIR)
-
-        if not os.path.exists(settings.RUN_DIR):
-            os.makedirs(settings.RUN_DIR)
-
         # Ensure we perform an upgrade before starting any service
         print "Performing upgrade before service startup..."
         call_command('upgrade', verbosity=0)

@@ -93,12 +93,6 @@ MINUTE_NORMALIZATION = 15
 # The number of events to display per page
 MESSAGES_PER_PAGE = 15
 
-# Directory to stash log files in
-LOG_DIR = os.path.join(ROOT, 'log')
-
-# Directory to stash pid files in
-RUN_DIR = os.path.join(ROOT, 'run')
-
 # Web Service
 WEB_HOST = 'localhost'
 WEB_PORT = 9000
