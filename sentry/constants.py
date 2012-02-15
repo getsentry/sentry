@@ -13,6 +13,7 @@ SORT_OPTIONS = SortedDict((
     ('accel_60', _('Trending: %(minutes)d minutes' % {'minutes': 60})),
 ))
 SORT_CLAUSES = {
+    'priority': 'score',
     'date': 'EXTRACT(EPOCH FROM last_seen)',
     'new': 'EXTRACT(EPOCH FROM first_seen)',
     'freq': 'times_seen',
