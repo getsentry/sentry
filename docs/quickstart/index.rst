@@ -1,8 +1,12 @@
 Quickstart
 ==========
 
-Sentry requires at least Django 1.2 (it will generally take care of this by itself),
-and Python 2.5. Currently Sentry does not work with Python 3.
+Some basic prerequisites which you'll need in order to run Sentry:
+
+* Python 2.5, 2.6, or 2.7
+* python-setuptools
+* Ideally a real database (like PostgreSQL or MySQL)
+* Likely a UNIX-based operating system
 
 The recommended configuration of Sentry involves setting up a separate web server to handle your error
 logging. This means that any number of Sentry clients simply pass on this information to your primary Sentry
@@ -11,8 +15,8 @@ server.
 This guide will step you through setting up a virtualenv, installing the required packages,
 and configuring the basic web service.
 
-Setting up a ``virtualenv``
----------------------------
+Setting up an Environment
+-------------------------
 
 The first thing you'll need is the Python ``virtualenv`` package. You probably already
 have this, but if not, you can install it with::
