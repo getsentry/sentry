@@ -5,7 +5,7 @@ sentry.interfaces
 Interfaces provide an abstraction for how structured data should be
 validated and rendered.
 
-:copyright: (c) 2010 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 
