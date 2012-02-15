@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+"""
+sentry.utils.runner
+~~~~~~~~~~~~~~~~~~~
+
+:copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
 from logan.runner import run_app
 from sentry import environment
 
