@@ -52,6 +52,12 @@ class PluginManager(InstanceManager):
                 return plugin
         raise KeyError
 
+    def first(self, func_name, *args, **kwargs):
+        for plugin in self.all():
+            result = getattr(plugin, func_name)(*args, **kwargs)
+            if result is not None:
+                return result
+
     def register(self, cls):
         self.add('%s.%s' % (cls.__module__, cls.__name__))
         return cls
@@ -137,6 +143,9 @@ class IPlugin(object):
 
     def get_url(self, group):
         return reverse('sentry-group-plugin-action', args=(group.project_id, group.pk, self.slug))
+
+    def has_perm(self, user, perm, *objects):
+        return None
 
     # The following methods are specific to web requests
 

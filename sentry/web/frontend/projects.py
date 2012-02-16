@@ -5,6 +5,7 @@ from django.views.decorators.csrf import csrf_protect
 
 from sentry.conf import settings
 from sentry.models import ProjectMember, MEMBER_USER, MEMBER_OWNER
+from sentry.permissions import can_create_projects
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms import EditProjectForm, NewProjectForm, \
@@ -33,7 +34,7 @@ def project_list(request):
 @login_required
 @csrf_protect
 def new_project(request):
-    if not (settings.ALLOW_PROJECT_CREATION or request.user.has_perm('sentry.can_add_project')):
+    if not can_create_projects(request.user):
         return HttpResponseRedirect(reverse('sentry'))
 
     if request.user.has_perm('sentry.can_add_project'):
@@ -65,6 +66,10 @@ def new_project(request):
 @has_access(MEMBER_OWNER)
 @csrf_protect
 def remove_project(request, project):
+    result = plugins.first('has_perm', request.user, 'remove_project', project)
+    if result is False and not request.user.has_perm('sentry.can_remove_project'):
+        return HttpResponseRedirect(reverse('sentry'))
+
     if str(project.id) == str(settings.PROJECT):
         return HttpResponseRedirect(reverse('sentry-project-list'))
 
@@ -99,6 +104,10 @@ def remove_project(request, project):
 @has_access(MEMBER_OWNER)
 @csrf_protect
 def manage_project(request, project):
+    result = plugins.first('has_perm', request.user, 'edit_project', project)
+    if result is False and not request.user.has_perm('sentry.can_change_project'):
+        return HttpResponseRedirect(reverse('sentry'))
+
     form = EditProjectForm(request.POST or None, instance=project)
 
     if form.is_valid():
@@ -122,6 +131,10 @@ def manage_project(request, project):
 @csrf_protect
 @has_access(MEMBER_OWNER)
 def new_project_member(request, project):
+    result = plugins.first('has_perm', request.user, 'add_project_member', project)
+    if result is False and not request.user.has_perm('sentry.can_add_projectmember'):
+        return HttpResponseRedirect(reverse('sentry'))
+
     form = NewProjectMemberForm(project, request.POST or None, initial={
         'type': MEMBER_USER,
     })
@@ -145,6 +158,10 @@ def new_project_member(request, project):
 @has_access(MEMBER_OWNER)
 def edit_project_member(request, project, member_id):
     member = project.member_set.get(pk=member_id)
+
+    result = plugins.first('has_perm', request.user, 'edit_project_member', member)
+    if result is False and not request.user.has_perm('sentry.can_change_projectmember'):
+        return HttpResponseRedirect(reverse('sentry'))
 
     form = EditProjectMemberForm(project, request.POST or None, instance=member)
     if form.is_valid():
@@ -170,6 +187,10 @@ def remove_project_member(request, project, member_id):
     if member.user == project.owner:
         return HttpResponseRedirect(reverse('sentry-project-list'))
 
+    result = plugins.first('has_perm', request.user, 'remove_project_member', member)
+    if result is False and not request.user.has_perm('sentry.can_remove_projectmember'):
+        return HttpResponseRedirect(reverse('sentry'))
+
     if request.POST:
         member.delete()
 
@@ -192,6 +213,10 @@ def configure_project_plugin(request, project, slug):
         plugin = plugins.get(slug)
     except KeyError:
         return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+
+    result = plugins.first('has_perm', request.user, 'configure_project_plugin', project, plugin)
+    if result is False and not request.user.is_superuser:
+        return HttpResponseRedirect(reverse('sentry'))
 
     form = plugin.project_conf_form
     if form is None:

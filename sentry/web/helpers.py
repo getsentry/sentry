@@ -18,6 +18,7 @@ from django.utils.safestring import mark_safe
 from sentry.conf import settings
 from sentry.models import ProjectMember, Project, View, \
   MEMBER_USER, Option, ProjectOption
+from sentry.permissions import can_create_projects
 
 logger = logging.getLogger('sentry.errors')
 
@@ -78,28 +79,36 @@ def iter_data(obj):
         yield k, v
 
 
-def render_to_string(template, context=None, request=None):
+def get_default_context(request):
     from sentry.plugins import plugins
 
-    if context is None:
-        context = {}
-
-    context.update({
+    context = {
         'HAS_SEARCH': settings.USE_SEARCH,
         'MESSAGES_PER_PAGE': settings.MESSAGES_PER_PAGE,
         'PROJECT_ID': int(settings.PROJECT),
         'VIEWS': list(View.objects.all()),
         'URL_PREFIX': settings.URL_PREFIX,
         'PLUGINS': plugins,
-    })
+    }
 
     if request:
         context.update({
             'request': request,
-            'can_create_projects': request.user.has_perm('sentry.add_project'),
+            'can_create_projects': can_create_projects(request.user),
         })
         if 'project_list' not in context:
             context['project_list'] = get_project_list(request.user).values()
+
+    return context
+
+
+def render_to_string(template, context=None, request=None):
+    default_context = get_default_context(request)
+
+    if context is None:
+        context = default_context
+    else:
+        context.update(default_context)
 
     if request:
         context = RequestContext(request, context)

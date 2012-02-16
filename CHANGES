@@ -2,12 +2,18 @@ Version 3.0.0
 -------------
 
 Version 3 of Sentry is centered around a restructure of the internal services and
-the architecture for running those.
+the architecture for running those and additional improvements to the plugin architecture.
+
+The upgrade process should be trivial, just be aware that if you were using --config before
+you must change the way you pass it so that it's before the subcommand. For example
+if you were doing ``sentry start --config...`` the command would now be changed to
+``sentry --config... start``.
 
 * Sentry no longer provides the ability to daemonize processes. This should now be
   done at the system level.
 * All of Sentry's CLI is now handled through Logan (https://github.com/dcramer/logan),
   which simply pipes commands to Django's internal system utilizing custom configuration.
+* Plugins now have a hook for managing some level of permissions (beyond the required defaults).
 
 Version 2.9.0
 -------------

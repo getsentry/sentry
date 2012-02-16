@@ -56,7 +56,7 @@ class Settings(object):
 
 
 class BaseTestCase(object):
-    urls = 'tests.web.urls'
+    urls = 'tests.sentry.web.urls'
 
     Settings = Settings
 
