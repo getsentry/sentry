@@ -10,14 +10,6 @@ from django.core.management.base import BaseCommand, CommandError
 
 from optparse import make_option
 
-from sentry.services import http, worker, udp
-
-services = {
-    'http': http.SentryHTTPServer,
-    'worker': worker.SentryWorker,
-    'udp': udp.SentryUDPServer,
-}
-
 
 class Command(BaseCommand):
     args = '<service>'
@@ -31,6 +23,14 @@ class Command(BaseCommand):
     )
 
     def handle(self, service_name='http', **options):
+        from sentry.services import http, worker, udp
+
+        services = {
+            'http': http.SentryHTTPServer,
+            'worker': worker.SentryWorker,
+            'udp': udp.SentryUDPServer,
+        }
+
         # Ensure we perform an upgrade before starting any service
         print "Performing upgrade before service startup..."
         call_command('upgrade', verbosity=0)
