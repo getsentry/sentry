@@ -79,7 +79,7 @@ def iter_data(obj):
         yield k, v
 
 
-def get_default_context(request):
+def get_default_context(request, existing_context=None):
     from sentry.plugins import plugins
 
     context = {
@@ -96,18 +96,19 @@ def get_default_context(request):
             'request': request,
             'can_create_projects': can_create_projects(request.user),
         })
-        if 'project_list' not in context:
+        if not existing_context or 'project_list' not in existing_context:
             context['project_list'] = get_project_list(request.user).values()
 
     return context
 
 
 def render_to_string(template, context=None, request=None):
-    default_context = get_default_context(request)
+    default_context = get_default_context(request, context)
 
     if context is None:
         context = default_context
     else:
+        context = dict(context)
         context.update(default_context)
 
     if request:
