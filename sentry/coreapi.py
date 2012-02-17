@@ -13,6 +13,7 @@ from datetime import datetime
 import base64
 import logging
 import time
+import uuid
 import zlib
 
 from django.utils.encoding import smart_str
@@ -192,6 +193,9 @@ def process_data_timestamp(data):
 
 def validate_data(project, data):
     ensure_valid_project_id(project, data)
+
+    if 'event_id' not in data:
+        data['event_id'] = uuid.uuid4().hex
 
     if 'timestamp' in data:
         process_data_timestamp(data)
