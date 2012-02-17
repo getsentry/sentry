@@ -43,6 +43,7 @@ Reference
 Resources
 ---------
 
+* `Transifex <https://www.transifex.net/projects/p/sentry/>`_ (Translate Sentry!)
 * `Bug Tracker <http://github.com/dcramer/sentry/issues>`_
 * `Code <http://github.com/dcramer/sentry>`_
 * `Mailing List <https://groups.google.com/group/getsentry>`_
