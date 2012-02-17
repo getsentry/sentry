@@ -65,12 +65,12 @@ def new_project(request):
 @has_access(MEMBER_OWNER)
 @csrf_protect
 def remove_project(request, project):
+    if str(project.id) == str(settings.PROJECT):
+        return HttpResponseRedirect(reverse('sentry-project-list'))
+
     result = plugins.first('has_perm', request.user, 'remove_project', project)
     if result is False and not request.user.has_perm('sentry.can_remove_project'):
         return HttpResponseRedirect(reverse('sentry'))
-
-    if str(project.id) == str(settings.PROJECT):
-        return HttpResponseRedirect(reverse('sentry-project-list'))
 
     project_list = filter(lambda x: x != project, get_project_list(request.user).itervalues())
 
