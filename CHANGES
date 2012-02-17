@@ -14,6 +14,8 @@ if you were doing ``sentry start --config...`` the command would now be changed 
 * All of Sentry's CLI is now handled through Logan (https://github.com/dcramer/logan),
   which simply pipes commands to Django's internal system utilizing custom configuration.
 * Plugins now have a hook for managing some level of permissions (beyond the required defaults).
+* The plugin interface (IPlugin) is now documented.
+* It is now recommended that clients allow the Sentry server to compute checksums.
 
 Version 2.9.0
 -------------
