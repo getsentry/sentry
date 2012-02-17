@@ -39,7 +39,6 @@ install_requires = [
     'kombu>=1.5.1,<2.0',
     'gunicorn>=0.13.4',
     'logan>=0.1.1',
-    'python-daemon>=1.6',
     'pytz>=2011n',
     'raven>=1.4.3',
     'South>=0.7',
