@@ -4,3 +4,4 @@
 - Pause/Play, Sort By, and Notification settings should be saved in a cookie
 - Potentially add graphs per server/url/etc ?
 - Make uninteresting frames in stacktraces opaque
+- Create tailer for apache-style error logs

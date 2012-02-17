@@ -66,7 +66,7 @@ def main():
     run_app(
         project='sentry',
         default_config_path='~/.sentry/sentry.conf.py',
-        default_settings='sentry.conf.defaults',
+        default_settings='sentry.conf.server',
         settings_initializer=generate_settings,
         settings_envvar='SENTRY_CONF',
         initializer=initialize_app,
