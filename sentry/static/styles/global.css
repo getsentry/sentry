@@ -2546,6 +2546,8 @@ code {
   vertical-align: top;
 }
 .clippy {
+  text-indent: -10000em;
+  overflow: hidden;
   vertical-align: middle;
 }
 ol.context {
