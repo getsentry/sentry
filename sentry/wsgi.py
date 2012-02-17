@@ -18,8 +18,9 @@ sys.stdout = sys.stderr
 # Set our settings module
 from django.conf import settings
 
-if not settings.configured:
+if not settings.configured and not os.environ.get('DJANGO_SETTINGS_MODULE'):
     os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.conf.server'
+
 os.environ['CELERY_LOADER'] = 'django'
 
 import django.core.handlers.wsgi
