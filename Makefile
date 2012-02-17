@@ -18,7 +18,7 @@ build:
 	lessc ${BOOTSTRAP_LESS} > ${GLOBAL_CSS};
 	lessc ${BOOTSTRAP_LESS} > ${GLOBAL_CSS_MIN} --compress;
 	cat sentry/static/scripts/sentry.core.js sentry/static/scripts/sentry.realtime.js sentry/static/scripts/sentry.charts.js sentry/static/scripts/sentry.notifications.js sentry/static/scripts/sentry.stream.js > ${GLOBAL_JS};
-	cat bootstrap/js/bootstrap-alert.js bootstrap/js/bootstrap-dropdown.js bootstrap/js/bootstrap-tooltip.js bootstrap/js/bootstrap-tab.js > ${BOOTSTRAP_JS};
+	cat bootstrap/js/bootstrap-alert.js bootstrap/js/bootstrap-dropdown.js bootstrap/js/bootstrap-tooltip.js bootstrap/js/bootstrap-tab.js bootstrap/js/bootstrap-buttons.js > ${BOOTSTRAP_JS};
 	uglifyjs -nc ${GLOBAL_JS} > ${GLOBAL_JS_MIN};
 	uglifyjs -nc ${BOOTSTRAP_JS} > ${BOOTSTRAP_JS_MIN};
 	echo "Static assets successfully built! - `date`";
