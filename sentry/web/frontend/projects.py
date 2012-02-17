@@ -1,3 +1,10 @@
+"""
+sentry.web.frontend.projects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect

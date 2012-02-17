@@ -1,3 +1,10 @@
+"""
+sentry.web.frontend.accounts
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
@@ -43,7 +50,7 @@ def settings(request):
         'first_name': request.user.first_name,
     })
     if form.is_valid():
-        user = form.save()
+        form.save()
         return HttpResponseRedirect(reverse('sentry-account-settings') + '?success=1')
 
     context = csrf(request)
