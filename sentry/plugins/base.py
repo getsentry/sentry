@@ -87,6 +87,10 @@ class IPlugin(object):
     """
     Plugin interface. Should not be inherited from directly.
 
+    A plugin should be treated as if it were a singleton. The owner does not
+    control when or how the plugin gets instantiated, nor is it guaranteed that
+    it will happen, or happen more than once.
+
     >>> from sentry.plugins import Plugin
     >>> class MyPlugin(Plugin):
     >>>     title = 'My Plugin'
@@ -119,6 +123,8 @@ class IPlugin(object):
         one is not present.
 
         If ``project`` is passed, it will limit the scope to that project's keyspace.
+
+        >>> value = get_option('my_option')
         """
         from .helpers import get_option
         return get_option(self._get_option_key(key), project)
@@ -128,6 +134,8 @@ class IPlugin(object):
         Updates the value of an option in your plugins keyspace.
 
         If ``project`` is passed, it will limit the scope to that project's keyspace.
+
+        >>> set_option('my_option', 'http://example.com')
         """
         from .helpers import set_option
         return set_option(self._get_option_key(key), value, project)
@@ -137,16 +145,32 @@ class IPlugin(object):
         Removes an option in your plugins keyspace.
 
         If ``project`` is passed, it will limit the scope to that project's keyspace.
+
+        >>> unset_option('my_option')
         """
         from .helpers import unset_option
         return unset_option(self._get_option_key(key), project)
 
+    def get_url(self, group):
+        """
+        Returns the absolute URL to this plugins group action handler.
+
+        >>> plugin.get_url(group)
+        """
+        return reverse('sentry-group-plugin-action', args=(group.project_id, group.pk, self.slug))
+
     def get_conf_key(self):
+        """
+        Returns a string representing the configuration keyspace prefix for this plugin.
+        """
         if not self.conf_key:
             return self.conf_title.lower().replace(' ', '_')
         return self.conf_key
 
     def get_conf_title(self):
+        """
+        Returns a string representing the title to be shown on the configuration page.
+        """
         return self.conf_title or self.get_title()
 
     def has_site_conf(self):
@@ -167,20 +191,18 @@ class IPlugin(object):
         """
         Given a template name, and an optional context (dictionary), returns a
         ready-to-render response.
+
+        >>> plugin.render('template.html', {'hello': 'world'})
         """
         return Response(template, context)
-
-    def get_url(self, group):
-        """
-        Returns the absolute URL to this plugins group action handler.
-        """
-        return reverse('sentry-group-plugin-action', args=(group.project_id, group.pk, self.slug))
 
     # The following methods are specific to web requests
 
     def get_title(self):
         """
         Returns the general title for this plugin.
+
+        >>> plugin.get_title()
         """
         return self.title
 
@@ -209,6 +231,9 @@ class IPlugin(object):
     def view(self, request, group, **kwargs):
         """
         Handles the view logic. If no response is given, we continue to the next action provider.
+
+        >>> def view(self, request, group, **kwargs):
+        >>>     return self.render('myplugin/about.html')
         """
 
     def before_events(self, request, group_list, **kwargs):
@@ -218,29 +243,71 @@ class IPlugin(object):
         This is generally useful if you need to cache lookups
         for something like ``tags`` which would otherwise do
         multiple queries.
+
+        If you use this **at all** you should ensure it's already
+        reset on each execution.
+
+        As an example, here's how we might get a reference to ticket ids we were
+        storing per event, in an efficient O(1) manner.
+
+        >>> def before_events(self, request, event_list, **kwargs):
+        >>>     prefix = self.get_conf_key()
+        >>>     GroupMeta.objects.get_value_bulk(event_list, '%s:tid' % prefix)
         """
 
     def tags(self, request, group, tag_list, **kwargs):
         """
         Modifies the tag list for a grouped message.
+
+        A tag is a string, already marked safe or later escaped, that is shown inline with
+        the event.
+
+        This must return ``tag_list``.
+
+        >>> def tags(self, request, group, ag_list, **kwargs):
+        >>>     tag_list.append(':(')
+        >>>     return tag_list
         """
         return tag_list
 
     def actions(self, request, group, action_list, **kwargs):
         """
         Modifies the action list for a grouped message.
+
+        An action is a tuple containing two elements:
+
+        ('Action Label', '/uri/to/action/')
+
+        This must return ``action_list``.
+
+        >>> def actions(self, request, group, action_list, **kwargs):
+        >>>     action_list.append(('Google', 'http://google.com'))
+        >>>     return action_list
         """
         return action_list
 
     def panels(self, request, group, panel_list, **kwargs):
         """
         Modifies the panel list for a grouped message.
+
+        A panel is a tuple containing two elements:
+
+        ('Panel Label', '/uri/to/panel/')
+
+        This must return ``panel_list``.
+
+        >>> def panels(self, request, group, action_list, **kwargs):
+        >>>     panel_list.append((self.get_title(), self.get_url(group)))
+        >>>     return panel_list
         """
         return panel_list
 
     def widget(self, request, group, **kwargs):
         """
         Renders as a widget in the group details sidebar.
+
+        >>> def widget(self, request, group, **kwargs):
+        >>>     return self.render('myplugin/widget.html')
         """
 
     # Server side signals which do not have request context
@@ -278,6 +345,9 @@ class IPlugin(object):
         :param event: an instance of ``Event``
         :param is_new: a boolean describing if this event is new, or has changed state
         :param is_sample: a boolean describing if this event was stored, or sampled
+
+        >>> def post_process(self, event, **kwargs):
+        >>>     print 'New event created:', event.id
         """
 
 
