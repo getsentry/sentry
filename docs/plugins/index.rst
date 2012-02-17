@@ -10,12 +10,12 @@ Bundled Plugins
 Sentry includes several plugins by default. To enable a plugin, it's as simple as adding it to
 your ``INSTALLED_APPS``::
 
-	INSTALLED_APPS = [
-	  ...
-	  'sentry.plugins.sentry_servers',
-	  'sentry.plugins.sentry_sites',
-	  'sentry.plugins.sentry_urls',
-	]
+    INSTALLED_APPS = [
+      ...
+      'sentry.plugins.sentry_servers',
+      'sentry.plugins.sentry_sites',
+      'sentry.plugins.sentry_urls',
+    ]
 
 .. data:: sentry.plugins.sentry_server
     :noindex:
@@ -25,9 +25,9 @@ your ``INSTALLED_APPS``::
 
     ::
 
-    	INSTALLED_APPS = [
-    	  'sentry.plugins.sentry_servers',
-    	]
+        INSTALLED_APPS = [
+          'sentry.plugins.sentry_servers',
+        ]
 
 .. data:: sentry.plugins.sentry_urls
     :noindex:
@@ -37,9 +37,9 @@ your ``INSTALLED_APPS``::
 
     ::
 
-    	INSTALLED_APPS = [
-    	  'sentry.plugins.sentry_urls',
-    	]
+        INSTALLED_APPS = [
+          'sentry.plugins.sentry_urls',
+        ]
 
 .. data:: sentry.plugins.sentry_sites
     :noindex:
@@ -51,9 +51,9 @@ your ``INSTALLED_APPS``::
 
     ::
 
-    	INSTALLED_APPS = [
-    	  'sentry.plugins.sentry_sites',
-    	]
+        INSTALLED_APPS = [
+          'sentry.plugins.sentry_sites',
+        ]
 
 Recognized 3rd Party Extensions
 -------------------------------
@@ -62,22 +62,5 @@ The extensions are officially recognized and support the current Sentry protocol
 
 * `sentry-phabricator <https://github.com/dcramer/sentry-phabricator>`_
 
-Writing a Plugin
-----------------
-
-*The plugin interface is a work in progress and the API is not frozen.**
-
-Several interfaces exist for extending Sentry:
-
-* Event Filters (sentry.filters)
-* Data Interfaces (sentry.interfaces)
-* Aggregate Views (sentry.views)
-* Plugins (sentry.plugins)
-
-Until we get sample docs up, it's suggested that you review the builtin plugins
-and the base classes to understand how the system works.
-
-One thing to note, is that all extended methods (outside of data interfaces) should
-accept ``**kwargs`` to handle future changes.
-
-More and better docs coming soon, for now, take a look at the :doc:`interface`
+Have an extension that should be listed here? Submit a `pull request <https://github.com/dcramer/sentry`_ and we'll
+get it added.

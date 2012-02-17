@@ -18,14 +18,23 @@ Users Guide
    queue/index
    cli/index
    client/index
-   interfaces/index
    plugins/index
+
+Developers
+----------
+
+.. toctree::
+   :maxdepth: 2
+
+   developer/client/index
+   developer/plugins/index
+   developer/interfaces/index
 
 Reference
 ---------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    contributing/index
    changelog/index

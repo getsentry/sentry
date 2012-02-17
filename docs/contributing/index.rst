@@ -6,6 +6,12 @@ our philosophy, the test suite, and issue tracking.
 
 (Though it actually doesn't describe all of that, yet)
 
+Coding Standards
+----------------
+
+Sentry follows the guidelines layed out in `pep8 <http://www.python.org/dev/peps/pep-0008/>`_  with a little bit
+of flexibility on things like line length. We always give way for the `Zen of Python <http://www.python.org/dev/peps/pep-0020/>`_.
+
 Setting up an Environment
 -------------------------
 
