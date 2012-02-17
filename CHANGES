@@ -2,7 +2,7 @@ Version 3.0.0
 -------------
 
 Version 3 of Sentry is centered around a restructure of the internal services and
-the architecture for running those and additional improvements to the plugin architecture.
+the architecture for running those. It also includes improvements to the plugin architecture.
 
 The upgrade process should be trivial, just be aware that if you were using --config before
 you must change the way you pass it so that it's before the subcommand. For example
