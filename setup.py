@@ -38,7 +38,7 @@ install_requires = [
     'eventlet>=0.9.15',
     'kombu>=1.5.1,<2.0',
     'gunicorn>=0.13.4',
-    'logan>=0.2.0',
+    'logan>=0.2.1',
     'pytz>=2011n',
     'raven>=1.4.3',
     'South>=0.7',
@@ -46,7 +46,7 @@ install_requires = [
 
 setup(
     name='sentry',
-    version='3.0.1',
+    version='3.0.2',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/sentry',
