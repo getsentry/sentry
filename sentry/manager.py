@@ -276,7 +276,6 @@ class GroupManager(models.Manager, ChartMixin):
             data=data,
             server_name=server_name,
             site=site,
-            checksum=checksum,
             time_spent=time_spent,
             datetime=date,
             **kwargs
@@ -285,6 +284,8 @@ class GroupManager(models.Manager, ChartMixin):
         # Calculcate the checksum from the first highest scoring interface
         if not checksum:
             checksum = get_checksum_from_event(event)
+
+        event.checksum = checksum
 
         group_kwargs = kwargs.copy()
         group_kwargs.update({
