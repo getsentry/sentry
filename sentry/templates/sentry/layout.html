@@ -23,6 +23,7 @@
         </script>
 
         <script type="text/javascript" src="{% url sentry-media "scripts/jquery.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "scripts/jquery.clippy.min.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/jquery.flot.min.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/jquery.animate-colors-min.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/global.min.js" %}"></script>
@@ -93,7 +94,13 @@
             </div>
         </footer>
         {% endblock %}
-
         <script type="text/javascript" src="{% url sentry-media "scripts/bootstrap.min.js" %}"></script>
+        <script type="text/javascript">
+        $(function(){
+            $('.clippy').clippy({
+                clippy_path: '{% url sentry-media "clippy.swf" %}'
+            });
+        });
+        </script>
     </body>
 </html>

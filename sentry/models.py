@@ -170,6 +170,9 @@ class ProjectOption(Model):
         db_table = 'sentry_projectoptions'
         unique_together = (('project', 'key',),)
 
+    def __unicode__(self):
+        return u'project=%s, key=%s, value=%s' % (self.project_id, self.key, self.value)
+
 
 class ProjectMember(Model):
     """
@@ -185,6 +188,9 @@ class ProjectMember(Model):
 
     class Meta:
         unique_together = (('project', 'user'),)
+
+    def __unicode__(self):
+        return u'project=%s, user=%s, type=%s' % (self.project_id, self.user_id, self.get_type_display())
 
     def save(self, *args, **kwargs):
         if not self.public_key:
@@ -216,6 +222,9 @@ class ProjectDomain(Model):
 
     class Meta:
         unique_together = (('project', 'domain'),)
+
+    def __unicode__(self):
+        return u'project=%s, domain=%s' % (self.project_id, self.domain)
 
     @classmethod
     def test(cls, project, url, strict=False):
@@ -249,6 +258,9 @@ class View(Model):
     path = models.CharField(max_length=100, unique=True)
     verbose_name = models.CharField(max_length=200, null=True)
     verbose_name_plural = models.CharField(max_length=200, null=True)
+
+    def __unicode__(self):
+        return self.path
 
 
 class MessageBase(Model):

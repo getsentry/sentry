@@ -18,11 +18,10 @@ from sentry.web.helpers import render_to_response, get_project_list, \
 @login_required
 def project_list(request):
     project_list = get_project_list(request.user, hidden=True)
-    memberships = dict(
-        (p.project_id, p)
-        for p in ProjectMember.objects.filter(user=request.user, project__in=project_list)
-    )
-    for project_id, member in memberships.iteritems():
+    memberships = list(ProjectMember.objects.filter(user=request.user, project__in=project_list))
+
+    for member in memberships:
+        project_id = member.project_id
         project_list[project_id].member_dsn = member.get_dsn(request.get_host(), secure=request.is_secure())
         project_list[project_id].member_type = member.get_type_display()
 

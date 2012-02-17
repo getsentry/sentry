@@ -39,7 +39,9 @@
                         <tr>
                             <td>
                                 <a href="{% url sentry-manage-project project.pk %}">{{ project.name }}</a><br/>
-                                {% if project.member_dsn %}<small>{{ project.member_dsn }}</small>{% endif %}
+                                {% if project.member_dsn %}
+                                    <small>{{ project.member_dsn }} <span class="clippy">{{ project.member_dsn }}</span></small>
+                                {% endif %}
                             </td>
                             <td style="text-align:center;vertical-align:middle;">{{ project.member_type }}</td>
                             <td style="text-align:center;vertical-align:middle;">

@@ -2543,6 +2543,9 @@ code {
 .table th {
   vertical-align: top;
 }
+.clippy {
+  vertical-align: middle;
+}
 ol.context {
   margin: 0;
   list-style-position: inside;
