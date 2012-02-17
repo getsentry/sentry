@@ -24,7 +24,8 @@ from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
 from sentry.web.helpers import render_to_response, render_to_string
 
-logger = logging.getLogger('sentry.errors.coreapi')
+error_logger = logging.getLogger('sentry.errors.api.http')
+logger = logging.getLogger('sentry.api.http')
 
 
 @csrf_exempt
@@ -58,6 +59,8 @@ def store(request):
        the user be authenticated, and a project_id be sent in the GET variables.
 
     """
+    logger.debug('Inbound %r request from %r', request.method, request.META['REMOTE_ADDR'])
+    client = '<unknown client>'
     try:
         if request.method == 'POST':
             auth_vars = extract_auth_vars(request)
@@ -100,7 +103,7 @@ def store(request):
                 validate_data(project, data)
             except InvalidTimestamp:
                 # Log the error, remove the timestamp, and revalidate
-                logger.error('Client %r passed an invalid value for timestamp %r' % (
+                error_logger.error('Client %r passed an invalid value for timestamp %r' % (
                     data['timestamp'],
                     client or '<unknown client>',
                 ))
@@ -109,8 +112,10 @@ def store(request):
 
             insert_data_to_database(data)
     except APIError, error:
+        logging.error('Client %r raised API error: %s' % (client, error), exc_info=True)
         response = HttpResponse(error.msg, status=error.http_status)
     else:
+        logging.info('New event from client %r (id=%%s)' % client, data['event_id'])
         response = HttpResponse('')
     return apply_access_control_headers(response)
 
