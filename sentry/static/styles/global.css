@@ -2434,7 +2434,8 @@ footer a {
   font-size: 20px;
   color: #6d757e;
   font-weight: normal;
-  width:85%;
+  width: 85%;
+  overflow: hidden;
 }
 .events .event h3 span {
   margin-left: 10px;
