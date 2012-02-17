@@ -29,7 +29,7 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
     import datetime
 
     from sentry.models import Group, Event, MessageCountByMinute, \
-      MessageFilterValue, FilterValue, SearchDocument
+      MessageFilterValue, FilterValue, SearchDocument, ProjectCountByMinute
     from sentry.utils.query import RangeQuerySetWrapper, SkinnyQuerySet
 
     def cleanup_groups(iterable):
@@ -96,6 +96,15 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
             qs = qs.filter(project=project)
 
         cleanup_groups(RangeQuerySetWrapper(qs))
+
+    # Project counts
+    qs = SkinnyQuerySet(ProjectCountByMinute).filter(date__lte=ts)
+    if project:
+        qs = qs.filter(project=project)
+
+    for obj in RangeQuerySetWrapper(qs):
+        print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
+        obj.delete()
 
     # attempt to cleanup any groups that may now be empty
     groups_to_delete = []
