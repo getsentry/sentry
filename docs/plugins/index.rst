@@ -62,5 +62,5 @@ The extensions are officially recognized and support the current Sentry protocol
 
 * `sentry-phabricator <https://github.com/dcramer/sentry-phabricator>`_
 
-Have an extension that should be listed here? Submit a `pull request <https://github.com/dcramer/sentry`_ and we'll
+Have an extension that should be listed here? Submit a `pull request <https://github.com/dcramer/sentry>`_ and we'll
 get it added.
