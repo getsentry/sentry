@@ -12,6 +12,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponse
 
 from sentry.utils import InstanceManager
+from threading import local
 
 
 class Response(object):
@@ -83,7 +84,7 @@ class PluginMount(type):
         return new_cls
 
 
-class IPlugin(object):
+class IPlugin(local):
     """
     Plugin interface. Should not be inherited from directly.
 
