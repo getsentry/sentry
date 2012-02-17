@@ -78,6 +78,6 @@ Until we get sample docs up, it's suggested that you review the builtin plugins
 and the base classes to understand how the system works.
 
 One thing to note, is that all extended methods (outside of data interfaces) should
-accept **kwargs to handle future changes.
+accept ``**kwargs`` to handle future changes.
 
-More and better docs coming soon.
+More and better docs coming soon, for now, take a look at the :doc:`interface`

@@ -87,7 +87,14 @@ class IPlugin(object):
     """
     Plugin interface. Should not be inherited from directly.
 
-    All children should allow **kwargs on all inherited methods.
+    >>> from sentry.plugins import Plugin
+    >>> class MyPlugin(Plugin):
+    >>>     title = 'My Plugin'
+    >>>
+    >>>     def widget(self, request, group, **kwargs):
+    >>>         return self.render('myplugin/widget.html')
+
+    All children should allow ``**kwargs`` on all inherited methods.
     """
     conf_key = None
     conf_title = None
@@ -107,14 +114,30 @@ class IPlugin(object):
         return '%s:%s' % (self.get_conf_key(), key)
 
     def get_option(self, key, project=None):
+        """
+        Returns the value of an option in your plugins keyspace, or ``None`` if
+        one is not present.
+
+        If ``project`` is passed, it will limit the scope to that project's keyspace.
+        """
         from .helpers import get_option
         return get_option(self._get_option_key(key), project)
 
     def set_option(self, key, value, project=None):
+        """
+        Updates the value of an option in your plugins keyspace.
+
+        If ``project`` is passed, it will limit the scope to that project's keyspace.
+        """
         from .helpers import set_option
         return set_option(self._get_option_key(key), value, project)
 
     def unset_option(self, key, project=None):
+        """
+        Removes an option in your plugins keyspace.
+
+        If ``project`` is passed, it will limit the scope to that project's keyspace.
+        """
         from .helpers import unset_option
         return unset_option(self._get_option_key(key), project)
 
@@ -132,22 +155,34 @@ class IPlugin(object):
     def has_project_conf(self):
         return self.project_conf_form is not None
 
-    def get_title(self):
-        return self.title
+    # Response methods
 
     def redirect(self, url):
+        """
+        Returns a redirect response type.
+        """
         return HttpResponseRedirect(url)
 
     def render(self, template, context=None):
+        """
+        Given a template name, and an optional context (dictionary), returns a
+        ready-to-render response.
+        """
         return Response(template, context)
 
     def get_url(self, group):
+        """
+        Returns the absolute URL to this plugins group action handler.
+        """
         return reverse('sentry-group-plugin-action', args=(group.project_id, group.pk, self.slug))
 
-    def has_perm(self, user, perm, *objects):
-        return None
-
     # The following methods are specific to web requests
+
+    def get_title(self):
+        """
+        Returns the general title for this plugin.
+        """
+        return self.title
 
     def get_view_response(self, request, group):
         self.selected = request.path == self.get_url(group)
@@ -210,9 +245,39 @@ class IPlugin(object):
 
     # Server side signals which do not have request context
 
+    def has_perm(self, user, perm, *objects, **kwargs):
+        """
+        Given a user, a permission name, and an optional list of objects
+        within context, returns an override value for a permission.
+
+        :param user: either an instance of ``AnonymousUser`` or ``User``.
+        :param perm: a string, such as "edit_project"
+        :param objects: an optional list of objects
+
+        If your plugin does not modify this permission, simply return None.
+
+        For example, has perm might be called like so:
+
+        >>> has_perm(user, 'add_project')
+
+        It also might be called with more context:
+
+        >>> has_perm(user, 'edit_project', project)
+
+        Or with even more context:
+
+        >>> has_perm(user, 'configure_project_plugin', project, plugin)
+        """
+        return None
+
     def post_process(self, group, event, is_new, is_sample, **kwargs):
         """
         Post processes an event after it has been saved.
+
+        :param group: an instance of ``Group``
+        :param event: an instance of ``Event``
+        :param is_new: a boolean describing if this event is new, or has changed state
+        :param is_sample: a boolean describing if this event was stored, or sampled
         """
 
 
