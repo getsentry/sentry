@@ -139,9 +139,9 @@ def get_actions(group, request):
     for inst in plugins.all():
         try:
             action_list = inst.actions(request, group, action_list)
-        except:
+        except Exception, e:
             logger = logging.getLogger('sentry.plugins')
-            logger.error('Error processing actions() on %r', inst.__class__, extra={
+            logger.error('Error processing actions() on %r: %s', inst.__class__, e, extra={
                 'request': request,
             }, exc_info=True)
 
@@ -155,9 +155,9 @@ def get_panels(group, request):
     for inst in plugins.all():
         try:
             panel_list = inst.panels(request, group, panel_list)
-        except:
+        except Exception, e:
             logger = logging.getLogger('sentry.plugins')
-            logger.error('Error processing panels() on %r', inst.__class__, extra={
+            logger.error('Error processing panels() on %r: %s', inst.__class__, e, extra={
                 'request': request,
             }, exc_info=True)
 
@@ -172,9 +172,9 @@ def get_widgets(group, request):
             resp = inst.widget(request, group)
             if resp:
                 resp = resp.render(request)
-        except:
+        except Exception, e:
             logger = logging.getLogger('sentry.plugins')
-            logger.error('Error processing widget() on %r', inst.__class__, extra={
+            logger.error('Error processing widget() on %r: %s', inst.__class__, e, extra={
                 'request': request,
             }, exc_info=True)
             continue
@@ -188,9 +188,9 @@ def get_tags(group, request):
     for inst in plugins.all():
         try:
             tag_list = inst.tags(request, group, tag_list)
-        except:
+        except Exception, e:
             logger = logging.getLogger('sentry.plugins')
-            logger.rror('Error processing tags() on %r', inst.__class__, extra={
+            logger.rror('Error processing tags() on %r: %s', inst.__class__, e, extra={
                 'request': request,
             }, exc_info=True)
 
@@ -205,9 +205,9 @@ def handle_before_events(request, event_list):
     for inst in plugins.all():
         try:
             inst.before_events(request, event_list)
-        except:
+        except Exception, e:
             logger = logging.getLogger('sentry.plugins')
-            logger.error('Error processing before_events() on %r', inst.__class__, extra={
+            logger.error('Error processing before_events() on %r: %s', inst.__class__, e, extra={
                 'request': request,
             }, exc_info=True)
     return ''
