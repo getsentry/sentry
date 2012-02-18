@@ -257,7 +257,7 @@ def status_queue(request):
     if worker_status:
         pending_tasks = list(Queue.objects.filter(
             messages__visible=True,
-        ).annotate(num=Sum('messages__id')).values_list('name', 'num'))
+        ).annotate(num=Count('messages__id')).values_list('name', 'num'))
         # fetch queues which had no pending tasks
         pending_tasks.extend((q, 0) for q in Queue.objects.exclude(
             name__in=[p[0] for p in pending_tasks],
