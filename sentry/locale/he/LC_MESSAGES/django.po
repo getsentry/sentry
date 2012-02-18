@@ -1,21 +1,21 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
-#, fuzzy
+# 
+# Translators:
+# Alex Gaynor <alex.gaynor@gmail.com>, 2012.
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-02-18 07:59+0000\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"Project-Id-Version: sentry\n"
+"Report-Msgid-Bugs-To: https://github.com/dcramer/sentry/issues\n"
+"POT-Creation-Date: 2012-02-17 23:25+0000\n"
+"PO-Revision-Date: 2012-02-18 03:16+0000\n"
+"Last-Translator: Alex Gaynor <alex.gaynor@gmail.com>\n"
+"Language-Team: Hebrew (http://www.transifex.net/projects/p/sentry/language/he/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Language: he\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
 
 #: constants.py:6
@@ -65,19 +65,19 @@ msgstr ""
 
 #: constants.py:40
 msgid "30 days"
-msgstr ""
+msgstr "30 יום"
 
 #: constants.py:41
 msgid "7 days"
-msgstr ""
+msgstr "7 ימים"
 
 #: constants.py:42
 msgid "3 days"
-msgstr ""
+msgstr "3 ימים"
 
 #: constants.py:43
 msgid "24 hours"
-msgstr ""
+msgstr "24 שעות"
 
 #: models.py:41
 msgid "unresolved"
@@ -97,11 +97,11 @@ msgstr ""
 
 #: models.py:49
 msgid "site"
-msgstr ""
+msgstr "אתר"
 
 #: models.py:56
 msgid "owner"
-msgstr ""
+msgstr "בעל"
 
 #: models.py:57
 msgid "user"
@@ -113,7 +113,7 @@ msgstr ""
 
 #: models.py:294
 msgid "error"
-msgstr ""
+msgstr "שגיאה"
 
 #: models.py:323
 msgid "grouped messages"
@@ -125,11 +125,11 @@ msgstr ""
 
 #: models.py:396
 msgid "message"
-msgstr ""
+msgstr "הודעה"
 
 #: models.py:397
 msgid "messages"
-msgstr ""
+msgstr "הודעות"
 
 #: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:21
 msgid "Server Name"
@@ -154,11 +154,11 @@ msgstr ""
 
 #: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:21
 msgid "Site Name"
-msgstr ""
+msgstr "שם האתר"
 
 #: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/widget.html:5
 msgid "Sites"
-msgstr ""
+msgstr "אתרים"
 
 #: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:21
 msgid "URL"
@@ -195,7 +195,7 @@ msgstr ""
 
 #: templates/sentry/dashboard.html:5
 msgid "Select a Project"
-msgstr ""
+msgstr "תבחר בפרויקט"
 
 #: templates/sentry/header.html:24
 msgid "Dashboard"
@@ -212,7 +212,7 @@ msgstr ""
 #: templates/sentry/admin/users/list_projects.html:12
 #: templates/sentry/projects/members/remove.html:11
 msgid "Projects"
-msgstr ""
+msgstr "פרוייקטים"
 
 #: templates/sentry/header.html:33
 msgid "Manage"
@@ -352,7 +352,7 @@ msgstr ""
 #: templates/sentry/admin/projects/list.html:32
 #: templates/sentry/admin/users/list_projects.html:31
 msgid "Project"
-msgstr ""
+msgstr "פרויקט"
 
 #: templates/sentry/admin/projects/list.html:33
 #: templates/sentry/admin/users/list_projects.html:32
@@ -462,7 +462,7 @@ msgstr ""
 
 #: templates/sentry/admin/users/list.html:35
 msgid "Name"
-msgstr ""
+msgstr "שם"
 
 #: templates/sentry/admin/users/list.html:36
 msgid "Joined"
@@ -498,7 +498,7 @@ msgstr ""
 #: templates/sentry/projects/remove.html:31
 #: templates/sentry/projects/members/remove.html:19
 msgid "Cancel"
-msgstr ""
+msgstr "פרוייקטים"
 
 #: templates/sentry/events/event_list.html:28
 #: templates/sentry/events/event_list.html:47
@@ -506,7 +506,7 @@ msgstr ""
 #: templates/sentry/groups/group_list.html:110
 #: templates/sentry/partial/_pager.html:5
 msgid "Previous"
-msgstr ""
+msgstr "קודם"
 
 #: templates/sentry/events/event_list.html:29
 #: templates/sentry/events/event_list.html:48
@@ -514,7 +514,7 @@ msgstr ""
 #: templates/sentry/groups/group_list.html:111
 #: templates/sentry/partial/_pager.html:6
 msgid "Next"
-msgstr ""
+msgstr "בא"
 
 #: templates/sentry/events/event_list.html:41
 #: templates/sentry/groups/group_list.html:104
@@ -570,7 +570,7 @@ msgstr ""
 #: templates/sentry/projects/manage.html:17
 #: templates/sentry/projects/members/edit.html:25
 msgid "Details"
-msgstr ""
+msgstr "פרטים"
 
 #: templates/sentry/groups/details.html:93
 msgid "Events"
@@ -587,7 +587,7 @@ msgstr ""
 #: templates/sentry/groups/details.html:116
 #: templates/sentry/groups/event.html:38
 msgid "Full Message"
-msgstr ""
+msgstr "הודעה מלאה"
 
 #: templates/sentry/groups/details.html:128
 msgid "Get yourself some JavaScripts dood"
@@ -634,7 +634,7 @@ msgstr ""
 
 #: templates/sentry/groups/event.html:22
 msgid "Site:"
-msgstr ""
+msgstr "אתר:"
 
 #: templates/sentry/groups/group_list.html:22
 msgid "All"
@@ -851,11 +851,11 @@ msgstr ""
 
 #: templatetags/sentry_helpers.py:221
 msgid "never"
-msgstr ""
+msgstr "אף פעם"
 
 #: templatetags/sentry_helpers.py:225
 msgid "0 minutes"
-msgstr ""
+msgstr "0 דקות"
 
 #: templatetags/sentry_helpers.py:226
 msgid "just now"
@@ -863,11 +863,11 @@ msgstr ""
 
 #: templatetags/sentry_helpers.py:227
 msgid "1 day"
-msgstr ""
+msgstr "1 יום"
 
 #: templatetags/sentry_helpers.py:228
 msgid "yesterday"
-msgstr ""
+msgstr "אתמול"
 
 #: templatetags/sentry_helpers.py:229
 msgid " ago"

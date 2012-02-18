@@ -1,26 +1,26 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
-#
-#, fuzzy
+# 
+# Translators:
+# Dimitris Glezos <glezos@indifex.com>, 2012.
 msgid ""
 msgstr ""
-"Project-Id-Version: PACKAGE VERSION\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-02-18 07:59+0000\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"Project-Id-Version: sentry\n"
+"Report-Msgid-Bugs-To: https://github.com/dcramer/sentry/issues\n"
+"POT-Creation-Date: 2012-02-17 23:25+0000\n"
+"PO-Revision-Date: 2012-02-18 06:59+0000\n"
+"Last-Translator: Dimitris Glezos <glezos@indifex.com>\n"
+"Language-Team: Greek (http://www.transifex.net/projects/p/sentry/language/el/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Language: el\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
 
 #: constants.py:6
 msgid "Priority"
-msgstr ""
+msgstr "Προτεραιότητα"
 
 #: constants.py:7 constants.py:35
 #: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:24
@@ -28,7 +28,7 @@ msgstr ""
 #: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:24
 #: templates/sentry/search.html:15
 msgid "Last Seen"
-msgstr ""
+msgstr "Τελευταία εμφάνιση"
 
 #: constants.py:8 constants.py:36
 #: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:23
@@ -36,11 +36,11 @@ msgstr ""
 #: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:23
 #: templates/sentry/search.html:17
 msgid "First Seen"
-msgstr ""
+msgstr "Πρώτη εμφάνιση"
 
 #: constants.py:9 templates/sentry/groups/details.html:124
 msgid "Frequency"
-msgstr ""
+msgstr "Συχνότητα"
 
 #: constants.py:10
 msgid "Total Time Spent"
@@ -57,7 +57,7 @@ msgstr ""
 
 #: constants.py:34 templates/sentry/search.html:16
 msgid "Score"
-msgstr ""
+msgstr "Σκορ"
 
 #: constants.py:39
 msgid "All time"
@@ -65,31 +65,31 @@ msgstr ""
 
 #: constants.py:40
 msgid "30 days"
-msgstr ""
+msgstr "30 ημέρες"
 
 #: constants.py:41
 msgid "7 days"
-msgstr ""
+msgstr "7 ημέρες"
 
 #: constants.py:42
 msgid "3 days"
-msgstr ""
+msgstr "3 ημέρες"
 
 #: constants.py:43
 msgid "24 hours"
-msgstr ""
+msgstr "24 ώρες"
 
 #: models.py:41
 msgid "unresolved"
-msgstr ""
+msgstr "άλυτα"
 
 #: models.py:42
 msgid "resolved"
-msgstr ""
+msgstr "επιλύθηκε"
 
 #: models.py:47
 msgid "server name"
-msgstr ""
+msgstr "σερα"
 
 #: models.py:48
 msgid "logger"
@@ -97,15 +97,15 @@ msgstr ""
 
 #: models.py:49
 msgid "site"
-msgstr ""
+msgstr "ιστότοπος"
 
 #: models.py:56
 msgid "owner"
-msgstr ""
+msgstr "ιδιοκτήτης"
 
 #: models.py:57
 msgid "user"
-msgstr ""
+msgstr "χρήστης"
 
 #: models.py:58
 msgid "system agent"
@@ -113,33 +113,33 @@ msgstr ""
 
 #: models.py:294
 msgid "error"
-msgstr ""
+msgstr "σφάλμα"
 
 #: models.py:323
 msgid "grouped messages"
-msgstr ""
+msgstr "ομαδοποιημένα μηνύματα"
 
 #: models.py:324
 msgid "grouped message"
-msgstr ""
+msgstr "ομαδοποιημένο μήνυμα"
 
 #: models.py:396
 msgid "message"
-msgstr ""
+msgstr "μήνυμα"
 
 #: models.py:397
 msgid "messages"
-msgstr ""
+msgstr "μηνύματα"
 
 #: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:21
 msgid "Server Name"
-msgstr ""
+msgstr "Εξυπηρετητής"
 
 #: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:22
 #: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:22
 #: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:22
 msgid "Times Seen"
-msgstr ""
+msgstr "Αριθμός εμφανίσεων"
 
 #: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:41
 #: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:41
@@ -150,19 +150,19 @@ msgstr ""
 
 #: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/widget.html:5
 msgid "Servers"
-msgstr ""
+msgstr "Εξυπηρετητές"
 
 #: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:21
 msgid "Site Name"
-msgstr ""
+msgstr "Όνομα ιστότοπου"
 
 #: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/widget.html:5
 msgid "Sites"
-msgstr ""
+msgstr "Ιστότοποι"
 
 #: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:21
 msgid "URL"
-msgstr ""
+msgstr "URL"
 
 #: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/widget.html:5
 msgid "URLs"
@@ -170,7 +170,7 @@ msgstr ""
 
 #: templates/sentry/404.html:5 templates/sentry/404.html.py:10
 msgid "Page Not Found"
-msgstr ""
+msgstr "Η σελίδα δε βρέθηκε"
 
 #: templates/sentry/404.html:15
 msgid "The page you are looking for was not found."
@@ -178,11 +178,11 @@ msgstr ""
 
 #: templates/sentry/404.html:16
 msgid "Return to the dashboard"
-msgstr ""
+msgstr "Επιστροφή στο πάνελ"
 
 #: templates/sentry/500.html:5 templates/sentry/500.html.py:10
 msgid "Internal Server Error"
-msgstr ""
+msgstr "Σφάλμα εξυπηρετητή"
 
 #: templates/sentry/500.html:15
 msgid "There was an internal server error while processing your request."
@@ -195,7 +195,7 @@ msgstr ""
 
 #: templates/sentry/dashboard.html:5
 msgid "Select a Project"
-msgstr ""
+msgstr "Επιλέξτε ένα έργο"
 
 #: templates/sentry/header.html:24
 msgid "Dashboard"
