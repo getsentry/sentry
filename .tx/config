@@ -1,0 +1,7 @@
+[main]
+host = https://www.transifex.net
+
+[sentry.djangopo]
+file_filter = sentry/locale/<lang>/django.po
+source_lang = en
+
