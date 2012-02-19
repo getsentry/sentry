@@ -9,9 +9,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: https://github.com/dcramer/sentry/issues\n"
-"POT-Creation-Date: 2012-02-17 23:25+0000\n"
-"PO-Revision-Date: 2012-02-18 08:01+0000\n"
-"Last-Translator: Andrew Kurinnyi <prigun@gmail.com>\n"
+"POT-Creation-Date: 2012-02-18 07:59+0000\n"
+"PO-Revision-Date: 2012-02-18 13:24+0000\n"
+"Last-Translator: Eugene MechanisM <contact@mechanism.name>\n"
 "Language-Team: Russian (http://www.transifex.net/projects/p/sentry/language/ru/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -54,7 +54,7 @@ msgstr "Среднее затраченное время"
 #: constants.py:12 constants.py:13
 #, python-format
 msgid "Trending: %(minutes)d minutes"
-msgstr ""
+msgstr "Тенденции: %(minutes)d минут"
 
 #: constants.py:34 templates/sentry/search.html:16
 msgid "Score"
@@ -94,7 +94,7 @@ msgstr "имя сервера"
 
 #: models.py:48
 msgid "logger"
-msgstr ""
+msgstr "logger"
 
 #: models.py:49
 msgid "site"
@@ -183,7 +183,7 @@ msgstr "Вернуться в панель управления"
 
 #: templates/sentry/500.html:5 templates/sentry/500.html.py:10
 msgid "Internal Server Error"
-msgstr "Внутренняя Ошибка Сервера"
+msgstr "Внутренняя ошибка сервера"
 
 #: templates/sentry/500.html:15
 msgid "There was an internal server error while processing your request."
@@ -204,7 +204,7 @@ msgstr "Панель управления"
 
 #: templates/sentry/header.html:25
 msgid "Stream"
-msgstr ""
+msgstr "Поток"
 
 #: templates/sentry/header.html:31 templates/sentry/admin/base.html:17
 #: templates/sentry/admin/projects/list.html:13
@@ -217,7 +217,7 @@ msgstr "Проекты"
 
 #: templates/sentry/header.html:33
 msgid "Manage"
-msgstr ""
+msgstr "Управление"
 
 #: templates/sentry/header.html:43
 msgid "Account"
@@ -251,7 +251,7 @@ msgstr "Мы не смогли найти сообщение соответсв�
 
 #: templates/sentry/layout.html:74
 msgid "Your Projects"
-msgstr "Ваши Проекты"
+msgstr "Ваши проекты"
 
 #: templates/sentry/login.html:15
 msgid "Please login to continue."
@@ -273,7 +273,7 @@ msgstr "У вас не хватает прав для доступа к данн
 #: templates/sentry/search.html:13 templates/sentry/groups/group_list.html:65
 #, python-format
 msgid "Sort by: %(label)s"
-msgstr ""
+msgstr "Поле сортировки: %(label)s"
 
 #: templates/sentry/search.html:31
 msgid "No events match your search query."
@@ -300,7 +300,7 @@ msgstr "Во время сохранения ваших изменений пр�
 #: templates/sentry/projects/new.html:32
 #: templates/sentry/projects/members/edit.html:56
 msgid "Save Changes"
-msgstr "Сохранить Изменения"
+msgstr "Сохранить изменения"
 
 #: templates/sentry/admin/base.html:15 templates/sentry/admin/base.html:42
 msgid "Overview"
@@ -348,7 +348,7 @@ msgstr "Статистика"
 
 #: templates/sentry/admin/projects/list.html:7
 msgid "Manage Projects"
-msgstr "Управление Проектами"
+msgstr "Управление проектами"
 
 #: templates/sentry/admin/projects/list.html:32
 #: templates/sentry/admin/users/list_projects.html:31
@@ -358,12 +358,12 @@ msgstr "Проект"
 #: templates/sentry/admin/projects/list.html:33
 #: templates/sentry/admin/users/list_projects.html:32
 msgid "Daily Events"
-msgstr "Ежедневные События"
+msgstr "Ежедневные события"
 
 #: templates/sentry/admin/projects/list.html:34
 #: templates/sentry/admin/users/list_projects.html:33
 msgid "Last Event"
-msgstr "Последнее Событие"
+msgstr "Последнее событие"
 
 #: templates/sentry/admin/projects/list.html:65
 msgid "There are no active projects in Sentry."
@@ -371,15 +371,15 @@ msgstr "Нет активных проектов."
 
 #: templates/sentry/admin/status/env.html:26
 msgid "Server Version"
-msgstr "Версия Сервера"
+msgstr "Версия сервера"
 
 #: templates/sentry/admin/status/env.html:30
 msgid "Python Version"
-msgstr "Версия языка Python"
+msgstr "Версия интерпретатора Python"
 
 #: templates/sentry/admin/status/env.html:34
 msgid "Configuration File"
-msgstr "Файл Конфигурации"
+msgstr "Файл конфигурации"
 
 #: templates/sentry/admin/status/env.html:38
 msgid "Uptime"
@@ -387,7 +387,7 @@ msgstr "Время работы"
 
 #: templates/sentry/admin/status/env.html:44
 msgid "Environment not found (are you using the builtin Sentry webserver?)."
-msgstr ""
+msgstr "Переменные окружения не найдены (возможно вы используете вебсервер встроенный в Sentry?)"
 
 #: templates/sentry/admin/status/env.html:48
 msgid "Configuration"
@@ -403,11 +403,11 @@ msgstr "Нет зарегистрированных расширений."
 
 #: templates/sentry/admin/status/packages.html:37
 msgid "Views"
-msgstr ""
+msgstr "Представления"
 
 #: templates/sentry/admin/status/packages.html:54
 msgid "No views registered."
-msgstr ""
+msgstr "Нет зарегистрированных представлений."
 
 #: templates/sentry/admin/status/packages.html:57
 msgid "Processors"
@@ -424,11 +424,11 @@ msgstr "Модули"
 #: templates/sentry/admin/status/queue.html:8
 #: templates/sentry/admin/status/queue.html:12
 msgid "Queue Status"
-msgstr "Состояние Очереди"
+msgstr "Состояние очереди"
 
 #: templates/sentry/admin/status/queue.html:18
 msgid "Background Processes"
-msgstr "Фоновые Процессы"
+msgstr "Фоновые процессы"
 
 #: templates/sentry/admin/status/queue.html:29
 msgid "No information available."
@@ -437,17 +437,17 @@ msgstr "Нет доступной информации."
 #: templates/sentry/admin/status/queue.html:32
 #: templates/sentry/admin/status/queue.html:42
 msgid "Pending Tasks"
-msgstr "Неоконченные Задачи"
+msgstr "Неоконченные задачи"
 
 #: templates/sentry/admin/users/edit.html:6
 msgid "Change User"
-msgstr "Редактировать Пользователя"
+msgstr "Редактировать пользователя"
 
 #: templates/sentry/admin/users/edit.html:34
 #: templates/sentry/admin/users/remove.html:5
 #: templates/sentry/admin/users/remove.html:10
 msgid "Remove User"
-msgstr "Удалить Пользователя"
+msgstr "Удалить пользователя"
 
 #: templates/sentry/admin/users/edit.html:36
 msgid "Cannot remove yourself"
@@ -455,7 +455,7 @@ msgstr "Невозможно удалить себя"
 
 #: templates/sentry/admin/users/list.html:6
 msgid "Manage Users"
-msgstr "Управление Пользователями"
+msgstr "Управление пользователями"
 
 #: templates/sentry/admin/users/list.html:16
 msgid "Create a new user"
@@ -471,7 +471,7 @@ msgstr "Зарегистрировался"
 
 #: templates/sentry/admin/users/list.html:37
 msgid "Last Login"
-msgstr "Последний Вход"
+msgstr "Последний вход"
 
 #: templates/sentry/admin/users/list.html:77
 msgid "There are no active users in Sentry."
@@ -483,11 +483,11 @@ msgstr "У данного пользователя нет активных пр�
 
 #: templates/sentry/admin/users/new.html:6
 msgid "New User"
-msgstr "Новый Пользователь"
+msgstr "Новый пользователь"
 
 #: templates/sentry/admin/users/new.html:11
 msgid "Create New User"
-msgstr "Создать Нового Пользователя"
+msgstr "Создать нового пользователя"
 
 #: templates/sentry/admin/users/remove.html:31
 #: templates/sentry/projects/remove.html:31
@@ -525,7 +525,7 @@ msgstr "Нет событий соответствующих вашим филь
 #: templates/sentry/events/replay_request.html:5
 #: templates/sentry/events/replay_request.html:12
 msgid "Replay Request"
-msgstr ""
+msgstr "Повторить запрос"
 
 #: templates/sentry/events/replay_request.html:27
 msgid "Please fill out all fields."
@@ -533,7 +533,7 @@ msgstr "Пожалуйста, заполните все поля."
 
 #: templates/sentry/events/replay_request.html:36
 msgid "Submit"
-msgstr ""
+msgstr "Отправить форму"
 
 #: templates/sentry/groups/details.html:15
 msgid "Aggregate Details"
@@ -541,7 +541,7 @@ msgstr "Агрегированные данные"
 
 #: templates/sentry/groups/details.html:18
 msgid "Logger:"
-msgstr ""
+msgstr "Logger:"
 
 #: templates/sentry/groups/details.html:20
 msgid "Level:"
@@ -561,7 +561,7 @@ msgstr "Последний раз замечено:"
 
 #: templates/sentry/groups/details.html:28
 msgid "Avg Duration:"
-msgstr "Средняя Продолжительность:"
+msgstr "Средняя продолжительность:"
 
 #: templates/sentry/groups/details.html:30
 msgid "Checksum:"
@@ -592,19 +592,19 @@ msgstr "Полное Сообщение"
 
 #: templates/sentry/groups/details.html:128
 msgid "Get yourself some JavaScripts dood"
-msgstr "Включите, пожалуйста, JavaScript в браузере"
+msgstr "Пожалуйста, включите JavaScript в браузере"
 
 #: templates/sentry/groups/details.html:142
 #: templates/sentry/groups/event.html:50
 msgid "Additional Data"
-msgstr "Дополнительные Данные"
+msgstr "Дополнительные данные"
 
 #: templates/sentry/groups/details.html:152
 #: templates/sentry/groups/event.html:60
 #: templates/sentry/partial/interfaces/http.html:37
 #: templates/sentry/partial/interfaces/http.html:54
 msgid "Body"
-msgstr ""
+msgstr "Содержание"
 
 #: templates/sentry/groups/details.html:171
 #: templates/sentry/groups/event.html:79
@@ -615,7 +615,7 @@ msgstr "Нет данных для %(varname)s"
 #: templates/sentry/groups/details.html:183
 #: templates/sentry/groups/event.html:91
 msgid "Module Versions"
-msgstr "Версии Модуля"
+msgstr "Версии модуля"
 
 #: templates/sentry/groups/event.html:13
 msgid "Event Details"
@@ -647,24 +647,24 @@ msgstr "Закладки"
 
 #: templates/sentry/groups/group_list.html:38
 msgid "All Events"
-msgstr "Все События"
+msgstr "Все события"
 
 #: templates/sentry/groups/group_list.html:39
 msgid "Only Bookmarks"
-msgstr "Только Закладки"
+msgstr "Только закладки"
 
 #: templates/sentry/groups/group_list.html:59
 msgid "Resolve Feed"
-msgstr ""
+msgstr "Отменить все как устранённые"
 
 #: templates/sentry/groups/group_list.html:62
 msgid "Pause Feed"
-msgstr ""
+msgstr "Поставить поток на паузу"
 
 #: templates/sentry/groups/group_list.html:82
 #, python-format
 msgid "Since: %(label)s"
-msgstr ""
+msgstr "C: %(label)s"
 
 #: templates/sentry/partial/interfaces/http.html:6
 msgid "Replay this request"
@@ -709,11 +709,11 @@ msgstr "Заголовки"
 
 #: templates/sentry/partial/interfaces/http.html:120
 msgid "Environment:"
-msgstr ""
+msgstr "Переменные окружения:"
 
 #: templates/sentry/partial/interfaces/stacktrace.html:7
 msgid "Stacktrace"
-msgstr ""
+msgstr "Stacktrace"
 
 #: templates/sentry/partial/interfaces/template.html:6
 msgid "Template Error"
@@ -732,12 +732,12 @@ msgstr "Изменения в вашей конфигурации были ус�
 #: templates/sentry/projects/list.html:5
 #: templates/sentry/projects/list.html:15
 msgid "Project List"
-msgstr "Список Проектов"
+msgstr "Список проектов"
 
 #: templates/sentry/projects/manage.html:5
 #, python-format
 msgid "Manage Project: %(name)s"
-msgstr "Управление Проектом: %(name)s"
+msgstr "Управление проектом: %(name)s"
 
 #: templates/sentry/projects/manage.html:26
 msgid ""
@@ -748,7 +748,7 @@ msgstr "Здесь вы можете редактировать информац
 #: templates/sentry/projects/manage.html:29
 #: templates/sentry/projects/new.html:20
 msgid "Project Details"
-msgstr "Детали Проекта"
+msgstr "Детали проекта"
 
 #: templates/sentry/projects/manage.html:35
 #: templates/sentry/projects/members/edit.html:20
@@ -759,7 +759,7 @@ msgstr "Пожалуйста, исправьте следующие ошибки
 #: templates/sentry/projects/remove.html:5
 #: templates/sentry/projects/remove.html:10
 msgid "Remove Project"
-msgstr "Удалить Проект"
+msgstr "Удалить проект"
 
 #: templates/sentry/projects/manage.html:50
 msgid "Cannot remove default project"
@@ -767,11 +767,11 @@ msgstr "Невозможно удалить проект \"по умолчани
 
 #: templates/sentry/projects/manage.html:55
 msgid "+ New Member"
-msgstr ""
+msgstr "+ Новый участник проекта"
 
 #: templates/sentry/projects/manage.html:56
 msgid "Members"
-msgstr ""
+msgstr "Участники проекта"
 
 #: templates/sentry/projects/manage.html:66
 msgid "Username"
@@ -784,22 +784,22 @@ msgstr "Доступ"
 
 #: templates/sentry/projects/manage.html:82
 msgid "Revoke"
-msgstr "Отозвать Доступ"
+msgstr "Отозвать доступ"
 
 #: templates/sentry/projects/new.html:5 templates/sentry/projects/new.html:10
 msgid "New Project"
-msgstr "Новый Проект"
+msgstr "Новый проект"
 
 #: templates/sentry/projects/new.html:15
 msgid ""
 "Use this page to create a new project within Sentry. Once done, you'll be "
 "able to add members (whether they're system or actual users), as well as "
 "configure your client to send messages to this project."
-msgstr ""
+msgstr "Используйте эту страницу для создания проекта в Sentry. После создания, вы сможете добавлять новых участников (системных и обычных пользователей), а также конфигурировать ваш клиент для отправки сообщений в этот проект."
 
 #: templates/sentry/projects/members/edit.html:6
 msgid "Edit Member"
-msgstr ""
+msgstr "Редактировать участника"
 
 #: templates/sentry/projects/members/edit.html:27
 msgid "User"
@@ -807,30 +807,30 @@ msgstr "Пользователь"
 
 #: templates/sentry/projects/members/edit.html:33
 msgid "Public Key"
-msgstr "Открытый Ключ"
+msgstr "Открытый ключ"
 
 #: templates/sentry/projects/members/edit.html:39
 msgid "Secret Key"
-msgstr "Секретный Ключ"
+msgstr "Секретный ключ"
 
 #: templates/sentry/projects/members/edit.html:45
 msgid "Client DSN"
-msgstr ""
+msgstr "DSN клиента"
 
 #: templates/sentry/projects/members/new.html:5
 #: templates/sentry/projects/members/new.html:10
 msgid "New Member"
-msgstr ""
+msgstr "Новый участник проекта"
 
 #: templates/sentry/projects/members/remove.html:5
 #: templates/sentry/projects/members/remove.html:7
 #: templates/sentry/projects/members/remove.html:13
 msgid "Remove Member"
-msgstr ""
+msgstr "Удалить участника проекта"
 
 #: templates/sentry/projects/members/remove.html:12
 msgid "Manage Project"
-msgstr "Управление Проектом"
+msgstr "Управление проектом"
 
 #: templates/sentry/projects/members/remove.html:17
 msgid ""
@@ -872,7 +872,7 @@ msgstr "вчера"
 
 #: templatetags/sentry_helpers.py:229
 msgid " ago"
-msgstr " назад"
+msgstr "Только закладки"
 
 #: views/exception.py:16
 msgid "Exception"
@@ -892,11 +892,11 @@ msgstr "Сообщения"
 
 #: views/query.py:16
 msgid "Query"
-msgstr ""
+msgstr "Запрос"
 
 #: views/query.py:17
 msgid "Queries"
-msgstr ""
+msgstr "Запросы"
 
 #: web/forms.py:173
 msgid "Old password"

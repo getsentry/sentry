@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: https://github.com/dcramer/sentry/issues\n"
-"POT-Creation-Date: 2012-02-17 23:25+0000\n"
-"PO-Revision-Date: 2012-02-18 08:01+0000\n"
+"POT-Creation-Date: 2012-02-18 07:59+0000\n"
+"PO-Revision-Date: 2012-02-18 08:41+0000\n"
 "Last-Translator: Benjamin Oertel <>\n"
 "Language-Team: French (http://www.transifex.net/projects/p/sentry/language/fr/)\n"
 "MIME-Version: 1.0\n"
@@ -44,11 +44,11 @@ msgstr "Fréquence"
 
 #: constants.py:10
 msgid "Total Time Spent"
-msgstr ""
+msgstr "Temps total"
 
 #: constants.py:11
 msgid "Average Time Spent"
-msgstr ""
+msgstr "Temps moyen"
 
 #: constants.py:12 constants.py:13
 #, python-format
@@ -61,7 +61,7 @@ msgstr "Score"
 
 #: constants.py:39
 msgid "All time"
-msgstr "Tout le temps"
+msgstr "Temps total"
 
 #: constants.py:40
 msgid "30 days"
@@ -109,7 +109,7 @@ msgstr "utilisateur"
 
 #: models.py:58
 msgid "system agent"
-msgstr ""
+msgstr "agent système"
 
 #: models.py:294
 msgid "error"
@@ -139,7 +139,7 @@ msgstr "Nom du serveur"
 #: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:22
 #: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:22
 msgid "Times Seen"
-msgstr ""
+msgstr "Occurences"
 
 #: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:41
 #: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:41
@@ -330,7 +330,7 @@ msgstr "Environnement"
 #: templates/sentry/admin/status/packages.html:8
 #: templates/sentry/admin/status/packages.html:12
 msgid "Packages"
-msgstr ""
+msgstr "Paquetages"
 
 #: templates/sentry/admin/base.html:38
 #: templates/sentry/admin/status/queue.html:41
@@ -382,7 +382,7 @@ msgstr "Fichier de configuration"
 
 #: templates/sentry/admin/status/env.html:38
 msgid "Uptime"
-msgstr ""
+msgstr "Temps de service"
 
 #: templates/sentry/admin/status/env.html:44
 msgid "Environment not found (are you using the builtin Sentry webserver?)."
@@ -394,40 +394,40 @@ msgstr "Configuration"
 
 #: templates/sentry/admin/status/packages.html:17
 msgid "Extensions"
-msgstr ""
+msgstr "Extensions"
 
 #: templates/sentry/admin/status/packages.html:34
 msgid "No extensions registered."
-msgstr ""
+msgstr "Aucunes extensions enregistrées."
 
 #: templates/sentry/admin/status/packages.html:37
 msgid "Views"
-msgstr ""
+msgstr "Vues"
 
 #: templates/sentry/admin/status/packages.html:54
 msgid "No views registered."
-msgstr ""
+msgstr "Aucunes vues enregistrées."
 
 #: templates/sentry/admin/status/packages.html:57
 msgid "Processors"
-msgstr ""
+msgstr "Processeurs"
 
 #: templates/sentry/admin/status/packages.html:74
 msgid "No event processors registered."
-msgstr ""
+msgstr "Aucuns processeurs d'événements enregistrés."
 
 #: templates/sentry/admin/status/packages.html:77
 msgid "Modules"
-msgstr ""
+msgstr "Modules"
 
 #: templates/sentry/admin/status/queue.html:8
 #: templates/sentry/admin/status/queue.html:12
 msgid "Queue Status"
-msgstr ""
+msgstr "Status de la file d'attente"
 
 #: templates/sentry/admin/status/queue.html:18
 msgid "Background Processes"
-msgstr ""
+msgstr "Processus d'arrière-plan"
 
 #: templates/sentry/admin/status/queue.html:29
 msgid "No information available."
@@ -466,7 +466,7 @@ msgstr "Nom"
 
 #: templates/sentry/admin/users/list.html:36
 msgid "Joined"
-msgstr ""
+msgstr "Inscrit le"
 
 #: templates/sentry/admin/users/list.html:37
 msgid "Last Login"
@@ -524,7 +524,7 @@ msgstr "Aucuns événements ne correspondent pas à vos filtres."
 #: templates/sentry/events/replay_request.html:5
 #: templates/sentry/events/replay_request.html:12
 msgid "Replay Request"
-msgstr ""
+msgstr "Refaire la requête"
 
 #: templates/sentry/events/replay_request.html:27
 msgid "Please fill out all fields."
@@ -552,11 +552,11 @@ msgstr "Statut:"
 
 #: templates/sentry/groups/details.html:24
 msgid "First Seen:"
-msgstr ""
+msgstr "Premier vu:"
 
 #: templates/sentry/groups/details.html:26
 msgid "Last Seen:"
-msgstr ""
+msgstr "Dernier vu\""
 
 #: templates/sentry/groups/details.html:28
 msgid "Avg Duration:"
@@ -591,7 +591,7 @@ msgstr "Message entier"
 
 #: templates/sentry/groups/details.html:128
 msgid "Get yourself some JavaScripts dood"
-msgstr ""
+msgstr "Vous devez activer Javascript"
 
 #: templates/sentry/groups/details.html:142
 #: templates/sentry/groups/event.html:50
@@ -622,7 +622,7 @@ msgstr "Détails de l'événement"
 
 #: templates/sentry/groups/event.html:16
 msgid "Seen:"
-msgstr ""
+msgstr "Vu:"
 
 #: templates/sentry/groups/event.html:18
 msgid "Duration:"
@@ -654,11 +654,11 @@ msgstr "Seulement les marque-pages"
 
 #: templates/sentry/groups/group_list.html:59
 msgid "Resolve Feed"
-msgstr ""
+msgstr "Nettoyer le flux"
 
 #: templates/sentry/groups/group_list.html:62
 msgid "Pause Feed"
-msgstr ""
+msgstr "Stopper le flux"
 
 #: templates/sentry/groups/group_list.html:82
 #, python-format
@@ -667,7 +667,7 @@ msgstr "Depuis: %(label)s"
 
 #: templates/sentry/partial/interfaces/http.html:6
 msgid "Replay this request"
-msgstr ""
+msgstr "Refaire cette requête"
 
 #: templates/sentry/partial/interfaces/http.html:7
 msgid "Request"
@@ -742,7 +742,7 @@ msgstr "Gérer le project: %(name)s"
 msgid ""
 "Here you can edit project information, as well as control the access list "
 "for a project with fine-grained permissions."
-msgstr ""
+msgstr "Vous pouvez éditer les informations à propos de votre projet et contrôler la liste des accès pour un projet avec les permissions"
 
 #: templates/sentry/projects/manage.html:29
 #: templates/sentry/projects/new.html:20

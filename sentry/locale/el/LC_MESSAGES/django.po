@@ -3,13 +3,15 @@
 # This file is distributed under the same license as the PACKAGE package.
 # 
 # Translators:
+# Apostolos Bessas <mpessas@gmail.com>, 2012.
 # Dimitris Glezos <glezos@indifex.com>, 2012.
+# John Kalantzis <jkal@indifex.com>, 2012.
 msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: https://github.com/dcramer/sentry/issues\n"
-"POT-Creation-Date: 2012-02-17 23:25+0000\n"
-"PO-Revision-Date: 2012-02-18 06:59+0000\n"
+"POT-Creation-Date: 2012-02-18 07:59+0000\n"
+"PO-Revision-Date: 2012-02-19 20:01+0000\n"
 "Last-Translator: Dimitris Glezos <glezos@indifex.com>\n"
 "Language-Team: Greek (http://www.transifex.net/projects/p/sentry/language/el/)\n"
 "MIME-Version: 1.0\n"
@@ -44,16 +46,16 @@ msgstr "Συχνότητα"
 
 #: constants.py:10
 msgid "Total Time Spent"
-msgstr ""
+msgstr "Συνολικός χρόνος που αφιερώθηκε"
 
 #: constants.py:11
 msgid "Average Time Spent"
-msgstr ""
+msgstr "Μέσος χρόνος που αφιερώθηκε"
 
 #: constants.py:12 constants.py:13
 #, python-format
 msgid "Trending: %(minutes)d minutes"
-msgstr ""
+msgstr "Trending: %(minutes)d λεπτά"
 
 #: constants.py:34 templates/sentry/search.html:16
 msgid "Score"
@@ -61,7 +63,7 @@ msgstr "Σκορ"
 
 #: constants.py:39
 msgid "All time"
-msgstr ""
+msgstr "Όλος ο χρόνος"
 
 #: constants.py:40
 msgid "30 days"
@@ -93,7 +95,7 @@ msgstr "σερα"
 
 #: models.py:48
 msgid "logger"
-msgstr ""
+msgstr "καταγραφέας"
 
 #: models.py:49
 msgid "site"
@@ -109,7 +111,7 @@ msgstr "χρήστης"
 
 #: models.py:58
 msgid "system agent"
-msgstr ""
+msgstr "agent συστήματος"
 
 #: models.py:294
 msgid "error"
@@ -146,7 +148,7 @@ msgstr "Αριθμός εμφανίσεων"
 #: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:41
 #: templates/sentry/groups/event_list.html:23
 msgid "There are no records recorded for this event."
-msgstr ""
+msgstr "Δεν υπάρχουν εγγραφές για αυτό το συμβάν."
 
 #: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/widget.html:5
 msgid "Servers"
@@ -166,7 +168,7 @@ msgstr "URL"
 
 #: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/widget.html:5
 msgid "URLs"
-msgstr ""
+msgstr "URL"
 
 #: templates/sentry/404.html:5 templates/sentry/404.html.py:10
 msgid "Page Not Found"
@@ -174,7 +176,7 @@ msgstr "Η σελίδα δε βρέθηκε"
 
 #: templates/sentry/404.html:15
 msgid "The page you are looking for was not found."
-msgstr ""
+msgstr "Η σελίδα που ψάχνετε δε βρέθηκε."
 
 #: templates/sentry/404.html:16
 msgid "Return to the dashboard"
@@ -186,12 +188,12 @@ msgstr "Σφάλμα εξυπηρετητή"
 
 #: templates/sentry/500.html:15
 msgid "There was an internal server error while processing your request."
-msgstr ""
+msgstr "Υπήρξε ένα σφάλμα στον εξυπηρετητή κατά την επεξεργασία της αίτησής σας."
 
 #: templates/sentry/500.html:17
 #, python-format
 msgid "You may reference this error as <strong>%(id)s</strong>."
-msgstr ""
+msgstr "Μπορείτε να αναφέρεστε σε αυτό το σφάλμα ως <strong>%(id)s</strong>."
 
 #: templates/sentry/dashboard.html:5
 msgid "Select a Project"
@@ -199,11 +201,11 @@ msgstr "Επιλέξτε ένα έργο"
 
 #: templates/sentry/header.html:24
 msgid "Dashboard"
-msgstr ""
+msgstr "Ταμπλώ"
 
 #: templates/sentry/header.html:25
 msgid "Stream"
-msgstr ""
+msgstr "Ροή"
 
 #: templates/sentry/header.html:31 templates/sentry/admin/base.html:17
 #: templates/sentry/admin/projects/list.html:13
@@ -212,77 +214,77 @@ msgstr ""
 #: templates/sentry/admin/users/list_projects.html:12
 #: templates/sentry/projects/members/remove.html:11
 msgid "Projects"
-msgstr ""
+msgstr "Έργα"
 
 #: templates/sentry/header.html:33
 msgid "Manage"
-msgstr ""
+msgstr "Διαχείριση"
 
 #: templates/sentry/header.html:43
 msgid "Account"
-msgstr ""
+msgstr "Λογαριασμός"
 
 #: templates/sentry/header.html:45
 msgid "Settings"
-msgstr ""
+msgstr "Ρυθμίσεις"
 
 #: templates/sentry/header.html:48 templates/sentry/admin/base.html:5
 #: templates/sentry/admin/base.html.py:9
 msgid "Admin"
-msgstr ""
+msgstr "Διαχειριστής"
 
 #: templates/sentry/header.html:51
 msgid "Logout"
-msgstr ""
+msgstr "Αποσύνδεση"
 
 #: templates/sentry/header.html:55 templates/sentry/login.html:5
 #: templates/sentry/login.html.py:31
 msgid "Login"
-msgstr ""
+msgstr "Σύνδεση"
 
 #: templates/sentry/invalid_message_id.html:5 templates/sentry/search.html:6
 msgid "Search"
-msgstr ""
+msgstr "Αναζήτηση"
 
 #: templates/sentry/invalid_message_id.html:8
 msgid "We were unable to find a message matching the ID you entered."
-msgstr ""
+msgstr "Δε μπορέσαμε να βρούμε ένα μήνμα που να ταιριάζει στο ID που δώσατε."
 
 #: templates/sentry/layout.html:74
 msgid "Your Projects"
-msgstr ""
+msgstr "Τα έργα σας"
 
 #: templates/sentry/login.html:15
 msgid "Please login to continue."
-msgstr ""
+msgstr "Παρακαλώ συνδεθείτε, για να προχωρήσετε."
 
 #: templates/sentry/login.html:19
 msgid "Your username and password didn't match. Please try again."
-msgstr ""
+msgstr "Το όνομα χρήστη και ο κωδικός πρόσβασης δεν ταιριάζουν. Παρακαλώ, δοκιμάστε ξανά."
 
 #: templates/sentry/missing_permissions.html:5
 #: templates/sentry/missing_permissions.html:8
 msgid "Forbidden"
-msgstr ""
+msgstr "Απαγορευμένο"
 
 #: templates/sentry/missing_permissions.html:13
 msgid "You do not have access to this page with your current permissions."
-msgstr ""
+msgstr "Δεν έχετε πρόσβαση σε αυτή τη σελίδα με τα τρέχοντα δικαιώματά σας."
 
 #: templates/sentry/search.html:13 templates/sentry/groups/group_list.html:65
 #, python-format
 msgid "Sort by: %(label)s"
-msgstr ""
+msgstr "Ταξινόμηση με: %(label)s"
 
 #: templates/sentry/search.html:31
 msgid "No events match your search query."
-msgstr ""
+msgstr "Κανένα συμβάν δεν ταιριάζει στο ερώτημα αναζήτησής σας."
 
 #: templates/sentry/account/settings.html:5
 #: templates/sentry/account/settings.html:11
 #: templates/sentry/account/settings.html:17
 msgid "Account Settings"
-msgstr ""
+msgstr "Ρυθμίσεις λογαριασμού"
 
 #: templates/sentry/account/settings.html:26
 #: templates/sentry/admin/users/edit.html:20
@@ -290,7 +292,7 @@ msgstr ""
 #: templates/sentry/partial/_form.html:6
 #: templates/sentry/projects/remove.html:19
 msgid "There were errors saving your changes:"
-msgstr ""
+msgstr "Υπήρξαν σφάλματα κατά την αποθήκευση των αλλαγών σας:"
 
 #: templates/sentry/account/settings.html:54
 #: templates/sentry/admin/users/edit.html:32
@@ -299,86 +301,86 @@ msgstr ""
 #: templates/sentry/projects/new.html:32
 #: templates/sentry/projects/members/edit.html:56
 msgid "Save Changes"
-msgstr ""
+msgstr "Αποθήκευση αλλαγών"
 
 #: templates/sentry/admin/base.html:15 templates/sentry/admin/base.html:42
 msgid "Overview"
-msgstr ""
+msgstr "Επισκόπηση"
 
 #: templates/sentry/admin/base.html:18
 #: templates/sentry/admin/users/list.html:12
 msgid "Users"
-msgstr ""
+msgstr "Χρήστες"
 
 #: templates/sentry/admin/base.html:23
 msgid "Plugins"
-msgstr ""
+msgstr "Plugins"
 
 #: templates/sentry/admin/base.html:34
 #: templates/sentry/admin/status/env.html:8
 #: templates/sentry/admin/status/env.html:12
 msgid "Server Status"
-msgstr ""
+msgstr "Κατάσταση εξυπηρετητή"
 
 #: templates/sentry/admin/base.html:36
 #: templates/sentry/admin/status/env.html:17
 #: templates/sentry/partial/interfaces/http.html:123
 msgid "Environment"
-msgstr ""
+msgstr "Περιβάλλον"
 
 #: templates/sentry/admin/base.html:37
 #: templates/sentry/admin/status/packages.html:8
 #: templates/sentry/admin/status/packages.html:12
 msgid "Packages"
-msgstr ""
+msgstr "Πακέτα"
 
 #: templates/sentry/admin/base.html:38
 #: templates/sentry/admin/status/queue.html:41
 msgid "Queue"
-msgstr ""
+msgstr "Ουρά"
 
 #: templates/sentry/admin/base.html:40 templates/sentry/admin/stats.html:17
 msgid "Statistics"
-msgstr ""
+msgstr "Στατιστικά"
 
 #: templates/sentry/admin/stats.html:8 templates/sentry/admin/stats.html:12
 msgid "Stats"
-msgstr ""
+msgstr "Στατιστικά"
 
 #: templates/sentry/admin/projects/list.html:7
 msgid "Manage Projects"
-msgstr ""
+msgstr "Διαχείριση έργων"
 
 #: templates/sentry/admin/projects/list.html:32
 #: templates/sentry/admin/users/list_projects.html:31
 msgid "Project"
-msgstr ""
+msgstr "Έργο"
 
 #: templates/sentry/admin/projects/list.html:33
 #: templates/sentry/admin/users/list_projects.html:32
 msgid "Daily Events"
-msgstr ""
+msgstr "Ημερίσια συμβάντα"
 
 #: templates/sentry/admin/projects/list.html:34
 #: templates/sentry/admin/users/list_projects.html:33
 msgid "Last Event"
-msgstr ""
+msgstr "Τελευταίο συμβάν"
 
 #: templates/sentry/admin/projects/list.html:65
 msgid "There are no active projects in Sentry."
-msgstr ""
+msgstr "Δεν υπάρχουν ενεργά έργα στο Sentry."
 
 #: templates/sentry/admin/status/env.html:26
 msgid "Server Version"
-msgstr ""
+msgstr "Έκδοση Εξυπηρετητή"
 
 #: templates/sentry/admin/status/env.html:30
 msgid "Python Version"
-msgstr ""
+msgstr "Έκδοση Python"
 
 #: templates/sentry/admin/status/env.html:34
 msgid "Configuration File"
-msgstr ""
+msgstr "Αρχείο Ρυθμίσεων"
 
 #: templates/sentry/admin/status/env.html:38
 msgid "Uptime"
@@ -386,31 +388,31 @@ msgstr ""
 
 #: templates/sentry/admin/status/env.html:44
 msgid "Environment not found (are you using the builtin Sentry webserver?)."
-msgstr ""
+msgstr "Το περιβάλλον δε βρέθηκε (χρησιμοποιείτε τον ενσωματωμένο εξυπηρετητή του Sentry;)."
 
 #: templates/sentry/admin/status/env.html:48
 msgid "Configuration"
-msgstr ""
+msgstr "Ρύθμιση"
 
 #: templates/sentry/admin/status/packages.html:17
 msgid "Extensions"
-msgstr ""
+msgstr "Επεκτάσεις"
 
 #: templates/sentry/admin/status/packages.html:34
 msgid "No extensions registered."
-msgstr ""
+msgstr "Καμία εγγεγραμμένη επέκταση."
 
 #: templates/sentry/admin/status/packages.html:37
 msgid "Views"
-msgstr ""
+msgstr "Προβολές"
 
 #: templates/sentry/admin/status/packages.html:54
 msgid "No views registered."
-msgstr ""
+msgstr "Δεν έχουν καταχωρηθεί προβολές."
 
 #: templates/sentry/admin/status/packages.html:57
 msgid "Processors"
-msgstr ""
+msgstr "Επεξεργαστές"
 
 #: templates/sentry/admin/status/packages.html:74
 msgid "No event processors registered."
@@ -418,20 +420,20 @@ msgstr ""
 
 #: templates/sentry/admin/status/packages.html:77
 msgid "Modules"
-msgstr ""
+msgstr "Αρθρώματα"
 
 #: templates/sentry/admin/status/queue.html:8
 #: templates/sentry/admin/status/queue.html:12
 msgid "Queue Status"
-msgstr ""
+msgstr "Κατάασταση Ουράς"
 
 #: templates/sentry/admin/status/queue.html:18
 msgid "Background Processes"
-msgstr ""
+msgstr "Διεργασίες στο background"
 
 #: templates/sentry/admin/status/queue.html:29
 msgid "No information available."
-msgstr ""
+msgstr "Δεν υπάρχει διαθέσιμη πληροφορία."
 
 #: templates/sentry/admin/status/queue.html:32
 #: templates/sentry/admin/status/queue.html:42
@@ -440,29 +442,29 @@ msgstr ""
 
 #: templates/sentry/admin/users/edit.html:6
 msgid "Change User"
-msgstr ""
+msgstr "Αλλάξτε το Χρήστη"
 
 #: templates/sentry/admin/users/edit.html:34
 #: templates/sentry/admin/users/remove.html:5
 #: templates/sentry/admin/users/remove.html:10
 msgid "Remove User"
-msgstr ""
+msgstr "Αφαιρέστε το Χρήστη"
 
 #: templates/sentry/admin/users/edit.html:36
 msgid "Cannot remove yourself"
-msgstr ""
+msgstr "Δεν μπορείτε να αφαιρέσετε τον εαυτό σας"
 
 #: templates/sentry/admin/users/list.html:6
 msgid "Manage Users"
-msgstr ""
+msgstr "Διαχειριστείτε τους Χρήστες"
 
 #: templates/sentry/admin/users/list.html:16
 msgid "Create a new user"
-msgstr ""
+msgstr "Δημιουργήστε ένα καινούριο χρήστη"
 
 #: templates/sentry/admin/users/list.html:35
 msgid "Name"
-msgstr ""
+msgstr "Όνομα"
 
 #: templates/sentry/admin/users/list.html:36
 msgid "Joined"
@@ -470,35 +472,35 @@ msgstr ""
 
 #: templates/sentry/admin/users/list.html:37
 msgid "Last Login"
-msgstr ""
+msgstr "Τελευταία Είσοδος"
 
 #: templates/sentry/admin/users/list.html:77
 msgid "There are no active users in Sentry."
-msgstr ""
+msgstr "Δεν υπάρχουν ενεργοί χρήστες στο Sentry."
 
 #: templates/sentry/admin/users/list_projects.html:56
 msgid "There are no active projects for this user."
-msgstr ""
+msgstr "Δεν υπάρχουν ενεργά έργα για αυτό το χρήστη."
 
 #: templates/sentry/admin/users/new.html:6
 msgid "New User"
-msgstr ""
+msgstr "Νέος Χρήστης"
 
 #: templates/sentry/admin/users/new.html:11
 msgid "Create New User"
-msgstr ""
+msgstr "Δημιουργία νέου χρήστη"
 
 #: templates/sentry/admin/users/remove.html:31
 #: templates/sentry/projects/remove.html:31
 #: templates/sentry/projects/members/remove.html:19
 msgid "Confirm"
-msgstr ""
+msgstr "Επιβεβαίωση"
 
 #: templates/sentry/admin/users/remove.html:31
 #: templates/sentry/projects/remove.html:31
 #: templates/sentry/projects/members/remove.html:19
 msgid "Cancel"
-msgstr ""
+msgstr "Ακύρωση"
 
 #: templates/sentry/events/event_list.html:28
 #: templates/sentry/events/event_list.html:47
@@ -506,7 +508,7 @@ msgstr ""
 #: templates/sentry/groups/group_list.html:110
 #: templates/sentry/partial/_pager.html:5
 msgid "Previous"
-msgstr ""
+msgstr "Προηγούμενο"
 
 #: templates/sentry/events/event_list.html:29
 #: templates/sentry/events/event_list.html:48
@@ -514,7 +516,7 @@ msgstr ""
 #: templates/sentry/groups/group_list.html:111
 #: templates/sentry/partial/_pager.html:6
 msgid "Next"
-msgstr ""
+msgstr "Επόμενο"
 
 #: templates/sentry/events/event_list.html:41
 #: templates/sentry/groups/group_list.html:104
@@ -524,15 +526,15 @@ msgstr ""
 #: templates/sentry/events/replay_request.html:5
 #: templates/sentry/events/replay_request.html:12
 msgid "Replay Request"
-msgstr ""
+msgstr "Επανάληψη αιτήματος"
 
 #: templates/sentry/events/replay_request.html:27
 msgid "Please fill out all fields."
-msgstr ""
+msgstr "Παρακαλώ συμπληρώστε όλα τα πεδία."
 
 #: templates/sentry/events/replay_request.html:36
 msgid "Submit"
-msgstr ""
+msgstr "Καταχώρηση"
 
 #: templates/sentry/groups/details.html:15
 msgid "Aggregate Details"
@@ -540,117 +542,117 @@ msgstr ""
 
 #: templates/sentry/groups/details.html:18
 msgid "Logger:"
-msgstr ""
+msgstr "Καταγραφέας:"
 
 #: templates/sentry/groups/details.html:20
 msgid "Level:"
-msgstr ""
+msgstr "Επίπεδο:"
 
 #: templates/sentry/groups/details.html:22
 msgid "Status:"
-msgstr ""
+msgstr "Κατάσταση:"
 
 #: templates/sentry/groups/details.html:24
 msgid "First Seen:"
-msgstr ""
+msgstr "Πρώτη εμφάνιση:"
 
 #: templates/sentry/groups/details.html:26
 msgid "Last Seen:"
-msgstr ""
+msgstr "Τελευταία εμφάνιση:"
 
 #: templates/sentry/groups/details.html:28
 msgid "Avg Duration:"
-msgstr ""
+msgstr "Μέση διάρκεια:"
 
 #: templates/sentry/groups/details.html:30
 msgid "Checksum:"
-msgstr ""
+msgstr "Checksum:"
 
 #: templates/sentry/groups/details.html:90
 #: templates/sentry/projects/manage.html:17
 #: templates/sentry/projects/members/edit.html:25
 msgid "Details"
-msgstr ""
+msgstr "Λεπτομέρειες"
 
 #: templates/sentry/groups/details.html:93
 msgid "Events"
-msgstr ""
+msgstr "Συμβάντα"
 
 #: templates/sentry/groups/details.html:99
 msgid "Actions"
-msgstr ""
+msgstr "Ενέργειες"
 
 #: templates/sentry/groups/details.html:102
 msgid "Raw JSON Data"
-msgstr ""
+msgstr "Ακατέργαστα δεδομένα JSON"
 
 #: templates/sentry/groups/details.html:116
 #: templates/sentry/groups/event.html:38
 msgid "Full Message"
-msgstr ""
+msgstr "Πλήρες μήνυμα"
 
 #: templates/sentry/groups/details.html:128
 msgid "Get yourself some JavaScripts dood"
-msgstr ""
+msgstr "Βάλε κανά Javascript δικέ μου"
 
 #: templates/sentry/groups/details.html:142
 #: templates/sentry/groups/event.html:50
 msgid "Additional Data"
-msgstr ""
+msgstr "Επιπλέον πληροφορίες"
 
 #: templates/sentry/groups/details.html:152
 #: templates/sentry/groups/event.html:60
 #: templates/sentry/partial/interfaces/http.html:37
 #: templates/sentry/partial/interfaces/http.html:54
 msgid "Body"
-msgstr ""
+msgstr "Σώμα"
 
 #: templates/sentry/groups/details.html:171
 #: templates/sentry/groups/event.html:79
 #, python-format
 msgid "No data for %(varname)s"
-msgstr ""
+msgstr "Καθόλου δεδομένα για %(varname)s"
 
 #: templates/sentry/groups/details.html:183
 #: templates/sentry/groups/event.html:91
 msgid "Module Versions"
-msgstr ""
+msgstr "Εκδόσεις Αρθρωμάτων"
 
 #: templates/sentry/groups/event.html:13
 msgid "Event Details"
-msgstr ""
+msgstr "Λεπτομέρειες συμβάντος"
 
 #: templates/sentry/groups/event.html:16
 msgid "Seen:"
-msgstr ""
+msgstr "Εμφάνιση:"
 
 #: templates/sentry/groups/event.html:18
 msgid "Duration:"
-msgstr ""
+msgstr "Διάρκεια:"
 
 #: templates/sentry/groups/event.html:20
 msgid "Server:"
-msgstr ""
+msgstr "Εξυπηρετητής:"
 
 #: templates/sentry/groups/event.html:22
 msgid "Site:"
-msgstr ""
+msgstr "Ιστότοπος:"
 
 #: templates/sentry/groups/group_list.html:22
 msgid "All"
-msgstr ""
+msgstr "Όλα"
 
 #: templates/sentry/groups/group_list.html:35
 msgid "Bookmarks"
-msgstr ""
+msgstr "Αγαπημένα"
 
 #: templates/sentry/groups/group_list.html:38
 msgid "All Events"
-msgstr ""
+msgstr "Όλα τα συμβάντα"
 
 #: templates/sentry/groups/group_list.html:39
 msgid "Only Bookmarks"
-msgstr ""
+msgstr "Μόνοα Αγαπημένα"
 
 #: templates/sentry/groups/group_list.html:59
 msgid "Resolve Feed"
@@ -658,85 +660,85 @@ msgstr ""
 
 #: templates/sentry/groups/group_list.html:62
 msgid "Pause Feed"
-msgstr ""
+msgstr "Παύση ροής"
 
 #: templates/sentry/groups/group_list.html:82
 #, python-format
 msgid "Since: %(label)s"
-msgstr ""
+msgstr "Από: %(label)s"
 
 #: templates/sentry/partial/interfaces/http.html:6
 msgid "Replay this request"
-msgstr ""
+msgstr "Επανάληψη αυτού του αιτήματος"
 
 #: templates/sentry/partial/interfaces/http.html:7
 msgid "Request"
-msgstr ""
+msgstr "Αίτημα"
 
 #: templates/sentry/partial/interfaces/http.html:16
 msgid "URL:"
-msgstr ""
+msgstr "URL:"
 
 #: templates/sentry/partial/interfaces/http.html:21
 msgid "Method:"
-msgstr ""
+msgstr "Μέθοδος:"
 
 #: templates/sentry/partial/interfaces/http.html:26
 msgid "Query:"
-msgstr ""
+msgstr "Ερώτημα:"
 
 #: templates/sentry/partial/interfaces/http.html:33
 msgid "Body:"
-msgstr ""
+msgstr "Σώμα:"
 
 #: templates/sentry/partial/interfaces/http.html:65
 msgid "Cookies:"
-msgstr ""
+msgstr "Cookies:"
 
 #: templates/sentry/partial/interfaces/http.html:69
 #: templates/sentry/partial/interfaces/http.html:86
 msgid "Cookies"
-msgstr ""
+msgstr "Cookies"
 
 #: templates/sentry/partial/interfaces/http.html:97
 msgid "Headers:"
-msgstr ""
+msgstr "Headers:"
 
 #: templates/sentry/partial/interfaces/http.html:100
 msgid "Headers"
-msgstr ""
+msgstr "Headers"
 
 #: templates/sentry/partial/interfaces/http.html:120
 msgid "Environment:"
-msgstr ""
+msgstr "Περιβάλλον:"
 
 #: templates/sentry/partial/interfaces/stacktrace.html:7
 msgid "Stacktrace"
-msgstr ""
+msgstr "Stacktrace"
 
 #: templates/sentry/partial/interfaces/template.html:6
 msgid "Template Error"
-msgstr ""
+msgstr "Σφάλμα template"
 
 #: templates/sentry/plugins/project_configuration.html:5
 #: templates/sentry/projects/manage.html:32
 #: templates/sentry/projects/members/edit.html:17
 msgid "Changes to your project were saved successfully."
-msgstr ""
+msgstr "Αλλαγές στο έργο σας αποθηκεύτηκαν επιτυχώς."
 
 #: templates/sentry/plugins/site_configuration.html:5
 msgid "Changes to your configuration were saved successfully."
-msgstr ""
+msgstr "Αλλαγές στις ρυθμίσεις σας αποθηκεύτηκαν επιτυχώς."
 
 #: templates/sentry/projects/list.html:5
 #: templates/sentry/projects/list.html:15
 msgid "Project List"
-msgstr ""
+msgstr "Λίστα Έργων"
 
 #: templates/sentry/projects/manage.html:5
 #, python-format
 msgid "Manage Project: %(name)s"
-msgstr ""
+msgstr "Διαχείριση Έργου: %(name)s"
 
 #: templates/sentry/projects/manage.html:26
 msgid ""
@@ -747,47 +749,47 @@ msgstr ""
 #: templates/sentry/projects/manage.html:29
 #: templates/sentry/projects/new.html:20
 msgid "Project Details"
-msgstr ""
+msgstr "Λεπτομέρειες Έργου"
 
 #: templates/sentry/projects/manage.html:35
 #: templates/sentry/projects/members/edit.html:20
 msgid "Please correct the errors below."
-msgstr ""
+msgstr "Παρακαλώ διρθώστε τα παρακάτω λάθη."
 
 #: templates/sentry/projects/manage.html:48
 #: templates/sentry/projects/remove.html:5
 #: templates/sentry/projects/remove.html:10
 msgid "Remove Project"
-msgstr ""
+msgstr "Αφαιρέστε το Έργο"
 
 #: templates/sentry/projects/manage.html:50
 msgid "Cannot remove default project"
-msgstr ""
+msgstr "Το προεπιλεγμένο έργο δεν μπορεί να διαγραφεί"
 
 #: templates/sentry/projects/manage.html:55
 msgid "+ New Member"
-msgstr ""
+msgstr "+ Νέο Μέλος"
 
 #: templates/sentry/projects/manage.html:56
 msgid "Members"
-msgstr ""
+msgstr "Μέλη"
 
 #: templates/sentry/projects/manage.html:66
 msgid "Username"
-msgstr ""
+msgstr "Όνομα χρήστη"
 
 #: templates/sentry/projects/manage.html:67
 #: templates/sentry/projects/members/edit.html:51
 msgid "Access"
-msgstr ""
+msgstr "Πρόσβαση"
 
 #: templates/sentry/projects/manage.html:82
 msgid "Revoke"
-msgstr ""
+msgstr "Ανάκληση"
 
 #: templates/sentry/projects/new.html:5 templates/sentry/projects/new.html:10
 msgid "New Project"
-msgstr ""
+msgstr "Νέο Έργο"
 
 #: templates/sentry/projects/new.html:15
 msgid ""
@@ -798,38 +800,38 @@ msgstr ""
 
 #: templates/sentry/projects/members/edit.html:6
 msgid "Edit Member"
-msgstr ""
+msgstr "Επεξεργασία Μέλους"
 
 #: templates/sentry/projects/members/edit.html:27
 msgid "User"
-msgstr ""
+msgstr "Χρήστης"
 
 #: templates/sentry/projects/members/edit.html:33
 msgid "Public Key"
-msgstr ""
+msgstr "Δημόσιο Κλειδί"
 
 #: templates/sentry/projects/members/edit.html:39
 msgid "Secret Key"
-msgstr ""
+msgstr "Μυστικό Κλειδί"
 
 #: templates/sentry/projects/members/edit.html:45
 msgid "Client DSN"
-msgstr ""
+msgstr "DSN πελάτη"
 
 #: templates/sentry/projects/members/new.html:5
 #: templates/sentry/projects/members/new.html:10
 msgid "New Member"
-msgstr ""
+msgstr "Νέο Μέλος"
 
 #: templates/sentry/projects/members/remove.html:5
 #: templates/sentry/projects/members/remove.html:7
 #: templates/sentry/projects/members/remove.html:13
 msgid "Remove Member"
-msgstr ""
+msgstr "Αφαιρέστε το Μέλος"
 
 #: templates/sentry/projects/members/remove.html:12
 msgid "Manage Project"
-msgstr ""
+msgstr "Διαχειριστείτε το Έργο"
 
 #: templates/sentry/projects/members/remove.html:17
 msgid ""
@@ -839,80 +841,80 @@ msgstr ""
 
 #: templatetags/sentry_helpers.py:76
 msgid "b"
-msgstr ""
+msgstr "b"
 
 #: templatetags/sentry_helpers.py:77
 msgid "m"
-msgstr ""
+msgstr "m"
 
 #: templatetags/sentry_helpers.py:78
 msgid "k"
-msgstr ""
+msgstr "k"
 
 #: templatetags/sentry_helpers.py:221
 msgid "never"
-msgstr ""
+msgstr "ποτέ"
 
 #: templatetags/sentry_helpers.py:225
 msgid "0 minutes"
-msgstr ""
+msgstr "0 λεπτά"
 
 #: templatetags/sentry_helpers.py:226
 msgid "just now"
-msgstr ""
+msgstr "Μόλις τώρα"
 
 #: templatetags/sentry_helpers.py:227
 msgid "1 day"
-msgstr ""
+msgstr "1 μέρα"
 
 #: templatetags/sentry_helpers.py:228
 msgid "yesterday"
-msgstr ""
+msgstr "χτες"
 
 #: templatetags/sentry_helpers.py:229
 msgid " ago"
-msgstr ""
+msgstr " πριν"
 
 #: views/exception.py:16
 msgid "Exception"
-msgstr ""
+msgstr "Εξαίρεση"
 
 #: views/exception.py:17
 msgid "Exceptions"
-msgstr ""
+msgstr "Εξαιρέσεις"
 
 #: views/message.py:16
 msgid "Message"
-msgstr ""
+msgstr "Μήνυμα"
 
 #: views/message.py:17
 msgid "Messages"
-msgstr ""
+msgstr "Μηνύματα"
 
 #: views/query.py:16
 msgid "Query"
-msgstr ""
+msgstr "Ερώτημα"
 
 #: views/query.py:17
 msgid "Queries"
-msgstr ""
+msgstr "Ερωτήματα"
 
 #: web/forms.py:173
 msgid "Old password"
-msgstr ""
+msgstr "Παλιός κωδικός"
 
 #: web/forms.py:176
 msgid "New password"
-msgstr ""
+msgstr "Νέος κωδικός"
 
 #: web/forms.py:177
 msgid "New password confirmation"
-msgstr ""
+msgstr "Επιβεβαίωση νέου κωδικού"
 
 #: web/forms.py:188
 msgid "The two password fields didn't match."
-msgstr ""
+msgstr "Τα δύο πεδία κωδικού δεν ταίριαξαν."
 
 #: web/forms.py:197
 msgid "Your old password was entered incorrectly. Please enter it again."
-msgstr ""
+msgstr "Ο προηγούμενος κωδικός σας εισήχθη λανθασμένα. Παρακαλώ, ξαναεισάγετέ τον."

@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: https://github.com/dcramer/sentry/issues\n"
-"POT-Creation-Date: 2012-02-17 23:25+0000\n"
-"PO-Revision-Date: 2012-02-18 03:16+0000\n"
+"POT-Creation-Date: 2012-02-18 07:59+0000\n"
+"PO-Revision-Date: 2012-02-18 15:31+0000\n"
 "Last-Translator: Alex Gaynor <alex.gaynor@gmail.com>\n"
 "Language-Team: Hebrew (http://www.transifex.net/projects/p/sentry/language/he/)\n"
 "MIME-Version: 1.0\n"
@@ -174,7 +174,7 @@ msgstr ""
 
 #: templates/sentry/404.html:15
 msgid "The page you are looking for was not found."
-msgstr ""
+msgstr "העמוד שאתה מחפש לא נמצא."
 
 #: templates/sentry/404.html:16
 msgid "Return to the dashboard"
@@ -220,7 +220,7 @@ msgstr ""
 
 #: templates/sentry/header.html:43
 msgid "Account"
-msgstr ""
+msgstr "חשבון"
 
 #: templates/sentry/header.html:45
 msgid "Settings"
@@ -242,7 +242,7 @@ msgstr ""
 
 #: templates/sentry/invalid_message_id.html:5 templates/sentry/search.html:6
 msgid "Search"
-msgstr ""
+msgstr "חיפוש"
 
 #: templates/sentry/invalid_message_id.html:8
 msgid "We were unable to find a message matching the ID you entered."
@@ -250,7 +250,7 @@ msgstr ""
 
 #: templates/sentry/layout.html:74
 msgid "Your Projects"
-msgstr ""
+msgstr "הפרויקטים שלך"
 
 #: templates/sentry/login.html:15
 msgid "Please login to continue."
@@ -263,7 +263,7 @@ msgstr ""
 #: templates/sentry/missing_permissions.html:5
 #: templates/sentry/missing_permissions.html:8
 msgid "Forbidden"
-msgstr ""
+msgstr "אסור"
 
 #: templates/sentry/missing_permissions.html:13
 msgid "You do not have access to this page with your current permissions."
@@ -290,7 +290,7 @@ msgstr ""
 #: templates/sentry/partial/_form.html:6
 #: templates/sentry/projects/remove.html:19
 msgid "There were errors saving your changes:"
-msgstr ""
+msgstr "היו שגיאות תוך שמירת השינויים:"
 
 #: templates/sentry/account/settings.html:54
 #: templates/sentry/admin/users/edit.html:32
@@ -299,7 +299,7 @@ msgstr ""
 #: templates/sentry/projects/new.html:32
 #: templates/sentry/projects/members/edit.html:56
 msgid "Save Changes"
-msgstr ""
+msgstr "שמור שינויים"
 
 #: templates/sentry/admin/base.html:15 templates/sentry/admin/base.html:42
 msgid "Overview"
@@ -544,7 +544,7 @@ msgstr ""
 
 #: templates/sentry/groups/details.html:20
 msgid "Level:"
-msgstr ""
+msgstr "רמה:"
 
 #: templates/sentry/groups/details.html:22
 msgid "Status:"
@@ -663,7 +663,7 @@ msgstr ""
 #: templates/sentry/groups/group_list.html:82
 #, python-format
 msgid "Since: %(label)s"
-msgstr ""
+msgstr "מאז: %(label)s"
 
 #: templates/sentry/partial/interfaces/http.html:6
 msgid "Replay this request"
@@ -722,7 +722,7 @@ msgstr ""
 #: templates/sentry/projects/manage.html:32
 #: templates/sentry/projects/members/edit.html:17
 msgid "Changes to your project were saved successfully."
-msgstr ""
+msgstr "השינויים לפרויקט שלך נשמרו בהצלחה."
 
 #: templates/sentry/plugins/site_configuration.html:5
 msgid "Changes to your configuration were saved successfully."
@@ -731,7 +731,7 @@ msgstr ""
 #: templates/sentry/projects/list.html:5
 #: templates/sentry/projects/list.html:15
 msgid "Project List"
-msgstr ""
+msgstr "רשימת פרוייקטים"
 
 #: templates/sentry/projects/manage.html:5
 #, python-format
@@ -752,7 +752,7 @@ msgstr ""
 #: templates/sentry/projects/manage.html:35
 #: templates/sentry/projects/members/edit.html:20
 msgid "Please correct the errors below."
-msgstr ""
+msgstr "נא לתקן את השגיאות."
 
 #: templates/sentry/projects/manage.html:48
 #: templates/sentry/projects/remove.html:5
@@ -806,11 +806,11 @@ msgstr ""
 
 #: templates/sentry/projects/members/edit.html:33
 msgid "Public Key"
-msgstr ""
+msgstr "מפתח פומבי"
 
 #: templates/sentry/projects/members/edit.html:39
 msgid "Secret Key"
-msgstr ""
+msgstr "מפתח סודי"
 
 #: templates/sentry/projects/members/edit.html:45
 msgid "Client DSN"
@@ -899,11 +899,11 @@ msgstr ""
 
 #: web/forms.py:173
 msgid "Old password"
-msgstr ""
+msgstr "סיסמא ישנה"
 
 #: web/forms.py:176
 msgid "New password"
-msgstr ""
+msgstr "סיסמה חדשה"
 
 #: web/forms.py:177
 msgid "New password confirmation"

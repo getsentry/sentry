@@ -10,11 +10,20 @@ LESS_COMPRESSOR ?= `which lessc`
 UGLIFY_JS ?= `which uglifyjs`
 WATCHR ?= `which watchr`
 
+build: static locale
+
+#
+# Compile language files
+#
+
+locale:
+	cd sentry && sentry compilemessages
+
 #
 # Build less files
 #
 
-build:
+static:
 	lessc ${BOOTSTRAP_LESS} > ${GLOBAL_CSS};
 	lessc ${BOOTSTRAP_LESS} > ${GLOBAL_CSS_MIN} --compress;
 	cat sentry/static/scripts/sentry.core.js sentry/static/scripts/sentry.realtime.js sentry/static/scripts/sentry.charts.js sentry/static/scripts/sentry.notifications.js sentry/static/scripts/sentry.stream.js > ${GLOBAL_JS};
