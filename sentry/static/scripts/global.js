@@ -499,6 +499,8 @@ if (Sentry === undefined) {
                 return;
             }
             $row.remove();
+        } else if (!is_new) {
+            $row.remove();
         }
 
         // if the row doesnt outrank any existing elements
