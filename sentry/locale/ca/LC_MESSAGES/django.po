@@ -1,0 +1,918 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# 
+# Translators:
+# Antoni Aloy <antoni.aloy@trespams.com>, 2012.
+msgid ""
+msgstr ""
+"Project-Id-Version: sentry\n"
+"Report-Msgid-Bugs-To: https://github.com/dcramer/sentry/issues\n"
+"POT-Creation-Date: 2012-02-18 07:59+0000\n"
+"PO-Revision-Date: 2012-02-18 11:22+0000\n"
+"Last-Translator: Antoni Aloy <antoni.aloy@trespams.com>\n"
+"Language-Team: Catalan (http://www.transifex.net/projects/p/sentry/language/ca/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: ca\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+
+#: constants.py:6
+msgid "Priority"
+msgstr "Prioritat"
+
+#: constants.py:7 constants.py:35
+#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:24
+#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:24
+#: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:24
+#: templates/sentry/search.html:15
+msgid "Last Seen"
+msgstr "Vist per darrera vegada"
+
+#: constants.py:8 constants.py:36
+#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:23
+#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:23
+#: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:23
+#: templates/sentry/search.html:17
+msgid "First Seen"
+msgstr "Vist per primera vegada"
+
+#: constants.py:9 templates/sentry/groups/details.html:124
+msgid "Frequency"
+msgstr "Freqüència"
+
+#: constants.py:10
+msgid "Total Time Spent"
+msgstr "Temps totalemprat"
+
+#: constants.py:11
+msgid "Average Time Spent"
+msgstr "Temps mig emprat"
+
+#: constants.py:12 constants.py:13
+#, python-format
+msgid "Trending: %(minutes)d minutes"
+msgstr "Tendència: %(minutes)d minuts"
+
+#: constants.py:34 templates/sentry/search.html:16
+msgid "Score"
+msgstr "Marcador"
+
+#: constants.py:39
+msgid "All time"
+msgstr "Tot el temps"
+
+#: constants.py:40
+msgid "30 days"
+msgstr "30 dies"
+
+#: constants.py:41
+msgid "7 days"
+msgstr "7 dies"
+
+#: constants.py:42
+msgid "3 days"
+msgstr "3 dies"
+
+#: constants.py:43
+msgid "24 hours"
+msgstr "24 hores"
+
+#: models.py:41
+msgid "unresolved"
+msgstr "no resolt"
+
+#: models.py:42
+msgid "resolved"
+msgstr "resolt"
+
+#: models.py:47
+msgid "server name"
+msgstr "nom del servidor"
+
+#: models.py:48
+msgid "logger"
+msgstr "logger"
+
+#: models.py:49
+msgid "site"
+msgstr "lloc"
+
+#: models.py:56
+msgid "owner"
+msgstr "propietari"
+
+#: models.py:57
+msgid "user"
+msgstr "usuari"
+
+#: models.py:58
+msgid "system agent"
+msgstr "agent del sistema"
+
+#: models.py:294
+msgid "error"
+msgstr "error"
+
+#: models.py:323
+msgid "grouped messages"
+msgstr "missatges agrupats"
+
+#: models.py:324
+msgid "grouped message"
+msgstr "missatge agrupat"
+
+#: models.py:396
+msgid "message"
+msgstr "missatge"
+
+#: models.py:397
+msgid "messages"
+msgstr "missatges"
+
+#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:21
+msgid "Server Name"
+msgstr "Nom del servidor"
+
+#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:22
+#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:22
+#: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:22
+msgid "Times Seen"
+msgstr "Nombre de vegades vist"
+
+#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:41
+#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:41
+#: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:41
+#: templates/sentry/groups/event_list.html:23
+msgid "There are no records recorded for this event."
+msgstr "No hi ha registres associats a aquest event."
+
+#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/widget.html:5
+msgid "Servers"
+msgstr "Servidors"
+
+#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:21
+msgid "Site Name"
+msgstr "Nom del lloc"
+
+#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/widget.html:5
+msgid "Sites"
+msgstr "Llocs"
+
+#: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:21
+msgid "URL"
+msgstr "URL"
+
+#: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/widget.html:5
+msgid "URLs"
+msgstr "URLs"
+
+#: templates/sentry/404.html:5 templates/sentry/404.html.py:10
+msgid "Page Not Found"
+msgstr "Plana no trobada"
+
+#: templates/sentry/404.html:15
+msgid "The page you are looking for was not found."
+msgstr "No hem pogut trobar la plana que cerques."
+
+#: templates/sentry/404.html:16
+msgid "Return to the dashboard"
+msgstr "Retorna al panell de control"
+
+#: templates/sentry/500.html:5 templates/sentry/500.html.py:10
+msgid "Internal Server Error"
+msgstr "Error intern del sistema"
+
+#: templates/sentry/500.html:15
+msgid "There was an internal server error while processing your request."
+msgstr "Ha ocorregut un error intern del sistema mentre es processava la teva petició."
+
+#: templates/sentry/500.html:17
+#, python-format
+msgid "You may reference this error as <strong>%(id)s</strong>."
+msgstr "Pots fer referència a aquest error com <strong>%(id)s</strong>."
+
+#: templates/sentry/dashboard.html:5
+msgid "Select a Project"
+msgstr "Selecciona un projecte"
+
+#: templates/sentry/header.html:24
+msgid "Dashboard"
+msgstr "Panell de control"
+
+#: templates/sentry/header.html:25
+msgid "Stream"
+msgstr "Fluxe"
+
+#: templates/sentry/header.html:31 templates/sentry/admin/base.html:17
+#: templates/sentry/admin/projects/list.html:13
+#: templates/sentry/admin/users/list.html:38
+#: templates/sentry/admin/users/list_projects.html:7
+#: templates/sentry/admin/users/list_projects.html:12
+#: templates/sentry/projects/members/remove.html:11
+msgid "Projects"
+msgstr "Projectes"
+
+#: templates/sentry/header.html:33
+msgid "Manage"
+msgstr "Gestionar"
+
+#: templates/sentry/header.html:43
+msgid "Account"
+msgstr "Compta"
+
+#: templates/sentry/header.html:45
+msgid "Settings"
+msgstr "Configuració"
+
+#: templates/sentry/header.html:48 templates/sentry/admin/base.html:5
+#: templates/sentry/admin/base.html.py:9
+msgid "Admin"
+msgstr "Administració"
+
+#: templates/sentry/header.html:51
+msgid "Logout"
+msgstr "Sortir"
+
+#: templates/sentry/header.html:55 templates/sentry/login.html:5
+#: templates/sentry/login.html.py:31
+msgid "Login"
+msgstr "Entrar"
+
+#: templates/sentry/invalid_message_id.html:5 templates/sentry/search.html:6
+msgid "Search"
+msgstr "Cercar"
+
+#: templates/sentry/invalid_message_id.html:8
+msgid "We were unable to find a message matching the ID you entered."
+msgstr "No he pogut trobar cap missatge que casi amb l'ID que has introduït"
+
+#: templates/sentry/layout.html:74
+msgid "Your Projects"
+msgstr "Els teus projectes"
+
+#: templates/sentry/login.html:15
+msgid "Please login to continue."
+msgstr "Per favor, registra't per continuar."
+
+#: templates/sentry/login.html:19
+msgid "Your username and password didn't match. Please try again."
+msgstr "El teu usuari i clau no casen. Per favor, intenta-ho de nou."
+
+#: templates/sentry/missing_permissions.html:5
+#: templates/sentry/missing_permissions.html:8
+msgid "Forbidden"
+msgstr "Prohibit"
+
+#: templates/sentry/missing_permissions.html:13
+msgid "You do not have access to this page with your current permissions."
+msgstr "No tens accés a aquesta plana amb els teus permisos actuals."
+
+#: templates/sentry/search.html:13 templates/sentry/groups/group_list.html:65
+#, python-format
+msgid "Sort by: %(label)s"
+msgstr "Ordena per: %(label)s"
+
+#: templates/sentry/search.html:31
+msgid "No events match your search query."
+msgstr "No hi ha events que casin amb la teva cerca."
+
+#: templates/sentry/account/settings.html:5
+#: templates/sentry/account/settings.html:11
+#: templates/sentry/account/settings.html:17
+msgid "Account Settings"
+msgstr "Configuració del compte"
+
+#: templates/sentry/account/settings.html:26
+#: templates/sentry/admin/users/edit.html:20
+#: templates/sentry/admin/users/remove.html:19
+#: templates/sentry/partial/_form.html:6
+#: templates/sentry/projects/remove.html:19
+msgid "There were errors saving your changes:"
+msgstr "S'ha produït un error guardant els teus canvis."
+
+#: templates/sentry/account/settings.html:54
+#: templates/sentry/admin/users/edit.html:32
+#: templates/sentry/partial/_form.html:18
+#: templates/sentry/projects/manage.html:46
+#: templates/sentry/projects/new.html:32
+#: templates/sentry/projects/members/edit.html:56
+msgid "Save Changes"
+msgstr "Guardar els canvis"
+
+#: templates/sentry/admin/base.html:15 templates/sentry/admin/base.html:42
+msgid "Overview"
+msgstr "Resum"
+
+#: templates/sentry/admin/base.html:18
+#: templates/sentry/admin/users/list.html:12
+msgid "Users"
+msgstr "Usuaris"
+
+#: templates/sentry/admin/base.html:23
+msgid "Plugins"
+msgstr "Afegits"
+
+#: templates/sentry/admin/base.html:34
+#: templates/sentry/admin/status/env.html:8
+#: templates/sentry/admin/status/env.html:12
+msgid "Server Status"
+msgstr "Estat del servidor"
+
+#: templates/sentry/admin/base.html:36
+#: templates/sentry/admin/status/env.html:17
+#: templates/sentry/partial/interfaces/http.html:123
+msgid "Environment"
+msgstr "Entorn"
+
+#: templates/sentry/admin/base.html:37
+#: templates/sentry/admin/status/packages.html:8
+#: templates/sentry/admin/status/packages.html:12
+msgid "Packages"
+msgstr "Paquets"
+
+#: templates/sentry/admin/base.html:38
+#: templates/sentry/admin/status/queue.html:41
+msgid "Queue"
+msgstr "Coa"
+
+#: templates/sentry/admin/base.html:40 templates/sentry/admin/stats.html:17
+msgid "Statistics"
+msgstr "Estadístiques"
+
+#: templates/sentry/admin/stats.html:8 templates/sentry/admin/stats.html:12
+msgid "Stats"
+msgstr "Estadístiques"
+
+#: templates/sentry/admin/projects/list.html:7
+msgid "Manage Projects"
+msgstr "Gestionar els projectes"
+
+#: templates/sentry/admin/projects/list.html:32
+#: templates/sentry/admin/users/list_projects.html:31
+msgid "Project"
+msgstr "Projecte"
+
+#: templates/sentry/admin/projects/list.html:33
+#: templates/sentry/admin/users/list_projects.html:32
+msgid "Daily Events"
+msgstr "Events diaris"
+
+#: templates/sentry/admin/projects/list.html:34
+#: templates/sentry/admin/users/list_projects.html:33
+msgid "Last Event"
+msgstr "Darrer event"
+
+#: templates/sentry/admin/projects/list.html:65
+msgid "There are no active projects in Sentry."
+msgstr "No hi ha projectes actius al Sentry"
+
+#: templates/sentry/admin/status/env.html:26
+msgid "Server Version"
+msgstr "Versió del servidor"
+
+#: templates/sentry/admin/status/env.html:30
+msgid "Python Version"
+msgstr "Versió de Python"
+
+#: templates/sentry/admin/status/env.html:34
+msgid "Configuration File"
+msgstr "Fitxer de configuració"
+
+#: templates/sentry/admin/status/env.html:38
+msgid "Uptime"
+msgstr "Engegat"
+
+#: templates/sentry/admin/status/env.html:44
+msgid "Environment not found (are you using the builtin Sentry webserver?)."
+msgstr "Entorn no trobat (estàs fent servir el servidor web encastat de Sentry?)."
+
+#: templates/sentry/admin/status/env.html:48
+msgid "Configuration"
+msgstr "Configuració"
+
+#: templates/sentry/admin/status/packages.html:17
+msgid "Extensions"
+msgstr "Extensions"
+
+#: templates/sentry/admin/status/packages.html:34
+msgid "No extensions registered."
+msgstr "No hi ha extensions enregistrades."
+
+#: templates/sentry/admin/status/packages.html:37
+msgid "Views"
+msgstr "Vistes"
+
+#: templates/sentry/admin/status/packages.html:54
+msgid "No views registered."
+msgstr "No hi ha vistes enregistrades."
+
+#: templates/sentry/admin/status/packages.html:57
+msgid "Processors"
+msgstr "Processos"
+
+#: templates/sentry/admin/status/packages.html:74
+msgid "No event processors registered."
+msgstr "No hi ha registrats events de processos."
+
+#: templates/sentry/admin/status/packages.html:77
+msgid "Modules"
+msgstr "Mòduls"
+
+#: templates/sentry/admin/status/queue.html:8
+#: templates/sentry/admin/status/queue.html:12
+msgid "Queue Status"
+msgstr "Estad de la coa"
+
+#: templates/sentry/admin/status/queue.html:18
+msgid "Background Processes"
+msgstr "Processos en segon pla"
+
+#: templates/sentry/admin/status/queue.html:29
+msgid "No information available."
+msgstr "No hi ha informació disponible"
+
+#: templates/sentry/admin/status/queue.html:32
+#: templates/sentry/admin/status/queue.html:42
+msgid "Pending Tasks"
+msgstr "Tasques pendents"
+
+#: templates/sentry/admin/users/edit.html:6
+msgid "Change User"
+msgstr "Canviar usuari"
+
+#: templates/sentry/admin/users/edit.html:34
+#: templates/sentry/admin/users/remove.html:5
+#: templates/sentry/admin/users/remove.html:10
+msgid "Remove User"
+msgstr "Eliminar usuari"
+
+#: templates/sentry/admin/users/edit.html:36
+msgid "Cannot remove yourself"
+msgstr "No te pots eliminar a tu mateix"
+
+#: templates/sentry/admin/users/list.html:6
+msgid "Manage Users"
+msgstr "Gestionar usuaris"
+
+#: templates/sentry/admin/users/list.html:16
+msgid "Create a new user"
+msgstr "Crear un nou usuari"
+
+#: templates/sentry/admin/users/list.html:35
+msgid "Name"
+msgstr "Nom"
+
+#: templates/sentry/admin/users/list.html:36
+msgid "Joined"
+msgstr "unit"
+
+#: templates/sentry/admin/users/list.html:37
+msgid "Last Login"
+msgstr "Darrera entrada"
+
+#: templates/sentry/admin/users/list.html:77
+msgid "There are no active users in Sentry."
+msgstr "No hi ha usuaris actius a Sentry."
+
+#: templates/sentry/admin/users/list_projects.html:56
+msgid "There are no active projects for this user."
+msgstr "No hi ha projectes actius per aquest usuari."
+
+#: templates/sentry/admin/users/new.html:6
+msgid "New User"
+msgstr "Nou usuari"
+
+#: templates/sentry/admin/users/new.html:11
+msgid "Create New User"
+msgstr "Crear un nou usuari"
+
+#: templates/sentry/admin/users/remove.html:31
+#: templates/sentry/projects/remove.html:31
+#: templates/sentry/projects/members/remove.html:19
+msgid "Confirm"
+msgstr "Confirma"
+
+#: templates/sentry/admin/users/remove.html:31
+#: templates/sentry/projects/remove.html:31
+#: templates/sentry/projects/members/remove.html:19
+msgid "Cancel"
+msgstr "Cancel·la"
+
+#: templates/sentry/events/event_list.html:28
+#: templates/sentry/events/event_list.html:47
+#: templates/sentry/groups/group_list.html:90
+#: templates/sentry/groups/group_list.html:110
+#: templates/sentry/partial/_pager.html:5
+msgid "Previous"
+msgstr "Anterior"
+
+#: templates/sentry/events/event_list.html:29
+#: templates/sentry/events/event_list.html:48
+#: templates/sentry/groups/group_list.html:91
+#: templates/sentry/groups/group_list.html:111
+#: templates/sentry/partial/_pager.html:6
+msgid "Next"
+msgstr "Següent"
+
+#: templates/sentry/events/event_list.html:41
+#: templates/sentry/groups/group_list.html:104
+msgid "No events match your filters."
+msgstr "No hi ha events que casin amb els teus filtres"
+
+#: templates/sentry/events/replay_request.html:5
+#: templates/sentry/events/replay_request.html:12
+msgid "Replay Request"
+msgstr ""
+
+#: templates/sentry/events/replay_request.html:27
+msgid "Please fill out all fields."
+msgstr "Per favor, omple tots els camps"
+
+#: templates/sentry/events/replay_request.html:36
+msgid "Submit"
+msgstr "Enviar"
+
+#: templates/sentry/groups/details.html:15
+msgid "Aggregate Details"
+msgstr "Detals agregats"
+
+#: templates/sentry/groups/details.html:18
+msgid "Logger:"
+msgstr "Logger:"
+
+#: templates/sentry/groups/details.html:20
+msgid "Level:"
+msgstr "Nivell:"
+
+#: templates/sentry/groups/details.html:22
+msgid "Status:"
+msgstr "Estat:"
+
+#: templates/sentry/groups/details.html:24
+msgid "First Seen:"
+msgstr "Vist 1a vegada:"
+
+#: templates/sentry/groups/details.html:26
+msgid "Last Seen:"
+msgstr "Vist per darrera vegada:"
+
+#: templates/sentry/groups/details.html:28
+msgid "Avg Duration:"
+msgstr "Durada mitjana:"
+
+#: templates/sentry/groups/details.html:30
+msgid "Checksum:"
+msgstr "Verificació:"
+
+#: templates/sentry/groups/details.html:90
+#: templates/sentry/projects/manage.html:17
+#: templates/sentry/projects/members/edit.html:25
+msgid "Details"
+msgstr "Detalls"
+
+#: templates/sentry/groups/details.html:93
+msgid "Events"
+msgstr "Events"
+
+#: templates/sentry/groups/details.html:99
+msgid "Actions"
+msgstr "Accions"
+
+#: templates/sentry/groups/details.html:102
+msgid "Raw JSON Data"
+msgstr "Dades JSON en cruu"
+
+#: templates/sentry/groups/details.html:116
+#: templates/sentry/groups/event.html:38
+msgid "Full Message"
+msgstr "Missatge complet"
+
+#: templates/sentry/groups/details.html:128
+msgid "Get yourself some JavaScripts dood"
+msgstr "Obté el Javascript"
+
+#: templates/sentry/groups/details.html:142
+#: templates/sentry/groups/event.html:50
+msgid "Additional Data"
+msgstr "Dades addicionals"
+
+#: templates/sentry/groups/details.html:152
+#: templates/sentry/groups/event.html:60
+#: templates/sentry/partial/interfaces/http.html:37
+#: templates/sentry/partial/interfaces/http.html:54
+msgid "Body"
+msgstr "Cos"
+
+#: templates/sentry/groups/details.html:171
+#: templates/sentry/groups/event.html:79
+#, python-format
+msgid "No data for %(varname)s"
+msgstr "No hi ha dades per %(varname)s"
+
+#: templates/sentry/groups/details.html:183
+#: templates/sentry/groups/event.html:91
+msgid "Module Versions"
+msgstr "Versions del mòdul"
+
+#: templates/sentry/groups/event.html:13
+msgid "Event Details"
+msgstr "Detalls de l'event"
+
+#: templates/sentry/groups/event.html:16
+msgid "Seen:"
+msgstr "Vist:"
+
+#: templates/sentry/groups/event.html:18
+msgid "Duration:"
+msgstr "Durada:"
+
+#: templates/sentry/groups/event.html:20
+msgid "Server:"
+msgstr "Servidor:"
+
+#: templates/sentry/groups/event.html:22
+msgid "Site:"
+msgstr "Lloc:"
+
+#: templates/sentry/groups/group_list.html:22
+msgid "All"
+msgstr "Tot"
+
+#: templates/sentry/groups/group_list.html:35
+msgid "Bookmarks"
+msgstr "Marcadors"
+
+#: templates/sentry/groups/group_list.html:38
+msgid "All Events"
+msgstr "Tots els events"
+
+#: templates/sentry/groups/group_list.html:39
+msgid "Only Bookmarks"
+msgstr "Sols marcadors"
+
+#: templates/sentry/groups/group_list.html:59
+msgid "Resolve Feed"
+msgstr "Resol el Feed"
+
+#: templates/sentry/groups/group_list.html:62
+msgid "Pause Feed"
+msgstr "Aturar el Feed"
+
+#: templates/sentry/groups/group_list.html:82
+#, python-format
+msgid "Since: %(label)s"
+msgstr "Des de: %(label)s"
+
+#: templates/sentry/partial/interfaces/http.html:6
+msgid "Replay this request"
+msgstr ""
+
+#: templates/sentry/partial/interfaces/http.html:7
+msgid "Request"
+msgstr "Petició"
+
+#: templates/sentry/partial/interfaces/http.html:16
+msgid "URL:"
+msgstr "URL:"
+
+#: templates/sentry/partial/interfaces/http.html:21
+msgid "Method:"
+msgstr "Mètode:"
+
+#: templates/sentry/partial/interfaces/http.html:26
+msgid "Query:"
+msgstr "Consulta:"
+
+#: templates/sentry/partial/interfaces/http.html:33
+msgid "Body:"
+msgstr "Cos:"
+
+#: templates/sentry/partial/interfaces/http.html:65
+msgid "Cookies:"
+msgstr "Galletes:"
+
+#: templates/sentry/partial/interfaces/http.html:69
+#: templates/sentry/partial/interfaces/http.html:86
+msgid "Cookies"
+msgstr "Galletes"
+
+#: templates/sentry/partial/interfaces/http.html:97
+msgid "Headers:"
+msgstr "Capçaleres:"
+
+#: templates/sentry/partial/interfaces/http.html:100
+msgid "Headers"
+msgstr "Capçaleres"
+
+#: templates/sentry/partial/interfaces/http.html:120
+msgid "Environment:"
+msgstr "Entorn:"
+
+#: templates/sentry/partial/interfaces/stacktrace.html:7
+msgid "Stacktrace"
+msgstr "Pila d'error"
+
+#: templates/sentry/partial/interfaces/template.html:6
+msgid "Template Error"
+msgstr "Plantilla d'error"
+
+#: templates/sentry/plugins/project_configuration.html:5
+#: templates/sentry/projects/manage.html:32
+#: templates/sentry/projects/members/edit.html:17
+msgid "Changes to your project were saved successfully."
+msgstr "Els canvis al teu projecte s'han guardat satisfactòriament."
+
+#: templates/sentry/plugins/site_configuration.html:5
+msgid "Changes to your configuration were saved successfully."
+msgstr "Els canvis a la teva configuració s'han guardat satisfactòriament."
+
+#: templates/sentry/projects/list.html:5
+#: templates/sentry/projects/list.html:15
+msgid "Project List"
+msgstr "Llista de projectes"
+
+#: templates/sentry/projects/manage.html:5
+#, python-format
+msgid "Manage Project: %(name)s"
+msgstr "Gestiona el projecte: %(name)s"
+
+#: templates/sentry/projects/manage.html:26
+msgid ""
+"Here you can edit project information, as well as control the access list "
+"for a project with fine-grained permissions."
+msgstr "Aquí pots editar la informació del projecte, així com controlar la llista d'accés del mateix amb permisos fins."
+
+#: templates/sentry/projects/manage.html:29
+#: templates/sentry/projects/new.html:20
+msgid "Project Details"
+msgstr "Detalls del projecte"
+
+#: templates/sentry/projects/manage.html:35
+#: templates/sentry/projects/members/edit.html:20
+msgid "Please correct the errors below."
+msgstr "Per favor corregeix els següents errors"
+
+#: templates/sentry/projects/manage.html:48
+#: templates/sentry/projects/remove.html:5
+#: templates/sentry/projects/remove.html:10
+msgid "Remove Project"
+msgstr "Eliminar projecte"
+
+#: templates/sentry/projects/manage.html:50
+msgid "Cannot remove default project"
+msgstr "No pots eliminar el projecte per defecte"
+
+#: templates/sentry/projects/manage.html:55
+msgid "+ New Member"
+msgstr "+ Nou membre"
+
+#: templates/sentry/projects/manage.html:56
+msgid "Members"
+msgstr "Membres"
+
+#: templates/sentry/projects/manage.html:66
+msgid "Username"
+msgstr "Nom d'usuari"
+
+#: templates/sentry/projects/manage.html:67
+#: templates/sentry/projects/members/edit.html:51
+msgid "Access"
+msgstr "Accés"
+
+#: templates/sentry/projects/manage.html:82
+msgid "Revoke"
+msgstr "Revoca"
+
+#: templates/sentry/projects/new.html:5 templates/sentry/projects/new.html:10
+msgid "New Project"
+msgstr "Nou projecte"
+
+#: templates/sentry/projects/new.html:15
+msgid ""
+"Use this page to create a new project within Sentry. Once done, you'll be "
+"able to add members (whether they're system or actual users), as well as "
+"configure your client to send messages to this project."
+msgstr "Fes servir aquesta plana per crear un nou projecte amb Sentry. Una vegada fet, podràs afegir membres (tant si són de sistema com usuaris actuals), així com configurar el teu client per enviar missatges al projecte."
+
+#: templates/sentry/projects/members/edit.html:6
+msgid "Edit Member"
+msgstr "Editar membre"
+
+#: templates/sentry/projects/members/edit.html:27
+msgid "User"
+msgstr "Usuari"
+
+#: templates/sentry/projects/members/edit.html:33
+msgid "Public Key"
+msgstr "Clau pública"
+
+#: templates/sentry/projects/members/edit.html:39
+msgid "Secret Key"
+msgstr "Clau secreta"
+
+#: templates/sentry/projects/members/edit.html:45
+msgid "Client DSN"
+msgstr "Client DSN"
+
+#: templates/sentry/projects/members/new.html:5
+#: templates/sentry/projects/members/new.html:10
+msgid "New Member"
+msgstr "Nou membre"
+
+#: templates/sentry/projects/members/remove.html:5
+#: templates/sentry/projects/members/remove.html:7
+#: templates/sentry/projects/members/remove.html:13
+msgid "Remove Member"
+msgstr "Eliminar membre"
+
+#: templates/sentry/projects/members/remove.html:12
+msgid "Manage Project"
+msgstr "Gestionar el projecte"
+
+#: templates/sentry/projects/members/remove.html:17
+msgid ""
+"Are you sure you wish to revoke this user's access? <strong>This change is "
+"permanent and will revoke their API keys immediately.</strong>"
+msgstr "Segur que vols eliminar l'accés d'aquest usuari? <strong>Aquest canvi és permanent i revocarà les seves claus de l'API immediatament.</strong>"
+
+#: templatetags/sentry_helpers.py:76
+msgid "b"
+msgstr "b"
+
+#: templatetags/sentry_helpers.py:77
+msgid "m"
+msgstr "m"
+
+#: templatetags/sentry_helpers.py:78
+msgid "k"
+msgstr "k"
+
+#: templatetags/sentry_helpers.py:221
+msgid "never"
+msgstr "mai"
+
+#: templatetags/sentry_helpers.py:225
+msgid "0 minutes"
+msgstr "0 minuts"
+
+#: templatetags/sentry_helpers.py:226
+msgid "just now"
+msgstr "just ara"
+
+#: templatetags/sentry_helpers.py:227
+msgid "1 day"
+msgstr "1 dia"
+
+#: templatetags/sentry_helpers.py:228
+msgid "yesterday"
+msgstr "ahir"
+
+#: templatetags/sentry_helpers.py:229
+msgid " ago"
+msgstr "tot just"
+
+#: views/exception.py:16
+msgid "Exception"
+msgstr "Excepció"
+
+#: views/exception.py:17
+msgid "Exceptions"
+msgstr "Excepcions"
+
+#: views/message.py:16
+msgid "Message"
+msgstr "Missatge"
+
+#: views/message.py:17
+msgid "Messages"
+msgstr "Missatges"
+
+#: views/query.py:16
+msgid "Query"
+msgstr "Consulta"
+
+#: views/query.py:17
+msgid "Queries"
+msgstr "Consultes"
+
+#: web/forms.py:173
+msgid "Old password"
+msgstr "Clau anterior"
+
+#: web/forms.py:176
+msgid "New password"
+msgstr "Nova clau"
+
+#: web/forms.py:177
+msgid "New password confirmation"
+msgstr "Confirma la nova clau"
+
+#: web/forms.py:188
+msgid "The two password fields didn't match."
+msgstr "Les dues claus no casen"
+
+#: web/forms.py:197
+msgid "Your old password was entered incorrectly. Please enter it again."
+msgstr "La teva clau antiga és incorrecta. Per favor introdueix-la una altra vegada."
