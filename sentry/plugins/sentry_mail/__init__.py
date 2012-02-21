@@ -7,18 +7,33 @@ sentry.plugins.sentry_mail
 """
 from django import forms
 from django.core.mail import send_mail
+from django.core.validators import email_re, ValidationError
 from django.template.loader import render_to_string
 from sentry.conf import settings
 from sentry.plugins import Plugin, register
+import re
+
+split_re = re.compile(r'\s*,\s*|\s+')
 
 NOTSET = object()
 
-
 class MailConfigurationForm(forms.Form):
-    send_to = forms.EmailField(max_length=128, widget=forms.TextInput(attrs={
-        'placeholder': 'you@example.com',
-    }))
+    send_to = forms.CharField(required=False,
+        help_text='Enter one or more emails separated by commas or lines. '\
+                  'Entering emails will prevent messages being sent to '\
+                  'project members.',
+        widget=forms.Textarea(attrs={
+            'placeholder': 'you@example.com, \nother@example.com',}))
+    send_to_admins = forms.BooleanField(initial=False, required=False,
+        help_text='Send emails to admins as well as members (or emails above).')
 
+    def clean_send_to(self):
+        value = self.cleaned_data['send_to']
+        emails = filter(None, split_re.split(value))
+        for email in emails:
+            if not email_re.match(email):
+                raise ValidationError('%s is not a valid e-mail address.' % email)
+        return ','.join(emails)
 
 @register
 class MailProcessor(Plugin):
@@ -28,7 +43,7 @@ class MailProcessor(Plugin):
     project_conf_form = MailConfigurationForm
 
     def __init__(self, min_level=NOTSET, include_loggers=NOTSET, exclude_loggers=NOTSET,
-                 send_to=NOTSET, *args, **kwargs):
+                 send_to=None, send_to_admins=NOTSET, *args, **kwargs):
 
         super(MailProcessor, self).__init__(*args, **kwargs)
 
@@ -38,22 +53,45 @@ class MailProcessor(Plugin):
             include_loggers = settings.MAIL_INCLUDE_LOGGERS
         if exclude_loggers is NOTSET:
             exclude_loggers = settings.MAIL_EXCLUDE_LOGGERS
-        if send_to is NOTSET:
-            send_to = ','.join(settings.ADMINS)
+        if send_to_admins is NOTSET:
+            send_to_admins = False
 
         self.min_level = min_level
         self.include_loggers = include_loggers
         self.exclude_loggers = exclude_loggers
         self.send_to = send_to
+        self.send_to_admins = send_to_admins
         self.subject_prefix = settings.EMAIL_SUBJECT_PREFIX
 
     def _send_mail(self, subject, body, project=None, fail_silently=True):
-        send_to = self.get_option('send_to', project) or self.send_to
+        send_to = self.get_send_to(project)
+
         subject_prefix = self.get_option('subject_prefix', project) or self.subject_prefix
 
         send_mail('%s%s' % (subject_prefix, subject), body,
-                  settings.SERVER_EMAIL, send_to.split(','),
+                  settings.SERVER_EMAIL, send_to,
                   fail_silently=fail_silently)
+
+    def get_send_to(self, project=None):
+        send_to_list = self.get_option('send_to', project)
+        if not send_to_list:
+            if self.send_to is not None:
+                send_to_list = self.send_to
+            elif project is not None:
+                send_to_list = project.member_set.values_list('user__email', flat=True)
+            else:
+                send_to_list = []
+
+        if isinstance(send_to_list, basestring):
+            send_to_list = send_to_list.split(',')
+
+        send_to_admins = self.get_option('send_to_admins', project)
+        if send_to_admins is None:
+            send_to_admins = self.send_to_admins
+        if send_to_admins:
+            send_to_list = set(list(send_to_list) + list(settings.ADMINS))
+
+        return filter(None, send_to_list)
 
     def send_test_mail(self, project=None):
         self._send_mail(
@@ -63,7 +101,7 @@ class MailProcessor(Plugin):
             fail_silently=False,
         )
 
-    def mail_admins(self, group, event, fail_silently=True):
+    def mail_members(self, group, event, fail_silently=True):
         interfaces = event.interfaces
 
         project = group.project
@@ -97,7 +135,7 @@ class MailProcessor(Plugin):
 
     def should_mail(self, group, event):
         project = group.project
-        send_to = self.get_option('send_to', project) or self.send_to
+        send_to = self.get_send_to(project)
         if not send_to:
             return False
         min_level = self.get_option('min_level', project) or self.min_level
@@ -118,4 +156,4 @@ class MailProcessor(Plugin):
         if not self.should_mail(group, event):
             return
 
-        self.mail_admins(group, event)
+        self.mail_members(group, event)
