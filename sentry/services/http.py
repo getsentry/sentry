@@ -68,6 +68,7 @@ class SentryHTTPServer(Service):
             'worker_class': 'eventlet',
             'debug': debug,
             'daemon': False,
+            'timeout': 3,
             # 'post_fork': post_fork,
         }
         options.update(settings.WEB_OPTIONS or {})
