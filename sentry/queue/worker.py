@@ -30,6 +30,6 @@ class Worker(ConsumerMixin):
         try:
             func(*args, **kwdict(kwargs))
         except Exception, exc:
-            self.logger.error("task raised exception: %r", exc)
+            self.logger.error("task raised exception: %r", exc, exc_info=True)
         message.ack()
 
