@@ -32,11 +32,10 @@ tests_require = [
 install_requires = [
     'Django>=1.2,<1.4',
     'django-indexer>=0.3.0',
-    'django-kombu==0.9.4',
     'django-paging>=0.2.4',
     'django-templatetag-sugar>=0.1.0',
     'eventlet>=0.9.15',
-    'kombu>=1.5.1,<2.0',
+    'kombu>=2.1.0,<3.0',
     'gunicorn>=0.13.4',
     'logan>=0.2.1',
     'pytz>=2011n',
@@ -46,7 +45,7 @@ install_requires = [
 
 setup(
     name='sentry',
-    version='3.0.4',
+    version='3.1.0',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/sentry',

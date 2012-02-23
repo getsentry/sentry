@@ -7,7 +7,6 @@ import mock
 import time
 
 from django.contrib.auth.models import User
-from djkombu.models import Message
 
 from sentry.models import Project
 from sentry.coreapi import project_from_id, project_from_api_key_and_id, \

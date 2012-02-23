@@ -106,7 +106,7 @@ UDP_PORT = 9001
 
 # Queue (Kombu)
 QUEUE = {
-    'transport': 'djkombu.transport.DatabaseTransport',
+    'transport': 'kombu.transport.django.Transport',
 }
 
 # List of event aggregation views

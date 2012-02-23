@@ -18,7 +18,7 @@ from django.db import transaction
 from django.db.models import Sum, Count, Max
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
-from djkombu.models import Queue
+from kombu.transport.django.models import Queue
 
 from sentry import environment
 from sentry.conf import settings
@@ -253,7 +253,7 @@ def status_packages(request):
 
 @requires_admin
 def status_queue(request):
-    worker_status = (settings.QUEUE['transport'] == 'djkombu.transport.DatabaseTransport')
+    worker_status = (settings.QUEUE['transport'] == 'kombu.transport.django.Transport')
     if worker_status:
         pending_tasks = list(Queue.objects.filter(
             messages__visible=True,

@@ -102,7 +102,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     # 'django.contrib.messages',
 
-    'djkombu',
+    'kombu.transport.django',
     'raven.contrib.django',
     'sentry',
     'sentry.plugins.sentry_servers',
