@@ -79,6 +79,8 @@ def _get_group_list(request, project, view=None):
         since = request.GET.get('since', '')
         if since not in DATE_OPTIONS:
             since = settings.DEFAULT_DATE_OPTION
+    else:
+        since = None
 
     engine = get_db_engine('default')
     if engine.startswith('sqlite'):
