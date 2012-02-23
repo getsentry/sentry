@@ -32,4 +32,5 @@ class Command(BaseCommand):
         if level is not None and not str(level).isdigit():
             options['level'] = getattr(logging, level.upper())
 
-        cleanup(**options)
+        cleanup(days=options['days'], logger=options['logger'], site=options['site'], server=options['server'],
+                level=options['level'], project=options['project'], resolved=options['resolved'])
