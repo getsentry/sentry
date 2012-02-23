@@ -40,13 +40,13 @@ install_requires = [
     'gunicorn>=0.13.4',
     'logan>=0.2.1',
     'pytz>=2011n',
-    'raven>=1.4.3',
+    'raven>=1.4.4',
     'South>=0.7',
 ]
 
 setup(
     name='sentry',
-    version='3.0.3',
+    version='3.0.4',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/sentry',
