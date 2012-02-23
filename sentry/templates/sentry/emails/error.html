@@ -1,0 +1,19 @@
+<p>A new event has been recorded in Sentry:</p>
+
+<pre>{{ event.message }}</pre>
+
+<p><a href="{{ link }}">{{ link }}</a></p>
+
+<dl>
+    <dt>Logger:</dt>
+    <dd>{{ event.logger }}</dd>
+    <dt>First Seen:</dt>
+    <dd>{{ group.first_seen|date }}</dd>
+</dt>
+
+{% for label, text in interfaces %}
+<p><strong>{{ label }}</strong></p>
+
+<pre>{{ text }}</pre>
+
+{% endfor %}

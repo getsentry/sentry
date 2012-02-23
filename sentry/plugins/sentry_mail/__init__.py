@@ -6,7 +6,7 @@ sentry.plugins.sentry_mail
 :license: BSD, see LICENSE for more details.
 """
 from django import forms
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from sentry.conf import settings
 from sentry.plugins import Plugin, register
@@ -47,13 +47,14 @@ class MailProcessor(Plugin):
         self.send_to = send_to
         self.subject_prefix = settings.EMAIL_SUBJECT_PREFIX
 
-    def _send_mail(self, subject, body, project=None, fail_silently=True):
+    def _send_mail(self, subject, body, html_body=None, project=None, fail_silently=True):
         send_to = self.get_option('send_to', project) or self.send_to
         subject_prefix = self.get_option('subject_prefix', project) or self.subject_prefix
 
-        send_mail('%s%s' % (subject_prefix, subject), body,
-                  settings.SERVER_EMAIL, send_to.split(','),
-                  fail_silently=fail_silently)
+        msg = EmailMultiAlternatives('%s%s' % (subject_prefix, subject), body, settings.SERVER_EMAIL, send_to.split(','))
+        if html_body:
+            msg.attach_alternative(html_body, "text/html")
+        msg.send(fail_silently=fail_silently)
 
     def send_test_mail(self, project=None):
         self._send_mail(
@@ -86,8 +87,20 @@ class MailProcessor(Plugin):
             'link': link,
             'interfaces': interface_list,
         })
+        html_body = render_to_string('sentry/emails/error.html', {
+            'group': group,
+            'event': event,
+            'link': link,
+            'interfaces': interface_list,
+        })
 
-        self._send_mail(subject, body, project, fail_silently=fail_silently)
+        self._send_mail(
+            subject=subject,
+            body=body,
+            html_body=html_body,
+            project=project,
+            fail_silently=fail_silently,
+        )
 
     def should_mail(self, group, event):
         project = group.project
