@@ -12,11 +12,10 @@ class SentryWorker(Service):
     name = 'worker'
 
     def run(self):
+        import eventlet
+        eventlet.patcher.monkey_patch()
         from sentry.queue.client import broker
         from sentry.queue.worker import Worker
-
-        from kombu.utils.debug import setup_logging
-        setup_logging(loglevel="INFO")
 
         try:
             Worker(broker.connection).run()

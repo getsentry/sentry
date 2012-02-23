@@ -126,12 +126,18 @@ import logging
 
 # Configure root logger
 logger = logging.getLogger()
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.INFO)
+
+handler = logging.StreamHandler()
+handler.setLevel(logging.INFO)
+logger.addHandler(handler)
 
 # Disable django.request as it's generally useless
 logger = logging.getLogger('django.request')
 logger.propagate = False
-
+logger.addHandler(handler)
 
 # Configure default sentry logging
-setup_logging(SentryHandler())
+sentry_handler = SentryHandler()
+sentry_handler.setLevel(logging.ERROR)
+setup_logging(sentry_handler)
