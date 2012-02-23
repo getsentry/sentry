@@ -81,7 +81,7 @@ class MailProcessor(Plugin):
         link = '%s%s' % (settings.URL_PREFIX, group.get_absolute_url())
 
         body = render_to_string('sentry/emails/error.txt', {
-            'group': self,
+            'group': group,
             'event': event,
             'link': link,
             'interfaces': interface_list,
