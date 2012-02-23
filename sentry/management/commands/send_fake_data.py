@@ -1,12 +1,19 @@
+
+"""
+sentry.management.commands.send_fake_data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
 import eventlet.patcher
 import itertools
-import os.path
 import random
 import time
 
 eventlet.patcher.monkey_patch()
 
-from sentry.scripts.runner import settings_from_file
+from django.core.management.base import BaseCommand
 
 
 def funcs():
@@ -32,28 +39,26 @@ def funcs():
     return [query, exception, message]
 
 
-def main():
-    settings_from_file(os.path.expanduser(os.path.join('~', '.sentry', 'sentry.conf.py')))
+class Command(BaseCommand):
+    help = 'Performs any pending database migrations and upgrades'
 
-    from raven.contrib.django.models import get_client
+    def handle(self, **options):
+        from raven.contrib.django.models import get_client
 
-    client = get_client()
-    functions = funcs()
+        client = get_client()
+        functions = funcs()
 
-    s = time.time()
-    r = 0
-    try:
-        while True:
-            random.choice(functions)(client)
-            r += 1
-            eventlet.sleep(0.1)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        total_time = time.time() - s
-        print '%d requests serviced in %.3fs' % (r, total_time)
-        avg = total_time / r
-        print 'avg of %.3fs/req, %d req/s' % (avg, 1 / avg)
-
-if __name__ == '__main__':
-    main()
+        s = time.time()
+        r = 0
+        try:
+            while True:
+                random.choice(functions)(client)
+                r += 1
+                eventlet.sleep(0.3)
+        except KeyboardInterrupt:
+            pass
+        finally:
+            total_time = time.time() - s
+            print '%d requests serviced in %.3fs' % (r, total_time)
+            avg = total_time / r
+            print 'avg of %.3fs/req, %d req/s' % (avg, 1 / avg)
