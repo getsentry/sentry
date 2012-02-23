@@ -99,7 +99,6 @@ if (Sentry === undefined) {
                 return;
             }
         }
-        $row = $(data.html);
 
         // get the ranked position based on data.score
         pos = getRankedPosition(Sentry.realtime.events, data.score, 0);
@@ -119,6 +118,8 @@ if (Sentry === undefined) {
             $row.remove();
         }
 
+        $row = $(data.html);
+
         // if the row doesnt outrank any existing elements
         if (pos === -1) {
             $('#event_list').append($row);
@@ -137,6 +138,7 @@ if (Sentry === undefined) {
 
     Sentry.realtime.poll = function(){
         if (!Sentry.realtime.status) {
+            setTimeout(Sentry.realtime.poll, 1000);
             return;
         }
         data = getQueryParams();
@@ -152,7 +154,7 @@ if (Sentry === undefined) {
                     setTimeout(Sentry.realtime.poll, 5000);
                     return;
                 }
-                Sentry.realtime.cursor = groups[0].score || undefined;
+                Sentry.realtime.cursor = groups[groups.length - 1].score || undefined;
                 $(groups).each(function(i, data){
                     Sentry.realtime.queue.replace(data, data.score, 'id');
                 });
