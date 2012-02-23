@@ -32,9 +32,6 @@ class SentryApplication(DjangoApplication):
 
     def load(self):
         from sentry.wsgi import application
-        import eventlet.patcher
-
-        eventlet.patcher.monkey_patch()
 
         self.validate()
         self.activate_translation()
@@ -68,7 +65,7 @@ class SentryHTTPServer(Service):
             'worker_class': 'eventlet',
             'debug': debug,
             'daemon': False,
-            'timeout': 3,
+            'timeout': 30,
             # 'post_fork': post_fork,
         }
         options.update(settings.WEB_OPTIONS or {})
