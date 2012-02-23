@@ -1,8 +1,24 @@
-{% autoescape off %}{% if link %}
-View in detail: {{ link }}
+{% spaceless %}
+{% autoescape off %}
+A new event has been recorded in Sentry:
 
-{{ event.message }}
+    {{ event.message }}
 
-{% endif %}{% if traceback %}{{ traceback }}
+Details
+-------
 
-{% endif %}{% if request_repr %}{{ request_repr }}{% endif %}{% endautoescape %}
+{{ link }}
+
+Logger: {{ event.logger }}
+First Seen: {{ group.first_seen|date }}
+
+{% if interfaces %}{% for label, text in interfaces %}
+{{ label }}
+-----------
+
+{{ text }}
+
+{% endfor %}
+{% endif %}
+{% endautoescape %}
+{% endspaceless %}

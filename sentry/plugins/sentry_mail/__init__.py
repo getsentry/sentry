@@ -64,22 +64,16 @@ class MailProcessor(Plugin):
         )
 
     def mail_admins(self, group, event, fail_silently=True):
-        interfaces = event.interfaces
-
         project = group.project
 
-        if 'sentry.interfaces.Exception' in interfaces:
-            traceback = interfaces['sentry.interfaces.Exception'].to_string(event)
-        else:
-            traceback = None
+        interface_list = []
+        for interface in event.interfaces.itervalues():
+            body = interface.to_string(event)
+            if not body:
+                continue
+            interface_list.append((interface.get_title(), body))
 
-        http = interfaces.get('sentry.interfaces.Http')
-
-        if http:
-            ip_repr = (http.env.get('REMOTE_ADDR') in settings.INTERNAL_IPS and 'internal' or 'EXTERNAL')
-            subject = 'Error (%s IP): %s' % (ip_repr, http.url)
-        else:
-            subject = 'Error: %s' % (event.message,)
+        subject = event.message
 
         if event.site:
             subject = '[%s] %s' % (event.site, subject)
@@ -87,10 +81,10 @@ class MailProcessor(Plugin):
         link = '%s%s' % (settings.URL_PREFIX, group.get_absolute_url())
 
         body = render_to_string('sentry/emails/error.txt', {
-            'traceback': traceback,
             'group': self,
             'event': event,
             'link': link,
+            'interfaces': interface_list,
         })
 
         self._send_mail(subject, body, project, fail_silently=fail_silently)

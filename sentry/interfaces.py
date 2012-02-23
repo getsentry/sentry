@@ -87,6 +87,9 @@ class Interface(object):
     def to_string(self, event):
         return ''
 
+    def get_title(self):
+        return self.__class__.__name__
+
     def get_search_context(self, event):
         """
         Returns a dictionary describing the data that should be indexed
