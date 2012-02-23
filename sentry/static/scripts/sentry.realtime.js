@@ -159,6 +159,10 @@ if (Sentry === undefined) {
                     Sentry.realtime.queue.replace(data, data.score, 'id');
                 });
                 setTimeout(Sentry.realtime.poll, 1000);
+            },
+            error: function(){
+                // if an error happened lets give the server a bit of time before we poll again
+                setTimeout(Sentry.realtime.poll, 10000);
             }
         });
 
