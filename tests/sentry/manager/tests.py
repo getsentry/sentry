@@ -7,7 +7,7 @@ import mock
 
 from sentry.exceptions import InvalidInterface, InvalidData
 from sentry.interfaces import Interface
-from sentry.models import Group, Project
+from sentry.models import Event, Group, Project
 
 from tests.base import TestCase
 
@@ -276,3 +276,13 @@ class SentryManagerTest(TestCase):
         self.assertEquals(user['lineno'], 2)
         self.assertTrue('context_line' in user)
         self.assertEquals(user['context_line'], 'bar\n')
+
+    def test_dupe_message_id(self):
+        event = Group.objects.from_kwargs(1, event_id=1, message='foo')
+        self.assertEquals(event.message, 'foo')
+        self.assertEquals(event.project_id, 1)
+        self.assertEquals(Event.objects.count(), 1)
+
+        # ensure that calling it again doesnt raise a db error
+        Group.objects.from_kwargs(1, event_id=1, message='foo')
+        self.assertEquals(Event.objects.count(), 1)

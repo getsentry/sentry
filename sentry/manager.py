@@ -14,7 +14,7 @@ import logging
 import re
 import warnings
 
-from django.db import models, transaction
+from django.db import models, transaction, IntegrityError
 from django.db.models import Sum, F
 from django.utils.encoding import force_unicode
 
@@ -340,7 +340,11 @@ class GroupManager(models.Manager, ChartMixin):
 
         # save the event unless its been sampled
         if not is_sample:
-            event.save()
+            try:
+                event.save()
+            except IntegrityError:
+                transaction.rollback_unless_managed(using=group._state.db)
+                return event
 
         transaction.commit_unless_managed(using=group._state.db)
 
