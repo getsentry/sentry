@@ -11,8 +11,8 @@ msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: https://github.com/dcramer/sentry/issues\n"
 "POT-Creation-Date: 2012-02-18 07:59+0000\n"
-"PO-Revision-Date: 2012-02-19 20:01+0000\n"
-"Last-Translator: Dimitris Glezos <glezos@indifex.com>\n"
+"PO-Revision-Date: 2012-02-24 00:00+0000\n"
+"Last-Translator: John Kalantzis <jkal@indifex.com>\n"
 "Language-Team: Greek (http://www.transifex.net/projects/p/sentry/language/el/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -91,7 +91,7 @@ msgstr "επιλύθηκε"
 
 #: models.py:47
 msgid "server name"
-msgstr "σερα"
+msgstr "όνομα εξυπηρετητή"
 
 #: models.py:48
 msgid "logger"
@@ -384,7 +384,7 @@ msgstr "Αρχείο Ρυθμίσεων"
 
 #: templates/sentry/admin/status/env.html:38
 msgid "Uptime"
-msgstr ""
+msgstr "Uptime"
 
 #: templates/sentry/admin/status/env.html:44
 msgid "Environment not found (are you using the builtin Sentry webserver?)."
@@ -416,7 +416,7 @@ msgstr "Επεξεργαστές"
 
 #: templates/sentry/admin/status/packages.html:74
 msgid "No event processors registered."
-msgstr ""
+msgstr "Δεν έχουν καταχωρηθεί επεξεργαστές συμβάντων."
 
 #: templates/sentry/admin/status/packages.html:77
 msgid "Modules"
@@ -438,7 +438,7 @@ msgstr "Δεν υπάρχει διαθέσιμη πληροφορία."
 #: templates/sentry/admin/status/queue.html:32
 #: templates/sentry/admin/status/queue.html:42
 msgid "Pending Tasks"
-msgstr ""
+msgstr "Εκκρεμούντες εργασίες"
 
 #: templates/sentry/admin/users/edit.html:6
 msgid "Change User"
@@ -468,7 +468,7 @@ msgstr "Όνομα"
 
 #: templates/sentry/admin/users/list.html:36
 msgid "Joined"
-msgstr ""
+msgstr "Γράφτηκε"
 
 #: templates/sentry/admin/users/list.html:37
 msgid "Last Login"
@@ -521,7 +521,7 @@ msgstr "Επόμενο"
 #: templates/sentry/events/event_list.html:41
 #: templates/sentry/groups/group_list.html:104
 msgid "No events match your filters."
-msgstr ""
+msgstr "Κανένα συμβάν δεν ταιριάζει στα φίλτρα σας"
 
 #: templates/sentry/events/replay_request.html:5
 #: templates/sentry/events/replay_request.html:12
@@ -538,7 +538,7 @@ msgstr "Καταχώρηση"
 
 #: templates/sentry/groups/details.html:15
 msgid "Aggregate Details"
-msgstr ""
+msgstr "Συναθροιστικές Λεπτομέρειες"
 
 #: templates/sentry/groups/details.html:18
 msgid "Logger:"
@@ -744,7 +744,7 @@ msgstr "Διαχείριση Έργου: %(name)s"
 msgid ""
 "Here you can edit project information, as well as control the access list "
 "for a project with fine-grained permissions."
-msgstr ""
+msgstr "Εδώ μπορείτε να αλλάξετε τις πληροφορίες του έργου σας, καθώς και να ελέγξετε την πρόσβαση για ένα έργο με λεπτομερή δικαιώματα."
 
 #: templates/sentry/projects/manage.html:29
 #: templates/sentry/projects/new.html:20
@@ -796,7 +796,7 @@ msgid ""
 "Use this page to create a new project within Sentry. Once done, you'll be "
 "able to add members (whether they're system or actual users), as well as "
 "configure your client to send messages to this project."
-msgstr ""
+msgstr "Χρησιμοποιήστε αυτή τη σελίδα για να δημιουργήσετε ένα νέο έργο στο Sentry. Κατόπιν, θα είστε σε θέση να προσθέσετε μέλη (είτε συστήματα είτε πραγματικούς χρήστες), καθώς και να ρυθμίσετε τον client να στέλνει μηνύματα σε αυτό το έργο."
 
 #: templates/sentry/projects/members/edit.html:6
 msgid "Edit Member"
@@ -837,7 +837,7 @@ msgstr "Διαχειριστείτε το Έργο"
 msgid ""
 "Are you sure you wish to revoke this user's access? <strong>This change is "
 "permanent and will revoke their API keys immediately.</strong>"
-msgstr ""
+msgstr "Είστε σίγουροι ότι θέλετε να ανακαλέσετε την πρόσβαση αυτού του χρήστη; <strong>Η αλλαγή αυτή είναι μόνιμη και τα κλειδιά του API θα διαγραφούν άμεσα.</strong>"
 
 #: templatetags/sentry_helpers.py:76
 msgid "b"
