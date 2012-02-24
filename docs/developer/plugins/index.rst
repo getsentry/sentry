@@ -21,5 +21,6 @@ accept ``**kwargs`` to handle future changes.
    :maxdepth: 2
 
    interface
+   permissions
 
 More and better docs coming soon..
