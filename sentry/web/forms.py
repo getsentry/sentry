@@ -60,7 +60,7 @@ class RemoveProjectForm(forms.Form):
         super(RemoveProjectForm, self).__init__(*args, **kwargs)
         if not project_list:
             del self.fields['project']
-            self.fields['removal_type'].choices = filter(lambda x: x[0] != 2, self.fields['removal_type'].choices)
+            self.fields['removal_type'].choices = filter(lambda x: x[0] != '2', self.fields['removal_type'].choices)
         else:
             self.fields['project'].choices = [(p.pk, p.name) for p in project_list]
             self.fields['project'].widget.choices = self.fields['project'].choices
