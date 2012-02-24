@@ -28,6 +28,8 @@ class MailConfigurationForm(forms.Form):
             'placeholder': 'you@example.com, \nother@example.com'}))
     send_to_members = forms.BooleanField(label=_('Include project members'), initial=False, required=False,
         help_text=_('Send emails to all members of this project.'))
+    send_to_admins = forms.BooleanField(label=_('Include sentry admins'), initial=False, required=False,
+        help_text=_('Send emails to all administrators of this Sentry server.'))
 
     def clean_send_to(self):
         value = self.cleaned_data['send_to']
@@ -46,7 +48,7 @@ class MailProcessor(Plugin):
     project_conf_form = MailConfigurationForm
 
     def __init__(self, min_level=NOTSET, include_loggers=NOTSET, exclude_loggers=NOTSET,
-                 send_to=None, send_to_members=NOTSET, *args, **kwargs):
+                 send_to=None, send_to_members=NOTSET, send_to_admins=NOTSET, *args, **kwargs):
 
         super(MailProcessor, self).__init__(*args, **kwargs)
 
@@ -58,12 +60,15 @@ class MailProcessor(Plugin):
             exclude_loggers = settings.MAIL_EXCLUDE_LOGGERS
         if send_to_members is NOTSET:
             send_to_members = True
+        if send_to_admins is NOTSET:
+            send_to_admins = False
 
         self.min_level = min_level
         self.include_loggers = include_loggers
         self.exclude_loggers = exclude_loggers
         self.send_to = send_to
         self.send_to_members = send_to_members
+        self.send_to_admins = send_to_admins
         self.subject_prefix = settings.EMAIL_SUBJECT_PREFIX
 
     def _send_mail(self, subject, body, html_body=None, project=None, fail_silently=True):
@@ -83,12 +88,18 @@ class MailProcessor(Plugin):
             elif project is not None:
                 send_to_list = project.member_set.values_list('user__email', flat=True)
             else:
-                send_to_list = settings.ADMINS
+                send_to_list = []
 
         if isinstance(send_to_list, basestring):
             send_to_list = send_to_list.split(',')
 
         send_to_list = set(send_to_list)
+
+        send_to_admins = self.get_option('send_to_admins', project)
+        if send_to_admins is None:
+            send_to_admins = self.send_to_admins
+        if send_to_admins:
+            send_to_list |= set(settings.ADMINS)
 
         send_to_members = self.get_option('send_to_members', project)
         if send_to_members is None:
