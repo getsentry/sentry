@@ -26,7 +26,7 @@
         <dt>{% trans "Last Seen:" %}</dt>
         <dd title="{{ group.first_seen }}">{{ group.last_seen|timesince }}</dd>
         <dt>{% trans "Avg Duration:" %}</dt>
-        <dd>{% if group.avg_time_spent %}{{ group.avg_time_spent|duration }}{% else %}<em>n/a</em>{% endif %}</dd>
+        <dd>{% if group.avg_time_spent %}{{ group.avg_time_spent|duration }}{% else %}<em>{% trans "n/a" %}</em>{% endif %}</dd>
         <dt>{% trans "Checksum:" %}</dt>
         <dd>{{ group.checksum }}</dd>
     </dl>
@@ -126,7 +126,7 @@
                     <div class="module-content" style="height: 120px;">
                         <div id="chart">
                             <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
-                            <p>Loading...</p>
+                            <p>{% trans "Loading..." %}</p>
                         </div>
                     </div>
                 </div>

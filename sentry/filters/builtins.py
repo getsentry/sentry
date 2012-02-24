@@ -7,6 +7,7 @@ sentry.filters.base
 """
 from django.conf import settings as django_settings
 from django.utils.datastructures import SortedDict
+from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
 from sentry.models import Event
 from .base import Filter, GroupFilter
@@ -16,24 +17,24 @@ __all__ = ('StatusFilter', 'LoggerFilter', 'ServerNameFilter', 'SiteFilter',
 
 
 class StatusFilter(GroupFilter):
-    label = 'Status'
+    label = _('Status')
     column = 'status'
     default = '0'
 
     def get_choices(self):
         return SortedDict([
-            (0, 'Unresolved'),
-            (1, 'Resolved'),
+            (0, _('Unresolved')),
+            (1, _('Resolved')),
         ])
 
 
 class LoggerFilter(Filter):
-    label = 'Logger'
+    label = _('Logger')
     column = 'logger'
 
 
 class ServerNameFilter(Filter):
-    label = 'Server Name'
+    label = _('Server Name')
     column = 'server_name'
 
     def get_query_set(self, queryset):
@@ -44,7 +45,7 @@ class ServerNameFilter(Filter):
 
 
 class LevelFilter(Filter):
-    label = 'Level'
+    label = _('Level')
     column = 'level'
 
     def get_choices(self):
@@ -55,7 +56,7 @@ class LevelFilter(Filter):
 
 
 class SiteFilter(Filter):
-    label = 'Site'
+    label = _('Site')
     column = 'site'
 
     def process(self, data):
