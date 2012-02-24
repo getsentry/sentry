@@ -5,6 +5,7 @@ sentry.web.frontend.accounts
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from django.conf import settings as dj_settings
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
@@ -48,10 +49,16 @@ def settings(request):
     form = AccountSettingsForm(request.user, request.POST or None, initial={
         'email': request.user.email,
         'first_name': request.user.first_name,
+        'language': request.LANGUAGE_CODE,
     })
     if form.is_valid():
         form.save()
-        return HttpResponseRedirect(reverse('sentry-account-settings') + '?success=1')
+        response = HttpResponseRedirect(reverse('sentry-account-settings') + '?success=1')
+        if hasattr(request, 'session'):
+            request.session['django_language'] = form.cleaned_data['language']
+        else:
+            response.set_cookie(dj_settings.LANGUAGE_COOKIE_NAME, form.cleaned_data['language'])
+        return response
 
     context = csrf(request)
     context.update({

@@ -1,5 +1,6 @@
 include setup.py README.rst MANIFEST.in LICENSE AUTHORS
 recursive-include sentry/templates *
+recursive-include sentry/locale *
 recursive-include sentry/static *
 recursive-include sentry/plugins/*/templates *
 global-exclude *~

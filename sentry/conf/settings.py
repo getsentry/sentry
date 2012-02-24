@@ -37,6 +37,19 @@ if locals().get('DEFAULT_PROJECT_ACCESS') not in ('MEMBER_OWNER', 'MEMBER_USER',
     DEFAULT_PROJECT_ACCESS = 'MEMBER_OWNER'
 
 
+def get_all_languages():
+    results = []
+    for path in os.listdir(os.path.join(MODULE_ROOT, 'locale')):
+        if path.startswith('.'):
+            continue
+        results.append(path)
+    return results
+
+# Setup languages for only available locales
+LANGUAGE_MAP = dict(settings.LANGUAGES)
+LANGUAGES = ((k, LANGUAGE_MAP[k]) for k in get_all_languages() if k in LANGUAGE_MAP)
+
+
 def configure(**kwargs):
     for k, v in kwargs.iteritems():
         if k.upper() != k:

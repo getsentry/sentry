@@ -31,7 +31,7 @@
                     </ul>
                 </div>
             {% endif %}
-            <p>To make changes to your account, you must first enter your current password.</p>
+            <p>{% trans "To make changes to your account, you must first enter your current password." %}</p>
             {% with form.old_password as field %}
                 {% include "sentry/partial/_form_field.html" %}
             {% endwith %}
@@ -42,14 +42,18 @@
             {% with form.email as field %}
                 {% include "sentry/partial/_form_field.html" %}
             {% endwith %}
+            {% with form.language as field %}
+                {% include "sentry/partial/_form_field.html" %}
+            {% endwith %}
             <hr>
-            <p>You may also optionally change your password.</p>
+            <p>{% trans "You may also optionally change your password." %}</p>
             {% with form.new_password1 as field %}
                 {% include "sentry/partial/_form_field.html" %}
             {% endwith %}
             {% with form.new_password2 as field %}
                 {% include "sentry/partial/_form_field.html" %}
             {% endwith %}
+
             <fieldset class="form-actions">
                 <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
             </fieldset>

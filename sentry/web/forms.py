@@ -11,6 +11,7 @@ from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.conf import settings
 from sentry.models import Project, ProjectMember
 from sentry.interfaces import Http
 
@@ -44,14 +45,14 @@ class UserField(forms.CharField):
         try:
             return User.objects.get(username=value)
         except User.DoesNotExist:
-            raise forms.ValidationError(u'invalid user name')
+            raise forms.ValidationError(_('Invalid username'))
 
 
 class RemoveProjectForm(forms.Form):
     removal_type = forms.ChoiceField(choices=(
-        ('1', 'Remove all attached events.'),
-        ('2', 'Migrate events to another project.'),
-        ('3', 'Hide this project.'),
+        ('1', _('Remove all attached events.')),
+        ('2', _('Migrate events to another project.')),
+        ('3', _('Hide this project.')),
     ), widget=forms.RadioSelect(renderer=RadioFieldRenderer))
     project = forms.ChoiceField(choices=(), required=False)
 
@@ -67,7 +68,7 @@ class RemoveProjectForm(forms.Form):
     def clean(self):
         data = self.cleaned_data
         if data.get('removal_type') == 2 and not data.get('project'):
-            raise forms.ValidationError('You must select a project to migrate data')
+            raise forms.ValidationError(_('You must select a project to migrate data'))
         return data
 
     def clean_project(self):
@@ -121,7 +122,7 @@ class NewProjectMemberForm(BaseProjectMemberForm):
             return None
 
         if self.project.member_set.filter(user=value).exists():
-            raise forms.ValidationError('User already a member of project')
+            raise forms.ValidationError(_('User already a member of project'))
 
         return value
 
@@ -142,14 +143,14 @@ class ReplayForm(forms.Form):
 
 class BaseUserForm(forms.ModelForm):
     email = forms.EmailField()
-    first_name = forms.CharField(required=True, label='Name')
+    first_name = forms.CharField(required=True, label=_('Name'))
 
 
 class NewUserForm(BaseUserForm):
     create_project = forms.BooleanField(required=False,
-        help_text="Create a project for this user.")
+        help_text=_("Create a project for this user."))
     send_welcome_mail = forms.BooleanField(required=False,
-        help_text="Send this user a welcome email which will contain their generated password.")
+        help_text=_("Send this user a welcome email which will contain their generated password."))
 
     class Meta:
         fields = ('first_name', 'username', 'email')
@@ -164,8 +165,8 @@ class ChangeUserForm(BaseUserForm):
 
 class RemoveUserForm(forms.Form):
     removal_type = forms.ChoiceField(choices=(
-        ('1', 'Disable the account.'),
-        ('2', 'Permanently remove the user and their data.'),
+        ('1', _('Disable the account.')),
+        ('2', _('Permanently remove the user and their data.')),
     ), widget=forms.RadioSelect(renderer=RadioFieldRenderer))
 
 
@@ -175,6 +176,7 @@ class AccountSettingsForm(forms.Form):
     first_name = forms.CharField(required=True, label='Name')
     new_password1 = forms.CharField(label=_("New password"), widget=forms.PasswordInput, required=False)
     new_password2 = forms.CharField(label=_("New password confirmation"), widget=forms.PasswordInput, required=False)
+    language = forms.ChoiceField(label=_('Language'), choices=settings.LANGUAGES)
 
     def __init__(self, user, *args, **kwargs):
         self.user = user

@@ -39,6 +39,7 @@ def handler500(request):
     return HttpResponseServerError(t.render(Context(context)))
 
 urlpatterns += patterns('',
+    (r'^i18n/', include('django.conf.urls.i18n')),
     (r'^admin/', include(admin.site.urls)),
     url(r'^_admin_media/(?P<path>.*)$', generic.static_media,
         kwargs={'root': admin_media_dir},
