@@ -14,7 +14,7 @@
 
     <dl class="flat">
         <dt>{% trans "Seen:" %}</dt>
-        <dd title="{{ event.datetime }}">{{ event.datetime|timesince }}</dd>
+        <dd class="pretty-date" title="{{ event.datetime|date:"c" }}Z">{{ event.datetime|timesince }}</dd>
         <dt>{% trans "Duration:" %}</dt>
         <dd>{% if event.time_spent %}{{ event.time_spent|duration }}{% else %}<em>n/a</em>{% endif %}</dd>
         <dt>{% trans "Server:" %}</dt>

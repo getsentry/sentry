@@ -22,9 +22,9 @@
         <dt>{% trans "Status:" %}</dt>
         <dd>{{ group.get_status_display|title }}</dd>
         <dt>{% trans "First Seen:" %}</dt>
-        <dd title="{{ group.first_seen }}">{{ group.first_seen|timesince }}</dd>
+        <dd class="pretty-date" title="{{ group.first_seen|date:"c" }}Z">{{ group.first_seen|timesince }}</dd>
         <dt>{% trans "Last Seen:" %}</dt>
-        <dd title="{{ group.first_seen }}">{{ group.last_seen|timesince }}</dd>
+        <dd class="pretty-date" title="{{ group.last_seen|date:"c" }}Z">{{ group.last_seen|timesince }}</dd>
         <dt>{% trans "Avg Duration:" %}</dt>
         <dd>{% if group.avg_time_spent %}{{ group.avg_time_spent|duration }}{% else %}<em>{% trans "n/a" %}</em>{% endif %}</dd>
         <dt>{% trans "Checksum:" %}</dt>
