@@ -37,7 +37,7 @@ def static_media(request, path, root=None):
     import stat
     import urllib
 
-    document_root = root or os.path.join(settings.ROOT, 'static')
+    document_root = root or os.path.join(settings.MODULE_ROOT, 'static')
 
     path = posixpath.normpath(urllib.unquote(path))
     path = path.lstrip('/')

@@ -12,8 +12,6 @@ import logging
 import os
 import os.path
 
-ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir))
-
 MODULE_ROOT = os.path.dirname(__import__('sentry').__file__)
 
 # Allow local testing of Sentry even if DEBUG is enabled
