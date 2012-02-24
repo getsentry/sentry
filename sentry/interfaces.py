@@ -222,15 +222,11 @@ class Stacktrace(Interface):
         })
 
     def to_string(self, event):
-        r = ['Stacktrace (most recent call last):']
-        for f in self.frames:
-            r.append('  File "%(filename)s", line %(lineno)s, in %(function)s\n    %(context_line)s' % f)
-        return '\n'.join(r)
+        return self.get_stacktrace(event)
 
-    def get_traceback(self, event):
+    def get_stacktrace(self, event):
         result = [
-            event.message, '',
-            'Traceback (most recent call last):', '',
+            'Stacktrace (most recent call last):', '',
         ]
         for frame in self.frames:
             if 'function' in frame:
@@ -240,6 +236,14 @@ class Stacktrace(Interface):
             if 'context_line' in frame:
                 result.append('    %s' % frame['context_line'].strip())
             result.append('')
+
+        return '\n'.join(result)
+
+    def get_traceback(self, event):
+        result = [
+            event.message, '',
+            self.get_stacktrace(event),
+        ]
 
         return '\n'.join(result)
 

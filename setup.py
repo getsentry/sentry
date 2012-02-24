@@ -30,6 +30,8 @@ tests_require = [
 ]
 
 install_requires = [
+    'cssutils>=0.9.9',
+    'BeautifulSoup>=3.2.1',
     'Django>=1.2,<1.4',
     'django-indexer>=0.3.0',
     'django-paging>=0.2.4',
@@ -38,6 +40,7 @@ install_requires = [
     'kombu>=2.1.0,<3.0',
     'gunicorn>=0.13.4',
     'logan>=0.2.1',
+    'pynliner>=0.4.0',
     'pytz>=2011n',
     'raven>=1.4.4',
     'South>=0.7',

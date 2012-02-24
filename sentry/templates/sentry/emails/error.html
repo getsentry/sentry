@@ -1,19 +1,108 @@
-<p>A new event has been recorded in Sentry:</p>
+{% load i18n %}
+<!DOCTYPE html>
+<html>
+    <head>
+        <style type="text/css">
+        body, .main {
+            width: 100%;
+            font-size: 12px;
+            font-family: "helvetica neue", helvetica, sans-serif;
+            border: 0;
+            padding: 0;
+            margin: 0;
+        }
+        pre, code {
+            font-size: 11px;
+            font-family: Menlo, Monaco, "Courier New", monospace;
+        }
+        table {
+            width: 100%;
+        }
+        td {
+            padding: 0;
+            margin: 0;
+        }
+        td {
+            text-align: center;
+        }
+        .body {
+            margin: 0 auto;
+            text-align: left;
+            width: 600px;
+            border: 5px solid #404f60;
+        }
+        .header {
+            background: #404f60;
+            color: #fff;
+            padding: 10px;
+            font-size: 14px;
+        }
+        .inner {
+            background: #fff;
+            padding: 10px;
+        }
+        .inner pre,
+        .inner p,
+        .inner table {
+            margin-bottom: 15px;
+        }
+        .inner table th,
+        .inner table td {
+            text-align: left;
+            width: 25%;
+        }
+        .interface {
+            margin-bottom: 15px;
+        }
+        .interface .title {
+            color: #404f60;
+            font-size: 14px;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #404f60;
+            font-weight: bold;
+        }
+        </style>
+    </head>
+    <body>
+        <table class="main">
+            <tr>
+                <td>
+                    <div class="body">
+                        <div class="header">
+                            {% trans "A new event has been recorded in Sentry" %}
+                        </div>
+                        <div class="inner">
+                            <p>{{ event.message }}</p>
 
-<pre>{{ event.message }}</pre>
+                            <p><a href="{{ link }}">{{ link }}</a></p>
 
-<p><a href="{{ link }}">{{ link }}</a></p>
+                            <table>
+                                <tr>
+                                    <th>Logger:</th>
+                                    <td>{{ event.logger }}</td>
+                                    <th>Level:</th>
+                                    <td>{{ event.get_level_display }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Server:</th>
+                                    <td>{{ event.server_name }}</td>
+                                    <th>First Seen:</th>
+                                    <td>{{ group.first_seen|date }}</td>
+                                </tr>
+                            </table>
 
-<dl>
-    <dt>Logger:</dt>
-    <dd>{{ event.logger }}</dd>
-    <dt>First Seen:</dt>
-    <dd>{{ group.first_seen|date }}</dd>
-</dt>
+                            {% for label, text in interfaces %}
+                            <div class="interface">
+                                <div class="title">{{ label }}</div>
 
-{% for label, text in interfaces %}
-<p><strong>{{ label }}</strong></p>
-
-<pre>{{ text }}</pre>
-
-{% endfor %}
+                                <pre>{{ text }}</pre>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>

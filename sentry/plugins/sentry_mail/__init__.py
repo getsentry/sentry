@@ -11,6 +11,8 @@ from django.template.loader import render_to_string
 from sentry.conf import settings
 from sentry.plugins import Plugin, register
 
+import pynliner
+
 NOTSET = object()
 
 
@@ -64,7 +66,7 @@ class MailProcessor(Plugin):
             fail_silently=False,
         )
 
-    def mail_admins(self, group, event, fail_silently=True):
+    def mail_admins(self, group, event, fail_silently=False):
         project = group.project
 
         interface_list = []
@@ -74,7 +76,7 @@ class MailProcessor(Plugin):
                 continue
             interface_list.append((interface.get_title(), body))
 
-        subject = event.message
+        subject = '%s: %s' % (event.get_level_display().upper(), event.message)
 
         if event.site:
             subject = '[%s] %s' % (event.site, subject)
@@ -87,12 +89,12 @@ class MailProcessor(Plugin):
             'link': link,
             'interfaces': interface_list,
         })
-        html_body = render_to_string('sentry/emails/error.html', {
+        html_body = pynliner.fromString(render_to_string('sentry/emails/error.html', {
             'group': group,
             'event': event,
             'link': link,
             'interfaces': interface_list,
-        })
+        }))
 
         self._send_mail(
             subject=subject,
@@ -103,6 +105,7 @@ class MailProcessor(Plugin):
         )
 
     def should_mail(self, group, event):
+        return True
         project = group.project
         send_to = self.get_option('send_to', project) or self.send_to
         if not send_to:
