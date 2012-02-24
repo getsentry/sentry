@@ -105,7 +105,6 @@ class MailProcessor(Plugin):
         )
 
     def should_mail(self, group, event):
-        return True
         project = group.project
         send_to = self.get_option('send_to', project) or self.send_to
         if not send_to:
