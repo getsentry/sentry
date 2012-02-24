@@ -6,7 +6,7 @@ sentry.plugins.base
 :license: BSD, see LICENSE for more details.
 """
 
-__all__ = ('Plugin', 'plugins', 'register')
+__all__ = ('Plugin', 'plugins', 'register', 'unregister')
 
 import logging
 
