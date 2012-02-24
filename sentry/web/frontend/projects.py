@@ -43,7 +43,7 @@ def project_list(request):
 
     for member in memberships:
         project_id = member.project_id
-        project_list[project_id].member_dsn = member.get_dsn(request.get_host(), secure=request.is_secure())
+        project_list[project_id].member_dsn = member.get_dsn()
         project_list[project_id].member_type = member.get_type_display()
 
     return render_to_response('sentry/projects/list.html', {
@@ -195,7 +195,7 @@ def edit_project_member(request, project, member_id):
         'member': member,
         'project': project,
         'form': form,
-        'dsn': member.get_dsn(request.get_host(), secure=request.is_secure()),
+        'dsn': member.get_dsn(),
     })
 
     return render_to_response('sentry/projects/members/edit.html', context, request)

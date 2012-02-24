@@ -203,12 +203,13 @@ class ProjectMember(Model):
     def generate_api_key(cls):
         return uuid.uuid4().hex
 
-    def get_dsn(self, domain, secure=True):
+    def get_dsn(self, domain=None, secure=True):
+        urlparts = urlparse.urlparse(settings.SENTRY_URL_PREFIX)
         return 'http%s://%s:%s@%s/%s' % (
-            secure and 's' or '',
+            urlparts.scheme,
             self.public_key,
             self.secret_key,
-            domain,
+            urlparts.domain,
             self.project_id,
         )
 

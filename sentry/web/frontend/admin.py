@@ -113,7 +113,7 @@ def create_new_user(request):
                 context.update({
                     'project': project,
                     'member': member,
-                    'dsn': member.get_dsn(request.get_host(), secure=request.is_secure()),
+                    'dsn': member.get_dsn(),
                 })
             body = render_to_string('sentry/emails/welcome_mail.txt', context, request)
 
