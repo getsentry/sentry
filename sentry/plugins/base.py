@@ -8,6 +8,8 @@ sentry.plugins.base
 
 __all__ = ('Plugin', 'plugins', 'register')
 
+import logging
+
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponse
 
@@ -55,7 +57,16 @@ class PluginManager(InstanceManager):
 
     def first(self, func_name, *args, **kwargs):
         for plugin in self.all():
-            result = getattr(plugin, func_name)(*args, **kwargs)
+            try:
+                result = getattr(plugin, func_name)(*args, **kwargs)
+            except Exception, e:
+                logger = logging.getLogger('sentry.plugins')
+                logger.error('Error processing %s() on %r: %s', func_name, plugin.__class__, e, extra={
+                    'args': args,
+                    'kwargs': kwargs,
+                }, exc_info=True)
+                continue
+
             if result is not None:
                 return result
 
