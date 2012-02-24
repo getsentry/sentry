@@ -36,14 +36,37 @@
             color: #fff;
             padding: 10px;
             font-size: 14px;
+            height: 28px;
         }
-        h1 {
-            font-size: 20px;
+        .count {
+            color: #fff;
+            float: right;
+            margin: -18px -10px 0 10px;
+            -moz-border-radius: 60px;
+            -webkit-border-radius: 60px;
+            border-radius: 60px;
+            width: 60px;
+            height: 60px;
+            background: #cfd3da;
+            line-height: 62px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 400;
+            font-family: "proxima nova", "proxima-nova", "heletica-neue", sans-serif;
+        }
+        .level-10 .count {}
+        .level-20 .count { background: #ffa101; }
+        .level-30 .count { background: #ffa101; }
+        .level-40 .count { background: #f0431c; }
+        .level-50 .count { background: #f0431c; }
+        .header h1 {
+            float: left;
+            font-size: 22px;
             margin: 0;
             padding: 0;
         }
-        h1 small {
-            font-size: 12px;
+        .header h1 small {
+            font-size: 14px;
             margin-left: 10px;
             color: #ccc;
             font-weight: normal;
@@ -76,12 +99,19 @@
         </style>
     </head>
     <body>
-        <table class="main">
+        <table class="main level-{{ event.level }}">
             <tr>
                 <td>
                     <div class="body">
                         <div class="header">
-                            <h1>Sentry <small>{% trans "New Event" %}</small></h1>
+                            <h1>Sentry <small>
+                                {% if group.times_seen == 1 %}
+                                    {% trans "New Event" %}
+                                {% else %}
+                                    {% trans "Regression" %}
+                                {% endif %}
+                            </small></h1>
+                            <span class="count">{{ group.times_seen }}</span>
                         </div>
                         <div class="inner">
                             <p>{{ event.message }}</p>
