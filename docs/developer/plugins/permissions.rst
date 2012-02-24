@@ -11,7 +11,7 @@ by someone who has some level of control on that project.
 
 This page attempts to describe those permissions, and the contextual objects along with them.
 
-.. data: add_project
+.. data:: add_project
 
          Controls whether a user can create a new project.
 
@@ -19,7 +19,7 @@ This page attempts to describe those permissions, and the contextual objects alo
 
             >>> has_perm('add_project', user)
 
-.. data: edit_project
+.. data:: edit_project
 
          Controls whether a user can edit an existing project.
 
@@ -27,7 +27,7 @@ This page attempts to describe those permissions, and the contextual objects alo
 
             >>> has_perm('edit_project', user, project)
 
-.. data: remove_project
+.. data:: remove_project
 
          Controls whether a user can remove an existing project.
 
@@ -35,7 +35,7 @@ This page attempts to describe those permissions, and the contextual objects alo
 
             >>> has_perm('remove_project', user, project)
 
-.. data: add_project_member
+.. data:: add_project_member
 
          Controls whether a user can add a new member to a project.
 
@@ -43,7 +43,7 @@ This page attempts to describe those permissions, and the contextual objects alo
 
             >>> has_perm('add_project_member', user, project)
 
-.. data: edit_project_member
+.. data:: edit_project_member
 
          Controls whether a user can edit an existing member on a project.
 
@@ -51,7 +51,7 @@ This page attempts to describe those permissions, and the contextual objects alo
 
             >>> has_perm('edit_project_member', user, member)
 
-.. data: remove_project_member
+.. data:: remove_project_member
 
          Controls whether a user can remove an existing member on a project.
 
