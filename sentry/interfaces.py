@@ -342,6 +342,15 @@ class Http(Interface):
             'env': self.env,
         }
 
+    def to_string(self, event):
+        return render_to_string('sentry/partial/interfaces/http.txt', {
+            'event': event,
+            'full_url': '?'.join(filter(None, [self.url, self.query_string])),
+            'url': self.url,
+            'method': self.method,
+            'query_string': self.query_string,
+        })
+
     def to_html(self, event):
         data = self.data
         data_is_dict = False
@@ -410,6 +419,14 @@ class Template(Interface):
 
     def get_hash(self):
         return [self.filename, self.context_line]
+
+    def to_string(self, event):
+        result = [
+            'Stacktrace (most recent call last):', '',
+            self.get_traceback()
+        ]
+
+        return '\n'.join(result)
 
     def to_html(self, event):
         context = get_context(self.lineno, self.context_line, self.pre_context, self.post_context)

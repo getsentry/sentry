@@ -1,0 +1,24 @@
+{% load i18n %}
+<table>
+    <colgroup>
+        <col style="width:60px;">
+    </colgroup>
+    <tbody>
+        <tr>
+            <th>{% trans "URL:" %}</th>
+            <td><a href="{{ url }}{% if query_string %}?{{ query_string }}{% endif %}">{{ url }}</a></td>
+        </tr>
+        {% if method %}
+            <tr>
+                <th>{% trans "Method:" %}</th>
+                <td>{{ method }}</td>
+            </tr>
+        {% endif %}
+        <tr>
+            <th>{% trans "Query:" %}</th>
+            <td>
+                <code>{{ query_string|pprint }}</code>
+            </td>
+        </tr>
+    </tbody>
+</table>

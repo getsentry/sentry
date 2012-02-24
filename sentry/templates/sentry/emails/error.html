@@ -61,7 +61,6 @@
         .inner table th,
         .inner table td {
             text-align: left;
-            width: 25%;
         }
         .interface {
             margin-bottom: 15px;
@@ -90,6 +89,12 @@
                             <p><a href="{{ link }}">{{ link }}</a></p>
 
                             <table>
+                                <colgroup>
+                                    <col style="width:25%;">
+                                    <col style="width:25%;">
+                                    <col style="width:25%;">
+                                    <col style="width:25%;">
+                                </colgroup>
                                 <tr>
                                     <th>{% trans "Logger:" %}</th>
                                     <td>{{ event.logger }}</td>
