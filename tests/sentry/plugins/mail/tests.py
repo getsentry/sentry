@@ -50,7 +50,7 @@ class MailProcessorTest(TestCase):
         self.assertTrue(p.should_mail(group=group, event=Mock()))
 
     @mock.patch('sentry.plugins.sentry_mail.MailProcessor._send_mail')
-    def test_mail_admins_renders_interfaces(self, _send_mail):
+    def test_mail_members_renders_interfaces(self, _send_mail):
         group = Mock(spec=Group)
         group.first_seen = datetime.datetime.now()
         group.get_absolute_url.return_value = '/example'
@@ -65,7 +65,51 @@ class MailProcessorTest(TestCase):
 
         with self.Settings(SENTRY_URL_PREFIX='http://example.com'):
             p = MailProcessor(send_to=['foo@example.com'])
-            p.mail_admins(group, event)
+            p.mail_members(group, event)
 
         stacktrace.get_title.assert_called_once_with()
         stacktrace.to_string.assert_called_once_with(event)
+
+    def test_send_to(self):
+        Mock = mock.Mock
+        with mock.patch('sentry.models.ProjectOption.objects.get_value') as get_value:
+            opts = {}
+            get_value.side_effect = lambda p, k, d: opts.get(k, d)
+
+            admins = ['admin@fake.com']
+            member_emails = ['test@fake.com', 'member@fake.com']
+            project_emails = ['member@fake.com', 'new@fake.com']
+
+            project = Mock()
+            project.member_set = Mock()
+            project.member_set.values_list.return_value = member_emails
+
+            with mock.patch('sentry.plugins.sentry_mail.settings') as settings:
+                settings.ADMINS = admins
+
+                # member emails without admins
+                p = MailProcessor()
+                self.assertEqual(sorted(set(member_emails)),
+                                 sorted(p.get_send_to(project)))
+
+                # member emails with admins
+                p = MailProcessor()
+                opts = {'mail:send_to_admins': True}
+                p._send_mail('', '', project=project)
+                self.assertEqual(sorted(set(member_emails + admins)),
+                                 sorted(p.get_send_to(project)))
+
+                # project emails without admins
+                p = MailProcessor()
+                opts = {'mail:send_to': ','.join(project_emails)}
+                p._send_mail('', '', project=project)
+                self.assertEqual(sorted(set(project_emails)),
+                                 sorted(p.get_send_to(project)))
+
+                # project emails with admins
+                p = MailProcessor()
+                opts = {'mail:send_to': ','.join(project_emails),
+                        'mail:send_to_admins': True}
+                p._send_mail('', '', project=project)
+                self.assertEqual(sorted(set(project_emails + admins)),
+                                 sorted(p.get_send_to(project)))

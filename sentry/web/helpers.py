@@ -133,6 +133,7 @@ def plugin_config(plugin, project, request):
     returns a tuple composed of a redirection boolean and the content to
     be displayed.
     """
+    NOTSET = object()
 
     plugin_key = plugin.get_conf_key()
     if project:
@@ -142,14 +143,14 @@ def plugin_config(plugin, project, request):
         form_class = plugin.site_conf_form
         template = plugin.site_conf_template
 
-    initials = {}
+    initials = plugin.get_form_initial(project)
     for field in form_class.base_fields:
         key = '%s:%s' % (plugin_key, field)
         if project:
-            value = ProjectOption.objects.get_value(project, key, None)
+            value = ProjectOption.objects.get_value(project, key, NOTSET)
         else:
-            value = Option.objects.get_value(key, None)
-        if value:
+            value = Option.objects.get_value(key, NOTSET)
+        if value is not NOTSET:
             initials[field] = value
 
     form = form_class(

@@ -180,6 +180,9 @@ class IPlugin(local):
     def has_project_conf(self):
         return self.project_conf_form is not None
 
+    def get_form_initial(self, project=None):
+        return {}
+
     # Response methods
 
     def redirect(self, url):

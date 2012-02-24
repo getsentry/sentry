@@ -5,5 +5,7 @@
 {% block title %}{% trans "Search" %} | {{ block.super }}{% endblock %}
 
 {% block main %}
-    <p>{% trans "We were unable to find a message matching the ID you entered." %}</p>
+    <section class="body">
+        <p>{% trans "We were unable to find a message matching the ID you entered." %}</p>
+    </section>
 {% endblock %}
