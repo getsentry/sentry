@@ -2211,7 +2211,7 @@ p {
 }
 .toolbar {
   *zoom: 1;
-  background: url(../images/dashboard/toolbar-bg.png);
+  background: #f4f4f4 url(../images/dashboard/toolbar-bg.png);
   padding: 0 20px;
   height: 49px;
   border-bottom: 1px solid #b6b9bd;
