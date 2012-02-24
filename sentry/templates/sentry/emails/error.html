@@ -3,9 +3,9 @@
 <html>
     <head>
         <style type="text/css">
+        * { font-size: 12px; }
         body, .main {
             width: 100%;
-            font-size: 12px;
             font-family: "helvetica neue", helvetica, sans-serif;
             border: 0;
             padding: 0;
@@ -37,6 +37,18 @@
             padding: 10px;
             font-size: 14px;
         }
+        h1 {
+            font-size: 20px;
+            margin: 0;
+            padding: 0;
+        }
+        h1 small {
+            font-size: 12px;
+            margin-left: 10px;
+            color: #ccc;
+            font-weight: normal;
+        }
+
         .inner {
             background: #fff;
             padding: 10px;
@@ -70,7 +82,7 @@
                 <td>
                     <div class="body">
                         <div class="header">
-                            {% trans "A new event has been recorded in Sentry" %}
+                            <h1>Sentry <small>{% trans "New Event" %}</small></h1>
                         </div>
                         <div class="inner">
                             <p>{{ event.message }}</p>
@@ -79,15 +91,15 @@
 
                             <table>
                                 <tr>
-                                    <th>Logger:</th>
+                                    <th>{% trans "Logger:" %}</th>
                                     <td>{{ event.logger }}</td>
-                                    <th>Level:</th>
+                                    <th>{% trans "Level:" %}</th>
                                     <td>{{ event.get_level_display }}</td>
                                 </tr>
                                 <tr>
-                                    <th>Server:</th>
+                                    <th>{% trans "Server:" %}</th>
                                     <td>{{ event.server_name }}</td>
-                                    <th>First Seen:</th>
+                                    <th>{% trans "First Seen:" %}</th>
                                     <td>{{ group.first_seen|date }}</td>
                                 </tr>
                             </table>
