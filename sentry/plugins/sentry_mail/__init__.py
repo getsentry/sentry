@@ -22,8 +22,7 @@ split_re = re.compile(r'\s*,\s*|\s+')
 
 class MailConfigurationForm(forms.Form):
     send_to = forms.CharField(label=_('Send to'), required=False,
-        help_text=_('Enter one or more emails separated by commas or lines. '
-                    'If no email addresses are entered, this value defaults to the Sentry Admins.'),
+        help_text=_('Enter one or more emails separated by commas or lines.'),
         widget=forms.Textarea(attrs={
             'placeholder': 'you@example.com, \nother@example.com'}))
     send_to_members = forms.BooleanField(label=_('Include project members'), initial=False, required=False,
