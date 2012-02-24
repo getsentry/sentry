@@ -3,7 +3,7 @@
 
 <div id="traceback" class="module">
     <div class="page-header">
-      <a href="javascript:void(0)" data-container="#raw_stacktrace" data-title="Stacktrace" class="popup btn small pull-right">Raw</a>
+      <a href="javascript:void(0)" data-container="#raw_stacktrace" data-title="Stacktrace" class="popup btn small pull-right">{% trans "Raw" %}</a>
       <h2>{% trans "Stacktrace" %}</h2>
     </div>
     <div class="module-content">
@@ -25,7 +25,7 @@
                     {% endif %}
                     {% if frame.vars %}
                         <div class="commands">
-                            <a href="#" onclick="return varToggle(this, '{{ forloop.counter0 }}')"><span>&#x25b6;</span> Local vars</a>
+                            <a href="#" onclick="return varToggle(this, '{{ forloop.counter0 }}')"><span>&#x25b6;</span> {% trans "Local vars" %}</a>
                         </div>
                         <table class="table vars" id="v{{ forloop.counter0 }}" style="display:none;">
                             <colgroup>
