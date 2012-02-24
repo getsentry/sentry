@@ -18,7 +18,7 @@ KEY_LENGTH = 40
 CONFIG_TEMPLATE = """
 import os.path
 
-ROOT = os.path.dirname(__file__)
+CONF_ROOT = os.path.dirname(__file__)
 
 DATABASES = {
     'default': {
@@ -26,7 +26,7 @@ DATABASES = {
         # to ``django.db.backends.mysql`` or to PostgreSQL with
         # ``django.db.backends.postgresql_psycopg2``
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(ROOT, 'sentry.db'),
+        'NAME': os.path.join(CONF_ROOT, 'sentry.db'),
         'USER': 'postgres',
         'PASSWORD': '',
         'HOST': '',
