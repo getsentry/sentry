@@ -82,6 +82,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'sentry.middleware.SentryMiddleware',
     # 'django.contrib.messages.middleware.MessageMiddleware',
 )
 
@@ -118,6 +119,8 @@ ADMIN_MEDIA_PREFIX = '/_admin_media/'
 
 SENTRY_PUBLIC = True
 SENTRY_PROJECT = 1
+
+EMAIL_SUBJECT_PREFIX = '[Sentry] '
 
 # Configure logging
 from raven.conf import setup_logging
