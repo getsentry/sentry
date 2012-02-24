@@ -9,12 +9,12 @@
                     {% if project %}
                         <form action="{% url sentry-search project.pk %}" class="navbar-search pull-right" id="search">
                             <input type="hidden" name="sort" value="{% if sort %}{{ sort }}{% endif %}"/>
-                            <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="{% if HAS_SEARCH %}search query or message id{% else %}message id{% endif %}" class="search-query pull-left" />
+                            <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="{% if HAS_SEARCH %}{% trans "search query or message id" %}{% else %}{% trans "message id" %}{% endif %}" class="search-query pull-left" />
                         </form>
                     {% else %}
                         <form class="navbar-search pull-right" id="search">
                             <input type="hidden" name="sort" value="{% if sort %}{{ sort }}{% endif %}"/>
-                            <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="select a project to enable search" class="search-query pull-left disabled" disabled="disabled" />
+                            <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="{% trans "select a project to enable search" %}" class="search-query pull-left disabled" disabled="disabled" />
                         </form>
                     {% endif %}
                 {% endblock %}
