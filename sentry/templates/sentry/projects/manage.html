@@ -7,7 +7,7 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider">/</li>
-    <li><a href="{% url sentry-manage-project project.pk %}">Manage</a></li>
+    <li><a href="{% url sentry-manage-project project.pk %}">{% trans "Manage" %}</a></li>
 {% endblock %}
 
 {% block main %}
@@ -52,7 +52,9 @@
                 </fieldset>
             </form>
             <div class="page-header">
-                <a href="{% url sentry-new-project-member project.pk %}" class="btn pull-right small btn-primary">{% trans "+ New Member" %}</a>
+                {% if can_add_member %}
+                    <a href="{% url sentry-new-project-member project.pk %}" class="btn pull-right small btn-primary">{% trans "New Member" %}</a>
+                {% endif %}
                 <h2>{% trans "Members" %}</h2>
             </div>
             <table class="table table-bordered table-zebra">
@@ -77,7 +79,7 @@
                             </td>
                             <td style="text-align:center;">
                                 {% if user == project.owner %}
-                                    <em>owner</em>
+                                    <em>{% trans "owner" %}</em>
                                 {% else %}
                                     <a href="{% url sentry-remove-project-member project.pk member.pk %}">{% trans "Revoke" %}</a>
                                 {% endif %}

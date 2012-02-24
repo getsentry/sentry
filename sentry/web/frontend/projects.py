@@ -22,6 +22,20 @@ from sentry.web.helpers import render_to_response, get_project_list, \
   plugin_config
 
 
+def _can_add_project_member(user, project):
+    result = plugins.first('has_perm', user, 'add_project_member', project)
+    if result is False and not user.has_perm('sentry.can_add_projectmember'):
+        return False
+    return True
+
+
+def _can_remove_project(user, project):
+    result = plugins.first('has_perm', user, 'remove_project', project)
+    if result is False and not user.has_perm('sentry.can_remove_project'):
+        return False
+    return True
+
+
 @login_required
 def project_list(request):
     project_list = get_project_list(request.user, hidden=True)
@@ -75,8 +89,7 @@ def remove_project(request, project):
     if str(project.id) == str(settings.PROJECT):
         return HttpResponseRedirect(reverse('sentry-project-list'))
 
-    result = plugins.first('has_perm', request.user, 'remove_project', project)
-    if result is False and not request.user.has_perm('sentry.can_remove_project'):
+    if not _can_remove_project(request.user, project):
         return HttpResponseRedirect(reverse('sentry'))
 
     project_list = filter(lambda x: x != project, get_project_list(request.user).itervalues())
@@ -125,6 +138,8 @@ def manage_project(request, project):
 
     context = csrf(request)
     context.update({
+        'can_add_member': _can_add_project_member(request.user, project),
+        'can_remove_project': _can_remove_project(request.user, project),
         'page': 'details',
         'form': form,
         'project': project,
@@ -137,8 +152,8 @@ def manage_project(request, project):
 @csrf_protect
 @has_access(MEMBER_OWNER)
 def new_project_member(request, project):
-    result = plugins.first('has_perm', request.user, 'add_project_member', project)
-    if result is False and not request.user.has_perm('sentry.can_add_projectmember'):
+    can_add_member = _can_add_project_member(request.user, project)
+    if not can_add_member:
         return HttpResponseRedirect(reverse('sentry'))
 
     form = NewProjectMemberForm(project, request.POST or None, initial={

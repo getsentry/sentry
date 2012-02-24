@@ -13,7 +13,7 @@
 {% endblock %}
 
 {% block page_header %}
-    <a href="{% url sentry-admin-new-user %}" class="btn pull-right btn-primary">+ {% trans "Create a new user" %}</a>
+    <a href="{% url sentry-admin-new-user %}" class="btn pull-right btn-primary">{% trans "Create a new user" %}</a>
     {{ block.super }}
 {% endblock %}
 

@@ -7,7 +7,9 @@
 {% block bodyclass %}{% endblock %}
 
 {% block page_header %}
-    <a href="{% url sentry-new-project %}" class="btn pull-right btn-primary">+ Create a new project</a>
+    {% if can_create_projects %}
+        <a href="{% url sentry-new-project %}" class="btn pull-right btn-primary">{% trans "Create a new project" %}</a>
+    {% endif %}
     {{ block.super }}
 {% endblock %}
 
@@ -18,7 +20,7 @@
 {% block content %}
     <section class="body">
         {% if project_list %}
-            <p>The following is a list of projects that you are a member of.</p>
+            <p>{% trans "The following is a list of projects that you are a member of." %}</p>
             <table class="table table-zebra table-bordered">
                 <colgroup>
                     <col>
@@ -28,10 +30,10 @@
                 </colgroup>
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th style="text-align:center;">Membership</th>
-                        <th style="text-align:center;">Owner</th>
-                        <th style="text-align:center;">Status</th>
+                        <th>{% trans "Name" %}</th>
+                        <th style="text-align:center;">{% trans "Membership" %}</th>
+                        <th style="text-align:center;">{% trans "Owner" %}</th>
+                        <th style="text-align:center;">{% trans "Status" %}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -48,7 +50,7 @@
                                 {% if project.owner %}
                                     {{ project.owner.username }}
                                 {% else %}
-                                    <em>no owner</em>
+                                    <em>{% trans "no owner" %}</em>
                                 {% endif %}
                             </td>
                             <td style="text-align:center;vertical-align:middle;">{{ project.get_status_display }}</td>
@@ -60,7 +62,7 @@
             {% if can_create_projects %}
                 <div class="alert alert-info">You do not have access to any projects. Would you like to <a href="{% url sentry-new-project %}">create a new project</a>?</div>
             {% else %}
-                <div class="alert alert-notice">You do not have access to any projects. Ask an administrator to add you as a member.</div>
+                <div class="alert alert-notice">{% trans "You do not have access to any projects. Ask an administrator to add you as a member." %}</div>
             {% endif %}
         {% endif %}
     </section>
