@@ -204,7 +204,7 @@ class ProjectMember(Model):
         return uuid.uuid4().hex
 
     def get_dsn(self, domain=None, secure=True):
-        urlparts = urlparse.urlparse(settings.SENTRY_URL_PREFIX)
+        urlparts = urlparse.urlparse(settings.URL_PREFIX)
         return 'http%s://%s:%s@%s/%s' % (
             urlparts.scheme,
             self.public_key,
