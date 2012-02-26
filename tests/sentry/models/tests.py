@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 
-from sentry.models import Project, Group, Event, \
+from sentry.models import Project, ProjectMember, Group, Event, \
   MessageFilterValue, MessageCountByMinute, FilterValue
 
 from tests.base import TestCase
@@ -29,3 +29,22 @@ class ProjectTest(TestCase):
         self.assertEquals(project2.messagefiltervalue_set.count(), 0)
         self.assertEquals(project2.messagecountbyminute_set.count(), 0)
         self.assertEquals(project2.filtervalue_set.count(), 0)
+
+
+class ProjectMemberTest(TestCase):
+    fixtures = ['tests/fixtures/views.json']
+
+    def test_get_dsn(self):
+        member = ProjectMember(project_id=1, public_key='public', secret_key='secret')
+        with self.Settings(SENTRY_URL_PREFIX='http://example.com'):
+            self.assertEquals(member.get_dsn(), 'http://public:secret@example.com/1')
+
+    def test_get_dsn_with_ssl(self):
+        member = ProjectMember(project_id=1, public_key='public', secret_key='secret')
+        with self.Settings(SENTRY_URL_PREFIX='https://example.com'):
+            self.assertEquals(member.get_dsn(), 'https://public:secret@example.com/1')
+
+    def test_get_dsn_with_port(self):
+        member = ProjectMember(project_id=1, public_key='public', secret_key='secret')
+        with self.Settings(SENTRY_URL_PREFIX='http://example.com:81'):
+            self.assertEquals(member.get_dsn(), 'http://public:secret@example.com:81/1')
