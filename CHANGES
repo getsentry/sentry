@@ -1,3 +1,10 @@
+Version 3.3.0
+-------------
+
+The queue has been changed from direct Kombu, to utilizing Celery entirely. If you were
+already using the queue, the upgrade simply requires you to change "sentry start worker"
+to "sentry celeryd".
+
 Version 3.0.0
 -------------
 
