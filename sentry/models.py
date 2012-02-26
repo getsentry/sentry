@@ -209,7 +209,7 @@ class ProjectMember(Model):
             urlparts.scheme,
             self.public_key,
             self.secret_key,
-            urlparts.domain,
+            urlparts.netloc,
             self.project_id,
         )
 
