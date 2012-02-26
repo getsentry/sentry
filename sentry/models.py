@@ -205,7 +205,7 @@ class ProjectMember(Model):
 
     def get_dsn(self, domain=None, secure=True):
         urlparts = urlparse.urlparse(settings.URL_PREFIX)
-        return 'http%s://%s:%s@%s/%s' % (
+        return '%s://%s:%s@%s/%s' % (
             urlparts.scheme,
             self.public_key,
             self.secret_key,
