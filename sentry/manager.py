@@ -18,6 +18,7 @@ from django.db import models, transaction, IntegrityError
 from django.db.models import Sum, F
 from django.utils.encoding import force_unicode
 
+from raven.utils.encoding import to_string
 from sentry.conf import settings
 from sentry.exceptions import InvalidInterface, InvalidData
 from sentry.processors.base import send_group_processors
@@ -37,9 +38,9 @@ def get_checksum_from_event(event):
         if result:
             hash = hashlib.md5()
             for r in result:
-                hash.update(r)
+                hash.update(to_string(r))
             return hash.hexdigest()
-    return hashlib.md5(event.message).hexdigest()
+    return hashlib.md5(to_string(event.message)).hexdigest()
 
 
 class ScoreClause(object):
