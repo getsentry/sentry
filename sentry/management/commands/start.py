@@ -23,13 +23,15 @@ class Command(BaseCommand):
     )
 
     def handle(self, service_name='http', **options):
-        from sentry.services import http, worker, udp
+        from sentry.services import http, udp
 
         services = {
             'http': http.SentryHTTPServer,
-            'worker': worker.SentryWorker,
             'udp': udp.SentryUDPServer,
         }
+
+        if service_name == 'worker':
+            raise CommandError('The ``worker`` service has been replaced with ``celeryd``.')
 
         # Ensure we perform an upgrade before starting any service
         print "Performing upgrade before service startup..."

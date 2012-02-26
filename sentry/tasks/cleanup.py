@@ -1,14 +1,17 @@
 """
-sentry.queue.tasks.cleanup
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+sentry.tasks.cleanup
+~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 
+from celery.task import task
 
+
+@task(ignore_result=True)
 def cleanup(days=30, logger=None, site=None, server=None, level=None,
-            project=None, resolved=None):
+            project=None, resolved=None, **kwargs):
     """
     Deletes a portion of the trailing data in Sentry based on
     their creation dates. For example, if ``days`` is 30, this

@@ -23,11 +23,11 @@ from sentry.conf import settings
 from sentry.exceptions import InvalidInterface, InvalidData
 from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
+from sentry.tasks.index import index_event
 from sentry.utils import get_db_engine
 from sentry.utils.charts import has_charts
 from sentry.utils.dates import utc_to_local, get_sql_date_trunc
-from sentry.queue.client import delay
-from sentry.queue.tasks.index import index_event
+from sentry.utils.queue import maybe_delay
 
 logger = logging.getLogger('sentry.errors')
 
@@ -351,7 +351,7 @@ class GroupManager(models.Manager, ChartMixin):
 
         if settings.USE_SEARCH:
             try:
-                delay(index_event, event)
+                maybe_delay(index_event, event)
             except Exception, e:
                 transaction.rollback_unless_managed(using=group._state.db)
                 logger.exception(u'Error indexing document: %s', e)

@@ -104,6 +104,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     # 'django.contrib.messages',
 
+    'djcelery',
     'kombu.transport.django',
     'raven.contrib.django',
     'sentry',
@@ -115,6 +116,10 @@ INSTALLED_APPS = (
 )
 
 ADMIN_MEDIA_PREFIX = '/_admin_media/'
+
+# Queue configuration
+
+BROKER_URL = "django://"
 
 # Sentry and Raven configuration
 
@@ -145,3 +150,7 @@ logger.addHandler(handler)
 sentry_handler = SentryHandler()
 sentry_handler.setLevel(logging.ERROR)
 setup_logging(sentry_handler)
+
+# Configure celery
+import djcelery
+djcelery.setup_loader()

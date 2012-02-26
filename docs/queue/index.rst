@@ -7,13 +7,15 @@ of writing it to the database immediately, it sends a job to the queue so
 that the request can be returned right away, and the background workers
 handle actually saving that data.
 
-Run a Worker
-------------
+.. note:: As of version 3.3.0 the queue is now powered by Celery.
 
-Workers can be run by using the Sentry CLI. Specifically, you pass the 'worker'
-service to the start command::
+Running a Worker
+------------~~~~
 
-    sentry start worker
+Workers can be run by using the Sentry CLI. Specifically, you call out to celeryd,
+which the worker manager process of the Celery library.
+
+    sentry celeryd
 
 Enable the Queue
 ----------------

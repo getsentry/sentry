@@ -6,6 +6,7 @@ import logging
 
 from sentry.models import Event, Group, MessageCountByMinute, \
   MessageFilterValue
+from sentry.tasks.cleanup import cleanup
 from tests.base import TestCase
 
 
@@ -13,8 +14,6 @@ class SentryCleanupTest(TestCase):
     fixtures = ['tests/fixtures/cleanup.json']
 
     def test_simple(self):
-        from sentry.queue.tasks.cleanup import cleanup
-
         cleanup(days=1)
 
         self.assertEquals(Event.objects.count(), 0)
@@ -23,8 +22,6 @@ class SentryCleanupTest(TestCase):
         self.assertEquals(MessageFilterValue.objects.count(), 0)
 
     def test_logger(self):
-        from sentry.queue.tasks.cleanup import cleanup
-
         cleanup(days=1, logger='sentry')
 
         self.assertEquals(Event.objects.count(), 8)
@@ -51,8 +48,6 @@ class SentryCleanupTest(TestCase):
         self.assertEquals(MessageFilterValue.objects.count(), 0)
 
     def test_server_name(self):
-        from sentry.queue.tasks.cleanup import cleanup
-
         cleanup(days=1, server='dcramer.local')
 
         self.assertEquals(Event.objects.count(), 2)
@@ -68,8 +63,6 @@ class SentryCleanupTest(TestCase):
         self.assertEquals(MessageFilterValue.objects.count(), 0)
 
     def test_level(self):
-        from sentry.queue.tasks.cleanup import cleanup
-
         cleanup(days=1, level=logging.ERROR)
 
         self.assertEquals(Event.objects.count(), 1)

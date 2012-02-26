@@ -19,11 +19,12 @@ import zlib
 from django.utils.encoding import smart_str
 
 from sentry.conf import settings
-from sentry.exceptions import InvalidData, InvalidInterface
-from sentry.models import Group, ProjectMember
-from sentry.queue.client import delay
+# from sentry.exceptions import InvalidData, InvalidInterface
+from sentry.models import ProjectMember
+from sentry.tasks.store import store_event
 from sentry.utils import is_float, json
 from sentry.utils.auth import get_signature, parse_auth_header
+from sentry.utils.queue import maybe_delay
 
 logger = logging.getLogger('sentry.errors.coreapi')
 
@@ -203,12 +204,5 @@ def validate_data(project, data):
     return data
 
 
-def really_insert_data(data):
-    try:
-        Group.objects.from_kwargs(**data)
-    except (InvalidInterface, InvalidData), e:
-        raise APIError(e)
-
-
 def insert_data_to_database(data):
-    delay(really_insert_data, data)
+    maybe_delay(store_event, data=data)

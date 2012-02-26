@@ -25,7 +25,7 @@ class Command(BaseCommand):
 
     def handle(self, **options):
         import logging
-        from sentry.queue.tasks.cleanup import cleanup
+        from sentry.tasks.cleanup import cleanup
 
         level = options['level']
 
