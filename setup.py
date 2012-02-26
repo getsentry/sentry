@@ -42,7 +42,7 @@ install_requires = [
     'logan>=0.2.1',
     'pynliner>=0.4.0',
     'pytz>=2011n',
-    'raven>=1.4.4',
+    'raven>=1.4.5',
     'South>=0.7',
 ]
 
