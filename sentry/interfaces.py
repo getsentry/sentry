@@ -185,8 +185,15 @@ class Stacktrace(Interface):
     def get_hash(self):
         output = []
         for frame in self.frames:
-            output.append(frame['module'])
-            output.append(frame['function'])
+            if 'module' in frame:
+                output.append(frame['module'])
+            else:
+                output.append(frame['filename'])
+
+            if 'function' in frame:
+                output.append(frame['function'])
+            else:
+                output.append(frame['lineno'])
         return output
 
     def to_html(self, event):
