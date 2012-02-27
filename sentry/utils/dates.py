@@ -14,13 +14,11 @@ from sentry.utils import get_db_engine
 
 def utc_to_local(dt):
     tz = pytz.timezone(settings.TIME_ZONE)
-    return dt.replace(tzinfo=pytz.utc).astimezone(tz).replace(tzinfo=None)
-
+    return tz.fromutc(dt).replace(tzinfo=None)
 
 def local_to_utc(dt):
     tz = pytz.timezone(settings.TIME_ZONE)
-    return dt.replace(tzinfo=tz).astimezone(pytz.utc).replace(tzinfo=None)
-
+    return tz.localize(dt).astimezone(pytz.utc).replace(tzinfo=None)
 
 def get_sql_date_trunc(col, db='default'):
     conn = connections[db]
