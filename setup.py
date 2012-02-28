@@ -27,6 +27,7 @@ from setuptools import setup, find_packages
 tests_require = [
     'nose==1.1.2',
     'django-nose==0.1.3',
+    'mock==0.8.0',
 ]
 
 install_requires = [
