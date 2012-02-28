@@ -42,8 +42,7 @@ class APITest(TestCase):
         request.user = self.user
         request.GET = {'project_id': 10000}
 
-        with self.assertRaises(APIUnauthorized):
-            project_from_id(request)
+        self.assertRaises(APIUnauthorized, project_from_id, request)
 
     def test_valid_project_from_api_key_and_id(self):
         api_key = self.pm.public_key
@@ -54,12 +53,10 @@ class APITest(TestCase):
         api_key = self.pm.public_key
 
         # invalid project_id
-        with self.assertRaises(APIUnauthorized):
-            project_from_api_key_and_id(api_key, 10000)
+        self.assertRaises(APIUnauthorized, project_from_api_key_and_id, api_key, 10000)
 
         # invalid api_key
-        with self.assertRaises(APIUnauthorized):
-            project_from_api_key_and_id(1, self.project.id)
+        self.assertRaises(APIUnauthorized, project_from_api_key_and_id, 1, self.project.id)
 
     def test_valid_extract_auth_vars_v3(self):
         request = mock.Mock()
@@ -120,22 +117,19 @@ class APITest(TestCase):
         with mock.patch('sentry.coreapi.get_signature') as get_signature:
             get_signature.return_value = 'notsignature'
 
-            with self.assertRaises(APIForbidden):
-                validate_hmac('foo', 'signature', time.time(), 'foo')
+            self.assertRaises(APIForbidden, validate_hmac, 'foo', 'signature', time.time(), 'foo')
 
     def test_invalid_validate_hmac_expired(self):
         with mock.patch('sentry.coreapi.get_signature') as get_signature:
             get_signature.return_value = 'signature'
 
-            with self.assertRaises(APITimestampExpired):
-                validate_hmac('foo', 'signature', time.time() - 3601, 'foo')
+            self.assertRaises(APITimestampExpired, validate_hmac, 'foo', 'signature', time.time() - 3601, 'foo')
 
     def test_invalid_validate_hmac_bad_timestamp(self):
         with mock.patch('sentry.coreapi.get_signature') as get_signature:
             get_signature.return_value = 'signature'
 
-            with self.assertRaises(APIError):
-                validate_hmac('foo', 'signature', 'foo', 'foo')
+            self.assertRaises(APIError, validate_hmac, 'foo', 'signature', 'foo', 'foo')
 
     def test_process_data_timestamp_iso_timestamp(self):
         data = process_data_timestamp({
