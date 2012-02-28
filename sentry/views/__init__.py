@@ -6,7 +6,7 @@ sentry.views
 :license: BSD, see LICENSE for more details.
 """
 
-from .base import *
-from .exception import *
-from .message import *
-from .query import *
+from sentry.views.base import *
+from sentry.views.exception import *
+from sentry.views.message import *
+from sentry.views.query import *
