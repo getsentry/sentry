@@ -62,7 +62,6 @@ class SentryHTTPServer(Service):
 
         options = {
             'bind': '%s:%s' % (self.host, self.port),
-            'worker_class': 'eventlet',
             'debug': debug,
             'daemon': False,
             'timeout': 30,

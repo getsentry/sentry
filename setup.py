@@ -37,7 +37,6 @@ install_requires = [
     'django-indexer>=0.3.0',
     'django-paging>=0.2.4',
     'django-templatetag-sugar>=0.1.0',
-    'eventlet>=0.9.15',
     'gunicorn>=0.13.4',
     'logan>=0.2.1',
     'pynliner>=0.4.0',
