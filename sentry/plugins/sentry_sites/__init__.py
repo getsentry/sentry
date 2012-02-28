@@ -9,7 +9,6 @@ from django.db.models import Sum
 from sentry.plugins import Plugin, register
 
 
-@register
 class SitesPlugin(Plugin):
     """
     Adds additional support for showing information about sites including:
@@ -42,3 +41,4 @@ class SitesPlugin(Plugin):
             'group': group,
             'unique_sites': list(self.get_unique_sites(group)[:10]),
         })
+register(SitesPlugin)

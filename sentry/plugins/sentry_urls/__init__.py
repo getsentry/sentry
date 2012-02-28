@@ -9,7 +9,6 @@ from django.db.models import Sum
 from sentry.plugins import Plugin, register
 
 
-@register
 class UrlsPlugin(Plugin):
     """
     Adds additional support for showing information about urls including:
@@ -42,3 +41,4 @@ class UrlsPlugin(Plugin):
             'group': group,
             'unique_urls': list(self.get_unique_urls(group)[:10]),
         })
+register(UrlsPlugin)

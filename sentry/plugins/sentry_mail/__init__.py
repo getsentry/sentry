@@ -39,7 +39,6 @@ class MailConfigurationForm(forms.Form):
         return ','.join(emails)
 
 
-@register
 class MailProcessor(Plugin):
     title = _('Mail')
     conf_key = 'mail'
@@ -183,3 +182,4 @@ class MailProcessor(Plugin):
             return
 
         self.mail_members(group, event)
+register(MailProcessor)

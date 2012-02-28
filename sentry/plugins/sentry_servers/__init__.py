@@ -10,7 +10,6 @@ from django.db.models import Sum
 from sentry.plugins import Plugin, register
 
 
-@register
 class ServersPlugin(Plugin):
     """
     Adds additional support for showing information about servers including:
@@ -43,3 +42,4 @@ class ServersPlugin(Plugin):
             'unique_servers': list(self.get_unique_servers(group)[:10]),
             'group': group,
         })
+register(ServersPlugin)
