@@ -28,6 +28,7 @@ tests_require = [
     'nose==1.1.2',
     'django-nose==0.1.3',
     'mock==0.8.0',
+    'eventlet==0.9.16',
 ]
 
 install_requires = [
