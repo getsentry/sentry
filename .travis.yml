@@ -2,5 +2,10 @@ language: python
 python:
   - "2.6"
   - "2.7"
-install: python setup.py install
+env:
+  - DJANGO=1.2.7
+  - DJANGO=1.3.1
+install:
+  - pip install $DJANGO
+  - python setup.py install
 script: python setup.py test
