@@ -261,7 +261,7 @@ The following settings are available for the built-in webserver:
         SENTRY_WEB_PORT = 9000
 
 
-.. data:: sentry.conf.WEB_CONFIG
+.. data:: sentry.conf.WEB_OPTIONS
     :noindex:
 
     A dictionary of additional configuration options to pass to gunicorn.
@@ -270,7 +270,7 @@ The following settings are available for the built-in webserver:
 
     ::
 
-        SENTRY_WEB_CONFIG = {
+        SENTRY_WEB_OPTIONS = {
             'workers': 10,
             'worker_class': 'gevent',
         }
