@@ -30,7 +30,6 @@
                 <thead>
                     <tr>
                         <th>{% trans "Project" %}</th>
-                        <th style="text-align:center;">{% trans "Daily Events" %}</th>
                         <th style="text-align:center;">{% trans "Last Event" %}</th>
                     </tr>
                 </thead>
@@ -48,9 +47,6 @@
                                         {% endif %}
                                     </a></smalL>
                                 {% endif %}
-                            </td>
-                            <td style="text-align:center; vertical-align:middle;">
-                                <em>~{{ project|avg_events_per_day }}</em>
                             </td>
                             <td style="text-align:center; vertical-align:middle;">
                                 {{ project.last_event|timesince }}
