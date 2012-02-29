@@ -4,13 +4,14 @@
 # 
 # Translators:
 # Manuel Ohlendorf <>, 2012.
+# Nikolai Prokoschenko <nikolai@prokoschenko.de>, 2012.
 msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: https://github.com/dcramer/sentry/issues\n"
 "POT-Creation-Date: 2012-02-18 07:59+0000\n"
-"PO-Revision-Date: 2012-02-22 19:09+0000\n"
-"Last-Translator: Manuel Ohlendorf <>\n"
+"PO-Revision-Date: 2012-02-27 10:04+0000\n"
+"Last-Translator: Nikolai Prokoschenko <nikolai@prokoschenko.de>\n"
 "Language-Team: German (http://www.transifex.net/projects/p/sentry/language/de/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -663,7 +664,7 @@ msgstr "Feed pausieren"
 #: templates/sentry/groups/group_list.html:82
 #, python-format
 msgid "Since: %(label)s"
-msgstr "Seid: %(label)s"
+msgstr "Seit: %(label)s"
 
 #: templates/sentry/partial/interfaces/http.html:6
 msgid "Replay this request"
