@@ -49,6 +49,9 @@ def configure_plugin(request, slug):
 
 @requires_admin
 def manage_projects(request):
+    sort = request.GET.get('sort')
+    if sort not in ('name', 'date', 'events'):
+        sort = 'date'
     project_list = Project.objects.filter(
         status=0,
     ).exclude(
@@ -56,10 +59,20 @@ def manage_projects(request):
     ).annotate(
         avg_events_per_n=Sum('projectcountbyminute__times_seen'),
         n_value=Count('projectcountbyminute__times_seen')
-    ).select_related('owner').order_by('-date_added')
+    ).select_related('owner')
+
+    if sort == 'date':
+        order_by = '-date_added'
+    elif sort == 'name':
+        order_by = 'name'
+    elif sort == 'events':
+        order_by = '-avg_events_per_n'
+
+    project_list = project_list.order_by(order_by)
 
     context = {
         'project_list': project_list,
+        'sort': sort,
     }
 
     return render_to_response('sentry/admin/projects/list.html', context, request)

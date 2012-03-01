@@ -25,11 +25,13 @@
                     <col>
                     <col style="width:150px;">
                     <col style="width:150px;">
+                    <col style="width:150px;">
                 </colgroup>
                 <thead>
                     <tr>
-                        <th>{% trans "Project" %}</th>
-                        <th style="text-align:center;">{% trans "Daily Events" %}</th>
+                        <th><a href="?sort=name">{% trans "Project" %}</a></th>
+                        <th style="text-align:center;"><a href="?sort=events">{% trans "Daily Events" %}</th>
+                        <th style="text-align:center;"><a href="?sort=date">{% trans "Date Added" %}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -49,6 +51,9 @@
                             </td>
                             <td style="text-align:center; vertical-align:middle;">
                                 <em>~{{ project|avg_events_per_day }}</em>
+                            </td>
+                            <td style="text-align:center; vertical-align:middle;">
+                                {{ project.date_added|date }}
                             </td>
                         </tr>
                     {% endfor %}
