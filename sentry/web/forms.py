@@ -91,6 +91,8 @@ class NewProjectAdminForm(forms.ModelForm):
 
 
 class EditProjectForm(forms.ModelForm):
+    public = forms.BooleanField(required=False, help_text=_('Allow anyone (even anonymous users) to view this project'))
+
     class Meta:
         fields = ('name', 'status', 'public')
         model = Project
