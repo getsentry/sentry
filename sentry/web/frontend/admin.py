@@ -52,6 +52,7 @@ def manage_projects(request):
     sort = request.GET.get('sort')
     if sort not in ('name', 'date', 'events'):
         sort = 'date'
+
     project_list = Project.objects.filter(
         status=0,
     ).exclude(
@@ -60,6 +61,10 @@ def manage_projects(request):
         avg_events_per_n=Sum('projectcountbyminute__times_seen'),
         n_value=Count('projectcountbyminute__times_seen')
     ).select_related('owner')
+
+    project_query = request.GET.get('pquery')
+    if project_query:
+        project_list = project_list.filter(name__iexact=project_query)
 
     if sort == 'date':
         order_by = '-date_added'
@@ -72,6 +77,7 @@ def manage_projects(request):
 
     context = {
         'project_list': project_list,
+        'project_query': project_query,
         'sort': sort,
     }
 
