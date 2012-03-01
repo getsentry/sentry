@@ -367,8 +367,9 @@ p{font-family:"proxima-nova","helvetica neue",helvetica,sans-serif;font-size:14p
 #content .content:after{clear:both;}
 #content .main{width:100%;position:relative;float:left;}
 #content .body{padding:20px;}
-#content .btn-toolbar{line-height:16px;*zoom:1;margin:0;list-style:none;padding:15px 0;}#content .btn-toolbar:before,#content .btn-toolbar:after{display:table;content:"";}
+#content .btn-toolbar{line-height:16px;*zoom:1;margin:0;list-style:none;padding:15px 20px;}#content .btn-toolbar:before,#content .btn-toolbar:after{display:table;content:"";}
 #content .btn-toolbar:after{clear:both;}
+#content section#body .btn-toolbar{padding:15px 0;}
 #content .sidebar{position:relative;width:260px;float:left;padding:18px 20px;margin-right:-300px;}#content .sidebar h6{font-size:12px;font-weight:600;line-height:1.2;color:#aaaaaa;text-shadow:0 1px 0 rgba(255, 255, 255, 0.5);margin:0 0 10px;font-family:"proxima nova","proxima-nova","helvetica neue",helvetica,sans-serif;}
 #content .sidebar .nav.nav-tabs.nav-stacked{-webkit-box-shadow:0 2px 0 rgba(255, 255, 255, 0.8);-moz-box-shadow:0 2px 0 rgba(255, 255, 255, 0.8);box-shadow:0 2px 0 rgba(255, 255, 255, 0.8);}#content .sidebar .nav.nav-tabs.nav-stacked a{background-color:#fff;color:#9ba0a3;border-color:#ccc !important;}
 #content .sidebar .nav.nav-tabs.nav-stacked li.active a{position:relative;background-color:#f4f4f4;background-image:-moz-linear-gradient(top, #f7f7f7, #f0f0f0);background-image:-ms-linear-gradient(top, #f7f7f7, #f0f0f0);background-image:-webkit-gradient(linear, 0 0, 0 100%, from(#f7f7f7), to(#f0f0f0));background-image:-webkit-linear-gradient(top, #f7f7f7, #f0f0f0);background-image:-o-linear-gradient(top, #f7f7f7, #f0f0f0);background-image:linear-gradient(top, #f7f7f7, #f0f0f0);background-repeat:repeat-x;filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#f7f7f7', endColorstr='#f0f0f0', GradientType=0);color:#1783c8;border-color:#ccc !important;-webkit-box-shadow:inset 0 1px rgba(255, 255, 255, 0.6);-moz-box-shadow:inset 0 1px rgba(255, 255, 255, 0.6);box-shadow:inset 0 1px rgba(255, 255, 255, 0.6);font-weight:500;text-shadow:0 1px rgba(255, 255, 255, 0.75);}

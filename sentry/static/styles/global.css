@@ -2294,7 +2294,7 @@ p {
   *zoom: 1;
   margin: 0;
   list-style: none;
-  padding: 15px 0;
+  padding: 15px 20px;
 }
 #content .btn-toolbar:before, #content .btn-toolbar:after {
   display: table;
@@ -2302,6 +2302,9 @@ p {
 }
 #content .btn-toolbar:after {
   clear: both;
+}
+#content section#body .btn-toolbar {
+  padding: 15px 0;
 }
 #content .sidebar {
   position: relative;
