@@ -49,7 +49,7 @@
             <div class="page-header">
                 <h2>{% trans "Additional Data" %}</h2>
             </div>
-            <table class="table table-bordered">
+            <table class="table table-bordered table-striped">
                 {% for k, v in json_data.iteritems|as_sorted %}
                     <tr>
                         <th class="key">{{ k }}</th>
@@ -90,7 +90,7 @@
             <div class="page-header">
                 <h2>{% trans "Module Versions" %}</h2>
             </div>
-            <table class="table table-bordered">
+            <table class="table table-bordered table-striped">
                 {% for k, v in version_data.iteritems|as_sorted %}
                     <tr>
                         <th class="key">{{ k }}</th>
