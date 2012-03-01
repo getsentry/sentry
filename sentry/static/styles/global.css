@@ -2303,7 +2303,7 @@ p {
 #content .btn-toolbar:after {
   clear: both;
 }
-#content section#body .btn-toolbar {
+#content section.body .btn-toolbar {
   padding: 15px 0;
 }
 #content .sidebar {
@@ -2549,8 +2549,11 @@ code {
   vertical-align: top;
 }
 .clippy {
-  text-indent: -10000em;
-  overflow: hidden;
+  display: inline-block;
+  vertical-align: middle;
+}
+.clippy object {
+  padding-right: 5px;
   vertical-align: middle;
 }
 ol.context {

@@ -98,7 +98,8 @@
         <script type="text/javascript">
         $(function(){
             $('.clippy').clippy({
-                clippy_path: '{% url sentry-media "clippy.swf" %}'
+                clippy_path: '{% url sentry-media "clippy.swf" %}',
+                keep_text: true
             });
         });
         </script>
