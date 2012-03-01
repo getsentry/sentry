@@ -15,7 +15,7 @@ from django.core.context_processors import csrf
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
 from django.db import transaction
-from django.db.models import Sum, Count, Max
+from django.db.models import Sum, Count
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 from kombu.transport.django.models import Queue
@@ -54,7 +54,6 @@ def manage_projects(request):
     ).exclude(
         projectcountbyminute__date__lte=datetime.datetime.now() - datetime.timedelta(days=30),
     ).annotate(
-        last_event=Max('messagecountbyminute__date'),
         avg_events_per_n=Sum('projectcountbyminute__times_seen'),
         n_value=Count('projectcountbyminute__times_seen')
     ).select_related('owner').order_by('-date_added')
@@ -198,7 +197,6 @@ def list_user_projects(request, user_id):
     ).exclude(
         projectcountbyminute__date__lte=datetime.datetime.now() - datetime.timedelta(days=30),
     ).annotate(
-        last_event=Max('messagecountbyminute__date'),
         avg_events_per_n=Sum('projectcountbyminute__times_seen'),
         n_value=Count('projectcountbyminute__times_seen')
     ).order_by('-date_added')
