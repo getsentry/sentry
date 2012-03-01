@@ -54,26 +54,6 @@
         <p>{% trans "No views registered." %}</p>
     {% endif %}
     <div class="page-header">
-        <h2>{% trans "Processors" %}</h2>
-    </div>
-    {% if processors %}
-        <table class="table vars table-bordered table-striped">
-            <colgroup>
-                <col style="width:220px">
-            </colgroup>
-            <tbody>
-                {% for key, value in processors %}
-                    <tr>
-                        <th>{{ key }}</th>
-                        <td>{{ value }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>{% trans "No event processors registered." %}</p>
-    {% endif %}
-    <div class="page-header">
         <h2>{% trans "Modules" %}</h2>
     </div>
     <table class="table vars table-bordered table-striped">
