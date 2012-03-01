@@ -1,3 +1,12 @@
+Version 3.5.0
+-------------
+
+Several improvements and additions have been made around the administration, including
+performance improvements.
+
+If you're utilizing the queue, the installation guide now recommends you switch off the
+database backend, and move to something more efficient (such as Redis).
+
 Version 3.4.0
 -------------
 
@@ -5,7 +14,6 @@ Eventlet is no longer used as the default worker for gunicorn, and thus is no lo
 installed by default. If you're using the udp worker, or ``send_fake_data`` you MUST
 install eventlet yourself. The recommended worker class for gunicorn is now ``gevent``
 as it corrects some issues with async queries in psycopg2.
-
 
 Version 3.3.0
 -------------
