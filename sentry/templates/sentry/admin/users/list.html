@@ -20,8 +20,16 @@
 {% block inner %}
     {% paginate user_list from request as user_list per_page 50 %}
 
+    <form class="btn-toolbar" method="GET" action="">
+        <input type="text" name="uquery" value="{% if user_query %}{{ user_query }}{% endif %}" placeholder="search by email address">
+        <div class="btn-group pull-right">
+            <a class="btn prev{% if not user_list.paginator.has_previous %} disabled{% endif %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
+            <a class="btn next{% if not user_list.paginator.has_next %} disabled{% endif %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+        </div>
+    </form>
+
     {% if user_list.objects %}
-        {{ user_list.paging }}
+        {% querystring from request without sort as sort_querystring %}
 
         <table class="table table-bordered">
             <colgroup>
@@ -32,10 +40,10 @@
             </colgroup>
             <thead>
                 <tr>
-                    <th>{% trans "Name" %}</th>
-                    <th style="text-align:center;">{% trans "Joined" %}</th>
-                    <th style="text-align:center;">{% trans "Last Login" %}</th>
-                    <th style="text-align:center;">{% trans "Projects" %}</th>
+                    <th><a href="?{{ sort_querystring }}&amp;sort=name">{% trans "Name" %}</a></th>
+                    <th style="text-align:center;"><a href="?{{ sort_querystring }}&amp;sort=joined">{% trans "Joined" %}</a></th>
+                    <th style="text-align:center;"><a href="?{{ sort_querystring }}&amp;sort=login">{% trans "Last Login" %}</a></th>
+                    <th style="text-align:center;"><a href="?{{ sort_querystring }}&amp;sort=projects">{% trans "Projects" %}</a></th>
                 </tr>
             </thead>
             <tbody>
@@ -71,9 +79,10 @@
             </tbody>
         </table>
 
-        {{ user_list.paging }}
-
     {% else %}
-        <p class="alert alert-notice">{% trans "There are no active users in Sentry." %}</p>
+        <p class="alert alert-notice">{% trans "There are no users matching your query in Sentry." %}</p>
     {% endif %}
+
+    {{ user_list.paging }}
+
 {% endblock %}

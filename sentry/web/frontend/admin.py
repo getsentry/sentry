@@ -49,10 +49,6 @@ def configure_plugin(request, slug):
 
 @requires_admin
 def manage_projects(request):
-    sort = request.GET.get('sort')
-    if sort not in ('name', 'date', 'events'):
-        sort = 'date'
-
     project_list = Project.objects.filter(
         status=0,
     ).exclude(
@@ -64,7 +60,11 @@ def manage_projects(request):
 
     project_query = request.GET.get('pquery')
     if project_query:
-        project_list = project_list.filter(name__iexact=project_query)
+        project_list = project_list.filter(name__icontains=project_query)
+
+    sort = request.GET.get('sort')
+    if sort not in ('name', 'date', 'events'):
+        sort = 'date'
 
     if sort == 'date':
         order_by = '-date_added'
@@ -86,11 +86,32 @@ def manage_projects(request):
 
 @requires_admin
 def manage_users(request):
-    users = User.objects.annotate(num_projects=Count('sentry_project_set'))\
+    user_list = User.objects.annotate(num_projects=Count('sentry_project_set'))\
                 .order_by('-date_joined')
 
+    user_query = request.GET.get('uquery')
+    if user_query:
+        user_list = user_list.filter(email__icontains=user_query)
+
+    sort = request.GET.get('sort')
+    if sort not in ('name', 'joined', 'login', 'projects'):
+        sort = 'joined'
+
+    if sort == 'joined':
+        order_by = '-date_joined'
+    elif sort == 'login':
+        order_by = '-last_login'
+    elif sort == 'name':
+        order_by = 'first_name'
+    elif sort == 'projects':
+        order_by = '-num_projects'
+
+    user_list = user_list.order_by(order_by)
+
     return render_to_response('sentry/admin/users/list.html', {
-        'user_list': users,
+        'user_list': user_list,
+        'user_query': user_query,
+        'sort': sort,
     }, request)
 
 
