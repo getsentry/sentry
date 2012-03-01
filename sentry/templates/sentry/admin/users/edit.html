@@ -1,6 +1,7 @@
 {% extends "sentry/admin/users/list.html" %}
 
 {% load i18n %}
+{% load sentry_admin_helpers %}
 {% load sentry_helpers %}
 
 {% block title %}{% trans "Change User" %} | {{ block.super }}{% endblock %}
@@ -37,5 +38,35 @@
                 {% endif %}
             </fieldset>
         </form>
+        {% if project_list %}
+            <h3>Projects</h3>
+            <br/>
+            <table class="table table-bordered">
+                <colgroup>
+                    <col>
+                    <col style="width:150px;">
+                    <col style="width:150px;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>{% trans "Project" %}</th>
+                        <th style="text-align:center;">{% trans "Daily Events" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for project in project_list %}
+                        <tr>
+                            <td>
+                                {{ project.name }} <a href="{% url sentry project.pk %}">[view]</a>
+                                </a>
+                            </td>
+                            <td style="text-align:center; vertical-align:middle;">
+                                <em>~{{ project|avg_events_per_day }}</em>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
     </section>
 {% endblock %}

@@ -159,9 +159,20 @@ def edit_user(request, user_id):
         user = form.save()
         return HttpResponseRedirect(reverse('sentry-admin-users'))
 
+    project_list = Project.objects.filter(
+        status=0,
+        member_set__user=user,
+    ).exclude(
+        projectcountbyminute__date__lte=datetime.datetime.now() - datetime.timedelta(days=30),
+    ).annotate(
+        avg_events_per_n=Sum('projectcountbyminute__times_seen'),
+        n_value=Count('projectcountbyminute__times_seen')
+    ).order_by('-date_added')
+
     context = {
         'form': form,
         'the_user': user,
+        'project_list': project_list,
     }
     context.update(csrf(request))
 
