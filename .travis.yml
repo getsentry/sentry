@@ -6,6 +6,6 @@ env:
   - DJANGO=1.2.7
   - DJANGO=1.3.1
 install:
-  - pip install Django==$DJANGO
+  - pip install -q Django==$DJANGO
   - python setup.py install
 script: python setup.py test
