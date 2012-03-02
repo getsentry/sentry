@@ -63,6 +63,10 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
         qs = qs.filter(level__gte=level)
     if project:
         qs = qs.filter(project=project)
+    if resolved is True:
+        qs = qs.filter(group__status=1)
+    elif resolved is False:
+        qs = qs.filter(group__status=0)
 
     groups_to_check = set()
     if resolved is None:
@@ -81,9 +85,9 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
         if project:
             qs = qs.filter(project=project)
         if resolved is True:
-            qs = qs.filter(status=1)
+            qs = qs.filter(group__status=1)
         elif resolved is False:
-            qs = qs.filter(status=0)
+            qs = qs.filter(group__status=0)
 
         for obj in RangeQuerySetWrapper(qs):
             print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
@@ -97,10 +101,15 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
             qs = qs.filter(level__gte=level)
         if project:
             qs = qs.filter(project=project)
+        if resolved is True:
+            qs = qs.filter(status=1)
+        elif resolved is False:
+            qs = qs.filter(status=0)
 
         cleanup_groups(RangeQuerySetWrapper(qs))
 
     # Project counts
+    # TODO: these dont handle filters
     qs = SkinnyQuerySet(ProjectCountByMinute).filter(date__lte=ts)
     if project:
         qs = qs.filter(project=project)
