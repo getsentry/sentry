@@ -14,7 +14,7 @@
 {% endblock %}
 
 {% block main %}
-    {% paginate project_list from request as project_list per_page 50 %}
+    {% paginator project_list from request as project_list per_page 50 %}
 
     <section class="body">
         <form class="btn-toolbar" method="GET" action="">
