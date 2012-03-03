@@ -123,7 +123,7 @@ BROKER_URL = "django://"
 
 # Sentry and Raven configuration
 
-SENTRY_PUBLIC = True
+SENTRY_PUBLIC = False
 SENTRY_PROJECT = 1
 
 EMAIL_SUBJECT_PREFIX = '[Sentry] '
