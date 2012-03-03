@@ -37,6 +37,10 @@
                                         <li{% if project == p %} class="active"{% endif %}><a href="{% url sentry p.pk %}">{{ p.name }}</a></li>
                                     {% endfor %}
                                 {% endif %}
+                                {% if can_create_projects %}
+                                    <li class="divider"></li>
+                                    <li><a href="{% url sentry-new-project %}">{% trans "Create a new project" %}</a></li>
+                                {% endif %}
                             </ul>
                         </li>
                         <li class="dropdown">
