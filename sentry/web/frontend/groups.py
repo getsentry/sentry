@@ -214,6 +214,7 @@ def group_list(request, project, view_id=None):
 
     return render_to_response('sentry/groups/group_list.html', {
         'project': project,
+
         'has_realtime': has_realtime,
         'event_list': event_list,
         'today': today,

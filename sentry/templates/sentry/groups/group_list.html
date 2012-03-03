@@ -100,8 +100,19 @@
             {% endfor %}
         </ul>
     {% else %}
+        {% get_project_dsn for request.user from project as project_dsn %}
         <ul class="events" id="event_list">
-            <li class="empty-result" id="no_messages">{% trans "No events match your filters." %}</li>
+            <li class="empty-result" id="no_messages">
+                <div class="alert alert-block alert-notice">
+                    {% if project_dsn %}
+                        <p>{% trans "To start sending events, configure your client to send events with the following DSN value:" %}</p>
+                        <p><code class="clippy">{{ project_dsn }}</code></p>
+                        <p>{% blocktrans with 'http://sentry.readthedocs.org' as link %}For more information, please see the <a href="{{ link }}">documentation</a>.{% endblocktrans %}</p>
+                    {% else %}
+                        <p>{% trans "No events match your filters." %}</p>
+                    {% endif %}
+                </div>
+            </li>
         </ul>
     {% endif %}
 

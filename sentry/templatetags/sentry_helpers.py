@@ -347,3 +347,23 @@ def as_bookmarks(group_list, user):
 def date(datetime, arg=None):
     from django.template.defaultfilters import date
     return date(local_to_utc(datetime), arg)
+
+
+@tag(register, [Constant('for'), Variable('user'),
+                Constant('from'), Variable('project'),
+                Constant('as'), Name('asvar')])
+def get_project_dsn(context, user, project, asvar):
+    from sentry.models import ProjectMember
+
+    if not user.is_authenticated():
+        context[asvar] = None
+        return ''
+
+    try:
+        member = ProjectMember.objects.get(user=user, project=project)
+    except ProjectMember.DoesNotExist:
+        context[asvar] = None
+    else:
+        context[asvar] = member.get_dsn()
+
+    return ''
