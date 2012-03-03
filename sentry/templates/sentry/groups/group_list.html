@@ -105,7 +105,7 @@
             <li class="empty-result" id="no_messages">
                 <div class="alert alert-block alert-notice">
                     {% if project_dsn %}
-                        <p>{% trans "To start sending events, configure your client to send events with the following DSN value:" %}</p>
+                        <p>{% trans "To start sending events, configure your client with the following DSN value:" %}</p>
                         <p><code class="clippy">{{ project_dsn }}</code></p>
                         <p>{% blocktrans with 'http://sentry.readthedocs.org' as link %}For more information, please see the <a href="{{ link }}">documentation</a>.{% endblocktrans %}</p>
                     {% else %}
