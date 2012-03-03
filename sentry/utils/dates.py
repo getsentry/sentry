@@ -16,9 +16,11 @@ def utc_to_local(dt):
     tz = pytz.timezone(settings.TIME_ZONE)
     return tz.fromutc(dt).replace(tzinfo=None)
 
+
 def local_to_utc(dt):
     tz = pytz.timezone(settings.TIME_ZONE)
     return tz.localize(dt).astimezone(pytz.utc).replace(tzinfo=None)
+
 
 def get_sql_date_trunc(col, db='default'):
     conn = connections[db]
