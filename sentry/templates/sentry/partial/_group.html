@@ -1,3 +1,4 @@
+{% load i18n %}
 {% load sentry_helpers %}
 
 <li class="event level-{{ group.level }}{% if group.status == 1 %} resolved{% endif %}" id="group_{{ group.pk|safe }}" data-count="{{ group.times_seen }}" data-score="{{ group.sort_value }}">
@@ -31,13 +32,13 @@
         <ul class="actions">
             <li>
                 {% if group.status == 0 %}
-                    <a href="javascript:void(0)" onclick="Sentry.stream.resolve({{ group.project_id|safe }}, {{ group.pk|safe }}, this);">&#10003;</a>
+                    <a href="javascript:void(0)" class="tip" onclick="Sentry.stream.resolve({{ group.project_id|safe }}, {{ group.pk|safe }}, this);" rel="tooltip" title="{% trans "Mark as Resolved" %}">&#10003;</a>
                 {% else %}
-                    <a href="javascript:void(0)" class="disabled">&#10003;</a>
+                    <a href="javascript:void(0)" class="tip disabled" rel="tooltip" title="{% trans "Already Resolved" %}">&#10003;</a>
                 {% endif %}
             </li>
             {% if request.user.is_authenticated %}
-                <li><a href="javascript:void(0)" onclick="Sentry.stream.bookmark({{ group.project_id|safe }}, {{ group.pk|safe }}, this);" class="bookmark{% if is_bookmarked %} checked{% endif %}">&#9829;</a></li>
+                <li><a href="javascript:void(0)" onclick="Sentry.stream.bookmark({{ group.project_id|safe }}, {{ group.pk|safe }}, this);" class="tip bookmark{% if is_bookmarked %} checked{% endif %}" rel="tooltip" title="{% trans "Bookmark" %}">&#9829;</a></li>
             {% endif %}
         </ul>
 <!--         <a href="{% url sentry-group group.project_id group.pk %}" class="row_link"></a>
