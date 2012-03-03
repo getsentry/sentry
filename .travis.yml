@@ -10,3 +10,8 @@ install:
   - pip install -q -e . --use-mirrors
 script:
   - python setup.py test
+notifications:
+  irc:
+    channels: "irc.freenode.org#sentry"
+    on_success: change
+    on_failure: change
