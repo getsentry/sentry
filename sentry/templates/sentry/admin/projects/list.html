@@ -27,7 +27,7 @@
 
         {% querystring from request without sort as sort_querystring %}
 
-        {% if project_list.objects %}
+        {% if project_list.paginator.objects %}
             <table class="table table-bordered table-striped">
                 <colgroup>
                     <col>
@@ -43,7 +43,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for project in project_list.objects %}
+                    {% for project in project_list.paginator.objects %}
                         <tr>
                             <td>
                                 <strong>{{ project.name }}</strong> <a href="{% url sentry project.pk %}">[view]</a><br/>
@@ -72,6 +72,11 @@
             <p class="alert alert-notice">{% trans "There are no active projects in Sentry." %}</p>
         {% endif %}
 
-        {{ project_list.paging }}
+        <div class="btn-toolbar">
+            <div class="btn-group pull-right">
+                <a class="btn prev{% if not project_list.paginator.has_previous %} disabled{% endif %}" href="?{{ project_list.query_string|escape }}&amp;p={{ project_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
+                <a class="btn next{% if not project_list.paginator.has_next %} disabled{% endif %}" href="?{{ project_list.query_string|escape }}&amp;p={{ project_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+            </div>
+        </div>
     </section>
 {% endblock %}

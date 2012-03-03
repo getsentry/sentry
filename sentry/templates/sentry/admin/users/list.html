@@ -28,7 +28,7 @@
         </div>
     </form>
 
-    {% if user_list.objects %}
+    {% if user_list.paginator.objects %}
         {% querystring from request without sort as sort_querystring %}
 
         <table class="table table-bordered table-striped">
@@ -47,7 +47,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for user in user_list.objects %}
+                {% for user in user_list.paginator.objects %}
                     <tr>
                         <td>
                             <a href="{% url sentry-admin-edit-user user.pk %}">
@@ -83,6 +83,11 @@
         <p class="alert alert-notice">{% trans "There are no users matching your query in Sentry." %}</p>
     {% endif %}
 
-    {{ user_list.paging }}
+    <div class="btn-toolbar">
+        <div class="btn-group pull-right">
+            <a class="btn prev{% if not user_list.paginator.has_previous %} disabled{% endif %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
+            <a class="btn next{% if not user_list.paginator.has_next %} disabled{% endif %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+        </div>
+    </div>
 
 {% endblock %}
