@@ -89,6 +89,7 @@ def get_default_context(request, existing_context=None):
         'VIEWS': list(View.objects.all()),
         'URL_PREFIX': settings.URL_PREFIX,
         'PLUGINS': plugins,
+        'USE_JS_CLIENT': settings.USE_JS_CLIENT,
     }
 
     if request:
