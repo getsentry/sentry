@@ -58,7 +58,8 @@ class MailProcessorTest(TestCase):
     def test_mail_members_renders_interfaces(self, _send_mail):
         group = Mock(spec=Group)
         group.first_seen = datetime.datetime.now()
-        group.get_absolute_url.return_value = '/example'
+        group.project_id = 1
+        group.id = 2
         stacktrace = Mock(spec=Stacktrace)
         stacktrace.to_string.return_value = 'foo bar'
         stacktrace.get_title.return_value = 'Stacktrace'

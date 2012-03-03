@@ -130,7 +130,7 @@ class MailProcessor(Plugin):
         if event.site:
             subject = '[%s] %s' % (event.site, subject)
 
-        link = '%s%s' % (settings.URL_PREFIX, group.get_absolute_url())
+        link = '%s/%d/group/%d/' % (settings.URL_PREFIX, group.project_id, group.id)
 
         body = render_to_string('sentry/emails/error.txt', {
             'group': group,
