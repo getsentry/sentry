@@ -22,6 +22,9 @@
         Sentry.client.registerGlobalHandler();
         </script>
 
+        <!--[if lt IE 9]>
+        <script type="text/javascript" src="{% url sentry-media "scripts/html5shiv.js" %}"></script>
+        <![endif]-->
         <script type="text/javascript" src="{% url sentry-media "scripts/jquery.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/jquery.clippy.min.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "scripts/jquery.flot.min.js" %}"></script>
