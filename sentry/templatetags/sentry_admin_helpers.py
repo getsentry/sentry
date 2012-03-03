@@ -22,6 +22,6 @@ def avg_events_per_day(project):
         per_day = 0
     else:
         n_per_hour = (60 / settings.MINUTE_NORMALIZATION)
-        per_day = int(project.avg_events_per_n / project.n_value) - (project.n_value % n_per_hour)
+        per_day = int(project.avg_events_per_n / project.n_value) * (project.n_value % n_per_hour)
 
     return per_day
