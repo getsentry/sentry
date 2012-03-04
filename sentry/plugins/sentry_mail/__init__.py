@@ -125,10 +125,7 @@ class MailProcessor(Plugin):
                 continue
             interface_list.append((interface.get_title(), body))
 
-        subject = '%s: %s' % (event.get_level_display().upper(), event.message)
-
-        if event.site:
-            subject = '[%s] %s' % (event.site, subject)
+        subject = '[%s] %s: %s' % (project.name, event.get_level_display().upper(), event.message)
 
         link = '%s/%d/group/%d/' % (settings.URL_PREFIX, group.project_id, group.id)
 

@@ -43,7 +43,7 @@ URL_PREFIX = ''
 # Allow access to Sentry without authentication.
 PUBLIC = False
 
-EMAIL_SUBJECT_PREFIX = '[Sentry] '
+EMAIL_SUBJECT_PREFIX = ''
 
 INTERNAL_IPS = set()
 
