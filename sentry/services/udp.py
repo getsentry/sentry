@@ -6,12 +6,15 @@ sentry.services.udp
 :license: BSD, see LICENSE for more details.
 """
 
-import eventlet
 import logging
 
 from sentry.services.base import Service
 
 logger = logging.getLogger(__file__)
+
+
+class CommandError(Exception):
+    pass
 
 
 class SentryUDPServer(Service):
@@ -61,6 +64,12 @@ class SentryUDPServer(Service):
             return error
 
     def run(self):
+        try:
+            import eventlet
+        except ImportError:
+            raise CommandError('It seems you dont have the ``eventlet`` package installed, which is required to run'
+                               'the udp service.')
+
         from eventlet.green import socket
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
