@@ -1,5 +1,9 @@
 {% load i18n %}
 
+{% if plugin_description %}
+    {{ plugin_description|linebreaks }}
+{% endif %}
+
 {% if request.GET.success %}
     <div class="alert alert-success">
         {% trans "Changes to your project were saved successfully." %}

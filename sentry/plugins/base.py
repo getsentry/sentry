@@ -123,6 +123,7 @@ class IPlugin(local):
 
     title = None
     slug = None
+    description = None
 
     enabled = True
 
@@ -220,6 +221,15 @@ class IPlugin(local):
         >>> plugin.get_title()
         """
         return self.title
+
+    def get_description(self):
+        """
+        Returns the description for this plugin. This is shown on the plugin configuration
+        page.
+
+        >>> plugin.get_description()
+        """
+        return self.description
 
     def get_view_response(self, request, group):
         self.selected = request.path == self.get_url(group)

@@ -173,4 +173,5 @@ def plugin_config(plugin, project, request):
     return ('display', mark_safe(render_to_string(template, {
             'form': form,
             'request': request,
+            'plugin_description': plugin.get_description() or '',
         }, context_instance=RequestContext(request))))
