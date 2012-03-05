@@ -24,7 +24,7 @@ class MailConfigurationForm(forms.Form):
     send_to = forms.CharField(label=_('Send to'), required=False,
         help_text=_('Enter one or more emails separated by commas or lines.'),
         widget=forms.Textarea(attrs={
-            'placeholder': 'you@example.com, \nother@example.com'}))
+            'placeholder': 'you@example.com\nother@example.com'}))
     send_to_members = forms.BooleanField(label=_('Include project members'), initial=False, required=False,
         help_text=_('Send emails to all members of this project.'))
     send_to_admins = forms.BooleanField(label=_('Include sentry admins'), initial=False, required=False,
@@ -42,6 +42,8 @@ class MailConfigurationForm(forms.Form):
 class MailProcessor(Plugin):
     title = _('Mail')
     conf_key = 'mail'
+    description = _("Notify project members when a new event is seen for the first time, or when an "
+                   "already resolved event has changed back to unresolved.")
     # site_conf_form = MailConfigurationForm
     project_conf_form = MailConfigurationForm
 
