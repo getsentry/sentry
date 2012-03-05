@@ -29,7 +29,7 @@ class MailConfigurationForm(NotifyConfigurationForm):
 
     def clean_send_to(self):
         value = self.cleaned_data['send_to']
-        emails = filter(None, split_re.split(value))
+        emails = filter(bool, split_re.split(value))
         for email in emails:
             if not email_re.match(email):
                 raise ValidationError('%s is not a valid e-mail address.' % email)
@@ -97,7 +97,7 @@ class MailProcessor(NotifyPlugin):
 
         send_to_list.extend(super(MailProcessor, self).get_send_to(project))
 
-        return filter(None, set(send_to_list))
+        return filter(bool, set(send_to_list))
 
     def notify_members(self, group, event, fail_silently=True):
         project = group.project

@@ -42,7 +42,7 @@ class NotifyPlugin(Plugin):
         if send_to_members:
             send_to_list |= set(project.member_set.values_list('user__id', 'user__email'))
 
-        return filter(None, send_to_list)
+        return filter(bool, send_to_list)
 
     def should_notify(self, group, event):
         project = group.project

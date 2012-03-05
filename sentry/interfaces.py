@@ -352,7 +352,7 @@ class Http(Interface):
     def to_string(self, event):
         return render_to_string('sentry/partial/interfaces/http.txt', {
             'event': event,
-            'full_url': '?'.join(filter(None, [self.url, self.query_string])),
+            'full_url': '?'.join(filter(bool, [self.url, self.query_string])),
             'url': self.url,
             'method': self.method,
             'query_string': self.query_string,
@@ -382,7 +382,7 @@ class Http(Interface):
 
         return render_to_string('sentry/partial/interfaces/http.html', {
             'event': event,
-            'full_url': '?'.join(filter(None, [self.url, self.query_string])),
+            'full_url': '?'.join(filter(bool, [self.url, self.query_string])),
             'url': self.url,
             'method': self.method,
             'data': data,
