@@ -11,7 +11,8 @@ from django.core.validators import email_re, ValidationError
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
-from sentry.plugins import Plugin, register
+from sentry.plugins import register
+from sentry.plugins.bases.notify import NotifyPlugin, NotifyConfigurationForm
 import re
 
 import pynliner
@@ -20,15 +21,11 @@ NOTSET = object()
 split_re = re.compile(r'\s*,\s*|\s+')
 
 
-class MailConfigurationForm(forms.Form):
+class MailConfigurationForm(NotifyConfigurationForm):
     send_to = forms.CharField(label=_('Send to'), required=False,
         help_text=_('Enter one or more emails separated by commas or lines.'),
         widget=forms.Textarea(attrs={
             'placeholder': 'you@example.com\nother@example.com'}))
-    send_to_members = forms.BooleanField(label=_('Include project members'), initial=False, required=False,
-        help_text=_('Send emails to all members of this project.'))
-    send_to_admins = forms.BooleanField(label=_('Include sentry admins'), initial=False, required=False,
-        help_text=_('Send emails to all administrators of this Sentry server.'))
 
     def clean_send_to(self):
         value = self.cleaned_data['send_to']
@@ -39,12 +36,9 @@ class MailConfigurationForm(forms.Form):
         return ','.join(emails)
 
 
-class MailProcessor(Plugin):
+class MailProcessor(NotifyPlugin):
     title = _('Mail')
     conf_key = 'mail'
-    description = _("Notify project members when a new event is seen for the first time, or when an "
-                   "already resolved event has changed back to unresolved.")
-    # site_conf_form = MailConfigurationForm
     project_conf_form = MailConfigurationForm
 
     def __init__(self, min_level=NOTSET, include_loggers=NOTSET, exclude_loggers=NOTSET,
@@ -80,6 +74,14 @@ class MailProcessor(Plugin):
             msg.attach_alternative(html_body, "text/html")
         msg.send(fail_silently=fail_silently)
 
+    def send_test_mail(self, project=None):
+        self._send_mail(
+            subject='Test Email',
+            body='This email was requested as a test of Sentry\'s outgoing email',
+            project=project,
+            fail_silently=False,
+        )
+
     def get_send_to(self, project=None):
         send_to_list = self.get_option('send_to', project)
         if not send_to_list:
@@ -93,31 +95,11 @@ class MailProcessor(Plugin):
         if isinstance(send_to_list, basestring):
             send_to_list = send_to_list.split(',')
 
-        send_to_list = set(send_to_list)
+        send_to_list.extend(super(MailProcessor, self).get_send_to(project))
 
-        send_to_admins = self.get_option('send_to_admins', project)
-        if send_to_admins is None:
-            send_to_admins = self.send_to_admins
-        if send_to_admins:
-            send_to_list |= set(settings.ADMINS)
+        return filter(None, set(send_to_list))
 
-        send_to_members = self.get_option('send_to_members', project)
-        if send_to_members is None:
-            send_to_members = self.send_to_members
-        if send_to_members:
-            send_to_list |= set(project.member_set.values_list('user__email', flat=True))
-
-        return filter(None, send_to_list)
-
-    def send_test_mail(self, project=None):
-        self._send_mail(
-            subject='Test Email',
-            body='This email was requested as a test of Sentry\'s outgoing email',
-            project=project,
-            fail_silently=False,
-        )
-
-    def mail_members(self, group, event, fail_silently=True):
+    def notify_members(self, group, event, fail_silently=True):
         project = group.project
 
         interface_list = []
@@ -152,33 +134,11 @@ class MailProcessor(Plugin):
             fail_silently=fail_silently,
         )
 
-    def should_mail(self, group, event):
-        project = group.project
-        send_to = self.get_send_to(project)
-        if not send_to:
-            return False
-        min_level = self.get_option('min_level', project) or self.min_level
-        if min_level is not None and int(group.level) < min_level:
-            return False
-        include_loggers = self.get_option('include_loggers', project) or self.include_loggers
-        if include_loggers is not None and group.logger not in include_loggers:
-            return False
-        exclude_loggers = self.get_option('exclude_loggers', project) or self.exclude_loggers
-        if exclude_loggers and group.logger in exclude_loggers:
-            return False
-        return True
-
-    ## plugin hooks
-
-    def get_form_initial(self, project=None):
-        return {'send_to_members': True}
-
-    def post_process(self, group, event, is_new, is_sample, **kwargs):
-        if not is_new:
-            return
-
-        if not self.should_mail(group, event):
-            return
-
-        self.mail_members(group, event)
+    def get_option(self, key, project=None):
+        value = super(MailProcessor, self).get_option(key, project)
+        if value is None and key in ('min_level', 'include_loggers', 'exclude_loggers',
+                                     'send_to_members', 'send_to_admins', 'send_to',
+                                     'subject_prefix'):
+            value = getattr(self, key)
+        return value
 register(MailProcessor)

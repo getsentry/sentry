@@ -15,47 +15,47 @@ from tests.base import TestCase
 class MailProcessorTest(TestCase):
     @mock.patch('sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d: d))
     @mock.patch('sentry.plugins.sentry_mail.MailProcessor.get_send_to', Mock(return_value=[]))
-    def test_should_mail_no_send_to(self):
+    def test_should_notify_no_send_to(self):
         p = MailProcessor()
-        self.assertFalse(p.should_mail(group=Mock(), event=Mock()))
+        self.assertFalse(p.should_notify(group=Mock(), event=Mock()))
 
     @mock.patch('sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d: d))
     @mock.patch('sentry.plugins.sentry_mail.MailProcessor.get_send_to', Mock(return_value=['foo@example.com']))
-    def test_should_mail_not_min_level(self):
+    def test_should_notify_not_min_level(self):
         p = MailProcessor(min_level=2)
         group = Mock(spec=Group)
         group.level = 1
-        self.assertFalse(p.should_mail(group=group, event=Mock()))
+        self.assertFalse(p.should_notify(group=group, event=Mock()))
 
     @mock.patch('sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d: d))
     @mock.patch('sentry.plugins.sentry_mail.MailProcessor.get_send_to', Mock(return_value=['foo@example.com']))
-    def test_should_mail_not_included(self):
+    def test_should_notify_not_included(self):
         p = MailProcessor(min_level=None, include_loggers=['foo'])
         group = Mock(spec=Group)
         group.level = 5
         group.logger = 'root'
-        self.assertFalse(p.should_mail(group=group, event=Mock()))
+        self.assertFalse(p.should_notify(group=group, event=Mock()))
 
     @mock.patch('sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d: d))
     @mock.patch('sentry.plugins.sentry_mail.MailProcessor.get_send_to', Mock(return_value=['foo@example.com']))
-    def test_should_mail_excluded(self):
+    def test_should_notify_excluded(self):
         p = MailProcessor(min_level=None, exclude_loggers=['root'])
         group = Mock(spec=Group)
         group.level = 5
         group.logger = 'root'
-        self.assertFalse(p.should_mail(group=group, event=Mock()))
+        self.assertFalse(p.should_notify(group=group, event=Mock()))
 
     @mock.patch('sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d: d))
     @mock.patch('sentry.plugins.sentry_mail.MailProcessor.get_send_to', Mock(return_value=['foo@example.com']))
-    def test_should_mail_match(self):
+    def test_should_notify_match(self):
         p = MailProcessor(min_level=None)
         group = Mock(spec=Group)
         group.level = 5
         group.logger = 'root'
-        self.assertTrue(p.should_mail(group=group, event=Mock()))
+        self.assertTrue(p.should_notify(group=group, event=Mock()))
 
     @mock.patch('sentry.plugins.sentry_mail.MailProcessor._send_mail')
-    def test_mail_members_renders_interfaces(self, _send_mail):
+    def test_notify_members_renders_interfaces(self, _send_mail):
         group = Mock(spec=Group)
         group.first_seen = datetime.datetime.now()
         group.project_id = 1
@@ -71,7 +71,7 @@ class MailProcessorTest(TestCase):
 
         with self.Settings(SENTRY_URL_PREFIX='http://example.com'):
             p = MailProcessor(send_to=['foo@example.com'])
-            p.mail_members(group, event)
+            p.notify_members(group, event)
 
         stacktrace.get_title.assert_called_once_with()
         stacktrace.to_string.assert_called_once_with(event)
@@ -90,9 +90,7 @@ class MailProcessorTest(TestCase):
             project.member_set = Mock()
             project.member_set.values_list.return_value = member_emails
 
-            with mock.patch('sentry.plugins.sentry_mail.settings') as settings:
-                settings.ADMINS = admins
-
+            with self.Settings(SENTRY_ADMINS=admins):
                 # member emails without admins
                 p = MailProcessor()
                 self.assertEqual(sorted(set(member_emails)),
