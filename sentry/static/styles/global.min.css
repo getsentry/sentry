@@ -658,10 +658,10 @@ footer a{color:#fff;font-weight:bold;}
 .events .event .actions{position:absolute;right:15px;top:20px;list-style-type:none;margin:0;padding:0;}.events .event .actions li{margin-bottom:12px;font-size:14px;line-height:18px;}.events .event .actions li .checked{color:orange;}
 .events .event .actions li .disabled{color:#6d757e;}
 .events .event .row_link{top:0;left:0;width:100%;height:100%;position:absolute;}
-.events .event.level-20 .count{background:#ffa101;}
-.events .event.level-30 .count{background:#ffa101;}
-.events .event.level-40 .count{background:#f0431c;}
-.events .event.level-50 .count{background:#f0431c;}
+.events .event.level-info .count{background:#ffa101;}
+.events .event.level-warning .count{background:#ffa101;}
+.events .event.level-error .count{background:#f0431c;}
+.events .event.level-fatal .count{background:#f0431c;}
 .events .event.resolved h3{text-decoration:line-through;}
 .events .event.resolved .count{opacity:0.5;filter:alpha(opacity=50);}
 label{font-weight:bold;}
