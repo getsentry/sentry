@@ -1,6 +1,6 @@
 {% load sentry_helpers %}
 
-<li class="event level-{{ event.level }}" id="message_{{ event.pk|safe }}">
+<li class="event level-{{ event.get_level_display }}" id="message_{{ event.pk|safe }}">
     <div class="details">
         <h3>
             <a href="{% url sentry-group-event event.project_id event.group_id event.pk %}">

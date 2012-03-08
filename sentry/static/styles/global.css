@@ -3802,16 +3802,16 @@ footer a {
   height: 100%;
   position: absolute;
 }
-.events .event.level-20 .count {
+.events .event.level-info .count {
   background: #ffa101;
 }
-.events .event.level-30 .count {
+.events .event.level-warning .count {
   background: #ffa101;
 }
-.events .event.level-40 .count {
+.events .event.level-error .count {
   background: #f0431c;
 }
-.events .event.level-50 .count {
+.events .event.level-fatal .count {
   background: #f0431c;
 }
 .events .event.resolved h3 {
