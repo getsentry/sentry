@@ -121,6 +121,8 @@ Sentry provides a built-in webserver (powered by gunicorn and eventlet) to get y
 To start the webserver, you simply use ``sentry start``. If you opted to use an alternative configuration path
 you can pass that via the --config option.
 
+::
+
   # Sentry's server runs on port 9000 by default. Make sure your client reflects
   # the correct host and port!
   sentry --config=/etc/sentry.conf.py start
