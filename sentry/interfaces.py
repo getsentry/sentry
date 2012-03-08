@@ -67,7 +67,9 @@ class Interface(object):
         self.__dict__.update(kwargs)
 
     def __setstate__(self, data):
-        self.__dict__.update(self.unserialize(data))
+        kwargs = self.unserialize(data)
+        self.attrs = kwargs.keys()
+        self.__dict__.update(kwargs)
 
     def __getstate__(self):
         return self.serialize()
