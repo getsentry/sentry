@@ -1,9 +1,9 @@
 Sentry
 ======
 
-Sentry is a realtime event logging and aggregation platform. At it's core it
+Sentry is a realtime event logging and aggregation platform. At its core it
 specializes in monitoring errors and extracting all the information needed
-to do a proper post-mortum without any of the hassle of the standard user
+to do a proper post-mortem without any of the hassle of the standard user
 feedback loop.
 
 Users Guide
