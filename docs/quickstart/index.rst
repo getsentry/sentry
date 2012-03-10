@@ -38,7 +38,7 @@ Finally, activate your virtualenv::
 Install Sentry
 --------------
 
-Once you've got the environment setup, you can install Sentry and all it's dependencies with
+Once you've got the environment setup, you can install Sentry and all its dependencies with
 the same command you used to grab virtualenv::
 
   easy_install -U sentry
@@ -67,7 +67,7 @@ path as the argument to init, otherwise it will use the default of ``~/.sentry/s
     sentry init /etc/sentry.conf.py
 
 The configuration for the server is based on ``sentry.conf.server``, which contains a basic Django project
-configuration, as well as the default Sentry configuration values. It will use SQLite for the database.::
+configuration, as well as the default Sentry configuration values. It will use SQLite for the database.
 
     # ~/.sentry/sentry.conf.py
 
