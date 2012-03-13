@@ -54,11 +54,11 @@
             font-weight: 400;
             font-family: "proxima nova", "proxima-nova", "heletica-neue", sans-serif;
         }
-        .level-10 .count {}
-        .level-20 .count { background: #ffa101; }
-        .level-30 .count { background: #ffa101; }
-        .level-40 .count { background: #f0431c; }
-        .level-50 .count { background: #f0431c; }
+        .level-debug .count {}
+        .level-info .count { background: #ffa101; }
+        .level-warning .count { background: #ffa101; }
+        .level-error .count { background: #f0431c; }
+        .level-fatal .count { background: #f0431c; }
         .header h1 {
             float: left;
             font-size: 22px;
@@ -99,7 +99,7 @@
         </style>
     </head>
     <body>
-        <table class="main level-{{ event.level }}">
+        <table class="main level-{{ event.get_level_display }}">
             <tr>
                 <td>
                     <div class="body">
