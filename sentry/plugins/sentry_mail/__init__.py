@@ -99,7 +99,7 @@ class MailProcessor(NotifyPlugin):
 
         return filter(bool, set(send_to_list))
 
-    def notify_members(self, group, event, fail_silently=True):
+    def notify_users(self, group, event, fail_silently=True):
         project = group.project
 
         interface_list = []

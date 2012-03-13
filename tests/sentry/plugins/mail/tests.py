@@ -55,7 +55,7 @@ class MailProcessorTest(TestCase):
         self.assertTrue(p.should_notify(group=group, event=Mock()))
 
     @mock.patch('sentry.plugins.sentry_mail.MailProcessor._send_mail')
-    def test_notify_members_renders_interfaces(self, _send_mail):
+    def test_notify_users_renders_interfaces(self, _send_mail):
         group = Mock(spec=Group)
         group.first_seen = datetime.datetime.now()
         group.project_id = 1
@@ -71,7 +71,7 @@ class MailProcessorTest(TestCase):
 
         with self.Settings(SENTRY_URL_PREFIX='http://example.com'):
             p = MailProcessor(send_to=['foo@example.com'])
-            p.notify_members(group, event)
+            p.notify_users(group, event)
 
         stacktrace.get_title.assert_called_once_with()
         stacktrace.to_string.assert_called_once_with(event)
