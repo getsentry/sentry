@@ -88,7 +88,7 @@ class MailProcessor(NotifyPlugin):
             if self.send_to is not None:
                 send_to_list = self.send_to
             elif project is not None:
-                send_to_list = project.member_set.values_list('user__email', flat=True)
+                send_to_list = list(project.member_set.values_list('user__email', flat=True))
             else:
                 send_to_list = []
 
