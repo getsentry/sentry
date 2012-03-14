@@ -52,7 +52,7 @@ def manage_projects(request):
     project_list = Project.objects.filter(
         status=0,
     ).exclude(
-        projectcountbyminute__date__gte=datetime.datetime.now() - datetime.timedelta(days=30),
+        projectcountbyminute__date__lte=datetime.datetime.now() - datetime.timedelta(days=30),
     ).annotate(
         avg_events_per_n=Sum('projectcountbyminute__times_seen'),
         n_value=Count('projectcountbyminute__times_seen')
