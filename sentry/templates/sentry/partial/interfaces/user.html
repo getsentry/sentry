@@ -1,0 +1,35 @@
+{% load i18n %}
+{% load sentry_helpers %}
+
+<div id="request" class="module">
+    <div class="page-header">
+        <h2>{% trans "User" %}</h2>
+    </div>
+    <div class="module-content">
+        <table class="table table-bordered table-striped">
+            <colgroup>
+                <col style="width:60px;">
+            </colgroup>
+            <tbody>
+                <tr>
+                    <th>{% trans "Authenticated:" %}</th>
+                    <td>{{ user_authenticated }}</td>
+                </tr>
+                {% if user_authenticated %}
+                    <tr>
+                        <th>{% trans "ID:" %}</th>
+                        <td>{{ user_id }}</td>
+                    </tr>
+                    <tr>
+                        <th>{% trans "Username:" %}</th>
+                        <td>{{ user_username }}</td>
+                    </tr>
+                    <tr>
+                        <th>{% trans "Email:" %}</th>
+                        <td>{{ user_email }}</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
