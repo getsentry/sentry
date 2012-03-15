@@ -466,4 +466,41 @@ class Template(Interface):
 
 
 class User(Interface):
-    pass
+    def __init__(self, is_authenticated, **kwargs):
+        self.is_authenticated = is_authenticated
+        self.id = kwargs.get('id')
+        self.username = kwargs.get('username')
+        self.email = kwargs.get('email')
+
+    def serialize(self):
+        if self.is_authenticated:
+            return {
+                'is_authenticated': self.is_authenticated,
+                'id': self.id,
+                'username': self.username,
+                'email': self.email,
+            }
+        else:
+            return {
+                'is_authenticated': self.is_authenticated
+            }
+
+    def get_hash(self):
+        if not self.is_authenticated:
+            return []
+        else:
+            return [self.id, self.username, self.email]
+
+    def to_html(self, event):
+        return render_to_string('sentry/partial/interfaces/user.html', {
+            'event': event,
+            'user_authenticated': self.is_authenticated,
+            'user_id': self.id,
+            'user_username': self.username,
+            'user_email': self.email
+        })
+
+    def get_search_context(self, event):
+        return {
+            'text': [self.id, self.username, self.email]
+        }
