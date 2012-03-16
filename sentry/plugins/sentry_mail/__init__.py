@@ -83,14 +83,7 @@ class MailProcessor(NotifyPlugin):
         )
 
     def get_send_to(self, project=None):
-        send_to_list = self.get_option('send_to', project)
-        if not send_to_list:
-            if self.send_to is not None:
-                send_to_list = self.send_to
-            elif project is not None:
-                send_to_list = list(project.member_set.values_list('user__email', flat=True))
-            else:
-                send_to_list = []
+        send_to_list = self.get_option('send_to', project) or []
 
         if isinstance(send_to_list, basestring):
             send_to_list = send_to_list.split(',')
