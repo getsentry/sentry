@@ -190,7 +190,7 @@ def get_tags(group, request):
             tag_list = inst.tags(request, group, tag_list)
         except Exception, e:
             logger = logging.getLogger('sentry.plugins')
-            logger.rror('Error processing tags() on %r: %s', inst.__class__, e, extra={
+            logger.error('Error processing tags() on %r: %s', inst.__class__, e, extra={
                 'request': request,
             }, exc_info=True)
 
