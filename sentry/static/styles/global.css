@@ -4030,6 +4030,9 @@ pre.exception_value {
 .server-list li, .url-list li {
   padding-bottom: 10px;
 }
+.server-list li .count, .url-list li .count {
+  padding-right: 10px;
+}
 .url-list li a {
   line-height: 18px;
 }
