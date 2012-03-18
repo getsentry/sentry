@@ -7,6 +7,7 @@ The following clients are officially recognized and support the current Sentry p
 * PHP (`raven-php <http://github.com/getsentry/raven-php>`_)
 * Java (`raven-java <https://github.com/kencochrane/raven-java>`_)
 * JavaScript (`raven-js <https://github.com/lincolnloop/raven-js>`_)
+* Node.js (`raven-node <https://github.com/mattrobenolt/raven-node>`_)
 
 Client Critera
 --------------
