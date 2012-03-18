@@ -12,7 +12,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
-from sentry.models import Project, ProjectMember
+from sentry.models import Project, ProjectMember, PendingProjectMember
 from sentry.interfaces import Http
 from sentry.permissions import can_set_public_projects
 
@@ -117,11 +117,30 @@ class BaseProjectMemberForm(forms.ModelForm):
 EditProjectMemberForm = BaseProjectMemberForm
 
 
+class InviteProjectMemberForm(BaseProjectMemberForm):
+    class Meta:
+        fields = ('type', 'email')
+        model = PendingProjectMember
+
+    def clean_email(self):
+        value = self.cleaned_data['email']
+        if not value:
+            return None
+
+        if self.project.member_set.filter(user__email__iexact=value).exists():
+            raise forms.ValidationError(_('There is already a member with this email address'))
+
+        if self.project.pending_member_set.filter(email__iexact=value).exists():
+            raise forms.ValidationError(_('There is already a pending invite for this user'))
+
+        return value
+
+
 class NewProjectMemberForm(BaseProjectMemberForm):
     user = UserField()
 
     class Meta:
-        fields = ('user', 'type')
+        fields = ('type', 'user')
         model = ProjectMember
 
     def clean_user(self):

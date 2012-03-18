@@ -11,13 +11,14 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
 from sentry.conf import settings
-from sentry.models import ProjectMember, MEMBER_USER, MEMBER_OWNER
+from sentry.models import ProjectMember, MEMBER_USER, MEMBER_OWNER, \
+  PendingProjectMember
 from sentry.permissions import can_create_projects
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms import EditProjectForm, NewProjectForm, \
   EditProjectMemberForm, NewProjectMemberForm, RemoveProjectForm, \
-  NewProjectAdminForm
+  NewProjectAdminForm, InviteProjectMemberForm
 from sentry.web.helpers import render_to_response, get_project_list, \
   plugin_config
 
@@ -135,6 +136,7 @@ def manage_project(request, project):
         return HttpResponseRedirect(request.path + '?success=1')
 
     member_list = [(pm, pm.user) for pm in project.member_set.select_related('user')]
+    pending_member_list = [(pm, pm.email) for pm in project.pending_member_set.all()]
 
     context = csrf(request)
     context.update({
@@ -143,7 +145,8 @@ def manage_project(request, project):
         'page': 'details',
         'form': form,
         'project': project,
-        'member_list': member_list
+        'member_list': member_list,
+        'pending_member_list': pending_member_list,
     })
 
     return render_to_response('sentry/projects/manage.html', context, request)
@@ -156,29 +159,78 @@ def new_project_member(request, project):
     if not can_add_member:
         return HttpResponseRedirect(reverse('sentry'))
 
-    form = NewProjectMemberForm(project, request.POST or None, initial={
+    initial = {
         'type': MEMBER_USER,
-    })
-    if form.is_valid():
-        pm = form.save(commit=False)
+    }
+
+    invite_form = InviteProjectMemberForm(project, request.POST or None, initial=initial, prefix='invite')
+    add_form = NewProjectMemberForm(project, request.POST or None, initial=initial, prefix='add')
+
+    if add_form.is_valid():
+        pm = add_form.save(commit=False)
         pm.project = project
         pm.save()
 
-        return HttpResponseRedirect(reverse('sentry-edit-project-member', args=[project.pk, pm.id]))
+        return HttpResponseRedirect(reverse('sentry-edit-project-member', args=[project.pk, pm.id]) + '?success=1')
+
+    elif invite_form.is_valid():
+        pm = invite_form.save(commit=False)
+        pm.project = project
+        pm.save()
+
+        pm.send_invite_email()
+
+        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]) + '?success=1')
 
     context = csrf(request)
     context.update({
         'project': project,
-        'form': form,
+        'add_form': add_form,
+        'invite_form': invite_form,
     })
 
     return render_to_response('sentry/projects/members/new.html', context, request)
 
 
+def accept_invite(request, member_id, token):
+    try:
+        pending_member = PendingProjectMember.objects.get(pk=member_id)
+    except PendingProjectMember.DoesNotExist:
+        return HttpResponseRedirect(reverse('sentry'))
+
+    if pending_member.token != token:
+        return HttpResponseRedirect(reverse('sentry'))
+
+    project = pending_member.project
+
+    if not request.user.is_authenticated():
+        # Show login or register form
+        context = {
+            'project': project,
+        }
+        return render_to_response('sentry/projects/members/accept_invite.html', context, request)
+
+    if project.member_set.filter(
+            user=request.user,
+            type=pending_member.type,
+        ):
+        project.member_set.create(
+            user=request.user,
+            type=pending_member.type,
+        )
+
+    pending_member.delete()
+
+    return HttpResponseRedirect(reverse('sentry', args=[project.pk]))
+
+
 @csrf_protect
 @has_access(MEMBER_OWNER)
 def edit_project_member(request, project, member_id):
-    member = project.member_set.get(pk=member_id)
+    try:
+        member = project.member_set.get(pk=member_id)
+    except ProjectMember.DoesNotExist:
+        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
 
     result = plugins.first('has_perm', request.user, 'edit_project_member', member)
     if result is False and not request.user.has_perm('sentry.can_change_projectmember'):
@@ -204,9 +256,13 @@ def edit_project_member(request, project, member_id):
 @csrf_protect
 @has_access(MEMBER_OWNER)
 def remove_project_member(request, project, member_id):
-    member = project.member_set.get(pk=member_id)
+    try:
+        member = project.member_set.get(pk=member_id)
+    except ProjectMember.DoesNotExist:
+        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+
     if member.user == project.owner:
-        return HttpResponseRedirect(reverse('sentry-project-list'))
+        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
 
     result = plugins.first('has_perm', request.user, 'remove_project_member', member)
     if result is False and not request.user.has_perm('sentry.can_remove_projectmember'):
@@ -229,33 +285,75 @@ def remove_project_member(request, project, member_id):
 @csrf_protect
 @has_access(MEMBER_OWNER)
 def suspend_project_member(request, project, member_id):
-    member = project.member_set.get(pk=member_id)
+    try:
+        member = project.member_set.get(pk=member_id)
+    except ProjectMember.DoesNotExist:
+        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+
     if member.user == project.owner:
         return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
 
     result = plugins.first('has_perm', request.user, 'suspend_project_member', member)
     if result is False and not request.user.has_perm('sentry.can_change_projectmember'):
-        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+        return HttpResponseRedirect(reverse('sentry'))
 
     member.update(is_active=False)
 
-    return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+    return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]) + '?success=1')
 
 
 @csrf_protect
 @has_access(MEMBER_OWNER)
 def restore_project_member(request, project, member_id):
-    member = project.member_set.get(pk=member_id)
+    try:
+        member = project.member_set.get(pk=member_id)
+    except ProjectMember.DoesNotExist:
+        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+
     if member.user == project.owner:
         return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
 
     result = plugins.first('has_perm', request.user, 'restore_project_member', member)
     if result is False and not request.user.has_perm('sentry.can_change_projectmember'):
-        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+        return HttpResponseRedirect(reverse('sentry'))
 
     member.update(is_active=True)
 
-    return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+    return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]) + '?success=1')
+
+
+@csrf_protect
+@has_access(MEMBER_OWNER)
+def remove_pending_project_member(request, project, member_id):
+    try:
+        member = project.pending_member_set.get(pk=member_id)
+    except PendingProjectMember.DoesNotExist:
+        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+
+    result = plugins.first('has_perm', request.user, 'remove_project_member', member)
+    if result is False and not request.user.has_perm('sentry.can_remove_projectmember'):
+        return HttpResponseRedirect(reverse('sentry'))
+
+    member.delete()
+
+    return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]) + '?success=1')
+
+
+@csrf_protect
+@has_access(MEMBER_OWNER)
+def reinvite_pending_project_member(request, project, member_id):
+    try:
+        member = project.pending_member_set.get(pk=member_id)
+    except PendingProjectMember.DoesNotExist:
+        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+
+    result = plugins.first('has_perm', request.user, 'add_project_member', member)
+    if result is False and not request.user.has_perm('sentry.can_add_projectmember'):
+        return HttpResponseRedirect(reverse('sentry'))
+
+    member.send_invite_email()
+
+    return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]) + '?success=1')
 
 
 @login_required

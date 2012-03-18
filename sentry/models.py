@@ -14,6 +14,7 @@ import time
 import uuid
 import urlparse
 from datetime import datetime
+from hashlib import md5
 from indexer.models import BaseIndex
 from picklefield.fields import PickledObjectField
 
@@ -178,6 +179,50 @@ class ProjectOption(Model):
     def __unicode__(self):
         return u'project=%s, key=%s, value=%s' % (self.project_id, self.key, self.value)
 
+
+class PendingProjectMember(Model):
+    """
+    Identifies relationships between projects and pending invites.
+    """
+    project = models.ForeignKey(Project, related_name="pending_member_set")
+    email = models.EmailField()
+    type = models.IntegerField(choices=MEMBER_TYPES, default=globals().get(settings.DEFAULT_PROJECT_ACCESS))
+    date_added = models.DateTimeField(default=datetime.now)
+
+    class Meta:
+        unique_together = (('project', 'email'),)
+
+    def __unicode__(self):
+        return u'project=%s, email=%s, type=%s' % (self.project_id, self.email, self.get_type_display())
+
+    @property
+    def token(self):
+        checksum = md5()
+        for x in (str(self.project_id), self.email, settings.KEY):
+            checksum.update(x)
+        return checksum.hexdigest()
+
+    def send_invite_email(self):
+        from django.core.mail import send_mail
+        from sentry.web.helpers import render_to_string
+
+        context = {
+            'email': self.email,
+            'project': self.project,
+            'url': '%s%s' % (settings.URL_PREFIX, reverse('sentry-accept-invite', kwargs={
+                'member_id': self.id,
+                'token': self.token,
+            })),
+        }
+        body = render_to_string('sentry/emails/member_invite.txt', context)
+
+        try:
+            send_mail('%s Invite to join project: %s' % (settings.EMAIL_SUBJECT_PREFIX, self.project.name),
+                body, settings.SERVER_EMAIL, [self.email],
+                fail_silently=False)
+        except Exception, e:
+            logger = logging.getLogger('sentry.mail.errors')
+            logger.exception(e)
 
 class ProjectMember(Model):
     """

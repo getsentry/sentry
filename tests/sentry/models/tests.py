@@ -1,8 +1,9 @@
 from __future__ import absolute_import
 
 
+from django.core import mail
 from sentry.models import Project, ProjectMember, Group, Event, \
-  MessageFilterValue, MessageCountByMinute, FilterValue
+  MessageFilterValue, MessageCountByMinute, FilterValue, PendingProjectMember
 
 from tests.base import TestCase
 
@@ -48,3 +49,23 @@ class ProjectMemberTest(TestCase):
         member = ProjectMember(project_id=1, public_key='public', secret_key='secret')
         with self.Settings(SENTRY_URL_PREFIX='http://example.com:81'):
             self.assertEquals(member.get_dsn(), 'http://public:secret@example.com:81/1')
+
+
+class PendingProjectMemberTest(TestCase):
+    fixtures = ['tests/fixtures/views.json']
+
+    def test_token_generation(self):
+        member = PendingProjectMember(project_id=1, email='foo@example.com')
+        with self.Settings(SENTRY_KEY='a'):
+            self.assertEquals(member.token, 'a')
+
+    def test_send_invite_email(self):
+        member = PendingProjectMember(project_id=1, email='foo@example.com')
+        with self.Settings(SENTRY_URL_PREFIX='http://example.com'):
+            member.send_invite_email()
+
+            self.assertEquals(len(mail.outbox), 1)
+
+            msg = mail.outbox[0]
+
+            self.assertEquals(msg.to, ['foo@example.com'])

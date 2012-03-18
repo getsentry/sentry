@@ -156,9 +156,13 @@ def create_new_user(request):
                 })
             body = render_to_string('sentry/emails/welcome_mail.txt', context, request)
 
-            send_mail('%s Welcome to Sentry' % (settings.EMAIL_SUBJECT_PREFIX,),
-                body, settings.SERVER_EMAIL, [user.email],
-                fail_silently=True)
+            try:
+                send_mail('%s Welcome to Sentry' % (settings.EMAIL_SUBJECT_PREFIX,),
+                    body, settings.SERVER_EMAIL, [user.email],
+                    fail_silently=False)
+            except Exception, e:
+                logger = logging.getLogger('sentry.mail.errors')
+                logger.exception(e)
 
         return HttpResponseRedirect(reverse('sentry-admin-users'))
 
