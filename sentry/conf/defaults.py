@@ -120,6 +120,10 @@ VIEWS = (
 # to create new projects
 ALLOW_PROJECT_CREATION = False
 
+# Should users without superuser permissions be allowed to
+# make projects public
+ALLOW_PUBLIC_PROJECTS = True
+
 # Instructs Sentry to utilize it's queue for background jobs. You will
 # need to ensure that you have workers running if you enable the queue.
 USE_QUEUE = False

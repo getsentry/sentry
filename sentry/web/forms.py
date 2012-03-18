@@ -14,6 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
 from sentry.models import Project, ProjectMember
 from sentry.interfaces import Http
+from sentry.permissions import can_set_public_projects
 
 
 class RadioFieldRenderer(forms.widgets.RadioFieldRenderer):
@@ -96,6 +97,11 @@ class EditProjectForm(forms.ModelForm):
     class Meta:
         fields = ('name', 'status', 'public')
         model = Project
+
+    def __init__(self, request, *args, **kwargs):
+        super(EditProjectForm, self).__init__(*args, **kwargs)
+        if not can_set_public_projects(request.user):
+            del self.fields['public']
 
 
 class BaseProjectMemberForm(forms.ModelForm):

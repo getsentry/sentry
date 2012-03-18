@@ -127,7 +127,7 @@ def manage_project(request, project):
     if result is False and not request.user.has_perm('sentry.can_change_project'):
         return HttpResponseRedirect(reverse('sentry'))
 
-    form = EditProjectForm(request.POST or None, instance=project)
+    form = EditProjectForm(request, request.POST or None, instance=project)
 
     if form.is_valid():
         project = form.save()
