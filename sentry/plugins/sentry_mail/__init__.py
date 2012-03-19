@@ -39,6 +39,7 @@ class MailConfigurationForm(NotifyConfigurationForm):
 class MailProcessor(NotifyPlugin):
     title = _('Mail')
     conf_key = 'mail'
+    slug = 'mail'
     project_conf_form = MailConfigurationForm
 
     def __init__(self, min_level=NOTSET, include_loggers=NOTSET, exclude_loggers=NOTSET,
