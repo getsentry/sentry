@@ -459,6 +459,7 @@ class GroupManager(models.Manager, ChartMixin):
                 ('server_name', event.server_name),
                 ('site', event.site),
                 ('url', url),
+                ('logger', event.logger),
             ):
             if not value:
                 continue
