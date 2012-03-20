@@ -77,6 +77,28 @@ class MailProcessorTest(TestCase):
         stacktrace.to_string.assert_called_once_with(event)
 
     @mock.patch('sentry.plugins.sentry_mail.MailProcessor._send_mail')
+    def test_notify_users_renders_interfaces_with_utf8(self, _send_mail):
+        group = Mock(spec=Group)
+        group.first_seen = datetime.datetime.now()
+        group.project_id = 1
+        group.id = 2
+        stacktrace = Mock(spec=Stacktrace)
+        stacktrace.to_string.return_value = u'רונית מגן'
+        stacktrace.get_title.return_value = 'Stacktrace'
+        event = Event()
+        event.message = 'hello world'
+        event.logger = 'root'
+        event.site = None
+        event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
+
+        with self.Settings(SENTRY_URL_PREFIX='http://example.com'):
+            p = MailProcessor(send_to=['foo@example.com'])
+            p.notify_users(group, event)
+
+        stacktrace.get_title.assert_called_once_with()
+        stacktrace.to_string.assert_called_once_with(event)
+
+    @mock.patch('sentry.plugins.sentry_mail.MailProcessor._send_mail')
     def test_notify_users_does_email(self, _send_mail):
         project = Project(id=1, name='Project Name')
 

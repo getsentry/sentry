@@ -15,10 +15,21 @@ from sentry.plugins import register
 from sentry.plugins.bases.notify import NotifyPlugin, NotifyConfigurationForm
 import re
 
-import pynliner
+from pynliner import Pynliner
 
 NOTSET = object()
 split_re = re.compile(r'\s*,\s*|\s+')
+
+
+class UnicodeSafePynliner(Pynliner):
+    def _get_output(self):
+        """
+        Generate Unicode string of `self.soup` and set it to `self.output`
+
+        Returns self.output
+        """
+        self.output = unicode(self.soup)
+        return self.output
 
 
 class MailConfigurationForm(NotifyConfigurationForm):
@@ -103,7 +114,7 @@ class MailProcessor(NotifyPlugin):
                 continue
             interface_list.append((interface.get_title(), body))
 
-        subject = '[%s] %s: %s' % (project.name, event.get_level_display().upper(), event.message)
+        subject = '[%s] %s: %s' % (project.name.encode('utf-8'), event.get_level_display().upper(), event.message.encode('utf-8'))
 
         link = '%s/%d/group/%d/' % (settings.URL_PREFIX, group.project_id, group.id)
 
@@ -113,12 +124,12 @@ class MailProcessor(NotifyPlugin):
             'link': link,
             'interfaces': interface_list,
         })
-        html_body = pynliner.fromString(render_to_string('sentry/emails/error.html', {
+        html_body = UnicodeSafePynliner().from_string(render_to_string('sentry/emails/error.html', {
             'group': group,
             'event': event,
             'link': link,
             'interfaces': interface_list,
-        }))
+        })).run()
 
         self._send_mail(
             subject=subject,
