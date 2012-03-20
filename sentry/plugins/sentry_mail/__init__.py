@@ -66,7 +66,7 @@ class MailProcessor(NotifyPlugin):
         self.send_to_admins = send_to_admins
         self.subject_prefix = settings.EMAIL_SUBJECT_PREFIX
 
-    def _send_mail(self, subject, body, html_body=None, project=None, fail_silently=True):
+    def _send_mail(self, subject, body, html_body=None, project=None, fail_silently=False):
         send_to = self.get_send_to(project)
         subject_prefix = self.get_option('subject_prefix', project) or self.subject_prefix
 
@@ -93,7 +93,7 @@ class MailProcessor(NotifyPlugin):
 
         return filter(bool, set(send_to_list))
 
-    def notify_users(self, group, event, fail_silently=True):
+    def notify_users(self, group, event, fail_silently=False):
         project = group.project
 
         interface_list = []

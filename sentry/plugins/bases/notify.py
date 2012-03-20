@@ -27,7 +27,7 @@ class NotifyPlugin(Plugin):
     def __init__(self, *args, **kwargs):
         super(NotifyPlugin, self).__init__(*args, **kwargs)
 
-    def notify_users(self, group, event, fail_silently=True):
+    def notify_users(self, group, event, fail_silently=False):
         raise NotImplementedError
 
     def get_send_to(self, project=None):
