@@ -87,7 +87,7 @@ class MailProcessor(NotifyPlugin):
         send_to_list = self.get_option('send_to', project) or []
 
         if isinstance(send_to_list, basestring):
-            send_to_list = send_to_list.split(',')
+            send_to_list = [s.strip() for s in send_to_list.split(',')]
 
         send_to_list.extend(super(MailProcessor, self).get_send_to(project))
 
