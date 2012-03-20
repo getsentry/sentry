@@ -14,6 +14,7 @@ import logging
 import re
 import warnings
 
+from django.core.signals import request_finished
 from django.db import models, transaction, IntegrityError
 from django.db.models import Sum, F
 from django.utils.encoding import force_unicode
@@ -545,6 +546,10 @@ class ProjectManager(models.Manager, ChartMixin):
 class MetaManager(models.Manager):
     NOTSET = object()
 
+    def __init__(self, *args, **kwargs):
+        super(MetaManager, self).__init__(*args, **kwargs)
+        request_finished.connect(self.clear_cache)
+
     def get_value(self, key, default=NOTSET):
         result = self.get_all_values()
         if default is self.NOTSET:
@@ -573,8 +578,11 @@ class MetaManager(models.Manager):
 
     def get_all_values(self):
         if not hasattr(self, '_metadata'):
-            self._metadata = dict(self.values_list('key', 'value'))
+            self._metadata = dict((i.key, i.value) for i in self.all())
         return self._metadata
+
+    def clear_cache(self, **kwargs):
+        self._metadata = {}
 
 
 class InstanceMetaManager(models.Manager):
@@ -583,6 +591,7 @@ class InstanceMetaManager(models.Manager):
     def __init__(self, field_name, *args, **kwargs):
         super(InstanceMetaManager, self).__init__(*args, **kwargs)
         self.field_name = field_name
+        request_finished.connect(self.clear_cache)
 
     def get_value_bulk(self, instances, key):
         return dict(self.filter(**{
@@ -624,11 +633,17 @@ class InstanceMetaManager(models.Manager):
         if not hasattr(self, '_metadata'):
             self._metadata = {}
         if instance.pk not in self._metadata:
-            result = dict(self.filter(**{
-                self.field_name: instance,
-            }).values_list('key', 'value'))
+            result = dict(
+                (i.key, i.value) for i in
+                self.filter(**{
+                  self.field_name: instance,
+                })
+            )
             self._metadata[instance.pk] = result
         return self._metadata[instance.pk]
+
+    def clear_cache(self, **kwargs):
+        self._metadata = {}
 
 
 class SearchDocumentManager(models.Manager):

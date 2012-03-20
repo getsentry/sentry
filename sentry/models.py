@@ -15,6 +15,7 @@ import uuid
 import urlparse
 from datetime import datetime
 from indexer.models import BaseIndex
+from picklefield.fields import PickledObjectField
 
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
@@ -68,7 +69,7 @@ class Option(Model):
     their key. e.g. key='myplugin:optname'
     """
     key = models.CharField(max_length=64, unique=True)
-    value = models.TextField()
+    value = PickledObjectField()
 
     objects = MetaManager()
 
@@ -162,7 +163,7 @@ class ProjectOption(Model):
     """
     project = models.ForeignKey(Project)
     key = models.CharField(max_length=64)
-    value = models.TextField()
+    value = PickledObjectField()
 
     objects = InstanceMetaManager('project')
 
