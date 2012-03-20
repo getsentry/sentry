@@ -99,7 +99,7 @@ class MailProcessorTest(TestCase):
 
         _send_mail.assert_called_once()
         args, kwargs = _send_mail.call_args
-        self.assertEquals(kwargs.get('fail_silently'), True)
+        self.assertEquals(kwargs.get('fail_silently'), False)
         self.assertEquals(kwargs.get('project'), project)
         self.assertEquals(kwargs.get('subject'), u"[Project Name] ERROR: hello world")
 
