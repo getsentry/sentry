@@ -121,6 +121,12 @@ ADMIN_MEDIA_PREFIX = '/_admin_media/'
 
 BROKER_URL = "django://"
 
+CELERY_IGNORE_RESULT = True
+CELERY_SEND_EVENTS = False
+CELERY_RESULT_BACKEND = None
+CELERY_TASK_RESULT_EXPIRES = 1
+
+
 # Sentry and Raven configuration
 
 SENTRY_PUBLIC = False
