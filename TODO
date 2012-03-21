@@ -7,3 +7,4 @@
 - Create tailer for apache-style error logs
 - Show admins notices in the Web UI about configuration issues such as missing mail configuration, possibly
    invalid SENTRY_URL_PREFIX, etc.
+- Add hooks for controlling the queue/routing key (via plugins) that messages are sent to.
