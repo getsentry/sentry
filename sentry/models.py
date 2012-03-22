@@ -28,7 +28,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
 from sentry.manager import GroupManager, ProjectManager, \
-  MetaManager, InstanceMetaManager, SearchDocumentManager
+  MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager
 from sentry.utils import cached_property, \
   MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField
@@ -71,7 +71,9 @@ class Option(Model):
     key = models.CharField(max_length=64, unique=True)
     value = PickledObjectField()
 
-    objects = MetaManager()
+    objects = MetaManager(cache_fields=[
+        'key',
+    ])
 
 
 class Project(Model):
@@ -88,7 +90,9 @@ class Project(Model):
         (1, 'Hidden'),
     ), db_index=True)
 
-    objects = ProjectManager()
+    objects = ProjectManager(cache_fields=[
+        'pk',
+    ])
 
     def __unicode__(self):
         return u'#%s %r' % (self.pk, self.name)
@@ -102,7 +106,7 @@ class Project(Model):
 
     def merge_to(self, project):
         if not isinstance(project, Project):
-            project = Project.objects.get(pk=project)
+            project = Project.objects.get_from_cache(pk=project)
 
         for group in Group.objects.filter(project=self):
             try:
@@ -187,6 +191,11 @@ class ProjectMember(Model):
     type = models.IntegerField(choices=MEMBER_TYPES, default=globals().get(settings.DEFAULT_PROJECT_ACCESS))
     date_added = models.DateTimeField(default=datetime.now)
 
+    objects = BaseManager(cache_fields=[
+        'public_key',
+        'secret_key',
+    ])
+
     class Meta:
         unique_together = (('project', 'user'),)
 
@@ -221,6 +230,8 @@ class ProjectDomain(Model):
     """
     project = models.ForeignKey(Project, related_name="domain_set")
     domain = models.CharField(max_length=128)
+
+    objects = BaseManager()
 
     class Meta:
         unique_together = (('project', 'domain'),)
@@ -260,6 +271,10 @@ class View(Model):
     path = models.CharField(max_length=100, unique=True)
     verbose_name = models.CharField(max_length=200, null=True)
     verbose_name_plural = models.CharField(max_length=200, null=True)
+
+    objects = BaseManager(cache_fields=[
+        'path',
+    ])
 
     def __unicode__(self):
         return self.path
@@ -394,6 +409,9 @@ class Event(MessageBase):
     server_name = models.CharField(max_length=128, db_index=True, null=True)
     site = models.CharField(max_length=128, db_index=True, null=True)
 
+    objects = BaseManager()
+
+
     class Meta:
         verbose_name = _('message')
         verbose_name_plural = _('messages')
@@ -469,6 +487,8 @@ class GroupBookmark(Model):
     # namespace related_name on User since we dont own the model
     user = models.ForeignKey(User, related_name="sentry_bookmark_set")
 
+    objects = BaseManager()
+
     class Meta:
         # composite index includes project for efficient queries
         unique_together = (('project', 'user', 'group'),)
@@ -481,6 +501,8 @@ class FilterValue(Model):
     project = models.ForeignKey(Project, null=True)
     key = models.CharField(choices=FILTER_KEYS, max_length=32)
     value = models.CharField(max_length=200)
+
+    objects = BaseManager()
 
     class Meta:
         unique_together = (('project', 'key', 'value'),)
@@ -501,6 +523,8 @@ class MessageFilterValue(Model):
     value = models.CharField(max_length=200)
     last_seen = models.DateTimeField(default=datetime.now, db_index=True, null=True)
     first_seen = models.DateTimeField(default=datetime.now, db_index=True, null=True)
+
+    objects = BaseManager()
 
     class Meta:
         unique_together = (('project', 'key', 'value', 'group'),)
@@ -524,6 +548,8 @@ class MessageCountByMinute(Model):
     time_spent_total = models.FloatField(default=0)
     time_spent_count = models.IntegerField(default=0)
 
+    objects = BaseManager()
+
     class Meta:
         unique_together = (('project', 'group', 'date'),)
 
@@ -543,6 +569,8 @@ class ProjectCountByMinute(Model):
     times_seen = models.PositiveIntegerField(default=0)
     time_spent_total = models.FloatField(default=0)
     time_spent_count = models.IntegerField(default=0)
+
+    objects = BaseManager()
 
     class Meta:
         unique_together = (('project', 'date'),)
@@ -567,6 +595,8 @@ class SearchToken(Model):
     field = models.CharField(max_length=64, default='text')
     token = models.CharField(max_length=128)
     times_seen = models.PositiveIntegerField(default=1)
+
+    objects = BaseManager()
 
     class Meta:
         unique_together = (('document', 'field', 'token'),)

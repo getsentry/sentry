@@ -74,7 +74,7 @@ class RemoveProjectForm(forms.Form):
 
     def clean_project(self):
         project_id = self.cleaned_data['project']
-        return Project.objects.get(id=project_id)
+        return Project.objects.get_from_cache(id=project_id)
 
 
 class NewProjectForm(forms.ModelForm):

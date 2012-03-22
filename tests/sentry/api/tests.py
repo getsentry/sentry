@@ -46,7 +46,7 @@ class APITest(TestCase):
 
     def test_valid_project_from_api_key_and_id(self):
         api_key = self.pm.public_key
-        project = project_from_api_key_and_id(api_key, self.project)
+        project = project_from_api_key_and_id(api_key, self.project.id)
         self.assertEquals(project, self.project)
 
     def test_invalid_project_from_api_key_and_id(self):

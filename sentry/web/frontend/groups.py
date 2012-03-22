@@ -185,7 +185,7 @@ def group_list(request, project, view_id=None):
 
     if view_id:
         try:
-            view = View.objects.get(pk=view_id)
+            view = View.objects.get_from_cache(pk=view_id)
         except View.DoesNotExist:
             return HttpResponseRedirect(reverse('sentry', args=[project.pk]))
     else:

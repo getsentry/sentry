@@ -75,7 +75,7 @@ def project_from_auth_vars(auth_vars, data):
 
     if api_key:
         try:
-            pm = ProjectMember.objects.get(public_key=api_key)
+            pm = ProjectMember.objects.get_from_cache(public_key=api_key)
         except ProjectMember.DoesNotExist:
             raise APIForbidden('Invalid signature')
         project = pm.project
@@ -109,8 +109,11 @@ def project_from_api_key_and_id(api_key, project_id):
     a project instance or throws APIUnauthorized.
     """
     try:
-        pm = ProjectMember.objects.get(public_key=api_key, project=project_id)
+        pm = ProjectMember.objects.get_from_cache(public_key=api_key)
     except ProjectMember.DoesNotExist:
+        raise APIUnauthorized()
+
+    if str(pm.project_id) != str(project_id):
         raise APIUnauthorized()
 
     return pm.project

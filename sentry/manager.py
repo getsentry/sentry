@@ -14,10 +14,12 @@ import logging
 import re
 import warnings
 
+from django.core.cache import cache
 from django.core.signals import request_finished
 from django.db import models, transaction, IntegrityError
 from django.db.models import Sum, F
-from django.utils.encoding import force_unicode
+from django.db.models.signals import post_save, post_delete, post_init, class_prepared
+from django.utils.encoding import force_unicode, smart_str
 
 from raven.utils.encoding import to_string
 from sentry.conf import settings
@@ -32,6 +34,8 @@ from sentry.utils.queue import maybe_delay
 
 logger = logging.getLogger('sentry.errors')
 
+UNSAVED = dict()
+
 
 def get_checksum_from_event(event):
     for interface in event.interfaces.itervalues():
@@ -42,6 +46,152 @@ def get_checksum_from_event(event):
                 hash.update(to_string(r))
             return hash.hexdigest()
     return hashlib.md5(to_string(event.message)).hexdigest()
+
+
+class BaseManager(models.Manager):
+    lookup_handlers = {
+        'iexact': lambda x: x.upper(),
+    }
+
+    def __init__(self, *args, **kwargs):
+        self.cache_fields = kwargs.pop('cache_fields', [])
+        self.cache_ttl = kwargs.pop('cache_ttl', 60 * 5)
+        super(BaseManager, self).__init__(*args, **kwargs)
+
+    def contribute_to_class(self, model, name):
+        super(BaseManager, self).contribute_to_class(model, name)
+        class_prepared.connect(self._class_prepared, sender=model)
+
+    def _prep_value(self, key, value):
+        if isinstance(value, models.Model):
+            value = value.pk
+        else:
+            value = unicode(value)
+        parts = key.split('__')
+        if len(key) > 1 and parts[-1] in self.lookup_handlers:
+            value = self.lookup_handlers[parts[-1]](value)
+        return value
+
+    def _prep_key(self, key):
+        if key == 'pk':
+            return self.model._meta.pk.name
+        return key
+
+    def _make_key(self, prefix, kwargs):
+        kwargs_bits = []
+        for k, v in sorted(kwargs.iteritems()):
+            k = self._prep_key(k)
+            v = smart_str(self._prep_value(k, v))
+            kwargs_bits.append('%s=%s' % (k, v))
+        kwargs_bits = ':'.join(kwargs_bits)
+
+        return '%s:%s:%s' % (prefix, self.model.__name__, hashlib.md5(kwargs_bits).hexdigest())
+
+    def _class_prepared(self, sender, **kwargs):
+        """
+        Given the cache is configured, connects the required signals for invalidation.
+        """
+        if not self.cache_fields:
+            return
+        sender.__cache_data = {}
+        post_init.connect(self._post_init, sender=sender, weak=False)
+        post_save.connect(self._post_save, sender=sender, weak=False)
+        post_delete.connect(self._post_delete, sender=sender, weak=False)
+
+    def _cache_state(self, instance):
+        """
+        Updates the tracked state of an instance.
+        """
+        if instance.pk:
+            instance.__cache_data = dict((f, getattr(instance, f)) for f in self.cache_fields)
+        else:
+            instance.__cache_data = UNSAVED
+
+    def _post_init(self, instance, **kwargs):
+        """
+        Stores the initial state of an instance.
+        """
+        self._cache_state(instance)
+
+    def _post_save(self, instance, **kwargs):
+        """
+        Pushes changes to an instance into the cache, and removes invalid (changed)
+        lookup values.
+        """
+        pk_name = instance._meta.pk.name
+        pk_names = ('pk', pk_name)
+        pk_val = instance.pk
+        for key in self.cache_fields:
+            if key in pk_names:
+                continue
+            # store pointers
+            cache.set(self._get_from_cache_key(**{key: getattr(instance, key)}), pk_val, self.cache_ttl)  # 1 hour
+
+        # Ensure we dont serialize the database into the cache
+        db = instance._state.db
+        instance._state.db = None
+        # store actual object
+        cache.set(self._get_from_cache_key(**{pk_name: pk_val}), instance, self.cache_ttl)
+        instance._state.db = db
+
+        # Kill off any keys which are no longer valid
+        for key in self.cache_fields:
+            if key not in instance.__cache_data:
+                continue
+            value = instance.__cache_data[key]
+            if value != getattr(instance, key):
+                cache.delete(self._get_from_cache_key(**{key: value}))
+
+        self._cache_state(instance)
+
+    def _post_delete(self, instance, **kwargs):
+        """
+        Drops instance from all cache storages.
+        """
+        pk_name = instance._meta.pk.name
+        for key in self.cache_fields:
+            if key in ('pk', pk_name):
+                continue
+            # remove pointers
+            cache.delete(self._get_from_cache_key(**{key: getattr(instance, key)}))
+        # remove actual object
+        cache.delete(self._get_from_cache_key(**{pk_name: instance.pk}))
+
+    def _get_from_cache_key(self, **kwargs):
+        return self._make_key('modelcache', kwargs)
+
+    def get_from_cache(self, **kwargs):
+        """
+        Wrapper around QuerySet.get which supports caching of the
+        intermediate value.  Callee is responsible for making sure
+        the cache key is cleared on save.
+        """
+        if not self.cache_fields or len(kwargs) > 1:
+            return self.get(**kwargs)
+
+        pk_name = self.model._meta.pk.name
+        key, value = kwargs.items()[0]
+
+        # Kill __exact since it's the default behavior
+        if key.endswith('__exact'):
+            key = key.split('__exact', 1)[0]
+
+        if key in self.cache_fields or key in ('pk', pk_name):
+            cache_key = self._get_from_cache_key(**{key: value})
+
+            retval = cache.get(cache_key)
+            if retval is None:
+                result = self.get(**kwargs)
+                # Ensure we're pushing it into the cache
+                self._post_save(instance=result)
+                return result
+
+            # If we didn't look up by pk we need to hit the reffed
+            # key
+            if key not in (pk_name, 'pk'):
+                return self.get(pk=retval)
+
+            return retval
 
 
 class ScoreClause(object):
@@ -129,7 +279,7 @@ class ChartMixin(object):
         return [rows.get(today - datetime.timedelta(hours=d), 0) for d in xrange(first_seen, -1, -1)]
 
 
-class GroupManager(models.Manager, ChartMixin):
+class GroupManager(BaseManager, ChartMixin):
     use_for_related_fields = True
 
     def __init__(self, *args, **kwargs):
@@ -215,7 +365,7 @@ class GroupManager(models.Manager, ChartMixin):
         from sentry.models import Event, Project, View
         from sentry.views import View as ViewHandler
 
-        project = Project.objects.get(pk=project)
+        project = Project.objects.get_from_cache(pk=project)
 
         if any(k in kwargs for k in ('view', 'message_id')):
             # we must be passing legacy data, let's convert it
@@ -539,11 +689,11 @@ class RawQuerySet(object):
         return self.queryset.raw(query, self.params)
 
 
-class ProjectManager(models.Manager, ChartMixin):
+class ProjectManager(BaseManager, ChartMixin):
     pass
 
 
-class MetaManager(models.Manager):
+class MetaManager(BaseManager):
     NOTSET = object()
 
     def __init__(self, *args, **kwargs):
@@ -585,7 +735,7 @@ class MetaManager(models.Manager):
         self._metadata = {}
 
 
-class InstanceMetaManager(models.Manager):
+class InstanceMetaManager(BaseManager):
     NOTSET = object()
 
     def __init__(self, field_name, *args, **kwargs):
@@ -646,7 +796,7 @@ class InstanceMetaManager(models.Manager):
         self._metadata = {}
 
 
-class SearchDocumentManager(models.Manager):
+class SearchDocumentManager(BaseManager):
     # Words which should not be indexed
     STOP_WORDS = set(['the', 'of', 'to', 'and', 'a', 'in', 'is', 'it', 'you', 'that'])
 
