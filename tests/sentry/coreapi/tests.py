@@ -17,18 +17,23 @@ from sentry.utils.auth import get_signature
 
 from tests.base import TestCase
 
-
-class APITest(TestCase):
+class BaseAPITest(TestCase):
     def setUp(self):
         self.user = User.objects.create(username='coreapi')
         self.project = Project.objects.get(id=1)
         self.pm = self.project.member_set.create(user=self.user)
 
-    def test_get_signature(self):
+
+class GetSignatureTest(BaseAPITest):
+    def test_valid_string(self):
         self.assertEquals(get_signature('x', 'y', 'z'), '77e1f5656ddc2e93f64469cc18f9f195fe665428')
+
+    def test_valid_unicode(self):
         self.assertEquals(get_signature(u'x', u'y', u'z'), '77e1f5656ddc2e93f64469cc18f9f195fe665428')
 
-    def test_valid_project_from_id(self):
+
+class ProjectFromIdTest(BaseAPITest):
+    def test_valid(self):
         request = mock.Mock()
         request.user = self.user
         request.GET = {'project_id': self.project.id}
@@ -37,28 +42,29 @@ class APITest(TestCase):
 
         self.assertEquals(project, self.project)
 
-    def test_invalid_project_from_id(self):
+    def test_invalid_project_id(self):
         request = mock.Mock()
         request.user = self.user
         request.GET = {'project_id': 10000}
 
         self.assertRaises(APIUnauthorized, project_from_id, request)
 
-    def test_valid_project_from_api_key_and_id(self):
+
+class ProjectFromApiKeyAndIdTest(BaseAPITest):
+    def test_valid(self):
         api_key = self.pm.public_key
         project = project_from_api_key_and_id(api_key, self.project.id)
         self.assertEquals(project, self.project)
 
-    def test_invalid_project_from_api_key_and_id(self):
-        api_key = self.pm.public_key
+    def test_invalid_project_id(self):
+        self.assertRaises(APIUnauthorized, project_from_api_key_and_id, self.pm.public_key, 10000)
 
-        # invalid project_id
-        self.assertRaises(APIUnauthorized, project_from_api_key_and_id, api_key, 10000)
-
-        # invalid api_key
+    def test_invalid_api_key(self):
         self.assertRaises(APIUnauthorized, project_from_api_key_and_id, 1, self.project.id)
 
-    def test_valid_extract_auth_vars_v3(self):
+
+class ExtractAuthVarsTest(BaseAPITest):
+    def test_valid(self):
         request = mock.Mock()
         request.META = {'HTTP_X_SENTRY_AUTH': 'Sentry key=value, biz=baz'}
         result = extract_auth_vars(request)
@@ -68,13 +74,13 @@ class APITest(TestCase):
         self.assertTrue('biz' in result)
         self.assertEquals(result['biz'], 'baz')
 
-    def test_invalid_extract_auth_vars_v3(self):
+    def test_invalid_construct(self):
         request = mock.Mock()
         request.META = {'HTTP_X_SENTRY_AUTH': 'foobar'}
         result = extract_auth_vars(request)
         self.assertEquals(result, None)
 
-    def test_valid_extract_auth_vars_v2(self):
+    def test_valid_version_legacy(self):
         request = mock.Mock()
         request.META = {'HTTP_AUTHORIZATION': 'Sentry key=value, biz=baz'}
         result = extract_auth_vars(request)
@@ -84,19 +90,21 @@ class APITest(TestCase):
         self.assertTrue('biz' in result)
         self.assertEquals(result['biz'], 'baz')
 
-    def test_invalid_extract_auth_vars_v2(self):
+    def test_invalid_construct_legacy(self):
         request = mock.Mock()
         request.META = {'HTTP_AUTHORIZATION': 'foobar'}
         result = extract_auth_vars(request)
         self.assertEquals(result, None)
 
-    def test_valid_project_from_auth_vars_without_key(self):
+
+class ProjectFromAuthVarsTest(BaseAPITest):
+    def test_valid_without_key(self):
         auth_vars = {
             'sentry_signature': 'adf',
             'sentry_timestamp': time.time(),
         }
-        with mock.patch('sentry.coreapi.validate_hmac') as validate_hmac:
-            validate_hmac.return_value = True
+        with mock.patch('sentry.coreapi.validate_hmac') as validate_hmac_:
+            validate_hmac_.return_value = True
 
             # without key
             result = project_from_auth_vars(auth_vars, '')
@@ -107,31 +115,35 @@ class APITest(TestCase):
             result = project_from_auth_vars(auth_vars, '')
             self.assertEquals(result, self.project)
 
-    def test_valid_validate_hmac(self):
+
+class ValidateHmacTest(BaseAPITest):
+    def test_valid(self):
         with mock.patch('sentry.coreapi.get_signature') as get_signature:
             get_signature.return_value = 'signature'
 
             validate_hmac('foo', 'signature', time.time(), 'foo')
 
-    def test_invalid_validate_hmac_signature(self):
+    def test_invalid_signature(self):
         with mock.patch('sentry.coreapi.get_signature') as get_signature:
             get_signature.return_value = 'notsignature'
 
             self.assertRaises(APIForbidden, validate_hmac, 'foo', 'signature', time.time(), 'foo')
 
-    def test_invalid_validate_hmac_expired(self):
+    def test_timestamp_expired(self):
         with mock.patch('sentry.coreapi.get_signature') as get_signature:
             get_signature.return_value = 'signature'
 
             self.assertRaises(APITimestampExpired, validate_hmac, 'foo', 'signature', time.time() - 3601, 'foo')
 
-    def test_invalid_validate_hmac_bad_timestamp(self):
+    def test_invalid_timestamp(self):
         with mock.patch('sentry.coreapi.get_signature') as get_signature:
             get_signature.return_value = 'signature'
 
             self.assertRaises(APIError, validate_hmac, 'foo', 'signature', 'foo', 'foo')
 
-    def test_process_data_timestamp_iso_timestamp(self):
+
+class ProcessDataTimestampTest(BaseAPITest):
+    def test_iso_timestamp(self):
         data = process_data_timestamp({
             'timestamp': '2012-01-01T10:30:45'
         })
@@ -139,7 +151,7 @@ class APITest(TestCase):
         self.assertTrue('timestamp' in data)
         self.assertEquals(data['timestamp'], d)
 
-    def test_process_data_timestamp_iso_timestamp_with_ms(self):
+    def test_iso_timestamp_with_ms(self):
         data = process_data_timestamp({
             'timestamp': '2012-01-01T10:30:45.434'
         })
@@ -147,7 +159,7 @@ class APITest(TestCase):
         self.assertTrue('timestamp' in data)
         self.assertEquals(data['timestamp'], d)
 
-    def test_process_data_timestamp_iso_timestamp_with_Z(self):
+    def test_timestamp_iso_timestamp_with_Z(self):
         data = process_data_timestamp({
             'timestamp': '2012-01-01T10:30:45Z'
         })
@@ -155,11 +167,13 @@ class APITest(TestCase):
         self.assertTrue('timestamp' in data)
         self.assertEquals(data['timestamp'], d)
 
-    def test_process_data_timestamp_invalid_timestamp(self):
+    def test_invalid_timestamp(self):
         self.assertRaises(InvalidTimestamp, process_data_timestamp, {
             'timestamp': 'foo'
         })
 
+
+class InsertDataToDatabaseTest(BaseAPITest):
     @mock.patch('sentry.models.Group.objects.from_kwargs')
     def test_insert_data_to_database(self, from_kwargs):
         insert_data_to_database({
