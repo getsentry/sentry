@@ -17,6 +17,7 @@ from sentry.utils.auth import get_signature
 
 from tests.base import TestCase
 
+
 class BaseAPITest(TestCase):
     def setUp(self):
         self.user = User.objects.create(username='coreapi')
@@ -49,6 +50,14 @@ class ProjectFromIdTest(BaseAPITest):
 
         self.assertRaises(APIUnauthorized, project_from_id, request)
 
+    def test_inactive_user(self):
+        request = mock.Mock()
+        request.user = self.user
+        request.user.is_active = False
+        request.GET = {'project_id': self.project.id}
+
+        self.assertRaises(APIUnauthorized, project_from_id, request)
+
 
 class ProjectFromApiKeyAndIdTest(BaseAPITest):
     def test_valid(self):
@@ -61,6 +70,13 @@ class ProjectFromApiKeyAndIdTest(BaseAPITest):
 
     def test_invalid_api_key(self):
         self.assertRaises(APIUnauthorized, project_from_api_key_and_id, 1, self.project.id)
+
+    def test_inactive_user(self):
+        user = self.pm.user
+        user.is_active = False
+        user.save()
+
+        self.assertRaises(APIUnauthorized, project_from_api_key_and_id, self.pm.public_key, self.project.id)
 
 
 class ExtractAuthVarsTest(BaseAPITest):
@@ -114,6 +130,26 @@ class ProjectFromAuthVarsTest(BaseAPITest):
             auth_vars['sentry_key'] = self.pm.public_key
             result = project_from_auth_vars(auth_vars, '')
             self.assertEquals(result, self.project)
+
+    def test_inactive_user(self):
+        user = self.pm.user
+        user.is_active = False
+        user.save()
+
+        auth_vars = {
+            'sentry_signature': 'adf',
+            'sentry_timestamp': time.time(),
+        }
+        with mock.patch('sentry.coreapi.validate_hmac') as validate_hmac_:
+            validate_hmac_.return_value = True
+
+            # without key
+            result = project_from_auth_vars(auth_vars, '')
+            self.assertEquals(result, None)
+
+            # with key
+            auth_vars['sentry_key'] = self.pm.public_key
+            self.assertRaises(APIUnauthorized, project_from_auth_vars, auth_vars, '')
 
 
 class ValidateHmacTest(BaseAPITest):
