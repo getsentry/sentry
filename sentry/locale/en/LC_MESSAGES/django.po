@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-03-20 20:56+0000\n"
+"POT-Creation-Date: 2012-03-22 03:40+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -98,7 +98,7 @@ msgstr ""
 msgid "site"
 msgstr ""
 
-#: models.py:57 templates/sentry/projects/manage.html:82
+#: models.py:57
 msgid "owner"
 msgstr ""
 
@@ -110,23 +110,23 @@ msgstr ""
 msgid "system agent"
 msgstr ""
 
-#: models.py:296
+#: models.py:312
 msgid "error"
 msgstr ""
 
-#: models.py:325
+#: models.py:341
 msgid "grouped messages"
 msgstr ""
 
-#: models.py:326
+#: models.py:342
 msgid "grouped message"
 msgstr ""
 
-#: models.py:398
+#: models.py:417
 msgid "message"
 msgstr ""
 
-#: models.py:399
+#: models.py:418
 msgid "messages"
 msgstr ""
 
@@ -699,6 +699,7 @@ msgid "Events"
 msgstr ""
 
 #: templates/sentry/groups/details.html:97
+#: templates/sentry/projects/manage.html:71
 msgid "Actions"
 msgstr ""
 
@@ -861,6 +862,7 @@ msgid "Template Error"
 msgstr ""
 
 #: templates/sentry/partial/interfaces/user.html:6
+#: templates/sentry/projects/manage.html:69
 #: templates/sentry/projects/members/edit.html:27
 msgid "User"
 msgstr ""
@@ -959,17 +961,25 @@ msgstr ""
 msgid "Members"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:68
-msgid "Username"
-msgstr ""
-
-#: templates/sentry/projects/manage.html:69
+#: templates/sentry/projects/manage.html:70
 #: templates/sentry/projects/members/edit.html:51
 msgid "Access"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:84
-msgid "Revoke"
+#: templates/sentry/projects/manage.html:86
+msgid "unavailable for owner"
+msgstr ""
+
+#: templates/sentry/projects/manage.html:90
+msgid "Remove"
+msgstr ""
+
+#: templates/sentry/projects/manage.html:94
+msgid "Suspend"
+msgstr ""
+
+#: templates/sentry/projects/manage.html:96
+msgid "Restore"
 msgstr ""
 
 #: templates/sentry/projects/new.html:5 templates/sentry/projects/new.html:10
