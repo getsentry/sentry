@@ -4,13 +4,10 @@ from __future__ import absolute_import
 
 import logging
 
-from django.conf import settings as django_settings
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
-from sentry.models import Group, Project, ProjectMember, \
-  MEMBER_OWNER, MEMBER_USER
-from sentry.web.helpers import get_login_url
+from sentry.models import Project, MEMBER_OWNER
 
 from tests.base import TestCase
 
