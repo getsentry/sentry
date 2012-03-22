@@ -186,6 +186,7 @@ class ProjectMember(Model):
     """
     project = models.ForeignKey(Project, related_name="member_set")
     user = models.ForeignKey(User, related_name="sentry_project_set")
+    is_active = models.BooleanField(default=True)
     public_key = models.CharField(max_length=32, unique=True, null=True)
     secret_key = models.CharField(max_length=32, unique=True, null=True)
     type = models.IntegerField(choices=MEMBER_TYPES, default=globals().get(settings.DEFAULT_PROJECT_ACCESS))

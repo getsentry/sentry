@@ -226,6 +226,38 @@ def remove_project_member(request, project, member_id):
     return render_to_response('sentry/projects/members/remove.html', context, request)
 
 
+@csrf_protect
+@has_access(MEMBER_OWNER)
+def suspend_project_member(request, project, member_id):
+    member = project.member_set.get(pk=member_id)
+    if member.user == project.owner:
+        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+
+    result = plugins.first('has_perm', request.user, 'suspend_project_member', member)
+    if result is False and not request.user.has_perm('sentry.can_change_projectmember'):
+        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+
+    member.update(is_active=False)
+
+    return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+
+
+@csrf_protect
+@has_access(MEMBER_OWNER)
+def restore_project_member(request, project, member_id):
+    member = project.member_set.get(pk=member_id)
+    if member.user == project.owner:
+        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+
+    result = plugins.first('has_perm', request.user, 'restore_project_member', member)
+    if result is False and not request.user.has_perm('sentry.can_change_projectmember'):
+        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+
+    member.update(is_active=True)
+
+    return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+
+
 @login_required
 @has_access(MEMBER_OWNER)
 @csrf_protect

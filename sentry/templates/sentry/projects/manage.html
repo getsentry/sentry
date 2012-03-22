@@ -53,37 +53,50 @@
             </form>
             <div class="page-header">
                 {% if can_add_member %}
-                    <a href="{% url sentry-new-project-member project.pk %}" class="btn pull-right small btn-primary">{% trans "New Member" %}</a>
+                    <a href="{% url sentry-new-project-member project.pk %}" class="btn pull-right btn-small btn-primary">{% trans "New Member" %}</a>
                 {% endif %}
                 <h2>{% trans "Members" %}</h2>
             </div>
             <table class="table table-bordered table-striped">
                 <colgroup>
-                    <col width="100px"/>
                     <col/>
-                    <col width="50px"/>
+                    <col width="100px"/>
+                    <col width="90px"/>
+                    <col width="90px"/>
                 </colgroup>
                 <thead>
                     <tr>
-                        <th>{% trans "Username" %}</th>
-                        <th>{% trans "Access" %}</th>
-                        <th>&nbsp;</th>
+                        <th>{% trans "User" %}</th>
+                        <th style="text-align:center">{% trans "Access" %}</th>
+                        <th colspan="2" style="text-align:center">{% trans "Actions" %}</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for member, user in member_list %}
                         <tr>
-                            <td><a href="{% url sentry-edit-project-member project.pk member.pk %}">{{ user.username }}</a></td>
                             <td>
-                                {{ member.get_type_display }}
+                                <a href="{% url sentry-edit-project-member project.pk member.pk %}">{{ user.username }}</a><br>
+                                {{ user.email }}
                             </td>
                             <td style="text-align:center;">
-                                {% if user == project.owner %}
-                                    <em>{% trans "owner" %}</em>
-                                {% else %}
-                                    <a href="{% url sentry-remove-project-member project.pk member.pk %}">{% trans "Revoke" %}</a>
-                                {% endif %}
+                                {{ member.get_type_display }}
                             </td>
+                            {% if user == project.owner %}
+                                <td style="text-align:center;" colspan="2">
+                                    <em>{% trans "unavailable for owner" %}</em>
+                                </td>
+                            {% else %}
+                                <td style="text-align:center;">
+                                    <a href="{% url sentry-remove-project-member project.pk member.pk %}" class="btn btn-danger btn-small">{% trans "Remove" %}</a>
+                                </td>
+                                <td style="text-align:center;">
+                                    {% if member.is_active %}
+                                        <a href="{% url sentry-suspend-project-member project.pk member.pk %}" class="btn btn-small">{% trans "Suspend" %}</a>
+                                    {% else %}
+                                        <a href="{% url sentry-restore-project-member project.pk member.pk %}" class="btn btn-small">{% trans "Restore" %}</a>
+                                    {% endif %}
+                                </td>
+                            {% endif %}
                         </tr>
                     {% endfor %}
                 </tbody>

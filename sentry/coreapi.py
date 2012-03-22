@@ -79,7 +79,7 @@ def project_from_auth_vars(auth_vars, data):
         except ProjectMember.DoesNotExist:
             raise APIForbidden('Invalid signature')
 
-        if pm.user and not pm.user.is_active:
+        if not pm.is_active or pm.user and not pm.user.is_active:
             raise APIUnauthorized('Account is not active')
 
         project = pm.project
@@ -120,7 +120,7 @@ def project_from_api_key_and_id(api_key, project_id):
     if str(pm.project_id) != str(project_id):
         raise APIUnauthorized()
 
-    if pm.user and not pm.user.is_active:
+    if not pm.is_active or pm.user and not pm.user.is_active:
         raise APIUnauthorized('Account is not active')
 
     return pm.project
@@ -140,6 +140,9 @@ def project_from_id(request):
             project=request.GET['project_id'],
         )
     except ProjectMember.DoesNotExist:
+        raise APIUnauthorized()
+
+    if not pm.is_active:
         raise APIUnauthorized()
 
     return pm.project

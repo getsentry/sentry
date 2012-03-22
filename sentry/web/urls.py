@@ -53,6 +53,8 @@ urlpatterns = patterns('',
     url(r'^projects/(?P<project_id>\d+)/members/new/$', projects.new_project_member, name='sentry-new-project-member'),
     url(r'^projects/(?P<project_id>\d+)/members/(?P<member_id>\d+)/edit/$', projects.edit_project_member, name='sentry-edit-project-member'),
     url(r'^projects/(?P<project_id>\d+)/members/(?P<member_id>\d+)/remove/$', projects.remove_project_member, name='sentry-remove-project-member'),
+    url(r'^projects/(?P<project_id>\d+)/members/(?P<member_id>\d+)/suspend/$', projects.suspend_project_member, name='sentry-suspend-project-member'),
+    url(r'^projects/(?P<project_id>\d+)/members/(?P<member_id>\d+)/restore/$', projects.restore_project_member, name='sentry-restore-project-member'),
 
     # Global
 

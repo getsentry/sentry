@@ -58,6 +58,16 @@ class ProjectFromIdTest(BaseAPITest):
 
         self.assertRaises(APIUnauthorized, project_from_id, request)
 
+    def test_inactive_member(self):
+        request = mock.Mock()
+        request.user = self.user
+        request.GET = {'project_id': self.project.id}
+
+        self.pm.is_active = False
+        self.pm.save()
+
+        self.assertRaises(APIUnauthorized, project_from_id, request)
+
 
 class ProjectFromApiKeyAndIdTest(BaseAPITest):
     def test_valid(self):
@@ -75,6 +85,12 @@ class ProjectFromApiKeyAndIdTest(BaseAPITest):
         user = self.pm.user
         user.is_active = False
         user.save()
+
+        self.assertRaises(APIUnauthorized, project_from_api_key_and_id, self.pm.public_key, self.project.id)
+
+    def test_inactive_member(self):
+        self.pm.is_active = False
+        self.pm.save()
 
         self.assertRaises(APIUnauthorized, project_from_api_key_and_id, self.pm.public_key, self.project.id)
 
@@ -135,6 +151,25 @@ class ProjectFromAuthVarsTest(BaseAPITest):
         user = self.pm.user
         user.is_active = False
         user.save()
+
+        auth_vars = {
+            'sentry_signature': 'adf',
+            'sentry_timestamp': time.time(),
+        }
+        with mock.patch('sentry.coreapi.validate_hmac') as validate_hmac_:
+            validate_hmac_.return_value = True
+
+            # without key
+            result = project_from_auth_vars(auth_vars, '')
+            self.assertEquals(result, None)
+
+            # with key
+            auth_vars['sentry_key'] = self.pm.public_key
+            self.assertRaises(APIUnauthorized, project_from_auth_vars, auth_vars, '')
+
+    def test_inactive_member(self):
+        self.pm.is_active = False
+        self.pm.save()
 
         auth_vars = {
             'sentry_signature': 'adf',
