@@ -10,7 +10,7 @@ handle actually saving that data.
 .. note:: As of version 3.3.0 the queue is now powered by `Celery <http://celeryproject.org/>`_.
 
 Running a Worker
-------------~~~~
+----------------
 
 Workers can be run by using the Sentry CLI. Specifically, you call out to celeryd,
 which the worker manager process of the Celery library.
