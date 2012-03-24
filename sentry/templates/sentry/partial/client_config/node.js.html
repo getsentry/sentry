@@ -10,8 +10,6 @@
 
 var client = new raven.Client('{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}');</pre>
 
-<p>{% trans "If you're using Heroku, we'll pick up the DSN from your environment automatically." %}</p>
-
 <p>{% trans "You can also optionally install a default error handler to catch all exceptions:" %}</p>
 
 <pre>client.patchGlobal();</pre>

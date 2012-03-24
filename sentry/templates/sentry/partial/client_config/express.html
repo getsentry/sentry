@@ -10,8 +10,6 @@
 
 app.error(raven.middleware.express('{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}'));</pre>
 
-<p>{% trans "If you're using Heroku, we'll pick up the DSN from your environment automatically." %}</p>
-
 <p>{% trans "Ensure Node is run with <code>NODE_ENV=production</code>:" %}</p>
 
 <pre>NODE_ENV=production node script.js</pre>

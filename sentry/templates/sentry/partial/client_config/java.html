@@ -6,8 +6,6 @@
 
 <pre>RavenClient client = new RavenClient("{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}");</pre>
 
-<p>{% trans "If you're using Heroku, we'll pick up the DSN from your environment automatically." %}</p>
-
 <p>{% trans "Now call out to the raven client to capture events:" %}</p>
 
 <pre>// {% trans "record a simple message" %}
