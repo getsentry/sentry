@@ -32,14 +32,14 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for project in project_list.objects %}
+                    {% for project, avg_events in project_list.objects|with_event_counts %}
                         <tr>
                             <td>
                                 {{ project.name }} <a href="{% url sentry project.pk %}">[view]</a>
                                 </a>
                             </td>
                             <td style="text-align:center; vertical-align:middle;">
-                                <em>~{{ project|avg_events_per_day }}</em>
+                                <em>~{{ avg_events }}</em>
                             </td>
                         </tr>
                     {% endfor %}

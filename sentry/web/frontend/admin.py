@@ -51,11 +51,6 @@ def configure_plugin(request, slug):
 def manage_projects(request):
     project_list = Project.objects.filter(
         status=0,
-    ).exclude(
-        projectcountbyminute__date__lte=datetime.datetime.now() - datetime.timedelta(days=30),
-    ).annotate(
-        avg_events_per_n=Sum('projectcountbyminute__times_seen'),
-        n_value=Count('projectcountbyminute__times_seen')
     ).select_related('owner')
 
     project_query = request.GET.get('pquery')
@@ -70,8 +65,6 @@ def manage_projects(request):
         order_by = '-date_added'
     elif sort == 'name':
         order_by = 'name'
-    elif sort == 'events':
-        order_by = '-avg_events_per_n'
 
     project_list = project_list.order_by(order_by)
 
@@ -193,11 +186,6 @@ def edit_user(request, user_id):
     project_list = Project.objects.filter(
         status=0,
         member_set__user=user,
-    ).exclude(
-        projectcountbyminute__date__lte=datetime.datetime.now() - datetime.timedelta(days=30),
-    ).annotate(
-        avg_events_per_n=Sum('projectcountbyminute__times_seen'),
-        n_value=Count('projectcountbyminute__times_seen')
     ).order_by('-date_added')
 
     context = {
@@ -249,11 +237,6 @@ def list_user_projects(request, user_id):
     project_list = Project.objects.filter(
         status=0,
         member_set__user=user,
-    ).exclude(
-        projectcountbyminute__date__lte=datetime.datetime.now() - datetime.timedelta(days=30),
-    ).annotate(
-        avg_events_per_n=Sum('projectcountbyminute__times_seen'),
-        n_value=Count('projectcountbyminute__times_seen')
     ).order_by('-date_added')
 
     context = {
