@@ -19,7 +19,7 @@ def with_event_counts(project_list):
     results = dict(ProjectCountByMinute.objects.filter(
         project__in=project_list,
         date__gte=datetime.datetime.now() - datetime.timedelta(days=30),
-    ).annotate(
+    ).values_list('project').annotate(
         total_events=Sum('times_seen'),
     ).values_list('project', 'total_events'))
 
