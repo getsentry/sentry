@@ -125,6 +125,31 @@ class MailProcessorTest(TestCase):
         self.assertEquals(kwargs.get('project'), project)
         self.assertEquals(kwargs.get('subject'), u"[Project Name] ERROR: hello world")
 
+    @mock.patch('sentry.plugins.sentry_mail.MailProcessor._send_mail')
+    def test_multiline_error(self, _send_mail):
+        project = Project(id=1, name='Project Name')
+
+        group = Mock(spec=Group)
+        group.first_seen = datetime.datetime.now()
+        group.project_id = project.id
+        group.project = project
+        group.id = 2
+
+        event = Event()
+        event.message = 'hello world\nfoo bar'
+        event.logger = 'root'
+        event.site = None
+        event.project_id = project.id
+        event.project = project
+
+        with self.Settings(SENTRY_URL_PREFIX='http://example.com'):
+            p = MailProcessor(send_to=['foo@example.com'])
+            p.notify_users(group, event)
+
+        _send_mail.assert_called_once()
+        args, kwargs = _send_mail.call_args
+        self.assertEquals(kwargs.get('subject'), u"[Project Name] ERROR: hello world")
+
     def test_send_to(self):
         Mock = mock.Mock
         with mock.patch('sentry.models.ProjectOption.objects.get_value') as get_value:
