@@ -4072,3 +4072,6 @@ small {
 .controls > .inputs-list label:first-child, .controls > .inputs-list label:first-child {
   padding-top: 5px;
 }
+.modal-header small {
+  font-size: 0.65em;
+}

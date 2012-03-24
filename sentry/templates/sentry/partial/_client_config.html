@@ -1,0 +1,18 @@
+<ul class="client-platform-list">
+    <li>
+        <a href="{% url sentry-docs-client project.pk 'python' %}">Python</a>
+        <ul>
+            <li><a href="{% url sentry-docs-client project.pk 'django' %}" data-toggle="modal">Django</a></li>
+            <li><a href="{% url sentry-docs-client project.pk 'flask' %}" data-toggle="modal">Flask</a></li>
+        </ul>
+    </li>
+    <li><a href="{% url sentry-docs-client project.pk 'php' %}" data-toggle="modal">PHP</a></li>
+    <li><a href="{% url sentry-docs-client project.pk 'java' %}" data-toggle="modal">Java</a></li>
+    <li>
+        <a href="{% url sentry-docs-client project.pk 'node.js' %}" data-toggle="modal">Node.js</a>
+        <ul>
+            <li><a href="{% url sentry-docs-client project.pk 'express' %}" data-toggle="modal">Express</a></li>
+            <li><a href="{% url sentry-docs-client project.pk 'connect' %}" data-toggle="modal">Connect</a></li>
+        </ul>
+    </li>
+</ul>

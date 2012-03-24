@@ -48,6 +48,10 @@
                 </div>
             </fieldset>
             <br/>
+            <legend>{% trans "Client Configuration" %}</legend>
+            <p>{% trans "Choose your platform for quick setup instructions:" %}</p>
+            {% include "sentry/partial/_client_config.html" %}
+            <br/>
             <legend>{% trans "Access" %}</legend>
             {% for field in form %}
                 {% include "sentry/partial/_form_field.html" %}

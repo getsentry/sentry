@@ -6,11 +6,13 @@ sentry.web.urls
 :license: BSD, see LICENSE for more details.
 """
 
+import re
+
 from django.conf.urls.defaults import *
 
 from sentry.web import api
 from sentry.web.frontend import accounts, generic, groups, events, \
-  projects, admin
+  projects, admin, docs
 
 __all__ = ('urlpatterns',)
 
@@ -102,6 +104,10 @@ urlpatterns = patterns('',
     url(r'^api/(?P<project_id>\d+)/chart/$', api.chart, name='sentry-api-chart'),
 
     # Project specific
+
+    # url(r'^(?P<project_id>\d+)/docs/$', groups.search, name='sentry-search'),
+    url(r'^(?P<project_id>\d+)/docs/(?P<platform>%s)/$' % ('|'.join(re.escape(r) for r in docs.PLATFORM_LIST),), docs.client_guide,
+        name='sentry-docs-client'),
 
     url(r'^(?P<project_id>\d+)/group/(?P<group_id>\d+)/$', groups.group, name='sentry-group'),
     url(r'^(?P<project_id>\d+)/group/(?P<group_id>\d+)/json/$', groups.group_json, name='sentry-group-json'),

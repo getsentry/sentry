@@ -1,0 +1,20 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+
+{% block title %}{% blocktrans %}{{ platform_title }} Client Configuration{% endblocktrans %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-docs-client project.pk platform %}">{% blocktrans %}{{ platform_title }} Client Configuration{% endblocktrans %}</a></li>
+{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <div class="page-header">
+            <h2>{% blocktrans %}Configuring {{ platform_title }}{% endblocktrans %}</h2>
+        </div>
+        {{ template }}
+    </section>
+{% endblock %}
