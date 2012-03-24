@@ -9,7 +9,7 @@ The following clients are officially recognized and support the current Sentry p
 * JavaScript (`raven-js <https://github.com/lincolnloop/raven-js>`_)
 * Node.js (`raven-node <https://github.com/mattrobenolt/raven-node>`_)
 
-Client Critera
+Client Criteria
 --------------
 
 To become a recognized client, a library is expected to meet several criteria:
