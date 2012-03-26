@@ -6,6 +6,7 @@ sentry.web.frontend.generic
 :license: BSD, see LICENSE for more details.
 """
 import datetime
+import logging
 import pkg_resources
 import sys
 import uuid
