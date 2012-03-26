@@ -21,6 +21,7 @@ from django.utils.encoding import smart_str
 from sentry.conf import settings
 # from sentry.exceptions import InvalidData, InvalidInterface
 from sentry.models import ProjectMember
+from sentry.plugins import plugins
 from sentry.tasks.store import store_event
 from sentry.utils import is_float, json
 from sentry.utils.auth import get_signature, parse_auth_header
@@ -84,6 +85,10 @@ def project_from_auth_vars(auth_vars, data):
 
         project = pm.project
         secret_key = pm.secret_key
+
+        result = plugins.first('has_perm', pm.user, 'create_event', pm.project)
+        if result is False:
+            raise APIUnauthorized()
     else:
         project = None
         secret_key = settings.KEY
@@ -123,6 +128,10 @@ def project_from_api_key_and_id(api_key, project_id):
     if not pm.is_active or pm.user and not pm.user.is_active:
         raise APIUnauthorized('Account is not active')
 
+    result = plugins.first('has_perm', pm.user, 'create_event', pm.project)
+    if result is False:
+        raise APIUnauthorized()
+
     return pm.project
 
 
@@ -143,6 +152,10 @@ def project_from_id(request):
         raise APIUnauthorized()
 
     if not pm.is_active:
+        raise APIUnauthorized()
+
+    result = plugins.first('has_perm', request.user, 'create_event', pm.project)
+    if result is False:
         raise APIUnauthorized()
 
     return pm.project

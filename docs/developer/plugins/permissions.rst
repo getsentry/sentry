@@ -58,3 +58,12 @@ This page attempts to describe those permissions, and the contextual objects alo
          ::
 
             >>> has_perm('remove_project_member', user, member)
+
+
+.. data:: create_event
+
+         Controls whether a user can create an event on a project (via the API).
+
+         ::
+
+            >>> has_perm('create_event', user, project)
