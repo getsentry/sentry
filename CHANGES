@@ -1,3 +1,11 @@
+Version 3.7.0
+-------------
+
+Several minor fixes, as well as a backwards incompatible change with filters.
+
+All filters must now accept the project argument in the initializer. The signature is
+now __init__(request, project).
+
 Version 3.6.0
 -------------
 

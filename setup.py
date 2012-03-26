@@ -50,7 +50,7 @@ install_requires = [
 
 setup(
     name='sentry',
-    version='3.6.4',
+    version='3.7.0',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/sentry',
