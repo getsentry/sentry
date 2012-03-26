@@ -12,7 +12,7 @@ from django.views.decorators.csrf import csrf_protect
 
 from sentry.conf import settings
 from sentry.models import ProjectMember, MEMBER_USER, MEMBER_OWNER, \
-  PendingProjectMember
+  PendingProjectMember, ProjectKey
 from sentry.permissions import can_create_projects
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_access
@@ -41,10 +41,13 @@ def _can_remove_project(user, project):
 def project_list(request):
     project_list = get_project_list(request.user, hidden=True)
     memberships = list(ProjectMember.objects.filter(user=request.user, project__in=project_list))
+    keys = dict((p.project_id, p) for p in ProjectKey.objects.filter(user=request.user, project__in=project_list))
 
     for member in memberships:
         project_id = member.project_id
-        project_list[project_id].member_dsn = member.get_dsn()
+        key = keys.get(project_id)
+        if key:
+            project_list[project_id].member_dsn = key.get_dsn()
         project_list[project_id].member_type = member.get_type_display()
 
     return render_to_response('sentry/projects/list.html', {
@@ -239,15 +242,17 @@ def edit_project_member(request, project, member_id):
     form = EditProjectMemberForm(project, request.POST or None, instance=member)
     if form.is_valid():
         member = form.save(commit=True)
-
         return HttpResponseRedirect(request.path + '?success=1')
+
+    key = ProjectKey.objects.get(user=member.user, project=project)
 
     context = csrf(request)
     context.update({
         'member': member,
+        'key': key,
         'project': project,
         'form': form,
-        'dsn': member.get_dsn(),
+        'dsn': key.get_dsn(),
     })
 
     return render_to_response('sentry/projects/members/edit.html', context, request)

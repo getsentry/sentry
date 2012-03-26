@@ -8,7 +8,7 @@ sentry.web.frontend.projects
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 
-from sentry.models import ProjectMember, MEMBER_SYSTEM
+from sentry.models import ProjectKey, MEMBER_SYSTEM
 from sentry.web.decorators import has_access
 from sentry.web.helpers import render_to_response, render_to_string
 
@@ -29,8 +29,8 @@ def client_guide(request, project, platform):
     if platform not in PLATFORM_LIST:
         return HttpResponseRedirect(reverse('sentry'))
 
-    member = ProjectMember.objects.get(user=request.user, project=project)
-    dsn = member.get_dsn()
+    key = ProjectKey.objects.get(user=request.user, project=project)
+    dsn = key.get_dsn()
 
     template = 'sentry/partial/client_config/%s.html' % (platform,)
 

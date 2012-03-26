@@ -77,13 +77,53 @@ class Option(Model):
     ])
 
 
+class Team(Model):
+    """
+    A team represents a group of individuals which maintain ownership of projects.
+    """
+    slug = models.SlugField(unique=True)
+    name = models.CharField(max_length=64)
+    owner = models.ForeignKey(User)
+
+    objects = BaseManager(cache_fields=(
+        'slug',
+    ))
+
+    def __unicode__(self):
+        return self.slug
+
+
+class TeamMember(Model):
+    """
+    Identifies relationships between teams and users.
+    """
+    team = models.ForeignKey(Team)
+    user = models.ForeignKey(User, related_name="sentry_teammember_set")
+    is_active = models.BooleanField(default=True)
+    type = models.IntegerField(choices=MEMBER_TYPES, default=globals().get(settings.DEFAULT_PROJECT_ACCESS))
+    date_added = models.DateTimeField(default=datetime.now)
+
+    objects = BaseManager()
+
+    class Meta:
+        unique_together = (('team', 'user'),)
+
+    def __unicode__(self):
+        return u'team=%s, user=%s, type=%s' % (self.team_id, self.user_id, self.get_type_display())
+
+
 class Project(Model):
     """
     Projects are permission based namespaces which generally
     are the top level entry point for all data.
+
+    A project may be owned by only a single team, and may or may not
+    have an owner (which is thought of as a project creator).
     """
+    slug = models.SlugField(unique=True, null=True)
     name = models.CharField(max_length=200)
     owner = models.ForeignKey(User, related_name="sentry_owned_project_set", null=True)
+    team = models.ForeignKey(Team, null=True)
     public = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=datetime.now)
     status = models.PositiveIntegerField(default=0, choices=(
@@ -93,6 +133,7 @@ class Project(Model):
 
     objects = ProjectManager(cache_fields=[
         'pk',
+        'slug',
     ])
 
     def __unicode__(self):
@@ -157,6 +198,42 @@ class Project(Model):
             FilterValue.objects.get_or_create(project=project, key=fv.key, value=fv.value)
             fv.delete()
         self.delete()
+
+
+class ProjectKey(Model):
+    project = models.ForeignKey(Project, related_name='key_set')
+    public_key = models.CharField(max_length=32, unique=True, null=True)
+    secret_key = models.CharField(max_length=32, unique=True, null=True)
+    user = models.ForeignKey(User, null=True)
+
+    objects = BaseManager(cache_fields=(
+        'public_key',
+        'secret_key',
+    ))
+
+    def __unicode__(self):
+        return u'project=%s, user=%s' % (self.project_id, self.user_id)
+
+    @classmethod
+    def generate_api_key(cls):
+        return uuid.uuid4().hex
+
+    def save(self, *args, **kwargs):
+        if not self.public_key:
+            self.public_key = ProjectKey.generate_api_key()
+        if not self.secret_key:
+            self.secret_key = ProjectKey.generate_api_key()
+        super(ProjectKey, self).save(*args, **kwargs)
+
+    def get_dsn(self, domain=None, secure=True):
+        urlparts = urlparse.urlparse(settings.URL_PREFIX)
+        return '%s://%s:%s@%s/%s' % (
+            urlparts.scheme,
+            self.public_key,
+            self.secret_key,
+            urlparts.netloc + urlparts.path,
+            self.project_id,
+        )
 
 
 class ProjectOption(Model):
@@ -233,42 +310,16 @@ class ProjectMember(Model):
     project = models.ForeignKey(Project, related_name="member_set")
     user = models.ForeignKey(User, related_name="sentry_project_set")
     is_active = models.BooleanField(default=True)
-    public_key = models.CharField(max_length=32, unique=True, null=True)
-    secret_key = models.CharField(max_length=32, unique=True, null=True)
     type = models.IntegerField(choices=MEMBER_TYPES, default=globals().get(settings.DEFAULT_PROJECT_ACCESS))
     date_added = models.DateTimeField(default=datetime.now)
 
-    objects = BaseManager(cache_fields=[
-        'public_key',
-        'secret_key',
-    ])
+    objects = BaseManager()
 
     class Meta:
         unique_together = (('project', 'user'),)
 
     def __unicode__(self):
         return u'project=%s, user=%s, type=%s' % (self.project_id, self.user_id, self.get_type_display())
-
-    def save(self, *args, **kwargs):
-        if not self.public_key:
-            self.public_key = ProjectMember.generate_api_key()
-        if not self.secret_key:
-            self.secret_key = ProjectMember.generate_api_key()
-        super(ProjectMember, self).save(*args, **kwargs)
-
-    @classmethod
-    def generate_api_key(cls):
-        return uuid.uuid4().hex
-
-    def get_dsn(self, domain=None, secure=True):
-        urlparts = urlparse.urlparse(settings.URL_PREFIX)
-        return '%s://%s:%s@%s/%s' % (
-            urlparts.scheme,
-            self.public_key,
-            self.secret_key,
-            urlparts.netloc + urlparts.path,
-            self.project_id,
-        )
 
 
 class ProjectDomain(Model):
@@ -723,6 +774,16 @@ def update_document(instance, created, **kwargs):
         group=instance,
     ).update(status=instance.status)
 
+
+def create_key_for_project_member(instance, created, **kwargs):
+    if not created:
+        return
+
+    ProjectKey.objects.create(
+        project=instance.project,
+        user=instance.user,
+    )
+
 # Signal registration
 post_syncdb.connect(
     create_default_project,
@@ -739,5 +800,11 @@ post_save.connect(
     update_document,
     sender=Group,
     dispatch_uid="update_document",
+    weak=False,
+)
+post_save.connect(
+    create_key_for_project_member,
+    sender=ProjectMember,
+    dispatch_uid="create_key_for_project_member",
     weak=False,
 )

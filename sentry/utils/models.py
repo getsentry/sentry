@@ -51,36 +51,39 @@ def resolve_expression_node(instance, node):
     return runner
 
 
+def update(self, using=None, **kwargs):
+    """
+    Updates specified attributes on the current instance.
+    """
+    assert self.pk, "Cannot update an instance that has not yet been created."
+
+    using = using or router.db_for_write(self.__class__, instance=self)
+
+    for field in self._meta.fields:
+        if getattr(field, 'auto_now', False) and field.name not in kwargs:
+            kwargs[field.name] = field.pre_save(self, False)
+
+    affected = self.__class__._base_manager.using(using).filter(pk=self.pk).update(**kwargs)
+    for k, v in kwargs.iteritems():
+        if isinstance(v, ExpressionNode):
+            v = resolve_expression_node(self, v)
+        setattr(self, k, v)
+    if affected == 1:
+        signals.post_save.send(sender=self.__class__, instance=self, created=False)
+        return True
+    elif affected == 0:
+        raise self.DoesNotExist("Cannot update an instance that is not in the database.")
+    else:
+        raise ValueError("Somehow we have updated multiple rows, and you are now royally fucked.")
+
+update.alters_data = True
+
+
 class Model(models.Model):
     class Meta:
         abstract = True
 
-    def update(self, using=None, **kwargs):
-        """
-        Updates specified attributes on the current instance.
-        """
-        assert self.pk, "Cannot update an instance that has not yet been created."
-
-        using = using or router.db_for_write(self.__class__, instance=self)
-
-        for field in self._meta.fields:
-            if getattr(field, 'auto_now', False) and field.name not in kwargs:
-                kwargs[field.name] = field.pre_save(self, False)
-
-        affected = self.__class__._base_manager.using(using).filter(pk=self.pk).update(**kwargs)
-        for k, v in kwargs.iteritems():
-            if isinstance(v, ExpressionNode):
-                v = resolve_expression_node(self, v)
-            setattr(self, k, v)
-        if affected == 1:
-            signals.post_save.send(sender=self.__class__, instance=self, created=False)
-            return True
-        elif affected == 0:
-            raise self.DoesNotExist("Cannot update an instance that is not in the database.")
-        else:
-            raise ValueError("Somehow we have updated multiple rows, and you are now royally fucked.")
-
-    update.alters_data = True
+    update = update
 
 
 class GzippedDictField(models.TextField):

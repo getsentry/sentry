@@ -20,7 +20,7 @@ from django.utils.encoding import smart_str
 
 from sentry.conf import settings
 # from sentry.exceptions import InvalidData, InvalidInterface
-from sentry.models import ProjectMember
+from sentry.models import ProjectMember, ProjectKey
 from sentry.plugins import plugins
 from sentry.tasks.store import store_event
 from sentry.utils import is_float, json
@@ -76,15 +76,21 @@ def project_from_auth_vars(auth_vars, data):
 
     if api_key:
         try:
-            pm = ProjectMember.objects.get_from_cache(public_key=api_key)
-        except ProjectMember.DoesNotExist:
+            pk = ProjectKey.objects.get_from_cache(public_key=api_key)
+        except ProjectKey.DoesNotExist:
             raise APIForbidden('Invalid signature')
 
-        if not pm.is_active or pm.user and not pm.user.is_active:
-            raise APIUnauthorized('Account is not active')
+        if pk.user:
+            try:
+                pm = ProjectMember.objects.get(project=pk.project, user=pk.user)
+            except ProjectMember.DoesNotExist:
+                pm = None
+            else:
+                if not pm.is_active or pm.user and not pm.user.is_active:
+                    raise APIUnauthorized('Account is not active')
 
-        project = pm.project
-        secret_key = pm.secret_key
+        project = pk.project
+        secret_key = pk.secret_key
 
         result = plugins.first('has_perm', pm.user, 'create_event', pm.project)
         if result is False:
@@ -118,15 +124,21 @@ def project_from_api_key_and_id(api_key, project_id):
     a project instance or throws APIUnauthorized.
     """
     try:
-        pm = ProjectMember.objects.get_from_cache(public_key=api_key)
-    except ProjectMember.DoesNotExist:
+        pk = ProjectKey.objects.get_from_cache(public_key=api_key)
+    except ProjectKey.DoesNotExist:
+        raise APIUnauthorized('Invalid api key')
+
+    if str(pk.project_id) != str(project_id):
         raise APIUnauthorized()
 
-    if str(pm.project_id) != str(project_id):
-        raise APIUnauthorized()
-
-    if not pm.is_active or pm.user and not pm.user.is_active:
-        raise APIUnauthorized('Account is not active')
+    if pk.user:
+        try:
+            pm = ProjectMember.objects.get(project=pk.project, user=pk.user)
+        except ProjectMember.DoesNotExist:
+            pm = None
+        else:
+            if not pm.is_active or pm.user and not pm.user.is_active:
+                raise APIUnauthorized('Account is not active')
 
     result = plugins.first('has_perm', pm.user, 'create_event', pm.project)
     if result is False:

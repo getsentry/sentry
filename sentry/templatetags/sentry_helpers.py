@@ -271,17 +271,22 @@ def date(datetime, arg=None):
                 Constant('from'), Variable('project'),
                 Constant('as'), Name('asvar')])
 def get_project_dsn(context, user, project, asvar):
-    from sentry.models import ProjectMember
+    from sentry.models import ProjectKey
 
     if not user.is_authenticated():
         context[asvar] = None
         return ''
 
     try:
-        member = ProjectMember.objects.get(user=user, project=project)
-    except ProjectMember.DoesNotExist:
-        context[asvar] = None
+        key = ProjectKey.objects.get(user=user, project=project)
+    except ProjectKey.DoesNotExist:
+        try:
+            key = ProjectKey.objects.filter(user=None, project=project)[0]
+        except IndexError:
+            context[asvar] = None
+        else:
+            context[asvar] = key.get_dsn()
     else:
-        context[asvar] = member.get_dsn()
+        context[asvar] = key.get_dsn()
 
     return ''

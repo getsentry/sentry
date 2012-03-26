@@ -23,7 +23,7 @@ class BaseAPITest(TestCase):
         self.user = User.objects.create(username='coreapi')
         self.project = Project.objects.get(id=1)
         self.pm = self.project.member_set.create(user=self.user)
-
+        self.pk = self.project.key_set.get(user=self.user)
 
 class GetSignatureTest(BaseAPITest):
     def test_valid_string(self):
@@ -71,12 +71,12 @@ class ProjectFromIdTest(BaseAPITest):
 
 class ProjectFromApiKeyAndIdTest(BaseAPITest):
     def test_valid(self):
-        api_key = self.pm.public_key
+        api_key = self.pk.public_key
         project = project_from_api_key_and_id(api_key, self.project.id)
         self.assertEquals(project, self.project)
 
     def test_invalid_project_id(self):
-        self.assertRaises(APIUnauthorized, project_from_api_key_and_id, self.pm.public_key, 10000)
+        self.assertRaises(APIUnauthorized, project_from_api_key_and_id, self.pk.public_key, 10000)
 
     def test_invalid_api_key(self):
         self.assertRaises(APIUnauthorized, project_from_api_key_and_id, 1, self.project.id)
@@ -86,13 +86,13 @@ class ProjectFromApiKeyAndIdTest(BaseAPITest):
         user.is_active = False
         user.save()
 
-        self.assertRaises(APIUnauthorized, project_from_api_key_and_id, self.pm.public_key, self.project.id)
+        self.assertRaises(APIUnauthorized, project_from_api_key_and_id, self.pk.public_key, self.project.id)
 
     def test_inactive_member(self):
         self.pm.is_active = False
         self.pm.save()
 
-        self.assertRaises(APIUnauthorized, project_from_api_key_and_id, self.pm.public_key, self.project.id)
+        self.assertRaises(APIUnauthorized, project_from_api_key_and_id, self.pk.public_key, self.project.id)
 
 
 class ExtractAuthVarsTest(BaseAPITest):
@@ -143,7 +143,7 @@ class ProjectFromAuthVarsTest(BaseAPITest):
             self.assertEquals(result, None)
 
             # with key
-            auth_vars['sentry_key'] = self.pm.public_key
+            auth_vars['sentry_key'] = self.pk.public_key
             result = project_from_auth_vars(auth_vars, '')
             self.assertEquals(result, self.project)
 
@@ -164,7 +164,7 @@ class ProjectFromAuthVarsTest(BaseAPITest):
             self.assertEquals(result, None)
 
             # with key
-            auth_vars['sentry_key'] = self.pm.public_key
+            auth_vars['sentry_key'] = self.pk.public_key
             self.assertRaises(APIUnauthorized, project_from_auth_vars, auth_vars, '')
 
     def test_inactive_member(self):
@@ -183,7 +183,7 @@ class ProjectFromAuthVarsTest(BaseAPITest):
             self.assertEquals(result, None)
 
             # with key
-            auth_vars['sentry_key'] = self.pm.public_key
+            auth_vars['sentry_key'] = self.pk.public_key
             self.assertRaises(APIUnauthorized, project_from_auth_vars, auth_vars, '')
 
 

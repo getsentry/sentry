@@ -134,7 +134,8 @@ def create_new_user(request):
                 owner=user,
                 name='New Project',
             )
-            member = project.member_set.get()
+            member = project.member_set.get(user=user)
+            key = project.key_set.get(user=user)
 
         if form.cleaned_data['send_welcome_mail']:
             context = {
@@ -146,7 +147,7 @@ def create_new_user(request):
                 context.update({
                     'project': project,
                     'member': member,
-                    'dsn': member.get_dsn(),
+                    'dsn': key.get_dsn(),
                 })
             body = render_to_string('sentry/emails/welcome_mail.txt', context, request)
 
