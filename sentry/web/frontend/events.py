@@ -6,6 +6,7 @@ sentry.web.frontend.events
 :license: BSD, see LICENSE for more details.
 """
 import datetime
+import logging
 
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
@@ -26,7 +27,11 @@ from sentry.web.forms import ReplayForm
 def event_list(request, project):
     filters = []
     for cls in Filter.objects.filter(Event):
-        filters.append(cls(request))
+        try:
+            filters.append(cls(request, project))
+        except Exception, e:
+            logger = logging.getLogger('sentry.filters')
+            logger.exception('Error initializing filter %r: %s', cls, e)
 
     try:
         page = int(request.GET.get('p', 1))
@@ -37,9 +42,13 @@ def event_list(request, project):
 
     # TODO: implement separate API for messages
     for filter_ in filters:
-        if not filter_.is_set():
-            continue
-        event_list = filter_.get_query_set(event_list)
+        try:
+            if not filter_.is_set():
+                continue
+            event_list = filter_.get_query_set(event_list)
+        except Exception, e:
+            logger = logging.getLogger('sentry.filters')
+            logger.exception('Error processing filter %r: %s', cls, e)
 
     offset = (page - 1) * settings.MESSAGES_PER_PAGE
     limit = page * settings.MESSAGES_PER_PAGE

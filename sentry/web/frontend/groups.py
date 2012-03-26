@@ -49,7 +49,11 @@ def _get_rendered_interfaces(event):
 def _get_group_list(request, project, view=None):
     filters = []
     for cls in Filter.objects.filter(Group):
-        filters.append(cls(request))
+        try:
+            filters.append(cls(request, project))
+        except Exception, e:
+            logger = logging.getLogger('sentry.filters')
+            logger.exception('Error initializing filter %r: %s', cls, e)
 
     event_list = Group.objects
     if request.GET.get('bookmarks'):
@@ -64,9 +68,13 @@ def _get_group_list(request, project, view=None):
         event_list = event_list.filter(views=view)
 
     for filter_ in filters:
-        if not filter_.is_set():
-            continue
-        event_list = filter_.get_query_set(event_list)
+        try:
+            if not filter_.is_set():
+                continue
+            event_list = filter_.get_query_set(event_list)
+        except Exception, e:
+            logger = logging.getLogger('sentry.filters')
+            logger.exception('Error processing filter %r: %s', cls, e)
 
     sort = request.GET.get('sort')
     if sort not in SORT_OPTIONS:

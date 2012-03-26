@@ -36,8 +36,9 @@ class Filter(object):
     show_label = True
     types = [Group, Event]
 
-    def __init__(self, request):
+    def __init__(self, request, project):
         self.request = request
+        self.project = project
 
     def is_set(self):
         return bool(self.get_value())
@@ -61,7 +62,7 @@ class Filter(object):
         return '?' + query_dict.urlencode()
 
     def get_choices(self):
-        return SortedDict((l, l) for l in FilterValue.objects.filter(key=self.column)\
+        return SortedDict((l, l) for l in FilterValue.objects.filter(project=self.project, key=self.column)\
                                                      .values_list('value', flat=True)\
                                                      .order_by('value'))
 
