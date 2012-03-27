@@ -44,4 +44,4 @@ if __name__ == '__main__':
     parser.add_options(NoseTestSuiteRunner.options)
     (options, args) = parser.parse_args()
 
-    runtests(*args, **options.__dict__)
+    runtests(noinput=True, *args, **options.__dict__)
