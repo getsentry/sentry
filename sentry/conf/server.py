@@ -44,6 +44,27 @@ DATABASES = {
     }
 }
 
+if 'DATABASE_URL' in os.environ:
+    url = urlparse.urlparse(os.environ['DATABASE_URL'])
+
+    # Ensure default database exists.
+    DATABASES['default'] = DATABASES.get('default', {})
+
+    # Update with environment configuration.
+    DATABASES['default'].update({
+        'NAME': url.path[1:],
+        'USER': url.username,
+        'PASSWORD': url.password,
+        'HOST': url.hostname,
+        'PORT': url.port,
+    })
+    if url.scheme == 'postgres':
+        DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql_psycopg2'
+
+    if url.scheme == 'mysql':
+        DATABASES['default']['ENGINE'] = 'django.db.backends.mysql'
+
+
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 # although not all choices may be available on all operating systems.
