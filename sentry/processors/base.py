@@ -22,4 +22,3 @@ def send_group_processors(group, **kwargs):
             transaction.rollback_unless_managed(using=group._state.db)
             logger = logging.getLogger('sentry.plugins')
             logger.exception('Error processing post_process() on %r: %s', inst.__class__, e)
-

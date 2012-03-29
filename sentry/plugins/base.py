@@ -383,4 +383,3 @@ class Plugin(IPlugin):
     it will happen, or happen more than once.
     """
     __metaclass__ = PluginMount
-

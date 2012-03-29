@@ -34,4 +34,3 @@ if settings.SESSION_FILE_PATH:
         os.makedirs(settings.SESSION_FILE_PATH)
     except OSError:
         pass
-

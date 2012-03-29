@@ -224,6 +224,7 @@ class PendingProjectMember(Model):
             logger = logging.getLogger('sentry.mail.errors')
             logger.exception(e)
 
+
 class ProjectMember(Model):
     """
     Identifies relationships between projects and users, including
@@ -457,7 +458,6 @@ class Event(MessageBase):
 
     objects = BaseManager()
 
-
     class Meta:
         verbose_name = _('message')
         verbose_name_plural = _('messages')
@@ -509,7 +509,7 @@ class Event(MessageBase):
             m, c = k.rsplit('.', 1)
             cls = getattr(__import__(m, {}, {}, [c]), c)
             v = cls(**v)
-            result.append((v.score, k,  v))
+            result.append((v.score, k, v))
         return SortedDict((k, v) for _, k, v in sorted(result, key=lambda x: x[0], reverse=True))
 
     def get_version(self):

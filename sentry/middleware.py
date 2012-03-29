@@ -7,5 +7,3 @@ class SentryMiddleware(object):
         # HACK: bootstrap some env crud if we havent yet
         if not settings.URL_PREFIX:
             settings.URL_PREFIX = request.build_absolute_uri(reverse('sentry')).strip('/')
-
-
