@@ -8,8 +8,12 @@ env:
   - DJANGO=1.4
 install:
   - pip install -q Django==$DJANGO --use-mirrors
+  - pip install pep8
+  - pip install https://github.com/dcramer/pyflakes/tarball/master
   - pip install -q -e . --use-mirrors
 script:
+  - "pep8 --exclude=migrations --ignore=E501,E225 sentry"
+  - pyflakes -x W sentry
   - python setup.py test
 notifications:
   irc:
