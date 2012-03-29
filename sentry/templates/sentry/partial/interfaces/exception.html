@@ -1,23 +1,24 @@
-{% comment %}
 <div id="exception" class="module">
   <h2>Exception</h2>
   <div class="module-content">
   <table class="table meta">
+    <colgroup>
+      <col style="width:100px;">
+    </colgroup>
     <tr>
-      <th>Exception Type:</th>
+      <th>Type:</th>
       <td><pre>{{ exception_type|escape }}</pre></td>
     </tr>
     <tr>
-      <th>Exception Value:</th>
+      <th>Value:</th>
       <td><pre>{{ exception_value|escape }}</pre></td>
     </tr>
-    {% if lastframe %}
+    {% if last_frame %}
     <tr>
-      <th>Exception Location:</th>
-      <td>{{ lastframe.filename|escape }} in {{ lastframe.function|escape }}, line {{ lastframe.lineno }}</td>
+      <th>Location:</th>
+      <td>{{ last_frame.filename|escape }} in {{ last_frame.function|escape }}, line {{ last_frame.lineno }}</td>
     </tr>
     {% endif %}
   </table>
   </div>
 </div>
-{% endcomment %}
