@@ -17,6 +17,7 @@ build: static locale
 #
 
 locale:
+	cd sentry && sentry makemessages -l en
 	cd sentry && sentry compilemessages
 
 #

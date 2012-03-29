@@ -3,24 +3,24 @@
 # This file is distributed under the same license as the PACKAGE package.
 # 
 # Translators:
-# Mattias Jansson <mattias@colourandcode.se>, 2012.
+# Piet Delport <pjdelport@gmail.com>, 2012.
 msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: https://github.com/dcramer/sentry/issues\n"
 "POT-Creation-Date: 2012-03-22 03:40+0000\n"
-"PO-Revision-Date: 2012-03-23 06:38+0000\n"
-"Last-Translator: Mattias Jansson <mattias@colourandcode.se>\n"
-"Language-Team: Swedish (Sweden) (http://www.transifex.net/projects/p/sentry/language/sv_SE/)\n"
+"PO-Revision-Date: 2012-03-22 13:47+0000\n"
+"Last-Translator: Piet Delport <pjdelport@gmail.com>\n"
+"Language-Team: Afrikaans (http://www.transifex.net/projects/p/sentry/language/af/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: sv_SE\n"
+"Language: af\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
 
 #: constants.py:6
 msgid "Priority"
-msgstr "Prioritet"
+msgstr "Prioriteit"
 
 #: constants.py:7 constants.py:35
 #: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:24
@@ -28,7 +28,7 @@ msgstr "Prioritet"
 #: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:24
 #: templates/sentry/search.html:15
 msgid "Last Seen"
-msgstr "Sågs senast"
+msgstr "Laas Gesien"
 
 #: constants.py:8 constants.py:36
 #: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:23
@@ -36,188 +36,188 @@ msgstr "Sågs senast"
 #: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:23
 #: templates/sentry/search.html:17
 msgid "First Seen"
-msgstr "Sågs först"
+msgstr "Eerste Gesien"
 
 #: constants.py:9 templates/sentry/groups/details.html:122
 msgid "Frequency"
-msgstr "Frekvens"
+msgstr "Frekwensie"
 
 #: constants.py:10
 msgid "Total Time Spent"
-msgstr "Total spenderad tid"
+msgstr "Totale Tyd Spandeer"
 
 #: constants.py:11
 msgid "Average Time Spent"
-msgstr "Genomsnittlig spenderad tid"
+msgstr "Gemiddelde Tyd Spandeer"
 
 #: constants.py:12 constants.py:13
 #, python-format
 msgid "Trending: %(minutes)d minutes"
-msgstr "Trendig: %(minutes)d minuter"
+msgstr "Neiging: %(minutes)d minute"
 
 #: constants.py:34 templates/sentry/search.html:16
 msgid "Score"
-msgstr "Poäng"
+msgstr "Telling"
 
 #: constants.py:39
 msgid "All time"
-msgstr "All tid"
+msgstr "Alle tye"
 
 #: constants.py:40
 msgid "30 days"
-msgstr "30 dagar"
+msgstr "30 dae"
 
 #: constants.py:41
 msgid "7 days"
-msgstr "7 dagar"
+msgstr "7 dae"
 
 #: constants.py:42
 msgid "3 days"
-msgstr "3 dagar"
+msgstr "3 dae"
 
 #: constants.py:43
 msgid "24 hours"
-msgstr "24 timmar"
+msgstr "24 ure"
 
 #: models.py:42
 msgid "unresolved"
-msgstr "olöst"
+msgstr "onopgelos"
 
 #: models.py:43
 msgid "resolved"
-msgstr "löst"
+msgstr "opgelos"
 
 #: models.py:48
 msgid "server name"
-msgstr "servernamn"
+msgstr "bediener naam"
 
 #: models.py:49
 msgid "logger"
-msgstr "loggenhet"
+msgstr ""
 
 #: models.py:50
 msgid "site"
-msgstr "sida"
+msgstr "werf"
 
 #: models.py:57
 msgid "owner"
-msgstr "ägare"
+msgstr "eienaar"
 
 #: models.py:58
 msgid "user"
-msgstr "användare"
+msgstr "gebruiker"
 
 #: models.py:59
 msgid "system agent"
-msgstr "systemagent"
+msgstr ""
 
 #: models.py:312
 msgid "error"
-msgstr "fel"
+msgstr "fout"
 
 #: models.py:341
 msgid "grouped messages"
-msgstr "grupperade meddelanden"
+msgstr "gegroepeerde boodskappe"
 
 #: models.py:342
 msgid "grouped message"
-msgstr "grupperat meddelande"
+msgstr "gegroepeerde boodskap"
 
 #: models.py:417
 msgid "message"
-msgstr "meddelande"
+msgstr "boodskap"
 
 #: models.py:418
 msgid "messages"
-msgstr "meddelanden"
+msgstr "boodskappe"
 
 #: filters/builtins.py:20 templates/sentry/projects/list.html:36
 msgid "Status"
-msgstr ""
+msgstr "Status"
 
 #: filters/builtins.py:26
 msgid "Unresolved"
-msgstr "Olöst"
+msgstr ""
 
 #: filters/builtins.py:27
 msgid "Resolved"
-msgstr "Löst"
+msgstr ""
 
 #: filters/builtins.py:32
 msgid "Logger"
-msgstr "Loggenhet"
+msgstr ""
 
 #: filters/builtins.py:37
 #: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:21
 msgid "Server Name"
-msgstr "Servernamn"
+msgstr "Bediener Naam"
 
 #: filters/builtins.py:48
 msgid "Level"
-msgstr "Nivå"
+msgstr ""
 
 #: filters/builtins.py:59
 msgid "Site"
-msgstr "Webbplats"
+msgstr "Werf"
 
 #: plugins/bases/notify.py:15
 msgid "Include project members"
-msgstr "Inkludera projektmedlemmar"
+msgstr ""
 
 #: plugins/bases/notify.py:16
 msgid "Notify members of this project."
-msgstr "Meddela medlemmarna för detta projekt."
+msgstr ""
 
 #: plugins/bases/notify.py:17
 msgid "Include sentry admins"
-msgstr "Inkludera Sentryadministratörer"
+msgstr ""
 
 #: plugins/bases/notify.py:18
 msgid "Notify administrators of this Sentry server."
-msgstr "Meddela administratörerna för denna Sentryserver."
+msgstr ""
 
 #: plugins/bases/notify.py:22
 msgid ""
 "Notify project members when a new event is seen for the first time, or when "
 "an already resolved event has changed back to unresolved."
-msgstr "Meddela projektmedlemmar när en ny händelse ses för första gången, eller när en redan löst händelse ändras tillbaka till olöst."
+msgstr ""
 
 #: plugins/sentry_mail/__init__.py:36
 msgid "Send to"
-msgstr "Skicka till"
+msgstr "Stuur na"
 
 #: plugins/sentry_mail/__init__.py:37
 msgid "Enter one or more emails separated by commas or lines."
-msgstr "Ange en eller flera mailadresser separerade av komman eller blanksteg."
+msgstr ""
 
 #: plugins/sentry_mail/__init__.py:51
 msgid "Mail"
-msgstr ""
+msgstr "Pos"
 
 #: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:22
 #: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:22
 #: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:22
 msgid "Times Seen"
-msgstr "Sedd antal gånger"
+msgstr "Keer Gesien"
 
 #: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:41
 #: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:41
 #: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:41
 #: templates/sentry/groups/event_list.html:23
 msgid "There are no records recorded for this event."
-msgstr "Det finns inga lagrade uppgifter för denna händelse"
+msgstr "Daar is geen rekords aangeteken vir hierdie gebeurtenis nie."
 
 #: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/widget.html:5
 msgid "Servers"
-msgstr "Servrar"
+msgstr "Bediener"
 
 #: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:21
 msgid "Site Name"
-msgstr "Webbplats"
+msgstr "Werf Naam"
 
 #: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/widget.html:5
 msgid "Sites"
-msgstr "Webbplatser"
+msgstr "Werwe"
 
 #: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:21
 msgid "URL"
@@ -225,56 +225,56 @@ msgstr "URL"
 
 #: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/widget.html:5
 msgid "URLs"
-msgstr "URL:er"
+msgstr "URLs"
 
 #: templates/sentry/404.html:5 templates/sentry/404.html.py:10
 msgid "Page Not Found"
-msgstr "Sidan hittades inte"
+msgstr "Bladsy Nie Gevind"
 
 #: templates/sentry/404.html:15
 msgid "The page you are looking for was not found."
-msgstr "Sidan du letar efter kunde inte hittas"
+msgstr "Die bladsy wat jy soek was nie gevind nie."
 
 #: templates/sentry/404.html:16
 msgid "Return to the dashboard"
-msgstr "Återvänd till instrumentpanelen"
+msgstr "Terug na die paneelbord"
 
 #: templates/sentry/500.html:5 templates/sentry/500.html.py:10
 msgid "Internal Server Error"
-msgstr "Internt serverfel"
+msgstr "Interne Bedienerfout"
 
 #: templates/sentry/500.html:15
 msgid "There was an internal server error while processing your request."
-msgstr "Ett internt serverfel skedde när din förfrågan behandlades."
+msgstr "Daar was 'n interne bedienerfout tydens die verwerking van jou besoek."
 
 #: templates/sentry/500.html:17
 #, python-format
 msgid "You may reference this error as <strong>%(id)s</strong>."
-msgstr "Du kan referera till felet som <strong>%(id)s</strong>."
+msgstr "Jy kan na hierdie fout verwys as <strong>%(id)s</strong>."
 
 #: templates/sentry/dashboard.html:5
 msgid "Select a Project"
-msgstr "Välj ett projekt"
+msgstr "Kies 'n Projek"
 
 #: templates/sentry/header.html:12
 msgid "search query or message id"
-msgstr "sökquery eller meddelandeID"
+msgstr ""
 
 #: templates/sentry/header.html:12
 msgid "message id"
-msgstr "meddelandeID"
+msgstr ""
 
 #: templates/sentry/header.html:17
 msgid "select a project to enable search"
-msgstr "välj ett projekt för att kunna söka"
+msgstr ""
 
 #: templates/sentry/header.html:24
 msgid "Dashboard"
-msgstr "Instrumentpanel"
+msgstr "Paneelbord"
 
 #: templates/sentry/header.html:25
 msgid "Stream"
-msgstr "Ström"
+msgstr "Stroom"
 
 #: templates/sentry/header.html:31 templates/sentry/layout.html:56
 #: templates/sentry/admin/base.html:17
@@ -285,81 +285,81 @@ msgstr "Ström"
 #: templates/sentry/admin/users/list_projects.html:12
 #: templates/sentry/projects/members/remove.html:11
 msgid "Projects"
-msgstr "Projekt"
+msgstr "Projekte"
 
 #: templates/sentry/header.html:33 templates/sentry/projects/manage.html:10
 msgid "Manage"
-msgstr "Hantera"
+msgstr "Hanteer"
 
 #: templates/sentry/header.html:42 templates/sentry/projects/list.html:11
 msgid "Create a new project"
-msgstr "Skapa ett nytt projekt"
+msgstr "Skep 'n nuwe projek"
 
 #: templates/sentry/header.html:47
 msgid "Account"
-msgstr "Konto"
+msgstr "Rekening"
 
 #: templates/sentry/header.html:49
 msgid "Settings"
-msgstr "Inställningar"
+msgstr ""
 
 #: templates/sentry/header.html:52 templates/sentry/admin/base.html:5
 #: templates/sentry/admin/base.html.py:9
 msgid "Admin"
-msgstr "Admin"
+msgstr ""
 
 #: templates/sentry/header.html:55
 msgid "Logout"
-msgstr "Logga ut"
+msgstr ""
 
 #: templates/sentry/header.html:59 templates/sentry/login.html:5
 #: templates/sentry/login.html.py:31
 msgid "Login"
-msgstr "Logga in"
+msgstr ""
 
 #: templates/sentry/invalid_message_id.html:5 templates/sentry/search.html:6
 msgid "Search"
-msgstr "Sök"
+msgstr "Soek"
 
 #: templates/sentry/invalid_message_id.html:9
 msgid "We were unable to find a message matching the ID you entered."
-msgstr "Vi kunde inte hitta ett meddelande som stämmer med det ID du angav."
+msgstr ""
 
 #: templates/sentry/layout.html:79
 msgid "Your Projects"
-msgstr "Dina projekt"
+msgstr "Jou Projekte"
 
 #: templates/sentry/login.html:15
 msgid "Please login to continue."
-msgstr "Var vänlig logga in för att fortsätta."
+msgstr ""
 
 #: templates/sentry/login.html:19
 msgid "Your username and password didn't match. Please try again."
-msgstr "Ditt användarnamn och lösenord matchar inte. Var vänlig försök igen."
+msgstr "Jou gebruikersnaam en wagwoord stem nie ooreen nie. Probeer asseblief weer."
 
 #: templates/sentry/missing_permissions.html:5
 #: templates/sentry/missing_permissions.html:8
 msgid "Forbidden"
-msgstr "Förbjudet"
+msgstr "Verbode"
 
 #: templates/sentry/missing_permissions.html:13
 msgid "You do not have access to this page with your current permissions."
-msgstr "Du har inte tillgång till denna sida med dina nuvarande rättigheter."
+msgstr ""
 
 #: templates/sentry/search.html:13 templates/sentry/groups/group_list.html:65
 #, python-format
 msgid "Sort by: %(label)s"
-msgstr "Sortera efter: %(label)s"
+msgstr "Sorteer volgens: %(label)s"
 
 #: templates/sentry/search.html:31
 msgid "No events match your search query."
-msgstr "Inga händelser matchar din sökförfrågan."
+msgstr "Geen gevalle pas jou navraag."
 
 #: templates/sentry/account/settings.html:5
 #: templates/sentry/account/settings.html:11
 #: templates/sentry/account/settings.html:17
 msgid "Account Settings"
-msgstr "Kontoinställningar"
+msgstr ""
 
 #: templates/sentry/account/settings.html:26
 #: templates/sentry/admin/users/edit.html:21
@@ -367,16 +367,16 @@ msgstr "Kontoinställningar"
 #: templates/sentry/partial/_form.html:6
 #: templates/sentry/projects/remove.html:19
 msgid "There were errors saving your changes:"
-msgstr "Fel när dina ändringar sparades:"
+msgstr "Daar was foute tydens die stoor van jou veranderinge:"
 
 #: templates/sentry/account/settings.html:34
 msgid ""
 "To make changes to your account, you must first enter your current password."
-msgstr "Du måste ange ditt nuvarande lösenord för att kunna ändra ditt konto."
+msgstr ""
 
 #: templates/sentry/account/settings.html:49
 msgid "You may also optionally change your password."
-msgstr "Du kan även ändra ditt lösenord."
+msgstr ""
 
 #: templates/sentry/account/settings.html:58
 #: templates/sentry/admin/users/edit.html:33
@@ -385,55 +385,55 @@ msgstr "Du kan även ändra ditt lösenord."
 #: templates/sentry/projects/new.html:32
 #: templates/sentry/projects/members/edit.html:56
 msgid "Save Changes"
-msgstr "Spara ändringar"
+msgstr "Stoor Veranderinge"
 
 #: templates/sentry/admin/base.html:15 templates/sentry/admin/base.html:42
 msgid "Overview"
-msgstr "Översikt"
+msgstr "Oorsig"
 
 #: templates/sentry/admin/base.html:18
 #: templates/sentry/admin/users/list.html:12
 msgid "Users"
-msgstr "Användare"
+msgstr "Gebruikers"
 
 #: templates/sentry/admin/base.html:23
 msgid "Plugins"
-msgstr "Insticksprogram"
+msgstr ""
 
 #: templates/sentry/admin/base.html:34
 #: templates/sentry/admin/status/env.html:8
 #: templates/sentry/admin/status/env.html:12
 msgid "Server Status"
-msgstr "Serverstatus"
+msgstr "Bediener Status"
 
 #: templates/sentry/admin/base.html:36
 #: templates/sentry/admin/status/env.html:17
 #: templates/sentry/partial/interfaces/http.html:123
 msgid "Environment"
-msgstr "Omgivning"
+msgstr "Omgewing"
 
 #: templates/sentry/admin/base.html:37
 #: templates/sentry/admin/status/packages.html:8
 #: templates/sentry/admin/status/packages.html:12
 msgid "Packages"
-msgstr "Paket"
+msgstr "Pakkette"
 
 #: templates/sentry/admin/base.html:38
 #: templates/sentry/admin/status/queue.html:41
 msgid "Queue"
-msgstr "Kö"
+msgstr "Tou"
 
 #: templates/sentry/admin/base.html:40 templates/sentry/admin/stats.html:17
 msgid "Statistics"
-msgstr "Statistik"
+msgstr "Statistieke"
 
 #: templates/sentry/admin/stats.html:8 templates/sentry/admin/stats.html:12
 msgid "Stats"
-msgstr "Statistik"
+msgstr "Stat."
 
 #: templates/sentry/admin/projects/list.html:7
 msgid "Manage Projects"
-msgstr "Hantera projekt"
+msgstr "Hanteer Projekte"
 
 #: templates/sentry/admin/projects/list.html:23
 #: templates/sentry/admin/projects/list.html:77
@@ -445,7 +445,7 @@ msgstr "Hantera projekt"
 #: templates/sentry/groups/group_list.html:121
 #: templates/sentry/partial/_pager.html:5
 msgid "Previous"
-msgstr "Föregående"
+msgstr "Vorige"
 
 #: templates/sentry/admin/projects/list.html:24
 #: templates/sentry/admin/projects/list.html:78
@@ -457,156 +457,156 @@ msgstr "Föregående"
 #: templates/sentry/groups/group_list.html:122
 #: templates/sentry/partial/_pager.html:6
 msgid "Next"
-msgstr "Nästa"
+msgstr "Volgende"
 
 #: templates/sentry/admin/projects/list.html:40
 #: templates/sentry/admin/users/edit.html:52
 #: templates/sentry/admin/users/list_projects.html:30
 msgid "Project"
-msgstr "Projekt"
+msgstr "Projek"
 
 #: templates/sentry/admin/projects/list.html:41
 #: templates/sentry/admin/users/edit.html:53
 #: templates/sentry/admin/users/list_projects.html:31
 msgid "Daily Events"
-msgstr "Dagliga händelser"
+msgstr "Daaglikse Gevalle"
 
 #: templates/sentry/admin/projects/list.html:42
 msgid "Date Added"
-msgstr "Datum tillagt"
+msgstr ""
 
 #: templates/sentry/admin/projects/list.html:72
 msgid "There are no active projects in Sentry."
-msgstr "Det finns inga aktiva projekt i Sentry."
+msgstr "Daar is geen aktiewe projekte in Sentry nie."
 
 #: templates/sentry/admin/status/env.html:26
 msgid "Server Version"
-msgstr "Serverversion"
+msgstr "Bediener Weergawe"
 
 #: templates/sentry/admin/status/env.html:30
 msgid "Python Version"
-msgstr "Pythonversion"
+msgstr "Python Weergawe"
 
 #: templates/sentry/admin/status/env.html:34
 msgid "Configuration File"
-msgstr "Konfigurationsfil"
+msgstr "Konfigurasielêer"
 
 #: templates/sentry/admin/status/env.html:38
 msgid "Uptime"
-msgstr "Drifttid"
+msgstr ""
 
 #: templates/sentry/admin/status/env.html:44
 msgid "Environment not found (are you using the builtin Sentry webserver?)."
-msgstr "Omgivningen hittades inte (använder du Sentrys inbyggda webbserver?)."
+msgstr "Omgewing nie gevind nie (gebruik jy die ingeboude Sentry webbediener?)."
 
 #: templates/sentry/admin/status/env.html:48
 msgid "Configuration"
-msgstr "Konfiguration"
+msgstr "Konfigurasie"
 
 #: templates/sentry/admin/status/packages.html:17
 msgid "Extensions"
-msgstr "Tillägg"
+msgstr "Uitbreidings"
 
 #: templates/sentry/admin/status/packages.html:34
 msgid "No extensions registered."
-msgstr "Inga tillägg registrerade."
+msgstr "Geen uitbreidings geregistreer."
 
 #: templates/sentry/admin/status/packages.html:37
 msgid "Views"
-msgstr "Vyer"
+msgstr ""
 
 #: templates/sentry/admin/status/packages.html:54
 msgid "No views registered."
-msgstr "Inga vyer registrerade."
+msgstr ""
 
 #: templates/sentry/admin/status/packages.html:57
 msgid "Modules"
-msgstr "Moduler"
+msgstr "Modules"
 
 #: templates/sentry/admin/status/queue.html:8
 #: templates/sentry/admin/status/queue.html:12
 msgid "Queue Status"
-msgstr "Köstatus"
+msgstr "Tou Status"
 
 #: templates/sentry/admin/status/queue.html:18
 msgid "Background Processes"
-msgstr "Bakgrundsprocesser"
+msgstr "Agtergrond Prosesse"
 
 #: templates/sentry/admin/status/queue.html:29
 msgid "No information available."
-msgstr "Ingen informations finns tillgänglig."
+msgstr "Geen inligting beskikbaar."
 
 #: templates/sentry/admin/status/queue.html:32
 #: templates/sentry/admin/status/queue.html:42
 msgid "Pending Tasks"
-msgstr "Väntande uppgifter"
+msgstr "Hangende Take"
 
 #: templates/sentry/admin/users/edit.html:7
 msgid "Change User"
-msgstr "Ändra användare"
+msgstr "Verander Gebruiker"
 
 #: templates/sentry/admin/users/edit.html:35
 #: templates/sentry/admin/users/remove.html:5
 #: templates/sentry/admin/users/remove.html:10
 msgid "Remove User"
-msgstr "Ta bort användare"
+msgstr "Verwyder Gebruiker"
 
 #: templates/sentry/admin/users/edit.html:37
 msgid "Cannot remove yourself"
-msgstr "Kan inte ta bort användare"
+msgstr "Kan nie jouself verwyder nie"
 
 #: templates/sentry/admin/users/list.html:6
 msgid "Manage Users"
-msgstr "Handera användare"
+msgstr "Hanteer Gebruikers"
 
 #: templates/sentry/admin/users/list.html:16
 msgid "Create a new user"
-msgstr "Skapa ny användare"
+msgstr "Skep 'n nuwe gebruiker"
 
 #: templates/sentry/admin/users/list.html:43
 #: templates/sentry/projects/list.html:33 web/forms.py:154
 msgid "Name"
-msgstr "Namn"
+msgstr "Naam"
 
 #: templates/sentry/admin/users/list.html:44
 msgid "Joined"
-msgstr "Anslöt"
+msgstr "Aangesluit"
 
 #: templates/sentry/admin/users/list.html:45
 msgid "Last Login"
-msgstr "Senast inloggad"
+msgstr ""
 
 #: templates/sentry/admin/users/list.html:83
 msgid "There are no users matching your query in Sentry."
-msgstr "Det finns inga användare som matchar din förfrågan i Sentry."
+msgstr ""
 
 #: templates/sentry/admin/users/list_projects.html:51
 msgid "There are no active projects for this user."
-msgstr "Det finns inga aktiva projekt för denna användare."
+msgstr "Daar is geen aktiewe projekte vir hierdie gebruiker nie."
 
 #: templates/sentry/admin/users/new.html:6
 msgid "New User"
-msgstr "Ny användare"
+msgstr "Nuwe Gebruiker"
 
 #: templates/sentry/admin/users/new.html:11
 msgid "Create New User"
-msgstr "Skapa ny användare"
+msgstr "Skep Nuwe Gebruiker"
 
 #: templates/sentry/admin/users/remove.html:31
 #: templates/sentry/projects/remove.html:31
 #: templates/sentry/projects/members/remove.html:19
 msgid "Confirm"
-msgstr "Bekräfta"
+msgstr "Bevestig"
 
 #: templates/sentry/admin/users/remove.html:31
 #: templates/sentry/projects/remove.html:31
 #: templates/sentry/projects/members/remove.html:19
 msgid "Cancel"
-msgstr "Avbryt"
+msgstr "kanselleer"
 
 #: templates/sentry/emails/error.html:109
 msgid "New Event"
-msgstr "Ny händelse"
+msgstr ""
 
 #: templates/sentry/emails/error.html:111
 msgid "Regression"
@@ -615,44 +615,44 @@ msgstr ""
 #: templates/sentry/emails/error.html:129
 #: templates/sentry/groups/details.html:18
 msgid "Logger:"
-msgstr "Loggenhet:"
+msgstr ""
 
 #: templates/sentry/emails/error.html:131
 #: templates/sentry/groups/details.html:20
 msgid "Level:"
-msgstr "Nivå:"
+msgstr "Vlak:"
 
 #: templates/sentry/emails/error.html:135
 #: templates/sentry/groups/event.html:20
 msgid "Server:"
-msgstr "Server:"
+msgstr "Bediener:"
 
 #: templates/sentry/emails/error.html:137
 #: templates/sentry/groups/details.html:24
 msgid "First Seen:"
-msgstr "Först sedd:"
+msgstr "Eerste Gesien:"
 
 #: templates/sentry/events/event_list.html:41
 #: templates/sentry/groups/group_list.html:112
 msgid "No events match your filters."
-msgstr "Inga händelser matchade ditt filter."
+msgstr "Geen gevalle pas jou filters nie."
 
 #: templates/sentry/events/replay_request.html:5
 #: templates/sentry/events/replay_request.html:12
 msgid "Replay Request"
-msgstr "Spela upp förfrågan igen"
+msgstr "Herspeel Versoek"
 
 #: templates/sentry/events/replay_request.html:27
 msgid "Please fill out all fields."
-msgstr "Var vänlig fyll i alla fälten."
+msgstr "Vul asseblief alle velde in."
 
 #: templates/sentry/events/replay_request.html:36
 msgid "Submit"
-msgstr "Skicka"
+msgstr "Stuur"
 
 #: templates/sentry/groups/details.html:15
 msgid "Aggregate Details"
-msgstr "Sammanställningsdetaljer"
+msgstr "Altesame Besonderhede"
 
 #: templates/sentry/groups/details.html:22
 msgid "Status:"
@@ -660,153 +660,153 @@ msgstr "Status:"
 
 #: templates/sentry/groups/details.html:26
 msgid "Last Seen:"
-msgstr "Senast sedd:"
+msgstr "Laaste Gesien:"
 
 #: templates/sentry/groups/details.html:28
 msgid "Avg Duration:"
-msgstr "Genomsnittlig längd"
+msgstr "Gem. Tydsduur:"
 
 #: templates/sentry/groups/details.html:29
 msgid "n/a"
-msgstr "inte tillgänglig"
+msgstr ""
 
 #: templates/sentry/groups/details.html:30
 msgid "Checksum:"
-msgstr "Kontrollsumma:"
+msgstr ""
 
 #: templates/sentry/groups/details.html:72
 #: templates/sentry/partial/_group.html:35
 msgid "Mark as Resolved"
-msgstr "Markera som löst"
+msgstr ""
 
 #: templates/sentry/groups/details.html:74
 #: templates/sentry/partial/_group.html:37
 msgid "Already Resolved"
-msgstr "Redan löst"
+msgstr ""
 
 #: templates/sentry/groups/details.html:78
 #: templates/sentry/partial/_group.html:41
 msgid "Bookmark"
-msgstr "Bokmärke"
+msgstr ""
 
 #: templates/sentry/groups/details.html:88
 #: templates/sentry/projects/manage.html:17
 #: templates/sentry/projects/members/edit.html:25
 msgid "Details"
-msgstr "Detaljer"
+msgstr "Besonderhede"
 
 #: templates/sentry/groups/details.html:91
 msgid "Events"
-msgstr "Händelser"
+msgstr "Gevalle"
 
 #: templates/sentry/groups/details.html:97
 #: templates/sentry/projects/manage.html:71
 msgid "Actions"
-msgstr "Åtgärder"
+msgstr "Aksies"
 
 #: templates/sentry/groups/details.html:100
 msgid "Raw JSON Data"
-msgstr "Rå JSON-data"
+msgstr "Rou JSON Data"
 
 #: templates/sentry/groups/details.html:114
 #: templates/sentry/groups/event.html:38
 msgid "Full Message"
-msgstr "Hela meddelandet"
+msgstr "Volledige Boodskap"
 
 #: templates/sentry/groups/details.html:126
 msgid "Get yourself some JavaScripts dood"
-msgstr "Skaffa JavaScript"
+msgstr ""
 
 #: templates/sentry/groups/details.html:127
 msgid "Loading..."
-msgstr "Laddar..."
+msgstr ""
 
 #: templates/sentry/groups/details.html:140
 #: templates/sentry/groups/event.html:50
 msgid "Additional Data"
-msgstr "Ytterligare data"
+msgstr "Addisionele Data"
 
 #: templates/sentry/groups/details.html:150
 #: templates/sentry/groups/event.html:60
 #: templates/sentry/partial/interfaces/http.html:37
 #: templates/sentry/partial/interfaces/http.html:54
 msgid "Body"
-msgstr "Body"
+msgstr "Lyf"
 
 #: templates/sentry/groups/details.html:169
 #: templates/sentry/groups/event.html:79
 #, python-format
 msgid "No data for %(varname)s"
-msgstr "Ingen data för %(varname)s"
+msgstr "Geen data vir %(varname)s"
 
 #: templates/sentry/groups/details.html:181
 #: templates/sentry/groups/event.html:91
 msgid "Module Versions"
-msgstr "Modulversioner"
+msgstr ""
 
 #: templates/sentry/groups/event.html:13
 msgid "Event Details"
-msgstr "Händelserdetaljer"
+msgstr "Geval Besonderhede"
 
 #: templates/sentry/groups/event.html:16
 msgid "Seen:"
-msgstr "Sedd:"
+msgstr "Gesien:"
 
 #: templates/sentry/groups/event.html:18
 msgid "Duration:"
-msgstr "Längd:"
+msgstr "Tydsduur:"
 
 #: templates/sentry/groups/event.html:22
 msgid "Site:"
-msgstr "Webbplats:"
+msgstr "Werf:"
 
 #: templates/sentry/groups/group_list.html:22
 msgid "All"
-msgstr "Alla"
+msgstr "Alles"
 
 #: templates/sentry/groups/group_list.html:35
 msgid "Bookmarks"
-msgstr "Bokmärken"
+msgstr "Boekmerke"
 
 #: templates/sentry/groups/group_list.html:38
 msgid "All Events"
-msgstr "Alla händelser"
+msgstr "Alle Gevalle"
 
 #: templates/sentry/groups/group_list.html:39
 msgid "Only Bookmarks"
-msgstr "Endast bokmärken"
+msgstr "Slegs Boekmerge"
 
 #: templates/sentry/groups/group_list.html:59
 msgid "Resolve Feed"
-msgstr "Lös flödet"
+msgstr ""
 
 #: templates/sentry/groups/group_list.html:62
 msgid "Pause Feed"
-msgstr "Pausa flödet"
+msgstr ""
 
 #: templates/sentry/groups/group_list.html:82
 #, python-format
 msgid "Since: %(label)s"
-msgstr "Sedan: %(label)s"
+msgstr "Sedert: %(label)s"
 
 #: templates/sentry/groups/group_list.html:108
 msgid ""
 "To start sending events, configure your client with the following DSN value:"
-msgstr "Konfigurera din klient med följande DNS-värde för att kunna skicka händelser:"
+msgstr ""
 
 #: templates/sentry/groups/group_list.html:110
 #, python-format
 msgid ""
 "For more information, please see the <a href=\"%(link)s\">documentation</a>."
-msgstr "För mer information, var vänlig läs <a href=\"%(link)s\">dokumentationen</a>."
+msgstr ""
 
 #: templates/sentry/partial/interfaces/http.html:6
 msgid "Replay this request"
-msgstr "Spela upp denna begäran igen"
+msgstr "Herspeel hierdie versoek"
 
 #: templates/sentry/partial/interfaces/http.html:7
 msgid "Request"
-msgstr "Begäran"
+msgstr "Versoek"
 
 #: templates/sentry/partial/interfaces/http.html:16
 msgid "URL:"
@@ -814,36 +814,36 @@ msgstr "URL:"
 
 #: templates/sentry/partial/interfaces/http.html:21
 msgid "Method:"
-msgstr "Metod:"
+msgstr "Metode:"
 
 #: templates/sentry/partial/interfaces/http.html:26
 msgid "Query:"
-msgstr "Förfrågan:"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/http.html:33
 msgid "Body:"
-msgstr "Body:"
+msgstr "Lyf:"
 
 #: templates/sentry/partial/interfaces/http.html:65
 msgid "Cookies:"
-msgstr "Cookies:"
+msgstr "Koekies:"
 
 #: templates/sentry/partial/interfaces/http.html:69
 #: templates/sentry/partial/interfaces/http.html:86
 msgid "Cookies"
-msgstr "Cookies"
+msgstr "Koekies"
 
 #: templates/sentry/partial/interfaces/http.html:97
 msgid "Headers:"
-msgstr "Sidhuvuden:"
+msgstr "Hoofde:"
 
 #: templates/sentry/partial/interfaces/http.html:100
 msgid "Headers"
-msgstr "Sidhuvuden"
+msgstr "Hoofde"
 
 #: templates/sentry/partial/interfaces/http.html:120
 msgid "Environment:"
-msgstr "Omgivning:"
+msgstr "Omgewing:"
 
 #: templates/sentry/partial/interfaces/stacktrace.html:6
 #: templates/sentry/partial/interfaces/template.html:5
@@ -852,25 +852,25 @@ msgstr ""
 
 #: templates/sentry/partial/interfaces/stacktrace.html:7
 msgid "Stacktrace"
-msgstr "Stacktrace"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/stacktrace.html:28
 msgid "Local vars"
-msgstr "Lokala variabler"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/template.html:6
 msgid "Template Error"
-msgstr "Mallfel"
+msgstr "Sjabloon Fout"
 
 #: templates/sentry/partial/interfaces/user.html:6
 #: templates/sentry/projects/manage.html:69
 #: templates/sentry/projects/members/edit.html:27
 msgid "User"
-msgstr "Användare"
+msgstr "Gebruiker"
 
 #: templates/sentry/partial/interfaces/user.html:15
 msgid "Authenticated:"
-msgstr "Autentiserad:"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/user.html:20
 msgid "ID:"
@@ -878,102 +878,102 @@ msgstr ""
 
 #: templates/sentry/partial/interfaces/user.html:24
 msgid "Username:"
-msgstr "Användarnamn:"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/user.html:28
 msgid "Email:"
-msgstr ""
+msgstr "E-pos:"
 
 #: templates/sentry/plugins/project_configuration.html:9
 #: templates/sentry/projects/manage.html:32
 #: templates/sentry/projects/members/edit.html:17
 msgid "Changes to your project were saved successfully."
-msgstr "Dina projektändringar sparades."
+msgstr "Veranderinge tot jou projek was suksesvol gestoor."
 
 #: templates/sentry/plugins/site_configuration.html:5
 msgid "Changes to your configuration were saved successfully."
-msgstr "Din konfiguration sparades."
+msgstr ""
 
 #: templates/sentry/projects/list.html:5
 #: templates/sentry/projects/list.html:17
 msgid "Project List"
-msgstr "Projektlista"
+msgstr "Projek Lys"
 
 #: templates/sentry/projects/list.html:23
 msgid "The following is a list of projects that you are a member of."
-msgstr "Följande är en lista med projekt som du är medlem i."
+msgstr ""
 
 #: templates/sentry/projects/list.html:34
 msgid "Membership"
-msgstr "Medlemskap"
+msgstr ""
 
 #: templates/sentry/projects/list.html:35
 msgid "Owner"
-msgstr "Ägare"
+msgstr ""
 
 #: templates/sentry/projects/list.html:53
 msgid "no owner"
-msgstr "ingen ägare"
+msgstr ""
 
 #: templates/sentry/projects/list.html:65
 msgid ""
 "You do not have access to any projects. Ask an administrator to add you as a"
 " member."
-msgstr "Du har inte tillgång till något projekt. Be en administratör lägga till dig som medlem."
+msgstr ""
 
 #: templates/sentry/projects/manage.html:5
 #, python-format
 msgid "Manage Project: %(name)s"
-msgstr "Hanterade projekt: %(name)s"
+msgstr "Hanteer Projek: %(name)s"
 
 #: templates/sentry/projects/manage.html:26
 msgid ""
 "Here you can edit project information, as well as control the access list "
 "for a project with fine-grained permissions."
-msgstr "Här kan du redigera projektinformation samt kontrollera tillgången för projekt med finkorniga rättigheter."
+msgstr ""
 
 #: templates/sentry/projects/manage.html:29
 #: templates/sentry/projects/new.html:20
 msgid "Project Details"
-msgstr "Projektdetaljer"
+msgstr "Projek Besonderhede"
 
 #: templates/sentry/projects/manage.html:35
 #: templates/sentry/projects/members/edit.html:20
 msgid "Please correct the errors below."
-msgstr "Var vänlig rätta till felen nedan."
+msgstr "Korrigeer asseblief die foute hieronder."
 
 #: templates/sentry/projects/manage.html:48
 #: templates/sentry/projects/remove.html:5
 #: templates/sentry/projects/remove.html:10
 msgid "Remove Project"
-msgstr "Ta bort projektet"
+msgstr "Verwyder Projek"
 
 #: templates/sentry/projects/manage.html:50
 msgid "Cannot remove default project"
-msgstr "Kan inte ta bort standardprojektet"
+msgstr ""
 
 #: templates/sentry/projects/manage.html:56
 #: templates/sentry/projects/members/new.html:5
 #: templates/sentry/projects/members/new.html:10
 msgid "New Member"
-msgstr "Ny medlem"
+msgstr "Nuwe Lid"
 
 #: templates/sentry/projects/manage.html:58
 msgid "Members"
-msgstr "Medlemmar"
+msgstr "Lede"
 
 #: templates/sentry/projects/manage.html:70
 #: templates/sentry/projects/members/edit.html:51
 msgid "Access"
-msgstr "Tillgång"
+msgstr "Toegang"
 
 #: templates/sentry/projects/manage.html:86
 msgid "unavailable for owner"
-msgstr "otillgängligt för ägaren"
+msgstr ""
 
 #: templates/sentry/projects/manage.html:90
 msgid "Remove"
-msgstr "Ta bort"
+msgstr ""
 
 #: templates/sentry/projects/manage.html:94
 msgid "Suspend"
@@ -981,50 +981,50 @@ msgstr ""
 
 #: templates/sentry/projects/manage.html:96
 msgid "Restore"
-msgstr "Återställ"
+msgstr ""
 
 #: templates/sentry/projects/new.html:5 templates/sentry/projects/new.html:10
 msgid "New Project"
-msgstr "Nytt projekt"
+msgstr "Nuwe Projek"
 
 #: templates/sentry/projects/new.html:15
 msgid ""
 "Use this page to create a new project within Sentry. Once done, you'll be "
 "able to add members (whether they're system or actual users), as well as "
 "configure your client to send messages to this project."
-msgstr "Använd denna sida för att skapa ett nytt projekt inom Sentry. När det väl är gjort så kan du lägga till medlemmar (systemanvändare eller faktiska användare), samt konfigurera din klient att skicka meddelanden till detta projekt."
+msgstr ""
 
 #: templates/sentry/projects/members/edit.html:6
 msgid "Edit Member"
-msgstr "Ändra medlem"
+msgstr "Wysig Lid"
 
 #: templates/sentry/projects/members/edit.html:33
 msgid "Public Key"
-msgstr "Publik nyckel"
+msgstr "Publieke Sleutel"
 
 #: templates/sentry/projects/members/edit.html:39
 msgid "Secret Key"
-msgstr "Hemlig nyckel"
+msgstr "Geheime Sleutel"
 
 #: templates/sentry/projects/members/edit.html:45
 msgid "Client DSN"
-msgstr "Klient-DSN"
+msgstr "Kliënt DSN"
 
 #: templates/sentry/projects/members/remove.html:5
 #: templates/sentry/projects/members/remove.html:7
 #: templates/sentry/projects/members/remove.html:13
 msgid "Remove Member"
-msgstr "Ta bort medlem"
+msgstr "Verwyder Lid"
 
 #: templates/sentry/projects/members/remove.html:12
 msgid "Manage Project"
-msgstr "Hantera projekt"
+msgstr "Hanteer Projek"
 
 #: templates/sentry/projects/members/remove.html:17
 msgid ""
 "Are you sure you wish to revoke this user's access? <strong>This change is "
 "permanent and will revoke their API keys immediately.</strong>"
-msgstr "Är du säker på att du önskar återkalla denna användares tillgång? <strong>Denna ändring är permanent och kommer omedelbart att återkalla dennes API-nycklar.</strong>"
+msgstr ""
 
 #: templatetags/sentry_helpers.py:76
 msgid "b"
@@ -1040,15 +1040,15 @@ msgstr ""
 
 #: templatetags/sentry_helpers.py:221
 msgid "never"
-msgstr "aldrig"
+msgstr "nooit"
 
 #: templatetags/sentry_helpers.py:225
 msgid "0 minutes"
-msgstr "0 minuter"
+msgstr "0 minute"
 
 #: templatetags/sentry_helpers.py:226
 msgid "just now"
-msgstr "just nu"
+msgstr "nou net"
 
 #: templatetags/sentry_helpers.py:227
 msgid "1 day"
@@ -1056,101 +1056,101 @@ msgstr "1 dag"
 
 #: templatetags/sentry_helpers.py:228
 msgid "yesterday"
-msgstr "igår"
+msgstr "gister"
 
 #: templatetags/sentry_helpers.py:229
 msgid " ago"
-msgstr " sedan"
+msgstr " gelede"
 
 #: views/exception.py:16
 msgid "Exception"
-msgstr "Exception"
+msgstr ""
 
 #: views/exception.py:17
 msgid "Exceptions"
-msgstr "Exceptions"
+msgstr ""
 
 #: views/message.py:16
 msgid "Message"
-msgstr "Meddelande"
+msgstr "Boodskap"
 
 #: views/message.py:17
 msgid "Messages"
-msgstr "Meddelanden"
+msgstr "Boodskappe"
 
 #: views/query.py:16
 msgid "Query"
-msgstr "Förfrågan"
+msgstr ""
 
 #: views/query.py:17
 msgid "Queries"
-msgstr "Förfrågningar"
+msgstr ""
 
 #: web/forms.py:49
 msgid "Invalid username"
-msgstr "Ogiltigt användarnamn"
+msgstr ""
 
 #: web/forms.py:54
 msgid "Remove all attached events."
-msgstr "Ta bort alla bifogade händelser."
+msgstr ""
 
 #: web/forms.py:55
 msgid "Migrate events to another project."
-msgstr "Migrera händelser till ett annat projekt."
+msgstr ""
 
 #: web/forms.py:56
 msgid "Hide this project."
-msgstr "Göm detta projekt."
+msgstr ""
 
 #: web/forms.py:72
 msgid "You must select a project to migrate data"
-msgstr "Du måste välja ett projekt för att kunna migrera data"
+msgstr ""
 
 #: web/forms.py:95
 msgid "Allow anyone (even anonymous users) to view this project"
-msgstr "Tillåt alla (till och med anonyma användare) att se detta projekt"
+msgstr ""
 
 #: web/forms.py:133
 msgid "User already a member of project"
-msgstr "Användaren är redan medlem av detta projekt"
+msgstr ""
 
 #: web/forms.py:159
 msgid "Create a project for this user."
-msgstr "Skapa ett projekt för denna användare."
+msgstr ""
 
 #: web/forms.py:161
 msgid ""
 "Send this user a welcome email which will contain their generated password."
-msgstr "Skicka ett välkomstmail till denna användare som innehåller dennes genererade lösenord."
+msgstr ""
 
 #: web/forms.py:176
 msgid "Disable the account."
-msgstr "Avaktivera kontot."
+msgstr ""
 
 #: web/forms.py:177
 msgid "Permanently remove the user and their data."
-msgstr "Ta bort användaren och dess data permanent."
+msgstr ""
 
 #: web/forms.py:182
 msgid "Old password"
-msgstr "Gammal lösenord"
+msgstr "Ou wagwoord"
 
 #: web/forms.py:185
 msgid "New password"
-msgstr "Nytt lösenord"
+msgstr "Nuwe wagwoord"
 
 #: web/forms.py:186
 msgid "New password confirmation"
-msgstr "Nytt lösenord bekräftat"
+msgstr "Nuwe wagwoord bevestiging"
 
 #: web/forms.py:187
 msgid "Language"
-msgstr "Språk"
+msgstr ""
 
 #: web/forms.py:198
 msgid "The two password fields didn't match."
-msgstr "De två lösenorden matchar inte."
+msgstr "Die twee wagwoord velde stem nie ooreen nie."
 
 #: web/forms.py:207
 msgid "Your old password was entered incorrectly. Please enter it again."
-msgstr "Ditt gamla lösenord angavs i fel. Var vänlig ange igen."
+msgstr "Jou ou wagwoord was nie reg ingevul nie. Probeer asseblief weer."

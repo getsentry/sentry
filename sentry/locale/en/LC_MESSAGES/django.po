@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-03-22 03:40+0000\n"
+"POT-Creation-Date: 2012-03-29 19:17+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -78,55 +78,55 @@ msgstr ""
 msgid "24 hours"
 msgstr ""
 
-#: models.py:42
+#: models.py:43
 msgid "unresolved"
 msgstr ""
 
-#: models.py:43
+#: models.py:44
 msgid "resolved"
 msgstr ""
 
-#: models.py:48
+#: models.py:49
 msgid "server name"
 msgstr ""
 
-#: models.py:49
+#: models.py:50
 msgid "logger"
 msgstr ""
 
-#: models.py:50
+#: models.py:51
 msgid "site"
 msgstr ""
 
-#: models.py:57
+#: models.py:58
 msgid "owner"
 msgstr ""
 
-#: models.py:58
+#: models.py:59
 msgid "user"
 msgstr ""
 
-#: models.py:59
+#: models.py:60
 msgid "system agent"
 msgstr ""
 
-#: models.py:312
+#: models.py:358
 msgid "error"
 msgstr ""
 
-#: models.py:341
+#: models.py:387
 msgid "grouped messages"
 msgstr ""
 
-#: models.py:342
+#: models.py:388
 msgid "grouped message"
 msgstr ""
 
-#: models.py:417
+#: models.py:462
 msgid "message"
 msgstr ""
 
-#: models.py:418
+#: models.py:463
 msgid "messages"
 msgstr ""
 
@@ -382,7 +382,7 @@ msgstr ""
 #: templates/sentry/partial/_form.html:18
 #: templates/sentry/projects/manage.html:46
 #: templates/sentry/projects/new.html:32
-#: templates/sentry/projects/members/edit.html:56
+#: templates/sentry/projects/members/edit.html:60
 msgid "Save Changes"
 msgstr ""
 
@@ -441,7 +441,7 @@ msgstr ""
 #: templates/sentry/events/event_list.html:28
 #: templates/sentry/events/event_list.html:47
 #: templates/sentry/groups/group_list.html:90
-#: templates/sentry/groups/group_list.html:121
+#: templates/sentry/groups/group_list.html:123
 #: templates/sentry/partial/_pager.html:5
 msgid "Previous"
 msgstr ""
@@ -453,7 +453,7 @@ msgstr ""
 #: templates/sentry/events/event_list.html:29
 #: templates/sentry/events/event_list.html:48
 #: templates/sentry/groups/group_list.html:91
-#: templates/sentry/groups/group_list.html:122
+#: templates/sentry/groups/group_list.html:124
 #: templates/sentry/partial/_pager.html:6
 msgid "Next"
 msgstr ""
@@ -563,7 +563,7 @@ msgid "Create a new user"
 msgstr ""
 
 #: templates/sentry/admin/users/list.html:43
-#: templates/sentry/projects/list.html:33 web/forms.py:154
+#: templates/sentry/projects/list.html:33 web/forms.py:173
 msgid "Name"
 msgstr ""
 
@@ -632,7 +632,7 @@ msgid "First Seen:"
 msgstr ""
 
 #: templates/sentry/events/event_list.html:41
-#: templates/sentry/groups/group_list.html:112
+#: templates/sentry/groups/group_list.html:114
 msgid "No events match your filters."
 msgstr ""
 
@@ -699,7 +699,8 @@ msgid "Events"
 msgstr ""
 
 #: templates/sentry/groups/details.html:97
-#: templates/sentry/projects/manage.html:71
+#: templates/sentry/projects/manage.html:77
+#: templates/sentry/projects/manage.html:123
 msgid "Actions"
 msgstr ""
 
@@ -794,9 +795,188 @@ msgid ""
 msgstr ""
 
 #: templates/sentry/groups/group_list.html:110
+#: templates/sentry/projects/members/edit.html:52
+msgid "Choose your platform for quick setup instructions:"
+msgstr ""
+
+#: templates/sentry/groups/group_list.html:112
 #, python-format
 msgid ""
 "For more information, please see the <a href=\"%(link)s\">documentation</a>."
+msgstr ""
+
+#: templates/sentry/partial/client_config/connect.html:3
+#: templates/sentry/partial/client_config/express.html:3
+#: templates/sentry/partial/client_config/node.js.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-node</a>:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/connect.html:7
+msgid ""
+"Register an instance of the Connect middleware <strong>after your main "
+"application handler</strong>:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/connect.html:16
+#: templates/sentry/partial/client_config/express.html:13
+#: templates/sentry/partial/client_config/node.js.html:17
+msgid "Ensure Node is run with <code>NODE_ENV=production</code>:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/connect.html:20
+#: templates/sentry/partial/client_config/django.html:18
+#: templates/sentry/partial/client_config/express.html:17
+#: templates/sentry/partial/client_config/flask.html:16
+msgid ""
+"That's it! Raven automatically installs an error handling hook to pipe all "
+"uncaught exceptions to Sentry."
+msgstr ""
+
+#: templates/sentry/partial/client_config/connect.html:22
+#: templates/sentry/partial/client_config/express.html:19
+#: templates/sentry/partial/client_config/node.js.html:29
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Node.js, please see the <a "
+"href=\"%(link)s\">official documentation for raven-node</a>."
+msgstr ""
+
+#: templates/sentry/partial/client_config/django.html:3
+#: templates/sentry/partial/client_config/python.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-python</a>:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/django.html:7
+msgid "Then simply modify your Django configuration:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/django.html:9
+msgid "Set your DSN value"
+msgstr ""
+
+#: templates/sentry/partial/client_config/django.html:12
+msgid "Add raven to the list of installed apps"
+msgstr ""
+
+#: templates/sentry/partial/client_config/django.html:20
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Django, please see the <a "
+"href=\"%(link)s\">official documentation for raven-python</a>."
+msgstr ""
+
+#: templates/sentry/partial/client_config/express.html:7
+msgid "Register an instance of the Express middleware:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/flask.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-python</a> and Blinker:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/flask.html:7
+msgid "Blinker is required for signals to work within Flask."
+msgstr ""
+
+#: templates/sentry/partial/client_config/flask.html:9
+msgid "Add the required configuration in your application setup:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/flask.html:18
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Flask, please see the <a "
+"href=\"%(link)s\">official documentation for raven-python</a>."
+msgstr ""
+
+#: templates/sentry/partial/client_config/java.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-java</a>."
+msgstr ""
+
+#: templates/sentry/partial/client_config/java.html:5
+#: templates/sentry/partial/client_config/node.js.html:7
+#: templates/sentry/partial/client_config/php.html:11
+#: templates/sentry/partial/client_config/python.html:7
+msgid "Create an instance of the client:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/java.html:9
+#: templates/sentry/partial/client_config/node.js.html:21
+#: templates/sentry/partial/client_config/php.html:15
+#: templates/sentry/partial/client_config/python.html:13
+msgid "Now call out to the raven client to capture events:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/java.html:11
+#: templates/sentry/partial/client_config/node.js.html:23
+#: templates/sentry/partial/client_config/php.html:17
+#: templates/sentry/partial/client_config/python.html:15
+msgid "record a simple message"
+msgstr ""
+
+#: templates/sentry/partial/client_config/java.html:14
+#: templates/sentry/partial/client_config/node.js.html:26
+#: templates/sentry/partial/client_config/php.html:20
+#: templates/sentry/partial/client_config/python.html:18
+msgid "capture an exception"
+msgstr ""
+
+#: templates/sentry/partial/client_config/java.html:22
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Java, please see the <a "
+"href=\"%(link)s\">official documentation for raven-java</a>."
+msgstr ""
+
+#: templates/sentry/partial/client_config/node.js.html:13
+#: templates/sentry/partial/client_config/php.html:28
+msgid ""
+"You can also optionally install a default error handler to catch all "
+"exceptions:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/php.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-php</a>."
+msgstr ""
+
+#: templates/sentry/partial/client_config/php.html:5
+msgid "Register the autoloader:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/php.html:36
+#, python-format
+msgid ""
+"For more information on other uses of Raven with PHP, please see the <a href="
+"\"%(link)s\">official documentation for raven-php</a>."
+msgstr ""
+
+#: templates/sentry/partial/client_config/python.html:24
+msgid ""
+"If you want to wrap a WSGI app to record uncaught exceptions, Raven provides "
+"a middleware for that:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/python.html:30
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Python, please see the <a "
+"href=\"%(link)s\">official documentation for raven-python</a>."
+msgstr ""
+
+#: templates/sentry/partial/interfaces/exception.html:10
+msgid "Types:"
+msgstr ""
+
+#: templates/sentry/partial/interfaces/exception.html:14
+msgid "Value:"
+msgstr ""
+
+#: templates/sentry/partial/interfaces/exception.html:19
+msgid "Location:"
 msgstr ""
 
 #: templates/sentry/partial/interfaces/http.html:6
@@ -808,14 +988,17 @@ msgid "Request"
 msgstr ""
 
 #: templates/sentry/partial/interfaces/http.html:16
+#: templates/sentry/partial/interfaces/http.txt:8
 msgid "URL:"
 msgstr ""
 
 #: templates/sentry/partial/interfaces/http.html:21
+#: templates/sentry/partial/interfaces/http.txt:13
 msgid "Method:"
 msgstr ""
 
 #: templates/sentry/partial/interfaces/http.html:26
+#: templates/sentry/partial/interfaces/http.txt:18
 msgid "Query:"
 msgstr ""
 
@@ -862,7 +1045,8 @@ msgid "Template Error"
 msgstr ""
 
 #: templates/sentry/partial/interfaces/user.html:6
-#: templates/sentry/projects/manage.html:69
+#: templates/sentry/projects/manage.html:75
+#: templates/sentry/projects/manage.html:121
 #: templates/sentry/projects/members/edit.html:27
 msgid "User"
 msgstr ""
@@ -961,25 +1145,31 @@ msgstr ""
 msgid "Members"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:70
-#: templates/sentry/projects/members/edit.html:51
+#: templates/sentry/projects/manage.html:76
+#: templates/sentry/projects/manage.html:122
+#: templates/sentry/projects/members/edit.html:55
 msgid "Access"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:86
+#: templates/sentry/projects/manage.html:92
 msgid "unavailable for owner"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:90
+#: templates/sentry/projects/manage.html:96
+#: templates/sentry/projects/manage.html:136
 msgid "Remove"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:94
+#: templates/sentry/projects/manage.html:100
 msgid "Suspend"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:96
+#: templates/sentry/projects/manage.html:102
 msgid "Restore"
+msgstr ""
+
+#: templates/sentry/projects/manage.html:139
+msgid "Resend"
 msgstr ""
 
 #: templates/sentry/projects/new.html:5 templates/sentry/projects/new.html:10
@@ -991,6 +1181,17 @@ msgid ""
 "Use this page to create a new project within Sentry. Once done, you'll be "
 "able to add members (whether they're system or actual users), as well as "
 "configure your client to send messages to this project."
+msgstr ""
+
+#: templates/sentry/projects/docs/client_config.html:5
+#: templates/sentry/projects/docs/client_config.html:10
+#, python-format
+msgid "%(platform_title)s Client Configuration"
+msgstr ""
+
+#: templates/sentry/projects/docs/client_config.html:16
+#, python-format
+msgid "Configuring %(platform_title)s"
 msgstr ""
 
 #: templates/sentry/projects/members/edit.html:6
@@ -1007,6 +1208,10 @@ msgstr ""
 
 #: templates/sentry/projects/members/edit.html:45
 msgid "Client DSN"
+msgstr ""
+
+#: templates/sentry/projects/members/edit.html:51
+msgid "Client Configuration"
 msgstr ""
 
 #: templates/sentry/projects/members/remove.html:5
@@ -1109,47 +1314,55 @@ msgstr ""
 msgid "Allow anyone (even anonymous users) to view this project"
 msgstr ""
 
-#: web/forms.py:133
+#: web/forms.py:131
+msgid "There is already a member with this email address"
+msgstr ""
+
+#: web/forms.py:134
+msgid "There is already a pending invite for this user"
+msgstr ""
+
+#: web/forms.py:152
 msgid "User already a member of project"
 msgstr ""
 
-#: web/forms.py:159
+#: web/forms.py:178
 msgid "Create a project for this user."
 msgstr ""
 
-#: web/forms.py:161
+#: web/forms.py:180
 msgid ""
 "Send this user a welcome email which will contain their generated password."
 msgstr ""
 
-#: web/forms.py:176
+#: web/forms.py:195
 msgid "Disable the account."
 msgstr ""
 
-#: web/forms.py:177
+#: web/forms.py:196
 msgid "Permanently remove the user and their data."
 msgstr ""
 
-#: web/forms.py:182
+#: web/forms.py:201
 msgid "Old password"
 msgstr ""
 
-#: web/forms.py:185
+#: web/forms.py:204
 msgid "New password"
 msgstr ""
 
-#: web/forms.py:186
+#: web/forms.py:205
 msgid "New password confirmation"
 msgstr ""
 
-#: web/forms.py:187
+#: web/forms.py:206
 msgid "Language"
 msgstr ""
 
-#: web/forms.py:198
+#: web/forms.py:217
 msgid "The two password fields didn't match."
 msgstr ""
 
-#: web/forms.py:207
+#: web/forms.py:226
 msgid "Your old password was entered incorrectly. Please enter it again."
 msgstr ""
