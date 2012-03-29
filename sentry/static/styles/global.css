@@ -3870,7 +3870,7 @@ ol.context > li > pre {
   margin: 0;
   padding: 0;
   border: 0;
-  display: block;
+  display: inline;
   line-height: 18px;
   font-size: 12px;
   white-space: pre;
