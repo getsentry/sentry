@@ -294,7 +294,7 @@ class Exception(Interface):
             'exception_value': self.value,
             'exception_type': self.type,
             'exception_module': self.module,
-            'last_frame':   last_frame
+            'last_frame': last_frame
         })
 
     def get_search_context(self, event):
