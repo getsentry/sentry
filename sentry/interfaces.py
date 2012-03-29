@@ -334,8 +334,8 @@ class Http(Interface):
         # strip them out
         if headers and 'Cookie' in headers:
             cookies = headers.pop('Cookie')
-            if not self.cookies:
-                cookies = self.cookies
+            if cookies:
+                self.cookies = cookies
         self.headers = headers or {}
         self.env = env or {}
 
