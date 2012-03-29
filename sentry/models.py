@@ -265,7 +265,7 @@ class ProjectMember(Model):
             urlparts.scheme,
             self.public_key,
             self.secret_key,
-            urlparts.netloc,
+            urlparts.netloc + urlparts.path,
             self.project_id,
         )
 
