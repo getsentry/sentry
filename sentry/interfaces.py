@@ -285,11 +285,16 @@ class Exception(Interface):
         return output
 
     def to_html(self, event):
+        last_frame = None
+        interface = event.interfaces.get('sentry.interfaces.Stacktrace')
+        if interface is not None and interface.frames:
+            last_frame = interface.frames[-1]
         return render_to_string('sentry/partial/interfaces/exception.html', {
             'event': event,
             'exception_value': self.value,
             'exception_type': self.type,
             'exception_module': self.module,
+            'last_frame': last_frame
         })
 
     def get_search_context(self, event):
