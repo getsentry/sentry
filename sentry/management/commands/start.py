@@ -35,7 +35,7 @@ class Command(BaseCommand):
 
         # Ensure we perform an upgrade before starting any service
         print "Performing upgrade before service startup..."
-        call_command('upgrade', verbosity=0)
+        call_command('upgrade', verbosity=0, noinput=True)
 
         try:
             service_class = services[service_name]
