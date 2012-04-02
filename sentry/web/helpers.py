@@ -97,8 +97,8 @@ def get_default_context(request, existing_context=None):
             'request': request,
             'can_create_projects': can_create_projects(request.user),
         })
-        if not existing_context or 'project_list' not in existing_context:
-            context['project_list'] = get_project_list(request.user).values()
+        if not existing_context or 'PROJECT_LIST' not in existing_context:
+            context['PROJECT_LIST'] = get_project_list(request.user).values()
 
     return context
 

@@ -48,7 +48,7 @@ def project_list(request):
         project_list[project_id].member_type = member.get_type_display()
 
     return render_to_response('sentry/projects/list.html', {
-        'project_list': project_list.values(),
+        'PROJECT_LIST': project_list.values(),
     }, request)
 
 

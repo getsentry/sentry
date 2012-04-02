@@ -9,10 +9,10 @@
 
 {% block content %}
     <section class="body">
-        {% if project_list %}
+        {% if PROJECT_LIST %}
             <div class="alert alert-info">Select a project to view the stream of events...</div>
             <ul class="thumbnails sparkline-grid">
-                {% for project in project_list %}
+                {% for project in PROJECT_LIST %}
                     <li class="thumbnail">
                         <a href="{% url sentry project.pk %}">
                             <h3>{{ project.name }}</h3>
