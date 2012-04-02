@@ -15,7 +15,7 @@ Additionally, the following experimental clients are availabe:
 * CFML (`raven-cfml` <https://github.com/jmacul2/raven-cfml>`_)
 
 Client Criteria
---------------
+---------------
 
 To become a recognized client, a library is expected to meet several criteria:
 
