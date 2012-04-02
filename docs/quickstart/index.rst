@@ -69,6 +69,8 @@ path as the argument to init, otherwise it will use the default of ``~/.sentry/s
 The configuration for the server is based on ``sentry.conf.server``, which contains a basic Django project
 configuration, as well as the default Sentry configuration values. It will use SQLite for the database.
 
+::
+
     # ~/.sentry/sentry.conf.py
 
     DATABASES = {
