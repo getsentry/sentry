@@ -433,9 +433,10 @@ class Template(Interface):
         return [self.filename, self.context_line]
 
     def to_string(self, event):
+        context = get_context(self.lineno, self.context_line, self.pre_context, self.post_context)
         result = [
             'Stacktrace (most recent call last):', '',
-            self.get_traceback()
+            self.get_traceback(event, context)
         ]
 
         return '\n'.join(result)
