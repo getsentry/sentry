@@ -15,6 +15,7 @@ import os
 import os.path
 import socket
 import sys
+import urlparse
 
 DEBUG = False
 TEMPLATE_DEBUG = True
