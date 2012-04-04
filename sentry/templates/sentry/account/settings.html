@@ -36,6 +36,12 @@
                 {% include "sentry/partial/_form_field.html" %}
             {% endwith %}
             <hr>
+            <fieldset class="control-group">
+                <label>Username</label>
+                <div class="controls">
+                    {{ request.user.username }}
+                </div>
+            </fieldset>
             {% with form.first_name as field %}
                 {% include "sentry/partial/_form_field.html" %}
             {% endwith %}
