@@ -14,7 +14,7 @@ from django.db import transaction
 def safe_execute(func, *args, **kwargs):
     sid = transaction.savepoint()
     try:
-        return func(*args, **kwargs)
+        result = func(*args, **kwargs)
     except Exception, e:
         transaction.savepoint_rollback(sid)
         cls = func.__class__
@@ -26,3 +26,4 @@ def safe_execute(func, *args, **kwargs):
         }, exc_info=True)
     else:
         transaction.savepoint_commit(sid)
+        return result
