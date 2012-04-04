@@ -403,7 +403,8 @@ def manage_plugins(request, project):
     if request.POST:
         enabled = set(request.POST.getlist('plugin'))
         for plugin in plugins.all():
-            plugin.set_option('enabled', plugin.slug in enabled, project)
+            if plugin.can_enable_for_projects():
+                plugin.set_option('enabled', plugin.slug in enabled, project)
         return HttpResponseRedirect(request.path + '?success=1')
 
     context = csrf(request)

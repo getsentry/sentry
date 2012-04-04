@@ -154,6 +154,8 @@ class IPlugin(local):
         """
         if not self.enabled:
             return False
+        if not self.can_enable_for_projects():
+            return True
         if project:
             project_enabled = self.get_option('enabled', project)
             if project_enabled is False:
@@ -221,6 +223,12 @@ class IPlugin(local):
 
     def has_project_conf(self):
         return self.project_conf_form is not None
+
+    def can_enable_for_projects(self):
+        """
+        Returns a boolean describing whether this plugin can be enabled on a per project basis
+        """
+        return True
 
     def get_form_initial(self, project=None):
         return {}
