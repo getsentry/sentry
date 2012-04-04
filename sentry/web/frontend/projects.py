@@ -397,6 +397,12 @@ def manage_plugins(request, project):
     if result is False and not request.user.has_perm('sentry.can_change_project'):
         return HttpResponseRedirect(reverse('sentry'))
 
+    if request.POST:
+        enabled = set(request.POST.getlist('plugin'))
+        for plugin in plugins.all():
+            plugin.set_option('enabled', plugin.slug in enabled, project)
+        return HttpResponseRedirect(request.build_absolute_uri() + '?success=1')
+
     context = csrf(request)
     context.update({
         'page': 'plugins',
