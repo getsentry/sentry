@@ -128,6 +128,7 @@ class IPlugin(local):
     author = None
     author_url = None
 
+    # Configuration specifics
     conf_key = None
     conf_title = None
 
@@ -137,14 +138,26 @@ class IPlugin(local):
     site_conf_form = None
     site_conf_template = 'sentry/plugins/site_configuration.html'
 
+    # Global enabled state
     enabled = True
 
     def _get_option_key(self, key):
         return '%s:%s' % (self.get_conf_key(), key)
 
     def is_enabled(self, project=None):
+        """
+        Returns a boolean representing if this plugin is enabled.
+
+        If ``project`` is passed, it will limit the scope to that project.
+
+        >>> plugin.is_enabled()
+        """
         if not self.enabled:
             return False
+        if project:
+            project_enabled = self.get_option('enabled', project)
+            if project_enabled is False:
+                return False
         return True
 
     def get_option(self, key, project=None):
@@ -154,7 +167,7 @@ class IPlugin(local):
 
         If ``project`` is passed, it will limit the scope to that project's keyspace.
 
-        >>> value = get_option('my_option')
+        >>> value = plugin.get_option('my_option')
         """
         from .helpers import get_option
         return get_option(self._get_option_key(key), project)
@@ -165,7 +178,7 @@ class IPlugin(local):
 
         If ``project`` is passed, it will limit the scope to that project's keyspace.
 
-        >>> set_option('my_option', 'http://example.com')
+        >>> plugin.set_option('my_option', 'http://example.com')
         """
         from .helpers import set_option
         return set_option(self._get_option_key(key), value, project)
@@ -176,7 +189,7 @@ class IPlugin(local):
 
         If ``project`` is passed, it will limit the scope to that project's keyspace.
 
-        >>> unset_option('my_option')
+        >>> plugin.unset_option('my_option')
         """
         from .helpers import unset_option
         return unset_option(self._get_option_key(key), project)
@@ -194,7 +207,7 @@ class IPlugin(local):
         Returns a string representing the configuration keyspace prefix for this plugin.
         """
         if not self.conf_key:
-            return self.conf_title.lower().replace(' ', '_')
+            return self.get_conf_title().lower().replace(' ', '_')
         return self.conf_key
 
     def get_conf_title(self):
