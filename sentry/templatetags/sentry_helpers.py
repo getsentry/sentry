@@ -16,14 +16,12 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 from paging.helpers import paginate as paginate_func
 from sentry.conf import settings
-from sentry.plugins import plugins
 from sentry.utils import json
 from sentry.utils.dates import utc_to_local, local_to_utc
 from templatetag_sugar.register import tag
 from templatetag_sugar.parser import Name, Variable, Constant, Optional
 
 import datetime
-import logging
 
 register = template.Library()
 
@@ -131,86 +129,6 @@ def to_str(data):
 def sentry_version():
     import sentry
     return sentry.VERSION
-
-
-@register.filter
-def get_actions(group, request):
-    action_list = []
-    for inst in plugins.all():
-        try:
-            action_list = inst.actions(request, group, action_list)
-        except Exception, e:
-            logger = logging.getLogger('sentry.plugins')
-            logger.error('Error processing actions() on %r: %s', inst.__class__, e, extra={
-                'request': request,
-            }, exc_info=True)
-
-    for action in action_list:
-        yield action[0], action[1], request.path == action[1]
-
-
-@register.filter
-def get_panels(group, request):
-    panel_list = []
-    for inst in plugins.all():
-        try:
-            panel_list = inst.panels(request, group, panel_list)
-        except Exception, e:
-            logger = logging.getLogger('sentry.plugins')
-            logger.error('Error processing panels() on %r: %s', inst.__class__, e, extra={
-                'request': request,
-            }, exc_info=True)
-
-    for panel in panel_list:
-        yield panel[0], panel[1], request.path == panel[1]
-
-
-@register.filter
-def get_widgets(group, request):
-    for inst in plugins.all():
-        try:
-            resp = inst.widget(request, group)
-            if resp:
-                resp = resp.render(request)
-        except Exception, e:
-            logger = logging.getLogger('sentry.plugins')
-            logger.error('Error processing widget() on %r: %s', inst.__class__, e, extra={
-                'request': request,
-            }, exc_info=True)
-            continue
-        if resp:
-            yield resp
-
-
-@register.filter
-def get_tags(group, request):
-    tag_list = []
-    for inst in plugins.all():
-        try:
-            tag_list = inst.tags(request, group, tag_list)
-        except Exception, e:
-            logger = logging.getLogger('sentry.plugins')
-            logger.error('Error processing tags() on %r: %s', inst.__class__, e, extra={
-                'request': request,
-            }, exc_info=True)
-
-    for tag in tag_list:
-        yield tag
-
-
-@register.simple_tag
-def handle_before_events(request, event_list):
-    if not hasattr(event_list, '__iter__'):
-        event_list = [event_list]
-    for inst in plugins.all():
-        try:
-            inst.before_events(request, event_list)
-        except Exception, e:
-            logger = logging.getLogger('sentry.plugins')
-            logger.error('Error processing before_events() on %r: %s', inst.__class__, e, extra={
-                'request': request,
-            }, exc_info=True)
-    return ''
 
 
 @register.filter
@@ -367,14 +285,3 @@ def get_project_dsn(context, user, project, asvar):
         context[asvar] = member.get_dsn()
 
     return ''
-
-
-@register.filter
-def get_plugins(project):
-    return plugins.for_project(project)
-
-
-@register.filter
-def get_plugins_with_status(project):
-    for plugin in plugins.all():
-        yield plugin, plugin.is_enabled(project)

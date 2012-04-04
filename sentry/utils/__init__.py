@@ -15,6 +15,19 @@ from django.http import HttpRequest
 from django.utils.encoding import force_unicode
 
 
+def safe_execute(func, *args, **kwargs):
+    try:
+        return func(*args, **kwargs)
+    except Exception, e:
+        cls = func.__class__
+        logger = logging.getLogger('sentry.plugins')
+        logger.error('Error processing %r on %%r: %%s' % func.__name__, cls.__name__, e, extra={
+            'func_module': cls.__module__,
+            'func_args': args,
+            'func_kwargs': kwargs,
+        }, exc_info=True)
+
+
 class InstanceManager(object):
     def __init__(self, class_list=None, instances=True):
         if class_list is None:

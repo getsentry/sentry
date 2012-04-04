@@ -1,4 +1,5 @@
 {% load sentry_helpers %}
+{% load sentry_plugins %}
 
 <li class="event level-{{ event.get_level_display }}" id="message_{{ event.pk|safe }}">
     <div class="details">
