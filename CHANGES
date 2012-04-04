@@ -1,3 +1,9 @@
+Version 3.8.0
+-------------
+
+Plugins are now configurable per-project. This makes it easy to install a plugin globally
+and allow it to run only on selective projects.
+
 Version 3.7.0
 -------------
 
