@@ -319,7 +319,7 @@ class SentrySearchTest(TestCase):
 
 class SentryHelpersTest(TestCase):
     def test_get_db_engine(self):
-        from sentry.utils import get_db_engine
+        from sentry.utils.db import get_db_engine
         _databases = getattr(django_settings, 'DATABASES', {}).copy()
 
         django_settings.DATABASES['default'] = {'ENGINE': 'blah.sqlite3'}

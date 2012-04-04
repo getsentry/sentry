@@ -13,7 +13,7 @@ import logging
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponse
 
-from sentry.utils import InstanceManager
+from sentry.utils.db import InstanceManager
 from threading import local
 
 

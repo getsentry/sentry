@@ -9,7 +9,8 @@ import pytz
 
 from django.conf import settings
 from django.db import connections
-from sentry.utils import get_db_engine
+
+from sentry.utils.db import get_db_engine
 
 
 def utc_to_local(dt):

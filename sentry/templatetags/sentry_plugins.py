@@ -8,7 +8,7 @@ sentry.templatetags.sentry_plugins
 from django import template
 
 from sentry.plugins import plugins
-from sentry.utils import safe_execute
+from sentry.utils.safe import safe_execute
 
 register = template.Library()
 

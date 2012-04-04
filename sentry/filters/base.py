@@ -15,7 +15,7 @@ from django.utils.datastructures import SortedDict
 
 from sentry.conf import settings
 from sentry.models import Group, Event, FilterValue, MessageIndex
-from sentry.utils import InstanceManager
+from sentry.utils.db import InstanceManager
 from .widgets import ChoiceWidget
 
 

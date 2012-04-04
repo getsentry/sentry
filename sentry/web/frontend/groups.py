@@ -23,7 +23,8 @@ from sentry.constants import SORT_OPTIONS, SEARCH_SORT_OPTIONS, DATE_OPTIONS, \
 from sentry.filters import Filter
 from sentry.models import Group, Event, View, SearchDocument
 from sentry.plugins import plugins
-from sentry.utils import json, has_trending, get_db_engine
+from sentry.utils import json
+from sentry.utils.db import has_trending, get_db_engine
 from sentry.web.decorators import has_access, login_required
 from sentry.web.helpers import render_to_response
 

@@ -27,9 +27,8 @@ from sentry.exceptions import InvalidInterface, InvalidData
 from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
 from sentry.tasks.index import index_event
-from sentry.utils import get_db_engine
-from sentry.utils.charts import has_charts
 from sentry.utils.dates import utc_to_local, get_sql_date_trunc
+from sentry.utils.db import get_db_engine, has_charts
 from sentry.utils.queue import maybe_delay
 
 logger = logging.getLogger('sentry.errors')

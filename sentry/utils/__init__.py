@@ -6,88 +6,8 @@ sentry.utils
 :license: BSD, see LICENSE for more details.
 """
 
-import logging
-from pprint import pformat
-
-import django
-from django.conf import settings as django_settings
 from django.http import HttpRequest
 from django.utils.encoding import force_unicode
-
-
-def safe_execute(func, *args, **kwargs):
-    try:
-        return func(*args, **kwargs)
-    except Exception, e:
-        cls = func.__class__
-        logger = logging.getLogger('sentry.plugins')
-        logger.error('Error processing %r on %%r: %%s' % func.__name__, cls.__name__, e, extra={
-            'func_module': cls.__module__,
-            'func_args': args,
-            'func_kwargs': kwargs,
-        }, exc_info=True)
-
-
-class InstanceManager(object):
-    def __init__(self, class_list=None, instances=True):
-        if class_list is None:
-            class_list = []
-        self.instances = instances
-        self.update(class_list)
-
-    def add(self, class_path):
-        self.cache = None
-        self.class_list.append(class_path)
-
-    def remove(self, class_path):
-        self.cache = None
-        self.class_list.remove(class_path)
-
-    def update(self, class_list):
-        """
-        Updates the class list and wipes the cache.
-        """
-        self.cache = None
-        self.class_list = class_list
-
-    def all(self):
-        """
-        Returns a list of cached instances.
-        """
-        if not self.class_list:
-            self.cache = []
-            return []
-
-        if self.cache is not None:
-            return self.cache
-
-        results = []
-        for cls_path in self.class_list:
-            module_name, class_name = cls_path.rsplit('.', 1)
-            try:
-                module = __import__(module_name, {}, {}, class_name)
-                cls = getattr(module, class_name)
-                if self.instances:
-                    results.append(cls())
-                else:
-                    results.append(cls)
-            except Exception:
-                logger = logging.getLogger('sentry.errors')
-                logger.exception('Unable to import %s' % (cls_path,))
-                continue
-        self.cache = results
-
-        return results
-
-
-def get_db_engine(alias='default'):
-    has_multidb = django.VERSION >= (1, 2)
-    if has_multidb:
-        value = django_settings.DATABASES[alias]['ENGINE']
-    else:
-        assert alias == 'default', 'You cannot fetch a database engine other than the default on Django < 1.2'
-        value = django_settings.DATABASE_ENGINE
-    return value.rsplit('.', 1)[-1]
 
 
 class _Missing(object):
@@ -170,6 +90,8 @@ class MockDjangoRequest(HttpRequest):
         self.__dict__.update(kwargs)
 
     def __repr__(self):
+        from pprint import pformat
+
         # Since this is called as part of error handling, we need to be very
         # robust against potentially malformed input.
         try:
@@ -214,7 +136,3 @@ def is_float(var):
     except ValueError:
         return False
     return True
-
-
-def has_trending(alias='default'):
-    return not get_db_engine('default').startswith('sqlite')

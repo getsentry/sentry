@@ -50,7 +50,7 @@ def subtract(value, amount):
 
 @register.filter
 def has_charts(group):
-    from sentry.utils.charts import has_charts
+    from sentry.utils.db import has_charts
     if hasattr(group, '_state'):
         db = group._state.db
     else:

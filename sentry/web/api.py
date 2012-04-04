@@ -129,7 +129,8 @@ def notification(request, project):
 @csrf_exempt
 @has_access
 def poll(request, project):
-    from sentry.templatetags.sentry_helpers import as_bookmarks, handle_before_events
+    from sentry.templatetags.sentry_helpers import as_bookmarks
+    from sentry.templatetags.sentry_plugins import handle_before_events
 
     offset = 0
     limit = settings.MESSAGES_PER_PAGE
