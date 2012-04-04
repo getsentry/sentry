@@ -38,7 +38,7 @@ class Response(object):
 
 class PluginManager(InstanceManager):
     def all(self):
-        for plugin in super(PluginManager, self).all():
+        for plugin in sorted(super(PluginManager, self).all(), key=lambda x: x.get_title()):
             if not plugin.is_enabled():
                 continue
             yield plugin
