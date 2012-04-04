@@ -3971,28 +3971,6 @@ div.commands a {
 div.commands span {
   font-size: 0.9em;
 }
-/** variables **/
-#requestinfo {
-  overflow: hidden;
-}
-#requestinfo > table {
-  border: 0;
-  width: 100%;
-  margin-bottom: 0;
-}
-#requestinfo th.key, #requestinfo td.values {
-  padding: 0 0 15px;
-  position: relative;
-}
-#requestinfo th.key {
-  vertical-align: top;
-  font-size: 1.1em;
-  text-align: left;
-  padding-right: 30px;
-}
-#requestinfo td.values th {
-  text-align: left;
-}
 #versioninfo th {
   text-align: left;
   font-family: monospace;
