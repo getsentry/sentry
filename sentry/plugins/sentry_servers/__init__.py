@@ -5,8 +5,11 @@ sentry.plugins.sentry_servers
 :copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+import sentry
 
 from django.db.models import Sum
+from django.utils.translation import ugettext_lazy as _
+
 from sentry.plugins import Plugin, register
 
 
@@ -17,8 +20,11 @@ class ServersPlugin(Plugin):
     * A panel which shows all servers a message was seen on.
     * A sidebar module which shows the servers most actively seen on.
     """
-
-    title = 'Servers'
+    slug = 'servers'
+    title = _('Servers')
+    version = sentry.VERSION
+    author = "Sentry Team"
+    author_url = "https://github.com/dcramer/sentry"
 
     def get_unique_servers(self, group):
         return group.messagefiltervalue_set.filter(key='server_name')\

@@ -367,3 +367,14 @@ def get_project_dsn(context, user, project, asvar):
         context[asvar] = member.get_dsn()
 
     return ''
+
+
+@register.filter
+def get_plugins(project):
+    return plugins.for_project(project)
+
+
+@register.filter
+def get_plugins_with_status(project):
+    for plugin in plugins.all():
+        yield plugin, plugin.is_enabled(project)

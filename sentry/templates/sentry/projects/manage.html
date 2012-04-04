@@ -1,6 +1,7 @@
 {% extends "sentry/layout.html" %}
 
 {% load i18n %}
+{% load sentry_helpers %}
 
 {% block title %}{% blocktrans with project.name as name %}Manage Project: {{ name }}{% endblocktrans %} | {{ block.super }}{% endblock %}
 
@@ -16,11 +17,14 @@
             <li{% if page == 'details' %} class="active"{% endif %}>
                 <a href="{% url sentry-manage-project project.pk %}">{% trans "Details" %}</a>
             </li>
-            {% for p in PLUGINS.for_project %}
+            {% for p in project|get_plugins %}
                 <li{% if page == 'plugin' and plugin.slug == p.slug %} class="active"{% endif %}>
                     <a href="{% url sentry-configure-project-plugin project.pk p.slug %}">{{ p.get_title }}</a>
                 </li>
             {% endfor %}
+            <li class="pull-right{% if page == 'plugins' %} active{% endif %}">
+                <a href="{% url sentry-manage-project-plugins project.pk %}">{% trans "Manage Plugins" %}</a>
+            </li>
         </ul>
         {% block inner %}
             <p>{% trans "Here you can edit project information, as well as control the access list for a project with fine-grained permissions." %}</p>

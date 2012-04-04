@@ -387,3 +387,20 @@ def configure_project_plugin(request, project, slug):
     })
 
     return render_to_response('sentry/projects/plugins/configure.html', context, request)
+
+
+@login_required
+@has_access(MEMBER_OWNER)
+@csrf_protect
+def manage_plugins(request, project):
+    result = plugins.first('has_perm', request.user, 'configure_project_plugin', project)
+    if result is False and not request.user.has_perm('sentry.can_change_project'):
+        return HttpResponseRedirect(reverse('sentry'))
+
+    context = csrf(request)
+    context.update({
+        'page': 'plugins',
+        'project': project,
+    })
+
+    return render_to_response('sentry/projects/plugins/list.html', context, request)

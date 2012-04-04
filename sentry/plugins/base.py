@@ -37,8 +37,16 @@ class Response(object):
 
 
 class PluginManager(InstanceManager):
-    def for_project(self):
+    def all(self):
+        for plugin in super(PluginManager, self).all():
+            if not plugin.is_enabled():
+                continue
+            yield plugin
+
+    def for_project(self, project):
         for plugin in self.all():
+            if not plugin.is_enabled(project):
+                continue
             if not plugin.has_project_conf():
                 continue
             yield plugin
@@ -112,6 +120,14 @@ class IPlugin(local):
 
     All children should allow ``**kwargs`` on all inherited methods.
     """
+    # Generic plugin information
+    title = None
+    slug = None
+    description = None
+    version = None
+    author = None
+    author_url = None
+
     conf_key = None
     conf_title = None
 
@@ -121,14 +137,15 @@ class IPlugin(local):
     site_conf_form = None
     site_conf_template = 'sentry/plugins/site_configuration.html'
 
-    title = None
-    slug = None
-    description = None
-
     enabled = True
 
     def _get_option_key(self, key):
         return '%s:%s' % (self.get_conf_key(), key)
+
+    def is_enabled(self, project=None):
+        if not self.enabled:
+            return False
+        return True
 
     def get_option(self, key, project=None):
         """

@@ -5,6 +5,8 @@ sentry.plugins.sentry_mail
 :copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+import sentry
+
 from django import forms
 from django.core.mail import EmailMultiAlternatives
 from django.core.validators import email_re, ValidationError
@@ -51,6 +53,10 @@ class MailProcessor(NotifyPlugin):
     title = _('Mail')
     conf_key = 'mail'
     slug = 'mail'
+    version = sentry.VERSION
+    author = "Sentry Team"
+    author_url = "https://github.com/dcramer/sentry"
+
     project_conf_form = MailConfigurationForm
 
     def __init__(self, min_level=NOTSET, include_loggers=NOTSET, exclude_loggers=NOTSET,
