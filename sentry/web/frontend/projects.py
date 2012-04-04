@@ -401,7 +401,7 @@ def manage_plugins(request, project):
         enabled = set(request.POST.getlist('plugin'))
         for plugin in plugins.all():
             plugin.set_option('enabled', plugin.slug in enabled, project)
-        return HttpResponseRedirect(request.build_absolute_uri() + '?success=1')
+        return HttpResponseRedirect(request.path + '?success=1')
 
     context = csrf(request)
     context.update({
