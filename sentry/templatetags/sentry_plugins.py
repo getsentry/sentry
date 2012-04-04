@@ -27,7 +27,7 @@ def get_actions(group, request):
         if not results:
             continue
 
-        action_list += results
+        action_list = results
 
     for action in action_list:
         yield action[0], action[1], request.path == action[1]
@@ -47,7 +47,7 @@ def get_panels(group, request):
         if not results:
             continue
 
-        panel_list += results
+        panel_list = results
 
     for panel in panel_list:
         yield panel[0], panel[1], request.path == panel[1]
@@ -81,7 +81,7 @@ def get_tags(group, request):
         if not results:
             continue
 
-        tag_list += results
+        tag_list = results
 
     for tag in tag_list:
         yield tag
