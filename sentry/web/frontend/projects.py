@@ -11,8 +11,8 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
 from sentry.conf import settings
-from sentry.models import ProjectMember, MEMBER_OWNER, \
-  ProjectKey
+from sentry.models import TeamMember, MEMBER_OWNER, \
+  ProjectKey, Team
 from sentry.permissions import can_create_projects, can_remove_project
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_access
@@ -24,19 +24,22 @@ from sentry.web.helpers import render_to_response, get_project_list, \
 
 @login_required
 def project_list(request):
-    project_list = get_project_list(request.user, hidden=True)
-    memberships = list(ProjectMember.objects.filter(user=request.user, project__in=project_list))
+    project_list = get_project_list(request.user, hidden=True).values()
+    team_list = dict((t.id, t) for t in Team.objects.filter(pk__in=[p.team_id for p in project_list]))
+    memberships = dict((tm.team_id, tm) for tm in TeamMember.objects.filter(user=request.user, team__in=team_list))
     keys = dict((p.project_id, p) for p in ProjectKey.objects.filter(user=request.user, project__in=project_list))
 
-    for member in memberships:
-        project_id = member.project_id
-        key = keys.get(project_id)
+    for project in project_list:
+        key = keys.get(project.id)
         if key:
-            project_list[project_id].member_dsn = key.get_dsn()
-        project_list[project_id].member_type = member.get_type_display()
+            project.member_dsn = key.get_dsn()
+
+        member = memberships.get(project.team_id)
+        if member:
+            project.member_type = member.get_type_display()
 
     return render_to_response('sentry/projects/list.html', {
-        'PROJECT_LIST': project_list.values(),
+        'PROJECT_LIST': project_list,
     }, request)
 
 

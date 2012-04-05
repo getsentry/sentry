@@ -314,26 +314,6 @@ class PendingTeamMember(Model):
             logger.exception(e)
 
 
-class ProjectMember(Model):
-    """
-    Identifies relationships between projects and users, including
-    their API access and permissions.
-    """
-    project = models.ForeignKey(Project, related_name="member_set")
-    user = models.ForeignKey(User, related_name="sentry_project_set")
-    is_active = models.BooleanField(default=True)
-    type = models.IntegerField(choices=MEMBER_TYPES, default=globals().get(settings.DEFAULT_PROJECT_ACCESS))
-    date_added = models.DateTimeField(default=datetime.now)
-
-    objects = BaseManager()
-
-    class Meta:
-        unique_together = (('project', 'user'),)
-
-    def __unicode__(self):
-        return u'project=%s, user=%s, type=%s' % (self.project_id, self.user_id, self.get_type_display())
-
-
 class ProjectDomain(Model):
     """
     Currently unused. Planned for 'trusted domains' for JS apis.
