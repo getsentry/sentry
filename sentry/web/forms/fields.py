@@ -10,6 +10,7 @@ from django.forms.widgets import RadioFieldRenderer, TextInput
 from django.forms import CharField, ValidationError
 from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
+from django.utils.translation import ugettext_lazy as _
 
 
 class RadioFieldRenderer(RadioFieldRenderer):
