@@ -21,9 +21,10 @@ from tests.base import TestCase
 class BaseAPITest(TestCase):
     def setUp(self):
         self.user = User.objects.create(username='coreapi')
-        self.project = Project.objects.get(id=1)
-        self.pm = self.project.member_set.create(user=self.user)
-        self.pk = self.project.key_set.get(user=self.user)
+        self.project = Project.objects.create(owner=self.user, name='Foo', slug='bar')
+        self.pm = self.project.team.member_set.get_or_create(user=self.user)[0]
+        self.pk = self.project.key_set.get_or_create(user=self.user)[0]
+
 
 class GetSignatureTest(BaseAPITest):
     def test_valid_string(self):

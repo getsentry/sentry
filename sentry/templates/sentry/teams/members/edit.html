@@ -1,4 +1,4 @@
-{% extends "sentry/projects/manage.html" %}
+{% extends "sentry/teams/manage.html" %}
 
 {% load i18n %}
 {% load sentry_helpers %}
@@ -8,13 +8,13 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider">/</li>
-    <li><a href="{% url sentry-new-project %}">Member: {{ member.user.username|truncatechars:30 }}</a></li>
+    <li><a href="{% url sentry-edit-team-member team.slug member.pk %}">Member: {{ member.user.username|truncatechars:30 }}</a></li>
 {% endblock %}
 
 {% block main %}
     <section class="body">
         {% if request.GET.success %}
-            <div class="alert alert-success">{% trans "Changes to your project were saved successfully." %}</div>
+            <div class="alert alert-success">{% trans "Changes to the member were saved successfully." %}</div>
         {% else %}
             {% if form.errors %}
                 <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
@@ -29,28 +29,6 @@
                     {{ member.user.username }}
                 </div>
             </fieldset>
-            <fieldset class="control-group">
-                <label>{% trans "Public Key" %}</label>
-                <div class="controls">
-                    {{ key.public_key }}
-                </div>
-            </fieldset>
-            <fieldset class="control-group">
-                <label>{% trans "Secret Key" %}</label>
-                <div class="controls">
-                    {{ key.secret_key }}
-                </div>
-            </fieldset>
-            <fieldset class="control-group">
-                <label>{% trans "Client DSN" %}</label>
-                <div class="controls">
-                    {{ dsn }}
-                </div>
-            </fieldset>
-            <br/>
-            <legend>{% trans "Client Configuration" %}</legend>
-            <p>{% trans "Choose your platform for quick setup instructions:" %}</p>
-            {% include "sentry/partial/_client_config.html" %}
             <br/>
             <legend>{% trans "Access" %}</legend>
             {% for field in form %}

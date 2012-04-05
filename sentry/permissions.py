@@ -47,3 +47,24 @@ def can_set_public_projects(user):
     if result is False:
         return result
     return True
+
+
+def can_add_team_member(user, team):
+    result = plugins.first('has_perm', user, 'add_team_member', team)
+    if result is False and not user.has_perm('sentry.can_add_teammember'):
+        return False
+    return True
+
+
+def can_remove_team(user, team):
+    result = plugins.first('has_perm', user, 'remove_team', team)
+    if result is False and not user.has_perm('sentry.can_remove_team'):
+        return False
+    return True
+
+
+def can_remove_project(user, team):
+    result = plugins.first('has_perm', user, 'remove_project', team)
+    if result is False and not user.has_perm('sentry.can_remove_project'):
+        return False
+    return True

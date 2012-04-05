@@ -8,8 +8,8 @@ from django.conf import settings as django_settings
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
-from sentry.models import Group, Project, ProjectMember, \
-  MEMBER_OWNER, MEMBER_USER
+from sentry.models import Group, Project, TeamMember, \
+  MEMBER_OWNER, MEMBER_USER, Team
 from sentry.web.helpers import get_login_url
 
 from tests.base import TestCase
@@ -43,8 +43,9 @@ class SentryViewsTest(TestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateNotUsed(resp, 'sentry/dashboard.html')
 
-        # requires two projects to show dashboard
+        # requires at least two projects to show dashboard
         Project.objects.create(name='foo', owner=self.user)
+        Project.objects.create(name='bar', owner=self.user).team
         resp = self.client.get(reverse('sentry'), follow=True)
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/dashboard.html')
@@ -168,18 +169,19 @@ class ViewPermissionTest(TestCase):
         self.user4 = User(username="owner", email="owner@localhost")
         self.user4.set_password('owner')
         self.user4.save()
-        self.pm = ProjectMember.objects.create(
-            user_id=2,
-            project_id=1,
-            type=MEMBER_USER,
-        )
-        self.pm = ProjectMember.objects.create(
-            user_id=4,
-            project_id=1,
-            type=MEMBER_OWNER,
-        )
+        self.team = Team.objects.create(owner=self.user4, name='foo')
         self.project = Project.objects.get(id=1)
-        self.project.update(public=False)
+        self.project.update(public=False, team=self.team)
+        self.tm = TeamMember.objects.get_or_create(
+            user=self.user2,
+            team=self.team,
+            type=MEMBER_USER,
+        )[0]
+        TeamMember.objects.get_or_create(
+            user=self.user4,
+            team=self.team,
+            type=MEMBER_OWNER,
+        )[0]
 
     def _assertPerm(self, path, template, account=None, want=True):
         """
@@ -242,9 +244,9 @@ class ViewPermissionTest(TestCase):
             self._assertPerm(path, template, 'nobody', False)
             self._assertPerm(path, template, 'member', False)
 
-    def test_new_project_member(self):
-        path = reverse('sentry-new-project-member', kwargs={'project_id': 1})
-        template = 'sentry/projects/members/new.html'
+    def test_new_team_member(self):
+        path = reverse('sentry-new-team-member', kwargs={'team_slug': self.team.slug})
+        template = 'sentry/teams/members/new.html'
 
         self._assertPerm(path, template, 'admin')
         self._assertPerm(path, template, 'owner')
@@ -252,9 +254,9 @@ class ViewPermissionTest(TestCase):
         self._assertPerm(path, template, 'nobody', False)
         self._assertPerm(path, template, 'member', False)
 
-    def test_edit_project_member(self):
-        path = reverse('sentry-edit-project-member', kwargs={'project_id': 1, 'member_id': 1})
-        template = 'sentry/projects/members/edit.html'
+    def test_edit_team_member(self):
+        path = reverse('sentry-edit-team-member', kwargs={'team_slug': self.team.slug, 'member_id': self.tm.pk})
+        template = 'sentry/teams/members/edit.html'
 
         self._assertPerm(path, template, 'admin')
         self._assertPerm(path, template, 'owner')
@@ -262,9 +264,9 @@ class ViewPermissionTest(TestCase):
         self._assertPerm(path, template, 'nobody', False)
         self._assertPerm(path, template, 'member', False)
 
-    def test_remove_project_member(self):
-        path = reverse('sentry-remove-project-member', kwargs={'project_id': 1, 'member_id': 1})
-        template = 'sentry/projects/members/remove.html'
+    def test_remove_team_member(self):
+        path = reverse('sentry-remove-team-member', kwargs={'team_slug': self.team.slug, 'member_id': self.tm.pk})
+        template = 'sentry/teams/members/remove.html'
 
         self._assertPerm(path, template, 'admin')
         self._assertPerm(path, template, 'owner')

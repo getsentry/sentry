@@ -22,7 +22,8 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models import F
-from django.db.models.signals import post_syncdb, post_save
+from django.db.models.signals import post_syncdb, post_save, post_delete
+from django.template.defaultfilters import slugify
 from django.utils.datastructures import SortedDict
 from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
@@ -32,7 +33,7 @@ from sentry.manager import GroupManager, ProjectManager, \
   MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager
 from sentry.utils import cached_property, \
   MockDjangoRequest
-from sentry.utils.models import Model, GzippedDictField
+from sentry.utils.models import Model, GzippedDictField, update
 from sentry.templatetags.sentry_helpers import truncatechars
 
 __all__ = ('Event', 'Group', 'Project', 'SearchDocument')
@@ -86,18 +87,24 @@ class Team(Model):
     owner = models.ForeignKey(User)
 
     objects = BaseManager(cache_fields=(
+        'pk',
         'slug',
     ))
 
     def __unicode__(self):
         return self.slug
 
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super(Team, self).save(*args, **kwargs)
+
 
 class TeamMember(Model):
     """
     Identifies relationships between teams and users.
     """
-    team = models.ForeignKey(Team)
+    team = models.ForeignKey(Team, related_name="member_set")
     user = models.ForeignKey(User, related_name="sentry_teammember_set")
     is_active = models.BooleanField(default=True)
     type = models.IntegerField(choices=MEMBER_TYPES, default=globals().get(settings.DEFAULT_PROJECT_ACCESS))
@@ -138,6 +145,11 @@ class Project(Model):
 
     def __unicode__(self):
         return u'#%s %r' % (self.pk, self.name)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super(Project, self).save(*args, **kwargs)
 
     def delete(self):
         # This hadles cascades properly
@@ -257,25 +269,25 @@ class ProjectOption(Model):
         return u'project=%s, key=%s, value=%s' % (self.project_id, self.key, self.value)
 
 
-class PendingProjectMember(Model):
+class PendingTeamMember(Model):
     """
-    Identifies relationships between projects and pending invites.
+    Identifies relationships between teams and pending invites.
     """
-    project = models.ForeignKey(Project, related_name="pending_member_set")
+    team = models.ForeignKey(Team, related_name="pending_member_set")
     email = models.EmailField()
     type = models.IntegerField(choices=MEMBER_TYPES, default=globals().get(settings.DEFAULT_PROJECT_ACCESS))
     date_added = models.DateTimeField(default=datetime.now)
 
     class Meta:
-        unique_together = (('project', 'email'),)
+        unique_together = (('team', 'email'),)
 
     def __unicode__(self):
-        return u'project=%s, email=%s, type=%s' % (self.project_id, self.email, self.get_type_display())
+        return u'team=%s, email=%s, type=%s' % (self.team_id, self.email, self.get_type_display())
 
     @property
     def token(self):
         checksum = md5()
-        for x in (str(self.project_id), self.email, settings.KEY):
+        for x in (str(self.team_id), self.email, settings.KEY):
             checksum.update(x)
         return checksum.hexdigest()
 
@@ -285,7 +297,7 @@ class PendingProjectMember(Model):
 
         context = {
             'email': self.email,
-            'project': self.project,
+            'team': self.team,
             'url': '%s%s' % (settings.URL_PREFIX, reverse('sentry-accept-invite', kwargs={
                 'member_id': self.id,
                 'token': self.token,
@@ -294,7 +306,7 @@ class PendingProjectMember(Model):
         body = render_to_string('sentry/emails/member_invite.txt', context)
 
         try:
-            send_mail('%s Invite to join project: %s' % (settings.EMAIL_SUBJECT_PREFIX, self.project.name),
+            send_mail('%s Invite to join team: %s' % (settings.EMAIL_SUBJECT_PREFIX, self.team.name),
                 body, settings.SERVER_EMAIL, [self.email],
                 fail_silently=False)
         except Exception, e:
@@ -752,14 +764,31 @@ def create_default_project(created_models, verbosity=2, **kwargs):
                 print 'done!'
 
 
-def create_project_member_for_owner(instance, created, **kwargs):
+def create_team_for_project(instance, created, **kwargs):
+    if not created:
+        return
+
+    if instance.team:
+        return
+
+    if not instance.owner:
+        return
+
+    update(instance, team=Team.objects.create(
+        owner=instance.owner,
+        name=instance.name,
+        slug=instance.slug,
+    ))
+
+
+def create_team_member_for_owner(instance, created, **kwargs):
     if not created:
         return
 
     if not instance.owner:
         return
 
-    instance.member_set.create(
+    instance.member_set.get_or_create(
         user=instance.owner,
         type=globals()[settings.DEFAULT_PROJECT_ACCESS]
     )
@@ -775,14 +804,23 @@ def update_document(instance, created, **kwargs):
     ).update(status=instance.status)
 
 
-def create_key_for_project_member(instance, created, **kwargs):
+def create_key_for_team_member(instance, created, **kwargs):
     if not created:
         return
 
-    ProjectKey.objects.create(
-        project=instance.project,
-        user=instance.user,
-    )
+    for project in instance.team.project_set.all():
+        ProjectKey.objects.get_or_create(
+            project=project,
+            user=instance.user,
+        )
+
+
+def remove_key_for_team_member(instance, **kwargs):
+    for project in instance.team.project_set.all():
+        ProjectKey.objects.filter(
+            project=project,
+            user=instance.user,
+        ).delete()
 
 # Signal registration
 post_syncdb.connect(
@@ -791,9 +829,15 @@ post_syncdb.connect(
     weak=False,
 )
 post_save.connect(
-    create_project_member_for_owner,
+    create_team_for_project,
     sender=Project,
-    dispatch_uid="create_project_member_for_owner",
+    dispatch_uid="create_team_for_project",
+    weak=False,
+)
+post_save.connect(
+    create_team_member_for_owner,
+    sender=Team,
+    dispatch_uid="create_team_member_for_owner",
     weak=False,
 )
 post_save.connect(
@@ -803,8 +847,14 @@ post_save.connect(
     weak=False,
 )
 post_save.connect(
-    create_key_for_project_member,
-    sender=ProjectMember,
-    dispatch_uid="create_key_for_project_member",
+    create_key_for_team_member,
+    sender=TeamMember,
+    dispatch_uid="create_key_for_team_member",
+    weak=False,
+)
+post_delete.connect(
+    remove_key_for_team_member,
+    sender=TeamMember,
+    dispatch_uid="remove_key_for_team_member",
     weak=False,
 )

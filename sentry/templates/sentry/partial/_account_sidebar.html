@@ -1,0 +1,17 @@
+{% load i18n %}
+
+<h6>{% trans "Account" %}</h6>
+<ul class="nav nav-tabs nav-stacked">
+    <li><a href="{% url sentry-account-settings %}">{% trans "Settings" %}</a></li>
+</ul>
+<a href="{% url sentry-create-new-team %}" class="pull-right"><small>{% trans "New team" %}</small></a>
+<h6>{% trans "Teams" %}</h6>
+{% if TEAMS %}
+    <ul class="nav nav-tabs nav-stacked">
+        {% for team in TEAMS %}
+            <li><a href="{% url sentry-manage-team team.slug %}">{{ team.name }}</a></li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>{% trans "You are not a part of any teams." %}</p>
+{% endif %}

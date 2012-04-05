@@ -42,8 +42,9 @@ class NewProjectTest(TestCase):
         project = project.get()
 
         self.assertEquals(project.owner, self.user)
+        self.assertNotEquals(project.team, None)
 
-        member_set = list(project.member_set.all())
+        member_set = list(project.team.member_set.all())
 
         self.assertEquals(len(member_set), 1)
         member = member_set[0]

@@ -3,9 +3,9 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 
 from sentry.conf import settings
-from sentry.models import Project
+from sentry.models import Project, Team
 from sentry.web.helpers import get_project_list, render_to_response, \
-  get_login_url
+  get_login_url, get_team_list
 
 
 def has_access(group_or_func=None):
@@ -34,7 +34,7 @@ def has_access(group_or_func=None):
             if request.user.is_superuser:
                 if project_id:
                     try:
-                        project = Project.objects.get(pk=project_id)
+                        project = Project.objects.get_from_cache(pk=project_id)
                     except Project.DoesNotExist:
                         return HttpResponseRedirect(reverse('sentry'))
                 else:
@@ -51,6 +51,47 @@ def has_access(group_or_func=None):
                 project = None
 
             return func(request, project, *args, **kwargs)
+        return _wrapped
+    return wrapped
+
+
+def has_team_access(group_or_func=None):
+    """
+    Tests and transforms team_id for permissions based on the requesting
+    user. Passes the actual project instance to the decorated view.
+
+    The default permission scope is 'user', which
+    allows both 'user' and 'owner' access, but not 'system agent'.
+
+    >>> @has_team_access(MEMBER_OWNER)
+    >>> def foo(request, team):
+    >>>     return
+
+    >>> @has_team_access
+    >>> def foo(request, team):
+    >>>     return
+    """
+    if callable(group_or_func):
+        return has_team_access(None)(group_or_func)
+
+    def wrapped(func):
+        @wraps(func)
+        def _wrapped(request, team_slug, *args, **kwargs):
+            if request.user.is_superuser:
+                try:
+                    team = Team.objects.get_from_cache(slug=team_slug)
+                except Team.DoesNotExist:
+                    return HttpResponseRedirect(reverse('sentry'))
+                return func(request, team, *args, **kwargs)
+
+            team_list = get_team_list(request.user, group_or_func)
+            print team_slug
+            try:
+                team = team_list[team_slug]
+            except (KeyError, ValueError):
+                return HttpResponseRedirect(reverse('sentry'))
+
+            return func(request, team, *args, **kwargs)
         return _wrapped
     return wrapped
 

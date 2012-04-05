@@ -16,40 +16,60 @@ from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 
 from sentry.conf import settings
-from sentry.models import ProjectMember, Project, View, \
-  MEMBER_USER, Option, ProjectOption
+from sentry.models import Project, View, \
+  MEMBER_USER, Option, ProjectOption, Team
 from sentry.permissions import can_create_projects
 
 logger = logging.getLogger('sentry.errors')
 
 
-def get_project_list(user=None, access=None, hidden=False):
+def get_project_list(user=None, access=None, hidden=False, key='id'):
     """
-    Returns a set of all projects a user has some level of access to.
+    Returns a SortedDict of all projects a user has some level of access to.
     """
     if access is None:
         access = MEMBER_USER
 
+    base_qs = Project.objects
+    if not hidden:
+        base_qs = base_qs.filter(status=0)
+
     # If we're not requesting specific access include all
     # public projects
     if access <= MEMBER_USER:
-        qs = Project.objects.filter(public=True)
-        if not hidden:
-            qs = qs.filter(status=0)
-        projects = SortedDict((p.pk, p) for p in qs)
+        qs = base_qs.filter(public=True)
+        projects = SortedDict((getattr(p, key), p) for p in qs)
     else:
         projects = SortedDict()
 
     # If the user is authenticated, include their memberships
     if user and user.is_authenticated():
-        qs = ProjectMember.objects.filter(user=user)\
-              .select_related('project')
-        if not hidden:
-            qs = qs.filter(project__status=0)
-        projects.update(SortedDict((pm.project_id, pm.project)
-            for pm in qs if pm.type <= access))
+        teams = get_team_list(user, access).values()
+        qs = base_qs.filter(
+            team__in=teams,
+        )
+        projects.update(SortedDict((getattr(p, key), p)
+            for p in qs))
 
     return projects
+
+
+def get_team_list(user, access=None):
+    """
+    Returns a SortedDict of all teams a user has some level of access to.
+    """
+    if access is None:
+        access = MEMBER_USER
+
+    if not user.is_authenticated():
+        return SortedDict()
+
+    qs = Team.objects.filter(
+        member_set__user=user,
+        member_set__is_active=True,
+        member_set__type__lte=access,
+    )
+    return SortedDict((p.slug, p) for p in qs)
 
 _LOGIN_URL = None
 
@@ -99,6 +119,8 @@ def get_default_context(request, existing_context=None):
         })
         if not existing_context or 'PROJECT_LIST' not in existing_context:
             context['PROJECT_LIST'] = get_project_list(request.user).values()
+        if not existing_context or 'TEAMS' not in existing_context:
+            context['TEAMS'] = get_team_list(request.user).values()
 
     return context
 

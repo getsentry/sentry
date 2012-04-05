@@ -19,13 +19,7 @@
             <fieldset>
                 <legend>{% trans "Project Details" %}</legend>
                 {% for field in form %}
-                    <div class="clearfix{% if field.errors %} error{% endif %}">
-                        {{ field.label_tag }}
-                        <div class="input">{{ field }}</div>
-                        {% if field.help_text %}
-                            <span class="help-block">{{ field.help_text }}</span>
-                        {% endif %}
-                    </div>
+                    {% include "sentry/partial/_form_field.html" %}
                 {% endfor %}
             </fieldset>
             <div class="actions">

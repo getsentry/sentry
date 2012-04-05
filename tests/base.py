@@ -11,6 +11,7 @@ from sentry.utils.compat.db import connections
 
 
 from django.conf import settings as django_settings
+from django.core.cache import cache
 from django.core.management import call_command
 from django.core.urlresolvers import reverse
 from django.db import DEFAULT_DB_ALIAS
@@ -59,6 +60,10 @@ class BaseTestCase(object):
     urls = 'tests.sentry.web.urls'
 
     Settings = Settings
+
+    def _pre_setup(self):
+        cache.clear()
+        super(BaseTestCase, self)._pre_setup()
 
     def _postWithKey(self, data, key=None):
         resp = self.client.post(reverse('sentry-api-store'), {

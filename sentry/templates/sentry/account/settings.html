@@ -4,8 +4,6 @@
 
 {% block title %}{% trans "Account Settings" %} | {{ block.super }}{% endblock %}
 
-{% block bodyclass %}{% endblock %}
-
 {% block page_header %}
     <ul class="breadcrumb">
         <li><a href="#">{% trans "Account Settings" %}</a></li>
@@ -17,7 +15,7 @@
     {% trans "Account Settings" %}
 {% endblock %}
 
-{% block content %}
+{% block main %}
     <section class="body">
         <form action="" method="post">
             {% csrf_token %}
@@ -65,4 +63,8 @@
             </fieldset>
         </form>
     </section>
+{% endblock %}
+
+{% block sidebar %}
+    {% include "sentry/partial/_account_sidebar.html" %}
 {% endblock %}

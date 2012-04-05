@@ -7,7 +7,7 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider">/</li>
-    <li><a href="{% url sentry-new-team-member project.pk %}">{% trans "New Member" %}</a></li>
+    <li><a href="{% url sentry-new-team-member team.slug %}">{% trans "New Member" %}</a></li>
 {% endblock %}
 
 {% block main %}
@@ -18,7 +18,7 @@
         </ul>
         <div class="tab-content">
             <div class="tab-pane" id="invite">
-                <p>{% trans "Invite a member to join this project via their email address. If they do not already have an
+                <p>{% trans "Invite a member to join this team via their email address. If they do not already have an
                     account they will first be asked to create one." %}</p>
                 {% with invite_form as form %}
                     {% include "sentry/partial/_form.html" %}

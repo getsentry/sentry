@@ -4,8 +4,8 @@ from __future__ import absolute_import
 
 
 from django.core import mail
-from sentry.models import Project, ProjectKey, Group, Event, \
-  MessageFilterValue, MessageCountByMinute, FilterValue, PendingProjectMember
+from sentry.models import Project, ProjectKey, Group, Event, Team, \
+  MessageFilterValue, MessageCountByMinute, FilterValue, PendingTeamMember
 
 from tests.base import TestCase
 
@@ -53,21 +53,22 @@ class ProjectKeyTest(TestCase):
             self.assertEquals(key.get_dsn(), 'http://public:secret@example.com:81/1')
 
 
-class PendingProjectMemberTest(TestCase):
+class PendingTeamMemberTest(TestCase):
     fixtures = ['tests/fixtures/views.json']
 
     def test_token_generation(self):
-        member = PendingProjectMember(id=1, project_id=1, email='foo@example.com')
+        member = PendingTeamMember(id=1, team_id=1, email='foo@example.com')
         with self.Settings(SENTRY_KEY='a'):
             self.assertEquals(member.token, 'f3f2aa3e57f4b936dfd4f42c38db003e')
 
     def test_token_generation_unicode_key(self):
-        member = PendingProjectMember(id=1, project_id=1, email='foo@example.com')
+        member = PendingTeamMember(id=1, team_id=1, email='foo@example.com')
         with self.Settings(SENTRY_KEY="\xfc]C\x8a\xd2\x93\x04\x00\x81\xeak\x94\x02H\x1d\xcc&P'q\x12\xa2\xc0\xf2v\x7f\xbb*lX"):
             self.assertEquals(member.token, 'df41d9dfd4ba25d745321e654e15b5d0')
 
     def test_send_invite_email(self):
-        member = PendingProjectMember(id=1, project_id=1, email='foo@example.com')
+        team = Team(name='test', slug='test', id=1)
+        member = PendingTeamMember(id=1, team=team, email='foo@example.com')
         with self.Settings(SENTRY_URL_PREFIX='http://example.com'):
             member.send_invite_email()
 

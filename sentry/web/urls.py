@@ -12,7 +12,7 @@ from django.conf.urls.defaults import *
 
 from sentry.web import api
 from sentry.web.frontend import accounts, generic, groups, events, \
-  projects, admin, docs
+  projects, admin, docs, teams
 
 __all__ = ('urlpatterns',)
 
@@ -45,7 +45,29 @@ urlpatterns = patterns('',
     url(r'^logout/$', accounts.logout, name='sentry-logout'),
     url(r'^account/settings/$', accounts.settings, name='sentry-account-settings'),
 
-    # Management
+    # Teams
+
+    url(r'^account/teams/new/$', teams.create_new_team, name='sentry-create-new-team'),
+    url(r'^account/teams/(?P<team_slug>[\w_-]+)/edit/$', teams.manage_team,
+        name='sentry-manage-team'),
+    url(r'^account/teams/(?P<team_slug>[\w_-]+)/members/new/$', teams.new_team_member,
+        name='sentry-new-team-member'),
+    url(r'^account/teams/(?P<team_slug>[\w_-]+)/members/(?P<member_id>\d+)/edit/$', teams.edit_team_member,
+        name='sentry-edit-team-member'),
+    url(r'^account/teams/(?P<team_slug>[\w_-]+)/members/(?P<member_id>\d+)/remove/$', teams.remove_team_member,
+        name='sentry-remove-team-member'),
+    url(r'^account/teams/(?P<team_slug>[\w_-]+)/members/(?P<member_id>\d+)/suspend/$', teams.suspend_team_member,
+        name='sentry-suspend-team-member'),
+    url(r'^account/teams/(?P<team_slug>[\w_-]+)/members/(?P<member_id>\d+)/restore/$', teams.restore_team_member,
+        name='sentry-restore-team-member'),
+    url(r'^account/teams/(?P<team_slug>[\w_-]+)/members/pending/(?P<member_id>\d+)/remove/$', teams.remove_pending_team_member,
+        name='sentry-remove-pending-team-member'),
+    url(r'^account/teams/(?P<team_slug>[\w_-]+)/members/pending/(?P<member_id>\d+)/reinvite/$', teams.reinvite_pending_team_member,
+        name='sentry-reinvite-pending-team-member'),
+    url(r'^accept/(?P<member_id>\d+)/(?P<token>\w+)/$', teams.accept_invite,
+        name='sentry-accept-invite'),
+
+    # Projects
 
     url(r'^projects/$', projects.project_list, name='sentry-project-list'),
     url(r'^projects/new/$', projects.new_project, name='sentry-new-project'),
@@ -57,22 +79,6 @@ urlpatterns = patterns('',
         name='sentry-configure-project-plugin'),
     url(r'^projects/(?P<project_id>\d+)/remove/$', projects.remove_project,
         name='sentry-remove-project'),
-    url(r'^projects/(?P<project_id>\d+)/members/new/$', projects.new_project_member,
-        name='sentry-new-project-member'),
-    url(r'^projects/(?P<project_id>\d+)/members/(?P<member_id>\d+)/edit/$', projects.edit_project_member,
-        name='sentry-edit-project-member'),
-    url(r'^projects/(?P<project_id>\d+)/members/(?P<member_id>\d+)/remove/$', projects.remove_project_member,
-        name='sentry-remove-project-member'),
-    url(r'^projects/(?P<project_id>\d+)/members/(?P<member_id>\d+)/suspend/$', projects.suspend_project_member,
-        name='sentry-suspend-project-member'),
-    url(r'^projects/(?P<project_id>\d+)/members/(?P<member_id>\d+)/restore/$', projects.restore_project_member,
-        name='sentry-restore-project-member'),
-    url(r'^projects/(?P<project_id>\d+)/members/pending/(?P<member_id>\d+)/remove/$', projects.remove_pending_project_member,
-        name='sentry-remove-pending-project-member'),
-    url(r'^projects/(?P<project_id>\d+)/members/pending/(?P<member_id>\d+)/reinvite/$', projects.reinvite_pending_project_member,
-        name='sentry-reinvite-pending-project-member'),
-    url(r'^accept/(?P<member_id>\d+)/(?P<token>\w+)/$', projects.accept_invite,
-        name='sentry-accept-invite'),
 
     # Global
 

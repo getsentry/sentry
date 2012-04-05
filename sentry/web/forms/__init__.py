@@ -7,46 +7,13 @@ sentry.web.forms
 """
 from django import forms
 from django.contrib.auth.models import User
-from django.utils.encoding import force_unicode
-from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
-from sentry.models import Project, ProjectMember, PendingProjectMember
+from sentry.models import Project
 from sentry.interfaces import Http
 from sentry.permissions import can_set_public_projects
-
-
-class RadioFieldRenderer(forms.widgets.RadioFieldRenderer):
-    """
-    This is identical to Django's builtin widget, except that
-    it renders as a Bootstrap2 compatible widget. Would be great if
-    we didn't have to create this stupid code, but Django widgets are not
-    flexible.
-    """
-    def render(self):
-        return mark_safe(u'\n<div class="inputs-list">%s</div>\n' % u'\n'.join([force_unicode(w) for w in self]))
-
-
-class UserField(forms.CharField):
-    class widget(forms.widgets.TextInput):
-        def render(self, name, value, attrs=None):
-            if not attrs:
-                attrs = {}
-            if 'placeholder' not in attrs:
-                attrs['placeholder'] = 'username'
-            if isinstance(value, int):
-                value = unicode(User.objects.get(pk=value))
-            return super(UserField.widget, self).render(name, value, attrs)
-
-    def clean(self, value):
-        value = super(UserField, self).clean(value)
-        if not value:
-            return None
-        try:
-            return User.objects.get(username=value)
-        except User.DoesNotExist:
-            raise forms.ValidationError(_('Invalid username'))
+from sentry.web.forms.fields import RadioFieldRenderer, UserField
 
 
 class RemoveProjectForm(forms.Form):
@@ -102,56 +69,6 @@ class EditProjectForm(forms.ModelForm):
         super(EditProjectForm, self).__init__(*args, **kwargs)
         if not can_set_public_projects(request.user):
             del self.fields['public']
-
-
-class BaseProjectMemberForm(forms.ModelForm):
-    class Meta:
-        fields = ('type',)
-        model = ProjectMember
-
-    def __init__(self, project, *args, **kwargs):
-        self.project = project
-        super(BaseProjectMemberForm, self).__init__(*args, **kwargs)
-
-
-EditProjectMemberForm = BaseProjectMemberForm
-
-
-class InviteProjectMemberForm(BaseProjectMemberForm):
-    class Meta:
-        fields = ('type', 'email')
-        model = PendingProjectMember
-
-    def clean_email(self):
-        value = self.cleaned_data['email']
-        if not value:
-            return None
-
-        if self.project.member_set.filter(user__email__iexact=value).exists():
-            raise forms.ValidationError(_('There is already a member with this email address'))
-
-        if self.project.pending_member_set.filter(email__iexact=value).exists():
-            raise forms.ValidationError(_('There is already a pending invite for this user'))
-
-        return value
-
-
-class NewProjectMemberForm(BaseProjectMemberForm):
-    user = UserField()
-
-    class Meta:
-        fields = ('type', 'user')
-        model = ProjectMember
-
-    def clean_user(self):
-        value = self.cleaned_data['user']
-        if not value:
-            return None
-
-        if self.project.member_set.filter(user=value).exists():
-            raise forms.ValidationError(_('User already a member of project'))
-
-        return value
 
 
 class ReplayForm(forms.Form):

@@ -20,7 +20,7 @@ from django.utils.encoding import smart_str
 
 from sentry.conf import settings
 # from sentry.exceptions import InvalidData, InvalidInterface
-from sentry.models import ProjectMember, ProjectKey
+from sentry.models import Project, ProjectKey, TeamMember, Team
 from sentry.plugins import plugins
 from sentry.tasks.store import store_event
 from sentry.utils import is_float, json
@@ -80,19 +80,24 @@ def project_from_auth_vars(auth_vars, data):
         except ProjectKey.DoesNotExist:
             raise APIForbidden('Invalid signature')
 
-        if pk.user:
-            try:
-                pm = ProjectMember.objects.get(project=pk.project, user=pk.user)
-            except ProjectMember.DoesNotExist:
-                pm = None
-            else:
-                if not pm.is_active or pm.user and not pm.user.is_active:
-                    raise APIUnauthorized('Account is not active')
-
-        project = pk.project
+        project = Project.objects.get_from_cache(pk=pk.project_id)
         secret_key = pk.secret_key
 
-        result = plugins.first('has_perm', pm.user, 'create_event', pm.project)
+        if pk.user:
+            try:
+                team = Team.objects.get_from_cache(pk=project.team_id)
+            except Team.DoesNotExist:
+                raise APIUnauthorized('Member does not have access to project')
+
+            try:
+                tm = TeamMember.objects.get(team=team, user=pk.user, is_active=True)
+            except TeamMember.DoesNotExist:
+                raise APIUnauthorized('Member does not have access to project')
+
+            if not pk.user.is_active:
+                raise APIUnauthorized('Account is not active')
+
+        result = plugins.first('has_perm', tm.user, 'create_event', project)
         if result is False:
             raise APIUnauthorized()
     else:
@@ -131,20 +136,26 @@ def project_from_api_key_and_id(api_key, project_id):
     if str(pk.project_id) != str(project_id):
         raise APIUnauthorized()
 
-    if pk.user:
-        try:
-            pm = ProjectMember.objects.get(project=pk.project, user=pk.user)
-        except ProjectMember.DoesNotExist:
-            pm = None
-        else:
-            if not pm.is_active or pm.user and not pm.user.is_active:
-                raise APIUnauthorized('Account is not active')
+    project = Project.objects.get_from_cache(pk=pk.project_id)
 
-    result = plugins.first('has_perm', pm.user, 'create_event', pm.project)
+    if pk.user:
+        team = Team.objects.get_from_cache(pk=project.team_id)
+
+        try:
+            tm = TeamMember.objects.get(team=team, user=pk.user, is_active=True)
+        except TeamMember.DoesNotExist:
+            raise APIUnauthorized('Member does not have access to project')
+
+        if not pk.user.is_active:
+            raise APIUnauthorized('Account is not active')
+
+        tm.project = project
+
+    result = plugins.first('has_perm', tm.user, 'create_event', project)
     if result is False:
         raise APIUnauthorized()
 
-    return pm.project
+    return project
 
 
 def project_from_id(request):
@@ -156,21 +167,29 @@ def project_from_id(request):
         raise APIUnauthorized('Account is not active')
 
     try:
-        pm = ProjectMember.objects.get(
+        project = Project.objects.get_from_cache(pk=request.GET['project_id'])
+    except Project.DoesNotExist:
+        raise APIUnauthorized('Invalid project')
+
+    try:
+        team = Team.objects.get_from_cache(pk=project.team_id)
+    except Project.DoesNotExist:
+        raise APIUnauthorized('Member does not have access to project')
+
+    try:
+        TeamMember.objects.get(
             user=request.user,
-            project=request.GET['project_id'],
+            team=team,
+            is_active=True,
         )
-    except ProjectMember.DoesNotExist:
-        raise APIUnauthorized()
+    except TeamMember.DoesNotExist:
+        raise APIUnauthorized('Member does not have access to project')
 
-    if not pm.is_active:
-        raise APIUnauthorized()
-
-    result = plugins.first('has_perm', request.user, 'create_event', pm.project)
+    result = plugins.first('has_perm', request.user, 'create_event', project)
     if result is False:
         raise APIUnauthorized()
 
-    return pm.project
+    return project
 
 
 def decode_and_decompress_data(encoded_data):
