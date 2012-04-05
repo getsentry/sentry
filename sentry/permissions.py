@@ -29,6 +29,26 @@ def can_create_projects(user):
     return True
 
 
+def can_create_teams(user):
+    """
+    Returns a boolean describing whether a user has the ability to
+    create new projects.
+    """
+    if not (user and user.is_authenticated()):
+        return False
+
+    if user.has_perm('sentry.can_add_team'):
+        return True
+
+    result = plugins.first('has_perm', user, 'add_team')
+    if result is None:
+        result = settings.ALLOW_TEAM_CREATION
+
+    if result is False:
+        return result
+    return True
+
+
 def can_set_public_projects(user):
     """
     Returns a boolean describing whether a user has the ability to

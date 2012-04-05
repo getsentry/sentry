@@ -120,6 +120,10 @@ VIEWS = (
 # to create new projects
 ALLOW_PROJECT_CREATION = False
 
+# Should users without 'sentry.add_team' permissions be allowed
+# to create new projects
+ALLOW_TEAM_CREATION = False
+
 # Should users without superuser permissions be allowed to
 # make projects public
 ALLOW_PUBLIC_PROJECTS = True

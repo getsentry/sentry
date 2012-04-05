@@ -18,7 +18,7 @@ from django.utils.safestring import mark_safe
 from sentry.conf import settings
 from sentry.models import Project, View, \
   MEMBER_USER, Option, ProjectOption, Team
-from sentry.permissions import can_create_projects
+from sentry.permissions import can_create_projects, can_create_teams
 
 logger = logging.getLogger('sentry.errors')
 
@@ -116,11 +116,12 @@ def get_default_context(request, existing_context=None):
         context.update({
             'request': request,
             'can_create_projects': can_create_projects(request.user),
+            'can_create_teams': can_create_teams(request.user),
         })
         if not existing_context or 'PROJECT_LIST' not in existing_context:
             context['PROJECT_LIST'] = get_project_list(request.user).values()
-        if not existing_context or 'TEAMS' not in existing_context:
-            context['TEAMS'] = get_team_list(request.user).values()
+        if not existing_context or 'TEAM_LIST' not in existing_context:
+            context['TEAM_LIST'] = get_team_list(request.user).values()
 
     return context
 

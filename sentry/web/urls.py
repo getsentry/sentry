@@ -47,7 +47,8 @@ urlpatterns = patterns('',
 
     # Teams
 
-    url(r'^account/teams/new/$', teams.create_new_team, name='sentry-create-new-team'),
+    url(r'^account/teams/$', teams.team_list, name='sentry-team-list'),
+    url(r'^account/teams/new/$', teams.create_new_team, name='sentry-new-team'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/edit/$', teams.manage_team,
         name='sentry-manage-team'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/remove/$', teams.remove_team,

@@ -4,14 +4,41 @@
 <ul class="nav nav-tabs nav-stacked">
     <li{% if page == 'settings' %} class="active"{% endif %}><a href="{% url sentry-account-settings %}">{% trans "Settings" %}</a></li>
 </ul>
-<a href="{% url sentry-create-new-team %}" class="pull-right"><small>{% trans "New team" %}</small></a>
+
+<h6>{% trans "Projects" %}</h6>
+{% if PROJECT_LIST %}
+    <ul class="nav nav-tabs nav-stacked" style="margin-bottom:5px">
+        {% for p in PROJECT_LIST|slice:"10" %}
+            <li{% if p == project %} class="active"{% endif %}><a href="{% url sentry-manage-project p.pk %}">{{ p.name }}</a></li>
+        {% endfor %}
+    </ul>
+    <div style="text-align:right">
+        {% if can_create_projects %}
+            <a href="{% url sentry-new-project %}" class="btn btn-small">{% trans "New project" %}</a>
+        {% endif %}
+        {% if PROJECT_LIST|length > 10 %}
+            <a href="{% url sentry-project-list %}" class="btn btn-small">{% blocktrans with PROJECT_LIST|length as count %}View all <strong>{{ count }}</strong> projects{% endblocktrans %}</a>
+        {% endif %}
+    </div>
+{% else %}
+    <p>{% trans "You are not a part of any projects." %}</p>
+{% endif %}
+
 <h6>{% trans "Teams" %}</h6>
-{% if TEAMS %}
-    <ul class="nav nav-tabs nav-stacked">
-        {% for t in TEAMS %}
+{% if TEAM_LIST %}
+    <ul class="nav nav-tabs nav-stacked" style="margin-bottom:5px">
+        {% for t in TEAM_LIST|slice:"10" %}
             <li{% if team and team == t %} class="active"{% endif %}><a href="{% url sentry-manage-team t.slug %}">{{ t.name }}</a></li>
         {% endfor %}
     </ul>
+    <div style="text-align:right">
+        {% if can_create_teams %}
+            <a href="{% url sentry-new-team %}" class="btn btn-small">{% trans "New team" %}</a>
+        {% endif %}
+        {% if TEAM_LIST|length > 10 %}
+            <a href="{% url sentry-team-list %}" class="btn btn-small">{% blocktrans with TEAM_LIST|length as count %}View all <strong>{{ count }}</strong> teams{% endblocktrans %}</a>
+        {% endif %}
+    </div>
 {% else %}
     <p>{% trans "You are not a part of any teams." %}</p>
 {% endif %}

@@ -28,6 +28,11 @@ def _can_add_team_member(user, team):
 
 
 @login_required
+def team_list(request):
+    return render_to_response('sentry/teams/list.html', {}, request)
+
+
+@login_required
 @csrf_protect
 def create_new_team(request):
     if request.user.has_perm('sentry.can_add_team'):

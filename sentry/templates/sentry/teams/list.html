@@ -1,0 +1,46 @@
+{% extends "sentry/teams/base.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Team List" %} | {{ block.super }}{% endblock %}
+
+{% block heading %}
+    {% trans "Team List" %}
+{% endblock %}
+
+{% block inner %}
+    {% if TEAM_LIST %}
+        <p>{% trans "The following is a list of teams that you are a member of." %}</p>
+        <table class="table table-bordered table-striped">
+            <colgroup>
+                <col>
+                <col style="width:100px;">
+                <col style="width:150px;">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>{% trans "Name" %}</th>
+                    <th style="text-align:center;">{% trans "Owner" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for team in TEAM_LIST %}
+                    <tr>
+                        <td>
+                            <a href="{% url sentry-manage-team team.slug %}">{{ team.name }}</a><br/>
+                        </td>
+                        <td style="text-align:center;vertical-align:middle;">
+                            {{ team.owner.username }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        {% if can_create_teams %}
+            <div class="alert alert-info">You are not a member of any teams. Would you like to <a href="{% url sentry-new-team %}">create a new team</a>?</div>
+        {% else %}
+            <div class="alert alert-notice">{% trans "You are not a member of any teams. Ask an administrator to add you to a team." %}</div>
+        {% endif %}
+    {% endif %}
+{% endblock %}

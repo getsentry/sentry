@@ -1,8 +1,15 @@
-{% extends "sentry/projects/base.html" %}
+{% extends "sentry/layout.html" %}
 
 {% load i18n %}
 
 {% block title %}{% trans "Project List" %} | {{ block.super }}{% endblock %}
+
+{% block page_header %}
+    {% if can_create_projects %}
+        <a href="{% url sentry-new-project %}" class="btn pull-right btn-primary">{% trans "Create a new project" %}</a>
+    {% endif %}
+    {{ block.super }}
+{% endblock %}
 
 {% block heading %}
     {% trans "Project List" %}
@@ -57,4 +64,8 @@
             {% endif %}
         {% endif %}
     </section>
+{% endblock %}
+
+{% block sidebar %}
+    {% include "sentry/partial/_account_sidebar.html" %}
 {% endblock %}

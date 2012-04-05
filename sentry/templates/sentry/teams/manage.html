@@ -1,4 +1,4 @@
-{% extends "sentry/layout.html" %}
+{% extends "sentry/teams/list.html" %}
 
 {% load i18n %}
 {% load sentry_helpers %}
@@ -6,14 +6,9 @@
 
 {% block title %}{% blocktrans with team.name as name %}Manage Team: {{ name }}{% endblocktrans %} | {{ block.super }}{% endblock %}
 
-{% block page_header %}
-    <ul class="breadcrumb">
-        <li><a href="#">{% trans "Teams" %}</a></li>
-        {% block breadcrumb %}
-            <li class="divider">/</li>
-            <li><a href="{% url sentry-manage-team team.slug %}">{{ team.name }}</a></li>
-        {% endblock %}
-    </ul>
+{% block breadcrumb %}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-manage-team team.slug %}">{{ team.name }}</a></li>
 {% endblock %}
 
 {% block main %}
@@ -138,8 +133,4 @@
             </div>
         {% endblock %}
     </section>
-{% endblock %}
-
-{% block sidebar %}
-    {% include "sentry/partial/_account_sidebar.html" %}
 {% endblock %}

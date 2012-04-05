@@ -1,17 +1,12 @@
-{% extends "sentry/layout.html" %}
+{% extends "sentry/teams/base.html" %}
 
 {% load i18n %}
 
 {% block title %}{% trans "New Team" %} | {{ block.super }}{% endblock %}
 
-{% block page_header %}
-    <ul class="breadcrumb">
-        <li><a href="#">{% trans "Teams" %}</a></li>
-        {% block breadcrumb %}
-            <li class="divider">/</li>
-            <li><a href="{% url sentry-new-project %}">{% trans "New Team" %}</a></li>
-        {% endblock %}
-    </ul>
+{% block breadcrumb %}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-new-project %}">{% trans "New Team" %}</a></li>
 {% endblock %}
 
 {% block main %}
@@ -31,8 +26,4 @@
             </div>
         </form>
     </section>
-{% endblock %}
-
-{% block sidebar %}
-    {% include "sentry/partial/_account_sidebar.html" %}
 {% endblock %}
