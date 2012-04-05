@@ -61,6 +61,7 @@ Recognized 3rd Party Extensions
 The extensions are officially recognized and support the current Sentry protocol:
 
 * `sentry-phabricator <https://github.com/dcramer/sentry-phabricator>`_
+* `sentry-hipchat <https://github.com/linovia/sentry-hipchat>`_
 
 Have an extension that should be listed here? Submit a `pull request <https://github.com/dcramer/sentry>`_ and we'll
 get it added.
