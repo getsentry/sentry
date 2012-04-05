@@ -1,4 +1,4 @@
-{% extends "sentry/layout.html" %}
+{% extends "sentry/projects/base.html" %}
 
 {% load i18n %}
 
@@ -12,19 +12,20 @@
 
 {% block main %}
     <section class="body">
-        <p>{% trans "Use this page to create a new project within Sentry. Once done, you'll be able to add members (whether they're system or actual users), as well as configure your client to send messages to this project." %}</p>
-        <hr>
-        <form class="form-stacked" action="" method="post">
-            {% csrf_token %}
-            <fieldset>
-                <legend>{% trans "Project Details" %}</legend>
-                {% for field in form %}
-                    {% include "sentry/partial/_form_field.html" %}
+        {% if TEAM_LIST %}
+            <p>{% trans "Select a team you are a member of to create a project." %}</p>
+            <ul>
+                {% for team in TEAM_LIST %}
+                    <li><a href="{% url sentry-new-team-project team.slug %}">{{ team.name }}</a></li>
                 {% endfor %}
-            </fieldset>
-            <div class="actions">
-                <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
-            </div>
-        </form>
+            </ul>
+        {% else %}
+            {% if can_create_teams %}
+                {% url sentry-new-team as create_team_link %}
+                <p>{% blocktrans %}You must first <a href="{{ create_team_link }}">create a team</a> to create a project.{% endblocktrans %}</p>
+            {% else %}
+                <p>{% trans "You are not able to create a new project because you are not a member of any teams. Ask an administrator to add you to a team." %}</p>
+            {% endif %}
+        {% endif %}
     </section>
 {% endblock %}

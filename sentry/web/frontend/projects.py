@@ -44,34 +44,11 @@ def project_list(request):
 
 
 @login_required
-@csrf_protect
 def new_project(request):
     if not can_create_projects(request.user):
         return HttpResponseRedirect(reverse('sentry'))
 
-    if request.user.has_perm('sentry.can_add_project'):
-        form_cls = NewProjectAdminForm
-        initial = {
-            'owner': request.user.username,
-        }
-    else:
-        form_cls = NewProjectForm
-        initial = {}
-
-    form = form_cls(request.POST or None, initial=initial)
-    if form.is_valid():
-        project = form.save(commit=False)
-        if not project.owner:
-            project.owner = request.user
-        project.save()
-        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
-
-    context = csrf(request)
-    context.update({
-        'form': form,
-    })
-
-    return render_to_response('sentry/projects/new.html', context, request)
+    return render_to_response('sentry/projects/new.html', {}, request)
 
 
 @login_required

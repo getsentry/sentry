@@ -80,8 +80,7 @@ def manage_projects(request):
 
 @requires_admin
 def manage_users(request):
-    user_list = User.objects.annotate(num_projects=Count('sentry_project_set'))\
-                .order_by('-date_joined')
+    user_list = User.objects.all().order_by('-date_joined')
 
     user_query = request.GET.get('uquery')
     if user_query:
@@ -97,8 +96,6 @@ def manage_users(request):
         order_by = '-last_login'
     elif sort == 'name':
         order_by = 'first_name'
-    elif sort == 'projects':
-        order_by = '-num_projects'
 
     user_list = user_list.order_by(order_by)
 

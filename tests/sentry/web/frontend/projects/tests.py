@@ -7,7 +7,7 @@ import logging
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
-from sentry.models import Project, MEMBER_OWNER
+from sentry.models import Project, Team, MEMBER_OWNER
 
 from tests.base import TestCase
 
@@ -21,19 +21,21 @@ class NewProjectTest(TestCase):
         self.user = User(username="admin", email="admin@localhost", is_staff=True, is_superuser=True)
         self.user.set_password('admin')
         self.user.save()
+        self.team = Team.objects.create(name='foo', slug='foo', owner=self.user)
 
     def test_new_project(self):
+        path = reverse('sentry-new-team-project', args=[self.team.slug])
+
         self.client.login(username='admin', password='admin')
 
         # missing name
-        path = reverse('sentry-new-project')
-        resp = self.client.post(path, {})
+        resp = self.client.post(path)
         self.assertEquals(resp.status_code, 200)
 
         # valid params
-        path = reverse('sentry-new-project')
         resp = self.client.post(path, {
             'name': 'Test Project',
+            'slug': 'test',
         })
         self.assertNotEquals(resp.status_code, 200)
 

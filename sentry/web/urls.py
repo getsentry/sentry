@@ -67,20 +67,21 @@ urlpatterns = patterns('',
         name='sentry-remove-pending-team-member'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/members/pending/(?P<member_id>\d+)/reinvite/$', teams.reinvite_pending_team_member,
         name='sentry-reinvite-pending-team-member'),
+    url(r'^account/teams/(?P<team_slug>[\w_-]+)/projects/new/$', teams.create_new_team_project, name='sentry-new-team-project'),
     url(r'^accept/(?P<member_id>\d+)/(?P<token>\w+)/$', teams.accept_invite,
         name='sentry-accept-invite'),
 
     # Projects
 
-    url(r'^projects/$', projects.project_list, name='sentry-project-list'),
-    url(r'^projects/new/$', projects.new_project, name='sentry-new-project'),
-    url(r'^projects/(?P<project_id>\d+)/edit/$', projects.manage_project,
+    url(r'^account/projects/$', projects.project_list, name='sentry-project-list'),
+    url(r'^account/projects/new/$', projects.new_project, name='sentry-new-project'),
+    url(r'^account/projects/(?P<project_id>\d+)/edit/$', projects.manage_project,
         name='sentry-manage-project'),
-    url(r'^projects/(?P<project_id>\d+)/plugins/$', projects.manage_plugins,
+    url(r'^account/projects/(?P<project_id>\d+)/plugins/$', projects.manage_plugins,
         name='sentry-manage-project-plugins'),
-    url(r'^projects/(?P<project_id>\d+)/plugins/(?P<slug>[\w_-]+)/$', projects.configure_project_plugin,
+    url(r'^account/projects/(?P<project_id>\d+)/plugins/(?P<slug>[\w_-]+)/$', projects.configure_project_plugin,
         name='sentry-configure-project-plugin'),
-    url(r'^projects/(?P<project_id>\d+)/remove/$', projects.remove_project,
+    url(r'^account/projects/(?P<project_id>\d+)/remove/$', projects.remove_project,
         name='sentry-remove-project'),
 
     # Global

@@ -28,31 +28,26 @@
                 <ul class="nav pull-right">
                     {% block account_nav %}
                         {% if request.user.is_authenticated %}
-                            <li class="dropdown">
-                                <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Projects" %} <span class="caret"></span></a>
-                                <ul class="dropdown-menu">
-                                    <li><a href="{% url sentry-project-list %}">{% trans "Manage" %}</a></li>
-                                    {% if PROJECT_LIST %}
-                                        <li class="divider"></li>
+                            {% if PROJECT_LIST %}
+                                <li class="dropdown">
+                                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Dashboard" %} <span class="caret"></span></a>
+                                    <ul class="dropdown-menu">
                                         {% for p in PROJECT_LIST %}
                                             <li{% if project == p %} class="active"{% endif %}><a href="{% url sentry p.pk %}">{{ p.name }}</a></li>
                                         {% endfor %}
-                                    {% endif %}
-                                    {% if can_create_projects %}
-                                        <li class="divider"></li>
-                                        <li><a href="{% url sentry-new-project %}">{% trans "Create a new project" %}</a></li>
-                                    {% endif %}
-                                </ul>
-                            </li>
+                                    </ul>
+                                </li>
+                            {% endif %}
                             <li class="dropdown">
                                 <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Account" %} <span class="caret"></span></a>
                                 <ul class="dropdown-menu">
-                                    <li><a href="{% url sentry-account-settings %}">{% trans "Settings" %}</a></li>
+                                    <li><a href="{% url sentry-project-list %}">{% trans "Projects" %}</a></li>
                                     <li><a href="{% url sentry-team-list %}">{% trans "Teams" %}</a></li>
                                     {% if request.user.is_staff %}
                                         <li><a href="{% url sentry-admin-status %}">{% trans "Admin" %}</a></li>
                                     {% endif %}
                                     <li class="divider"></li>
+                                    <li><a href="{% url sentry-account-settings %}">{% trans "Settings" %}</a></li>
                                     <li><a href="{% url sentry-logout %}">{% trans "Logout" %}</a></li>
                                 </ul>
                             </li>

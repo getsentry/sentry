@@ -36,14 +36,12 @@
                 <col>
                 <col style="width:150px;">
                 <col style="width:150px;">
-                <col style="width:50px;">
             </colgroup>
             <thead>
                 <tr>
                     <th><a href="?{{ sort_querystring }}&amp;sort=name">{% trans "Name" %}</a></th>
                     <th style="text-align:center;"><a href="?{{ sort_querystring }}&amp;sort=joined">{% trans "Joined" %}</a></th>
                     <th style="text-align:center;"><a href="?{{ sort_querystring }}&amp;sort=login">{% trans "Last Login" %}</a></th>
-                    <th style="text-align:center;"><a href="?{{ sort_querystring }}&amp;sort=projects">{% trans "Projects" %}</a></th>
                 </tr>
             </thead>
             <tbody>
@@ -70,9 +68,6 @@
                         </td>
                         <td style="text-align:center; vertical-align:middle;">
                             {{ user.last_login|date }}
-                        </td>
-                        <td style="text-align:center; vertical-align:middle;">
-                            <a href="{% url sentry-admin-list-user-projects user.pk %}">{{ user.num_projects }}</a>
                         </td>
                     </tr>
                 {% endfor %}

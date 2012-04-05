@@ -62,39 +62,31 @@
                 {% endif %}
                 <h2>{% trans "Members" %}</h2>
             </div>
-            <ul class="nav nav-tabs">
-                <li class="active"><a href="#members" data-toggle="tab">Members</a></li>
-                <li><a href="#pending-members" data-toggle="tab">Pending ({{ pending_member_list|length }})</a></li>
-            </ul>
-            <div class="tab-content">
-                <div class="tab-pane active" id="members">
-                    <table class="table table-bordered table-striped">
-                        <colgroup>
-                            <col/>
-                            <col width="100px"/>
-                        </colgroup>
-                        <thead>
-                            <tr>
-                                <th>{% trans "User" %}</th>
-                                <th style="text-align:center">{% trans "Access" %}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for member, user in member_list %}
-                                <tr>
-                                    <td>
-                                        <a href="{# {% url sentry-view-project-member project.pk member.pk %} #}">{{ user.username }}</a><br>
-                                        {{ user.email }}
-                                    </td>
-                                    <td style="text-align:center;">
-                                        {{ member.get_type_display }}
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <table class="table table-bordered table-striped">
+                <colgroup>
+                    <col/>
+                    <col width="100px"/>
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>{% trans "User" %}</th>
+                        <th style="text-align:center">{% trans "Access" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member, user in member_list %}
+                        <tr>
+                            <td>
+                                <a href="{# {% url sentry-view-project-member project.pk member.pk %} #}">{{ user.username }}</a><br>
+                                {{ user.email }}
+                            </td>
+                            <td style="text-align:center;">
+                                {{ member.get_type_display }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         {% endblock %}
     </section>
 {% endblock %}

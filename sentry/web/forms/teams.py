@@ -17,12 +17,19 @@ class RemoveTeamForm(forms.Form):
 
 
 class NewTeamForm(forms.ModelForm):
+    name = forms.CharField(max_length=200, widget=forms.TextInput(attrs={'placeholder': _('e.g. My Team Name')}))
+    slug = forms.SlugField(help_text=_('A slug is a URL-safe word and must be unique across all teams.'),
+        widget=forms.TextInput(attrs={'placeholder': _('e.g. my-team-name')}))
+
     class Meta:
         fields = ('name', 'slug')
         model = Team
 
 
 class NewTeamAdminForm(forms.ModelForm):
+    name = forms.CharField(max_length=200, widget=forms.TextInput(attrs={'placeholder': _('e.g. My Team Name')}))
+    slug = forms.SlugField(help_text=_('A slug is a URL-safe word and must be unique across all teams.'),
+        widget=forms.TextInput(attrs={'placeholder': _('e.g. my-team-name')}))
     owner = UserField(required=False)
 
     class Meta:

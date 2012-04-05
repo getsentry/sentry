@@ -56,16 +56,23 @@ class RemoveProjectForm(forms.Form):
 
 
 class NewProjectForm(forms.ModelForm):
+    name = forms.CharField(max_length=200, widget=forms.TextInput(attrs={'placeholder': _('e.g. My Project Name')}))
+    slug = forms.SlugField(help_text=_('A slug is a URL-safe word and must be unique across all projects.'),
+        widget=forms.TextInput(attrs={'placeholder': _('e.g. my-project-name')}))
+
     class Meta:
-        fields = ('name',)
+        fields = ('name', 'slug')
         model = Project
 
 
 class NewProjectAdminForm(forms.ModelForm):
+    name = forms.CharField(max_length=200, widget=forms.TextInput(attrs={'placeholder': _('e.g. My Project Name')}))
+    slug = forms.SlugField(help_text=_('A slug is a URL-safe word and must be unique across all projects.'),
+        widget=forms.TextInput(attrs={'placeholder': _('e.g. my-project-name')}))
     owner = UserField(required=False)
 
     class Meta:
-        fields = ('name', 'owner')
+        fields = ('name', 'slug', 'owner')
         model = Project
 
 

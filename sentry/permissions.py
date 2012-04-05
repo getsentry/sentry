@@ -9,7 +9,7 @@ from sentry.conf import settings
 from sentry.plugins import plugins
 
 
-def can_create_projects(user):
+def can_create_projects(user, team=None):
     """
     Returns a boolean describing whether a user has the ability to
     create new projects.
@@ -20,7 +20,7 @@ def can_create_projects(user):
     if user.has_perm('sentry.can_add_project'):
         return True
 
-    result = plugins.first('has_perm', user, 'add_project')
+    result = plugins.first('has_perm', user, 'add_project', team)
     if result is None:
         result = settings.ALLOW_PROJECT_CREATION
 

@@ -11,7 +11,7 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
 from sentry.models import PendingTeamMember, TeamMember, MEMBER_USER, MEMBER_OWNER
-from sentry.permissions import can_add_team_member, can_remove_team
+from sentry.permissions import can_add_team_member, can_remove_team, can_create_projects
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_team_access
 from sentry.web.forms.teams import NewTeamForm, NewTeamAdminForm, \
@@ -75,6 +75,9 @@ def manage_team(request, team):
         return HttpResponseRedirect(request.path + '?success=1')
 
     member_list = [(pm, pm.user) for pm in team.member_set.select_related('user')]
+    pending_member_list = [(pm, pm.email) for pm in team.pending_member_set.all()]
+
+    project_list = list(team.project_set.all())
 
     context = csrf(request)
     context.update({
@@ -84,6 +87,8 @@ def manage_team(request, team):
         'form': form,
         'team': team,
         'member_list': member_list,
+        'pending_member_list': pending_member_list,
+        'project_list': project_list,
     })
 
     return render_to_response('sentry/teams/manage.html', context, request)
@@ -310,3 +315,38 @@ def reinvite_pending_team_member(request, team, member_id):
     member.send_invite_email()
 
     return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]) + '?success=1')
+
+
+@csrf_protect
+@has_team_access(MEMBER_OWNER)
+def create_new_team_project(request, team):
+    from sentry.web.forms import NewProjectAdminForm, NewProjectForm
+
+    if not can_create_projects(request.user, team):
+        return HttpResponseRedirect(reverse('sentry'))
+
+    if request.user.has_perm('sentry.can_add_project'):
+        form_cls = NewProjectAdminForm
+        initial = {
+            'owner': request.user.username,
+        }
+    else:
+        form_cls = NewProjectForm
+        initial = {}
+
+    form = form_cls(request.POST or None, initial=initial)
+    if form.is_valid():
+        project = form.save(commit=False)
+        project.team = team
+        if not project.owner:
+            project.owner = request.user
+        project.save()
+        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+
+    context = csrf(request)
+    context.update({
+        'form': form,
+        'team': team,
+    })
+
+    return render_to_response('sentry/teams/projects/new.html', context, request)
