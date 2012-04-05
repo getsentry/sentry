@@ -55,10 +55,22 @@ your ``INSTALLED_APPS``::
           'sentry.plugins.sentry_sites',
         ]
 
+
+.. data:: sentry.plugins.sentry_mail
+    :noindex:
+
+    Enables email notifications when new events or regressions happen.
+
+    ::
+
+        INSTALLED_APPS = [
+          'sentry.plugins.sentry_mail',
+        ]
+
 Recognized 3rd Party Extensions
 -------------------------------
 
-The extensions are officially recognized and support the current Sentry protocol:
+These extensions are officially recognized and support the current Sentry protocol:
 
 * `sentry-phabricator <https://github.com/dcramer/sentry-phabricator>`_
 * `sentry-hipchat <https://github.com/linovia/sentry-hipchat>`_
