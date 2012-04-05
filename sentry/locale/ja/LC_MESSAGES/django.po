@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: https://github.com/dcramer/sentry/issues\n"
-"POT-Creation-Date: 2012-03-22 03:40+0000\n"
-"PO-Revision-Date: 2012-03-22 13:47+0000\n"
+"POT-Creation-Date: 2012-03-29 19:17+0000\n"
+"PO-Revision-Date: 2012-04-04 06:11+0000\n"
 "Last-Translator: しろう <>\n"
 "Language-Team: Japanese (http://www.transifex.net/projects/p/sentry/language/ja/)\n"
 "MIME-Version: 1.0\n"
@@ -39,7 +39,7 @@ msgstr "古い"
 
 #: constants.py:9 templates/sentry/groups/details.html:122
 msgid "Frequency"
-msgstr "頻度"
+msgstr "頻度グラフ"
 
 #: constants.py:10
 msgid "Total Time Spent"
@@ -78,55 +78,55 @@ msgstr "3日"
 msgid "24 hours"
 msgstr "24時間"
 
-#: models.py:42
+#: models.py:43
 msgid "unresolved"
 msgstr "未解決"
 
-#: models.py:43
+#: models.py:44
 msgid "resolved"
 msgstr "解決済み"
 
-#: models.py:48
+#: models.py:49
 msgid "server name"
 msgstr "サーバ名"
 
-#: models.py:49
-msgid "logger"
-msgstr "ロガー"
-
 #: models.py:50
+msgid "logger"
+msgstr "発生元"
+
+#: models.py:51
 msgid "site"
 msgstr "サイト"
 
-#: models.py:57
+#: models.py:58
 msgid "owner"
 msgstr "所有者"
 
-#: models.py:58
+#: models.py:59
 msgid "user"
 msgstr "ユーザ"
 
-#: models.py:59
+#: models.py:60
 msgid "system agent"
 msgstr "システムエージェント"
 
-#: models.py:312
+#: models.py:358
 msgid "error"
 msgstr "エラー"
 
-#: models.py:341
+#: models.py:387
 msgid "grouped messages"
 msgstr "グループメッセージ"
 
-#: models.py:342
+#: models.py:388
 msgid "grouped message"
 msgstr "グループメッセージ"
 
-#: models.py:417
+#: models.py:462
 msgid "message"
 msgstr "メッセージ"
 
-#: models.py:418
+#: models.py:463
 msgid "messages"
 msgstr "メッセージ"
 
@@ -348,7 +348,7 @@ msgstr "現在の権限ではこのページにアクセスできません。"
 #: templates/sentry/search.html:13 templates/sentry/groups/group_list.html:65
 #, python-format
 msgid "Sort by: %(label)s"
-msgstr "%(label)s でソート"
+msgstr "%(label)s で並び替え"
 
 #: templates/sentry/search.html:31
 msgid "No events match your search query."
@@ -371,7 +371,7 @@ msgstr "変更を保存する時に以下のエラーが起こりました:"
 #: templates/sentry/account/settings.html:34
 msgid ""
 "To make changes to your account, you must first enter your current password."
-msgstr "あなたのアカウントを変更したい場合、正しいパスワードを入力してください。"
+msgstr "アカウント設定を変更したい場合、パスワードを入力してください。"
 
 #: templates/sentry/account/settings.html:49
 msgid "You may also optionally change your password."
@@ -382,7 +382,7 @@ msgstr "同時にパスワードも変更できます。"
 #: templates/sentry/partial/_form.html:18
 #: templates/sentry/projects/manage.html:46
 #: templates/sentry/projects/new.html:32
-#: templates/sentry/projects/members/edit.html:56
+#: templates/sentry/projects/members/edit.html:60
 msgid "Save Changes"
 msgstr "変更を保存"
 
@@ -441,7 +441,7 @@ msgstr "プロジェクト管理"
 #: templates/sentry/events/event_list.html:28
 #: templates/sentry/events/event_list.html:47
 #: templates/sentry/groups/group_list.html:90
-#: templates/sentry/groups/group_list.html:121
+#: templates/sentry/groups/group_list.html:123
 #: templates/sentry/partial/_pager.html:5
 msgid "Previous"
 msgstr "前へ"
@@ -453,7 +453,7 @@ msgstr "前へ"
 #: templates/sentry/events/event_list.html:29
 #: templates/sentry/events/event_list.html:48
 #: templates/sentry/groups/group_list.html:91
-#: templates/sentry/groups/group_list.html:122
+#: templates/sentry/groups/group_list.html:124
 #: templates/sentry/partial/_pager.html:6
 msgid "Next"
 msgstr "次へ"
@@ -563,7 +563,7 @@ msgid "Create a new user"
 msgstr "新しいユーザーを作成する"
 
 #: templates/sentry/admin/users/list.html:43
-#: templates/sentry/projects/list.html:33 web/forms.py:154
+#: templates/sentry/projects/list.html:33 web/forms.py:173
 msgid "Name"
 msgstr "名前"
 
@@ -632,7 +632,7 @@ msgid "First Seen:"
 msgstr "初出:"
 
 #: templates/sentry/events/event_list.html:41
-#: templates/sentry/groups/group_list.html:112
+#: templates/sentry/groups/group_list.html:114
 msgid "No events match your filters."
 msgstr "フィルターに適合するイベントはありません。"
 
@@ -651,7 +651,7 @@ msgstr "登録"
 
 #: templates/sentry/groups/details.html:15
 msgid "Aggregate Details"
-msgstr ""
+msgstr "詳細"
 
 #: templates/sentry/groups/details.html:22
 msgid "Status:"
@@ -676,7 +676,7 @@ msgstr "チェックサム:"
 #: templates/sentry/groups/details.html:72
 #: templates/sentry/partial/_group.html:35
 msgid "Mark as Resolved"
-msgstr "解決済みとする"
+msgstr "解決済みにする"
 
 #: templates/sentry/groups/details.html:74
 #: templates/sentry/partial/_group.html:37
@@ -699,7 +699,8 @@ msgid "Events"
 msgstr "イベント"
 
 #: templates/sentry/groups/details.html:97
-#: templates/sentry/projects/manage.html:71
+#: templates/sentry/projects/manage.html:77
+#: templates/sentry/projects/manage.html:123
 msgid "Actions"
 msgstr "アクション"
 
@@ -710,7 +711,7 @@ msgstr "JSONデータ"
 #: templates/sentry/groups/details.html:114
 #: templates/sentry/groups/event.html:38
 msgid "Full Message"
-msgstr "完全なメッセージ"
+msgstr "メッセージ全体"
 
 #: templates/sentry/groups/details.html:126
 msgid "Get yourself some JavaScripts dood"
@@ -723,7 +724,7 @@ msgstr "読み込んでいます…"
 #: templates/sentry/groups/details.html:140
 #: templates/sentry/groups/event.html:50
 msgid "Additional Data"
-msgstr "追加データ"
+msgstr "その他の情報"
 
 #: templates/sentry/groups/details.html:150
 #: templates/sentry/groups/event.html:60
@@ -786,18 +787,197 @@ msgstr "フィードの一時停止"
 #: templates/sentry/groups/group_list.html:82
 #, python-format
 msgid "Since: %(label)s"
-msgstr ""
+msgstr "期間: %(label)s"
 
 #: templates/sentry/groups/group_list.html:108
 msgid ""
 "To start sending events, configure your client with the following DSN value:"
-msgstr "イベントを送り始めるには、以下のDSNの値をクライアントに設定してください:"
+msgstr "イベント送信を開始するには、クライアントで以下のDSNの値を設定してください:"
 
 #: templates/sentry/groups/group_list.html:110
+#: templates/sentry/projects/members/edit.html:52
+msgid "Choose your platform for quick setup instructions:"
+msgstr "クイック設定の説明を行うプラットフォームを選んでください:"
+
+#: templates/sentry/groups/group_list.html:112
 #, python-format
 msgid ""
 "For more information, please see the <a href=\"%(link)s\">documentation</a>."
 msgstr "詳しい情報はこの<a href=\"%(link)s\">ドキュメント</a>を参照してください。"
+
+#: templates/sentry/partial/client_config/connect.html:3
+#: templates/sentry/partial/client_config/express.html:3
+#: templates/sentry/partial/client_config/node.js.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-node</a>:"
+msgstr "はじめに<a href=\"%(link)s\">raven-node</a>をインストールします:"
+
+#: templates/sentry/partial/client_config/connect.html:7
+msgid ""
+"Register an instance of the Connect middleware <strong>after your main "
+"application handler</strong>:"
+msgstr "<strong>あなたのメインアプリケーションハンドラーの後に</strong>Connectミドルウェアのインスタンスを登録してください。"
+
+#: templates/sentry/partial/client_config/connect.html:16
+#: templates/sentry/partial/client_config/express.html:13
+#: templates/sentry/partial/client_config/node.js.html:17
+msgid "Ensure Node is run with <code>NODE_ENV=production</code>:"
+msgstr "Nodeが<code>NODE_ENV=production</code>で動作していることを確認してください:"
+
+#: templates/sentry/partial/client_config/connect.html:20
+#: templates/sentry/partial/client_config/django.html:18
+#: templates/sentry/partial/client_config/express.html:17
+#: templates/sentry/partial/client_config/flask.html:16
+msgid ""
+"That's it! Raven automatically installs an error handling hook to pipe all "
+"uncaught exceptions to Sentry."
+msgstr "これで終わりです！Ravenは捕捉されなかった例外をすべてSentryに送るようにエラーハンドリングを設定しました。"
+
+#: templates/sentry/partial/client_config/connect.html:22
+#: templates/sentry/partial/client_config/express.html:19
+#: templates/sentry/partial/client_config/node.js.html:29
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Node.js, please see the <a "
+"href=\"%(link)s\">official documentation for raven-node</a>."
+msgstr "Node.jsでRavenを使う他の方法に関しては、<a href=\"%(link)s\">raven-nodeの公式ドキュメント</a>を参照してください。"
+
+#: templates/sentry/partial/client_config/django.html:3
+#: templates/sentry/partial/client_config/python.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-python</a>:"
+msgstr "はじめに<a href=\"%(link)s\">raven-python</a>をインストールします:"
+
+#: templates/sentry/partial/client_config/django.html:7
+msgid "Then simply modify your Django configuration:"
+msgstr "Djangoの設定を変えてください:"
+
+#: templates/sentry/partial/client_config/django.html:9
+msgid "Set your DSN value"
+msgstr "DSNの値を設定してください"
+
+#: templates/sentry/partial/client_config/django.html:12
+msgid "Add raven to the list of installed apps"
+msgstr "インストール済みアプリのリストにravenを加えます"
+
+#: templates/sentry/partial/client_config/django.html:20
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Django, please see the <a "
+"href=\"%(link)s\">official documentation for raven-python</a>."
+msgstr "DjangoでRavenを使う他の方法に関しては、<a href=\"%(link)s\">raven-pythonの公式ドキュメント</a>を参照してください。"
+
+#: templates/sentry/partial/client_config/express.html:7
+msgid "Register an instance of the Express middleware:"
+msgstr "Expressミドルウェアのインスタンスを登録します:"
+
+#: templates/sentry/partial/client_config/flask.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-python</a> and Blinker:"
+msgstr "はじめに<a href=\"%(link)s\">raven-python</a> とBlinkerをインストールします:"
+
+#: templates/sentry/partial/client_config/flask.html:7
+msgid "Blinker is required for signals to work within Flask."
+msgstr "BlinkerはFlaskの中でシグナルを有効にするために必要です。"
+
+#: templates/sentry/partial/client_config/flask.html:9
+msgid "Add the required configuration in your application setup:"
+msgstr "あなたのアプリケーション設定に必要な設定を加えてください。"
+
+#: templates/sentry/partial/client_config/flask.html:18
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Flask, please see the <a "
+"href=\"%(link)s\">official documentation for raven-python</a>."
+msgstr "FlaskでRavenを使う他の方法に関しては、<a href=\"%(link)s\">raven-pythonの公式ドキュメント</a>を参照してください。"
+
+#: templates/sentry/partial/client_config/java.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-java</a>."
+msgstr "はじめに<a href=\"%(link)s\">raven-java</a>をインストールします:"
+
+#: templates/sentry/partial/client_config/java.html:5
+#: templates/sentry/partial/client_config/node.js.html:7
+#: templates/sentry/partial/client_config/php.html:11
+#: templates/sentry/partial/client_config/python.html:7
+msgid "Create an instance of the client:"
+msgstr "クライアントのインスタンスを作成:"
+
+#: templates/sentry/partial/client_config/java.html:9
+#: templates/sentry/partial/client_config/node.js.html:21
+#: templates/sentry/partial/client_config/php.html:15
+#: templates/sentry/partial/client_config/python.html:13
+msgid "Now call out to the raven client to capture events:"
+msgstr "イベントを補足するためにRavenクライアントを呼び出します:"
+
+#: templates/sentry/partial/client_config/java.html:11
+#: templates/sentry/partial/client_config/node.js.html:23
+#: templates/sentry/partial/client_config/php.html:17
+#: templates/sentry/partial/client_config/python.html:15
+msgid "record a simple message"
+msgstr "シンプルメッセージを記録"
+
+#: templates/sentry/partial/client_config/java.html:14
+#: templates/sentry/partial/client_config/node.js.html:26
+#: templates/sentry/partial/client_config/php.html:20
+#: templates/sentry/partial/client_config/python.html:18
+msgid "capture an exception"
+msgstr "例外を捕捉"
+
+#: templates/sentry/partial/client_config/java.html:22
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Java, please see the <a "
+"href=\"%(link)s\">official documentation for raven-java</a>."
+msgstr "JavaでRavenを使う他の方法に関しては、<a href=\"%(link)s\">raven-javaの公式ドキュメント</a>を参照してください。"
+
+#: templates/sentry/partial/client_config/node.js.html:13
+#: templates/sentry/partial/client_config/php.html:28
+msgid ""
+"You can also optionally install a default error handler to catch all "
+"exceptions:"
+msgstr "すべての例外を捕捉するために、デフォルトエラーハンドラーの設定もできます。"
+
+#: templates/sentry/partial/client_config/php.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-php</a>."
+msgstr "はじめに<a href=\"%(link)s\">raven-php</a>をインストールします:"
+
+#: templates/sentry/partial/client_config/php.html:5
+msgid "Register the autoloader:"
+msgstr "オートローダーを登録します:"
+
+#: templates/sentry/partial/client_config/php.html:36
+#, python-format
+msgid ""
+"For more information on other uses of Raven with PHP, please see the <a "
+"href=\"%(link)s\">official documentation for raven-php</a>."
+msgstr "PHPでRavenを使う他の方法に関しては、<a href=\"%(link)s\">raven-phpの公式ドキュメント</a>を参照してください。"
+
+#: templates/sentry/partial/client_config/python.html:24
+msgid ""
+"If you want to wrap a WSGI app to record uncaught exceptions, Raven provides"
+" a middleware for that:"
+msgstr "捕捉出来なかった例外を記録するためにWSGIをラップしたい場合のために、Ravenはミドルウェアを提供します:"
+
+#: templates/sentry/partial/client_config/python.html:30
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Python, please see the <a "
+"href=\"%(link)s\">official documentation for raven-python</a>."
+msgstr "PythonでRavenを使う他の方法に関しては、<a href=\"%(link)s\">raven-pythonの公式ドキュメント</a>を参照してください。"
+
+#: templates/sentry/partial/interfaces/exception.html:10
+msgid "Types:"
+msgstr "タイプ:"
+
+#: templates/sentry/partial/interfaces/exception.html:14
+msgid "Value:"
+msgstr "値:"
+
+#: templates/sentry/partial/interfaces/exception.html:19
+msgid "Location:"
+msgstr "場所:"
 
 #: templates/sentry/partial/interfaces/http.html:6
 msgid "Replay this request"
@@ -808,14 +988,17 @@ msgid "Request"
 msgstr "リクエスト"
 
 #: templates/sentry/partial/interfaces/http.html:16
+#: templates/sentry/partial/interfaces/http.txt:8
 msgid "URL:"
 msgstr "URL:"
 
 #: templates/sentry/partial/interfaces/http.html:21
+#: templates/sentry/partial/interfaces/http.txt:13
 msgid "Method:"
 msgstr "メソッド:"
 
 #: templates/sentry/partial/interfaces/http.html:26
+#: templates/sentry/partial/interfaces/http.txt:18
 msgid "Query:"
 msgstr "クエリー:"
 
@@ -862,7 +1045,8 @@ msgid "Template Error"
 msgstr "テンプレート エラー"
 
 #: templates/sentry/partial/interfaces/user.html:6
-#: templates/sentry/projects/manage.html:69
+#: templates/sentry/projects/manage.html:75
+#: templates/sentry/projects/manage.html:121
 #: templates/sentry/projects/members/edit.html:27
 msgid "User"
 msgstr "ユーザ"
@@ -929,7 +1113,7 @@ msgstr "管理プロジェクト: %(name)s"
 msgid ""
 "Here you can edit project information, as well as control the access list "
 "for a project with fine-grained permissions."
-msgstr "ここではアクセスリストと同じようにプロジェクトの情報を編集できます。これにより、良い粒度の権限を管理できます。"
+msgstr "アクセスリストと同じようにプロジェクトの情報を編集できます。これにより、良い粒度の権限を管理できます。"
 
 #: templates/sentry/projects/manage.html:29
 #: templates/sentry/projects/new.html:20
@@ -945,7 +1129,7 @@ msgstr "以下のエラーを修正してください。"
 #: templates/sentry/projects/remove.html:5
 #: templates/sentry/projects/remove.html:10
 msgid "Remove Project"
-msgstr "プロジェクトの削除"
+msgstr "プロジェクトを削除"
 
 #: templates/sentry/projects/manage.html:50
 msgid "Cannot remove default project"
@@ -961,26 +1145,32 @@ msgstr "メンバー追加"
 msgid "Members"
 msgstr "メンバー"
 
-#: templates/sentry/projects/manage.html:70
-#: templates/sentry/projects/members/edit.html:51
+#: templates/sentry/projects/manage.html:76
+#: templates/sentry/projects/manage.html:122
+#: templates/sentry/projects/members/edit.html:55
 msgid "Access"
 msgstr "アクセス"
 
-#: templates/sentry/projects/manage.html:86
+#: templates/sentry/projects/manage.html:92
 msgid "unavailable for owner"
-msgstr ""
-
-#: templates/sentry/projects/manage.html:90
-msgid "Remove"
-msgstr ""
-
-#: templates/sentry/projects/manage.html:94
-msgid "Suspend"
-msgstr ""
+msgstr "所有者に対して有効になっていません"
 
 #: templates/sentry/projects/manage.html:96
+#: templates/sentry/projects/manage.html:136
+msgid "Remove"
+msgstr "削除"
+
+#: templates/sentry/projects/manage.html:100
+msgid "Suspend"
+msgstr "一時停止"
+
+#: templates/sentry/projects/manage.html:102
 msgid "Restore"
-msgstr ""
+msgstr "リストア"
+
+#: templates/sentry/projects/manage.html:139
+msgid "Resend"
+msgstr "再送"
 
 #: templates/sentry/projects/new.html:5 templates/sentry/projects/new.html:10
 msgid "New Project"
@@ -992,6 +1182,17 @@ msgid ""
 "able to add members (whether they're system or actual users), as well as "
 "configure your client to send messages to this project."
 msgstr "Sentryに新しいプロジェクトを作成するにはこのページを作ってください。一度完了すれば、システムや実際のユーザなど、新規ユーザの追加ができます。"
+
+#: templates/sentry/projects/docs/client_config.html:5
+#: templates/sentry/projects/docs/client_config.html:10
+#, python-format
+msgid "%(platform_title)s Client Configuration"
+msgstr "%(platform_title)sでのクライアント設定"
+
+#: templates/sentry/projects/docs/client_config.html:16
+#, python-format
+msgid "Configuring %(platform_title)s"
+msgstr "%(platform_title)sで設定"
 
 #: templates/sentry/projects/members/edit.html:6
 msgid "Edit Member"
@@ -1008,6 +1209,10 @@ msgstr "秘密鍵"
 #: templates/sentry/projects/members/edit.html:45
 msgid "Client DSN"
 msgstr "クライアントDSN"
+
+#: templates/sentry/projects/members/edit.html:51
+msgid "Client Configuration"
+msgstr "クライアント設定"
 
 #: templates/sentry/projects/members/remove.html:5
 #: templates/sentry/projects/members/remove.html:7
@@ -1109,47 +1314,55 @@ msgstr "データを移動させるプロジェクトを選択してください
 msgid "Allow anyone (even anonymous users) to view this project"
 msgstr "このプロジェクトを全員から(ゲストユーザからも)閲覧できるようにする。"
 
-#: web/forms.py:133
+#: web/forms.py:131
+msgid "There is already a member with this email address"
+msgstr "既にこのメールアドレスを持つメンバーが登録されています"
+
+#: web/forms.py:134
+msgid "There is already a pending invite for this user"
+msgstr "このユーザに対する未対応の招待が残っています。"
+
+#: web/forms.py:152
 msgid "User already a member of project"
 msgstr "既にこのプロジェクトのメンバーです。"
 
-#: web/forms.py:159
+#: web/forms.py:178
 msgid "Create a project for this user."
 msgstr "このユーザに対してプロジェクトを作成する。"
 
-#: web/forms.py:161
+#: web/forms.py:180
 msgid ""
 "Send this user a welcome email which will contain their generated password."
 msgstr "このユーザに、生成されたパスワードを含む、ウェルカムメッセージを送信する"
 
-#: web/forms.py:176
+#: web/forms.py:195
 msgid "Disable the account."
 msgstr "このアカウントを無効にする。"
 
-#: web/forms.py:177
+#: web/forms.py:196
 msgid "Permanently remove the user and their data."
 msgstr "このユーザとデータを永久に削除する。"
 
-#: web/forms.py:182
+#: web/forms.py:201
 msgid "Old password"
 msgstr "現在のパスワード"
 
-#: web/forms.py:185
+#: web/forms.py:204
 msgid "New password"
 msgstr "新しいパスワード"
 
-#: web/forms.py:186
+#: web/forms.py:205
 msgid "New password confirmation"
 msgstr "新しいパスワードをもう一度"
 
-#: web/forms.py:187
+#: web/forms.py:206
 msgid "Language"
 msgstr "言語"
 
-#: web/forms.py:198
+#: web/forms.py:217
 msgid "The two password fields didn't match."
 msgstr "二つのパスワードが一致しません。"
 
-#: web/forms.py:207
+#: web/forms.py:226
 msgid "Your old password was entered incorrectly. Please enter it again."
 msgstr "入力された現在のパスワードは正しくありません。もう一度入力してください。"

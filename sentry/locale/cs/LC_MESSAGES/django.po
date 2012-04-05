@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: https://github.com/dcramer/sentry/issues\n"
-"POT-Creation-Date: 2012-03-22 03:40+0000\n"
-"PO-Revision-Date: 2012-03-22 13:47+0000\n"
+"POT-Creation-Date: 2012-03-29 19:17+0000\n"
+"PO-Revision-Date: 2012-04-03 13:14+0000\n"
 "Last-Translator: Zbyněk Schwarz <zbynek.schwarz@gmail.com>\n"
 "Language-Team: Czech (http://www.transifex.net/projects/p/sentry/language/cs/)\n"
 "MIME-Version: 1.0\n"
@@ -79,55 +79,55 @@ msgstr "3 dny"
 msgid "24 hours"
 msgstr "24 hodin"
 
-#: models.py:42
+#: models.py:43
 msgid "unresolved"
 msgstr "nevyřešeno"
 
-#: models.py:43
+#: models.py:44
 msgid "resolved"
 msgstr "vyřešeno"
 
-#: models.py:48
+#: models.py:49
 msgid "server name"
 msgstr "název serveru"
 
-#: models.py:49
+#: models.py:50
 msgid "logger"
 msgstr "záznamník"
 
-#: models.py:50
+#: models.py:51
 msgid "site"
 msgstr "stránka"
 
-#: models.py:57
+#: models.py:58
 msgid "owner"
 msgstr "vlastník"
 
-#: models.py:58
+#: models.py:59
 msgid "user"
 msgstr "uživatel"
 
-#: models.py:59
+#: models.py:60
 msgid "system agent"
 msgstr "agent systému"
 
-#: models.py:312
+#: models.py:358
 msgid "error"
 msgstr "chyba"
 
-#: models.py:341
+#: models.py:387
 msgid "grouped messages"
 msgstr "seskupené zprávy"
 
-#: models.py:342
+#: models.py:388
 msgid "grouped message"
 msgstr "seskupená zpráva"
 
-#: models.py:417
+#: models.py:462
 msgid "message"
 msgstr "zpráva"
 
-#: models.py:418
+#: models.py:463
 msgid "messages"
 msgstr "zpráva"
 
@@ -383,7 +383,7 @@ msgstr "Máte také možnost si změnit své heslo."
 #: templates/sentry/partial/_form.html:18
 #: templates/sentry/projects/manage.html:46
 #: templates/sentry/projects/new.html:32
-#: templates/sentry/projects/members/edit.html:56
+#: templates/sentry/projects/members/edit.html:60
 msgid "Save Changes"
 msgstr "Uložit změny"
 
@@ -442,7 +442,7 @@ msgstr "Spravovat projekty"
 #: templates/sentry/events/event_list.html:28
 #: templates/sentry/events/event_list.html:47
 #: templates/sentry/groups/group_list.html:90
-#: templates/sentry/groups/group_list.html:121
+#: templates/sentry/groups/group_list.html:123
 #: templates/sentry/partial/_pager.html:5
 msgid "Previous"
 msgstr "Předchozí"
@@ -454,7 +454,7 @@ msgstr "Předchozí"
 #: templates/sentry/events/event_list.html:29
 #: templates/sentry/events/event_list.html:48
 #: templates/sentry/groups/group_list.html:91
-#: templates/sentry/groups/group_list.html:122
+#: templates/sentry/groups/group_list.html:124
 #: templates/sentry/partial/_pager.html:6
 msgid "Next"
 msgstr "Další"
@@ -564,7 +564,7 @@ msgid "Create a new user"
 msgstr "Vytvořit nového uživatele"
 
 #: templates/sentry/admin/users/list.html:43
-#: templates/sentry/projects/list.html:33 web/forms.py:154
+#: templates/sentry/projects/list.html:33 web/forms.py:173
 msgid "Name"
 msgstr "Jméno"
 
@@ -633,7 +633,7 @@ msgid "First Seen:"
 msgstr "Prvně viděn:"
 
 #: templates/sentry/events/event_list.html:41
-#: templates/sentry/groups/group_list.html:112
+#: templates/sentry/groups/group_list.html:114
 msgid "No events match your filters."
 msgstr "Vašim filtrům neodpovídají žádné události."
 
@@ -700,7 +700,8 @@ msgid "Events"
 msgstr "Události"
 
 #: templates/sentry/groups/details.html:97
-#: templates/sentry/projects/manage.html:71
+#: templates/sentry/projects/manage.html:77
+#: templates/sentry/projects/manage.html:123
 msgid "Actions"
 msgstr "Činnosti"
 
@@ -795,10 +796,189 @@ msgid ""
 msgstr "Pro zahájení odesílání událostí, nastavte svého klienta následující hodnotou DSN:"
 
 #: templates/sentry/groups/group_list.html:110
+#: templates/sentry/projects/members/edit.html:52
+msgid "Choose your platform for quick setup instructions:"
+msgstr "Zvolte Vaši platformu pro pokyny k rychlému nastavení:"
+
+#: templates/sentry/groups/group_list.html:112
 #, python-format
 msgid ""
 "For more information, please see the <a href=\"%(link)s\">documentation</a>."
 msgstr "Prodalší informace si prosím prohlédněte <a href=\"%(link)s\">dokumentaci</a>."
+
+#: templates/sentry/partial/client_config/connect.html:3
+#: templates/sentry/partial/client_config/express.html:3
+#: templates/sentry/partial/client_config/node.js.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-node</a>:"
+msgstr "Začněte instalací <a href=\"%(link)s\">raven-node</a>:"
+
+#: templates/sentry/partial/client_config/connect.html:7
+msgid ""
+"Register an instance of the Connect middleware <strong>after your main "
+"application handler</strong>:"
+msgstr "Zaregistrujte si instanci middleware Connect <strong>po Vaší hlavní obslužné rutině aplikace</strong>:"
+
+#: templates/sentry/partial/client_config/connect.html:16
+#: templates/sentry/partial/client_config/express.html:13
+#: templates/sentry/partial/client_config/node.js.html:17
+msgid "Ensure Node is run with <code>NODE_ENV=production</code>:"
+msgstr "Ujistěte se, že Node je spuštěn pomocí <code>NODE_ENV=production</code>:"
+
+#: templates/sentry/partial/client_config/connect.html:20
+#: templates/sentry/partial/client_config/django.html:18
+#: templates/sentry/partial/client_config/express.html:17
+#: templates/sentry/partial/client_config/flask.html:16
+msgid ""
+"That's it! Raven automatically installs an error handling hook to pipe all "
+"uncaught exceptions to Sentry."
+msgstr "To je vše! Raven automaticky nainstaluje hák pro obsluhu chyb pro svedení všech nezachycených výjimek do Sentry."
+
+#: templates/sentry/partial/client_config/connect.html:22
+#: templates/sentry/partial/client_config/express.html:19
+#: templates/sentry/partial/client_config/node.js.html:29
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Node.js, please see the <a "
+"href=\"%(link)s\">official documentation for raven-node</a>."
+msgstr "Pro více informací o dalších použitích Raven s Node.js, si prosím prohlédněte <a href=\"%(link)s\">oficiální dokumentaci pro raven-node</a>."
+
+#: templates/sentry/partial/client_config/django.html:3
+#: templates/sentry/partial/client_config/python.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-python</a>:"
+msgstr "Začněte instalací <a href=\"%(link)s\">raven-python</a>:"
+
+#: templates/sentry/partial/client_config/django.html:7
+msgid "Then simply modify your Django configuration:"
+msgstr "Pak jednoduše změňte Vaše nastavení Django:"
+
+#: templates/sentry/partial/client_config/django.html:9
+msgid "Set your DSN value"
+msgstr "Pak nastavte hodnotu Vaší DSN"
+
+#: templates/sentry/partial/client_config/django.html:12
+msgid "Add raven to the list of installed apps"
+msgstr "Přidejte Raven na seznam nainstalovaných aplikací"
+
+#: templates/sentry/partial/client_config/django.html:20
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Django, please see the <a "
+"href=\"%(link)s\">official documentation for raven-python</a>."
+msgstr "Pro více informací o dalších použitích Raven s Django si prosím prohlédněte <a href=\"%(link)s\">oficiální dokumentaci pro raven-python</a>."
+
+#: templates/sentry/partial/client_config/express.html:7
+msgid "Register an instance of the Express middleware:"
+msgstr "Registrace instance middleware Express:"
+
+#: templates/sentry/partial/client_config/flask.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-python</a> and Blinker:"
+msgstr "Začněte instalací <a href=\"%(link)s\">raven-python</a> a Blinker:"
+
+#: templates/sentry/partial/client_config/flask.html:7
+msgid "Blinker is required for signals to work within Flask."
+msgstr "Blinker je vyžadován pro funkci signálů zevnitř Flask."
+
+#: templates/sentry/partial/client_config/flask.html:9
+msgid "Add the required configuration in your application setup:"
+msgstr "Přidejte požadovanou konfiguraci do nastavení Vaší aplikace:"
+
+#: templates/sentry/partial/client_config/flask.html:18
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Flask, please see the <a "
+"href=\"%(link)s\">official documentation for raven-python</a>."
+msgstr "Pro více informací o dalších použitích Raven s Flask si prosím prohlédněte <a href=\"%(link)s\">oficiální dokumentaci pro raven-python</a>."
+
+#: templates/sentry/partial/client_config/java.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-java</a>."
+msgstr "Začněte instalací <a href=\"%(link)s\">raven-java</a>."
+
+#: templates/sentry/partial/client_config/java.html:5
+#: templates/sentry/partial/client_config/node.js.html:7
+#: templates/sentry/partial/client_config/php.html:11
+#: templates/sentry/partial/client_config/python.html:7
+msgid "Create an instance of the client:"
+msgstr "Vytvořte instanci klienta:"
+
+#: templates/sentry/partial/client_config/java.html:9
+#: templates/sentry/partial/client_config/node.js.html:21
+#: templates/sentry/partial/client_config/php.html:15
+#: templates/sentry/partial/client_config/python.html:13
+msgid "Now call out to the raven client to capture events:"
+msgstr "Nyní zavolejte klienta raven pro zachycení událostí:"
+
+#: templates/sentry/partial/client_config/java.html:11
+#: templates/sentry/partial/client_config/node.js.html:23
+#: templates/sentry/partial/client_config/php.html:17
+#: templates/sentry/partial/client_config/python.html:15
+msgid "record a simple message"
+msgstr "nahrát jednoduchou zprávu"
+
+#: templates/sentry/partial/client_config/java.html:14
+#: templates/sentry/partial/client_config/node.js.html:26
+#: templates/sentry/partial/client_config/php.html:20
+#: templates/sentry/partial/client_config/python.html:18
+msgid "capture an exception"
+msgstr "zachytit výjimku"
+
+#: templates/sentry/partial/client_config/java.html:22
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Java, please see the <a "
+"href=\"%(link)s\">official documentation for raven-java</a>."
+msgstr "Pro více informací o dalších použitích Raven s Java si prosím prohlédněte <a href=\"%(link)s\">oficiální dokumentaci pro raven-java</a>."
+
+#: templates/sentry/partial/client_config/node.js.html:13
+#: templates/sentry/partial/client_config/php.html:28
+msgid ""
+"You can also optionally install a default error handler to catch all "
+"exceptions:"
+msgstr "Můžete také volitelně nainstalovat výchozí obslužnou rutinu chyb pro zachycení všech výjimek:"
+
+#: templates/sentry/partial/client_config/php.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-php</a>."
+msgstr "Začněte instalací <a href=\"%(link)s\">raven-php</a>."
+
+#: templates/sentry/partial/client_config/php.html:5
+msgid "Register the autoloader:"
+msgstr "Registrace automatického načítače:"
+
+#: templates/sentry/partial/client_config/php.html:36
+#, python-format
+msgid ""
+"For more information on other uses of Raven with PHP, please see the <a "
+"href=\"%(link)s\">official documentation for raven-php</a>."
+msgstr "Pro více informací o dalších použitích Raven s PHP si prosím prohlédněte <a href=\"%(link)s\">oficiální dokumentaci pro raven-php</a>."
+
+#: templates/sentry/partial/client_config/python.html:24
+msgid ""
+"If you want to wrap a WSGI app to record uncaught exceptions, Raven provides"
+" a middleware for that:"
+msgstr "Pokud chcete obalit aplikaci WSGI pro zaznamenání nechycených výjimek, můžete využít middleware od Raven:"
+
+#: templates/sentry/partial/client_config/python.html:30
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Python, please see the <a "
+"href=\"%(link)s\">official documentation for raven-python</a>."
+msgstr "Pro více informací o dalších použitích Raven s Python si prosím prohlédněte <a href=\"%(link)s\">oficiální dokumentaci pro raven-python</a>."
+
+#: templates/sentry/partial/interfaces/exception.html:10
+msgid "Types:"
+msgstr "Typy:"
+
+#: templates/sentry/partial/interfaces/exception.html:14
+msgid "Value:"
+msgstr "Hodnota:"
+
+#: templates/sentry/partial/interfaces/exception.html:19
+msgid "Location:"
+msgstr "Umístění:"
 
 #: templates/sentry/partial/interfaces/http.html:6
 msgid "Replay this request"
@@ -809,14 +989,17 @@ msgid "Request"
 msgstr "Požadavek"
 
 #: templates/sentry/partial/interfaces/http.html:16
+#: templates/sentry/partial/interfaces/http.txt:8
 msgid "URL:"
 msgstr "URL:"
 
 #: templates/sentry/partial/interfaces/http.html:21
+#: templates/sentry/partial/interfaces/http.txt:13
 msgid "Method:"
 msgstr "Metoda"
 
 #: templates/sentry/partial/interfaces/http.html:26
+#: templates/sentry/partial/interfaces/http.txt:18
 msgid "Query:"
 msgstr "Dotaz:"
 
@@ -863,7 +1046,8 @@ msgid "Template Error"
 msgstr "Chyba šablony"
 
 #: templates/sentry/partial/interfaces/user.html:6
-#: templates/sentry/projects/manage.html:69
+#: templates/sentry/projects/manage.html:75
+#: templates/sentry/projects/manage.html:121
 #: templates/sentry/projects/members/edit.html:27
 msgid "User"
 msgstr "Uživatel"
@@ -962,26 +1146,32 @@ msgstr "Nový člen"
 msgid "Members"
 msgstr "Členové"
 
-#: templates/sentry/projects/manage.html:70
-#: templates/sentry/projects/members/edit.html:51
+#: templates/sentry/projects/manage.html:76
+#: templates/sentry/projects/manage.html:122
+#: templates/sentry/projects/members/edit.html:55
 msgid "Access"
 msgstr "Přístup"
 
-#: templates/sentry/projects/manage.html:86
+#: templates/sentry/projects/manage.html:92
 msgid "unavailable for owner"
 msgstr "nedostupné pro vlastníka"
 
-#: templates/sentry/projects/manage.html:90
+#: templates/sentry/projects/manage.html:96
+#: templates/sentry/projects/manage.html:136
 msgid "Remove"
 msgstr "Odstranit"
 
-#: templates/sentry/projects/manage.html:94
+#: templates/sentry/projects/manage.html:100
 msgid "Suspend"
 msgstr "Pozastavit"
 
-#: templates/sentry/projects/manage.html:96
+#: templates/sentry/projects/manage.html:102
 msgid "Restore"
 msgstr "Obnovit"
+
+#: templates/sentry/projects/manage.html:139
+msgid "Resend"
+msgstr "Znovu poslat"
 
 #: templates/sentry/projects/new.html:5 templates/sentry/projects/new.html:10
 msgid "New Project"
@@ -993,6 +1183,17 @@ msgid ""
 "able to add members (whether they're system or actual users), as well as "
 "configure your client to send messages to this project."
 msgstr "Tuto stránku použijte pro vytvoření nového projektu v Sentry. Jakmile budete hotovi, můžete přidat členy (systémové i skutečné) a také nastavit Vašeho klienta pro zasílání zpráv do tohoto projektu."
+
+#: templates/sentry/projects/docs/client_config.html:5
+#: templates/sentry/projects/docs/client_config.html:10
+#, python-format
+msgid "%(platform_title)s Client Configuration"
+msgstr "Nastavení klienta %(platform_title)s"
+
+#: templates/sentry/projects/docs/client_config.html:16
+#, python-format
+msgid "Configuring %(platform_title)s"
+msgstr "Nastavování %(platform_title)s"
 
 #: templates/sentry/projects/members/edit.html:6
 msgid "Edit Member"
@@ -1009,6 +1210,10 @@ msgstr "Soukromý klíč"
 #: templates/sentry/projects/members/edit.html:45
 msgid "Client DSN"
 msgstr "DSN klienta"
+
+#: templates/sentry/projects/members/edit.html:51
+msgid "Client Configuration"
+msgstr "Nastavení klienta"
 
 #: templates/sentry/projects/members/remove.html:5
 #: templates/sentry/projects/members/remove.html:7
@@ -1110,47 +1315,55 @@ msgstr "Pro přesun dat musíte zvolit projekt"
 msgid "Allow anyone (even anonymous users) to view this project"
 msgstr "Povolit komukoliv (i anonymním uživatelům) zobrazit tento projekt"
 
-#: web/forms.py:133
+#: web/forms.py:131
+msgid "There is already a member with this email address"
+msgstr "Již existuje člen s touto emailovou adresou"
+
+#: web/forms.py:134
+msgid "There is already a pending invite for this user"
+msgstr "Pro tohoto uživatele již existuje nevyřízené pozvání"
+
+#: web/forms.py:152
 msgid "User already a member of project"
 msgstr "Uživatel již je členem projektu"
 
-#: web/forms.py:159
+#: web/forms.py:178
 msgid "Create a project for this user."
 msgstr "Vytvořit projekt pro tohoto uživatele."
 
-#: web/forms.py:161
+#: web/forms.py:180
 msgid ""
 "Send this user a welcome email which will contain their generated password."
 msgstr "Poslat tomuto uživateli uvítací email, který obsahuje jejich vytvořené heslo."
 
-#: web/forms.py:176
+#: web/forms.py:195
 msgid "Disable the account."
 msgstr "Zakázat učet."
 
-#: web/forms.py:177
+#: web/forms.py:196
 msgid "Permanently remove the user and their data."
 msgstr "Natrvalo odstranit uživatele a jeho data."
 
-#: web/forms.py:182
+#: web/forms.py:201
 msgid "Old password"
 msgstr "Staré heslo"
 
-#: web/forms.py:185
+#: web/forms.py:204
 msgid "New password"
 msgstr "Nové heslo"
 
-#: web/forms.py:186
+#: web/forms.py:205
 msgid "New password confirmation"
 msgstr "Potvrzení nového hesla"
 
-#: web/forms.py:187
+#: web/forms.py:206
 msgid "Language"
 msgstr "Jazyk"
 
-#: web/forms.py:198
+#: web/forms.py:217
 msgid "The two password fields didn't match."
 msgstr "Dvě pole hesel se neshodují."
 
-#: web/forms.py:207
+#: web/forms.py:226
 msgid "Your old password was entered incorrectly. Please enter it again."
 msgstr "Vaše staré heslo bylo špatně zadáno. Zadejte ho prosím znovu."
