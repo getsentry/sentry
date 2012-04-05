@@ -6,33 +6,20 @@
 
 {% block title %}{% blocktrans with team.name as name %}Manage Team: {{ name }}{% endblocktrans %} | {{ block.super }}{% endblock %}
 
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider">/</li>
-    <li><a href="{% url sentry-manage-team team.slug %}">{% trans "Manage" %}</a></li>
+{% block page_header %}
+    <ul class="breadcrumb">
+        <li><a href="#">{% trans "Teams" %}</a></li>
+        {% block breadcrumb %}
+            <li class="divider">/</li>
+            <li><a href="{% url sentry-manage-team team.slug %}">{{ team.name }}</a></li>
+        {% endblock %}
+    </ul>
 {% endblock %}
 
 {% block main %}
     <section class="body">
-        <ul class="nav nav-tabs">
-            <li{% if page == 'details' %} class="active"{% endif %}>
-                <a href="{% url sentry-manage-team team.slug %}">{% trans "Details" %}</a>
-            </li>
-            {% for p in team|get_plugins %}
-                <li{% if page == 'plugin' and plugin.slug == p.slug %} class="active"{% endif %}>
-                    <a href="{% url sentry-configure-team-plugin team.slug p.slug %}">{{ p.get_title }}</a>
-                </li>
-            {% endfor %}
-            <li class="pull-right{% if page == 'plugins' %} active{% endif %}">
-                <a href="{% url sentry-manage-team-plugins team.slug %}">{% trans "Manage Plugins" %}</a>
-            </li>
-        </ul>
         {% block inner %}
             <p>{% trans "Here you can edit team information, as well as control the access list for a team with fine-grained permissions." %}</p>
-            <hr>
-            <div class="page-header">
-                <h2>{% trans "Team Details" %}</h2>
-            </div>
             {% if request.GET.success %}
                 <div class="alert alert-success">{% trans "Changes to your team were saved successfully." %}</div>
             {% else %}
@@ -49,7 +36,11 @@
                 </fieldset>
                 <fieldset class="form-actions">
                     <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
-                    <a href="{% url sentry-remove-team team.slug %}" class="btn btn-danger">{% trans "Remove Team" %}</a>
+                    {% if can_remove_team %}
+                        <a href="{% url sentry-remove-team team.slug %}" class="btn btn-danger">{% trans "Remove Team" %}</a>
+                    {% else %}
+                        <a class="btn btn-danger disabled">{% trans "Cannot remove teams assigned to projects" %}</a>
+                    {% endif %}
                 </fieldset>
             </form>
             <div class="page-header">
@@ -147,4 +138,8 @@
             </div>
         {% endblock %}
     </section>
+{% endblock %}
+
+{% block sidebar %}
+    {% include "sentry/partial/_account_sidebar.html" %}
 {% endblock %}

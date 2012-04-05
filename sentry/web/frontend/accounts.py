@@ -63,5 +63,6 @@ def settings(request):
     context = csrf(request)
     context.update({
         'form': form,
+        'page': 'settings',
     })
     return render_to_response('sentry/account/settings.html', context, request)

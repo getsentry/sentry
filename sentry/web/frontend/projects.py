@@ -83,7 +83,7 @@ def remove_project(request, project):
 
     project_list = filter(lambda x: x != project, get_project_list(request.user).itervalues())
 
-    form = RemoveProjectForm(project_list, request.POST or None)
+    form = RemoveProjectForm(request.user, project_list, request.POST or None)
 
     if form.is_valid():
         removal_type = form.cleaned_data['removal_type']

@@ -22,7 +22,7 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models import F
-from django.db.models.signals import post_syncdb, post_save, post_delete
+from django.db.models.signals import post_syncdb, post_save, pre_delete
 from django.template.defaultfilters import slugify
 from django.utils.datastructures import SortedDict
 from django.utils.encoding import smart_unicode
@@ -852,7 +852,7 @@ post_save.connect(
     dispatch_uid="create_key_for_team_member",
     weak=False,
 )
-post_delete.connect(
+pre_delete.connect(
     remove_key_for_team_member,
     sender=TeamMember,
     dispatch_uid="remove_key_for_team_member",

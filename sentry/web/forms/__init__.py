@@ -23,9 +23,11 @@ class RemoveProjectForm(forms.Form):
         ('3', _('Hide this project.')),
     ), widget=forms.RadioSelect(renderer=RadioFieldRenderer))
     project = forms.ChoiceField(choices=(), required=False)
+    password = forms.CharField(label=_("Password"), widget=forms.PasswordInput, help_text=_("Confirm your identify by entering your password."))
 
-    def __init__(self, project_list, *args, **kwargs):
+    def __init__(self, user, project_list, *args, **kwargs):
         super(RemoveProjectForm, self).__init__(*args, **kwargs)
+        self.user = user
         if not project_list:
             del self.fields['project']
             self.fields['removal_type'].choices = filter(lambda x: x[0] != '2', self.fields['removal_type'].choices)
@@ -42,6 +44,15 @@ class RemoveProjectForm(forms.Form):
     def clean_project(self):
         project_id = self.cleaned_data['project']
         return Project.objects.get_from_cache(id=project_id)
+
+    def clean_password(self):
+        """
+        Validates that the old_password field is correct.
+        """
+        old_password = self.cleaned_data["old_password"]
+        if not self.user.check_password(old_password):
+            raise forms.ValidationError(_("Your password was entered incorrectly. Please enter it again."))
+        return old_password
 
 
 class NewProjectForm(forms.ModelForm):

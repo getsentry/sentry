@@ -57,6 +57,8 @@ def can_add_team_member(user, team):
 
 
 def can_remove_team(user, team):
+    if team.project_set.exists():
+        return False
     result = plugins.first('has_perm', user, 'remove_team', team)
     if result is False and not user.has_perm('sentry.can_remove_team'):
         return False

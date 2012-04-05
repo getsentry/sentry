@@ -12,6 +12,10 @@ from sentry.web.forms.fields import UserField
 from django.utils.translation import ugettext_lazy as _
 
 
+class RemoveTeamForm(forms.Form):
+    pass
+
+
 class NewTeamForm(forms.ModelForm):
     class Meta:
         fields = ('name', 'slug')
@@ -77,6 +81,6 @@ class NewTeamMemberForm(BaseTeamMemberForm):
             return None
 
         if self.project.member_set.filter(user=value).exists():
-            raise forms.ValidationError(_('User already a member of project'))
+            raise forms.ValidationError(_('User is already a member of this team'))
 
         return value

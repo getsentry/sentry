@@ -15,7 +15,8 @@ from sentry.permissions import can_add_team_member, can_remove_team
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_team_access
 from sentry.web.forms.teams import NewTeamForm, NewTeamAdminForm, \
-  EditTeamForm, EditTeamMemberForm, NewTeamMemberForm, InviteTeamMemberForm
+  EditTeamForm, EditTeamMemberForm, NewTeamMemberForm, InviteTeamMemberForm, \
+  RemoveTeamForm
 from sentry.web.helpers import render_to_response
 
 
@@ -54,7 +55,6 @@ def create_new_team(request):
     return render_to_response('sentry/teams/new.html', context, request)
 
 
-@login_required
 @has_team_access(MEMBER_OWNER)
 @csrf_protect
 def manage_team(request, team):
@@ -62,7 +62,7 @@ def manage_team(request, team):
     if result is False and not request.user.has_perm('sentry.can_change_team'):
         return HttpResponseRedirect(reverse('sentry'))
 
-    form = EditTeamForm(request, request.POST or None, instance=team)
+    form = EditTeamForm(request.POST or None, instance=team)
 
     if form.is_valid():
         team = form.save()
@@ -82,6 +82,27 @@ def manage_team(request, team):
     })
 
     return render_to_response('sentry/teams/manage.html', context, request)
+
+
+@has_team_access(MEMBER_OWNER)
+@csrf_protect
+def remove_team(request, team):
+    if not can_remove_team(request.user, team):
+        return HttpResponseRedirect(reverse('sentry'))
+
+    form = RemoveTeamForm(request.POST or None)
+
+    if form.is_valid():
+        team.delete()
+        return HttpResponseRedirect(reverse('sentry-team-list'))
+
+    context = csrf(request)
+    context.update({
+        'form': form,
+        'team': team,
+    })
+
+    return render_to_response('sentry/teams/remove.html', context, request)
 
 
 @csrf_protect
@@ -284,4 +305,3 @@ def reinvite_pending_team_member(request, team, member_id):
     member.send_invite_email()
 
     return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]) + '?success=1')
-
