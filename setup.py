@@ -35,7 +35,7 @@ install_requires = [
     'cssutils>=0.9.9',
     'BeautifulSoup>=3.2.1',
     'django-celery>=2.5.0,<3.0',
-    'Django>=1.2,<1.5',
+    'Django>=1.2,<1.4',
     'django-indexer>=0.3.0',
     'django-paging>=0.2.4',
     'django-picklefield>=0.2.0',
@@ -50,7 +50,7 @@ install_requires = [
 
 setup(
     name='sentry',
-    version='3.8.1',
+    version='4.0.0',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/sentry',
