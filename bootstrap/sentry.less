@@ -3,7 +3,7 @@
 @grayDark: #404f60;
 @gray: #6d757e;
 
-@linkColor: #1783c8;
+@linkColor: #4593DE;
 
 @linkColorHover: darken(#1783c8, 10%);
 
@@ -622,7 +622,19 @@ small {
 }
 
 .btn-primary {
-  .buttonBackground(lighten(#5e6a77, 15%), spin(#5e6a77, 20));
+  .buttonBackground(#61C1EF, #4593DE);
+  font-weight: bold;
 }
 // #5e6a77
 // #505962
+
+.page-header {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.page-header .pull-right {
+  margin-top: 4px;
+}
+.page-header h2 {
+  font-weight: normal;
+}
