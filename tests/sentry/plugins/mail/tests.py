@@ -14,13 +14,13 @@ from tests.base import TestCase
 
 class MailProcessorTest(TestCase):
     @mock.patch('sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d: d))
-    @mock.patch('sentry.plugins.sentry_mail.MailProcessor.get_send_to', Mock(return_value=[]))
+    @mock.patch('sentry.plugins.sentry_mail.models.MailProcessor.get_send_to', Mock(return_value=[]))
     def test_should_notify_no_send_to(self):
         p = MailProcessor()
         self.assertFalse(p.should_notify(group=Mock(), event=Mock()))
 
     @mock.patch('sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d: d))
-    @mock.patch('sentry.plugins.sentry_mail.MailProcessor.get_send_to', Mock(return_value=['foo@example.com']))
+    @mock.patch('sentry.plugins.sentry_mail.models.MailProcessor.get_send_to', Mock(return_value=['foo@example.com']))
     def test_should_notify_not_min_level(self):
         p = MailProcessor(min_level=2)
         group = Mock(spec=Group)
@@ -28,7 +28,7 @@ class MailProcessorTest(TestCase):
         self.assertFalse(p.should_notify(group=group, event=Mock()))
 
     @mock.patch('sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d: d))
-    @mock.patch('sentry.plugins.sentry_mail.MailProcessor.get_send_to', Mock(return_value=['foo@example.com']))
+    @mock.patch('sentry.plugins.sentry_mail.models.MailProcessor.get_send_to', Mock(return_value=['foo@example.com']))
     def test_should_notify_not_included(self):
         p = MailProcessor(min_level=None, include_loggers=['foo'])
         group = Mock(spec=Group)
@@ -37,7 +37,7 @@ class MailProcessorTest(TestCase):
         self.assertFalse(p.should_notify(group=group, event=Mock()))
 
     @mock.patch('sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d: d))
-    @mock.patch('sentry.plugins.sentry_mail.MailProcessor.get_send_to', Mock(return_value=['foo@example.com']))
+    @mock.patch('sentry.plugins.sentry_mail.models.MailProcessor.get_send_to', Mock(return_value=['foo@example.com']))
     def test_should_notify_excluded(self):
         p = MailProcessor(min_level=None, exclude_loggers=['root'])
         group = Mock(spec=Group)
@@ -46,7 +46,7 @@ class MailProcessorTest(TestCase):
         self.assertFalse(p.should_notify(group=group, event=Mock()))
 
     @mock.patch('sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d: d))
-    @mock.patch('sentry.plugins.sentry_mail.MailProcessor.get_send_to', Mock(return_value=['foo@example.com']))
+    @mock.patch('sentry.plugins.sentry_mail.models.MailProcessor.get_send_to', Mock(return_value=['foo@example.com']))
     def test_should_notify_match(self):
         p = MailProcessor(min_level=None)
         group = Mock(spec=Group)
@@ -54,7 +54,7 @@ class MailProcessorTest(TestCase):
         group.logger = 'root'
         self.assertTrue(p.should_notify(group=group, event=Mock()))
 
-    @mock.patch('sentry.plugins.sentry_mail.MailProcessor._send_mail')
+    @mock.patch('sentry.plugins.sentry_mail.models.MailProcessor._send_mail')
     def test_notify_users_renders_interfaces(self, _send_mail):
         group = Group()
         group.first_seen = datetime.datetime.now()
@@ -80,7 +80,7 @@ class MailProcessorTest(TestCase):
         stacktrace.get_title.assert_called_once_with()
         stacktrace.to_string.assert_called_once_with(event)
 
-    @mock.patch('sentry.plugins.sentry_mail.MailProcessor._send_mail')
+    @mock.patch('sentry.plugins.sentry_mail.models.MailProcessor._send_mail')
     def test_notify_users_renders_interfaces_with_utf8(self, _send_mail):
         group = Group()
         group.first_seen = datetime.datetime.now()
@@ -106,7 +106,7 @@ class MailProcessorTest(TestCase):
         stacktrace.get_title.assert_called_once_with()
         stacktrace.to_string.assert_called_once_with(event)
 
-    @mock.patch('sentry.plugins.sentry_mail.MailProcessor._send_mail')
+    @mock.patch('sentry.plugins.sentry_mail.models.MailProcessor._send_mail')
     def test_notify_users_does_email(self, _send_mail):
         project = Project(id=1, name='Project Name')
 
@@ -133,7 +133,7 @@ class MailProcessorTest(TestCase):
         self.assertEquals(kwargs.get('project'), project)
         self.assertEquals(kwargs.get('subject'), u"[Project Name] ERROR: hello world")
 
-    @mock.patch('sentry.plugins.sentry_mail.MailProcessor._send_mail')
+    @mock.patch('sentry.plugins.sentry_mail.models.MailProcessor._send_mail')
     def test_multiline_error(self, _send_mail):
         project = Project(id=1, name='Project Name')
 
