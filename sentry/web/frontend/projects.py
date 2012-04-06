@@ -16,10 +16,9 @@ from sentry.models import TeamMember, MEMBER_OWNER, \
 from sentry.permissions import can_create_projects, can_remove_project
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_access
-from sentry.web.forms import EditProjectForm, NewProjectForm, \
-  RemoveProjectForm, NewProjectAdminForm
+from sentry.web.forms import EditProjectForm, RemoveProjectForm
 from sentry.web.helpers import render_to_response, get_project_list, \
-  plugin_config
+  plugin_config, get_team_list
 
 
 @login_required
@@ -96,7 +95,9 @@ def manage_project(request, project):
     if result is False and not request.user.has_perm('sentry.can_change_project'):
         return HttpResponseRedirect(reverse('sentry'))
 
-    form = EditProjectForm(request, request.POST or None, instance=project)
+    team_list = get_team_list(request.user)
+
+    form = EditProjectForm(request, team_list, request.POST or None, instance=project)
 
     if form.is_valid():
         project = form.save()
@@ -112,6 +113,7 @@ def manage_project(request, project):
         'form': form,
         'project': project,
         'member_list': member_list,
+        'TEAM_LIST': team_list.values(),
     })
 
     return render_to_response('sentry/projects/manage.html', context, request)

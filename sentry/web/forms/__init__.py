@@ -10,7 +10,7 @@ from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
-from sentry.models import Project
+from sentry.models import Project, Team
 from sentry.interfaces import Http
 from sentry.permissions import can_set_public_projects
 from sentry.web.forms.fields import RadioFieldRenderer, UserField
@@ -78,15 +78,29 @@ class NewProjectAdminForm(forms.ModelForm):
 
 class EditProjectForm(forms.ModelForm):
     public = forms.BooleanField(required=False, help_text=_('Allow anyone (even anonymous users) to view this project'))
+    team = forms.ChoiceField(choices=())
 
     class Meta:
-        fields = ('name', 'status', 'public')
+        fields = ('name', 'status', 'public', 'team')
         model = Project
 
-    def __init__(self, request, *args, **kwargs):
+    def __init__(self, request, team_list, *args, **kwargs):
         super(EditProjectForm, self).__init__(*args, **kwargs)
+        self.team_list = dict((t.pk, t) for t in team_list.itervalues())
         if not can_set_public_projects(request.user):
             del self.fields['public']
+        if len(team_list) == 1:
+            del self.fields['team']
+        else:
+            self.fields['team'].choices = [(t.pk, t) for t in sorted(self.team_list.values(), key=lambda x: x.name)]
+            self.fields['team'].widget.choices = self.fields['team'].choices
+
+    def clean_team(self):
+        value = self.cleaned_data.get('team')
+        if not value:
+            return
+
+        return self.team_list[int(value)]
 
 
 class ReplayForm(forms.Form):
