@@ -246,7 +246,7 @@ class ModuleProxyCache(dict):
 class ChartMixin(object):
     def get_chart_data(self, instance, max_days=90):
         if hasattr(instance, '_state'):
-            db = instance._state.db
+            db = instance._state.db or 'default'
         else:
             db = 'default'
 

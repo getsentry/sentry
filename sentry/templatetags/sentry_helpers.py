@@ -52,7 +52,7 @@ def subtract(value, amount):
 def has_charts(group):
     from sentry.utils.db import has_charts
     if hasattr(group, '_state'):
-        db = group._state.db
+        db = group._state.db or 'default'
     else:
         db = 'default'
     return has_charts(db)
