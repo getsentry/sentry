@@ -78,6 +78,16 @@ For example, with an included Exception event, a basic JSON body might resemble 
 
 The following attributes are required for all events:
 
+.. data:: project
+
+    Integer value representing the project ID
+
+    ::
+
+        {
+            "project": 1
+        }
+
 .. data:: event_id
 
     Hexadecimal string representing a uuid4 value.
@@ -254,6 +264,7 @@ The request body should then somewhat resemble the following::
         sentry_client=raven-python/1.0
 
     {
+        "project": 1,
         "event_id": "fc6d8c0c43fc4630ad850ee518f1b9d0",
         "culprit": "my.module.function_name",
         "timestamp": "2011-05-02T17:41:36",
