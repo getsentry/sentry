@@ -1,3 +1,16 @@
+Version 4.0.0
+-------------
+
+Introducing Teams!
+
+Projects are now assigned to a single team, and that team may consist of many members. Additionally
+each team may own multiple projects. This makes it much easier to handle permissions across a single
+organization that has many projects.
+
+This update also includes initial changes to how filters work. ServerName Filter and SiteFilter are
+no longer specified in the ``FILTERS`` setting, but instead are included automatically if you
+load the respective ``sentry_servers`` and ``sentry_sites`` plugins.
+
 Version 3.8.0
 -------------
 
