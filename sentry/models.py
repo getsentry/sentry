@@ -22,7 +22,8 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models import F
-from django.db.models.signals import post_syncdb, post_save, pre_delete
+from django.db.models.signals import post_syncdb, post_save, pre_delete, \
+  class_prepared
 from django.template.defaultfilters import slugify
 from django.utils.datastructures import SortedDict
 from django.utils.encoding import smart_unicode
@@ -699,16 +700,16 @@ class MessageIndex(BaseIndex):
 
 ## Register Signals
 
-def register_indexes():
+def register_indexes(**kwargs):
     """
     Grabs all required indexes from filters and registers them.
     """
-    from sentry.filters import Filter
+    from sentry.filters import get_filters
     logger = logging.getLogger('sentry.setup')
-    for cls in (f for f in Filter.objects.all() if f.column.startswith('data__')):
+    for cls in (f for f in get_filters() if f.column.startswith('data__')):
         MessageIndex.objects.register_index(cls.column, index_to='group')
         logger.debug('Registered index for for %r' % cls.column)
-register_indexes()
+class_prepared.connect(register_indexes, sender=MessageIndex)
 
 
 def create_default_project(created_models, verbosity=2, **kwargs):

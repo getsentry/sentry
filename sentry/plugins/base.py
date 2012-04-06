@@ -413,6 +413,17 @@ class IPlugin(local):
         >>>     print 'New event created:', event.id
         """
 
+    def get_filters(self, project=None, **kwargs):
+        """
+        Provides additional filters to the builtins.
+
+        Must return an iterable.
+
+        >>> def get_filters(self, project, **kwargs):
+        >>>     return [MyFilterClass]
+        """
+        return []
+
 
 class Plugin(IPlugin):
     """

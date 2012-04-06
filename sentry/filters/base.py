@@ -13,18 +13,8 @@ __all__ = ('Filter', 'GroupFilter', 'EventFilter')
 
 from django.utils.datastructures import SortedDict
 
-from sentry.conf import settings
 from sentry.models import Group, Event, FilterValue, MessageIndex
-from sentry.utils.db import InstanceManager
 from .widgets import ChoiceWidget
-
-
-class FilterInstanceManager(InstanceManager):
-    def filter(self, model):
-        for inst in self.all():
-            if model not in inst.types:
-                continue
-            yield inst
 
 
 class Filter(object):
@@ -79,8 +69,6 @@ class Filter(object):
     def render(self):
         widget = self.get_widget()
         return widget.render(self.get_value())
-
-    objects = FilterInstanceManager(settings.FILTERS, instances=False)
 
 
 class EventFilter(Filter):

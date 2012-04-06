@@ -20,7 +20,7 @@ from django.utils.safestring import mark_safe
 from sentry.conf import settings
 from sentry.constants import SORT_OPTIONS, SEARCH_SORT_OPTIONS, DATE_OPTIONS, \
   SORT_CLAUSES, MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES, DATE_VALUES
-from sentry.filters import Filter
+from sentry.filters import get_filters
 from sentry.models import Group, Event, View, SearchDocument
 from sentry.plugins import plugins
 from sentry.utils import json
@@ -49,7 +49,7 @@ def _get_rendered_interfaces(event):
 
 def _get_group_list(request, project, view=None):
     filters = []
-    for cls in Filter.objects.filter(Group):
+    for cls in get_filters(Group, project):
         try:
             filters.append(cls(request, project))
         except Exception, e:

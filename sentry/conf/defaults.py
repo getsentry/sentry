@@ -21,8 +21,6 @@ FILTERS = (
     'sentry.filters.StatusFilter',
     'sentry.filters.LoggerFilter',
     'sentry.filters.LevelFilter',
-    'sentry.filters.ServerNameFilter',
-    'sentry.filters.SiteFilter',
 )
 
 KEY = None

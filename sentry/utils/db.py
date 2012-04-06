@@ -18,6 +18,9 @@ class InstanceManager(object):
         self.instances = instances
         self.update(class_list)
 
+    def get_class_list(self):
+        return self.class_list
+
     def add(self, class_path):
         self.cache = None
         self.class_list.append(class_path)
@@ -37,7 +40,8 @@ class InstanceManager(object):
         """
         Returns a list of cached instances.
         """
-        if not self.class_list:
+        class_list = list(self.get_class_list())
+        if not class_list:
             self.cache = []
             return []
 
@@ -45,7 +49,7 @@ class InstanceManager(object):
             return self.cache
 
         results = []
-        for cls_path in self.class_list:
+        for cls_path in class_list:
             module_name, class_name = cls_path.rsplit('.', 1)
             try:
                 module = __import__(module_name, {}, {}, class_name)

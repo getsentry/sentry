@@ -8,6 +8,7 @@ sentry.filters
 
 from sentry.filters.base import *
 from sentry.filters.builtins import *
+from sentry.filters.helpers import *
 from sentry.filters.widgets import *
 
 # Backwards compatibility

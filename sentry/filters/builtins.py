@@ -5,15 +5,12 @@ sentry.filters.base
 :copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from django.conf import settings as django_settings
 from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
-from sentry.models import Event
 from .base import Filter, GroupFilter
 
-__all__ = ('StatusFilter', 'LoggerFilter', 'ServerNameFilter', 'SiteFilter',
-           'LevelFilter')
+__all__ = ('StatusFilter', 'LoggerFilter', 'LevelFilter')
 
 
 class StatusFilter(GroupFilter):
@@ -33,17 +30,6 @@ class LoggerFilter(Filter):
     column = 'logger'
 
 
-class ServerNameFilter(Filter):
-    label = _('Server Name')
-    column = 'server_name'
-
-    def get_query_set(self, queryset):
-        if queryset.model == Event:
-            return queryset.filter(server_name=self.get_value()).distinct()
-        else:
-            return queryset.filter(event_set__server_name=self.get_value()).distinct()
-
-
 class LevelFilter(Filter):
     label = _('Level')
     column = 'level'
@@ -53,30 +39,3 @@ class LevelFilter(Filter):
 
     def get_query_set(self, queryset):
         return queryset.filter(level=self.get_value())
-
-
-class SiteFilter(Filter):
-    label = _('Site')
-    column = 'site'
-
-    def process(self, data):
-        if 'site' in data:
-            return data
-        if settings.SITE is None:
-            if 'django.contrib.sites' in django_settings.INSTALLED_APPS:
-                from django.contrib.sites.models import Site
-                try:
-                    settings.SITE = Site.objects.get_current().name
-                except Site.DoesNotExist:
-                    settings.SITE = ''
-            else:
-                settings.SITE = ''
-        if settings.SITE:
-            data['site'] = settings.SITE
-        return data
-
-    def get_query_set(self, queryset):
-        if queryset.model == Event:
-            return queryset.filter(site=self.get_value()).distinct()
-        else:
-            return queryset.filter(event_set__site=self.get_value()).distinct()

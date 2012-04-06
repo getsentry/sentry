@@ -15,7 +15,7 @@ from django.views.decorators.csrf import csrf_protect
 
 from sentry.conf import settings
 from sentry.models import Event
-from sentry.filters import Filter
+from sentry.filters import get_filters
 from sentry.replays import Replayer
 from sentry.utils.http import safe_urlencode
 from sentry.web.decorators import login_required, has_access, render_to_response
@@ -26,7 +26,7 @@ from sentry.web.forms import ReplayForm
 @has_access
 def event_list(request, project):
     filters = []
-    for cls in Filter.objects.filter(Event):
+    for cls in get_filters(Event, project):
         try:
             filters.append(cls(request, project))
         except Exception, e:
