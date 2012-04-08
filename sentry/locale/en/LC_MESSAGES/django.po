@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-04-05 08:59+0000\n"
+"POT-Creation-Date: 2012-04-08 23:26+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -78,86 +78,77 @@ msgstr ""
 msgid "24 hours"
 msgstr ""
 
-#: models.py:44
+#: models.py:45
 msgid "unresolved"
 msgstr ""
 
-#: models.py:45
+#: models.py:46
 msgid "resolved"
 msgstr ""
 
-#: models.py:50
+#: models.py:51
 msgid "server name"
 msgstr ""
 
-#: models.py:51
+#: models.py:52
 msgid "logger"
 msgstr ""
 
-#: models.py:52
+#: models.py:53
 msgid "site"
 msgstr ""
 
-#: models.py:59
+#: models.py:60
 msgid "owner"
 msgstr ""
 
-#: models.py:60
+#: models.py:61
 msgid "user"
 msgstr ""
 
-#: models.py:61
+#: models.py:62
 msgid "system agent"
 msgstr ""
 
-#: models.py:401
+#: models.py:402
 msgid "error"
 msgstr ""
 
-#: models.py:430
+#: models.py:431
 msgid "grouped messages"
 msgstr ""
 
-#: models.py:431
+#: models.py:432
 msgid "grouped message"
 msgstr ""
 
-#: models.py:505
+#: models.py:506
 msgid "message"
 msgstr ""
 
-#: models.py:506
+#: models.py:507
 msgid "messages"
 msgstr ""
 
-#: filters/builtins.py:20 templates/sentry/projects/base.html:34
+#: filters/builtins.py:17 templates/sentry/projects/base.html:34
 #: templates/sentry/projects/list.html:27
 msgid "Status"
 msgstr ""
 
-#: filters/builtins.py:26
+#: filters/builtins.py:23
 msgid "Unresolved"
 msgstr ""
 
-#: filters/builtins.py:27
+#: filters/builtins.py:24
 msgid "Resolved"
 msgstr ""
 
-#: filters/builtins.py:32
+#: filters/builtins.py:29
 msgid "Logger"
 msgstr ""
 
-#: filters/builtins.py:37
-#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:21
-msgid "Server Name"
-msgstr ""
-
-#: filters/builtins.py:48
+#: filters/builtins.py:34
 msgid "Level"
-msgstr ""
-
-#: filters/builtins.py:59
-msgid "Site"
 msgstr ""
 
 #: plugins/bases/notify.py:15
@@ -182,19 +173,24 @@ msgid ""
 "an already resolved event has changed back to unresolved."
 msgstr ""
 
-#: plugins/sentry_mail/__init__.py:38
+#: plugins/sentry_mail/models.py:38
 msgid "Send to"
 msgstr ""
 
-#: plugins/sentry_mail/__init__.py:39
+#: plugins/sentry_mail/models.py:39
 msgid "Enter one or more emails separated by commas or lines."
 msgstr ""
 
-#: plugins/sentry_mail/__init__.py:53
+#: plugins/sentry_mail/models.py:53
 msgid "Mail"
 msgstr ""
 
-#: plugins/sentry_servers/__init__.py:24
+#: plugins/sentry_servers/models.py:19
+#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:21
+msgid "Server Name"
+msgstr ""
+
+#: plugins/sentry_servers/models.py:37
 #: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/widget.html:5
 msgid "Servers"
 msgstr ""
@@ -212,7 +208,11 @@ msgstr ""
 msgid "There are no records recorded for this event."
 msgstr ""
 
-#: plugins/sentry_sites/__init__.py:24
+#: plugins/sentry_sites/models.py:21
+msgid "Site"
+msgstr ""
+
+#: plugins/sentry_sites/models.py:55
 #: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/widget.html:5
 msgid "Sites"
 msgstr ""
@@ -221,7 +221,7 @@ msgstr ""
 msgid "Site Name"
 msgstr ""
 
-#: plugins/sentry_urls/__init__.py:24
+#: plugins/sentry_urls/models.py:24
 #: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/widget.html:5
 msgid "URLs"
 msgstr ""
@@ -259,6 +259,20 @@ msgstr ""
 msgid "Select a Project"
 msgstr ""
 
+#: templates/sentry/dashboard.html:26
+#, python-format
+msgid ""
+"You do not have access to any projects. Would you like to <a href=\"%(link)s"
+"\">create a new project</a>?"
+msgstr ""
+
+#: templates/sentry/dashboard.html:28 templates/sentry/projects/base.html:63
+#: templates/sentry/projects/list.html:56
+msgid ""
+"You do not have access to any projects. Ask an administrator to add you as a "
+"member."
+msgstr ""
+
 #: templates/sentry/header.html:12
 msgid "search query or message id"
 msgstr ""
@@ -275,7 +289,7 @@ msgstr ""
 msgid "Dashboard"
 msgstr ""
 
-#: templates/sentry/header.html:25
+#: templates/sentry/header.html:25 templates/sentry/events/event_list.html:9
 msgid "Stream"
 msgstr ""
 
@@ -569,7 +583,7 @@ msgstr ""
 #: templates/sentry/admin/users/list.html:42
 #: templates/sentry/projects/base.html:31
 #: templates/sentry/projects/list.html:24 templates/sentry/teams/list.html:22
-#: web/forms/__init__.py:108
+#: web/forms/__init__.py:122
 msgid "Name"
 msgstr ""
 
@@ -747,6 +761,14 @@ msgstr ""
 msgid "Site:"
 msgstr ""
 
+#: templates/sentry/groups/event_list.html:10
+#, python-format
+msgid ""
+"This list only contains a portion of all events seen. For more information "
+"about how Sentry samples events, see the <a href=\"%(link)s\">documentation</"
+"a>."
+msgstr ""
+
 #: templates/sentry/groups/group_list.html:23
 msgid "All"
 msgstr ""
@@ -833,7 +855,7 @@ msgid "No data for %(varname)s"
 msgstr ""
 
 #: templates/sentry/partial/_event_details.html:52
-msgid "Module Versions"
+msgid "Package Versions"
 msgstr ""
 
 #: templates/sentry/partial/client_config/connect.html:3
@@ -998,6 +1020,10 @@ msgid ""
 "href=\"%(link)s\">official documentation for raven-python</a>."
 msgstr ""
 
+#: templates/sentry/partial/interfaces/exception.html:3 views/exception.py:16
+msgid "Exception"
+msgstr ""
+
 #: templates/sentry/partial/interfaces/exception.html:10
 msgid "Types:"
 msgstr ""
@@ -1019,17 +1045,14 @@ msgid "Request"
 msgstr ""
 
 #: templates/sentry/partial/interfaces/http.html:16
-#: templates/sentry/partial/interfaces/http.txt:8
 msgid "URL:"
 msgstr ""
 
 #: templates/sentry/partial/interfaces/http.html:21
-#: templates/sentry/partial/interfaces/http.txt:13
 msgid "Method:"
 msgstr ""
 
 #: templates/sentry/partial/interfaces/http.html:26
-#: templates/sentry/partial/interfaces/http.txt:18
 msgid "Query:"
 msgstr ""
 
@@ -1136,13 +1159,6 @@ msgstr ""
 #: templates/sentry/projects/base.html:51
 #: templates/sentry/projects/list.html:44
 msgid "no owner"
-msgstr ""
-
-#: templates/sentry/projects/base.html:63
-#: templates/sentry/projects/list.html:56
-msgid ""
-"You do not have access to any projects. Ask an administrator to add you as a "
-"member."
 msgstr ""
 
 #: templates/sentry/projects/manage.html:7
@@ -1420,10 +1436,6 @@ msgstr ""
 msgid " ago"
 msgstr ""
 
-#: views/exception.py:16
-msgid "Exception"
-msgstr ""
-
 #: views/exception.py:17
 msgid "Exceptions"
 msgstr ""
@@ -1488,48 +1500,48 @@ msgstr ""
 msgid "Allow anyone (even anonymous users) to view this project"
 msgstr ""
 
-#: web/forms/__init__.py:113
+#: web/forms/__init__.py:127
 msgid "Create a project for this user."
 msgstr ""
 
-#: web/forms/__init__.py:115
+#: web/forms/__init__.py:129
 msgid ""
 "Send this user a welcome email which will contain their generated password."
 msgstr ""
 
-#: web/forms/__init__.py:130
+#: web/forms/__init__.py:144
 msgid "Disable the account."
 msgstr ""
 
-#: web/forms/__init__.py:131
+#: web/forms/__init__.py:145
 msgid "Permanently remove the user and their data."
 msgstr ""
 
-#: web/forms/__init__.py:136
+#: web/forms/__init__.py:150
 msgid "Old password"
 msgstr ""
 
-#: web/forms/__init__.py:139
+#: web/forms/__init__.py:153
 msgid "New password"
 msgstr ""
 
-#: web/forms/__init__.py:140
+#: web/forms/__init__.py:154
 msgid "New password confirmation"
 msgstr ""
 
-#: web/forms/__init__.py:141
+#: web/forms/__init__.py:155
 msgid "Language"
 msgstr ""
 
-#: web/forms/__init__.py:152
+#: web/forms/__init__.py:166
 msgid "The two password fields didn't match."
 msgstr ""
 
-#: web/forms/__init__.py:161
+#: web/forms/__init__.py:175
 msgid "Your old password was entered incorrectly. Please enter it again."
 msgstr ""
 
-#: web/forms/fields.py:44
+#: web/forms/fields.py:45
 msgid "Invalid username"
 msgstr ""
 
