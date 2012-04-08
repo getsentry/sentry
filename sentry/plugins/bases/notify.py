@@ -39,8 +39,8 @@ class NotifyPlugin(Plugin):
             send_to_list |= set(settings.ADMINS)
 
         send_to_members = self.get_option('send_to_members', project)
-        if send_to_members and project:
-            send_to_list |= set(project.member_set.values_list('user__email', flat=True))
+        if send_to_members and project and project.team:
+            send_to_list |= set(project.team.member_set.values_list('user__email', flat=True))
 
         return filter(bool, send_to_list)
 
