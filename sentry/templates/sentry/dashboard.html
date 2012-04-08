@@ -10,7 +10,6 @@
 {% block content %}
     <section class="body">
         {% if PROJECT_LIST %}
-            <div class="alert alert-info">Select a project to view the stream of events...</div>
             <ul class="thumbnails sparkline-grid">
                 {% for project in PROJECT_LIST %}
                     <li class="thumbnail">
@@ -23,9 +22,10 @@
             </ul>
         {% else %}
             {% if can_create_projects %}
-                <div class="alert alert-info">You do not have access to any projects. Would you like to <a href="{% url sentry-new-project %}">create a new project</a>?</div>
+                {% url sentry-new-project as link %}
+                <div class="alert alert-info">{% blocktrans %}You do not have access to any projects. Would you like to <a href="{{ link }}">create a new project</a>?{% endblocktrans %}</div>
             {% else %}
-                <div class="alert alert-notice">You do not have access to any projects. Ask an administrator to add you as a member.</div>
+                <div class="alert alert-notice">{% trans "You do not have access to any projects. Ask an administrator to add you as a member." %}</div>
             {% endif %}
         {% endif %}
     </section>
