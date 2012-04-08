@@ -13,10 +13,11 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from sentry.conf import settings
+from sentry.exceptions import InvalidData, InvalidTimestamp
 from sentry.coreapi import project_from_auth_vars, project_from_api_key_and_id, \
   project_from_id, decode_and_decompress_data, safely_load_json_string, \
   validate_data, insert_data_to_database, APIError, APIUnauthorized, \
-  extract_auth_vars, InvalidTimestamp
+  extract_auth_vars
 from sentry.models import Group, GroupBookmark, Project, View, ProjectDomain
 from sentry.utils import json
 from sentry.utils.http import is_same_domain, apply_access_control_headers
@@ -100,15 +101,9 @@ def store(request):
             data = safely_load_json_string(data)
 
             try:
-                validate_data(project, data)
-            except InvalidTimestamp:
-                # Log the error, remove the timestamp, and revalidate
-                error_logger.error('Client %r passed an invalid value for timestamp %r' % (
-                    data['timestamp'],
-                    client or '<unknown client>',
-                ))
-                del data['timestamp']
-                validate_data(project, data)
+                validate_data(project, data, client)
+            except InvalidData, e:
+                raise APIError(unicode(e))
 
             insert_data_to_database(data)
     except APIError, error:

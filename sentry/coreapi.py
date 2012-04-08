@@ -19,8 +19,8 @@ import zlib
 from django.utils.encoding import smart_str
 
 from sentry.conf import settings
-# from sentry.exceptions import InvalidData, InvalidInterface
-from sentry.models import Project, ProjectKey, TeamMember, Team
+from sentry.exceptions import InvalidInterface, InvalidData, InvalidTimestamp
+from sentry.models import Group, Project, ProjectKey, TeamMember, Team
 from sentry.plugins import plugins
 from sentry.tasks.store import store_event
 from sentry.utils import is_float, json
@@ -29,9 +29,25 @@ from sentry.utils.queue import maybe_delay
 
 logger = logging.getLogger('sentry.errors.coreapi')
 
+RESERVED_FIELDS = (
+    'project',
+    'event_id',
+    'message',
+    'checksum',
+    'culprit',
+    'level',
+    'time_spent',
+    'logger',
+    'server_name',
+    'site',
+    'timestamp',
+    'extra',
+    'modules',
+)
 
-class InvalidTimestamp(ValueError):
-    pass
+REQUIRED_FIELDS = (
+    'message',
+)
 
 
 class APIError(Exception):
@@ -252,14 +268,51 @@ def process_data_timestamp(data):
     return data
 
 
-def validate_data(project, data):
+def validate_data(project, data, client=None):
+    for k in REQUIRED_FIELDS:
+        if not data.get(k):
+            raise InvalidData('Missing required parameter: %r' % k)
+
     ensure_valid_project_id(project, data)
 
     if 'event_id' not in data:
         data['event_id'] = uuid.uuid4().hex
 
     if 'timestamp' in data:
-        process_data_timestamp(data)
+        try:
+            process_data_timestamp(data)
+        except InvalidTimestamp:
+            # Log the error, remove the timestamp, and continue
+            logger.error('Client %r passed an invalid value for timestamp %r' % (
+                data['timestamp'],
+                client or '<unknown client>',
+            ))
+            del data['timestamp']
+
+    if data.get('modules') and type(data['modules']) != dict:
+        raise InvalidData('Invalid type for \'modules\': must be a mapping')
+
+    for k, v in data.iteritems():
+        if k in RESERVED_FIELDS:
+            continue
+
+        if '.' not in k:
+            raise InvalidInterface('%r is not a valid interface name' % k)
+
+        try:
+            interface = Group.objects.module_cache[k]
+        except (ImportError, AttributeError), e:
+            raise InvalidInterface('%r is not a valid interface name: %s' % (k, e))
+
+        try:
+            data[k] = interface(**v).serialize()
+        except Exception, e:
+            raise InvalidData('Unable to validate interface, %r: %s' % (k, e))
+
+    level = data.get('level') or settings.DEFAULT_LOG_LEVEL
+    if isinstance(level, basestring) and not level.isdigit():
+        # assume it's something like 'warn'
+        data['level'] = settings.LOG_LEVEL_REVERSE_MAP[level]
 
     return data
 

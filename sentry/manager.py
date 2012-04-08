@@ -23,7 +23,6 @@ from django.utils.encoding import force_unicode, smart_str
 
 from raven.utils.encoding import to_string
 from sentry.conf import settings
-from sentry.exceptions import InvalidInterface, InvalidData
 from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
 from sentry.tasks.index import index_event
@@ -285,77 +284,6 @@ class GroupManager(BaseManager, ChartMixin):
         super(GroupManager, self).__init__(*args, **kwargs)
         self.module_cache = ModuleProxyCache()
 
-    def convert_legacy_kwargs(self, kwargs):
-        from sentry.interfaces import Http, User, Exception, Stacktrace, Template
-        from sentry.utils.template_info import get_template_info
-
-        data = kwargs.pop('data', None) or {}
-        sentry = data.pop('__sentry__', None) or {}
-
-        result = {
-            'event_id': kwargs.pop('message_id', None),
-            'level': kwargs.pop('level', None),
-            'logger': kwargs.pop('logger', None),
-            'server_name': kwargs.pop('server_name', None),
-            'message': kwargs.pop('message', ''),
-            'culprit': kwargs.pop('view', None),
-            'timestamp': kwargs.pop('timestamp', None),
-        }
-
-        result = dict((k, v) for k, v in result.iteritems() if v is not None)
-
-        class_name = kwargs.pop('class_name', None)
-        if class_name:
-            result['message'] = '%s: %s' % (class_name, result['message'])
-
-        if 'url' in data or 'url' in kwargs and 'META' in data:
-            meta = data.pop('META', {})
-            if 'GET' in data:
-                del data['GET']
-            result['sentry.interfaces.Http'] = Http(
-                url=data.pop('url', None) or kwargs['url'],
-                method=meta.get('REQUEST_METHOD'),
-                query_string=meta.get('QUERY_STRING'),
-                data=data.pop('POST', None),
-                cookies=data.pop('COOKIES', None),
-                env=meta,
-            ).serialize()
-
-        if 'user' in sentry:
-            user = sentry['user']
-            result['sentry.interfaces.User'] = User(
-                **user
-            ).serialize()
-
-        if 'exception' in sentry:
-            exc = sentry['exception']
-            result['sentry.interfaces.Exception'] = Exception(
-                type=exc[0],
-                value=u' '.join(itertools.imap(unicode, exc[1])),
-            ).serialize()
-
-        if 'frames' in sentry:
-            frames = []
-            keys = ('filename', 'function', 'vars', 'pre_context', 'context_line', 'post_context', 'lineno')
-            for frame in sentry['frames']:
-                if 'vars' in frame:
-                    frame['vars'] = dict(frame['vars'])
-                frames.append(dict((k, v) for k, v in frame.iteritems() if k in keys))
-
-            if frames:
-                result['sentry.interfaces.Stacktrace'] = Stacktrace(
-                    frames=frames,
-                ).serialize()
-
-        if 'template' in sentry:
-            template = sentry['template']
-            result['sentry.interfaces.Template'] = Template(
-                **get_template_info(template)
-            ).serialize()
-
-        result['extra'] = data
-        return result
-
     @transaction.commit_on_success
     def from_kwargs(self, project, **kwargs):
         # TODO: this function is way too damn long and needs refactored
@@ -366,60 +294,22 @@ class GroupManager(BaseManager, ChartMixin):
 
         project = Project.objects.get_from_cache(pk=project)
 
-        if any(k in kwargs for k in ('view', 'message_id')):
-            # we must be passing legacy data, let's convert it
-            kwargs = self.convert_legacy_kwargs(kwargs)
-
         # First we pull out our top-level (non-data attr) kwargs
         event_id = kwargs.pop('event_id', None)
         message = kwargs.pop('message', None)
         culprit = kwargs.pop('culprit', None)
-        level = kwargs.pop('level', None) or logging.ERROR
+        level = kwargs.pop('level', None)
         time_spent = kwargs.pop('time_spent', None)
-        logger_name = kwargs.pop('logger', 'root')
+        logger_name = kwargs.pop('logger', None) or settings.DEFAULT_LOGGER_NAME
         server_name = kwargs.pop('server_name', None)
         site = kwargs.pop('site', None)
         date = kwargs.pop('timestamp', None) or datetime.datetime.utcnow()
-        extra = kwargs.pop('extra', None)
-        modules = kwargs.pop('modules', None)
-
-        if isinstance(level, basestring) and not level.isdigit():
-            # assume it's something like 'warn'
-            level = settings.LOG_LEVEL_REVERSE_MAP[level]
+        checksum = kwargs.pop('checksum', None)
 
         # We must convert date to local time so Django doesn't mess it up
         # based on TIME_ZONE
         date = utc_to_local(date)
-
-        if not message:
-            raise InvalidData('Missing required parameter: message')
-
-        checksum = kwargs.pop('checksum', None)
-
         data = kwargs
-
-        for k, v in kwargs.iteritems():
-            if '.' not in k:
-                raise InvalidInterface('%r is not a valid interface name' % k)
-            try:
-                interface = self.module_cache[k]
-            except ImportError, e:
-                raise InvalidInterface('%r is not a valid interface name: %s' % (k, e))
-
-            try:
-                data[k] = interface(**v).serialize()
-            except Exception, e:
-                raise InvalidData('Unable to validate interface, %r: %s' % (k, e))
-
-        if modules and type(modules) != dict:
-            raise InvalidData('Modules must be specified as a mapping')
-
-        data['modules'] = modules
-
-        # TODO: at this point we should validate what is left in kwargs (it should either
-        #       be an interface or it should be in ``extra``)
-        if extra:
-            data['extra'] = extra
 
         kwargs = {
             'level': level,

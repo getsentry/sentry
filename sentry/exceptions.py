@@ -4,3 +4,7 @@ class InvalidData(Exception):
 
 class InvalidInterface(InvalidData):
     pass
+
+
+class InvalidTimestamp(InvalidData):
+    pass

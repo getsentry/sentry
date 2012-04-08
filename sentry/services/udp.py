@@ -29,9 +29,11 @@ class SentryUDPServer(Service):
         self.port = port or settings.UDP_PORT
 
     def handle(self, data, address):
+        from sentry.exceptions import InvalidData
+        from sentry.coreapi import project_from_auth_vars, decode_and_decompress_data, safely_load_json_string, \
+          validate_data, insert_data_to_database, APIError
         from sentry.utils.auth import parse_auth_header
-        from sentry.coreapi import (project_from_auth_vars, decode_and_decompress_data, safely_load_json_string,
-                                    validate_data, insert_data_to_database, APIError, InvalidTimestamp)
+
         try:
             try:
                 auth_header, data = data.split("\n\n", 1)
@@ -48,15 +50,9 @@ class SentryUDPServer(Service):
             data = safely_load_json_string(data)
 
             try:
-                validate_data(project, data)
-            except InvalidTimestamp:
-                # Log the error, remove the timestamp, and revalidate
-                logger.error('Client %r passed an invalid value for timestamp %r' % (
-                    data['timestamp'],
-                    client or '<unknown client>',
-                ))
-                del data['timestamp']
-                validate_data(project, data)
+                validate_data(project, data, client)
+            except InvalidData, e:
+                raise APIError(unicode(e))
 
             return insert_data_to_database(data)
         except APIError, error:

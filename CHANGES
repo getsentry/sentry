@@ -11,6 +11,11 @@ This update also includes initial changes to how filters work. ServerName Filter
 no longer specified in the ``FILTERS`` setting, but instead are included automatically if you
 load the respective ``sentry_servers`` and ``sentry_sites`` plugins.
 
+Additional changes:
+
+- Legacy data format is no longer supported (pre-Raven 1.x)
+- API will now validate data before sending it into the queue, enabling better debugging for clients.
+
 Version 3.8.0
 -------------
 

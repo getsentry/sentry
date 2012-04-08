@@ -9,10 +9,11 @@ import time
 from django.contrib.auth.models import User
 
 from sentry.models import Project
+from sentry.exceptions import InvalidTimestamp, InvalidInterface, InvalidData
 from sentry.coreapi import project_from_id, project_from_api_key_and_id, \
   extract_auth_vars, project_from_auth_vars, validate_hmac, APIUnauthorized, \
   APIForbidden, APITimestampExpired, APIError, process_data_timestamp, \
-  insert_data_to_database, InvalidTimestamp
+  insert_data_to_database, validate_data
 from sentry.utils.auth import get_signature
 
 from tests.base import TestCase
@@ -252,3 +253,57 @@ class InsertDataToDatabaseTest(BaseAPITest):
             'foo': 'bar'
         })
         from_kwargs.assert_called_once_with(foo='bar')
+
+
+class ValidateDataTest(BaseAPITest):
+    def test_missing_project_id(self):
+        self.assertRaises(APIForbidden, validate_data, self.project, {
+            'message': 'foo',
+        })
+
+    def test_invalid_project_id(self):
+        self.assertRaises(APIForbidden, validate_data, self.project, {
+            'project': self.project.id + 1,
+            'message': 'foo',
+        })
+
+    def test_missing_message(self):
+        self.assertRaises(InvalidData, validate_data, self.project, {
+            'project': self.project.id,
+        })
+
+    def test_invalid_interface_name(self):
+        self.assertRaises(InvalidInterface, validate_data, self.project, {
+            'project': self.project.id,
+            'message': 'foo',
+            'foo': 'bar',
+        })
+
+    def test_invalid_interface_import_path(self):
+        self.assertRaises(InvalidInterface, validate_data, self.project, {
+            'project': self.project.id,
+            'message': 'foo',
+            'sentry.interfaces.Exception2': 'bar',
+        })
+
+    def test_invalid_interface_args(self):
+        self.assertRaises(InvalidData, validate_data, self.project, {
+            'project': self.project.id,
+            'message': 'foo',
+            'tests.manager.tests.DummyInterface': {'foo': 'bar'}
+        })
+
+    def test_log_level_as_string(self):
+        data = validate_data(self.project, {
+            'project': self.project.id,
+            'message': 'foo',
+            'level': 'error',
+        })
+        self.assertEquals(data['level'], 40)
+
+    def test_invalid_modules(self):
+        self.assertRaises(InvalidData, validate_data, self.project, {
+            'project': self.project.id,
+            'message': 'foo',
+            'modules': [('foo', 'bar')],
+        })
