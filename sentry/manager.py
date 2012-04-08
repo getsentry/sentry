@@ -383,6 +383,10 @@ class GroupManager(BaseManager, ChartMixin):
         extra = kwargs.pop('extra', None)
         modules = kwargs.pop('modules', None)
 
+        if isinstance(level, basestring) and not level.isdigit():
+            # assume it's something like 'warn'
+            level = settings.LOG_LEVEL_REVERSE_MAP[level]
+
         # We must convert date to local time so Django doesn't mess it up
         # based on TIME_ZONE
         date = utc_to_local(date)
@@ -406,6 +410,9 @@ class GroupManager(BaseManager, ChartMixin):
                 data[k] = interface(**v).serialize()
             except Exception, e:
                 raise InvalidData('Unable to validate interface, %r: %s' % (k, e))
+
+        if modules and type(modules) != dict:
+            raise InvalidData('Modules must be specified as a mapping')
 
         data['modules'] = modules
 

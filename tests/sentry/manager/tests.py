@@ -286,3 +286,10 @@ class SentryManagerTest(TestCase):
         # ensure that calling it again doesnt raise a db error
         Group.objects.from_kwargs(1, event_id=1, message='foo')
         self.assertEquals(Event.objects.count(), 1)
+
+    def test_log_level_as_string(self):
+        event = Group.objects.from_kwargs(1, message='foo', level='error')
+        self.assertEquals(event.level, 40)
+
+    def test_invalid_modules(self):
+        self.assertRaises(InvalidData, Group.objects.from_kwargs, 1, message='foo', modules=[('foo', 'bar')])
