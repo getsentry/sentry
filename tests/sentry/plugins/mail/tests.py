@@ -169,8 +169,8 @@ class MailProcessorTest(TestCase):
             project_emails = ['member@fake.com', 'new@fake.com']
 
             project = Mock()
-            project.member_set = Mock()
-            project.member_set.values_list.return_value = member_emails
+            project.team.member_set = Mock()
+            project.team.member_set.values_list.return_value = member_emails
 
             with self.Settings(SENTRY_ADMINS=admins):
                 # member emails without admins
