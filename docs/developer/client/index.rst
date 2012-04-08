@@ -182,7 +182,9 @@ highly encouraged:
 
         {
             "modules": [
-                ["my.module.name", "1.0"]
+                {
+                    "my.module.name": "1.0"
+                }
             ]
         }
 
