@@ -11,6 +11,9 @@ Bundled Interfaces
     A standard message consisting of a ``message`` arg, and an optional
     ``params`` arg for formatting.
 
+    If your message cannot be parameterized, then the message interface
+    will serve no benefit.
+
     ::
 
         {
@@ -36,10 +39,14 @@ Bundled Interfaces
     A stacktrace contains a list of frames, each with various bits (most optional)
     describing the context of that frame.
 
+    The stacktrace contains one element, ``frames``, which is a list of hashes. Each
+    hash must contain **at least** ``filename`` and ``lineno``. The rest of the values
+    are optional.
+
     ::
 
         {
-            "frames": {
+            "frames": [{
                 "abs_path": "/real/file/name.py"
                 "filename": "file/name.py",
                 "function": "myfunction",
@@ -56,7 +63,7 @@ Bundled Interfaces
                     "line4",
                     "line5"
                 ],
-            }
+            }]
         }
 
 
