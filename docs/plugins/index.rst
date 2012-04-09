@@ -74,6 +74,7 @@ These extensions are officially recognized and support the current Sentry protoc
 
 * `sentry-phabricator <https://github.com/dcramer/sentry-phabricator>`_
 * `sentry-hipchat <https://github.com/linovia/sentry-hipchat>`_
+* `sentry-groveio <https://github.com/mattrobenolt/sentry-groveio>`_
 
 Have an extension that should be listed here? Submit a `pull request <https://github.com/dcramer/sentry>`_ and we'll
 get it added.
