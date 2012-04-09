@@ -187,12 +187,12 @@ class Stacktrace(Interface):
     def get_hash(self):
         output = []
         for frame in self.frames:
-            if 'module' in frame:
+            if frame.get('module'):
                 output.append(frame['module'])
             else:
                 output.append(frame['filename'])
 
-            if 'function' in frame:
+            if frame.get('function'):
                 output.append(frame['function'])
             else:
                 output.append(frame['lineno'])
@@ -201,7 +201,7 @@ class Stacktrace(Interface):
     def to_html(self, event):
         frames = []
         for frame in self.frames:
-            if 'context_line' in frame:
+            if frame.get('context_line'):
                 context = get_context(frame['lineno'], frame['context_line'], frame.get('pre_context'), frame.get('post_context'))
                 start_lineno = context[0][0]
             else:
@@ -209,7 +209,7 @@ class Stacktrace(Interface):
                 start_lineno = None
 
             context_vars = []
-            if 'vars' in frame:
+            if frame.get('vars'):
                 context_vars = self._shorten(frame['vars'])
             else:
                 context_vars = []
