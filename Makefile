@@ -42,7 +42,7 @@ watch:
 	watchr -e "watch('bootstrap/less/.*\.less') { system 'make' }"
 
 test:
-	coverage run runtests.py --noinput --include=sentry/* && \
+	coverage run runtests.py --include=sentry/* && \
 	coverage html --omit=*/migrations/* -d cover
 
 .PHONY: build watch
