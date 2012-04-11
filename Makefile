@@ -41,4 +41,8 @@ watch:
 	echo "Watching less files..."; \
 	watchr -e "watch('bootstrap/less/.*\.less') { system 'make' }"
 
+test:
+	coverage run runtests.py --noinput --include=sentry/* && \
+	coverage html --omit=*/migrations/* -d cover
+
 .PHONY: build watch
