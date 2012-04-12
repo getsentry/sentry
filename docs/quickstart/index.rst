@@ -108,7 +108,7 @@ Running Migrations
 If you changed from the default SQLite database, make sure you start by creating the database Sentry
 is expecting. Once done, you can create the initial database using the ``upgrade`` command::
 
-    sentry upgrade
+    sentry --config=/etc/sentry.conf.py upgrade
 
 All schema changes and database upgrades are handled via the ``upgrade`` command, and this is the first
 thing you'll want to run when upgrading to future versions of Sentry.
