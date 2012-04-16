@@ -749,22 +749,26 @@ def create_team_for_project(instance, created, **kwargs):
     if not created:
         return
 
-    if instance.team:
-        return
-
     if not instance.owner:
         return
 
-    update(instance, team=Team.objects.create(
-        owner=instance.owner,
-        name=instance.name,
-        slug=instance.slug,
-    ))
+    if not instance.team:
+        update(instance, team=Team.objects.create(
+            owner=instance.owner,
+            name=instance.name,
+            slug=instance.slug,
+        ))
 
-    ProjectKey.objects.get_or_create(
-        project=instance,
-        user=instance.owner,
-    )
+        ProjectKey.objects.get_or_create(
+            project=instance,
+            user=instance.owner,
+        )
+    else:
+        for member in instance.team.member_set.all():
+            ProjectKey.objects.get_or_create(
+                project=instance,
+                user=member.user,
+            )
 
 
 def create_team_member_for_owner(instance, created, **kwargs):
