@@ -34,9 +34,6 @@
     </ul>
 
     {% if event.has_two_part_message %}
-        <div class="page-header">
-            <h2>{% trans "Full Message" %}</h2>
-        </div>
         <pre id="full-message">{{ event.message }}</pre>
     {% endif %}
 
