@@ -261,6 +261,7 @@ class ValidateDataTest(BaseAPITest):
             'message': 'foo',
         })
 
+
     def test_invalid_project_id(self):
         self.assertRaises(APIForbidden, validate_data, self.project, {
             'project': self.project.id + 1,
@@ -301,9 +302,9 @@ class ValidateDataTest(BaseAPITest):
         })
         self.assertEquals(data['level'], 40)
 
-    def test_invalid_modules(self):
-        self.assertRaises(InvalidData, validate_data, self.project, {
-            'project': self.project.id,
+    def test_project_slug(self):
+        data = validate_data(self.project, {
+            'project': self.project.slug,
             'message': 'foo',
-            'modules': [('foo', 'bar')],
         })
+        self.assertEquals(data['project'], self.project.id)
