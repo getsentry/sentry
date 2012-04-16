@@ -7,7 +7,7 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider">/</li>
-    <li><a href="{% url sentry-remove-project project.pk %}">{% trans "Remove Project" %}</a></li>
+    <li><a href="{% url sentry-remove-project project.slug %}">{% trans "Remove Project" %}</a></li>
 {% endblock %}
 
 {% block main %}
@@ -28,7 +28,7 @@
                 {% include "sentry/partial/_form_field.html" %}
             {% endfor %}
             <fieldset class="form-actions">
-                <button type="submit" class="btn btn-danger">{% trans "Confirm" %}</button> <a href="{% url sentry-manage-project project.pk %}" class="btn">{% trans "Cancel" %}</a>
+                <button type="submit" class="btn btn-danger">{% trans "Confirm" %}</button> <a href="{% url sentry-manage-project project.slug %}" class="btn">{% trans "Cancel" %}</a>
             </fieldset>
         </form>
     </section>

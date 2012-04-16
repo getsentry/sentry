@@ -245,7 +245,7 @@ class ProjectKey(Model):
             self.public_key,
             self.secret_key,
             urlparts.netloc + urlparts.path,
-            self.project_id,
+            self.project.slug,
         )
 
 
@@ -440,7 +440,7 @@ class Group(MessageBase):
 
     def get_absolute_url(self):
         if self.project_id:
-            return reverse('sentry-group', kwargs={'group_id': self.pk, 'project_id': self.project_id})
+            return reverse('sentry-group', kwargs={'group_id': self.pk, 'project_id': self.project.slug})
         return '#'
 
     def natural_key(self):
@@ -513,7 +513,7 @@ class Event(MessageBase):
 
     def get_absolute_url(self):
         if self.project_id:
-            return reverse('sentry-group-event', kwargs={'group_id': self.group_id, 'event_id': self.pk, 'project_id': self.project_id})
+            return reverse('sentry-group-event', kwargs={'group_id': self.group_id, 'event_id': self.pk, 'project_id': self.project.slug})
         return '#'
 
     @cached_property

@@ -4,7 +4,7 @@
 <li class="event level-{{ event.get_level_display }}" id="message_{{ event.pk|safe }}">
     <div class="details">
         <h3>
-            <a href="{% url sentry-group-event event.project_id event.group_id event.pk %}">
+            <a href="{% url sentry-group-event event.project.slug event.group_id event.pk %}">
                 {% if event.view %}
                     {{ event.view }}
                 {% else %}
@@ -28,7 +28,7 @@
             {% for tag in event|get_tags:request %}<span class="tag">{{ tag }}</span> {% endfor %}
             {{ event.error }}
         </p>
-        <a href="{% url sentry-group-event event.project_id event.group_id event.pk %}" class="row_link"></a>
+        <a href="{% url sentry-group-event event.project.slug event.group_id event.pk %}" class="row_link"></a>
     </div>
 </li>
 

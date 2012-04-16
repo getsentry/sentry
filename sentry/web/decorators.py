@@ -31,10 +31,15 @@ def has_access(group_or_func=None):
         @wraps(func)
         def _wrapped(request, project_id=None, *args, **kwargs):
             # XXX: if project_id isn't set, should we only allow superuser?
+            if project_id.isdigit():
+                lookup_kwargs = {'id': int(project_id)}
+            else:
+                lookup_kwargs = {'slug': project_id}
+
             if request.user.is_superuser:
                 if project_id:
                     try:
-                        project = Project.objects.get_from_cache(pk=project_id)
+                        project = Project.objects.get_from_cache(**lookup_kwargs)
                     except Project.DoesNotExist:
                         return HttpResponseRedirect(reverse('sentry'))
                 else:
@@ -42,9 +47,10 @@ def has_access(group_or_func=None):
                 return func(request, project, *args, **kwargs)
 
             if project_id:
-                project_list = get_project_list(request.user, group_or_func)
+                key, value = lookup_kwargs.items()[0]
+                project_list = get_project_list(request.user, group_or_func, key)
                 try:
-                    project = project_list[int(project_id)]
+                    project = project_list[value]
                 except (KeyError, ValueError):
                     return HttpResponseRedirect(reverse('sentry'))
             else:

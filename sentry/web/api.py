@@ -13,7 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from sentry.conf import settings
-from sentry.exceptions import InvalidData, InvalidTimestamp
+from sentry.exceptions import InvalidData
 from sentry.coreapi import project_from_auth_vars, project_from_api_key_and_id, \
   project_from_id, decode_and_decompress_data, safely_load_json_string, \
   validate_data, insert_data_to_database, APIError, APIUnauthorized, \

@@ -6,7 +6,7 @@
 
     <ul class="server-list">
         {% for server, times_seen, _, _ in unique_servers %}
-            <li><span class="count">{{ times_seen|small_count }}</span> <a href="{% url sentry group.project_id %}?server_name={{ server }}">{{ server }}</a></li>
+            <li><span class="count">{{ times_seen|small_count }}</span> <a href="{% url sentry group.project.slug %}?server_name={{ server }}">{{ server }}</a></li>
         {% endfor %}
     </ul>
 {% endif %}

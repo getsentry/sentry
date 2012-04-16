@@ -9,7 +9,7 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider">/</li>
-    <li><a href="{% url sentry-group group.project_id group.id %}">{{ group.message|truncatechars:30 }}</a></li>
+    <li><a href="{% url sentry-group group.project.slug group.id %}">{{ group.message|truncatechars:30 }}</a></li>
 {% endblock %}
 
 {% block sidebar %}
@@ -17,9 +17,9 @@
 
     <dl class="flat">
         <dt>{% trans "Logger:" %}</dt>
-        <dd><a href="{% url sentry project.pk %}?logger={{ group.logger }}">{{ group.logger }}</a></dd>
+        <dd><a href="{% url sentry project.slug %}?logger={{ group.logger }}">{{ group.logger }}</a></dd>
         <dt>{% trans "Level:" %}</dt>
-        <dd><a href="{% url sentry project.pk %}?level={{ group.level|safe }}">{{ group.get_level_display }}</a></dd>
+        <dd><a href="{% url sentry project.slug %}?level={{ group.level|safe }}">{{ group.get_level_display }}</a></dd>
         <dt>{% trans "Status:" %}</dt>
         <dd>{{ group.get_status_display|title }}</dd>
         <dt>{% trans "First Seen:" %}</dt>
@@ -70,13 +70,13 @@
                 <ul class="actions">
                     <li>
                         {% if group.status == 0 %}
-                            <a href="javascript:void(0)" class="tip" onclick="Sentry.stream.resolve({{ group.project_id|safe }}, {{ group.pk|safe }}, false);" rel="tooltip" title="{% trans "Mark as Resolved" %}">&#10003;</a>
+                            <a href="javascript:void(0)" class="tip" onclick="Sentry.stream.resolve({{ group.project.slug|safe }}, {{ group.pk|safe }}, false);" rel="tooltip" title="{% trans "Mark as Resolved" %}">&#10003;</a>
                         {% else %}
                             <a href="javascript:void(0)" class="tip disabled" rel="tooltip" title="{% trans "Already Resolved" %}">&#10003;</a>
                         {% endif %}
                     </li>
                     {% if request.user.is_authenticated %}
-                        <li><a href="javascript:void(0)" onclick="Sentry.stream.bookmark({{ group.project_id|safe }}, {{ group.pk|safe }}, this);" class="tip bookmark{% if is_bookmarked %} checked{% endif %}" rel="tooltip" title="{% trans "Bookmark" %}">&#9829;</a></li>
+                        <li><a href="javascript:void(0)" onclick="Sentry.stream.bookmark({{ group.project.slug|safe }}, {{ group.pk|safe }}, this);" class="tip bookmark{% if is_bookmarked %} checked{% endif %}" rel="tooltip" title="{% trans "Bookmark" %}">&#9829;</a></li>
                     {% endif %}
                 </ul>
             </div>
@@ -86,10 +86,10 @@
     <section class="body">
         <ul class="nav nav-tabs">
             <li{% ifequal page 'details' %} class="active"{% endifequal %}>
-                <a href="{% url sentry-group group.project_id group.pk %}">{% trans "Details" %}</a>
+                <a href="{% url sentry-group group.project.slug group.pk %}">{% trans "Details" %}</a>
             </li>
             <li{% ifequal page 'event_list' %} class="active"{% endifequal %}>
-                <a href="{% url sentry-group-events group.project_id group.pk %}">{% trans "Events" %}</a>
+                <a href="{% url sentry-group-events group.project.slug group.pk %}">{% trans "Events" %}</a>
             </li>
             {% for label, link, is_active in group|get_panels:request %}
                 <li{% if is_active %} class="active"{% endif %}><a href="{{ link }}">{{ label }}</a></li>
@@ -98,7 +98,7 @@
                 <a class="dropdown-toggle" href="#" data-toggle="dropdown">{% trans "Actions" %} <span class="caret"></span></a>
                 <ul class="dropdown-menu">
                     {# We're going to move these to the resolve action location #}
-                    <li><a href="{% url sentry-group-json project_id=project.pk group_id=group.pk %}">{% trans "Raw JSON Data" %}</a></li>
+                    <li><a href="{% url sentry-group-json project_id=project.slug group_id=group.pk %}">{% trans "Raw JSON Data" %}</a></li>
                     {% for label, link, is_active in group|get_actions:request %}
                         {% if forloop.first %}
                             <li class="divider"></li>

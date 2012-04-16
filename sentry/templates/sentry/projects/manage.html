@@ -9,22 +9,22 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider">/</li>
-    <li><a href="{% url sentry-manage-project project.pk %}">{% trans "Manage" %}</a></li>
+    <li><a href="{% url sentry-manage-project project.slug %}">{% trans "Manage" %}</a></li>
 {% endblock %}
 
 {% block main %}
     <section class="body">
         <ul class="nav nav-tabs">
             <li{% if page == 'details' %} class="active"{% endif %}>
-                <a href="{% url sentry-manage-project project.pk %}">{% trans "Details" %}</a>
+                <a href="{% url sentry-manage-project project.slug %}">{% trans "Details" %}</a>
             </li>
             {% for p in project|get_plugins %}
                 <li{% if page == 'plugin' and plugin.slug == p.slug %} class="active"{% endif %}>
-                    <a href="{% url sentry-configure-project-plugin project.pk p.slug %}">{{ p.get_title }}</a>
+                    <a href="{% url sentry-configure-project-plugin project.slug p.slug %}">{{ p.get_title }}</a>
                 </li>
             {% endfor %}
             <li class="pull-right{% if page == 'plugins' %} active{% endif %}">
-                <a href="{% url sentry-manage-project-plugins project.pk %}">{% trans "Manage Plugins" %}</a>
+                <a href="{% url sentry-manage-project-plugins project.slug %}">{% trans "Manage Plugins" %}</a>
             </li>
         </ul>
         {% block inner %}
@@ -50,7 +50,7 @@
                 <fieldset class="form-actions">
                     <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
                     {% if PROJECT_ID != project.pk %}
-                        <a href="{% url sentry-remove-project project.pk %}" class="btn btn-danger">{% trans "Remove Project" %}</a>
+                        <a href="{% url sentry-remove-project project.slug %}" class="btn btn-danger">{% trans "Remove Project" %}</a>
                     {% else %}
                         <a href="#" class="btn disabled btn-danger">{% trans "Cannot remove default project" %}</a>
                     {% endif %}
@@ -58,7 +58,7 @@
             </form>
             <div class="page-header">
                 {% if can_add_member %}
-                    <a href="{% url sentry-new-team-member project.pk %}" class="btn pull-right btn-primary">{% trans "New Member" %}</a>
+                    <a href="{% url sentry-new-team-member project.slug %}" class="btn pull-right btn-primary">{% trans "New Member" %}</a>
                 {% endif %}
                 <h2>{% trans "Members" %}</h2>
             </div>
@@ -77,7 +77,7 @@
                     {% for member, user in member_list %}
                         <tr>
                             <td>
-                                <a href="{# {% url sentry-view-project-member project.pk member.pk %} #}">{{ user.username }}</a><br>
+                                <a href="{# {% url sentry-view-project-member project.slug member.pk %} #}">{{ user.username }}</a><br>
                                 {{ user.email }}
                             </td>
                             <td style="text-align:center;">

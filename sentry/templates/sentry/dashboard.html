@@ -13,9 +13,9 @@
             <ul class="thumbnails sparkline-grid">
                 {% for project in PROJECT_LIST %}
                     <li class="thumbnail">
-                        <a href="{% url sentry project.pk %}">
+                        <a href="{% url sentry project.slug %}">
                             <h3>{{ project.name }}</h3>
-                            <div class="sparkline" data-project="{{ project.pk|safe }}" data-api-url="{% url sentry-api-chart project.pk %}"></div>
+                            <div class="sparkline" data-project="{{ project.slug|safe }}" data-api-url="{% url sentry-api-chart project.slug %}"></div>
                         </a>
                     </li>
                 {% endfor %}

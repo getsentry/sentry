@@ -129,7 +129,7 @@ def search(request, project):
     query = request.GET.get('q')
 
     if not query:
-        return HttpResponseRedirect(reverse('sentry', args=[project.pk]))
+        return HttpResponseRedirect(reverse('sentry', args=[project.slug]))
 
     sort = request.GET.get('sort')
     if sort not in SEARCH_SORT_OPTIONS:
@@ -196,7 +196,7 @@ def group_list(request, project, view_id=None):
         try:
             view = View.objects.get_from_cache(pk=view_id)
         except View.DoesNotExist:
-            return HttpResponseRedirect(reverse('sentry', args=[project.pk]))
+            return HttpResponseRedirect(reverse('sentry', args=[project.slug]))
     else:
         view = None
 
@@ -256,7 +256,7 @@ def group_json(request, project, group_id):
     data = SortedDict()
     data['id'] = event.event_id
     data['checksum'] = event.checksum
-    data['project'] = event.project_id
+    data['project'] = event.project.slug
     data['logger'] = event.logger
     data['level'] = event.get_level_display()
     data['culprit'] = event.culprit
@@ -272,7 +272,7 @@ def group(request, project, group_id):
     group = get_object_or_404(Group, pk=group_id)
 
     if group.project and group.project != project:
-        return HttpResponseRedirect(reverse('sentry-group', kwargs={'group_id': group.pk, 'project_id': group.project_id}))
+        return HttpResponseRedirect(reverse('sentry-group', kwargs={'group_id': group.pk, 'project_id': group.project.slug}))
 
     # It's possible that a message would not be created under certain
     # circumstances (such as a post_save signal failing)
@@ -295,7 +295,7 @@ def group_event_list(request, project, group_id):
     group = get_object_or_404(Group, pk=group_id)
 
     if group.project and group.project != project:
-        return HttpResponseRedirect(reverse('sentry-group-events', kwargs={'group_id': group.pk, 'project_id': group.project_id}))
+        return HttpResponseRedirect(reverse('sentry-group-events', kwargs={'group_id': group.pk, 'project_id': group.project.slug}))
 
     event_list = group.event_set.all().order_by('-datetime')
 
@@ -313,7 +313,7 @@ def group_event_details(request, project, group_id, event_id):
     group = get_object_or_404(Group, pk=group_id)
 
     if group.project and group.project != project:
-        return HttpResponseRedirect(reverse('sentry-group-event', kwargs={'group_id': group.pk, 'project_id': group.project_id, 'event_id': event_id}))
+        return HttpResponseRedirect(reverse('sentry-group-event', kwargs={'group_id': group.pk, 'project_id': group.project.slug, 'event_id': event_id}))
 
     event = get_object_or_404(group.event_set, pk=event_id)
 
@@ -334,7 +334,7 @@ def group_plugin_action(request, project, group_id, slug):
     group = get_object_or_404(Group, pk=group_id)
 
     if group.project and group.project != project:
-        return HttpResponseRedirect(reverse('sentry-group-plugin-action', kwargs={'group_id': group.pk, 'project_id': group.project_id, 'slug': slug}))
+        return HttpResponseRedirect(reverse('sentry-group-plugin-action', kwargs={'group_id': group.pk, 'project_id': group.project.slug, 'slug': slug}))
 
     try:
         plugin = plugins.get(slug)
@@ -344,4 +344,4 @@ def group_plugin_action(request, project, group_id, slug):
     response = plugin.get_view_response(request, group)
     if response:
         return response
-    return HttpResponseRedirect(request.META.get('HTTP_REFERER') or reverse('sentry', kwargs={'project_id': group.project_id}))
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER') or reverse('sentry', kwargs={'project_id': group.project.slug}))

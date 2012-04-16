@@ -122,7 +122,7 @@ class MailProcessor(NotifyPlugin):
 
         subject = '[%s] %s: %s' % (project.name.encode('utf-8'), event.get_level_display().upper(), event.error().encode('utf-8').split('\n')[0])
 
-        link = '%s/%d/group/%d/' % (settings.URL_PREFIX, group.project_id, group.id)
+        link = '%s/%s/group/%d/' % (settings.URL_PREFIX, group.project.slug, group.id)
 
         body = render_to_string('sentry/emails/error.txt', {
             'group': group,

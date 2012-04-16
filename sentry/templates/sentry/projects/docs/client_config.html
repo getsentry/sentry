@@ -7,7 +7,7 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider">/</li>
-    <li><a href="{% url sentry-docs-client project.pk platform %}">{% blocktrans %}{{ platform_title }} Client Configuration{% endblocktrans %}</a></li>
+    <li><a href="{% url sentry-docs-client project.slug platform %}">{% blocktrans %}{{ platform_title }} Client Configuration{% endblocktrans %}</a></li>
 {% endblock %}
 
 {% block main %}

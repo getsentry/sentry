@@ -9,7 +9,7 @@
     <script>
     {% if has_realtime %}
         Sentry.realtime.config({
-            projectId: {{ project.pk|safe }},
+            projectId: '{{ project.slug|safe }}',
             viewId: {% if view %}{{ view.pk|safe }}{% else %}null{% endif %}
         })
         Sentry.realtime.enable();
@@ -20,9 +20,9 @@
 {% block page_header %}
     <div class="btn-group pull-right">
         {% if VIEWS %}
-            <a class="btn small{% if not view %} active{% endif %}" href="{% url sentry project.pk %}">{% trans "All" %}</a>
+            <a class="btn small{% if not view %} active{% endif %}" href="{% url sentry project.slug %}">{% trans "All" %}</a>
             {% for v in VIEWS %}
-                <a class="btn small{% if view == v %} active{% endif %}" href="{% url sentry project.pk v.pk %}">{% trans v.verbose_name_plural %}</a>
+                <a class="btn small{% if view == v %} active{% endif %}" href="{% url sentry project.slug v.pk %}">{% trans v.verbose_name_plural %}</a>
             {% endfor %}
         {% endif %}
     </div>

@@ -40,17 +40,17 @@ class ProjectKeyTest(TestCase):
     def test_get_dsn(self):
         key = ProjectKey(project_id=1, public_key='public', secret_key='secret')
         with self.Settings(SENTRY_URL_PREFIX='http://example.com'):
-            self.assertEquals(key.get_dsn(), 'http://public:secret@example.com/1')
+            self.assertEquals(key.get_dsn(), 'http://public:secret@example.com/default')
 
     def test_get_dsn_with_ssl(self):
         key = ProjectKey(project_id=1, public_key='public', secret_key='secret')
         with self.Settings(SENTRY_URL_PREFIX='https://example.com'):
-            self.assertEquals(key.get_dsn(), 'https://public:secret@example.com/1')
+            self.assertEquals(key.get_dsn(), 'https://public:secret@example.com/default')
 
     def test_get_dsn_with_port(self):
         key = ProjectKey(project_id=1, public_key='public', secret_key='secret')
         with self.Settings(SENTRY_URL_PREFIX='http://example.com:81'):
-            self.assertEquals(key.get_dsn(), 'http://public:secret@example.com:81/1')
+            self.assertEquals(key.get_dsn(), 'http://public:secret@example.com:81/default')
 
 
 class PendingTeamMemberTest(TestCase):

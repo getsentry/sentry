@@ -149,8 +149,12 @@ def project_from_api_key_and_id(api_key, project_id):
     except ProjectKey.DoesNotExist:
         raise APIUnauthorized('Invalid api key')
 
-    if str(pk.project_id) != str(project_id):
-        raise APIUnauthorized()
+    if str(project_id).isdigit():
+        if str(pk.project_id) != str(project_id):
+            raise APIUnauthorized()
+    else:
+        if str(pk.project.slug) != str(project_id):
+            raise APIUnauthorized()
 
     project = Project.objects.get_from_cache(pk=pk.project_id)
 

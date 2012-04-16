@@ -338,7 +338,7 @@ def create_new_team_project(request, team):
         if not project.owner:
             project.owner = request.user
         project.save()
-        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.slug]))
 
     context = csrf(request)
     context.update({

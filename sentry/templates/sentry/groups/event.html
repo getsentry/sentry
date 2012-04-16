@@ -6,7 +6,7 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider">/</li>
-    <li><a href="{% url sentry-group-event group.project_id group.pk event.pk %}">Event at {{ event.datetime }} UTC</a></li>
+    <li><a href="{% url sentry-group-event group.project.slug group.pk event.pk %}">Event at {{ event.datetime }} UTC</a></li>
 {% endblock %}
 
 {% block sidebar %}

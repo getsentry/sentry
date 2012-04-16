@@ -46,9 +46,9 @@
                     {% for project, avg_events in project_list.paginator.objects|with_event_counts %}
                         <tr>
                             <td>
-                                <strong>{{ project.name }}</strong> <a href="{% url sentry project.pk %}">[view]</a><br/>
+                                <strong>{{ project.name }}</strong> <a href="{% url sentry project.slug %}">[view]</a><br/>
                                 {% if project.owner %}
-                                    <small>Owned by <a href="{% url sentry-admin-edit-user project.owner.pk %}">
+                                    <small>Owned by <a href="{% url sentry-admin-edit-user project.owner.slug %}">
                                         {% if project.owner.email %}
                                             {{ project.owner.email }}
                                         {% else %}

@@ -126,10 +126,10 @@ def configure_project_plugin(request, project, slug):
     try:
         plugin = plugins.get(slug)
     except KeyError:
-        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.slug]))
 
     if not plugin.is_enabled(project):
-        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.slug]))
 
     result = plugins.first('has_perm', request.user, 'configure_project_plugin', project, plugin)
     if result is False and not request.user.is_superuser:
@@ -137,7 +137,7 @@ def configure_project_plugin(request, project, slug):
 
     form = plugin.project_conf_form
     if form is None:
-        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.pk]))
+        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.slug]))
 
     action, view = plugin_config(plugin, project, request)
     if action == 'redirect':

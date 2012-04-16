@@ -17,7 +17,7 @@ from sentry.web.helpers import get_project_list, render_to_response, \
 
 @login_required
 def dashboard(request):
-    project_list = get_project_list(request.user)
+    project_list = get_project_list(request.user, key='slug')
     if len(project_list) == 1:
         return HttpResponseRedirect(reverse('sentry', kwargs={'project_id': project_list.keys()[0]}))
     if len(project_list) == 0 and not request.user.is_authenticated():

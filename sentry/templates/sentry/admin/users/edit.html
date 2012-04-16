@@ -57,7 +57,7 @@
                     {% for project, avg_events in project_list|with_event_counts %}
                         <tr>
                             <td>
-                                {{ project.name }} <a href="{% url sentry project.pk %}">[view]</a>
+                                {{ project.name }} <a href="{% url sentry project.slug %}">[view]</a>
                                 </a>
                             </td>
                             <td style="text-align:center; vertical-align:middle;">

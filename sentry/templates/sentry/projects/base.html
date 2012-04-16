@@ -38,7 +38,7 @@
                     {% for project in PROJECT_LIST %}
                         <tr>
                             <td>
-                                <a href="{% url sentry-manage-project project.pk %}">{{ project.name }}</a><br/>
+                                <a href="{% url sentry-manage-project project.slug %}">{{ project.name }}</a><br/>
                                 {% if project.member_dsn %}
                                     <small><code class="clippy">{{ project.member_dsn }}</code></small>
                                 {% endif %}
