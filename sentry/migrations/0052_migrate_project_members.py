@@ -13,7 +13,11 @@ class Migration(DataMigration):
                 continue
 
             if not project.team:
-                team = orm['sentry.Team'].objects.create(owner=project.owner, slug=project.slug)
+                team = orm['sentry.Team'].objects.create(
+                    owner=project.owner,
+                    slug=project.slug,
+                    name=project.name,
+                )
                 project.team = team
                 project.save()
             else:
