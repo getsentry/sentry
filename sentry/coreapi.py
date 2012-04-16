@@ -151,10 +151,10 @@ def project_from_api_key_and_id(api_key, project_id):
 
     if str(project_id).isdigit():
         if str(pk.project_id) != str(project_id):
-            raise APIUnauthorized()
+            raise APIUnauthorized('Invalid project id')
     else:
         if str(pk.project.slug) != str(project_id):
-            raise APIUnauthorized()
+            raise APIUnauthorized('Invalid project id')
 
     project = Project.objects.get_from_cache(pk=pk.project_id)
 
@@ -243,7 +243,7 @@ def safely_load_json_string(json_string):
 def ensure_valid_project_id(desired_project, data):
     # Confirm they're using either the master key, or their specified project
     # matches with the signed project.
-    if desired_project and str(data.get('project', '')) != str(desired_project.pk):
+    if desired_project and str(data.get('project', '')) not in [str(desired_project.pk), desired_project.slug]:
         raise APIForbidden('Invalid credentials')
     elif not desired_project:
         data['project'] = 1
