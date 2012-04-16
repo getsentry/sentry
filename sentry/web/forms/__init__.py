@@ -49,10 +49,10 @@ class RemoveProjectForm(forms.Form):
         """
         Validates that the old_password field is correct.
         """
-        old_password = self.cleaned_data["old_password"]
-        if not self.user.check_password(old_password):
+        password = self.cleaned_data["password"]
+        if not self.user.check_password(password):
             raise forms.ValidationError(_("Your password was entered incorrectly. Please enter it again."))
-        return old_password
+        return password
 
 
 class NewProjectForm(forms.ModelForm):
