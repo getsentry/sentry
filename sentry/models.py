@@ -761,6 +761,11 @@ def create_team_for_project(instance, created, **kwargs):
         slug=instance.slug,
     ))
 
+    ProjectKey.objects.get_or_create(
+        project=instance,
+        user=instance.owner,
+    )
+
 
 def create_team_member_for_owner(instance, created, **kwargs):
     if not created:
