@@ -40,7 +40,7 @@ def create_new_team(request):
     form = form_cls(request.POST or None, initial=initial)
     if form.is_valid():
         team = form.save(commit=False)
-        if not team.owner:
+        if not team.owner_id:
             team.owner = request.user
         team.save()
         return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
