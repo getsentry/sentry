@@ -48,7 +48,7 @@ def has_access(group_or_func=None):
 
             if project_id:
                 key, value = lookup_kwargs.items()[0]
-                project_list = get_project_list(request.user, group_or_func, key)
+                project_list = get_project_list(request.user, group_or_func, key=key)
                 try:
                     project = project_list[value]
                 except (KeyError, ValueError):
