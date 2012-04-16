@@ -9,8 +9,8 @@
     <script>
     {% if has_realtime %}
         Sentry.realtime.config({
-            projectId: '{{ project.slug|safe }}',
-            viewId: {% if view %}{{ view.pk|safe }}{% else %}null{% endif %}
+            projectId: {{ project.slug|to_json }},
+            viewId: {% if view %}{{ view.pk|to_json }}{% else %}null{% endif %}
         })
         Sentry.realtime.enable();
     {% endif %}
@@ -57,7 +57,7 @@
 
     <div class="btn-toolbar">
         <div class="btn-group">
-            <a class="btn" href="javascript:void(0)" id="sentry-resolve-feed" onclick="Sentry.stream.clear({{ project.id|safe }});">{% trans "Resolve Feed" %}</a>
+            <a class="btn" href="javascript:void(0)" id="sentry-resolve-feed" onclick="Sentry.stream.clear({{ project.slug|to_json }});">{% trans "Resolve Feed" %}</a>
         </div>
         <div class="btn-group">
             <a class="btn realtime-play" href="javascript:void(0)" id="sentry-realtime" onclick="Sentry.realtime.toggle();">{% trans "Pause Feed" %}</a>
