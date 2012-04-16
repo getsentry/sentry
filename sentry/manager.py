@@ -298,7 +298,7 @@ class GroupManager(BaseManager, ChartMixin):
         event_id = kwargs.pop('event_id', None)
         message = kwargs.pop('message', None)
         culprit = kwargs.pop('culprit', None)
-        level = kwargs.pop('level', None)
+        level = kwargs.pop('level', None) or logging.ERROR
         time_spent = kwargs.pop('time_spent', None)
         logger_name = kwargs.pop('logger', None) or settings.DEFAULT_LOGGER_NAME
         server_name = kwargs.pop('server_name', None)
