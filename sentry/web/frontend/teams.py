@@ -20,13 +20,6 @@ from sentry.web.forms.teams import NewTeamForm, NewTeamAdminForm, \
 from sentry.web.helpers import render_to_response
 
 
-def _can_add_team_member(user, team):
-    result = plugins.first('has_perm', user, 'add_team_member', team)
-    if result is False and not user.has_perm('sentry.can_add_teammember'):
-        return False
-    return True
-
-
 @login_required
 def team_list(request):
     return render_to_response('sentry/teams/list.html', {}, request)
