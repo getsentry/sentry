@@ -10,11 +10,13 @@ class Migration(DataMigration):
         from sentry.utils.models import update
 
         for pm in orm['sentry.ProjectMember'].objects.all():
-            orm['sentry.ProjectKey'].objects.create(
+            orm['sentry.ProjectKey'].objects.get_or_create(
                 project=pm.project,
                 user=pm.user,
-                public_key=pm.public_key,
-                secret_key=pm.secret_key,
+                defaults=dict(
+                    public_key=pm.public_key,
+                    secret_key=pm.secret_key,
+                ),
             )
 
     def backwards(self, orm):
