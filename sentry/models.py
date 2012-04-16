@@ -204,7 +204,7 @@ class Project(Model):
                         obj2.update(
                             times_seen=F('times_seen') + obj.times_seen,
                             time_spent_total=F('time_spent_total') + obj.time_spent_total,
-                            time_spent_count=F('times_seen') + obj.time_spent_count,
+                            time_spent_count=F('time_spent_count') + obj.time_spent_count,
                         )
 
         for fv in FilterValue.objects.filter(project=self):
