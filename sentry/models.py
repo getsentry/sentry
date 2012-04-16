@@ -93,7 +93,7 @@ class Team(Model):
     ))
 
     def __unicode__(self):
-        return self.slug
+        return u'%s (%s)' % (self.name, self.slug)
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -145,7 +145,7 @@ class Project(Model):
     ])
 
     def __unicode__(self):
-        return u'#%s %r' % (self.pk, self.name)
+        return u'%s (%s)' % (self.name, self.slug)
 
     def save(self, *args, **kwargs):
         if not self.slug:
