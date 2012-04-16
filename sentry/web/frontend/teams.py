@@ -11,7 +11,8 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
 from sentry.models import PendingTeamMember, TeamMember, MEMBER_USER, MEMBER_OWNER
-from sentry.permissions import can_add_team_member, can_remove_team, can_create_projects
+from sentry.permissions import can_add_team_member, can_remove_team, can_create_projects, \
+  can_create_teams
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_team_access
 from sentry.web.forms.teams import NewTeamForm, NewTeamAdminForm, \
@@ -28,6 +29,9 @@ def team_list(request):
 @login_required
 @csrf_protect
 def create_new_team(request):
+    if not can_create_teams(request.user):
+        return HttpResponseRedirect(reverse('sentry'))
+
     if request.user.has_perm('sentry.can_add_team'):
         form_cls = NewTeamAdminForm
         initial = {
