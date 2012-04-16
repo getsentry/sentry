@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-04-08 23:26+0000\n"
+"POT-Creation-Date: 2012-04-16 07:41+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -37,7 +37,7 @@ msgstr ""
 msgid "First Seen"
 msgstr ""
 
-#: constants.py:9 templates/sentry/groups/details.html:123
+#: constants.py:9 templates/sentry/groups/details.html:120
 msgid "Frequency"
 msgstr ""
 
@@ -732,16 +732,11 @@ msgstr ""
 msgid "Raw JSON Data"
 msgstr ""
 
-#: templates/sentry/groups/details.html:115
-#: templates/sentry/groups/event.html:38
-msgid "Full Message"
-msgstr ""
-
-#: templates/sentry/groups/details.html:127
+#: templates/sentry/groups/details.html:124
 msgid "Get yourself some JavaScripts dood"
 msgstr ""
 
-#: templates/sentry/groups/details.html:128
+#: templates/sentry/groups/details.html:125
 msgid "Loading..."
 msgstr ""
 
