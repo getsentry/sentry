@@ -2,7 +2,7 @@
 import datetime
 from south.db import db
 from south.v2 import DataMigration
-from django.db import models, IntegrityError
+from django.db import models
 
 
 class Migration(DataMigration):
@@ -16,13 +16,12 @@ class Migration(DataMigration):
             slug = base_slug
             n = 0
             while True:
-                try:
-                    update(project, slug=slug)
-                except IntegrityError:
+                if orm['sentry.Project'].objects.filter(slug=slug):
                     n += 1
                     slug = base_slug + '-' + str(n)
-                else:
-                    break
+                    continue
+                update(project, slug=slug)
+                break
 
     def backwards(self, orm):
         pass
