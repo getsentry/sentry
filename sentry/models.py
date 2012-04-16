@@ -745,7 +745,7 @@ def create_default_project(created_models, verbosity=2, **kwargs):
                 print 'done!'
 
 
-def create_team_for_project(instance, created, **kwargs):
+def create_team_and_keys_for_project(instance, created, **kwargs):
     if not created:
         return
 
@@ -819,9 +819,9 @@ post_syncdb.connect(
     weak=False,
 )
 post_save.connect(
-    create_team_for_project,
+    create_team_and_keys_for_project,
     sender=Project,
-    dispatch_uid="create_team_for_project",
+    dispatch_uid="create_team_and_keys_for_project",
     weak=False,
 )
 post_save.connect(
