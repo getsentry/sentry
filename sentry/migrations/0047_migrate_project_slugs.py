@@ -12,11 +12,13 @@ class Migration(DataMigration):
         from sentry.utils.models import update
 
         for project in orm['sentry.Project'].objects.all():
+            if project.slug:
+                continue
             base_slug = slugify(project.name)
             slug = base_slug
             n = 0
             while True:
-                if orm['sentry.Project'].objects.filter(slug=slug):
+                if orm['sentry.Project'].objects.filter(slug=slug).exists():
                     n += 1
                     slug = base_slug + '-' + str(n)
                     continue
