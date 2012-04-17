@@ -91,7 +91,6 @@ def has_team_access(group_or_func=None):
                 return func(request, team, *args, **kwargs)
 
             team_list = get_team_list(request.user, group_or_func)
-            print team_slug
             try:
                 team = team_list[team_slug]
             except (KeyError, ValueError):
