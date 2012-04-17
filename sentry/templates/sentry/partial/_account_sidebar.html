@@ -12,7 +12,7 @@
             <li{% if p == project %} class="active"{% endif %}><a href="{% url sentry-manage-project p.pk %}">{{ p.name }}</a></li>
         {% endfor %}
     </ul>
-    <div style="text-align:right">
+    <div style="text-align:right;margin-bottom:13px;">
         {% if can_create_projects %}
             <a href="{% url sentry-new-project %}" class="btn btn-small">{% trans "New project" %}</a>
         {% endif %}
@@ -22,6 +22,9 @@
     </div>
 {% else %}
     <p>{% trans "You are not a part of any projects." %}</p>
+    {% if can_create_projects %}
+        <p><a href="{% url sentry-new-project %}">{% trans "Create a new project" %}</a></p>
+    {% endif %}
 {% endif %}
 
 <h6>{% trans "Teams" %}</h6>
@@ -31,7 +34,7 @@
             <li{% if team and team == t %} class="active"{% endif %}><a href="{% url sentry-manage-team t.slug %}">{{ t.name }}</a></li>
         {% endfor %}
     </ul>
-    <div style="text-align:right">
+    <div style="text-align:right;margin-bottom:13px;">
         {% if can_create_teams %}
             <a href="{% url sentry-new-team %}" class="btn btn-small">{% trans "New team" %}</a>
         {% endif %}
@@ -41,4 +44,7 @@
     </div>
 {% else %}
     <p>{% trans "You are not a part of any teams." %}</p>
+    {% if can_create_teams %}
+        <p><a href="{% url sentry-new-team %}">{% trans "Create a new team" %}</a></p>
+    {% endif %}
 {% endif %}
