@@ -24,7 +24,7 @@
                 </li>
             {% endfor %}
             <li class="pull-right{% if page == 'plugins' %} active{% endif %}">
-                <a href="{% url sentry-manage-project-plugins project.slug %}">{% trans "Manage Plugins" %}</a>
+                <a href="{% url sentry-manage-project-plugins project.slug %}">{% trans "Manage Plugins" %} ({{ PLUGINS|length }})</a>
             </li>
         </ul>
         {% block inner %}

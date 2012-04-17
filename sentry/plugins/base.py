@@ -37,6 +37,12 @@ class Response(object):
 
 
 class PluginManager(InstanceManager):
+    def __iter__(self):
+        return iter(self.all())
+
+    def __len__(self):
+        return sum(1 for i in self.all())
+
     def all(self):
         for plugin in sorted(super(PluginManager, self).all(), key=lambda x: x.get_title()):
             if not plugin.is_enabled():
