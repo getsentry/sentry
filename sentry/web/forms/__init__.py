@@ -10,7 +10,7 @@ from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
-from sentry.models import Project, Team
+from sentry.models import Project
 from sentry.interfaces import Http
 from sentry.permissions import can_set_public_projects
 from sentry.web.forms.fields import RadioFieldRenderer, UserField

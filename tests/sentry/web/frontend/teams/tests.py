@@ -92,13 +92,11 @@ class NewTeamTest(BaseTeamTest):
 
 
 class ManageTeamTest(BaseTeamTest):
-    @mock.patch('sentry.web.frontend.teams.can_create_teams', mock.Mock(return_value=True))
     def test_loads(self):
         resp = self.client.get(reverse('sentry-manage-team', args=[self.team.slug]))
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/teams/manage.html')
 
-    @mock.patch('sentry.web.frontend.teams.can_create_teams', mock.Mock(return_value=True))
     def test_valid_params(self):
         path = reverse('sentry-manage-team', args=[self.team.slug])
         resp = self.client.post(path, {
@@ -108,3 +106,25 @@ class ManageTeamTest(BaseTeamTest):
         self.assertEquals(resp['Location'], 'http://testserver' + path + '?success=1')
         team = Team.objects.get(pk=self.team.pk)
         self.assertEquals(team.name, 'bar')
+
+
+class RemoveTeamTest(BaseTeamTest):
+    @mock.patch('sentry.web.frontend.teams.can_remove_team', mock.Mock(return_value=False))
+    def test_missing_permission(self):
+        resp = self.client.post(reverse('sentry-remove-team', args=[self.team.slug]))
+        self.assertEquals(resp.status_code, 302)
+        self.assertEquals(resp['Location'], 'http://testserver' + reverse('sentry'))
+
+    @mock.patch('sentry.web.frontend.teams.can_remove_team', mock.Mock(return_value=True))
+    def test_loads(self):
+        resp = self.client.get(reverse('sentry-remove-team', args=[self.team.slug]))
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/teams/remove.html')
+
+    @mock.patch('sentry.web.frontend.teams.can_remove_team', mock.Mock(return_value=True))
+    def test_valid_params(self):
+        path = reverse('sentry-remove-team', args=[self.team.slug])
+        resp = self.client.post(path, {'a': 'b'})  # HACK: pass a param since we're faking CSRF to get the form to load
+        self.assertNotEquals(resp.status_code, 200)
+        self.assertEquals(resp['Location'], 'http://testserver' + reverse('sentry-team-list'))
+        self.assertFalse(Team.objects.filter(pk=self.team.pk).exists())
