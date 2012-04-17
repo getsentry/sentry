@@ -184,7 +184,7 @@ def edit_user(request, user_id):
 
     project_list = Project.objects.filter(
         status=0,
-        member_set__user=user,
+        team__member_set__user=user,
     ).order_by('-date_added')
 
     context = {
