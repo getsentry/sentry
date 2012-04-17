@@ -20,13 +20,15 @@ class BaseTeamTest(TestCase):
         self.user.set_password('user')
         self.user.save()
         self.team = Team.objects.create(name='foo', slug='foo', owner=self.user)
-        self.client.login(username='user', password='user')
+        self.tm = self.team.member_set.get_or_create(user=self.user, type=MEMBER_OWNER)[0]
+        assert self.client.login(username='user', password='user')
 
 
 class TeamListTest(BaseTeamTest):
     def test_loads(self):
         resp = self.client.post(reverse('sentry-team-list'))
         self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/teams/list.html')
 
 
 class NewTeamTest(BaseTeamTest):
@@ -40,6 +42,7 @@ class NewTeamTest(BaseTeamTest):
     def test_missing_params(self):
         resp = self.client.post(reverse('sentry-new-team'))
         self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/teams/new.html')
 
     @mock.patch('sentry.web.frontend.teams.can_create_teams', mock.Mock(return_value=True))
     def test_valid_params(self):
@@ -86,3 +89,22 @@ class NewTeamTest(BaseTeamTest):
         member = member_set[0]
         self.assertEquals(member.user, user)
         self.assertEquals(member.type, MEMBER_OWNER)
+
+
+class ManageTeamTest(BaseTeamTest):
+    @mock.patch('sentry.web.frontend.teams.can_create_teams', mock.Mock(return_value=True))
+    def test_loads(self):
+        resp = self.client.get(reverse('sentry-manage-team', args=[self.team.slug]))
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/teams/manage.html')
+
+    @mock.patch('sentry.web.frontend.teams.can_create_teams', mock.Mock(return_value=True))
+    def test_valid_params(self):
+        path = reverse('sentry-manage-team', args=[self.team.slug])
+        resp = self.client.post(path, {
+            'name': 'bar',
+        })
+        self.assertNotEquals(resp.status_code, 200)
+        self.assertEquals(resp['Location'], 'http://testserver' + path + '?success=1')
+        team = Team.objects.get(pk=self.team.pk)
+        self.assertEquals(team.name, 'bar')
