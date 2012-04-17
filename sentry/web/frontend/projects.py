@@ -106,10 +106,16 @@ def manage_project(request, project):
 
     member_list = [(tm, tm.user) for tm in project.team.member_set.select_related('user')]
 
+    try:
+        key = ProjectKey.objects.get(user=request.user, project=project)
+    except ProjectKey.DoesNotExist:
+        key = None  # superuser
+
     context = csrf(request)
     context.update({
         'can_remove_project': can_remove_project(request.user, project),
         'page': 'details',
+        'key': key,
         'form': form,
         'project': project,
         'member_list': member_list,
