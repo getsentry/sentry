@@ -670,7 +670,7 @@ code{border:0;background-color:inherit;color:#666666;}
 .nav-tabs>li.pull-right{float:right;}
 .table th{vertical-align:top;}
 .table td{vertical-align:middle;}
-.clippy{display:inline-block;vertical-align:middle;}.clippy object{padding-right:5px;}
+.clippy{display:inline-block;vertical-align:middle;padding-left:17px;line-height:17px;position:relative;}.clippy object{position:absolute;left:0;width:12px;height:12px;}
 ol.context{margin:0;list-style-position:inside;border:1px solid #ccc;border:1px solid rgba(0, 0, 0, 0.15);-webkit-border-radius:3px;-moz-border-radius:3px;border-radius:3px;}ol.context>li{padding-left:20px;font-family:monospace;white-space:pre;color:rgba(0, 0, 0, 0.75);background-color:#f5f5f5;}ol.context>li>pre{background-color:inherit;color:rgba(0, 0, 0, 0.5);margin:0;padding:0;border:0;display:inline;line-height:18px;font-size:12px;white-space:pre;white-space:pre-wrap;word-wrap:break-word;}
 ol.context>li.active{background-color:#ddd;}ol.context>li.active pre{color:#000000;}
 ol.context-line>li>span{float:right;}

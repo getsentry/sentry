@@ -3844,9 +3844,15 @@ code {
 .clippy {
   display: inline-block;
   vertical-align: middle;
+  padding-left: 17px;
+  line-height: 17px;
+  position: relative;
 }
 .clippy object {
-  padding-right: 5px;
+  position: absolute;
+  left: 0;
+  width: 12px;
+  height: 12px;
 }
 ol.context {
   margin: 0;
