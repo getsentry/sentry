@@ -17,7 +17,7 @@
         <script type="text/javascript">
         Sentry.client.config({
             server: '{% url sentry-api-store %}',
-            projectId: '{{ PROJECT_ID }}',
+            projectId: {{ PROJECT_ID|to_json|safe }},
             logger: 'sentry.errors.javascript'
         })
         Sentry.client.registerGlobalHandler();
@@ -34,7 +34,7 @@
         <script type="text/javascript" src="{% url sentry-media "scripts/global.min.js" %}"></script>
         <script type="text/javascript">
         Sentry.config({
-            urlPrefix: '{{ URL_PREFIX }}',
+            urlPrefix: {{ URL_PREFIX|to_json|safe }},
             mediaUrl: '{% url sentry-media '' %}',
             defaultImage: '{% url sentry-media 'images/sentry.png' %}',
             popupCss: '{% url sentry-media 'styles/popup.css' %}'
