@@ -13,7 +13,7 @@ almost identical no matter the language:
 
   ::
 
-      var myClient = new RavenClient('http://public_key:secret_key@example.com/1');
+      var myClient = new RavenClient('http://public_key:secret_key@example.com/default');
 
 2. Capturing an event
 
@@ -44,14 +44,14 @@ allow the first argument as a DSN string. This string contains the following bit
 
 For example, given the following constructor::
 
-    new RavenClient('https://public:secret@example.com/sentry/1')
+    new RavenClient('https://public:secret@example.com/sentry/default')
 
 You should parse the following settings:
 
-* URI = https://example.com/sentry/
-* Public Key = Public
-* Secret Key = Secret
-* Project ID = 1
+* URI = 'https://example.com/sentry/''
+* Public Key = 'public'
+* Secret Key = 'secret'
+* Project ID = 'default'
 
 If any of these values are not present, the client should notify the user immediately
 that they've misconfigured the client.
@@ -66,6 +66,7 @@ For example, with an included Exception event, a basic JSON body might resemble 
 
         {
             "event_id": "fc6d8c0c43fc4630ad850ee518f1b9d0",
+            "project": "default",
             "culprit": "my.module.function_name",
             "timestamp": "2011-05-02T17:41:36",
             "message": "SyntaxError: Wattttt!"
@@ -85,7 +86,7 @@ The following attributes are required for all events:
     ::
 
         {
-            "project": 1
+            "project": "default"
         }
 
 .. data:: event_id
@@ -266,7 +267,7 @@ The request body should then somewhat resemble the following::
         sentry_client=raven-python/1.0
 
     {
-        "project": 1,
+        "project": "default",
         "event_id": "fc6d8c0c43fc4630ad850ee518f1b9d0",
         "culprit": "my.module.function_name",
         "timestamp": "2011-05-02T17:41:36",
