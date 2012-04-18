@@ -239,13 +239,14 @@ class ProjectKey(Model):
         super(ProjectKey, self).save(*args, **kwargs)
 
     def get_dsn(self, domain=None, secure=True):
+        # TODO: change the DSN to use project slug once clients are compatible
         urlparts = urlparse.urlparse(settings.URL_PREFIX)
         return '%s://%s:%s@%s/%s' % (
             urlparts.scheme,
             self.public_key,
             self.secret_key,
             urlparts.netloc + urlparts.path,
-            self.project.slug,
+            self.project_id,
         )
 
 
