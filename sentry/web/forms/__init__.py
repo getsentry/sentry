@@ -6,6 +6,7 @@ sentry.web.forms
 :license: BSD, see LICENSE for more details.
 """
 from django import forms
+from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 
@@ -50,7 +51,7 @@ class RemoveProjectForm(forms.Form):
         Validates that the old_password field is correct.
         """
         password = self.cleaned_data["password"]
-        if not self.user.check_password(password):
+        if not isinstance(authenticate(username=self.user.username, password=password), User):
             raise forms.ValidationError(_("Your password was entered incorrectly. Please enter it again."))
         return password
 
@@ -171,7 +172,7 @@ class AccountSettingsForm(forms.Form):
         Validates that the old_password field is correct.
         """
         old_password = self.cleaned_data["old_password"]
-        if not self.user.check_password(old_password):
+        if not isinstance(authenticate(username=self.user.username, password=old_password), User):
             raise forms.ValidationError(_("Your old password was entered incorrectly. Please enter it again."))
         return old_password
 
