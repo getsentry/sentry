@@ -54,7 +54,7 @@ setup(
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/sentry',
-    description='A realtime logging an aggregation server.',
+    description='A realtime logging and aggregation server.',
     long_description=__doc__,
     packages=find_packages(exclude=['tests']),
     zip_safe=False,
