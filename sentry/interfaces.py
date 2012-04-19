@@ -490,10 +490,7 @@ class User(Interface):
             }
 
     def get_hash(self):
-        if not self.is_authenticated:
-            return []
-        else:
-            return [self.id, self.username, self.email]
+        return []
 
     def to_html(self, event):
         return render_to_string('sentry/partial/interfaces/user.html', {
