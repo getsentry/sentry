@@ -57,7 +57,7 @@
 
     <div class="btn-toolbar">
         <div class="btn-group">
-            <a class="btn" href="javascript:void(0)" id="sentry-resolve-feed" onclick="Sentry.stream.clear({{ project.slug|to_json|safe }});">{% trans "Resolve Feed" %}</a>
+            <a class="btn" href="javascript:void(0)" id="sentry-resolve-feed" onclick="Sentry.stream.clear('{{ project.slug }}');">{% trans "Resolve Feed" %}</a>
         </div>
         <div class="btn-group">
             <a class="btn realtime-play" href="javascript:void(0)" id="sentry-realtime" onclick="Sentry.realtime.toggle();">{% trans "Pause Feed" %}</a>
