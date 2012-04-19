@@ -17,7 +17,7 @@ One thing to note, is that all extended methods (outside of data interfaces) sho
 accept ``**kwargs`` to handle future changes.
 
 Structure
-=========
+---------
 
 A plugins layout generally looks like the following::
 
@@ -52,6 +52,11 @@ Inside of ``models.py``, you'll declare your Plugin class, and register it::
 
         def widget(self, request, group, **kwargs):
             return "<p>Absolutely useless widget</p>"
+
+Next Steps
+----------
+
+Dig into the rest of the plugin documentation, and take a look at existing plugins for ideas/best practices.
 
 .. toctree::
    :maxdepth: 2
