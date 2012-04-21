@@ -502,6 +502,8 @@ class User(Interface):
         })
 
     def get_search_context(self, event):
+        if not self.is_authenticated:
+            return {}
         return {
             'text': [self.id, self.username, self.email]
         }
