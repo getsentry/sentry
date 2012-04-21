@@ -34,10 +34,13 @@
 {% block sidebar %}
     {% querystring from request without bookmarks as bookmark_querystring %}
     <h6>{% trans "Bookmarks" %}</h6>
-    <form>
     <ul class="nav nav-tabs nav-stacked filter-list">
+        {% if request.user.is_anonymous %}
+        <li class="active"><a href="?">{% trans "All Events" %}</a></li>
+        {% else %}
         <li{% if not request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ bookmark_querystring }}">{% trans "All Events" %}</a></li>
         <li{% if request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ bookmark_querystring }}&amp;bookmarks=1">{% trans "Only Bookmarks" %}</a></li>
+        {% endif %}
     </ul>
 
     {% for filter in filters %}
