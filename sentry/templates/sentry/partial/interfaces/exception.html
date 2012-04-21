@@ -8,11 +8,11 @@
     </colgroup>
     <tr>
       <th>{% trans "Types:" %}</th>
-      <td><pre>{{ exception_type|escape }}</pre></td>
+      <td class="code"><pre>{{ exception_type|escape }}</pre></td>
     </tr>
     <tr>
       <th>{% trans "Value:" %}</th>
-      <td><pre>{{ exception_value|escape }}</pre></td>
+      <td class="code"><pre>{{ exception_value|escape }}</pre></td>
     </tr>
     {% if last_frame %}
     <tr>
