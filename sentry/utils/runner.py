@@ -92,3 +92,6 @@ def main():
         settings_envvar='SENTRY_CONF',
         initializer=initialize_app,
     )
+
+if __name__ == '__main__':
+    main()
