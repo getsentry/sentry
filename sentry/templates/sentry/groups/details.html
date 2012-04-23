@@ -97,7 +97,7 @@
             <li class="dropdown pull-right">
                 <a class="dropdown-toggle" href="#" data-toggle="dropdown">{% trans "Actions" %} <span class="caret"></span></a>
                 <ul class="dropdown-menu">
-                    {# We're going to move these to the resolve action location #}
+                    <li><a href="{% url sentry-api-remove-group project_id=project.slug group_id=group.pk %}">{% trans "Remove Event" %}</a></li>
                     <li><a href="{% url sentry-group-json project_id=project.slug group_id=group.pk %}">{% trans "Raw JSON Data" %}</a></li>
                     {% for label, link, is_active in group|get_actions:request %}
                         {% if forloop.first %}
