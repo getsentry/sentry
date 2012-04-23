@@ -25,21 +25,22 @@ locale:
 #
 
 static:
-	lessc ${BOOTSTRAP_LESS} > ${GLOBAL_CSS};
-	lessc ${BOOTSTRAP_LESS} > ${GLOBAL_CSS_MIN} --compress;
-	cat sentry/static/scripts/sentry.core.js sentry/static/scripts/sentry.realtime.js sentry/static/scripts/sentry.charts.js sentry/static/scripts/sentry.notifications.js sentry/static/scripts/sentry.stream.js > ${GLOBAL_JS};
-	cat bootstrap/js/bootstrap-alert.js bootstrap/js/bootstrap-dropdown.js bootstrap/js/bootstrap-tooltip.js bootstrap/js/bootstrap-tab.js bootstrap/js/bootstrap-buttons.js bootstrap/js/bootstrap-modal.js > ${BOOTSTRAP_JS};
-	uglifyjs -nc ${GLOBAL_JS} > ${GLOBAL_JS_MIN};
-	uglifyjs -nc ${BOOTSTRAP_JS} > ${BOOTSTRAP_JS_MIN};
-	echo "Static assets successfully built! - `date`";
+	@lessc ${BOOTSTRAP_LESS} > ${GLOBAL_CSS};
+	@lessc ${BOOTSTRAP_LESS} > ${GLOBAL_CSS_MIN} --compress;
+	@cat sentry/static/scripts/sentry.core.js sentry/static/scripts/sentry.realtime.js sentry/static/scripts/sentry.charts.js sentry/static/scripts/sentry.notifications.js sentry/static/scripts/sentry.stream.js > ${GLOBAL_JS};
+	@cat bootstrap/js/bootstrap-alert.js bootstrap/js/bootstrap-dropdown.js bootstrap/js/bootstrap-tooltip.js bootstrap/js/bootstrap-tab.js bootstrap/js/bootstrap-buttons.js bootstrap/js/bootstrap-modal.js > ${BOOTSTRAP_JS};
+	@uglifyjs -nc ${GLOBAL_JS} > ${GLOBAL_JS_MIN};
+	@uglifyjs -nc ${BOOTSTRAP_JS} > ${BOOTSTRAP_JS_MIN};
+	@echo "Static assets successfully built! - `date`";
 
 #
 # Watch less files
 #
 
 watch:
-	echo "Watching less files..."; \
-	watchr -e "watch('bootstrap/less/.*\.less') { system 'make' }"
+	@echo "Watching less files..."; \
+	make static; \
+	watchr -e "watch('bootstrap/.*\.less') { system 'make static' }"
 
 test:
 	coverage run runtests.py --include=sentry/* && \
