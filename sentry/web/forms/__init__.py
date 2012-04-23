@@ -21,7 +21,7 @@ class RemoveProjectForm(forms.Form):
     removal_type = forms.ChoiceField(choices=(
         ('1', _('Remove all attached events.')),
         ('2', _('Migrate events to another project.')),
-        ('3', _('Hide this project.')),
+        # ('3', _('Hide this project.')),
     ), widget=forms.RadioSelect(renderer=RadioFieldRenderer))
     project = forms.ChoiceField(choices=(), required=False)
     password = forms.CharField(label=_("Password"), widget=forms.PasswordInput, help_text=_("Confirm your identify by entering your password."))
@@ -82,7 +82,7 @@ class EditProjectForm(forms.ModelForm):
     team = forms.ChoiceField(choices=())
 
     class Meta:
-        fields = ('name', 'status', 'public', 'team')
+        fields = ('name', 'public', 'team')
         model = Project
 
     def __init__(self, request, team_list, *args, **kwargs):
