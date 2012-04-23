@@ -287,6 +287,41 @@ def time_limit(silence):  # ~ 3600 per hour
 
 
 class ChartMixin(object):
+    def get_chart_data_for_group(self, instances, max_days=90):
+        if not instances:
+            return []
+
+        if hasattr(instances[0], '_state'):
+            db = instances[0]._state.db or 'default'
+        else:
+            db = 'default'
+
+        if not has_charts(db):
+            return []
+
+        hours = max_days * 24
+        today = datetime.datetime.now().replace(microsecond=0, second=0, minute=0)
+        min_date = today - datetime.timedelta(hours=hours)
+
+        method = get_sql_date_trunc('date', db)
+
+        field = self.model.messagecountbyminute_set.related
+        column = field.field.name
+        chart_qs = list(field.model.objects.filter(**{
+            '%s__in' % column: instances,
+            'date__gte': min_date,
+        }).extra(
+            select={
+                'grouper': method,
+            }
+        ).values('grouper').annotate(
+            num=Sum('times_seen'),
+        ).values_list('grouper', 'num'))
+
+        rows = dict(chart_qs)
+
+        return [rows.get(today - datetime.timedelta(hours=d), 0) for d in xrange(hours, -1, -1)]
+
     def get_chart_data(self, instance, max_days=90):
         if hasattr(instance, '_state'):
             db = instance._state.db or 'default'
@@ -308,15 +343,12 @@ class ChartMixin(object):
                           .annotate(num=Sum('times_seen')).values_list('grouper', 'num')\
                           .order_by('grouper'))
 
-        if not chart_qs:
-            return []
-
         rows = dict(chart_qs)
 
-        #just skip zeroes
+        # just skip zeroes
         first_seen = hours
-        while not rows.get(today - datetime.timedelta(hours=first_seen)) and first_seen > 24:
-            first_seen -= 1
+        # while not rows.get(today - datetime.timedelta(hours=first_seen)) and first_seen > 24:
+        #     first_seen -= 1
 
         return [rows.get(today - datetime.timedelta(hours=d), 0) for d in xrange(first_seen, -1, -1)]
 

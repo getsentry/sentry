@@ -43,6 +43,9 @@ if (Sentry === undefined) {
                     xaxis: {
                        mode: "time"
                     },
+                    yaxis: {
+                        min: 0
+                    },
                     grid: {
                         show: grid || false,
                         borderColor: '#dddddd',

@@ -118,7 +118,7 @@ urlpatterns = patterns('',
     url(r'^api/(?P<project_id>[\w_-]+)/resolve/$', api.resolve, name='sentry-api-resolve'),
     url(r'^api/(?P<project_id>[\w_-]+)/bookmark/$', api.bookmark, name='sentry-api-bookmark'),
     url(r'^api/(?P<project_id>[\w_-]+)/clear/$', api.clear, name='sentry-api-clear'),
-    url(r'^api/(?P<project_id>[\w_-]+)/chart/$', api.chart, name='sentry-api-chart'),
+    url(r'^api/(?:(?P<project_id>[\w_-]+)/)?chart/$', api.chart, name='sentry-api-chart'),
     url(r'^api/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/remove/$', api.remove_group, name='sentry-api-remove-group'),
 
     # Project specific

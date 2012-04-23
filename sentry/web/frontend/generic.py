@@ -5,11 +5,13 @@ sentry.web.frontend.generic
 :copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from django.core.urlresolvers import reverse
+import datetime
+
 from django.http import HttpResponseRedirect, Http404, HttpResponseNotModified, \
   HttpResponse
 
 from sentry.conf import settings
+from sentry.models import Group
 from sentry.web.decorators import login_required
 from sentry.web.helpers import get_project_list, render_to_response, \
   get_login_url
@@ -18,11 +20,31 @@ from sentry.web.helpers import get_project_list, render_to_response, \
 @login_required
 def dashboard(request):
     project_list = get_project_list(request.user, key='slug')
-    if len(project_list) == 1:
-        return HttpResponseRedirect(reverse('sentry', kwargs={'project_id': project_list.keys()[0]}))
     if len(project_list) == 0 and not request.user.is_authenticated():
         return HttpResponseRedirect(get_login_url())
-    return render_to_response('sentry/dashboard.html', request=request)
+
+    if project_list:
+        cutoff = datetime.datetime.now() - datetime.timedelta(days=1)
+        base_qs = Group.objects.filter(
+            project__in=project_list.values(),
+            status=0,
+        ).select_related('project').order_by('-score')
+
+        top_event_list = list(base_qs.filter(
+            last_seen__gte=cutoff
+        )[:10])
+
+        new_event_list = list(base_qs.filter(
+            first_seen__gte=cutoff,
+        )[:10])
+    else:
+        top_event_list = None
+        new_event_list = None
+
+    return render_to_response('sentry/dashboard.html', {
+        'top_event_list': top_event_list,
+        'new_event_list': new_event_list,
+    }, request)
 
 
 def static_media(request, path, root=None):

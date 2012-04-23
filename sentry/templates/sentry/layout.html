@@ -53,10 +53,10 @@
         <section id="page-header" class="toolbar">
             {% block page_header %}
                 <ul class="breadcrumb">
-                    <li><a href="{% url sentry %}">{% trans "Projects" %}</a></li>
+                    <li><a href="{% url sentry %}">{% trans "Dashboard" %}</a></li>
                     {% if project %}
                         <li class="divider">/</li>
-                        <li><a href="{% url sentry project.slug %}">{{ project.name }}</a></li>
+                        <li><a href="{% url sentry project.slug %}">{{ project.name }}</a> <a class="action" href="{% url sentry-manage-project project.slug %}">Edit</a></li>
                     {% endif %}
                     {% block breadcrumb %}
                     {% endblock %}

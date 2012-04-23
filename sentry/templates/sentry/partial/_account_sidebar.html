@@ -9,7 +9,7 @@
 {% if PROJECT_LIST %}
     <ul class="nav nav-tabs nav-stacked" style="margin-bottom:5px">
         {% for p in PROJECT_LIST|slice:"10" %}
-            <li{% if p == project %} class="active"{% endif %}><a href="{% url sentry-manage-project p.pk %}">{{ p.name }}</a></li>
+            <li{% if p == project %} class="active"{% endif %}><a href="{% url sentry-manage-project p.slug %}">{{ p.name }}</a></li>
         {% endfor %}
     </ul>
     <div style="text-align:right;margin-bottom:13px;">

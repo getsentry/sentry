@@ -4,22 +4,47 @@
 
 {% block title %}{% trans "Select a Project" %} | {{ block.super }}{% endblock %}
 
-{% block page_header %}{% endblock %}
-{% block bodyclass %}{% endblock %}
+{% block page_header %}
+    <ul class="breadcrumb">
+        <li><a href="{% url sentry %}">{% trans "Dashboard" %}</a></li>
+    </ul>
+{% endblock %}
 
-{% block content %}
+{% block heading %}
+    {% trans "Account Settings" %}
+{% endblock %}
+
+{% block main %}
     <section class="body">
         {% if PROJECT_LIST %}
-            <ul class="thumbnails sparkline-grid">
-                {% for project in PROJECT_LIST %}
-                    <li class="thumbnail">
-                        <a href="{% url sentry project.slug %}">
-                            <h3>{{ project.name }}</h3>
-                            <div class="sparkline" data-project="{{ project.slug|safe }}" data-api-url="{% url sentry-api-chart project.slug %}"></div>
-                        </a>
-                    </li>
-                {% endfor %}
-            </ul>
+            <div class="page-header">
+                <h2>{% trans "Event Frequency" %}</h2>
+            </div>
+            <div class="sparkline" data-api-url="{% url sentry-api-chart %}">
+                <span class="loading">{% trans "Loading historical data..." %}</span>
+            </div>
+            {% if top_event_list %}
+                <div class="page-header">
+                    <h3>{% trans "Top Events" %} <small>{% trans "Today" %}</small></h3>
+                </div>
+                <ul class="events" id="event_list">
+                    {% for group in top_event_list %}
+                        {% include "sentry/partial/_group_small.html" %}
+                    {% endfor %}
+                </ul>
+            {% endif %}
+            <div class="page-header">
+                <h3>{% trans "New Events" %} <small>{% trans "Today" %}</small></h3>
+            </div>
+            {% if new_event_list %}
+                <ul class="events" id="event_list">
+                    {% for group in new_event_list %}
+                        {% include "sentry/partial/_group_small.html" %}
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>{% trans "No unresolved events are available for the last 24 hours." %}</p>
+            {% endif %}
         {% else %}
             {% if can_create_projects %}
                 {% url sentry-new-project as link %}
@@ -31,11 +56,37 @@
     </section>
 {% endblock %}
 
+{% block sidebar %}
+    <h6>{% trans "Projects" %}</h6>
+    {% if PROJECT_LIST %}
+        <ul class="nav nav-tabs nav-stacked" style="margin-bottom:5px">
+            {% for p in PROJECT_LIST|slice:"10" %}
+                <li{% if p == project %} class="active"{% endif %}>
+                    <a class="action" href="{% url sentry-manage-project p.slug %}">Edit</a>
+                    <a href="{% url sentry p.slug %}">{{ p.name }}</a>
+                </li>
+            {% endfor %}
+        </ul>
+        <div style="text-align:right;margin-bottom:13px;">
+            {% if can_create_projects %}
+                <a href="{% url sentry-new-project %}" class="btn btn-small">{% trans "New project" %}</a>
+            {% endif %}
+            {% if PROJECT_LIST|length > 10 %}
+                <a href="{% url sentry-project-list %}" class="btn btn-small">{% blocktrans with PROJECT_LIST|length as count %}View all <strong>{{ count }}</strong> projects{% endblocktrans %}</a>
+            {% endif %}
+        </div>
+    {% else %}
+        <p>{% trans "You are not a part of any projects." %}</p>
+        {% if can_create_projects %}
+            <p><a href="{% url sentry-new-project %}">{% trans "Create a new project" %}</a></p>
+        {% endif %}
+    {% endif %}
+{% endblock %}
 
 {% block content_after %}
     <script type="text/javascript">
     $(document).ready(function() {
-        $('.sparkline-grid .sparkline').each(function(_, el){
+        $('.sparkline').each(function(_, el){
             var $el = $(el);
 
             $.ajax({
@@ -47,39 +98,48 @@
                     days: 1
                 },
                 success: function(data){
-                    if (!data.length) {
-                        return;
-                    }
-
                     var start = new Date().getTime() - data.length * 3600000;
-                    var pairs = [];
+                    var chunks = [];
+                    var max = 100;
                     // for (var i=0; i<1000; i++) {
                     //     pairs.push([start + (3600 * 1000) * i, Math.random()*1000]);
                     // }
-                    for (var i=0; i<data.length; i++) {
-                        pairs.push([start + (3600 * 1000) * i, data[i]]);
-                    }
-                    $.plot($el, [
-                        {
-                            data: pairs,
-                            color: '#3079d0',
-                            shadowSize: 0,
-                            lines: {
-                                lineWidth: 1,
-                                show: true,
-                                fill: true
-                            },
+                    var pairs = []
+                    var chunk = {
+                        data: pairs,
+                        shadowSize: 0,
+                        lines: {
+                            lineWidth: 1,
+                            show: true,
+                            fill: true
+                        },
+                    };
+                    $.each(data, function(num, val){
+                        pairs.push([start + (3600 * 1000) * num, val]);
+                        if (val > max) {
+                            max = val;
                         }
-                    ], {
+                    });
+                    chunks.push(chunk);
+                    
+                    $.plot($el, chunks, {
                         xaxis: {
                            mode: "time"
                         },
-                        grid: {
-                            show: false,
-                            backgroundColor: '#F5F5F5'
+                        yaxis: {
+                           min: 0,
+                           max: max
                         },
-                        lines: { show: false }
-
+                        grid: {
+                            backgroundColor: '#f9f9f9',
+                            borderColor: '#eeeeee',
+                            borderWidth: 1,
+                            tickColor: '#eeeeee',
+                            show: true
+                        },
+                        legend: {
+                            noColumns: 5
+                        }
                     });
                 }
             });

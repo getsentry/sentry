@@ -1,0 +1,26 @@
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_plugins %}
+
+<li class="event event-small level-{{ group.get_level_display }}" id="group_{{ group.pk|safe }}" data-count="{{ group.times_seen }}" data-score="{{ group.sort_value }}">
+    <div class="count"><span>{{ group.times_seen|small_count }}</span></div>
+    <div class="details">
+        <h3>
+            <a href="{% url sentry-group group.project.slug group.pk %}">
+                {% if group.view %}
+                    {{ group.view }}
+                {% else %}
+                    {{ group.message_top|truncatechars:100 }}
+                {% endif %}
+            </a>
+        </h3>
+        <div class="meta">
+            <span class="last-seen pretty-date" title="{{ group.last_seen|date:"c" }}Z">{{ group.last_seen|timesince }}</span>
+            {% if group.avg_time_spent %}
+                <span class="time-spent">{{ group.avg_time_spent|duration }}</span>
+            {% endif %}
+            <span class="tag tag-project">{{ group.project.name }}</span>
+        </div>
+    </div>
+</li>
+                

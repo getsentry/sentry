@@ -10,9 +10,10 @@ import logging
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseBadRequest, \
   HttpResponseForbidden, HttpResponseRedirect
-from django.views.decorators.cache import never_cache
+from django.views.decorators.cache import cache_page, never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.vary import vary_on_cookie
 
 from sentry.conf import settings
 from sentry.exceptions import InvalidData
@@ -24,7 +25,7 @@ from sentry.utils import json
 from sentry.utils.http import is_same_domain, apply_access_control_headers
 from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
-from sentry.web.helpers import render_to_response, render_to_string
+from sentry.web.helpers import render_to_response, render_to_string, get_project_list
 
 error_logger = logging.getLogger('sentry.errors.api.http')
 logger = logging.getLogger('sentry.api.http')
@@ -306,9 +307,11 @@ def clear(request, project):
     return response
 
 
+@vary_on_cookie
+@cache_page(60 * 5)
 @csrf_exempt
 @has_access
-def chart(request, project):
+def chart(request, project=None):
     gid = request.REQUEST.get('gid')
     days = int(request.REQUEST.get('days', '90'))
 
@@ -319,8 +322,12 @@ def chart(request, project):
             return HttpResponseForbidden()
 
         data = Group.objects.get_chart_data(group, max_days=days)
-    else:
+    elif project:
         data = Project.objects.get_chart_data(project, max_days=days)
+    else:
+        project_list = get_project_list(request.user).values()
+        project_list = Project.objects.all()
+        data = Project.objects.get_chart_data_for_group(project_list, max_days=days)
 
     response = HttpResponse(json.dumps(data))
     response['Content-Type'] = 'application/json'
