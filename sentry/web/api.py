@@ -7,8 +7,9 @@ sentry.web.views
 """
 import logging
 
+from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseBadRequest, \
-  HttpResponseForbidden
+  HttpResponseForbidden, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
@@ -194,6 +195,24 @@ def resolve(request, project):
 
     response = HttpResponse(json.dumps(data))
     response['Content-Type'] = 'application/json'
+    return response
+
+
+@csrf_exempt
+@has_access
+def remove_group(request, project, group_id):
+    try:
+        group = Group.objects.get(pk=group_id)
+    except Group.DoesNotExist:
+        return HttpResponseForbidden()
+
+    group.delete()
+
+    if request.is_ajax():
+        response = HttpResponse('{}')
+        response['Content-Type'] = 'application/json'
+    else:
+        response = HttpResponseRedirect(reverse('sentry', args=[project.slug]))
     return response
 
 
