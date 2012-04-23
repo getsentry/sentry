@@ -728,8 +728,11 @@ class SearchDocumentManager(BaseManager):
             raise ValueError('sort_by: %r' % sort_by)
 
         sql = """
-            SELECT sd.id, sd.group_id, SUM(st.times_seen) / sd.total_events as score,
-                sd.date_changed, sd.date_added
+            SELECT sd.id AS id,
+                   sd.group_id AS group_id,
+                   SUM(st.times_seen) / sd.total_events as score,
+                   sd.date_changed AS date_changed,
+                   sd.date_added AS date_added
             FROM sentry_searchdocument as sd
             INNER JOIN sentry_searchtoken as st
                 ON st.document_id = sd.id
