@@ -15,6 +15,8 @@ Running a Worker
 Workers can be run by using the Sentry CLI. Specifically, you call out to celeryd,
 which the worker manager process of the Celery library.
 
+::
+
     sentry celeryd
 
 Enable the Queue
