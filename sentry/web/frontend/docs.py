@@ -21,6 +21,7 @@ PLATFORM_LIST = (
     'node.js',
     'express',
     'connect',
+    'r',
 )
 
 
