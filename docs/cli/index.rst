@@ -27,8 +27,7 @@ Builtin Commands
 
     Starts a Sentry service. By default this value is 'http'.
 
-    Other services are 'worker', for a queue worker, and 'udp',
-    for the UDP server.
+    Other services are 'udp', for the UDP server.
 
     ::
 

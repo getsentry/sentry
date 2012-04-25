@@ -12,7 +12,8 @@ protocol:
 Additionally, the following experimental clients are availabe:
 
 * JavaScript (`raven-js <https://github.com/lincolnloop/raven-js>`_)
-* CFML (`raven-cfml` <https://github.com/jmacul2/raven-cfml>`_)
+* CFML (`raven-cfml <https://github.com/jmacul2/raven-cfml>`_)
+* R (`logging <http://logging.r-forge.r-project.org/>`_)
 
 Client Criteria
 ---------------
