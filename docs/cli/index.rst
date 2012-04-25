@@ -31,7 +31,7 @@ Builtin Commands
 
     ::
 
-        sentry start worker
+        sentry start udp
 
 .. data:: upgrade
 
