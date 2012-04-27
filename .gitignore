@@ -12,3 +12,4 @@ pip-log.txt
 .DS_Store
 /docs/html
 /docs/doctrees
+example/db.sqlite
