@@ -63,7 +63,7 @@ class SentryUDPServer(Service):
         try:
             import eventlet
         except ImportError:
-            raise CommandError('It seems you dont have the ``eventlet`` package installed, which is required to run'
+            raise CommandError('It seems that you don\'t have the ``eventlet`` package installed, which is required to run '
                                'the udp service.')
 
         from eventlet.green import socket
