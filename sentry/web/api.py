@@ -111,7 +111,8 @@ def store(request):
         logging.error('Client %r raised API error: %s' % (client, error), exc_info=True)
         response = HttpResponse(unicode(error.msg), status=error.http_status)
     else:
-        logging.info('New event from client %r (id=%%s)' % client, data['event_id'])
+        if request.method == 'POST':
+            logging.info('New event from client %r (id=%%s)' % client, data['event_id'])
         response = HttpResponse('')
     return apply_access_control_headers(response)
 
