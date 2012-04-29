@@ -2,6 +2,8 @@ Sentry
 ======
 
 .. image:: https://secure.travis-ci.org/dcramer/sentry.png?branch=master
+   :target: http://travis-ci.org/dcramer/sentry
+
 
 Sentry is a realtime event logging and aggregation platform. It specializes
 in monitoring errors and extracting all the information needed to do a proper
