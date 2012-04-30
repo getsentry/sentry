@@ -288,6 +288,9 @@ The following settings are available for the built-in webserver:
             'worker_class': 'gevent',
         }
 
+
+.. _config-udp-server:
+
 UDP Server
 ~~~~~~~~~~
 
