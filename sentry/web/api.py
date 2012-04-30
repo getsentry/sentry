@@ -63,8 +63,8 @@ def store(request):
     """
     logger.debug('Inbound %r request from %r', request.method, request.META['REMOTE_ADDR'])
     client = '<unknown client>'
-    try:
-        if request.method == 'POST':
+    if request.method == 'POST':
+        try:
             auth_vars = extract_auth_vars(request)
             data = request.raw_post_data
 
@@ -107,12 +107,15 @@ def store(request):
                 raise APIError(unicode(e))
 
             insert_data_to_database(data)
-    except APIError, error:
-        logging.error('Client %r raised API error: %s' % (client, error), exc_info=True)
-        response = HttpResponse(unicode(error.msg), status=error.http_status)
+        except APIError, error:
+            logging.error('Client %r raised API error: %s' % (client, error), exc_info=True)
+            response = HttpResponse(unicode(error.msg), status=error.http_status)
+        else:
+            if request.method == 'POST':
+                logging.info('New event from client %r (id=%%s)' % client, data['event_id'])
+            response = HttpResponse('')
     else:
-        if request.method == 'POST':
-            logging.info('New event from client %r (id=%%s)' % client, data['event_id'])
+        # OPTIONS
         response = HttpResponse('')
     return apply_access_control_headers(response)
 
