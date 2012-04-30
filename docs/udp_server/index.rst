@@ -1,7 +1,9 @@
 Utilizing the UDP Server
 ========================
 
-The UDP server requires the :mod:`eventlet` module.
+The UDP server requires the `eventlet`_ module.
+
+.. _eventlet: http://eventlet.net/
 
 ::
 
@@ -17,7 +19,4 @@ To start the server:
 Configuration
 -------------
 
-There are a few settings that you can tweak::
-
-    SENTRY_UDP_HOST = '0.0.0.0'
-    SENTRY_UDP_PORT = 9001
+See the section on :ref:`UDP server settings <config-udp-server>`.
