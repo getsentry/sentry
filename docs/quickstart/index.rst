@@ -197,3 +197,23 @@ folder and you're good to go.
   autostart=true
   autorestart=true
   redirect_stderr=true
+
+Additional Utilities
+--------------------
+
+If you're familiar with Python you'll quickly find yourself at home, and even more so if you've used Django. The
+``sentry`` command is just a simple wrapper around Django's ``django-admin.py``, which means you get all of the
+power and flexibility that goes with it.
+
+Some of those which you'll likely find useful are::
+
+createsuperuser
+~~~~~~~~~~~~~~~
+
+Quick and easy creation of superusers. These users have full access to the entirety of the Sentry server.
+
+runserver
+~~~~~~~~~
+
+Testing Sentry locally? Spin up Django's builtin runserver (or ``pip install django-devserver`` for something
+slightly better).
