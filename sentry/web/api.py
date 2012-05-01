@@ -99,12 +99,18 @@ def store(request, project_id=None):
                 # (this is restricted via the CORS headers)
                 origin = request.META.get('HTTP_ORIGIN')
 
-                project = project_from_auth_vars(auth_vars, data,
+                project_ = project_from_auth_vars(auth_vars, data,
                     require_signature=bool(origin))
+
+                if project_ != project:
+                    raise APIError('Project ID mismatch')
 
             elif request.user.is_authenticated() and is_same_domain(request.build_absolute_uri(), referrer):
                 # authenticated users are simply trusted to provide the right id
-                project = project_from_id(request)
+                project_ = project_from_id(request)
+
+                if project_ != project:
+                    raise APIError('Project ID mismatch')
 
             else:
                 raise APIUnauthorized()
