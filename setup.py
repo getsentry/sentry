@@ -21,7 +21,10 @@ any application.
 :copyright: (c) 2011-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+
 from setuptools import setup, find_packages
+
+import multiprocessing
 
 
 tests_require = [
