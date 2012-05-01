@@ -316,45 +316,6 @@ class PendingTeamMember(Model):
             logger.exception(e)
 
 
-class ProjectDomain(Model):
-    """
-    Currently unused. Planned for 'trusted domains' for JS apis.
-    """
-    project = models.ForeignKey(Project, related_name="domain_set")
-    domain = models.CharField(max_length=128)
-
-    objects = BaseManager()
-
-    class Meta:
-        unique_together = (('project', 'domain'),)
-
-    def __unicode__(self):
-        return u'project=%s, domain=%s' % (self.project_id, self.domain)
-
-    @classmethod
-    def test(cls, project, url, strict=False):
-        """
-        Tests whether the ``url`` is a trusted domain for the given project.
-        """
-        if not url:
-            return False
-        url = urlparse.urlsplit(url).hostname
-        if not url:
-            # If we fail to parse the referral url
-            return False
-        if url in ('127.0.0.1', 'localhost'):
-            return True
-        if url.endswith('.local'):
-            return True
-        url = url.split('.')
-        domains = ProjectDomain.objects.filter(project=project).values_list('domain', flat=True)
-        for d in domains:
-            d = d.split('.')
-            if url[-len(d):] == d:
-                return True
-        return False
-
-
 class View(Model):
     """
     A view ties directly to a view extension and simply

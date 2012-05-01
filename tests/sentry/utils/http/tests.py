@@ -30,7 +30,7 @@ class SameDomainTestCase(TestCase):
 
 
 class AccessControlTestCase(TestCase):
-    
+
     def test_allow_origin_none(self):
         """If ALLOW_ORIGIN is None, the headers should not be added"""
         with self.Settings(SENTRY_ALLOW_ORIGIN=None):
@@ -41,12 +41,40 @@ class AccessControlTestCase(TestCase):
                              None)
             self.assertEqual(response.get('Access-Control-Allow-Methods', None),
                              None)
-    
+
     def test_allow_origin(self):
         with self.Settings(SENTRY_ALLOW_ORIGIN="http://foo.example"):
             response = apply_access_control_headers(HttpResponse())
             self.assertEqual(response.get('Access-Control-Allow-Origin', None),
                              "http://foo.example")
+            self.assertEqual(response.get('Access-Control-Allow-Headers', None),
+                             "X-Sentry-Auth")
+            self.assertEqual(response.get('Access-Control-Allow-Methods', None),
+                             "POST")
+
+    def test_allow_origin_project(self):
+        from sentry.models import Project, ProjectOption
+        project = Project.objects.get()
+        ProjectOption.objects.create(project=project, key='sentry:origins', value=['http://foo.example'])
+
+        with self.Settings(SENTRY_ALLOW_ORIGIN=None):
+            response = apply_access_control_headers(HttpResponse(), project)
+            self.assertEqual(response.get('Access-Control-Allow-Origin', None),
+                             "http://foo.example")
+            self.assertEqual(response.get('Access-Control-Allow-Headers', None),
+                             "X-Sentry-Auth")
+            self.assertEqual(response.get('Access-Control-Allow-Methods', None),
+                             "POST")
+
+    def test_allow_origin_project_and_setting(self):
+        from sentry.models import Project, ProjectOption
+        project = Project.objects.get()
+        ProjectOption.objects.create(project=project, key='sentry:origins', value=['http://foo.example'])
+
+        with self.Settings(SENTRY_ALLOW_ORIGIN='http://example.com'):
+            response = apply_access_control_headers(HttpResponse(), project)
+            self.assertEqual(response.get('Access-Control-Allow-Origin', None),
+                             "http://example.com http://foo.example")
             self.assertEqual(response.get('Access-Control-Allow-Headers', None),
                              "X-Sentry-Auth")
             self.assertEqual(response.get('Access-Control-Allow-Methods', None),

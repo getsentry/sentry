@@ -15,11 +15,10 @@ from django.views.decorators.http import require_http_methods
 
 from sentry.conf import settings
 from sentry.exceptions import InvalidData
-from sentry.coreapi import project_from_auth_vars, project_from_api_key_and_id, \
-  project_from_id, decode_and_decompress_data, safely_load_json_string, \
-  validate_data, insert_data_to_database, APIError, APIUnauthorized, \
-  extract_auth_vars
-from sentry.models import Group, GroupBookmark, Project, View, ProjectDomain
+from sentry.coreapi import project_from_auth_vars, project_from_id, \
+  decode_and_decompress_data, safely_load_json_string, validate_data, \
+  insert_data_to_database, APIError, APIUnauthorized, extract_auth_vars
+from sentry.models import Group, GroupBookmark, Project, View
 from sentry.utils import json
 from sentry.utils.http import is_same_domain, apply_access_control_headers
 from sentry.web.decorators import has_access
@@ -32,7 +31,7 @@ logger = logging.getLogger('sentry.api.http')
 
 @csrf_exempt
 @require_http_methods(['POST', 'OPTIONS'])
-def store(request):
+def store(request, project_id=None):
     """
     The primary endpoint for storing new events.
 
@@ -63,6 +62,18 @@ def store(request):
     """
     logger.debug('Inbound %r request from %r', request.method, request.META['REMOTE_ADDR'])
     client = '<unknown client>'
+    if project_id:
+        if project_id.isdigit():
+            lookup_kwargs = {'id': int(project_id)}
+        else:
+            lookup_kwargs = {'slug': project_id}
+        try:
+            project = Project.objects.get_from_cache(**lookup_kwargs)
+        except Project.DoesNotExist:
+            raise APIError('Project does not exist')
+    else:
+        project = None
+
     if request.method == 'POST':
         try:
             auth_vars = extract_auth_vars(request)
@@ -84,16 +95,17 @@ def store(request):
             referrer = request.META.get('HTTP_REFERER')
 
             if auth_vars:
-                project = project_from_auth_vars(auth_vars, data)
-            elif request.GET.get('api_key') and request.GET.get('project_id'):
-                # public requests only need referrer validation for CSRF
-                project = project_from_api_key_and_id(request.GET['api_key'], request.GET['project_id'])
-                if not ProjectDomain.test(project, referrer):
-                    raise APIUnauthorized()
-            elif request.GET.get('project_id') and request.user.is_authenticated() and \
-                 is_same_domain(request.build_absolute_uri(), referrer):
+                # We only require a signature if a referrer was not set
+                # (this is restricted via the CORS headers)
+                origin = request.META.get('HTTP_ORIGIN')
+
+                project = project_from_auth_vars(auth_vars, data,
+                    require_signature=bool(origin))
+
+            elif request.user.is_authenticated() and is_same_domain(request.build_absolute_uri(), referrer):
                 # authenticated users are simply trusted to provide the right id
                 project = project_from_id(request)
+
             else:
                 raise APIUnauthorized()
 
@@ -117,7 +129,7 @@ def store(request):
     else:
         # OPTIONS
         response = HttpResponse('')
-    return apply_access_control_headers(response)
+    return apply_access_control_headers(response, project)
 
 
 @csrf_exempt

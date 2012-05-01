@@ -30,6 +30,11 @@ def has_access(group_or_func=None):
     def wrapped(func):
         @wraps(func)
         def _wrapped(request, project_id=None, *args, **kwargs):
+            # If we're asking for anything other than implied access, the user
+            # must be authenticated
+            if group_or_func and not request.user.is_authenticated():
+                return HttpResponseRedirect(get_login_url())
+
             # XXX: if project_id isn't set, should we only allow superuser?
             if project_id.isdigit():
                 lookup_kwargs = {'id': int(project_id)}
