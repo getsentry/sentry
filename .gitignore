@@ -1,4 +1,5 @@
 .coverage
+.tox
 /cover
 /build
 /dist
