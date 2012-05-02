@@ -201,11 +201,15 @@ p {
     padding: 20px;
   }
   .btn-toolbar {
-    line-height: @baseLineHeight - 2;
     .clearfix();
     margin: 0;
     list-style: none;
     padding: 15px 20px;
+    .btn-group {
+      .btn {
+        float: none;
+      }
+    }
   }
   section.body .btn-toolbar {
     padding: 15px 0;

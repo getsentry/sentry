@@ -3580,7 +3580,6 @@ p {
   padding: 20px;
 }
 #content .btn-toolbar {
-  line-height: 16px;
   *zoom: 1;
   margin: 0;
   list-style: none;
@@ -3592,6 +3591,9 @@ p {
 }
 #content .btn-toolbar:after {
   clear: both;
+}
+#content .btn-toolbar .btn-group .btn {
+  float: none;
 }
 #content section.body .btn-toolbar {
   padding: 15px 0;
