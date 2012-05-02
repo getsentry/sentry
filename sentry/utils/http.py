@@ -63,7 +63,7 @@ def apply_access_control_headers(response, project=None):
 
     if origin:
         response['Access-Control-Allow-Origin'] = origin
-        response['Access-Control-Allow-Headers'] = 'X-Sentry-Auth'
+        response['Access-Control-Allow-Headers'] = 'X-Sentry-Auth, Authentication'
         response['Access-Control-Allow-Methods'] = 'POST'
 
     return response
