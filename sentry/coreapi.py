@@ -83,13 +83,8 @@ def extract_auth_vars(request):
         return None
 
 
-def project_from_auth_vars(auth_vars, data):
-    signature = auth_vars.get('sentry_signature')
-    timestamp = auth_vars.get('sentry_timestamp')
+def project_from_auth_vars(auth_vars, data, require_signature=True):
     api_key = auth_vars.get('sentry_key')
-    if not signature or not timestamp:
-        raise APIUnauthorized()
-
     if api_key:
         try:
             pk = ProjectKey.objects.get_from_cache(public_key=api_key)
@@ -120,7 +115,12 @@ def project_from_auth_vars(auth_vars, data):
         project = None
         secret_key = settings.KEY
 
-    validate_hmac(data, signature, timestamp, secret_key)
+    signature = auth_vars.get('sentry_signature')
+    timestamp = auth_vars.get('sentry_timestamp')
+    if signature and timestamp:
+        validate_hmac(data, signature, timestamp, secret_key)
+    elif require_signature:
+        raise APIUnauthorized()
 
     return project
 

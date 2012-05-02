@@ -44,17 +44,37 @@
                 {% csrf_token %}
                 <fieldset>
                     {% for field in form %}
-                        {% include "sentry/partial/_form_field.html" %}
+                        {% if field.name != 'origins' %}
+                            {% include "sentry/partial/_form_field.html" %}
+                        {% endif %}
                     {% endfor %}
                 </fieldset>
-                <fieldset class="form-actions">
+                <fieldset>
+                    <div><legend>Client Security</legend></div>
+                    {% with form.origins as field %}
+                        <p>{% blocktrans with 'https://github.com/lincolnloop/raven-js' as link %}Configure origin URLs which Sentry should accept events from. This is used for communication with client's like <a href="{{ link }}">raven-js</a>.{% endblocktrans %}
+                        <p>{% blocktrans with 'http://en.wikipedia.org/wiki/Cross-origin_resource_sharing' as link' %}For more information check out the <a href="{{ link }}">Wikipedia page on CORS</a>.{% endblocktrans %}</p>
+                        <div class="control-group{% if field.errors %} error{% endif %}">
+                            <div class="controls">
+                                <div class="help-block">{% trans "List one URL per line." %}</div>
+                                {{ field }}
+                                {% if field.errors %}
+                                    {% for error in field.errors %}
+                                        <div class="help-block error">{{ error }}</div>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endwith %}
+                </fieldset>
+                <div class="form-actions">
                     <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
                     {% if PROJECT_ID != project.pk %}
                         <a href="{% url sentry-remove-project project.slug %}" class="btn btn-danger">{% trans "Remove Project" %}</a>
                     {% else %}
                         <a href="#" class="btn disabled btn-danger">{% trans "Cannot remove default project" %}</a>
                     {% endif %}
-                </fieldset>
+                </div>
             </form>
             <div class="page-header">
                 {% if can_add_member %}
