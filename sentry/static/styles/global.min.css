@@ -676,7 +676,7 @@ ol.context>li.active{background-color:#ddd;}ol.context>li.active pre{color:#0000
 ol.context-line>li>span{float:right;}
 .expandable{cursor:pointer;}.expandable .closed{height:0;overflow:hidden;}
 table.vars th,table.vars td{padding:4px 5px;}
-table.vars td.code>pre{background-color:inherit;color:rgba(0, 0, 0, 0.75);padding:1px 3px;border:0;}
+td.code>pre{background-color:inherit;color:rgba(0, 0, 0, 0.75);padding:1px 3px;border:0;}
 td table.vars{margin-bottom:0;}
 .module{margin-bottom:20px;}
 .module-content table pre{margin-bottom:0;}

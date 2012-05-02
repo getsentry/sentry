@@ -3902,7 +3902,7 @@ ol.context-line > li > span {
 table.vars th, table.vars td {
   padding: 4px 5px;
 }
-table.vars td.code > pre {
+td.code > pre {
   background-color: inherit;
   color: rgba(0, 0, 0, 0.75);
   padding: 1px 3px;
