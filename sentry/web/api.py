@@ -46,12 +46,12 @@ def store(request, project_id=None):
        require an authentication header which is signed using with the project
        member's secret key.
 
-    2. Explicit trusted requests
+    2. CORS Secured Requests
 
        Generally used for communications with client-side platforms (such as
-       JavaScript in the browser), they require the GET variables public_key
-       and project_id, as well as an HTTP_REFERER to be set from a trusted
-       domain.
+       JavaScript in the browser), they require a standard header, excluding
+       the signature and timestamp requirements, and must be listed in the
+       origins for the given project (or the global origins).
 
     3. Implicit trusted requests
 
