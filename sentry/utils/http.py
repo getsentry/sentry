@@ -56,7 +56,7 @@ def apply_access_control_headers(response, project=None):
     https://developer.mozilla.org/En/HTTP_access_control#Simple_requests
     """
     origin = settings.ALLOW_ORIGIN or ''
-    if project:
+    if project and origin is not '*':
         optval = get_option('sentry:origins', project)
         if optval:
             origin = ('%s %s' % (origin, ' '.join(optval))).strip()

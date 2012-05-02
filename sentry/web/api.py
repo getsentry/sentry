@@ -100,7 +100,7 @@ def store(request, project_id=None):
                 origin = request.META.get('HTTP_ORIGIN')
 
                 project_ = project_from_auth_vars(auth_vars, data,
-                    require_signature=bool(origin))
+                    require_signature=bool(not origin))
 
                 if project_ != project:
                     raise APIError('Project ID mismatch')
