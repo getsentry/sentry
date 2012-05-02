@@ -1,3 +1,13 @@
+Version 4.1.0
+-------------
+
+Sentry now maintains full support for CORS requests from external hosts. This means that clients like
+raven-js will now able to securely send messages to Sentry, without compromising their secret key.
+
+In addition:
+
+- Trusted domains were removed. These were not fully implemented.
+
 Version 4.0.0
 -------------
 
