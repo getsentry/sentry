@@ -102,14 +102,18 @@ def store(request, project_id=None):
                 project_ = project_from_auth_vars(auth_vars, data,
                     require_signature=bool(not origin))
 
-                if project_ != project:
+                if not project:
+                    project = project_
+                elif project_ != project:
                     raise APIError('Project ID mismatch')
 
             elif request.user.is_authenticated() and is_same_domain(request.build_absolute_uri(), referrer):
                 # authenticated users are simply trusted to provide the right id
                 project_ = project_from_id(request)
 
-                if project_ != project:
+                if not project:
+                    project = project_
+                elif project_ != project:
                     raise APIError('Project ID mismatch')
 
             else:
