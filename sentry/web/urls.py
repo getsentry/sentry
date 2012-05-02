@@ -109,6 +109,7 @@ urlpatterns = patterns('',
 
     url(r'^api/store/$', api.store, name='sentry-api-store'),
     url(r'^api/notification/$', api.notification, name='sentry-api-notification'),
+    url(r'^api/(?P<project_id>[\w_-]+)/store/$', api.store, name='sentry-api-store'),
     url(r'^api/(?P<project_id>[\w_-]+)/poll/$', api.poll, name='sentry-api-poll'),
     url(r'^api/(?P<project_id>[\w_-]+)/resolve/$', api.resolve, name='sentry-api-resolve'),
     url(r'^api/(?P<project_id>[\w_-]+)/bookmark/$', api.bookmark, name='sentry-api-bookmark'),

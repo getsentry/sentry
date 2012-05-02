@@ -1,4 +1,4 @@
-<fieldset class="control-group{% if field.errors %} error{% endif %}">
+<div class="control-group{% if field.errors %} error{% endif %}">
     {{ field.label_tag }}
     <div class="controls">
         {{ field }}
@@ -11,4 +11,4 @@
             {% endfor %}
         {% endif %}
     </div>
-</fieldset>
+</div>

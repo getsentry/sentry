@@ -15,6 +15,7 @@ from sentry.models import TeamMember, MEMBER_OWNER, \
   ProjectKey, Team
 from sentry.permissions import can_create_projects, can_remove_project
 from sentry.plugins import plugins
+from sentry.plugins.helpers import set_option, get_option
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms import EditProjectForm, RemoveProjectForm
 from sentry.web.helpers import render_to_response, get_project_list, \
@@ -97,14 +98,19 @@ def manage_project(request, project):
 
     team_list = get_team_list(request.user)
 
-    form = EditProjectForm(request, team_list, request.POST or None, instance=project)
+    form = EditProjectForm(request, team_list, request.POST or None, instance=project, initial={
+        'origins': '\n'.join(get_option('sentry:origins', project) or []),
+    })
 
     if form.is_valid():
         project = form.save()
-
+        set_option('sentry:origins', form.cleaned_data.get('origins') or [], project)
         return HttpResponseRedirect(request.path + '?success=1')
 
-    member_list = [(tm, tm.user) for tm in project.team.member_set.select_related('user')]
+    if not project.team:
+        member_list = []
+    else:
+        member_list = [(tm, tm.user) for tm in project.team.member_set.select_related('user')]
 
     try:
         key = ProjectKey.objects.get(user=request.user, project=project)

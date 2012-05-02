@@ -8,6 +8,8 @@ sentry.web.forms
 from django import forms
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.core.validators import URLValidator
+from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
@@ -80,20 +82,26 @@ class NewProjectAdminForm(forms.ModelForm):
 class EditProjectForm(forms.ModelForm):
     public = forms.BooleanField(required=False, help_text=_('Allow anyone (even anonymous users) to view this project'))
     team = forms.ChoiceField(choices=())
+    origins = forms.CharField(widget=forms.Textarea(attrs={'placeholder': 'e.g. http://example.com', 'class': 'span8'}),
+        required=False)
+
+    _url_validator = URLValidator(verify_exists=False)
 
     class Meta:
         fields = ('name', 'public', 'team')
         model = Project
 
-    def __init__(self, request, team_list, *args, **kwargs):
-        super(EditProjectForm, self).__init__(*args, **kwargs)
+    def __init__(self, request, team_list, data, instance, *args, **kwargs):
+        super(EditProjectForm, self).__init__(data=data, instance=instance, *args, **kwargs)
         self.team_list = dict((t.pk, t) for t in team_list.itervalues())
         if not can_set_public_projects(request.user):
             del self.fields['public']
-        if len(team_list) == 1:
+        if len(team_list) == 1 and instance.team == team_list.values()[0]:
             del self.fields['team']
         else:
             self.fields['team'].choices = [(t.pk, t) for t in sorted(self.team_list.values(), key=lambda x: x.name)]
+            if not instance.team:
+                self.fields['team'].choices.insert(0, (None, '-' * 8))
             self.fields['team'].widget.choices = self.fields['team'].choices
 
     def clean_team(self):
@@ -102,6 +110,14 @@ class EditProjectForm(forms.ModelForm):
             return
 
         return self.team_list[int(value)]
+
+    def clean_origins(self):
+        value = self.cleaned_data.get('origins')
+        if value:
+            values = filter(bool, (v.strip() for v in value.split('\n')))
+            for value in values:
+                self._url_validator(value)
+        return values
 
 
 class ReplayForm(forms.Form):

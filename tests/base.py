@@ -18,6 +18,8 @@ from django.db import DEFAULT_DB_ALIAS
 from django.test import TestCase, TransactionTestCase
 from django.test.client import Client
 
+from sentry.models import ProjectOption, Option
+
 
 class Settings(object):
     """
@@ -63,6 +65,8 @@ class BaseTestCase(object):
 
     def _pre_setup(self):
         cache.clear()
+        ProjectOption.objects.clear_cache()
+        Option.objects.clear_cache()
         super(BaseTestCase, self)._pre_setup()
 
     def _postWithKey(self, data, key=None):
