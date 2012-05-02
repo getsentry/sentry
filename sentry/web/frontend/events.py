@@ -33,11 +33,6 @@ def event_list(request, project):
             logger = logging.getLogger('sentry.filters')
             logger.exception('Error initializing filter %r: %s', cls, e)
 
-    try:
-        page = int(request.GET.get('p', 1))
-    except (TypeError, ValueError):
-        page = 1
-
     event_list = Event.objects.filter(project=project).order_by('-datetime')
 
     # TODO: implement separate API for messages
@@ -50,9 +45,6 @@ def event_list(request, project):
             logger = logging.getLogger('sentry.filters')
             logger.exception('Error processing filter %r: %s', cls, e)
 
-    offset = (page - 1) * settings.MESSAGES_PER_PAGE
-    limit = page * settings.MESSAGES_PER_PAGE
-
     today = datetime.datetime.utcnow()
 
     has_realtime = False
@@ -60,7 +52,7 @@ def event_list(request, project):
     return render_to_response('sentry/events/event_list.html', {
         'project': project,
         'has_realtime': has_realtime,
-        'event_list': event_list[offset:limit],
+        'event_list': event_list,
         'today': today,
         'filters': filters,
         'PAGE': 'stream',
