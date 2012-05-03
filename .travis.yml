@@ -11,9 +11,10 @@ install:
   - pip install pep8 --use-mirrors
   - pip install https://github.com/dcramer/pyflakes/tarball/master
   - pip install -q -e . --use-mirrors
-script:
+before_script:
   - "pep8 --exclude=migrations --ignore=E501,E225 sentry"
   - pyflakes -x W sentry
+script:
   - python setup.py test
 notifications:
   irc:
