@@ -3,11 +3,13 @@
 from __future__ import absolute_import
 
 import logging
+import json
 
 from django.conf import settings as django_settings
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
+from sentry.conf import settings
 from sentry.models import Group, Project, TeamMember, \
   MEMBER_OWNER, MEMBER_USER, Team
 from sentry.web.helpers import get_login_url
@@ -94,12 +96,21 @@ class SentryViewsTest(TestCase):
         group = Group.objects.get(pk=2)
         self.assertEquals(resp.context['group'], group)
 
-    # TODO: improve upon these tests
     def test_group_json(self):
         self.client.login(username='admin', password='admin')
         resp = self.client.get(reverse('sentry-group-json', kwargs={'project_id': 1, 'group_id': 2}))
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp['Content-Type'], 'application/json')
+        self.assertEquals(json.loads(resp.content)['level'], 'error')
+
+    def test_group_json_multi(self):
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(reverse('sentry-group-json-multi', kwargs={'project_id': 1, 'group_id': 2, 'how_many': 1}))
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp['Content-Type'], 'application/json')
+        self.assertEquals(json.loads(resp.content)[0]['level'], 'error')
+        resp = self.client.get(reverse('sentry-group-json-multi', kwargs={'project_id': 1, 'group_id': 2, 'how_many': settings.MAX_JSON_RESULTS+1}))
+        self.assertEquals(resp.status_code, 400)
 
     def test_status_env(self):
         self.client.login(username='admin', password='admin')

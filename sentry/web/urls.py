@@ -125,6 +125,7 @@ urlpatterns = patterns('',
 
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/$', groups.group, name='sentry-group'),
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/json/$', groups.group_json, name='sentry-group-json'),
+    url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/json/(?P<how_many>\d+)/$', groups.group_json_multi, name='sentry-group-json-multi'),
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/$', groups.group_event_list, name='sentry-group-events'),
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/(?P<event_id>\d+)/$', groups.group_event_details, name='sentry-group-event'),
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)/', groups.group_plugin_action, name='sentry-group-plugin-action'),

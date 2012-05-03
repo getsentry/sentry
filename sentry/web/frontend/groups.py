@@ -246,24 +246,28 @@ def group_json(request, project, group_id):
     group = get_object_or_404(Group, pk=group_id)
 
     if group.project and group.project != project:
-        return HttpResponse(status_code=404)
+        return HttpResponse(status=404)
 
     # It's possible that a message would not be created under certain
     # circumstances (such as a post_save signal failing)
     event = group.get_latest_event() or Event()
 
-    # We use a SortedDict to keep elements ordered for the JSON serializer
-    data = SortedDict()
-    data['id'] = event.event_id
-    data['checksum'] = event.checksum
-    data['project'] = event.project.slug
-    data['logger'] = event.logger
-    data['level'] = event.get_level_display()
-    data['culprit'] = event.culprit
-    for k, v in sorted(event.data.iteritems()):
-        data[k] = v
+    return HttpResponse(json.dumps(event.as_dict()), mimetype='application/json')
 
-    return HttpResponse(json.dumps(data), mimetype='application/json')
+@login_required
+@has_access
+def group_json_multi(request, project, group_id, how_many):
+    group = get_object_or_404(Group, pk=group_id)
+
+    if group.project and group.project != project:
+        return HttpResponse(status=404)
+    how_many = int(how_many)
+    if how_many > settings.MAX_JSON_RESULTS:
+        return HttpResponse("too many objects requested", mimetype='text/plain', status=400)
+
+    events = group.event_set.order_by('-id')[:how_many]
+
+    return HttpResponse(json.dumps(list(event.as_dict() for event in events)), mimetype='application/json')
 
 
 @login_required
