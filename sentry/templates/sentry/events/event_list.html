@@ -3,6 +3,8 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
+{% block title %}{% blocktrans with project.name as name %}{{ name }} events{% endblocktrans %} | {{ block.super }}{% endblock %}
+
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider">/</li>
