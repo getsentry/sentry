@@ -4,6 +4,8 @@
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
+{% block title %}{{ project.name }} | {{ block.super }}{% endblock %}
+
 {% block meta %}
     {{ block.super }}
     <script>
