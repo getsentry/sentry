@@ -112,16 +112,10 @@ def manage_project(request, project):
     else:
         member_list = [(tm, tm.user) for tm in project.team.member_set.select_related('user')]
 
-    try:
-        key = ProjectKey.objects.get(user=request.user, project=project)
-    except ProjectKey.DoesNotExist:
-        key = None  # superuser
-
     context = csrf(request)
     context.update({
         'can_remove_project': can_remove_project(request.user, project),
         'page': 'details',
-        'key': key,
         'form': form,
         'project': project,
         'member_list': member_list,
@@ -129,6 +123,28 @@ def manage_project(request, project):
     })
 
     return render_to_response('sentry/projects/manage.html', context, request)
+
+
+@login_required
+@has_access
+def client_help(request, project):
+    try:
+        key = ProjectKey.objects.get(user=request.user, project=project)
+    except ProjectKey.DoesNotExist:
+        key = None  # superuser
+
+    context = {
+        'can_remove_project': can_remove_project(request.user, project),
+        'page': 'client_help',
+        'project': project,
+        'key': key,
+    }
+    if key:
+        context.update({
+            'dsn': key.get_dsn(),
+            'dsn_public': key.get_dsn(public=True),
+        })
+    return render_to_response('sentry/projects/client_help.html', context, request)
 
 
 @login_required

@@ -35,6 +35,7 @@ def client_guide(request, project, platform):
 
     key = ProjectKey.objects.get(user=request.user, project=project)
     dsn = key.get_dsn()
+    dsn_public = key.get_dsn(public=True)
 
     template = 'sentry/partial/client_config/%s.html' % (platform,)
 
@@ -43,6 +44,7 @@ def client_guide(request, project, platform):
         'platform_title': platform.title(),
         'project': project,
         'dsn': dsn,
+        'dsn_public': dsn_public,
     }
 
     if request.is_ajax():

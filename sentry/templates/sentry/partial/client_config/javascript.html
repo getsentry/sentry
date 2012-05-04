@@ -11,7 +11,7 @@
 <p>{% trans "Configure the client:" %}</p>
 
 <pre>&lt;script type="text/javascript"&gt;
-Raven.config('{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}');
+Raven.config('{% if dsn_public %}{{ dsn_public }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}');
 &lt;/script&gt;</pre>
 
 <p>{% trans "Now call out to the raven client to capture events:" %}</p>

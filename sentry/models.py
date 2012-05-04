@@ -238,13 +238,18 @@ class ProjectKey(Model):
             self.secret_key = ProjectKey.generate_api_key()
         super(ProjectKey, self).save(*args, **kwargs)
 
-    def get_dsn(self, domain=None, secure=True):
+    def get_dsn(self, domain=None, secure=True, public=False):
         # TODO: change the DSN to use project slug once clients are compatible
+        if not public:
+            key = '%s:%s' % (self.public_key, self.secret_key)
+        else:
+            key = self.public_key
+
         urlparts = urlparse.urlparse(settings.URL_PREFIX)
-        return '%s://%s:%s@%s/%s' % (
+
+        return '%s://%s@%s/%s' % (
             urlparts.scheme,
-            self.public_key,
-            self.secret_key,
+            key,
             urlparts.netloc + urlparts.path,
             self.project_id,
         )

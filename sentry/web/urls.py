@@ -77,6 +77,10 @@ urlpatterns = patterns('',
     url(r'^account/projects/new/$', projects.new_project, name='sentry-new-project'),
     url(r'^account/projects/(?P<project_id>[\w_-]+)/edit/$', projects.manage_project,
         name='sentry-manage-project'),
+    url(r'^account/projects/(?P<project_id>[\w_-]+)/docs/$', projects.client_help,
+        name='sentry-project-client-help'),
+    url(r'^account/projects/(?P<project_id>[\w_-]+)/docs/(?P<platform>%s)/$' % ('|'.join(re.escape(r) for r in docs.PLATFORM_LIST),),
+        docs.client_guide, name='sentry-docs-client'),
     url(r'^account/projects/(?P<project_id>[\w_-]+)/plugins/$', projects.manage_plugins,
         name='sentry-manage-project-plugins'),
     url(r'^account/projects/(?P<project_id>[\w_-]+)/plugins/(?P<slug>[\w_-]+)/$', projects.configure_project_plugin,
@@ -118,10 +122,6 @@ urlpatterns = patterns('',
     url(r'^api/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/remove/$', api.remove_group, name='sentry-api-remove-group'),
 
     # Project specific
-
-    # url(r'^(?P<project_id>[\w_-]+)/docs/$', groups.search, name='sentry-search'),
-    url(r'^(?P<project_id>[\w_-]+)/docs/(?P<platform>%s)/$' % ('|'.join(re.escape(r) for r in docs.PLATFORM_LIST),), docs.client_guide,
-        name='sentry-docs-client'),
 
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/$', groups.group, name='sentry-group'),
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/json/$', groups.group_json, name='sentry-group-json'),
