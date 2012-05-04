@@ -9,6 +9,13 @@
     <li><a href="{% url sentry-docs-client project.slug 'php' %}" data-toggle="modal">PHP</a></li>
     <li><a href="{% url sentry-docs-client project.slug 'java' %}" data-toggle="modal">Java</a></li>
     <li>
+        <a href="{% url sentry-docs-client project.slug 'ruby' %}" data-toggle="modal">Ruby</a>
+        <ul>
+            <li><a href="{% url sentry-docs-client project.slug 'rails3' %}" data-toggle="modal">Rails 3</a></li>
+        </ul>
+    </li>
+    <li><a href="{% url sentry-docs-client project.slug 'javascript' %}" data-toggle="modal">JavaScript</a></li>
+    <li>
         <a href="{% url sentry-docs-client project.slug 'node.js' %}" data-toggle="modal">Node.js</a>
         <ul>
             <li><a href="{% url sentry-docs-client project.slug 'express' %}" data-toggle="modal">Express</a></li>

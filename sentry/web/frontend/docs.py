@@ -22,6 +22,9 @@ PLATFORM_LIST = (
     'express',
     'connect',
     'r',
+    'ruby',
+    'rails3',
+    'javascript',
 )
 
 

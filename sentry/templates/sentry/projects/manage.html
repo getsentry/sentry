@@ -49,7 +49,7 @@
                         {% endif %}
                     {% endfor %}
                 </fieldset>
-                <fieldset>
+                <fieldset id="client-security">
                     <div><legend>Client Security</legend></div>
                     {% with form.origins as field %}
                         <p>{% blocktrans with 'https://github.com/lincolnloop/raven-js' as link %}Configure origin URLs which Sentry should accept events from. This is used for communication with client's like <a href="{{ link }}">raven-js</a>.{% endblocktrans %}
@@ -76,7 +76,7 @@
                     {% endif %}
                 </div>
             </form>
-            <div class="page-header">
+            <div class="page-header" id="members">
                 {% if can_add_member %}
                     <a href="{% url sentry-new-team-member project.slug %}" class="btn pull-right btn-primary">{% trans "New Member" %}</a>
                 {% endif %}
