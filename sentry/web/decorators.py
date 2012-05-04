@@ -36,6 +36,9 @@ def has_access(group_or_func=None):
                 return HttpResponseRedirect(get_login_url())
 
             # XXX: if project_id isn't set, should we only allow superuser?
+            if not project_id:
+                return func(request, None, *args, **kwargs)
+
             if project_id.isdigit():
                 lookup_kwargs = {'id': int(project_id)}
             else:
