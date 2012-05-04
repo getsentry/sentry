@@ -17,7 +17,10 @@ def safe_execute(func, *args, **kwargs):
         result = func(*args, **kwargs)
     except Exception, e:
         transaction.savepoint_rollback(sid)
-        cls = func.__class__
+        if hasattr(func, 'im_class'):
+            cls = func.im_class
+        else:
+            cls = func.__class__
         logger = logging.getLogger('sentry.plugins')
         logger.error('Error processing %r on %%r: %%s' % func.__name__, cls.__name__, e, extra={
             'func_module': cls.__module__,
