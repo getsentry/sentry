@@ -68,10 +68,7 @@ class NewProjectForm(forms.ModelForm):
         model = Project
 
 
-class NewProjectAdminForm(forms.ModelForm):
-    name = forms.CharField(max_length=200, widget=forms.TextInput(attrs={'placeholder': _('e.g. My Project Name')}))
-    slug = forms.SlugField(help_text=_('A slug is a URL-safe word and must be unique across all projects.'),
-        widget=forms.TextInput(attrs={'placeholder': _('e.g. my-project-name')}))
+class NewProjectAdminForm(NewProjectForm):
     owner = UserField(required=False)
 
     class Meta:
@@ -118,6 +115,14 @@ class EditProjectForm(forms.ModelForm):
             for value in values:
                 self._url_validator(value)
         return values
+
+
+class EditProjectAdminForm(EditProjectForm):
+    owner = UserField(required=False)
+
+    class Meta:
+        fields = ('name', 'public', 'team', 'owner')
+        model = Project
 
 
 class ReplayForm(forms.Form):

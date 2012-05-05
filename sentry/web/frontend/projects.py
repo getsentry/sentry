@@ -17,7 +17,8 @@ from sentry.permissions import can_create_projects, can_remove_project
 from sentry.plugins import plugins
 from sentry.plugins.helpers import set_option, get_option
 from sentry.web.decorators import login_required, has_access
-from sentry.web.forms import EditProjectForm, RemoveProjectForm
+from sentry.web.forms import EditProjectForm, RemoveProjectForm, \
+  EditProjectAdminForm
 from sentry.web.helpers import render_to_response, get_project_list, \
   plugin_config, get_team_list
 
@@ -98,8 +99,14 @@ def manage_project(request, project):
 
     team_list = get_team_list(request.user)
 
-    form = EditProjectForm(request, team_list, request.POST or None, instance=project, initial={
+    if request.user.has_perm('sentry.can_change_project'):
+        form_cls = EditProjectAdminForm
+    else:
+        form_cls = EditProjectForm
+
+    form = form_cls(request, team_list, request.POST or None, instance=project, initial={
         'origins': '\n'.join(get_option('sentry:origins', project) or []),
+        'owner': project.owner_id,
     })
 
     if form.is_valid():
