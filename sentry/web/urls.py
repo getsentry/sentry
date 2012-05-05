@@ -124,10 +124,10 @@ urlpatterns = patterns('',
     # Project specific
 
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/$', groups.group, name='sentry-group'),
-    url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/json/$', groups.group_json, name='sentry-group-json'),
-    url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/json/(?P<how_many>\d+)/$', groups.group_json_multi, name='sentry-group-json-multi'),
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/$', groups.group_event_list, name='sentry-group-events'),
+    url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/json/$', groups.group_event_list_json, name='sentry-group-events-json'),
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/(?P<event_id>\d+)/$', groups.group_event_details, name='sentry-group-event'),
+    url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/(?P<event_id_or_latest>(\d+|latest))/json/$', groups.group_event_details_json, name='sentry-group-event-json'),
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)/', groups.group_plugin_action, name='sentry-group-plugin-action'),
 
     url(r'^(?P<project_id>[\w_-]+)/events/$', events.event_list, name='sentry-events'),

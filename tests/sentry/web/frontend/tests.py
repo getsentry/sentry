@@ -96,21 +96,23 @@ class SentryViewsTest(TestCase):
         group = Group.objects.get(pk=2)
         self.assertEquals(resp.context['group'], group)
 
-    def test_group_json(self):
-        self.client.login(username='admin', password='admin')
-        resp = self.client.get(reverse('sentry-group-json', kwargs={'project_id': 1, 'group_id': 2}))
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(resp['Content-Type'], 'application/json')
-        self.assertEquals(json.loads(resp.content)['level'], 'error')
-
     def test_group_json_multi(self):
         self.client.login(username='admin', password='admin')
-        resp = self.client.get(reverse('sentry-group-json-multi', kwargs={'project_id': 1, 'group_id': 2, 'how_many': 1}))
+        resp = self.client.get(reverse('sentry-group-events-json', kwargs={'project_id': 1, 'group_id': 2}))
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp['Content-Type'], 'application/json')
         self.assertEquals(json.loads(resp.content)[0]['level'], 'error')
-        resp = self.client.get(reverse('sentry-group-json-multi', kwargs={'project_id': 1, 'group_id': 2, 'how_many': settings.MAX_JSON_RESULTS+1}))
+        resp = self.client.get(reverse('sentry-group-events-json', kwargs={'project_id': 1, 'group_id': 2}), {'limit': 1})
+        self.assertEquals(resp.status_code, 200)
+        resp = self.client.get(reverse('sentry-group-events-json', kwargs={'project_id': 1, 'group_id': 2}), {'limit': settings.MAX_JSON_RESULTS+1})
         self.assertEquals(resp.status_code, 400)
+
+    def test_group_events_details_json(self):
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(reverse('sentry-group-event-json', kwargs={'project_id': 1, 'group_id': 2, 'event_id_or_latest': 'latest'}))
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp['Content-Type'], 'application/json')
+        self.assertEquals(json.loads(resp.content)['level'], 'error')
 
     def test_status_env(self):
         self.client.login(username='admin', password='admin')
