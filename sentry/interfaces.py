@@ -263,6 +263,8 @@ class Stacktrace(Interface):
 
 
 class Exception(Interface):
+    score = 900
+
     def __init__(self, value, type=None, module=None):
         # A human readable value for the exception
         self.value = value
