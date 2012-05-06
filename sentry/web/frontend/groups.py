@@ -18,12 +18,13 @@ from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 
 from sentry.conf import settings
-from sentry.constants import SORT_OPTIONS, SEARCH_SORT_OPTIONS, DATE_OPTIONS, \
-  SORT_CLAUSES, MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES, DATE_VALUES
+from sentry.constants import SORT_OPTIONS, SEARCH_SORT_OPTIONS, \
+  SORT_CLAUSES, MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES
 from sentry.filters import get_filters
 from sentry.models import Group, Event, View, SearchDocument
 from sentry.plugins import plugins
 from sentry.utils import json
+from sentry.utils.dates import parse_date
 from sentry.utils.db import has_trending, get_db_engine
 from sentry.web.decorators import has_access, login_required
 from sentry.web.helpers import render_to_response
@@ -84,13 +85,6 @@ def _get_group_list(request, project, view=None):
     if sort.startswith('accel_') and not has_trending():
         sort = settings.DEFAULT_SORT_OPTION
 
-    if not sort.startswith('accel_'):
-        since = request.GET.get('since', '')
-        if since not in DATE_OPTIONS:
-            since = settings.DEFAULT_DATE_OPTION
-    else:
-        since = None
-
     engine = get_db_engine('default')
     if engine.startswith('sqlite'):
         sort_clause = SQLITE_SORT_CLAUSES.get(sort)
@@ -105,9 +99,6 @@ def _get_group_list(request, project, view=None):
         event_list = event_list.filter(time_spent_count__gt=0)
     elif sort.startswith('accel_'):
         event_list = Group.objects.get_accelerated(event_list, minutes=int(sort.split('_', 1)[1]))
-
-    if since in DATE_VALUES:
-        event_list = event_list.filter(last_seen__gte=datetime.datetime.now() - DATE_VALUES[since])
 
     if sort_clause:
         event_list = event_list.extra(
@@ -206,35 +197,45 @@ def group_list(request, project, view_id=None):
         view=view,
     )
 
+    date_from = request.GET.get('df')
+    time_from = request.GET.get('tf')
+    date_to = request.GET.get('dt')
+    time_to = request.GET.get('tt')
+
+    today = datetime.datetime.utcnow()
+
+    # date format is Y-m-d
+    if any(x is not None for x in [date_from, time_from, date_to, time_to]):
+        date_from, date_to = parse_date(date_from, time_from), parse_date(date_to, time_to)
+    else:
+        date_from = today - datetime.timedelta(days=3)
+        date_to = None
+
+    if date_from:
+        event_list = event_list.filter(event_set__datetime__gte=date_from)
+    if date_to:
+        event_list = event_list.filter(event_set__datetime__lte=date_to)
+
     # XXX: this is duplicate in _get_group_list
     sort = request.GET.get('sort')
     if sort not in SORT_OPTIONS:
         sort = settings.DEFAULT_SORT_OPTION
     sort_label = SORT_OPTIONS[sort]
 
-    since = request.GET.get('since')
-    if since not in DATE_OPTIONS:
-        since = settings.DEFAULT_DATE_OPTION
-    since_label = DATE_OPTIONS[since]
-
-    today = datetime.datetime.utcnow()
-
     has_realtime = page == 1
 
     return render_to_response('sentry/groups/group_list.html', {
         'project': project,
-
+        'from_date': date_from,
+        'to_date': date_to,
         'has_realtime': has_realtime,
         'event_list': event_list,
         'today': today,
         'sort': sort,
         'sort_label': sort_label,
-        'since': since,
-        'since_label': since_label,
         'filters': filters,
         'view': view,
         'SORT_OPTIONS': SORT_OPTIONS,
-        'DATE_OPTIONS': DATE_OPTIONS,
         'HAS_TRENDING': has_trending(),
         'PAGE': 'dashboard',
     }, request)

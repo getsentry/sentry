@@ -1,4 +1,5 @@
 @import url("less/bootstrap.less");
+@import url("less/datepicker.less");
 
 @grayDark: #404f60;
 @gray: #6d757e;
@@ -208,6 +209,13 @@ p {
     .btn-group {
       .btn {
         float: none;
+      }
+      .dropdown-toggle small {
+        color: #888;
+      }
+      .dropdown-menu li small {
+        color: #aaa;
+        display: inline-block;
       }
     }
   }
@@ -690,4 +698,36 @@ legend {
 .image img {
   .border-radius(3px);
   display: block;
+}
+
+.datepicker-box {
+  position: absolute;
+  top:45px;
+  left:378px;
+  padding: 15px 15px 10px;
+  z-index:900;
+  background-color: @white;
+  border-color: #999;
+  border-color: rgba(0, 0, 0, 0.2);
+  border-style: solid;
+  border-width: 1px;
+  .border-radius(4px);
+  .box-shadow(0 2px 4px rgba(0,0,0,.2));
+  .background-clip(padding-box);
+  .time {
+    width: 80px;
+  }
+  .date {
+    width: 120px;
+  }
+  .submit {
+    .help-block {
+      margin-top: 0;
+      padding-top: 5px;
+    }
+  }
+}
+
+#daterange {
+  display: none;
 }

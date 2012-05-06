@@ -82,18 +82,52 @@
             </ul>
         </div>
         <div class="btn-group">
-            <a href="#" class="btn dropdown-toggle" data-toggle="dropdown">{% blocktrans with since_label as label %}Since: {{ label }}{% endblocktrans %} <span class="caret"></span></a>
-            <ul class="dropdown-menu">
-                {% for key, value in DATE_OPTIONS.iteritems %}
-                    <li{% ifequal since key %} class="active"{% endifequal %}><a href="?{{ since_querystring }}&amp;since={{ key }}">{{ value }}</a></li>
-                {% endfor %}
-            </ul>
+            <a href="#" class="btn dropdown-toggle" onclick="Sentry.toggle('#daterange');">
+                {% if from_date %}
+                    {% if not to_date %}
+                        {% blocktrans %}Between: {{ from_date|date:"M jS" }} <small>and</small> Now{% endblocktrans %}
+                    {% else %}
+                        {% blocktrans %}Between: {{ from_date|date:"M jS" }} <small>and</small> {{ to_date|date:"M jS" }}{% endblocktrans %}
+                    {% endif %}
+                {% else %}
+                    {% if to_date %}
+                        {% blocktrans %}Before: {{ to_date|date:"M jS" }}{% endblocktrans %}
+                    {% else %}
+                        {% blocktrans %}Between: The Past <small>and</small> The Present{% endblocktrans %}
+                    {% endif %}
+                {% endif %}
+             <span class="caret"></span></a>
         </div>
         <div class="btn-group pull-right">
             <a class="btn prev{% if not event_list.paginator.has_previous %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
             <a class="btn next{% if not event_list.paginator.has_next %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
         </div>
     </div>
+
+    <form method="GET">
+        {% for key, value in request.GET.iteritems %}
+            {% if key != df and key != tf and key != dt and key != tt and key != page %}
+                <input type="hidden" name="{{ key }}" value="{{ value }}">
+            {% endif %}
+        {% endfor %}
+        <div class="datepicker-box" id="daterange">
+            <div class="input">
+              <div class="inline-inputs">
+                <input data-datepicker="datepicker" name="df" class="date" type="text" value="{% if from_date %}{{ from_date|date:"Y-m-d" }}{% endif %}" />
+                <input class="time" type="text" name="tf" value="{% if from_date %}{{ from_date|time:"h:i A" }}{% endif %}" />
+                to
+                <input data-datepicker="datepicker" name="dt" class="date" type="text" value="{% if to_date %}{{ to_date|date:"Y-m-d" }}{% endif %}" />
+                <input class="time" type="text" name="tt" value="{% if to_date %}{{ to_date|time:"h:i A" }}{% endif %}" />
+              </div>
+            </div>
+            <div class="submit">
+                <div class="pull-right">
+                    <input type="submit" class="btn btn-primary btn-small" value="{% trans "Apply" %}">
+                </div>
+                <div class="help-block">{% trans "All events are represented in UTC time." %}</div>
+            </div>
+        </div>
+    </form>
 
     {% if event_list.paginator.objects %}
         {% handle_before_events request event_list.paginator.objects %}

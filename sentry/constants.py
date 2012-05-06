@@ -1,4 +1,3 @@
-from datetime import timedelta
 from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext_lazy as _
 
@@ -35,16 +34,3 @@ SEARCH_SORT_OPTIONS = SortedDict((
     ('date', _('Last Seen')),
     ('new', _('First Seen')),
 ))
-DATE_OPTIONS = SortedDict((
-    ('', _('All time')),
-    ('30d', _('30 days')),
-    ('7d', _('7 days')),
-    ('3d', _('3 days')),
-    ('1d', _('24 hours')),
-))
-DATE_VALUES = {
-    '30d': timedelta(days=30),
-    '7d': timedelta(days=7),
-    '3d': timedelta(days=3),
-    '1d': timedelta(days=1),
-}

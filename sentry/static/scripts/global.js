@@ -299,6 +299,11 @@ if (Sentry === undefined) {
         });
     };
 
+    Sentry.toggle = function(el){
+      var $el = $(el);
+      $el.toggle();
+    };
+
     $(document).ready(function(){
         $('.filter-list').each(function(_, el){
             var $el = $(el);
