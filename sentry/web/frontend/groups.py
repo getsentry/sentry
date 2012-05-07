@@ -211,9 +211,15 @@ def group_list(request, project, view_id=None):
         date_to = None
 
     if date_from:
-        event_list = event_list.filter(event_set__datetime__gte=date_from)
+        if not date_to:
+            event_list = event_list.filter(last_seen__gte=date_from)
+        else:
+            event_list = event_list.filter(messagecountbyminute__date__gte=date_from)
     if date_to:
-        event_list = event_list.filter(event_set__datetime__lte=date_to)
+        if not date_from:
+            event_list = event_list.filter(last_seen__lte=date_to)
+        else:
+            event_list = event_list.filter(messagecountbyminute__date__lte=date_to)
 
     # XXX: this is duplicate in _get_group_list
     sort = request.GET.get('sort')
