@@ -42,3 +42,12 @@ Builtin Commands
 
     Performs all trim operations based on your configuration.
 
+.. data:: repair
+
+    Performs any needed repair against the Sentry database. This will attempt to correct
+    things like missing teams, project keys, etc.
+
+    If you specify ``--owner`` it will also update ownerless projects::
+
+        sentry repair --owner=<username>
+
