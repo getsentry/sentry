@@ -85,7 +85,7 @@
             <a href="#" class="btn dropdown-toggle" onclick="Sentry.toggle('#daterange');">
                 {% if from_date %}
                     {% if not to_date %}
-                        Between: {{ from_date|date:"M jS" }} <small>and</small> Now
+                        Since: {{ from_date|date:"M jS" }}
                     {% else %}
                         Between: {{ from_date|date:"M jS" }} <small>and</small> {{ to_date|date:"M jS" }}
                     {% endif %}
