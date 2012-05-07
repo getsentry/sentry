@@ -368,30 +368,6 @@ if (Sentry === undefined) {
         }
     });
 
-    $(document).ready(function(){
-        $('.client-platform-list a').click(function(){
-            var $modal = $('#modal');
-            var $this = $(this);
-            var title = $this.attr('title') || $this.text();
-            var href = $this.attr('href');
-
-            $.ajax({
-                dataType: 'html',
-                url: href,
-                success: function(data){
-                    $('.modal-header h3', $modal).html(title + ' <small><a href="' + href + '">expand</a></small>');
-                    $('.modal-body', $modal).html(data);
-                    $modal.modal({
-                        keyboard:true,
-                        backdrop:false
-                    });
-                }
-            });
-
-            return false;
-        });
-    });
-
     $('.popup').live('click', function(){
         var $this = $(this);
         var $window = $(window);

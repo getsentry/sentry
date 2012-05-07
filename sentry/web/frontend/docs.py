@@ -45,6 +45,7 @@ def client_guide(request, project, platform):
         'project': project,
         'dsn': dsn,
         'dsn_public': dsn_public,
+        'page': 'client_help'
     }
 
     if request.is_ajax():
