@@ -85,15 +85,15 @@
             <a href="#" class="btn dropdown-toggle" onclick="Sentry.toggle('#daterange');">
                 {% if from_date %}
                     {% if not to_date %}
-                        {% blocktrans %}Between: {{ from_date|date:"M jS" }} <small>and</small> Now{% endblocktrans %}
+                        Between: {{ from_date|date:"M jS" }} <small>and</small> Now
                     {% else %}
-                        {% blocktrans %}Between: {{ from_date|date:"M jS" }} <small>and</small> {{ to_date|date:"M jS" }}{% endblocktrans %}
+                        Between: {{ from_date|date:"M jS" }} <small>and</small> {{ to_date|date:"M jS" }}
                     {% endif %}
                 {% else %}
                     {% if to_date %}
-                        {% blocktrans %}Before: {{ to_date|date:"M jS" }}{% endblocktrans %}
+                        Before: {{ to_date|date:"M jS" }}
                     {% else %}
-                        {% blocktrans %}Between: The Past <small>and</small> The Present{% endblocktrans %}
+                        Between: The Past <small>and</small> The Present
                     {% endif %}
                 {% endif %}
              <span class="caret"></span></a>
@@ -104,13 +104,13 @@
         </div>
     </div>
 
-    <form method="GET">
-        {% for key, value in request.GET.iteritems %}
-            {% if key != df and key != tf and key != dt and key != tt and key != page %}
-                <input type="hidden" name="{{ key }}" value="{{ value }}">
-            {% endif %}
-        {% endfor %}
-        <div class="datepicker-box" id="daterange">
+    <div class="datepicker-box" id="daterange">
+        <form method="GET">
+            {% for key, value in request.GET.iteritems %}
+                {% if key != df and key != tf and key != dt and key != tt and key != page %}
+                    <input type="hidden" name="{{ key }}" value="{{ value }}">
+                {% endif %}
+            {% endfor %}
             <div class="input">
               <div class="inline-inputs">
                 <input data-datepicker="datepicker" name="df" class="date" type="text" value="{% if from_date %}{{ from_date|date:"Y-m-d" }}{% endif %}" />
@@ -126,8 +126,8 @@
                 </div>
                 <div class="help-block">{% trans "All events are represented in UTC time." %}</div>
             </div>
-        </div>
-    </form>
+        </form>
+    </div>
 
     {% if event_list.paginator.objects %}
         {% handle_before_events request event_list.paginator.objects %}
