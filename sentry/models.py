@@ -533,6 +533,19 @@ class Event(MessageBase):
         module = self.data['__sentry__'].get('module', 'ver')
         return module, self.data['__sentry__']['version']
 
+    def as_dict(self):
+        # We use a SortedDict to keep elements ordered for a potential JSON serializer
+        data = SortedDict()
+        data['id'] = self.event_id
+        data['checksum'] = self.checksum
+        data['project'] = self.project.slug
+        data['logger'] = self.logger
+        data['level'] = self.get_level_display()
+        data['culprit'] = self.culprit
+        for k, v in sorted(self.data.iteritems()):
+            data[k] = v
+        return data
+
 
 class GroupBookmark(Model):
     """

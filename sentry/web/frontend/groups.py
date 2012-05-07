@@ -14,7 +14,6 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, \
   HttpResponseRedirect, Http404
 from django.shortcuts import get_object_or_404
-from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 
 from sentry.conf import settings
@@ -243,32 +242,6 @@ def group_list(request, project, view_id=None):
 
 @login_required
 @has_access
-def group_json(request, project, group_id):
-    group = get_object_or_404(Group, pk=group_id)
-
-    if group.project and group.project != project:
-        return HttpResponse(status_code=404)
-
-    # It's possible that a message would not be created under certain
-    # circumstances (such as a post_save signal failing)
-    event = group.get_latest_event() or Event()
-
-    # We use a SortedDict to keep elements ordered for the JSON serializer
-    data = SortedDict()
-    data['id'] = event.event_id
-    data['checksum'] = event.checksum
-    data['project'] = event.project.slug
-    data['logger'] = event.logger
-    data['level'] = event.get_level_display()
-    data['culprit'] = event.culprit
-    for k, v in sorted(event.data.iteritems()):
-        data[k] = v
-
-    return HttpResponse(json.dumps(data), mimetype='application/json')
-
-
-@login_required
-@has_access
 def group(request, project, group_id):
     group = get_object_or_404(Group, pk=group_id)
 
@@ -310,6 +283,27 @@ def group_event_list(request, project, group_id):
 
 @login_required
 @has_access
+def group_event_list_json(request, project, group_id):
+    group = get_object_or_404(Group, pk=group_id)
+
+    if group.project and group.project != project:
+        return HttpResponse(status=404)
+
+    limit = request.GET.get('limit', settings.MAX_JSON_RESULTS)
+    try:
+        limit = int(limit)
+    except ValueError:
+        return HttpResponse('non numeric limit', status=400, mimetype='text/plain')
+    if limit > settings.MAX_JSON_RESULTS:
+        return HttpResponse("too many objects requested", mimetype='text/plain', status=400)
+
+    events = group.event_set.order_by('-id')[:limit]
+
+    return HttpResponse(json.dumps(list(event.as_dict() for event in events)), mimetype='application/json')
+
+
+@login_required
+@has_access
 def group_event_details(request, project, group_id, event_id):
     group = get_object_or_404(Group, pk=group_id)
 
@@ -327,6 +321,24 @@ def group_event_details(request, project, group_id, event_id):
         'json_data': event.data.get('extra', {}),
         'version_data': event.data.get('modules', None),
     }, request)
+
+
+@login_required
+@has_access
+def group_event_details_json(request, project, group_id, event_id_or_latest):
+    group = get_object_or_404(Group, pk=group_id)
+
+    if group.project and group.project != project:
+        return HttpResponse(status=404)
+
+    if event_id_or_latest == 'latest':
+        # It's possible that a message would not be created under certain
+        # circumstances (such as a post_save signal failing)
+        event = group.get_latest_event() or Event()
+    else:
+        event = get_object_or_404(group.event_set, pk=event_id_or_latest)
+
+    return HttpResponse(json.dumps(event.as_dict()), mimetype='application/json')
 
 
 @login_required

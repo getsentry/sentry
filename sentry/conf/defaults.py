@@ -155,3 +155,6 @@ USE_JS_CLIENT = False
 
 # The alias for the cache backend (MUST be a compatible backend string for < 1.3)
 CACHE_BACKEND = 'dummy://'
+
+# The maximum number of events which can be requested as JSON
+MAX_JSON_RESULTS=1000
