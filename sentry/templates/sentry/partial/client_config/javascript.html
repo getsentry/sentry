@@ -1,6 +1,6 @@
 {% load i18n %}
 
-{% url manage-project project.pk as project_link %}
+{% url sentry-manage-project project.pk as project_link %}
 
 <p>{% blocktrans with 'https://github.com/lincolnloop/raven-js' as link and 'http://jquery.com/' as jquery and 'http://zeptojs.com/' as zepto %}Start by installing <a href="{{ link }}">raven-js</a> and either <a href="{{ jquery }}">jQuery</a> or <a href="{{ zepto }}">Zepto</a>.{% endblocktrans %}</p>
 
