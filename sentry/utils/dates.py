@@ -8,6 +8,7 @@ sentry.utils.dates
 import pytz
 
 from datetime import datetime
+from dateutil.parser import parse
 from django.conf import settings
 from django.db import connections
 
@@ -43,7 +44,12 @@ def parse_date(datestr, timestr):
         return
     if not timestr:
         return datetime.strptime(datestr, '%Y-%m-%d')
+
+    datetimestr = datestr.strip() + ' ' + timestr.strip()
     try:
-        return datetime.strptime(datestr + ' ' + timestr, '%Y-%m-%d %I:%M %p')
+        return datetime.strptime(datetimestr, '%Y-%m-%d %I:%M %p')
     except:
-        return
+        try:
+            return parse(datetimestr)
+        except:
+            return
