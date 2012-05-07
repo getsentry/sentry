@@ -3,11 +3,13 @@
 from __future__ import absolute_import
 
 import logging
+import json
 
 from django.conf import settings as django_settings
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
+from sentry.conf import settings
 from sentry.models import Group, Project, TeamMember, \
   MEMBER_OWNER, MEMBER_USER, Team
 from sentry.web.helpers import get_login_url
@@ -94,12 +96,23 @@ class SentryViewsTest(TestCase):
         group = Group.objects.get(pk=2)
         self.assertEquals(resp.context['group'], group)
 
-    # TODO: improve upon these tests
-    def test_group_json(self):
+    def test_group_json_multi(self):
         self.client.login(username='admin', password='admin')
-        resp = self.client.get(reverse('sentry-group-json', kwargs={'project_id': 1, 'group_id': 2}))
+        resp = self.client.get(reverse('sentry-group-events-json', kwargs={'project_id': 1, 'group_id': 2}))
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp['Content-Type'], 'application/json')
+        self.assertEquals(json.loads(resp.content)[0]['level'], 'error')
+        resp = self.client.get(reverse('sentry-group-events-json', kwargs={'project_id': 1, 'group_id': 2}), {'limit': 1})
+        self.assertEquals(resp.status_code, 200)
+        resp = self.client.get(reverse('sentry-group-events-json', kwargs={'project_id': 1, 'group_id': 2}), {'limit': settings.MAX_JSON_RESULTS+1})
+        self.assertEquals(resp.status_code, 400)
+
+    def test_group_events_details_json(self):
+        self.client.login(username='admin', password='admin')
+        resp = self.client.get(reverse('sentry-group-event-json', kwargs={'project_id': 1, 'group_id': 2, 'event_id_or_latest': 'latest'}))
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp['Content-Type'], 'application/json')
+        self.assertEquals(json.loads(resp.content)['level'], 'error')
 
     def test_status_env(self):
         self.client.login(username='admin', password='admin')
