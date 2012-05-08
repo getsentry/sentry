@@ -166,12 +166,13 @@ def poll(request, project):
     else:
         view = None
 
-    filters, event_list = _get_group_list(
+    response = _get_group_list(
         request=request,
         project=project,
         view=view,
     )
 
+    event_list = response['event_list']
     event_list = list(event_list[offset:limit])
     handle_before_events(request, event_list)
 

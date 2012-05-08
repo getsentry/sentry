@@ -141,7 +141,7 @@ if (Sentry === undefined) {
             setTimeout(Sentry.realtime.poll, 1000);
             return;
         }
-        data = getQueryParams();
+        data = Sentry.getQueryParams();
         data.view_id = Sentry.realtime.options.viewId || undefined;
         data.cursor = Sentry.realtime.cursor || undefined;
         $.ajax({

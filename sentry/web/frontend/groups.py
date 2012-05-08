@@ -99,6 +99,31 @@ def _get_group_list(request, project, view=None):
     elif sort.startswith('accel_'):
         event_list = Group.objects.get_accelerated(event_list, minutes=int(sort.split('_', 1)[1]))
 
+    date_from = request.GET.get('df')
+    time_from = request.GET.get('tf')
+    date_to = request.GET.get('dt')
+    time_to = request.GET.get('tt')
+
+    today = datetime.datetime.utcnow()
+
+    # date format is Y-m-d
+    if any(x is not None for x in [date_from, time_from, date_to, time_to]):
+        date_from, date_to = parse_date(date_from, time_from), parse_date(date_to, time_to)
+    else:
+        date_from = today - datetime.timedelta(days=3)
+        date_to = None
+
+    if date_from:
+        if not date_to:
+            event_list = event_list.filter(last_seen__gte=date_from)
+        else:
+            event_list = event_list.filter(messagecountbyminute__date__gte=date_from)
+    if date_to:
+        if not date_from:
+            event_list = event_list.filter(last_seen__lte=date_to)
+        else:
+            event_list = event_list.filter(messagecountbyminute__date__lte=date_to)
+
     if sort_clause:
         event_list = event_list.extra(
             select={'sort_value': sort_clause},
@@ -110,7 +135,14 @@ def _get_group_list(request, project, view=None):
                 params=[cursor],
             )
 
-    return filters, event_list
+    return {
+        'filters': filters,
+        'event_list': event_list,
+        'date_from': date_from,
+        'date_to': date_to,
+        'today': today,
+        'sort': sort,
+    }
 
 
 @login_required
@@ -190,55 +222,27 @@ def group_list(request, project, view_id=None):
     else:
         view = None
 
-    filters, event_list = _get_group_list(
+    response = _get_group_list(
         request=request,
         project=project,
         view=view,
     )
 
-    date_from = request.GET.get('df')
-    time_from = request.GET.get('tf')
-    date_to = request.GET.get('dt')
-    time_to = request.GET.get('tt')
-
-    today = datetime.datetime.utcnow()
-
-    # date format is Y-m-d
-    if any(x is not None for x in [date_from, time_from, date_to, time_to]):
-        date_from, date_to = parse_date(date_from, time_from), parse_date(date_to, time_to)
-    else:
-        date_from = today - datetime.timedelta(days=3)
-        date_to = None
-
-    if date_from:
-        if not date_to:
-            event_list = event_list.filter(last_seen__gte=date_from)
-        else:
-            event_list = event_list.filter(messagecountbyminute__date__gte=date_from)
-    if date_to:
-        if not date_from:
-            event_list = event_list.filter(last_seen__lte=date_to)
-        else:
-            event_list = event_list.filter(messagecountbyminute__date__lte=date_to)
-
     # XXX: this is duplicate in _get_group_list
-    sort = request.GET.get('sort')
-    if sort not in SORT_OPTIONS:
-        sort = settings.DEFAULT_SORT_OPTION
-    sort_label = SORT_OPTIONS[sort]
+    sort_label = SORT_OPTIONS[response['sort']]
 
     has_realtime = page == 1
 
     return render_to_response('sentry/groups/group_list.html', {
         'project': project,
-        'from_date': date_from,
-        'to_date': date_to,
+        'from_date': response['date_from'],
+        'to_date': response['date_to'],
         'has_realtime': has_realtime,
-        'event_list': event_list,
-        'today': today,
-        'sort': sort,
+        'event_list': response['event_list'],
+        'today': response['today'],
+        'sort': response['sort'],
         'sort_label': sort_label,
-        'filters': filters,
+        'filters': response['filters'],
         'view': view,
         'SORT_OPTIONS': SORT_OPTIONS,
         'HAS_TRENDING': has_trending(),
