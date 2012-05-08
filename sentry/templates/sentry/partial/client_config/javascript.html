@@ -4,6 +4,10 @@
 
 <p>{% blocktrans with 'https://github.com/lincolnloop/raven-js' as link and 'http://jquery.com/' as jquery and 'http://zeptojs.com/' as zepto %}Start by installing <a href="{{ link }}">raven-js</a> and either <a href="{{ jquery }}">jQuery</a> or <a href="{{ zepto }}">Zepto</a>.{% endblocktrans %}</p>
 
+<pre>&lt;script type="text/javascript" src="js/jquery.js"&gt;&lt;/script&gt;
+&lt;script type="text/javascript" src="js/raven.min.js"&gt;&lt;/script&gt;</pre>
+
+
 <p>{% blocktrans %}Add the any URLs which will be logging errors in your project's settings under <a href="{{ project_link }}#client-security">Client Security</a>:{% endblocktrans %}</p>
 
 <div class="image"><img src="{% url sentry-media "images/client_security.png" %}"></div>
