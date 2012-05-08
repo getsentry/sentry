@@ -7,6 +7,9 @@ raven-js will now able to securely send messages to Sentry, without compromising
 In addition:
 
 - Trusted domains were removed. These were not fully implemented.
+- A new datepicker for selecting ranges of events.
+- raven-javascript and raven-ruby are now officially supported clients.
+- Added ``sentry repair``.
 
 Version 4.0.0
 -------------
