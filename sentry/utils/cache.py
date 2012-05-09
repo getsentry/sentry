@@ -2,13 +2,11 @@ import django
 import logging
 import time
 
-from django.core.cache import get_cache
+from django.core.cache import get_cache, cache
 
 from sentry.conf import settings
 
-if django.VERSION < (1, 3):
-    cache = get_cache()
-else:
+if django.VERSION > (1, 2) and settings.CACHE_BACKEND != 'default':
     cache = get_cache(settings.CACHE_BACKEND)
 
 _cache = cache
