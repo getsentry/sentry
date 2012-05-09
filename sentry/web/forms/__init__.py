@@ -110,10 +110,12 @@ class EditProjectForm(forms.ModelForm):
 
     def clean_origins(self):
         value = self.cleaned_data.get('origins')
-        if value:
-            values = filter(bool, (v.strip() for v in value.split('\n')))
-            for value in values:
-                self._url_validator(value)
+        if not value:
+            return
+            
+        values = filter(bool, (v.strip() for v in value.split('\n')))
+        for value in values:
+            self._url_validator(value)
         return values
 
 
