@@ -283,12 +283,13 @@ def clear(request, project):
     else:
         view = None
 
-    _, event_list = _get_group_list(
+    response = _get_group_list(
         request=request,
         project=project,
         view=view,
     )
 
+    event_list = response['event_list']
     event_list.update(status=1)
 
     data = []
