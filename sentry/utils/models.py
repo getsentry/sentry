@@ -14,6 +14,7 @@ from django.db import models, router
 from django.db.models import signals
 from django.db.models.expressions import ExpressionNode, F
 
+from sentry.utils import cache
 from sentry.utils.compat import pickle
 
 logger = logging.getLogger(__name__)

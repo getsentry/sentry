@@ -14,7 +14,6 @@ import logging
 import re
 import warnings
 
-from django.core.cache import cache
 from django.core.signals import request_finished
 from django.db import models, transaction, IntegrityError
 from django.db.models import Sum, F
@@ -26,6 +25,7 @@ from sentry.conf import settings
 from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
 from sentry.tasks.index import index_event
+from sentry.utils.cache import cache, Lock
 from sentry.utils.dates import utc_to_local, get_sql_date_trunc
 from sentry.utils.db import get_db_engine, has_charts
 from sentry.utils.queue import maybe_delay
@@ -50,6 +50,30 @@ class BaseManager(models.Manager):
     lookup_handlers = {
         'iexact': lambda x: x.upper(),
     }
+
+    def get_or_create(self, **kwargs):
+        """
+        A modified version of Django's get_or_create which will create a distributed
+        lock (using the cache backend) whenever it hits the create clause.
+        """
+        defaults = kwargs.pop('defaults', {})
+
+        # before locking attempt to fetch the instance
+        try:
+            return self.get(**kwargs), False
+        except self.model.DoesNotExist:
+            pass
+        lock_key = self._make_key('lock', kwargs)
+
+        # instance not found, lets grab a lock and attempt to create it
+        with Lock(lock_key):
+            # its important we get() before create() to ensure that if
+            # someone beat us to creating it from the time we did our very
+            # first .get(), that we get the result back as we cannot
+            # rely on unique constraints existing
+            instance, created = super(BaseManager, self).get_or_create(defaults=defaults, **kwargs)
+
+        return instance, created
 
     def __init__(self, *args, **kwargs):
         self.cache_fields = kwargs.pop('cache_fields', [])
@@ -91,7 +115,6 @@ class BaseManager(models.Manager):
         """
         if not self.cache_fields:
             return
-        sender.__cache_data = {}
         post_init.connect(self._post_init, sender=sender, weak=False)
         post_save.connect(self._post_save, sender=sender, weak=False)
         post_delete.connect(self._post_delete, sender=sender, weak=False)
@@ -319,7 +342,7 @@ class GroupManager(BaseManager, ChartMixin):
         event = Event(
             project=project,
             event_id=event_id,
-            culprit=culprit,
+            culprit=culprit or '',
             logger=logger_name,
             data=data,
             server_name=server_name,
@@ -421,13 +444,26 @@ class GroupManager(BaseManager, ChartMixin):
         time_spent = event.time_spent
         project = event.project
 
-        group, is_new = self.get_or_create(
-            project=project,
-            culprit=event.culprit,
-            logger=event.logger,
-            checksum=event.checksum,
-            defaults=kwargs
-        )
+        try:
+            group, is_new = self.get_or_create(
+                project=project,
+                culprit=event.culprit,
+                logger=event.logger,
+                checksum=event.checksum,
+                defaults=kwargs
+            )
+        except self.model.MultipleObjectsReturned:
+            # Fix for multiple groups existing due to a race
+            groups = list(self.filter(
+                project=project,
+                culprit=event.culprit,
+                logger=event.logger,
+                checksum=event.checksum,
+            ))
+            for g in groups[1:]:
+                g.delete()
+            group = groups[0]
+
         if not is_new:
             if group.status == STATUS_RESOLVED:
                 # Group has changed from resolved -> unresolved
