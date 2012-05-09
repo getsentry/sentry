@@ -16,7 +16,8 @@ import warnings
 
 from django.core.signals import request_finished
 from django.db import models, transaction, IntegrityError
-from django.db.models import Sum, F
+from django.db.models import Sum
+from django.db.models.expressions import F, ExpressionNode
 from django.db.models.signals import post_save, post_delete, post_init, class_prepared
 from django.utils.encoding import force_unicode, smart_str
 
@@ -27,7 +28,7 @@ from sentry.signals import regression_signal
 from sentry.tasks.index import index_event
 from sentry.utils.cache import cache, Lock
 from sentry.utils.dates import utc_to_local, get_sql_date_trunc
-from sentry.utils.db import get_db_engine, has_charts
+from sentry.utils.db import get_db_engine, has_charts, resolve_expression_node
 from sentry.utils.queue import maybe_delay
 
 logger = logging.getLogger('sentry.errors')
@@ -50,30 +51,6 @@ class BaseManager(models.Manager):
     lookup_handlers = {
         'iexact': lambda x: x.upper(),
     }
-
-    def get_or_create(self, **kwargs):
-        """
-        A modified version of Django's get_or_create which will create a distributed
-        lock (using the cache backend) whenever it hits the create clause.
-        """
-        defaults = kwargs.pop('defaults', {})
-
-        # before locking attempt to fetch the instance
-        try:
-            return self.get(**kwargs), False
-        except self.model.DoesNotExist:
-            pass
-        lock_key = self._make_key('lock', kwargs)
-
-        # instance not found, lets grab a lock and attempt to create it
-        with Lock(lock_key):
-            # its important we get() before create() to ensure that if
-            # someone beat us to creating it from the time we did our very
-            # first .get(), that we get the result back as we cannot
-            # rely on unique constraints existing
-            instance, created = super(BaseManager, self).get_or_create(defaults=defaults, **kwargs)
-
-        return instance, created
 
     def __init__(self, *args, **kwargs):
         self.cache_fields = kwargs.pop('cache_fields', [])
@@ -213,6 +190,56 @@ class BaseManager(models.Manager):
                 return self.get(pk=retval)
 
             return retval
+
+    def get_or_create(self, **kwargs):
+        """
+        A modified version of Django's get_or_create which will create a distributed
+        lock (using the cache backend) whenever it hits the create clause.
+        """
+        defaults = kwargs.pop('defaults', {})
+
+        # before locking attempt to fetch the instance
+        try:
+            return self.get(**kwargs), False
+        except self.model.DoesNotExist:
+            pass
+        lock_key = self._make_key('lock', kwargs)
+
+        # instance not found, lets grab a lock and attempt to create it
+        with Lock(lock_key):
+            # its important we get() before create() to ensure that if
+            # someone beat us to creating it from the time we did our very
+            # first .get(), that we get the result back as we cannot
+            # rely on unique constraints existing
+            instance, created = super(BaseManager, self).get_or_create(defaults=defaults, **kwargs)
+
+        return instance, created
+
+    def create_or_update(self, **kwargs):
+        """
+        Similar to get_or_create, either updates a row or creates it.
+
+        The result will be (rows affected, False), if the row was not created,
+        or (instance, True) if the object is new.
+        """
+        defaults = kwargs.pop('defaults', {})
+
+        # before locking attempt to fetch the instance
+        affected = self.filter(**kwargs).update(**defaults)
+        if affected:
+            return affected, False
+        lock_key = self._make_key('lock', kwargs)
+
+        # instance not found, lets grab a lock and attempt to create it
+        with Lock(lock_key) as lock:
+            if lock.was_locked:
+                affected = self.filter(**kwargs).update(**defaults)
+                return affected, False
+
+            for k, v in defaults.iteritems():
+                if isinstance(v, ExpressionNode):
+                    kwargs[k] = resolve_expression_node(self.model(), v)
+            return super(BaseManager, self).create(**kwargs), True
 
 
 class ScoreClause(object):
@@ -462,7 +489,7 @@ class GroupManager(BaseManager, ChartMixin):
             ))
             for g in groups[1:]:
                 g.delete()
-            group = groups[0]
+            group, is_new = groups[0], False
 
         if not is_new:
             if group.status == STATUS_RESOLVED:
@@ -508,29 +535,16 @@ class GroupManager(BaseManager, ChartMixin):
                 'time_spent_count': F('time_spent_count') + 1,
             })
 
-        affected = group.messagecountbyminute_set.filter(
+        group.messagecountbyminute_set.create_or_update(
             project=project,
             date=normalized_datetime,
-        ).update(**update_kwargs)
-        if not affected:
-            group.messagecountbyminute_set.create(
-                project=project,
-                date=normalized_datetime,
-                times_seen=1,
-                time_spent_total=time_spent or 0,
-                time_spent_count=time_spent and 1 or 0,
-            )
+            defaults=update_kwargs
+        )
 
-        affected = project.projectcountbyminute_set.filter(
+        project.projectcountbyminute_set.create_or_update(
             date=normalized_datetime,
-        ).update(**update_kwargs)
-        if not affected:
-            project.projectcountbyminute_set.create(
-                date=normalized_datetime,
-                times_seen=1,
-                time_spent_total=time_spent or 0,
-                time_spent_count=time_spent and 1 or 0,
-            )
+            defaults=update_kwargs
+        )
 
         http = event.interfaces.get('sentry.interfaces.Http')
         if http:

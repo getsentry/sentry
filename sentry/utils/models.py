@@ -8,47 +8,15 @@ sentry.utils.models
 
 import base64
 import logging
-import operator
 
 from django.db import models, router
 from django.db.models import signals
-from django.db.models.expressions import ExpressionNode, F
+from django.db.models.expressions import ExpressionNode
 
-from sentry.utils import cache
 from sentry.utils.compat import pickle
+from sentry.utils.db import resolve_expression_node
 
 logger = logging.getLogger(__name__)
-
-EXPRESSION_NODE_CALLBACKS = {
-    ExpressionNode.ADD: operator.add,
-    ExpressionNode.SUB: operator.sub,
-    ExpressionNode.MUL: operator.mul,
-    ExpressionNode.DIV: operator.div,
-    ExpressionNode.MOD: operator.mod,
-    ExpressionNode.AND: operator.and_,
-    ExpressionNode.OR: operator.or_,
-}
-
-
-class CannotResolve(Exception):
-    pass
-
-
-def resolve_expression_node(instance, node):
-    def _resolve(instance, node):
-        if isinstance(node, F):
-            return getattr(instance, node.name)
-        elif isinstance(node, ExpressionNode):
-            return resolve_expression_node(instance, node)
-        return node
-
-    op = EXPRESSION_NODE_CALLBACKS.get(node.connector, None)
-    if not op:
-        raise CannotResolve
-    runner = _resolve(instance, node.children[0])
-    for n in node.children[1:]:
-        runner = op(runner, _resolve(instance, n))
-    return runner
 
 
 def update(self, using=None, **kwargs):

@@ -7,8 +7,11 @@ sentry.utils.db
 """
 import django
 import logging
+import operator
+
 
 from django.conf import settings as django_settings
+from django.db.models.expressions import ExpressionNode, F
 
 
 class InstanceManager(object):
@@ -86,3 +89,34 @@ def has_charts(db):
     if engine.startswith('sqlite'):
         return False
     return True
+
+EXPRESSION_NODE_CALLBACKS = {
+    ExpressionNode.ADD: operator.add,
+    ExpressionNode.SUB: operator.sub,
+    ExpressionNode.MUL: operator.mul,
+    ExpressionNode.DIV: operator.div,
+    ExpressionNode.MOD: operator.mod,
+    ExpressionNode.AND: operator.and_,
+    ExpressionNode.OR: operator.or_,
+}
+
+
+class CannotResolve(Exception):
+    pass
+
+
+def resolve_expression_node(instance, node):
+    def _resolve(instance, node):
+        if isinstance(node, F):
+            return getattr(instance, node.name)
+        elif isinstance(node, ExpressionNode):
+            return resolve_expression_node(instance, node)
+        return node
+
+    op = EXPRESSION_NODE_CALLBACKS.get(node.connector, None)
+    if not op:
+        raise CannotResolve
+    runner = _resolve(instance, node.children[0])
+    for n in node.children[1:]:
+        runner = op(runner, _resolve(instance, n))
+    return runner

@@ -43,9 +43,11 @@ class Lock(object):
         attempt = 0
         max_attempts = self.timeout / delay
         got_lock = None
+        self.was_locked = False
         while not got_lock and attempt < max_attempts:
             got_lock = cache.add(lock_key, '', self.timeout)
             if not got_lock:
+                self.was_locked = True
                 time.sleep(delay)
                 attempt += 1
 
