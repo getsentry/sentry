@@ -239,7 +239,7 @@ class BaseManager(models.Manager):
             for k, v in defaults.iteritems():
                 if isinstance(v, ExpressionNode):
                     kwargs[k] = resolve_expression_node(self.model(), v)
-            return super(BaseManager, self).create(**kwargs), True
+            return self.create(**kwargs), True
 
 
 class ScoreClause(object):
