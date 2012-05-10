@@ -20,7 +20,7 @@ class RedisBufferTest(TestCase):
     def test_default_host_is_local(self):
         buf = RedisBuffer()
         self.assertEquals(len(buf.conn.hosts), 1)
-        self.assertEquals(buf.conn.hosts.host, 'localhost')
+        self.assertEquals(buf.conn.hosts[0].host, 'localhost')
 
     def test_map_column_handles_foreignkeys(self):
         self.assertEquals(self.buf._map_column(Group, 'project', Project(id=1)), 1)
