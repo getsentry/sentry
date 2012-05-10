@@ -603,6 +603,11 @@ class MessageFilterValue(Model):
         return u'group_id=%s, times_seen=%s, key=%s, value=%s' % (self.group_id, self.times_seen,
                                                                   self.key, self.value)
 
+    def save(self, *args, **kwargs):
+        if not self.first_seen:
+            self.first_seen = self.last_seen
+        super(MessageFilterValue, self).save(*args, **kwargs)
+
 
 class MessageCountByMinute(Model):
     """
