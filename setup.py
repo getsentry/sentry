@@ -34,11 +34,14 @@ except ImportError:
     pass
 
 tests_require = [
-    'nose==1.1.2',
     'django-nose==0.1.3',
-    'mock==0.8.0',
     'eventlet==0.9.16',
+    'nose==1.1.2',
+    'nydus==0.8.1',
+    'mock==0.8.0',
+    'redis',
 ]
+
 
 install_requires = [
     'cssutils>=0.9.9',
