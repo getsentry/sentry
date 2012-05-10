@@ -14,6 +14,6 @@ def process_incr(**kwargs):
     """
     Processes a buffer event.
     """
-    from sentry.app import buffer
+    from sentry import app
 
-    buffer.process(**kwargs)
+    app.buffer.process(**kwargs)
