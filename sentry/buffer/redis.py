@@ -14,6 +14,8 @@ from sentry.utils.compat import pickle
 
 
 class RedisBuffer(Buffer):
+    key_expire = 60 * 60  # 1 hour
+
     def __init__(self, hosts=None, router='nydus.db.routers.keyvalue.PartitionRouter', **options):
         super(RedisBuffer, self).__init__(**options)
         if hosts is None:
@@ -48,20 +50,25 @@ class RedisBuffer(Buffer):
     def incr(self, model, columns, filters, extra=None):
         with self.conn.map() as conn:
             for column, amount in columns.iteritems():
-                conn.incr(self._make_key(model, filters, column), amount)
+                key = self._make_key(model, filters, column)
+                conn.incr(key, amount)
+                conn.expire(key, self.key_expire)
 
             # Store extra in a hashmap so it can easily be removed
             if extra:
                 key = self._make_extra_key(model, filters)
                 for column, value in extra.iteritems():
                     conn.hset(key, column, pickle.dumps(value))
+                    conn.expire(key, self.key_expire)
         super(RedisBuffer, self).incr(model, columns, filters, extra)
 
     def process(self, model, columns, filters, extra=None):
         results = {}
         with self.conn.map() as conn:
             for column, amount in columns.iteritems():
-                results[column] = conn.getset(self._make_key(model, filters, column), 0)
+                key = self._make_key(model, filters, column)
+                results[column] = conn.getset(key, 0)
+                conn.expire(key, 60)  # drop expiration as it was just emptied
 
             hash_key = self._make_extra_key(model, filters)
             extra_results = conn.hgetall(hash_key)
