@@ -1,5 +1,5 @@
-Enable Update Buffers
-=====================
+Utilizing Update Buffers
+========================
 
 Sentry provides the ability to buffer certain updates to events, such as counts and timestamps. This is
 extremely helpful if you have high concurrency, especially if they're frequently the same event.
