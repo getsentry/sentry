@@ -4,6 +4,7 @@ from __future__ import absolute_import
 
 import mock
 
+from datetime import datetime, timedelta
 from sentry.buffer.base import Buffer
 from sentry.models import Group, Project
 from sentry.tasks.process_buffer import process_incr
@@ -28,3 +29,13 @@ class BufferTest(TestCase):
         filters = {'pk': group.pk}
         self.buf.process(Group, columns, filters)
         self.assertEquals(Group.objects.get(pk=group.pk).times_seen, group.times_seen + 1)
+
+    def test_process_saves_extra(self):
+        group = Group.objects.create(project=Project(id=1))
+        columns = {'times_seen': 1}
+        filters = {'pk': group.pk}
+        the_date = datetime.now() + timedelta(days=5)
+        self.buf.process(Group, columns, filters, {'last_seen': the_date})
+        group_ = Group.objects.get(pk=group.pk)
+        self.assertEquals(group_.times_seen, group.times_seen + 1)
+        self.assertEquals(group_.last_seen, the_date)

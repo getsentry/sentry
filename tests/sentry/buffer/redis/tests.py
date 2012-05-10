@@ -4,9 +4,11 @@ from __future__ import absolute_import
 
 import mock
 
+from datetime import datetime, timedelta
 from sentry.buffer.redis import RedisBuffer
 from sentry.models import Group, Project
 from sentry.tasks.process_buffer import process_incr
+from sentry.utils.compat import pickle
 from tests.base import TestCase
 
 
@@ -65,7 +67,7 @@ class RedisBufferTest(TestCase):
         filters = {'pk': group.pk}
         self.buf.conn.set('foo', 2)
         self.buf.process(Group, columns, filters)
-        process.assert_called_once_with(Group, {'times_seen': 2}, filters)
+        process.assert_called_once_with(Group, {'times_seen': 2}, filters, None)
 
     @mock.patch('sentry.buffer.redis.RedisBuffer._make_key', mock.Mock(return_value='foo'))
     @mock.patch('sentry.buffer.base.Buffer.process')
@@ -76,3 +78,16 @@ class RedisBufferTest(TestCase):
         self.buf.conn.set('foo', 2)
         self.buf.process(Group, columns, filters)
         self.assertEquals(self.buf.conn.get('foo'), '0')
+
+    @mock.patch('sentry.buffer.redis.RedisBuffer._make_key', mock.Mock(return_value='foo'))
+    @mock.patch('sentry.buffer.redis.RedisBuffer._make_extra_key', mock.Mock(return_value='extra'))
+    def test_process_saves_extra(self):
+        group = Group.objects.create(project=Project(id=1))
+        columns = {'times_seen': 1}
+        filters = {'pk': group.pk}
+        the_date = datetime.now() + timedelta(days=5)
+        self.buf.conn.set('foo', 1)
+        self.buf.conn.hset('extra', 'last_seen', pickle.dumps(the_date))
+        self.buf.process(Group, columns, filters)
+        group_ = Group.objects.get(pk=group.pk)
+        self.assertEquals(group_.last_seen, the_date)

@@ -39,6 +39,7 @@ class SentryManagerTest(TestCase):
 
     def test_valid_only_message(self):
         event = Group.objects.from_kwargs(1, message='foo')
+        self.assertEquals(event.group.last_seen, event.datetime)
         self.assertEquals(event.message, 'foo')
         self.assertEquals(event.project_id, 1)
 
@@ -159,3 +160,4 @@ class SentryManagerTest(TestCase):
         group = Group.objects.get(pk=event.group_id)
 
         self.assertEquals(group.times_seen, 2)
+        self.assertEquals(group.last_seen, event.datetime)
