@@ -508,6 +508,10 @@ class GroupManager(BaseManager, ChartMixin):
             group.update(score=ScoreClause(group))
             silence = 0
 
+            # We need to commit because the queue can run too fast and hit
+            # an issue with the group not existing before the buffers run
+            transaction.commit_unless_managed(using=group._state.db)
+
         # Determine if we've sampled enough data to store this event
         if not settings.SAMPLE_DATA or group.times_seen % min(count_limit(group.times_seen), time_limit(silence)) == 0:
             is_sample = False
