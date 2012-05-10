@@ -37,7 +37,7 @@ tests_require = [
     'django-nose==0.1.3',
     'eventlet==0.9.16',
     'nose==1.1.2',
-    'nydus==0.8.1',
+    'nydus==0.8.2',
     'mock==0.8.0',
     'redis',
 ]
