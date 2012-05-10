@@ -157,4 +157,8 @@ USE_JS_CLIENT = False
 CACHE_BACKEND = 'dummy://'
 
 # The maximum number of events which can be requested as JSON
-MAX_JSON_RESULTS=1000
+MAX_JSON_RESULTS = 1000
+
+# Buffer backend to use
+BUFFER = 'sentry.buffer.Buffer'
+BUFFER_OPTIONS = {}

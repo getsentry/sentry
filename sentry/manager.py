@@ -283,17 +283,6 @@ def time_limit(silence):  # ~ 3600 per hour
     return settings.MAX_SAMPLE_TIME
 
 
-class ModuleProxyCache(dict):
-    def __missing__(self, key):
-        module, class_name = key.rsplit('.', 1)
-
-        handler = getattr(__import__(module, {}, {}, [class_name], -1), class_name)
-
-        self[key] = handler
-
-        return handler
-
-
 class ChartMixin(object):
     def get_chart_data(self, instance, max_days=90):
         if hasattr(instance, '_state'):
@@ -331,10 +320,6 @@ class ChartMixin(object):
 
 class GroupManager(BaseManager, ChartMixin):
     use_for_related_fields = True
-
-    def __init__(self, *args, **kwargs):
-        super(GroupManager, self).__init__(*args, **kwargs)
-        self.module_cache = ModuleProxyCache()
 
     @transaction.commit_on_success
     def from_kwargs(self, project, **kwargs):

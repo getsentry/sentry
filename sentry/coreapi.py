@@ -20,11 +20,12 @@ from django.utils.encoding import smart_str
 
 from sentry.conf import settings
 from sentry.exceptions import InvalidInterface, InvalidData, InvalidTimestamp
-from sentry.models import Group, Project, ProjectKey, TeamMember, Team
+from sentry.models import Project, ProjectKey, TeamMember, Team
 from sentry.plugins import plugins
 from sentry.tasks.store import store_event
 from sentry.utils import is_float, json
 from sentry.utils.auth import get_signature, parse_auth_header
+from sentry.utils.imports import import_string
 from sentry.utils.queue import maybe_delay
 
 logger = logging.getLogger('sentry.errors.coreapi')
@@ -306,7 +307,7 @@ def validate_data(project, data, client=None):
             raise InvalidInterface('%r is not a valid interface name' % k)
 
         try:
-            interface = Group.objects.module_cache[k]
+            interface = import_string(k)
         except (ImportError, AttributeError), e:
             raise InvalidInterface('%r is not a valid interface name: %s' % (k, e))
 
