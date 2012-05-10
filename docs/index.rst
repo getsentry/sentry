@@ -16,6 +16,7 @@ Users Guide
    upgrading/index
    config/index
    queue/index
+   buffer/index
    udp_server/index
    cli/index
    client/index
