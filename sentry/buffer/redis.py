@@ -14,7 +14,7 @@ from sentry.utils.compat import pickle
 
 
 class RedisBuffer(Buffer):
-    def __init__(self, hosts=None, router=None, **options):
+    def __init__(self, hosts=None, router='nydus.db.routers.keyvalue.PartitionRouter', **options):
         super(RedisBuffer, self).__init__(**options)
         if hosts is None:
             hosts = {
