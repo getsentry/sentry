@@ -27,11 +27,17 @@ class Buffer(object):
     def __init__(self, **options):
         pass
 
-    def incr(self, model, columns, filters):
+    def incr(self, model, columns, filters, extra=None):
         """
         >>> incr(Group, columns={'times_seen': 1}, filters={'pk': group.pk})
         """
-        maybe_delay(process_incr, model=model, columns=columns, filters=filters)
+        maybe_delay(process_incr, model=model, columns=columns, filters=filters, extra=extra)
 
-    def process(self, model, columns, filters):
-        model.objects.filter(**filters).update(**dict((c, F(c) + v) for c, v in columns.iteritems()))
+    def process(self, model, columns, filters, extra=None):
+        update_kwargs = dict((c, F(c) + v) for c, v in columns.iteritems())
+        if extra:
+            update_kwargs.update(extra)
+        model.objects.create_or_update(
+            defaults=update_kwargs,
+            **filters
+        )

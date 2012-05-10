@@ -20,7 +20,7 @@ class BufferTest(TestCase):
         columns = {'times_seen': 1}
         filters = {'pk': 1}
         self.buf.incr(model, columns, filters)
-        maybe_delay.assert_called_once_with(process_incr, model=model, columns=columns, filters=filters)
+        maybe_delay.assert_called_once_with(process_incr, model=model, columns=columns, filters=filters, extra=None)
 
     def test_process_saves_data(self):
         group = Group.objects.create(project=Project(id=1))

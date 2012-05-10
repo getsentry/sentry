@@ -40,13 +40,13 @@ class RedisBuffer(Buffer):
             md5('&'.join('%s=%s' % (k, self._map_column(model, k, v)) for k, v in sorted(filters.iteritems()))).hexdigest(),
             column)
 
-    def incr(self, model, columns, filters):
+    def incr(self, model, columns, filters, **kwargs):
         with self.conn.map() as conn:
             for column, amount in columns.iteritems():
                 conn.incr(self._make_key(model, filters, column), amount)
-        super(RedisBuffer, self).incr(model, columns, filters)
+        super(RedisBuffer, self).incr(model, columns, filters, **kwargs)
 
-    def process(self, model, columns, filters):
+    def process(self, model, columns, filters, **kwargs):
         results = {}
         with self.conn.map() as conn:
             for column, amount in columns.iteritems():
@@ -55,4 +55,4 @@ class RedisBuffer(Buffer):
         results = dict((k, int(v)) for k, v in results.iteritems() if int(v or 0) > 0)
         if not results:
             return
-        super(RedisBuffer, self).process(model, results, filters)
+        super(RedisBuffer, self).process(model, results, filters, **kwargs)

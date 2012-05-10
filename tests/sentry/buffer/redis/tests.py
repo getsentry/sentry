@@ -37,7 +37,7 @@ class RedisBufferTest(TestCase):
         columns = {'times_seen': 1}
         filters = {'pk': 1}
         self.buf.incr(model, columns, filters)
-        maybe_delay.assert_called_once_with(process_incr, model=model, columns=columns, filters=filters)
+        maybe_delay.assert_called_once_with(process_incr, model=model, columns=columns, filters=filters, extra=None)
 
     @mock.patch('sentry.buffer.redis.RedisBuffer._make_key', mock.Mock(return_value='foo'))
     @mock.patch('sentry.buffer.base.maybe_delay', mock.Mock())

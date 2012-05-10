@@ -22,6 +22,7 @@ from django.db.models.signals import post_save, post_delete, post_init, class_pr
 from django.utils.encoding import force_unicode, smart_str
 
 from raven.utils.encoding import to_string
+from sentry import app
 from sentry.conf import settings
 from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
@@ -452,7 +453,8 @@ class GroupManager(BaseManager, ChartMixin):
         return event
 
     def _create_group(self, event, **kwargs):
-        from sentry.models import FilterValue, STATUS_RESOLVED
+        from sentry.models import ProjectCountByMinute, MessageCountByMinute, FilterValue, \
+          MessageFilterValue, STATUS_RESOLVED
 
         date = event.datetime
         time_spent = event.time_spent
@@ -478,25 +480,31 @@ class GroupManager(BaseManager, ChartMixin):
                 g.delete()
             group, is_new = groups[0], False
 
+        update_kwargs = {
+            'times_seen': 1,
+        }
+        if time_spent:
+            update_kwargs.update({
+                'time_spent_total': time_spent,
+                'time_spent_count': 1,
+            })
+
         if not is_new:
             if group.status == STATUS_RESOLVED:
                 # Group has changed from resolved -> unresolved
                 is_new = True
             silence_timedelta = date - group.last_seen
             silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
-            update_kwargs = {
+
+            app.buffer.incr(self.model, update_kwargs, {
+                'pk': group.pk,
+            }, {
                 'status': 0,
                 'last_seen': date,
-                'times_seen': F('times_seen') + 1,
                 'score': ScoreClause(group),
-            }
-            if time_spent:
-                update_kwargs.update({
-                    'time_spent_total': F('time_spent_total') + time_spent,
-                    'time_spent_count': F('time_spent_count') + 1,
-                })
-            group.update(**update_kwargs)
+            })
         else:
+            # TODO: this update is useless
             group.update(score=ScoreClause(group))
             silence = 0
 
@@ -513,25 +521,16 @@ class GroupManager(BaseManager, ChartMixin):
             minutes = date.minute
         normalized_datetime = date.replace(second=0, microsecond=0, minute=minutes)
 
-        update_kwargs = {
-            'times_seen': F('times_seen') + 1,
-        }
-        if time_spent:
-            update_kwargs.update({
-                'time_spent_total': F('time_spent_total') + time_spent,
-                'time_spent_count': F('time_spent_count') + 1,
-            })
+        app.buffer.incr(MessageCountByMinute, update_kwargs, {
+            'group': group,
+            'project': project,
+            'date': normalized_datetime,
+        })
 
-        group.messagecountbyminute_set.create_or_update(
-            project=project,
-            date=normalized_datetime,
-            defaults=update_kwargs
-        )
-
-        project.projectcountbyminute_set.create_or_update(
-            date=normalized_datetime,
-            defaults=update_kwargs
-        )
+        app.buffer.incr(ProjectCountByMinute, update_kwargs, {
+            'project': project,
+            'date': normalized_datetime,
+        })
 
         for key, value in (
                 ('server_name', event.server_name),
@@ -547,15 +546,16 @@ class GroupManager(BaseManager, ChartMixin):
                 value=value,
             )
 
-            group.messagefiltervalue_set.create_or_update(
-                project=project,
-                key=key,
-                value=value,
-                defaults=dict(
-                    times_seen=F('times_seen') + 1,
-                    last_seen=date,
-                )
-            )
+            app.buffer.incr(MessageFilterValue, {
+                'times_seen': 1,
+            }, {
+                'group': group,
+                'project': project,
+                'key': key,
+                'value': value,
+            }, {
+                'last_seen': date,
+            })
 
         return group, is_new, is_sample
 
