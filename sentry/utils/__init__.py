@@ -36,12 +36,6 @@ class cached_property(object):
 
     The class has to have a `__dict__` in order for this property to
     work.
-
-    .. versionchanged:: 0.6
-       the `writeable` attribute and parameter was deprecated.  If a
-       cached property is writeable or not has to be documented now.
-       For performance reasons the implementation does not honor the
-       writeable setting and will always make the property writeable.
     """
 
     # implementation detail: this property is implemented as non-data
@@ -52,14 +46,7 @@ class cached_property(object):
     # will still work as expected because the lookup logic is replicated
     # in __get__ for manual invocation.
 
-    def __init__(self, func, name=None, doc=None, writeable=False):
-        if writeable:
-            from warnings import warn
-            warn(DeprecationWarning('the writeable argument to the '
-                                    'cached property is a noop since 0.6 '
-                                    'because the property is writeable '
-                                    'by default for performance reasons'))
-
+    def __init__(self, func, name=None, doc=None):
         self.__name__ = name or func.__name__
         self.__module__ = func.__module__
         self.__doc__ = doc or func.__doc__
