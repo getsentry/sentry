@@ -4,6 +4,7 @@ from __future__ import absolute_import
 
 import logging
 
+from celery.task import Task
 from sentry.models import Event, Group, MessageCountByMinute, \
   MessageFilterValue
 from sentry.tasks.cleanup import cleanup
@@ -12,6 +13,9 @@ from tests.base import TestCase
 
 class SentryCleanupTest(TestCase):
     fixtures = ['tests/fixtures/cleanup.json']
+
+    def test_is_task(self):
+        self.assertTrue(isinstance(cleanup, Task))
 
     def test_simple(self):
         cleanup(days=1)
