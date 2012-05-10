@@ -106,7 +106,7 @@ def manage_project(request, project):
 
     form = form_cls(request, team_list, request.POST or None, instance=project, initial={
         'origins': '\n'.join(get_option('sentry:origins', project) or []),
-        'owner': project.owner_id,
+        'owner': project.owner.username,
     })
 
     if form.is_valid():
