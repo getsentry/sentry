@@ -191,7 +191,7 @@ class BaseManager(models.Manager):
 
             return retval
 
-    def get_or_create(self, **kwargs):
+    def get_or_create(self, _cache=False, **kwargs):
         """
         A modified version of Django's get_or_create which will create a distributed
         lock (using the cache backend) whenever it hits the create clause.
@@ -200,6 +200,8 @@ class BaseManager(models.Manager):
 
         # before locking attempt to fetch the instance
         try:
+            if _cache:
+                return self.get_from_cache(**kwargs), False
             return self.get(**kwargs), False
         except self.model.DoesNotExist:
             pass
@@ -403,6 +405,7 @@ class GroupManager(BaseManager, ChartMixin):
 
                 if not viewhandler.ref:
                     viewhandler.ref = View.objects.get_or_create(
+                        _cache=True,
                         path=path,
                         defaults=dict(
                             verbose_name=viewhandler.verbose_name,
