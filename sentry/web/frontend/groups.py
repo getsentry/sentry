@@ -309,7 +309,7 @@ def group_event_list_json(request, project, group_id):
 
     events = group.event_set.order_by('-id')[:limit]
 
-    return HttpResponse(json.dumps(list(event.as_dict() for event in events)), mimetype='application/json')
+    return HttpResponse(json.dumps([event.as_dict() for event in events]), mimetype='application/json')
 
 
 @login_required
