@@ -1,3 +1,11 @@
+Version 4.2.0
+-------------
+
+Sentry now has support for buffering a majority of its counters via Redis. For more information, check
+the buffer section of the configuration documentation.
+
+- Nearly all race conditions are now handled correctly using distributed cache locks.
+
 Version 4.1.0
 -------------
 
