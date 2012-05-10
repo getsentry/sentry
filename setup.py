@@ -55,6 +55,7 @@ install_requires = [
     'python-dateutil>=1.5.0,<2.0.0',
     'pytz>=2011n',
     'raven>=1.7.6',
+    'simplejson>=2.3.0,<2.5.0',
     'South>=0.7',
 ]
 
