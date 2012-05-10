@@ -59,48 +59,6 @@ class SentryManagerTest(TestCase):
             self.assertEquals(event.project_id, 1)
             self.assertEquals(event.datetime, date)
 
-    def test_url_filter(self):
-        event = Group.objects.from_kwargs(1, message='foo')
-        group = event.group
-        self.assertEquals(group.messagefiltervalue_set.filter(key='url').count(), 0)
-
-        event = Group.objects.from_kwargs(1, message='foo', **{
-            'sentry.interfaces.Http': {
-                'url': 'http://example.com',
-            }
-        })
-        group = event.group
-        self.assertEquals(group.messagefiltervalue_set.filter(key='url').count(), 1)
-        res = group.messagefiltervalue_set.filter(key='url').get()
-        self.assertEquals(res.value, 'http://example.com')
-        self.assertEquals(res.times_seen, 1)
-
-        event = Group.objects.from_kwargs(1, message='foo', **{
-            'sentry.interfaces.Http': {
-                'url': 'http://example.com',
-            }
-        })
-        group = event.group
-        self.assertEquals(group.messagefiltervalue_set.filter(key='url').count(), 1)
-        res = group.messagefiltervalue_set.filter(key='url').get()
-        self.assertEquals(res.value, 'http://example.com')
-        self.assertEquals(res.times_seen, 2)
-
-        event = Group.objects.from_kwargs(1, message='foo', **{
-            'sentry.interfaces.Http': {
-                'url': 'http://example.com/2',
-            }
-        })
-        group = event.group
-        self.assertEquals(group.messagefiltervalue_set.filter(key='url').count(), 2)
-        results = list(group.messagefiltervalue_set.filter(key='url').order_by('id'))
-        res = results[0]
-        self.assertEquals(res.value, 'http://example.com')
-        self.assertEquals(res.times_seen, 2)
-        res = results[1]
-        self.assertEquals(res.value, 'http://example.com/2')
-        self.assertEquals(res.times_seen, 1)
-
     def test_site_filter(self):
         event = Group.objects.from_kwargs(1, message='foo')
         group = event.group
