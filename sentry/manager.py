@@ -402,7 +402,6 @@ class GroupManager(BaseManager, ChartMixin):
                 path = '%s.%s' % (viewhandler.__module__, viewhandler.__class__.__name__)
 
                 if not viewhandler.ref:
-                    # TODO: this should handle race conditions
                     viewhandler.ref = View.objects.get_or_create(
                         path=path,
                         defaults=dict(
