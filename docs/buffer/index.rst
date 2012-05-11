@@ -17,7 +17,7 @@ Currently only a single bundled backend is available, built for Redis.
 
 .. date:: sentry.buffer.redis.RedisBuffer
 
-Two specify a backend, simply modify the ``BUFFER`` and ``BUFFER_OPTIONS`` values in your configuration:
+To specify a backend, simply modify the ``BUFFER`` and ``BUFFER_OPTIONS`` values in your configuration:
 
 ::
 
