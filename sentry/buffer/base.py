@@ -7,7 +7,7 @@ sentry.buffer.base
 """
 
 from django.db.models import F
-from sentry.utils.queue import maybe_delay
+from sentry.utils.queue import maybe_async
 from sentry.tasks.process_buffer import process_incr
 
 
@@ -31,7 +31,12 @@ class Buffer(object):
         """
         >>> incr(Group, columns={'times_seen': 1}, filters={'pk': group.pk})
         """
-        maybe_delay(process_incr, model=model, columns=columns, filters=filters, extra=extra)
+        maybe_async(process_incr, kwargs={
+            'model': model,
+            'columns': columns,
+            'filters': filters,
+            'extra': extra,
+        }, countdown=5)
 
     def process(self, model, columns, filters, extra=None):
         update_kwargs = dict((c, F(c) + v) for c, v in columns.iteritems())
