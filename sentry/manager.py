@@ -6,6 +6,8 @@ sentry.manager
 :license: BSD, see LICENSE for more details.
 """
 
+from __future__ import with_statement
+
 from collections import defaultdict
 import datetime
 import hashlib
