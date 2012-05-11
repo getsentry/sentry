@@ -114,6 +114,7 @@ class EditProjectForm(forms.ModelForm):
         values = filter(bool, (v.strip() for v in value.split('\n')))
         for value in values:
             self._url_validator(value)
+        return values
 
 
 class EditProjectAdminForm(EditProjectForm):
