@@ -15,8 +15,14 @@
             <p class="alert alert-info">{% trans "Please login to continue." %}</p>
         {% endif %}
 
-        {% if form.errors %}
-            <p class="alert alert-error">{% trans "Your username and password didn't match. Please try again." %}</p>
+        {% if form.non_field_errors %}
+            <div class="alert alert-block alert-error">
+                <ul>
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
         {% endif %}
 
         <form class="form-stacked" action="" method="post">
