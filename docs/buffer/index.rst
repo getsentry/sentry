@@ -44,8 +44,8 @@ Finally, configure the buffer options:
     SENTRY_BUFFER_OPTIONS = {
         'hosts': {
             0: {
-                'host': 'localhost'
-                'port': 6379,
+                'host': 'localhost',
+                'port': 6379
             }
         }
     }
