@@ -45,7 +45,7 @@ class RedisBufferTest(TestCase):
         filters = {'pk': 1}
         self.buf.incr(model, columns, filters)
         kwargs = dict(model=model, columns=columns, filters=filters, extra=None)
-        maybe_async.assert_called_once_with(process_incr, kwargs=kwargs, countdown=5)
+        maybe_async.assert_called_once_with(process_incr, kwargs=kwargs)
 
     @mock.patch('sentry.buffer.redis.RedisBuffer._make_extra_key', mock.Mock(return_value='extra'))
     @mock.patch('sentry.buffer.redis.RedisBuffer._make_key', mock.Mock(return_value='foo'))

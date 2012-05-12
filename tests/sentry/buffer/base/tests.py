@@ -22,7 +22,7 @@ class BufferTest(TestCase):
         filters = {'pk': 1}
         self.buf.incr(model, columns, filters)
         kwargs = dict(model=model, columns=columns, filters=filters, extra=None)
-        maybe_async.assert_called_once_with(process_incr, kwargs=kwargs, countdown=5)
+        maybe_async.assert_called_once_with(process_incr, kwargs=kwargs)
 
     def test_process_saves_data(self):
         group = Group.objects.create(project=Project(id=1))

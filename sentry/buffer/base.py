@@ -36,7 +36,7 @@ class Buffer(object):
             'columns': columns,
             'filters': filters,
             'extra': extra,
-        }, countdown=5)
+        })
 
     def process(self, model, columns, filters, extra=None):
         update_kwargs = dict((c, F(c) + v) for c, v in columns.iteritems())
