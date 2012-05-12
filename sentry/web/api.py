@@ -10,6 +10,7 @@ import logging
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseBadRequest, \
   HttpResponseForbidden, HttpResponseRedirect
+from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
@@ -31,6 +32,7 @@ logger = logging.getLogger('sentry.api.http')
 
 @csrf_exempt
 @require_http_methods(['POST', 'OPTIONS'])
+@never_cache
 def store(request, project_id=None):
     """
     The primary endpoint for storing new events.
@@ -144,12 +146,14 @@ def store(request, project_id=None):
 
 @csrf_exempt
 @has_access
+@never_cache
 def notification(request, project):
     return render_to_response('sentry/partial/_notification.html', request.GET)
 
 
 @csrf_exempt
 @has_access
+@never_cache
 def poll(request, project):
     from sentry.templatetags.sentry_helpers import as_bookmarks
     from sentry.templatetags.sentry_plugins import handle_before_events
@@ -199,6 +203,7 @@ def poll(request, project):
 
 @csrf_exempt
 @has_access
+@never_cache
 def resolve(request, project):
     gid = request.REQUEST.get('gid')
     if not gid:
@@ -227,6 +232,7 @@ def resolve(request, project):
 
 @csrf_exempt
 @has_access
+@never_cache
 def remove_group(request, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
@@ -245,6 +251,7 @@ def remove_group(request, project, group_id):
 
 @csrf_exempt
 @has_access
+@never_cache
 def bookmark(request, project):
     gid = request.REQUEST.get('gid')
     if not gid:
@@ -273,6 +280,7 @@ def bookmark(request, project):
 
 @csrf_exempt
 @has_access
+@never_cache
 def clear(request, project):
     view_id = request.GET.get('view_id')
     if view_id:
