@@ -102,6 +102,22 @@ configuration, as well as the default Sentry configuration values. It will use S
 .. note:: We highly recommend using the gevent worker class. To do this, simply ``pip install gevent`` and
           adjust the worker_class setting in ``SENTRY_WEB_OPTIONS``.
 
+Configure Outbound Mail
+-----------------------
+
+Several settings exist as part of the Django framework which will configure your outbound mail server. For the
+standard implementation, using a simple SMTP server, you can simply configure the following::
+
+    EMAIL_HOST = 'localhost'
+    EMAIL_HOST_PASSWORD = ''
+    EMAIL_HOST_USER = ''
+    EMAIL_PORT = 25
+    EMAIL_USE_TLS = False
+
+Being that Django is a pluggable framework, you also have the ability to specify different mail backends. See the
+`official Django documentation <https://docs.djangoproject.com/en/1.3/topics/email/?from=olddocs#email-backends>`_ for
+more information on alterantive backends.
+
 Running Migrations
 ------------------
 
@@ -125,23 +141,6 @@ All schema changes and database upgrades are handled via the ``upgrade`` command
 thing you'll want to run when upgrading to future versions of Sentry.
 
 .. note:: Internally, this uses `South <http://south.aeracode.org>`_ to manage database migrations.
-
-Optional: Configure Outbound Mail
----------------------------------
-
-Several settings exist as part of the Django framework which will configure your outbound mail server. For the
-standard implementation, using a simple SMTP server, you can simply configure the following::
-
-    EMAIL_HOST = 'localhost'
-    EMAIL_HOST_PASSWORD = ''
-    EMAIL_HOST_USER = ''
-    EMAIL_PORT = 25
-    EMAIL_USE_TLS = False
-
-Being that Django is a pluggable framework, you also have the ability to specify different mail backends. See the
-`official Django documentation <https://docs.djangoproject.com/en/1.3/topics/email/?from=olddocs#email-backends>`_ for
-more information on alterantive backends.
-
 
 Starting the Web Service
 ------------------------
