@@ -22,7 +22,9 @@ To specify a backend, simply modify the ``BUFFER`` and ``BUFFER_OPTIONS`` values
 ::
 
     SENTRY_BUFFER = 'sentry.buffer.base.Buffer'
-    SENTRY_BUFFER_OPTIONS = {}
+    SENTRY_BUFFER_OPTIONS = {
+        'delay': 5,  # delay for queued tasks
+    }
 
 The Redis Backend
 -----------------

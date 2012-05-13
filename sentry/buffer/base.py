@@ -24,8 +24,8 @@ class Buffer(object):
     This is useful in situations where a single event might be happening so fast that the queue cant
     keep up with the updates.
     """
-    def __init__(self, **options):
-        pass
+    def __init__(self, delay=5, **options):
+        self.delay = delay
 
     def incr(self, model, columns, filters, extra=None):
         """
@@ -36,7 +36,7 @@ class Buffer(object):
             'columns': columns,
             'filters': filters,
             'extra': extra,
-        })
+        }, countdown=self.delay)
 
     def process(self, model, columns, filters, extra=None):
         update_kwargs = dict((c, F(c) + v) for c, v in columns.iteritems())
