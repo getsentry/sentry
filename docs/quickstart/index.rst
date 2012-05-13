@@ -158,8 +158,8 @@ you can pass that via the --config option.
 
 You should now be able to test the web service by visiting `http://localhost:9000/`.
 
-Configuring a Proxy
--------------------
+Setup a Reverse Proxy
+---------------------
 
 By default, Sentry runs on port 9000. Even if you change this, under normal conditions you won't be able to bind to
 port 80. To get around this (and to avoid running Sentry as a privileged user, which you shouldn't), we recommend
