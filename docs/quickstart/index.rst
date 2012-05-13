@@ -135,7 +135,7 @@ If you did not create the user on the first run, you can correct this by doing t
     sentry --config=/etc/sentry.conf.py createsuperuser
 
     # run the automated repair script
-    sentry --config=/etc/sentry.conf.py repair
+    sentry --config=/etc/sentry.conf.py repair --owner=<username>
 
 All schema changes and database upgrades are handled via the ``upgrade`` command, and this is the first
 thing you'll want to run when upgrading to future versions of Sentry.
