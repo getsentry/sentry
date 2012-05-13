@@ -18,6 +18,18 @@ Continue by running all required migrations, with the upgrade command::
 
 Finally, restart any Sentry services you had running.
 
+Upgrading Celery
+~~~~~~~~~~~~~~~~
+
+A recently release of Kombu (2.1.6) added support for South migrations. This means that if you had an older
+version of Kombu installed, you'll need to "fake" the migrations, as they were already applied.
+
+**You should only do this is you actually receive an error while migrating.**
+
+To fake the migrations, run the following::
+
+    sentry migrate kombu.transport.django 0001 --fake
+
 Upgrading from 1.x
 ~~~~~~~~~~~~~~~~~~
 
