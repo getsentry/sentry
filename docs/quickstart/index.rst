@@ -124,7 +124,7 @@ If you did not create the user on the first run, you can correct this by doing t
 All schema changes and database upgrades are handled via the ``upgrade`` command, and this is the first
 thing you'll want to run when upgrading to future versions of Sentry.
 
-.. note:: Internally, this uses `South <south.aeracode.org>`_ to manage migrations.
+.. note:: Internally, this uses `South <http://south.aeracode.org>`_ to manage database migrations.
 
 Optional: Configure Outbound Mail
 ---------------------------------
