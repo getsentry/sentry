@@ -110,6 +110,17 @@ is expecting. Once done, you can create the initial database using the ``upgrade
 
     sentry --config=/etc/sentry.conf.py upgrade
 
+**It's very important that you create the default superuser through the upgrade process. If you do not, there is
+a good chance you'll see issues in your initial install.**
+
+If you did not create the user on the first run, you can correct this by doing the following::
+
+    # create a new user
+    sentry --config=/etc/sentry.conf.py createsuperuser
+
+    # run the automated repair script
+    sentry --config=/etc/sentry.conf.py repair
+
 All schema changes and database upgrades are handled via the ``upgrade`` command, and this is the first
 thing you'll want to run when upgrading to future versions of Sentry.
 
