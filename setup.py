@@ -39,6 +39,7 @@ tests_require = [
     'nose==1.1.2',
     'nydus==0.8.2',
     'mock==0.8.0',
+    'pep8',
     'redis',
 ]
 

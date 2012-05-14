@@ -43,6 +43,8 @@ watch:
 	watchr -e "watch('bootstrap/.*\.less') { system 'make static' }"
 
 test:
+	pep8 --exclude=migrations --ignore=E501,E225 sentry || exit 1
+	pyflakes -x W sentry || exit 1
 	coverage run runtests.py --include=sentry/* && \
 	coverage html --omit=*/migrations/* -d cover
 
