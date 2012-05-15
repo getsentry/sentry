@@ -333,7 +333,7 @@ class IPlugin(local):
 
         This must return ``tag_list``.
 
-        >>> def tags(self, request, group, ag_list, **kwargs):
+        >>> def tags(self, request, group, tag_list, **kwargs):
         >>>     tag_list.append(':(')
         >>>     return tag_list
         """
