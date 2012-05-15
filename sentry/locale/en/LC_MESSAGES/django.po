@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-05-07 06:14+0000\n"
+"POT-Creation-Date: 2012-05-15 21:11+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -239,18 +239,82 @@ msgstr ""
 msgid "Select a Project"
 msgstr ""
 
-#: templates/sentry/dashboard.html:26
+#: templates/sentry/dashboard.html:9 templates/sentry/header.html:24
+#: templates/sentry/header.html.py:33 templates/sentry/layout.html:56
+msgid "Dashboard"
+msgstr ""
+
+#: templates/sentry/dashboard.html:14 templates/sentry/account/settings.html:5
+#: templates/sentry/account/settings.html:9
+#: templates/sentry/account/settings.html:15
+msgid "Account Settings"
+msgstr ""
+
+#: templates/sentry/dashboard.html:22
+msgid "Loading historical data..."
+msgstr ""
+
+#: templates/sentry/dashboard.html:27
+msgid "Top Events"
+msgstr ""
+
+#: templates/sentry/dashboard.html:27 templates/sentry/dashboard.html.py:36
+msgid "Today"
+msgstr ""
+
+#: templates/sentry/dashboard.html:36
+msgid "New Events"
+msgstr ""
+
+#: templates/sentry/dashboard.html:45
+msgid "No unresolved events are available for the last 24 hours."
+msgstr ""
+
+#: templates/sentry/dashboard.html:50
 #, python-format
 msgid ""
 "You do not have access to any projects. Would you like to <a href=\"%(link)s"
 "\">create a new project</a>?"
 msgstr ""
 
-#: templates/sentry/dashboard.html:28 templates/sentry/projects/base.html:63
+#: templates/sentry/dashboard.html:52 templates/sentry/projects/base.html:63
 #: templates/sentry/projects/list.html:56
 msgid ""
 "You do not have access to any projects. Ask an administrator to add you as a "
 "member."
+msgstr ""
+
+#: templates/sentry/dashboard.html:59 templates/sentry/header.html:44
+#: templates/sentry/admin/base.html:17
+#: templates/sentry/admin/projects/list.html:13
+#: templates/sentry/admin/users/edit.html:42
+#: templates/sentry/admin/users/list_projects.html:7
+#: templates/sentry/admin/users/list_projects.html:12
+#: templates/sentry/partial/_account_sidebar.html:8
+#: templates/sentry/teams/manage.html:45
+msgid "Projects"
+msgstr ""
+
+#: templates/sentry/dashboard.html:71
+#: templates/sentry/partial/_account_sidebar.html:17
+msgid "New project"
+msgstr ""
+
+#: templates/sentry/dashboard.html:74
+#: templates/sentry/partial/_account_sidebar.html:20
+#, python-format
+msgid "View all <strong>%(count)s</strong> projects"
+msgstr ""
+
+#: templates/sentry/dashboard.html:78
+#: templates/sentry/partial/_account_sidebar.html:24
+msgid "You are not a part of any projects."
+msgstr ""
+
+#: templates/sentry/dashboard.html:80
+#: templates/sentry/partial/_account_sidebar.html:26
+#: templates/sentry/projects/base.html:9
+msgid "Create a new project"
 msgstr ""
 
 #: templates/sentry/header.html:12
@@ -265,10 +329,6 @@ msgstr ""
 msgid "select a project to enable search"
 msgstr ""
 
-#: templates/sentry/header.html:24 templates/sentry/header.html.py:33
-msgid "Dashboard"
-msgstr ""
-
 #: templates/sentry/header.html:25 templates/sentry/events/event_list.html:11
 msgid "Stream"
 msgstr ""
@@ -276,17 +336,6 @@ msgstr ""
 #: templates/sentry/header.html:42
 #: templates/sentry/partial/_account_sidebar.html:3
 msgid "Account"
-msgstr ""
-
-#: templates/sentry/header.html:44 templates/sentry/layout.html:56
-#: templates/sentry/admin/base.html:17
-#: templates/sentry/admin/projects/list.html:13
-#: templates/sentry/admin/users/edit.html:42
-#: templates/sentry/admin/users/list_projects.html:7
-#: templates/sentry/admin/users/list_projects.html:12
-#: templates/sentry/partial/_account_sidebar.html:8
-#: templates/sentry/teams/manage.html:45
-msgid "Projects"
 msgstr ""
 
 #: templates/sentry/header.html:45
@@ -310,7 +359,7 @@ msgid "Logout"
 msgstr ""
 
 #: templates/sentry/header.html:55 templates/sentry/login.html:5
-#: templates/sentry/login.html.py:31
+#: templates/sentry/login.html.py:37
 msgid "Login"
 msgstr ""
 
@@ -324,10 +373,6 @@ msgstr ""
 
 #: templates/sentry/login.html:15
 msgid "Please login to continue."
-msgstr ""
-
-#: templates/sentry/login.html:19
-msgid "Your username and password didn't match. Please try again."
 msgstr ""
 
 #: templates/sentry/missing_permissions.html:5
@@ -346,12 +391,6 @@ msgstr ""
 
 #: templates/sentry/search.html:32
 msgid "No events match your search query."
-msgstr ""
-
-#: templates/sentry/account/settings.html:5
-#: templates/sentry/account/settings.html:9
-#: templates/sentry/account/settings.html:15
-msgid "Account Settings"
 msgstr ""
 
 #: templates/sentry/account/settings.html:24
@@ -792,13 +831,13 @@ msgid "All events are represented in UTC time."
 msgstr ""
 
 #: templates/sentry/groups/group_list.html:145
-#: templates/sentry/projects/client_help.html:10
+#: templates/sentry/projects/client_help.html:12
 msgid ""
 "To start sending events, configure your client with the following DSN value:"
 msgstr ""
 
 #: templates/sentry/groups/group_list.html:147
-#: templates/sentry/projects/client_help.html:17
+#: templates/sentry/projects/client_help.html:19
 msgid "Choose your platform for quick setup instructions:"
 msgstr ""
 
@@ -806,24 +845,6 @@ msgstr ""
 #, python-format
 msgid ""
 "For more information, please see the <a href=\"%(link)s\">documentation</a>."
-msgstr ""
-
-#: templates/sentry/partial/_account_sidebar.html:17
-msgid "New project"
-msgstr ""
-
-#: templates/sentry/partial/_account_sidebar.html:20
-#, python-format
-msgid "View all <strong>%(count)s</strong> projects"
-msgstr ""
-
-#: templates/sentry/partial/_account_sidebar.html:24
-msgid "You are not a part of any projects."
-msgstr ""
-
-#: templates/sentry/partial/_account_sidebar.html:26
-#: templates/sentry/projects/base.html:9
-msgid "Create a new project"
 msgstr ""
 
 #: templates/sentry/partial/_account_sidebar.html:39
@@ -962,7 +983,7 @@ msgid "Create an instance of the client:"
 msgstr ""
 
 #: templates/sentry/partial/client_config/java.html:9
-#: templates/sentry/partial/client_config/javascript.html:17
+#: templates/sentry/partial/client_config/javascript.html:21
 #: templates/sentry/partial/client_config/node.js.html:21
 #: templates/sentry/partial/client_config/php.html:15
 #: templates/sentry/partial/client_config/python.html:13
@@ -970,7 +991,7 @@ msgid "Now call out to the raven client to capture events:"
 msgstr ""
 
 #: templates/sentry/partial/client_config/java.html:11
-#: templates/sentry/partial/client_config/javascript.html:20
+#: templates/sentry/partial/client_config/javascript.html:24
 #: templates/sentry/partial/client_config/node.js.html:23
 #: templates/sentry/partial/client_config/php.html:17
 #: templates/sentry/partial/client_config/python.html:15
@@ -978,7 +999,7 @@ msgid "record a simple message"
 msgstr ""
 
 #: templates/sentry/partial/client_config/java.html:14
-#: templates/sentry/partial/client_config/javascript.html:23
+#: templates/sentry/partial/client_config/javascript.html:27
 #: templates/sentry/partial/client_config/node.js.html:26
 #: templates/sentry/partial/client_config/php.html:20
 #: templates/sentry/partial/client_config/python.html:18
@@ -999,18 +1020,18 @@ msgid ""
 "\"%(jquery)s\">jQuery</a> or <a href=\"%(zepto)s\">Zepto</a>."
 msgstr ""
 
-#: templates/sentry/partial/client_config/javascript.html:7
+#: templates/sentry/partial/client_config/javascript.html:11
 #, python-format
 msgid ""
 "Add the any URLs which will be logging errors in your project's settings "
 "under <a href=\"%(project_link)s#client-security\">Client Security</a>:"
 msgstr ""
 
-#: templates/sentry/partial/client_config/javascript.html:11
+#: templates/sentry/partial/client_config/javascript.html:15
 msgid "Configure the client:"
 msgstr ""
 
-#: templates/sentry/partial/client_config/javascript.html:30
+#: templates/sentry/partial/client_config/javascript.html:34
 #: templates/sentry/partial/client_config/node.js.html:13
 #: templates/sentry/partial/client_config/php.html:28
 msgid ""
@@ -1018,13 +1039,13 @@ msgid ""
 "exceptions:"
 msgstr ""
 
-#: templates/sentry/partial/client_config/javascript.html:34
+#: templates/sentry/partial/client_config/javascript.html:38
 msgid ""
 "Note: This will only work on browsers that properly support <code>window."
 "onerror</code>."
 msgstr ""
 
-#: templates/sentry/partial/client_config/javascript.html:36
+#: templates/sentry/partial/client_config/javascript.html:40
 #, python-format
 msgid ""
 "For more information on other uses of Raven with Ruby, please see the <a "
@@ -1253,23 +1274,24 @@ msgstr ""
 msgid "no owner"
 msgstr ""
 
-#: templates/sentry/projects/client_help.html:7
+#: templates/sentry/projects/client_help.html:5
+#: templates/sentry/projects/client_help.html:9
 #: templates/sentry/projects/manage.html:30
 msgid "Client Configuration"
 msgstr ""
 
-#: templates/sentry/projects/client_help.html:12
+#: templates/sentry/projects/client_help.html:14
 #, python-format
 msgid ""
 "If this is a client that only needs public access (like <a href=\"%(link)s"
 "\">raven-js</a>), you can use the following public DSN:"
 msgstr ""
 
-#: templates/sentry/projects/client_help.html:15
+#: templates/sentry/projects/client_help.html:17
 msgid "Platform Instructions"
 msgstr ""
 
-#: templates/sentry/projects/client_help.html:20
+#: templates/sentry/projects/client_help.html:22
 msgid ""
 "There is no key configured for your account with access to this project."
 msgstr ""
@@ -1377,12 +1399,11 @@ msgid ""
 msgstr ""
 
 #: templates/sentry/projects/docs/client_config.html:5
-#: templates/sentry/projects/docs/client_config.html:10
 #, python-format
 msgid "%(platform_title)s Client Configuration"
 msgstr ""
 
-#: templates/sentry/projects/docs/client_config.html:16
+#: templates/sentry/projects/docs/client_config.html:9
 #, python-format
 msgid "Configuring %(platform_title)s"
 msgstr ""
@@ -1583,43 +1604,43 @@ msgstr ""
 msgid "Queries"
 msgstr ""
 
-#: web/forms/__init__.py:24
+#: web/forms/__init__.py:23
 msgid "Remove all attached events."
 msgstr ""
 
-#: web/forms/__init__.py:25
+#: web/forms/__init__.py:24
 msgid "Migrate events to another project."
 msgstr ""
 
-#: web/forms/__init__.py:29
+#: web/forms/__init__.py:28
 msgid "Password"
 msgstr ""
 
-#: web/forms/__init__.py:29
+#: web/forms/__init__.py:28
 msgid "Confirm your identify by entering your password."
 msgstr ""
 
-#: web/forms/__init__.py:44
+#: web/forms/__init__.py:43
 msgid "You must select a project to migrate data"
 msgstr ""
 
-#: web/forms/__init__.py:57
+#: web/forms/__init__.py:56
 msgid "Your password was entered incorrectly. Please enter it again."
 msgstr ""
 
-#: web/forms/__init__.py:62
+#: web/forms/__init__.py:61
 msgid "e.g. My Project Name"
 msgstr ""
 
-#: web/forms/__init__.py:63
+#: web/forms/__init__.py:62
 msgid "A slug is a URL-safe word and must be unique across all projects."
 msgstr ""
 
-#: web/forms/__init__.py:64
+#: web/forms/__init__.py:63
 msgid "e.g. my-project-name"
 msgstr ""
 
-#: web/forms/__init__.py:80
+#: web/forms/__init__.py:79
 msgid "Allow anyone (even anonymous users) to view this project"
 msgstr ""
 
