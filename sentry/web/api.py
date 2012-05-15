@@ -326,7 +326,6 @@ def chart(request, project=None):
         data = Project.objects.get_chart_data(project, max_days=days)
     else:
         project_list = get_project_list(request.user).values()
-        project_list = Project.objects.all()
         data = Project.objects.get_chart_data_for_group(project_list, max_days=days)
 
     response = HttpResponse(json.dumps(data))
