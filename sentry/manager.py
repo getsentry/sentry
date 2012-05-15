@@ -538,9 +538,16 @@ class GroupManager(BaseManager, ChartMixin):
             'date': normalized_datetime,
         })
 
+        http = event.interfaces.get('sentry.interfaces.Http')
+        if http:
+            url = http.url
+        else:
+            url = None
+
         for key, value in (
                 ('server_name', event.server_name),
                 ('site', event.site),
+                ('url', url),
                 ('logger', event.logger),
             ):
             if not value:
