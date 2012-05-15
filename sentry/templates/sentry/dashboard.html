@@ -20,8 +20,10 @@
             <div class="page-header">
                 <h2>{% trans "Event Frequency" %}</h2>
             </div>
-            <div class="sparkline" data-api-url="{% url sentry-api-chart %}">
-                <span class="loading">{% trans "Loading historical data..." %}</span>
+            <div style="height:200px;">
+                <div id="chart" data-api-url="{% url sentry-api-chart %}">
+                    <span class="loading">{% trans "Loading historical data..." %}</span>
+                </div>
             </div>
             {% if top_event_list %}
                 <div class="page-header">
@@ -86,64 +88,7 @@
 {% block content_after %}
     <script type="text/javascript">
     $(document).ready(function() {
-        $('.sparkline').each(function(_, el){
-            var $el = $(el);
-
-            $.ajax({
-                url: $el.attr('data-api-url'),
-                type: 'get',
-                dataType: 'json',
-                data: {
-                    op: 'chart',
-                    days: 1
-                },
-                success: function(data){
-                    var start = new Date().getTime() - data.length * 3600000;
-                    var chunks = [];
-                    var max = 100;
-                    // for (var i=0; i<1000; i++) {
-                    //     pairs.push([start + (3600 * 1000) * i, Math.random()*1000]);
-                    // }
-                    var pairs = []
-                    var chunk = {
-                        data: pairs,
-                        shadowSize: 0,
-                        lines: {
-                            lineWidth: 1,
-                            show: true,
-                            fill: true
-                        },
-                    };
-                    $.each(data, function(num, val){
-                        pairs.push([start + (3600 * 1000) * num, val]);
-                        if (val > max) {
-                            max = val;
-                        }
-                    });
-                    chunks.push(chunk);
-                    
-                    $.plot($el, chunks, {
-                        xaxis: {
-                           mode: "time"
-                        },
-                        yaxis: {
-                           min: 0,
-                           max: max
-                        },
-                        grid: {
-                            backgroundColor: '#f9f9f9',
-                            borderColor: '#eeeeee',
-                            borderWidth: 1,
-                            tickColor: '#eeeeee',
-                            show: true
-                        },
-                        legend: {
-                            noColumns: 5
-                        }
-                    });
-                }
-            });
-        });
+        Sentry.charts.render('#chart');
     });
     </script>
 {% endblock %}

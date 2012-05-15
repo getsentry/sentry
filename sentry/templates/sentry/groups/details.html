@@ -124,7 +124,7 @@
                         <h2>{% trans "Frequency" %}</h2>
                     </div>
                     <div class="module-content" style="height: 120px;">
-                        <div id="chart">
+                        <div id="chart" data-api-url="{% url sentry-api-chart project_id=project.slug %}" data-group="{{ group.id }}">
                             <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
                             <p>{% trans "Loading..." %}</p>
                         </div>
@@ -140,7 +140,7 @@
 {% block content_after %}
     <script type="text/javascript">
     $(document).ready(function() {
-        Sentry.charts.render("#chart", {{ group.project.id|safe }}, {{ group.id|safe }}, true);
+        Sentry.charts.render("#chart");
     });
     </script>
 {% endblock %}

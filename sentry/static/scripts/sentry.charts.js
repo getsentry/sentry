@@ -3,7 +3,7 @@ if (Sentry === undefined) {
 }
 (function(){
     Sentry.charts = {};
-    Sentry.charts.render = function(el, project_id, group_id, grid){
+    Sentry.charts.render = function(el){
         var $sparkline = $(el);
 
         if ($sparkline.length < 1) {
@@ -11,22 +11,34 @@ if (Sentry === undefined) {
         }
 
         $.ajax({
-            url: Sentry.options.urlPrefix + '/api/' + project_id + '/chart/',
+            url: $sparkline.attr('data-api-url'),
             type: 'get',
             dataType: 'json',
             data: {
                 days: 1,
-                gid: group_id || undefined
+                gid: $sparkline.attr('data-group') || undefined
             },
             success: function(data){
                 var start = new Date().getTime() - data.length * 3600000;
+                var chunks = [];
+                var max = 25;
                 var pairs = [];
-                // for (var i=0; i<1000; i++) {
-                //     pairs.push([start + (3600 * 1000) * i, Math.random()*1000]);
-                // }
-                for (var i=0; i<data.length; i++) {
-                    pairs.push([start + (3600 * 1000) * i, data[i]]);
-                }
+                var chunk = {
+                    data: pairs,
+                    shadowSize: 0,
+                    lines: {
+                        lineWidth: 1,
+                        show: true,
+                        fill: true
+                    }
+                };
+                $.each(data, function(num, val){
+                    pairs.push([start + (3600 * 1000) * num, val]);
+                    if (val > max) {
+                        max = val;
+                    }
+                });
+                chunks.push(chunk);
                 $sparkline.height($sparkline.parent().height());
                 $.plot($sparkline, [
                     {
@@ -44,13 +56,18 @@ if (Sentry === undefined) {
                        mode: "time"
                     },
                     yaxis: {
-                        min: 0
+                       min: 0,
+                       max: max
                     },
                     grid: {
-                        show: grid || false,
-                        borderColor: '#dddddd',
+                        show: true,
+                        backgroundColor: '#f9f9f9',
+                        borderColor: '#eeeeee',
                         borderWidth: 1,
-                        backgroundColor: '#F5F5F5'
+                        tickColor: '#eeeeee'
+                    },
+                    legend: {
+                        noColumns: 5
                     },
                     lines: { show: false }
 
