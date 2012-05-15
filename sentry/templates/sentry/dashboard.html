@@ -17,9 +17,6 @@
 {% block main %}
     <section class="body">
         {% if PROJECT_LIST %}
-            <div class="page-header">
-                <h2>{% trans "Event Frequency" %}</h2>
-            </div>
             <div style="height:200px;">
                 <div id="chart" data-api-url="{% url sentry-api-chart %}">
                     <span class="loading">{% trans "Loading historical data..." %}</span>
