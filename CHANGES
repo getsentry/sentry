@@ -1,3 +1,14 @@
+Version 4.3.0
+-------------
+
+A new global dashboard now exists. The dashboard contains an event graph for all projects which
+you have access to, as well as a list of the top events, and new events.
+
+Additionally:
+
+- API endpoints now properly send no-cache headers.
+- Added a countdown to update buffers.
+
 Version 4.2.0
 -------------
 
