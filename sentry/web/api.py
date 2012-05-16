@@ -22,7 +22,7 @@ from sentry.coreapi import project_from_auth_vars, project_from_id, \
   insert_data_to_database, APIError, APIUnauthorized, extract_auth_vars
 from sentry.models import Group, GroupBookmark, Project, View
 from sentry.utils import json
-from sentry.utils.http import is_same_domain, apply_access_control_headers
+from sentry.utils.http import is_same_domain, is_valid_origin, apply_access_control_headers
 from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
 from sentry.web.helpers import render_to_response, render_to_string, get_project_list
@@ -77,6 +77,13 @@ def store(request, project_id=None):
     else:
         project = None
 
+    if 'HTTP_ORIGIN' in request.META:
+        origin = request.META.get('HTTP_ORIGIN', '')
+        if not is_valid_origin(origin):
+            raise APIError('Invalid origin')
+    else:
+        origin = None
+
     if request.method == 'POST':
         try:
             auth_vars = extract_auth_vars(request)
@@ -100,10 +107,8 @@ def store(request, project_id=None):
             if auth_vars:
                 # We only require a signature if a referrer was not set
                 # (this is restricted via the CORS headers)
-                origin = request.META.get('HTTP_ORIGIN')
-
                 project_ = project_from_auth_vars(auth_vars, data,
-                    require_signature=bool(not origin))
+                    require_signature=bool(origin is None))
 
                 if not project:
                     project = project_
@@ -141,8 +146,8 @@ def store(request, project_id=None):
             response = HttpResponse('')
     else:
         # OPTIONS
-        response = HttpResponse('')
-    return apply_access_control_headers(response, project)
+        response = apply_access_control_headers(HttpResponse(), origin)
+    return response
 
 
 @csrf_exempt

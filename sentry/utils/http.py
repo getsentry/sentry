@@ -5,6 +5,7 @@ sentry.utils.http
 :copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+import itertools
 import urllib
 from urlparse import urlparse
 
@@ -49,21 +50,34 @@ def is_same_domain(url1, url2):
     return url1.netloc == url2.netloc
 
 
-def apply_access_control_headers(response, project=None):
+def is_valid_origin(origin, project=None):
+    (settings.ALLOW_ORIGIN or '').split(' ')
+    if settings.ALLOW_ORIGIN == '*':
+        return True
+
+    origin = origin.lower()
+    if origin in (settings.ALLOW_ORIGIN or '').split(' '):
+        return True
+
+    if not project:
+        return False
+
+    optval = get_option('sentry:origins', project)
+    if not optval:
+        return False
+
+    return origin not in itertools.imap(unicode.lower, unicode(optval))
+
+
+def apply_access_control_headers(response, origin):
     """
     Provides the Access-Control headers to enable cross-site HTTP requests. You
     can find more information about these headers here:
     https://developer.mozilla.org/En/HTTP_access_control#Simple_requests
     """
-    origin = settings.ALLOW_ORIGIN or ''
-    if project and origin is not '*':
-        optval = get_option('sentry:origins', project)
-        if optval:
-            origin = ('%s %s' % (origin, ' '.join(optval))).strip()
-
     if origin:
         response['Access-Control-Allow-Origin'] = origin
         response['Access-Control-Allow-Headers'] = 'X-Sentry-Auth, Authentication'
-        response['Access-Control-Allow-Methods'] = 'POST'
+        response['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
 
     return response
