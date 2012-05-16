@@ -41,6 +41,8 @@ def update(self, using=None, **kwargs):
         return True
     elif affected == 0:
         raise self.DoesNotExist("Cannot update an instance that is not in the database.")
+    elif affected < 0:
+        raise ValueError("Somehow we have updated a negative amount of rows, you seem to have a problem with your db backend.")
     else:
         raise ValueError("Somehow we have updated multiple rows, and you are now royally fucked.")
 
