@@ -51,7 +51,6 @@ def is_same_domain(url1, url2):
 
 
 def is_valid_origin(origin, project=None):
-    (settings.ALLOW_ORIGIN or '').split(' ')
     if settings.ALLOW_ORIGIN == '*':
         return True
 
