@@ -39,6 +39,7 @@ tests_require = [
     'nose==1.1.2',
     'nydus==0.8.2',
     'mock==0.8.0',
+    'pyflakes',
     'pep8',
     'redis',
 ]
@@ -63,6 +64,10 @@ install_requires = [
     'South>=0.7',
 ]
 
+dependency_links = [
+    'https://github.com/dcramer/pyflakes/tarball/master#egg=pyflakes',
+]
+
 setup(
     name='sentry',
     version='4.3.3',
@@ -76,6 +81,7 @@ setup(
     install_requires=install_requires,
     tests_require=tests_require,
     extras_require={'test': tests_require},
+    dependency_links=dependency_links,
     test_suite='runtests.runtests',
     license='BSD',
     include_package_data=True,
