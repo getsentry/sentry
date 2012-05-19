@@ -132,6 +132,16 @@ ALLOW_PUBLIC_PROJECTS = True
 
 # Instructs Sentry to utilize it's queue for background jobs. You will
 # need to ensure that you have workers running if you enable the queue.
+
+# You can also set this to a list of fully qualified job names to only
+# selectively enable the queue:
+# USE_QUEUE = (
+#     'sentry.tasks.store.store_event',
+#     'sentry.tasks.cleanup.cleanup',
+#     'sentry.tasks.index.index_event',
+#     'sentry.tasks.post_process.post_process_group',
+#     'sentry.tasks.process_buffer.process_incr',
+# )
 USE_QUEUE = False
 
 # Instructs Sentry to utilize it's internal search indexer on all incoming
