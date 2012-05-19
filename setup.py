@@ -42,6 +42,7 @@ tests_require = [
     'pyflakes',
     'pep8',
     'redis',
+    'unittest2',
 ]
 
 
