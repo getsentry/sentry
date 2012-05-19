@@ -5,6 +5,7 @@ sentry.web.views
 :copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+import datetime
 import logging
 
 from django.core.urlresolvers import reverse
@@ -219,8 +220,14 @@ def resolve(request, project):
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    Group.objects.filter(pk=group.pk).update(status=1)
+    now = datetime.datetime.now()
+
+    Group.objects.filter(pk=group.pk).update(
+        status=1,
+        resolved_at=now,
+    )
     group.status = 1
+    group.resolved_at = now
 
     data = [
         (m.pk, {

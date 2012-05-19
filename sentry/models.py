@@ -386,6 +386,7 @@ class Group(MessageBase):
     times_seen = models.PositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=datetime.now, db_index=True)
     first_seen = models.DateTimeField(default=datetime.now, db_index=True)
+    resolved_at = models.DateTimeField(null=True, db_index=True)
     time_spent_total = models.FloatField(default=0)
     time_spent_count = models.IntegerField(default=0)
     score = models.IntegerField(default=0)
