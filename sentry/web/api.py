@@ -138,11 +138,11 @@ def store(request, project_id=None):
 
             insert_data_to_database(data)
         except APIError, error:
-            logging.error('Client %r raised API error: %s' % (client, error), exc_info=True)
+            logger.error('Client %r raised API error: %s' % (client, error), exc_info=True)
             response = HttpResponse(unicode(error.msg), status=error.http_status)
         else:
             if request.method == 'POST':
-                logging.info('New event from client %r (id=%%s)' % client, data['event_id'])
+                logger.info('New event from client %r (id=%%s)' % client, data['event_id'])
             response = HttpResponse('')
     else:
         # OPTIONS
