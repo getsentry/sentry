@@ -1,9 +1,13 @@
 Version 4.4.0
 -------------
 
-A new column was added to the ``Group`` model, ``resolved_at``. The column represents the date
-at which the event was "first seen since resolution". The dashboard's "New Events" will now use
-this date rather than the original first seen date on an event.
+Two new columns were added to the ``Group`` model:
+
+- ``resolved_at``: The datetime at which this event was marked as resolved.
+- ``active_at``:  The datetime at which this event was marked as open.
+
+The dashboard's "New Events" will now use the active_at date rather than the original
+first seen date on an event.
 
 Version 4.3.0
 -------------
