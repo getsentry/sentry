@@ -524,23 +524,22 @@ class GroupManager(BaseManager, ChartMixin):
             })
 
         if not is_new:
-            if group.status == STATUS_RESOLVED:
-                # Group has changed from resolved -> unresolved
-                is_new = True
-            silence_timedelta = date - group.last_seen
-            silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
-
             extra = {
                 'last_seen': date,
                 'score': ScoreClause(group),
             }
-            # HACK: this doesnt quite fit with the buffer model, but we need some way to
-            # get this field reasonably accurate when state goes from 1 to 0
-            if group.status != 0:
+            if group.status == STATUS_RESOLVED:
+                # Group has changed from resolved -> unresolved
+                is_new = True
+
+                # HACK: this doesnt quite fit with the buffer model, but we need some way to
                 extra.extra({
                     'active_at': date,
                     'status': 0,
                 })
+
+            silence_timedelta = date - group.last_seen
+            silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
 
             app.buffer.incr(self.model, update_kwargs, {
                 'pk': group.pk,
