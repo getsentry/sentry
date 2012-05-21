@@ -30,12 +30,14 @@ def dashboard(request):
             status=0,
         ).select_related('project').order_by('-score')
 
+        # TODO: change this to calculate the most frequent events in the time period,
+        # not just events seen within the time period that have at one time been frequent
         top_event_list = list(base_qs.filter(
             last_seen__gte=cutoff
         )[:10])
 
         new_event_list = list(base_qs.filter(
-            first_seen__gte=cutoff,
+            resolved_at__gte=cutoff,
         )[:10])
     else:
         top_event_list = None

@@ -386,7 +386,8 @@ class Group(MessageBase):
     times_seen = models.PositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=datetime.now, db_index=True)
     first_seen = models.DateTimeField(default=datetime.now, db_index=True)
-    resolved_at = models.DateTimeField(null=True, db_index=True)
+    # resolved_at should be the same as first_seen by default
+    resolved_at = models.DateTimeField(null=True, db_index=True, default=datetime.now)
     time_spent_total = models.FloatField(default=0)
     time_spent_count = models.IntegerField(default=0)
     score = models.IntegerField(default=0)
@@ -405,6 +406,11 @@ class Group(MessageBase):
 
     def __unicode__(self):
         return "(%s) %s" % (self.times_seen, self.error())
+
+    def save(self, *args, **kwargs):
+        if not self.resolved_at:
+            self.resolved_at = self.first_seen
+        super(Group, self).save(*args, **kwargs)
 
     def get_absolute_url(self):
         if self.project_id:
