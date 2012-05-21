@@ -294,6 +294,9 @@ if (Sentry === undefined) {
     Sentry.getQueryParams = function() {
         var vars = {}, hash;
         var href = window.location.href;
+        if (href.indexOf('?') === -1) {
+          return vars;
+        }
         var hashes = href.slice(href.indexOf('?') + 1, (href.indexOf('#') !== -1 ? href.indexOf('#') : href.length)).split('&');
         $.each(hashes, function(_, chunk){
             hash = chunk.split('=');
