@@ -295,11 +295,13 @@ if (Sentry === undefined) {
         var vars = {}, hash;
         var href = window.location.href;
         var hashes = href.slice(href.indexOf('?') + 1, (href.indexOf('#') !== -1 ? href.indexOf('#') : href.length)).split('&');
-        for(var i = 0; i < hashes.length; i++)
-        {
-            hash = hashes[i].split('=');
-            vars[hash[0]] = decodeURIComponent(hash[1]).replace(/\+/, ' ');
-        }
+        $.each(hashes, function(_, chunk){
+            hash = chunk.split('=');
+            if (!hash[0] && !hash[1]) {
+              return;
+            }
+            vars[hash[0]] = hash[1] ? decodeURIComponent(hash[1]).replace(/\+/, ' ') : '';
+        });
         return vars;
     };
 
@@ -532,6 +534,7 @@ if (Sentry === undefined) {
         data = Sentry.getQueryParams();
         data.view_id = Sentry.realtime.options.viewId || undefined;
         data.cursor = Sentry.realtime.cursor || undefined;
+
         $.ajax({
             url: Sentry.options.urlPrefix + '/api/' + Sentry.realtime.options.projectId + '/poll/',
             type: 'get',

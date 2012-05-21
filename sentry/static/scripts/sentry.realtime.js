@@ -144,6 +144,7 @@ if (Sentry === undefined) {
         data = Sentry.getQueryParams();
         data.view_id = Sentry.realtime.options.viewId || undefined;
         data.cursor = Sentry.realtime.cursor || undefined;
+
         $.ajax({
             url: Sentry.options.urlPrefix + '/api/' + Sentry.realtime.options.projectId + '/poll/',
             type: 'get',
