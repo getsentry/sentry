@@ -530,13 +530,21 @@ class GroupManager(BaseManager, ChartMixin):
             silence_timedelta = date - group.last_seen
             silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
 
-            app.buffer.incr(self.model, update_kwargs, {
-                'pk': group.pk,
-            }, {
-                'status': 0,
+            extra = {
                 'last_seen': date,
                 'score': ScoreClause(group),
-            })
+            }
+            # HACK: this doesnt quite fit with the buffer model, but we need some way to
+            # get this field reasonably accurate when state goes from 1 to 0
+            if group.status != 0:
+                extra.extra({
+                    'active_at': date,
+                    'status': 0,
+                })
+
+            app.buffer.incr(self.model, update_kwargs, {
+                'pk': group.pk,
+            }, extra)
         else:
             # TODO: this update is useless
             group.update(score=ScoreClause(group))

@@ -37,7 +37,7 @@ def dashboard(request):
         )[:10])
 
         new_event_list = list(base_qs.filter(
-            resolved_at__gte=cutoff,
+            active_at__gte=cutoff,
         )[:10])
     else:
         top_event_list = None

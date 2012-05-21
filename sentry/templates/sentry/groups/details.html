@@ -24,6 +24,10 @@
         <dd>{{ group.get_status_display|title }}</dd>
         <dt>{% trans "First Seen:" %}</dt>
         <dd class="pretty-date" title="{{ group.first_seen|date:"c" }}Z">{{ group.first_seen|timesince }}</dd>
+        {% if group.active_at and group.active_at != group.first_seen %}
+            <dt>{% trans "Reopened At:" %}</dt>
+            <dd class="pretty-date" title="{{ group.active_at|date:"c" }}Z">{{ group.active_at|timesince }}</dd>
+        {% endif %}
         <dt>{% trans "Last Seen:" %}</dt>
         <dd class="pretty-date" title="{{ group.last_seen|date:"c" }}Z">{{ group.last_seen|timesince }}</dd>
         <dt>{% trans "Avg Duration:" %}</dt>
