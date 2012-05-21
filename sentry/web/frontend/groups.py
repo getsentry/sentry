@@ -58,10 +58,12 @@ def _get_group_list(request, project, view=None):
 
     event_list = Group.objects
     if request.GET.get('bookmarks'):
-        event_list = event_list.filter(
-            bookmark_set__project=project,
-            bookmark_set__user=request.user,
-        )
+        # Ignore this filter if anon user
+        if not request.user.is_anonymous():
+            event_list = event_list.filter(
+                bookmark_set__project=project,
+                bookmark_set__user=request.user,
+            )
     else:
         event_list = event_list.filter(project=project)
 
