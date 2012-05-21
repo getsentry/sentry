@@ -13,6 +13,7 @@ import itertools
 import urlparse
 
 from django.http import QueryDict
+from django.utils.translation import ugettext_lazy as _
 
 from sentry.web.helpers import render_to_string
 
@@ -90,7 +91,7 @@ class Interface(object):
         return ''
 
     def get_title(self):
-        return self.__class__.__name__
+        return _(self.__class__.__name__)
 
     def get_search_context(self, event):
         """
