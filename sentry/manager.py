@@ -533,7 +533,7 @@ class GroupManager(BaseManager, ChartMixin):
                 is_new = True
 
                 # HACK: this doesnt quite fit with the buffer model, but we need some way to
-                extra.extra({
+                extra.update({
                     'active_at': date,
                     'status': 0,
                 })
