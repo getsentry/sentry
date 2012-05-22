@@ -81,7 +81,7 @@ def store(request, project_id=None):
     if 'HTTP_ORIGIN' in request.META:
         origin = request.META.get('HTTP_ORIGIN', '')
         if not is_valid_origin(origin, project):
-            raise APIError('Invalid origin')
+            return HttpResponse('Invalid origin', status_code=400)
     else:
         origin = None
 
@@ -139,7 +139,7 @@ def store(request, project_id=None):
 
             insert_data_to_database(data)
         except APIError, error:
-            logger.error('Client %r raised API error: %s' % (client, error), exc_info=True)
+            logger.error('Client %r raised API error: %s' % (client, error))
             response = HttpResponse(unicode(error.msg), status=error.http_status)
         else:
             if request.method == 'POST':
