@@ -80,7 +80,7 @@ def store(request, project_id=None):
 
     if 'HTTP_ORIGIN' in request.META:
         origin = request.META.get('HTTP_ORIGIN', '')
-        if not is_valid_origin(origin):
+        if not is_valid_origin(origin, project):
             raise APIError('Invalid origin')
     else:
         origin = None
