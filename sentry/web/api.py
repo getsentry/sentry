@@ -15,7 +15,7 @@ from django.views.decorators.cache import cache_page, never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_cookie
-
+from functools import wraps
 from sentry.conf import settings
 from sentry.exceptions import InvalidData
 from sentry.coreapi import project_from_auth_vars, project_from_id, \
@@ -32,10 +32,37 @@ error_logger = logging.getLogger('sentry.errors.api.http')
 logger = logging.getLogger('sentry.api.http')
 
 
-@csrf_exempt
+def api_method(func):
+    @wraps(func)
+    @csrf_exempt
+    def wrapped(request, project_id=None, *args, **kwargs):
+        if project_id:
+            if project_id.isdigit():
+                lookup_kwargs = {'id': int(project_id)}
+            else:
+                lookup_kwargs = {'slug': project_id}
+            try:
+                project = Project.objects.get_from_cache(**lookup_kwargs)
+            except Project.DoesNotExist:
+                return HttpResponse('Invalid project_id: %r' % project_id, status_code=400)
+        else:
+            project = None
+
+        origin = request.META.get('HTTP_ORIGIN', None)
+        if origin is not None and not is_valid_origin(origin, project):
+            return HttpResponse('Invalid origin: %r' % origin, status_code=400)
+
+        response = func(request, *args, **kwargs)
+        response = apply_access_control_headers(response, origin)
+
+        return response
+    return wrapped
+
+
 @require_http_methods(['POST', 'OPTIONS'])
 @never_cache
-def store(request, project_id=None):
+@api_method
+def store(request, project=None):
     """
     The primary endpoint for storing new events.
 
@@ -66,24 +93,8 @@ def store(request, project_id=None):
     """
     logger.debug('Inbound %r request from %r', request.method, request.META['REMOTE_ADDR'])
     client = '<unknown client>'
-    if project_id:
-        if project_id.isdigit():
-            lookup_kwargs = {'id': int(project_id)}
-        else:
-            lookup_kwargs = {'slug': project_id}
-        try:
-            project = Project.objects.get_from_cache(**lookup_kwargs)
-        except Project.DoesNotExist:
-            raise APIError('Project does not exist')
-    else:
-        project = None
 
-    if 'HTTP_ORIGIN' in request.META:
-        origin = request.META.get('HTTP_ORIGIN', '')
-        if not is_valid_origin(origin, project):
-            return HttpResponse('Invalid origin', status_code=400)
-    else:
-        origin = None
+    origin = request.META.get('HTTP_ORIGIN', None)
 
     if request.method == 'POST':
         try:
@@ -145,8 +156,6 @@ def store(request, project_id=None):
             if request.method == 'POST':
                 logger.info('New event from client %r (id=%%s)' % client, data['event_id'])
             response = HttpResponse('')
-
-    response = apply_access_control_headers(HttpResponse(), origin)
 
     return response
 
