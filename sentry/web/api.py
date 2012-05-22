@@ -145,9 +145,9 @@ def store(request, project_id=None):
             if request.method == 'POST':
                 logger.info('New event from client %r (id=%%s)' % client, data['event_id'])
             response = HttpResponse('')
-    else:
-        # OPTIONS
-        response = apply_access_control_headers(HttpResponse(), origin)
+
+    response = apply_access_control_headers(HttpResponse(), origin)
+
     return response
 
 
