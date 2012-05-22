@@ -96,6 +96,8 @@ def store(request, project=None):
 
     origin = request.META.get('HTTP_ORIGIN', None)
 
+    response = HttpResponse()
+
     if request.method == 'POST':
         try:
             auth_vars = extract_auth_vars(request)
@@ -153,9 +155,7 @@ def store(request, project=None):
             logger.error('Client %r raised API error: %s' % (client, error))
             response = HttpResponse(unicode(error.msg), status=error.http_status)
         else:
-            if request.method == 'POST':
-                logger.info('New event from client %r (id=%%s)' % client, data['event_id'])
-            response = HttpResponse('')
+            logger.info('New event from client %r (id=%%s)' % client, data['event_id'])
 
     return response
 
