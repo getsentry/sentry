@@ -94,8 +94,6 @@ def store(request, project=None):
     logger.debug('Inbound %r request from %r', request.method, request.META['REMOTE_ADDR'])
     client = '<unknown client>'
 
-    origin = request.META.get('HTTP_ORIGIN', None)
-
     response = HttpResponse()
 
     if request.method == 'POST':
@@ -122,7 +120,7 @@ def store(request, project=None):
                 # We only require a signature if a referrer was not set
                 # (this is restricted via the CORS headers)
                 project_ = project_from_auth_vars(auth_vars, data,
-                    require_signature=bool(origin is None))
+                    require_signature=False)
 
                 if not project:
                     project = project_
