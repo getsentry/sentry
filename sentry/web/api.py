@@ -52,7 +52,7 @@ def api_method(func):
         if origin is not None and not is_valid_origin(origin, project):
             return HttpResponse('Invalid origin: %r' % origin, status_code=400)
 
-        response = func(request, *args, **kwargs)
+        response = func(request, project, *args, **kwargs)
         response = apply_access_control_headers(response, origin)
 
         return response
