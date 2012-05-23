@@ -60,7 +60,7 @@ install_requires = [
     'pynliner>=0.4.0',
     'python-dateutil>=1.5.0,<2.0.0',
     'pytz>=2011n',
-    'raven>=1.7.7',
+    'raven>=1.9.0',
     'simplejson>=2.3.0,<2.5.0',
     'South>=0.7',
 ]
