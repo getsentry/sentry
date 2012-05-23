@@ -54,6 +54,9 @@ def is_valid_origin(origin, project=None):
     if settings.ALLOW_ORIGIN == '*':
         return True
 
+    if not origin:
+        return False
+
     origin = origin.lower()
     if origin in (settings.ALLOW_ORIGIN or '').split(' '):
         return True
