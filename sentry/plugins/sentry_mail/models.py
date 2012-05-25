@@ -125,7 +125,7 @@ class MailProcessor(NotifyPlugin):
                 continue
             interface_list.append((interface.get_title(), body))
 
-        subject = '[%s] %s: %s' % (project.name.encode('utf-8'), event.get_level_display().upper(), event.error().encode('utf-8').split('\n')[0])
+        subject = '[%s] %s: %s' % (project.name.encode('utf-8'), event.get_level_display().upper().encode('utf-8'), event.error().encode('utf-8').split('\n')[0])
 
         link = '%s/%s/group/%d/' % (settings.URL_PREFIX, group.project.slug, group.id)
 
