@@ -211,14 +211,12 @@ See :doc:`../interfaces/index` for information on Sentry's builtin interfaces an
 Authentication
 --------------
 
-An authentication header is expected to be sent along with the message body, which acts as both a signature
-for the message, as well as an ownership identifier::
+An authentication header is expected to be sent along with the message body, which acts as as an ownership identifier::
 
     X-Sentry-Auth: Sentry sentry_version=2.0,
-    sentry_client=<client version, arbitrary>]]
-    sentry_timestamp=<signature timestamp>[,
-    sentry_key=<public api key>,[
-    sentry_signature=<hmac signature>,
+    sentry_client=<client version, arbitrary>,
+    sentry_timestamp=<current timestamp>,
+    sentry_key=<public api key>
 
 .. data:: sentry_version
 
@@ -238,18 +236,6 @@ for the message, as well as an ownership identifier::
 
     The public key which should be provided as part of the client configuration
 
-.. data:: sentry_signature
-
-    A SHA1-signed HMAC, for example::
-
-        hmac.new(secret_key, '%s %s' % (timestamp, message), hashlib.sha1).hexdigest()
-
-    The variables which are required within the signing of the message consist of the following:
-
-    - ``secret_key`` is provided as part of the client configuration.
-    - ``timestamp`` is the timestamp of which this message was generated
-    - ``message`` is the encoded JSON body
-
 
 A Working Example
 -----------------
@@ -262,9 +248,8 @@ the path is the BASE_URI/api/store/. So given the following DSN::
 The request body should then somewhat resemble the following::
 
     POST /api/store/
-    X-Sentry-Auth: Sentry sentry_version=2.0, sentry_signature=a3901c854752a61636560638937237c8d7a9561d,
-        sentry_timestamp=1329096377, sentry_key=b70a31b3510c4cf793964a185cfe1fd0,
-        sentry_client=raven-python/1.0
+    X-Sentry-Auth: Sentry sentry_version=2.0, sentry_timestamp=1329096377,
+        sentry_key=b70a31b3510c4cf793964a185cfe1fd0, sentry_client=raven-python/1.0
 
     {
         "project": "default",
