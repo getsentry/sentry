@@ -142,10 +142,10 @@ class MailProcessor(NotifyPlugin):
             'interfaces': interface_list,
         })).run()
         headers = {
-            'X-SENTRY-LOGGER': event.logger,
-            'X-SENTRY-LOGGER-LEVEL': event.get_level_display(),
-            'X-SENTRY-PROJECT': project.name,
-            'X-SENTRY-SERVER': event.server_name,
+            'X-Sentry-Logger': event.logger,
+            'X-Sentry-Logger-Level': event.get_level_display(),
+            'X-Sentry-Project': project.name,
+            'X-Sentry-Server': event.server_name,
         }
 
         self._send_mail(
