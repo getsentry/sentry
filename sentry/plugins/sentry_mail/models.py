@@ -83,11 +83,16 @@ class MailProcessor(NotifyPlugin):
         self.send_to_admins = send_to_admins
         self.subject_prefix = settings.EMAIL_SUBJECT_PREFIX
 
-    def _send_mail(self, subject, body, html_body=None, project=None, fail_silently=False):
+    def _send_mail(self, subject, body, html_body=None, project=None, fail_silently=False, headers=None):
         send_to = self.get_send_to(project)
         subject_prefix = self.get_option('subject_prefix', project) or self.subject_prefix
 
-        msg = EmailMultiAlternatives('%s%s' % (subject_prefix, subject), body, settings.SERVER_EMAIL, send_to)
+        msg = EmailMultiAlternatives(
+            '%s%s' % (subject_prefix, subject),
+            body,
+            settings.SERVER_EMAIL,
+            send_to,
+            headers=headers)
         if html_body:
             msg.attach_alternative(html_body, "text/html")
         msg.send(fail_silently=fail_silently)
@@ -136,6 +141,12 @@ class MailProcessor(NotifyPlugin):
             'link': link,
             'interfaces': interface_list,
         })).run()
+        headers = {
+            'X-SENTRY-LOGGER': event.logger,
+            'X-SENTRY-LOGGER-LEVEL': event.get_level_display(),
+            'X-SENTRY-PROJECT': project.name,
+            'X-SENTRY-SERVER': event.server_name,
+        }
 
         self._send_mail(
             subject=subject,
@@ -143,6 +154,7 @@ class MailProcessor(NotifyPlugin):
             html_body=html_body,
             project=project,
             fail_silently=fail_silently,
+            headers=headers,
         )
 
     def get_option(self, key, project=None):
