@@ -63,6 +63,7 @@ install_requires = [
     'raven>=1.9.0',
     'simplejson>=2.3.0,<2.5.0',
     'South>=0.7',
+    'httpagentparser>=1.0.5'
 ]
 
 dependency_links = [
@@ -71,7 +72,7 @@ dependency_links = [
 
 setup(
     name='sentry',
-    version='4.4.6',
+    version='4.5.0',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/sentry',

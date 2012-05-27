@@ -12,9 +12,11 @@ your ``INSTALLED_APPS``::
 
     INSTALLED_APPS = [
       ...
+      'sentry.plugins.sentry_mail',
       'sentry.plugins.sentry_servers',
       'sentry.plugins.sentry_sites',
       'sentry.plugins.sentry_urls',
+      'sentry.plugins.sentry_useragents',
     ]
 
 .. data:: sentry.plugins.sentry_server
@@ -66,6 +68,20 @@ your ``INSTALLED_APPS``::
         INSTALLED_APPS = [
           'sentry.plugins.sentry_mail',
         ]
+
+.. data:: sentry.plugins.sentry_useragents
+    :noindex:
+
+    Enables a tagging of browsers and operating systems based on the
+    'User-Agent' header in the HTTP interface.
+
+    ::
+
+        INSTALLED_APPS = [
+          'sentry.plugins.sentry_useragents',
+        ]
+
+    .. versionadded:: 4.5.0
 
 Recognized 3rd Party Extensions
 -------------------------------
