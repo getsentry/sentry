@@ -1,0 +1,12 @@
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% if unique_tags %}
+    <h6>{{ title }}</h6>
+
+    <ul>
+        {% for tag_value, times_seen, _, _ in unique_tags %}
+            <li><span class="count">{{ times_seen|small_count }}</span> <a href="{% url sentry group.project.slug %}?{{ tag_name }}={{ tag_value }}">{{ tag_value }}</a></li>
+        {% endfor %}
+    </ul>
+{% endif %}

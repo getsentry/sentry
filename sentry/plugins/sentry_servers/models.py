@@ -7,12 +7,12 @@ sentry.plugins.sentry_servers.models
 """
 import sentry
 
-from django.db.models import Sum
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.filters import Filter
 from sentry.models import Event
-from sentry.plugins import Plugin, register
+from sentry.plugins import register
+from sentry.plugins.bases.tag import TagPlugin
 
 
 class ServerNameFilter(Filter):
@@ -26,7 +26,7 @@ class ServerNameFilter(Filter):
             return queryset.filter(event_set__server_name=self.get_value()).distinct()
 
 
-class ServersPlugin(Plugin):
+class ServersPlugin(TagPlugin):
     """
     Adds additional support for showing information about servers including:
 
@@ -38,30 +38,15 @@ class ServersPlugin(Plugin):
     version = sentry.VERSION
     author = "Sentry Team"
     author_url = "https://github.com/dcramer/sentry"
+    tag = 'server_name'
+    tag_label = _('Server Name')
 
-    def get_unique_servers(self, group):
-        return group.messagefiltervalue_set.filter(key='server_name')\
-                    .values_list('value')\
-                    .annotate(times_seen=Sum('times_seen'))\
-                    .values_list('value', 'times_seen', 'first_seen', 'last_seen')\
-                    .order_by('-times_seen')
-
-    def panels(self, request, group, panel_list, **kwargs):
-        panel_list.append((self.get_title(), self.get_url(group)))
-        return panel_list
-
-    def view(self, request, group, **kwargs):
-        return self.render('sentry/plugins/sentry_servers/index.html', {
-            'unique_servers': self.get_unique_servers(group),
-            'group': group,
-        })
-
-    def widget(self, request, group, **kwargs):
-        return self.render('sentry/plugins/sentry_servers/widget.html', {
-            'unique_servers': list(self.get_unique_servers(group)[:10]),
-            'group': group,
-        })
+    def get_tag_values(self, event):
+        if not event.server_name:
+            return []
+        return [event.server_name]
 
     def get_filters(self, project=None, **kwargs):
         return [ServerNameFilter]
+
 register(ServersPlugin)

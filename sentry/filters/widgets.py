@@ -31,11 +31,14 @@ class TextWidget(Widget):
         ))
 
 
-class ChoiceWidget(Widget):
+class ChoiceWidget(TextWidget):
     allow_any = True
 
     def render(self, value, **kwargs):
         choices = self.filter.get_choices()
+        if len(choices) == self.filter.max_choices:
+            return super(ChoiceWidget, self).render(value, **kwargs)
+
         query_string = self.get_query_string()
         column = self.filter.get_query_param()
 

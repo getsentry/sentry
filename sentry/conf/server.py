@@ -130,10 +130,11 @@ INSTALLED_APPS = (
     'kombu.transport.django',
     'raven.contrib.django',
     'sentry',
-    'sentry.plugins.sentry_servers',
-    'sentry.plugins.sentry_urls',
-    'sentry.plugins.sentry_sites',
     'sentry.plugins.sentry_mail',
+    'sentry.plugins.sentry_servers',
+    'sentry.plugins.sentry_sites',
+    'sentry.plugins.sentry_urls',
+    'sentry.plugins.sentry_useragents',
     'south',
 )
 

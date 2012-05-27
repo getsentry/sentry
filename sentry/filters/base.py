@@ -25,6 +25,7 @@ class Filter(object):
     default = ''
     show_label = True
     types = [Group, Event]
+    max_choices = 26
 
     def __init__(self, request, project):
         self.request = request
@@ -33,28 +34,36 @@ class Filter(object):
     def is_set(self):
         return bool(self.get_value())
 
+    def get_label(self):
+        return self.label
+
+    def get_column(self):
+        return self.column
+
     def get_value(self):
         return self.request.GET.get(self.get_query_param(), self.default) or ''
 
     def get_query_param(self):
-        return getattr(self, 'query_param', self.column)
+        return getattr(self, 'query_param', self.get_column())
 
     def get_widget(self):
         return self.widget(self, self.request)
 
     def get_query_string(self):
-        column = self.column
+        column = self.get_column()
         query_dict = self.request.GET.copy()
         if 'p' in query_dict:
             del query_dict['p']
         if column in query_dict:
-            del query_dict[self.column]
+            del query_dict[column]
         return '?' + query_dict.urlencode()
 
     def get_choices(self):
-        return SortedDict((l, l) for l in FilterValue.objects.filter(project=self.project, key=self.column)\
-                                                     .values_list('value', flat=True)\
-                                                     .order_by('value'))
+        return SortedDict((l, l)
+            for l in FilterValue.objects.filter(
+                project=self.project,
+                key=self.column,
+            ).values_list('value', flat=True).order_by('value')[:self.max_choices])
 
     def get_query_set(self, queryset):
         kwargs = {self.column: self.get_value()}
