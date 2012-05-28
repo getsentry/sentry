@@ -30,7 +30,10 @@ class UserAgentPlugin(TagPlugin):
         ua = httpagentparser.detect(http.headers['User-Agent'])
         if not ua:
             return []
-        return self.get_tag_values_from_ua(ua)
+        result = self.get_tag_from_ua(ua)
+        if not result:
+            return []
+        return [result]
 
 
 class BrowserPlugin(UserAgentPlugin):
@@ -45,8 +48,8 @@ class BrowserPlugin(UserAgentPlugin):
     tag = 'browser'
     tag_label = _('Browser Name')
 
-    def get_tag_values_from_ua(self, ua):
-        return ['%(name)s %(version)s' % ua['browser']]
+    def get_tag_from_ua(self, ua):
+        return '%(name)s %(version)s' % ua['browser']
 
 
 register(BrowserPlugin)
@@ -64,9 +67,9 @@ class OsPlugin(UserAgentPlugin):
     tag = 'os'
     tag_label = _('Operating System')
 
-    def get_tag_values_from_ua(self, ua):
+    def get_tag_from_ua(self, ua):
         if 'flavor' in ua:
-            return ['%(name)s %(version)s' % ua['flavor']]
-        return ['%(name)s %(version)s' % ua['os']]
+            return '%(name)s %(version)s' % ua['flavor']
+        return '%(name)s %(version)s' % ua['os']
 
 register(OsPlugin)
