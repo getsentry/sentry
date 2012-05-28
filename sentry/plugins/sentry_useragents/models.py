@@ -28,6 +28,8 @@ class UserAgentPlugin(TagPlugin):
         if 'User-Agent' not in http.headers:
             return []
         ua = httpagentparser.detect(http.headers['User-Agent'])
+        if not ua:
+            return []
         return self.get_tag_values_from_ua(ua)
 
 
