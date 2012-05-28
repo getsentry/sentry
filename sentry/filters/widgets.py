@@ -37,7 +37,7 @@ class ChoiceWidget(TextWidget):
     def render(self, value, **kwargs):
         choices = self.filter.get_choices()
         if len(choices) == self.filter.max_choices:
-            return super(ChoiceWidget, self).render(value, placeholder=choices.keys()[0], **kwargs)
+            return super(ChoiceWidget, self).render(value, placeholder='.e.g. %s' % choices.keys()[0], **kwargs)
 
         query_string = self.get_query_string()
         column = self.filter.get_query_param()
