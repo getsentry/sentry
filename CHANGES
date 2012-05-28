@@ -1,3 +1,20 @@
+Version 4.5.0
+-------------
+
+Builtin plugins have been refactored to be more concise. This includes changes to the
+servers, urls, and sites plugins. There is also a new builtin plugin::
+
+  sentry.plugins.sentry_useragents
+
+With these changes, it now makes it even easier to create a basic plugin that just handles extra
+"tag"-like data. Take a look at one of the aforementioned plugins for an example.
+
+Additionally:
+
+- The mail plugin now sends additional Sentry-specific headers.
+- Signatures are deprecated, and no longer required.
+- Several fixes regarding CORS support.
+
 Version 4.4.0
 -------------
 
