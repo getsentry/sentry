@@ -67,6 +67,6 @@ class OsPlugin(UserAgentPlugin):
     def get_tag_values_from_ua(self, ua):
         if 'flavor' in ua:
             return ['%(name)s %(version)s' % ua['flavor']]
-        return [ua['os']]
+        return ['%(name)s %(version)s' % ua['os']]
 
 register(OsPlugin)
