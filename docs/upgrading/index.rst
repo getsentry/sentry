@@ -21,7 +21,7 @@ Finally, restart any Sentry services you had running.
 Conflicts with kombu.transport.django
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A recently release of Kombu (2.1.6) added support for South migrations. This means that if you had an older
+A recent release of Kombu (2.1.6) added support for South migrations. This means that if you had an older
 version of Kombu installed, you'll need to "fake" the migrations, as they were already applied.
 
 **You should only do this is you actually receive an error while migrating.**
