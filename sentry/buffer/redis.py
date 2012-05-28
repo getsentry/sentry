@@ -6,6 +6,8 @@ sentry.buffer.redis
 :license: BSD, see LICENSE for more details.
 """
 
+from __future__ import with_statement
+
 from django.db import models
 from hashlib import md5
 from nydus.db import create_cluster
