@@ -140,17 +140,20 @@
         {% get_project_dsn for request.user from project as project_dsn %}
         <ul class="events" id="event_list">
             <li class="empty-result" id="no_messages">
-                <div class="alert alert-block alert-notice">
-                    {% if project_dsn %}
-                        <p>{% trans "To start sending events, configure your client with the following DSN value:" %}</p>
-                        <p><code class="clippy">{{ project_dsn }}</code></p>
-                        <p>{% trans "Choose your platform for quick setup instructions:" %}</p>
-                        {% include "sentry/partial/_client_config.html" %}
-                        <p>{% blocktrans with 'http://sentry.readthedocs.org' as link %}For more information, please see the <a href="{{ link }}">documentation</a>.{% endblocktrans %}</p>
-                    {% else %}
+                {% if project_dsn %}
+                    <div class="page-header">
+                        <h3>Sending Data</h3>
+                    </div>
+                    <p>{% trans "To start sending events, configure your client with the following DSN value:" %}</p>
+                    <p><code class="clippy">{{ project_dsn }}</code></p>
+                    <p>{% trans "Choose your platform for quick setup instructions:" %}</p>
+                    {% include "sentry/partial/_client_config.html" %}
+                    <p>{% blocktrans with 'http://sentry.readthedocs.org' as link %}For more information, please see the <a href="{{ link }}">documentation</a>.{% endblocktrans %}</p>
+                {% else %}
+                    <div class="alert alert-block alert-notice">
                         <p>{% trans "No events match your filters." %}</p>
-                    {% endif %}
-                </div>
+                    </div>
+                {% endif %}
             </li>
         </ul>
     {% endif %}
