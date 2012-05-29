@@ -89,6 +89,8 @@ USE_I18N = True
 # calendars according to the current locale
 USE_L10N = True
 
+USE_TZ = False
+
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = hashlib.md5(socket.gethostname() + ')*)&8a36)6%74e@-ne5(-!8a(vv#tkv)(eyg&@0=zd^pl!7=y@').hexdigest()
 
