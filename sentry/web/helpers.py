@@ -10,6 +10,7 @@ import logging
 
 from django.conf import settings as dj_settings
 from django.core.urlresolvers import reverse, resolve
+from django.db.models import Q
 from django.http import HttpResponse
 from django.template import loader, RequestContext, Context
 from django.utils.datastructures import SortedDict
@@ -34,24 +35,22 @@ def get_project_list(user=None, access=None, hidden=False, key='id'):
     if not hidden:
         base_qs = base_qs.filter(status=0)
 
+    # Collect kwarg queries to filter on. We can use this to perform a single
+    # query to get all of the desired projects ordered by name
+    filters = Q()
+
     # If we're not requesting specific access include all
     # public projects
     if access <= MEMBER_USER:
-        qs = base_qs.filter(public=True)
-        projects = SortedDict((getattr(p, key), p) for p in qs)
-    else:
-        projects = SortedDict()
+        filters |= Q(public=True)
 
     # If the user is authenticated, include their memberships
     if user and user.is_authenticated():
         teams = get_team_list(user, access).values()
-        qs = base_qs.filter(
-            team__in=teams,
-        )
-        projects.update(SortedDict((getattr(p, key), p)
-            for p in qs))
+        filters |= Q(team__in=teams)
 
-    return projects
+    return SortedDict((getattr(p, key), p)
+        for p in base_qs.filter(filters).order_by('name'))
 
 
 def get_team_list(user, access=None):
@@ -68,7 +67,7 @@ def get_team_list(user, access=None):
         member_set__user=user,
         member_set__is_active=True,
         member_set__type__lte=access,
-    )
+    ).order_by('name')
     return SortedDict((p.slug, p) for p in qs)
 
 _LOGIN_URL = None
