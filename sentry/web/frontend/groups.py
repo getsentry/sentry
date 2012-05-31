@@ -77,28 +77,6 @@ def _get_group_list(request, project, view=None):
             logger = logging.getLogger('sentry.filters')
             logger.exception('Error processing filter %r: %s', cls, e)
 
-    sort = request.GET.get('sort')
-    if sort not in SORT_OPTIONS:
-        sort = settings.DEFAULT_SORT_OPTION
-
-    if sort.startswith('accel_') and not has_trending():
-        sort = settings.DEFAULT_SORT_OPTION
-
-    engine = get_db_engine('default')
-    if engine.startswith('sqlite'):
-        sort_clause = SQLITE_SORT_CLAUSES.get(sort)
-    elif engine.startswith('mysql'):
-        sort_clause = MYSQL_SORT_CLAUSES.get(sort)
-    else:
-        sort_clause = SORT_CLAUSES.get(sort)
-
-    if sort == 'tottime':
-        event_list = event_list.filter(time_spent_count__gt=0)
-    elif sort == 'avgtime':
-        event_list = event_list.filter(time_spent_count__gt=0)
-    elif sort.startswith('accel_'):
-        event_list = Group.objects.get_accelerated(event_list, minutes=int(sort.split('_', 1)[1]))
-
     date_from = request.GET.get('df')
     time_from = request.GET.get('tf')
     date_to = request.GET.get('dt')
@@ -123,6 +101,29 @@ def _get_group_list(request, project, view=None):
             event_list = event_list.filter(last_seen__lte=date_to)
         else:
             event_list = event_list.filter(messagecountbyminute__date__lte=date_to)
+
+    sort = request.GET.get('sort')
+    if sort not in SORT_OPTIONS:
+        sort = settings.DEFAULT_SORT_OPTION
+
+    if sort.startswith('accel_') and not has_trending():
+        sort = settings.DEFAULT_SORT_OPTION
+
+    engine = get_db_engine('default')
+    if engine.startswith('sqlite'):
+        sort_clause = SQLITE_SORT_CLAUSES.get(sort)
+    elif engine.startswith('mysql'):
+        sort_clause = MYSQL_SORT_CLAUSES.get(sort)
+    else:
+        sort_clause = SORT_CLAUSES.get(sort)
+
+    # All filters must already be applied once we reach this point
+    if sort == 'tottime':
+        event_list = event_list.filter(time_spent_count__gt=0)
+    elif sort == 'avgtime':
+        event_list = event_list.filter(time_spent_count__gt=0)
+    elif sort.startswith('accel_'):
+        event_list = Group.objects.get_accelerated(event_list, minutes=int(sort.split('_', 1)[1]))
 
     if sort_clause:
         event_list = event_list.extra(
