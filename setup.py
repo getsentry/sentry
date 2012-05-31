@@ -55,6 +55,7 @@ install_requires = [
     'django-paging>=0.2.4',
     'django-picklefield>=0.2.0',
     'django-templatetag-sugar>=0.1.0',
+    'dj-database-url>=0.2.0',
     'gunicorn>=0.13.4,<0.14.0',
     'logan>=0.3.0',
     'pynliner>=0.4.0',

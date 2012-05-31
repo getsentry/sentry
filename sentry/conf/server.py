@@ -15,7 +15,9 @@ import os
 import os.path
 import socket
 import sys
-import urlparse
+
+import dj_database_url
+
 
 DEBUG = False
 TEMPLATE_DEBUG = True
@@ -34,37 +36,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(PROJECT_ROOT, '..')))
 
 CACHE_BACKEND = 'locmem:///'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'sentry.db',
-        'USER': '',
-        'PASSWORD': '',
-        'HOST': '',
-        'PORT': '',
-    }
-}
-
-if 'DATABASE_URL' in os.environ:
-    url = urlparse.urlparse(os.environ['DATABASE_URL'])
-
-    # Ensure default database exists.
-    DATABASES['default'] = DATABASES.get('default', {})
-
-    # Update with environment configuration.
-    DATABASES['default'].update({
-        'NAME': url.path[1:],
-        'USER': url.username,
-        'PASSWORD': url.password,
-        'HOST': url.hostname,
-        'PORT': url.port,
-    })
-    if url.scheme == 'postgres':
-        DATABASES['default']['ENGINE'] = 'django.db.backends.postgresql_psycopg2'
-
-    if url.scheme == 'mysql':
-        DATABASES['default']['ENGINE'] = 'django.db.backends.mysql'
-
+DATABASES = {'default': dj_database_url.config(default='sqlite:///./sentry.db')}
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
