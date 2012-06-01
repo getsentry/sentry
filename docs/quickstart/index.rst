@@ -15,6 +15,26 @@ server.
 This guide will step you through setting up a virtualenv, installing the required packages,
 and configuring the basic web service.
 
+Hardware
+--------
+
+Sentry is designed to scale up (to some extent) as you need it. The primary bottleneck will be your database
+and the level of concurrency you can handle. That said, it's very unlikey you'll ever reach a point where Sentry
+cannot scale on commodity hardware.
+
+We don't have any real numbers to tell you what kind of hardware you're going to need, but we'll help you make
+your decision based on existing usage from real customers.
+
+Our primary point of view for Sentry's requirements is going to be Disqus. As of time of writing, Disqus handles
+almost 2 million events a day on a single physical server, which hosts both the database and the Sentry web
+components. The server runs two quad-core processors and has 16GB physical memory. It also runs standard 10k
+RPM drives. Given the amount of resources available, Sentry barely uses any of it. It's likely that without
+any tweaks to the configuration, the hardware Disqus is on could handle 10 million events/day before it hit
+any real limitations.
+
+That said, Disqus is also not configured in an optimal high-concurrency setup. There are many optimizations
+within Sentry that can help with concurrency, one such optimization is the update buffers (described elsewhere).
+
 Setting up an Environment
 -------------------------
 
