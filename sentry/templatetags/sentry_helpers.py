@@ -22,6 +22,8 @@ from templatetag_sugar.register import tag
 from templatetag_sugar.parser import Name, Variable, Constant, Optional
 
 import datetime
+import hashlib
+import urllib
 
 register = template.Library()
 
@@ -290,3 +292,29 @@ def get_project_dsn(context, user, project, asvar):
         context[asvar] = key.get_dsn()
 
     return ''
+
+
+# Adapted from http://en.gravatar.com/site/implement/images/django/
+# The "mm" default is for the grey, "mystery man" icon. See:
+#   http://en.gravatar.com/site/implement/images/
+@tag(register, [Variable('email'),
+                Optional([Constant('size'), Variable('sizevar')]),
+                Optional([Constant('default'), Variable('defaultvar')])])
+def gravatar_url(context, email, sizevar=None, defaultvar='mm'):
+    # XXX - use request.is_secure() in django 1.4
+    if context['request'].META['wsgi.url_scheme'] == 'https':
+        base = 'https://secure.gravatar.com'
+    else:
+        base = 'http://www.gravatar.com'
+
+    gravatar_url = "%s/avatar/%s" % (base, hashlib.md5(email.lower()).hexdigest())
+
+    properties = {}
+    if sizevar:
+        properties['s'] = str(sizevar)
+    if defaultvar:
+        properties['d'] = defaultvar
+    if properties:
+        gravatar_url += "?" + urllib.urlencode(properties)
+
+    return gravatar_url

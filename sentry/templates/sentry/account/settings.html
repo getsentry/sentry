@@ -1,6 +1,7 @@
 {% extends "sentry/layout.html" %}
 
 {% load i18n %}
+{% load sentry_helpers %}
 
 {% block title %}{% trans "Account Settings" %} | {{ block.super }}{% endblock %}
 
@@ -49,6 +50,13 @@
             {% with form.language as field %}
                 {% include "sentry/partial/_form_field.html" %}
             {% endwith %}
+            <fieldset class="control-group">
+                <label>Avatar</label>
+                <div class="controls">
+                    <img class="avatar" src="{% gravatar_url user.email size 32 %}">
+                    <a href="http://gravatar.com/">Change your avatar at Gravatar.com</a>
+                </div>
+            </fieldset>
             <hr>
             <p>{% trans "You may also optionally change your password." %}</p>
             {% with form.new_password1 as field %}
