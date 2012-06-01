@@ -4456,3 +4456,7 @@ legend {
 #daterange {
   display: none;
 }
+.avatar {
+  vertical-align: middle;
+  border-radius: 3px;
+}
