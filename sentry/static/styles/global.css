@@ -4096,6 +4096,7 @@ footer a {
   padding: 10px 10px 10px 60px;
 }
 .events .event.event-small h3 {
+  margin-top: 2px;
   font-size: 14px;
 }
 .events .event.event-small .count {
