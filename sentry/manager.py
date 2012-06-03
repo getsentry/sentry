@@ -615,16 +615,29 @@ class GroupManager(BaseManager, ChartMixin):
 
         assert minutes >= settings.MINUTE_NORMALIZATION
 
-        queryset = queryset.extra(where=["%s.date >= now() - interval '%s minutes'" % (mcbm_tbl, minutes)]).annotate(x=Sum('messagecountbyminute__times_seen'))
+        queryset = queryset.extra(
+            where=["%s.date >= now() - interval '%s minutes'" % (mcbm_tbl, minutes)],
+        ).annotate(x=Sum('messagecountbyminute__times_seen')).order_by()
+        queryset.query.select_related = False
         sql, params = queryset.query.get_compiler(queryset.db).as_sql()
         before_select, after_select = str(sql).split('SELECT ', 1)
         before_where, after_where = after_select.split(' WHERE ', 1)
         before_group, after_group = after_where.split(' GROUP BY ', 1)
 
         query = """
-        SELECT (SUM(%(mcbm_tbl)s.times_seen) + 1.0) / (COALESCE(z.accel, 0) + 1.0) as accel, z.accel as prev_accel, %(before_where)s
-        LEFT JOIN (SELECT a.group_id, SUM(a.times_seen) / 3.0 as accel FROM %(mcbm_tbl)s as a WHERE a.date BETWEEN now() - interval '%(max_time)s minutes' AND now() - interval '%(min_time)s minutes'
-        GROUP BY a.group_id) as z ON z.group_id = %(mcbm_tbl)s.group_id WHERE %(before_group)s GROUP BY prev_accel, %(after_group)s HAVING SUM(%(mcbm_tbl)s.times_seen) > 0 ORDER BY accel DESC
+        SELECT (SUM(%(mcbm_tbl)s.times_seen) + 1.0) / (COALESCE(z.accel, 0) + 1.0) as accel,
+               z.accel as prev_accel,
+               %(before_where)s
+        LEFT JOIN (SELECT a.group_id, SUM(a.times_seen) / 3.0 as accel
+            FROM %(mcbm_tbl)s as a
+            WHERE a.date BETWEEN now() - interval '%(max_time)s minutes'
+            AND now() - interval '%(min_time)s minutes'
+            GROUP BY a.group_id) as z
+        ON z.group_id = %(mcbm_tbl)s.group_id
+        WHERE %(before_group)s
+        GROUP BY prev_accel, %(after_group)s
+        HAVING SUM(%(mcbm_tbl)s.times_seen) > 0
+        ORDER BY accel DESC
         """ % dict(
             mcbm_tbl=mcbm_tbl,
             before_where=before_where,
@@ -644,8 +657,8 @@ class RawQuerySet(object):
         self.params = params
 
     def __getitem__(self, k):
-        offset = k.start
-        limit = k.stop - k.start
+        offset = k.start or 0
+        limit = k.stop - offset
 
         limit_clause = ' LIMIT %d OFFSET %d' % (limit, offset)
 
