@@ -337,11 +337,11 @@ class ChartMixin(object):
 
         method = get_sql_date_trunc('date', db)
 
-        chart_qs = list(instance.messagecountbyminute_set\
-                          .filter(date__gte=min_date)\
-                          .extra(select={'grouper': method}).values('grouper')\
-                          .annotate(num=Sum('times_seen')).values_list('grouper', 'num')\
-                          .order_by('grouper'))
+        chart_qs = list(instance.messagecountbyminute_set
+                        .filter(date__gte=min_date)
+                        .extra(select={'grouper': method}).values('grouper')
+                        .annotate(num=Sum('times_seen')).values_list('grouper', 'num')
+                        .order_by('grouper'))
 
         rows = dict(chart_qs)
 
@@ -764,7 +764,7 @@ class InstanceMetaManager(BaseManager):
             result = dict(
                 (i.key, i.value) for i in
                 self.filter(**{
-                  self.field_name: instance,
+                    self.field_name: instance,
                 })
             )
             self._metadata[instance.pk] = result
