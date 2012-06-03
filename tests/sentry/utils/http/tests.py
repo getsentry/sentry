@@ -49,7 +49,7 @@ class AccessControlTestCase(TestCase):
             self.assertEqual(response.get('Access-Control-Allow-Origin', None),
                              "http://foo.example")
             self.assertEqual(response.get('Access-Control-Allow-Headers', None),
-                             "*")
+                             "X-Sentry-Auth, Authentication")
             self.assertEqual(response.get('Access-Control-Allow-Methods', None),
                              "POST, OPTIONS")
 
