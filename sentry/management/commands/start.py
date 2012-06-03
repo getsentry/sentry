@@ -20,9 +20,13 @@ class Command(BaseCommand):
             action='store_true',
             dest='debug',
             default=False),
+        make_option('--noupgrade',
+            action='store_false',
+            dest='upgrade',
+            default=True),
     )
 
-    def handle(self, service_name='http', **options):
+    def handle(self, service_name='http', upgrade=True, **options):
         from sentry.services import http, udp
 
         services = {
@@ -33,9 +37,10 @@ class Command(BaseCommand):
         if service_name == 'worker':
             raise CommandError('The ``worker`` service has been replaced with ``celeryd``.')
 
-        # Ensure we perform an upgrade before starting any service
-        print "Performing upgrade before service startup..."
-        call_command('upgrade', verbosity=0)
+        if upgrade:
+            # Ensure we perform an upgrade before starting any service
+            print "Performing upgrade before service startup..."
+            call_command('upgrade', verbosity=0)
 
         try:
             service_class = services[service_name]
