@@ -15,6 +15,9 @@ from sentry.models import Group
 from sentry.web.decorators import login_required
 from sentry.web.helpers import get_project_list, render_to_response, \
   get_login_url
+from sentry.utils.db import has_trending
+
+DASHBOARD_EVENTS = 5
 
 
 @login_required
@@ -30,15 +33,16 @@ def dashboard(request):
             status=0,
         ).select_related('project').order_by('-score')
 
-        # TODO: change this to calculate the most frequent events in the time period,
-        # not just events seen within the time period that have at one time been frequent
-        top_event_list = list(base_qs.filter(
-            last_seen__gte=cutoff
-        )[:10])
+        if has_trending():
+            top_event_list = list(Group.objects.get_accelerated(base_qs, minutes=60 * 24)[:DASHBOARD_EVENTS])
+        else:
+            top_event_list = list(base_qs.filter(
+                last_seen__gte=cutoff
+            )[:DASHBOARD_EVENTS])
 
         new_event_list = list(base_qs.filter(
             active_at__gte=cutoff,
-        )[:10])
+        )[:DASHBOARD_EVENTS])
     else:
         top_event_list = None
         new_event_list = None
