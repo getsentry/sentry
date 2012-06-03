@@ -45,7 +45,11 @@ watch:
 test:
 	pep8 --exclude=migrations --ignore=E501,E225,E121,E123,E124,E125,E127,E128 sentry || exit 1
 	pyflakes -x W sentry || exit 1
+	python setup.py test
+
+coverage:
 	coverage run --include=sentry/* setup.py test && \
 	coverage html --omit=*/migrations/* -d cover
+
 
 .PHONY: build watch
