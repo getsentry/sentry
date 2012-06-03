@@ -694,8 +694,9 @@ footer a{color:#fff;font-weight:bold;}
 .events .event.level-fatal .count{background:#f0431c;}
 .events .event.resolved h3{text-decoration:line-through;}
 .events .event.resolved .count{opacity:0.5;filter:alpha(opacity=50);}
-.events .event.event-small{min-height:30px;padding:10px 10px 10px 60px;}.events .event.event-small h3{margin-top:2px;font-size:14px;}
-.events .event.event-small .count{left:10px;font-size:11px;width:40px;height:30px;line-height:32px;-webkit-border-radius:10px;-moz-border-radius:10px;border-radius:10px;}
+.events .event.event-small{min-height:30px;padding:8px 10px 8px 60px;}.events .event.event-small h3{margin:0;font-size:14px;line-height:16px;}
+.events .event.event-small .message{font-size:12px;}
+.events .event.event-small .count{left:10px;font-size:12px;width:36px;height:36px;line-height:38px;-webkit-border-radius:36px;-moz-border-radius:36px;border-radius:36px;}
 .events .event.event-small .meta{right:10px;}
 .events .event.event-small .tag,.events .event.event-small .meta{font-size:11px;}
 label{font-weight:bold;}
@@ -765,3 +766,6 @@ legend{margin-bottom:18px;}
 .datepicker-box .submit .help-block{margin-top:0;padding-top:5px;}
 #daterange{display:none;}
 .avatar{vertical-align:middle;border-radius:3px;}
+.nav-pills>li.active>a{background-color:#70ace6;}
+.nav-small.nav-pills>li>a{padding:5px 8px;font-size:12px;}
+.page-header h3.pull-left{margin-right:10px;}

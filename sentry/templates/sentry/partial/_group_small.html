@@ -14,6 +14,9 @@
                 {% endif %}
             </a>
         </h3>
+        <p class="message" title="{{ group.message }}">
+            {{ group.error }}
+        </p>
         <div class="meta">
             <span class="last-seen pretty-date" title="{{ group.last_seen|date:"c" }}Z">{{ group.last_seen|timesince }}</span>
             {% if group.avg_time_spent %}

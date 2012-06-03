@@ -24,7 +24,12 @@
             </div>
             {% if top_event_list %}
                 <div class="page-header">
-                    <h3>{% trans "Top Events" %} <small>{% trans "Today" %}</small></h3>
+                    <h3 class="pull-left">{% trans "Trends" %}</h3>
+                    <ul class="nav nav-pills nav-small">
+                        <li class="active"><a href="#">{% trans "15 minutes" %}</a></li>
+                        <li><a href="#">{% trans "60 minutes" %}</a></li>
+                        <li><a href="#">{% trans "24 hours" %}</a></li>
+                    </ul>
                 </div>
                 <ul class="events" id="event_list">
                     {% for group in top_event_list %}
@@ -32,9 +37,14 @@
                     {% endfor %}
                 </ul>
             {% endif %}
-            <div class="page-header">
-                <h3>{% trans "New Events" %} <small>{% trans "Today" %}</small></h3>
-            </div>
+                <div class="page-header">
+                    <h3 class="pull-left">{% trans "New Events" %}</h3>
+                    <ul class="nav nav-pills nav-small">
+                        <li class="active"><a href="#">{% trans "15 minutes" %}</a></li>
+                        <li><a href="#">{% trans "60 minutes" %}</a></li>
+                        <li><a href="#">{% trans "24 hours" %}</a></li>
+                    </ul>
+                </div>
             {% if new_event_list %}
                 <ul class="events" id="event_list">
                     {% for group in new_event_list %}

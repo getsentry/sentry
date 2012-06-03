@@ -462,20 +462,25 @@ footer {
 
     &.event-small {
       min-height: 30px;
-      padding: 10px 10px 10px 60px;
+      padding: 8px 10px 8px 60px;
 
       h3 {
-        margin-top: 2px;
+        margin: 0;
         font-size: 14px;
+        line-height: 16px;
+      }
+
+      .message {
+        font-size: 12px;
       }
 
       .count {
         left: 10px;
-        font-size: 11px;
-        width: 40px;
-        height: 30px;
-        line-height: 32px;
-        .border-radius(10px);
+        font-size: 12px;
+        width: 36px;
+        height: 36px;
+        line-height: 38px;
+        .border-radius(36px);
       }
 
       .meta {
@@ -799,4 +804,19 @@ legend {
 .avatar {
   vertical-align: middle;
   border-radius: 3px;
+}
+
+
+.nav-pills > li.active > a {
+  background-color: lighten(@linkColor, 10%);
+}
+.nav-small {
+  &.nav-pills > li > a {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+}
+
+.page-header h3.pull-left {
+  margin-right: 10px;
 }
