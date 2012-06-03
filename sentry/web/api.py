@@ -22,7 +22,9 @@ from sentry.coreapi import project_from_auth_vars, project_from_id, \
   decode_and_decompress_data, safely_load_json_string, validate_data, \
   insert_data_to_database, APIError, APIUnauthorized, extract_auth_vars
 from sentry.models import Group, GroupBookmark, Project, View
+from sentry.templatetags.sentry_helpers import as_bookmarks
 from sentry.utils import json
+from sentry.utils.db import has_trending
 from sentry.utils.http import is_same_domain, is_valid_origin, apply_access_control_headers
 from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
@@ -30,6 +32,26 @@ from sentry.web.helpers import render_to_response, render_to_string, get_project
 
 error_logger = logging.getLogger('sentry.errors.api.http')
 logger = logging.getLogger('sentry.api.http')
+
+
+def transform_groups(request, group_list, template='sentry/partial/_group.html'):
+    return [
+        {
+            'id': m.pk,
+            'html': render_to_string(template, {
+                'group': m,
+                'request': request,
+                'is_bookmarked': b,
+            }).strip(),
+            'title': m.message_top(),
+            'message': m.error(),
+            'level': m.get_level_display(),
+            'logger': m.logger,
+            'count': m.times_seen,
+            'score': getattr(m, 'sort_value', None),
+        }
+        for m, b in as_bookmarks(group_list, request.user)
+    ]
 
 
 def api_method(func):
@@ -171,7 +193,6 @@ def notification(request, project):
 @has_access
 @never_cache
 def poll(request, project):
-    from sentry.templatetags.sentry_helpers import as_bookmarks
     from sentry.templatetags.sentry_plugins import handle_before_events
 
     offset = 0
@@ -196,21 +217,7 @@ def poll(request, project):
     event_list = list(event_list[offset:limit])
     handle_before_events(request, event_list)
 
-    data = [
-        {
-            'id': m.pk,
-            'html': render_to_string('sentry/partial/_group.html', {
-                'group': m,
-                'request': request,
-                'is_bookmarked': b,
-            }).strip(),
-            'title': m.message_top(),
-            'message': m.error(),
-            'level': m.get_level_display(),
-            'logger': m.logger,
-            'count': m.times_seen,
-            'score': getattr(m, 'sort_value', None),
-        } for m, b in as_bookmarks(event_list, request.user)]
+    data = transform_groups(request, event_list)
 
     response = HttpResponse(json.dumps(data))
     response['Content-Type'] = 'application/json'
@@ -238,14 +245,7 @@ def resolve(request, project):
     group.status = 1
     group.resolved_at = now
 
-    data = [
-        (m.pk, {
-            'html': render_to_string('sentry/partial/_group.html', {
-                'group': m,
-                'request': request,
-            }).strip(),
-            'count': m.times_seen,
-        }) for m in [group]]
+    data = transform_groups(request, [group])
 
     response = HttpResponse(json.dumps(data))
     response['Content-Type'] = 'application/json'
@@ -351,4 +351,70 @@ def chart(request, project=None):
 
     response = HttpResponse(json.dumps(data))
     response['Content-Type'] = 'application/json'
+    return response
+
+
+@never_cache
+@csrf_exempt
+@has_access
+def get_group_trends(request, project=None):
+    minutes = int(request.REQUEST.get('minutes', 15))
+    limit = min(100, int(request.REQUEST.get('limit', 10)))
+
+    if project:
+        project_list = [project]
+    else:
+        project_list = get_project_list(request.user).values()
+
+    cutoff = datetime.timedelta(minutes=minutes)
+    cutoff_dt = datetime.datetime.now() - cutoff
+
+    base_qs = Group.objects.filter(
+        project__in=project_list,
+        status=0,
+    ).select_related('project').order_by('-score')
+
+    if has_trending():
+        group_list = list(Group.objects.get_accelerated(base_qs, minutes=(
+            (cutoff.days * 1440) + (cutoff.seconds * 60)
+        ))[:limit])
+    else:
+        group_list = list(base_qs.filter(
+            last_seen__gte=cutoff_dt
+        )[:limit])
+
+    data = transform_groups(request, group_list, template='sentry/partial/_group_small.html')
+
+    response = HttpResponse(json.dumps(data))
+    response['Content-Type'] = 'application/json'
+
+    return response
+
+
+@never_cache
+@csrf_exempt
+@has_access
+def get_new_groups(request, project=None):
+    minutes = int(request.REQUEST.get('minutes', 15))
+    limit = min(100, int(request.REQUEST.get('limit', 10)))
+
+    if project:
+        project_list = [project]
+    else:
+        project_list = get_project_list(request.user).values()
+
+    cutoff = datetime.timedelta(minutes=minutes)
+    cutoff_dt = datetime.datetime.now() - cutoff
+
+    group_list = Group.objects.filter(
+        project__in=project_list,
+        status=0,
+        active_at__gte=cutoff_dt,
+    ).select_related('project').order_by('-score')[:limit]
+
+    data = transform_groups(request, group_list, template='sentry/partial/_group_small.html')
+
+    response = HttpResponse(json.dumps(data))
+    response['Content-Type'] = 'application/json'
+
     return response

@@ -120,6 +120,8 @@ urlpatterns = patterns('',
     url(r'^api/(?P<project_id>[\w_-]+)/clear/$', api.clear, name='sentry-api-clear'),
     url(r'^api/(?:(?P<project_id>[\w_-]+)/)?chart/$', api.chart, name='sentry-api-chart'),
     url(r'^api/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/remove/$', api.remove_group, name='sentry-api-remove-group'),
+    url(r'^api/(?:(?P<project_id>[\w_-]+)/)?groups/trends/$', api.get_group_trends, name='sentry-api-groups-trends'),
+    url(r'^api/(?:(?P<project_id>[\w_-]+)/)?groups/newest/$', api.get_new_groups, name='sentry-api-groups-new'),
 
     # Project specific
 
