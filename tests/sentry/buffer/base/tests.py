@@ -40,4 +40,4 @@ class BufferTest(TestCase):
         self.buf.process(Group, columns, filters, {'last_seen': the_date})
         group_ = Group.objects.get(pk=group.pk)
         self.assertEquals(group_.times_seen, group.times_seen + 1)
-        self.assertEquals(group_.last_seen, the_date)
+        self.assertEquals(group_.last_seen.replace(microsecond=0), the_date)

@@ -203,7 +203,7 @@ class SentryManagerTest(TestCase):
         group = Group.objects.get(pk=event.group_id)
 
         self.assertEquals(group.times_seen, 2)
-        self.assertEquals(group.last_seen, event.datetime.replace(microsecond=0))
+        self.assertEquals(group.last_seen.replace(microsecond=0), event.datetime.replace(microsecond=0))
 
     def test_get_accelerrated(self):
         if not has_trending():

@@ -110,4 +110,4 @@ class RedisBufferTest(TestCase):
         self.buf.conn.hset('extra', 'last_seen', pickle.dumps(the_date))
         self.buf.process(Group, columns, filters)
         group_ = Group.objects.get(pk=group.pk)
-        self.assertEquals(group_.last_seen, the_date)
+        self.assertEquals(group_.last_seen.replace(microsecond=0), the_date)
