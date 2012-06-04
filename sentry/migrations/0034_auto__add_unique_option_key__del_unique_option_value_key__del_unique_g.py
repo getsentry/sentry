@@ -26,12 +26,6 @@ class Migration(SchemaMigration):
         except:
             pass
 
-        # Adding unique constraint on 'GroupMeta', fields ['group', 'key']
-        try:
-            db.create_unique('sentry_groupmeta', ['group_id', 'key'])
-        except:
-            pass
-
         # Adding unique constraint on 'ProjectOption', fields ['project', 'key']
         try:
             db.create_unique('sentry_projectoptions', ['project_id', 'key'])
@@ -43,9 +37,6 @@ class Migration(SchemaMigration):
 
         # Removing unique constraint on 'ProjectOption', fields ['project', 'key']
         db.delete_unique('sentry_projectoptions', ['project_id', 'key'])
-
-        # Removing unique constraint on 'GroupMeta', fields ['group', 'key']
-        db.delete_unique('sentry_groupmeta', ['group_id', 'key'])
 
         # Adding unique constraint on 'Option', fields ['value', 'key']
         db.create_unique('sentry_option', ['value', 'key'])

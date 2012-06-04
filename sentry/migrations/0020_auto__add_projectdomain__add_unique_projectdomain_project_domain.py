@@ -19,20 +19,6 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'ProjectDomain', fields ['project', 'domain']
         db.create_unique('sentry_projectdomain', ['project_id', 'domain'])
 
-        sid = transaction.savepoint()
-        try:
-            # Adding index on 'Message', fields ['checksum']
-            db.create_index('sentry_message', ['checksum'])
-        except:
-            transaction.savepoint_rollback(sid)
-
-        sid = transaction.savepoint()
-        try:
-            # Adding index on 'Message', fields ['checksum']
-            db.create_index('sentry_groupedmessage', ['checksum'])
-        except:
-            transaction.savepoint_rollback(sid)
-
     def backwards(self, orm):
 
         # Removing unique constraint on 'ProjectDomain', fields ['project', 'domain']
