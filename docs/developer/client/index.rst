@@ -1,9 +1,9 @@
 Writing a Client
 ================
 
-A client at it's core is simply a set of utilities for capturing various
+A client at its core is simply a set of utilities for capturing various
 logging parameters. Given these parameters, it then builds a JSON payload
-which it will send to a the Sentry server, using some sort of authentication
+which it will send to a Sentry server using some sort of authentication
 method.
 
 Generally, a client consists of three steps to the end user, which should look
@@ -59,7 +59,7 @@ that they've misconfigured the client.
 Building the JSON Packet
 ------------------------
 
-The body of the post is a string representation of a JSON object. It is also preferabblly gzipped encoding,
+The body of the post is a string representation of a JSON object. It is also preferably gzipped encoding,
 which also means its expected to be base64-encoded.
 
 For example, with an included Exception event, a basic JSON body might resemble the following::
@@ -81,7 +81,7 @@ The following attributes are required for all events:
 
 .. data:: project
 
-    Integer value representing the project ID
+    String value representing the project
 
     ::
 
@@ -131,7 +131,7 @@ The following attributes are required for all events:
 
     Defaults to ``logging.ERROR``.
 
-    The value can either be the integar value or the string label
+    The value can either be the integer value or the string label
     as specified in ``SENTRY_LOG_LEVELS``.
 
     ::
@@ -224,7 +224,7 @@ An authentication header is expected to be sent along with the message body, whi
 
 .. data:: sentry_client
 
-    An arbitrary string which identifies your client, including it's version.
+    An arbitrary string which identifies your client, including its version.
 
     For example, the Python client might send this as "raven-python/1.0"
 
