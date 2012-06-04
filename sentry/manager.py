@@ -615,14 +615,23 @@ class GroupManager(BaseManager, ChartMixin):
 
         assert minutes >= settings.MINUTE_NORMALIZATION
 
+        engine = get_db_engine(queryset.db)
+        if engine.startswith('mysql'):
+            minute_clause = "interval %s minute"
+        else:
+            minute_clause = "interval '%s minutes'"
+
         queryset = queryset.extra(
-            where=["%s.date >= now() - interval '%s minutes'" % (mcbm_tbl, minutes)],
-        ).annotate(x=Sum('messagecountbyminute__times_seen')).order_by()
-        queryset.query.select_related = False
+            where=["%s.date >= now() - %s" % (mcbm_tbl, minute_clause % (minutes, ))],
+        ).annotate(x=Sum('messagecountbyminute__times_seen')).order_by('id')
+
         sql, params = queryset.query.get_compiler(queryset.db).as_sql()
         before_select, after_select = str(sql).split('SELECT ', 1)
         before_where, after_where = after_select.split(' WHERE ', 1)
         before_group, after_group = after_where.split(' GROUP BY ', 1)
+
+        # Ensure we remove any ordering clause
+        after_group = after_group.split(' ORDER BY ')[0]
 
         query = """
         SELECT (SUM(%(mcbm_tbl)s.times_seen) + 1.0) / (COALESCE(z.accel, 0) + 1.0) as accel,
@@ -630,8 +639,8 @@ class GroupManager(BaseManager, ChartMixin):
                %(before_where)s
         LEFT JOIN (SELECT a.group_id, SUM(a.times_seen) / 3.0 as accel
             FROM %(mcbm_tbl)s as a
-            WHERE a.date BETWEEN now() - interval '%(max_time)s minutes'
-            AND now() - interval '%(min_time)s minutes'
+            WHERE a.date BETWEEN now() - %(min_time)s
+            AND now() - %(min_time)s
             GROUP BY a.group_id) as z
         ON z.group_id = %(mcbm_tbl)s.group_id
         WHERE %(before_group)s
@@ -643,10 +652,9 @@ class GroupManager(BaseManager, ChartMixin):
             before_where=before_where,
             before_group=before_group,
             after_group=after_group,
-            min_time=minutes + 1,
-            max_time=minutes * 4,
+            min_time=minute_clause % (minutes + 1,),
+            max_time=minute_clause % (minutes * 4,),
         )
-
         return RawQuerySet(self, query, params)
 
 
