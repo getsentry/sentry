@@ -81,12 +81,12 @@ The following attributes are required for all events:
 
 .. data:: project
 
-    Integer value representing the project ID
+    String value representing the project
 
     ::
 
         {
-            "project": "3"
+            "project": "default"
         }
 
 .. data:: event_id
