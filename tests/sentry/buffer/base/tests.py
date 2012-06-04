@@ -35,7 +35,8 @@ class BufferTest(TestCase):
         group = Group.objects.create(project=Project(id=1))
         columns = {'times_seen': 1}
         filters = {'pk': group.pk}
-        the_date = datetime.now() + timedelta(days=5)
+        # strip micrseconds because MySQL doesnt seem to handle them correctly
+        the_date = (datetime.now() + timedelta(days=5)).replace(microsecond=0)
         self.buf.process(Group, columns, filters, {'last_seen': the_date})
         group_ = Group.objects.get(pk=group.pk)
         self.assertEquals(group_.times_seen, group.times_seen + 1)

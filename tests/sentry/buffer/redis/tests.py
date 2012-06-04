@@ -105,7 +105,7 @@ class RedisBufferTest(TestCase):
         group = Group.objects.create(project=Project(id=1))
         columns = {'times_seen': 1}
         filters = {'pk': group.pk}
-        the_date = datetime.now() + timedelta(days=5)
+        the_date = (datetime.now() + timedelta(days=5)).replace(microsecond=0)
         self.buf.conn.set('foo', 1)
         self.buf.conn.hset('extra', 'last_seen', pickle.dumps(the_date))
         self.buf.process(Group, columns, filters)

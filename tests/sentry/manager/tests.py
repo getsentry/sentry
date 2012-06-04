@@ -5,9 +5,10 @@ from __future__ import absolute_import
 import datetime
 import mock
 
+from sentry.conf import settings
 from sentry.interfaces import Interface
-from sentry.models import Event, Group, Project, MessageCountByMinute, ProjectCountByMinute, \
-  FilterValue, MessageFilterValue
+from sentry.models import Event, Group, Project, MessageCountByMinute, ProjectCountByMinute
+from sentry.utils.db import has_trending
 
 from tests.base import TestCase
 
@@ -202,4 +203,12 @@ class SentryManagerTest(TestCase):
         group = Group.objects.get(pk=event.group_id)
 
         self.assertEquals(group.times_seen, 2)
-        self.assertEquals(group.last_seen, event.datetime)
+        self.assertEquals(group.last_seen, event.datetime.replace(microsecond=0))
+
+    def test_get_accelerrated(self):
+        if not has_trending():
+            return
+        group = Group.objects.from_kwargs(1, message='foo', checksum='a' * 32).group
+        group_list = list(Group.objects.get_accelerated(Group.objects.all(), minutes=settings.MINUTE_NORMALIZATION)[0:100])
+        self.assertEquals(len(group_list), 1)
+        self.assertEquals(group_list[0], group)
