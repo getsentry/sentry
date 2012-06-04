@@ -34,7 +34,7 @@ except ImportError:
     pass
 
 tests_require = [
-    'django-nose==0.1.3',
+    'django-nose==1.1',
     'eventlet==0.9.16',
     'nose==1.1.2',
     'nydus==0.8.2',
