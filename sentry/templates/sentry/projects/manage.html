@@ -72,7 +72,7 @@
                 </fieldset>
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
-                    {% if PROJECT_ID != project.pk %}
+                    {% if not project.is_default_project %}
                         <a href="{% url sentry-remove-project project.slug %}" class="btn btn-danger">{% trans "Remove Project" %}</a>
                     {% else %}
                         <a href="#" class="btn disabled btn-danger">{% trans "Cannot remove default project" %}</a>

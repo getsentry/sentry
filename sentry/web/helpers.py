@@ -104,7 +104,7 @@ def get_default_context(request, existing_context=None):
     context = {
         'HAS_SEARCH': settings.USE_SEARCH,
         'MESSAGES_PER_PAGE': settings.MESSAGES_PER_PAGE,
-        'PROJECT_ID': int(settings.PROJECT),
+        'PROJECT_ID': str(settings.PROJECT),
         'VIEWS': list(View.objects.all()),
         'URL_PREFIX': settings.URL_PREFIX,
         'PLUGINS': plugins,

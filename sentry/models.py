@@ -212,6 +212,9 @@ class Project(Model):
             fv.delete()
         self.delete()
 
+    def is_default_project(self):
+        return str(self.id) == str(settings.PROJECT) or str(self.slug) == str(settings.PROJECT)
+
 
 class ProjectKey(Model):
     project = models.ForeignKey(Project, related_name='key_set')
@@ -716,16 +719,14 @@ def create_default_project(created_models, verbosity=2, **kwargs):
         except IndexError:
             owner = None
 
-        project, created = Project.objects.get_or_create(
-            id=1,
-            defaults=dict(
-                public=True,
-                name='Default',
-                owner=owner,
-            )
-        )
-        if not created:
+        if Project.objects.exists():
             return
+
+        project = Project.objects.create(
+            public=True,
+            name='Default',
+            owner=owner,
+        )
 
         if verbosity > 0:
             print 'Created default Sentry project owned by %s' % owner

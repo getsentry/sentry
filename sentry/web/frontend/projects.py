@@ -56,7 +56,7 @@ def new_project(request):
 @has_access(MEMBER_OWNER)
 @csrf_protect
 def remove_project(request, project):
-    if str(project.id) == str(settings.PROJECT):
+    if project.is_default_project():
         return HttpResponseRedirect(reverse('sentry-project-list'))
 
     if not can_remove_project(request.user, project):
