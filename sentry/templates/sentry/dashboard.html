@@ -22,27 +22,29 @@
                     <span class="loading">{% trans "Loading historical data..." %}</span>
                 </div>
             </div>
-            {% if top_event_list %}
-                <div class="page-header">
-                    <h3 class="pull-left">{% trans "Trends" %}</h3>
-                    <ul class="nav nav-pills nav-small">
-                        <li><a href="#top_15m" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends %}?minutes=15&amp;limit=5">{% trans "15 minutes" %}</a></li>
-                        <li><a href="#top_60m" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends %}?minutes=60&amp;limit=5">{% trans "60 minutes" %}</a></li>
-                        <li class="active"><a href="#top_24h" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends %}?minutes=1440&amp;limit=5">{% trans "24 hours" %}</a></li>
-                    </ul>
-                </div>
-                <div class="tab-content">
-                    <div class="tab-pane active" id="top_15m">
+            <div class="page-header">
+                <h3 class="pull-left">{% trans "Trends" %}</h3>
+                <ul class="nav nav-pills nav-small">
+                    <li><a href="#top_15m" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends %}?minutes=15&amp;limit=5">{% trans "15 minutes" %}</a></li>
+                    <li><a href="#top_60m" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends %}?minutes=60&amp;limit=5">{% trans "60 minutes" %}</a></li>
+                    <li class="active"><a href="#top_24h" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends %}?minutes=1440&amp;limit=5">{% trans "24 hours" %}</a></li>
+                </ul>
+            </div>
+            <div class="tab-content">
+                <div class="tab-pane active" id="top_15m">
+                    {% if top_event_list %}
                         <ul class="events">
                             {% for group in top_event_list %}
                                 {% include "sentry/partial/_group_small.html" %}
                             {% endfor %}
                         </ul>
-                    </div>
-                    <div class="tab-pane" id="top_60m"></div>
-                    <div class="tab-pane" id="top_24h"></div>
+                    {% else %}
+                        <p>{% trans "No unresolved events are listed in the time period selected." %}</p>
+                    {% endif %}
                 </div>
-            {% endif %}
+                <div class="tab-pane" id="top_60m"></div>
+                <div class="tab-pane" id="top_24h"></div>
+            </div>
             <div class="page-header">
                 <h3 class="pull-left">{% trans "New Events" %}</h3>
                 <ul class="nav nav-pills nav-small">
@@ -60,7 +62,7 @@
                             {% endfor %}
                         </ul>
                     {% else %}
-                        <p>{% trans "No unresolved events are available for the last 24 hours." %}</p>
+                        <p>{% trans "No unresolved events are listed in the time period selected." %}</p>
                     {% endif %}
                 </div>
                 <div class="tab-pane" id="new_60m"></div>
@@ -127,11 +129,15 @@
                 url: uri,
                 dataType: 'json',
                 success: function(data){
-                    var $ul = $('<ul class="events"></ul>');
-                    $.each(data, function(_, group){
-                        $ul.append($(group.html));
-                    });
-                    $cont.html($ul);
+                    if (data.length) {
+                        var $ul = $('<ul class="events"></ul>');
+                        $.each(data, function(_, group){
+                            $ul.append($(group.html));
+                        });
+                        $cont.html($ul);
+                    } else {
+                        $cont.html('<p>{% trans "No unresolved events are listed in the time period selected." %}</p>');
+                    }
                     $parent.css('opacity', 1)
                     $tab.tab('show');
                 }
