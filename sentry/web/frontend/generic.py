@@ -5,19 +5,13 @@ sentry.web.frontend.generic
 :copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-import datetime
-
 from django.http import HttpResponseRedirect, Http404, HttpResponseNotModified, \
   HttpResponse
 
 from sentry.conf import settings
-from sentry.models import Group
 from sentry.web.decorators import login_required
 from sentry.web.helpers import get_project_list, render_to_response, \
   get_login_url
-from sentry.utils.db import has_trending
-
-DASHBOARD_EVENTS = 5
 
 
 @login_required
@@ -26,30 +20,7 @@ def dashboard(request):
     if len(project_list) == 0 and not request.user.is_authenticated():
         return HttpResponseRedirect(get_login_url())
 
-    if project_list:
-        cutoff = datetime.datetime.now() - datetime.timedelta(days=1)
-        base_qs = Group.objects.filter(
-            project__in=project_list.values(),
-            status=0,
-        ).select_related('project').order_by('-score')
-
-        if has_trending():
-            top_event_list = list(Group.objects.get_accelerated(base_qs, minutes=60 * 24)[:DASHBOARD_EVENTS])
-        else:
-            top_event_list = list(base_qs.filter(
-                last_seen__gte=cutoff
-            )[:DASHBOARD_EVENTS])
-
-        new_event_list = list(base_qs.filter(
-            active_at__gte=cutoff,
-        )[:DASHBOARD_EVENTS])
-    else:
-        top_event_list = None
-        new_event_list = None
-
     return render_to_response('sentry/dashboard.html', {
-        'top_event_list': top_event_list,
-        'new_event_list': new_event_list,
     }, request)
 
 
