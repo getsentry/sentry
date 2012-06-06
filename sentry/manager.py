@@ -377,6 +377,7 @@ class GroupManager(BaseManager, ChartMixin):
         site = kwargs.pop('site', None)
         date = kwargs.pop('timestamp', None) or datetime.datetime.utcnow()
         checksum = kwargs.pop('checksum', None)
+        tags = kwargs.pop('tags', [])
 
         # We must convert date to local time so Django doesn't mess it up
         # based on TIME_ZONE
@@ -443,7 +444,7 @@ class GroupManager(BaseManager, ChartMixin):
                     warnings.warn(exc)
 
         try:
-            group, is_new, is_sample = self._create_group(event, **group_kwargs)
+            group, is_new, is_sample = self._create_group(event, tags=tags, **group_kwargs)
         except Exception, exc:
             # TODO: should we mail admins when there are failures?
             try:
@@ -486,9 +487,8 @@ class GroupManager(BaseManager, ChartMixin):
 
         return event
 
-    def _create_group(self, event, **kwargs):
-        from sentry.models import ProjectCountByMinute, MessageCountByMinute, FilterValue, \
-          MessageFilterValue, STATUS_RESOLVED
+    def _create_group(self, event, tags=None, **kwargs):
+        from sentry.models import ProjectCountByMinute, MessageCountByMinute, STATUS_RESOLVED
 
         date = event.datetime
         time_spent = event.time_spent
@@ -537,6 +537,10 @@ class GroupManager(BaseManager, ChartMixin):
                     'active_at': date,
                     'status': 0,
                 })
+                group.status = 0
+                group.active_at = date
+
+            group.last_seen = max(event.datetime, group.last_seen)
 
             silence_timedelta = date - group.last_seen
             silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
@@ -577,13 +581,24 @@ class GroupManager(BaseManager, ChartMixin):
             'date': normalized_datetime,
         })
 
-        # TODO: should we move this into a TagPlugin?
-        for key, value in (
-                ('logger', event.logger),
-            ):
-            if not value:
-                continue
+        if not tags:
+            tags = []
+        else:
+            tags = list(tags)
 
+        tags += [('logger', event.logger)]
+
+        self.add_tags(group, tags)
+
+        return group, is_new, is_sample
+
+    def add_tags(self, group, tags):
+        from sentry.models import FilterValue, MessageFilterValue
+
+        project = group.project
+        date = group.last_seen
+
+        for key, value in itertools.ifilter(bool, tags):
             FilterValue.objects.get_or_create(
                 project=project,
                 key=key,
@@ -600,8 +615,6 @@ class GroupManager(BaseManager, ChartMixin):
             }, {
                 'last_seen': date,
             })
-
-        return group, is_new, is_sample
 
     def get_by_natural_key(self, logger, culprit, checksum):
         return self.get(logger=logger, view=culprit, checksum=checksum)

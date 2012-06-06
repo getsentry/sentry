@@ -214,6 +214,26 @@ class SentryManagerTest(TestCase):
         self.assertEquals(len(group_list), 1)
         self.assertEquals(group_list[0], group)
 
+    def test_add_tags(self):
+        event = Group.objects.from_kwargs(1, message='rrr')
+        group = event.group
+        Group.objects.add_tags(group, tags=(('foo', 'bar'), ('foo', 'baz'), ('biz', 'boz')))
+
+        self.assertEquals(group.messagefiltervalue_set.filter(key='foo').count(), 2)
+        results = list(group.messagefiltervalue_set.filter(key='foo').order_by('id'))
+        res = results[0]
+        self.assertEquals(res.value, 'bar')
+        self.assertEquals(res.times_seen, 1)
+        res = results[1]
+        self.assertEquals(res.value, 'baz')
+        self.assertEquals(res.times_seen, 1)
+
+        self.assertEquals(group.messagefiltervalue_set.filter(key='biz').count(), 1)
+        results = list(group.messagefiltervalue_set.filter(key='biz').order_by('id'))
+        res = results[0]
+        self.assertEquals(res.value, 'boz')
+        self.assertEquals(res.times_seen, 1)
+
 
 class SearchManagerTest(TestCase):
     def test_search(self):
