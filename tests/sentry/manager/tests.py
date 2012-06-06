@@ -7,7 +7,8 @@ import mock
 
 from sentry.conf import settings
 from sentry.interfaces import Interface
-from sentry.models import Event, Group, Project, MessageCountByMinute, ProjectCountByMinute
+from sentry.models import Event, Group, Project, MessageCountByMinute, ProjectCountByMinute, \
+  SearchDocument
 from sentry.utils.db import has_trending
 
 from tests.base import TestCase
@@ -212,3 +213,26 @@ class SentryManagerTest(TestCase):
         group_list = list(Group.objects.get_accelerated(Group.objects.all(), minutes=settings.MINUTE_NORMALIZATION)[0:100])
         self.assertEquals(len(group_list), 1)
         self.assertEquals(group_list[0], group)
+
+
+class SearchManagerTest(TestCase):
+    def test_search(self):
+        project = Project.objects.all()[0]
+        group = Group.objects.create(project=project, message='foo', checksum='a' * 32)
+        doc = SearchDocument.objects.create(
+            project=project,
+            group=group,
+            status=group.status,
+            total_events=1,
+            date_added=group.first_seen,
+            date_changed=group.last_seen,
+        )
+        doc.token_set.create(
+            field='text',
+            token='foo',
+        )
+
+        results = list(SearchDocument.objects.search(project, query='foo'))
+        self.assertEquals(len(results), 1)
+        # This uses a raw query set so we have to check the id
+        self.assertEquals(results[0].id, doc.id)
