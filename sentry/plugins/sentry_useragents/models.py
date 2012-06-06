@@ -49,7 +49,14 @@ class BrowserPlugin(UserAgentPlugin):
     tag_label = _('Browser Name')
 
     def get_tag_from_ua(self, ua):
-        return '%(name)s %(version)s' % ua['browser']
+        if 'browser' not in ua:
+            return
+
+        tag = ua['browser']['name']
+        if 'version' in ua['browser']:
+            tag += ' ' + ua['browser']['version']
+
+        return tag
 
 
 register(BrowserPlugin)
@@ -69,7 +76,20 @@ class OsPlugin(UserAgentPlugin):
 
     def get_tag_from_ua(self, ua):
         if 'flavor' in ua:
-            return '%(name)s %(version)s' % ua['flavor']
-        return '%(name)s %(version)s' % ua['os']
+            tag = ua['flavor']['name']
+            if 'version' in ua['flavor']:
+                tag += ' ' + ua['version']
+        elif 'os' in ua:
+            # Linux
+            tag = ua['os']['name']
+            if 'version' in ua['os']:
+                tag += ' ' + ua['version']
+            elif 'dist' in ua:
+                # Ubuntu
+                tag += ua['dist']['name']
+        else:
+            return
+
+        return tag
 
 register(OsPlugin)
