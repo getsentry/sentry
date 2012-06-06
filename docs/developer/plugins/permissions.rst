@@ -6,7 +6,7 @@ As described in the plugin interface, Sentry provides a large suite of permissio
 
 In most cases, a superuser (that is, if User.is_superuser is ``True``), will be granted implicit permissions
 on everything. Additionally, several cases provide overrides via Django's standard permission system. All
-permissions are also bound to some level of inherint permission logic, such as projects only being editable
+permissions are also bound to some level of inherent permission logic, such as projects only being editable
 by someone who has some level of control on that project.
 
 This page attempts to describe those permissions, and the contextual objects along with them.
