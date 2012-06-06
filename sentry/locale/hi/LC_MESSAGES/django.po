@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: https://github.com/dcramer/sentry/issues\n"
-"POT-Creation-Date: 2012-03-22 03:40+0000\n"
-"PO-Revision-Date: 2012-03-22 13:47+0000\n"
+"POT-Creation-Date: 2012-05-15 21:11+0000\n"
+"PO-Revision-Date: 2012-05-16 09:26+0000\n"
 "Last-Translator: Chandan kumar <chandankumar.093047@gmail.com>\n"
 "Language-Team: Hindi (http://www.transifex.net/projects/p/sentry/language/hi/)\n"
 "MIME-Version: 1.0\n"
@@ -19,181 +19,163 @@ msgstr ""
 "Language: hi\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
 
-#: constants.py:6
+#: constants.py:5
 msgid "Priority"
 msgstr "प्राथमिकता"
 
-#: constants.py:7 constants.py:35
+#: constants.py:6 constants.py:34
 #: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:24
 #: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:24
 #: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:24
-#: templates/sentry/search.html:15
+#: templates/sentry/search.html:16
 msgid "Last Seen"
 msgstr "आखरी बार देखा"
 
-#: constants.py:8 constants.py:36
+#: constants.py:7 constants.py:35
 #: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:23
 #: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:23
 #: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:23
-#: templates/sentry/search.html:17
+#: templates/sentry/search.html:18
 msgid "First Seen"
 msgstr "पहली बार देखा"
 
-#: constants.py:9 templates/sentry/groups/details.html:122
+#: constants.py:8 templates/sentry/groups/details.html:124
 msgid "Frequency"
 msgstr "आवृत्ति"
 
-#: constants.py:10
+#: constants.py:9
 msgid "Total Time Spent"
 msgstr "कुल समय बिताया"
 
-#: constants.py:11
+#: constants.py:10
 msgid "Average Time Spent"
 msgstr "औसत समय बिताया"
 
-#: constants.py:12 constants.py:13
+#: constants.py:11 constants.py:12
 #, python-format
 msgid "Trending: %(minutes)d minutes"
 msgstr "प्रवाह: %(minutes)d मिनटे"
 
-#: constants.py:34 templates/sentry/search.html:16
+#: constants.py:33 templates/sentry/search.html:17
 msgid "Score"
 msgstr "स्कोर"
 
-#: constants.py:39
-msgid "All time"
-msgstr "हर समय"
-
-#: constants.py:40
-msgid "30 days"
-msgstr "30 दिनों"
-
-#: constants.py:41
-msgid "7 days"
-msgstr "7 दिनों"
-
-#: constants.py:42
-msgid "3 days"
-msgstr "3 दिनों"
-
-#: constants.py:43
-msgid "24 hours"
-msgstr "24 घंटे"
-
-#: models.py:42
+#: models.py:45
 msgid "unresolved"
 msgstr "अविश्लेषित"
 
-#: models.py:43
+#: models.py:46
 msgid "resolved"
 msgstr "विश्लेषित"
 
-#: models.py:48
+#: models.py:51
 msgid "server name"
 msgstr "सर्वर का नाम"
 
-#: models.py:49
+#: models.py:52
 msgid "logger"
 msgstr "लॉगर "
 
-#: models.py:50
+#: models.py:53
 msgid "site"
 msgstr "साइट"
 
-#: models.py:57
+#: models.py:60
 msgid "owner"
 msgstr "स्वामी"
 
-#: models.py:58
+#: models.py:61
 msgid "user"
 msgstr "उपयोगकर्ता"
 
-#: models.py:59
+#: models.py:62
 msgid "system agent"
 msgstr "तंत्र एजेंट"
 
-#: models.py:312
+#: models.py:369
 msgid "error"
 msgstr "त्रुटि"
 
-#: models.py:341
+#: models.py:398
 msgid "grouped messages"
 msgstr "समूहीकृत संदेशे "
 
-#: models.py:342
+#: models.py:399
 msgid "grouped message"
 msgstr "समूहीकृत संदेश"
 
-#: models.py:417
+#: models.py:473
 msgid "message"
 msgstr "संदेश"
 
-#: models.py:418
+#: models.py:474
 msgid "messages"
 msgstr "संदेशे "
 
-#: filters/builtins.py:20 templates/sentry/projects/list.html:36
+#: filters/builtins.py:17 templates/sentry/projects/base.html:34
+#: templates/sentry/projects/list.html:27
 msgid "Status"
-msgstr ""
+msgstr "स्थिति"
 
-#: filters/builtins.py:26
+#: filters/builtins.py:23
 msgid "Unresolved"
-msgstr ""
+msgstr "अविश्लेषित"
 
-#: filters/builtins.py:27
+#: filters/builtins.py:24
 msgid "Resolved"
-msgstr ""
+msgstr "विश्लेषित"
 
-#: filters/builtins.py:32
+#: filters/builtins.py:29
 msgid "Logger"
-msgstr ""
+msgstr "लॉगर "
 
-#: filters/builtins.py:37
-#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:21
-msgid "Server Name"
-msgstr "सर्वर का नाम"
-
-#: filters/builtins.py:48
+#: filters/builtins.py:34
 msgid "Level"
-msgstr ""
-
-#: filters/builtins.py:59
-msgid "Site"
-msgstr ""
+msgstr "स्तर"
 
 #: plugins/bases/notify.py:15
 msgid "Include project members"
-msgstr ""
+msgstr "परियोजना के सदस्यों को शामिल करें"
 
 #: plugins/bases/notify.py:16
 msgid "Notify members of this project."
-msgstr ""
+msgstr "इस परियोजना के सदस्यों को सूचित करें."
 
 #: plugins/bases/notify.py:17
 msgid "Include sentry admins"
-msgstr ""
+msgstr "संतरी एडमिन शामिल करें"
 
 #: plugins/bases/notify.py:18
 msgid "Notify administrators of this Sentry server."
-msgstr ""
+msgstr "इस संतरी सर्वर के एडमिनिस्ट्रेटर को सूचित करें."
 
 #: plugins/bases/notify.py:22
 msgid ""
 "Notify project members when a new event is seen for the first time, or when "
 "an already resolved event has changed back to unresolved."
-msgstr ""
+msgstr "परियोजना के सदस्यों को सूचित करें जब कोई नया ईवेंट पहली बार दिखाई देता है, या जब पहले से सुलझे इवेंट को वापस अनसुलझा में बदल दिया गया है."
 
-#: plugins/sentry_mail/__init__.py:36
+#: plugins/sentry_mail/models.py:38
 msgid "Send to"
-msgstr ""
+msgstr "भेंजे"
 
-#: plugins/sentry_mail/__init__.py:37
+#: plugins/sentry_mail/models.py:39
 msgid "Enter one or more emails separated by commas or lines."
-msgstr ""
+msgstr "एक या एक से अधिक ईमेल  लाइनों या अल्पविराम द्वारा अलग करके दर्ज करें."
 
-#: plugins/sentry_mail/__init__.py:51
+#: plugins/sentry_mail/models.py:53
 msgid "Mail"
-msgstr ""
+msgstr "डाक"
+
+#: plugins/sentry_servers/models.py:19
+#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:21
+msgid "Server Name"
+msgstr "सर्वर का नाम"
+
+#: plugins/sentry_servers/models.py:37
+#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/widget.html:5
+msgid "Servers"
+msgstr "सर्वरों"
 
 #: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:22
 #: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:22
@@ -208,25 +190,27 @@ msgstr "बार-बार देखा "
 msgid "There are no records recorded for this event."
 msgstr "वहाँ कोई इस घटना के लिए अभिलेख दर्ज नहीं हैं."
 
-#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/widget.html:5
-msgid "Servers"
-msgstr "सर्वरों"
+#: plugins/sentry_sites/models.py:21
+msgid "Site"
+msgstr "साइट"
+
+#: plugins/sentry_sites/models.py:55
+#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/widget.html:5
+msgid "Sites"
+msgstr "साइटें"
 
 #: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:21
 msgid "Site Name"
 msgstr "साइट का नाम"
 
-#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/widget.html:5
-msgid "Sites"
-msgstr "साइटें"
+#: plugins/sentry_urls/models.py:24
+#: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/widget.html:5
+msgid "URLs"
+msgstr "यूआरएलों"
 
 #: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:21
 msgid "URL"
 msgstr "यूआरएल"
-
-#: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/widget.html:5
-msgid "URLs"
-msgstr "यूआरएलों"
 
 #: templates/sentry/404.html:5 templates/sentry/404.html.py:10
 msgid "Page Not Found"
@@ -257,68 +241,131 @@ msgstr "आपको संदर्भ इस  <strong>%(id)s</strong> त्�
 msgid "Select a Project"
 msgstr "परियोजना का चयन करें"
 
-#: templates/sentry/header.html:12
-msgid "search query or message id"
-msgstr ""
-
-#: templates/sentry/header.html:12
-msgid "message id"
-msgstr ""
-
-#: templates/sentry/header.html:17
-msgid "select a project to enable search"
-msgstr ""
-
-#: templates/sentry/header.html:24
+#: templates/sentry/dashboard.html:9 templates/sentry/header.html:24
+#: templates/sentry/header.html.py:33 templates/sentry/layout.html:56
 msgid "Dashboard"
 msgstr "नियंत्रण-पट्ट"
 
-#: templates/sentry/header.html:25
-msgid "Stream"
-msgstr "प्रवाह"
+#: templates/sentry/dashboard.html:14 templates/sentry/account/settings.html:5
+#: templates/sentry/account/settings.html:9
+#: templates/sentry/account/settings.html:15
+msgid "Account Settings"
+msgstr "खाते की सेटिंग्स"
 
-#: templates/sentry/header.html:31 templates/sentry/layout.html:56
+#: templates/sentry/dashboard.html:22
+msgid "Loading historical data..."
+msgstr ""
+
+#: templates/sentry/dashboard.html:27
+msgid "Top Events"
+msgstr ""
+
+#: templates/sentry/dashboard.html:27 templates/sentry/dashboard.html.py:36
+msgid "Today"
+msgstr ""
+
+#: templates/sentry/dashboard.html:36
+msgid "New Events"
+msgstr ""
+
+#: templates/sentry/dashboard.html:45
+msgid "No unresolved events are available for the last 24 hours."
+msgstr ""
+
+#: templates/sentry/dashboard.html:50
+#, python-format
+msgid ""
+"You do not have access to any projects. Would you like to <a "
+"href=\"%(link)s\">create a new project</a>?"
+msgstr ""
+
+#: templates/sentry/dashboard.html:52 templates/sentry/projects/base.html:63
+#: templates/sentry/projects/list.html:56
+msgid ""
+"You do not have access to any projects. Ask an administrator to add you as a"
+" member."
+msgstr "आपको किसी भी परियोजनाओं के लिए पहुँच नहीं है. आपको एक सदस्य के रूप में जोड़ने के प्रशासक से पूछें."
+
+#: templates/sentry/dashboard.html:59 templates/sentry/header.html:44
 #: templates/sentry/admin/base.html:17
 #: templates/sentry/admin/projects/list.html:13
 #: templates/sentry/admin/users/edit.html:42
-#: templates/sentry/admin/users/list.html:46
 #: templates/sentry/admin/users/list_projects.html:7
 #: templates/sentry/admin/users/list_projects.html:12
-#: templates/sentry/projects/members/remove.html:11
+#: templates/sentry/partial/_account_sidebar.html:8
+#: templates/sentry/teams/manage.html:45
 msgid "Projects"
 msgstr "परियोजनाओं"
 
-#: templates/sentry/header.html:33 templates/sentry/projects/manage.html:10
-msgid "Manage"
-msgstr "संचालन करे "
-
-#: templates/sentry/header.html:42 templates/sentry/projects/list.html:11
-msgid "Create a new project"
+#: templates/sentry/dashboard.html:71
+#: templates/sentry/partial/_account_sidebar.html:17
+msgid "New project"
 msgstr ""
 
-#: templates/sentry/header.html:47
+#: templates/sentry/dashboard.html:74
+#: templates/sentry/partial/_account_sidebar.html:20
+#, python-format
+msgid "View all <strong>%(count)s</strong> projects"
+msgstr ""
+
+#: templates/sentry/dashboard.html:78
+#: templates/sentry/partial/_account_sidebar.html:24
+msgid "You are not a part of any projects."
+msgstr ""
+
+#: templates/sentry/dashboard.html:80
+#: templates/sentry/partial/_account_sidebar.html:26
+#: templates/sentry/projects/base.html:9
+msgid "Create a new project"
+msgstr "नया प्रोजेक्ट बनाएं"
+
+#: templates/sentry/header.html:12
+msgid "search query or message id"
+msgstr "क्वेरी या संदेश आईडी खोजें"
+
+#: templates/sentry/header.html:12
+msgid "message id"
+msgstr "संदेश आईडी"
+
+#: templates/sentry/header.html:17
+msgid "select a project to enable search"
+msgstr "खोज को सक्षम करने के लिए एक परियोजना का चयन करें"
+
+#: templates/sentry/header.html:25 templates/sentry/events/event_list.html:11
+msgid "Stream"
+msgstr "प्रवाह"
+
+#: templates/sentry/header.html:42
+#: templates/sentry/partial/_account_sidebar.html:3
 msgid "Account"
 msgstr "खाता"
 
-#: templates/sentry/header.html:49
-msgid "Settings"
-msgstr "सेटिंग्स"
+#: templates/sentry/header.html:45
+#: templates/sentry/partial/_account_sidebar.html:30
+#: templates/sentry/teams/base.html:13
+msgid "Teams"
+msgstr ""
 
-#: templates/sentry/header.html:52 templates/sentry/admin/base.html:5
+#: templates/sentry/header.html:47 templates/sentry/admin/base.html:5
 #: templates/sentry/admin/base.html.py:9
 msgid "Admin"
 msgstr "व्यवस्थापक"
 
-#: templates/sentry/header.html:55
+#: templates/sentry/header.html:50
+#: templates/sentry/partial/_account_sidebar.html:5
+msgid "Settings"
+msgstr "सेटिंग्स"
+
+#: templates/sentry/header.html:51
 msgid "Logout"
 msgstr "लॉग आउट करें"
 
-#: templates/sentry/header.html:59 templates/sentry/login.html:5
-#: templates/sentry/login.html.py:31
+#: templates/sentry/header.html:55 templates/sentry/login.html:5
+#: templates/sentry/login.html.py:37
 msgid "Login"
 msgstr "लॉग इन करें"
 
-#: templates/sentry/invalid_message_id.html:5 templates/sentry/search.html:6
+#: templates/sentry/invalid_message_id.html:5 templates/sentry/search.html:7
 msgid "Search"
 msgstr "खोजें"
 
@@ -326,17 +373,9 @@ msgstr "खोजें"
 msgid "We were unable to find a message matching the ID you entered."
 msgstr "हम संदेश आईडी जो आपको द्वारा  दर्ज किया है के समान खोजने में असमर्थ थे."
 
-#: templates/sentry/layout.html:79
-msgid "Your Projects"
-msgstr "आपके परियोजनाओं"
-
 #: templates/sentry/login.html:15
 msgid "Please login to continue."
 msgstr "कृपया जारी रखने के लिए लॉगिन करें."
-
-#: templates/sentry/login.html:19
-msgid "Your username and password didn't match. Please try again."
-msgstr "अपना उपयोक्तानाम व कूटशब्द मेल नहीं खा रहे है .कृपया पुन: प्रयास करें"
 
 #: templates/sentry/missing_permissions.html:5
 #: templates/sentry/missing_permissions.html:8
@@ -347,44 +386,40 @@ msgstr "निषिद्ध"
 msgid "You do not have access to this page with your current permissions."
 msgstr "आपको अपने मौजूदा अनुमतियों के साथ इस पृष्ठ पर एक्सेस नहीं है."
 
-#: templates/sentry/search.html:13 templates/sentry/groups/group_list.html:65
+#: templates/sentry/search.html:14 templates/sentry/groups/group_list.html:68
 #, python-format
 msgid "Sort by: %(label)s"
 msgstr "क्रमबद्ध करें: %(label)s"
 
-#: templates/sentry/search.html:31
+#: templates/sentry/search.html:32
 msgid "No events match your search query."
 msgstr "कोई ईवेंट आपकी खोज क्वेरी से मेल नहीं  खा रहा."
 
-#: templates/sentry/account/settings.html:5
-#: templates/sentry/account/settings.html:11
-#: templates/sentry/account/settings.html:17
-msgid "Account Settings"
-msgstr "खाते की सेटिंग्स"
-
-#: templates/sentry/account/settings.html:26
+#: templates/sentry/account/settings.html:24
 #: templates/sentry/admin/users/edit.html:21
 #: templates/sentry/admin/users/remove.html:19
 #: templates/sentry/partial/_form.html:6
 #: templates/sentry/projects/remove.html:19
+#: templates/sentry/teams/remove.html:20
 msgid "There were errors saving your changes:"
 msgstr "आपके परिवर्तन सहेजने में त्रुटियों थे:"
 
-#: templates/sentry/account/settings.html:34
+#: templates/sentry/account/settings.html:32
 msgid ""
 "To make changes to your account, you must first enter your current password."
-msgstr ""
+msgstr "अपने खाते में परिवर्तन करने के लिए, आपको पहले अपना वर्तमान कूटशब्द दर्ज करना होगा."
 
-#: templates/sentry/account/settings.html:49
+#: templates/sentry/account/settings.html:53
 msgid "You may also optionally change your password."
-msgstr ""
+msgstr "आप भी वैकल्पिक रूप से अपना कूटशब्द बदल सकते हैं."
 
-#: templates/sentry/account/settings.html:58
+#: templates/sentry/account/settings.html:62
 #: templates/sentry/admin/users/edit.html:33
 #: templates/sentry/partial/_form.html:18
-#: templates/sentry/projects/manage.html:46
-#: templates/sentry/projects/new.html:32
-#: templates/sentry/projects/members/edit.html:56
+#: templates/sentry/projects/manage.html:74
+#: templates/sentry/teams/manage.html:33 templates/sentry/teams/new.html:26
+#: templates/sentry/teams/members/edit.html:38
+#: templates/sentry/teams/projects/new.html:26
 msgid "Save Changes"
 msgstr "परिवर्तन सहेजें"
 
@@ -398,6 +433,7 @@ msgid "Users"
 msgstr "उपयोगकर्ताओं"
 
 #: templates/sentry/admin/base.html:23
+#: templates/sentry/projects/plugins/list.html:12
 msgid "Plugins"
 msgstr "प्लगइन्स"
 
@@ -437,46 +473,53 @@ msgid "Manage Projects"
 msgstr "परियोजनाओं के प्रबंधन"
 
 #: templates/sentry/admin/projects/list.html:23
-#: templates/sentry/admin/projects/list.html:77
+#: templates/sentry/admin/projects/list.html:81
 #: templates/sentry/admin/users/list.html:26
-#: templates/sentry/admin/users/list.html:88
-#: templates/sentry/events/event_list.html:28
-#: templates/sentry/events/event_list.html:47
-#: templates/sentry/groups/group_list.html:90
-#: templates/sentry/groups/group_list.html:121
+#: templates/sentry/admin/users/list.html:83
+#: templates/sentry/events/event_list.html:30
+#: templates/sentry/events/event_list.html:49
+#: templates/sentry/groups/group_list.html:102
+#: templates/sentry/groups/group_list.html:160
 #: templates/sentry/partial/_pager.html:5
 msgid "Previous"
 msgstr "पूर्व"
 
 #: templates/sentry/admin/projects/list.html:24
-#: templates/sentry/admin/projects/list.html:78
+#: templates/sentry/admin/projects/list.html:82
 #: templates/sentry/admin/users/list.html:27
-#: templates/sentry/admin/users/list.html:89
-#: templates/sentry/events/event_list.html:29
-#: templates/sentry/events/event_list.html:48
-#: templates/sentry/groups/group_list.html:91
-#: templates/sentry/groups/group_list.html:122
+#: templates/sentry/admin/users/list.html:84
+#: templates/sentry/events/event_list.html:31
+#: templates/sentry/events/event_list.html:50
+#: templates/sentry/groups/group_list.html:103
+#: templates/sentry/groups/group_list.html:161
 #: templates/sentry/partial/_pager.html:6
 msgid "Next"
 msgstr "अगला"
 
-#: templates/sentry/admin/projects/list.html:40
+#: templates/sentry/admin/projects/list.html:29
+msgid ""
+"You are viewing projects sorted by the number of events created in the last "
+"30 days. Projects that have not sent any data are not shown in this view."
+msgstr ""
+
+#: templates/sentry/admin/projects/list.html:44
 #: templates/sentry/admin/users/edit.html:52
 #: templates/sentry/admin/users/list_projects.html:30
+#: templates/sentry/teams/manage.html:55
 msgid "Project"
 msgstr "परियोजना"
 
-#: templates/sentry/admin/projects/list.html:41
+#: templates/sentry/admin/projects/list.html:45
 #: templates/sentry/admin/users/edit.html:53
 #: templates/sentry/admin/users/list_projects.html:31
 msgid "Daily Events"
 msgstr "दैनिक घटनाएँ"
 
-#: templates/sentry/admin/projects/list.html:42
+#: templates/sentry/admin/projects/list.html:46
 msgid "Date Added"
-msgstr ""
+msgstr "तिथि जोड़ी गई"
 
-#: templates/sentry/admin/projects/list.html:72
+#: templates/sentry/admin/projects/list.html:76
 msgid "There are no active projects in Sentry."
 msgstr "सेंट्री में कोई सक्रिय परियोजनाएं नहीं हैं."
 
@@ -564,22 +607,24 @@ msgstr "उपयोगकर्ताओं को प्रबंधित क
 msgid "Create a new user"
 msgstr "नया प्रयोक्ता बनाएँ"
 
-#: templates/sentry/admin/users/list.html:43
-#: templates/sentry/projects/list.html:33 web/forms.py:154
+#: templates/sentry/admin/users/list.html:42
+#: templates/sentry/projects/base.html:31
+#: templates/sentry/projects/list.html:24 templates/sentry/teams/list.html:22
+#: web/forms/__init__.py:144
 msgid "Name"
 msgstr "नाम"
 
-#: templates/sentry/admin/users/list.html:44
+#: templates/sentry/admin/users/list.html:43
 msgid "Joined"
 msgstr "जुड़ गया "
 
-#: templates/sentry/admin/users/list.html:45
+#: templates/sentry/admin/users/list.html:44
 msgid "Last Login"
 msgstr "पिछ्ली लॉगिन"
 
-#: templates/sentry/admin/users/list.html:83
+#: templates/sentry/admin/users/list.html:78
 msgid "There are no users matching your query in Sentry."
-msgstr ""
+msgstr "संतरी में आपकी क्वेरी का मेल कोई उपयोगकर्ताओं से नहीं हैं."
 
 #: templates/sentry/admin/users/list_projects.html:51
 msgid "There are no active projects for this user."
@@ -595,31 +640,33 @@ msgstr "नये उपयोगकर्ता बनाएँ"
 
 #: templates/sentry/admin/users/remove.html:31
 #: templates/sentry/projects/remove.html:31
-#: templates/sentry/projects/members/remove.html:19
+#: templates/sentry/teams/remove.html:32
+#: templates/sentry/teams/members/remove.html:20
 msgid "Confirm"
 msgstr "पुष्टि करें"
 
 #: templates/sentry/admin/users/remove.html:31
 #: templates/sentry/projects/remove.html:31
-#: templates/sentry/projects/members/remove.html:19
+#: templates/sentry/teams/remove.html:32
+#: templates/sentry/teams/members/remove.html:20
 msgid "Cancel"
 msgstr "रद्द करें"
 
 #: templates/sentry/emails/error.html:109
 msgid "New Event"
-msgstr ""
+msgstr "नई घटना"
 
 #: templates/sentry/emails/error.html:111
 msgid "Regression"
-msgstr ""
+msgstr "रीग्रेसन"
 
 #: templates/sentry/emails/error.html:129
-#: templates/sentry/groups/details.html:18
+#: templates/sentry/groups/details.html:19
 msgid "Logger:"
 msgstr "लॉगर:"
 
 #: templates/sentry/emails/error.html:131
-#: templates/sentry/groups/details.html:20
+#: templates/sentry/groups/details.html:21
 msgid "Level:"
 msgstr "स्तर:"
 
@@ -629,12 +676,17 @@ msgid "Server:"
 msgstr "सर्वर:"
 
 #: templates/sentry/emails/error.html:137
-#: templates/sentry/groups/details.html:24
+#: templates/sentry/groups/details.html:25
 msgid "First Seen:"
 msgstr "सबसे पहले देखा:"
 
-#: templates/sentry/events/event_list.html:41
-#: templates/sentry/groups/group_list.html:112
+#: templates/sentry/events/event_list.html:6
+#, python-format
+msgid "%(name)s events"
+msgstr ""
+
+#: templates/sentry/events/event_list.html:43
+#: templates/sentry/groups/group_list.html:151
 msgid "No events match your filters."
 msgstr "आपके फ़िल्टर्स मैच में कोई इवेंट नहीं हैं."
 
@@ -651,99 +703,78 @@ msgstr "कृपया सभी क्षेत्रों को भरे."
 msgid "Submit"
 msgstr "प्रस्तुत करे "
 
-#: templates/sentry/groups/details.html:15
+#: templates/sentry/groups/details.html:16
 msgid "Aggregate Details"
 msgstr "कुल विवरण"
 
-#: templates/sentry/groups/details.html:22
+#: templates/sentry/groups/details.html:23
 msgid "Status:"
 msgstr "स्थिति:"
 
-#: templates/sentry/groups/details.html:26
+#: templates/sentry/groups/details.html:27
 msgid "Last Seen:"
 msgstr "पिछले देखा:"
 
-#: templates/sentry/groups/details.html:28
+#: templates/sentry/groups/details.html:29
 msgid "Avg Duration:"
 msgstr "औसत अवधि:"
 
-#: templates/sentry/groups/details.html:29
-msgid "n/a"
-msgstr ""
-
 #: templates/sentry/groups/details.html:30
+#: templates/sentry/projects/plugins/list.html:42
+#: templates/sentry/projects/plugins/list.html:48
+msgid "n/a"
+msgstr "n/a"
+
+#: templates/sentry/groups/details.html:31
 msgid "Checksum:"
 msgstr "चेकसम:"
 
-#: templates/sentry/groups/details.html:72
-#: templates/sentry/partial/_group.html:35
+#: templates/sentry/groups/details.html:73
+#: templates/sentry/partial/_group.html:36
 msgid "Mark as Resolved"
-msgstr ""
+msgstr "ऐसे चिह्नित करें"
 
-#: templates/sentry/groups/details.html:74
-#: templates/sentry/partial/_group.html:37
+#: templates/sentry/groups/details.html:75
+#: templates/sentry/partial/_group.html:38
 msgid "Already Resolved"
-msgstr ""
+msgstr "पहले से ही  चिह्नित है"
 
-#: templates/sentry/groups/details.html:78
-#: templates/sentry/partial/_group.html:41
+#: templates/sentry/groups/details.html:79
+#: templates/sentry/partial/_group.html:42
 msgid "Bookmark"
-msgstr ""
+msgstr "पुस्तचिह्न"
 
-#: templates/sentry/groups/details.html:88
-#: templates/sentry/projects/manage.html:17
-#: templates/sentry/projects/members/edit.html:25
+#: templates/sentry/groups/details.html:89
+#: templates/sentry/projects/manage.html:19
+#: templates/sentry/teams/members/edit.html:25
 msgid "Details"
 msgstr "विवरण"
 
-#: templates/sentry/groups/details.html:91
+#: templates/sentry/groups/details.html:92
 msgid "Events"
 msgstr "स्पर्धाएँ"
 
-#: templates/sentry/groups/details.html:97
-#: templates/sentry/projects/manage.html:71
+#: templates/sentry/groups/details.html:98
+#: templates/sentry/teams/manage.html:56 templates/sentry/teams/manage.html:98
+#: templates/sentry/teams/manage.html:144
 msgid "Actions"
 msgstr "कार्रवाई"
 
 #: templates/sentry/groups/details.html:100
+msgid "Remove Event"
+msgstr ""
+
+#: templates/sentry/groups/details.html:105
 msgid "Raw JSON Data"
 msgstr "Raw JSON डेटा"
 
-#: templates/sentry/groups/details.html:114
-#: templates/sentry/groups/event.html:38
-msgid "Full Message"
-msgstr "पूरा संदेश"
-
-#: templates/sentry/groups/details.html:126
+#: templates/sentry/groups/details.html:128
 msgid "Get yourself some JavaScripts dood"
 msgstr "अपने आप को कुछ JavaScripts dood दे "
 
-#: templates/sentry/groups/details.html:127
+#: templates/sentry/groups/details.html:129
 msgid "Loading..."
-msgstr ""
-
-#: templates/sentry/groups/details.html:140
-#: templates/sentry/groups/event.html:50
-msgid "Additional Data"
-msgstr "अतिरिक्त डेटा"
-
-#: templates/sentry/groups/details.html:150
-#: templates/sentry/groups/event.html:60
-#: templates/sentry/partial/interfaces/http.html:37
-#: templates/sentry/partial/interfaces/http.html:54
-msgid "Body"
-msgstr "बॉडी"
-
-#: templates/sentry/groups/details.html:169
-#: templates/sentry/groups/event.html:79
-#, python-format
-msgid "No data for %(varname)s"
-msgstr "%(varname)s के लिए कोई डेटा के साथ नहीं "
-
-#: templates/sentry/groups/details.html:181
-#: templates/sentry/groups/event.html:91
-msgid "Module Versions"
-msgstr "माड्यूल संस्करण"
+msgstr "लोड किया जा रहा है..."
 
 #: templates/sentry/groups/event.html:13
 msgid "Event Details"
@@ -761,45 +792,363 @@ msgstr "अवधि:"
 msgid "Site:"
 msgstr "साइट:"
 
-#: templates/sentry/groups/group_list.html:22
+#: templates/sentry/groups/event_list.html:10
+#, python-format
+msgid ""
+"This list only contains a portion of all events seen. For more information "
+"about how Sentry samples events, see the <a "
+"href=\"%(link)s\">documentation</a>."
+msgstr ""
+
+#: templates/sentry/groups/group_list.html:25
 msgid "All"
 msgstr "सारे"
 
-#: templates/sentry/groups/group_list.html:35
+#: templates/sentry/groups/group_list.html:38
 msgid "Bookmarks"
 msgstr "पुस्तचिह्न"
 
-#: templates/sentry/groups/group_list.html:38
+#: templates/sentry/groups/group_list.html:41
 msgid "All Events"
 msgstr "सभी घटना"
 
-#: templates/sentry/groups/group_list.html:39
+#: templates/sentry/groups/group_list.html:42
 msgid "Only Bookmarks"
 msgstr "केवल पुस्तचिह्न"
 
-#: templates/sentry/groups/group_list.html:59
+#: templates/sentry/groups/group_list.html:62
 msgid "Resolve Feed"
 msgstr "फ़ीड को पुनः हल करे "
 
-#: templates/sentry/groups/group_list.html:62
+#: templates/sentry/groups/group_list.html:65
 msgid "Pause Feed"
 msgstr "फ़ीड को रोकें"
 
-#: templates/sentry/groups/group_list.html:82
-#, python-format
-msgid "Since: %(label)s"
-msgstr "के बाद से: %(label)s"
-
-#: templates/sentry/groups/group_list.html:108
-msgid ""
-"To start sending events, configure your client with the following DSN value:"
+#: templates/sentry/groups/group_list.html:125
+msgid "Apply"
 msgstr ""
 
-#: templates/sentry/groups/group_list.html:110
+#: templates/sentry/groups/group_list.html:127
+msgid "All events are represented in UTC time."
+msgstr ""
+
+#: templates/sentry/groups/group_list.html:145
+#: templates/sentry/projects/client_help.html:12
+msgid ""
+"To start sending events, configure your client with the following DSN value:"
+msgstr "इवेंट्स को भेजना शुरू करने के लिए, निम्नलिखित DSN मान के साथ अपने क्लाइंट को कॉन्फ़िगर करें:"
+
+#: templates/sentry/groups/group_list.html:147
+#: templates/sentry/projects/client_help.html:19
+msgid "Choose your platform for quick setup instructions:"
+msgstr "त्वरित सेटअप निर्देशों के लिए अपना मंच चुनें:"
+
+#: templates/sentry/groups/group_list.html:149
 #, python-format
 msgid ""
 "For more information, please see the <a href=\"%(link)s\">documentation</a>."
+msgstr "अधिक सूचना के लिए, कृपया <a href=\"%(link)s\">दस्तावेज</a>देखे."
+
+#: templates/sentry/partial/_account_sidebar.html:39
+msgid "New team"
 msgstr ""
+
+#: templates/sentry/partial/_account_sidebar.html:42
+#, python-format
+msgid "View all <strong>%(count)s</strong> teams"
+msgstr ""
+
+#: templates/sentry/partial/_account_sidebar.html:46
+msgid "You are not a part of any teams."
+msgstr ""
+
+#: templates/sentry/partial/_account_sidebar.html:48
+#: templates/sentry/teams/base.html:9
+msgid "Create a new team"
+msgstr ""
+
+#: templates/sentry/partial/_event_details.html:11
+msgid "Additional Data"
+msgstr "अतिरिक्त डेटा"
+
+#: templates/sentry/partial/_event_details.html:21
+msgid "Expand"
+msgstr ""
+
+#: templates/sentry/partial/_event_details.html:40
+#, python-format
+msgid "No data for %(varname)s"
+msgstr "%(varname)s के लिए कोई डेटा के साथ नहीं "
+
+#: templates/sentry/partial/_event_details.html:52
+msgid "Package Versions"
+msgstr ""
+
+#: templates/sentry/partial/client_config/connect.html:3
+#: templates/sentry/partial/client_config/express.html:3
+#: templates/sentry/partial/client_config/node.js.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-node</a>:"
+msgstr "<a href=\"%(link)s\">raven-node</a> स्थापित करके प्रारंभ करे:"
+
+#: templates/sentry/partial/client_config/connect.html:7
+msgid ""
+"Register an instance of the Connect middleware <strong>after your main "
+"application handler</strong>:"
+msgstr "कनेक्ट middleware के एक उदाहरण पंजीकृत करें <strong>आपके प्रमुख अनुप्रयोग प्रहस्तक के बाद</strong>:"
+
+#: templates/sentry/partial/client_config/connect.html:16
+#: templates/sentry/partial/client_config/express.html:13
+#: templates/sentry/partial/client_config/node.js.html:17
+msgid "Ensure Node is run with <code>NODE_ENV=production</code>:"
+msgstr "सुनिश्चित करें नोड <code>NODE_ENV=production</code>के साथ चलाया जाता है:"
+
+#: templates/sentry/partial/client_config/connect.html:20
+#: templates/sentry/partial/client_config/django.html:18
+#: templates/sentry/partial/client_config/express.html:17
+#: templates/sentry/partial/client_config/flask.html:16
+#: templates/sentry/partial/client_config/rails3.html:19
+msgid ""
+"That's it! Raven automatically installs an error handling hook to pipe all "
+"uncaught exceptions to Sentry."
+msgstr "यह बात है! रेवेन स्वचालित रूप से सेंट्री के लिए त्रुटि हैंडलिंग हुक का सभी uncaught अपवादों को पाइप करके स्थापित करता है."
+
+#: templates/sentry/partial/client_config/connect.html:22
+#: templates/sentry/partial/client_config/express.html:19
+#: templates/sentry/partial/client_config/node.js.html:29
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Node.js, please see the <a "
+"href=\"%(link)s\">official documentation for raven-node</a>."
+msgstr "Node.js के साथ रेवेन के अन्य उपयोगों के बारे में अधिक जानकारी के लिए, कृपया <a href=\"%(link)s\">रैवेन नोड के लिए आधिकारिक दस्तावेज</a>देखे."
+
+#: templates/sentry/partial/client_config/django.html:3
+#: templates/sentry/partial/client_config/python.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-python</a>:"
+msgstr "<a href=\"%(link)s\">raven-python</a>स्थापित करके प्रारंभ करे:"
+
+#: templates/sentry/partial/client_config/django.html:7
+msgid "Then simply modify your Django configuration:"
+msgstr "तो बस अपने Django विन्यास को संशोधित करें:"
+
+#: templates/sentry/partial/client_config/django.html:9
+msgid "Set your DSN value"
+msgstr "अपने DSN मान सेट करें"
+
+#: templates/sentry/partial/client_config/django.html:12
+msgid "Add raven to the list of installed apps"
+msgstr "रैवेन में संस्थापित अनुप्रयोगों की सूची में जोड़ें"
+
+#: templates/sentry/partial/client_config/django.html:20
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Django, please see the <a "
+"href=\"%(link)s\">official documentation for raven-python</a>."
+msgstr "Django के साथ रेवेन के अन्य उपयोगों के बारे में अधिक जानकारी के लिए, कृपया <a href=\"%(link)s\">रैवेन नोड के लिए आधिकारिक दस्तावेज</a>देखे"
+
+#: templates/sentry/partial/client_config/express.html:7
+msgid "Register an instance of the Express middleware:"
+msgstr "व्यक्त middleware के एक उदाहरण पंजीकृत करें:"
+
+#: templates/sentry/partial/client_config/flask.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-python</a> and Blinker:"
+msgstr "<a href=\"%(link)s\">raven-python</a> और ब्लिंकर स्थापित करके प्रारंभ करे:"
+
+#: templates/sentry/partial/client_config/flask.html:7
+msgid "Blinker is required for signals to work within Flask."
+msgstr "ब्लिंकर फ्लास्क के भीतर संकेतक को काम करने के लिए आवश्यक है."
+
+#: templates/sentry/partial/client_config/flask.html:9
+msgid "Add the required configuration in your application setup:"
+msgstr "अपने अनुप्रयोग सेटअप में आवश्यक विन्यास जोड़ें:"
+
+#: templates/sentry/partial/client_config/flask.html:18
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Flask, please see the <a "
+"href=\"%(link)s\">official documentation for raven-python</a>."
+msgstr "फ्लास्क के साथ रेवेन के अन्य उपयोगों के बारे में अधिक जानकारी के लिए, कृपया <a href=\"%(link)s\">रैवेन नोड के लिए आधिकारिक दस्तावेज</a>देखे"
+
+#: templates/sentry/partial/client_config/java.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-java</a>."
+msgstr "<a href=\"%(link)s\">raven-java</a> स्थापित करके प्रारंभ करे:"
+
+#: templates/sentry/partial/client_config/java.html:5
+#: templates/sentry/partial/client_config/node.js.html:7
+#: templates/sentry/partial/client_config/php.html:11
+#: templates/sentry/partial/client_config/python.html:7
+#: templates/sentry/partial/client_config/ruby.html:11
+msgid "Create an instance of the client:"
+msgstr "क्लाइंट का एक उदाहरण बनाएँ:"
+
+#: templates/sentry/partial/client_config/java.html:9
+#: templates/sentry/partial/client_config/javascript.html:21
+#: templates/sentry/partial/client_config/node.js.html:21
+#: templates/sentry/partial/client_config/php.html:15
+#: templates/sentry/partial/client_config/python.html:13
+msgid "Now call out to the raven client to capture events:"
+msgstr "अब घटनाओं पर कब्जा करने के लिए रैवेन क्लाइंट को कॉल करें:"
+
+#: templates/sentry/partial/client_config/java.html:11
+#: templates/sentry/partial/client_config/javascript.html:24
+#: templates/sentry/partial/client_config/node.js.html:23
+#: templates/sentry/partial/client_config/php.html:17
+#: templates/sentry/partial/client_config/python.html:15
+msgid "record a simple message"
+msgstr "सरल संदेश रिकॉर्ड करें"
+
+#: templates/sentry/partial/client_config/java.html:14
+#: templates/sentry/partial/client_config/javascript.html:27
+#: templates/sentry/partial/client_config/node.js.html:26
+#: templates/sentry/partial/client_config/php.html:20
+#: templates/sentry/partial/client_config/python.html:18
+msgid "capture an exception"
+msgstr "capture an exception"
+
+#: templates/sentry/partial/client_config/java.html:22
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Java, please see the <a "
+"href=\"%(link)s\">official documentation for raven-java</a>."
+msgstr "java के साथ रेवेन के अन्य उपयोगों के बारे में अधिक जानकारी के लिए, कृपया <a href=\"%(link)s\">raven-java के लिए आधिकारिक दस्तावेज</a>देखे."
+
+#: templates/sentry/partial/client_config/javascript.html:5
+#, python-format
+msgid ""
+"Start by installing <a href=\"%(link)s\">raven-js</a> and either <a "
+"href=\"%(jquery)s\">jQuery</a> or <a href=\"%(zepto)s\">Zepto</a>."
+msgstr ""
+
+#: templates/sentry/partial/client_config/javascript.html:11
+#, python-format
+msgid ""
+"Add the any URLs which will be logging errors in your project's settings "
+"under <a href=\"%(project_link)s#client-security\">Client Security</a>:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/javascript.html:15
+msgid "Configure the client:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/javascript.html:34
+#: templates/sentry/partial/client_config/node.js.html:13
+#: templates/sentry/partial/client_config/php.html:28
+msgid ""
+"You can also optionally install a default error handler to catch all "
+"exceptions:"
+msgstr "आप भी वैकल्पिक रूप से सभी अपवादों को पकड़ने के लिए डिफ़ॉल्ट त्रुटि प्रहस्तक स्थापित कर सकते हैं:"
+
+#: templates/sentry/partial/client_config/javascript.html:38
+msgid ""
+"Note: This will only work on browsers that properly support "
+"<code>window.onerror</code>."
+msgstr ""
+
+#: templates/sentry/partial/client_config/javascript.html:40
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Ruby, please see the <a "
+"href=\"%(link)s\">official documentation for raven-js</a>."
+msgstr ""
+
+#: templates/sentry/partial/client_config/php.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-php</a>."
+msgstr "<a href=\"%(link)s\">raven-php</a> स्थापित करके प्रारंभ करे:"
+
+#: templates/sentry/partial/client_config/php.html:5
+msgid "Register the autoloader:"
+msgstr "Autoloader पंजीकृत करें:"
+
+#: templates/sentry/partial/client_config/php.html:36
+#, python-format
+msgid ""
+"For more information on other uses of Raven with PHP, please see the <a "
+"href=\"%(link)s\">official documentation for raven-php</a>."
+msgstr "PHP के साथ रेवेन के अन्य उपयोगों के बारे में अधिक जानकारी के लिए, कृपया <a href=\"%(link)s\">raven-php के लिए आधिकारिक दस्तावेज</a>देखे."
+
+#: templates/sentry/partial/client_config/python.html:24
+msgid ""
+"If you want to wrap a WSGI app to record uncaught exceptions, Raven provides"
+" a middleware for that:"
+msgstr "यदि आप uncaught अपवादों को रिकॉर्ड करने के लिए WSGI अनुप्रयोग को रैप करना चाहते है, तो रेवेन उस के लिए एक middleware प्रदान करते हैं:"
+
+#: templates/sentry/partial/client_config/python.html:30
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Python, please see the <a "
+"href=\"%(link)s\">official documentation for raven-python</a>."
+msgstr "Python के साथ रेवेन के अन्य उपयोगों के बारे में अधिक जानकारी के लिए, कृपया <a href=\"%(link)s\">raven-python के लिए आधिकारिक दस्तावेज</a>देखे."
+
+#: templates/sentry/partial/client_config/r.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">r-logging</a>:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/r.html:5
+msgid "Load the logging package:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/r.html:10
+msgid "Create a Sentry handler and add it to a logger:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/r.html:16
+msgid "Send events via the standard logging interface:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/r.html:25
+#, python-format
+msgid ""
+"For more information on other uses of the logging package, see the <a "
+"href=\"%(link)s\">documentation for r-logging</a>."
+msgstr ""
+
+#: templates/sentry/partial/client_config/rails3.html:3
+#: templates/sentry/partial/client_config/ruby.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-ruby</a>:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/rails3.html:7
+#: templates/sentry/partial/client_config/ruby.html:7
+msgid "Or add it to your <code>Gemfile</code>:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/rails3.html:11
+msgid "Add a <code>config/initializers/raven.rb</code> containing:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/rails3.html:21
+#: templates/sentry/partial/client_config/ruby.html:25
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Ruby, please see the <a "
+"href=\"%(link)s\">official documentation for raven-ruby</a>."
+msgstr ""
+
+#: templates/sentry/partial/client_config/ruby.html:19
+msgid "Now wrap your application to capture events:"
+msgstr ""
+
+#: templates/sentry/partial/interfaces/exception.html:4 views/exception.py:16
+msgid "Exception"
+msgstr "अपवाद"
+
+#: templates/sentry/partial/interfaces/exception.html:12
+msgid "Types:"
+msgstr "प्रकार:"
+
+#: templates/sentry/partial/interfaces/exception.html:16
+msgid "Value:"
+msgstr "मान:"
+
+#: templates/sentry/partial/interfaces/exception.html:21
+msgid "Location:"
+msgstr "स्थानः"
 
 #: templates/sentry/partial/interfaces/http.html:6
 msgid "Replay this request"
@@ -825,6 +1174,11 @@ msgstr "प्रश्न:"
 msgid "Body:"
 msgstr "बॉडी:"
 
+#: templates/sentry/partial/interfaces/http.html:37
+#: templates/sentry/partial/interfaces/http.html:54
+msgid "Body"
+msgstr "बॉडी"
+
 #: templates/sentry/partial/interfaces/http.html:65
 msgid "Cookies:"
 msgstr "कुकीज़:"
@@ -849,7 +1203,7 @@ msgstr "परिवेश:"
 #: templates/sentry/partial/interfaces/stacktrace.html:6
 #: templates/sentry/partial/interfaces/template.html:5
 msgid "Raw"
-msgstr ""
+msgstr "रॉ"
 
 #: templates/sentry/partial/interfaces/stacktrace.html:7
 msgid "Stacktrace"
@@ -857,37 +1211,38 @@ msgstr "ढेर का पता लगाये "
 
 #: templates/sentry/partial/interfaces/stacktrace.html:28
 msgid "Local vars"
-msgstr ""
+msgstr "स्थानीय वार्स"
 
 #: templates/sentry/partial/interfaces/template.html:6
 msgid "Template Error"
 msgstr "साँचा में त्रुटि"
 
 #: templates/sentry/partial/interfaces/user.html:6
-#: templates/sentry/projects/manage.html:69
-#: templates/sentry/projects/members/edit.html:27
+#: templates/sentry/projects/manage.html:95
+#: templates/sentry/teams/manage.html:96
+#: templates/sentry/teams/manage.html:142
+#: templates/sentry/teams/members/edit.html:27
 msgid "User"
 msgstr "उपयोगकर्ता"
 
 #: templates/sentry/partial/interfaces/user.html:15
 msgid "Authenticated:"
-msgstr ""
+msgstr "सत्यापित:"
 
 #: templates/sentry/partial/interfaces/user.html:20
 msgid "ID:"
-msgstr ""
+msgstr "आईडी:"
 
 #: templates/sentry/partial/interfaces/user.html:24
 msgid "Username:"
-msgstr ""
+msgstr "उपयोक्तानाम:"
 
 #: templates/sentry/partial/interfaces/user.html:28
 msgid "Email:"
-msgstr ""
+msgstr "ईमेलः"
 
 #: templates/sentry/plugins/project_configuration.html:9
-#: templates/sentry/projects/manage.html:32
-#: templates/sentry/projects/members/edit.html:17
+#: templates/sentry/projects/manage.html:40
 msgid "Changes to your project were saved successfully."
 msgstr "अपनी परियोजना के लिए परिवर्तन सफलतापूर्वक सहेजी गईं."
 
@@ -895,177 +1250,342 @@ msgstr "अपनी परियोजना के लिए परिवर�
 msgid "Changes to your configuration were saved successfully."
 msgstr "आपके विन्यास में परिवर्तन सफलतापूर्वक सहेजी गईं."
 
-#: templates/sentry/projects/list.html:5
-#: templates/sentry/projects/list.html:17
+#: templates/sentry/projects/base.html:5
+#: templates/sentry/projects/base.html:15
+#: templates/sentry/projects/list.html:5 templates/sentry/projects/list.html:8
 msgid "Project List"
 msgstr "परियोजना सूची"
 
-#: templates/sentry/projects/list.html:23
+#: templates/sentry/projects/base.html:21
+#: templates/sentry/projects/list.html:14
 msgid "The following is a list of projects that you are a member of."
-msgstr ""
+msgstr "निम्नलिखित परियोजनाओं की एक सूची है जिसके आप सदस्य हैं."
 
-#: templates/sentry/projects/list.html:34
+#: templates/sentry/projects/base.html:32
+#: templates/sentry/projects/list.html:25
 msgid "Membership"
-msgstr ""
+msgstr "सदस्यता"
 
-#: templates/sentry/projects/list.html:35
+#: templates/sentry/projects/base.html:33
+#: templates/sentry/projects/list.html:26 templates/sentry/teams/list.html:23
 msgid "Owner"
-msgstr ""
+msgstr "मालिक"
 
-#: templates/sentry/projects/list.html:53
+#: templates/sentry/projects/base.html:51
+#: templates/sentry/projects/list.html:44
 msgid "no owner"
-msgstr ""
+msgstr "कोई मालिक नहीं"
 
-#: templates/sentry/projects/list.html:65
+#: templates/sentry/projects/client_help.html:5
+#: templates/sentry/projects/client_help.html:9
+#: templates/sentry/projects/manage.html:30
+msgid "Client Configuration"
+msgstr "क्लाइंट विन्यास"
+
+#: templates/sentry/projects/client_help.html:14
+#, python-format
 msgid ""
-"You do not have access to any projects. Ask an administrator to add you as a"
-" member."
+"If this is a client that only needs public access (like <a href=\"%(link)s"
+"\">raven-js</a>), you can use the following public DSN:"
 msgstr ""
 
-#: templates/sentry/projects/manage.html:5
+#: templates/sentry/projects/client_help.html:17
+msgid "Platform Instructions"
+msgstr ""
+
+#: templates/sentry/projects/client_help.html:22
+msgid ""
+"There is no key configured for your account with access to this project."
+msgstr ""
+
+#: templates/sentry/projects/manage.html:7
 #, python-format
 msgid "Manage Project: %(name)s"
 msgstr "परियोजना प्रबंधित: %(name)s"
 
-#: templates/sentry/projects/manage.html:26
+#: templates/sentry/projects/manage.html:12
+msgid "Manage"
+msgstr "संचालन करे "
+
+#: templates/sentry/projects/manage.html:27
+#: templates/sentry/projects/plugins/list.html:7
+msgid "Manage Plugins"
+msgstr ""
+
+#: templates/sentry/projects/manage.html:34
 msgid ""
 "Here you can edit project information, as well as control the access list "
 "for a project with fine-grained permissions."
 msgstr "आप यहाँ परियोजना जानकारी संपादित करने के लिए, के रूप में के रूप में अच्छी तरह से सुक्ष्म अनुमतियों के साथ एक परियोजना के लिए उपयोग सूची को नियंत्रित कर सकते हैं."
 
-#: templates/sentry/projects/manage.html:29
-#: templates/sentry/projects/new.html:20
+#: templates/sentry/projects/manage.html:37
+#: templates/sentry/teams/projects/new.html:20
 msgid "Project Details"
 msgstr "परियोजना विवरण"
 
-#: templates/sentry/projects/manage.html:35
-#: templates/sentry/projects/members/edit.html:20
+#: templates/sentry/projects/manage.html:43
+#: templates/sentry/teams/manage.html:22
+#: templates/sentry/teams/members/edit.html:20
 msgid "Please correct the errors below."
 msgstr "कृपया नीचे की त्रुटियां सुधारें."
 
-#: templates/sentry/projects/manage.html:48
+#: templates/sentry/projects/manage.html:58
+#, python-format
+msgid ""
+"Configure origin URLs which Sentry should accept events from. This is used "
+"for communication with client's like <a href=\"%(link)s\">raven-js</a>."
+msgstr ""
+
+#: templates/sentry/projects/manage.html:59
+#, python-format
+msgid ""
+"For more information check out the <a href=\"%(link)s\">Wikipedia page on "
+"CORS</a>."
+msgstr ""
+
+#: templates/sentry/projects/manage.html:62
+msgid "List one URL per line."
+msgstr ""
+
+#: templates/sentry/projects/manage.html:76
 #: templates/sentry/projects/remove.html:5
 #: templates/sentry/projects/remove.html:10
 msgid "Remove Project"
 msgstr "परियोजना हटायें"
 
-#: templates/sentry/projects/manage.html:50
+#: templates/sentry/projects/manage.html:78
 msgid "Cannot remove default project"
 msgstr "मूलभूत परियोजना को नही हटा सकते है "
 
-#: templates/sentry/projects/manage.html:56
-#: templates/sentry/projects/members/new.html:5
-#: templates/sentry/projects/members/new.html:10
+#: templates/sentry/projects/manage.html:84
+#: templates/sentry/teams/manage.html:77
+#: templates/sentry/teams/members/new.html:5
+#: templates/sentry/teams/members/new.html:10
 msgid "New Member"
 msgstr "नए सदस्य"
 
-#: templates/sentry/projects/manage.html:58
+#: templates/sentry/projects/manage.html:86
+#: templates/sentry/teams/manage.html:79 templates/sentry/teams/manage.html:82
 msgid "Members"
 msgstr "सदस्यों"
 
-#: templates/sentry/projects/manage.html:70
-#: templates/sentry/projects/members/edit.html:51
+#: templates/sentry/projects/manage.html:96
+#: templates/sentry/teams/manage.html:97
+#: templates/sentry/teams/manage.html:143
+#: templates/sentry/teams/members/edit.html:33
 msgid "Access"
 msgstr "पहुँच"
 
-#: templates/sentry/projects/manage.html:86
-msgid "unavailable for owner"
-msgstr ""
-
-#: templates/sentry/projects/manage.html:90
-msgid "Remove"
-msgstr ""
-
-#: templates/sentry/projects/manage.html:94
-msgid "Suspend"
-msgstr ""
-
-#: templates/sentry/projects/manage.html:96
-msgid "Restore"
-msgstr ""
-
 #: templates/sentry/projects/new.html:5 templates/sentry/projects/new.html:10
+#: templates/sentry/teams/manage.html:43
+#: templates/sentry/teams/projects/new.html:5
+#: templates/sentry/teams/projects/new.html:10
 msgid "New Project"
 msgstr "नई परियोजना"
 
-#: templates/sentry/projects/new.html:15
-msgid ""
-"Use this page to create a new project within Sentry. Once done, you'll be "
-"able to add members (whether they're system or actual users), as well as "
-"configure your client to send messages to this project."
-msgstr "इस पृष्ठ का उपयोग संतरी के भीतर एक नई परियोजना बनाने के लिए किया है.एक बार किया है, आपके लिए सदस्यों को जोड़ने के (चाहे वे प्रणाली या वास्तविक उपयोगकर्ताओं रहे हैं) करने , साथ ही अपने क्लाइंट कॉन्फ़िगर करने के लिए इस परियोजना के लिए संदेश भेजने में सक्षम होगी."
+#: templates/sentry/projects/new.html:16
+msgid "Select a team you are a member of to create a project."
+msgstr ""
 
-#: templates/sentry/projects/members/edit.html:6
+#: templates/sentry/projects/new.html:25
+#, python-format
+msgid ""
+"You must first <a href=\"%(create_team_link)s\">create a team</a> to create "
+"a project."
+msgstr ""
+
+#: templates/sentry/projects/new.html:27
+msgid ""
+"You are not able to create a new project because you are not a member of any"
+" teams. Ask an administrator to add you to a team."
+msgstr ""
+
+#: templates/sentry/projects/docs/client_config.html:5
+#, python-format
+msgid "%(platform_title)s Client Configuration"
+msgstr "%(platform_title)s क्लाइंट विन्यास"
+
+#: templates/sentry/projects/docs/client_config.html:9
+#, python-format
+msgid "Configuring %(platform_title)s"
+msgstr "%(platform_title)s कॉन्फ़िगर करने में"
+
+#: templates/sentry/projects/plugins/list.html:16
+msgid "You are able to selectively enable plugins on a per-project basis."
+msgstr ""
+
+#: templates/sentry/projects/plugins/list.html:22
+msgid "Plugin"
+msgstr ""
+
+#: templates/sentry/projects/plugins/list.html:23
+msgid "Version"
+msgstr ""
+
+#: templates/sentry/projects/plugins/list.html:24
+msgid "Enabled"
+msgstr ""
+
+#: templates/sentry/teams/base.html:5 templates/sentry/teams/base.html:20
+#: templates/sentry/teams/list.html:5 templates/sentry/teams/list.html.py:8
+msgid "Team List"
+msgstr ""
+
+#: templates/sentry/teams/list.html:13
+msgid "The following is a list of teams that you are a member of."
+msgstr ""
+
+#: templates/sentry/teams/list.html:43
+msgid ""
+"You are not a member of any teams. Ask an administrator to add you to a "
+"team."
+msgstr ""
+
+#: templates/sentry/teams/manage.html:7
+#, python-format
+msgid "Manage Team: %(name)s"
+msgstr ""
+
+#: templates/sentry/teams/manage.html:17
+msgid ""
+"Here you can edit team information, as well as control the access list for a"
+" team with fine-grained permissions."
+msgstr ""
+
+#: templates/sentry/teams/manage.html:19
+msgid "Changes to your team were saved successfully."
+msgstr ""
+
+#: templates/sentry/teams/manage.html:35 templates/sentry/teams/remove.html:5
+#: templates/sentry/teams/remove.html:10
+msgid "Remove Team"
+msgstr ""
+
+#: templates/sentry/teams/manage.html:37
+msgid "Cannot remove teams assigned to projects"
+msgstr ""
+
+#: templates/sentry/teams/manage.html:66
+msgid "Edit"
+msgstr ""
+
+#: templates/sentry/teams/manage.html:73
+msgid "There are no projects managed by this team."
+msgstr ""
+
+#: templates/sentry/teams/manage.html:83
+#, python-format
+msgid "Pending (%(count)s)"
+msgstr ""
+
+#: templates/sentry/teams/manage.html:113
+msgid "unavailable for owner"
+msgstr "मालिक के लिए उपलब्ध नहीं"
+
+#: templates/sentry/teams/manage.html:117
+#: templates/sentry/teams/manage.html:157
+msgid "Remove"
+msgstr "हटाएँ"
+
+#: templates/sentry/teams/manage.html:121
+msgid "Suspend"
+msgstr "स्थगित"
+
+#: templates/sentry/teams/manage.html:123
+msgid "Restore"
+msgstr "पुरानी स्तिथी में लाऐं"
+
+#: templates/sentry/teams/manage.html:160
+msgid "Resend"
+msgstr "फिर से  भेजें"
+
+#: templates/sentry/teams/new.html:5 templates/sentry/teams/new.html.py:9
+msgid "New Team"
+msgstr ""
+
+#: templates/sentry/teams/new.html:14
+msgid ""
+"Use this page to create a new team within Sentry. Once done, you'll be able "
+"to add members to the team."
+msgstr ""
+
+#: templates/sentry/teams/new.html:19
+msgid "Team Details"
+msgstr ""
+
+#: templates/sentry/teams/remove.html:16
+msgid "Are you sure you wish to remove this team? This change is permanent!"
+msgstr ""
+
+#: templates/sentry/teams/members/edit.html:6
 msgid "Edit Member"
 msgstr "सदस्य संपादित करें"
 
-#: templates/sentry/projects/members/edit.html:33
-msgid "Public Key"
-msgstr "सार्वजनिक कुंजी"
+#: templates/sentry/teams/members/edit.html:17
+msgid "Changes to the member were saved successfully."
+msgstr ""
 
-#: templates/sentry/projects/members/edit.html:39
-msgid "Secret Key"
-msgstr "गुप्त कुंजी"
+#: templates/sentry/teams/members/new.html:17
+msgid "Add an existing user"
+msgstr ""
 
-#: templates/sentry/projects/members/edit.html:45
-msgid "Client DSN"
-msgstr "DSN ग्राहक"
+#: templates/sentry/teams/members/new.html:28
+msgid "You may add a user by their username if they already have an account."
+msgstr ""
 
-#: templates/sentry/projects/members/remove.html:5
-#: templates/sentry/projects/members/remove.html:7
-#: templates/sentry/projects/members/remove.html:13
+#: templates/sentry/teams/members/remove.html:5
+#: templates/sentry/teams/members/remove.html:7
+#: templates/sentry/teams/members/remove.html:12
 msgid "Remove Member"
 msgstr "सदस्य हटायें"
 
-#: templates/sentry/projects/members/remove.html:12
-msgid "Manage Project"
-msgstr "परियोजना प्रबंधित"
-
-#: templates/sentry/projects/members/remove.html:17
+#: templates/sentry/teams/members/remove.html:18
 msgid ""
 "Are you sure you wish to revoke this user's access? <strong>This change is "
 "permanent and will revoke their API keys immediately.</strong>"
 msgstr "क्या आप सुनिश्चित हैं कि आप इस उपयोगकर्ता की पहुँच रद्द करना चाहते हैं?<strong>यह परिवर्तन स्थाई है और अपने एपीआई कुंजी तुरंत छोडूंगा.</strong>"
 
-#: templatetags/sentry_helpers.py:76
+#: templates/sentry/teams/projects/new.html:15
+msgid ""
+"Use this page to create a new project within Sentry. Once done, you'll be "
+"able to configure your client to send messages to this project."
+msgstr ""
+
+#: templatetags/sentry_helpers.py:74
 msgid "b"
 msgstr "बी"
 
-#: templatetags/sentry_helpers.py:77
+#: templatetags/sentry_helpers.py:75
 msgid "m"
 msgstr " म"
 
-#: templatetags/sentry_helpers.py:78
+#: templatetags/sentry_helpers.py:76
 msgid "k"
 msgstr "क "
 
-#: templatetags/sentry_helpers.py:221
+#: templatetags/sentry_helpers.py:139
 msgid "never"
 msgstr "कभी नहीं"
 
-#: templatetags/sentry_helpers.py:225
+#: templatetags/sentry_helpers.py:143
 msgid "0 minutes"
 msgstr "0 मिनट"
 
-#: templatetags/sentry_helpers.py:226
+#: templatetags/sentry_helpers.py:144
 msgid "just now"
 msgstr "अभी तुरंत "
 
-#: templatetags/sentry_helpers.py:227
+#: templatetags/sentry_helpers.py:145
 msgid "1 day"
 msgstr "1 दिन"
 
-#: templatetags/sentry_helpers.py:228
+#: templatetags/sentry_helpers.py:146
 msgid "yesterday"
 msgstr "कल का बीता दिन"
 
-#: templatetags/sentry_helpers.py:229
+#: templatetags/sentry_helpers.py:147
 msgid " ago"
 msgstr " पहले"
-
-#: views/exception.py:16
-msgid "Exception"
-msgstr "अपवाद"
 
 #: views/exception.py:17
 msgid "Exceptions"
@@ -1087,71 +1607,111 @@ msgstr "प्रश्न"
 msgid "Queries"
 msgstr "प्रश्नों"
 
-#: web/forms.py:49
-msgid "Invalid username"
-msgstr ""
-
-#: web/forms.py:54
+#: web/forms/__init__.py:23
 msgid "Remove all attached events."
-msgstr ""
+msgstr "सभी संलग्न घटनाओं को निकालें."
 
-#: web/forms.py:55
+#: web/forms/__init__.py:24
 msgid "Migrate events to another project."
+msgstr "अन्य परियोजना के लिए घटनाओं का पलायन करें."
+
+#: web/forms/__init__.py:28
+msgid "Password"
 msgstr ""
 
-#: web/forms.py:56
-msgid "Hide this project."
+#: web/forms/__init__.py:28
+msgid "Confirm your identify by entering your password."
 msgstr ""
 
-#: web/forms.py:72
+#: web/forms/__init__.py:43
 msgid "You must select a project to migrate data"
+msgstr "आपको डेटा के पलायन के लिए एक परियोजना का चयन करना होगा"
+
+#: web/forms/__init__.py:56
+msgid "Your password was entered incorrectly. Please enter it again."
 msgstr ""
 
-#: web/forms.py:95
+#: web/forms/__init__.py:61
+msgid "e.g. My Project Name"
+msgstr ""
+
+#: web/forms/__init__.py:62
+msgid "A slug is a URL-safe word and must be unique across all projects."
+msgstr ""
+
+#: web/forms/__init__.py:63
+msgid "e.g. my-project-name"
+msgstr ""
+
+#: web/forms/__init__.py:79
 msgid "Allow anyone (even anonymous users) to view this project"
-msgstr ""
+msgstr "किसी भी (अनाम उपयोगकर्ताओं) को इस परियोजना को देखने की अनुमति दें"
 
-#: web/forms.py:133
-msgid "User already a member of project"
-msgstr ""
-
-#: web/forms.py:159
+#: web/forms/__init__.py:149
 msgid "Create a project for this user."
-msgstr ""
+msgstr "इस उपयोगकर्ता के लिए एक परियोजना बनाएँ."
 
-#: web/forms.py:161
+#: web/forms/__init__.py:151
 msgid ""
 "Send this user a welcome email which will contain their generated password."
-msgstr ""
+msgstr "इस उपयोगकर्ता एक स्वागत योग्य ईमेल भेजें जिसमें उनके उत्पन्न पासवर्ड शामिल होंगे."
 
-#: web/forms.py:176
+#: web/forms/__init__.py:166
 msgid "Disable the account."
-msgstr ""
+msgstr "खाते को अक्षम करें."
 
-#: web/forms.py:177
+#: web/forms/__init__.py:167
 msgid "Permanently remove the user and their data."
-msgstr ""
+msgstr "स्थायी रूप से उपयोगकर्ता और अपने डेटा को हटायें."
 
-#: web/forms.py:182
+#: web/forms/__init__.py:172
 msgid "Old password"
 msgstr "पुराना कूटशब्द"
 
-#: web/forms.py:185
+#: web/forms/__init__.py:175
 msgid "New password"
 msgstr "नया कूटशब्द"
 
-#: web/forms.py:186
+#: web/forms/__init__.py:176
 msgid "New password confirmation"
 msgstr "नए पासवर्ड की पुष्टि"
 
-#: web/forms.py:187
+#: web/forms/__init__.py:177
 msgid "Language"
-msgstr ""
+msgstr "भाषा"
 
-#: web/forms.py:198
+#: web/forms/__init__.py:188
 msgid "The two password fields didn't match."
 msgstr "दो कूटशब्द क्षेत्रों से मेल नहीं खाते."
 
-#: web/forms.py:207
+#: web/forms/__init__.py:197
 msgid "Your old password was entered incorrectly. Please enter it again."
 msgstr "आपका पुराने कूटशब्द गलत दर्ज किया गया था. इसे फिर से दर्ज करें."
+
+#: web/forms/fields.py:45
+msgid "Invalid username"
+msgstr "अवैध उपयोक्तानाम"
+
+#: web/forms/teams.py:20 web/forms/teams.py:30
+msgid "e.g. My Team Name"
+msgstr ""
+
+#: web/forms/teams.py:21 web/forms/teams.py:31
+msgid "A slug is a URL-safe word and must be unique across all teams."
+msgstr ""
+
+#: web/forms/teams.py:22 web/forms/teams.py:32
+msgid "e.g. my-team-name"
+msgstr ""
+
+#: web/forms/teams.py:70
+msgid "There is already a member with this email address"
+msgstr "वहां पहले से ही इस ईमेल पते के साथ एक सदस्य है"
+
+#: web/forms/teams.py:73
+msgid "There is already a pending invite for this user"
+msgstr "वहां पहले से ही इस उपयोगकर्ता के लिए एक लंबित आमंत्रण है"
+
+#: web/forms/teams.py:91
+msgid "User is already a member of this team"
+msgstr ""
