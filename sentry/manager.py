@@ -356,13 +356,45 @@ class ChartMixin(object):
 class GroupManager(BaseManager, ChartMixin):
     use_for_related_fields = True
 
+    def _get_views(self, event):
+        from sentry.models import View
+        from sentry.views import View as ViewHandler
+
+        views = set()
+        for viewhandler in ViewHandler.objects.all():
+            try:
+                if not viewhandler.should_store(event):
+                    continue
+
+                path = '%s.%s' % (viewhandler.__module__, viewhandler.__class__.__name__)
+
+                if not viewhandler.ref:
+                    viewhandler.ref = View.objects.get_or_create(
+                        _cache=True,
+                        path=path,
+                        defaults=dict(
+                            verbose_name=viewhandler.verbose_name,
+                            verbose_name_plural=viewhandler.verbose_name_plural,
+                        ),
+                    )[0]
+
+                views.add(viewhandler.ref)
+
+            except Exception, exc:
+                # TODO: should we mail admins when there are failures?
+                try:
+                    logger.exception(exc)
+                except Exception, exc:
+                    warnings.warn(exc)
+
+        return views
+
     @transaction.commit_on_success
     def from_kwargs(self, project, **kwargs):
         # TODO: this function is way too damn long and needs refactored
         # the inner imports also suck so let's try to move it away from
         # the objects manager
-        from sentry.models import Event, Project, View
-        from sentry.views import View as ViewHandler
+        from sentry.models import Event, Project
 
         project = Project.objects.get_from_cache(pk=project)
 
@@ -416,32 +448,7 @@ class GroupManager(BaseManager, ChartMixin):
             'time_spent_count': time_spent and 1 or 0,
         })
 
-        views = set()
-        for viewhandler in ViewHandler.objects.all():
-            try:
-                if not viewhandler.should_store(event):
-                    continue
-
-                path = '%s.%s' % (viewhandler.__module__, viewhandler.__class__.__name__)
-
-                if not viewhandler.ref:
-                    viewhandler.ref = View.objects.get_or_create(
-                        _cache=True,
-                        path=path,
-                        defaults=dict(
-                            verbose_name=viewhandler.verbose_name,
-                            verbose_name_plural=viewhandler.verbose_name_plural,
-                        ),
-                    )[0]
-
-                views.add(viewhandler.ref)
-
-            except Exception, exc:
-                # TODO: should we mail admins when there are failures?
-                try:
-                    logger.exception(exc)
-                except Exception, exc:
-                    warnings.warn(exc)
+        views = self._get_views(event)
 
         try:
             group, is_new, is_sample = self._create_group(event, tags=tags, **group_kwargs)
