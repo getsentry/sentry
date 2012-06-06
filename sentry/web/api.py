@@ -366,9 +366,6 @@ def get_group_trends(request, project=None):
     else:
         project_list = get_project_list(request.user).values()
 
-    cutoff = datetime.timedelta(minutes=minutes)
-    cutoff_dt = datetime.datetime.now() - cutoff
-
     base_qs = Group.objects.filter(
         project__in=project_list,
         status=0,
@@ -376,9 +373,12 @@ def get_group_trends(request, project=None):
 
     if has_trending():
         group_list = list(Group.objects.get_accelerated(base_qs, minutes=(
-            (cutoff.days * 1440) + (cutoff.seconds * 60)
+            minutes
         ))[:limit])
     else:
+        cutoff = datetime.timedelta(minutes=minutes)
+        cutoff_dt = datetime.datetime.now() - cutoff
+
         group_list = list(base_qs.filter(
             last_seen__gte=cutoff_dt
         )[:limit])
