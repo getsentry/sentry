@@ -12,6 +12,7 @@ from sentry import environment
 import base64
 import datetime
 import os
+import pkg_resources
 
 KEY_LENGTH = 40
 
@@ -78,9 +79,30 @@ def generate_settings():
     return output
 
 
+def install_plugins(settings):
+    from sentry.plugins import register
+    # entry_points={
+    #    'sentry.plugins': [
+    #         'phabricator = sentry_phabricator.plugins:PhabricatorPlugin'
+    #     ],
+    # },
+    for ep in pkg_resources.iter_entry_points('sentry.plugins'):
+        try:
+            plugin = ep.load()
+        except:
+            import sys
+            import traceback
+
+            print >> sys.stderr, "Failed to load plugin %r:\n%s" % (ep.name, traceback.format_exc())
+        else:
+            register(plugin)
+
+
 def initialize_app(config):
     environment['config'] = config.get('config_path')
     environment['start_date'] = datetime.datetime.utcnow()
+
+    install_plugins(config['settings'])
 
 
 def main():
