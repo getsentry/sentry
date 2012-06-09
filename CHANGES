@@ -11,6 +11,7 @@ for notes on how to use ``entry_points``.
 
 Additionally:
 
+- Signed messages are now deprecated. Save yourself some CPU cycles, and rely on SSL.
 - A new plugin which tags user's email addresses.
 - Several UI cleanups in various areas, such as improvements to the account dropdown and lists of projects/teams.
 - Long awaited cleanup/fixes for applying the initial database migrations (sorry MySQL users).
