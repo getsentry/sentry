@@ -1,3 +1,21 @@
+Version 4.6.0
+-------------
+
+Improvements to the dashboard are trickling in, with this update including:
+
+- Changing "Top Events" to "Trends" (if supported by your RDBMS)
+- Time interval selections for both widgets
+
+Plugins now have a new interface for registering themselves. Please see the developer documentation
+for notes on how to use ``entry_points``.
+
+Additionally:
+
+- A new plugin which tags user's email addresses.
+- Several UI cleanups in various areas, such as improvements to the account dropdown and lists of projects/teams.
+- Long awaited cleanup/fixes for applying the initial database migrations (sorry MySQL users).
+- Initial support for arbitrary event tagging (coming soon to a client near you).
+
 Version 4.5.0
 -------------
 
