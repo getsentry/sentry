@@ -5,14 +5,30 @@ sentry.services.http
 :copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from gunicorn.app.djangoapp import DjangoApplication
-from gunicorn.arbiter import Arbiter
+
 import sys
+import gunicorn
+
+from gunicorn import arbiter
+from gunicorn.app import djangoapp
 
 from sentry.services.base import Service
 
 
-class SentryApplication(DjangoApplication):
+if gunicorn.version_info < (0, 14, 0):
+    def _setup_app(app):
+        app.validate()
+        app.activate_translation()
+else:
+    def _setup_app(app):
+        import gunicorn.util
+        djangoapp.make_default_env(app.cfg)
+        djwsgi = gunicorn.util.import_module("gunicorn.app.django_wsgi")
+        djwsgi.make_wsgi_application()
+
+
+class SentryApplication(djangoapp.DjangoApplication):
+
     def __init__(self, options):
         self.usage = None
         self.cfg = None
@@ -31,11 +47,9 @@ class SentryApplication(DjangoApplication):
         pass
 
     def load(self):
+        # application should be imported at first to setup env
         from sentry.wsgi import application
-
-        self.validate()
-        self.activate_translation()
-
+        _setup_app(self)
         return application
 
 
@@ -73,7 +87,7 @@ class SentryHTTPServer(Service):
 
     def run(self):
         try:
-            Arbiter(self.app).run()
+            arbiter.Arbiter(self.app).run()
         except RuntimeError, e:
             sys.stderr.write("\nError: %s\n\n" % e)
             sys.stderr.flush()
