@@ -17,14 +17,19 @@ from sentry.web.frontend import accounts, generic, groups, events, \
 __all__ = ('urlpatterns',)
 
 
-def init_plugins():
+def init_all_applications():
+    """
+    Forces import of all applications to ensure code is registered.
+    """
     from django.db.models import get_apps, get_models
+
     for app in get_apps():
         try:
             get_models(app)
         except Exception:
             continue
-init_plugins()
+
+init_all_applications()
 
 urlpatterns = patterns('',
     url(r'^_static/(?P<path>.*)$', generic.static_media, name='sentry-media'),
