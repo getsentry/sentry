@@ -47,7 +47,7 @@ your ``INSTALLED_APPS``::
 .. data:: sentry.plugins.sentry_useragents
     :noindex:
 
-    Enables a tagging of browsers and operating systems based on the
+    Enables tagging of browsers and operating systems based on the
     'User-Agent' header in the HTTP interface.
 
     .. versionadded:: 4.5.0
