@@ -89,7 +89,7 @@ def install_plugins(settings):
     for ep in pkg_resources.iter_entry_points('sentry.plugins'):
         try:
             plugin = ep.load()
-        except:
+        except Exception:
             import sys
             import traceback
 

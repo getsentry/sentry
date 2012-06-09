@@ -256,7 +256,7 @@ def process_data_timestamp(data):
     if is_float(data['timestamp']):
         try:
             data['timestamp'] = datetime.fromtimestamp(float(data['timestamp']))
-        except:
+        except Exception:
             logger.exception('Failed reading timestamp')
             del data['timestamp']
     elif not isinstance(data['timestamp'], datetime):
@@ -269,7 +269,7 @@ def process_data_timestamp(data):
             format += 'Z'
         try:
             data['timestamp'] = datetime.strptime(data['timestamp'], format)
-        except:
+        except Exception:
             raise InvalidTimestamp('Invalid value for timestamp: %r' % data['timestamp'])
 
     return data

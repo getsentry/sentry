@@ -83,19 +83,19 @@ class MockDjangoRequest(HttpRequest):
         # robust against potentially malformed input.
         try:
             get = pformat(self.GET)
-        except:
+        except Exception:
             get = '<could not parse>'
         try:
             post = pformat(self.POST)
-        except:
+        except Exception:
             post = '<could not parse>'
         try:
             cookies = pformat(self.COOKIES)
-        except:
+        except Exception:
             cookies = '<could not parse>'
         try:
             meta = pformat(self.META)
-        except:
+        except Exception:
             meta = '<could not parse>'
         return '<Request\nGET:%s,\nPOST:%s,\nCOOKIES:%s,\nMETA:%s>' % \
             (get, post, cookies, meta)

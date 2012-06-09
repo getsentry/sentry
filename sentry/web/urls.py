@@ -22,7 +22,7 @@ def init_plugins():
     for app in get_apps():
         try:
             get_models(app)
-        except:
+        except Exception:
             continue
 init_plugins()
 

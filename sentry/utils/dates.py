@@ -48,8 +48,8 @@ def parse_date(datestr, timestr):
     datetimestr = datestr.strip() + ' ' + timestr.strip()
     try:
         return datetime.strptime(datetimestr, '%Y-%m-%d %I:%M %p')
-    except:
+    except Exception:
         try:
             return parse(datetimestr)
-        except:
+        except Exception:
             return
