@@ -6,13 +6,15 @@ sentry.plugins.helpers
 :license: BSD, see LICENSE for more details.
 """
 
-from sentry.models import ProjectOption, Option
+from sentry.models import ProjectOption, Option, UserOption
 
 __all__ = ('set_option', 'get_option', 'unset_option')
 
 
-def set_option(key, value, project=None):
-    if project:
+def set_option(key, value, project=None, user=None):
+    if user:
+        result = UserOption.objects.set_value(user, project, key, value)
+    elif project:
         result = ProjectOption.objects.set_value(project, key, value)
     else:
         result = Option.objects.set_value(key, value)
@@ -20,8 +22,10 @@ def set_option(key, value, project=None):
     return result
 
 
-def get_option(key, project=None):
-    if project:
+def get_option(key, project=None, user=None):
+    if user:
+        result = UserOption.objects.get_value(user, project, key)
+    elif project:
         result = ProjectOption.objects.get_value(project, key, None)
     else:
         result = Option.objects.get_value(key, None)
@@ -29,8 +33,10 @@ def get_option(key, project=None):
     return result
 
 
-def unset_option(key, project=None):
-    if project:
+def unset_option(key, project=None, user=None):
+    if user:
+        result = UserOption.objects.unset_value(user, project, key)
+    elif project:
         result = ProjectOption.objects.unset_value(project, key)
     else:
         result = Option.objects.unset_value(key)

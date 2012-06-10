@@ -1,8 +1,9 @@
 {% load i18n %}
 
-<h6>{% trans "Account" %}</h6>
+<h6>{% trans "Settings" %}</h6>
 <ul class="nav nav-tabs nav-stacked">
-    <li{% if page == 'settings' %} class="active"{% endif %}><a href="{% url sentry-account-settings %}">{% trans "Settings" %}</a></li>
+    <li{% if page == 'settings' %} class="active"{% endif %}><a href="{% url sentry-account-settings %}">{% trans "Account" %}</a></li>
+    <li{% if page == 'notifications' %} class="active"{% endif %}><a href="{% url sentry-account-settings-notifications %}">{% trans "Notifications" %}</a></li>
 </ul>
 
 <h6>{% trans "Projects" %}</h6>

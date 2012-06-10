@@ -6,9 +6,11 @@ sentry.plugins.bases.notify
 :license: BSD, see LICENSE for more details.
 """
 from django import forms
+from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
 from sentry.plugins import Plugin
+from sentry.models import UserOption
 
 
 class NotifyConfigurationForm(forms.Form):
@@ -24,13 +26,12 @@ class NotifyPlugin(Plugin):
     # site_conf_form = NotifyConfigurationForm
     project_conf_form = NotifyConfigurationForm
 
-    def __init__(self, *args, **kwargs):
-        super(NotifyPlugin, self).__init__(*args, **kwargs)
-
     def notify_users(self, group, event, fail_silently=False):
         raise NotImplementedError
 
     def get_send_to(self, project=None):
+        # TODO: this method is pretty expensive, and users is a small enough amount of data that we should
+        # be able to keep most of this in memory constantly
         send_to_list = set()
 
         send_to_admins = self.get_option('send_to_admins', project)
@@ -40,7 +41,24 @@ class NotifyPlugin(Plugin):
 
         send_to_members = self.get_option('send_to_members', project)
         if send_to_members and project and project.team:
-            send_to_list |= set(project.team.member_set.values_list('user__email', flat=True))
+            member_set = set(project.team.member_set.values_list('user', flat=True))
+
+            alert_queryset = UserOption.objects.filter(
+                user__in=member_set,
+                key='alert_email',
+            ).values_list(
+                'user',
+                'alert_email',
+            )
+
+            # We need to first fetch their specified alert email address
+            for user_id, email in alert_queryset:
+                member_set.remove(user_id)
+                send_to_list.add(email)
+
+            # If any didnt exist, grab their default email
+            if member_set:
+                send_to_list |= set(User.objects.filter(pk__in=member_set).values_list('email', flat=True))
 
         return filter(bool, send_to_list)
 

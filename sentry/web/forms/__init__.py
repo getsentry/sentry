@@ -12,7 +12,7 @@ from django.core.validators import URLValidator
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
-from sentry.models import Project
+from sentry.models import Project, UserOption
 from sentry.interfaces import Http
 from sentry.permissions import can_set_public_projects
 from sentry.web.forms.fields import RadioFieldRenderer, UserField
@@ -168,8 +168,30 @@ class RemoveUserForm(forms.Form):
     ), widget=forms.RadioSelect(renderer=RadioFieldRenderer))
 
 
+class NotificationSettingsForm(forms.Form):
+    alert_email = forms.EmailField(help_text='Designate an alternative email address to send email notifications to.')
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super(NotificationSettingsForm, self).__init__(*args, **kwargs)
+        self.fields['alert_email'].initial = UserOption.objects.get_value(
+            user=self.user,
+            project=None,
+            key='alert_email',
+            default=user.email,
+        )
+
+    def save(self):
+        UserOption.objects.set_value(
+            user=self.user,
+            project=None,
+            key='alert_email',
+            value=self.cleaned_data['alert_email'],
+        )
+
+
 class AccountSettingsForm(forms.Form):
-    old_password = forms.CharField(label=_("Old password"), widget=forms.PasswordInput)
+    old_password = forms.CharField(label=_("Current password"), widget=forms.PasswordInput)
     email = forms.EmailField()
     first_name = forms.CharField(required=True, label='Name')
     new_password1 = forms.CharField(label=_("New password"), widget=forms.PasswordInput, required=False)

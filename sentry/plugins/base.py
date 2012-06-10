@@ -168,7 +168,7 @@ class IPlugin(local):
                 return False
         return True
 
-    def get_option(self, key, project=None):
+    def get_option(self, key, project=None, user=None):
         """
         Returns the value of an option in your plugins keyspace, or ``None`` if
         one is not present.
@@ -178,9 +178,9 @@ class IPlugin(local):
         >>> value = plugin.get_option('my_option')
         """
         from .helpers import get_option
-        return get_option(self._get_option_key(key), project)
+        return get_option(self._get_option_key(key), project, user)
 
-    def set_option(self, key, value, project=None):
+    def set_option(self, key, value, project=None, user=None):
         """
         Updates the value of an option in your plugins keyspace.
 
@@ -189,9 +189,9 @@ class IPlugin(local):
         >>> plugin.set_option('my_option', 'http://example.com')
         """
         from .helpers import set_option
-        return set_option(self._get_option_key(key), value, project)
+        return set_option(self._get_option_key(key), value, project, user)
 
-    def unset_option(self, key, project=None):
+    def unset_option(self, key, project=None, user=None):
         """
         Removes an option in your plugins keyspace.
 
@@ -200,7 +200,7 @@ class IPlugin(local):
         >>> plugin.unset_option('my_option')
         """
         from .helpers import unset_option
-        return unset_option(self._get_option_key(key), project)
+        return unset_option(self._get_option_key(key), project, user)
 
     def get_url(self, group):
         """

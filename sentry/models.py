@@ -31,7 +31,8 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
 from sentry.manager import GroupManager, ProjectManager, \
-  MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager
+  MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager, \
+  UserOptionManager
 from sentry.utils import cached_property, \
   MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField, update
@@ -287,6 +288,8 @@ class PendingTeamMember(Model):
     email = models.EmailField()
     type = models.IntegerField(choices=MEMBER_TYPES, default=globals().get(settings.DEFAULT_PROJECT_ACCESS))
     date_added = models.DateTimeField(default=datetime.now)
+
+    objects = BaseManager()
 
     class Meta:
         unique_together = (('team', 'email'),)
@@ -690,6 +693,28 @@ class SearchToken(Model):
 
     class Meta:
         unique_together = (('document', 'field', 'token'),)
+
+
+class UserOption(Model):
+    """
+    User options apply only to a user, and optionally a project.
+
+    Options which are specific to a plugin should namespace
+    their key. e.g. key='myplugin:optname'
+    """
+    user = models.ForeignKey(User)
+    project = models.ForeignKey(Project, null=True)
+    key = models.CharField(max_length=64)
+    value = PickledObjectField()
+
+    objects = UserOptionManager()
+
+    class Meta:
+        unique_together = (('user', 'project', 'key',),)
+
+    def __unicode__(self):
+        return u'user=%s, project=%s, key=%s, value=%s' % (self.user_id, self.project_id, self.key, self.value)
+
 
 ### django-indexer
 

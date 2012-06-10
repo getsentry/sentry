@@ -23,20 +23,20 @@
         <form class="form-stacked" action="" method="post">
             {% csrf_token %}
             <legend>{% trans "Details" %}</legend>
-            <fieldset class="control-group">
+            <div class="control-group">
                 <label>{% trans "User" %}</label>
                 <div class="controls">
                     {{ member.user.username }}
                 </div>
-            </fieldset>
+            </div>
             <br/>
             <legend>{% trans "Access" %}</legend>
             {% for field in form %}
                 {% include "sentry/partial/_form_field.html" %}
             {% endfor %}
-            <fieldset class="form-actions">
+            <div class="form-actions">
                 <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
-            </fieldset>
+            </div>
         </form>
     </section>
 {% endblock %}

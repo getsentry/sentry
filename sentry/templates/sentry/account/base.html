@@ -1,0 +1,28 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Settings" %} | {{ block.super }}{% endblock %}
+
+{% block page_header %}
+    <ul class="breadcrumb">
+        <li><a href="#">{% trans "Settings" %}</a></li>
+        {% block breadcrumb %}{% endblock %}
+    </ul>
+{% endblock %}
+
+{% block heading %}
+    {% trans "Settings" %}
+{% endblock %}
+
+{% block main %}
+    <section class="body">
+        {% block inner %}
+        {% endblock %}
+    </section>
+{% endblock %}
+
+{% block sidebar %}
+    {% include "sentry/partial/_account_sidebar.html" %}
+{% endblock %}

@@ -802,6 +802,75 @@ class InstanceMetaManager(BaseManager):
         self._metadata = {}
 
 
+class UserOptionManager(BaseManager):
+    NOTSET = object()
+
+    def __init__(self, *args, **kwargs):
+        super(UserOptionManager, self).__init__(*args, **kwargs)
+        request_finished.connect(self.clear_cache)
+
+    def get_value(self, user, project, key, default=NOTSET):
+        result = self.get_all_values(user, project)
+        if default is self.NOTSET:
+            return result[key]
+        return result.get(key, default)
+
+    def unset_value(self, user, project, key):
+        self.filter(user=user, project=project, key=key).delete()
+        if not hasattr(self, '_metadata'):
+            return
+        if project:
+            metakey = (user.pk, project.pk)
+        else:
+            metakey = (user.pk, None)
+        if metakey not in self._metadata:
+            return
+        self._metadata[metakey].pop(key, None)
+
+    def set_value(self, user, project, key, value):
+        inst, created = self.get_or_create(
+            user=user,
+            project=project,
+            key=key,
+            defaults={
+                'value': value,
+            },
+        )
+        if not created and inst.value != value:
+            inst.update(value=value)
+
+        if not hasattr(self, '_metadata'):
+            return
+        if project:
+            metakey = (user.pk, project.pk)
+        else:
+            metakey = (user.pk, None)
+        if metakey not in self._metadata:
+            return
+        self._metadata[metakey][key] = value
+
+    def get_all_values(self, user, project):
+        if not hasattr(self, '_metadata'):
+            self._metadata = {}
+        if project:
+            metakey = (user.pk, project.pk)
+        else:
+            metakey = (user.pk, None)
+        if metakey not in self._metadata:
+            result = dict(
+                (i.key, i.value) for i in
+                self.filter(
+                    user=user,
+                    project=project,
+                )
+            )
+            self._metadata[metakey] = result
+        return self._metadata[metakey]
+
+    def clear_cache(self, **kwargs):
+        self._metadata = {}
+
+
 class SearchDocumentManager(BaseManager):
     # Words which should not be indexed
     STOP_WORDS = set(['the', 'of', 'to', 'and', 'a', 'in', 'is', 'it', 'you', 'that'])

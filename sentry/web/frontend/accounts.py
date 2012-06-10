@@ -12,7 +12,7 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
 from sentry.web.decorators import login_required
-from sentry.web.forms import AccountSettingsForm
+from sentry.web.forms import AccountSettingsForm, NotificationSettingsForm
 from sentry.web.helpers import render_to_response
 
 
@@ -66,3 +66,20 @@ def settings(request):
         'page': 'settings',
     })
     return render_to_response('sentry/account/settings.html', context, request)
+
+
+@csrf_protect
+@login_required
+def notification_settings(request):
+    form = NotificationSettingsForm(request.user, request.POST or None)
+    if form.is_valid():
+        form.save()
+        response = HttpResponseRedirect(reverse('sentry-account-settings-notifications') + '?success=1')
+        return response
+
+    context = csrf(request)
+    context.update({
+        'form': form,
+        'page': 'notifications',
+    })
+    return render_to_response('sentry/account/notifications.html', context, request)
