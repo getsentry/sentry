@@ -66,13 +66,13 @@ def api_method(func):
             try:
                 project = Project.objects.get_from_cache(**lookup_kwargs)
             except Project.DoesNotExist:
-                return HttpResponse('Invalid project_id: %r' % project_id, status_code=400)
+                return HttpResponse('Invalid project_id: %r' % project_id, status=400)
         else:
             project = None
 
         origin = request.META.get('HTTP_ORIGIN', None)
         if origin is not None and not is_valid_origin(origin, project):
-            return HttpResponse('Invalid origin: %r' % origin, status_code=400)
+            return HttpResponse('Invalid origin: %r' % origin, status=400)
 
         response = func(request, project, *args, **kwargs)
         response = apply_access_control_headers(response, origin)
