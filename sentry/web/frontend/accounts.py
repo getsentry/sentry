@@ -5,15 +5,18 @@ sentry.web.frontend.accounts
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from crispy_forms.helper import FormHelper
 from django.conf import settings as dj_settings
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
+from sentry.plugins import plugins
 from sentry.web.decorators import login_required
-from sentry.web.forms import AccountSettingsForm, NotificationSettingsForm
+from sentry.web.forms.accounts import AccountSettingsForm, NotificationSettingsForm
 from sentry.web.helpers import render_to_response
+from sentry.utils.safe import safe_execute
 
 
 @csrf_protect
@@ -71,15 +74,33 @@ def settings(request):
 @csrf_protect
 @login_required
 def notification_settings(request):
-    form = NotificationSettingsForm(request.user, request.POST or None)
-    if form.is_valid():
-        form.save()
-        response = HttpResponseRedirect(reverse('sentry-account-settings-notifications') + '?success=1')
-        return response
+    forms = []
+    for plugin in plugins.all():
+        for form in safe_execute(plugin.get_notification_forms) or ():
+            form = safe_execute(form, plugin, request.user, request.POST or None)
+            if not form:
+                continue
+            helper = FormHelper()
+            helper.form_tag = False
+            forms.append((form, helper))
+
+    # Ensure our form comes first
+    helper = FormHelper()
+    helper.form_tag = False
+    forms = [
+        (NotificationSettingsForm(request.user, request.POST or None), helper),
+    ] + forms
+
+    if request.POST:
+        if all(f.is_valid() for f, h in forms):
+            for form, helper in forms:
+                form.save()
+            response = HttpResponseRedirect(reverse('sentry-account-settings-notifications') + '?success=1')
+            return response
 
     context = csrf(request)
     context.update({
-        'form': form,
+        'forms': forms,
         'page': 'notifications',
     })
     return render_to_response('sentry/account/notifications.html', context, request)

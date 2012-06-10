@@ -1,5 +1,6 @@
 {% extends "sentry/account/base.html" %}
 
+{% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_helpers %}
 
@@ -18,22 +19,27 @@
 {% block inner %}
     <form action="" method="post">
         {% csrf_token %}
-        {% if form.non_field_errors %}
-            <div class="alert alert-block alert-error">
-                <p>{% trans "There were errors saving your changes:" %}</p>
-                <ul>
-                    {% for error in form.non_field_errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        {% endif %}
-        <fieldset>
-            <div><legend>{% trans "General" %}</legend></div>
-            {% for field in form %}
-                {% include "sentry/partial/_form_field.html" %}
-            {% endfor %}
-        </fieldset>
+        {% for form, helper in forms %}
+            {% if form.non_field_errors %}
+                <div class="alert alert-block alert-error">
+                    <p>{% trans "There were errors saving your changes:" %}</p>
+                    <ul>
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            <fieldset>
+                <div><legend>{{ form.get_title }}</legend></div>
+                {% with form.get_description as description %}
+                    {% if description %}
+                        {{ description|linebreaks }}
+                    {% endif %}
+                {% endwith %}
+                {% crispy form helper %}
+            </fieldset>
+        {% endfor %}
         <fieldset class="form-actions">
             <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
         </fieldset>

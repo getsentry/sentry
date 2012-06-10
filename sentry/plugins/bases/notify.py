@@ -11,25 +11,84 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
 from sentry.plugins import Plugin
 from sentry.models import UserOption
+from sentry.web.helpers import get_project_list
 
 
-class NotifyConfigurationForm(forms.Form):
+class NotificationConfigurationForm(forms.Form):
     send_to_members = forms.BooleanField(label=_('Include project members'), initial=False, required=False,
         help_text=_('Notify members of this project.'))
     send_to_admins = forms.BooleanField(label=_('Include sentry admins'), initial=False, required=False,
         help_text=_('Notify administrators of this Sentry server.'))
 
 
-class NotifyPlugin(Plugin):
-    description = _("Notify project members when a new event is seen for the first time, or when an "
-                   "already resolved event has changed back to unresolved.")
-    # site_conf_form = NotifyConfigurationForm
-    project_conf_form = NotifyConfigurationForm
+class BaseNotificationUserOptionsForm(forms.Form):
+    def __init__(self, plugin, user, *args, **kwargs):
+        self.plugin = plugin
+        self.user = user
+        super(BaseNotificationUserOptionsForm, self).__init__(*args, **kwargs)
+
+    def get_title(self):
+        raise NotImplementedError
+
+    def get_description(self):
+        return ""
+
+    def save(self):
+        raise NotImplementedError
+
+
+class NotificationUserOptionsForm(BaseNotificationUserOptionsForm):
+    projects = forms.MultipleChoiceField(choices=(), widget=forms.CheckboxSelectMultiple(), required=False)
+
+    def __init__(self, *args, **kwargs):
+        super(NotificationUserOptionsForm, self).__init__(*args, **kwargs)
+        user = self.user
+        self.project_list = get_project_list(user, key='slug')
+        project_list = sorted(self.project_list.items())
+        self.fields['projects'].choices = project_list
+        self.fields['projects'].widget.choices = self.fields['projects'].choices
+
+        enabled_projects = []
+        for slug, project in project_list:
+            is_enabled = self.plugin.get_option('alert', project=project, user=user)
+            if is_enabled == 1 or is_enabled is None:
+                enabled_projects.append(slug)
+        self.fields['projects'].initial = enabled_projects
+
+    def get_title(self):
+        return self.plugin.get_conf_title()
+
+    def get_description(self):
+        return _('Send notifications for new events when a new event is seen, or when an '
+                 'already resolved event has changed back to unresolved.')
+
+    def save(self):
+        user = self.user
+        projects = self.cleaned_data.get('projects')
+
+        for slug, project in self.project_list.iteritems():
+            self.plugin.set_option('alert', int(slug in projects), user=user, project=project)
+
+
+class NotificationPlugin(Plugin):
+    description = _('Notify project members when a new event is seen for the first time, or when an '
+                    'already resolved event has changed back to unresolved.')
+    # site_conf_form = NotificationConfigurationForm
+    project_conf_form = NotificationConfigurationForm
 
     def notify_users(self, group, event, fail_silently=False):
         raise NotImplementedError
 
     def get_send_to(self, project=None):
+        """
+        Returns a list of email addresses for the users that should be notified of alerts.
+
+        The logic for this is a bit complicated, but it does the following:
+
+        - Includes admins if ``send_to_admins`` is enabled.
+        - Includes members if ``send_to_members`` is enabled **and** the user has not disabled alerts
+          for this project
+        """
         # TODO: this method is pretty expensive, and users is a small enough amount of data that we should
         # be able to keep most of this in memory constantly
         send_to_list = set()
@@ -41,8 +100,17 @@ class NotifyPlugin(Plugin):
 
         send_to_members = self.get_option('send_to_members', project)
         if send_to_members and project and project.team:
-            member_set = set(project.team.member_set.values_list('user', flat=True))
+            # fetch users whom have disabled alerts for this plugin
+            disabled = set(UserOption.objects.filter(
+                project=project,
+                key='%s:alert' % self.get_conf_key,
+                value=0,
+            ).values_list('user', flat=True))
 
+            # fetch remaining users
+            member_set = set(project.team.member_set.exclude(user__in=disabled).values_list('user', flat=True))
+
+            # we need to first fetch their specified alert email address
             alert_queryset = UserOption.objects.filter(
                 user__in=member_set,
                 key='alert_email',
@@ -50,13 +118,11 @@ class NotifyPlugin(Plugin):
                 'user',
                 'alert_email',
             )
-
-            # We need to first fetch their specified alert email address
             for user_id, email in alert_queryset:
                 member_set.remove(user_id)
                 send_to_list.add(email)
 
-            # If any didnt exist, grab their default email
+            # if any didnt exist, grab their default email
             if member_set:
                 send_to_list |= set(User.objects.filter(pk__in=member_set).values_list('email', flat=True))
 
@@ -87,6 +153,9 @@ class NotifyPlugin(Plugin):
     def get_form_initial(self, project=None):
         return {'send_to_members': True}
 
+    def get_notification_forms(self, **kwargs):
+        return [NotificationUserOptionsForm]
+
     def post_process(self, group, event, is_new, is_sample, **kwargs):
         if not is_new:
             return
@@ -95,3 +164,7 @@ class NotifyPlugin(Plugin):
             return
 
         self.notify_users(group, event)
+
+# Backwards-compatibility
+NotifyConfigurationForm = NotificationConfigurationForm
+NotifyPlugin = NotificationPlugin

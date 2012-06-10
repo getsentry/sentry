@@ -128,6 +128,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.messages',
 
+    'crispy_forms',
     'djcelery',
     'kombu.transport.django',
     'raven.contrib.django',

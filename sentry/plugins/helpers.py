@@ -24,7 +24,7 @@ def set_option(key, value, project=None, user=None):
 
 def get_option(key, project=None, user=None):
     if user:
-        result = UserOption.objects.get_value(user, project, key)
+        result = UserOption.objects.get_value(user, project, key, None)
     elif project:
         result = ProjectOption.objects.get_value(project, key, None)
     else:

@@ -14,7 +14,7 @@ from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
 from sentry.plugins import register
-from sentry.plugins.bases.notify import NotifyPlugin, NotifyConfigurationForm
+from sentry.plugins.bases.notify import NotificationPlugin, NotificationConfigurationForm
 import re
 
 from pynliner import Pynliner
@@ -34,7 +34,7 @@ class UnicodeSafePynliner(Pynliner):
         return self.output
 
 
-class MailConfigurationForm(NotifyConfigurationForm):
+class MailConfigurationForm(NotificationConfigurationForm):
     send_to = forms.CharField(label=_('Send to'), required=False,
         help_text=_('Enter one or more emails separated by commas or lines.'),
         widget=forms.Textarea(attrs={
@@ -49,7 +49,7 @@ class MailConfigurationForm(NotifyConfigurationForm):
         return ','.join(emails)
 
 
-class MailProcessor(NotifyPlugin):
+class MailProcessor(NotificationPlugin):
     title = _('Mail')
     conf_key = 'mail'
     slug = 'mail'
@@ -157,11 +157,12 @@ class MailProcessor(NotifyPlugin):
             headers=headers,
         )
 
-    def get_option(self, key, project=None):
-        value = super(MailProcessor, self).get_option(key, project)
+    def get_option(self, key, *args, **kwargs):
+        value = super(MailProcessor, self).get_option(key, *args, **kwargs)
         if value is None and key in ('min_level', 'include_loggers', 'exclude_loggers',
                                      'send_to_members', 'send_to_admins', 'send_to',
                                      'subject_prefix'):
             value = getattr(self, key)
         return value
+
 register(MailProcessor)

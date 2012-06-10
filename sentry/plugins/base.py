@@ -430,6 +430,17 @@ class IPlugin(local):
         """
         return []
 
+    def get_notification_forms(self, **kwargs):
+        """
+        Provides additional UserOption forms for the Notification Settings page.
+
+        Must return an iterable.
+
+        >>> def get_notification_forms(self, **kwargs):
+        >>>     return [MySettingsForm]
+        """
+        return []
+
 
 class Plugin(IPlugin):
     """
