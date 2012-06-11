@@ -55,14 +55,13 @@ class BaseUDPServer(Service):
     BUF_SIZE = 2 ** 16
     POOL_SIZE = 1000
 
-    name = None
     _socket = None
     _spawn = None
 
     def __init__(self, host=None, port=None, debug=False):
+        super(BaseUDPServer, self).__init__(debug=debug)
         from sentry.conf import settings
 
-        self.debug = debug
         self.host = host or settings.UDP_HOST
         self.port = port or settings.UDP_PORT
 
