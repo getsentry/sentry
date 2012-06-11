@@ -25,23 +25,11 @@ your ``INSTALLED_APPS``::
     Enables a list of most seen servers in the message details sidebar, as well
     as a dedicated panel to view all servers a message has been seen on.
 
-    ::
-
-        INSTALLED_APPS = [
-          'sentry.plugins.sentry_servers',
-        ]
-
 .. data:: sentry.plugins.sentry_urls
     :noindex:
 
     Enables a list of most seen urls in the message details sidebar, as well
     as a dedicated panel to view all urls a message has been seen on.
-
-    ::
-
-        INSTALLED_APPS = [
-          'sentry.plugins.sentry_urls',
-        ]
 
 .. data:: sentry.plugins.sentry_sites
     :noindex:
@@ -51,35 +39,16 @@ your ``INSTALLED_APPS``::
     Enables a list of most seen sites in the message details sidebar, as well
     as a dedicated panel to view all sites a message has been seen on.
 
-    ::
-
-        INSTALLED_APPS = [
-          'sentry.plugins.sentry_sites',
-        ]
-
-
 .. data:: sentry.plugins.sentry_mail
     :noindex:
 
     Enables email notifications when new events or regressions happen.
 
-    ::
-
-        INSTALLED_APPS = [
-          'sentry.plugins.sentry_mail',
-        ]
-
 .. data:: sentry.plugins.sentry_useragents
     :noindex:
 
-    Enables a tagging of browsers and operating systems based on the
+    Enables tagging of browsers and operating systems based on the
     'User-Agent' header in the HTTP interface.
-
-    ::
-
-        INSTALLED_APPS = [
-          'sentry.plugins.sentry_useragents',
-        ]
 
     .. versionadded:: 4.5.0
 

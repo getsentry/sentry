@@ -372,7 +372,7 @@ class Http(Interface):
         if self.headers.get('Content-Type') == 'application/x-www-form-urlencoded':
             try:
                 data = QueryDict(data)
-            except:
+            except Exception:
                 pass
             else:
                 data_is_dict = True
@@ -383,7 +383,7 @@ class Http(Interface):
         if not cookies_is_dict:
             try:
                 cookies = QueryDict(cookies)
-            except:
+            except Exception:
                 pass
             else:
                 cookies_is_dict = True

@@ -31,7 +31,7 @@ def funcs():
     def exception(client):
         try:
             raise exceptions.next()(messages.next())
-        except:
+        except Exception:
             return client.capture('Exception', data={'logger': loggers.next(), 'site': 'web'})
 
     def message(client):

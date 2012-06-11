@@ -37,7 +37,7 @@ def _get_rendered_interfaces(event):
     for interface in event.interfaces.itervalues():
         try:
             html = interface.to_html(event)
-        except:
+        except Exception:
             logger = logging.getLogger('sentry.interfaces')
             logger.exception('Error rendering interface %r', interface.__class__)
             continue

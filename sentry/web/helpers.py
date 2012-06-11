@@ -81,7 +81,7 @@ def get_login_url(reset=False):
         # XXX: this must be done as late as possible to avoid idempotent requirements
         try:
             resolve(dj_settings.LOGIN_URL)
-        except:
+        except Exception:
             _LOGIN_URL = settings.LOGIN_URL
         else:
             _LOGIN_URL = dj_settings.LOGIN_URL
