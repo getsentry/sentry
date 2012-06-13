@@ -56,7 +56,7 @@ class SentryUDPServer(Service):
 
             return insert_data_to_database(data)
         except APIError, error:
-            logger.error('bad message from %s: %s' % (address, error.msg))
+            logger.error('bad message from %s: %s', address, error.msg)
             return error
 
     def run(self):
