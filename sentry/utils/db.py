@@ -63,7 +63,7 @@ class InstanceManager(object):
                     results.append(cls)
             except Exception:
                 logger = logging.getLogger('sentry.errors')
-                logger.exception('Unable to import %s' % (cls_path,))
+                logger.exception('Unable to import %s', cls_path)
                 continue
         self.cache = results
 
