@@ -49,7 +49,14 @@ def has_access(group_or_func=None):
                     try:
                         project = Project.objects.get_from_cache(**lookup_kwargs)
                     except Project.DoesNotExist:
-                        return HttpResponseRedirect(reverse('sentry'))
+                        if project_id.isdigit():
+                            # It could be a numerical slug
+                            try:
+                                project = Project.objects.get_from_cache(slug=project_id)
+                            except Project.DoesNotExist:
+                                return HttpResponseRedirect(reverse('sentry'))
+                        else:
+                            return HttpResponseRedirect(reverse('sentry'))
                 else:
                     project = None
                 return func(request, project, *args, **kwargs)

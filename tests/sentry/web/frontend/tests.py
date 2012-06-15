@@ -61,13 +61,13 @@ class SentryViewsTest(TestCase):
 
     def test_index(self):
         self.client.login(username='admin', password='admin')
-        resp = self.client.get(reverse('sentry', kwargs={'project_id': 1}) + '?sort=freq', follow=True)
+        resp = self.client.get(reverse('sentry', kwargs={'project_id': 1}) + '?sort=freq', follow=False)
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/groups/group_list.html')
 
     def test_group_details(self):
         self.client.login(username='admin', password='admin')
-        resp = self.client.get(reverse('sentry-group', kwargs={'project_id': 1, 'group_id': 2}), follow=True)
+        resp = self.client.get(reverse('sentry-group', kwargs={'project_id': 1, 'group_id': 2}), follow=False)
         self.assertEquals(resp.status_code, 200, resp.content)
         self.assertTemplateUsed(resp, 'sentry/groups/details.html')
         self.assertTrue('group' in resp.context)
@@ -76,7 +76,7 @@ class SentryViewsTest(TestCase):
 
     def test_group_event_list(self):
         self.client.login(username='admin', password='admin')
-        resp = self.client.get(reverse('sentry-group-events', kwargs={'project_id': 1, 'group_id': 2}), follow=True)
+        resp = self.client.get(reverse('sentry-group-events', kwargs={'project_id': 1, 'group_id': 2}), follow=False)
         self.assertEquals(resp.status_code, 200, resp.content)
         self.assertTemplateUsed(resp, 'sentry/groups/event_list.html')
         self.assertTrue('group' in resp.context)
