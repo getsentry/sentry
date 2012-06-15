@@ -11,6 +11,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
 from sentry.plugins import Plugin
 from sentry.models import UserOption
+from sentry.utils.cache import cache
 from sentry.web.helpers import get_project_list
 
 
@@ -79,6 +80,39 @@ class NotificationPlugin(Plugin):
     def notify_users(self, group, event, fail_silently=False):
         raise NotImplementedError
 
+    def get_sendable_users(self, project):
+        conf_key = self.get_conf_key()
+
+        disabled = set(UserOption.objects.filter(
+            project=project,
+            key='%s:alert' % conf_key,
+            value=0,
+        ).values_list('user', flat=True))
+
+        # fetch remaining users
+        member_set = set(project.team.member_set.exclude(user__in=disabled).values_list('user', flat=True))
+
+        return member_set
+
+    def get_emails_for_users(self, user_ids):
+        email_list = set()
+        user_ids = set(user_ids)
+
+        # we cant use values on alert_queryset as the value field gets encoded
+        alert_queryset = UserOption.objects.filter(
+            user__in=user_ids,
+            key='alert_email',
+        )
+        for option in alert_queryset:
+            user_ids.remove(option.user_id)
+            email_list.add(option.value)
+
+        # if any didnt exist, grab their default email
+        if user_ids:
+            email_list |= set(User.objects.filter(pk__in=user_ids).values_list('email', flat=True))
+
+        return email_list
+
     def get_send_to(self, project=None):
         """
         Returns a list of email addresses for the users that should be notified of alerts.
@@ -88,45 +122,34 @@ class NotificationPlugin(Plugin):
         - Includes admins if ``send_to_admins`` is enabled.
         - Includes members if ``send_to_members`` is enabled **and** the user has not disabled alerts
           for this project
+
+        The results of this call can be fairly expensive to calculate, so the send_to list gets cached
+        for 60 seconds.
         """
-        # TODO: this method is pretty expensive, and users is a small enough amount of data that we should
-        # be able to keep most of this in memory constantly
-        send_to_list = set()
+        if project:
+            project_id = project.pk
+        else:
+            project_id = ''
+        conf_key = self.get_conf_key()
+        cache_key = '%s:send_to:%s' % (conf_key, project_id)
 
-        send_to_admins = self.get_option('send_to_admins', project)
+        send_to_list = cache.get(cache_key)
+        if send_to_list is None:
+            send_to_list = set()
 
-        if send_to_admins:
-            send_to_list |= set(settings.ADMINS)
+            send_to_admins = self.get_option('send_to_admins', project)
 
-        send_to_members = self.get_option('send_to_members', project)
-        if send_to_members and project and project.team:
-            # fetch users whom have disabled alerts for this plugin
-            disabled = set(UserOption.objects.filter(
-                project=project,
-                key='%s:alert' % self.get_conf_key,
-                value=0,
-            ).values_list('user', flat=True))
+            if send_to_admins:
+                send_to_list |= set(settings.ADMINS)
 
-            # fetch remaining users
-            member_set = set(project.team.member_set.exclude(user__in=disabled).values_list('user', flat=True))
+            send_to_members = self.get_option('send_to_members', project)
+            if send_to_members and project and project.team:
+                member_set = self.get_sendable_users(project)
+                send_to_list |= set(self.get_emails_for_users(member_set))
 
-            # we need to first fetch their specified alert email address
-            alert_queryset = UserOption.objects.filter(
-                user__in=member_set,
-                key='alert_email',
-            ).values_list(
-                'user',
-                'alert_email',
-            )
-            for user_id, email in alert_queryset:
-                member_set.remove(user_id)
-                send_to_list.add(email)
-
-            # if any didnt exist, grab their default email
-            if member_set:
-                send_to_list |= set(User.objects.filter(pk__in=member_set).values_list('email', flat=True))
-
-        return filter(bool, send_to_list)
+            send_to_list = filter(bool, send_to_list)
+            cache.set(cache_key, send_to_list, 60)  # 1 minute cache
+        return send_to_list
 
     def should_notify(self, group, event):
         project = group.project
