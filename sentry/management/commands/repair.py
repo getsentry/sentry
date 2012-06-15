@@ -13,7 +13,7 @@ class Command(BaseCommand):
     help = 'Attempts to repair any invalid data within Sentry'
 
     option_list = BaseCommand.option_list + (
-        make_option('--owner', type=int, help='Username to transfer ownerless projects to.'),
+        make_option('--owner', help='Username to transfer ownerless projects to.'),
     )
 
     def handle(self, **options):
