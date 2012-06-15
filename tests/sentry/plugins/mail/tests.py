@@ -132,7 +132,6 @@ class MailProcessorTest(TestCase):
         stacktrace.get_title.assert_called_once_with()
         stacktrace.to_string.assert_called_once_with(event)
 
-
     @mock.patch('sentry.plugins.sentry_mail.models.MailProcessor._send_mail')
     def test_notify_users_does_email(self, _send_mail):
         project = Project(id=1, name='Project Name')
@@ -201,6 +200,8 @@ class MailProcessorTest(TestCase):
         get_sendable_users.return_value = member_emails
 
         project = mock.Mock()
+        project.id = 1
+        project.pk = project.id
 
         with self.Settings(SENTRY_ADMINS=admins):
             p = MailProcessor()
