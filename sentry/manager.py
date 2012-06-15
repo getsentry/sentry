@@ -455,9 +455,9 @@ class GroupManager(BaseManager, ChartMixin):
         except Exception, exc:
             # TODO: should we mail admins when there are failures?
             try:
-                logger.exception(u'Unable to process log entry: %s' % (exc,))
+                logger.exception(u'Unable to process log entry: %s', exc)
             except Exception, exc:
-                warnings.warn(u'Unable to process log entry: %s' % (exc,))
+                warnings.warn(u'Unable to process log entry: %s', exc)
 
             return
 
@@ -906,6 +906,12 @@ class SearchDocumentManager(BaseManager):
         else:
             raise ValueError('sort_by: %r' % sort_by)
 
+        if tokens:
+            token_sql = ' st.token IN (%s) AND ' % \
+                ', '.join('%s' for i in range(len(tokens)))
+        else:
+            token_sql = ' '
+
         sql = """
             SELECT sd.id AS id,
                    sd.group_id AS group_id,
@@ -915,13 +921,13 @@ class SearchDocumentManager(BaseManager):
             FROM sentry_searchdocument as sd
             INNER JOIN sentry_searchtoken as st
                 ON st.document_id = sd.id
-            WHERE st.token IN (%s)
-                AND sd.project_id = %s
+            WHERE %s
+                sd.project_id = %s
             GROUP BY sd.id, sd.group_id, sd.total_events, sd.date_changed, sd.date_added
             ORDER BY %s
             LIMIT %d OFFSET %d
         """ % (
-            ', '.join('%s' for i in range(len(tokens))),
+            token_sql,
             project.id,
             order_by,
             limit,

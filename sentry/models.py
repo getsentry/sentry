@@ -733,7 +733,7 @@ def register_indexes(**kwargs):
     logger = logging.getLogger('sentry.setup')
     for cls in (f for f in get_filters() if f.column.startswith('data__')):
         MessageIndex.objects.register_index(cls.column, index_to='group')
-        logger.debug('Registered index for for %r' % cls.column)
+        logger.debug('Registered index for for %r', cls.column)
 class_prepared.connect(register_indexes, sender=MessageIndex)
 
 

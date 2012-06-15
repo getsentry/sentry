@@ -290,10 +290,10 @@ def validate_data(project, data, client=None):
             process_data_timestamp(data)
         except InvalidTimestamp:
             # Log the error, remove the timestamp, and continue
-            logger.error('Client %r passed an invalid value for timestamp %r' % (
+            logger.error('Client %r passed an invalid value for timestamp %r', 
                 client or '<unknown client>',
                 data['timestamp'],
-            ))
+            )
             del data['timestamp']
 
     if data.get('modules') and type(data['modules']) != dict:
