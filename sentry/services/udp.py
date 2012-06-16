@@ -126,7 +126,7 @@ def get_server_class(worker=None):
         worker = getattr(settings, 'UDP_WORKER', None) or 'eventlet'
     if worker not in default_servers:
         raise CommandError(
-            'Unsupported udp server type; expected one of %s, but got "%s".' \
+            'Unsupported udp server type; expected one of %s, but got "%s".'
             % (', '.join(default_servers.keys()), worker))
 
     return default_servers[worker]
