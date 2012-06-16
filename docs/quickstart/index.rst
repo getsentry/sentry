@@ -247,3 +247,42 @@ runserver
 
 Testing Sentry locally? Spin up Django's builtin runserver (or ``pip install django-devserver`` for something
 slightly better).
+
+
+What's Next?
+------------
+
+There are several applications you may want to add to the default Sentry install for various security or other uses. This
+is a bit outside of the scope of normal (locked down) installs, as typically you'll host things on your internal network. That
+said, you'll first need to understand how you can modify the default settings.
+
+First pop open your ``sentry.conf.py``, and add the following to the **very top** of the file::
+
+  from sentry.conf.server import *
+
+Now you'll have access to all of the default settings (Django and Sentry) to modify at your own will.
+
+If you're running in the public domain, we highly recommend looking into `django-secure <http://pypi.python.org/pypi/django-secure>`_
+and `django-bcrypt <http://pypi.python.org/pypi/django-bcrypt>`_ to lock down your installation with a little bit more
+security. For example, to change the password storage to bcrypt (rather than the Django default), you would add the
+following to your ``sentry.conf.py``::
+
+  INSTALLED_APPS = INSTALLED_APPS + (
+      'django_bcrypt',
+  )
+
+You'll also want to consider configuring cache and buffer settings, which respectively require a cache server and a Redis
+server. While the Django configuration covers caching in great detail, Sentry allows you to specify a backend for its
+own internal purposes::
+
+  # You'll need to install django-pyblibmc for this example to work
+  CACHES = {
+      'default': {
+          'BACKEND': 'django_pylibmc.memcached.PyLibMCCache',
+          'LOCATION': 'localhost:11211',
+      }
+  }
+
+  SENTRY_CACHE_BACKEND = 'default'
+
+See :doc:`../buffer/index` for information on how to configure update buffers to improve performance on concurrent writes.
