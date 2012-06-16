@@ -1,3 +1,13 @@
+Version 4.7.0
+-------------
+
+User options are now available to plugins. The builtin mail plugin also now takes advantage of them.
+
+- sentry_mail will now use the alert_email option over your account email if specified.
+- sentry_mail now allows you to choose which projects to receive alerts for.
+- Numeric slugs will no longer return 404s.
+- Corrected the repair command with the --owner argument.
+
 Version 4.6.0
 -------------
 
