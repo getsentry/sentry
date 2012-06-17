@@ -6,13 +6,9 @@ sentry.management.commands.send_fake_data
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-import eventlet
-import eventlet.patcher
 import itertools
 import random
 import time
-
-eventlet.patcher.monkey_patch()
 
 from django.core.management.base import BaseCommand
 
@@ -51,16 +47,13 @@ class Command(BaseCommand):
 
         s = time.time()
         r = 0
-        pool = eventlet.GreenPool(16)
         try:
             while True:
-                pool.spawn_n(random.choice(functions), (client))
+                random.choice(functions)(client)
                 r += 1
-                # eventlet.sleep(0.3)
         except KeyboardInterrupt:
             pass
         finally:
-            pool.waitall()
             total_time = time.time() - s
             print '%d requests serviced in %.3fs' % (r, total_time)
             avg = total_time / r
