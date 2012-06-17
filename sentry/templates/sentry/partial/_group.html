@@ -2,7 +2,7 @@
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
-<li class="event level-{{ group.get_level_display }}{% if group.status == 1 %} resolved{% endif %}" id="group_{{ group.pk|safe }}" data-count="{{ group.times_seen }}" data-score="{{ group.sort_value }}" data-group="{{ group.id }}">
+<li class="event level-{{ group.get_level_display }}{% if group.status == 1 %} resolved{% endif %}" data-count="{{ group.times_seen }}" data-score="{{ group.sort_value }}" data-group="{{ group.id|safe }}">
     <div class="count"><span>{{ group.times_seen|small_count }}</span></div>
     <div class="details">
         <h3>
