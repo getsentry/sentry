@@ -730,13 +730,11 @@ if (Sentry === undefined) {
                 gid: gid
             },
             success: function(groups){
-                for (var i=groups.length-1, el, row; (el=groups[i]); i--) {
-                    var id = el[0];
-                    var data = el[1];
-                    $('.event[data-group="' + id + '"]').remove();
+                for (var i=groups.length-1, data, row; (data=groups[i]); i--) {
+                    $('.event[data-group="' + data.id + '"]').remove();
                     if (!remove) {
                         $('#event_list').prepend(data.html);
-                        $('.event[data-group="' + id + '"]').addClass('fresh');
+                        $('.event[data-group="' + data.id + '"]').addClass('fresh');
                     }
                 }
             }
