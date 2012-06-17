@@ -38,7 +38,7 @@ if you want to pull the version using pkg_resources (which is what we recommend)
 Inside of ``plugin.py``, you'll declare your Plugin class::
 
     import sentry_pluginname
-    from sentry.plugins import Plugin, register
+    from sentry.plugins import Plugin
 
     class PluginName(Plugin):
         title = 'Plugin Name'
