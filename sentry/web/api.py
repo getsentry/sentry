@@ -177,7 +177,7 @@ def store(request, project=None):
             }, exc_info=True)
             response = HttpResponse(unicode(error.msg), status=error.http_status)
         else:
-            logger.info('New event from client %r (id=%%s)', client, data['event_id'])
+            logger.info('New event from client %r (id=%s)', client, data['event_id'])
 
     return response
 
