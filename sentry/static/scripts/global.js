@@ -733,10 +733,10 @@ if (Sentry === undefined) {
                 for (var i=groups.length-1, el, row; (el=groups[i]); i--) {
                     var id = el[0];
                     var data = el[1];
-                    $('#group_' + id).remove();
+                    $('.event[data-group="' + id + '"]').remove();
                     if (!remove) {
                         $('#event_list').prepend(data.html);
-                        $('#group_' + id).addClass('fresh');
+                        $('.event[data-group="' + id + '"]').addClass('fresh');
                     }
                 }
             }
