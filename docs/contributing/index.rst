@@ -25,7 +25,13 @@ any base dependancies.
 
     virtualenv ~/.virtualenvs/sentry
     source ~/.virtualenvs/sentry/bin/activate
-    python setup.py develop
+    pip install -e .
+
+You will also need two NPM dependencies if you plan on changing/building static media.
+
+::
+
+    npm install -g less uglify-js
 
 There are other optional dependancies, such as South, Haystack, and Eventlet, but
 they're not required to get a basic stack up and running.
