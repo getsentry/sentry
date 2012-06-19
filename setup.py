@@ -73,7 +73,7 @@ dependency_links = [
 
 setup(
     name='sentry',
-    version='4.7.6',
+    version='4.7.7',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://github.com/dcramer/sentry',

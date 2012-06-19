@@ -30,7 +30,7 @@ if (Sentry === undefined) {
         var sorted = [];
         $('#event_list .event').each(function(i, el){
             var $el = $(el);
-            sorted.push([$el.attr('data-score'), $el.attr('id')]);
+            sorted.push([$el.attr('data-score'), $el.attr('data-group')]);
         });
         Sentry.realtime.events = sorted;
 
@@ -80,8 +80,7 @@ if (Sentry === undefined) {
             return;
         }
         var data = Sentry.realtime.queue.pop();
-        var id = data.id;
-        var $row = $('.event[data-group="' + id + '"]');
+        var $row = $('.event[data-group="' + data.id + '"]');
         var is_new = ($row.length === 0);
 
         // ensure "no messages" is cleaned up
@@ -105,7 +104,7 @@ if (Sentry === undefined) {
 
         // check to see if the row already exists in the sort,
         // and get the current position
-        old_pos = getPosition(Sentry.realtime.events, id, 1);
+        old_pos = getPosition(Sentry.realtime.events, data.id, 1);
 
         // if the row was already present, adjust its score
         if (old_pos !== -1) {
@@ -129,7 +128,7 @@ if (Sentry === undefined) {
 
         // insert it into the events list at the current position
         if (is_new) {
-            Sentry.realtime.events.splice(pos, 0, [data.score, id]);
+            Sentry.realtime.events.splice(pos, 0, [data.score, data.id]);
         }
 
         // shiny fx
