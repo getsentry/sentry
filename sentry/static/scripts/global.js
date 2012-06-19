@@ -473,8 +473,8 @@ if (Sentry === undefined) {
             return;
         }
         var data = Sentry.realtime.queue.pop();
-        var id = 'group_' + data.id;
-        var $row = $('#' + id);
+        var id = data.id;
+        var $row = $('.event[data-group="' + id + '"]');
         var is_new = ($row.length === 0);
 
         // ensure "no messages" is cleaned up
@@ -517,7 +517,7 @@ if (Sentry === undefined) {
         if (pos === -1) {
             $('#event_list').append($row);
         } else {
-            $('#' + Sentry.realtime.events[pos][1]).before($row);
+            $('.event[data-group="' + Sentry.realtime.events[pos][1] + '"]').before($row);
         }
 
         // insert it into the events list at the current position
@@ -563,7 +563,7 @@ if (Sentry === undefined) {
         // make sure we limit the number shown
         while (Sentry.realtime.events.length > 50) {
             var item = Sentry.realtime.events.pop();
-            $("#" + item[1]).remove();
+            $('.event[data-group="' + item[1] + '"]').remove();
         }
     };
 
