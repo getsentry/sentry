@@ -63,6 +63,18 @@ And you'll register it via ``entry_points`` in your ``setup.py``::
         },
     )
 
+If you're using models or templates, you'll also want to include the ``sentry.apps`` entry point to ensure full
+registration of your app::
+
+    setup(
+        # ...
+        entry_points={
+           'sentry.apps': [
+                'pluginname = sentry_pluginname'
+            ],
+        },
+    )
+
 That's it! Users will be able to install your plugin via ``pip install <package name>`` and configure it
 via the web interface based on the hooks you enable.
 

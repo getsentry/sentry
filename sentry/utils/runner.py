@@ -86,6 +86,19 @@ def install_plugins(settings):
     #         'phabricator = sentry_phabricator.plugins:PhabricatorPlugin'
     #     ],
     # },
+    installed_apps = list(settings.INSTALLED_APPS)
+    for ep in pkg_resources.iter_entry_points('sentry.apps'):
+        try:
+            plugin = ep.load()
+        except Exception:
+            import sys
+            import traceback
+
+            print >> sys.stderr, "Failed to load app %r:\n%s" % (ep.name, traceback.format_exc())
+        else:
+            installed_apps.append(ep.module_name)
+    settings.INSTALLED_APPS = tuple(installed_apps)
+
     for ep in pkg_resources.iter_entry_points('sentry.plugins'):
         try:
             plugin = ep.load()
