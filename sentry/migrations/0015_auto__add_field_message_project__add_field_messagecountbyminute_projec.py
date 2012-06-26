@@ -14,8 +14,8 @@ class Migration(SchemaMigration):
         # Removing unique constraint on 'MessageFilterValue', fields ['group', 'value', 'key']
         db.delete_unique('sentry_messagefiltervalue', ['group_id', 'value', 'key'])
 
-        # Removing unique constraint on 'FilterValue', fields ['value', 'key']
-        db.delete_unique('sentry_filtervalue', ['value', 'key'])
+        # Removing unique constraint on 'FilterValue', fields ['key', 'value']
+        db.delete_unique('sentry_filtervalue', ['key', 'value'])
 
         # Removing unique constraint on 'MessageCountByMinute', fields ['date', 'group']
         db.delete_unique('sentry_messagecountbyminute', ['date', 'group_id'])
@@ -74,8 +74,8 @@ class Migration(SchemaMigration):
         # Deleting field 'FilterValue.project'
         db.delete_column('sentry_filtervalue', 'project_id')
 
-        # Adding unique constraint on 'FilterValue', fields ['value', 'key']
-        db.create_unique('sentry_filtervalue', ['value', 'key'])
+        # Adding unique constraint on 'FilterValue', fields ['key', 'value']
+        db.create_unique('sentry_filtervalue', ['key', 'value'])
 
         # Deleting field 'MessageFilterValue.project'
         db.delete_column('sentry_messagefiltervalue', 'project_id')
