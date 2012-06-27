@@ -301,11 +301,7 @@ def get_project_dsn(context, user, project, asvar):
                 Optional([Constant('size'), Variable('sizevar')]),
                 Optional([Constant('default'), Variable('defaultvar')])])
 def gravatar_url(context, email, sizevar=None, defaultvar='mm'):
-    # XXX - use request.is_secure() in django 1.4
-    if context['request'].META['wsgi.url_scheme'] == 'https':
-        base = 'https://secure.gravatar.com'
-    else:
-        base = 'http://www.gravatar.com'
+    base = 'https://secure.gravatar.com'
 
     gravatar_url = "%s/avatar/%s" % (base, hashlib.md5(email.lower()).hexdigest())
 
