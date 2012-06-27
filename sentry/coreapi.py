@@ -111,7 +111,7 @@ def project_from_auth_vars(auth_vars, data, require_signature=False):
 
         result = plugins.first('has_perm', tm.user, 'create_event', project)
         if result is False:
-            raise APIUnauthorized()
+            raise APIUnauthorized('This event cannot be recorded')
     else:
         project = None
         secret_key = settings.KEY
@@ -121,7 +121,7 @@ def project_from_auth_vars(auth_vars, data, require_signature=False):
     if signature and timestamp:
         validate_hmac(data, signature, timestamp, secret_key)
     elif require_signature:
-        raise APIUnauthorized()
+        raise APIUnauthorized('Missing signature')
 
     return project
 
