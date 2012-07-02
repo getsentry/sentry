@@ -21,14 +21,8 @@ from sentry.web.helpers import render_to_string
 _Exception = Exception
 
 
-# unserialization concept is based on pickle
-class _EmptyClass(object):
-    pass
-
-
 def unserialize(klass, data):
-    value = _EmptyClass()
-    value.__class__ = klass
+    value = object.__new__(klass)
     value.__setstate__(data)
     return value
 
