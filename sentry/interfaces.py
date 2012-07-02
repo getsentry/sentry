@@ -18,6 +18,9 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.web.helpers import render_to_string
 
 
+_Exception = Exception
+
+
 # unserialization concept is based on pickle
 class _EmptyClass(object):
     pass
@@ -372,7 +375,7 @@ class Http(Interface):
         if self.headers.get('Content-Type') == 'application/x-www-form-urlencoded':
             try:
                 data = QueryDict(data)
-            except:
+            except _Exception:
                 pass
             else:
                 data_is_dict = True
@@ -383,7 +386,7 @@ class Http(Interface):
         if not cookies_is_dict:
             try:
                 cookies = QueryDict(cookies)
-            except:
+            except _Exception:
                 pass
             else:
                 cookies_is_dict = True
