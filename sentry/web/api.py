@@ -169,7 +169,7 @@ def store(request, project=None):
             try:
                 validate_data(project, data, client)
             except InvalidData, e:
-                raise APIError(unicode(e))
+                raise APIError(u'Invalid data: %s' % unicode(e))
 
             insert_data_to_database(data)
         except APIError, error:
