@@ -152,6 +152,13 @@ CELERY_SEND_EVENTS = False
 CELERY_RESULT_BACKEND = None
 CELERY_TASK_RESULT_EXPIRES = 1
 
+from datetime import timedelta
+CELERYBEAT_SCHEDULE = {
+    "runs-every-10-seconds": {
+        "task": "sentry.tasks.store.process_data",
+        "schedule": timedelta(seconds=10)
+        },
+    }
 
 # Sentry and Raven configuration
 
