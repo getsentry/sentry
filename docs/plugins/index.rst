@@ -52,15 +52,16 @@ your ``INSTALLED_APPS``::
 
     .. versionadded:: 4.5.0
 
-Recognized 3rd Party Extensions
--------------------------------
+3rd Party Extensions
+--------------------
 
-These extensions are officially recognized and support the current Sentry protocol:
+The following extensions are available and maintained by members of the Sentry community:
 
 * `sentry-phabricator <https://github.com/dcramer/sentry-phabricator>`_
 * `sentry-hipchat <https://github.com/linovia/sentry-hipchat>`_
 * `sentry-groveio <https://github.com/mattrobenolt/sentry-groveio>`_
 * `sentry-irc <https://github.com/gisce/sentry-irc>`_
+* `sentry-trello <https://github.com/DamianZaremba/sentry-trello>`_
 
 Have an extension that should be listed here? Submit a `pull request <https://github.com/dcramer/sentry>`_ and we'll
 get it added.
