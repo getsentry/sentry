@@ -32,7 +32,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
 from sentry.manager import GroupManager, ProjectManager, \
   MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager, \
-  UserOptionManager
+  UserOptionManager, FilterKeyManager
 from sentry.utils import cached_property, \
   MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField, update
@@ -580,6 +580,22 @@ class GroupBookmark(Model):
     class Meta:
         # composite index includes project for efficient queries
         unique_together = (('project', 'user', 'group'),)
+
+
+class FilterKey(Model):
+    """
+    Stores references to available filters keys.
+    """
+    project = models.ForeignKey(Project)
+    key = models.CharField(choices=FILTER_KEYS, max_length=32)
+
+    objects = FilterKeyManager()
+
+    class Meta:
+        unique_together = (('project', 'key'),)
+
+    def __unicode__(self):
+        return u'key=%s' % (self.key,)
 
 
 class FilterValue(Model):

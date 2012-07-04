@@ -12,7 +12,7 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
 from sentry.models import TeamMember, MEMBER_OWNER, \
-  ProjectKey, Team, FilterValue
+  ProjectKey, Team, FilterKey
 from sentry.permissions import can_create_projects, can_remove_project
 from sentry.plugins import plugins
 from sentry.plugins.helpers import set_option, get_option
@@ -158,7 +158,7 @@ def client_help(request, project):
 @login_required
 @has_access(MEMBER_OWNER)
 def manage_project_tags(request, project):
-    tag_list = list(FilterValue.objects.filter(project=project).values_list('key', flat=True).distinct())
+    tag_list = FilterKey.objects.all_keys(project)
     if tag_list:
         form = ProjectTagsForm(project, tag_list, request.POST or None)
     else:

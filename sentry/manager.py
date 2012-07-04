@@ -995,3 +995,17 @@ class SearchDocumentManager(BaseManager):
                     )
 
         return document
+
+
+class FilterKeyManager(BaseManager):
+    def _get_cache_key(self, project_id):
+        return 'filterkey:all:%s' % project_id
+
+    def all_keys(self, project):
+        # TODO: cache invalidation via post_save/post_delete signals much like BaseManager
+        key = self._get_cache_key(project.id)
+        result = cache.get(key)
+        if result is None:
+            result = list(self.filter(project=project).values_list('key', flat=True))
+            cache.set(key, result, 60)
+        return result
