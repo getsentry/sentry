@@ -10,7 +10,6 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
-from sentry.conf import settings
 from sentry.models import TeamMember, MEMBER_OWNER, \
   ProjectKey, Team
 from sentry.permissions import can_create_projects, can_remove_project
