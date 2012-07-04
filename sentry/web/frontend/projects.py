@@ -5,19 +5,21 @@ sentry.web.frontend.projects
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from crispy_forms.helper import FormHelper
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
 from sentry.models import TeamMember, MEMBER_OWNER, \
-  ProjectKey, Team
+  ProjectKey, Team, FilterValue
 from sentry.permissions import can_create_projects, can_remove_project
 from sentry.plugins import plugins
 from sentry.plugins.helpers import set_option, get_option
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms import EditProjectForm, RemoveProjectForm, \
   EditProjectAdminForm
+from sentry.web.forms.projects import ProjectTagsForm
 from sentry.web.helpers import render_to_response, get_project_list, \
   plugin_config, get_team_list
 
@@ -151,6 +153,32 @@ def client_help(request, project):
             'dsn_public': key.get_dsn(public=True),
         })
     return render_to_response('sentry/projects/client_help.html', context, request)
+
+
+@login_required
+@has_access(MEMBER_OWNER)
+def manage_project_tags(request, project):
+    tag_list = list(FilterValue.objects.filter(project=project).values_list('key', flat=True).distinct())
+    if tag_list:
+        form = ProjectTagsForm(project, tag_list, request.POST or None)
+    else:
+        form = None
+
+    helper = FormHelper()
+    helper.form_tag = False
+
+    if form.is_valid():
+        form.save()
+        return HttpResponseRedirect(reverse('sentry-manage-project-tags', args=[project.slug]) + '?success=1')
+
+    context = {
+        'tag_list': tag_list,
+        'page': 'tags',
+        'project': project,
+        'form': form,
+        'helper': helper,
+    }
+    return render_to_response('sentry/projects/manage_tags.html', context, request)
 
 
 @login_required

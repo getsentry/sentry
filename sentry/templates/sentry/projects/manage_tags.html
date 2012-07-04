@@ -1,0 +1,38 @@
+{% extends "sentry/projects/manage.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Manage Tags" %} | {{ block.super }}{% endblock %}
+
+{% block inner %}
+    <div class="page-header">
+        <h2>{% trans "Manage Tags" %}</h2>
+    </div>
+    {% if form %}
+        <p>{% trans "Configure tags which you want to enable filters for." %}</p>
+        <p><small>{% trans "Note: You can only configure tags which have already been seen." %}</small></p>
+        <form action="" method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="alert alert-block alert-error">
+                    <p>{% trans "There were errors saving your changes:" %}</p>
+                    <ul>
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            <fieldset>
+                {% crispy form helper %}
+            </fieldset>
+            <fieldset class="form-actions">
+                <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+            </fieldset>
+        </form>
+    {% else %}
+        <p>{% trans "We have not yet recorded any tags for this project." %}</p>
+    {% endif %}
+{% endblock %}
+
