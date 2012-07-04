@@ -9,21 +9,8 @@ import sentry
 
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.filters import Filter
-from sentry.models import Event
 from sentry.plugins import register
 from sentry.plugins.bases.tag import TagPlugin
-
-
-class ServerNameFilter(Filter):
-    label = _('Server Name')
-    column = 'server_name'
-
-    def get_query_set(self, queryset):
-        if queryset.model == Event:
-            return queryset.filter(server_name=self.get_value()).distinct()
-        else:
-            return queryset.filter(event_set__server_name=self.get_value()).distinct()
 
 
 class ServersPlugin(TagPlugin):
@@ -45,8 +32,5 @@ class ServersPlugin(TagPlugin):
         if not event.server_name:
             return []
         return [event.server_name]
-
-    def get_filters(self, project=None, **kwargs):
-        return [ServerNameFilter]
 
 register(ServersPlugin)

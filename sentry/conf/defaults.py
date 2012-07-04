@@ -18,9 +18,6 @@ MODULE_ROOT = os.path.dirname(__import__('sentry').__file__)
 DEBUG = False
 
 FILTERS = (
-    'sentry.filters.StatusFilter',
-    'sentry.filters.LoggerFilter',
-    'sentry.filters.LevelFilter',
 )
 
 KEY = None

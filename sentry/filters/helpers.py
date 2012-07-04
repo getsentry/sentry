@@ -13,11 +13,15 @@ __all__ = ('get_filters',)
 
 import logging
 
+from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
+from sentry.filters.base import TagFilter
 from sentry.plugins import plugins
+from sentry.models import ProjectOption
 
 
 FILTER_CACHE = {}
+TAG_FILTER_CACHE = {}
 
 
 def get_filters(model=None, project=None):
@@ -36,6 +40,18 @@ def get_filters(model=None, project=None):
                 continue
             FILTER_CACHE[class_path] = cls
         filter_list.append(FILTER_CACHE[class_path])
+
+    if project:
+        for tag in ProjectOption.objects.get_value(project, 'tags'):
+            if tag not in TAG_FILTER_CACHE:
+                # Generate a new filter class because we are lazy and do
+                # not want to rewrite code
+                class new(TagFilter):
+                    label = _(tag.replace('_', ' ').title())
+                    column = tag
+                new.__name__ = '__%sGeneratedFilter' % str(tag)
+                TAG_FILTER_CACHE[tag] = new
+            filter_list.append(TAG_FILTER_CACHE[tag])
 
     # Add plugin-provided filters
     for plugin in plugins.all():

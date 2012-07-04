@@ -86,3 +86,19 @@ class EventFilter(Filter):
 
 class GroupFilter(Filter):
     types = [Group]
+
+
+class TagFilter(Filter):
+    def get_query_set(self, queryset):
+        col, val = self.get_column(), self.get_value()
+        if queryset.model == Event:
+            queryset = queryset.filter(**dict(
+                group__messagefiltervalue__key=col,
+                group__messagefiltervalue__value=val,
+            ))
+        else:
+            queryset = queryset.filter(**dict(
+                messagefiltervalue__key=col,
+                messagefiltervalue__value=val,
+            ))
+        return queryset.distinct()

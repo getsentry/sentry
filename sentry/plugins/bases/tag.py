@@ -6,34 +6,9 @@ sentry.plugins.bases.tag
 :license: BSD, see LICENSE for more details.
 """
 from sentry import app
-from sentry.filters import Filter
-from sentry.models import Event, FilterValue, MessageFilterValue
+from sentry.models import FilterValue, MessageFilterValue
 from sentry.plugins import Plugin
 from django.db.models import Sum
-
-
-def create_tag_filter(plugin):
-    class TagFilter(Filter):
-        label = plugin.tag_label
-        column = plugin.tag
-
-        def get_query_set(self, queryset):
-            col, val = self.get_column(), self.get_value()
-            if queryset.model == Event:
-                queryset = queryset.filter(**dict(
-                    group__messagefiltervalue__key=col,
-                    group__messagefiltervalue__value=val,
-                ))
-            else:
-                queryset = queryset.filter(**dict(
-                    messagefiltervalue__key=col,
-                    messagefiltervalue__value=val,
-                ))
-            return queryset.distinct()
-
-    TagFilter.__name__ = plugin.tag.title() + 'TagFilter'
-
-    return TagFilter
 
 
 class TagPlugin(Plugin):
@@ -105,8 +80,3 @@ class TagPlugin(Plugin):
             }, {
                 'last_seen': group.last_seen,
             })
-
-    def get_filters(self, project=None, **kwargs):
-        if not hasattr(type(self), '_filter_class'):
-            self._filter_class = create_tag_filter(self)
-        return [self._filter_class]
