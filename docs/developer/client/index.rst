@@ -69,7 +69,10 @@ For example, with an included Exception event, a basic JSON body might resemble 
             "project": "default",
             "culprit": "my.module.function_name",
             "timestamp": "2011-05-02T17:41:36",
-            "message": "SyntaxError: Wattttt!"
+            "message": "SyntaxError: Wattttt!",
+            "tags": {
+                "ios_version": "4.0"
+            },
             "sentry.interfaces.Exception": {
                 "type": "SyntaxError":
                 "value": "Wattttt!",
@@ -163,6 +166,28 @@ highly encouraged:
 
         {
             "culprit": "my.module.function_name"
+        }
+
+.. data:: tags
+
+    A map or list of tags for this event.
+
+    ::
+
+        {
+            "tags": {
+                "ios_version": "4.0",
+                "context": "production"
+            }
+        }
+
+    ::
+
+        {
+            "tags": [
+                ["ios_version", "4.0"],
+                ["context", "production"]
+            ]
         }
 
 .. data:: server_name
