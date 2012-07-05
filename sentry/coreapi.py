@@ -44,6 +44,7 @@ RESERVED_FIELDS = (
     'timestamp',
     'extra',
     'modules',
+    'tags',
 )
 
 REQUIRED_FIELDS = (
