@@ -165,6 +165,18 @@ class SentryManagerTest(TestCase):
         self.assertEquals(res.value, 'bar')
         self.assertEquals(res.times_seen, 1)
 
+    @mock.patch('sentry.manager.GroupManager.add_tags')
+    def test_tags_as_list(self, add_tags):
+        event = Group.objects.from_kwargs(1, message='foo', tags=[('foo', 'bar')])
+        group = event.group
+        add_tags.assert_called_once_with(group, [('foo', 'bar'), ('logger', 'root')])
+
+    @mock.patch('sentry.manager.GroupManager.add_tags')
+    def test_tags_as_dict(self, add_tags):
+        event = Group.objects.from_kwargs(1, message='foo', tags={'foo': 'bar'})
+        group = event.group
+        add_tags.assert_called_once_with(group, [('foo', 'bar'), ('logger', 'root')])
+
     def test_dupe_message_id(self):
         event = Group.objects.from_kwargs(1, event_id=1, message='foo')
         self.assertEquals(event.message, 'foo')

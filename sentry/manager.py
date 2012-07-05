@@ -411,6 +411,10 @@ class GroupManager(BaseManager, ChartMixin):
         checksum = kwargs.pop('checksum', None)
         tags = kwargs.pop('tags', [])
 
+        # full support for dict syntax
+        if isinstance(tags, dict):
+            tags = tags.items()
+
         # We must convert date to local time so Django doesn't mess it up
         # based on TIME_ZONE
         date = utc_to_local(date)
