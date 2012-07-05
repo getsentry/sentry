@@ -1,3 +1,12 @@
+Version 4.8.0
+-------------
+
+Tags are now able to be created dynamically! See the documentation for more details on implementing it inside
+of your client.
+
+You can also configure which tags will show up as filters in the sidebar via your project's settings page. By
+default all tags will show up.
+
 Version 4.7.0
 -------------
 
