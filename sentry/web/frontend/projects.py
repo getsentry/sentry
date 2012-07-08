@@ -167,7 +167,7 @@ def manage_project_tags(request, project):
     helper = FormHelper()
     helper.form_tag = False
 
-    if form.is_valid():
+    if form and form.is_valid():
         form.save()
         return HttpResponseRedirect(reverse('sentry-manage-project-tags', args=[project.slug]) + '?success=1')
 
