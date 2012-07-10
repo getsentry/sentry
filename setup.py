@@ -50,6 +50,7 @@ install_requires = [
     'cssutils>=0.9.9',
     'BeautifulSoup>=3.2.1',
     'django-celery>=2.5.5,<3.0',
+    'celery>=2.5.3,<3.0',
     'django-crispy-forms>=1.1.4',
     'Django>=1.2,<1.5',
     'django-indexer>=0.3.0',
