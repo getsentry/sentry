@@ -43,8 +43,7 @@ watch:
 	watchr -e "watch('bootstrap/.*\.less') { system 'make static' }"
 
 test:
-	pep8 --exclude=migrations --ignore=E501,E225,E121,E123,E124,E125,E127,E128 sentry || exit 1
-	pyflakes -x W sentry || exit 1
+	flake8 --exclude=migrations --ignore=E501,E225,E121,E123,E124,E125,E127,E128 --exit-zero sentry || exit 1
 	python setup.py test
 
 coverage:
