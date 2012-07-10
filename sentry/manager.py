@@ -604,12 +604,18 @@ class GroupManager(BaseManager, ChartMixin):
         return group, is_new, is_sample
 
     def add_tags(self, group, tags):
-        from sentry.models import FilterValue, MessageFilterValue
+        from sentry.models import FilterValue, FilterKey, MessageFilterValue
 
         project = group.project
         date = group.last_seen
 
         for key, value in itertools.ifilter(bool, tags):
+            # TODO: FilterKey and FilterValue queries should be create's under a try/except
+            FilterKey.objects.get_or_create(
+                project=project,
+                key=key,
+            )
+
             FilterValue.objects.get_or_create(
                 project=project,
                 key=key,
