@@ -1548,7 +1548,7 @@ msgstr "Jste si jisti, že chcete zrušit přístup tohoto uživatele? <strong>T
 msgid ""
 "Use this page to create a new project within Sentry. Once done, you'll be "
 "able to configure your client to send messages to this project."
-msgstr "Tuto stránku použijte pro vytvoření nového projektu v Sentry. Jakmile budete hotovi, můžete nastavit Vašeho klienta pr oposílání zpráv do tohoto projektu."
+msgstr "Tuto stránku použijte pro vytvoření nového projektu v Sentry. Jakmile budete hotovi, můžete nastavit Vašeho klienta pro posílání zpráv do tohoto projektu."
 
 #: templatetags/sentry_helpers.py:74
 msgid "b"
