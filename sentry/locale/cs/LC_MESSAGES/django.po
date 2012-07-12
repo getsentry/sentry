@@ -8,10 +8,10 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: https://github.com/dcramer/sentry/issues\n"
-"POT-Creation-Date: 2012-05-15 21:11+0000\n"
-"PO-Revision-Date: 2012-05-16 19:04+0000\n"
+"POT-Creation-Date: 2012-06-06 07:53+0000\n"
+"PO-Revision-Date: 2012-06-07 04:42+0000\n"
 "Last-Translator: Zbyněk Schwarz <zbynek.schwarz@gmail.com>\n"
-"Language-Team: Czech (http://www.transifex.net/projects/p/sentry/language/cs/)\n"
+"Language-Team: Czech (http://www.transifex.com/projects/p/sentry/language/cs/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -22,23 +22,17 @@ msgstr ""
 msgid "Priority"
 msgstr "Priorita"
 
-#: constants.py:6 constants.py:34
-#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:24
-#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:24
-#: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:24
-#: templates/sentry/search.html:16
+#: constants.py:6 constants.py:34 templates/sentry/search.html:16
+#: templates/sentry/plugins/bases/tag/index.html:24
 msgid "Last Seen"
 msgstr "Naposledy viděn"
 
-#: constants.py:7 constants.py:35
-#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:23
-#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:23
-#: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:23
-#: templates/sentry/search.html:18
+#: constants.py:7 constants.py:35 templates/sentry/search.html:18
+#: templates/sentry/plugins/bases/tag/index.html:23
 msgid "First Seen"
 msgstr "Prvně viděn"
 
-#: constants.py:8 templates/sentry/groups/details.html:124
+#: constants.py:8 templates/sentry/groups/details.html:128
 msgid "Frequency"
 msgstr "Četnost"
 
@@ -91,23 +85,23 @@ msgstr "uživatel"
 msgid "system agent"
 msgstr "agent systému"
 
-#: models.py:369
+#: models.py:372
 msgid "error"
 msgstr "chyba"
 
-#: models.py:398
+#: models.py:404
 msgid "grouped messages"
 msgstr "seskupené zprávy"
 
-#: models.py:399
+#: models.py:405
 msgid "grouped message"
 msgstr "seskupená zpráva"
 
-#: models.py:473
+#: models.py:488
 msgid "message"
 msgstr "zpráva"
 
-#: models.py:474
+#: models.py:489
 msgid "messages"
 msgstr "zpráva"
 
@@ -166,50 +160,53 @@ msgstr "Zadejte jeden nebo více emailů oddělených čárkou nebo řádky."
 msgid "Mail"
 msgstr "Pošta"
 
-#: plugins/sentry_servers/models.py:19
-#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:21
+#: plugins/sentry_servers/models.py:19 plugins/sentry_servers/models.py:42
 msgid "Server Name"
 msgstr "Název serveru"
 
 #: plugins/sentry_servers/models.py:37
-#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/widget.html:5
 msgid "Servers"
 msgstr "Servery"
 
-#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:22
-#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:22
-#: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:22
-msgid "Times Seen"
-msgstr "Kolikrát viděn"
-
-#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:41
-#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:41
-#: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:41
-#: templates/sentry/groups/event_list.html:23
-msgid "There are no records recorded for this event."
-msgstr "Pro tuto událost neexistují žádné záznamy."
-
-#: plugins/sentry_sites/models.py:21
+#: plugins/sentry_sites/models.py:19 plugins/sentry_sites/models.py:42
 msgid "Site"
 msgstr "Stránka"
 
-#: plugins/sentry_sites/models.py:55
-#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/widget.html:5
+#: plugins/sentry_sites/models.py:37
 msgid "Sites"
 msgstr "Stránky"
 
-#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:21
-msgid "Site Name"
-msgstr "Název stránky"
-
 #: plugins/sentry_urls/models.py:24
-#: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/widget.html:5
 msgid "URLs"
 msgstr "URL"
 
-#: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:21
+#: plugins/sentry_urls/models.py:29
 msgid "URL"
 msgstr "URL"
+
+#: plugins/sentry_user_emails/models.py:24
+msgid "User Emails"
+msgstr "Email uživatele"
+
+#: plugins/sentry_user_emails/models.py:29
+msgid "User Email"
+msgstr "Emaily uživatele"
+
+#: plugins/sentry_useragents/models.py:47
+msgid "Browsers"
+msgstr "Prohlížeče"
+
+#: plugins/sentry_useragents/models.py:49
+msgid "Browser Name"
+msgstr "Název prohlížeče"
+
+#: plugins/sentry_useragents/models.py:66
+msgid "Operating Systems"
+msgstr "Operační systémy"
+
+#: plugins/sentry_useragents/models.py:68
+msgid "Operating System"
+msgstr "Operační systém"
 
 #: templates/sentry/404.html:5 templates/sentry/404.html.py:10
 msgid "Page Not Found"
@@ -236,18 +233,15 @@ msgstr "Při zpracování Vašeho požadavku došlo k vnitřní chybě."
 msgid "You may reference this error as <strong>%(id)s</strong>."
 msgstr "Na tuto chybu můžete odkázat jako <strong>%(id)s</strong>."
 
-#: templates/sentry/dashboard.html:5
-msgid "Select a Project"
-msgstr "Vybrat projekt"
-
-#: templates/sentry/dashboard.html:9 templates/sentry/header.html:24
-#: templates/sentry/header.html.py:33 templates/sentry/layout.html:56
+#: templates/sentry/dashboard.html:5 templates/sentry/dashboard.html.py:9
+#: templates/sentry/header.html:25 templates/sentry/header.html.py:34
+#: templates/sentry/layout.html:56
 msgid "Dashboard"
 msgstr "Nástěnka"
 
-#: templates/sentry/dashboard.html:14 templates/sentry/account/settings.html:5
-#: templates/sentry/account/settings.html:9
-#: templates/sentry/account/settings.html:15
+#: templates/sentry/dashboard.html:14 templates/sentry/account/settings.html:6
+#: templates/sentry/account/settings.html:10
+#: templates/sentry/account/settings.html:16
 msgid "Account Settings"
 msgstr "Nastavení účtu"
 
@@ -255,37 +249,46 @@ msgstr "Nastavení účtu"
 msgid "Loading historical data..."
 msgstr "Načítání dat historie..."
 
-#: templates/sentry/dashboard.html:27
-msgid "Top Events"
-msgstr "Nejdůležitější události"
+#: templates/sentry/dashboard.html:26
+msgid "Trends"
+msgstr "Vývoj"
 
-#: templates/sentry/dashboard.html:27 templates/sentry/dashboard.html.py:36
-msgid "Today"
-msgstr "Dnes"
+#: templates/sentry/dashboard.html:28 templates/sentry/dashboard.html.py:51
+msgid "15 minutes"
+msgstr "15 minut"
 
-#: templates/sentry/dashboard.html:36
+#: templates/sentry/dashboard.html:29 templates/sentry/dashboard.html.py:52
+msgid "60 minutes"
+msgstr "60 minut"
+
+#: templates/sentry/dashboard.html:30 templates/sentry/dashboard.html.py:53
+msgid "24 hours"
+msgstr "24 hodin"
+
+#: templates/sentry/dashboard.html:42 templates/sentry/dashboard.html.py:65
+#: templates/sentry/dashboard.html:139
+msgid "No unresolved events are listed in the time period selected."
+msgstr "Ve zvoleném časovém období nejsou žádné nevyřešené události."
+
+#: templates/sentry/dashboard.html:49
 msgid "New Events"
 msgstr "Nové události"
 
-#: templates/sentry/dashboard.html:45
-msgid "No unresolved events are available for the last 24 hours."
-msgstr "Za posledních 24 hodin nejsou dostupné žádné nevyřešené události"
-
-#: templates/sentry/dashboard.html:50
+#: templates/sentry/dashboard.html:74
 #, python-format
 msgid ""
 "You do not have access to any projects. Would you like to <a "
 "href=\"%(link)s\">create a new project</a>?"
 msgstr "Nemáte přístup k žádným projektům. Chtěli byste <a href=\"%(link)s\">vytvořit nový projekt</a>?"
 
-#: templates/sentry/dashboard.html:52 templates/sentry/projects/base.html:63
+#: templates/sentry/dashboard.html:76 templates/sentry/projects/base.html:63
 #: templates/sentry/projects/list.html:56
 msgid ""
 "You do not have access to any projects. Ask an administrator to add you as a"
 " member."
 msgstr "Nemáte přístup k žádným projektům. Požádejte správce, aby Vás přidal jako člena."
 
-#: templates/sentry/dashboard.html:59 templates/sentry/header.html:44
+#: templates/sentry/dashboard.html:83 templates/sentry/header.html:45
 #: templates/sentry/admin/base.html:17
 #: templates/sentry/admin/projects/list.html:13
 #: templates/sentry/admin/users/edit.html:42
@@ -296,70 +299,65 @@ msgstr "Nemáte přístup k žádným projektům. Požádejte správce, aby Vás
 msgid "Projects"
 msgstr "Projekty"
 
-#: templates/sentry/dashboard.html:71
+#: templates/sentry/dashboard.html:95
 #: templates/sentry/partial/_account_sidebar.html:17
 msgid "New project"
 msgstr "Nový projekt"
 
-#: templates/sentry/dashboard.html:74
+#: templates/sentry/dashboard.html:98
 #: templates/sentry/partial/_account_sidebar.html:20
 #, python-format
 msgid "View all <strong>%(count)s</strong> projects"
 msgstr "Zobrazit všech <strong>%(count)s</strong> projektů"
 
-#: templates/sentry/dashboard.html:78
+#: templates/sentry/dashboard.html:102
 #: templates/sentry/partial/_account_sidebar.html:24
 msgid "You are not a part of any projects."
 msgstr "Nejste součástí žádných projektů"
 
-#: templates/sentry/dashboard.html:80
+#: templates/sentry/dashboard.html:104
 #: templates/sentry/partial/_account_sidebar.html:26
 #: templates/sentry/projects/base.html:9
 msgid "Create a new project"
 msgstr "Vytvořit nový projekt"
 
-#: templates/sentry/header.html:12
+#: templates/sentry/header.html:13
 msgid "search query or message id"
 msgstr "dotaz hledání nebo id zprávy"
 
-#: templates/sentry/header.html:12
+#: templates/sentry/header.html:13
 msgid "message id"
 msgstr "id zprávy"
 
-#: templates/sentry/header.html:17
+#: templates/sentry/header.html:18
 msgid "select a project to enable search"
 msgstr "vyberte projekt pro povolení hledání"
 
-#: templates/sentry/header.html:25 templates/sentry/events/event_list.html:11
+#: templates/sentry/header.html:26 templates/sentry/events/event_list.html:11
 msgid "Stream"
 msgstr "Proud"
 
-#: templates/sentry/header.html:42
-#: templates/sentry/partial/_account_sidebar.html:3
-msgid "Account"
-msgstr "Účet"
-
-#: templates/sentry/header.html:45
+#: templates/sentry/header.html:46
 #: templates/sentry/partial/_account_sidebar.html:30
 #: templates/sentry/teams/base.html:13
 msgid "Teams"
 msgstr "Týmy"
 
-#: templates/sentry/header.html:47 templates/sentry/admin/base.html:5
+#: templates/sentry/header.html:48 templates/sentry/admin/base.html:5
 #: templates/sentry/admin/base.html.py:9
 msgid "Admin"
 msgstr "Správce"
 
-#: templates/sentry/header.html:50
+#: templates/sentry/header.html:51
 #: templates/sentry/partial/_account_sidebar.html:5
 msgid "Settings"
 msgstr "Nastavení"
 
-#: templates/sentry/header.html:51
+#: templates/sentry/header.html:52
 msgid "Logout"
 msgstr "Odhlášení"
 
-#: templates/sentry/header.html:55 templates/sentry/login.html:5
+#: templates/sentry/header.html:56 templates/sentry/login.html:5
 #: templates/sentry/login.html.py:37
 msgid "Login"
 msgstr "Přihlášení"
@@ -394,7 +392,7 @@ msgstr "Seřadit podle: %(label)s"
 msgid "No events match your search query."
 msgstr "Žádné události neodpovídají Vašemu dotazu hledání."
 
-#: templates/sentry/account/settings.html:24
+#: templates/sentry/account/settings.html:25
 #: templates/sentry/admin/users/edit.html:21
 #: templates/sentry/admin/users/remove.html:19
 #: templates/sentry/partial/_form.html:6
@@ -403,16 +401,16 @@ msgstr "Žádné události neodpovídají Vašemu dotazu hledání."
 msgid "There were errors saving your changes:"
 msgstr "Při ukládání Vašich změn došlo k chybám:"
 
-#: templates/sentry/account/settings.html:32
+#: templates/sentry/account/settings.html:33
 msgid ""
 "To make changes to your account, you must first enter your current password."
 msgstr "Pro provedení změn ve vašem účtu musíte zadat vaše současné heslo."
 
-#: templates/sentry/account/settings.html:53
+#: templates/sentry/account/settings.html:61
 msgid "You may also optionally change your password."
 msgstr "Máte také možnost si změnit své heslo."
 
-#: templates/sentry/account/settings.html:62
+#: templates/sentry/account/settings.html:70
 #: templates/sentry/admin/users/edit.html:33
 #: templates/sentry/partial/_form.html:18
 #: templates/sentry/projects/manage.html:74
@@ -710,68 +708,72 @@ msgstr "Souhrnné informace"
 msgid "Status:"
 msgstr "Stav:"
 
-#: templates/sentry/groups/details.html:27
+#: templates/sentry/groups/details.html:28
+msgid "Reopened At:"
+msgstr "Znovu otevřeno v:"
+
+#: templates/sentry/groups/details.html:31
 msgid "Last Seen:"
 msgstr "Naposledy viděn:"
 
-#: templates/sentry/groups/details.html:29
+#: templates/sentry/groups/details.html:33
 msgid "Avg Duration:"
 msgstr "Prům trvání:"
 
-#: templates/sentry/groups/details.html:30
+#: templates/sentry/groups/details.html:34
 #: templates/sentry/projects/plugins/list.html:42
 #: templates/sentry/projects/plugins/list.html:48
 msgid "n/a"
 msgstr "n/a"
 
-#: templates/sentry/groups/details.html:31
+#: templates/sentry/groups/details.html:35
 msgid "Checksum:"
 msgstr "Kontrolní součet:"
 
-#: templates/sentry/groups/details.html:73
+#: templates/sentry/groups/details.html:77
 #: templates/sentry/partial/_group.html:36
 msgid "Mark as Resolved"
 msgstr "Označit jako vyřešené"
 
-#: templates/sentry/groups/details.html:75
+#: templates/sentry/groups/details.html:79
 #: templates/sentry/partial/_group.html:38
 msgid "Already Resolved"
 msgstr "Již vyřešeno"
 
-#: templates/sentry/groups/details.html:79
+#: templates/sentry/groups/details.html:83
 #: templates/sentry/partial/_group.html:42
 msgid "Bookmark"
 msgstr "Záložka"
 
-#: templates/sentry/groups/details.html:89
+#: templates/sentry/groups/details.html:93
 #: templates/sentry/projects/manage.html:19
 #: templates/sentry/teams/members/edit.html:25
 msgid "Details"
 msgstr "Podrobnosti"
 
-#: templates/sentry/groups/details.html:92
+#: templates/sentry/groups/details.html:96
 msgid "Events"
 msgstr "Události"
 
-#: templates/sentry/groups/details.html:98
+#: templates/sentry/groups/details.html:102
 #: templates/sentry/teams/manage.html:56 templates/sentry/teams/manage.html:98
 #: templates/sentry/teams/manage.html:144
 msgid "Actions"
 msgstr "Činnosti"
 
-#: templates/sentry/groups/details.html:100
+#: templates/sentry/groups/details.html:104
 msgid "Remove Event"
 msgstr "Odstranit událost"
 
-#: templates/sentry/groups/details.html:105
+#: templates/sentry/groups/details.html:109
 msgid "Raw JSON Data"
 msgstr "Čistá data JSON"
 
-#: templates/sentry/groups/details.html:128
+#: templates/sentry/groups/details.html:132
 msgid "Get yourself some JavaScripts dood"
 msgstr "Tak si pořiďte nějaké Javaskripty přece!"
 
-#: templates/sentry/groups/details.html:129
+#: templates/sentry/groups/details.html:133
 msgid "Loading..."
 msgstr "Načítání..."
 
@@ -798,6 +800,11 @@ msgid ""
 "about how Sentry samples events, see the <a "
 "href=\"%(link)s\">documentation</a>."
 msgstr "Seznam obsahuje pouze část všech známých událostí. Pro více informací o tom, jak Sentry události vzorkuje, se podívejte na <a href=\"%(link)s\">dokumentaci</a>."
+
+#: templates/sentry/groups/event_list.html:23
+#: templates/sentry/plugins/bases/tag/index.html:41
+msgid "There are no records recorded for this event."
+msgstr "Pro tuto událost neexistují žádné záznamy."
 
 #: templates/sentry/groups/group_list.html:25
 msgid "All"
@@ -847,6 +854,10 @@ msgstr "Zvolte Vaši platformu pro pokyny k rychlému nastavení:"
 msgid ""
 "For more information, please see the <a href=\"%(link)s\">documentation</a>."
 msgstr "Prodalší informace si prosím prohlédněte <a href=\"%(link)s\">dokumentaci</a>."
+
+#: templates/sentry/partial/_account_sidebar.html:3
+msgid "Account"
+msgstr "Účet"
 
 #: templates/sentry/partial/_account_sidebar.html:39
 msgid "New team"
@@ -1249,6 +1260,10 @@ msgstr "Změny Vašeho projektu byly úspěšně uloženy."
 msgid "Changes to your configuration were saved successfully."
 msgstr "Změny Vaší konfigurace byly úspěšně uloženy"
 
+#: templates/sentry/plugins/bases/tag/index.html:22
+msgid "Times Seen"
+msgstr "Kolikrát viděn"
+
 #: templates/sentry/projects/base.html:5
 #: templates/sentry/projects/base.html:15
 #: templates/sentry/projects/list.html:5 templates/sentry/projects/list.html:8
@@ -1550,39 +1565,39 @@ msgid ""
 "able to configure your client to send messages to this project."
 msgstr "Tuto stránku použijte pro vytvoření nového projektu v Sentry. Jakmile budete hotovi, můžete nastavit Vašeho klienta pr oposílání zpráv do tohoto projektu."
 
-#: templatetags/sentry_helpers.py:74
+#: templatetags/sentry_helpers.py:76
 msgid "b"
 msgstr "b"
 
-#: templatetags/sentry_helpers.py:75
+#: templatetags/sentry_helpers.py:77
 msgid "m"
 msgstr "m"
 
-#: templatetags/sentry_helpers.py:76
+#: templatetags/sentry_helpers.py:78
 msgid "k"
 msgstr "k"
 
-#: templatetags/sentry_helpers.py:139
+#: templatetags/sentry_helpers.py:141
 msgid "never"
 msgstr "nikdy"
 
-#: templatetags/sentry_helpers.py:143
+#: templatetags/sentry_helpers.py:145
 msgid "0 minutes"
 msgstr "0 minut"
 
-#: templatetags/sentry_helpers.py:144
+#: templatetags/sentry_helpers.py:146
 msgid "just now"
 msgstr "právě teď"
 
-#: templatetags/sentry_helpers.py:145
+#: templatetags/sentry_helpers.py:147
 msgid "1 day"
 msgstr "1 den"
 
-#: templatetags/sentry_helpers.py:146
+#: templatetags/sentry_helpers.py:148
 msgid "yesterday"
 msgstr "včera"
 
-#: templatetags/sentry_helpers.py:147
+#: templatetags/sentry_helpers.py:149
 msgid " ago"
 msgstr " před"
 

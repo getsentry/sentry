@@ -7,10 +7,10 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: https://github.com/dcramer/sentry/issues\n"
-"POT-Creation-Date: 2012-05-15 21:11+0000\n"
-"PO-Revision-Date: 2012-05-16 09:26+0000\n"
+"POT-Creation-Date: 2012-06-06 07:53+0000\n"
+"PO-Revision-Date: 2012-06-06 08:32+0000\n"
 "Last-Translator: しろう <>\n"
-"Language-Team: Japanese (http://www.transifex.net/projects/p/sentry/language/ja/)\n"
+"Language-Team: Japanese (http://www.transifex.com/projects/p/sentry/language/ja/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -21,23 +21,17 @@ msgstr ""
 msgid "Priority"
 msgstr "優先度"
 
-#: constants.py:6 constants.py:34
-#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:24
-#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:24
-#: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:24
-#: templates/sentry/search.html:16
+#: constants.py:6 constants.py:34 templates/sentry/search.html:16
+#: templates/sentry/plugins/bases/tag/index.html:24
 msgid "Last Seen"
 msgstr "新しい順"
 
-#: constants.py:7 constants.py:35
-#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:23
-#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:23
-#: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:23
-#: templates/sentry/search.html:18
+#: constants.py:7 constants.py:35 templates/sentry/search.html:18
+#: templates/sentry/plugins/bases/tag/index.html:23
 msgid "First Seen"
 msgstr "古い順"
 
-#: constants.py:8 templates/sentry/groups/details.html:124
+#: constants.py:8 templates/sentry/groups/details.html:128
 msgid "Frequency"
 msgstr "頻度順"
 
@@ -90,23 +84,23 @@ msgstr "ユーザ"
 msgid "system agent"
 msgstr "システムエージェント"
 
-#: models.py:369
+#: models.py:372
 msgid "error"
 msgstr "エラー"
 
-#: models.py:398
+#: models.py:404
 msgid "grouped messages"
 msgstr "グループメッセージ"
 
-#: models.py:399
+#: models.py:405
 msgid "grouped message"
 msgstr "グループメッセージ"
 
-#: models.py:473
+#: models.py:488
 msgid "message"
 msgstr "メッセージ"
 
-#: models.py:474
+#: models.py:489
 msgid "messages"
 msgstr "メッセージ"
 
@@ -165,50 +159,53 @@ msgstr "一つ以上のメールアドレスを、カンマか改行で区切っ
 msgid "Mail"
 msgstr "メール"
 
-#: plugins/sentry_servers/models.py:19
-#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:21
+#: plugins/sentry_servers/models.py:19 plugins/sentry_servers/models.py:42
 msgid "Server Name"
 msgstr "サーバー名"
 
 #: plugins/sentry_servers/models.py:37
-#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/widget.html:5
 msgid "Servers"
 msgstr "サーバー"
 
-#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:22
-#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:22
-#: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:22
-msgid "Times Seen"
-msgstr "回数"
-
-#: plugins/sentry_servers/templates/sentry/plugins/sentry_servers/index.html:41
-#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:41
-#: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:41
-#: templates/sentry/groups/event_list.html:23
-msgid "There are no records recorded for this event."
-msgstr "このイベントに関連する履歴はありません。"
-
-#: plugins/sentry_sites/models.py:21
+#: plugins/sentry_sites/models.py:19 plugins/sentry_sites/models.py:42
 msgid "Site"
 msgstr "サイト"
 
-#: plugins/sentry_sites/models.py:55
-#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/widget.html:5
+#: plugins/sentry_sites/models.py:37
 msgid "Sites"
 msgstr "サイト"
 
-#: plugins/sentry_sites/templates/sentry/plugins/sentry_sites/index.html:21
-msgid "Site Name"
-msgstr "サイト名"
-
 #: plugins/sentry_urls/models.py:24
-#: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/widget.html:5
 msgid "URLs"
 msgstr "URL"
 
-#: plugins/sentry_urls/templates/sentry/plugins/sentry_urls/index.html:21
+#: plugins/sentry_urls/models.py:29
 msgid "URL"
 msgstr "URL"
+
+#: plugins/sentry_user_emails/models.py:24
+msgid "User Emails"
+msgstr ""
+
+#: plugins/sentry_user_emails/models.py:29
+msgid "User Email"
+msgstr ""
+
+#: plugins/sentry_useragents/models.py:47
+msgid "Browsers"
+msgstr ""
+
+#: plugins/sentry_useragents/models.py:49
+msgid "Browser Name"
+msgstr ""
+
+#: plugins/sentry_useragents/models.py:66
+msgid "Operating Systems"
+msgstr ""
+
+#: plugins/sentry_useragents/models.py:68
+msgid "Operating System"
+msgstr ""
 
 #: templates/sentry/404.html:5 templates/sentry/404.html.py:10
 msgid "Page Not Found"
@@ -235,18 +232,15 @@ msgstr "リクエストの処理中にサーバ側でなんらかのエラーが
 msgid "You may reference this error as <strong>%(id)s</strong>."
 msgstr "このエラーに関しては <strong>%(id)s</strong> を参照してください。"
 
-#: templates/sentry/dashboard.html:5
-msgid "Select a Project"
-msgstr "プロジェクトを選ぶ"
-
-#: templates/sentry/dashboard.html:9 templates/sentry/header.html:24
-#: templates/sentry/header.html.py:33 templates/sentry/layout.html:56
+#: templates/sentry/dashboard.html:5 templates/sentry/dashboard.html.py:9
+#: templates/sentry/header.html:25 templates/sentry/header.html.py:34
+#: templates/sentry/layout.html:56
 msgid "Dashboard"
 msgstr "ダッシュボード"
 
-#: templates/sentry/dashboard.html:14 templates/sentry/account/settings.html:5
-#: templates/sentry/account/settings.html:9
-#: templates/sentry/account/settings.html:15
+#: templates/sentry/dashboard.html:14 templates/sentry/account/settings.html:6
+#: templates/sentry/account/settings.html:10
+#: templates/sentry/account/settings.html:16
 msgid "Account Settings"
 msgstr "アカウント設定"
 
@@ -254,37 +248,46 @@ msgstr "アカウント設定"
 msgid "Loading historical data..."
 msgstr ""
 
-#: templates/sentry/dashboard.html:27
-msgid "Top Events"
+#: templates/sentry/dashboard.html:26
+msgid "Trends"
 msgstr ""
 
-#: templates/sentry/dashboard.html:27 templates/sentry/dashboard.html.py:36
-msgid "Today"
+#: templates/sentry/dashboard.html:28 templates/sentry/dashboard.html.py:51
+msgid "15 minutes"
 msgstr ""
 
-#: templates/sentry/dashboard.html:36
+#: templates/sentry/dashboard.html:29 templates/sentry/dashboard.html.py:52
+msgid "60 minutes"
+msgstr ""
+
+#: templates/sentry/dashboard.html:30 templates/sentry/dashboard.html.py:53
+msgid "24 hours"
+msgstr "24時間"
+
+#: templates/sentry/dashboard.html:42 templates/sentry/dashboard.html.py:65
+#: templates/sentry/dashboard.html:139
+msgid "No unresolved events are listed in the time period selected."
+msgstr ""
+
+#: templates/sentry/dashboard.html:49
 msgid "New Events"
 msgstr ""
 
-#: templates/sentry/dashboard.html:45
-msgid "No unresolved events are available for the last 24 hours."
-msgstr ""
-
-#: templates/sentry/dashboard.html:50
+#: templates/sentry/dashboard.html:74
 #, python-format
 msgid ""
 "You do not have access to any projects. Would you like to <a "
 "href=\"%(link)s\">create a new project</a>?"
 msgstr "どのプロジェクトにも属していません。<a href=\"%(link)s\">新しいプロジェクを作成</a>しますか?"
 
-#: templates/sentry/dashboard.html:52 templates/sentry/projects/base.html:63
+#: templates/sentry/dashboard.html:76 templates/sentry/projects/base.html:63
 #: templates/sentry/projects/list.html:56
 msgid ""
 "You do not have access to any projects. Ask an administrator to add you as a"
 " member."
 msgstr "どのプロジェクトのアクセス権限もありません。管理者にメンバーとして追加するよう依頼してください。"
 
-#: templates/sentry/dashboard.html:59 templates/sentry/header.html:44
+#: templates/sentry/dashboard.html:83 templates/sentry/header.html:45
 #: templates/sentry/admin/base.html:17
 #: templates/sentry/admin/projects/list.html:13
 #: templates/sentry/admin/users/edit.html:42
@@ -295,70 +298,65 @@ msgstr "どのプロジェクトのアクセス権限もありません。管理
 msgid "Projects"
 msgstr "プロジェクト"
 
-#: templates/sentry/dashboard.html:71
+#: templates/sentry/dashboard.html:95
 #: templates/sentry/partial/_account_sidebar.html:17
 msgid "New project"
 msgstr "新しいプロジェクト"
 
-#: templates/sentry/dashboard.html:74
+#: templates/sentry/dashboard.html:98
 #: templates/sentry/partial/_account_sidebar.html:20
 #, python-format
 msgid "View all <strong>%(count)s</strong> projects"
 msgstr "<strong>%(count)s</strong>つのプロジェクトすべてを見る"
 
-#: templates/sentry/dashboard.html:78
+#: templates/sentry/dashboard.html:102
 #: templates/sentry/partial/_account_sidebar.html:24
 msgid "You are not a part of any projects."
 msgstr "どのプロジェクトにも属していません。"
 
-#: templates/sentry/dashboard.html:80
+#: templates/sentry/dashboard.html:104
 #: templates/sentry/partial/_account_sidebar.html:26
 #: templates/sentry/projects/base.html:9
 msgid "Create a new project"
 msgstr "新しいプロジェクトを作る"
 
-#: templates/sentry/header.html:12
+#: templates/sentry/header.html:13
 msgid "search query or message id"
 msgstr "検索クエリーかメッセージID"
 
-#: templates/sentry/header.html:12
+#: templates/sentry/header.html:13
 msgid "message id"
 msgstr "メッセージID"
 
-#: templates/sentry/header.html:17
+#: templates/sentry/header.html:18
 msgid "select a project to enable search"
 msgstr "検索を有効にするプロジェクトを選んでください"
 
-#: templates/sentry/header.html:25 templates/sentry/events/event_list.html:11
+#: templates/sentry/header.html:26 templates/sentry/events/event_list.html:11
 msgid "Stream"
 msgstr "ストリーム"
 
-#: templates/sentry/header.html:42
-#: templates/sentry/partial/_account_sidebar.html:3
-msgid "Account"
-msgstr "アカウント"
-
-#: templates/sentry/header.html:45
+#: templates/sentry/header.html:46
 #: templates/sentry/partial/_account_sidebar.html:30
 #: templates/sentry/teams/base.html:13
 msgid "Teams"
 msgstr "チーム"
 
-#: templates/sentry/header.html:47 templates/sentry/admin/base.html:5
+#: templates/sentry/header.html:48 templates/sentry/admin/base.html:5
 #: templates/sentry/admin/base.html.py:9
 msgid "Admin"
 msgstr "システム"
 
-#: templates/sentry/header.html:50
+#: templates/sentry/header.html:51
 #: templates/sentry/partial/_account_sidebar.html:5
 msgid "Settings"
 msgstr "設定"
 
-#: templates/sentry/header.html:51
+#: templates/sentry/header.html:52
 msgid "Logout"
 msgstr "ログアウト"
 
-#: templates/sentry/header.html:55 templates/sentry/login.html:5
+#: templates/sentry/header.html:56 templates/sentry/login.html:5
 #: templates/sentry/login.html.py:37
 msgid "Login"
 msgstr "ログイン"
@@ -393,7 +391,7 @@ msgstr "並び替え: %(label)s"
 msgid "No events match your search query."
 msgstr "イベントの検索結果が見つかりませんでした。"
 
-#: templates/sentry/account/settings.html:24
+#: templates/sentry/account/settings.html:25
 #: templates/sentry/admin/users/edit.html:21
 #: templates/sentry/admin/users/remove.html:19
 #: templates/sentry/partial/_form.html:6
@@ -402,16 +400,16 @@ msgstr "イベントの検索結果が見つかりませんでした。"
 msgid "There were errors saving your changes:"
 msgstr "変更を保存する時に以下のエラーが起こりました:"
 
-#: templates/sentry/account/settings.html:32
+#: templates/sentry/account/settings.html:33
 msgid ""
 "To make changes to your account, you must first enter your current password."
 msgstr "アカウント設定を変更したい場合、パスワードを入力してください。"
 
-#: templates/sentry/account/settings.html:53
+#: templates/sentry/account/settings.html:61
 msgid "You may also optionally change your password."
 msgstr "同時にパスワードも変更できます。"
 
-#: templates/sentry/account/settings.html:62
+#: templates/sentry/account/settings.html:70
 #: templates/sentry/admin/users/edit.html:33
 #: templates/sentry/partial/_form.html:18
 #: templates/sentry/projects/manage.html:74
@@ -709,68 +707,72 @@ msgstr "詳細"
 msgid "Status:"
 msgstr "ステータス:"
 
-#: templates/sentry/groups/details.html:27
+#: templates/sentry/groups/details.html:28
+msgid "Reopened At:"
+msgstr ""
+
+#: templates/sentry/groups/details.html:31
 msgid "Last Seen:"
 msgstr "直近:"
 
-#: templates/sentry/groups/details.html:29
+#: templates/sentry/groups/details.html:33
 msgid "Avg Duration:"
 msgstr "平均継続時間:"
 
-#: templates/sentry/groups/details.html:30
+#: templates/sentry/groups/details.html:34
 #: templates/sentry/projects/plugins/list.html:42
 #: templates/sentry/projects/plugins/list.html:48
 msgid "n/a"
 msgstr "N/A"
 
-#: templates/sentry/groups/details.html:31
+#: templates/sentry/groups/details.html:35
 msgid "Checksum:"
 msgstr "チェックサム:"
 
-#: templates/sentry/groups/details.html:73
+#: templates/sentry/groups/details.html:77
 #: templates/sentry/partial/_group.html:36
 msgid "Mark as Resolved"
 msgstr "解決済みにする"
 
-#: templates/sentry/groups/details.html:75
+#: templates/sentry/groups/details.html:79
 #: templates/sentry/partial/_group.html:38
 msgid "Already Resolved"
 msgstr "すでに解決済み"
 
-#: templates/sentry/groups/details.html:79
+#: templates/sentry/groups/details.html:83
 #: templates/sentry/partial/_group.html:42
 msgid "Bookmark"
 msgstr "ブックマーク"
 
-#: templates/sentry/groups/details.html:89
+#: templates/sentry/groups/details.html:93
 #: templates/sentry/projects/manage.html:19
 #: templates/sentry/teams/members/edit.html:25
 msgid "Details"
 msgstr "詳細"
 
-#: templates/sentry/groups/details.html:92
+#: templates/sentry/groups/details.html:96
 msgid "Events"
 msgstr "イベント"
 
-#: templates/sentry/groups/details.html:98
+#: templates/sentry/groups/details.html:102
 #: templates/sentry/teams/manage.html:56 templates/sentry/teams/manage.html:98
 #: templates/sentry/teams/manage.html:144
 msgid "Actions"
 msgstr "アクション"
 
-#: templates/sentry/groups/details.html:100
+#: templates/sentry/groups/details.html:104
 msgid "Remove Event"
 msgstr "イベント削除"
 
-#: templates/sentry/groups/details.html:105
+#: templates/sentry/groups/details.html:109
 msgid "Raw JSON Data"
 msgstr "JSONデータ"
 
-#: templates/sentry/groups/details.html:128
+#: templates/sentry/groups/details.html:132
 msgid "Get yourself some JavaScripts dood"
 msgstr ""
 
-#: templates/sentry/groups/details.html:129
+#: templates/sentry/groups/details.html:133
 msgid "Loading..."
 msgstr "読み込んでいます…"
 
@@ -797,6 +799,11 @@ msgid ""
 "about how Sentry samples events, see the <a "
 "href=\"%(link)s\">documentation</a>."
 msgstr ""
+
+#: templates/sentry/groups/event_list.html:23
+#: templates/sentry/plugins/bases/tag/index.html:41
+msgid "There are no records recorded for this event."
+msgstr "このイベントに関連する履歴はありません。"
 
 #: templates/sentry/groups/group_list.html:25
 msgid "All"
@@ -846,6 +853,10 @@ msgstr "クイック設定の説明を行うプラットフォームを選んで
 msgid ""
 "For more information, please see the <a href=\"%(link)s\">documentation</a>."
 msgstr "詳しい情報はこの<a href=\"%(link)s\">ドキュメント</a>を参照してください。"
+
+#: templates/sentry/partial/_account_sidebar.html:3
+msgid "Account"
+msgstr "アカウント"
 
 #: templates/sentry/partial/_account_sidebar.html:39
 msgid "New team"
@@ -1248,6 +1259,10 @@ msgstr "プロジェクトへの変更が保存されました。"
 msgid "Changes to your configuration were saved successfully."
 msgstr "設定への変更が保存されました。"
 
+#: templates/sentry/plugins/bases/tag/index.html:22
+msgid "Times Seen"
+msgstr "回数"
+
 #: templates/sentry/projects/base.html:5
 #: templates/sentry/projects/base.html:15
 #: templates/sentry/projects/list.html:5 templates/sentry/projects/list.html:8
@@ -1549,39 +1564,39 @@ msgid ""
 "able to configure your client to send messages to this project."
 msgstr ""
 
-#: templatetags/sentry_helpers.py:74
+#: templatetags/sentry_helpers.py:76
 msgid "b"
 msgstr "b"
 
-#: templatetags/sentry_helpers.py:75
+#: templatetags/sentry_helpers.py:77
 msgid "m"
 msgstr "m"
 
-#: templatetags/sentry_helpers.py:76
+#: templatetags/sentry_helpers.py:78
 msgid "k"
 msgstr "k"
 
-#: templatetags/sentry_helpers.py:139
+#: templatetags/sentry_helpers.py:141
 msgid "never"
 msgstr "一度もない"
 
-#: templatetags/sentry_helpers.py:143
+#: templatetags/sentry_helpers.py:145
 msgid "0 minutes"
 msgstr "0分"
 
-#: templatetags/sentry_helpers.py:144
+#: templatetags/sentry_helpers.py:146
 msgid "just now"
 msgstr "たった今"
 
-#: templatetags/sentry_helpers.py:145
+#: templatetags/sentry_helpers.py:147
 msgid "1 day"
 msgstr "1日"
 
-#: templatetags/sentry_helpers.py:146
+#: templatetags/sentry_helpers.py:148
 msgid "yesterday"
 msgstr "昨日"
 
-#: templatetags/sentry_helpers.py:147
+#: templatetags/sentry_helpers.py:149
 msgid " ago"
 msgstr "前"
 

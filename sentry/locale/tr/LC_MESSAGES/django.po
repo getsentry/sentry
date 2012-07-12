@@ -3,72 +3,71 @@
 # This file is distributed under the same license as the PACKAGE package.
 # 
 # Translators:
-# Jeffrey Gelens <jeffrey@noppo.pro>, 2012.
-# Tino de Bruijn <tinodb@gmail.com>, 2012.
+#   <cihadgundogdu@gmail.com>, 2012.
 msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: https://github.com/dcramer/sentry/issues\n"
 "POT-Creation-Date: 2012-06-06 07:53+0000\n"
-"PO-Revision-Date: 2012-06-06 08:32+0000\n"
-"Last-Translator: Tino de Bruijn <tinodb@gmail.com>\n"
-"Language-Team: Dutch (Netherlands) (http://www.transifex.com/projects/p/sentry/language/nl_NL/)\n"
+"PO-Revision-Date: 2012-06-15 07:22+0000\n"
+"Last-Translator: cihad <cihadgundogdu@gmail.com>\n"
+"Language-Team: Turkish (http://www.transifex.com/projects/p/sentry/language/tr/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: nl_NL\n"
-"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"Language: tr\n"
+"Plural-Forms: nplurals=1; plural=0\n"
 
 #: constants.py:5
 msgid "Priority"
-msgstr "Prioriteit"
+msgstr "Öncelik"
 
 #: constants.py:6 constants.py:34 templates/sentry/search.html:16
 #: templates/sentry/plugins/bases/tag/index.html:24
 msgid "Last Seen"
-msgstr "Laatst gezien"
+msgstr "Son Görülme"
 
 #: constants.py:7 constants.py:35 templates/sentry/search.html:18
 #: templates/sentry/plugins/bases/tag/index.html:23
 msgid "First Seen"
-msgstr "Eerste gezien"
+msgstr "İlk Görülme"
 
 #: constants.py:8 templates/sentry/groups/details.html:128
 msgid "Frequency"
-msgstr "Frequentie"
+msgstr "Sıklık"
 
 #: constants.py:9
 msgid "Total Time Spent"
-msgstr ""
+msgstr "Toplam Süre"
 
 #: constants.py:10
 msgid "Average Time Spent"
-msgstr ""
+msgstr "Ortalama Süre"
 
 #: constants.py:11 constants.py:12
 #, python-format
 msgid "Trending: %(minutes)d minutes"
-msgstr "Trending: %(minutes)d minuten"
+msgstr ""
 
 #: constants.py:33 templates/sentry/search.html:17
 msgid "Score"
-msgstr "Score"
+msgstr "Skor"
 
 #: models.py:45
 msgid "unresolved"
-msgstr "onopgelost"
+msgstr "çözümlenmemiş"
 
 #: models.py:46
 msgid "resolved"
-msgstr "opgelost"
+msgstr "çözümlenmiş"
 
 #: models.py:51
 msgid "server name"
-msgstr "servernaam"
+msgstr "sunucu adı"
 
 #: models.py:52
 msgid "logger"
-msgstr "logger"
+msgstr "loglayıcı"
 
 #: models.py:53
 msgid "site"
@@ -76,56 +75,56 @@ msgstr "site"
 
 #: models.py:60
 msgid "owner"
-msgstr "eigenaar"
+msgstr "sahip"
 
 #: models.py:61
 msgid "user"
-msgstr "gebruiker"
+msgstr "kullanıcı"
 
 #: models.py:62
 msgid "system agent"
-msgstr "systeem agent"
+msgstr ""
 
 #: models.py:372
 msgid "error"
-msgstr "fout"
+msgstr "hata"
 
 #: models.py:404
 msgid "grouped messages"
-msgstr "gegroepeerde berichten"
+msgstr "gruplandırılmış mesajlar"
 
 #: models.py:405
 msgid "grouped message"
-msgstr "gegroepeerd bericht"
+msgstr "gruplandırılmış mesaj"
 
 #: models.py:488
 msgid "message"
-msgstr "bericht"
+msgstr "mesaj"
 
 #: models.py:489
 msgid "messages"
-msgstr "berichten"
+msgstr "mesajlar"
 
 #: filters/builtins.py:17 templates/sentry/projects/base.html:34
 #: templates/sentry/projects/list.html:27
 msgid "Status"
-msgstr ""
+msgstr "Durum"
 
 #: filters/builtins.py:23
 msgid "Unresolved"
-msgstr ""
+msgstr "Çözümlenmemiş"
 
 #: filters/builtins.py:24
 msgid "Resolved"
-msgstr ""
+msgstr "Çözümlenmiş"
 
 #: filters/builtins.py:29
 msgid "Logger"
-msgstr ""
+msgstr "Logger"
 
 #: filters/builtins.py:34
 msgid "Level"
-msgstr ""
+msgstr "Level"
 
 #: plugins/bases/notify.py:15
 msgid "Include project members"
@@ -151,39 +150,39 @@ msgstr ""
 
 #: plugins/sentry_mail/models.py:38
 msgid "Send to"
-msgstr ""
+msgstr "Gönder"
 
 #: plugins/sentry_mail/models.py:39
 msgid "Enter one or more emails separated by commas or lines."
-msgstr ""
+msgstr "Virgül veya satır ile ayrılmış bir veya daha fazla e-posta girin."
 
 #: plugins/sentry_mail/models.py:53
 msgid "Mail"
-msgstr ""
+msgstr "E Posta"
 
 #: plugins/sentry_servers/models.py:19 plugins/sentry_servers/models.py:42
 msgid "Server Name"
-msgstr "Servernaam"
+msgstr "Sunucu Adı"
 
 #: plugins/sentry_servers/models.py:37
 msgid "Servers"
-msgstr "Servers"
+msgstr "Sunucular"
 
 #: plugins/sentry_sites/models.py:19 plugins/sentry_sites/models.py:42
 msgid "Site"
-msgstr ""
+msgstr "Site"
 
 #: plugins/sentry_sites/models.py:37
 msgid "Sites"
-msgstr "Sites"
+msgstr "Siteler"
 
 #: plugins/sentry_urls/models.py:24
 msgid "URLs"
-msgstr "URL's"
+msgstr "Adresler"
 
 #: plugins/sentry_urls/models.py:29
 msgid "URL"
-msgstr "URL"
+msgstr "Adres"
 
 #: plugins/sentry_user_emails/models.py:24
 msgid "User Emails"
@@ -211,40 +210,40 @@ msgstr ""
 
 #: templates/sentry/404.html:5 templates/sentry/404.html.py:10
 msgid "Page Not Found"
-msgstr "Pagina niet gevonden"
+msgstr "Sayfa Bulunamadı"
 
 #: templates/sentry/404.html:15
 msgid "The page you are looking for was not found."
-msgstr "De pagina die je zocht is niet gevonden."
+msgstr "Aradığınız sayfa bulunamadı"
 
 #: templates/sentry/404.html:16
 msgid "Return to the dashboard"
-msgstr "Terug naar het dashboard"
+msgstr "Kontrol panele dön"
 
 #: templates/sentry/500.html:5 templates/sentry/500.html.py:10
 msgid "Internal Server Error"
-msgstr "Interne Server Fout"
+msgstr "Sunucu Hatası"
 
 #: templates/sentry/500.html:15
 msgid "There was an internal server error while processing your request."
-msgstr ""
+msgstr "İsteğiniz işlenirken sunucuda hata oluştu"
 
 #: templates/sentry/500.html:17
 #, python-format
 msgid "You may reference this error as <strong>%(id)s</strong>."
-msgstr "Je kan refereren naar deze fout met <strong>%(id)s</strong>."
+msgstr ""
 
 #: templates/sentry/dashboard.html:5 templates/sentry/dashboard.html.py:9
 #: templates/sentry/header.html:25 templates/sentry/header.html.py:34
 #: templates/sentry/layout.html:56
 msgid "Dashboard"
-msgstr "Dashboard"
+msgstr "Kontrol panel"
 
 #: templates/sentry/dashboard.html:14 templates/sentry/account/settings.html:6
 #: templates/sentry/account/settings.html:10
 #: templates/sentry/account/settings.html:16
 msgid "Account Settings"
-msgstr "Account Instellingen"
+msgstr "Hesap Ayarları"
 
 #: templates/sentry/dashboard.html:22
 msgid "Loading historical data..."
@@ -264,7 +263,7 @@ msgstr ""
 
 #: templates/sentry/dashboard.html:30 templates/sentry/dashboard.html.py:53
 msgid "24 hours"
-msgstr "24 uur"
+msgstr ""
 
 #: templates/sentry/dashboard.html:42 templates/sentry/dashboard.html.py:65
 #: templates/sentry/dashboard.html:139
@@ -298,7 +297,7 @@ msgstr ""
 #: templates/sentry/partial/_account_sidebar.html:8
 #: templates/sentry/teams/manage.html:45
 msgid "Projects"
-msgstr "Projecten"
+msgstr "Projeler"
 
 #: templates/sentry/dashboard.html:95
 #: templates/sentry/partial/_account_sidebar.html:17
@@ -320,7 +319,7 @@ msgstr ""
 #: templates/sentry/partial/_account_sidebar.html:26
 #: templates/sentry/projects/base.html:9
 msgid "Create a new project"
-msgstr ""
+msgstr "Yeni proje oluştur"
 
 #: templates/sentry/header.html:13
 msgid "search query or message id"
@@ -336,7 +335,7 @@ msgstr ""
 
 #: templates/sentry/header.html:26 templates/sentry/events/event_list.html:11
 msgid "Stream"
-msgstr "Stream"
+msgstr ""
 
 #: templates/sentry/header.html:46
 #: templates/sentry/partial/_account_sidebar.html:30
@@ -347,51 +346,51 @@ msgstr ""
 #: templates/sentry/header.html:48 templates/sentry/admin/base.html:5
 #: templates/sentry/admin/base.html.py:9
 msgid "Admin"
-msgstr "Admin"
+msgstr "Yönetici"
 
 #: templates/sentry/header.html:51
 #: templates/sentry/partial/_account_sidebar.html:5
 msgid "Settings"
-msgstr "Instellingen"
+msgstr "Ayarlar"
 
 #: templates/sentry/header.html:52
 msgid "Logout"
-msgstr "Uitloggen"
+msgstr "Çıkış Yap"
 
 #: templates/sentry/header.html:56 templates/sentry/login.html:5
 #: templates/sentry/login.html.py:37
 msgid "Login"
-msgstr "Inloggen"
+msgstr "Giriş Yap"
 
 #: templates/sentry/invalid_message_id.html:5 templates/sentry/search.html:7
 msgid "Search"
-msgstr "Zoeken"
+msgstr "Ara"
 
 #: templates/sentry/invalid_message_id.html:9
 msgid "We were unable to find a message matching the ID you entered."
-msgstr "Er kan geen bericht worden gevonden met het ID dat je hebt ingevoerd."
+msgstr "Girdiğiniz kodl uyumlu mesaj bulunamadı"
 
 #: templates/sentry/login.html:15
 msgid "Please login to continue."
-msgstr "Log in om door te gaan."
+msgstr "Devam etmek için giriş yapınız"
 
 #: templates/sentry/missing_permissions.html:5
 #: templates/sentry/missing_permissions.html:8
 msgid "Forbidden"
-msgstr "Verboden"
+msgstr "Yasak"
 
 #: templates/sentry/missing_permissions.html:13
 msgid "You do not have access to this page with your current permissions."
-msgstr "Je hebt geen toegang tot deze pagina met je huidige permissies."
+msgstr ""
 
 #: templates/sentry/search.html:14 templates/sentry/groups/group_list.html:68
 #, python-format
 msgid "Sort by: %(label)s"
-msgstr "Sorteer op: %(label)s"
+msgstr ""
 
 #: templates/sentry/search.html:32
 msgid "No events match your search query."
-msgstr "Er zijn geen events die voldoen aan je zoekopdracht."
+msgstr "Aramana uygun sonuç bulunamadı"
 
 #: templates/sentry/account/settings.html:25
 #: templates/sentry/admin/users/edit.html:21
@@ -419,56 +418,56 @@ msgstr ""
 #: templates/sentry/teams/members/edit.html:38
 #: templates/sentry/teams/projects/new.html:26
 msgid "Save Changes"
-msgstr "Sla wijzigingen op"
+msgstr "Değişiklikleri Kaydet"
 
 #: templates/sentry/admin/base.html:15 templates/sentry/admin/base.html:42
 msgid "Overview"
-msgstr "Overzicht"
+msgstr "Genel Bakış"
 
 #: templates/sentry/admin/base.html:18
 #: templates/sentry/admin/users/list.html:12
 msgid "Users"
-msgstr "Gebruikers"
+msgstr "Kullanıcılar"
 
 #: templates/sentry/admin/base.html:23
 #: templates/sentry/projects/plugins/list.html:12
 msgid "Plugins"
-msgstr "Plugins"
+msgstr "Eklentiler"
 
 #: templates/sentry/admin/base.html:34
 #: templates/sentry/admin/status/env.html:8
 #: templates/sentry/admin/status/env.html:12
 msgid "Server Status"
-msgstr "Server Status"
+msgstr "Sunucu Durumu"
 
 #: templates/sentry/admin/base.html:36
 #: templates/sentry/admin/status/env.html:17
 #: templates/sentry/partial/interfaces/http.html:123
 msgid "Environment"
-msgstr "Omgeving"
+msgstr "Ortam"
 
 #: templates/sentry/admin/base.html:37
 #: templates/sentry/admin/status/packages.html:8
 #: templates/sentry/admin/status/packages.html:12
 msgid "Packages"
-msgstr ""
+msgstr "Paketler"
 
 #: templates/sentry/admin/base.html:38
 #: templates/sentry/admin/status/queue.html:41
 msgid "Queue"
-msgstr ""
+msgstr "Sıra"
 
 #: templates/sentry/admin/base.html:40 templates/sentry/admin/stats.html:17
 msgid "Statistics"
-msgstr "Statistieken"
+msgstr "İstatistik"
 
 #: templates/sentry/admin/stats.html:8 templates/sentry/admin/stats.html:12
 msgid "Stats"
-msgstr ""
+msgstr "İstatistikler"
 
 #: templates/sentry/admin/projects/list.html:7
 msgid "Manage Projects"
-msgstr "Beheer Projecten"
+msgstr "Projeleri Yönet"
 
 #: templates/sentry/admin/projects/list.html:23
 #: templates/sentry/admin/projects/list.html:81
@@ -480,7 +479,7 @@ msgstr "Beheer Projecten"
 #: templates/sentry/groups/group_list.html:160
 #: templates/sentry/partial/_pager.html:5
 msgid "Previous"
-msgstr "Vorige"
+msgstr "Önceki"
 
 #: templates/sentry/admin/projects/list.html:24
 #: templates/sentry/admin/projects/list.html:82
@@ -492,7 +491,7 @@ msgstr "Vorige"
 #: templates/sentry/groups/group_list.html:161
 #: templates/sentry/partial/_pager.html:6
 msgid "Next"
-msgstr "Volgende"
+msgstr "Sonraki"
 
 #: templates/sentry/admin/projects/list.html:29
 msgid ""
@@ -505,33 +504,33 @@ msgstr ""
 #: templates/sentry/admin/users/list_projects.html:30
 #: templates/sentry/teams/manage.html:55
 msgid "Project"
-msgstr "Project"
+msgstr "Proje"
 
 #: templates/sentry/admin/projects/list.html:45
 #: templates/sentry/admin/users/edit.html:53
 #: templates/sentry/admin/users/list_projects.html:31
 msgid "Daily Events"
-msgstr ""
+msgstr "Günlük Olaylar"
 
 #: templates/sentry/admin/projects/list.html:46
 msgid "Date Added"
-msgstr ""
+msgstr "Eklenme tarihi"
 
 #: templates/sentry/admin/projects/list.html:76
 msgid "There are no active projects in Sentry."
-msgstr "Er zijn geen actieve projecten in Sentry."
+msgstr "Aktif proje yok"
 
 #: templates/sentry/admin/status/env.html:26
 msgid "Server Version"
-msgstr "Server Versie"
+msgstr "Sunucu Versiyonu"
 
 #: templates/sentry/admin/status/env.html:30
 msgid "Python Version"
-msgstr "Python Versie"
+msgstr "Python Versiyonu"
 
 #: templates/sentry/admin/status/env.html:34
 msgid "Configuration File"
-msgstr "Configuratie Bestand"
+msgstr "Ayar dosyası"
 
 #: templates/sentry/admin/status/env.html:38
 msgid "Uptime"
@@ -543,27 +542,27 @@ msgstr ""
 
 #: templates/sentry/admin/status/env.html:48
 msgid "Configuration"
-msgstr "Configuratie"
+msgstr "Ayar"
 
 #: templates/sentry/admin/status/packages.html:17
 msgid "Extensions"
-msgstr "Extensies"
+msgstr "Uzantılar"
 
 #: templates/sentry/admin/status/packages.html:34
 msgid "No extensions registered."
-msgstr "Er zijn geen extensies geregistreerd."
+msgstr "Kayıtlı uzantı yok."
 
 #: templates/sentry/admin/status/packages.html:37
 msgid "Views"
-msgstr ""
+msgstr "View'lar"
 
 #: templates/sentry/admin/status/packages.html:54
 msgid "No views registered."
-msgstr ""
+msgstr "Kayıtlı view yok"
 
 #: templates/sentry/admin/status/packages.html:57
 msgid "Modules"
-msgstr "Modules"
+msgstr "Modüller"
 
 #: templates/sentry/admin/status/queue.html:8
 #: templates/sentry/admin/status/queue.html:12
@@ -572,53 +571,53 @@ msgstr ""
 
 #: templates/sentry/admin/status/queue.html:18
 msgid "Background Processes"
-msgstr ""
+msgstr "Arkaplan işlevleri"
 
 #: templates/sentry/admin/status/queue.html:29
 msgid "No information available."
-msgstr "Geen informatie beschikbaar."
+msgstr "Kullanılabilir bilgi yok"
 
 #: templates/sentry/admin/status/queue.html:32
 #: templates/sentry/admin/status/queue.html:42
 msgid "Pending Tasks"
-msgstr ""
+msgstr "Bekleyen görevler"
 
 #: templates/sentry/admin/users/edit.html:7
 msgid "Change User"
-msgstr "Wijzig Gebruiker"
+msgstr "Kullanıcı Değiştir"
 
 #: templates/sentry/admin/users/edit.html:35
 #: templates/sentry/admin/users/remove.html:5
 #: templates/sentry/admin/users/remove.html:10
 msgid "Remove User"
-msgstr "Verwijder Gebruiker"
+msgstr "Kullanıcı Sil"
 
 #: templates/sentry/admin/users/edit.html:37
 msgid "Cannot remove yourself"
-msgstr "Je kan niet jezelf verwijderen"
+msgstr "Kendini silemezsin"
 
 #: templates/sentry/admin/users/list.html:6
 msgid "Manage Users"
-msgstr "Gebruikers beheren"
+msgstr "Kullanıcıları Yönet"
 
 #: templates/sentry/admin/users/list.html:16
 msgid "Create a new user"
-msgstr "Maak een nieuwe gebruiker aan"
+msgstr "Yeni Kullanıcı Oluştur"
 
 #: templates/sentry/admin/users/list.html:42
 #: templates/sentry/projects/base.html:31
 #: templates/sentry/projects/list.html:24 templates/sentry/teams/list.html:22
 #: web/forms/__init__.py:144
 msgid "Name"
-msgstr "Naam"
+msgstr "İsim"
 
 #: templates/sentry/admin/users/list.html:43
 msgid "Joined"
-msgstr ""
+msgstr "Kayıt T"
 
 #: templates/sentry/admin/users/list.html:44
 msgid "Last Login"
-msgstr "Laatste Login"
+msgstr "En Son Giriş"
 
 #: templates/sentry/admin/users/list.html:78
 msgid "There are no users matching your query in Sentry."
@@ -626,33 +625,33 @@ msgstr ""
 
 #: templates/sentry/admin/users/list_projects.html:51
 msgid "There are no active projects for this user."
-msgstr "Er zijn geen actieve projecten voor deze gebruiker."
+msgstr "Bu kullanıcı için aktif proje yok"
 
 #: templates/sentry/admin/users/new.html:6
 msgid "New User"
-msgstr "Nieuwe Gebruiker"
+msgstr "Yeni kullanıcı"
 
 #: templates/sentry/admin/users/new.html:11
 msgid "Create New User"
-msgstr "Maak een Nieuwe Gebruiker"
+msgstr "Yeni kullanıcı oluştur"
 
 #: templates/sentry/admin/users/remove.html:31
 #: templates/sentry/projects/remove.html:31
 #: templates/sentry/teams/remove.html:32
 #: templates/sentry/teams/members/remove.html:20
 msgid "Confirm"
-msgstr "Bevestigen"
+msgstr "Onayla"
 
 #: templates/sentry/admin/users/remove.html:31
 #: templates/sentry/projects/remove.html:31
 #: templates/sentry/teams/remove.html:32
 #: templates/sentry/teams/members/remove.html:20
 msgid "Cancel"
-msgstr "Annuleren"
+msgstr "İptal"
 
 #: templates/sentry/emails/error.html:109
 msgid "New Event"
-msgstr ""
+msgstr "Yeni olay"
 
 #: templates/sentry/emails/error.html:111
 msgid "Regression"
@@ -666,17 +665,17 @@ msgstr "Logger:"
 #: templates/sentry/emails/error.html:131
 #: templates/sentry/groups/details.html:21
 msgid "Level:"
-msgstr "Niveau:"
+msgstr "Level:"
 
 #: templates/sentry/emails/error.html:135
 #: templates/sentry/groups/event.html:20
 msgid "Server:"
-msgstr "Server:"
+msgstr "Sunucu:"
 
 #: templates/sentry/emails/error.html:137
 #: templates/sentry/groups/details.html:25
 msgid "First Seen:"
-msgstr "Eerst Gezien:"
+msgstr "İlk görülme"
 
 #: templates/sentry/events/event_list.html:6
 #, python-format
@@ -686,7 +685,7 @@ msgstr ""
 #: templates/sentry/events/event_list.html:43
 #: templates/sentry/groups/group_list.html:151
 msgid "No events match your filters."
-msgstr "Er komen geen gebeurtenissen overeen met de filters."
+msgstr ""
 
 #: templates/sentry/events/replay_request.html:5
 #: templates/sentry/events/replay_request.html:12
@@ -695,15 +694,15 @@ msgstr ""
 
 #: templates/sentry/events/replay_request.html:27
 msgid "Please fill out all fields."
-msgstr "Vul alle velden in."
+msgstr ""
 
 #: templates/sentry/events/replay_request.html:36
 msgid "Submit"
-msgstr "Verzenden."
+msgstr "Gönder"
 
 #: templates/sentry/groups/details.html:16
 msgid "Aggregate Details"
-msgstr "Samengevatte details"
+msgstr ""
 
 #: templates/sentry/groups/details.html:23
 msgid "Status:"
@@ -715,11 +714,11 @@ msgstr ""
 
 #: templates/sentry/groups/details.html:31
 msgid "Last Seen:"
-msgstr "Laatst Gezien:"
+msgstr "Son görülme"
 
 #: templates/sentry/groups/details.html:33
 msgid "Avg Duration:"
-msgstr "Gemiddelde tijdsduur:"
+msgstr ""
 
 #: templates/sentry/groups/details.html:34
 #: templates/sentry/projects/plugins/list.html:42
@@ -729,7 +728,7 @@ msgstr ""
 
 #: templates/sentry/groups/details.html:35
 msgid "Checksum:"
-msgstr "Checksum:"
+msgstr ""
 
 #: templates/sentry/groups/details.html:77
 #: templates/sentry/partial/_group.html:36
@@ -750,17 +749,17 @@ msgstr ""
 #: templates/sentry/projects/manage.html:19
 #: templates/sentry/teams/members/edit.html:25
 msgid "Details"
-msgstr "Details"
+msgstr "Detaylar"
 
 #: templates/sentry/groups/details.html:96
 msgid "Events"
-msgstr "Gebeurtenissen"
+msgstr "Olayla"
 
 #: templates/sentry/groups/details.html:102
 #: templates/sentry/teams/manage.html:56 templates/sentry/teams/manage.html:98
 #: templates/sentry/teams/manage.html:144
 msgid "Actions"
-msgstr "Acties"
+msgstr ""
 
 #: templates/sentry/groups/details.html:104
 msgid "Remove Event"
@@ -768,7 +767,7 @@ msgstr ""
 
 #: templates/sentry/groups/details.html:109
 msgid "Raw JSON Data"
-msgstr "Originele JSON Data"
+msgstr "Düz JSON Verisi"
 
 #: templates/sentry/groups/details.html:132
 msgid "Get yourself some JavaScripts dood"
@@ -776,19 +775,19 @@ msgstr ""
 
 #: templates/sentry/groups/details.html:133
 msgid "Loading..."
-msgstr ""
+msgstr "Yükleniyor..."
 
 #: templates/sentry/groups/event.html:13
 msgid "Event Details"
-msgstr ""
+msgstr "Olay Detayları"
 
 #: templates/sentry/groups/event.html:16
 msgid "Seen:"
-msgstr "Gezien:"
+msgstr "Görülme:"
 
 #: templates/sentry/groups/event.html:18
 msgid "Duration:"
-msgstr "Tijdsduur:"
+msgstr "Süre:"
 
 #: templates/sentry/groups/event.html:22
 msgid "Site:"
@@ -805,15 +804,15 @@ msgstr ""
 #: templates/sentry/groups/event_list.html:23
 #: templates/sentry/plugins/bases/tag/index.html:41
 msgid "There are no records recorded for this event."
-msgstr "Er zijn geen records opgeslagen voor dit event."
+msgstr ""
 
 #: templates/sentry/groups/group_list.html:25
 msgid "All"
-msgstr "Alle"
+msgstr "Hepsi"
 
 #: templates/sentry/groups/group_list.html:38
 msgid "Bookmarks"
-msgstr "Bladwijzer"
+msgstr ""
 
 #: templates/sentry/groups/group_list.html:41
 msgid "All Events"
@@ -821,15 +820,15 @@ msgstr ""
 
 #: templates/sentry/groups/group_list.html:42
 msgid "Only Bookmarks"
-msgstr "Alleen Bladwijzers"
+msgstr ""
 
 #: templates/sentry/groups/group_list.html:62
 msgid "Resolve Feed"
-msgstr "Los Feed Op"
+msgstr ""
 
 #: templates/sentry/groups/group_list.html:65
 msgid "Pause Feed"
-msgstr "Pauzeer Feed"
+msgstr ""
 
 #: templates/sentry/groups/group_list.html:125
 msgid "Apply"
@@ -858,7 +857,7 @@ msgstr ""
 
 #: templates/sentry/partial/_account_sidebar.html:3
 msgid "Account"
-msgstr "Account"
+msgstr "Hesap"
 
 #: templates/sentry/partial/_account_sidebar.html:39
 msgid "New team"
@@ -880,7 +879,7 @@ msgstr ""
 
 #: templates/sentry/partial/_event_details.html:11
 msgid "Additional Data"
-msgstr "Additionele Data"
+msgstr "İlave veri"
 
 #: templates/sentry/partial/_event_details.html:21
 msgid "Expand"
@@ -889,7 +888,7 @@ msgstr ""
 #: templates/sentry/partial/_event_details.html:40
 #, python-format
 msgid "No data for %(varname)s"
-msgstr "Geen data voor %(varname)s"
+msgstr ""
 
 #: templates/sentry/partial/_event_details.html:52
 msgid "Package Versions"
@@ -1147,7 +1146,7 @@ msgstr ""
 
 #: templates/sentry/partial/interfaces/exception.html:4 views/exception.py:16
 msgid "Exception"
-msgstr ""
+msgstr "Hata"
 
 #: templates/sentry/partial/interfaces/exception.html:12
 msgid "Types:"
@@ -1167,11 +1166,11 @@ msgstr ""
 
 #: templates/sentry/partial/interfaces/http.html:7
 msgid "Request"
-msgstr "Request"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/http.html:16
 msgid "URL:"
-msgstr "URL:"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/http.html:21
 msgid "Method:"
@@ -1188,16 +1187,16 @@ msgstr ""
 #: templates/sentry/partial/interfaces/http.html:37
 #: templates/sentry/partial/interfaces/http.html:54
 msgid "Body"
-msgstr "Body"
+msgstr "Gövde"
 
 #: templates/sentry/partial/interfaces/http.html:65
 msgid "Cookies:"
-msgstr "Cookies:"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/http.html:69
 #: templates/sentry/partial/interfaces/http.html:86
 msgid "Cookies"
-msgstr "Cookies"
+msgstr ""
 
 #: templates/sentry/partial/interfaces/http.html:97
 msgid "Headers:"
@@ -1234,7 +1233,7 @@ msgstr ""
 #: templates/sentry/teams/manage.html:142
 #: templates/sentry/teams/members/edit.html:27
 msgid "User"
-msgstr "Gebruiker"
+msgstr "Kullanıcı"
 
 #: templates/sentry/partial/interfaces/user.html:15
 msgid "Authenticated:"
@@ -1263,13 +1262,13 @@ msgstr ""
 
 #: templates/sentry/plugins/bases/tag/index.html:22
 msgid "Times Seen"
-msgstr "Aantal keren gezien"
+msgstr ""
 
 #: templates/sentry/projects/base.html:5
 #: templates/sentry/projects/base.html:15
 #: templates/sentry/projects/list.html:5 templates/sentry/projects/list.html:8
 msgid "Project List"
-msgstr "Project Lijst"
+msgstr ""
 
 #: templates/sentry/projects/base.html:21
 #: templates/sentry/projects/list.html:14
@@ -1320,7 +1319,7 @@ msgstr ""
 
 #: templates/sentry/projects/manage.html:12
 msgid "Manage"
-msgstr "Beheer"
+msgstr "Yönet"
 
 #: templates/sentry/projects/manage.html:27
 #: templates/sentry/projects/plugins/list.html:7
@@ -1336,13 +1335,13 @@ msgstr ""
 #: templates/sentry/projects/manage.html:37
 #: templates/sentry/teams/projects/new.html:20
 msgid "Project Details"
-msgstr "Project Details"
+msgstr ""
 
 #: templates/sentry/projects/manage.html:43
 #: templates/sentry/teams/manage.html:22
 #: templates/sentry/teams/members/edit.html:20
 msgid "Please correct the errors below."
-msgstr "Verbeter de fout hieronder."
+msgstr "Aşağıdaki hataları düzeltin"
 
 #: templates/sentry/projects/manage.html:58
 #, python-format
@@ -1366,37 +1365,37 @@ msgstr ""
 #: templates/sentry/projects/remove.html:5
 #: templates/sentry/projects/remove.html:10
 msgid "Remove Project"
-msgstr "Verwijder Project"
+msgstr "Projeyi Sil"
 
 #: templates/sentry/projects/manage.html:78
 msgid "Cannot remove default project"
-msgstr ""
+msgstr "Varsayılan projeyi silemezsiniz"
 
 #: templates/sentry/projects/manage.html:84
 #: templates/sentry/teams/manage.html:77
 #: templates/sentry/teams/members/new.html:5
 #: templates/sentry/teams/members/new.html:10
 msgid "New Member"
-msgstr "Nieuw Lid"
+msgstr "Yeni Üye"
 
 #: templates/sentry/projects/manage.html:86
 #: templates/sentry/teams/manage.html:79 templates/sentry/teams/manage.html:82
 msgid "Members"
-msgstr "Leden"
+msgstr ""
 
 #: templates/sentry/projects/manage.html:96
 #: templates/sentry/teams/manage.html:97
 #: templates/sentry/teams/manage.html:143
 #: templates/sentry/teams/members/edit.html:33
 msgid "Access"
-msgstr "Toegang"
+msgstr "Erişim"
 
 #: templates/sentry/projects/new.html:5 templates/sentry/projects/new.html:10
 #: templates/sentry/teams/manage.html:43
 #: templates/sentry/teams/projects/new.html:5
 #: templates/sentry/teams/projects/new.html:10
 msgid "New Project"
-msgstr "Nieuw Project"
+msgstr "Yeni Proje"
 
 #: templates/sentry/projects/new.html:16
 msgid "Select a team you are a member of to create a project."
@@ -1534,7 +1533,7 @@ msgstr ""
 
 #: templates/sentry/teams/members/edit.html:6
 msgid "Edit Member"
-msgstr "Bewerk Lid"
+msgstr "Üye Düzenle"
 
 #: templates/sentry/teams/members/edit.html:17
 msgid "Changes to the member were saved successfully."
@@ -1552,7 +1551,7 @@ msgstr ""
 #: templates/sentry/teams/members/remove.html:7
 #: templates/sentry/teams/members/remove.html:12
 msgid "Remove Member"
-msgstr "Verwijder Lid"
+msgstr "Üye Sil"
 
 #: templates/sentry/teams/members/remove.html:18
 msgid ""
@@ -1580,47 +1579,47 @@ msgstr ""
 
 #: templatetags/sentry_helpers.py:141
 msgid "never"
-msgstr "nooit"
+msgstr "asla"
 
 #: templatetags/sentry_helpers.py:145
 msgid "0 minutes"
-msgstr "0 minuten"
+msgstr "0 dakika"
 
 #: templatetags/sentry_helpers.py:146
 msgid "just now"
-msgstr "net"
+msgstr "şimdi"
 
 #: templatetags/sentry_helpers.py:147
 msgid "1 day"
-msgstr "1 dag"
+msgstr "1 gün"
 
 #: templatetags/sentry_helpers.py:148
 msgid "yesterday"
-msgstr "gisteren"
+msgstr "dün"
 
 #: templatetags/sentry_helpers.py:149
 msgid " ago"
-msgstr "geleden"
+msgstr "önce"
 
 #: views/exception.py:17
 msgid "Exceptions"
-msgstr ""
+msgstr "Hatalar"
 
 #: views/message.py:16
 msgid "Message"
-msgstr "Bericht"
+msgstr "Mesaj"
 
 #: views/message.py:17
 msgid "Messages"
-msgstr "Berichten"
+msgstr "Mesajlar"
 
 #: views/query.py:16
 msgid "Query"
-msgstr ""
+msgstr "Sorgu"
 
 #: views/query.py:17
 msgid "Queries"
-msgstr ""
+msgstr "Sorgular"
 
 #: web/forms/__init__.py:23
 msgid "Remove all attached events."
@@ -1681,15 +1680,15 @@ msgstr ""
 
 #: web/forms/__init__.py:172
 msgid "Old password"
-msgstr "Oude wachtwoord"
+msgstr "Esli şifre"
 
 #: web/forms/__init__.py:175
 msgid "New password"
-msgstr "Nieuw wachtwoord"
+msgstr "Yeni şifre"
 
 #: web/forms/__init__.py:176
 msgid "New password confirmation"
-msgstr "Nieuw wachtwoord bevestigen"
+msgstr "Yeni şifre doğrulama"
 
 #: web/forms/__init__.py:177
 msgid "Language"
@@ -1697,11 +1696,11 @@ msgstr ""
 
 #: web/forms/__init__.py:188
 msgid "The two password fields didn't match."
-msgstr "De twee wachtwoord velden zijn niet gelijk"
+msgstr "Şifreler uyuşmuyor"
 
 #: web/forms/__init__.py:197
 msgid "Your old password was entered incorrectly. Please enter it again."
-msgstr "Je oude wachtwoord klopte niet. Voer het opnieuw in."
+msgstr "Eski şifre yanlış. Tekrar deneyin."
 
 #: web/forms/fields.py:45
 msgid "Invalid username"
