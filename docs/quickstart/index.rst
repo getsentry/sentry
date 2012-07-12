@@ -4,7 +4,7 @@ Quickstart
 Some basic prerequisites which you'll need in order to run Sentry:
 
 * Python 2.5, 2.6, or 2.7
-* python-setuptools, python-dev, libevent-dev
+* python-setuptools, python-dev
 * Ideally a real database (like PostgreSQL or MySQL)
 * Likely a UNIX-based operating system
 
@@ -115,12 +115,8 @@ configuration, as well as the default Sentry configuration values. It will use S
     SENTRY_WEB_PORT = 9000
     SENTRY_WEB_OPTIONS = {
         'workers': 3,  # the number of gunicorn workers
-        # 'worker_class': 'gevent',
     }
 
-
-.. note:: We highly recommend using the gevent worker class. To do this, simply ``pip install gevent`` and
-          adjust the worker_class setting in ``SENTRY_WEB_OPTIONS``.
 
 Configure Outbound Mail
 -----------------------
