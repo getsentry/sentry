@@ -33,6 +33,7 @@ def has_access(group_or_func=None):
             # If we're asking for anything other than implied access, the user
             # must be authenticated
             if group_or_func and not request.user.is_authenticated():
+                request.session['_next'] = request.build_absolute_uri()
                 return HttpResponseRedirect(get_login_url())
 
             # XXX: if project_id isn't set, should we only allow superuser?
@@ -131,6 +132,7 @@ def requires_admin(func):
     @wraps(func)
     def wrapped(request, *args, **kwargs):
         if not request.user.is_authenticated():
+            request.session['_next'] = request.build_absolute_uri()
             return HttpResponseRedirect(get_login_url())
         if not request.user.is_staff:
             return render_to_response('sentry/missing_permissions.html', status=400)
@@ -143,6 +145,7 @@ def permission_required(perm):
         @wraps(func)
         def _wrapped(request, *args, **kwargs):
             if not request.user.is_authenticated():
+                request.session['_next'] = request.build_absolute_uri()
                 return HttpResponseRedirect(get_login_url())
             if not request.user.has_perm(perm):
                 return render_to_response('sentry/missing_permissions.html', status=400)
