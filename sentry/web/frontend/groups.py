@@ -20,12 +20,12 @@ from sentry.conf import settings
 from sentry.constants import SORT_OPTIONS, SEARCH_SORT_OPTIONS, \
   SORT_CLAUSES, MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES
 from sentry.filters import get_filters
-from sentry.models import Group, Event, View, SearchDocument
+from sentry.models import Group, Event, View, SearchDocument, TeamMember, MEMBER_OWNER
 from sentry.plugins import plugins
 from sentry.utils import json
 from sentry.utils.dates import parse_date
 from sentry.utils.db import has_trending, get_db_engine
-from sentry.web.decorators import has_access, login_required
+from sentry.web.decorators import has_access, has_group_access, login_required
 from sentry.web.helpers import render_to_response
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$', re.I)
@@ -251,17 +251,22 @@ def group_list(request, project, view_id=None):
     }, request)
 
 
-@login_required
-@has_access
-def group(request, project, group_id):
-    group = get_object_or_404(Group, pk=group_id)
-
-    if group.project and group.project != project:
-        return HttpResponseRedirect(reverse('sentry-group', kwargs={'group_id': group.pk, 'project_id': group.project.slug}))
-
+@has_group_access
+def group(request, project, group):
     # It's possible that a message would not be created under certain
     # circumstances (such as a post_save signal failing)
     event = group.get_latest_event() or Event(group=group)
+
+    if request.user.is_authenticated():
+        if request.user.is_superuser:
+            access = MEMBER_OWNER
+        else:
+            try:
+                access = TeamMember.objects.get(team=project.team, user=request.user).type
+            except TeamMember.DoesNotExist:
+                access = None
+    else:
+        access = None
 
     return render_to_response('sentry/groups/details.html', {
         'project': project,
@@ -271,17 +276,12 @@ def group(request, project, group_id):
         'interface_list': _get_rendered_interfaces(event),
         'json_data': event.data.get('extra', {}),
         'version_data': event.data.get('modules', None),
+        'can_admin_event': access is not None,
     }, request)
 
 
-@login_required
-@has_access
-def group_event_list(request, project, group_id):
-    group = get_object_or_404(Group, pk=group_id)
-
-    if group.project and group.project != project:
-        return HttpResponseRedirect(reverse('sentry-group-events', kwargs={'group_id': group.pk, 'project_id': group.project.slug}))
-
+@has_group_access
+def group_event_list(request, project, group):
     event_list = group.event_set.all().order_by('-datetime')
 
     return render_to_response('sentry/groups/event_list.html', {
@@ -292,14 +292,8 @@ def group_event_list(request, project, group_id):
     }, request)
 
 
-@login_required
-@has_access
-def group_event_list_json(request, project, group_id):
-    group = get_object_or_404(Group, pk=group_id)
-
-    if group.project and group.project != project:
-        return HttpResponse(status=404)
-
+@has_group_access
+def group_event_list_json(request, project, group):
     limit = request.GET.get('limit', settings.MAX_JSON_RESULTS)
     try:
         limit = int(limit)
@@ -313,14 +307,8 @@ def group_event_list_json(request, project, group_id):
     return HttpResponse(json.dumps([event.as_dict() for event in events]), mimetype='application/json')
 
 
-@login_required
-@has_access
-def group_event_details(request, project, group_id, event_id):
-    group = get_object_or_404(Group, pk=group_id)
-
-    if group.project and group.project != project:
-        return HttpResponseRedirect(reverse('sentry-group-event', kwargs={'group_id': group.pk, 'project_id': group.project.slug, 'event_id': event_id}))
-
+@has_group_access
+def group_event_details(request, project, group, event_id):
     event = get_object_or_404(group.event_set, pk=event_id)
 
     return render_to_response('sentry/groups/event.html', {
@@ -336,12 +324,7 @@ def group_event_details(request, project, group_id, event_id):
 
 @login_required
 @has_access
-def group_event_details_json(request, project, group_id, event_id_or_latest):
-    group = get_object_or_404(Group, pk=group_id)
-
-    if group.project and group.project != project:
-        return HttpResponse(status=404)
-
+def group_event_details_json(request, project, group, event_id_or_latest):
     if event_id_or_latest == 'latest':
         # It's possible that a message would not be created under certain
         # circumstances (such as a post_save signal failing)
@@ -354,17 +337,12 @@ def group_event_details_json(request, project, group_id, event_id_or_latest):
 
 @login_required
 @has_access
-def group_plugin_action(request, project, group_id, slug):
-    group = get_object_or_404(Group, pk=group_id)
-
-    if group.project and group.project != project:
-        return HttpResponseRedirect(reverse('sentry-group-plugin-action', kwargs={'group_id': group.pk, 'project_id': group.project.slug, 'slug': slug}))
-
+def group_plugin_action(request, project, group, slug):
     try:
         plugin = plugins.get(slug)
     except KeyError:
-
         raise Http404('Plugin not found')
+
     response = plugin.get_view_response(request, group)
     if response:
         return response

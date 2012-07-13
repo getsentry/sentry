@@ -1,9 +1,10 @@
 from functools import wraps
 from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
+from django.shortcuts import get_object_or_404
 
 from sentry.conf import settings
-from sentry.models import Project, Team
+from sentry.models import Project, Team, Group
 from sentry.web.helpers import get_project_list, render_to_response, \
   get_login_url, get_team_list
 
@@ -59,6 +60,7 @@ def has_access(group_or_func=None):
                             return HttpResponseRedirect(reverse('sentry'))
                 else:
                     project = None
+
                 return func(request, project, *args, **kwargs)
 
             if project_id:
@@ -113,6 +115,31 @@ def has_team_access(group_or_func=None):
 
             return func(request, team, *args, **kwargs)
         return _wrapped
+    return wrapped
+
+
+def has_group_access(func):
+    """
+    Tests and transforms project_id and group_id for permissions based on
+    the requesting user. Passes the actual project and group instances to
+    the decorated view.
+
+    >>> @has_group_access
+    >>> def foo(request, project, group):
+    >>>     return
+    """
+    prv_func = login_required(has_access(func))
+
+    @wraps(func)
+    def wrapped(request, project_id, group_id, *args, **kwargs):
+        group = get_object_or_404(Group, pk=group_id)
+
+        if group.project and project_id not in (group.project.slug, str(group.project.id)):
+            return HttpResponse(status=404)
+
+        if group.is_public:
+            return func(request, group.project, group, *args, **kwargs)
+        return prv_func(request, group.project.slug, group, *args, **kwargs)
     return wrapped
 
 

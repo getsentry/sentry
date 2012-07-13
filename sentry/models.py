@@ -387,7 +387,6 @@ class Group(MessageBase):
     """
     Aggregated message which summarizes a set of Events.
     """
-    # if view is null it means its from the global aggregate
     status = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
     times_seen = models.PositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=datetime.now, db_index=True)
@@ -399,6 +398,7 @@ class Group(MessageBase):
     time_spent_count = models.IntegerField(default=0)
     score = models.IntegerField(default=0)
     views = models.ManyToManyField(View, blank=True)
+    is_public = models.NullBooleanField(default=False, null=True)
 
     objects = GroupManager()
 

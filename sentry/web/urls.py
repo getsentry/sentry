@@ -130,6 +130,8 @@ urlpatterns = patterns('',
     url(r'^api/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/remove/$', api.remove_group, name='sentry-api-remove-group'),
     url(r'^api/(?:(?P<project_id>[\w_-]+)/)?groups/trends/$', api.get_group_trends, name='sentry-api-groups-trends'),
     url(r'^api/(?:(?P<project_id>[\w_-]+)/)?groups/newest/$', api.get_new_groups, name='sentry-api-groups-new'),
+    url(r'^api/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/set/public/$', api.make_group_public, name='sentry-api-set-group-public'),
+    url(r'^api/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/set/private/$', api.make_group_private, name='sentry-api-set-group-private'),
 
     # Project specific
 
