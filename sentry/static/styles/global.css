@@ -3810,6 +3810,22 @@ p {
   margin: 0 0 10px;
   font-family: "proxima nova", "proxima-nova", "helvetica neue", helvetica, sans-serif;
 }
+#content .sidebar ul {
+  list-style: none;
+  margin-left: 0;
+}
+#content .sidebar ul li {
+  position: relative;
+  margin-left: 0;
+  padding-left: 30px;
+}
+#content .sidebar ul li .count {
+  text-align: center;
+  width: 25px;
+  position: absolute;
+  display: block;
+  left: 0;
+}
 #content .sidebar .nav.nav-tabs.nav-stacked {
   -webkit-box-shadow: 0 2px 0 rgba(255, 255, 255, 0.8);
   -moz-box-shadow: 0 2px 0 rgba(255, 255, 255, 0.8);
