@@ -13,7 +13,7 @@ try:
 except ImportError:
     # Compat with < Django 1.2
     from django.db import connection
-    connections = {'default': connection}
+    connections = {'default': connection}  # NOQA
     dbconf = {
         'default': {
             'ENGINE': settings.DATABASE_ENGINE,

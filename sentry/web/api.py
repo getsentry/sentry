@@ -7,7 +7,6 @@ sentry.web.views
 """
 import datetime
 import logging
-import uuid
 
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseBadRequest, \
