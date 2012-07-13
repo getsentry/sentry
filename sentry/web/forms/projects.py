@@ -7,7 +7,9 @@ sentry.web.forms.projects
 """
 import itertools
 from django import forms
-from sentry.models import ProjectOption
+from django.utils.translation import ugettext_lazy as _
+from sentry.models import Project, ProjectOption
+from sentry.web.forms.fields import UserField
 
 
 class ProjectTagsForm(forms.Form):
@@ -29,3 +31,21 @@ class ProjectTagsForm(forms.Form):
     def save(self):
         tags = self.cleaned_data.get('tags')
         ProjectOption.objects.set_value(self.project, 'tags', tags)
+
+
+class NewProjectForm(forms.ModelForm):
+    name = forms.CharField(max_length=200, widget=forms.TextInput(attrs={'placeholder': _('e.g. My Project Name')}))
+    slug = forms.SlugField(help_text=_('A slug is a URL-safe word and must be unique across all projects.'),
+        widget=forms.TextInput(attrs={'placeholder': _('e.g. my-project-name')}))
+
+    class Meta:
+        fields = ('name', 'slug')
+        model = Project
+
+
+class NewProjectAdminForm(NewProjectForm):
+    owner = UserField(required=False)
+
+    class Meta:
+        fields = ('name', 'slug', 'owner')
+        model = Project

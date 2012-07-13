@@ -7,21 +7,28 @@ sentry.web.frontend.generic
 """
 from django.http import HttpResponseRedirect, Http404, HttpResponseNotModified, \
   HttpResponse
+from django.core.urlresolvers import reverse
 
 from sentry.conf import settings
+from sentry.permissions import can_create_projects
 from sentry.web.decorators import login_required
-from sentry.web.helpers import get_project_list, render_to_response, \
-  get_login_url
+from sentry.web.helpers import get_login_url, get_project_list, \
+  render_to_response
 
 
 @login_required
 def dashboard(request):
     project_list = get_project_list(request.user, key='slug')
-    if len(project_list) == 0 and not request.user.is_authenticated():
-        return HttpResponseRedirect(get_login_url())
+    has_projects = len(project_list) > 1 or (len(project_list) == 1 and project_list.values()[0].pk != settings.PROJECT)
 
-    return render_to_response('sentry/dashboard.html', {
-    }, request)
+    if not has_projects:
+        if not request.user.is_authenticated():
+            request.session['_next'] = request.build_absolute_uri()
+            return HttpResponseRedirect(get_login_url())
+        elif can_create_projects(request.user):
+            return HttpResponseRedirect(reverse('sentry-new-project'))
+
+    return render_to_response('sentry/dashboard.html', {}, request)
 
 
 def static_media(request, path, root=None):

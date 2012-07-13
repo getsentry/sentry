@@ -121,6 +121,7 @@ def login_required(func):
     def wrapped(request, *args, **kwargs):
         if not settings.PUBLIC:
             if not request.user.is_authenticated():
+                request.session['_next'] = request.build_absolute_uri()
                 return HttpResponseRedirect(get_login_url())
         return func(request, *args, **kwargs)
     return wrapped

@@ -13,13 +13,15 @@ from django.views.decorators.csrf import csrf_protect
 
 from sentry.models import TeamMember, MEMBER_OWNER, \
   ProjectKey, Team, FilterKey
-from sentry.permissions import can_create_projects, can_remove_project
+from sentry.permissions import can_create_projects, can_remove_project, can_create_teams
 from sentry.plugins import plugins
 from sentry.plugins.helpers import set_option, get_option
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms import EditProjectForm, RemoveProjectForm, \
   EditProjectAdminForm
-from sentry.web.forms.projects import ProjectTagsForm
+from sentry.web.forms.projects import NewProjectForm, NewProjectAdminForm,\
+  ProjectTagsForm
+from sentry.web.forms.teams import NewTeamForm, SelectTeamForm
 from sentry.web.helpers import render_to_response, get_project_list, \
   plugin_config, get_team_list
 
@@ -47,10 +49,62 @@ def project_list(request):
 
 @login_required
 def new_project(request):
+    from django.contrib.auth.models import User
+
     if not can_create_projects(request.user):
         return HttpResponseRedirect(reverse('sentry'))
 
-    return render_to_response('sentry/projects/new.html', {}, request)
+    allow_create_teams = can_create_teams(request.user)
+    team_list = get_team_list(request.user)
+
+    if request.user.has_perm('sentry.can_add_project') and User.objects.all()[0:2] == 2:
+        project_form_cls = NewProjectAdminForm
+        project_initial = {
+            'owner': request.user.username,
+        }
+    else:
+        project_form_cls = NewProjectForm
+        project_initial = {}
+
+    if len(team_list) > 0:
+        select_team_form = SelectTeamForm(team_list, request.POST or None, prefix='st')
+    elif not allow_create_teams:
+        return render_to_response('sentry/projects/cannot_create_teams.html', {}, request)
+    else:
+        select_team_form = None
+
+    if allow_create_teams:
+        new_team_form = NewTeamForm(request.POST or None, prefix='nt')
+    else:
+        new_team_form = None
+
+    project_form = project_form_cls(request.POST or None, initial=project_initial, prefix='prj')
+
+    is_new_team = new_team_form and new_team_form.is_valid()
+    if is_new_team:
+        team_form = new_team_form
+    else:
+        team_form = select_team_form
+
+    if project_form.is_valid() and team_form.is_valid():
+        project = project_form.save(commit=False)
+        if not project.owner:
+            project.owner = request.user
+        if is_new_team:
+            team = new_team_form.save(commit=False)
+            team.owner = project.owner
+            team.save()
+        else:
+            team = select_team_form.cleaned_data['team']
+        project.team = team
+        project.save()
+        return HttpResponseRedirect(reverse('sentry-project-client-help', args=[project.slug]))
+
+    return render_to_response('sentry/projects/new.html', {
+        'project_form': project_form,
+        'select_team_form': select_team_form,
+        'new_team_form': new_team_form,
+    }, request)
 
 
 @login_required

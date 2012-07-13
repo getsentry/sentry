@@ -133,7 +133,7 @@ class Project(Model):
     name = models.CharField(max_length=200)
     owner = models.ForeignKey(User, related_name="sentry_owned_project_set", null=True)
     team = models.ForeignKey(Team, null=True)
-    public = models.BooleanField(default=False)
+    public = models.BooleanField(default=settings.ALLOW_PUBLIC_PROJECTS)
     date_added = models.DateTimeField(default=datetime.now)
     status = models.PositiveIntegerField(default=0, choices=(
         (0, 'Visible'),
@@ -755,22 +755,17 @@ class_prepared.connect(register_indexes, sender=MessageIndex)
 
 def create_default_project(created_models, verbosity=2, **kwargs):
     if Project in created_models:
-        try:
-            owner = User.objects.filter(is_staff=True, is_superuser=True).order_by('id')[0]
-        except IndexError:
-            owner = None
-
-        if Project.objects.exists():
+        if Project.objects.filter(pk=settings.PROJECT).exists():
             return
 
         project = Project.objects.create(
-            public=True,
-            name='Default',
-            owner=owner,
+            public=settings.ALLOW_PUBLIC_PROJECTS,
+            name='Sentry (Internal)',
+            slug='sentry',
         )
 
         if verbosity > 0:
-            print 'Created default Sentry project owned by %s' % owner
+            print 'Created internal Sentry project (slug=%s, id=%s)' % (project.slug, project.id)
 
         # Iterate all groups to update their relations
         for model in (Group, Event, FilterValue, MessageFilterValue,

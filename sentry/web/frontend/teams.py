@@ -317,7 +317,7 @@ def reinvite_pending_team_member(request, team, member_id):
 @csrf_protect
 @has_team_access(MEMBER_OWNER)
 def create_new_team_project(request, team):
-    from sentry.web.forms import NewProjectAdminForm, NewProjectForm
+    from sentry.web.forms.projects import NewProjectAdminForm, NewProjectForm
 
     if not can_create_projects(request.user, team):
         return HttpResponseRedirect(reverse('sentry'))

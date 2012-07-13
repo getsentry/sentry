@@ -27,13 +27,14 @@ def login(request):
     form = AuthenticationForm(request, request.POST or None)
     if form.is_valid():
         login_(request, form.get_user())
-        return HttpResponseRedirect(request.POST.get('next') or reverse('sentry'))
+        return HttpResponseRedirect(request.session.pop('_next', None) or reverse('sentry'))
     else:
         request.session.set_test_cookie()
 
     context = csrf(request)
     context.update({
         'form': form,
+        'next': request.session.get('_next'),
     })
     return render_to_response('sentry/login.html', context, request)
 

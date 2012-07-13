@@ -43,6 +43,17 @@ class EditTeamForm(forms.ModelForm):
         model = Team
 
 
+class SelectTeamForm(forms.Form):
+    team = forms.ChoiceField(choices=())
+
+    def __init__(self, team_list, data, *args, **kwargs):
+        super(SelectTeamForm, self).__init__(data=data, *args, **kwargs)
+        self.team_list = dict((t.pk, t) for t in team_list.itervalues())
+        self.fields['team'].choices = [(t.pk, t) for t in sorted(self.team_list.values(), key=lambda x: x.name)]
+        self.fields['team'].choices.insert(0, (None, '-' * 8))
+        self.fields['team'].widget.choices = self.fields['team'].choices
+
+
 class BaseTeamMemberForm(forms.ModelForm):
     class Meta:
         fields = ('type',)
