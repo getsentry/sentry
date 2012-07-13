@@ -13,6 +13,27 @@
 {% endblock %}
 
 {% block sidebar %}
+    <!--- there is probably a less terrible way to do things like this -->
+    <p id="public-status"><small>
+        <span data-public="true"{% if not group.project.public and not group.is_public %} style="display: none;"{% endif %}>
+            {% trans "This event is <strong>publicly visible</strong>." %}
+        </span>
+        <span data-public="false"{% if group.project.public or group.is_public %} style="display: none;"{% endif %}>
+            {% trans "This event is <strong>not publicly visible</strong>." %}
+        </span>
+        <span data-public="true"{% if not group.project.public and not group.is_public %} style="display: none;"{% endif %}>
+            <a href="{% url sentry-group group.project.slug group.id %}">{% trans "Link" %}</a>{% if can_admin_event and not group.project.public %} | {% endif %}
+        </span>
+        {% if can_admin_event and not group.project.public %}
+            <span data-public="true"{% if not group.is_public %} style="display: none;"{% endif %}>
+                <a href="javascript:void(0)" data-api-url="{% url sentry-api-set-group-private group.project.slug group.id %}" class="action">{% trans "Change" %}</a>
+            </span>
+            <span data-public="false"{% if group.is_public %} style="display: none;"{% endif %}>
+                <a href="javascript:void(0)" data-api-url="{% url sentry-api-set-group-public group.project.slug group.id %}" class="action">{% trans "Change" %}</a>
+            </span>
+        {% endif %}
+    </small></p>
+
     <h6>{% trans "Aggregate Details" %}</h6>
 
     <dl class="flat">
@@ -71,18 +92,18 @@
                         <span class="time-spent">{{ group.avg_time_spent|duration }}</span>
                     {% endif %}
                 </div>
-                <ul class="actions">
-                    <li>
-                        {% if group.status == 0 %}
-                            <a href="javascript:void(0)" class="tip" onclick="Sentry.stream.resolve('{{ group.project.slug }}', {{ group.id|safe }}, false);" rel="tooltip" title="{% trans "Mark as Resolved" %}">&#10003;</a>
-                        {% else %}
-                            <a href="javascript:void(0)" class="tip disabled" rel="tooltip" title="{% trans "Already Resolved" %}">&#10003;</a>
-                        {% endif %}
-                    </li>
-                    {% if request.user.is_authenticated %}
+                {% if can_admin_event %}
+                    <ul class="actions">
+                        <li>
+                            {% if group.status == 0 %}
+                                <a href="javascript:void(0)" class="tip" onclick="Sentry.stream.resolve('{{ group.project.slug }}', {{ group.id|safe }}, false);" rel="tooltip" title="{% trans "Mark as Resolved" %}">&#10003;</a>
+                            {% else %}
+                                <a href="javascript:void(0)" class="tip disabled" rel="tooltip" title="{% trans "Already Resolved" %}">&#10003;</a>
+                            {% endif %}
+                        </li>
                         <li><a href="javascript:void(0)" onclick="Sentry.stream.bookmark('{{ group.project.slug }}', {{ group.id|safe }}, this);" class="tip bookmark{% if is_bookmarked %} checked{% endif %}" rel="tooltip" title="{% trans "Bookmark" %}">&#9829;</a></li>
-                    {% endif %}
-                </ul>
+                    </ul>
+                {% endif %}
             </div>
         </li>
     </ul>
@@ -98,23 +119,25 @@
             {% for label, link, is_active in group|get_panels:request %}
                 <li{% if is_active %} class="active"{% endif %}><a href="{{ link }}">{{ label }}</a></li>
             {% endfor %}
-            <li class="dropdown pull-right">
-                <a class="dropdown-toggle" href="#" data-toggle="dropdown">{% trans "Actions" %} <span class="caret"></span></a>
-                <ul class="dropdown-menu">
-                    <li><a href="{% url sentry-api-remove-group project_id=project.slug group_id=group.id %}">{% trans "Remove Event" %}</a></li>
-                    <li><a {% ifequal page 'event_list' %}{% if event %}
-                    href="{% url sentry-group-event-json project_id=project.slug group_id=group.id event_id_or_latest=event.id %}"{% else %}
-                    href="{% url sentry-group-event-json project_id=project.slug group_id=group.id event_id_or_latest="latest" %}"{% endif %}{% else %}
-                    href="{% url sentry-group-events-json project_id=project.slug group_id=group.id %}"{% endifequal %}
-                    >{% trans "Raw JSON Data" %}</a></li>
-                    {% for label, link, is_active in group|get_actions:request %}
-                        {% if forloop.first %}
-                            <li class="divider"></li>
-                        {% endif %}
-                        <li><a href="{{ link }}">{{ label }}</a></li>
-                    {% endfor %}
-                </ul>
-            </li>
+            {% if can_admin_event %}
+                <li class="dropdown pull-right">
+                    <a class="dropdown-toggle" href="#" data-toggle="dropdown">{% trans "Actions" %} <span class="caret"></span></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="{% url sentry-api-remove-group project_id=project.slug group_id=group.id %}">{% trans "Remove Event" %}</a></li>
+                        <li><a {% ifequal page 'event_list' %}{% if event %}
+                        href="{% url sentry-group-event-json project_id=project.slug group_id=group.id event_id_or_latest=event.id %}"{% else %}
+                        href="{% url sentry-group-event-json project_id=project.slug group_id=group.id event_id_or_latest="latest" %}"{% endif %}{% else %}
+                        href="{% url sentry-group-events-json project_id=project.slug group_id=group.id %}"{% endifequal %}
+                        >{% trans "Raw JSON Data" %}</a></li>
+                        {% for label, link, is_active in group|get_actions:request %}
+                            {% if forloop.first %}
+                                <li class="divider"></li>
+                            {% endif %}
+                            <li><a href="{{ link }}">{{ label }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </li>
+            {% endif %}
         </ul>
 
         {% block inner %}
@@ -145,6 +168,24 @@
     <script type="text/javascript">
     $(document).ready(function() {
         Sentry.charts.render("#chart");
+        $('#public-status .action').click(function(){
+            var $this = $(this);
+            $.ajax({
+                url: $this.attr('data-api-url'),
+                type: 'post',
+                dataType: 'json',
+                success: function(groups){
+                    var group = groups[0];
+                    var selector = (group.is_public ? 'true' : 'false');
+                    var nselector = (group.is_public ? 'false' : 'true')
+                    $('#public-status span[data-public="' + selector + '"]').show();
+                    $('#public-status span[data-public="' + nselector + '"]').hide();
+                },
+                error: function(){
+                    alert('There was an error changing the public status');
+                }
+            });
+        });
     });
     </script>
 {% endblock %}

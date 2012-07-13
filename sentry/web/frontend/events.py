@@ -13,7 +13,6 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
-from sentry.conf import settings
 from sentry.models import Event
 from sentry.filters import get_filters
 from sentry.replays import Replayer

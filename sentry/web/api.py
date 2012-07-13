@@ -7,6 +7,7 @@ sentry.web.views
 """
 import datetime
 import logging
+import uuid
 
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseBadRequest, \
@@ -49,6 +50,7 @@ def transform_groups(request, group_list, template='sentry/partial/_group.html')
             'level': m.get_level_display(),
             'logger': m.logger,
             'count': m.times_seen,
+            'is_public': m.is_public,
             'score': getattr(m, 'sort_value', None),
         }
         for m, b in as_bookmarks(group_list, request.user)
@@ -245,6 +247,42 @@ def resolve(request, project):
     )
     group.status = 1
     group.resolved_at = now
+
+    data = transform_groups(request, [group])
+
+    response = HttpResponse(json.dumps(data))
+    response['Content-Type'] = 'application/json'
+    return response
+
+
+@csrf_exempt
+@has_access
+@never_cache
+def make_group_public(request, project, group_id):
+    try:
+        group = Group.objects.get(pk=group_id)
+    except Group.DoesNotExist:
+        return HttpResponseForbidden()
+
+    group.update(is_public=True)
+
+    data = transform_groups(request, [group])
+
+    response = HttpResponse(json.dumps(data))
+    response['Content-Type'] = 'application/json'
+    return response
+
+
+@csrf_exempt
+@has_access
+@never_cache
+def make_group_private(request, project, group_id):
+    try:
+        group = Group.objects.get(pk=group_id)
+    except Group.DoesNotExist:
+        return HttpResponseForbidden()
+
+    group.update(is_public=False)
 
     data = transform_groups(request, [group])
 
