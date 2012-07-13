@@ -76,10 +76,13 @@ class EditProjectForm(forms.ModelForm):
         if len(team_list) == 1 and instance.team == team_list.values()[0]:
             del self.fields['team']
         else:
-            self.fields['team'].choices = [(t.pk, t) for t in sorted(self.team_list.values(), key=lambda x: x.name)]
+            team_choices = [(t.pk, t) for t in sorted(self.team_list.values(), key=lambda x: x.name)]
             if not instance.team:
-                self.fields['team'].choices.insert(0, (None, '-' * 8))
-            self.fields['team'].widget.choices = self.fields['team'].choices
+                team_choices.insert(0, ('', '-' * 8))
+            elif (instance.team.pk, instance.team) not in team_choices:
+                team_choices.insert(1, (instance.team.pk, instance.team))
+            self.fields['team'].choices = team_choices
+            self.fields['team'].widget.choices = team_choices
 
     def clean_team(self):
         value = self.cleaned_data.get('team')
@@ -99,6 +102,7 @@ class EditProjectForm(forms.ModelForm):
 
 
 class EditProjectAdminForm(EditProjectForm):
+    team = forms.ChoiceField(choices=(), required=False)
     owner = UserField(required=False)
 
     class Meta:

@@ -50,7 +50,7 @@ class SelectTeamForm(forms.Form):
         super(SelectTeamForm, self).__init__(data=data, *args, **kwargs)
         self.team_list = dict((t.pk, t) for t in team_list.itervalues())
         self.fields['team'].choices = [(t.pk, t) for t in sorted(self.team_list.values(), key=lambda x: x.name)]
-        self.fields['team'].choices.insert(0, (None, '-' * 8))
+        self.fields['team'].choices.insert(0, ('', '-' * 8))
         self.fields['team'].widget.choices = self.fields['team'].choices
 
 
