@@ -40,10 +40,11 @@ class SentryViewsTest(TestCase):
         self.assertTemplateNotUsed(resp, 'sentry/login.html')
 
     def test_dashboard(self):
+        # no projects redirects them to create new project
         self.client.login(username='admin', password='admin')
         resp = self.client.get(reverse('sentry'), follow=True)
         self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/dashboard.html')
+        self.assertTemplateUsed(resp, 'sentry/projects/new.html')
 
         # requires at least one project to show dashboard
         Project.objects.create(name='foo', owner=self.user)
@@ -226,7 +227,7 @@ class ViewPermissionTest(TestCase):
         self._assertPerm(path, template, 'nobody', False)
         self._assertPerm(path, template, None, False)
 
-        with self.Settings(SENTRY_ALLOW_PROJECT_CREATION=True):
+        with self.Settings(SENTRY_ALLOW_PROJECT_CREATION=True, SENTRY_ALLOW_TEAM_CREATION=True):
             self._assertPerm(path, template, 'admin')
             self._assertPerm(path, template, 'nobody')
             self._assertPerm(path, template, None, False)
