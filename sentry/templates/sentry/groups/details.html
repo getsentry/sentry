@@ -51,10 +51,10 @@
         {% endif %}
         <dt>{% trans "Last Seen:" %}</dt>
         <dd class="pretty-date" title="{{ group.last_seen|date:"c" }}Z">{{ group.last_seen|timesince }}</dd>
-        <dt>{% trans "Avg Duration:" %}</dt>
-        <dd>{% if group.avg_time_spent %}{{ group.avg_time_spent|duration }}{% else %}<em>{% trans "n/a" %}</em>{% endif %}</dd>
-        <dt>{% trans "Checksum:" %}</dt>
-        <dd>{{ group.checksum }}</dd>
+        {% if group.avg_time_spent %}
+            <dt>{% trans "Avg Duration:" %}</dt>
+            <dd>{% if group.avg_time_spent %}{{ group.avg_time_spent|duration }}{% else %}<em>{% trans "n/a" %}</em>{% endif %}</dd>
+        {% endif %}
     </dl>
 
     {% for html in group|get_widgets:request %}

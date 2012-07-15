@@ -322,8 +322,7 @@ def group_event_details(request, project, group, event_id):
     }, request)
 
 
-@login_required
-@has_access
+@has_group_access
 def group_event_details_json(request, project, group, event_id_or_latest):
     if event_id_or_latest == 'latest':
         # It's possible that a message would not be created under certain
@@ -337,6 +336,7 @@ def group_event_details_json(request, project, group, event_id_or_latest):
 
 @login_required
 @has_access
+@has_group_access
 def group_plugin_action(request, project, group, slug):
     try:
         plugin = plugins.get(slug)
