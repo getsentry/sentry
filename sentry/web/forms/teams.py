@@ -48,10 +48,16 @@ class SelectTeamForm(forms.Form):
 
     def __init__(self, team_list, data, *args, **kwargs):
         super(SelectTeamForm, self).__init__(data=data, *args, **kwargs)
-        self.team_list = dict((t.pk, t) for t in team_list.itervalues())
-        self.fields['team'].choices = [(t.pk, t) for t in sorted(self.team_list.values(), key=lambda x: x.name)]
+        self.team_list = dict((str(t.pk), t) for t in team_list.itervalues())
+        self.fields['team'].choices = [c for c in sorted(self.team_list.iteritems(), key=lambda x: x[1].name)]
         self.fields['team'].choices.insert(0, ('', '-' * 8))
         self.fields['team'].widget.choices = self.fields['team'].choices
+
+    def clean_team(self):
+        value = self.cleaned_data.get('team')
+        if not value:
+            return value
+        return self.team_list.get(value)
 
 
 class BaseTeamMemberForm(forms.ModelForm):

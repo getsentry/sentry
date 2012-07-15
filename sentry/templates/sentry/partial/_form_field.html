@@ -1,4 +1,4 @@
-<div class="control-group{% if field.errors %} error{% endif %}">
+<div class="control-group{% if field.errors %} error{% endif %}" data-name="{{ field.name }}">
     {{ field.label_tag }}
     <div class="controls">
         {{ field }}
