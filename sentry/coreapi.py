@@ -47,10 +47,6 @@ RESERVED_FIELDS = (
     'tags',
 )
 
-REQUIRED_FIELDS = (
-    'message',
-)
-
 
 class APIError(Exception):
     http_status = 400
@@ -277,11 +273,10 @@ def process_data_timestamp(data):
 
 
 def validate_data(project, data, client=None):
-    for k in REQUIRED_FIELDS:
-        if not data.get(k):
-            raise InvalidData('Missing required parameter: %r' % k)
-
     ensure_valid_project_id(project, data)
+
+    if not data.get('message'):
+        data['message'] = '<no message value>'
 
     if 'event_id' not in data:
         data['event_id'] = uuid.uuid4().hex
