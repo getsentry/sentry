@@ -391,6 +391,7 @@ class Group(MessageBase):
     times_seen = models.PositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=datetime.now, db_index=True)
     first_seen = models.DateTimeField(default=datetime.now, db_index=True)
+    last_email_sent = PickledObjectField(null=True)
     resolved_at = models.DateTimeField(null=True, db_index=True)
     # active_at should be the same as first_seen by default
     active_at = models.DateTimeField(null=True, db_index=True)

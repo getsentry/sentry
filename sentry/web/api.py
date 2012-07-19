@@ -246,7 +246,7 @@ def resolve(request, project):
     )
     group.status = 1
     group.resolved_at = now
-
+    group.last_email_sent = None
     data = transform_groups(request, [group])
 
     response = HttpResponse(json.dumps(data))
