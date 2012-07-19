@@ -168,7 +168,7 @@ class IPlugin(local):
                 return False
         return True
 
-    def get_option(self, key, project=None, user=None):
+    def get_option(self, key, project=None, user=None, default=None):
         """
         Returns the value of an option in your plugins keyspace, or ``None`` if
         one is not present.
@@ -178,7 +178,7 @@ class IPlugin(local):
         >>> value = plugin.get_option('my_option')
         """
         from .helpers import get_option
-        return get_option(self._get_option_key(key), project, user)
+        return get_option(self._get_option_key(key), project, user, default)
 
     def set_option(self, key, value, project=None, user=None):
         """
