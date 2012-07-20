@@ -243,10 +243,10 @@ def resolve(request, project):
     Group.objects.filter(pk=group.pk).update(
         status=1,
         resolved_at=now,
+        last_email_sent=None
     )
     group.status = 1
     group.resolved_at = now
-    group.last_email_sent = None
     data = transform_groups(request, [group])
 
     response = HttpResponse(json.dumps(data))
