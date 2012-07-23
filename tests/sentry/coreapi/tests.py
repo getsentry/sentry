@@ -261,16 +261,10 @@ class ValidateDataTest(BaseAPITest):
             'message': 'foo',
         })
 
-
     def test_invalid_project_id(self):
         self.assertRaises(APIForbidden, validate_data, self.project, {
             'project': self.project.id + 1,
             'message': 'foo',
-        })
-
-    def test_missing_message(self):
-        self.assertRaises(InvalidData, validate_data, self.project, {
-            'project': self.project.id,
         })
 
     def test_invalid_interface_name(self):
