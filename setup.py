@@ -38,7 +38,7 @@ tests_require = [
     'eventlet==0.9.16',
     'nose==1.1.2',
     'nydus==0.8.2',
-    'mock==0.8.0',
+    'mock>=0.8.0',
     'pyflakes',
     'pep8',
     'redis',
@@ -62,7 +62,7 @@ install_requires = [
     'pynliner>=0.4.0',
     'python-dateutil>=1.5.0,<2.0.0',
     'pytz>=2011n',
-    'raven>=2.0.0',
+    'raven>=2.0.3',
     'simplejson>=2.3.0,<2.5.0',
     'South>=0.7',
     'httpagentparser>=1.0.5'
