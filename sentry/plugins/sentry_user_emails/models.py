@@ -32,7 +32,7 @@ class UserEmailsPlugin(TagPlugin):
         user = event.interfaces.get('sentry.interfaces.User')
         if not user:
             return []
-        if not user.email:
+        if not getattr(user, 'email', None):
             return []
         return [user.email]
 
