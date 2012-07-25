@@ -633,8 +633,8 @@ class GroupManager(BaseManager, ChartMixin):
                 'last_seen': date,
             })
 
-    def get_by_natural_key(self, logger, culprit, checksum):
-        return self.get(logger=logger, view=culprit, checksum=checksum)
+    def get_by_natural_key(self, project, logger, culprit, checksum):
+        return self.get(project=project, logger=logger, view=culprit, checksum=checksum)
 
     def get_accelerated(self, queryset=None, minutes=15):
         # mintues should
