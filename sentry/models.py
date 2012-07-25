@@ -429,7 +429,7 @@ class Group(MessageBase):
         return '#'
 
     def natural_key(self):
-        return (self.logger, self.culprit, self.checksum)
+        return (self.project, self.logger, self.culprit, self.checksum)
 
     def get_score(self):
         return int(math.log(self.times_seen) * 600 + float(time.mktime(self.last_seen.timetuple())))
