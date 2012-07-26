@@ -724,7 +724,7 @@ class MetaManager(BaseManager):
 
     def unset_value(self, key):
         self.filter(key=key).delete()
-        if not hasattr(self, '_metadata'):
+        if not self.has_fetched_data():
             return
         self._metadata.pop(key, None)
 
@@ -738,12 +738,19 @@ class MetaManager(BaseManager):
         if not created and inst.value != value:
             inst.update(value=value)
 
-        if not hasattr(self, '_metadata'):
+        if not self.has_fetched_data():
             return
         self._metadata[key] = value
 
-    def get_all_values(self):
+    def has_fetched_data(self):
         if not hasattr(self, '_metadata'):
+            return False
+        if self._metadata == {}:
+            return False
+        return True
+
+    def get_all_values(self):
+        if not self.has_fetched_data():
             self._metadata = dict((i.key, i.value) for i in self.all())
         return self._metadata
 

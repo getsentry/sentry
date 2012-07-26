@@ -17,8 +17,7 @@ from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 
 from sentry.conf import settings
-from sentry.models import Project, View, \
-  MEMBER_USER, Option, ProjectOption, Team
+from sentry.models import Project, View, MEMBER_USER, Team
 from sentry.permissions import can_create_projects, can_create_teams
 
 logger = logging.getLogger('sentry.errors')
@@ -168,11 +167,7 @@ def plugin_config(plugin, project, request):
 
     initials = plugin.get_form_initial(project)
     for field in form_class.base_fields:
-        key = '%s:%s' % (plugin_key, field)
-        if project:
-            value = ProjectOption.objects.get_value(project, key, NOTSET)
-        else:
-            value = Option.objects.get_value(key, NOTSET)
+        value = plugin.get_option(field, project=project, default=NOTSET)
         if value is not NOTSET:
             initials[field] = value
 
@@ -181,13 +176,9 @@ def plugin_config(plugin, project, request):
         initial=initials,
         prefix=plugin_key
     )
-    if form.is_valid():
+    if request.POST and form.is_valid():
         for field, value in form.cleaned_data.iteritems():
-            key = '%s:%s' % (plugin_key, field)
-            if project:
-                ProjectOption.objects.set_value(project, key, value)
-            else:
-                Option.objects.set_value(key, value)
+            plugin.set_option(field, value, project=project)
 
         return ('redirect', None)
 
