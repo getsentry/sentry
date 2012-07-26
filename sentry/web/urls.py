@@ -47,6 +47,7 @@ urlpatterns = patterns('',
     # Account
 
     url(r'^login/$', accounts.login, name='sentry-login'),
+    url(r'^login-redirect/$', accounts.login_redirect, name='sentry-login-redirect'),
     url(r'^logout/$', accounts.logout, name='sentry-logout'),
     url(r'^account/settings/$', accounts.settings, name='sentry-account-settings'),
     url(r'^account/settings/notifications/$', accounts.notification_settings, name='sentry-account-settings-notifications'),

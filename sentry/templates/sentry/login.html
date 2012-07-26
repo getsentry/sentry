@@ -25,17 +25,36 @@
             </div>
         {% endif %}
 
-        <form class="form-stacked" action="" method="post">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ next }}" />
+        <div class="row">
+            <div class="span6">
+                <form class="form-stacked" action="" method="post">
+                    <fieldset>
+                        <legend>Login with your Sentry account</legend>
+                    </fieldset>
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ next }}" />
 
-            {% for field in form %}
-                {% include "sentry/partial/_form_field.html" %}
-            {% endfor %}
+                    {% for field in form %}
+                        {% include "sentry/partial/_form_field.html" %}
+                    {% endfor %}
 
-            <fieldset class="form-actions">
-                <button type="submit" class="btn btn-primary">{% trans "Login" %}</button>
-            </fieldset>
-        </form>
+                    <fieldset class="form-actions">
+                        <button type="submit" class="btn btn-primary">{% trans "Login" %}</button>
+                    </fieldset>
+                </form>
+            </div>
+            {% if auth_engines %}
+                <div class="span6">
+                    <fieldset>
+                        <legend>Login with another account</legend>
+                    </fieldset>
+                    <ul class="auth-options">
+                        {% for engine in auth_engines %}
+                            <li><a href="{% url socialauth_begin engine %}" class="auth-{{ engine }}">Sign in with {{ engine|title }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        </div>
     </section>
 {% endblock %}

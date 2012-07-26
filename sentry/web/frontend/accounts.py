@@ -19,6 +19,14 @@ from sentry.web.helpers import render_to_response
 from sentry.utils.safe import safe_execute
 
 
+AUTH_ENGINES = {
+    'twitter': ('TWITTER_CONSUMER_KEY', 'TWITTER_CONSUMER_SECRET'),
+    'facebook': ('FACEBOOK_APP_ID', 'FACEBOOK_API_SECRET'),
+    'github': ('GITHUB_APP_ID', 'GITHUB_APP_SECRET'),
+    'google': ('GOOGLE_OAUTH2_CLIENT_ID', 'GOOGLE_OAUTH2_CLIENT_SECRET'),
+}
+
+
 @csrf_protect
 def login(request):
     from django.contrib.auth import login as login_
@@ -27,16 +35,27 @@ def login(request):
     form = AuthenticationForm(request, request.POST or None)
     if form.is_valid():
         login_(request, form.get_user())
-        return HttpResponseRedirect(request.session.pop('_next', None) or reverse('sentry'))
+        return login_redirect(request)
     else:
         request.session.set_test_cookie()
+
+    auth_engines = [key
+        for key, cfg_names
+        in AUTH_ENGINES.iteritems()
+        if all(getattr(dj_settings, c, None) for c in cfg_names)]
 
     context = csrf(request)
     context.update({
         'form': form,
         'next': request.session.get('_next'),
+        'auth_engines': auth_engines,
     })
     return render_to_response('sentry/login.html', context, request)
+
+
+@login_required
+def login_redirect(request):
+    return HttpResponseRedirect(request.session.pop('_next', None) or reverse('sentry'))
 
 
 def logout(request):

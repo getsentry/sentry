@@ -63,6 +63,22 @@ EMAIL_HOST_PASSWORD = ''
 EMAIL_HOST_USER = ''
 EMAIL_PORT = 25
 EMAIL_USE_TLS = False
+
+# http://twitter.com/apps/new
+TWITTER_CONSUMER_KEY = ''
+TWITTER_CONSUMER_SECRET = ''
+
+# http://developers.facebook.com/setup/
+FACEBOOK_APP_ID = ''
+FACEBOOK_API_SECRET = ''
+
+# http://code.google.com/apis/accounts/docs/OAuth2.html#Registering
+GOOGLE_OAUTH2_CLIENT_ID = ''
+GOOGLE_OAUTH2_CLIENT_SECRET = ''
+
+# https://github.com/settings/applications/new
+GITHUB_APP_ID = ''
+GITHUB_API_SECRET = ''
 """
 
 

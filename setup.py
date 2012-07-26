@@ -65,7 +65,8 @@ install_requires = [
     'raven>=2.0.3',
     'simplejson>=2.3.0,<2.5.0',
     'South>=0.7',
-    'httpagentparser>=1.0.5'
+    'httpagentparser>=1.0.5',
+    'django-social-auth>=0.7.1,<1.0',
 ]
 
 dependency_links = [
