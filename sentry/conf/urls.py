@@ -41,7 +41,6 @@ def handler500(request):
 urlpatterns = patterns('',
     url(r'^i18n/', include('django.conf.urls.i18n')),
     url(r'^admin/', include(admin.site.urls)),
-    url(r'', include('social_auth.urls')),
     url(r'^_admin_media/(?P<path>.*)$', generic.static_media,
         kwargs={'root': admin_media_dir},
         name='admin-media'),
