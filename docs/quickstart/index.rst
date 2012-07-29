@@ -256,7 +256,7 @@ couple values in your ``sentry.conf.py`` file.
 Twitter
 ~~~~~~~
 
-Register an application at `http://twitter.com/apps/new`_. Take the values given on the page, and configure
+Register an application at http://twitter.com/apps/new. Take the values given on the page, and configure
 the following::
 
   TWITTER_CONSUMER_KEY = ''
@@ -265,7 +265,7 @@ the following::
 Facebook
 ~~~~~~~~
 
-Register an application at `http://developers.facebook.com/setup/`_. Take the values given on the page, and configure
+Register an application at http://developers.facebook.com/setup/. Take the values given on the page, and configure
 the following::
 
   FACEBOOK_APP_ID = ''
@@ -274,7 +274,7 @@ the following::
 Google
 ~~~~~~
 
-Register an application at `http://code.google.com/apis/accounts/docs/OAuth2.html#Registering`_. Take the values given on the page, and configure
+Register an application at http://code.google.com/apis/accounts/docs/OAuth2.html#Registering. Take the values given on the page, and configure
 the following::
 
   GOOGLE_OAUTH2_CLIENT_ID = ''
@@ -283,7 +283,7 @@ the following::
 GitHub
 ~~~~~~
 
-Register an application at `https://github.com/settings/applications/new`_. Take the values given on the page, and configure
+Register an application at https://github.com/settings/applications/new. Take the values given on the page, and configure
 the following::
 
   GITHUB_APP_ID = ''
