@@ -257,10 +257,16 @@ p {
     ul {
       list-style: none;
       margin-left: 0;
+      padding: 0;
+      &.counted-list {
+        li {
+          padding-left: 30px;
+        }
+      }
       li {
         position: relative;
         margin-left: 0;
-        padding-left: 30px;
+        padding-left: 0;
         .count {
         text-align: center;
           width: 25px;

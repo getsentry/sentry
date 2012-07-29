@@ -3813,11 +3813,15 @@ p {
 #content .sidebar ul {
   list-style: none;
   margin-left: 0;
+  padding: 0;
+}
+#content .sidebar ul.counted-list li {
+  padding-left: 30px;
 }
 #content .sidebar ul li {
   position: relative;
   margin-left: 0;
-  padding-left: 30px;
+  padding-left: 0;
 }
 #content .sidebar ul li .count {
   text-align: center;
