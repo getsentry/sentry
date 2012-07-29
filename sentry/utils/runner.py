@@ -65,6 +65,7 @@ EMAIL_PORT = 25
 EMAIL_USE_TLS = False
 
 # http://twitter.com/apps/new
+# It's important that input a callback URL, even if its useless. We have no idea why, consult Twitter.
 TWITTER_CONSUMER_KEY = ''
 TWITTER_CONSUMER_SECRET = ''
 

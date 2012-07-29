@@ -262,6 +262,8 @@ the following::
   TWITTER_CONSUMER_KEY = ''
   TWITTER_CONSUMER_SECRET = ''
 
+.. note:: It's important that input a callback URL, even if its useless. We have no idea why, consult Twitter.
+
 Facebook
 ~~~~~~~~
 
