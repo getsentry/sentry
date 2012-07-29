@@ -336,8 +336,9 @@ def group_event_details_json(request, project, group, event_id_or_latest):
 
 @login_required
 @has_access
-@has_group_access
-def group_plugin_action(request, project, group, slug):
+def group_plugin_action(request, project, group_id, slug):
+    group = get_object_or_404(Group, pk=group_id, project=project)
+
     try:
         plugin = plugins.get(slug)
     except KeyError:
