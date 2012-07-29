@@ -245,6 +245,54 @@ Testing Sentry locally? Spin up Django's builtin runserver (or ``pip install dja
 slightly better).
 
 
+Enabling Social Auth
+--------------------
+
+Most of the time, it doesnt really matter **how** someone authenticates to the service, so much as it that they do. In
+these cases, Sentry provides tight integrated with several large social services, including: Twitter, Facebook, Google,
+and GitHub. Enabling this is as simple as setting up an application with the respective services, and configuring a 
+couple values in your ``sentry.conf.py`` file.
+
+Twitter
+~~~~~~~
+
+Register an application at `http://twitter.com/apps/new`_. Take the values given on the page, and configure
+the following::
+
+  TWITTER_CONSUMER_KEY = ''
+  TWITTER_CONSUMER_SECRET = ''
+
+Facebook
+~~~~~~~~
+
+Register an application at `http://developers.facebook.com/setup/`_. Take the values given on the page, and configure
+the following::
+
+  FACEBOOK_APP_ID = ''
+  FACEBOOK_API_SECRET = ''
+
+Google
+~~~~~~
+
+Register an application at `http://code.google.com/apis/accounts/docs/OAuth2.html#Registering`_. Take the values given on the page, and configure
+the following::
+
+  GOOGLE_OAUTH2_CLIENT_ID = ''
+  GOOGLE_OAUTH2_CLIENT_SECRET = ''
+
+GitHub
+~~~~~~
+
+Register an application at `https://github.com/settings/applications/new`_. Take the values given on the page, and configure
+the following::
+
+  GITHUB_APP_ID = ''
+  GITHUB_API_SECRET = ''
+
+For more information on configuring social authentication services, consult the `documentation on django-social-auth
+<https://github.com/omab/django-social-auth/>`_.
+
+
 What's Next?
 ------------
 
