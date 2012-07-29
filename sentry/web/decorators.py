@@ -133,7 +133,10 @@ def has_group_access(func):
 
     @wraps(func)
     def wrapped(request, project_id, group_id, *args, **kwargs):
-        group = get_object_or_404(Group, pk=group_id, project=project_id)
+        group = get_object_or_404(Group, pk=group_id)
+
+        if group.project and project_id not in (group.project.slug, str(group.project.id)):
+            return HttpResponse(status=404)
 
         if group.is_public:
             return func(request, group.project, group, *args, **kwargs)
