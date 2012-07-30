@@ -12,7 +12,7 @@ msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: https://github.com/dcramer/sentry/issues\n"
 "POT-Creation-Date: 2012-06-06 07:53+0000\n"
-"PO-Revision-Date: 2012-06-09 10:09+0000\n"
+"PO-Revision-Date: 2012-07-30 09:11+0200\n"
 "Last-Translator: Jannis <jvajen@gmail.com>\n"
 "Language-Team: German (http://www.transifex.com/projects/p/sentry/language/de/)\n"
 "MIME-Version: 1.0\n"
@@ -1590,7 +1590,7 @@ msgstr "0 Minuten"
 
 #: templatetags/sentry_helpers.py:146
 msgid "just now"
-msgstr "gerade even"
+msgstr "gerade eben"
 
 #: templatetags/sentry_helpers.py:147
 msgid "1 day"
