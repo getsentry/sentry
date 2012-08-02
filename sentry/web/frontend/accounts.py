@@ -42,7 +42,7 @@ def login(request):
     auth_engines = [key
         for key, cfg_names
         in AUTH_ENGINES.iteritems()
-        if all(getattr(dj_settings, c, None) for c in cfg_names)]
+        if any(getattr(dj_settings, c, None) for c in cfg_names)]
 
     context = csrf(request)
     context.update({
