@@ -53,6 +53,7 @@ def login(request):
         'form': form,
         'next': request.session.get('_next'),
         'auth_engines': auth_engines,
+        'SOCIAL_AUTH_CREATE_USERS': dj_settings.SOCIAL_AUTH_CREATE_USERS,
     })
     return render_to_response('sentry/login.html', context, request)
 

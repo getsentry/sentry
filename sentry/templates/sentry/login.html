@@ -46,7 +46,7 @@
             {% if auth_engines %}
                 <div class="span6">
                     <fieldset>
-                        <legend>Login with another account</legend>
+                        <legend>Login{% if SOCIAL_AUTH_CREATE_USERS %} or Register{% endif %} with another account</legend>
                     </fieldset>
                     {% url sentry-account-settings-identities as identities_link %}
                     <p>{% blocktrans with identities_link as link %}If you already have an account, you can associate a social identity in the

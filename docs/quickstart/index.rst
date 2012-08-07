@@ -253,6 +253,11 @@ these cases, Sentry provides tight integrated with several large social services
 and GitHub. Enabling this is as simple as setting up an application with the respective services, and configuring a 
 couple values in your ``sentry.conf.py`` file.
 
+By default, users will be able to both signup (create a new account) as well as associate an existing account. If you
+want to disable account creation, simply set the following value::
+
+  SOCIAL_AUTH_CREATE_USERS = False
+
 Twitter
 ~~~~~~~
 
