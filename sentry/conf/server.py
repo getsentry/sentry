@@ -203,6 +203,8 @@ GOOGLE_OAUTH2_CLIENT_SECRET = ''
 GITHUB_APP_ID = ''
 GITHUB_API_SECRET = ''
 
+SOCIAL_AUTH_CREATE_USERS = True
+
 import random
 
 SOCIAL_AUTH_DEFAULT_USERNAME = lambda: random.choice(['Darth Vader', 'Obi-Wan Kenobi', 'R2-D2', 'C-3PO', 'Yoda'])
