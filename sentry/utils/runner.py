@@ -79,7 +79,7 @@ GOOGLE_OAUTH2_CLIENT_SECRET = ''
 
 # https://github.com/settings/applications/new
 GITHUB_APP_ID = ''
-GITHUB_API_SECRET = ''
+GITHUB_APP_SECRET = ''
 """
 
 
