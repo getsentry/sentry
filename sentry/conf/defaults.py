@@ -170,7 +170,3 @@ MAX_JSON_RESULTS = 1000
 # Buffer backend to use
 BUFFER = 'sentry.buffer.Buffer'
 BUFFER_OPTIONS = {}
-
-# If disabled, users will only be able to associate existing accounts with
-# social identities.
-ALLOW_SIGNUP_VIA_SOCIAL_AUTH = True

@@ -36,7 +36,6 @@ def get_auth_engines():
 
 @csrf_protect
 def login(request):
-    from sentry.conf import settings
     from django.contrib.auth import login as login_
     from django.contrib.auth.forms import AuthenticationForm
 
@@ -47,10 +46,7 @@ def login(request):
     else:
         request.session.set_test_cookie()
 
-    if settings.ALLOW_SIGNUP_VIA_SOCIAL_AUTH:
-        auth_engines = get_auth_engines()
-    else:
-        auth_engines = None
+    auth_engines = get_auth_engines()
 
     context = csrf(request)
     context.update({
