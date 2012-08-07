@@ -254,11 +254,13 @@ class MailProcessorTest(TestCase):
         from django.contrib.auth.models import User
         from sentry.models import Project, UserOption
 
-        user = User.objects.create(username='foo', email='foo@example.com')
-        user2 = User.objects.create(username='baz', email='baz@example.com')
+        user = User.objects.create(username='foo', email='foo@example.com', is_active=True)
+        user2 = User.objects.create(username='baz', email='baz@example.com', is_active=True)
+        user3 = User.objects.create(username='bar', email='bar@example.com', is_active=False)
         project = Project.objects.create(name='Test', slug='test', owner=user)
         project.team.member_set.get_or_create(user=user)
         project.team.member_set.get_or_create(user=user2)
+        project.team.member_set.get_or_create(user=user3)
 
         p = MailProcessor()
 

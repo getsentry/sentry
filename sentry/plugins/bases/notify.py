@@ -90,7 +90,9 @@ class NotificationPlugin(Plugin):
         ).values_list('user', flat=True))
 
         # fetch remaining users
-        member_set = set(project.team.member_set.exclude(user__in=disabled).values_list('user', flat=True))
+        member_set = set(project.team.member_set.filter(
+            user__is_active=True,
+        ).exclude(user__in=disabled).values_list('user', flat=True))
 
         return member_set
 
@@ -109,7 +111,7 @@ class NotificationPlugin(Plugin):
 
         # if any didnt exist, grab their default email
         if user_ids:
-            email_list |= set(User.objects.filter(pk__in=user_ids).values_list('email', flat=True))
+            email_list |= set(User.objects.filter(pk__in=user_ids, is_active=True).values_list('email', flat=True))
 
         return email_list
 
