@@ -32,7 +32,7 @@ always be the DSN value (if possible), followed by an optional secondary argumen
 a map of options::
 
     client = new RavenClient('http://public_key:secret_key@example.com/default', {
-        'tags': ['foo', 'bar']
+        'tags': {'foo': 'bar'}
     })
 
 .. note:: If an empty DSN is passed, you should treat it as valid option which signifies disabling the client.
@@ -50,12 +50,21 @@ an exception-type:
 * RavenClient::captureMessage(string $message)
 * RavenClient::captureException(exception $exception)
 
+The above methods should also allow optional arguments (or a map of arguments). For example::
+
+    client.captureException(myException, {
+        'tags': {'foo': 'bar'},
+    })
+
 If your platform supports block statements, it is recommend you provide something
 like the following::
 
-    with client.captureExceptions(tags=['foo'], etc):
+    with client.captureExceptions(tags={'foo': 'bar'}):
         # do something that will cause an error
         1 / 0
+
+.. note:: In the above example, we're passing any options that would normally be passed to the capture methods along with
+          the block wrapper.
 
 Parsing the DSN
 ---------------
