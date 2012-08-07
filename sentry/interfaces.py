@@ -363,27 +363,28 @@ class Http(Interface):
             'query_string': self.query_string,
         })
 
+    def _to_dict(self, value):
+        if value is None:
+            value = {}
+        if isinstance(value, dict):
+            return True, value
+        try:
+            value = QueryDict(value)
+        except _Exception:
+            return False, value
+        else:
+            return True, value
+
     def to_html(self, event):
         data = self.data
         data_is_dict = False
-        if self.headers.get('Content-Type') == 'application/x-www-form-urlencoded':
-            try:
-                data = QueryDict(data)
-            except _Exception:
-                pass
-            else:
-                data_is_dict = True
+        headers_is_dict, headers = self._to_dict(self.headers)
+
+        if headers_is_dict and headers.get('Content-Type') == 'application/x-www-form-urlencoded':
+            data_is_dict, data = self._to_dict(data)
 
         # It's kind of silly we store this twice
-        cookies = self.cookies or self.headers.pop('Cookie', {})
-        cookies_is_dict = isinstance(cookies, dict)
-        if not cookies_is_dict:
-            try:
-                cookies = QueryDict(cookies)
-            except _Exception:
-                pass
-            else:
-                cookies_is_dict = True
+        cookies_is_dict, cookies = self._to_dict(self.cookies or headers.pop('Cookie', {}))
 
         return render_to_string('sentry/partial/interfaces/http.html', {
             'event': event,
@@ -396,6 +397,7 @@ class Http(Interface):
             'cookies': cookies,
             'cookies_is_dict': cookies_is_dict,
             'headers': self.headers,
+            'headers_is_dict': headers_is_dict,
             'env': self.env,
         })
 

@@ -96,22 +96,31 @@
                     <tr>
                         <th>{% trans "Headers:" %}</th>
                         <td>
-                            {% if headers|length > 5 %}
-                                <a href="#" onclick="return varToggle(this, 'HttpHeaders')"><span>&#x25b6;</span> {% trans "Headers" %}</a>
+                            {% if headers_is_dict %}
+                                {% if headers|length > 5 %}
+                                    <a href="#" onclick="return varToggle(this, 'HttpHeaders')"><span>&#x25b6;</span> {% trans "Cookies" %}</a>
+                                {% endif %}
+                                <table class="table vars" id="vHttpHeaders"{% if headers|length > 5 %} style="display:none;"{% endif %}>
+                                    <colgroup>
+                                        <col style="width:100px;">
+                                    </colgroup>
+                                    <tbody>
+                                        {% for key, value in headers.iteritems|as_sorted %}
+                                            <tr>
+                                                <td>{{ key|to_str }}</td>
+                                                <td class="code"><pre>{{ value|pprint }}</pre></td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            {% else %}
+                                {% if headers|length > 5 %}
+                                    <a href="#" onclick="return varToggle(this, 'HttpHeaders')"><span>&#x25b6;</span> {% trans "Cookies" %}</a>
+                                {% endif %}
+                                <div id="vHttpHeaders"{% if headers|length > 5 %} style="display:none;"{% endif %}>
+                                    <pre>{{ headers|pprint }}</pre>
+                                </div>
                             {% endif %}
-                            <table class="table vars" id="vHttpHeaders"{% if headers|length > 5 %} style="display:none;"{% endif %}>
-                                <colgroup>
-                                    <col style="width:100px;">
-                                </colgroup>
-                                <tbody>
-                                    {% for key, value in headers.iteritems|as_sorted %}
-                                        <tr>
-                                            <td>{{ key }}</td>
-                                            <td class="code"><pre>{{ value|pprint }}</pre></td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
                         </td>
                     </tr>
                 {% endif %}
