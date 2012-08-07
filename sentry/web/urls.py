@@ -51,6 +51,7 @@ urlpatterns = patterns('',
     url(r'^logout/$', accounts.logout, name='sentry-logout'),
     url(r'^account/settings/$', accounts.settings, name='sentry-account-settings'),
     url(r'^account/settings/notifications/$', accounts.notification_settings, name='sentry-account-settings-notifications'),
+    url(r'^account/settings/identities/$', accounts.list_identities, name='sentry-account-settings-identities'),
 
     # Teams
 

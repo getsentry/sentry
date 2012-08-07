@@ -48,6 +48,10 @@
                     <fieldset>
                         <legend>Login with another account</legend>
                     </fieldset>
+                    {% url sentry-account-settings-identities as identities_link %}
+                    <p>{% blocktrans with identities_link as link %}If you already have an account, you can associate a social identity in the
+                        <a href="{{ link }}">identities</a> page in your account settings (after you login).{% endblocktrans %}</p>
+                    <br>
                     <ul class="auth-options">
                         {% for engine in auth_engines %}
                             <li><a href="{% url socialauth_begin engine %}" class="auth-{{ engine }}">Sign in with {{ engine|title }}</a></li>

@@ -27,6 +27,13 @@ AUTH_ENGINES = {
 }
 
 
+def get_auth_engines():
+    return [key
+        for key, cfg_names
+        in AUTH_ENGINES.iteritems()
+        if all(getattr(dj_settings, c, None) for c in cfg_names)]
+
+
 @csrf_protect
 def login(request):
     from django.contrib.auth import login as login_
@@ -39,10 +46,7 @@ def login(request):
     else:
         request.session.set_test_cookie()
 
-    auth_engines = [key
-        for key, cfg_names
-        in AUTH_ENGINES.iteritems()
-        if all(getattr(dj_settings, c, None) for c in cfg_names)]
+    auth_engines = get_auth_engines()
 
     context = csrf(request)
     context.update({
@@ -124,3 +128,21 @@ def notification_settings(request):
         'page': 'notifications',
     })
     return render_to_response('sentry/account/notifications.html', context, request)
+
+
+@csrf_protect
+@login_required
+def list_identities(request):
+    from social_auth.models import UserSocialAuth
+
+    identity_list = list(UserSocialAuth.objects.filter(user=request.user))
+
+    auth_engines = get_auth_engines()
+
+    context = csrf(request)
+    context.update({
+        'identity_list': identity_list,
+        'page': 'identities',
+        'auth_engines': auth_engines,
+    })
+    return render_to_response('sentry/account/identities.html', context, request)

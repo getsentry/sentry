@@ -4,6 +4,7 @@
 <ul class="nav nav-tabs nav-stacked">
     <li{% if page == 'settings' %} class="active"{% endif %}><a href="{% url sentry-account-settings %}">{% trans "Account" %}</a></li>
     <li{% if page == 'notifications' %} class="active"{% endif %}><a href="{% url sentry-account-settings-notifications %}">{% trans "Notifications" %}</a></li>
+    <li{% if page == 'identities' %} class="active"{% endif %}><a href="{% url sentry-account-settings-identities %}">{% trans "Identities" %}</a></li>
 </ul>
 
 <h6>{% trans "Projects" %}</h6>
