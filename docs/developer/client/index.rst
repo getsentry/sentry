@@ -329,3 +329,27 @@ The request body should then somewhat resemble the following::
             'module': '__builtins__'
         }
     }
+
+Handling Failures
+-----------------
+
+It is **highly encouraged** that your client handles failures from the Sentry server gracefully. This means taking
+care of several key things:
+
+* Soft failures when the Sentry server fails to respond in a reasonable amount of time (e.g. 3s)
+* Exponential backoff when Sentry fails (don't continue trying if the server is offline)
+* Failover to a standard logging module on errors.
+
+For example, the Python client will log any failed requests to the Sentry server to a named logger, ``sentry.errors``. 
+It will also only retry every few seconds, based on how many consecutive failures its seen. The code for this is simple::
+
+    def should_try(self):
+        if self.status == self.ONLINE:
+            return True
+
+        interval = min(self.retry_number, 6) ** 2
+
+        if time.time() - self.last_check > interval:
+            return True
+
+        return False
