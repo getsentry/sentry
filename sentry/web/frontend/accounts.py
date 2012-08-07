@@ -22,7 +22,7 @@ from sentry.utils.safe import safe_execute
 AUTH_ENGINES = {
     'twitter': ('TWITTER_CONSUMER_KEY', 'TWITTER_CONSUMER_SECRET'),
     'facebook': ('FACEBOOK_APP_ID', 'FACEBOOK_API_SECRET'),
-    'github': ('GITHUB_APP_ID', 'GITHUB_APP_SECRET'),
+    'github': ('GITHUB_APP_ID', 'GITHUB_API_SECRET'),
     'google': ('GOOGLE_OAUTH2_CLIENT_ID', 'GOOGLE_OAUTH2_CLIENT_SECRET'),
 }
 
