@@ -566,7 +566,9 @@ class GroupManager(BaseManager, ChartMixin):
             transaction.commit_unless_managed(using=group._state.db)
 
         # Determine if we've sampled enough data to store this event
-        if not settings.SAMPLE_DATA or group.times_seen % min(count_limit(group.times_seen), time_limit(silence)) == 0:
+        if is_new:
+            is_sample = False
+        elif not settings.SAMPLE_DATA or group.times_seen % min(count_limit(group.times_seen), time_limit(silence)) == 0:
             is_sample = False
         else:
             is_sample = True
