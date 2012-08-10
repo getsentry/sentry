@@ -499,7 +499,8 @@ class GroupManager(BaseManager, ChartMixin):
         return event
 
     def _create_group(self, event, tags=None, **kwargs):
-        from sentry.models import ProjectCountByMinute, MessageCountByMinute, STATUS_RESOLVED
+        from sentry.models import ProjectCountByMinute, MessageCountByMinute, STATUS_RESOLVED, \
+          STATUS_UNRESOLVED
 
         date = event.datetime
         time_spent = event.time_spent
@@ -536,22 +537,18 @@ class GroupManager(BaseManager, ChartMixin):
 
         if not is_new:
             extra = {
-                'last_seen': date,
+                'last_seen': max(event.datetime, group.last_seen),
                 'score': ScoreClause(group),
             }
             if group.status == STATUS_RESOLVED:
                 # Group has changed from resolved -> unresolved
                 is_new = True
 
-                # HACK: this doesnt quite fit with the buffer model, but we need some way to
-                extra.update({
-                    'active_at': date,
-                    'status': 0,
-                })
-                group.status = 0
-                group.active_at = date
+                # We have to perform this update inline, as waiting on buffers means
+                # this event could be treated as "new" several times
+                group.update(active_at=date, status=STATUS_UNRESOLVED)
 
-            group.last_seen = max(event.datetime, group.last_seen)
+            group.last_seen = extra['last_seen']
 
             silence_timedelta = date - group.last_seen
             silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
@@ -560,7 +557,7 @@ class GroupManager(BaseManager, ChartMixin):
                 'pk': group.pk,
             }, extra)
         else:
-            # TODO: this update is useless
+            # TODO: this update should actually happen as part of create
             group.update(score=ScoreClause(group))
             silence = 0
 
@@ -569,7 +566,9 @@ class GroupManager(BaseManager, ChartMixin):
             transaction.commit_unless_managed(using=group._state.db)
 
         # Determine if we've sampled enough data to store this event
-        if not settings.SAMPLE_DATA or group.times_seen % min(count_limit(group.times_seen), time_limit(silence)) == 0:
+        if is_new:
+            is_sample = False
+        elif not settings.SAMPLE_DATA or group.times_seen % min(count_limit(group.times_seen), time_limit(silence)) == 0:
             is_sample = False
         else:
             is_sample = True
