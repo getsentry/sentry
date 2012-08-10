@@ -98,7 +98,7 @@
                         <td>
                             {% if headers_is_dict %}
                                 {% if headers|length > 5 %}
-                                    <a href="#" onclick="return varToggle(this, 'HttpHeaders')"><span>&#x25b6;</span> {% trans "Cookies" %}</a>
+                                    <a href="#" onclick="return varToggle(this, 'HttpHeaders')"><span>&#x25b6;</span> {% trans "Headers" %}</a>
                                 {% endif %}
                                 <table class="table vars" id="vHttpHeaders"{% if headers|length > 5 %} style="display:none;"{% endif %}>
                                     <colgroup>
@@ -115,7 +115,7 @@
                                 </table>
                             {% else %}
                                 {% if headers|length > 5 %}
-                                    <a href="#" onclick="return varToggle(this, 'HttpHeaders')"><span>&#x25b6;</span> {% trans "Cookies" %}</a>
+                                    <a href="#" onclick="return varToggle(this, 'HttpHeaders')"><span>&#x25b6;</span> {% trans "Headers" %}</a>
                                 {% endif %}
                                 <div id="vHttpHeaders"{% if headers|length > 5 %} style="display:none;"{% endif %}>
                                     <pre>{{ headers|pprint }}</pre>
