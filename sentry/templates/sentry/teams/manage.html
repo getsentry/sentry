@@ -39,7 +39,7 @@
                 </fieldset>
             </form>
             <div class="page-header">
-                {% if can_add_member %}
+                {% if can_add_project %}
                     <a href="{% url sentry-new-team-project team.slug %}" class="btn pull-right btn-primary">{% trans "New Project" %}</a>
                 {% endif %}
                 <h2>{% trans "Projects" %}</h2>

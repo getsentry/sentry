@@ -78,6 +78,7 @@ def manage_team(request, team):
 
     context = csrf(request)
     context.update({
+        'can_add_project': can_create_projects(request.user, team),
         'can_add_member': can_add_team_member(request.user, team),
         'can_remove_team': can_remove_team(request.user, team),
         'page': 'details',
