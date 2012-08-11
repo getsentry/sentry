@@ -4,7 +4,7 @@ Available Clients
 The following clients are officially recognized as production-ready, and support the current Sentry
 protocol:
 
-* Python (`raven-python <http://github.com/dcramer/raven>`_)
+* Python (`raven-python <http://github.com/getsentry/raven-python>`_)
 * PHP (`raven-php <http://github.com/getsentry/raven-php>`_)
 * Java (`raven-java <https://github.com/kencochrane/raven-java>`_)
 * Ruby (`raven-ruby <https://github.com/coderanger/raven-ruby>`_)
