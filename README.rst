@@ -1,8 +1,8 @@
 Sentry
 ======
 
-.. image:: https://secure.travis-ci.org/dcramer/sentry.png?branch=master
-   :target: http://travis-ci.org/dcramer/sentry
+.. image:: https://secure.travis-ci.org/getsentry/sentry.png?branch=master
+   :target: http://travis-ci.org/getsentry/sentry
 
 
 Sentry is a realtime event logging and aggregation platform. It specializes
@@ -12,9 +12,9 @@ post-mortem without any of the hassle of the standard user feedback loop.
 Screenshots
 -----------
 
-.. image:: https://github.com/dcramer/sentry/raw/master/docs/images/group_list.png
+.. image:: https://github.com/getsentry/sentry/raw/master/docs/images/group_list.png
 
-.. image:: https://github.com/dcramer/sentry/raw/master/docs/images/event.png
+.. image:: https://github.com/getsentry/sentry/raw/master/docs/images/event.png
 
 Sentry is a Server
 ------------------
@@ -31,7 +31,7 @@ Resources
 ---------
 
 * `Documentation <http://sentry.readthedocs.org/>`_
-* `Bug Tracker <http://github.com/dcramer/sentry/issues>`_
-* `Code <http://github.com/dcramer/sentry>`_
+* `Bug Tracker <http://github.com/getsentry/sentry/issues>`_
+* `Code <http://github.com/getsentry/sentry>`_
 * `Mailing List <https://groups.google.com/group/getsentry>`_
 * `IRC <irc://irc.freenode.net/sentry>`_  (irc.freenode.net, #sentry)

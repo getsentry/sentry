@@ -72,7 +72,7 @@ setup(
     version='4.9.3',
     author='David Cramer',
     author_email='dcramer@gmail.com',
-    url='http://github.com/dcramer/sentry',
+    url='http://www.getsentry.com',
     description='A realtime logging and aggregation server.',
     long_description=__doc__,
     packages=find_packages(exclude=['tests']),

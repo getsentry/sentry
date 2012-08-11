@@ -7,7 +7,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
-"Report-Msgid-Bugs-To: https://github.com/dcramer/sentry/issues\n"
+"Report-Msgid-Bugs-To: https://github.com/getsentry/sentry/issues\n"
 "POT-Creation-Date: 2012-06-06 07:53+0000\n"
 "PO-Revision-Date: 2012-06-06 08:32+0000\n"
 "Last-Translator: Piet Delport <pjdelport@gmail.com>\n"

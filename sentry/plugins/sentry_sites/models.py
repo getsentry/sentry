@@ -24,7 +24,7 @@ class SitesPlugin(TagPlugin):
     title = _('Sites')
     version = sentry.VERSION
     author = "Sentry Team"
-    author_url = "https://github.com/dcramer/sentry"
+    author_url = "https://github.com/getsentry/sentry"
     tag = 'site'
     tag_label = _('Site')
 

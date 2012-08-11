@@ -24,7 +24,7 @@ class UrlsPlugin(TagPlugin):
     title = _('URLs')
     version = sentry.VERSION
     author = "Sentry Team"
-    author_url = "https://github.com/dcramer/sentry"
+    author_url = "https://github.com/getsentry/sentry"
     tag = 'url'
     tag_label = _('URL')
 

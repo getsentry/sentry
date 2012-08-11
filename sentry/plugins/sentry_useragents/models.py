@@ -17,7 +17,7 @@ from sentry.plugins.bases.tag import TagPlugin
 class UserAgentPlugin(TagPlugin):
     version = sentry.VERSION
     author = "Sentry Team"
-    author_url = "https://github.com/dcramer/sentry"
+    author_url = "https://github.com/getsentry/sentry"
 
     def get_tag_values(self, event):
         http = event.interfaces.get('sentry.interfaces.Http')

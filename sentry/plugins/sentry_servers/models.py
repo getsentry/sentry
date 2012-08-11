@@ -24,7 +24,7 @@ class ServersPlugin(TagPlugin):
     title = _('Servers')
     version = sentry.VERSION
     author = "Sentry Team"
-    author_url = "https://github.com/dcramer/sentry"
+    author_url = "https://github.com/getsentry/sentry"
     tag = 'server_name'
     tag_label = _('Server Name')
 

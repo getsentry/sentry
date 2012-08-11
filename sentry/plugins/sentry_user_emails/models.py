@@ -24,7 +24,7 @@ class UserEmailsPlugin(TagPlugin):
     title = _('User Emails')
     version = sentry.VERSION
     author = "Sentry Team"
-    author_url = "https://github.com/dcramer/sentry"
+    author_url = "https://github.com/getsentry/sentry"
     tag = 'user_email'
     tag_label = _('User Email')
 

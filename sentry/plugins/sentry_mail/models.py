@@ -55,7 +55,7 @@ class MailProcessor(NotificationPlugin):
     slug = 'mail'
     version = sentry.VERSION
     author = "Sentry Team"
-    author_url = "https://github.com/dcramer/sentry"
+    author_url = "https://github.com/getsentry/sentry"
 
     project_conf_form = MailConfigurationForm
 
