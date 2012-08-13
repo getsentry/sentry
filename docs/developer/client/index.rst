@@ -106,18 +106,18 @@ which also means its expected to be base64-encoded.
 For example, with an included Exception event, a basic JSON body might resemble the following::
 
         {
-            'event_id': 'fc6d8c0c43fc4630ad850ee518f1b9d0',
-            'project': 'default',
-            'culprit': 'my.module.function_name',
-            'timestamp': '2011-05-02T17:41:36',
-            'message': 'SyntaxError: Wattttt!',
-            'tags': {
-                'ios_version': '4.0'
+            "event_id": "fc6d8c0c43fc4630ad850ee518f1b9d0",
+            "project": "default",
+            "culprit": "my.module.function_name",
+            "timestamp": "2011-05-02T17:41:36",
+            "message": "SyntaxError: Wattttt!",
+            "tags": {
+                "ios_version": "4.0"
             },
-            'sentry.interfaces.Exception': {
-                'type': 'SyntaxError':
-                'value': 'Wattttt!',
-                'module': '__builtins__'
+            "sentry.interfaces.Exception": {
+                "type": "SyntaxError":
+                "value": "Wattttt!",
+                "module": "__builtins__"
             }
         }
 
@@ -130,7 +130,7 @@ The following attributes are required for all events:
     ::
 
         {
-            'project': 'default'
+            "project": "default"
         }
 
 .. data:: event_id
@@ -140,7 +140,7 @@ The following attributes are required for all events:
     ::
 
         {
-            'event_id': 'fc6d8c0c43fc4630ad850ee518f1b9d0'
+            "event_id": "fc6d8c0c43fc4630ad850ee518f1b9d0"
         }
 
 .. data:: message
@@ -150,7 +150,7 @@ The following attributes are required for all events:
     ::
 
         {
-            'message': 'SyntaxError: Wattttt!'
+            "message": "SyntaxError: Wattttt!"
         }
 
 .. data:: timestamp
@@ -166,7 +166,7 @@ The following attributes are required for all events:
     ::
 
         {
-            'timestamp': '2011-05-02T17:41:36'
+            "timestamp": "2011-05-02T17:41:36"
         }
 
 .. data:: level
@@ -181,7 +181,7 @@ The following attributes are required for all events:
     ::
 
         {
-            'level': 'warn'
+            "level": "warn"
         }
 
 .. data:: logger
@@ -193,7 +193,7 @@ The following attributes are required for all events:
     ::
 
         {
-            'logger': 'my.logger.name'
+            "logger": "my.logger.name"
         }
 
 Additionally, there are several optional values which Sentry recognizes and are
@@ -206,7 +206,7 @@ highly encouraged:
     ::
 
         {
-            'culprit': 'my.module.function_name'
+            "culprit": "my.module.function_name"
         }
 
 .. data:: tags
@@ -216,18 +216,18 @@ highly encouraged:
     ::
 
         {
-            'tags': {
-                'ios_version': '4.0',
-                'context': 'production'
+            "tags": {
+                "ios_version": "4.0",
+                "context": "production"
             }
         }
 
     ::
 
         {
-            'tags': [
-                ['ios_version', '4.0'],
-                ['context', 'production']
+            "tags": [
+                ["ios_version", "4.0"],
+                ["context", "production"]
             ]
         }
 
@@ -238,7 +238,7 @@ highly encouraged:
     ::
 
         {
-            'server_name': 'foo.example.com'
+            "server_name": "foo.example.com"
         }
 
 .. data:: modules
@@ -248,9 +248,9 @@ highly encouraged:
     ::
 
         {
-            'modules': [
+            "modules": [
                 {
-                    'my.module.name': '1.0'
+                    "my.module.name": "1.0"
                 }
             ]
         }
@@ -262,9 +262,9 @@ highly encouraged:
     ::
 
         {
-            'extra': {
-                'my_key': 1,
-                'some_other_value': 'foo bar'
+            "extra": {
+                "my_key": 1,
+                "some_other_value": "foo bar"
             }
         }
 
@@ -318,15 +318,15 @@ The request body should then somewhat resemble the following::
         sentry_key=b70a31b3510c4cf793964a185cfe1fd0, sentry_client=raven-python/1.0
 
     {
-        'project': 'default',
-        'event_id': 'fc6d8c0c43fc4630ad850ee518f1b9d0',
-        'culprit': 'my.module.function_name',
-        'timestamp': '2011-05-02T17:41:36',
-        'message': 'SyntaxError: Wattttt!'
-        'sentry.interfaces.Exception': {
-            'type': 'SyntaxError':
-            'value': 'Wattttt!',
-            'module': '__builtins__'
+        "project": "default",
+        "event_id": "fc6d8c0c43fc4630ad850ee518f1b9d0",
+        "culprit": "my.module.function_name",
+        "timestamp": "2011-05-02T17:41:36",
+        "message": "SyntaxError: Wattttt!"
+        "sentry.interfaces.Exception": {
+            "type": "SyntaxError":
+            "value": "Wattttt!",
+            "module": "__builtins__"
         }
     }
 
