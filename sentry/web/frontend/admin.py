@@ -136,7 +136,7 @@ def create_new_user(request):
                 owner=user,
                 name='New Project',
             )
-            member = project.member_set.get(user=user)
+            member = project.team.member_set.get(user=user)
             key = project.key_set.get(user=user)
 
         if form.cleaned_data['send_welcome_mail']:
