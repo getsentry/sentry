@@ -10,6 +10,7 @@ __all__ = ('Plugin', 'plugins', 'register', 'unregister')
 
 import logging
 
+from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponse
 
@@ -30,8 +31,11 @@ class Response(object):
 
         if not context:
             context = {}
+
         if self.context:
             context.update(self.context)
+
+        context.update(csrf(request))
 
         return render_to_string(self.template, context, request)
 
