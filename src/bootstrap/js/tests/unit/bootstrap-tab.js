@@ -17,7 +17,6 @@ $(function () {
           + '<li><a href="#profile">Profile</a></li>'
           + '</ul>'
 
-
         $('<ul><li id="home"></li><li id="profile"></li></ul>').appendTo("#qunit-fixture")
 
         $(tabsHTML).find('li:last a').tab('show')
@@ -41,6 +40,22 @@ $(function () {
 
         $(pillsHTML).find('li:first a').tab('show')
         equals($("#qunit-fixture").find('.active').attr('id'), "home")
+      })
+
+
+      test("should not fire closed when close is prevented", function () {
+        $.support.transition = false
+        stop();
+        $('<div class="tab"/>')
+          .bind('show', function (e) {
+            e.preventDefault();
+            ok(true);
+            start();
+          })
+          .bind('shown', function () {
+            ok(false);
+          })
+          .tab('show')
       })
 
 })

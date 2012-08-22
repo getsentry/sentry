@@ -1,6 +1,7 @@
 @import url("bootstrap/less/bootstrap.less");
-@import url("bootstrap/less/datepicker.less");
+@import url("datepicker.less");
 
+@baseFontSize: 13px;
 @grayDark: #404f60;
 @gray: #6d757e;
 
@@ -82,18 +83,20 @@ p {
       #gradient > .vertical(rgba(0,0,0, .3), rgba(0,0,0, .1));
       padding: 5px 8px;
       @shadow: inset 0 1px 2px rgba(0,0,0,.1), 0 1px 0px rgba(255,255,255,.15);
-        .box-shadow(@shadow);
-        .placeholder(#b4bdc5);
-        text-shadow: 0 1px 3px rgba(0,0,0, .45);
-        color: #fff;
-        width: 240px;
+      .box-shadow(@shadow);
+      .placeholder(#b4bdc5);
+      text-shadow: 0 1px 3px rgba(0,0,0, .45);
+      color: #fff;
+      width: 240px;
+
       &:focus {
+        #gradient > .vertical(rgba(0,0,0, .4), rgba(0,0,0, .1));
         border: 1px solid #111;
         padding: 5px 8px;
         @shadow: inset 0 1px 2px rgba(0,0,0,.1), 0 1px 0px rgba(255,255,255,.15);
-          .box-shadow(@shadow);
-          color: #fff;
-          text-shadow: 0 1px 3px rgba(0,0,0, .45);
+        .box-shadow(@shadow);
+        color: #fff;
+        text-shadow: 0 1px 3px rgba(0,0,0, .45);
       }
 
       :-moz-placeholder {
@@ -122,9 +125,10 @@ p {
         font-size: 13px;
       }
 
-      &.active a {
+      &.active a,
+      &:hover a {
+        background: none;
         font-weight: 500;
-        background: none !important;
         color: #fff;
         .border-radius(3px);
       }
@@ -246,6 +250,7 @@ p {
 
     h6 {
       font-size: 12px;
+      text-transform: uppercase;
       font-weight: 600;
       line-height: 1.2;
       color: #aaaaaa;
@@ -734,6 +739,10 @@ small {
     line-height: 13px;
     display: inline-block;
     vertical-align: top;
+  }
+  .note {
+    color: @grayLight;
+    line-height: 30px;
   }
 }
 

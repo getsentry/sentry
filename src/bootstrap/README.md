@@ -1,62 +1,59 @@
-TWITTER BOOTSTRAP
+[Twitter Bootstrap](http://twitter.github.com/bootstrap) [![Build Status](https://secure.travis-ci.org/twitter/bootstrap.png)](http://travis-ci.org/twitter/bootstrap)
 =================
 
-Bootstrap is Twitter's toolkit for kickstarting CSS for websites, apps, and more. It includes base CSS styles for typography, forms, buttons, tables, grids, navigation, alerts, and more.
+Bootstrap is a sleek, intuitive, and powerful front-end framework for faster and easier web development, created and maintained by [Mark Otto](http://twitter.com/mdo) and [Jacob Thornton](http://twitter.com/fat) at Twitter.
 
-To get started -- checkout http://twitter.github.com/bootstrap!
+To get started, checkout http://getbootstrap.com!
 
 
-Usage
------
 
-You can use Twitter Bootstrap in one of two ways: just drop the compiled CSS into any new project and start cranking, or run LESS on your site and compile on the fly like a boss.
+Quick start
+-----------
 
-Here's what the LESS version looks like:
+Clone the repo, `git clone git://github.com/twitter/bootstrap.git`, or [download the latest release](https://github.com/twitter/bootstrap/zipball/master).
 
-``` html
-<link rel="stylesheet/less" type="text/css" href="lib/bootstrap.less">
-<script src="less.js" type="text/javascript"></script>
-```
-
-Or if you prefer, the standard css way:
-
-``` html
-<link rel="stylesheet" type="text/css" href="bootstrap.css">
-```
-
-For more info, refer to the docs!
 
 
 Versioning
 ----------
 
-For transparency and insight into our release cycle, and for striving to maintain backwards compatibility, Bootstrap will be maintained under the Semantic Versioning guidelines as much as possible.
+For transparency and insight into our release cycle, and for striving to maintain backward compatibility, Bootstrap will be maintained under the Semantic Versioning guidelines as much as possible.
 
-Releases will be numbered with the follow format:
+Releases will be numbered with the following format:
 
 `<major>.<minor>.<patch>`
 
 And constructed with the following guidelines:
 
-* Breaking backwards compatibility bumps the major
-* New additions without breaking backwards compatibility bumps the minor
-* Bug fixes and misc changes bump the patch
+* Breaking backward compatibility bumps the major (and resets the minor and patch)
+* New additions without breaking backward compatibility bumps the minor (and resets the patch)
+* Bug fixes and misc changes bumps the patch
 
 For more information on SemVer, please visit http://semver.org/.
+
 
 
 Bug tracker
 -----------
 
-Have a bug? Please create an issue here on GitHub!
+Have a bug? Please create an issue here on GitHub that conforms with [necolas's guidelines](https://github.com/necolas/issue-guidelines).
 
 https://github.com/twitter/bootstrap/issues
+
 
 
 Twitter account
 ---------------
 
-Keep up to date on announcements and more by following Bootstrap on Twitter, <a href="http://twitter.com/TwBootstrap">@TwBootstrap</a>.
+Keep up to date on announcements and more by following Bootstrap on Twitter, [@TwBootstrap](http://twitter.com/TwBootstrap).
+
+
+
+Blog
+----
+
+Read more detailed announcements, discussions, and more on [The Official Twitter Bootstrap Blog](http://blog.getbootstrap.com).
+
 
 
 Mailing list
@@ -69,18 +66,44 @@ twitter-bootstrap@googlegroups.com
 http://groups.google.com/group/twitter-bootstrap
 
 
+
+IRC
+---
+
+Server: irc.freenode.net
+
+Channel: ##twitter-bootstrap (the double ## is not a typo)
+
+
+
 Developers
 ----------
 
-We have included a makefile with convenience methods for working with the bootstrap library.
+We have included a makefile with convenience methods for working with the Bootstrap library.
 
-+ **build** - `make build`
-This will run the less compiler on the bootstrap lib and generate a bootstrap.css and bootstrap.min.css file.
-The lessc compiler is required for this command to run.
++ **dependencies**
+Our makefile depends on you having recess, connect, uglify.js, and jshint installed. To install, just run the following command in npm:
+
+```
+$ npm install recess connect uglify-js jshint -g
+```
+
++ **build** - `make`
+Runs the recess compiler to rebuild the `/less` files and compiles the docs pages. Requires recess and uglify-js. <a href="http://twitter.github.com/bootstrap/less.html#compiling">Read more in our docs &raquo;</a>
+
++ **test** - `make test`
+Runs jshint and qunit tests headlessly in [phatomjs] (http://code.google.com/p/phantomjs/) (used for ci). Depends on having phantomjs installed.
 
 + **watch** - `make watch`
-This is a convenience method for watching your less files and automatically building them whenever you save.
-Watchr is required for this command to run.
+This is a convenience method for watching just Less files and automatically building them whenever you save. Requires the Watchr gem.
+
+
+
+Contributing
+------------
+
+Please submit all pull requests against *-wip branches. If your unit test contains javascript patches or features, you must include relevant unit tests. Thanks!
+
 
 
 Authors
@@ -97,9 +120,20 @@ Authors
 + http://github.com/fat
 
 
-License
+
+Copyright and license
 ---------------------
 
-Copyright 2011 Twitter, Inc.
+Copyright 2012 Twitter, Inc.
 
-Licensed under the Apache License, Version 2.0: http://www.apache.org/licenses/LICENSE-2.0
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this work except in compliance with the License.
+You may obtain a copy of the License in the LICENSE file, or at:
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.

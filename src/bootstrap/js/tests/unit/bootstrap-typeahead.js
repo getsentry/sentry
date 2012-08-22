@@ -38,7 +38,7 @@ $(function () {
 
       test("should show menu when query entered", function () {
         var $input = $('<input />').typeahead({
-              data: ['aa', 'ab', 'ac']
+              source: ['aa', 'ab', 'ac']
             })
           , typeahead = $input.data('typeahead')
 
@@ -52,10 +52,62 @@ $(function () {
         typeahead.$menu.remove()
       })
 
+      test("should accept data source via synchronous function", function () {
+        var $input = $('<input />').typeahead({
+              source: function () {
+                return ['aa', 'ab', 'ac']
+              }
+            })
+          , typeahead = $input.data('typeahead')
+
+        $input.val('a')
+        typeahead.lookup()
+
+        ok(typeahead.$menu.is(":visible"), 'typeahead is visible')
+        equals(typeahead.$menu.find('li').length, 3, 'has 3 items in menu')
+        equals(typeahead.$menu.find('.active').length, 1, 'one item is active')
+
+        typeahead.$menu.remove()
+      })
+
+      test("should accept data source via asynchronous function", function () {
+        var $input = $('<input />').typeahead({
+              source: function (query, process) {
+                process(['aa', 'ab', 'ac'])
+              }
+            })
+          , typeahead = $input.data('typeahead')
+
+        $input.val('a')
+        typeahead.lookup()
+
+        ok(typeahead.$menu.is(":visible"), 'typeahead is visible')
+        equals(typeahead.$menu.find('li').length, 3, 'has 3 items in menu')
+        equals(typeahead.$menu.find('.active').length, 1, 'one item is active')
+
+        typeahead.$menu.remove()
+      })
+
+      test("should not explode when regex chars are entered", function () {
+        var $input = $('<input />').typeahead({
+              source: ['aa', 'ab', 'ac', 'mdo*', 'fat+']
+            })
+          , typeahead = $input.data('typeahead')
+
+        $input.val('+')
+        typeahead.lookup()
+
+        ok(typeahead.$menu.is(":visible"), 'typeahead is visible')
+        equals(typeahead.$menu.find('li').length, 1, 'has 1 item in menu')
+        equals(typeahead.$menu.find('.active').length, 1, 'one item is active')
+
+        typeahead.$menu.remove()
+      })
+
       test("should hide menu when query entered", function () {
         stop()
         var $input = $('<input />').typeahead({
-              data: ['aa', 'ab', 'ac']
+              source: ['aa', 'ab', 'ac']
             })
           , typeahead = $input.data('typeahead')
 
@@ -78,7 +130,7 @@ $(function () {
 
       test("should set next item when down arrow is pressed", function () {
         var $input = $('<input />').typeahead({
-              data: ['aa', 'ab', 'ac']
+              source: ['aa', 'ab', 'ac']
             })
           , typeahead = $input.data('typeahead')
 
@@ -91,7 +143,7 @@ $(function () {
         ok(typeahead.$menu.find('li').first().hasClass('active'), "first item is active")
 
         $input.trigger({
-          type: 'keypress'
+          type: 'keydown'
         , keyCode: 40
         })
 
@@ -99,7 +151,7 @@ $(function () {
 
 
         $input.trigger({
-          type: 'keypress'
+          type: 'keydown'
         , keyCode: 38
         })
 
@@ -111,17 +163,41 @@ $(function () {
 
       test("should set input value to selected item", function () {
         var $input = $('<input />').typeahead({
-              data: ['aa', 'ab', 'ac']
+              source: ['aa', 'ab', 'ac']
             })
           , typeahead = $input.data('typeahead')
+          , changed = false
 
         $input.val('a')
         typeahead.lookup()
+
+        $input.change(function() { changed = true });
 
         $(typeahead.$menu.find('li')[2]).mouseover().click()
 
         equals($input.val(), 'ac', 'input value was correctly set')
         ok(!typeahead.$menu.is(':visible'), 'the menu was hidden')
+        ok(changed, 'a change event was fired')
+
+        typeahead.$menu.remove()
+      })
+
+      test("should start querying when minLength is met", function () {
+        var $input = $('<input />').typeahead({
+              source: ['aaaa', 'aaab', 'aaac'],
+              minLength: 3
+            })
+          , typeahead = $input.data('typeahead')
+
+        $input.val('aa')
+        typeahead.lookup()
+
+        equals(typeahead.$menu.find('li').length, 0, 'has 0 items in menu')
+
+        $input.val('aaa')
+        typeahead.lookup()
+
+        equals(typeahead.$menu.find('li').length, 3, 'has 3 items in menu')
 
         typeahead.$menu.remove()
       })

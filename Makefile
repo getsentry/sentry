@@ -28,7 +28,7 @@ static:
 	@lessc ${BOOTSTRAP_LESS} > ${GLOBAL_CSS};
 	@lessc ${BOOTSTRAP_LESS} > ${GLOBAL_CSS_MIN} --compress;
 	@cat src/sentry/static/scripts/sentry.core.js src/sentry/static/scripts/sentry.realtime.js src/sentry/static/scripts/sentry.charts.js src/sentry/static/scripts/sentry.notifications.js src/sentry/static/scripts/sentry.stream.js > ${GLOBAL_JS};
-	@cat src/bootstrap/js/bootstrap-alert.js src/bootstrap/js/bootstrap-dropdown.js src/bootstrap/js/bootstrap-tooltip.js src/bootstrap/js/bootstrap-tab.js src/bootstrap/js/bootstrap-buttons.js src/bootstrap/js/bootstrap-modal.js src/sentry/static/scripts/bootstrap-datepicker.js > ${BOOTSTRAP_JS};
+	@cat src/bootstrap/js/bootstrap-*.js > ${BOOTSTRAP_JS};
 	@uglifyjs -nc ${GLOBAL_JS} > ${GLOBAL_JS_MIN};
 	@uglifyjs -nc ${BOOTSTRAP_JS} > ${BOOTSTRAP_JS_MIN};
 	@echo "Static assets successfully built! - `date`";

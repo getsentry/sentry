@@ -34,7 +34,7 @@
                     {% if can_remove_team %}
                         <a href="{% url sentry-remove-team team.slug %}" class="btn btn-danger">{% trans "Remove Team" %}</a>
                     {% else %}
-                        <a class="btn btn-danger disabled">{% trans "Cannot remove teams assigned to projects" %}</a>
+                        <div class="pull-right note">{% trans "You cannot remove this team because it has projects assigned to it" %}</div>
                     {% endif %}
                 </fieldset>
             </form>
