@@ -3,7 +3,7 @@
 /cover
 /build
 /dist
-/*.egg-info
+*.egg-info
 *.pyc
 *.log
 *.egg
