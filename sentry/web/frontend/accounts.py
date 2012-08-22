@@ -39,6 +39,9 @@ def login(request):
     from django.contrib.auth import login as login_
     from django.contrib.auth.forms import AuthenticationForm
 
+    if request.user.is_authenticated():
+        return login_redirect(request)
+
     form = AuthenticationForm(request, request.POST or None)
     if form.is_valid():
         login_(request, form.get_user())
