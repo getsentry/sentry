@@ -772,3 +772,4 @@ legend{margin-bottom:18px;}
 .nav-pills>li.active>a{background-color:#70ace6;}
 .nav-small.nav-pills>li>a{padding:5px 8px;font-size:12px;}
 .page-header h3.pull-left{margin-right:10px;}
+#messages .alert{padding:20px 20px;-webkit-border-radius:0;-moz-border-radius:0;border-radius:0;}
