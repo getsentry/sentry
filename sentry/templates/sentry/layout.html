@@ -66,6 +66,13 @@
         <section id="content" class="{% block bodyclass %}with-sidebar{% endblock %}">
             <div class="container">
                 <div class="content">
+                    <div id="messages">
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-block{% if message.tags %} alert-{{ message.tags }}{% endif %}">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
                     {% block content_before %}
                     {% endblock %}
                     {% block content %}
