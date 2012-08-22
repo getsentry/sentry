@@ -272,8 +272,9 @@ the following::
 Facebook
 ~~~~~~~~
 
-Register an application at http://developers.facebook.com/setup/. Take the values given on the page, and configure
-the following::
+Register an application at http://developers.facebook.com/setup/. You'll also need to make sure you select the "Website
+with Facebook Login" and fill in the Site URL field (just use the website's URL you're install Sentry on). Take the
+values given on the page, and configure the following::
 
   FACEBOOK_APP_ID = ''
   FACEBOOK_API_SECRET = ''
