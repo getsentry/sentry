@@ -296,31 +296,13 @@ class ChartMixin(object):
         else:
             db = 'default'
 
-        if not has_charts(db):
-            return []
-
-        hours = max_days * 24
-        today = datetime.datetime.now().replace(microsecond=0, second=0, minute=0)
-        min_date = today - datetime.timedelta(hours=hours)
-
-        method = get_sql_date_trunc('date', db)
-
         field = self.model.messagecountbyminute_set.related
         column = field.field.name
-        chart_qs = list(field.model.objects.filter(**{
+        queryset = field.model.objects.filter(**{
             '%s__in' % column: instances,
-            'date__gte': min_date,
-        }).extra(
-            select={
-                'grouper': method,
-            }
-        ).values('grouper').annotate(
-            num=Sum('times_seen'),
-        ).values_list('grouper', 'num'))
+        })
 
-        rows = dict(chart_qs)
-
-        return [rows.get(today - datetime.timedelta(hours=d), 0) for d in xrange(hours, -1, -1)]
+        return self._get_chart_data(queryset, max_days, db)
 
     def get_chart_data(self, instance, max_days=90):
         if hasattr(instance, '_state'):
@@ -328,29 +310,42 @@ class ChartMixin(object):
         else:
             db = 'default'
 
+        queryset = instance.messagecountbyminute_set
+
+        return self._get_chart_data(queryset, max_days, db)
+
+    def _get_chart_data(self, queryset, max_days=90, db='default'):
         if not has_charts(db):
             return []
 
-        hours = max_days * 24
         today = datetime.datetime.now().replace(microsecond=0, second=0, minute=0)
-        min_date = today - datetime.timedelta(hours=hours)
+        min_date = today - datetime.timedelta(days=max_days)
 
-        method = get_sql_date_trunc('date', db)
+        if max_days > 30:
+            g_type = 'hour'
+            d_type = 'hours'
+            points = max_days * 24
+            modifier = 1
+        else:
+            g_type = 'minute'
+            d_type = 'minutes'
+            points = max_days * 24 * 15
+            modifier = 5
 
-        chart_qs = list(instance.messagecountbyminute_set
-                        .filter(date__gte=min_date)
+        method = get_sql_date_trunc('date', db, grouper=g_type)
+
+        chart_qs = list(queryset.filter(date__gte=min_date)
                         .extra(select={'grouper': method}).values('grouper')
                         .annotate(num=Sum('times_seen')).values_list('grouper', 'num')
                         .order_by('grouper'))
 
         rows = dict(chart_qs)
 
-        # just skip zeroes
-        first_seen = hours
-        # while not rows.get(today - datetime.timedelta(hours=first_seen)) and first_seen > 24:
-        #     first_seen -= 1
-
-        return [rows.get(today - datetime.timedelta(hours=d), 0) for d in xrange(first_seen, -1, -1)]
+        results = []
+        for point in xrange(points, -1, -1):
+            dt = today - datetime.timedelta(**{d_type: point * modifier})
+            results.append((int((dt).strftime('%s')) * 1000, rows.get(dt, 0)))
+        return results
 
 
 class GroupManager(BaseManager, ChartMixin):
