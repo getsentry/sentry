@@ -153,7 +153,7 @@ def plugin_config(plugin, project, request):
     """
     Configure the plugin site wide.
 
-    returns a tuple composed of a redirection boolean and the content to
+    Returns a tuple composed of a redirection boolean and the content to
     be displayed.
     """
     NOTSET = object()

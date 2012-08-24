@@ -14,24 +14,8 @@ from django.utils.safestring import mark_safe
 
 
 class NewIssueForm(forms.Form):
-    title = forms.CharField(max_length=200)
-    description = forms.CharField(widget=forms.Textarea())
-
-
-class BaseIssueOptionsForm(forms.Form):
-    def __init__(self, plugin, user, *args, **kwargs):
-        self.plugin = plugin
-        self.user = user
-        super(BaseIssueOptionsForm, self).__init__(*args, **kwargs)
-
-    def get_title(self):
-        raise NotImplementedError
-
-    def get_description(self):
-        return ""
-
-    def save(self):
-        raise NotImplementedError
+    title = forms.CharField(max_length=200, widget=forms.TextInput(attrs={'class': 'span9'}))
+    description = forms.CharField(widget=forms.Textarea(attrs={'class': 'span9'}))
 
 
 class IssuePlugin(Plugin):
@@ -69,31 +53,19 @@ class IssuePlugin(Plugin):
         return event.error()
 
     def is_configured(self, project):
-        # return all((self.get_option(k, project) for k in ('host', 'username', 'certificate')))
-        raise NotImplementedError
-
-    def get_issue_url(self, issue_id):
         raise NotImplementedError
 
     def get_new_issue_title(self):
         return 'Create %s Issue' % self.get_title()
+
+    def get_issue_url(self, group, issue_id):
+        raise NotImplementedError
 
     def create_issue(self, group, form_data):
         """
         Creates the issue on the remote service and returns an issue ID.
         """
         raise NotImplementedError
-        # try:
-        #     data = api.maniphest.createtask(
-        #         title=form.cleaned_data['title'].encode('utf-8'),
-        #         description=form.cleaned_data['description'].encode('utf-8'),
-        #     )
-        # except phabricator.APIError, e:
-        #     form.errors['__all__'] = '%s %s' % (e.code, e.message)
-        # except httplib.HTTPException, e:
-        #     form.errors['__all__'] = 'Unable to reach Phabricator host: %s' % (e.reason,)
-        # else:
-        #     return data['id']
 
     def get_initial_form_data(self, request, group, event):
         return {
@@ -122,6 +94,7 @@ class IssuePlugin(Plugin):
 
         context = {
             'form': form,
+            'title': self.get_new_issue_title(),
         }
 
         return self.render(self.create_issue_template, context)
@@ -145,7 +118,7 @@ class IssuePlugin(Plugin):
             return tag_list
 
         tag_list.append(mark_safe('<a href="%s">#%s</a>' % (
-            self.get_issue_url(issue_id),
+            self.get_issue_url(group, issue_id),
             escape(issue_id),
         )))
 
