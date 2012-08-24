@@ -57,7 +57,7 @@ your ``INSTALLED_APPS``::
 
 The following extensions are available and maintained by members of the Sentry community:
 
-* `sentry-phabricator <https://github.com/dcramer/sentry-phabricator>`_
+* `sentry-phabricator <https://github.com/getsentry/sentry-phabricator>`_
 * `sentry-hipchat <https://github.com/linovia/sentry-hipchat>`_
 * `sentry-groveio <https://github.com/mattrobenolt/sentry-groveio>`_
 * `sentry-irc <https://github.com/gisce/sentry-irc>`_
