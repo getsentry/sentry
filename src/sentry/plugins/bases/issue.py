@@ -92,7 +92,7 @@ class IssuePlugin(Plugin):
                     request=request,
                 )
             except forms.ValidationError, e:
-                form.errors['__all__'] = u'Error creating issue: %s' % e
+                form.errors['__all__'] = [u'Error creating issue: %s' % e]
 
         if form.is_valid():
             GroupMeta.objects.set_value(group, '%s:tid' % prefix, issue_id)

@@ -9,22 +9,24 @@
         <div class="page-header">
             <h3>{{ title }}</h3>
         </div>
-        {% if form.errors %}
-            <div class="alert-message error">{% trans "Please correct the errors below." %}</div>
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-block alert-error">
+                <ul>
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
         {% endif %}
+
 
         <form class="form-stacked" action="" method="post">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ next }}" />
             <fieldset>
                 {% for field in form %}
-                    <div class="clearfix{% if field.errors %} error{% endif %}">
-                        {{ field.label_tag }}
-                        <div class="input">{{ field }}</div>
-                        {% if field.help_text %}
-                            <span class="help-block">{{ field.help_text }}</span>
-                        {% endif %}
-                    </div>
+                    {% include "sentry/partial/_form_field.html" %}
                 {% endfor %}
             </fieldset>
             <p class="actions">
