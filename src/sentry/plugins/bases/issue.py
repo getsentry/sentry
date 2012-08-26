@@ -52,7 +52,7 @@ class IssuePlugin(Plugin):
     def _get_group_title(self, request, group, event):
         return event.error()
 
-    def is_configured(self, project, **kwargs):
+    def is_configured(self, request, project, **kwargs):
         raise NotImplementedError
 
     def get_new_issue_title(self, **kwargs):
@@ -61,7 +61,10 @@ class IssuePlugin(Plugin):
     def get_issue_url(self, group, issue_id, **kwargs):
         raise NotImplementedError
 
-    def create_issue(self, group, form_data, **kwargs):
+    def get_issue_label(self, group, issue_id, **kwargs):
+        return '#%s' % issue_id
+
+    def create_issue(self, request, group, form_data, **kwargs):
         """
         Creates the issue on the remote service and returns an issue ID.
         """
@@ -83,7 +86,11 @@ class IssuePlugin(Plugin):
         form = self.new_issue_form(request.POST or None, initial=self.get_initial_form_data(request, group, event))
         if form.is_valid():
             try:
-                issue_id = self.create_issue(group, form.cleaned_data)
+                issue_id = self.create_issue(
+                    group=group,
+                    form_data=form.cleaned_data,
+                    request=request,
+                )
             except forms.ValidationError, e:
                 form.errors['__all__'] = u'Error creating issue: %s' % e
 
@@ -110,16 +117,16 @@ class IssuePlugin(Plugin):
         self._cache = GroupMeta.objects.get_value_bulk(event_list, '%s:tid' % prefix)
 
     def tags(self, request, group, tag_list, **kwargs):
-        if not self.is_configured(group.project):
+        if not self.is_configured(request=request, project=group.project):
             return tag_list
 
         issue_id = self._cache.get(group.pk)
         if not issue_id:
             return tag_list
 
-        tag_list.append(mark_safe('<a href="%s">#%s</a>' % (
-            self.get_issue_url(group, issue_id),
-            escape(issue_id),
+        tag_list.append(mark_safe('<a href="%s">%s</a>' % (
+            self.get_issue_url(group=group, issue_id=issue_id),
+            escape(self.get_issue_label(group=group, issue_id=issue_id)),
         )))
 
         return tag_list
