@@ -52,29 +52,29 @@ class IssuePlugin(Plugin):
     def _get_group_title(self, request, group, event):
         return event.error()
 
-    def is_configured(self, project):
+    def is_configured(self, project, **kwargs):
         raise NotImplementedError
 
-    def get_new_issue_title(self):
+    def get_new_issue_title(self, **kwargs):
         return 'Create %s Issue' % self.get_title()
 
-    def get_issue_url(self, group, issue_id):
+    def get_issue_url(self, group, issue_id, **kwargs):
         raise NotImplementedError
 
-    def create_issue(self, group, form_data):
+    def create_issue(self, group, form_data, **kwargs):
         """
         Creates the issue on the remote service and returns an issue ID.
         """
         raise NotImplementedError
 
-    def get_initial_form_data(self, request, group, event):
+    def get_initial_form_data(self, request, group, event, **kwargs):
         return {
             'description': self._get_group_description(request, group, event),
             'title': self._get_group_title(request, group, event),
         }
 
     def view(self, request, group, **kwargs):
-        if not self.is_configured(group.project):
+        if not self.is_configured(project=group.project, request=request):
             return self.render(self.not_configured_template)
 
         prefix = self.get_conf_key()
