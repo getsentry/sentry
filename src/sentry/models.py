@@ -19,6 +19,7 @@ from indexer.models import BaseIndex
 from picklefield.fields import PickledObjectField
 
 from django.contrib.auth.models import User
+from django.contrib.auth.signals import user_logged_in
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models import F
@@ -846,6 +847,17 @@ def remove_key_for_team_member(instance, **kwargs):
             user=instance.user,
         ).delete()
 
+# Set user language if set
+def set_language_on_logon(request, user, **kwargs):
+    language = UserOption.objects.get_value(
+        user=user,
+        project=None,
+        key='language',
+        default=None,
+    )
+    if language and hasattr(request, 'session'):
+        request.session['django_language'] = language
+
 # Signal registration
 post_syncdb.connect(
     create_default_project,
@@ -882,6 +894,7 @@ pre_delete.connect(
     dispatch_uid="remove_key_for_team_member",
     weak=False,
 )
+user_logged_in.connect(set_language_on_logon)
 
 try:
     import south
