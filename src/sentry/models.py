@@ -19,7 +19,6 @@ from indexer.models import BaseIndex
 from picklefield.fields import PickledObjectField
 
 from django.contrib.auth.models import User
-from django.contrib.auth.signals import user_logged_in
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models import F
@@ -894,7 +893,12 @@ pre_delete.connect(
     dispatch_uid="remove_key_for_team_member",
     weak=False,
 )
-user_logged_in.connect(set_language_on_logon)
+# Only available in Django >= 1.3
+try:
+    from django.contrib.auth.signals import user_logged_in
+    user_logged_in.connect(set_language_on_logon)
+except:
+    pass
 
 try:
     import south
