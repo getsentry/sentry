@@ -536,6 +536,7 @@ class GroupManager(BaseManager, ChartMixin):
                 'score': ScoreClause(group),
             }
 
+            #
             message = kwargs.get('message')
             if message:
                 group.update(message=message)
