@@ -32,7 +32,7 @@ def init_all_applications():
 init_all_applications()
 
 urlpatterns = patterns('',
-    url(r'^_static/(?P<path>.*)$', generic.static_media, name='sentry-media'),
+    url(r'^_static/(?P<module>[^/]+)/(?P<path>.*)$', generic.static_media, name='sentry-media'),
 
     # Legacy API
     url(r'^store/$', api.store),

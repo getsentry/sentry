@@ -7,13 +7,13 @@
         <meta http-equiv="content-type" content="text/html; charset=utf-8">
         <meta name="robots" content="NONE,NOARCHIVE">
 
-        <link href="{% url sentry-media "styles/global.min.css" %}" rel="stylesheet" type="text/css"/>
-        <link href="{% url sentry-media "images/favicon.png" %}" rel="shortcut icon" type="image/png"/>
+        <link href="{% url sentry-media "sentry" "styles/global.min.css" %}" rel="stylesheet" type="text/css"/>
+        <link href="{% url sentry-media "sentry" "images/favicon.png" %}" rel="shortcut icon" type="image/png"/>
 
         <title>{% block title %}Sentry{% endblock %}</title>
 
         {% if USE_JS_CLIENT %}
-        <script type="text/javascript" src="{% url sentry-media "scripts/client.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/client.js" %}"></script>
         <script type="text/javascript">
         Sentry.client.config({
             server: '{% url sentry-api-store %}',
@@ -25,19 +25,19 @@
         {% endif %}
 
         <!--[if lt IE 9]>
-        <script type="text/javascript" src="{% url sentry-media "scripts/html5shiv.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/html5shiv.js" %}"></script>
         <![endif]-->
-        <script type="text/javascript" src="{% url sentry-media "scripts/jquery.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "scripts/jquery.clippy.min.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "scripts/jquery.flot.min.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "scripts/jquery.animate-colors-min.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "scripts/global.min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.clippy.min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.flot.min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.animate-colors-min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/global.min.js" %}"></script>
         <script type="text/javascript">
         Sentry.config({
             urlPrefix: {{ URL_PREFIX|to_json|safe }},
-            mediaUrl: '{% url sentry-media '' %}',
-            defaultImage: '{% url sentry-media 'images/sentry.png' %}',
-            popupCss: '{% url sentry-media 'styles/popup.css' %}'
+            mediaUrl: '{% url sentry-media "sentry" '' %}',
+            defaultImage: '{% url sentry-media "sentry" 'images/sentry.png' %}',
+            popupCss: '{% url sentry-media "sentry" 'styles/popup.css' %}'
         });
         </script>
 
@@ -110,11 +110,11 @@
           </div>
         </div>
 
-        <script type="text/javascript" src="{% url sentry-media "scripts/bootstrap.min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/bootstrap.min.js" %}"></script>
         <script type="text/javascript">
         $(function(){
             $('.clippy').clippy({
-                clippy_path: '{% url sentry-media "clippy.swf" %}',
+                clippy_path: '{% url sentry-media "sentry" "clippy.swf" %}',
                 keep_text: true
             });
             $('.tip').tooltip();

@@ -15,6 +15,8 @@ from sentry.web.decorators import login_required
 from sentry.web.helpers import get_login_url, get_project_list, \
   render_to_response
 
+STATIC_PATH_CACHE = {}
+
 
 @login_required
 def dashboard(request):
@@ -31,7 +33,7 @@ def dashboard(request):
     return render_to_response('sentry/dashboard.html', {}, request)
 
 
-def static_media(request, path, root=None):
+def static_media(request, module, path, root=None):
     """
     Serve static files below a given point in the directory structure.
     """
@@ -43,7 +45,21 @@ def static_media(request, path, root=None):
     import stat
     import urllib
 
-    document_root = root or os.path.join(settings.MODULE_ROOT, 'static')
+    if root:
+        document_root = root
+    elif module == 'sentry':
+        document_root = os.path.join(settings.MODULE_ROOT, 'static')
+    elif module not in settings.INSTALLED_APPS:
+        raise Http404('Invalid module provided.')
+    else:
+        if module not in STATIC_PATH_CACHE:
+            try:
+                STATIC_PATH_CACHE[module] = __import__(module)
+            except ImportError:
+                raise Http404('Import error raised while fetching module')
+
+        mod = STATIC_PATH_CACHE[module]
+        document_root = os.path.normpath(os.path.join(os.path.dirname(mod.__file__), 'media'))
 
     path = posixpath.normpath(urllib.unquote(path))
     path = path.lstrip('/')
@@ -62,7 +78,7 @@ def static_media(request, path, root=None):
         return HttpResponseRedirect(newpath)
     fullpath = os.path.join(document_root, newpath)
     if os.path.isdir(fullpath):
-        raise Http404("Directory indexes are not allowed here.")
+        raise Http404('Directory indexes are not allowed here.')
     if not os.path.exists(fullpath):
         raise Http404('"%s" does not exist' % fullpath)
     # Respect the If-Modified-Since header.
@@ -73,6 +89,6 @@ def static_media(request, path, root=None):
         return HttpResponseNotModified(mimetype=mimetype)
     contents = open(fullpath, 'rb').read()
     response = HttpResponse(contents, mimetype=mimetype)
-    response["Last-Modified"] = http_date(statobj[stat.ST_MTIME])
-    response["Content-Length"] = len(contents)
+    response['Last-Modified'] = http_date(statobj[stat.ST_MTIME])
+    response['Content-Length'] = len(contents)
     return response
