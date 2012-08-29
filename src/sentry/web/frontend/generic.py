@@ -7,6 +7,7 @@ sentry.web.frontend.generic
 """
 from django.http import HttpResponseRedirect, Http404, HttpResponseNotModified, \
   HttpResponse
+from django.conf import settings as dj_settings
 from django.core.urlresolvers import reverse
 
 from sentry.conf import settings
@@ -49,17 +50,22 @@ def static_media(request, module, path, root=None):
         document_root = root
     elif module == 'sentry':
         document_root = os.path.join(settings.MODULE_ROOT, 'static')
-    elif module not in settings.INSTALLED_APPS:
+    elif module not in dj_settings.INSTALLED_APPS:
         raise Http404('Invalid module provided.')
     else:
         if module not in STATIC_PATH_CACHE:
             try:
-                STATIC_PATH_CACHE[module] = __import__(module)
+                mod = __import__(module)
             except ImportError:
                 raise Http404('Import error raised while fetching module')
 
-        mod = STATIC_PATH_CACHE[module]
-        document_root = os.path.normpath(os.path.join(os.path.dirname(mod.__file__), 'media'))
+            STATIC_PATH_CACHE[module] = os.path.normpath(os.path.join(
+                os.path.dirname(mod.__file__),
+                'static',
+                module,
+            ))
+
+        document_root = STATIC_PATH_CACHE[module]
 
     path = posixpath.normpath(urllib.unquote(path))
     path = path.lstrip('/')
