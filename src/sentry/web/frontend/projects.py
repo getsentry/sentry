@@ -81,7 +81,7 @@ def new_project(request):
     project_form = project_form_cls(request.POST or None, initial=project_initial, prefix='prj')
 
     is_new_team = new_team_form and new_team_form.is_valid()
-    if is_new_team:
+    if is_new_team or not select_team_form:
         team_form = new_team_form
     else:
         team_form = select_team_form
