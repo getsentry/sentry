@@ -49,7 +49,7 @@ def static_media(request, module, path, root=None):
     if root:
         document_root = root
     elif module == 'sentry':
-        document_root = os.path.join(settings.MODULE_ROOT, 'static')
+        document_root = os.path.join(settings.MODULE_ROOT, 'static', 'sentry')
     elif module not in dj_settings.INSTALLED_APPS:
         raise Http404('Invalid module provided.')
     else:
