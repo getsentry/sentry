@@ -1,3 +1,11 @@
+Version 4.10.0
+--------------
+
+- A new IssuePlugin base is available.
+- Charts have been refactored to show 7 days worth of data.
+- django.contrib.staticfiles is now supported.
+- django.contrib.messages is now supported.
+
 Version 4.9.0
 -------------
 
