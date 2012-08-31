@@ -173,7 +173,7 @@ The following attributes are required for all events:
 
     The record severity.
 
-    Defaults to ``logging.ERROR``.
+    Defaults to ``error``.
 
     The value can either be the integer value or the string label
     as specified in ``SENTRY_LOG_LEVELS``.
@@ -181,8 +181,16 @@ The following attributes are required for all events:
     ::
 
         {
-            "level": "warn"
+            "level": "warning"
         }
+
+    Acceptable values are:
+
+    * fatal
+    * error
+    * warning
+    * info
+    * debug
 
 .. data:: logger
 
