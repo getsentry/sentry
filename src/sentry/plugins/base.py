@@ -256,8 +256,13 @@ class IPlugin(local):
         Given a template name, and an optional context (dictionary), returns a
         ready-to-render response.
 
+        Default context includes the plugin instance.
+
         >>> plugin.render('template.html', {'hello': 'world'})
         """
+        if context is None:
+            context = {}
+        context['plugin'] = self
         return Response(template, context)
 
     # The following methods are specific to web requests
@@ -297,6 +302,7 @@ class IPlugin(local):
             raise NotImplementedError('Please use self.render() when returning responses.')
 
         return response.respond(request, {
+            'plugin': self,
             'project': group.project,
             'group': group,
         })

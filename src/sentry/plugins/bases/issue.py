@@ -11,6 +11,7 @@ from django import forms
 from django.core.urlresolvers import reverse
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
+from social_auth.models import UserSocialAuth
 
 
 class NewIssueForm(forms.Form):
@@ -24,6 +25,8 @@ class IssuePlugin(Plugin):
 
     create_issue_template = 'sentry/plugins/bases/issue/create_issue.html'
     not_configured_template = 'sentry/plugins/bases/issue/not_configured.html'
+    needs_auth_template = 'sentry/plugins/bases/issue/needs_auth.html'
+    auth_provider = None
 
     def __init__(self, *args, **kwargs):
         super(IssuePlugin, self).__init__(*args, **kwargs)
@@ -55,13 +58,52 @@ class IssuePlugin(Plugin):
     def is_configured(self, request, project, **kwargs):
         raise NotImplementedError
 
+    def get_auth_for_user(self, user, **kwargs):
+        """
+        Return a ``UserSocialAuth`` object for the given user based on this plugins ``auth_provider``.
+        """
+        assert self.auth_provider, 'There is no auth provider configured for this plugin.'
+
+        if user.is_authenticated():
+            return None
+
+        try:
+            return UserSocialAuth.objects.filter(user=user, provider=self.auth_provider)[0]
+        except IndexError:
+            return None
+
+    def needs_auth(self, request, project, **kwargs):
+        """
+        Return ``True`` if the authenticated user needs to associate an auth service before
+        performing actions with this plugin.
+        """
+        if self.auth_provider is None:
+            return False
+
+        if not request.user.is_authenticated():
+            return True
+
+        return bool(not UserSocialAuth.objects.filter(user=request.user, provider=self.auth_provider).exists())
+
     def get_new_issue_title(self, **kwargs):
+        """
+        Return a string for the "Create new issue" action label.
+        """
         return 'Create %s Issue' % self.get_title()
 
     def get_issue_url(self, group, issue_id, **kwargs):
+        """
+        Given an issue_id (string) return an absolute URL to the issue's details
+        page.
+        """
         raise NotImplementedError
 
     def get_issue_label(self, group, issue_id, **kwargs):
+        """
+        Given an issue_id (string) return a string representing the issue.
+
+        e.g. GitHub represents issues as GH-XXX
+        """
         return '#%s' % issue_id
 
     def create_issue(self, request, group, form_data, **kwargs):
@@ -77,8 +119,15 @@ class IssuePlugin(Plugin):
         }
 
     def view(self, request, group, **kwargs):
+        if not self.needs_auth(project=group.project, request=request):
+            return self.render(self.needs_auth_template, request, {
+                'project': group.project,
+            })
+
         if not self.is_configured(project=group.project, request=request):
-            return self.render(self.not_configured_template)
+            return self.render(self.not_configured_template, request, {
+                'project': group.project,
+            })
 
         prefix = self.get_conf_key()
         event = group.get_latest_event()

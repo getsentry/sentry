@@ -10,8 +10,8 @@
             <h3>{{ title }}</h3>
         </div>
         <div class="alert-message error">
-            {% url sentry-configure-project-plugin project_id=project.id slug=plugin.slug as link %}
-            {% blocktrans %}You still need to <a href="{{ link }}">configure this plugin</a>.{% endblocktrans %}
+            {% url socialauth_associate_begin plugin.auth_provider as link %}
+            {% blocktrans %}You still need to <a href="{{ link }}">associate an identity</a> with {{ title }} first.{% endblocktrans %}
         </div>
     </div>
 {% endblock %}
