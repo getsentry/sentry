@@ -3,8 +3,8 @@
 from __future__ import absolute_import
 
 import mock
-import datetime
 from mock import Mock
+from django.utils import timezone
 from sentry.interfaces import Stacktrace
 from sentry.models import Event, Group, Project
 from sentry.plugins.sentry_mail.models import MailProcessor
@@ -57,7 +57,7 @@ class MailProcessorTest(TestCase):
     @mock.patch('sentry.plugins.sentry_mail.models.MailProcessor._send_mail')
     def test_notify_users_renders_interfaces(self, _send_mail):
         group = Group()
-        group.first_seen = datetime.datetime.now()
+        group.first_seen = timezone.now()
         group.last_seen = group.first_seen
         group.id = 2
         group.project_id = 1
@@ -83,7 +83,7 @@ class MailProcessorTest(TestCase):
     @mock.patch('sentry.plugins.sentry_mail.models.MailProcessor._send_mail')
     def test_notify_users_renders_interfaces_with_utf8(self, _send_mail):
         group = Group()
-        group.first_seen = datetime.datetime.now()
+        group.first_seen = timezone.now()
         group.last_seen = group.first_seen
         group.id = 2
         group.project_id = 1
@@ -109,7 +109,7 @@ class MailProcessorTest(TestCase):
     @mock.patch('sentry.plugins.sentry_mail.models.MailProcessor._send_mail')
     def test_notify_users_renders_interfaces_with_utf8_fix_issue_422(self, _send_mail):
         group = Group()
-        group.first_seen = datetime.datetime.now()
+        group.first_seen = timezone.now()
         group.last_seen = group.first_seen
         group.id = 2
         group.project_id = 1
@@ -137,7 +137,7 @@ class MailProcessorTest(TestCase):
         project = Project(id=1, name='Project Name')
 
         group = Group()
-        group.first_seen = datetime.datetime.now()
+        group.first_seen = timezone.now()
         group.last_seen = group.first_seen
         group.project = project
         group.id = 2
@@ -164,7 +164,7 @@ class MailProcessorTest(TestCase):
         project = Project(id=1, name='Project Name')
 
         group = Group()
-        group.first_seen = datetime.datetime.now()
+        group.first_seen = timezone.now()
         group.last_seen = group.first_seen
         group.project = project
         group.id = 2

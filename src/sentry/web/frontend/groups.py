@@ -14,6 +14,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, \
   HttpResponseRedirect, Http404
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from django.utils.safestring import mark_safe
 
 from sentry.conf import settings
@@ -82,7 +83,7 @@ def _get_group_list(request, project, view=None):
     date_to = request.GET.get('dt')
     time_to = request.GET.get('tt')
 
-    today = datetime.datetime.utcnow()
+    today = timezone.now()
 
     # date format is Y-m-d
     if any(x is not None for x in [date_from, time_from, date_to, time_to]):

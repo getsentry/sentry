@@ -14,7 +14,6 @@ import time
 import uuid
 import urlparse
 
-from datetime import datetime
 from hashlib import md5
 from indexer.models import BaseIndex
 from picklefield.fields import PickledObjectField
@@ -26,9 +25,9 @@ from django.db.models import F
 from django.db.models.signals import post_syncdb, post_save, pre_delete, \
   class_prepared
 from django.template.defaultfilters import slugify
+from django.utils import timezone
 from django.utils.datastructures import SortedDict
 from django.utils.encoding import smart_unicode
-from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
@@ -112,7 +111,7 @@ class TeamMember(Model):
     user = models.ForeignKey(User, related_name="sentry_teammember_set")
     is_active = models.BooleanField(default=True)
     type = models.IntegerField(choices=MEMBER_TYPES, default=globals().get(settings.DEFAULT_PROJECT_ACCESS))
-    date_added = models.DateTimeField(default=now)
+    date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager()
 
@@ -136,7 +135,7 @@ class Project(Model):
     owner = models.ForeignKey(User, related_name="sentry_owned_project_set", null=True)
     team = models.ForeignKey(Team, null=True)
     public = models.BooleanField(default=settings.ALLOW_PUBLIC_PROJECTS)
-    date_added = models.DateTimeField(default=now)
+    date_added = models.DateTimeField(default=timezone.now)
     status = models.PositiveIntegerField(default=0, choices=(
         (0, 'Visible'),
         (1, 'Hidden'),
@@ -289,7 +288,7 @@ class PendingTeamMember(Model):
     team = models.ForeignKey(Team, related_name="pending_member_set")
     email = models.EmailField()
     type = models.IntegerField(choices=MEMBER_TYPES, default=globals().get(settings.DEFAULT_PROJECT_ACCESS))
-    date_added = models.DateTimeField(default=now)
+    date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager()
 
@@ -391,8 +390,8 @@ class Group(MessageBase):
     """
     status = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
     times_seen = models.PositiveIntegerField(default=1, db_index=True)
-    last_seen = models.DateTimeField(default=now, db_index=True)
-    first_seen = models.DateTimeField(default=now, db_index=True)
+    last_seen = models.DateTimeField(default=timezone.now, db_index=True)
+    first_seen = models.DateTimeField(default=timezone.now, db_index=True)
     resolved_at = models.DateTimeField(null=True, db_index=True)
     # active_at should be the same as first_seen by default
     active_at = models.DateTimeField(null=True, db_index=True)
@@ -418,7 +417,7 @@ class Group(MessageBase):
 
     def save(self, *args, **kwargs):
         if not self.last_seen:
-            self.last_seen = datetime.now()
+            self.last_seen = timezone.now()
         if not self.first_seen:
             self.first_seen = self.last_seen
         if not self.active_at:
@@ -482,7 +481,7 @@ class Event(MessageBase):
     """
     group = models.ForeignKey(Group, blank=True, null=True, related_name="event_set")
     event_id = models.CharField(max_length=32, null=True, db_column="message_id")
-    datetime = models.DateTimeField(default=now, db_index=True)
+    datetime = models.DateTimeField(default=timezone.now, db_index=True)
     time_spent = models.FloatField(null=True)
     server_name = models.CharField(max_length=128, db_index=True, null=True)
     site = models.CharField(max_length=128, db_index=True, null=True)
@@ -627,8 +626,8 @@ class MessageFilterValue(Model):
     times_seen = models.PositiveIntegerField(default=0)
     key = models.CharField(choices=FILTER_KEYS, max_length=32)
     value = models.CharField(max_length=200)
-    last_seen = models.DateTimeField(default=now, db_index=True, null=True)
-    first_seen = models.DateTimeField(default=now, db_index=True, null=True)
+    last_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
+    first_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
 
     objects = BaseManager()
 
@@ -692,8 +691,8 @@ class SearchDocument(Model):
     group = models.ForeignKey(Group)
     total_events = models.PositiveIntegerField(default=1)
     status = models.PositiveIntegerField(default=0)
-    date_added = models.DateTimeField(default=now)
-    date_changed = models.DateTimeField(default=now)
+    date_added = models.DateTimeField(default=timezone.now)
+    date_changed = models.DateTimeField(default=timezone.now)
 
     objects = SearchDocumentManager()
 

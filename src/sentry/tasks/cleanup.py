@@ -31,6 +31,7 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
     """
     import datetime
 
+    from django.utils import timezone
     from sentry.models import Group, Event, MessageCountByMinute, \
       MessageFilterValue, FilterValue, SearchDocument, ProjectCountByMinute
     from sentry.utils.query import RangeQuerySetWrapper, SkinnyQuerySet
@@ -49,7 +50,7 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
     # TODO: we should collect which messages above were deleted
     # and potentially just send out post_delete signals where
     # GroupedMessage can update itself accordingly
-    ts = datetime.datetime.utcnow() - datetime.timedelta(days=days)
+    ts = timezone.now() - datetime.timedelta(days=days)
 
     # Message
     qs = SkinnyQuerySet(Event).filter(datetime__lte=ts)

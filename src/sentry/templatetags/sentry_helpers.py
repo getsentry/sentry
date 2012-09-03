@@ -17,7 +17,6 @@ from django.utils.translation import ugettext as _
 from paging.helpers import paginate as paginate_func
 from sentry.conf import settings
 from sentry.utils import json
-from sentry.utils.dates import utc_to_local, local_to_utc
 from templatetag_sugar.register import tag
 from templatetag_sugar.parser import Name, Variable, Constant, Optional
 
@@ -134,9 +133,11 @@ def sentry_version():
 
 
 @register.filter
-def timesince(value):
+def timesince(value, now=None):
     from django.template.defaultfilters import timesince
-    now = utc_to_local(datetime.datetime.utcnow())
+    from django.utils import timezone
+    if now is None:
+        now = timezone.now()
     if not value:
         return _('never')
     if value < (now - datetime.timedelta(days=5)):
@@ -266,7 +267,10 @@ def as_bookmarks(group_list, user):
 @register.filter
 def date(datetime, arg=None):
     from django.template.defaultfilters import date
-    return date(local_to_utc(datetime), arg)
+    from django.utils import timezone
+    if not timezone.is_aware(datetime):
+        datetime = datetime.replace(tzinfo=timezone.utc)
+    return date(datetime, arg)
 
 
 @tag(register, [Constant('for'), Variable('user'),

@@ -10,7 +10,6 @@ from logan.runner import run_app
 from sentry import environment
 
 import base64
-import datetime
 import os
 import pkg_resources
 
@@ -129,8 +128,10 @@ def install_plugins(settings):
 
 
 def initialize_app(config):
+    from django.utils import timezone
+
     environment['config'] = config.get('config_path')
-    environment['start_date'] = datetime.datetime.utcnow()
+    environment['start_date'] = timezone.now()
 
     install_plugins(config['settings'])
 

@@ -11,20 +11,15 @@ import gunicorn
 
 from gunicorn import arbiter
 from gunicorn.app import djangoapp
+import gunicorn.util
 
 from sentry.services.base import Service
 
 
-if gunicorn.version_info < (0, 14, 0):
-    def _setup_app(app):
-        app.validate()
-        app.activate_translation()
-else:
-    def _setup_app(app):
-        import gunicorn.util
-        djangoapp.make_default_env(app.cfg)
-        djwsgi = gunicorn.util.import_module("gunicorn.app.django_wsgi")
-        djwsgi.make_wsgi_application()
+def _setup_app(app):
+    djangoapp.make_default_env(app.cfg)
+    djwsgi = gunicorn.util.import_module("gunicorn.app.django_wsgi")
+    djwsgi.make_wsgi_application()
 
 
 class SentryApplication(djangoapp.DjangoApplication):

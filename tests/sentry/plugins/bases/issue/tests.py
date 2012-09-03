@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import mock
 
 from django.contrib.auth.models import User
+from social_auth.models import UserSocialAuth
 from sentry.plugins.bases.issue import IssuePlugin
 from tests.base import TestCase
 
@@ -26,3 +27,10 @@ class GetAuthForUserTest(TestCase):
         p = IssuePlugin()
         p.auth_provider = 'test'
         self.assertEquals(p.get_auth_for_user(user), None)
+
+    def test_returns_identity(self):
+        user = User.objects.create(username='test', email='test@example.com')
+        auth = UserSocialAuth.objects.create(provider='test', user=user)
+        p = IssuePlugin()
+        p.auth_provider = 'test'
+        self.assertEquals(p.get_auth_for_user(user), auth)

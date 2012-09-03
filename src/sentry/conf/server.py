@@ -28,11 +28,15 @@ MANAGERS = ADMINS
 
 APPEND_SLASH = True
 
-PROJECT_ROOT = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+PROJECT_ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir))
 
-sys.path.insert(0, os.path.abspath(os.path.join(PROJECT_ROOT, '..')))
+sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
-CACHE_BACKEND = 'locmem:///'
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    }
+}
 
 DATABASES = {
     'default': {
@@ -89,7 +93,7 @@ USE_I18N = True
 # calendars according to the current locale
 USE_L10N = True
 
-USE_TZ = False
+USE_TZ = True
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = hashlib.md5(socket.gethostname() + ')*)&8a36)6%74e@-ne5(-!8a(vv#tkv)(eyg&@0=zd^pl!7=y@').hexdigest()
@@ -152,7 +156,11 @@ INSTALLED_APPS = (
     'south',
 )
 
-ADMIN_MEDIA_PREFIX = '/_admin_media/'
+STATIC_URL = '/_admin_media/'
+
+LOCALE_PATHS = (
+    os.path.join(PROJECT_ROOT, 'locale'),
+)
 
 # Auth configuration
 
@@ -220,7 +228,6 @@ CELERY_SEND_EVENTS = False
 CELERY_RESULT_BACKEND = None
 CELERY_TASK_RESULT_EXPIRES = 1
 
-
 # Sentry and Raven configuration
 
 SENTRY_PUBLIC = False
@@ -228,6 +235,9 @@ SENTRY_PROJECT = 1
 SENTRY_CACHE_BACKEND = 'default'
 
 EMAIL_SUBJECT_PREFIX = '[Sentry] '
+
+# Disable South in tests as it is sending incorrect create signals
+SOUTH_TESTS_MIGRATE = False
 
 # Configure logging
 from raven.conf import setup_logging

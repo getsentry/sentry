@@ -3,12 +3,12 @@
     "fields": {
       "project": 1,
       "status": 0,
-      "first_seen": "2010-08-31 17:50:47",
+      "first_seen": "2010-08-31 17:50:47Z",
       "level": 40,
       "checksum": "ed77d1185670a58e7242fde014d980e9",
       "times_seen": 1,
       "logger": "sentry",
-      "last_seen": "2010-08-31 17:50:47",
+      "last_seen": "2010-08-31 17:50:47Z",
       "message": "'template'",
       "culprit": "sentry.web.views.group"
     },
@@ -19,12 +19,12 @@
     "fields": {
       "project": 1,
       "status": 0,
-      "first_seen": "2010-08-31 17:53:31",
+      "first_seen": "2010-08-31 17:53:31Z",
       "level": 40,
       "checksum": "ff554a446687e950d719b0c996f55953",
       "times_seen": 4,
       "logger": "awesome",
-      "last_seen": "2010-08-31 17:53:31",
+      "last_seen": "2010-08-31 17:53:31Z",
       "message": "global name 'bar' is not defined",
       "culprit": "sentry.web.views.group"
     },
@@ -35,12 +35,12 @@
     "fields": {
       "project": 1,
       "status": 0,
-      "first_seen": "2010-08-31 17:53:53",
+      "first_seen": "2010-08-31 17:53:53Z",
       "level": 40,
       "checksum": "561fd84df24b5ff5c4b24cf3ab757b3b",
       "times_seen": 7,
       "logger": "root",
-      "last_seen": "2010-08-31 17:53:57",
+      "last_seen": "2010-08-31 17:53:57Z",
       "message": "'tuple' object has no attribute 'args'",
       "culprit": "sentry.web.views.group"
     },
@@ -51,12 +51,12 @@
     "fields": {
       "project": 1,
       "status": 0,
-      "first_seen": "2010-08-31 17:54:23",
+      "first_seen": "2010-08-31 17:54:23Z",
       "level": 40,
       "checksum": "e27c40cb7b42d2752efc37f4f7ecfb12",
       "times_seen": 5,
       "logger": "root",
-      "last_seen": "2010-08-31 17:54:24",
+      "last_seen": "2010-08-31 17:54:24Z",
       "message": "type object 'datetime.datetime' has no attribute 'tomorrow'",
       "culprit": "sentry.web.views.index"
     },

@@ -8,7 +8,7 @@ sentry.web.urls
 
 import re
 
-from django.conf.urls.defaults import *
+from django.conf.urls.defaults import include, patterns, url
 
 from sentry.web import api
 from sentry.web.frontend import accounts, generic, groups, events, \

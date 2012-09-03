@@ -64,7 +64,7 @@ class IssuePlugin(Plugin):
         """
         assert self.auth_provider, 'There is no auth provider configured for this plugin.'
 
-        if user.is_authenticated():
+        if not user.is_authenticated():
             return None
 
         try:

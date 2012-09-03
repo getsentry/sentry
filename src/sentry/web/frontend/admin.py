@@ -18,6 +18,7 @@ from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.db.models import Sum, Count
 from django.http import HttpResponseRedirect
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
 from kombu.transport.django.models import Queue
 
@@ -69,7 +70,7 @@ def manage_projects(request):
     elif sort == 'events':
         project_list = project_list.annotate(
             events=Sum('projectcountbyminute__times_seen'),
-        ).filter(projectcountbyminute__date__gte=datetime.datetime.now() - datetime.timedelta(days=30))
+        ).filter(projectcountbyminute__date__gte=timezone.now() - datetime.timedelta(days=30))
         order_by = '-events'
 
     project_list = project_list.order_by(order_by)
@@ -316,11 +317,11 @@ def stats(request):
     statistics = (
         ('Projects', Project.objects.count()),
         ('Projects (24h)', Project.objects.filter(
-            date_added__gte=datetime.datetime.now() - datetime.timedelta(hours=24),
+            date_added__gte=timezone.now() - datetime.timedelta(hours=24),
         ).count()),
         ('Events', MessageCountByMinute.objects.aggregate(x=Sum('times_seen'))['x'] or 0),
         ('Events (24h)', MessageCountByMinute.objects.filter(
-            date__gte=datetime.datetime.now() - datetime.timedelta(hours=24),
+            date__gte=timezone.now() - datetime.timedelta(hours=24),
         ).aggregate(x=Sum('times_seen'))['x'] or 0)
     )
 

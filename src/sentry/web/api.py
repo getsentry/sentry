@@ -11,6 +11,7 @@ import logging
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseBadRequest, \
   HttpResponseForbidden, HttpResponseRedirect
+from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -238,7 +239,7 @@ def resolve(request, project):
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    now = datetime.datetime.now()
+    now = timezone.now()
 
     Group.objects.filter(pk=group.pk).update(
         status=1,
@@ -418,7 +419,7 @@ def get_group_trends(request, project=None):
         ))[:limit])
     else:
         cutoff = datetime.timedelta(minutes=minutes)
-        cutoff_dt = datetime.datetime.now() - cutoff
+        cutoff_dt = timezone.now() - cutoff
 
         group_list = list(base_qs.filter(
             last_seen__gte=cutoff_dt
@@ -448,7 +449,7 @@ def get_new_groups(request, project=None):
         project_list = get_project_list(request.user).values()
 
     cutoff = datetime.timedelta(minutes=minutes)
-    cutoff_dt = datetime.datetime.now() - cutoff
+    cutoff_dt = timezone.now() - cutoff
 
     group_list = Group.objects.filter(
         project__in=project_list,

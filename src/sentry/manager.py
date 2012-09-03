@@ -16,11 +16,13 @@ import logging
 import re
 import warnings
 
+from django.conf import settings as dj_settings
 from django.core.signals import request_finished
 from django.db import models, transaction, IntegrityError
 from django.db.models import Sum
 from django.db.models.expressions import F, ExpressionNode
 from django.db.models.signals import post_save, post_delete, post_init, class_prepared
+from django.utils import timezone
 from django.utils.encoding import force_unicode, smart_str
 
 from raven.utils.encoding import to_string
@@ -30,7 +32,7 @@ from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
 from sentry.tasks.index import index_event
 from sentry.utils.cache import cache, Lock
-from sentry.utils.dates import utc_to_local, get_sql_date_trunc
+from sentry.utils.dates import get_sql_date_trunc
 from sentry.utils.db import get_db_engine, has_charts, resolve_expression_node
 from sentry.utils.queue import maybe_delay
 
@@ -318,7 +320,7 @@ class ChartMixin(object):
         if not has_charts(db):
             return []
 
-        today = datetime.datetime.now().replace(microsecond=0, second=0, minute=0)
+        today = timezone.now().replace(microsecond=0, second=0, minute=0)
         min_date = today - datetime.timedelta(days=max_days)
 
         if max_days > 30:
@@ -402,7 +404,7 @@ class GroupManager(BaseManager, ChartMixin):
         logger_name = kwargs.pop('logger', None) or settings.DEFAULT_LOGGER_NAME
         server_name = kwargs.pop('server_name', None)
         site = kwargs.pop('site', None)
-        date = kwargs.pop('timestamp', None) or datetime.datetime.utcnow()
+        date = kwargs.pop('timestamp', None) or timezone.now()
         checksum = kwargs.pop('checksum', None)
         tags = kwargs.pop('tags', [])
 
@@ -412,7 +414,14 @@ class GroupManager(BaseManager, ChartMixin):
 
         # We must convert date to local time so Django doesn't mess it up
         # based on TIME_ZONE
-        date = utc_to_local(date)
+        if dj_settings.TIME_ZONE:
+            if not timezone.is_aware(date):
+                date = date.replace(tzinfo=timezone.utc)
+        elif timezone.is_aware(date):
+            date = date.replace(tzinfo=None)
+
+        print date
+
         data = kwargs
 
         kwargs = {
