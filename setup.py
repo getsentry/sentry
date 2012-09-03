@@ -51,7 +51,7 @@ install_requires = [
     'django-celery>=2.5.5',
     'celery>=2.5.3',
     'django-crispy-forms>=1.1.4',
-    'Django>=1.2,<1.5',
+    'Django>=1.4.1,<=1.5',
     'django-indexer>=0.3.0',
     'django-paging>=0.2.4',
     'django-picklefield>=0.2.0',
@@ -70,7 +70,7 @@ install_requires = [
 
 setup(
     name='sentry',
-    version='4.10.0',
+    version='5.0.0-dev',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://www.getsentry.com',
