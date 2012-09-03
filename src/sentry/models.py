@@ -846,6 +846,17 @@ def remove_key_for_team_member(instance, **kwargs):
             user=instance.user,
         ).delete()
 
+# Set user language if set
+def set_language_on_logon(request, user, **kwargs):
+    language = UserOption.objects.get_value(
+        user=user,
+        project=None,
+        key='language',
+        default=None,
+    )
+    if language and hasattr(request, 'session'):
+        request.session['django_language'] = language
+
 # Signal registration
 post_syncdb.connect(
     create_default_project,
@@ -882,6 +893,12 @@ pre_delete.connect(
     dispatch_uid="remove_key_for_team_member",
     weak=False,
 )
+# Only available in Django >= 1.3
+try:
+    from django.contrib.auth.signals import user_logged_in
+    user_logged_in.connect(set_language_on_logon)
+except:
+    pass
 
 try:
     import south
