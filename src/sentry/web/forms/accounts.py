@@ -76,4 +76,13 @@ class AccountSettingsForm(forms.Form):
         self.user.email = self.cleaned_data['email']
         if commit:
             self.user.save()
+
+        # Save user language
+        UserOption.objects.set_value(
+            user=self.user,
+            project=None,
+            key='language',
+            value=self.cleaned_data['language'],
+        )
+
         return self.user
