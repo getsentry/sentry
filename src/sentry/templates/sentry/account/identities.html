@@ -33,7 +33,7 @@
             <tbody>
                 {% for identity in identity_list %}
                     <tr>
-                        <td>{{ identity }}</td>
+                        <td>{{ identity.provider|title }}</td>
                         <td style="text-align: center;"><a href="{% url socialauth_disconnect_individual identity.provider identity.id %}?next={{ request.build_absolute_uri }}">Disconnect</a></td>
                     </tr>
                 {% endfor %}
