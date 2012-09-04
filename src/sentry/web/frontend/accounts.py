@@ -12,7 +12,6 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
-from sentry.conf import settings
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required
 from sentry.web.forms.accounts import AccountSettingsForm, NotificationSettingsForm

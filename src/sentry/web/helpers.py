@@ -19,7 +19,7 @@ from django.utils.safestring import mark_safe
 
 from sentry.conf import settings
 from sentry.models import Project, View, Team, \
-  Option, ProjectOption, MEMBER_USER
+  Option, ProjectOption
 from sentry.permissions import can_create_projects, can_create_teams
 
 logger = logging.getLogger('sentry.errors')
