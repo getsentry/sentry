@@ -147,6 +147,9 @@ class IssuePlugin(Plugin):
                 'project': group.project,
             })
 
+        if GroupMeta.objects.get_value(group, '%s:tid' % self.get_conf_key(), None):
+            return None
+
         prefix = self.get_conf_key()
         event = group.get_latest_event()
 
