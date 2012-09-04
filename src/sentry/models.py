@@ -41,6 +41,7 @@ from sentry.manager import GroupManager, ProjectManager, \
 from sentry.utils import cached_property, \
   MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField, update
+from sentry.utils.imports import import_string
 from sentry.templatetags.sentry_helpers import truncatechars
 
 __all__ = ('Event', 'Group', 'Project', 'SearchDocument')
@@ -514,13 +515,16 @@ class Event(MessageBase):
     @cached_property
     def interfaces(self):
         result = []
-        for k, v in self.data.iteritems():
-            if '.' not in k:
+        for key, data in self.data.iteritems():
+            if '.' not in key:
                 continue
-            m, c = k.rsplit('.', 1)
-            cls = getattr(__import__(m, {}, {}, [c]), c)
-            v = cls(**v)
-            result.append((v.score, k, v))
+
+            try:
+                cls = import_string(key)
+            except ImportError:
+                pass  # suppress invalid interfaces
+            value = cls(**data)
+            result.append((value.score, key, value))
         return SortedDict((k, v) for _, k, v in sorted(result, key=lambda x: x[0], reverse=True))
 
     def get_version(self):
