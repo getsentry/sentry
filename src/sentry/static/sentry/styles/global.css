@@ -3986,21 +3986,37 @@ p {
   margin-right: -300px;
 }
 #content .sidebar h6 {
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.2;
-  color: #aaaaaa;
+  display: block;
+  padding: 3px 15px;
+  margin-left: -15px;
+  margin-right: -15px;
+  margin-bottom: 0;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
-  margin: 0 0 10px;
-  font-family: "proxima nova", "proxima-nova", "helvetica neue", helvetica, sans-serif;
+  font-size: 11px;
+  font-weight: bold;
+  line-height: 18px;
+  color: #999999;
+}
+#content .sidebar dl {
+  margin-top: 0px;
+  margin-bottom: 8px;
 }
 #content .sidebar ul {
+  margin-bottom: 8px;
   list-style: none;
   margin-left: 0;
   padding: 0;
 }
 #content .sidebar ul.counted-list li {
-  padding-left: 30px;
+  position: relative;
+}
+#content .sidebar ul.counted-list li a {
+  padding-left: 45px;
+}
+#content .sidebar ul.counted-list li .count {
+  position: absolute;
+  left: 0;
+  line-height: 23px;
 }
 #content .sidebar ul li {
   position: relative;
@@ -4704,6 +4720,12 @@ legend {
 .alert-block > p {
   margin-bottom: 9px;
 }
-> ul {
+.alert-block > ul {
   margin-bottom: 9px;
+}
+[class*="icon-"] {
+  background-image: url(../images/glyphicons-halflings.png);
+}
+.icon-white {
+  background-image: url(../images/glyphicons-halflings-white.png);
 }
