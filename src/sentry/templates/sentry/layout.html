@@ -69,7 +69,7 @@
                     <div id="messages">
                         {% if messages %}
                             {% for message in messages %}
-                                <div class="alert alert-block{% if message.tags %} alert-{{ message.tags }}{% endif %}">{{ message }}</div>
+                                <div class="alert alert-block{% if message.tags %} alert-{{ message.tags }}{% endif %}">{{ message|linebreaks }}</div>
                             {% endfor %}
                         {% endif %}
                     </div>
