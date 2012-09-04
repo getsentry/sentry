@@ -203,12 +203,13 @@ class SentryManagerTest(TestCase):
 
     def test_updates_group(self):
         Group.objects.from_kwargs(1, message='foo', checksum='a' * 32)
-        event = Group.objects.from_kwargs(1, message='foo', checksum='a' * 32)
+        event = Group.objects.from_kwargs(1, message='foo bar', checksum='a' * 32)
 
         group = Group.objects.get(pk=event.group_id)
 
         self.assertEquals(group.times_seen, 2)
         self.assertEquals(group.last_seen.replace(microsecond=0), event.datetime.replace(microsecond=0))
+        self.assertEquals(group.message, 'foo bar')
 
     def test_get_accelerrated(self):
         if not has_trending():
