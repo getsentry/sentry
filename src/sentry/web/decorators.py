@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404
 from sentry.conf import settings
 from sentry.models import Project, Team, Group
 from sentry.web.helpers import get_project_list, render_to_response, \
-  get_login_url, get_team_list
+  get_login_url
 
 
 def has_access(group_or_func=None):
@@ -108,7 +108,7 @@ def has_team_access(group_or_func=None):
                     return HttpResponseRedirect(reverse('sentry'))
                 return func(request, team, *args, **kwargs)
 
-            team_list = get_team_list(request.user, group_or_func)
+            team_list = Team.objects.get_for_user(request.user, group_or_func)
             try:
                 team = team_list[team_slug]
             except KeyError:

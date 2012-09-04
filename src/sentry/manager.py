@@ -23,6 +23,7 @@ from django.db.models import Sum
 from django.db.models.expressions import F, ExpressionNode
 from django.db.models.signals import post_save, post_delete, post_init, class_prepared
 from django.utils import timezone
+from django.utils.datastructures import SortedDict
 from django.utils.encoding import force_unicode, smart_str
 
 from raven.utils.encoding import to_string
@@ -1020,3 +1021,32 @@ class FilterKeyManager(BaseManager):
             result = list(self.filter(project=project).values_list('key', flat=True))
             cache.set(key, result, 60)
         return result
+
+
+class TeamManager(BaseManager):
+    def get_for_user(self, user, access=None):
+        """
+        Returns a SortedDict of all teams a user has some level of access to.
+
+        Each <Team> returned has a ``membership`` attribute which holds the
+        <TeamMember> instance.
+        """
+        from sentry.models import TeamMember
+
+        if access is None or not user.is_authenticated():
+            return SortedDict()
+
+        qs = TeamMember.objects.filter(
+            user=user,
+            is_active=True,
+        ).select_related('team')
+        if access is not None:
+            qs = qs.filter(type__lte=access)
+
+        results = SortedDict()
+        for tm in sorted(qs, key=lambda x: x.team.name):
+            team = tm.team
+            team.membership = tm
+            results[team.slug] = team
+
+        return results

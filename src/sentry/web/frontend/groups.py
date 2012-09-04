@@ -21,8 +21,9 @@ from sentry.conf import settings
 from sentry.constants import SORT_OPTIONS, SEARCH_SORT_OPTIONS, \
   SORT_CLAUSES, MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES
 from sentry.filters import get_filters
-from sentry.models import Group, Event, View, SearchDocument, TeamMember, MEMBER_OWNER, \
+from sentry.models import Group, Event, View, SearchDocument, \
   MEMBER_USER
+from sentry.permissions import can_admin_group
 from sentry.plugins import plugins
 from sentry.utils import json
 from sentry.utils.dates import parse_date
@@ -259,17 +260,6 @@ def group(request, project, group):
     # circumstances (such as a post_save signal failing)
     event = group.get_latest_event() or Event(group=group)
 
-    if request.user.is_authenticated():
-        if request.user.is_superuser:
-            access = MEMBER_OWNER
-        else:
-            try:
-                access = TeamMember.objects.get(team=project.team, user=request.user).type
-            except TeamMember.DoesNotExist:
-                access = None
-    else:
-        access = None
-
     return render_to_response('sentry/groups/details.html', {
         'project': project,
         'page': 'details',
@@ -278,7 +268,7 @@ def group(request, project, group):
         'interface_list': _get_rendered_interfaces(event),
         'json_data': event.data.get('extra', {}),
         'version_data': event.data.get('modules', None),
-        'can_admin_event': access is not None,
+        'can_admin_event': can_admin_group(request.user, group),
     }, request)
 
 
@@ -291,6 +281,7 @@ def group_event_list(request, project, group):
         'group': group,
         'event_list': event_list,
         'page': 'event_list',
+        'can_admin_event': can_admin_group(request.user, group),
     }, request)
 
 
@@ -321,6 +312,7 @@ def group_event_details(request, project, group, event_id):
         'interface_list': _get_rendered_interfaces(event),
         'json_data': event.data.get('extra', {}),
         'version_data': event.data.get('modules', None),
+        'can_admin_event': can_admin_group(request.user, group),
     }, request)
 
 

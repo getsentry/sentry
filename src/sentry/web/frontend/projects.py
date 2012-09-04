@@ -23,7 +23,7 @@ from sentry.web.forms.projects import NewProjectForm, NewProjectAdminForm,\
   ProjectTagsForm
 from sentry.web.forms.teams import NewTeamForm, SelectTeamForm
 from sentry.web.helpers import render_to_response, get_project_list, \
-  plugin_config, get_team_list
+  plugin_config
 
 
 @login_required
@@ -55,7 +55,7 @@ def new_project(request):
         return HttpResponseRedirect(reverse('sentry'))
 
     allow_create_teams = can_create_teams(request.user)
-    team_list = get_team_list(request.user)
+    team_list = Team.objects.get_for_user(request.user)
 
     if request.user.has_perm('sentry.can_add_project') and User.objects.all()[0:2] == 2:
         project_form_cls = NewProjectAdminForm
@@ -147,7 +147,7 @@ def manage_project(request, project):
     if result is False and not request.user.has_perm('sentry.can_change_project'):
         return HttpResponseRedirect(reverse('sentry'))
 
-    team_list = get_team_list(request.user, MEMBER_OWNER)
+    team_list = Team.objects.get_for_user(request.user, MEMBER_OWNER)
 
     if request.user.has_perm('sentry.can_change_project'):
         form_cls = EditProjectAdminForm

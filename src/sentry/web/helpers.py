@@ -7,6 +7,7 @@ sentry.web.views
 """
 
 import logging
+import warnings
 
 from django.conf import settings as dj_settings
 from django.core.urlresolvers import reverse, resolve
@@ -17,8 +18,8 @@ from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 
 from sentry.conf import settings
-from sentry.models import Project, View, \
-  Option, ProjectOption, Team, MEMBER_USER
+from sentry.models import Project, View, Team, \
+  Option, ProjectOption, MEMBER_USER
 from sentry.permissions import can_create_projects, can_create_teams
 
 logger = logging.getLogger('sentry.errors')
@@ -43,7 +44,7 @@ def get_project_list(user=None, access=None, hidden=False, key='id'):
 
     # If the user is authenticated, include their memberships
     elif user and user.is_authenticated():
-        teams = get_team_list(user, access).values()
+        teams = Team.objects.get_for_user(user, access).values()
         if not teams:
             return SortedDict()
         filters |= Q(team__in=teams)
@@ -55,20 +56,10 @@ def get_project_list(user=None, access=None, hidden=False, key='id'):
         for p in base_qs.filter(filters).order_by('name'))
 
 
-def get_team_list(user, access=MEMBER_USER):
-    """
-    Returns a SortedDict of all teams a user has some level of access to.
-    """
-    if access is None or not user.is_authenticated():
-        return SortedDict()
+def get_team_list(user, access=None):
+    warnings.warn('get_team_list is Deprecated. Use Team.objects.get_for_user instead.', DeprecationWarning)
+    return Team.objects.get_for_user(user, access)
 
-    qs = Team.objects.filter(
-        member_set__user=user,
-        member_set__is_active=True,
-        member_set__type__lte=access
-    ).order_by('name')
-
-    return SortedDict((p.slug, p) for p in qs)
 
 _LOGIN_URL = None
 
@@ -120,7 +111,7 @@ def get_default_context(request, existing_context=None):
         if not existing_context or 'PROJECT_LIST' not in existing_context:
             context['PROJECT_LIST'] = get_project_list(request.user).values()
         if not existing_context or 'TEAM_LIST' not in existing_context:
-            context['TEAM_LIST'] = get_team_list(request.user).values()
+            context['TEAM_LIST'] = Team.objects.get_for_user(request.user).values()
 
     return context
 

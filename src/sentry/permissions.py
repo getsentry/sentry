@@ -163,7 +163,24 @@ def can_remove_project(user, project):
         return False
 
     result = plugins.first('has_perm', user, 'remove_project', project)
-    if result is True:
-        return True
+    if result is False:
+        return False
+
+    return True
+
+
+@requires_login
+@perm_override('can_change_group')
+def can_admin_group(user, group):
+    from sentry.models import Team
+    # We make the assumption that we have a valid membership here
+    try:
+        Team.objects.get_for_user(user)[group.team.slug]
+    except KeyError:
+        return False
+
+    result = plugins.first('has_perm', user, 'admin_event', group)
+    if result is False:
+        return False
 
     return True

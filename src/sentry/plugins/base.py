@@ -285,6 +285,8 @@ class IPlugin(local):
         return self.description
 
     def get_view_response(self, request, group):
+        from sentry.permissions import can_admin_group
+
         self.selected = request.path == self.get_url(group)
 
         if not self.selected:
@@ -305,6 +307,7 @@ class IPlugin(local):
             'plugin': self,
             'project': group.project,
             'group': group,
+            'can_admin_event': can_admin_group(request.user, group),
         })
 
     def view(self, request, group, **kwargs):

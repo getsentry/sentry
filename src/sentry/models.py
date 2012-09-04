@@ -37,7 +37,7 @@ from sentry.constants import STATUS_LEVELS, STATUS_RESOLVED, STATUS_UNRESOLVED, 
   MEMBER_TYPES, MEMBER_OWNER, MEMBER_USER, MEMBER_SYSTEM  # NOQA
 from sentry.manager import GroupManager, ProjectManager, \
   MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager, \
-  UserOptionManager, FilterKeyManager
+  UserOptionManager, FilterKeyManager, TeamManager
 from sentry.utils import cached_property, \
   MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField, update
@@ -70,7 +70,7 @@ class Team(Model):
     name = models.CharField(max_length=64)
     owner = models.ForeignKey(User)
 
-    objects = BaseManager(cache_fields=(
+    objects = TeamManager(cache_fields=(
         'pk',
         'slug',
     ))
