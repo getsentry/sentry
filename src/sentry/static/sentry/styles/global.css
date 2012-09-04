@@ -4279,6 +4279,9 @@ footer a {
   width: 16px;
   height: 18px;
 }
+.events .event .actions li > a {
+  color: #AEC9D7;
+}
 .events .event .actions li > a:hover {
   text-decoration: none;
 }

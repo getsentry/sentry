@@ -265,6 +265,16 @@ def as_bookmarks(group_list, user):
 
 
 @register.filter
+def is_bookmarked(group, user):
+    if user.is_authenticated():
+        return group.bookmark_set.filter(
+            user=user,
+            group=group,
+        ).exists()
+    return False
+
+
+@register.filter
 def date(datetime, arg=None):
     from django.template.defaultfilters import date
     from django.utils import timezone
