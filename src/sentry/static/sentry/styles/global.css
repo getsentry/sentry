@@ -4701,3 +4701,9 @@ legend {
   -moz-border-radius: 0;
   border-radius: 0;
 }
+.alert-block > p {
+  margin-bottom: 9px;
+}
+> ul {
+  margin-bottom: 9px;
+}

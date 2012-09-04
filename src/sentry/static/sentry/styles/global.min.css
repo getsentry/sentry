@@ -773,3 +773,5 @@ legend{margin-bottom:18px;}
 .nav-small.nav-pills>li>a{padding:5px 8px;font-size:12px;}
 .page-header h3.pull-left{margin-right:10px;}
 #messages .alert{padding:20px 20px;-webkit-border-radius:0;-moz-border-radius:0;border-radius:0;}
+.alert-block>p{margin-bottom:9px;}
+>ul{margin-bottom:9px;}
