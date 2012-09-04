@@ -40,7 +40,7 @@ from sentry.utils.queue import maybe_delay
 logger = logging.getLogger('sentry.errors')
 
 UNSAVED = dict()
-
+MAX_TAG_LENGTH = 200
 
 def get_checksum_from_event(event):
     for interface in event.interfaces.itervalues():
@@ -616,6 +616,9 @@ class GroupManager(BaseManager, ChartMixin):
         date = group.last_seen
 
         for key, value in itertools.ifilter(bool, tags):
+            if len(value) > MAX_TAG_LENGTH:
+                continue
+
             # TODO: FilterKey and FilterValue queries should be create's under a try/except
             FilterKey.objects.get_or_create(
                 project=project,
