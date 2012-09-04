@@ -543,6 +543,12 @@ class GroupManager(BaseManager, ChartMixin):
                 'last_seen': max(event.datetime, group.last_seen),
                 'score': ScoreClause(group),
             }
+
+            #
+            message = kwargs.get('message')
+            if message:
+                group.update(message=message)
+
             if group.status == STATUS_RESOLVED:
                 # Group has changed from resolved -> unresolved
                 is_new = True
