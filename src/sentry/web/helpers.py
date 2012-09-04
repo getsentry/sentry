@@ -18,7 +18,7 @@ from django.utils.safestring import mark_safe
 
 from sentry.conf import settings
 from sentry.models import Project, View, \
-  MEMBER_USER, Option, ProjectOption, Team
+  Option, ProjectOption, Team, MEMBER_USER
 from sentry.permissions import can_create_projects, can_create_teams
 
 logger = logging.getLogger('sentry.errors')
@@ -28,9 +28,6 @@ def get_project_list(user=None, access=None, hidden=False, key='id'):
     """
     Returns a SortedDict of all projects a user has some level of access to.
     """
-    if access is None:
-        access = MEMBER_USER
-
     base_qs = Project.objects
     if not hidden:
         base_qs = base_qs.filter(status=0)
@@ -41,33 +38,36 @@ def get_project_list(user=None, access=None, hidden=False, key='id'):
 
     # If we're not requesting specific access include all
     # public projects
-    if access <= MEMBER_USER:
+    if access is None:
         filters |= Q(public=True)
 
     # If the user is authenticated, include their memberships
-    if user and user.is_authenticated():
+    elif user and user.is_authenticated():
         teams = get_team_list(user, access).values()
+        if not teams:
+            return SortedDict()
         filters |= Q(team__in=teams)
+
+    else:
+        return SortedDict()
 
     return SortedDict((getattr(p, key), p)
         for p in base_qs.filter(filters).order_by('name'))
 
 
-def get_team_list(user, access=None):
+def get_team_list(user, access=MEMBER_USER):
     """
     Returns a SortedDict of all teams a user has some level of access to.
     """
-    if access is None:
-        access = MEMBER_USER
-
-    if not user.is_authenticated():
+    if access is None or not user.is_authenticated():
         return SortedDict()
 
     qs = Team.objects.filter(
         member_set__user=user,
         member_set__is_active=True,
-        member_set__type__lte=access,
+        member_set__type__lte=access
     ).order_by('name')
+
     return SortedDict((p.slug, p) for p in qs)
 
 _LOGIN_URL = None

@@ -33,7 +33,7 @@ def has_access(group_or_func=None):
         def _wrapped(request, project_id=None, *args, **kwargs):
             # If we're asking for anything other than implied access, the user
             # must be authenticated
-            if group_or_func and not request.user.is_authenticated():
+            if group_or_func is not None and not request.user.is_authenticated():
                 request.session['_next'] = request.build_absolute_uri()
                 return HttpResponseRedirect(get_login_url())
 
@@ -69,7 +69,7 @@ def has_access(group_or_func=None):
                 project_list = get_project_list(request.user, group_or_func, key=key)
                 try:
                     project = project_list[value]
-                except (KeyError, ValueError):
+                except KeyError:
                     return HttpResponseRedirect(reverse('sentry'))
             else:
                 project = None
@@ -111,7 +111,7 @@ def has_team_access(group_or_func=None):
             team_list = get_team_list(request.user, group_or_func)
             try:
                 team = team_list[team_slug]
-            except (KeyError, ValueError):
+            except KeyError:
                 return HttpResponseRedirect(reverse('sentry'))
 
             return func(request, team, *args, **kwargs)

@@ -12,7 +12,7 @@ from django.views.decorators.csrf import csrf_protect
 
 from sentry.models import PendingTeamMember, TeamMember, MEMBER_USER, MEMBER_OWNER
 from sentry.permissions import can_add_team_member, can_remove_team, can_create_projects, \
-  can_create_teams
+  can_create_teams, can_edit_team_member, can_remove_team_member
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_team_access
 from sentry.web.forms.teams import NewTeamForm, NewTeamAdminForm, \
@@ -193,8 +193,7 @@ def edit_team_member(request, team, member_id):
     except TeamMember.DoesNotExist:
         return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
 
-    result = plugins.first('has_perm', request.user, 'edit_team_member', member)
-    if result is False and not request.user.has_perm('sentry.can_change_teammember'):
+    if not can_edit_team_member(request.user, member):
         return HttpResponseRedirect(reverse('sentry'))
 
     form = EditTeamMemberForm(team, request.POST or None, instance=member)
@@ -223,8 +222,7 @@ def remove_team_member(request, team, member_id):
     if member.user == team.owner:
         return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
 
-    result = plugins.first('has_perm', request.user, 'remove_team_member', member)
-    if result is False and not request.user.has_perm('sentry.can_remove_teammember'):
+    if not can_remove_team_member(request.user, member):
         return HttpResponseRedirect(reverse('sentry'))
 
     if request.POST:

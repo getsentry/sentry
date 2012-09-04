@@ -11,7 +11,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
-from sentry.models import TeamMember, MEMBER_OWNER, \
+from sentry.models import TeamMember, MEMBER_OWNER, MEMBER_USER, \
   ProjectKey, Team, FilterKey
 from sentry.permissions import can_create_projects, can_remove_project, can_create_teams
 from sentry.plugins import plugins
@@ -107,13 +107,9 @@ def new_project(request):
     }, request)
 
 
-@login_required
 @has_access(MEMBER_OWNER)
 @csrf_protect
 def remove_project(request, project):
-    if project.is_default_project():
-        return HttpResponseRedirect(reverse('sentry-project-list'))
-
     if not can_remove_project(request.user, project):
         return HttpResponseRedirect(reverse('sentry'))
 
@@ -144,7 +140,6 @@ def remove_project(request, project):
     return render_to_response('sentry/projects/remove.html', context, request)
 
 
-@login_required
 @has_access(MEMBER_OWNER)
 @csrf_protect
 def manage_project(request, project):
@@ -152,7 +147,7 @@ def manage_project(request, project):
     if result is False and not request.user.has_perm('sentry.can_change_project'):
         return HttpResponseRedirect(reverse('sentry'))
 
-    team_list = get_team_list(request.user)
+    team_list = get_team_list(request.user, MEMBER_OWNER)
 
     if request.user.has_perm('sentry.can_change_project'):
         form_cls = EditProjectAdminForm
@@ -187,8 +182,7 @@ def manage_project(request, project):
     return render_to_response('sentry/projects/manage.html', context, request)
 
 
-@login_required
-@has_access
+@has_access(MEMBER_USER)
 def client_help(request, project):
     try:
         key = ProjectKey.objects.get(user=request.user, project=project)
@@ -209,7 +203,6 @@ def client_help(request, project):
     return render_to_response('sentry/projects/client_help.html', context, request)
 
 
-@login_required
 @has_access(MEMBER_OWNER)
 def manage_project_tags(request, project):
     tag_list = FilterKey.objects.all_keys(project)
@@ -235,7 +228,6 @@ def manage_project_tags(request, project):
     return render_to_response('sentry/projects/manage_tags.html', context, request)
 
 
-@login_required
 @has_access(MEMBER_OWNER)
 @csrf_protect
 def configure_project_plugin(request, project, slug):
@@ -271,7 +263,6 @@ def configure_project_plugin(request, project, slug):
     return render_to_response('sentry/projects/plugins/configure.html', context, request)
 
 
-@login_required
 @has_access(MEMBER_OWNER)
 @csrf_protect
 def manage_plugins(request, project):

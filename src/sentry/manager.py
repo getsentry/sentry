@@ -420,8 +420,6 @@ class GroupManager(BaseManager, ChartMixin):
         elif timezone.is_aware(date):
             date = date.replace(tzinfo=None)
 
-        print date
-
         data = kwargs
 
         kwargs = {

@@ -21,7 +21,8 @@ from sentry.conf import settings
 from sentry.constants import SORT_OPTIONS, SEARCH_SORT_OPTIONS, \
   SORT_CLAUSES, MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES
 from sentry.filters import get_filters
-from sentry.models import Group, Event, View, SearchDocument, TeamMember, MEMBER_OWNER
+from sentry.models import Group, Event, View, SearchDocument, TeamMember, MEMBER_OWNER, \
+  MEMBER_USER
 from sentry.plugins import plugins
 from sentry.utils import json
 from sentry.utils.dates import parse_date
@@ -336,7 +337,7 @@ def group_event_details_json(request, project, group, event_id_or_latest):
 
 
 @login_required
-@has_access
+@has_access(MEMBER_USER)
 def group_plugin_action(request, project, group_id, slug):
     group = get_object_or_404(Group, pk=group_id, project=project)
 

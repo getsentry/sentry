@@ -101,7 +101,7 @@ class SentryViewsTest(TestCase):
         self.assertEquals(json.loads(resp.content)[0]['level'], 'error')
         resp = self.client.get(reverse('sentry-group-events-json', kwargs={'project_id': 1, 'group_id': 2}), {'limit': 1})
         self.assertEquals(resp.status_code, 200)
-        resp = self.client.get(reverse('sentry-group-events-json', kwargs={'project_id': 1, 'group_id': 2}), {'limit': settings.MAX_JSON_RESULTS+1})
+        resp = self.client.get(reverse('sentry-group-events-json', kwargs={'project_id': 1, 'group_id': 2}), {'limit': settings.MAX_JSON_RESULTS + 1})
         self.assertEquals(resp.status_code, 400)
 
     def test_group_events_details_json(self):
@@ -160,7 +160,7 @@ class SentryViewsTest(TestCase):
         # self.assertTemplateUsed(resp, 'sentry/events/replay.html')
 
 
-class ViewPermissionTest(TestCase):
+class PermissionBase(TestCase):
     """
     These tests simply ensure permission requirements for various views.
     """
@@ -179,7 +179,7 @@ class ViewPermissionTest(TestCase):
         self.user4 = User(username="owner", email="owner@localhost")
         self.user4.set_password('owner')
         self.user4.save()
-        self.team = Team.objects.create(owner=self.user4, name='foo')
+        self.team = Team.objects.create(owner=self.user4, name='foo', slug='foo')
         self.project = Project.objects.get(id=1)
         self.project.update(public=False, team=self.team)
         self.tm = TeamMember.objects.get_or_create(
@@ -211,78 +211,182 @@ class ViewPermissionTest(TestCase):
             self.assertEquals(resp.status_code, 302)
             self.assertTemplateNotUsed(resp, template)
 
-    def test_project_list(self):
-        path = reverse('sentry-project-list')
-        template = 'sentry/projects/list.html'
 
-        self._assertPerm(path, template, 'admin')
-        self._assertPerm(path, template, 'nobody')
-        self._assertPerm(path, template, None, False)
+class ProjectListTest(PermissionBase):
+    path = reverse('sentry-project-list')
+    template = 'sentry/projects/list.html'
 
-    def test_new_project(self):
-        path = reverse('sentry-new-project')
-        template = 'sentry/projects/new.html'
+    def test_admin_can_load(self):
+        self._assertPerm(self.path, self.template, 'admin')
 
-        self._assertPerm(path, template, 'admin')
-        self._assertPerm(path, template, 'nobody', False)
-        self._assertPerm(path, template, None, False)
+    def test_user_can_load(self):
+        self._assertPerm(self.path, self.template, 'nobody')
 
+    def test_anonymous_cannot_load(self):
+        self._assertPerm(self.path, self.template, None, False)
+
+
+class NewProjectTest(PermissionBase):
+    path = reverse('sentry-new-project')
+    template = 'sentry/projects/new.html'
+
+    def test_admin_can_load(self):
+        with self.Settings(SENTRY_ALLOW_PROJECT_CREATION=False, SENTRY_ALLOW_TEAM_CREATION=False):
+            self._assertPerm(self.path, self.template, 'admin')
+
+    def test_user_cannot_load(self):
+        with self.Settings(SENTRY_ALLOW_PROJECT_CREATION=False, SENTRY_ALLOW_TEAM_CREATION=False):
+            self._assertPerm(self.path, self.template, 'nobody', False)
+
+    def test_anonymous_cannot_load(self):
+        with self.Settings(SENTRY_ALLOW_PROJECT_CREATION=False, SENTRY_ALLOW_TEAM_CREATION=False):
+            self._assertPerm(self.path, self.template, None, False)
+
+    def test_public_creation_admin_can_load(self):
         with self.Settings(SENTRY_ALLOW_PROJECT_CREATION=True, SENTRY_ALLOW_TEAM_CREATION=True):
-            self._assertPerm(path, template, 'admin')
-            self._assertPerm(path, template, 'nobody')
-            self._assertPerm(path, template, None, False)
+            self._assertPerm(self.path, self.template, 'admin')
 
-    def test_manage_project(self):
-        path = reverse('sentry-manage-project', kwargs={'project_id': 1})
-        template = 'sentry/projects/manage.html'
+    def test_public_creation_user_can_load(self):
+        with self.Settings(SENTRY_ALLOW_PROJECT_CREATION=True, SENTRY_ALLOW_TEAM_CREATION=True):
+            self._assertPerm(self.path, self.template, 'nobody')
 
-        self._assertPerm(path, template, 'admin')
-        self._assertPerm(path, template, 'owner')
-        self._assertPerm(path, template, None, False)
-        self._assertPerm(path, template, 'nobody', False)
-        self._assertPerm(path, template, 'member', False)
+    def test_public_anonymous_cannot_load(self):
+        with self.Settings(SENTRY_ALLOW_PROJECT_CREATION=True, SENTRY_ALLOW_TEAM_CREATION=True):
+            self._assertPerm(self.path, self.template, None, False)
 
-    def test_remove_project(self):
-        # We cant delete the default project
+
+class ManageProjectTest(PermissionBase):
+    path = reverse('sentry-manage-project', kwargs={'project_id': 1})
+    template = 'sentry/projects/manage.html'
+
+    def test_admin_can_load(self):
+        self._assertPerm(self.path, self.template, 'admin')
+
+    def test_owner_can_load(self):
+        self._assertPerm(self.path, self.template, 'owner')
+
+    def test_anonymous_cannot_load(self):
+        self._assertPerm(self.path, self.template, None, False)
+
+    def test_user_cannot_load(self):
+        self._assertPerm(self.path, self.template, 'nobody', False)
+
+    def test_member_cannot_load(self):
+        self._assertPerm(self.path, self.template, 'member', False)
+
+
+class RemoveProjectTest(PermissionBase):
+    path = reverse('sentry-remove-project', kwargs={'project_id': 1})
+    template = 'sentry/projects/remove.html'
+
+    def test_admin_cannot_remove_default(self):
+        with self.Settings(SENTRY_PROJECT=1):
+            self._assertPerm(self.path, self.template, 'admin', False)
+
+    def test_owner_cannot_remove_default(self):
+        with self.Settings(SENTRY_PROJECT=1):
+            self._assertPerm(self.path, self.template, 'owner', False)
+
+    def test_anonymous_cannot_remove_default(self):
+        with self.Settings(SENTRY_PROJECT=1):
+            self._assertPerm(self.path, self.template, None, False)
+
+    def test_user_cannot_remove_default(self):
+        with self.Settings(SENTRY_PROJECT=1):
+            self._assertPerm(self.path, self.template, 'nobody', False)
+
+    def test_member_cannot_remove_default(self):
+        with self.Settings(SENTRY_PROJECT=1):
+            self._assertPerm(self.path, self.template, 'member', False)
+
+    def test_admin_can_load(self):
         with self.Settings(SENTRY_PROJECT=2):
-            path = reverse('sentry-remove-project', kwargs={'project_id': 1})
-            template = 'sentry/projects/remove.html'
+            self._assertPerm(self.path, self.template, 'admin')
 
-            self._assertPerm(path, template, 'admin')
-            self._assertPerm(path, template, 'owner')
-            self._assertPerm(path, template, None, False)
-            self._assertPerm(path, template, 'nobody', False)
-            self._assertPerm(path, template, 'member', False)
+    def test_owner_can_load(self):
+        with self.Settings(SENTRY_PROJECT=2):
+            self._assertPerm(self.path, self.template, 'owner')
 
-    def test_new_team_member(self):
-        path = reverse('sentry-new-team-member', kwargs={'team_slug': self.team.slug})
-        template = 'sentry/teams/members/new.html'
+    def test_anonymous_cannot_load(self):
+        with self.Settings(SENTRY_PROJECT=2):
+            self._assertPerm(self.path, self.template, None, False)
 
-        self._assertPerm(path, template, 'admin')
-        self._assertPerm(path, template, 'owner')
-        self._assertPerm(path, template, None, False)
-        self._assertPerm(path, template, 'nobody', False)
-        self._assertPerm(path, template, 'member', False)
+    def test_user_cannot_load(self):
+        with self.Settings(SENTRY_PROJECT=2):
+            self._assertPerm(self.path, self.template, 'nobody', False)
 
-    def test_edit_team_member(self):
-        path = reverse('sentry-edit-team-member', kwargs={'team_slug': self.team.slug, 'member_id': self.tm.pk})
-        template = 'sentry/teams/members/edit.html'
+    def test_member_cannot_load(self):
+        with self.Settings(SENTRY_PROJECT=2):
+            self._assertPerm(self.path, self.template, 'member', False)
 
-        self._assertPerm(path, template, 'admin')
-        self._assertPerm(path, template, 'owner')
-        self._assertPerm(path, template, None, False)
-        self._assertPerm(path, template, 'nobody', False)
-        self._assertPerm(path, template, 'member', False)
 
-    def test_remove_team_member(self):
-        path = reverse('sentry-remove-team-member', kwargs={'team_slug': self.team.slug, 'member_id': self.tm.pk})
-        template = 'sentry/teams/members/remove.html'
+class NewTeamMemberTest(PermissionBase):
+    template = 'sentry/teams/members/new.html'
 
-        self._assertPerm(path, template, 'admin')
-        self._assertPerm(path, template, 'owner')
-        self._assertPerm(path, template, None, False)
-        self._assertPerm(path, template, 'nobody', False)
-        self._assertPerm(path, template, 'member', False)
+    def setUp(self):
+        super(NewTeamMemberTest, self).setUp()
+        self.path = reverse('sentry-new-team-member', kwargs={'team_slug': self.team.slug})
+
+    def test_admin_can_load(self):
+        self._assertPerm(self.path, self.template, 'admin')
+
+    def test_owner_can_load(self):
+        self._assertPerm(self.path, self.template, 'owner')
+
+    def test_anonymous_cannot_load(self):
+        self._assertPerm(self.path, self.template, None, False)
+
+    def test_user_cannot_load(self):
+        self._assertPerm(self.path, self.template, 'nobody', False)
+
+    def test_member_cannot_load(self):
+        self._assertPerm(self.path, self.template, 'member', False)
+
+
+class EditTeamMemberTest(PermissionBase):
+    template = 'sentry/teams/members/edit.html'
+
+    def setUp(self):
+        super(EditTeamMemberTest, self).setUp()
+        self.path = reverse('sentry-edit-team-member', kwargs={'team_slug': self.team.slug, 'member_id': self.tm.pk})
+
+    def test_admin_can_load(self):
+        self._assertPerm(self.path, self.template, 'admin')
+
+    def test_owner_can_load(self):
+        self._assertPerm(self.path, self.template, 'owner')
+
+    def test_anonymous_cannot_load(self):
+        self._assertPerm(self.path, self.template, None, False)
+
+    def test_user_cannot_load(self):
+        self._assertPerm(self.path, self.template, 'nobody', False)
+
+    def test_member_cannot_load(self):
+        self._assertPerm(self.path, self.template, 'member', False)
+
+
+class RemoveTeamMemberTest(PermissionBase):
+    template = 'sentry/teams/members/remove.html'
+
+    def setUp(self):
+        super(RemoveTeamMemberTest, self).setUp()
+        self.path = reverse('sentry-remove-team-member', kwargs={'team_slug': self.team.slug, 'member_id': self.tm.pk})
+
+    def test_admin_can_load(self):
+        self._assertPerm(self.path, self.template, 'admin')
+
+    def test_owner_can_load(self):
+        self._assertPerm(self.path, self.template, 'owner')
+
+    def test_anonymous_cannot_load(self):
+        self._assertPerm(self.path, self.template, None, False)
+
+    def test_user_cannot_load(self):
+        self._assertPerm(self.path, self.template, 'nobody', False)
+
+    def test_member_cannot_load(self):
+        self._assertPerm(self.path, self.template, 'member', False)
 
 
 class SentrySearchTest(TestCase):

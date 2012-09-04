@@ -22,7 +22,7 @@ from sentry.exceptions import InvalidData
 from sentry.coreapi import project_from_auth_vars, project_from_id, \
   decode_and_decompress_data, safely_load_json_string, validate_data, \
   insert_data_to_database, APIError, APIUnauthorized, extract_auth_vars
-from sentry.models import Group, GroupBookmark, Project, View
+from sentry.models import Group, GroupBookmark, Project, View, MEMBER_USER
 from sentry.templatetags.sentry_helpers import as_bookmarks
 from sentry.utils import json
 from sentry.utils.cache import cache
@@ -228,7 +228,7 @@ def poll(request, project):
 
 
 @csrf_exempt
-@has_access
+@has_access(MEMBER_USER)
 @never_cache
 def resolve(request, project):
     gid = request.REQUEST.get('gid')
@@ -256,7 +256,7 @@ def resolve(request, project):
 
 
 @csrf_exempt
-@has_access
+@has_access(MEMBER_USER)
 @never_cache
 def make_group_public(request, project, group_id):
     try:
@@ -274,7 +274,7 @@ def make_group_public(request, project, group_id):
 
 
 @csrf_exempt
-@has_access
+@has_access(MEMBER_USER)
 @never_cache
 def make_group_private(request, project, group_id):
     try:
@@ -292,7 +292,7 @@ def make_group_private(request, project, group_id):
 
 
 @csrf_exempt
-@has_access
+@has_access(MEMBER_USER)
 @never_cache
 def remove_group(request, project, group_id):
     try:
@@ -311,7 +311,6 @@ def remove_group(request, project, group_id):
 
 
 @csrf_exempt
-@has_access
 @never_cache
 def bookmark(request, project):
     gid = request.REQUEST.get('gid')
@@ -340,7 +339,7 @@ def bookmark(request, project):
 
 
 @csrf_exempt
-@has_access
+@has_access(MEMBER_USER)
 @never_cache
 def clear(request, project):
     view_id = request.GET.get('view_id')

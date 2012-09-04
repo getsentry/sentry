@@ -1,3 +1,12 @@
+Version 5.0.0
+-------------
+
+- Variable versions of Django are no longer supported. Django 1.4.x must now be used.
+- Public projects are restricted to viewing without being authenticated.
+- The default behavior of Sentry is to now use timezone-aware datetimes everywhere.
+- Permissions have been refactored to be more precise.
+
+
 Version 4.10.0
 --------------
 

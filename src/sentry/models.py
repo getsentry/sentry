@@ -17,8 +17,10 @@ import urlparse
 from hashlib import md5
 from indexer.models import BaseIndex
 from picklefield.fields import PickledObjectField
+from south.modelsinspector import add_introspection_rules
 
 from django.contrib.auth.models import User
+from django.contrib.auth.signals import user_logged_in
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models import F
@@ -31,6 +33,8 @@ from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
+from sentry.constants import STATUS_LEVELS, STATUS_RESOLVED, STATUS_UNRESOLVED, \
+  MEMBER_TYPES, MEMBER_OWNER, MEMBER_USER, MEMBER_SYSTEM  # NOQA
 from sentry.manager import GroupManager, ProjectManager, \
   MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager, \
   UserOptionManager, FilterKeyManager
@@ -40,29 +44,6 @@ from sentry.utils.models import Model, GzippedDictField, update
 from sentry.templatetags.sentry_helpers import truncatechars
 
 __all__ = ('Event', 'Group', 'Project', 'SearchDocument')
-
-STATUS_UNRESOLVED = 0
-STATUS_RESOLVED = 1
-STATUS_LEVELS = (
-    (STATUS_UNRESOLVED, _('unresolved')),
-    (STATUS_RESOLVED, _('resolved')),
-)
-
-# These are predefined builtin's
-FILTER_KEYS = (
-    ('server_name', _('server name')),
-    ('logger', _('logger')),
-    ('site', _('site')),
-)
-
-MEMBER_OWNER = 0
-MEMBER_USER = 50
-MEMBER_SYSTEM = 100
-MEMBER_TYPES = (
-    (0, _('owner')),
-    (50, _('user')),
-    (100, _('system agent')),
-)
 
 
 class Option(Model):
@@ -588,7 +569,7 @@ class FilterKey(Model):
     Stores references to available filters keys.
     """
     project = models.ForeignKey(Project)
-    key = models.CharField(choices=FILTER_KEYS, max_length=32)
+    key = models.CharField(max_length=32)
 
     objects = FilterKeyManager()
 
@@ -604,7 +585,7 @@ class FilterValue(Model):
     Stores references to available filters.
     """
     project = models.ForeignKey(Project, null=True)
-    key = models.CharField(choices=FILTER_KEYS, max_length=32)
+    key = models.CharField(max_length=32)
     value = models.CharField(max_length=200)
 
     objects = BaseManager()
@@ -624,7 +605,7 @@ class MessageFilterValue(Model):
     project = models.ForeignKey(Project, null=True)
     group = models.ForeignKey(Group)
     times_seen = models.PositiveIntegerField(default=0)
-    key = models.CharField(choices=FILTER_KEYS, max_length=32)
+    key = models.CharField(max_length=32)
     value = models.CharField(max_length=200)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
@@ -847,6 +828,7 @@ def remove_key_for_team_member(instance, **kwargs):
             user=instance.user,
         ).delete()
 
+
 # Set user language if set
 def set_language_on_logon(request, user, **kwargs):
     language = UserOption.objects.get_value(
@@ -894,16 +876,6 @@ pre_delete.connect(
     dispatch_uid="remove_key_for_team_member",
     weak=False,
 )
-# Only available in Django >= 1.3
-try:
-    from django.contrib.auth.signals import user_logged_in
-    user_logged_in.connect(set_language_on_logon)
-except:
-    pass
+user_logged_in.connect(set_language_on_logon)
 
-try:
-    import south
-    from south.modelsinspector import add_introspection_rules
-    add_introspection_rules([], ["^social_auth\.fields\.JSONField"])
-except:
-    pass
+add_introspection_rules([], ["^social_auth\.fields\.JSONField"])
