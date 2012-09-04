@@ -43,7 +43,7 @@
                     </fieldset>
                 </form>
             </div>
-            {% if auth_engines %}
+            {% if AUTH_PROVIDERS %}
                 <div class="span6">
                     <fieldset>
                         <legend>Login{% if SOCIAL_AUTH_CREATE_USERS %} or Register{% endif %} with another account</legend>
@@ -53,7 +53,7 @@
                         <a href="{{ link }}">identities</a> page in your account settings (after you login).{% endblocktrans %}</p>
                     <br>
                     <ul class="auth-options">
-                        {% for engine in auth_engines %}
+                        {% for engine in AUTH_PROVIDERS %}
                             <li><a href="{% url socialauth_begin engine %}" class="auth-{{ engine }}">Sign in with {{ engine|title }}</a></li>
                         {% endfor %}
                     </ul>

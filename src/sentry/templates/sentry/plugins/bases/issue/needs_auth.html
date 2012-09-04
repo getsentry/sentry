@@ -9,9 +9,10 @@
         <div class="page-header">
             <h3>{{ title }}</h3>
         </div>
-        <div class="alert-message error">
+        <div class="alert alert-block">
             {% url socialauth_associate_begin plugin.auth_provider as link %}
-            {% blocktrans %}You still need to <a href="{{ link }}">associate an identity</a> with {{ title }} first.{% endblocktrans %}
+            <p>{% blocktrans %}You still need to <a href="{{ link }}">associate an identity</a> with {{ title }} before you can
+            create issues with this service.{% endblocktrans %}</p>
         </div>
     </div>
 {% endblock %}

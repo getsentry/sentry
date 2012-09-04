@@ -5,6 +5,7 @@ sentry.plugins.bases.issue
 :copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from sentry.conf import settings
 from sentry.models import GroupMeta
 from sentry.plugins import Plugin
 from django import forms
@@ -12,6 +13,7 @@ from django.core.urlresolvers import reverse
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from social_auth.models import UserSocialAuth
+from sentry.utils.auth import get_auth_providers
 
 
 class NewIssueForm(forms.Form):
@@ -118,14 +120,30 @@ class IssuePlugin(Plugin):
             'title': self._get_group_title(request, group, event),
         }
 
+    def has_auth_configured(self, **kwargs):
+        if not self.auth_provider:
+            return True
+
+        return self.auth_provider in get_auth_providers()
+
     def view(self, request, group, **kwargs):
-        if not self.needs_auth(project=group.project, request=request):
-            return self.render(self.needs_auth_template, request, {
+        has_auth_configured = self.has_auth_configured()
+        if not (has_auth_configured and self.is_configured(project=group.project, request=request)):
+            if self.auth_provider:
+                required_auth_settings = settings.AUTH_PROVIDERS[self.auth_provider]
+            else:
+                required_auth_settings = None
+
+            return self.render(self.not_configured_template, {
+                'title': self.get_title(),
                 'project': group.project,
+                'has_auth_configured': has_auth_configured,
+                'required_auth_settings': required_auth_settings,
             })
 
-        if not self.is_configured(project=group.project, request=request):
-            return self.render(self.not_configured_template, request, {
+        if self.needs_auth(project=group.project, request=request):
+            return self.render(self.needs_auth_template, {
+                'title': self.get_title(),
                 'project': group.project,
             })
 

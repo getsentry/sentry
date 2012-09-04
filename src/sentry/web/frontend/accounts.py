@@ -12,26 +12,13 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
+from sentry.conf import settings
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required
 from sentry.web.forms.accounts import AccountSettingsForm, NotificationSettingsForm
 from sentry.web.helpers import render_to_response
+from sentry.utils.auth import get_auth_providers
 from sentry.utils.safe import safe_execute
-
-
-AUTH_ENGINES = {
-    'twitter': ('TWITTER_CONSUMER_KEY', 'TWITTER_CONSUMER_SECRET'),
-    'facebook': ('FACEBOOK_APP_ID', 'FACEBOOK_API_SECRET'),
-    'github': ('GITHUB_APP_ID', 'GITHUB_API_SECRET'),
-    'google': ('GOOGLE_OAUTH2_CLIENT_ID', 'GOOGLE_OAUTH2_CLIENT_SECRET'),
-}
-
-
-def get_auth_engines():
-    return [key
-        for key, cfg_names
-        in AUTH_ENGINES.iteritems()
-        if all(getattr(dj_settings, c, None) for c in cfg_names)]
 
 
 @csrf_protect
@@ -49,13 +36,13 @@ def login(request):
     else:
         request.session.set_test_cookie()
 
-    auth_engines = get_auth_engines()
+    AUTH_PROVIDERS = get_auth_providers()
 
     context = csrf(request)
     context.update({
         'form': form,
         'next': request.session.get('_next'),
-        'auth_engines': auth_engines,
+        'AUTH_PROVIDERS': AUTH_PROVIDERS,
         'SOCIAL_AUTH_CREATE_USERS': dj_settings.SOCIAL_AUTH_CREATE_USERS,
     })
     return render_to_response('sentry/login.html', context, request)
@@ -141,12 +128,12 @@ def list_identities(request):
 
     identity_list = list(UserSocialAuth.objects.filter(user=request.user))
 
-    auth_engines = get_auth_engines()
+    AUTH_PROVIDERS = get_auth_providers()
 
     context = csrf(request)
     context.update({
         'identity_list': identity_list,
         'page': 'identities',
-        'auth_engines': auth_engines,
+        'AUTH_PROVIDERS': AUTH_PROVIDERS,
     })
     return render_to_response('sentry/account/identities.html', context, request)

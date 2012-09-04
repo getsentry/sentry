@@ -7,6 +7,7 @@ sentry.utils.auth
 """
 import hashlib
 import hmac
+from django.conf import settings as dj_settings
 from sentry.conf import settings
 
 
@@ -30,3 +31,10 @@ def get_auth_header(signature, timestamp, client, api_key=None):
 
 def parse_auth_header(header):
     return dict(map(lambda x: x.strip().split('='), header.split(' ', 1)[1].split(',')))
+
+
+def get_auth_providers():
+    return [key
+        for key, cfg_names
+        in settings.AUTH_PROVIDERS.iteritems()
+        if all(getattr(dj_settings, c, None) for c in cfg_names)]
