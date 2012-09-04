@@ -292,6 +292,9 @@ An authentication header is expected to be sent along with the message body, whi
     sentry_timestamp=<current timestamp>,
     sentry_key=<public api key>
 
+.. note:: You should include the client version string in the User-Agent portion of the header, and it will be used if
+          sentry_client is not sent in the auth header.
+
 .. data:: sentry_version
 
     The protocol version. This should be sent as the value '2.0'.
@@ -301,6 +304,8 @@ An authentication header is expected to be sent along with the message body, whi
     An arbitrary string which identifies your client, including its version.
 
     For example, the Python client might send this as 'raven-python/1.0'
+
+    This should be included in your User-Agent header rather than here if you're using the HTTP protocol.
 
 .. data:: sentry_timestamp
 
@@ -322,6 +327,7 @@ the path is the BASE_URI/api/store/. So given the following DSN::
 The request body should then somewhat resemble the following::
 
     POST /api/store/
+    User-Agen': raven-python1.0
     X-Sentry-Auth: Sentry sentry_version=2.0, sentry_timestamp=1329096377,
         sentry_key=b70a31b3510c4cf793964a185cfe1fd0, sentry_client=raven-python/1.0
 

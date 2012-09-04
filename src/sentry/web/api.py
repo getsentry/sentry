@@ -116,7 +116,8 @@ def store(request, project=None):
        the user be authenticated, and a project_id be sent in the GET variables.
 
     """
-    logger.debug('Inbound %r request from %r', request.method, request.META['REMOTE_ADDR'])
+    logger.debug('Inbound %r request from %r (%s)', request.method, request.META['REMOTE_ADDR'],
+        request.META.get('HTTP_USER_AGENT'))
     client = '<unknown client>'
 
     response = HttpResponse()
@@ -128,7 +129,7 @@ def store(request, project=None):
 
             if auth_vars:
                 server_version = auth_vars.get('sentry_version', '1.0')
-                client = auth_vars.get('sentry_client')
+                client = auth_vars.get('sentry_client', request.META.get('HTTP_USER_AGENT'))
             else:
                 server_version = request.GET.get('version', '1.0')
                 client = request.META.get('HTTP_USER_AGENT', request.GET.get('client'))
