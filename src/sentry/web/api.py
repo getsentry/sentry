@@ -311,6 +311,7 @@ def remove_group(request, project, group_id):
 
 
 @csrf_exempt
+@has_access
 @never_cache
 def bookmark(request, project):
     gid = request.REQUEST.get('gid')
