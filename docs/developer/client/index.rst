@@ -327,7 +327,7 @@ the path is the BASE_URI/api/store/. So given the following DSN::
 The request body should then somewhat resemble the following::
 
     POST /api/store/
-    User-Agen': raven-python1.0
+    User-Agent: raven-python/1.0
     X-Sentry-Auth: Sentry sentry_version=2.0, sentry_timestamp=1329096377,
         sentry_key=b70a31b3510c4cf793964a185cfe1fd0, sentry_client=raven-python/1.0
 
