@@ -9,6 +9,7 @@ import datetime
 import logging
 
 from django.core.urlresolvers import reverse
+from django.db.models import Sum
 from django.http import HttpResponse, HttpResponseBadRequest, \
   HttpResponseForbidden, HttpResponseRedirect
 from django.utils import timezone
@@ -22,7 +23,8 @@ from sentry.exceptions import InvalidData
 from sentry.coreapi import project_from_auth_vars, project_from_id, \
   decode_and_decompress_data, safely_load_json_string, validate_data, \
   insert_data_to_database, APIError, APIUnauthorized, extract_auth_vars
-from sentry.models import Group, GroupBookmark, Project, View, MEMBER_USER
+from sentry.models import Group, GroupBookmark, Project, ProjectCountByMinute, \
+  View, MEMBER_USER
 from sentry.templatetags.sentry_helpers import as_bookmarks
 from sentry.utils import json
 from sentry.utils.cache import cache
@@ -459,6 +461,72 @@ def get_new_groups(request, project=None):
     ).select_related('project').order_by('-score')[:limit]
 
     data = transform_groups(request, group_list, template='sentry/partial/_group_small.html')
+
+    response = HttpResponse(json.dumps(data))
+    response['Content-Type'] = 'application/json'
+
+    return response
+
+
+@never_cache
+@csrf_exempt
+@has_access
+def get_resolved_groups(request, project=None):
+    minutes = int(request.REQUEST.get('minutes', 15))
+    limit = min(100, int(request.REQUEST.get('limit', 10)))
+
+    if project:
+        project_list = [project]
+    else:
+        project_list = get_project_list(request.user).values()
+
+    cutoff = datetime.timedelta(minutes=minutes)
+    cutoff_dt = timezone.now() - cutoff
+
+    group_list = Group.objects.filter(
+        project__in=project_list,
+        status=1,
+        resolved_at__gte=cutoff_dt,
+    ).select_related('project').order_by('-score')[:limit]
+
+    data = transform_groups(request, group_list, template='sentry/partial/_group_small.html')
+
+    response = HttpResponse(json.dumps(data))
+    response['Content-Type'] = 'application/json'
+
+    return response
+
+
+@never_cache
+@csrf_exempt
+@has_access
+def get_stats(request, project=None):
+    minutes = int(request.REQUEST.get('minutes', 15))
+
+    if project:
+        project_list = [project]
+    else:
+        project_list = get_project_list(request.user).values()
+
+    cutoff = datetime.timedelta(minutes=minutes)
+    cutoff_dt = timezone.now() - cutoff
+
+    num_events = ProjectCountByMinute.objects.filter(
+        project__in=project_list,
+        date__gte=cutoff_dt,
+    ).aggregate(t=Sum('times_seen'))['t'] or 0
+
+    # XXX: This is too slow if large amounts of groups are resolved
+    num_resolved = Group.objects.filter(
+        project__in=project_list,
+        status=1,
+        resolved_at__gte=cutoff_dt,
+    ).aggregate(t=Sum('times_seen'))['t'] or 0
+
+    data = {
+        'events': num_events,
+        'resolved': num_resolved,
+    }
 
     response = HttpResponse(json.dumps(data))
     response['Content-Type'] = 'application/json'

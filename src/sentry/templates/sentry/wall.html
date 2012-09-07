@@ -30,19 +30,15 @@
     </head>
 
     <body>
-        <div class="container-fluid" id="stats">
+        <div class="container-fluid" id="stats" data-uri="{% url sentry-api-stats %}?minutes=1440">
             <div class="row-fluid">
-                <div class="span4">
-                    <big>234</big>
-                    <div><strong>Exceptions</strong> in the last 24 hours</div>
+                <div class="span4" data-stat="events">
+                    <big>???</big>
+                    <div><strong>Events</strong> in the last 24 hours</div>
                 </div>
-                <div class="span4">
-                    <big>112</big>
+                <div class="span4" data-stat="resolved">
+                    <big>???</big>
                     <div><strong>Resolved</strong> in the last 24 hours</div>
-                </div>
-                <div class="span4">
-                    <big>234</big>
-                    <div><strong>Exceptions</strong> in the last 24 hours</div>
                 </div>
             </div>
         </div>
@@ -55,15 +51,17 @@
         </div>
         <div class="container-fluid" id="events">
             <div class="row-fluid">
-                <ul class="nav">
-                    <li><a href="#trending">{% trans "Trending" %}</a></li>
-                    <li><a href="#new">{% trans "New" %}</a></li>
-                    <li><a href="#resolved">{% trans "Resolved" %}</a></li>
-                </ul>
-                <div class="tab-content">
-                    <div class="tab-pane active" id="trending"><p>Loading ...</p></div>
-                    <div class="tab-pane" id="new"></div>
-                    <div class="tab-pane" id="resolved"></div>
+                <div class="span7">
+                    <ul class="nav nav-labels">
+                        <li class="active"><a href="#trending" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends %}?minutes=1440&amp;limit=5">{% trans "Trending" %}</a></li>
+                        <li><a href="#new" data-toggle="ajtab" data-uri="{% url sentry-api-groups-new %}?minutes=1440&amp;limit=5">{% trans "New" %}</a></li>
+                        <li><a href="#resolved" data-toggle="ajtab" data-uri="{% url sentry-api-groups-resolved %}?minutes=1440&amp;limit=5">{% trans "Resolved" %}</a></li>
+                    </ul>
+                    <div class="tab-content">
+                        <div class="tab-pane active" id="trending"><p>Loading ...</p></div>
+                        <div class="tab-pane" id="new"></div>
+                        <div class="tab-pane" id="resolved"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -88,7 +86,7 @@
                             color: '#52566c',
                             shadowSize: 0,
                             lines: {
-                                lineWidth: 1,
+                                lineWidth: 2,
                                 show: true,
                                 fill: true,
                                 fillColor: '#232428'
@@ -131,9 +129,12 @@
                         dataType: 'json',
                         success: function(data){
                             if (data.length) {
+                                var $group;
                                 var $ul = $('<ul class="events"></ul>');
                                 $.each(data, function(_, group){
-                                    $ul.append($(group.html));
+                                    $group = $(group.html);
+                                    $group.removeClass('event-small');
+                                    $ul.append($group);
                                 });
                                 $cont.html($ul);
                             } else {
@@ -147,6 +148,18 @@
         
                 if ($el.parent().hasClass('active')) {
                     $el.click();
+                }
+            });
+            var $stats = $('#stats');
+
+            $.ajax({
+                url: $stats.attr('data-uri'),
+                dataType: 'json',
+                success: function(data){
+                    $stats.find('[data-stat]').each(function(){
+                        var $this = $(this);
+                        $this.find('big').text(data[$this.attr('data-stat')]);
+                    });
                 }
             });
         });
