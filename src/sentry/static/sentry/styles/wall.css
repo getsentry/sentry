@@ -4740,6 +4740,7 @@ body {
   color: #ffffff;
   background: #232428;
   font-family: "proxima-nova", "helvetica neue", helvetica, sans-serif;
+  min-width: 768px;
 }
 #stats {
   background: #1f2022;
@@ -4815,7 +4816,6 @@ body {
 #events .event:hover {
   background: #292b2f;
   border-color: #44454f;
-  text-decoration: none;
 }
 #events .event h3 {
   font-size: 17pt;
