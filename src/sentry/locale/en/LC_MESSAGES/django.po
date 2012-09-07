@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-09-04 21:53+0000\n"
+"POT-Creation-Date: 2012-09-07 09:10+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1465,8 +1465,7 @@ msgstr ""
 
 #: templates/sentry/projects/manage.html:81
 msgid ""
-"This project cannot be removed. It is used by the internally by the Sentry "
-"server."
+"This project cannot be removed. It is used internally by the Sentry server."
 msgstr ""
 
 #: templates/sentry/projects/manage.html:88
