@@ -20,7 +20,7 @@ STATIC_PATH_CACHE = {}
 
 
 @login_required
-def dashboard(request):
+def dashboard(request, template='dashboard.html'):
     project_list = get_project_list(request.user, key='slug')
     has_projects = len(project_list) > 1 or (len(project_list) == 1 and project_list.values()[0].pk != settings.PROJECT)
 
@@ -31,7 +31,11 @@ def dashboard(request):
         elif can_create_projects(request.user):
             return HttpResponseRedirect(reverse('sentry-new-project'))
 
-    return render_to_response('sentry/dashboard.html', {}, request)
+    return render_to_response('sentry/%s' % template, {}, request)
+
+
+def wall_display(request):
+    return dashboard(request, 'wall.html')
 
 
 def static_media(request, module, path, root=None):

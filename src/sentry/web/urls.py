@@ -101,6 +101,7 @@ urlpatterns = patterns('',
     # Global
 
     url(r'^$', generic.dashboard, name='sentry'),
+    url(r'^wall/$', generic.wall_display, name='sentry-wall'),
     url(r'^manage/status/$', admin.status_env, name='sentry-admin-status'),
     url(r'^manage/status/packages/$', admin.status_packages, name='sentry-admin-packages-status'),
     url(r'^manage/status/queue/$', admin.status_queue, name='sentry-admin-queue-status'),

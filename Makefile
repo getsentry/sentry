@@ -2,11 +2,14 @@ VERSION = 2.0.0
 STATIC_DIR = src/sentry/static/sentry
 GLOBAL_CSS = ${STATIC_DIR}/styles/global.css
 GLOBAL_CSS_MIN = ${STATIC_DIR}/styles/global.min.css
+WALL_CSS = ${STATIC_DIR}/styles/wall.css
+WALL_CSS_MIN = ${STATIC_DIR}/styles/wall.min.css
 BOOTSTRAP_JS = ${STATIC_DIR}/scripts/bootstrap.js
 BOOTSTRAP_JS_MIN = ${STATIC_DIR}/scripts/bootstrap.min.js
 GLOBAL_JS = ${STATIC_DIR}/scripts/global.js
 GLOBAL_JS_MIN = ${STATIC_DIR}/scripts/global.min.js
-BOOTSTRAP_LESS = src/sentry.less
+SENTRY_LESS = src/sentry.less
+WALL_LESS = src/wall.less
 LESS_COMPRESSOR ?= `which lessc`
 UGLIFY_JS ?= `which uglifyjs`
 WATCHR ?= `which watchr`
@@ -26,8 +29,10 @@ locale:
 #
 
 static:
-	@lessc ${BOOTSTRAP_LESS} > ${GLOBAL_CSS};
-	@lessc ${BOOTSTRAP_LESS} > ${GLOBAL_CSS_MIN} --compress;
+	@lessc ${SENTRY_LESS} > ${GLOBAL_CSS};
+	@lessc ${SENTRY_LESS} > ${GLOBAL_CSS_MIN} --compress;
+	@lessc ${WALL_LESS} > ${WALL_CSS};
+	@lessc ${WALL_LESS} > ${WALL_CSS_MIN} --compress;
 	@cat ${STATIC_DIR}/scripts/sentry.core.js ${STATIC_DIR}/scripts/sentry.realtime.js ${STATIC_DIR}/scripts/sentry.charts.js ${STATIC_DIR}/scripts/sentry.notifications.js ${STATIC_DIR}/scripts/sentry.stream.js > ${GLOBAL_JS};
 	@cat src/bootstrap/js/bootstrap-alert.js src/bootstrap/js/bootstrap-dropdown.js src/bootstrap/js/bootstrap-tooltip.js src/bootstrap/js/bootstrap-tab.js src/bootstrap/js/bootstrap-buttons.js src/bootstrap/js/bootstrap-modal.js ${STATIC_DIR}/scripts/bootstrap-datepicker.js > ${BOOTSTRAP_JS};
 	@uglifyjs -nc ${GLOBAL_JS} > ${GLOBAL_JS_MIN};

@@ -346,8 +346,9 @@ class ChartMixin(object):
 
         results = []
         for point in xrange(points, -1, -1):
+            import random
             dt = today - datetime.timedelta(**{d_type: point * modifier})
-            results.append((int((dt).strftime('%s')) * 1000, rows.get(dt, 0)))
+            results.append((int((dt).strftime('%s')) * 1000, rows.get(dt, random.randint(0, 1000))))
         return results
 
 

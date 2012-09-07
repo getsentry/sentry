@@ -1,0 +1,155 @@
+{% load i18n %}
+{% load sentry_helpers %}
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <meta name="robots" content="NONE,NOARCHIVE">
+
+        <title>{% block title %}{% trans "Wall Display" %} | Sentry{% endblock %}</title>
+
+        <link href="{% url sentry-media "sentry" "styles/wall.min.css" %}" rel="stylesheet" type="text/css"/>
+        <!--[if lt IE 9]>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/html5shiv.js" %}"></script>
+        <![endif]-->
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.clippy.min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.flot.min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.animate-colors-min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/global.min.js" %}"></script>
+        <script type="text/javascript">
+        Sentry.config({
+            urlPrefix: {{ URL_PREFIX|to_json|safe }},
+            mediaUrl: '{% url sentry-media "sentry" '' %}',
+            defaultImage: '{% url sentry-media "sentry" 'images/sentry.png' %}',
+            popupCss: '{% url sentry-media "sentry" 'styles/popup.css' %}'
+        });
+        </script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/bootstrap.min.js" %}"></script>
+    </head>
+
+    <body>
+        <div class="container-fluid" id="stats">
+            <div class="row-fluid">
+                <div class="span4">
+                    <big>234</big>
+                    <div><strong>Exceptions</strong> in the last 24 hours</div>
+                </div>
+                <div class="span4">
+                    <big>112</big>
+                    <div><strong>Resolved</strong> in the last 24 hours</div>
+                </div>
+                <div class="span4">
+                    <big>234</big>
+                    <div><strong>Exceptions</strong> in the last 24 hours</div>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid" id="chart">
+            <div class="row-fluid">
+                <div class="chart" data-api-url="{% url sentry-api-chart %}">
+                    <span class="loading">{% trans "Loading historical data..." %}</span>
+                </div>
+            </div>
+        </div>
+        <div class="container-fluid" id="events">
+            <div class="row-fluid">
+                <ul class="nav">
+                    <li><a href="#trending">{% trans "Trending" %}</a></li>
+                    <li><a href="#new">{% trans "New" %}</a></li>
+                    <li><a href="#resolved">{% trans "Resolved" %}</a></li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane active" id="trending"><p>Loading ...</p></div>
+                    <div class="tab-pane" id="new"></div>
+                    <div class="tab-pane" id="resolved"></div>
+                </div>
+            </div>
+        </div>
+        <script type="text/javascript">
+        $(document).ready(function() {
+            var $sparkline = $('.chart');
+
+            $.ajax({
+                url: $sparkline.attr('data-api-url'),
+                type: 'get',
+                dataType: 'json',
+                data: {
+                    days: 1,
+                    gid: $sparkline.attr('data-group') || undefined
+                },
+                success: function(data){
+                    $sparkline.height($sparkline.parent().height());
+
+                    $.plot($sparkline, [
+                        {
+                            data: data,
+                            color: '#52566c',
+                            shadowSize: 0,
+                            lines: {
+                                lineWidth: 1,
+                                show: true,
+                                fill: true,
+                                fillColor: '#232428'
+                            }
+                        }
+                    ], {
+                        grid: {
+                            show: false,
+                        },
+                        hoverable: false,
+                        legend: {
+                            noColumns: 5
+                        },
+                        lines: { show: false }
+
+                    });
+                }
+            });
+
+            //load content for first tab and initialize
+            $('a[data-toggle=ajtab]').each(function(){
+                var $el = $(this);
+
+                $el.bind('click', function(e) {
+                    var $el = $(e.target);
+                    var uri = $el.attr('data-uri');
+                    if (!uri) {
+                        return;
+                    }
+                    var $tab = $(this);
+                    var $cont = $($tab.attr('href'));
+                    var $parent = $cont.parent();
+
+                    $parent.css('opacity', .6)
+                    e.preventDefault()
+
+                    // load content for selected tab
+                    $.ajax({
+                        url: uri,
+                        dataType: 'json',
+                        success: function(data){
+                            if (data.length) {
+                                var $ul = $('<ul class="events"></ul>');
+                                $.each(data, function(_, group){
+                                    $ul.append($(group.html));
+                                });
+                                $cont.html($ul);
+                            } else {
+                                $cont.html('<p>{% trans "No unresolved events are listed in the time period selected." %}</p>');
+                            }
+                            $parent.css('opacity', 1)
+                            $tab.tab('show');
+                        }
+                    });
+                });
+        
+                if ($el.parent().hasClass('active')) {
+                    $el.click();
+                }
+            });
+        });
+        </script>
+    </body>
+</html>
