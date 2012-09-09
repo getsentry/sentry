@@ -57,13 +57,14 @@ your ``INSTALLED_APPS``::
 
 The following extensions are available and maintained by members of the Sentry community:
 
-* `sentry-phabricator <https://github.com/getsentry/sentry-phabricator>`_
-* `sentry-hipchat <https://github.com/linovia/sentry-hipchat>`_
-* `sentry-groveio <https://github.com/mattrobenolt/sentry-groveio>`_
-* `sentry-irc <https://github.com/gisce/sentry-irc>`_
-* `sentry-trello <https://github.com/DamianZaremba/sentry-trello>`_
 * `sentry-campfire <https://github.com/mkhattab/sentry-campfire>`_
+* `sentry-github <https://github.com/getsentry/sentry-github>`_
+* `sentry-groveio <https://github.com/mattrobenolt/sentry-groveio>`_
+* `sentry-hipchat <https://github.com/linovia/sentry-hipchat>`_
+* `sentry-irc <https://github.com/gisce/sentry-irc>`_
+* `sentry-phabricator <https://github.com/getsentry/sentry-phabricator>`_
 * `sentry-pushover <https://github.com/dz0ny/sentry-pushover>`_
+* `sentry-trello <https://github.com/DamianZaremba/sentry-trello>`_
 
 Have an extension that should be listed here? Submit a `pull request <https://github.com/getsentry/sentry>`_ and we'll
 get it added.
