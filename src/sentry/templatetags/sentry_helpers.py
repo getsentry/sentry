@@ -161,7 +161,7 @@ def duration(value):
     if value > 60:
         minutes = value / 60
         value = value % 60
-    seconds = value / 60
+    seconds = value
     output = []
     if hours:
         output.append('%dh' % hours)
