@@ -175,7 +175,7 @@ def can_admin_group(user, group):
     from sentry.models import Team
     # We make the assumption that we have a valid membership here
     try:
-        Team.objects.get_for_user(user)[group.team.slug]
+        Team.objects.get_for_user(user)[group.project.team.slug]
     except KeyError:
         return False
 
