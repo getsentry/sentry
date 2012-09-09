@@ -1040,7 +1040,7 @@ class TeamManager(BaseManager):
         """
         from sentry.models import TeamMember
 
-        if access is None or not user.is_authenticated():
+        if not user.is_authenticated():
             return SortedDict()
 
         qs = TeamMember.objects.filter(
