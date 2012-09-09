@@ -78,7 +78,6 @@ class SentryHTTPServer(Service):
         if workers:
             options['workers'] = workers
 
-        print options
         self.app = SentryApplication(options)
 
     def run(self):
