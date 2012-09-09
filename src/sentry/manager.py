@@ -29,6 +29,7 @@ from django.utils.encoding import force_unicode, smart_str
 from raven.utils.encoding import to_string
 from sentry import app
 from sentry.conf import settings
+from sentry.constants import STATUS_RESOLVED, STATUS_UNRESOLVED
 from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
 from sentry.tasks.index import index_event
@@ -502,8 +503,7 @@ class GroupManager(BaseManager, ChartMixin):
         return event
 
     def _create_group(self, event, tags=None, **kwargs):
-        from sentry.models import ProjectCountByMinute, MessageCountByMinute, STATUS_RESOLVED, \
-          STATUS_UNRESOLVED
+        from sentry.models import ProjectCountByMinute, MessageCountByMinute
 
         date = event.datetime
         time_spent = event.time_spent

@@ -18,11 +18,12 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_cookie
 from functools import wraps
 from sentry.conf import settings
-from sentry.exceptions import InvalidData
+from sentry.constants import MEMBER_USER
 from sentry.coreapi import project_from_auth_vars, project_from_id, \
   decode_and_decompress_data, safely_load_json_string, validate_data, \
   insert_data_to_database, APIError, APIUnauthorized, extract_auth_vars
-from sentry.models import Group, GroupBookmark, Project, View, MEMBER_USER
+from sentry.exceptions import InvalidData
+from sentry.models import Group, GroupBookmark, Project, View
 from sentry.templatetags.sentry_helpers import as_bookmarks
 from sentry.utils import json
 from sentry.utils.cache import cache

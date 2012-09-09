@@ -7,7 +7,8 @@ import mock
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
-from sentry.models import Team, MEMBER_OWNER, MEMBER_USER
+from sentry.constants import MEMBER_OWNER, MEMBER_USER
+from sentry.models import Team
 
 from tests.base import TestCase
 

@@ -33,8 +33,8 @@ from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
-from sentry.constants import STATUS_LEVELS, STATUS_RESOLVED, STATUS_UNRESOLVED, \
-  MEMBER_TYPES, MEMBER_OWNER, MEMBER_USER, MEMBER_SYSTEM  # NOQA
+from sentry.constants import STATUS_LEVELS, MEMBER_TYPES, \
+  MEMBER_OWNER, MEMBER_USER, MEMBER_SYSTEM  # NOQA
 from sentry.manager import GroupManager, ProjectManager, \
   MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager, \
   UserOptionManager, FilterKeyManager, TeamManager

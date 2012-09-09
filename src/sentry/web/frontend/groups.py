@@ -19,10 +19,9 @@ from django.utils.safestring import mark_safe
 
 from sentry.conf import settings
 from sentry.constants import SORT_OPTIONS, SEARCH_SORT_OPTIONS, \
-  SORT_CLAUSES, MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES
+  SORT_CLAUSES, MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES, MEMBER_USER
 from sentry.filters import get_filters
-from sentry.models import Group, Event, View, SearchDocument, \
-  MEMBER_USER
+from sentry.models import Group, Event, View, SearchDocument
 from sentry.permissions import can_admin_group
 from sentry.plugins import plugins
 from sentry.utils import json

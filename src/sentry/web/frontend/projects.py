@@ -11,8 +11,8 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
-from sentry.models import TeamMember, MEMBER_OWNER, MEMBER_USER, \
-  ProjectKey, Team, FilterKey
+from sentry.constants import MEMBER_OWNER, MEMBER_USER
+from sentry.models import TeamMember, ProjectKey, Team, FilterKey
 from sentry.permissions import can_create_projects, can_remove_project, can_create_teams
 from sentry.plugins import plugins
 from sentry.plugins.helpers import set_option, get_option

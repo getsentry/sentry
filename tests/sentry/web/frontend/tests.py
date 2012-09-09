@@ -10,8 +10,8 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
 from sentry.conf import settings
-from sentry.models import Group, Project, TeamMember, \
-  MEMBER_OWNER, MEMBER_USER, Team
+from sentry.constants import MEMBER_OWNER, MEMBER_USER
+from sentry.models import Group, Project, TeamMember, Team
 from sentry.web.helpers import get_login_url
 
 from tests.base import TestCase
