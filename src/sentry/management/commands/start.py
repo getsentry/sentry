@@ -24,10 +24,24 @@ class Command(BaseCommand):
             action='store_false',
             dest='upgrade',
             default=True),
+        make_option('--workers', '-w',
+            dest='workers',
+            type=int,
+            default=None),
     )
 
-    def handle(self, service_name='http', upgrade=True, **options):
+    def handle(self, service_name='http', address=None, upgrade=True, **options):
         from sentry.services import http, udp
+
+        if address:
+            if ':' in address:
+                host, port = address.split(':', 1)
+                port = int(port)
+            else:
+                host = address
+                port = None
+        else:
+            host, port = None, None
 
         services = {
             'http': http.SentryHTTPServer,
@@ -48,7 +62,10 @@ class Command(BaseCommand):
             raise CommandError('%r is not a valid service' % service_name)
 
         service = service_class(
-            debug=options['debug'],
+            debug=options.get('debug'),
+            host=host,
+            port=port,
+            workers=options.get('workers'),
         )
 
         print "Running service: %r" % service_name

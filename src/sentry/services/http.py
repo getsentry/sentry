@@ -51,11 +51,12 @@ class SentryApplication(djangoapp.DjangoApplication):
 class SentryHTTPServer(Service):
     name = 'http'
 
-    def __init__(self, host=None, port=None, debug=False):
+    def __init__(self, host=None, port=None, debug=False, workers=None):
         from sentry.conf import settings
 
         self.host = host or settings.WEB_HOST
         self.port = port or settings.WEB_PORT
+        self.workers = workers
 
         # import cProfile, os
 
@@ -69,15 +70,15 @@ class SentryHTTPServer(Service):
         #         cProfile.runctx('orig_init_process()', globals(), locals(), ofile)
         #     worker.init_process = profiling_init_process.__get__(worker)
 
-        options = {
-            'bind': '%s:%s' % (self.host, self.port),
-            'debug': debug,
-            'daemon': False,
-            'timeout': 30,
-            # 'post_fork': post_fork,
-        }
-        options.update(settings.WEB_OPTIONS or {})
+        options = (settings.WEB_OPTIONS or {}).copy()
+        options['bind'] = '%s:%s' % (self.host, self.port)
+        options['debug'] = debug
+        options['daemon'] = False
+        options.setdefault('timeout', 30)
+        if workers:
+            options['workers'] = workers
 
+        print options
         self.app = SentryApplication(options)
 
     def run(self):

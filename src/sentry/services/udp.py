@@ -58,12 +58,13 @@ class BaseUDPServer(Service):
     _socket = None
     _spawn = None
 
-    def __init__(self, host=None, port=None, debug=False):
+    def __init__(self, host=None, port=None, debug=False, workers=POOL_SIZE):
         super(BaseUDPServer, self).__init__(debug=debug)
         from sentry.conf import settings
 
         self.host = host or settings.UDP_HOST
         self.port = port or settings.UDP_PORT
+        self.workers = workers
 
     def setup(self):
         assert self._socket and self._spawn, \
@@ -97,7 +98,7 @@ class EventletUDPServer(BaseUDPServer):
         import eventlet
         from eventlet.green import socket
         self._socket = socket.socket
-        self._pool = eventlet.GreenPool(size=self.POOL_SIZE)
+        self._pool = eventlet.GreenPool(size=self.workers)
         self._spawn = self._pool.spawn_n
 
 
@@ -108,7 +109,7 @@ class GeventUDPServer(BaseUDPServer):
     def setup(self):
         from gevent import socket, pool
         self._socket = socket.socket
-        self._pool = pool.Pool(size=self.POOL_SIZE)
+        self._pool = pool.Pool(size=self.workers)
         self._spawn = self._pool.spawn
 
 
