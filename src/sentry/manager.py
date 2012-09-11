@@ -771,6 +771,7 @@ class InstanceMetaManager(BaseManager):
     def get_value_bulk(self, instances, key):
         return dict(self.filter(**{
             '%s__in' % self.field_name: instances,
+            'key': key,
         }).values_list(self.field_name, 'value'))
 
     def get_value(self, instance, key, default=NOTSET):
