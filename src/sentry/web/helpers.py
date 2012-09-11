@@ -151,9 +151,11 @@ def plugin_config(plugin, project, request):
     plugin_key = plugin.get_conf_key()
     if project:
         form_class = plugin.project_conf_form
+        form_template = plugin.project_conf_form_template
         template = plugin.project_conf_template
     else:
         form_class = plugin.site_conf_form
+        form_template =  "sentry/partial/_form.html"
         template = plugin.site_conf_template
 
     initials = plugin.get_form_initial(project)
@@ -187,4 +189,5 @@ def plugin_config(plugin, project, request):
             'request': request,
             'plugin': plugin,
             'plugin_description': plugin.get_description() or '',
+            'form_template': form_template
         }, context_instance=RequestContext(request))))
