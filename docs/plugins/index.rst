@@ -53,6 +53,7 @@ The following extensions are available and maintained by members of the Sentry c
 * `sentry-irc <https://github.com/gisce/sentry-irc>`_
 * `sentry-jira <https://github.com/thurloat/sentry-jira>`_
 * `sentry-phabricator <https://github.com/getsentry/sentry-phabricator>`_
+* `sentry-pivotal <https://github.com/getsentry/sentry-pivotal>`_
 * `sentry-pushover <https://github.com/dz0ny/sentry-pushover>`_
 * `sentry-sprintly <https://github.com/mattrobenolt/sentry-sprintly>`_
 * `sentry-trello <https://github.com/DamianZaremba/sentry-trello>`_
