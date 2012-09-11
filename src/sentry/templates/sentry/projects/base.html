@@ -8,6 +8,8 @@
     {% trans "Project List" %}
 {% endblock %}
 
+{% block bodyclass %}{% endblock %}
+
 {% block page_header %}
     {% if can_create_projects %}
         <a href="{% url sentry-new-project %}" class="btn pull-right btn-primary">{% trans "Create a new project" %}</a>

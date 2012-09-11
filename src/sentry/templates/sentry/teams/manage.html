@@ -6,6 +6,8 @@
 
 {% block title %}{% blocktrans with team.name as name %}Manage Team: {{ name }}{% endblocktrans %} | {{ block.super }}{% endblock %}
 
+{% block bodyclass %} with-left-sidebar{% endblock %}
+
 {% block breadcrumb %}
     <li class="divider">/</li>
     <li><a href="{% url sentry-manage-team team.slug %}">{{ team.name }}</a></li>
