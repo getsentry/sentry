@@ -314,8 +314,11 @@ def validate_data(project, data, client=None):
 
     level = data.get('level') or settings.DEFAULT_LOG_LEVEL
     if isinstance(level, basestring) and not level.isdigit():
-        # assume it's something like 'warn'
-        data['level'] = settings.LOG_LEVEL_REVERSE_MAP[level]
+        # assume it's something like 'warning'
+        try:
+            data['level'] = settings.LOG_LEVEL_REVERSE_MAP[level]
+        except KeyError:
+            raise InvalidData('Invalid logging level specified: %r' % level)
 
     return data
 
