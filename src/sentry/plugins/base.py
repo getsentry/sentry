@@ -144,6 +144,7 @@ class IPlugin(local):
     conf_title = None
 
     project_conf_form = None
+    project_conf_form_template = 'sentry/partial/_form.html'
     project_conf_template = 'sentry/plugins/project_configuration.html'
 
     site_conf_form = None
