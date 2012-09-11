@@ -56,7 +56,7 @@
                     <li><a href="{% url sentry %}">{% trans "Dashboard" %}</a></li>
                     {% if project %}
                         <li class="divider">/</li>
-                        <li><a href="{% url sentry project.slug %}">{{ project.name }}</a> <a class="action" href="{% url sentry-manage-project project.slug %}">Edit</a></li>
+                        <li><a href="{% url sentry project.slug %}">{{ project.name }}</a></li>
                     {% endif %}
                     {% block breadcrumb %}
                     {% endblock %}

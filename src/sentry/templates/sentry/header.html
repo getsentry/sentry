@@ -23,6 +23,7 @@
                 <ul class="nav">
                     {% if project %}
                         <li{% if PAGE == 'dashboard' %} class="active"{% endif %}><a href="{% url sentry project.slug %}">{% trans "Stream" %}</a></li>
+                        <li><a href="{% url sentry-manage-project project.slug %}">{% trans "Settings" %}</a></li>
                     {% endif %}
                 </ul>
                 <ul class="nav pull-right">
@@ -41,13 +42,14 @@
                             <li class="dropdown">
                                 <a href="#" class="dropdown-toggle" data-toggle="dropdown"><img class="avatar" src="{% gravatar_url user.email size 20 %}"> {{ user.username }} <span class="caret"></span></a>
                                 <ul class="dropdown-menu">
+                                    <li><a href="{% url sentry-account-settings %}">{% trans "Account" %}</a></li>
+                                    <li class="divider">
                                     <li><a href="{% url sentry-project-list %}">{% trans "Projects" %}</a></li>
                                     <li><a href="{% url sentry-team-list %}">{% trans "Teams" %}</a></li>
                                     {% if request.user.is_staff %}
                                         <li><a href="{% url sentry-admin-status %}">{% trans "Admin" %}</a></li>
                                     {% endif %}
-                                    <li class="divider"></li>
-                                    <li><a href="{% url sentry-account-settings %}">{% trans "Settings" %}</a></li>
+                                    <li class="divider">
                                     <li><a href="{% url sentry-logout %}">{% trans "Logout" %}</a></li>
                                 </ul>
                             </li>

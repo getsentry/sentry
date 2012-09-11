@@ -3937,6 +3937,9 @@ p {
 #content.with-left-sidebar .content {
   padding-left: 300px;
 }
+#content.with-left-sidebar .main {
+  float: right;
+}
 #content.with-left-sidebar .sidebar {
   margin-right: 0;
   margin-left: -300px;
@@ -4155,8 +4158,11 @@ footer:after {
   clear: both;
 }
 footer a {
-  color: #fff;
+  color: #f4f4f4;
   font-weight: bold;
+}
+footer a:hover {
+  color: #fff;
 }
 /* =============================  Modules  ============================== */
 .btn span {

@@ -652,6 +652,7 @@ p{font-family:"proxima-nova","helvetica neue",helvetica,sans-serif;font-size:14p
 .toolbar .pull-right{margin:10px 0 0;}.toolbar .pull-right .btn{border-color:#b6b9bd;min-width:70px;}.toolbar .pull-right .btn.active{color:#111 !important;-webkit-box-shadow:inset 0 1px 3px rgba(0,0,0, .1), 0 1px 0 rgba(255,255,255, .5);-moz-box-shadow:inset 0 1px 3px rgba(0,0,0, .1), 0 1px 0 rgba(255,255,255, .5);box-shadow:inset 0 1px 3px rgba(0,0,0, .1), 0 1px 0 rgba(255,255,255, .5);}
 #content{background:#fff;}#content.with-sidebar{background:#ffffff url(../images/dashboard/sidebar-bg-right.png) top right repeat-y;}#content.with-sidebar .content{padding-right:300px;}
 #content.with-left-sidebar{background:#ffffff url(../images/dashboard/sidebar-bg-left.png) top left repeat-y;}#content.with-left-sidebar .content{padding-left:300px;}
+#content.with-left-sidebar .main{float:right;}
 #content.with-left-sidebar .sidebar{margin-right:0;margin-left:-300px;}
 #content .content{*zoom:1;position:relative;}#content .content:before,#content .content:after{display:table;content:"";}
 #content .content:after{clear:both;}
@@ -678,7 +679,7 @@ p{font-family:"proxima-nova","helvetica neue",helvetica,sans-serif;font-size:14p
 #content .sidebar .nav-list{margin:0 -19px 8px -20px;}#content .sidebar .nav-list li.active a{background-color:#56AFE8;}
 footer{*zoom:1;background:#6d757e;text-align:center;padding:30px;color:#fff;}footer:before,footer:after{display:table;content:"";}
 footer:after{clear:both;}
-footer a{color:#fff;font-weight:bold;}
+footer a{color:#f4f4f4;font-weight:bold;}footer a:hover{color:#fff;}
 .btn span{text-indent:-1000em;}
 .btn.prev,.btn.next{padding:6px 8px;}
 .btn.prev span{display:block;width:13px;height:13px;background:url(../images/dashboard/pagination.png);}
