@@ -137,6 +137,7 @@ class IPlugin(local):
     version = None
     author = None
     author_url = None
+    resource_links = ()
 
     # Configuration specifics
     conf_key = None
@@ -295,7 +296,7 @@ class IPlugin(local):
         >>>         ('Source', 'https://github.com/getsentry/sentry'),
         >>>     ]
         """
-        return []
+        return self.resource_links
 
     def get_view_response(self, request, group):
         from sentry.permissions import can_admin_group
