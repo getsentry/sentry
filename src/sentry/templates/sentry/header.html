@@ -22,8 +22,7 @@
 
                 <ul class="nav">
                     {% if project %}
-                        <li{% if PAGE == 'dashboard' %} class="active"{% endif %}><a href="{% url sentry project.slug %}">{% trans "Dashboard" %}</a></li>
-                        <li{% if PAGE == 'stream' %} class="active"{% endif %}><a href="{% url sentry-events project.slug %}">{% trans "Stream" %}</a></li>
+                        <li{% if PAGE == 'dashboard' %} class="active"{% endif %}><a href="{% url sentry project.slug %}">{% trans "Stream" %}</a></li>
                     {% endif %}
                 </ul>
                 <ul class="nav pull-right">
@@ -31,7 +30,7 @@
                         {% if request.user.is_authenticated %}
                             {% if PROJECT_LIST %}
                                 <li class="dropdown">
-                                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Dashboard" %} <span class="caret"></span></a>
+                                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Projects" %} <span class="caret"></span></a>
                                     <ul class="dropdown-menu">
                                         {% for p in PROJECT_LIST %}
                                             <li{% if project == p %} class="active"{% endif %}><a href="{% url sentry p.slug %}">{{ p.name }}</a></li>
