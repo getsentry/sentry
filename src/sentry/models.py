@@ -363,7 +363,7 @@ class MessageBase(Model):
     def message_top(self):
         if self.culprit:
             return self.culprit
-        return truncatechars(self.message.split('\n')[0], 100)
+        return truncatechars(self.message.splitlines()[0], 100)
 
 
 class Group(MessageBase):
