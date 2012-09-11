@@ -177,6 +177,8 @@ class IssuePlugin(Plugin):
         return self.render(self.create_issue_template, context)
 
     def actions(self, request, group, action_list, **kwargs):
+        if not self.is_configured(request=request, project=group.project):
+            return action_list
         prefix = self.get_conf_key()
         if not GroupMeta.objects.get_value(group, '%s:tid' % prefix, None):
             action_list.append((self.get_new_issue_title(), self.get_url(group)))
