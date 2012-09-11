@@ -38,10 +38,8 @@ class UserAgentPlugin(TagPlugin):
 
 class BrowserPlugin(UserAgentPlugin):
     """
-    Adds additional support for showing information about browsers including:
-
-    * A panel which shows all browsers a message was seen on.
-    * A sidebar module which shows the browsers most actively seen on.
+    Automatically adds the 'browser' tag from events containing interface data
+    from ``sentry.interfaes.Http``.
     """
     slug = 'browsers'
     title = _('Browsers')
@@ -64,10 +62,8 @@ register(BrowserPlugin)
 
 class OsPlugin(UserAgentPlugin):
     """
-    Adds additional support for showing information about operating systems including:
-
-    * A panel which shows all operating systems a message was seen on.
-    * A sidebar module which shows the operating systems most actively seen on.
+    Automatically adds the 'os' tag from events containing interface data
+    from ``sentry.interfaes.Http``.
     """
     slug = 'os'
     title = _('Operating Systems')

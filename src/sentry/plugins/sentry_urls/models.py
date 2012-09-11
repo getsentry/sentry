@@ -15,10 +15,8 @@ from sentry.plugins.bases.tag import TagPlugin
 
 class UrlsPlugin(TagPlugin):
     """
-    Adds additional support for showing information about urls including:
-
-    * A panel which shows all urls a message was seen on.
-    * A sidebar module which shows the urls most actively seen on.
+    Automatically adds the 'url' tag from events containing interface data
+    from ``sentry.interfaes.Http``.
     """
     slug = 'urls'
     title = _('URLs')
