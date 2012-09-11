@@ -97,36 +97,6 @@ class SentryManagerTest(TestCase):
         self.assertEquals(res.value, 'http://example.com/2')
         self.assertEquals(res.times_seen, 1)
 
-    def test_site_filter(self):
-        event = Group.objects.from_kwargs(1, message='foo')
-        group = event.group
-        self.assertEquals(group.messagefiltervalue_set.filter(key='site').count(), 0)
-
-        event = Group.objects.from_kwargs(1, message='foo', site='foo')
-        group = event.group
-        self.assertEquals(group.messagefiltervalue_set.filter(key='site').count(), 1)
-        res = group.messagefiltervalue_set.filter(key='site').get()
-        self.assertEquals(res.value, 'foo')
-        self.assertEquals(res.times_seen, 1)
-
-        event = Group.objects.from_kwargs(1, message='foo', site='foo')
-        group = event.group
-        self.assertEquals(group.messagefiltervalue_set.filter(key='site').count(), 1)
-        res = group.messagefiltervalue_set.filter(key='site').get()
-        self.assertEquals(res.value, 'foo')
-        self.assertEquals(res.times_seen, 2)
-
-        event = Group.objects.from_kwargs(1, message='foo', site='bar')
-        group = event.group
-        self.assertEquals(group.messagefiltervalue_set.filter(key='site').count(), 2)
-        results = list(group.messagefiltervalue_set.filter(key='site').order_by('id'))
-        res = results[0]
-        self.assertEquals(res.value, 'foo')
-        self.assertEquals(res.times_seen, 2)
-        res = results[1]
-        self.assertEquals(res.value, 'bar')
-        self.assertEquals(res.times_seen, 1)
-
     def test_server_name_filter(self):
         event = Group.objects.from_kwargs(1, message='foo')
         group = event.group
