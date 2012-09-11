@@ -4014,31 +4014,37 @@ p {
   margin-top: 0px;
   margin-bottom: 8px;
 }
-#content .sidebar .nav.nav-tabs.nav-stacked {
+#content .sidebar .nav.nav-tabs.nav-stacked,
+#content .sidebar .nav.counted-list {
   margin-bottom: 8px;
   list-style: none;
   margin-left: 0;
   padding: 0;
 }
-#content .sidebar .nav.nav-tabs.nav-stacked.counted-list li {
+#content .sidebar .nav.nav-tabs.nav-stacked.counted-list li,
+#content .sidebar .nav.counted-list.counted-list li {
   position: relative;
 }
-#content .sidebar .nav.nav-tabs.nav-stacked.counted-list li a {
-  padding-left: 45px;
+#content .sidebar .nav.nav-tabs.nav-stacked.counted-list li a,
+#content .sidebar .nav.counted-list.counted-list li a {
+  padding-left: 55px;
 }
-#content .sidebar .nav.nav-tabs.nav-stacked.counted-list li .count {
+#content .sidebar .nav.nav-tabs.nav-stacked.counted-list li .count,
+#content .sidebar .nav.counted-list.counted-list li .count {
   position: absolute;
   left: 0;
   line-height: 23px;
 }
-#content .sidebar .nav.nav-tabs.nav-stacked li {
+#content .sidebar .nav.nav-tabs.nav-stacked li,
+#content .sidebar .nav.counted-list li {
   position: relative;
   margin-left: 0;
   padding-left: 0;
 }
-#content .sidebar .nav.nav-tabs.nav-stacked li .count {
+#content .sidebar .nav.nav-tabs.nav-stacked li .count,
+#content .sidebar .nav.counted-list li .count {
   text-align: center;
-  width: 25px;
+  width: 35px;
   position: absolute;
   display: block;
   left: 0;
