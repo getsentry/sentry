@@ -33,7 +33,7 @@
             <div class="tab-content">
                 <div class="tab-pane" id="top_15m"></div>
                 <div class="tab-pane" id="top_60m"></div>
-                <div class="tab-pane active" id="top_24h"><p>Loading ...</p></div>
+                <div class="tab-pane active" id="top_24h"><p>{% trans "Loading ..." %}</p></div>
             </div>
             <div class="page-header">
                 <h3 class="pull-left">{% trans "New Events" %}</h3>
@@ -46,7 +46,7 @@
             <div class="tab-content">
                 <div class="tab-pane" id="new_15m"></div>
                 <div class="tab-pane" id="new_60m"></div>
-                <div class="tab-pane active" id="new_24h"><p>Loading ...</p></div>
+                <div class="tab-pane active" id="new_24h"><p>{% trans "Loading ..." %}</p></div>
             </div>
         {% else %}
             {% if can_create_projects %}
@@ -65,7 +65,7 @@
         <ul class="nav nav-tabs nav-stacked" style="margin-bottom:5px">
             {% for p in PROJECT_LIST|slice:"10" %}
                 <li{% if p == project %} class="active"{% endif %}>
-                    <a class="action" href="{% url sentry-manage-project p.slug %}">Edit</a>
+                    <a class="action" href="{% url sentry-manage-project p.slug %}">{% trans "Settings" %}</a>
                     <a href="{% url sentry p.slug %}">{{ p.name }}</a>
                 </li>
             {% endfor %}
