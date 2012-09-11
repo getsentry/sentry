@@ -328,3 +328,8 @@ def gravatar_url(context, email, sizevar=None, defaultvar='mm'):
         gravatar_url += "?" + urllib.urlencode(properties)
 
     return gravatar_url
+
+
+@register.filter
+def trim_schema(value):
+    return value.split('//', 1)[-1]

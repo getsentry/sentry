@@ -4735,3 +4735,6 @@ legend {
 .icon-white {
   background-image: url(../images/glyphicons-halflings-white.png);
 }
+.plugin-meta .description p {
+  font-size: 13px;
+}

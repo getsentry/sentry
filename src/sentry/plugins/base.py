@@ -284,6 +284,19 @@ class IPlugin(local):
         """
         return self.description
 
+    def get_resource_links(self):
+        """
+        Returns a list of tuples pointing to various resources for this plugin.
+
+        >>> def get_resource_links(self):
+        >>>     return [
+        >>>         ('Documentation', 'http://sentry.readthedocs.org'),
+        >>>         ('Bug Tracker', 'https://github.com/getsentry/sentry/issues'),
+        >>>         ('Source', 'https://github.com/getsentry/sentry'),
+        >>>     ]
+        """
+        return []
+
     def get_view_response(self, request, group):
         from sentry.permissions import can_admin_group
 

@@ -779,3 +779,4 @@ legend{margin-bottom:18px;}
 .alert-block>ul{margin-bottom:9px;}
 [class*="icon-"]{background-image:url(../images/glyphicons-halflings.png);}
 .icon-white{background-image:url(../images/glyphicons-halflings-white.png);}
+.plugin-meta .description p{font-size:13px;}

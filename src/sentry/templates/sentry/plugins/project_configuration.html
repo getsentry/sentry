@@ -1,14 +1,48 @@
 {% load i18n %}
+{% load sentry_helpers %}
 
-{% if plugin_description %}
-    {{ plugin_description|linebreaks }}
-{% endif %}
+<div class="row-fluid">
+    <div class="span8">
+        {% if request.GET.success %}
+            <div class="alert alert-success">
+                {% trans "Changes to your project were saved successfully." %}
+                <a class="close" data-dismiss="alert" href="javascript:void(0)">&times;</a>
+            </div>
+        {% endif %}
 
-{% if request.GET.success %}
-    <div class="alert alert-success">
-        {% trans "Changes to your project were saved successfully." %}
-        <a class="close" data-dismiss="alert" href="javascript:void(0)">&times;</a>
+        {% include "sentry/partial/_form.html" %}
     </div>
-{% endif %}
-
-{% include "sentry/partial/_form.html" %}
+    <div class="span4">
+        <div class="well plugin-meta">
+            <h6>Plugin Information</h6>
+            <dl class="flat">
+                <dt>Name:</dt>
+                <dd>{{ plugin.get_title }}</dd>
+                <dt>Author</dt>
+                <dd>{{ plugin.author }}</dd>
+                {% if plugin.author_url %}
+                    <dt>URL</dt>
+                    <dd><a href="{{ plugin.author_url }}">{{ plugin.author_url|trim_schema }}</a></dd>
+                {% endif %}
+                <dt>Version</dt>
+                <dd>{{ plugin.version }}</dd>
+            </dl>
+            {% if plugin_description %}
+                <h6>Description</h6>
+                <div class="description">
+                    {{ plugin_description|linebreaks }}
+                </div>
+            {% endif %}
+            {% with plugin.get_resource_links as resource_links %}
+                {% if resource_links %}
+                    <ul class="nav nav-list" style="padding:0;">
+                        <li class="nav-header">Resources</li>
+                        {% for label, link in resource_links %}
+                            <li><a href="{{ link }}">{{ label }}</a></li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
+        </div>
+    </div>
+</div>
