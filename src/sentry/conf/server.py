@@ -148,7 +148,6 @@ INSTALLED_APPS = (
     'sentry',
     'sentry.plugins.sentry_mail',
     'sentry.plugins.sentry_servers',
-    'sentry.plugins.sentry_sites',
     'sentry.plugins.sentry_urls',
     'sentry.plugins.sentry_user_emails',
     'sentry.plugins.sentry_useragents',

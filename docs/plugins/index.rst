@@ -14,7 +14,6 @@ your ``INSTALLED_APPS``::
       ...
       'sentry.plugins.sentry_mail',
       'sentry.plugins.sentry_servers',
-      'sentry.plugins.sentry_sites',
       'sentry.plugins.sentry_urls',
       'sentry.plugins.sentry_useragents',
     ]
@@ -28,13 +27,6 @@ your ``INSTALLED_APPS``::
     :noindex:
 
     Enables auto tagging of urls based on the Http interface contents.
-
-.. data:: sentry.plugins.sentry_sites
-    :noindex:
-
-    .. versionadded:: 1.3.13
-
-    Enables auto tagging of sites.
 
 .. data:: sentry.plugins.sentry_mail
     :noindex:
