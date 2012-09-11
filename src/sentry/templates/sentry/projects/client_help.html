@@ -18,6 +18,7 @@
         </div>
         <p>{% trans "Choose your platform for quick setup instructions:" %}</p>
         {% include "sentry/partial/_client_config.html" %}
+        <p>{% blocktrans with 'http://sentry.readthedocs.org' as link %}For more information on developing clients and the Sentry API, see the <a href="{{ link }}">documentation</a>.{% endblocktrans %}</p>
     {% else %}
         <p>{% trans "There is no key configured for your account with access to this project." %}</p>
     {% endif %}
