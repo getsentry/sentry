@@ -13,7 +13,9 @@
 {% endblock %}
 
 {% block inner %}
-    <p>{% trans "You are able to selectively enable plugins on a per-project basis." %}</p>
+    <div class="page-header">
+        <h2>{% trans "Manage Plugins" %}</h2>
+    </div>
     <form method="POST">
         {% csrf_token %}
         <table class="table table-bordered table-striped">

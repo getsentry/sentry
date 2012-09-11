@@ -3926,10 +3926,20 @@ p {
   background: #fff;
 }
 #content.with-sidebar {
-  background: #ffffff url(../images/dashboard/sidebar-bg.gif) top right repeat-y;
+  background: #ffffff url(../images/dashboard/sidebar-bg-right.png) top right repeat-y;
 }
 #content.with-sidebar .content {
   padding-right: 300px;
+}
+#content.with-left-sidebar {
+  background: #ffffff url(../images/dashboard/sidebar-bg-left.png) top left repeat-y;
+}
+#content.with-left-sidebar .content {
+  padding-left: 300px;
+}
+#content.with-left-sidebar .sidebar {
+  margin-right: 0;
+  margin-left: -300px;
 }
 #content .content {
   *zoom: 1;
@@ -4001,29 +4011,29 @@ p {
   margin-top: 0px;
   margin-bottom: 8px;
 }
-#content .sidebar ul {
+#content .sidebar .nav.nav-tabs.nav-stacked {
   margin-bottom: 8px;
   list-style: none;
   margin-left: 0;
   padding: 0;
 }
-#content .sidebar ul.counted-list li {
+#content .sidebar .nav.nav-tabs.nav-stacked.counted-list li {
   position: relative;
 }
-#content .sidebar ul.counted-list li a {
+#content .sidebar .nav.nav-tabs.nav-stacked.counted-list li a {
   padding-left: 45px;
 }
-#content .sidebar ul.counted-list li .count {
+#content .sidebar .nav.nav-tabs.nav-stacked.counted-list li .count {
   position: absolute;
   left: 0;
   line-height: 23px;
 }
-#content .sidebar ul li {
+#content .sidebar .nav.nav-tabs.nav-stacked li {
   position: relative;
   margin-left: 0;
   padding-left: 0;
 }
-#content .sidebar ul li .count {
+#content .sidebar .nav.nav-tabs.nav-stacked li .count {
   text-align: center;
   width: 25px;
   position: absolute;
@@ -4122,6 +4132,12 @@ p {
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.6);
   font-weight: 500;
   text-shadow: 0 1px rgba(255, 255, 255, 0.75);
+}
+#content .sidebar .nav-list {
+  margin: 0 -19px 8px -20px;
+}
+#content .sidebar .nav-list li.active a {
+  background-color: #56AFE8;
 }
 footer {
   *zoom: 1;

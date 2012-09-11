@@ -1,5 +1,10 @@
 {% extends "sentry/projects/manage.html" %}
 
+{% load i18n %}
+
 {% block inner %}
+    <div class="page-header">
+        <h2>{% trans "Configure Plugin" %}</h2>
+    </div>
     {{ view }}
 {% endblock %}

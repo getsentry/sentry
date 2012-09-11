@@ -198,9 +198,19 @@ p {
   background: #fff;
 
   &.with-sidebar {
-    background: #fff url(../images/dashboard/sidebar-bg.gif) top right repeat-y;
+    background: #fff url(../images/dashboard/sidebar-bg-right.png) top right repeat-y;
     .content {
       padding-right: 300px;
+    }
+  }
+  &.with-left-sidebar {
+    background: #fff url(../images/dashboard/sidebar-bg-left.png) top left repeat-y;  
+    .content {
+      padding-left: 300px;
+    }
+    .sidebar {
+      margin-right: 0;
+      margin-left: -300px;
     }
   }
 
@@ -262,7 +272,7 @@ p {
       margin-bottom: 8px;
     }
 
-    ul {
+    .nav.nav-tabs.nav-stacked {
       margin-bottom: 8px;
       list-style: none;
       margin-left: 0;
@@ -324,6 +334,12 @@ p {
           font-weight: 500;
           text-shadow: 0 1px rgba(255,255,255, .75);
         }
+      }
+    }
+    .nav-list {
+      margin: 0 -19px 8px -20px;
+      li.active a {
+        background-color: #56AFE8;
       }
     }
   }
