@@ -41,6 +41,14 @@ class SentryApplication(djangoapp.DjangoApplication):
     def init(self, parser, opts, args):
         pass
 
+    def do_load_config(self):
+        original_args = sys.argv
+        sys.argv = sys.argv[0:1]
+        try:
+            return super(SentryApplication, self).do_load_config()
+        finally:
+            sys.argv = original_args
+
     def load(self):
         # application should be imported at first to setup env
         from sentry.wsgi import application
