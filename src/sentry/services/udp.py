@@ -58,13 +58,13 @@ class BaseUDPServer(Service):
     _socket = None
     _spawn = None
 
-    def __init__(self, host=None, port=None, debug=False, workers=POOL_SIZE):
+    def __init__(self, host=None, port=None, debug=False, workers=None):
         super(BaseUDPServer, self).__init__(debug=debug)
         from sentry.conf import settings
 
         self.host = host or settings.UDP_HOST
         self.port = port or settings.UDP_PORT
-        self.workers = workers
+        self.workers = workers or self.POOL_SIZE
 
     def setup(self):
         assert self._socket and self._spawn, \
