@@ -22,22 +22,19 @@ your ``INSTALLED_APPS``::
 .. data:: sentry.plugins.sentry_server
     :noindex:
 
-    Enables a list of most seen servers in the message details sidebar, as well
-    as a dedicated panel to view all servers a message has been seen on.
+    Enables auto tagging of servers.
 
 .. data:: sentry.plugins.sentry_urls
     :noindex:
 
-    Enables a list of most seen urls in the message details sidebar, as well
-    as a dedicated panel to view all urls a message has been seen on.
+    Enables auto tagging of urls based on the Http interface contents.
 
 .. data:: sentry.plugins.sentry_sites
     :noindex:
 
     .. versionadded:: 1.3.13
 
-    Enables a list of most seen sites in the message details sidebar, as well
-    as a dedicated panel to view all sites a message has been seen on.
+    Enables auto tagging of sites.
 
 .. data:: sentry.plugins.sentry_mail
     :noindex:
@@ -47,7 +44,7 @@ your ``INSTALLED_APPS``::
 .. data:: sentry.plugins.sentry_useragents
     :noindex:
 
-    Enables tagging of browsers and operating systems based on the
+    Enables auto tagging of browsers and operating systems based on the
     'User-Agent' header in the HTTP interface.
 
     .. versionadded:: 4.5.0
