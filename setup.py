@@ -65,11 +65,12 @@ install_requires = [
     'South>=0.7.6',
     'httpagentparser>=1.0.5',
     'django-social-auth>=0.7.1,<1.0',
+    'django-social-auth-trello',
 ]
 
 setup(
     name='sentry',
-    version='5.0.10',
+    version='5.0.11',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://www.getsentry.com',
