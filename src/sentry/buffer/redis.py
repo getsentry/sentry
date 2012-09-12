@@ -11,7 +11,7 @@ from __future__ import with_statement
 from django.db import models
 from hashlib import md5
 from nydus.db import create_cluster
-from sentry.buffer.base import Buffer
+from sentry.buffer import Buffer
 from sentry.utils.compat import pickle
 
 
