@@ -153,7 +153,7 @@ INSTALLED_APPS = (
     'sentry.plugins.sentry_useragents',
     'social_auth',
     'south',
-    'django-social-auth-trello',
+    'django_social_auth_trello',
 )
 
 STATIC_URL = '/_admin_media/'
