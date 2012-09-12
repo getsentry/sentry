@@ -135,7 +135,7 @@ def create_new_user(request):
         if form.cleaned_data['create_project']:
             project = Project.objects.create(
                 owner=user,
-                name='New Project',
+                name='%s\'s New Project' % user.username.capitalize()
             )
             member = project.team.member_set.get(user=user)
             key = project.key_set.get(user=user)
