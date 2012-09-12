@@ -33,7 +33,8 @@ from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
-from sentry.constants import STATUS_LEVELS, MEMBER_TYPES
+from sentry.constants import STATUS_LEVELS, MEMBER_TYPES, \
+  MEMBER_OWNER, MEMBER_USER, MEMBER_SYSTEM  # NOQA
 from sentry.manager import GroupManager, ProjectManager, \
   MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager, \
   UserOptionManager, FilterKeyManager, TeamManager
@@ -42,7 +43,6 @@ from sentry.utils import cached_property, \
 from sentry.utils.models import Model, GzippedDictField, update
 from sentry.utils.imports import import_string
 from sentry.templatetags.sentry_helpers import truncatechars
-
 
 __all__ = ('Event', 'Group', 'Project', 'SearchDocument')
 
