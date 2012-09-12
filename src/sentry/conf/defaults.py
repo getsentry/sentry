@@ -168,7 +168,7 @@ CACHE_BACKEND = 'dummy://'
 MAX_JSON_RESULTS = 1000
 
 # Buffer backend to use
-BUFFER = 'sentry.buffer.Buffer'
+BUFFER = 'sentry.buffer.base.Buffer'
 BUFFER_OPTIONS = {}
 
 # Auth engines and the settings required for them to be listed
