@@ -65,7 +65,7 @@ install_requires = [
     'South>=0.7.6',
     'httpagentparser>=1.0.5',
     'django-social-auth>=0.7.1,<1.0',
-    'django-social-auth-trello',
+    'django-social-auth-trello>=1.0.2',
 ]
 
 setup(
