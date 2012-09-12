@@ -43,6 +43,7 @@ logger = logging.getLogger('sentry.errors')
 UNSAVED = dict()
 MAX_TAG_LENGTH = 200
 
+
 def get_checksum_from_event(event):
     for interface in event.interfaces.itervalues():
         result = interface.get_hash()
