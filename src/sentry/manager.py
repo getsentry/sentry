@@ -616,7 +616,7 @@ class GroupManager(BaseManager, ChartMixin):
         project = group.project
         date = group.last_seen
 
-        for key, value in itertools.ifilter(bool, tags):
+        for key, value in itertools.ifilter(lambda x: bool(x[1]), tags):
             if len(value) > MAX_TAG_LENGTH:
                 continue
 
