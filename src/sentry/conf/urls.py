@@ -10,7 +10,7 @@ These are additional urls used by the Sentry-provided web server
 
 import os
 
-from sentry.web.urls import web_urlpatterns
+from sentry.web.urls import urlpatterns as web_urlpatterns
 from sentry.web.frontend import generic
 from django.conf.urls.defaults import patterns, url, include
 from django.contrib import admin
