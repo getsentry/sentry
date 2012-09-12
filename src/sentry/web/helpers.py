@@ -155,7 +155,7 @@ def plugin_config(plugin, project, request):
         template = plugin.project_conf_template
     else:
         form_class = plugin.site_conf_form
-        form_template =  "sentry/partial/_form.html"
+        form_template = "sentry/partial/_form.html"
         template = plugin.site_conf_template
 
     initials = plugin.get_form_initial(project)

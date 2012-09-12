@@ -230,6 +230,29 @@ def manage_project_tags(request, project):
 
 @has_access(MEMBER_OWNER)
 @csrf_protect
+def manage_plugins(request, project):
+    result = plugins.first('has_perm', request.user, 'configure_project_plugin', project)
+    if result is False and not request.user.has_perm('sentry.can_change_project'):
+        return HttpResponseRedirect(reverse('sentry'))
+
+    if request.POST:
+        enabled = set(request.POST.getlist('plugin'))
+        for plugin in plugins.all():
+            if plugin.can_enable_for_projects():
+                plugin.set_option('enabled', plugin.slug in enabled, project)
+        return HttpResponseRedirect(request.path + '?success=1')
+
+    context = csrf(request)
+    context.update({
+        'page': 'plugins',
+        'project': project,
+    })
+
+    return render_to_response('sentry/projects/plugins/list.html', context, request)
+
+
+@has_access(MEMBER_OWNER)
+@csrf_protect
 def configure_project_plugin(request, project, slug):
     try:
         plugin = plugins.get(slug)
@@ -265,22 +288,59 @@ def configure_project_plugin(request, project, slug):
 
 @has_access(MEMBER_OWNER)
 @csrf_protect
-def manage_plugins(request, project):
-    result = plugins.first('has_perm', request.user, 'configure_project_plugin', project)
-    if result is False and not request.user.has_perm('sentry.can_change_project'):
+def reset_project_plugin(request, project, slug):
+    try:
+        plugin = plugins.get(slug)
+    except KeyError:
+        return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.slug, slug]))
+
+    if not plugin.is_enabled(project):
+        return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.slug, slug]))
+
+    result = plugins.first('has_perm', request.user, 'configure_project_plugin', project, plugin)
+    if result is False and not request.user.is_superuser:
         return HttpResponseRedirect(reverse('sentry'))
 
-    if request.POST:
-        enabled = set(request.POST.getlist('plugin'))
-        for plugin in plugins.all():
-            if plugin.can_enable_for_projects():
-                plugin.set_option('enabled', plugin.slug in enabled, project)
-        return HttpResponseRedirect(request.path + '?success=1')
+    plugin.reset_options(project=project)
 
-    context = csrf(request)
-    context.update({
-        'page': 'plugins',
-        'project': project,
-    })
+    return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.slug, slug]))
 
-    return render_to_response('sentry/projects/plugins/list.html', context, request)
+
+@has_access(MEMBER_OWNER)
+@csrf_protect
+def enable_project_plugin(request, project, slug):
+    try:
+        plugin = plugins.get(slug)
+    except KeyError:
+        return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.slug, slug]))
+
+    if plugin.is_enabled(project) or not plugin.can_enable_for_projects():
+        return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.slug, slug]))
+
+    result = plugins.first('has_perm', request.user, 'configure_project_plugin', project, plugin)
+    if result is False and not request.user.is_superuser:
+        return HttpResponseRedirect(reverse('sentry'))
+
+    plugin.set_option('enabled', True, project)
+
+    return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.slug, slug]))
+
+
+@has_access(MEMBER_OWNER)
+@csrf_protect
+def disable_project_plugin(request, project, slug):
+    try:
+        plugin = plugins.get(slug)
+    except KeyError:
+        return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.slug, slug]))
+
+    if not plugin.is_enabled(project) or not plugin.can_enable_for_projects():
+        return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.slug, slug]))
+
+    result = plugins.first('has_perm', request.user, 'configure_project_plugin', project, plugin)
+    if result is False and not request.user.is_superuser:
+        return HttpResponseRedirect(reverse('sentry'))
+
+    plugin.set_option('enabled', False, project)
+
+    return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.slug]))

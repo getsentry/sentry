@@ -11,6 +11,18 @@ from sentry.models import ProjectOption, Option, UserOption
 __all__ = ('set_option', 'get_option', 'unset_option')
 
 
+def reset_options(prefix, project=None, user=None):
+    if user:
+        UserOption.objects.filter(key__startswith='%s:' % (prefix,), project=project, user=user).delete()
+        UserOption.objects.clear_cache()
+    elif project:
+        ProjectOption.objects.filter(key__startswith='%s:' % (prefix,), project=project).delete()
+        ProjectOption.objects.clear_cache()
+    else:
+        Option.objects.filter(key__startswith='%s:' % (prefix,)).delete()
+        Option.objects.clear_cache()
+
+
 def set_option(key, value, project=None, user=None):
     if user:
         result = UserOption.objects.set_value(user, project, key, value)

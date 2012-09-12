@@ -174,6 +174,10 @@ class IPlugin(local):
                 return False
         return True
 
+    def reset_options(self, project=None, user=None):
+        from .helpers import reset_options
+        return reset_options(self.get_conf_key(), project, user)
+
     def get_option(self, key, project=None, user=None):
         """
         Returns the value of an option in your plugins keyspace, or ``None`` if
