@@ -153,6 +153,7 @@ INSTALLED_APPS = (
     'sentry.plugins.sentry_useragents',
     'social_auth',
     'south',
+    'django_social_auth_trello',
 )
 
 STATIC_URL = '/_admin_media/'
@@ -195,6 +196,7 @@ AUTHENTICATION_BACKENDS = (
     'social_auth.backends.contrib.bitbucket.BitbucketBackend',
     'social_auth.backends.contrib.mixcloud.MixcloudBackend',
     'social_auth.backends.contrib.live.LiveBackend',
+    'django_social_auth_trello.backend.TrelloBackend',
     'django.contrib.auth.backends.ModelBackend',
 )
 
@@ -210,6 +212,9 @@ GOOGLE_OAUTH2_CLIENT_SECRET = ''
 
 GITHUB_APP_ID = ''
 GITHUB_API_SECRET = ''
+
+TRELLO_API_KEY = ''
+TRELLO_API_SECRET = ''
 
 SOCIAL_AUTH_CREATE_USERS = True
 

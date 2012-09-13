@@ -300,6 +300,14 @@ the following::
 For more information on configuring social authentication services, consult the `documentation on django-social-auth
 <https://github.com/omab/django-social-auth/>`_.
 
+Trello
+~~~~~~
+
+Generate an application key at https://trello.com/1/appKey/generate. Take the values given on the page, and configure
+the following::
+
+  TRELLO_API_KEY = ''
+  TRELLO_API_SECRET = ''
 
 What's Next?
 ------------
