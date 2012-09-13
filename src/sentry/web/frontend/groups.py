@@ -59,7 +59,7 @@ def _get_group_list(request, project, view=None):
             logger.exception('Error initializing filter %r: %s', cls, e)
 
     event_list = Group.objects
-    if request.GET.get('bookmarks'):
+    if request.user.is_authenticated() and request.GET.get('bookmarks'):
         event_list = event_list.filter(
             bookmark_set__project=project,
             bookmark_set__user=request.user,
