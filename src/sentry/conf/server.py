@@ -143,6 +143,7 @@ INSTALLED_APPS = (
 
     'crispy_forms',
     'djcelery',
+    'gunicorn',
     'kombu.transport.django',
     'raven.contrib.django',
     'sentry',
