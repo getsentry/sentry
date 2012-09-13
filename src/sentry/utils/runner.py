@@ -79,6 +79,10 @@ GOOGLE_OAUTH2_CLIENT_SECRET = ''
 # https://github.com/settings/applications/new
 GITHUB_APP_ID = ''
 GITHUB_API_SECRET = ''
+
+# https://trello.com/1/appKey/generate
+TRELLO_API_KEY = ''
+TRELLO_API_SECRET = ''
 """
 
 
