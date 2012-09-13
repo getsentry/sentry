@@ -34,6 +34,7 @@
 {% block breadcrumb %}{% endblock %}
 
 {% block sidebar %}
+    {% if request.user.is_authenticated %}
     {% querystring from request without bookmarks as bookmark_querystring %}
     <h6>{% trans "Bookmarks" %}</h6>
     <form>
@@ -41,6 +42,7 @@
         <li{% if not request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ bookmark_querystring }}">{% trans "All Events" %}</a></li>
         <li{% if request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ bookmark_querystring }}&amp;bookmarks=1">{% trans "Only Bookmarks" %}</a></li>
     </ul>
+    {% endif %}
 
     {% for filter in filters %}
         {% if filter.show_label %}
