@@ -37,7 +37,7 @@ for m in ('multiprocessing', 'billiard'):
 tests_require = [
     'django-nose==1.1',
     'eventlet==0.9.16',
-    'nose==1.1.2',
+    'nose==1.2.1',
     'nydus==0.8.2',
     'mock>=0.8.0',
     'redis',
