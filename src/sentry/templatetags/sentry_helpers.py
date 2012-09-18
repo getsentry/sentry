@@ -87,31 +87,6 @@ def small_count(v):
 
 
 @register.filter
-def with_priority(result_list, key='score'):
-    if result_list:
-        if isinstance(result_list[0], (dict, list, tuple)):
-            _get = lambda x, k: x[k]
-        else:
-            _get = lambda x, k: getattr(x, k)
-
-        min_, max_ = min([_get(r, key) for r in result_list]), max([_get(r, key) for r in result_list])
-        mid = (max_ - min_) / 4
-        for result in result_list:
-            val = _get(result, key)
-            if val > max_ - mid:
-                priority = 'veryhigh'
-            elif val > max_ - mid * 2:
-                priority = 'high'
-            elif val > max_ - mid * 3:
-                priority = 'medium'
-            elif val > max_ - mid * 4:
-                priority = 'low'
-            else:
-                priority = 'verylow'
-            yield result, priority
-
-
-@register.filter
 def num_digits(value):
     return len(str(value))
 
