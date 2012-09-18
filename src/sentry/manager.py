@@ -380,7 +380,6 @@ class ChartMixin(object):
             for point in xrange(points, -1, -1):
                 dt = today - datetime.timedelta(**{d_type: point * modifier})
                 results[item].append((int((dt).strftime('%s')) * 1000, tsdata.get(dt, 0)))
-            print results[item]
 
         if key is None:
             return results[None]
