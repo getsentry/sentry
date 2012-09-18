@@ -24,7 +24,7 @@ from sentry.coreapi import project_from_auth_vars, project_from_id, \
   insert_data_to_database, APIError, APIUnauthorized, extract_auth_vars
 from sentry.exceptions import InvalidData
 from sentry.models import Group, GroupBookmark, Project, View
-from sentry.templatetags.sentry_helpers import as_bookmarks
+from sentry.templatetags.sentry_helpers import with_metadata
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.db import has_trending
@@ -44,7 +44,7 @@ def transform_groups(request, group_list, template='sentry/partial/_group.html')
             'html': render_to_string(template, {
                 'group': m,
                 'request': request,
-                'is_bookmarked': b,
+                'metadata': d,
             }).strip(),
             'title': m.message_top(),
             'message': m.error(),
@@ -54,7 +54,7 @@ def transform_groups(request, group_list, template='sentry/partial/_group.html')
             'is_public': m.is_public,
             'score': getattr(m, 'sort_value', None),
         }
-        for m, b in as_bookmarks(group_list, request.user)
+        for m, d in with_metadata(group_list, request)
     ]
 
 

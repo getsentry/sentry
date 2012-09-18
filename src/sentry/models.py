@@ -42,7 +42,7 @@ from sentry.utils import cached_property, \
   MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField, update
 from sentry.utils.imports import import_string
-from sentry.templatetags.sentry_helpers import truncatechars
+from sentry.utils.strings import truncatechars
 
 __all__ = ('Event', 'Group', 'Project', 'SearchDocument')
 

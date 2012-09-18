@@ -30,6 +30,7 @@
                 <span class="time-spent">{{ group.avg_time_spent|duration }}</span>
             {% endif %}
         </div>
+        <span class="sparkline" sparkwidth="100" sparkheight="40" sparklineColor="#3079d0"><!-- {{ metadata.historical_data }} --></span>
         <ul class="actions">
             <li>
                 {% if group.status == 0 %}
@@ -39,7 +40,7 @@
                 {% endif %}
             </li>
             {% if request.user.is_authenticated %}
-                <li><a href="javascript:void(0)" onclick="Sentry.stream.bookmark('{{ group.project.slug }}', {{ group.id|safe }}, this);" class="tip bookmark{% if is_bookmarked %} checked{% endif %}" rel="tooltip" title="{% trans "Bookmark" %}">&#9733;</a></li>
+                <li><a href="javascript:void(0)" onclick="Sentry.stream.bookmark('{{ group.project.slug }}', {{ group.id|safe }}, this);" class="tip bookmark{% if metadata.is_bookmarked %} checked{% endif %}" rel="tooltip" title="{% trans "Bookmark" %}">&#9733;</a></li>
             {% endif %}
         </ul>
     </div>

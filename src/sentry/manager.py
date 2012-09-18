@@ -292,7 +292,7 @@ def time_limit(silence):  # ~ 3600 per hour
 
 
 class ChartMixin(object):
-    def get_chart_data_for_group(self, instances, max_days=90):
+    def get_chart_data_for_group(self, instances, max_days=90, key=None):
         if not instances:
             return []
 
@@ -307,9 +307,9 @@ class ChartMixin(object):
             '%s__in' % column: instances,
         })
 
-        return self._get_chart_data(queryset, max_days, db)
+        return self._get_chart_data(queryset, max_days, db, key=key)
 
-    def get_chart_data(self, instance, max_days=90):
+    def get_chart_data(self, instance, max_days=90, key=None):
         if hasattr(instance, '_state'):
             db = instance._state.db or 'default'
         else:
@@ -317,39 +317,73 @@ class ChartMixin(object):
 
         queryset = instance.messagecountbyminute_set
 
-        return self._get_chart_data(queryset, max_days, db)
+        return self._get_chart_data(queryset, max_days, db, key=key)
 
-    def _get_chart_data(self, queryset, max_days=90, db='default'):
+    def _get_chart_data(self, queryset, max_days=90, db='default', key=None):
         if not has_charts(db):
             return []
 
-        today = timezone.now().replace(microsecond=0, second=0, minute=0)
-        min_date = today - datetime.timedelta(days=max_days)
+        today = timezone.now().replace(microsecond=0, second=0)
 
-        if max_days > 30:
+        if max_days >= 30:
+            g_type = 'date'
+            d_type = 'days'
+            points = max_days
+            modifier = 1
+            today = today.replace(hour=0)
+        elif max_days >= 1:
             g_type = 'hour'
             d_type = 'hours'
             points = max_days * 24
             modifier = 1
+            today = today.replace(minute=0)
         else:
             g_type = 'minute'
             d_type = 'minutes'
-            points = max_days * 24 * 15
-            modifier = 5
+            points = max_days * 24 * 4
+            modifier = 15
+
+        min_date = today - datetime.timedelta(days=max_days)
 
         method = get_sql_date_trunc('date', db, grouper=g_type)
 
-        chart_qs = list(queryset.filter(date__gte=min_date)
-                        .extra(select={'grouper': method}).values('grouper')
-                        .annotate(num=Sum('times_seen')).values_list('grouper', 'num')
-                        .order_by('grouper'))
+        chart_qs = queryset.filter(
+            date__gte=min_date,
+        ).extra(
+            select={'grouper': method},
+        )
+        if key:
+            chart_qs = chart_qs.values('grouper', key)
+        else:
+            chart_qs = chart_qs.values('grouper')
 
-        rows = dict(chart_qs)
+        chart_qs = chart_qs.annotate(
+            num=Sum('times_seen'),
+        )
+        if key:
+            chart_qs = chart_qs.values_list(key, 'grouper', 'num').order_by(key, 'grouper')
+        else:
+            chart_qs = chart_qs.values_list('grouper', 'num').order_by('grouper')
 
-        results = []
-        for point in xrange(points, -1, -1):
-            dt = today - datetime.timedelta(**{d_type: point * modifier})
-            results.append((int((dt).strftime('%s')) * 1000, rows.get(dt, 0)))
+        if key is None:
+            rows = {None: dict(chart_qs)}
+        else:
+            rows = {}
+            for item, grouper, num in chart_qs:
+                if item not in rows:
+                    rows[item] = {}
+                rows[item][grouper] = num
+
+        results = {}
+        for item, tsdata in rows.iteritems():
+            results[item] = []
+            for point in xrange(points, -1, -1):
+                dt = today - datetime.timedelta(**{d_type: point * modifier})
+                results[item].append((int((dt).strftime('%s')) * 1000, tsdata.get(dt, 0)))
+            print results[item]
+
+        if key is None:
+            return results[None]
         return results
 
 

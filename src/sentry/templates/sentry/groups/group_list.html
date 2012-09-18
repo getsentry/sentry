@@ -134,7 +134,7 @@
     {% if event_list.paginator.objects %}
         {% handle_before_events request event_list.paginator.objects %}
         <ul class="events" id="event_list">
-            {% for group, is_bookmarked in event_list.paginator.objects|as_bookmarks:request.user %}
+            {% for group, metadata in event_list.paginator.objects|with_metadata:request %}
                 {% include "sentry/partial/_group.html" %}
             {% endfor %}
         </ul>
