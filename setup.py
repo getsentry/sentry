@@ -60,7 +60,7 @@ install_requires = [
     'logan>=0.5.0',
     'pynliner>=0.4.0',
     'python-dateutil>=1.5.0,<2.0.0',
-    'raven>=2.0.5',
+    'raven>=2.0.6',
     'simplejson>=2.1.6',
     'South>=0.7.6',
     'httpagentparser>=1.0.5',
@@ -70,7 +70,7 @@ install_requires = [
 
 setup(
     name='sentry',
-    version='5.0.11.1',
+    version='5.0.12',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://www.getsentry.com',
