@@ -118,6 +118,7 @@
                                 $ul.append($(group.html));
                             });
                             $cont.html($ul);
+                            $cont.find('.sparkline').sparkline('html', {enableTagOptions: true});
                         } else {
                             $cont.html('<p>{% trans "No unresolved events are listed in the time period selected." %}</p>');
                         }

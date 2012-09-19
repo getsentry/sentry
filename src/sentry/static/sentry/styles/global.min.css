@@ -706,7 +706,8 @@ footer a{color:#f4f4f4;font-weight:bold;}footer a:hover{color:#fff;}
 .events .event.event-small{min-height:30px;padding:8px 10px 8px 60px;}.events .event.event-small h3{margin:0;font-size:14px;line-height:16px;}
 .events .event.event-small .message{font-size:12px;}
 .events .event.event-small .count{left:10px;font-size:12px;width:36px;height:36px;line-height:38px;-webkit-border-radius:36px;-moz-border-radius:36px;border-radius:36px;}
-.events .event.event-small .meta{right:10px;}
+.events .event.event-small .meta{right:120px;}
+.events .event.event-small .sparkline{right:10px;top:18px;}
 .events .event.event-small .tag,.events .event.event-small .meta{font-size:11px;}
 label{font-weight:bold;}
 pre span,code span{display:inline-block;}

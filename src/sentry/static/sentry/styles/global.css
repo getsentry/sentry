@@ -4376,7 +4376,11 @@ footer a:hover {
   border-radius: 36px;
 }
 .events .event.event-small .meta {
+  right: 120px;
+}
+.events .event.event-small .sparkline {
   right: 10px;
+  top: 18px;
 }
 .events .event.event-small .tag,
 .events .event.event-small .meta {
