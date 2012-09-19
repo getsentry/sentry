@@ -307,7 +307,9 @@ def time_limit(silence):  # ~ 3600 per hour
 class ChartMixin(object):
     def get_chart_data_for_group(self, instances, max_days=90, key=None):
         if not instances:
-            return []
+            if key is None:
+                return []
+            return {}
 
         if hasattr(instances[0], '_state'):
             db = instances[0]._state.db or 'default'
@@ -334,7 +336,9 @@ class ChartMixin(object):
 
     def _get_chart_data(self, queryset, max_days=90, db='default', key=None):
         if not has_charts(db):
-            return []
+            if key is None:
+                return []
+            return {}
 
         today = timezone.now().replace(microsecond=0, second=0)
 
