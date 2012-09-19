@@ -4270,7 +4270,7 @@ footer a:hover {
   font-size: 14px;
   /*font-family: "proxima nova", "proxima-nova", "heletica-neue", sans-serif;*/
 
-  padding-right: 14px;
+  padding-right: 124px;
 }
 .events .event .message .tag {
   float: right;
@@ -4285,9 +4285,17 @@ footer a:hover {
   padding: 2px 6px;
   color: #aec9d7;
 }
-.events .event .meta {
+.events .event .sparkline {
   position: absolute;
   right: 40px;
+  top: 25px;
+  display: inline-block;
+  width: 100px;
+  height: 40px;
+}
+.events .event .meta {
+  position: absolute;
+  right: 150px;
   top: 20px;
 }
 .events .event .actions {
@@ -4368,7 +4376,11 @@ footer a:hover {
   border-radius: 36px;
 }
 .events .event.event-small .meta {
+  right: 120px;
+}
+.events .event.event-small .sparkline {
   right: 10px;
+  top: 18px;
 }
 .events .event.event-small .tag,
 .events .event.event-small .meta {
@@ -4485,22 +4497,6 @@ td table.vars {
 }
 .module-content table pre {
   margin-bottom: 0;
-}
-.sparkline {
-  height: 300px;
-}
-.sparkline .chart {
-  height: 280px;
-}
-.sparkline .legend {
-  height: 20px;
-}
-.sparkline .loading {
-  height: 300px;
-  line-height: 200px;
-  text-align: center;
-  display: block;
-  background: #f5f5f5;
 }
 #chart {
   margin-bottom: 15px;

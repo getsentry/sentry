@@ -28,9 +28,10 @@
         <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/html5shiv.js" %}"></script>
         <![endif]-->
         <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.animate-colors-min.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.clippy.min.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.flot.min.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.animate-colors-min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.sparkline.min.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/global.min.js" %}"></script>
         <script type="text/javascript">
         Sentry.config({
@@ -119,6 +120,7 @@
             });
             $('.tip').tooltip();
             $('.nav-tabs .active a').tab('show')
+            $('.sparkline').sparkline('html', {enableTagOptions: true});
         });
         </script>
     </body>
