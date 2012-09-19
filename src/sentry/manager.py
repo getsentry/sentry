@@ -15,6 +15,7 @@ import itertools
 import logging
 import re
 import warnings
+import weakref
 
 from django.conf import settings as dj_settings
 from django.core.signals import request_finished
@@ -63,13 +64,20 @@ class BaseManager(models.Manager):
     def __init__(self, *args, **kwargs):
         self.cache_fields = kwargs.pop('cache_fields', [])
         self.cache_ttl = kwargs.pop('cache_ttl', 60 * 5)
+        self.__cache = weakref.WeakKeyDictionary()
         super(BaseManager, self).__init__(*args, **kwargs)
 
-    def contribute_to_class(self, model, name):
-        super(BaseManager, self).contribute_to_class(model, name)
-        class_prepared.connect(self._class_prepared, sender=model)
+    def __getstate__(self):
+        d = self.__dict__.copy()
+        # we cant serialize weakrefs
+        del d['_BaseManager__cache']
+        return d
 
-    def _prep_value(self, key, value):
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.__cache = weakref.WeakKeyDictionary()
+
+    def __prep_value(self, key, value):
         if isinstance(value, models.Model):
             value = value.pk
         else:
@@ -79,47 +87,47 @@ class BaseManager(models.Manager):
             value = self.lookup_handlers[parts[-1]](value)
         return value
 
-    def _prep_key(self, key):
+    def __prep_key(self, key):
         if key == 'pk':
             return self.model._meta.pk.name
         return key
 
-    def _make_key(self, prefix, kwargs):
+    def __make_key(self, prefix, kwargs):
         kwargs_bits = []
         for k, v in sorted(kwargs.iteritems()):
-            k = self._prep_key(k)
-            v = smart_str(self._prep_value(k, v))
+            k = self.__prep_key(k)
+            v = smart_str(self.__prep_value(k, v))
             kwargs_bits.append('%s=%s' % (k, v))
         kwargs_bits = ':'.join(kwargs_bits)
 
         return '%s:%s:%s' % (prefix, self.model.__name__, hashlib.md5(kwargs_bits).hexdigest())
 
-    def _class_prepared(self, sender, **kwargs):
+    def __class_prepared(self, sender, **kwargs):
         """
         Given the cache is configured, connects the required signals for invalidation.
         """
         if not self.cache_fields:
             return
-        post_init.connect(self._post_init, sender=sender, weak=False)
-        post_save.connect(self._post_save, sender=sender, weak=False)
-        post_delete.connect(self._post_delete, sender=sender, weak=False)
+        post_init.connect(self.__post_init, sender=sender, weak=False)
+        post_save.connect(self.__post_save, sender=sender, weak=False)
+        post_delete.connect(self.__post_delete, sender=sender, weak=False)
 
-    def _cache_state(self, instance):
+    def __cache_state(self, instance):
         """
         Updates the tracked state of an instance.
         """
         if instance.pk:
-            instance.__cache_data = dict((f, getattr(instance, f)) for f in self.cache_fields)
+            self.__cache[instance] = dict((f, getattr(instance, f)) for f in self.cache_fields)
         else:
-            instance.__cache_data = UNSAVED
+            self.__cache[instance] = UNSAVED
 
-    def _post_init(self, instance, **kwargs):
+    def __post_init(self, instance, **kwargs):
         """
         Stores the initial state of an instance.
         """
-        self._cache_state(instance)
+        self.__cache_state(instance)
 
-    def _post_save(self, instance, **kwargs):
+    def __post_save(self, instance, **kwargs):
         """
         Pushes changes to an instance into the cache, and removes invalid (changed)
         lookup values.
@@ -131,26 +139,27 @@ class BaseManager(models.Manager):
             if key in pk_names:
                 continue
             # store pointers
-            cache.set(self._get_from_cache_key(**{key: getattr(instance, key)}), pk_val, self.cache_ttl)  # 1 hour
+            cache.set(self.__get_lookup_cache_key(**{key: getattr(instance, key)}), pk_val, self.cache_ttl)  # 1 hour
 
         # Ensure we dont serialize the database into the cache
         db = instance._state.db
         instance._state.db = None
         # store actual object
-        cache.set(self._get_from_cache_key(**{pk_name: pk_val}), instance, self.cache_ttl)
+        cache.set(self.__get_lookup_cache_key(**{pk_name: pk_val}), instance, self.cache_ttl)
         instance._state.db = db
 
         # Kill off any keys which are no longer valid
-        for key in self.cache_fields:
-            if key not in instance.__cache_data:
-                continue
-            value = instance.__cache_data[key]
-            if value != getattr(instance, key):
-                cache.delete(self._get_from_cache_key(**{key: value}))
+        if instance in self.__cache:
+            for key in self.cache_fields:
+                if key not in self.__cache[instance]:
+                    continue
+                value = self.__cache[instance][key]
+                if value != getattr(instance, key):
+                    cache.delete(self.__get_lookup_cache_key(**{key: value}))
 
-        self._cache_state(instance)
+        self.__cache_state(instance)
 
-    def _post_delete(self, instance, **kwargs):
+    def __post_delete(self, instance, **kwargs):
         """
         Drops instance from all cache storages.
         """
@@ -159,12 +168,16 @@ class BaseManager(models.Manager):
             if key in ('pk', pk_name):
                 continue
             # remove pointers
-            cache.delete(self._get_from_cache_key(**{key: getattr(instance, key)}))
+            cache.delete(self.__get_lookup_cache_key(**{key: getattr(instance, key)}))
         # remove actual object
-        cache.delete(self._get_from_cache_key(**{pk_name: instance.pk}))
+        cache.delete(self.__get_lookup_cache_key(**{pk_name: instance.pk}))
 
-    def _get_from_cache_key(self, **kwargs):
-        return self._make_key('modelcache', kwargs)
+    def __get_lookup_cache_key(self, **kwargs):
+        return self.__make_key('modelcache', kwargs)
+
+    def contribute_to_class(self, model, name):
+        super(BaseManager, self).contribute_to_class(model, name)
+        class_prepared.connect(self.__class_prepared, sender=model)
 
     def get_from_cache(self, **kwargs):
         """
@@ -183,13 +196,13 @@ class BaseManager(models.Manager):
             key = key.split('__exact', 1)[0]
 
         if key in self.cache_fields or key in ('pk', pk_name):
-            cache_key = self._get_from_cache_key(**{key: value})
+            cache_key = self.__get_lookup_cache_key(**{key: value})
 
             retval = cache.get(cache_key)
             if retval is None:
                 result = self.get(**kwargs)
                 # Ensure we're pushing it into the cache
-                self._post_save(instance=result)
+                self.__post_save(instance=result)
                 return result
 
             # If we didn't look up by pk we need to hit the reffed
@@ -213,7 +226,7 @@ class BaseManager(models.Manager):
             return self.get(**kwargs), False
         except self.model.DoesNotExist:
             pass
-        lock_key = self._make_key('lock', kwargs)
+        lock_key = self.__make_key('lock', kwargs)
 
         # instance not found, lets grab a lock and attempt to create it
         with Lock(lock_key):
@@ -238,7 +251,7 @@ class BaseManager(models.Manager):
         affected = self.filter(**kwargs).update(**defaults)
         if affected:
             return affected, False
-        lock_key = self._make_key('lock', kwargs)
+        lock_key = self.__make_key('lock', kwargs)
 
         # instance not found, lets grab a lock and attempt to create it
         with Lock(lock_key) as lock:
