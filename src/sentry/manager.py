@@ -729,7 +729,7 @@ class GroupManager(BaseManager, ChartMixin):
                %(before_where)s
         LEFT JOIN (SELECT a.group_id, SUM(a.times_seen) / 3.0 as accel
             FROM %(mcbm_tbl)s as a
-            WHERE a.date BETWEEN now() - %(min_time)s
+            WHERE a.date BETWEEN now() - %(max_time)s
             AND now() - %(min_time)s
             GROUP BY a.group_id) as z
         ON z.group_id = %(mcbm_tbl)s.group_id
