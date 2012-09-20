@@ -6,12 +6,12 @@ import datetime
 import mock
 
 from django.utils import timezone
+from nose.plugins.skip import SkipTest
 from sentry.conf import settings
 from sentry.interfaces import Interface
 from sentry.models import Event, Group, Project, MessageCountByMinute, ProjectCountByMinute, \
   SearchDocument
 from sentry.utils.db import has_trending
-
 from tests.base import TestCase
 
 
@@ -233,3 +233,21 @@ class SearchManagerTest(TestCase):
         self.assertEquals(len(results), 1)
         # This uses a raw query set so we have to check the id
         self.assertEquals(results[0].id, doc.id)
+
+
+class TrendsTest(TestCase):
+    def setUp(self):
+        if not has_trending():
+            raise SkipTest('This database does not support trends.')
+
+    def test_accelerated_works_at_all(self):
+        now = timezone.now() - datetime.timedelta(minutes=5)
+        project = Project.objects.all()[0]
+        group = Group.objects.create(status=0, project=project, message='foo', checksum='a' * 32)
+        MessageCountByMinute.objects.create(project=project, group=group, date=now, times_seen=50)
+        base_qs = Group.objects.filter(
+            status=0,
+        )
+
+        results = list(Group.objects.get_accelerated(base_qs)[:25])
+        self.assertEquals(results, [group])
