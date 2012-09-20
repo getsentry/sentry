@@ -638,7 +638,7 @@ class MessageCountByMinute(Model):
 
     project = models.ForeignKey(Project, null=True)
     group = models.ForeignKey(Group)
-    date = models.DateTimeField()  # normalized to HH:MM:00
+    date = models.DateTimeField(db_index=True)  # normalized to HH:MM:00
     times_seen = models.PositiveIntegerField(default=0)
     time_spent_total = models.FloatField(default=0)
     time_spent_count = models.IntegerField(default=0)
