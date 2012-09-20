@@ -81,7 +81,7 @@ def get_db_engine(alias='default'):
 
 
 def has_trending(alias='default'):
-    return not get_db_engine('default').startswith('sqlite')
+    return get_db_engine('default').startswith(('mysql', 'postgres'))
 
 
 def has_charts(db):

@@ -707,10 +707,16 @@ class GroupManager(BaseManager, ChartMixin):
         assert minutes >= normalization
 
         engine = get_db_engine(queryset.db)
+        # We technically only support mysql and postgresql, since there seems to be no standard
+        # way to get the epoch from a datetime/interval
         if engine.startswith('mysql'):
             minute_clause = "interval %s minute"
+            epoch_clause = "unix_timestamp(now()) - unix_timestamp(%(mcbm_tbl)s.date)"
         else:
             minute_clause = "interval '%s minutes'"
+            epoch_clause = "extract(epoch from now()) - extract(epoch from %(mcbm_tbl)s.date)"
+
+        epoch_clause = epoch_clause % dict(mcbm_tbl=mcbm_tbl)
 
         queryset = queryset.extra(
             where=[
@@ -727,11 +733,8 @@ class GroupManager(BaseManager, ChartMixin):
         # Ensure we remove any ordering clause
         after_group = after_group.split(' ORDER BY ')[0]
 
-        # TODO: extract(epoch) is only available in pgsql
-        # TODO: the subquery needs some conditions from the base query for efficiency
-        # such as project IN (x) or group_id IN (x)
         query = """
-        SELECT (SUM(%(mcbm_tbl)s.times_seen) * (%(norm)f / (extract(epoch from now() - %(mcbm_tbl)s.date) / 60)) + 1.0) / (COALESCE(z.rate, 0) + 1.0) as accel,
+        SELECT (SUM(%(mcbm_tbl)s.times_seen) * (%(norm)f / (%(epoch_clause)s / 60)) + 1.0) / (COALESCE(z.rate, 0) + 1.0) as accel,
                (COALESCE(z.rate, 0) + 1.0) as prev_rate,
                %(before_where)s
         LEFT JOIN (SELECT a.group_id, SUM(a.times_seen) / COUNT(a.times_seen) / %(norm)f as rate
@@ -755,6 +758,7 @@ class GroupManager(BaseManager, ChartMixin):
             min_time=minute_clause % (minutes + 1,),
             max_time=minute_clause % (minutes * (60 / normalization),),
             norm=normalization,
+            epoch_clause=epoch_clause,
         )
         return RawQuerySet(self, query, params)
 
