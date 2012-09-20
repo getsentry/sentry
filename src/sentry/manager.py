@@ -716,17 +716,19 @@ class GroupManager(BaseManager, ChartMixin):
         # way to get the epoch from a datetime/interval
         if engine.startswith('mysql'):
             minute_clause = "interval %s minute"
-            epoch_clause = "unix_timestamp(now()) - unix_timestamp(%(mcbm_tbl)s.date)"
+            epoch_clause = "unix_timestamp(utc_timestamp()) - unix_timestamp(%(mcbm_tbl)s.date)"
+            now_clause = 'utc_timestamp()'
         else:
             minute_clause = "interval '%s minutes'"
             epoch_clause = "extract(epoch from now()) - extract(epoch from %(mcbm_tbl)s.date)"
+            now_clause = 'now()'
 
         epoch_clause = epoch_clause % dict(mcbm_tbl=mcbm_tbl)
 
         queryset = queryset.extra(
             where=[
-                "%s.date >= now() - %s" % (mcbm_tbl, minute_clause % (minutes + 1, )),
-                "%s.date <= now() - %s" % (mcbm_tbl, minute_clause % (1, ))
+                "%s.date >= %s - %s" % (mcbm_tbl, now_clause, minute_clause % (minutes + 1, )),
+                "%s.date <= %s - %s" % (mcbm_tbl, now_clause, minute_clause % (1, ))
             ],
         ).annotate(x=Sum('messagecountbyminute__times_seen')).order_by('id')
 
@@ -744,12 +746,12 @@ class GroupManager(BaseManager, ChartMixin):
                %(before_where)s
         LEFT JOIN (SELECT a.group_id, SUM(a.times_seen) / COUNT(a.times_seen) / %(norm)f as rate
             FROM %(mcbm_tbl)s as a
-            WHERE a.date BETWEEN now() - %(max_time)s
-            AND now() - %(min_time)s
+            WHERE a.date BETWEEN %(now)s - %(max_time)s
+            AND %(now)s - %(min_time)s
             GROUP BY a.group_id) as z
         ON z.group_id = %(mcbm_tbl)s.group_id
-        WHERE %(mcbm_tbl)s.date BETWEEN now() - %(min_time)s
-        AND now() - %(offset_time)s
+        WHERE %(mcbm_tbl)s.date BETWEEN %(now)s - %(min_time)s
+        AND %(now)s - %(offset_time)s
         AND %(before_group)s
         GROUP BY prev_rate, %(mcbm_tbl)s.date, %(after_group)s
         HAVING SUM(%(mcbm_tbl)s.times_seen) > 0
@@ -764,6 +766,7 @@ class GroupManager(BaseManager, ChartMixin):
             max_time=minute_clause % (minutes * (60 / normalization),),
             norm=normalization,
             epoch_clause=epoch_clause,
+            now=now_clause,
         )
         return RawQuerySet(self, query, params)
 

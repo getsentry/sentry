@@ -183,14 +183,6 @@ class SentryManagerTest(TestCase):
         self.assertEquals(group.last_seen.replace(microsecond=0), event.datetime.replace(microsecond=0))
         self.assertEquals(group.message, 'foo bar')
 
-    def test_get_accelerrated(self):
-        if not has_trending():
-            return
-        group = Group.objects.from_kwargs(1, message='foo', checksum='a' * 32).group
-        group_list = list(Group.objects.get_accelerated(Group.objects.all(), minutes=settings.MINUTE_NORMALIZATION)[0:100])
-        self.assertEquals(len(group_list), 1)
-        self.assertEquals(group_list[0], group)
-
     def test_add_tags(self):
         event = Group.objects.from_kwargs(1, message='rrr')
         group = event.group
@@ -244,10 +236,12 @@ class TrendsTest(TestCase):
         now = timezone.now() - datetime.timedelta(minutes=5)
         project = Project.objects.all()[0]
         group = Group.objects.create(status=0, project=project, message='foo', checksum='a' * 32)
+        group2 = Group.objects.create(status=0, project=project, message='foo', checksum='b' * 32)
         MessageCountByMinute.objects.create(project=project, group=group, date=now, times_seen=50)
+        MessageCountByMinute.objects.create(project=project, group=group2, date=now, times_seen=40)
         base_qs = Group.objects.filter(
             status=0,
         )
 
         results = list(Group.objects.get_accelerated(base_qs)[:25])
-        self.assertEquals(results, [group])
+        self.assertEquals(results, [group, group2])
