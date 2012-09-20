@@ -124,6 +124,9 @@
                         $parent.css('opacity', 1)
                         $tab.tab('show');
                         $cont.find('.sparkline').sparkline('html', {enableTagOptions: true});
+                    },
+                    error: function(){
+                        $cont.html('<p>{% trans "There was an error fetching data from the server." %}</p>');
                     }
                 });
             });
