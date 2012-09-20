@@ -342,6 +342,11 @@ class ChartMixin(object):
 
         today = timezone.now().replace(microsecond=0, second=0)
 
+        # the last interval is not accurate, so we exclude it
+        # TODO: it'd be ideal to normalize the last datapoint so that we can include it
+        # and not have ~inaccurate data for up to MINUTE_NORMALIZATION
+        today -= datetime.timedelta(minutes=settings.MINUTE_NORMALIZATION)
+
         if max_days >= 30:
             g_type = 'date'
             d_type = 'days'
