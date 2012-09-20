@@ -24,6 +24,7 @@ if test_db == 'mysql':
     settings.DATABASES['default'].update({
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'sentry',
+        'USER': 'root',
     })
 elif test_db == 'postgres':
     settings.DATABASES['default'].update({
