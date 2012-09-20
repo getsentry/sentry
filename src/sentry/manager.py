@@ -728,6 +728,8 @@ class GroupManager(BaseManager, ChartMixin):
         after_group = after_group.split(' ORDER BY ')[0]
 
         # TODO: extract(epoch) is only available in pgsql
+        # TODO: the subquery needs some conditions from the base query for efficiency
+        # such as project IN (x) or group_id IN (x)
         query = """
         SELECT (SUM(%(mcbm_tbl)s.times_seen) * (%(norm)f / (extract(epoch from now() - %(mcbm_tbl)s.date) / 60)) + 1.0) / (COALESCE(z.rate, 0) + 1.0) as accel,
                (COALESCE(z.rate, 0) + 1.0) as prev_rate,
@@ -738,7 +740,9 @@ class GroupManager(BaseManager, ChartMixin):
             AND now() - %(min_time)s
             GROUP BY a.group_id) as z
         ON z.group_id = %(mcbm_tbl)s.group_id
-        WHERE %(before_group)s
+        WHERE %(mcbm_tbl)s.date BETWEEN now() - %(min_time)s
+        AND now() - %(offset_time)s
+        AND %(before_group)s
         GROUP BY prev_rate, %(mcbm_tbl)s.date, %(after_group)s
         HAVING SUM(%(mcbm_tbl)s.times_seen) > 0
         ORDER BY accel DESC
@@ -747,8 +751,9 @@ class GroupManager(BaseManager, ChartMixin):
             before_where=before_where,
             before_group=before_group,
             after_group=after_group,
+            offset_time=minute_clause % (1,),
             min_time=minute_clause % (minutes + 1,),
-            max_time=minute_clause % (minutes * 4,),
+            max_time=minute_clause % (minutes * (60 / normalization),),
             norm=normalization,
         )
         return RawQuerySet(self, query, params)
