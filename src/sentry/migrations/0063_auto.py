@@ -8,10 +8,14 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        pass
+        # Adding index on 'MessageCountByMinute', fields ['date']
+        db.create_index('sentry_messagecountbyminute', ['date'])
+
 
     def backwards(self, orm):
-        pass
+        # Removing index on 'MessageCountByMinute', fields ['date']
+        db.delete_index('sentry_messagecountbyminute', ['date'])
+
 
     models = {
         'auth.group': {
@@ -118,7 +122,7 @@ class Migration(SchemaMigration):
         },
         'sentry.messagecountbyminute': {
             'Meta': {'unique_together': "(('project', 'group', 'date'),)", 'object_name': 'MessageCountByMinute'},
-            'date': ('django.db.models.fields.DateTimeField', [], {}),
+            'date': ('django.db.models.fields.DateTimeField', [], {'db_index': 'True'}),
             'group': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Group']"}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'}),
@@ -164,7 +168,7 @@ class Migration(SchemaMigration):
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '200'}),
             'owner': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'sentry_owned_project_set'", 'null': 'True', 'to': "orm['auth.User']"}),
-            'public': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
+            'public': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
             'slug': ('django.db.models.fields.SlugField', [], {'max_length': '50', 'unique': 'True', 'null': 'True'}),
             'status': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0', 'db_index': 'True'}),
             'team': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Team']", 'null': 'True'})

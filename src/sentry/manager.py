@@ -708,16 +708,26 @@ class GroupManager(BaseManager, ChartMixin):
         if queryset is None:
             queryset = self
 
-        assert minutes >= settings.MINUTE_NORMALIZATION
+        normalization = float(settings.MINUTE_NORMALIZATION)
+        assert minutes >= normalization
 
         engine = get_db_engine(queryset.db)
+        # We technically only support mysql and postgresql, since there seems to be no standard
+        # way to get the epoch from a datetime/interval
         if engine.startswith('mysql'):
             minute_clause = "interval %s minute"
+            epoch_clause = "unix_timestamp(now()) - unix_timestamp(%(mcbm_tbl)s.date)"
         else:
             minute_clause = "interval '%s minutes'"
+            epoch_clause = "extract(epoch from now()) - extract(epoch from %(mcbm_tbl)s.date)"
+
+        epoch_clause = epoch_clause % dict(mcbm_tbl=mcbm_tbl)
 
         queryset = queryset.extra(
-            where=["%s.date >= now() - %s" % (mcbm_tbl, minute_clause % (minutes, ))],
+            where=[
+                "%s.date >= now() - %s" % (mcbm_tbl, minute_clause % (minutes + 1, )),
+                "%s.date <= now() - %s" % (mcbm_tbl, minute_clause % (1, ))
+            ],
         ).annotate(x=Sum('messagecountbyminute__times_seen')).order_by('id')
 
         sql, params = queryset.query.get_compiler(queryset.db).as_sql()
@@ -729,17 +739,19 @@ class GroupManager(BaseManager, ChartMixin):
         after_group = after_group.split(' ORDER BY ')[0]
 
         query = """
-        SELECT (SUM(%(mcbm_tbl)s.times_seen) + 1.0) / (COALESCE(z.accel, 0) + 1.0) as accel,
-               z.accel as prev_accel,
+        SELECT (SUM(%(mcbm_tbl)s.times_seen) * (%(norm)f / (%(epoch_clause)s / 60)) + 1.0) / (COALESCE(z.rate, 0) + 1.0) as accel,
+               (COALESCE(z.rate, 0) + 1.0) as prev_rate,
                %(before_where)s
-        LEFT JOIN (SELECT a.group_id, SUM(a.times_seen) / 3.0 as accel
+        LEFT JOIN (SELECT a.group_id, SUM(a.times_seen) / COUNT(a.times_seen) / %(norm)f as rate
             FROM %(mcbm_tbl)s as a
             WHERE a.date BETWEEN now() - %(max_time)s
             AND now() - %(min_time)s
             GROUP BY a.group_id) as z
         ON z.group_id = %(mcbm_tbl)s.group_id
-        WHERE %(before_group)s
-        GROUP BY prev_accel, %(after_group)s
+        WHERE %(mcbm_tbl)s.date BETWEEN now() - %(min_time)s
+        AND now() - %(offset_time)s
+        AND %(before_group)s
+        GROUP BY prev_rate, %(mcbm_tbl)s.date, %(after_group)s
         HAVING SUM(%(mcbm_tbl)s.times_seen) > 0
         ORDER BY accel DESC
         """ % dict(
@@ -747,8 +759,11 @@ class GroupManager(BaseManager, ChartMixin):
             before_where=before_where,
             before_group=before_group,
             after_group=after_group,
+            offset_time=minute_clause % (1,),
             min_time=minute_clause % (minutes + 1,),
-            max_time=minute_clause % (minutes * 4,),
+            max_time=minute_clause % (minutes * (60 / normalization),),
+            norm=normalization,
+            epoch_clause=epoch_clause,
         )
         return RawQuerySet(self, query, params)
 
