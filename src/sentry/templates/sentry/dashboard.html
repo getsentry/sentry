@@ -118,12 +118,12 @@
                                 $ul.append($(group.html));
                             });
                             $cont.html($ul);
-                            $cont.find('.sparkline').sparkline('html', {enableTagOptions: true});
                         } else {
                             $cont.html('<p>{% trans "No unresolved events are listed in the time period selected." %}</p>');
                         }
                         $parent.css('opacity', 1)
                         $tab.tab('show');
+                        $cont.find('.sparkline').sparkline('html', {enableTagOptions: true});
                     }
                 });
             });
