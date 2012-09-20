@@ -357,8 +357,8 @@ class ChartMixin(object):
         else:
             g_type = 'minute'
             d_type = 'minutes'
-            points = max_days * 24 * 4
-            modifier = 15
+            modifier = settings.MINUTE_NORMALIZATION
+            points = max_days * 24 * (60 / modifier)
 
         min_date = today - datetime.timedelta(days=max_days)
 
