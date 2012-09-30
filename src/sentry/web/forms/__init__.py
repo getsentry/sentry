@@ -151,3 +151,7 @@ class RemoveUserForm(forms.Form):
         ('1', _('Disable the account.')),
         ('2', _('Permanently remove the user and their data.')),
     ), widget=forms.RadioSelect(renderer=RadioFieldRenderer))
+
+
+class TestEmailForm(forms.Form):
+    pass

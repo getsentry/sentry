@@ -109,7 +109,7 @@ urlpatterns = patterns('',
     url(r'^$', generic.dashboard, name='sentry'),
     url(r'^manage/status/$', admin.status_env, name='sentry-admin-status'),
     url(r'^manage/status/packages/$', admin.status_packages, name='sentry-admin-packages-status'),
-    url(r'^manage/status/queue/$', admin.status_queue, name='sentry-admin-queue-status'),
+    url(r'^manage/status/mail/$', admin.status_mail, name='sentry-admin-mail-status'),
     url(r'^manage/stats/$', admin.stats, name='sentry-admin-stats'),
 
     # Admin - Projects

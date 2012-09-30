@@ -123,11 +123,11 @@ class SentryViewsTest(TestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/admin/status/packages.html')
 
-    def test_status_queue(self):
+    def test_status_mail(self):
         self.client.login(username='admin', password='admin')
-        resp = self.client.get(reverse('sentry-admin-queue-status'), follow=True)
+        resp = self.client.get(reverse('sentry-admin-mail-status'), follow=True)
         self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/admin/status/queue.html')
+        self.assertTemplateUsed(resp, 'sentry/admin/status/mail.html')
 
     def test_stats(self):
         self.client.login(username='admin', password='admin')
