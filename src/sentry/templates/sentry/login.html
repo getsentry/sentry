@@ -4,12 +4,10 @@
 
 {% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
 
-{% block search %}{% endblock %}
-
-{% block page_header %}{% endblock %}
+{% block page_header_block %}{% endblock %}
 {% block bodyclass %}{% endblock %}
 
-{% block content %}
+{% block main %}
     <section class="body">
        {% if next %}
             <p class="alert alert-info">{% trans "Please login to continue." %}</p>
