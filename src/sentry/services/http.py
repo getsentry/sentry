@@ -35,7 +35,7 @@ class SentryHTTPServer(Service):
         options = (settings.WEB_OPTIONS or {}).copy()
         options['bind'] = '%s:%s' % (self.host, self.port)
         options['debug'] = debug
-        options.setdefault('daemon', 30)
+        options.setdefault('daemon', False)
         options.setdefault('timeout', 30)
         if workers:
             options['workers'] = workers
