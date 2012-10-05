@@ -17,10 +17,8 @@ from sentry.permissions import can_create_projects, can_remove_project, can_crea
 from sentry.plugins import plugins
 from sentry.plugins.helpers import set_option, get_option
 from sentry.web.decorators import login_required, has_access
-from sentry.web.forms import EditProjectForm, RemoveProjectForm, \
-  EditProjectAdminForm
 from sentry.web.forms.projects import NewProjectForm, NewProjectAdminForm,\
-  ProjectTagsForm
+  ProjectTagsForm, EditProjectForm, RemoveProjectForm, EditProjectAdminForm
 from sentry.web.forms.teams import NewTeamForm, SelectTeamForm
 from sentry.web.helpers import render_to_response, get_project_list, \
   plugin_config
