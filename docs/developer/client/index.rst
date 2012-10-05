@@ -66,6 +66,14 @@ like the following::
 .. note:: In the above example, we're passing any options that would normally be passed to the capture methods along with
           the block wrapper.
 
+Finally, provide a CLI to test your client's configuration. Python example::
+
+    raven test http://public_key:secret_key@example.com/default
+
+Ruby example::
+
+    rake raven:test http://public_key:secret_key@example.com/default
+
 Parsing the DSN
 ---------------
 
