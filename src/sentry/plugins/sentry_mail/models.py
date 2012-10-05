@@ -45,7 +45,7 @@ class MailConfigurationForm(NotificationConfigurationForm):
         emails = filter(bool, split_re.split(value))
         for email in emails:
             if not email_re.match(email):
-                raise ValidationError('%s is not a valid e-mail address.' % email)
+                raise ValidationError('%s is not a valid e-mail address.' % (email,))
         return ','.join(emails)
 
 
