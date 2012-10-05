@@ -6,6 +6,22 @@ logging parameters. Given these parameters, it then builds a JSON payload
 which it will send to a Sentry server using some sort of authentication
 method.
 
+The following items are expected of production-ready clients:
+
+* DSN configuration
+* Graceful failures (e.g. Sentry server unreachable)
+* Scrubbing w/ processors
+* Tag support
+
+Additionally, the following features are highly encouraged:
+
+* Automated error handling (e.g. default error handlers)
+* Logging integration (to whatever standard solution is available)
+* Non-blocking event submission
+
+Client Usage (End-user)
+-----------------------
+
 Generally, a client consists of three steps to the end user, which should look
 almost identical no matter the language:
 
