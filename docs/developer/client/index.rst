@@ -74,6 +74,41 @@ Ruby example::
 
     rake raven:test http://public_key:secret_key@example.com/default
 
+Tags
+----
+
+Tags are key/value pairs that describe an event. They should be configurable in the following contexts:
+
+* Environment (client-level)
+* Thread (block-level)
+* Event (as part of capture)
+
+Each of these should inherit it's parent. So for example, if you configure your client as so::
+
+    client = Client(..., {
+        'tags': {'foo': 'bar'},
+    })
+
+And then you capture an event::
+
+    client.captureMessage('test', {
+        'tags': {'foo': 'baz'},
+    })
+
+The client should send the following usptream for ``tags``::
+
+    {
+        "tags": [
+            ["foo", "bar"],
+            ["foo", "baz"]
+        ],
+    }
+
+If your platform supports it, block level context should also be available::
+
+    with client.context({'tags': {'foo': 'bar'}}):
+        # ...
+
 Parsing the DSN
 ---------------
 
