@@ -56,7 +56,7 @@ MEMBER_OWNER = 0
 MEMBER_USER = 50
 MEMBER_SYSTEM = 100
 MEMBER_TYPES = (
-    (0, _('owner')),
-    (50, _('user')),
-    (100, _('system agent')),
+    (MEMBER_OWNER, _('owner')),
+    (MEMBER_USER, _('user')),
+    (MEMBER_SYSTEM, _('system agent')),
 )

@@ -143,17 +143,18 @@ INSTALLED_APPS = (
 
     'crispy_forms',
     'djcelery',
+    'gunicorn',
     'kombu.transport.django',
     'raven.contrib.django',
     'sentry',
     'sentry.plugins.sentry_mail',
     'sentry.plugins.sentry_servers',
-    'sentry.plugins.sentry_sites',
     'sentry.plugins.sentry_urls',
     'sentry.plugins.sentry_user_emails',
     'sentry.plugins.sentry_useragents',
     'social_auth',
     'south',
+    'django_social_auth_trello',
 )
 
 STATIC_URL = '/_admin_media/'
@@ -196,6 +197,7 @@ AUTHENTICATION_BACKENDS = (
     'social_auth.backends.contrib.bitbucket.BitbucketBackend',
     'social_auth.backends.contrib.mixcloud.MixcloudBackend',
     'social_auth.backends.contrib.live.LiveBackend',
+    'django_social_auth_trello.backend.TrelloBackend',
     'django.contrib.auth.backends.ModelBackend',
 )
 
@@ -211,6 +213,9 @@ GOOGLE_OAUTH2_CLIENT_SECRET = ''
 
 GITHUB_APP_ID = ''
 GITHUB_API_SECRET = ''
+
+TRELLO_API_KEY = ''
+TRELLO_API_SECRET = ''
 
 SOCIAL_AUTH_CREATE_USERS = True
 

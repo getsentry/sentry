@@ -13,7 +13,6 @@ install:
   - pip install mysql-python
   - pip install psycopg2
   - pip install -q Django==$DJANGO --use-mirrors
-  - pip install flake8 --use-mirrors
   - pip install -q -e . --use-mirrors
 script:
   - make test

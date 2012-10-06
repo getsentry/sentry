@@ -7,6 +7,7 @@
 {% block title %}{% blocktrans with team.name as name %}Manage Team: {{ name }}{% endblocktrans %} | {{ block.super }}{% endblock %}
 
 {% block breadcrumb %}
+    {{ block.super }}
     <li class="divider">/</li>
     <li><a href="{% url sentry-manage-team team.slug %}">{{ team.name }}</a></li>
 {% endblock %}
@@ -63,7 +64,7 @@
                                     <a href="{% url sentry project.slug %}">{{ project.name }}</a><br>
                                 </td>
                                 <td style="text-align:center;">
-                                    <a href="{% url sentry-manage-project project.slug %}" class="btn btn-small">{% trans "Edit" %}</a>
+                                    <a href="{% url sentry-manage-project project.slug %}" class="btn btn-small">{% trans "Settings" %}</a>
                                 </td>
                             </tr>
                         {% endfor %}

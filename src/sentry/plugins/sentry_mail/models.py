@@ -45,7 +45,7 @@ class MailConfigurationForm(NotificationConfigurationForm):
         emails = filter(bool, split_re.split(value))
         for email in emails:
             if not email_re.match(email):
-                raise ValidationError('%s is not a valid e-mail address.' % email)
+                raise ValidationError('%s is not a valid e-mail address.' % (email,))
         return ','.join(emails)
 
 
@@ -125,7 +125,8 @@ class MailProcessor(NotificationPlugin):
                 continue
             interface_list.append((interface.get_title(), body))
 
-        subject = '[%s] %s: %s' % (project.name.encode('utf-8'), event.get_level_display().upper().encode('utf-8'), event.error().encode('utf-8').split('\n')[0])
+        subject = '[%s] %s: %s' % (project.name.encode('utf-8'), event.get_level_display().upper().encode('utf-8'),
+            event.error().encode('utf-8').splitlines()[0])
 
         link = '%s/%s/group/%d/' % (settings.URL_PREFIX, group.project.slug, group.id)
 

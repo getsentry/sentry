@@ -137,6 +137,7 @@ class IPlugin(local):
     version = None
     author = None
     author_url = None
+    resource_links = ()
 
     # Configuration specifics
     conf_key = None
@@ -171,6 +172,10 @@ class IPlugin(local):
             if project_enabled is False:
                 return False
         return True
+
+    def reset_options(self, project=None, user=None):
+        from .helpers import reset_options
+        return reset_options(self.get_conf_key(), project, user)
 
     def get_option(self, key, project=None, user=None):
         """
@@ -283,6 +288,19 @@ class IPlugin(local):
         >>> plugin.get_description()
         """
         return self.description
+
+    def get_resource_links(self):
+        """
+        Returns a list of tuples pointing to various resources for this plugin.
+
+        >>> def get_resource_links(self):
+        >>>     return [
+        >>>         ('Documentation', 'http://sentry.readthedocs.org'),
+        >>>         ('Bug Tracker', 'https://github.com/getsentry/sentry/issues'),
+        >>>         ('Source', 'https://github.com/getsentry/sentry'),
+        >>>     ]
+        """
+        return self.resource_links
 
     def get_view_response(self, request, group):
         from sentry.permissions import can_admin_group

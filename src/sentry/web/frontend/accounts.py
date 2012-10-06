@@ -32,8 +32,8 @@ def login(request):
     if form.is_valid():
         login_(request, form.get_user())
         return login_redirect(request)
-    else:
-        request.session.set_test_cookie()
+
+    request.session.set_test_cookie()
 
     AUTH_PROVIDERS = get_auth_providers()
 
@@ -49,7 +49,13 @@ def login(request):
 
 @login_required
 def login_redirect(request):
-    return HttpResponseRedirect(request.session.pop('_next', None) or reverse('sentry'))
+    default = reverse('sentry')
+    login_url = request.session.pop('_next', None) or default
+    if '//' in login_url:
+        login_url = default
+    elif login_url.startswith(reverse('sentry-login')):
+        login_url = default
+    return HttpResponseRedirect(login_url)
 
 
 def logout(request):

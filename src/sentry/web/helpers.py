@@ -41,16 +41,15 @@ def get_project_list(user=None, access=None, hidden=False, key='id'):
     # public projects
     if access is None:
         filters |= Q(public=True)
+    elif not (user and user.is_authenticated()):
+        return SortedDict()
 
     # If the user is authenticated, include their memberships
-    elif user and user.is_authenticated():
+    if user and user.is_authenticated():
         teams = Team.objects.get_for_user(user, access).values()
-        if not teams:
+        if not teams and access is not None:
             return SortedDict()
         filters |= Q(team__in=teams)
-
-    else:
-        return SortedDict()
 
     return SortedDict((getattr(p, key), p)
         for p in base_qs.filter(filters).order_by('name'))
@@ -186,5 +185,6 @@ def plugin_config(plugin, project, request):
     return ('display', mark_safe(render_to_string(template, {
             'form': form,
             'request': request,
+            'plugin': plugin,
             'plugin_description': plugin.get_description() or '',
         }, context_instance=RequestContext(request))))

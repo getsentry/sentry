@@ -524,6 +524,8 @@ if (Sentry === undefined) {
             Sentry.realtime.events.splice(pos, 0, [data.score, data.id]);
         }
 
+        $row.find('.sparkline').sparkline('html', {enableTagOptions: true});
+
         // shiny fx
         $row.css('background-color', '#ddd').animate({backgroundColor: '#fff'}, 1200);
     };

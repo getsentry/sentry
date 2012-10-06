@@ -19,10 +19,9 @@ from django.utils.safestring import mark_safe
 
 from sentry.conf import settings
 from sentry.constants import SORT_OPTIONS, SEARCH_SORT_OPTIONS, \
-  SORT_CLAUSES, MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES
+  SORT_CLAUSES, MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES, MEMBER_USER
 from sentry.filters import get_filters
-from sentry.models import Group, Event, View, SearchDocument, \
-  MEMBER_USER
+from sentry.models import Group, Event, View, SearchDocument
 from sentry.permissions import can_admin_group
 from sentry.plugins import plugins
 from sentry.utils import json
@@ -60,7 +59,7 @@ def _get_group_list(request, project, view=None):
             logger.exception('Error initializing filter %r: %s', cls, e)
 
     event_list = Group.objects
-    if request.GET.get('bookmarks'):
+    if request.user.is_authenticated() and request.GET.get('bookmarks'):
         event_list = event_list.filter(
             bookmark_set__project=project,
             bookmark_set__user=request.user,
@@ -285,8 +284,10 @@ def group_event_list(request, project, group):
     }, request)
 
 
-@has_group_access
-def group_event_list_json(request, project, group):
+@has_access(MEMBER_USER)
+def group_event_list_json(request, project, group_id):
+    group = get_object_or_404(Group, pk=group_id, project=project)
+
     limit = request.GET.get('limit', settings.MAX_JSON_RESULTS)
     try:
         limit = int(limit)
@@ -316,8 +317,10 @@ def group_event_details(request, project, group, event_id):
     }, request)
 
 
-@has_group_access
-def group_event_details_json(request, project, group, event_id_or_latest):
+@has_access(MEMBER_USER)
+def group_event_details_json(request, project, group_id, event_id_or_latest):
+    group = get_object_or_404(Group, pk=group_id, project=project)
+
     if event_id_or_latest == 'latest':
         # It's possible that a message would not be created under certain
         # circumstances (such as a post_save signal failing)

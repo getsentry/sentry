@@ -16,7 +16,9 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 from paging.helpers import paginate as paginate_func
 from sentry.conf import settings
+from sentry.models import Group
 from sentry.utils import json
+from sentry.utils.strings import truncatechars
 from templatetag_sugar.register import tag
 from templatetag_sugar.parser import Name, Variable, Constant, Optional
 
@@ -25,6 +27,9 @@ import hashlib
 import urllib
 
 register = template.Library()
+
+truncatechars = register.filter(stringfilter(truncatechars))
+truncatechars.is_safe = True
 
 
 @register.filter
@@ -87,31 +92,6 @@ def small_count(v):
 
 
 @register.filter
-def with_priority(result_list, key='score'):
-    if result_list:
-        if isinstance(result_list[0], (dict, list, tuple)):
-            _get = lambda x, k: x[k]
-        else:
-            _get = lambda x, k: getattr(x, k)
-
-        min_, max_ = min([_get(r, key) for r in result_list]), max([_get(r, key) for r in result_list])
-        mid = (max_ - min_) / 4
-        for result in result_list:
-            val = _get(result, key)
-            if val > max_ - mid:
-                priority = 'veryhigh'
-            elif val > max_ - mid * 2:
-                priority = 'high'
-            elif val > max_ - mid * 3:
-                priority = 'medium'
-            elif val > max_ - mid * 4:
-                priority = 'low'
-            else:
-                priority = 'verylow'
-            yield result, priority
-
-
-@register.filter
 def num_digits(value):
     return len(str(value))
 
@@ -161,7 +141,7 @@ def duration(value):
     if value > 60:
         minutes = value / 60
         value = value % 60
-    seconds = value / 60
+    seconds = value
     output = []
     if hours:
         output.append('%dh' % hours)
@@ -172,24 +152,6 @@ def duration(value):
     elif seconds:
         output.append('%dms' % (seconds * 1000))
     return ''.join(output)
-
-
-@register.filter(name='truncatechars')
-@stringfilter
-def truncatechars(value, arg):
-    """
-    Truncates a string after a certain number of chars.
-
-    Argument: Number of chars to truncate after.
-    """
-    try:
-        length = int(arg)
-    except ValueError:  # Invalid literal for int().
-        return value  # Fail silently.
-    if len(value) > length:
-        return value[:length] + '...'
-    return value
-truncatechars.is_safe = True
 
 
 # XXX: this is taken from django-paging so that we may render
@@ -328,3 +290,36 @@ def gravatar_url(context, email, sizevar=None, defaultvar='mm'):
         gravatar_url += "?" + urllib.urlencode(properties)
 
     return gravatar_url
+
+
+@register.filter
+def trim_schema(value):
+    return value.split('//', 1)[-1]
+
+
+@register.filter
+def with_metadata(group_list, request):
+    group_list = list(group_list)
+    if request.user.is_authenticated() and group_list:
+        project = group_list[0].project
+        bookmarks = set(project.bookmark_set.filter(
+            user=request.user,
+            group__in=group_list,
+        ).values_list('group_id', flat=True))
+    else:
+        bookmarks = set()
+
+    if group_list:
+        historical_data = Group.objects.get_chart_data_for_group(
+            instances=group_list,
+            max_days=1,
+            key='group',
+        )
+    else:
+        historical_data = {}
+
+    for g in group_list:
+        yield g, {
+            'is_bookmarked': g.pk in bookmarks,
+            'historical_data': ','.join(str(x[1]) for x in historical_data.get(g.id, [])),
+        }

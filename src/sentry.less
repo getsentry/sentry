@@ -198,9 +198,22 @@ p {
   background: #fff;
 
   &.with-sidebar {
-    background: #fff url(../images/dashboard/sidebar-bg.gif) top right repeat-y;
+    background: #fff url(../images/dashboard/sidebar-bg-right.png) top right repeat-y;
     .content {
       padding-right: 300px;
+    }
+  }
+  &.with-left-sidebar {
+    background: #fff url(../images/dashboard/sidebar-bg-left.png) top left repeat-y;  
+    .content {
+      padding-left: 300px;
+    }
+    .main {
+      float: right;
+    }
+    .sidebar {
+      margin-right: 0;
+      margin-left: -300px;
     }
   }
 
@@ -262,7 +275,8 @@ p {
       margin-bottom: 8px;
     }
 
-    ul {
+    .nav.nav-tabs.nav-stacked,
+    .nav.counted-list {
       margin-bottom: 8px;
       list-style: none;
       margin-left: 0;
@@ -271,7 +285,7 @@ p {
         li {
           position: relative;
           a {
-            padding-left: 45px;
+            padding-left: 55px;
           }
           .count {
             position: absolute;
@@ -286,7 +300,7 @@ p {
         padding-left: 0;
         .count {
         text-align: center;
-          width: 25px;
+          width: 35px;
           position: absolute;
           display: block;
           left: 0;
@@ -326,6 +340,12 @@ p {
         }
       }
     }
+    .nav-list {
+      margin: 0 -19px 8px -20px;
+      li.active a {
+        background-color: #56AFE8;
+      }
+    }
   }
 }
 
@@ -336,8 +356,11 @@ footer {
   padding: 30px;
   color: #fff;
   a {
-    color: #fff;
+    color: #f4f4f4;
     font-weight: bold;
+    &:hover {
+      color: #fff;
+    }
   }
 }
 
@@ -430,7 +453,7 @@ footer {
       margin-bottom: 0;
       font-size: 14px;
       /*font-family: "proxima nova", "proxima-nova", "heletica-neue", sans-serif;*/
-      padding-right: 14px;
+      padding-right: 124px;
       .tag {
         .pull-right;
       }
@@ -443,9 +466,17 @@ footer {
       padding: 2px 6px;
       color: #aec9d7;
     }
-    .meta {
+    .sparkline {
       position: absolute;
       right: 40px;
+      top: 25px;
+      display: inline-block;
+      width: 100px;
+      height: 40px;
+    }
+    .meta {
+      position: absolute;
+      right: 150px;
       top: 20px;
     }
     .actions {
@@ -525,8 +556,14 @@ footer {
       }
 
       .meta {
-        right: 10px;
+        right: 120px;
       }
+
+      .sparkline {
+        right: 10px;
+        top: 18px;
+      }
+
       .tag, .meta {
         font-size: 11px;
       }
@@ -666,23 +703,6 @@ td table.vars {
 
 .innerColumn(@columnSpan: 1) {
   width: ((@gridColumnWidth) * @columnSpan) + (@gridGutterWidth * (@columnSpan - 1)) - 10;
-}
-
-.sparkline {
-  height: 300px;
-  .chart {
-    height: 280px;
-  }
-  .legend {
-    height: 20px;
-  }
-  .loading {
-    height: 300px;
-    line-height: 200px;
-    text-align: center;
-    display: block;
-    background: #F5F5F5,
-  }
 }
 
 #chart { margin-bottom: 15px; overflow: hidden; }
@@ -890,4 +910,11 @@ legend {
 }
 .icon-white {
   background-image: url(../images/glyphicons-halflings-white.png);
+}
+
+
+.plugin-meta {
+  .description {
+    p { font-size: 13px; }
+  }
 }

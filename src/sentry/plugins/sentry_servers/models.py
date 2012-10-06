@@ -15,10 +15,7 @@ from sentry.plugins.bases.tag import TagPlugin
 
 class ServersPlugin(TagPlugin):
     """
-    Adds additional support for showing information about servers including:
-
-    * A panel which shows all servers a message was seen on.
-    * A sidebar module which shows the servers most actively seen on.
+    Automatically adds the 'server_name' tag from events.
     """
     slug = 'servers'
     title = _('Servers')

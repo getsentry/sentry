@@ -33,8 +33,8 @@ from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
-from sentry.constants import STATUS_LEVELS, STATUS_RESOLVED, STATUS_UNRESOLVED, \
-  MEMBER_TYPES, MEMBER_OWNER, MEMBER_USER, MEMBER_SYSTEM  # NOQA
+from sentry.constants import STATUS_LEVELS, MEMBER_TYPES, \
+  MEMBER_OWNER, MEMBER_USER, MEMBER_SYSTEM  # NOQA
 from sentry.manager import GroupManager, ProjectManager, \
   MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager, \
   UserOptionManager, FilterKeyManager, TeamManager
@@ -42,7 +42,7 @@ from sentry.utils import cached_property, \
   MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField, update
 from sentry.utils.imports import import_string
-from sentry.templatetags.sentry_helpers import truncatechars
+from sentry.utils.strings import truncatechars
 
 __all__ = ('Event', 'Group', 'Project', 'SearchDocument')
 
@@ -363,7 +363,7 @@ class MessageBase(Model):
     def message_top(self):
         if self.culprit:
             return self.culprit
-        return truncatechars(self.message.split('\n')[0], 100)
+        return truncatechars(self.message.splitlines()[0], 100)
 
 
 class Group(MessageBase):
@@ -638,7 +638,7 @@ class MessageCountByMinute(Model):
 
     project = models.ForeignKey(Project, null=True)
     group = models.ForeignKey(Group)
-    date = models.DateTimeField()  # normalized to HH:MM:00
+    date = models.DateTimeField(db_index=True)  # normalized to HH:MM:00
     times_seen = models.PositiveIntegerField(default=0)
     time_spent_total = models.FloatField(default=0)
     time_spent_count = models.IntegerField(default=0)
