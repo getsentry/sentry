@@ -142,6 +142,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
 
     'crispy_forms',
+    'django_social_auth_trello',
     'djcelery',
     'gunicorn',
     'kombu.transport.django',
@@ -154,7 +155,7 @@ INSTALLED_APPS = (
     'sentry.plugins.sentry_useragents',
     'social_auth',
     'south',
-    'django_social_auth_trello',
+    'tastypie',
 )
 
 STATIC_URL = '/_admin_media/'

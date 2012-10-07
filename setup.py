@@ -55,6 +55,7 @@ install_requires = [
     'django-indexer>=0.3.0',
     'django-paging>=0.2.4',
     'django-picklefield>=0.2.0',
+    'django-tastypie>=0.9,<1.0',
     'django-templatetag-sugar>=0.1.0',
     'gunicorn>=0.14.6',
     'logan>=0.5.1',

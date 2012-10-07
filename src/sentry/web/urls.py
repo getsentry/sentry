@@ -10,6 +10,7 @@ import re
 
 from django.conf.urls.defaults import include, patterns, url
 
+from sentry.api import v1_api
 from sentry.web import api
 from sentry.web.frontend import accounts, generic, groups, events, \
   projects, admin, docs, teams
@@ -140,6 +141,7 @@ urlpatterns = patterns('',
     url(r'^api/(?:(?P<project_id>[\w_-]+)/)?groups/newest/$', api.get_new_groups, name='sentry-api-groups-new'),
     url(r'^api/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/set/public/$', api.make_group_public, name='sentry-api-set-group-public'),
     url(r'^api/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/set/private/$', api.make_group_private, name='sentry-api-set-group-private'),
+    url(r'^api/', include(v1_api.urls)),
 
     # Project specific
 
