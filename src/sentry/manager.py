@@ -741,7 +741,7 @@ class GroupManager(BaseManager, ChartMixin):
         after_group = after_group.split(' ORDER BY ')[0]
 
         query = """
-        SELECT (SUM(%(mcbm_tbl)s.times_seen) * (%(norm)f / (%(epoch_clause)s / 60)) + 1.0) / (COALESCE(z.rate, 0) + 1.0) as accel,
+        SELECT DISTINCT (SUM(%(mcbm_tbl)s.times_seen) * (%(norm)f / (%(epoch_clause)s / 60)) + 1.0) / (COALESCE(z.rate, 0) + 1.0) as accel,
                (COALESCE(z.rate, 0) + 1.0) as prev_rate,
                %(before_where)s
         LEFT JOIN (SELECT a.group_id, SUM(a.times_seen) / COUNT(a.times_seen) / %(norm)f as rate
