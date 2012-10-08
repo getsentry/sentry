@@ -40,6 +40,8 @@ class SentryAuthorization(Authorization):
     def apply_limits(self, request, object_list):
         if request and hasattr(request, 'user'):
             project_list = get_project_list(request.user)
+            if not project_list:
+                return object_list.none()
             return object_list.filter(project__in=project_list)
 
         return object_list.none()
