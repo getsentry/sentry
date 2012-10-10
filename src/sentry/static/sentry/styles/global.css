@@ -4762,3 +4762,22 @@ legend {
 .plugin-meta .description p {
   font-size: 13px;
 }
+@media print {
+  body {
+    color: #000000;
+  }
+  header {
+    display: none;
+  }
+  .sidebar,
+  .toolbar {
+    display: none;
+  }
+  .content {
+    padding: 0 !important;
+  }
+  #CModal,
+  footer {
+    display: none;
+  }
+}

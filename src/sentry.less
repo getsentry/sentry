@@ -918,3 +918,20 @@ legend {
     p { font-size: 13px; }
   }
 }
+
+
+@media print {
+    body {
+        color: @black;
+    }
+    header {
+        display: none;
+    }
+    .sidebar, .toolbar {
+      display: none;
+    }
+    .content {
+      padding: 0 !important;
+    }
+    #CModal, footer { display: none; }
+}
