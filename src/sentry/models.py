@@ -200,6 +200,23 @@ class Project(Model):
         return str(self.id) == str(settings.PROJECT) or str(self.slug) == str(settings.PROJECT)
 
 
+class UserKey(Model):
+    user = models.ForeignKey(User)
+    public_key = models.CharField(max_length=32, unique=True, null=True)
+    secret_key = models.CharField(max_length=32, unique=True, null=True)
+
+    @classmethod
+    def generate_api_key(cls):
+        return uuid.uuid4().hex
+
+    def save(self, *args, **kwargs):
+        if not self.public_key:
+            self.public_key = ProjectKey.generate_api_key()
+        if not self.secret_key:
+            self.secret_key = ProjectKey.generate_api_key()
+        super(ProjectKey, self).save(*args, **kwargs)
+
+
 class ProjectKey(Model):
     project = models.ForeignKey(Project, related_name='key_set')
     public_key = models.CharField(max_length=32, unique=True, null=True)
