@@ -14,7 +14,7 @@ from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponse
 
-from sentry.utils.db import InstanceManager
+from sentry.utils.managers import InstanceManager
 from threading import local
 
 

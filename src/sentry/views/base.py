@@ -7,7 +7,7 @@ sentry.views.base
 """
 
 from sentry.conf import settings
-from sentry.utils.db import InstanceManager
+from sentry.utils.managers import InstanceManager
 
 __all__ = ('View',)
 
