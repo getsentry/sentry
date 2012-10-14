@@ -311,24 +311,30 @@ if (Sentry === undefined) {
     $(document).ready(function(){
         $('.filter-list').each(function(_, el){
             var $el = $(el);
-            if ($el.find('li').length > 6) {
+            if ($el.find('li').length > 2) {
                 // rebuild this widget as a dropdown select
-                var select = $('<select></select>');
-                var parent = $('<div class="filter-select sidebar-module">').appendTo($el.parent());
+                var $select = $('<select></select>');
+                var $parent = $('<div class="filter-select sidebar-module">').appendTo($el.parent());
 
                 $el.find('li a').each(function(_, a){
                     a = $(a);
-                    var opt = $('<option value="' + a.attr('href') + '">' + a.text() + '</option>').appendTo(select);
+                    var opt = $('<option value="' + a.attr('href') + '">' + a.text() + '</option>').appendTo($select);
                     if (a.parent().hasClass('active')) {
                         opt.attr('selected', 'selected');
                     }
                 });
                 $el.remove();
-                select.appendTo(parent).change(function(){
-                    window.location.href = $(this).val();
-                });
             }
         });
+        // replace selects/inputs with select2 widgets
+        $('.filter select').select2({
+            allowClear: true
+        }).on('change', function(e){
+            var query = Sentry.getQueryParams();
+            query[e.target.name] = e.val;
+            window.location.href = '?' + $.param(query);
+        });
+        // $('.filter input[type=text]').select2();
 
         // Update date strings periodically
         setInterval(Sentry.prettyDates, 5000);

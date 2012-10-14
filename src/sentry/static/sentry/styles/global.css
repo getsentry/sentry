@@ -4148,6 +4148,12 @@ p {
 #content .sidebar .nav-list li.active a {
   background-color: #56AFE8;
 }
+#content .sidebar .filter {
+  margin-bottom: 20px;
+}
+#content .sidebar .filter .select2-container {
+  display: block;
+}
 footer {
   *zoom: 1;
   background: #6d757e;

@@ -41,23 +41,27 @@ class ChoiceWidget(TextWidget):
 
         query_string = self.get_query_string()
         column = self.filter.get_query_param()
+        choices = choices.items()
 
-        output = ['<ul class="nav nav-tabs nav-stacked filter-list" rel="%s">' % (column,)]
+        output = [u'<select name="%(column)s" class="filter-list" rel="%(column)s" data-placeholder="Select a %(label)s">' % dict(
+            column=column,
+            label=unicode(self.filter.label.lower()),
+        )]
         if self.allow_any:
-            output.append('<li%(active)s><a href="%(query_string)s&amp;%(column)s=">Any %(label)s</a></li>' % dict(
-                active=not value and ' class="active"' or '',
+            output.append(u'<option></option>' % dict(
+                active=not value and ' selected="selected"' or '',
                 query_string=query_string,
                 label=self.filter.label,
                 column=column,
             ))
-        for key, val in choices.iteritems():
+        for key, val in choices:
             key = unicode(key)
-            output.append('<li%(active)s rel="%(key)s"><a href="%(query_string)s&amp;%(column)s=%(key)s">%(value)s</a></li>' % dict(
-                active=value == key and ' class="active"' or '',
+            output.append(u'<option%(active)s value="%(key)s">%(value)s</option>' % dict(
+                active=value == key and ' selected="selected"' or '',
                 column=column,
                 key=key,
                 value=val,
                 query_string=query_string,
             ))
-        output.append('</ul>')
-        return mark_safe('\n'.join(output))
+        output.append(u'</select>')
+        return mark_safe(u'\n'.join(output))
