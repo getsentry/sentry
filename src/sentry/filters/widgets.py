@@ -24,9 +24,13 @@ class Widget(object):
 
 class TextWidget(Widget):
     def render(self, value, placeholder='', **kwargs):
-        return mark_safe('<div class="filter-text"><p class="textfield"><input type="text" name="%(name)s" value="%(value)s" placeholder="%(placeholder)s"/></p><p class="submit"><input type="submit" class="btn btn-small btn-primary"/></p></div>' % dict(
+        return mark_safe(u'''
+            <div class="filter-text">
+                <input type="text" name="%(name)s" value="%(value)s" data-placeholder="Search for a %(label)s"/>
+            </div>''' % dict(
             name=self.filter.get_query_param(),
             value=escape(value),
+            label=self.filter.label.lower(),
             placeholder=escape(placeholder or 'enter %s' % self.filter.label.lower()),
         ))
 
@@ -45,7 +49,7 @@ class ChoiceWidget(TextWidget):
 
         output = [u'<select name="%(column)s" class="filter-list" rel="%(column)s" data-placeholder="Select a %(label)s">' % dict(
             column=column,
-            label=unicode(self.filter.label.lower()),
+            label=self.filter.label.lower(),
         )]
         if self.allow_any:
             output.append(u'<option></option>' % dict(

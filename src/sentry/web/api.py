@@ -23,7 +23,7 @@ from sentry.coreapi import project_from_auth_vars, project_from_id, \
   decode_and_decompress_data, safely_load_json_string, validate_data, \
   insert_data_to_database, APIError, APIUnauthorized, extract_auth_vars
 from sentry.exceptions import InvalidData
-from sentry.models import Group, GroupBookmark, Project, View
+from sentry.models import Group, GroupBookmark, Project, View, FilterValue
 from sentry.templatetags.sentry_helpers import with_metadata
 from sentry.utils import json
 from sentry.utils.cache import cache
@@ -462,6 +462,28 @@ def get_new_groups(request, project=None):
     data = transform_groups(request, group_list, template='sentry/partial/_group_small.html')
 
     response = HttpResponse(json.dumps(data))
+    response['Content-Type'] = 'application/json'
+
+    return response
+
+
+@never_cache
+@csrf_exempt
+@has_access
+def search_tags(request, project):
+    limit = min(100, int(request.GET.get('limit', 10)))
+    name = request.GET['name']
+    query = request.GET['query']
+
+    results = list(FilterValue.objects.filter(
+        project=project,
+        key=name,
+        value__icontains=query,
+    ).values_list('value', flat=True).order_by('value')[:limit])
+
+    response = HttpResponse(json.dumps({
+        'results': results,
+    }))
     response['Content-Type'] = 'application/json'
 
     return response
