@@ -309,52 +309,53 @@ if (Sentry === undefined) {
     };
 
     $(document).ready(function(){
-        // replace selects with inline select2 widgets
-        $('.filter select').select2({
-            allowClear: true
-        }).on('change', function(e){
-            var query = Sentry.getQueryParams();
-            query[e.target.name] = e.val;
-            window.location.href = '?' + $.param(query);
-        });
-
         // replace text inputs with remote select2 widgets
-        $('.filter input[type=text]').each(function(_, el){
-            var $el = $(el);
-            $el.select2({
-                initSelection: function (el, callback) {
-                    var $el = $(el);
-                    callback({id: $el.val(), text: $el.val()});
-                },
-                allowClear: true,
-                minimumInputLength: 3,
-                ajax: {
-                    url: Sentry.options.urlPrefix + '/api/' + Sentry.options.projectId + '/tags/search/',
-                    dataType: 'json',
-                    data: function (term, page) {
-                        return {
-                            query: term,
-                            quietMillis: 300,
-                            name: $el.attr('name'),
-                            limit: 10
-                        };
+        $('.filter').each(function(_, el){
+            var $filter = $(el);
+            var $input = $filter.find('input[type=text]');
+            if ($input.length > 0) {
+                $input.select2({
+                    initSelection: function (el, callback) {
+                        var $el = $(el);
+                        callback({id: $el.val(), text: $el.val()});
                     },
-                    results: function (data, page) {
-                        var results = [];
-                        $(data.results).each(function(_, val){
-                            results.push({
-                                id: val,
-                                text: val
+                    allowClear: true,
+                    minimumInputLength: 3,
+                    ajax: {
+                        url: Sentry.options.urlPrefix + '/api/' + Sentry.options.projectId + '/tags/search/',
+                        dataType: 'json',
+                        data: function (term, page) {
+                            return {
+                                query: term,
+                                quietMillis: 300,
+                                name: $input.attr('name'),
+                                limit: 10
+                            };
+                        },
+                        results: function (data, page) {
+                            var results = [];
+                            $(data.results).each(function(_, val){
+                                results.push({
+                                    id: val,
+                                    text: val
+                                });
                             });
-                        });
-                        return {results: results};
+                            return {results: results};
+                        }
                     }
-                }
-            });
-        }).on('change', function(e){
-            var query = Sentry.getQueryParams();
-            query[e.target.name] = e.val;
-            window.location.href = '?' + $.param(query);
+                });
+            } else {
+                $input = $filter.find('select').select2({
+                    allowClear: true
+                });
+            }
+            if ($input.length) {
+                $input.on('change', function(e){
+                    var query = Sentry.getQueryParams();
+                    query[e.target.name] = e.val;
+                    window.location.href = '?' + $.param(query);
+                });
+            }
         });
 
         // Update date strings periodically
