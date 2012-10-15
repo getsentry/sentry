@@ -4619,6 +4619,10 @@ table.inline tr {
 small {
   font-size: 0.9em;
 }
+.form-actions p {
+  padding: 6px 10px;
+  line-height: 15px;
+}
 .form-actions .alert {
   padding: 6px 10px;
   line-height: 13px;
