@@ -43,6 +43,14 @@ class EditTeamForm(forms.ModelForm):
         model = Team
 
 
+class EditTeamAdminForm(EditTeamForm):
+    owner = UserField(required=False)
+
+    class Meta:
+        fields = ('name', 'owner',)
+        model = Team
+
+
 class SelectTeamForm(forms.Form):
     team = forms.ChoiceField(choices=())
 
