@@ -44,6 +44,7 @@ watch:
 	watchr -e "watch('src/bootstrap/.*\.less') { system 'make static' }"
 
 test:
+	pip install flake8 --use-mirrors
 	cd src && flake8 --exclude=migrations --ignore=E501,E225,E121,E123,E124,E125,E127,E128 --exit-zero sentry || exit 1
 	python setup.py test
 

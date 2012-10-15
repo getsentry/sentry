@@ -23,7 +23,7 @@
     {% if event_list %}
         {% handle_before_events request event_list %}
         <ul class="events" id="event_list">
-            {% for group, is_bookmarked in event_list|as_bookmarks:request.user %}
+            {% for group, metadata in event_list|with_metadata:request %}
                 {% include "sentry/partial/_group.html" %}
             {% endfor %}
         </ul>

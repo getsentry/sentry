@@ -198,7 +198,7 @@ AUTHENTICATION_BACKENDS = (
     'social_auth.backends.contrib.mixcloud.MixcloudBackend',
     'social_auth.backends.contrib.live.LiveBackend',
     'django_social_auth_trello.backend.TrelloBackend',
-    'django.contrib.auth.backends.ModelBackend',
+    'sentry.utils.auth.EmailAuthBackend',
 )
 
 TWITTER_CONSUMER_KEY = ''

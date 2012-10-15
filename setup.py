@@ -37,8 +37,8 @@ for m in ('multiprocessing', 'billiard'):
 tests_require = [
     'django-nose==1.1',
     'eventlet==0.9.16',
-    'nose==1.1.2',
-    'nydus==0.8.2',
+    'nose==1.2.1',
+    'nydus==0.9.0',
     'mock>=0.8.0',
     'redis',
     'unittest2',
@@ -57,10 +57,10 @@ install_requires = [
     'django-picklefield>=0.2.0',
     'django-templatetag-sugar>=0.1.0',
     'gunicorn>=0.14.6',
-    'logan>=0.5.0',
+    'logan>=0.5.1',
     'pynliner>=0.4.0',
     'python-dateutil>=1.5.0,<2.0.0',
-    'raven>=2.0.5',
+    'raven>=2.0.6',
     'simplejson>=2.1.6',
     'South>=0.7.6',
     'httpagentparser>=1.0.5',
@@ -70,7 +70,7 @@ install_requires = [
 
 setup(
     name='sentry',
-    version='5.0.11.1',
+    version='5.0.16.1',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://www.getsentry.com',

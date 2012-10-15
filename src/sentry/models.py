@@ -42,7 +42,7 @@ from sentry.utils import cached_property, \
   MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField, update
 from sentry.utils.imports import import_string
-from sentry.templatetags.sentry_helpers import truncatechars
+from sentry.utils.strings import truncatechars
 
 __all__ = ('Event', 'Group', 'Project', 'SearchDocument')
 
@@ -638,7 +638,7 @@ class MessageCountByMinute(Model):
 
     project = models.ForeignKey(Project, null=True)
     group = models.ForeignKey(Group)
-    date = models.DateTimeField()  # normalized to HH:MM:00
+    date = models.DateTimeField(db_index=True)  # normalized to HH:MM:00
     times_seen = models.PositiveIntegerField(default=0)
     time_spent_total = models.FloatField(default=0)
     time_spent_count = models.IntegerField(default=0)

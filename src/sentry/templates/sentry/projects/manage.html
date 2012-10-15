@@ -124,6 +124,9 @@
     <ul class="nav nav-list">
         <li class="nav-header">{% trans "Client Configuration" %}</li>
         <li>
+            <a href="{% url sentry-project-client-help project.slug %}">{% trans "All Platforms" %}</a>
+        </li>
+        <li>
             <a href="{% url sentry-docs-client project.slug "javascript" %}">{% trans "JavaScript" %}</a>
         </li>
         <li>
@@ -134,9 +137,6 @@
         </li>
         <li>
             <a href="{% url sentry-docs-client project.slug "ruby" %}">{% trans "Ruby" %}</a>
-        </li>
-        <li>
-            <a href="{% url sentry-project-client-help project.slug %}">{% trans "Other" %}</a>
         </li>
     </ul>
     {% with project|get_plugins as plugins %}

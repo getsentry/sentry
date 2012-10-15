@@ -17,8 +17,8 @@ from sentry.permissions import can_add_team_member, can_remove_team, can_create_
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_team_access
 from sentry.web.forms.teams import NewTeamForm, NewTeamAdminForm, \
-  EditTeamForm, EditTeamMemberForm, NewTeamMemberForm, InviteTeamMemberForm, \
-  RemoveTeamForm
+  EditTeamForm, EditTeamAdminForm, EditTeamMemberForm, NewTeamMemberForm, \
+  InviteTeamMemberForm, RemoveTeamForm
 from sentry.web.helpers import render_to_response
 
 
@@ -65,7 +65,14 @@ def manage_team(request, team):
     if result is False and not request.user.has_perm('sentry.can_change_team'):
         return HttpResponseRedirect(reverse('sentry'))
 
-    form = EditTeamForm(request.POST or None, instance=team)
+    if request.user.has_perm('sentry.can_add_team'):
+        form_cls = EditTeamAdminForm
+    else:
+        form_cls = EditTeamForm
+
+    form = form_cls(request.POST or None, initial={
+        'owner': team.owner,
+    }, instance=team)
 
     if form.is_valid():
         team = form.save()

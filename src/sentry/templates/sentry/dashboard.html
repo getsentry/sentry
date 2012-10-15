@@ -4,15 +4,7 @@
 
 {% block title %}{% trans "Dashboard" %} | {{ block.super }}{% endblock %}
 
-{% block page_header %}
-    <ul class="breadcrumb">
-        <li><a href="{% url sentry %}">{% trans "Dashboard" %}</a></li>
-    </ul>
-{% endblock %}
-
-{% block heading %}
-    {% trans "Account Settings" %}
-{% endblock %}
+{% block page_header_block %}{% endblock %}
 
 {% block main %}
     <section class="body">
@@ -123,6 +115,10 @@
                         }
                         $parent.css('opacity', 1)
                         $tab.tab('show');
+                        $cont.find('.sparkline').sparkline('html', {enableTagOptions: true});
+                    },
+                    error: function(){
+                        $cont.html('<p>{% trans "There was an error fetching data from the server." %}</p>');
                     }
                 });
             });
