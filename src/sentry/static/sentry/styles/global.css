@@ -4221,6 +4221,12 @@ footer a:hover {
   /* count height */
 
 }
+.events .event.with-metadata .message {
+  padding-right: 124px;
+}
+.events .event.with-metadata .meta {
+  right: 150px;
+}
 .events .event:hover {
   background-color: #f4fafe;
   background-image: -moz-linear-gradient(top, #f7fbfe, #eff8fd);
@@ -4276,7 +4282,7 @@ footer a:hover {
   font-size: 14px;
   /*font-family: "proxima nova", "proxima-nova", "heletica-neue", sans-serif;*/
 
-  padding-right: 124px;
+  padding-right: 24px;
 }
 .events .event .message .tag {
   float: right;
@@ -4301,7 +4307,7 @@ footer a:hover {
 }
 .events .event .meta {
   position: absolute;
-  right: 150px;
+  right: 50px;
   top: 20px;
 }
 .events .event .actions {
