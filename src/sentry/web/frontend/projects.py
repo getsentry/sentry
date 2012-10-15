@@ -149,7 +149,8 @@ def manage_project(request, project):
     if result is False and not request.user.has_perm('sentry.can_change_project'):
         return HttpResponseRedirect(reverse('sentry'))
 
-    team_list = Team.objects.get_for_user(request.user, MEMBER_OWNER)
+    # XXX: We probably shouldnt allow changing the team unless they're the project owner
+    team_list = Team.objects.get_for_user(project.owner or request.user, MEMBER_OWNER)
 
     if request.user.has_perm('sentry.can_change_project'):
         form_cls = EditProjectAdminForm
