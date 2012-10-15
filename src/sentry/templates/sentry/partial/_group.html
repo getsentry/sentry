@@ -33,7 +33,7 @@
         </div>
         {% if metadata %}
             <span class="sparkline" sparkwidth="100" sparkheight="40" sparklineColor="#ccc" sparkfillColor="false" sparkspotRadius="0"><!-- {{ metadata.historical_data }} --></span>
-        </div>
+        {% endif %}
         <ul class="actions">
             {% if request.user.is_authenticated %}
                 <li>
