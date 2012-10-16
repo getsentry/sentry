@@ -88,7 +88,7 @@ class ProjectBasedAuthorization(Authorization):
         if request.projects:
             return object_list.filter(project__in=request.projects)
         elif request.teams:
-            return object_list.filter(team__in=request.teams)
+            return object_list.filter(project__team__in=request.teams)
         return object_list.none()
 
 
