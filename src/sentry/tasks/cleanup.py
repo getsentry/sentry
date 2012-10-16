@@ -33,15 +33,11 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
 
     from django.utils import timezone
     from sentry.models import Group, Event, MessageCountByMinute, \
-      MessageFilterValue, FilterValue, SearchDocument, ProjectCountByMinute
+      MessageFilterValue, FilterKey, FilterValue, SearchDocument, ProjectCountByMinute
     from sentry.utils.query import RangeQuerySetWrapper, SkinnyQuerySet
 
     def cleanup_groups(iterable):
         for obj in iterable:
-            for key, value in SkinnyQuerySet(MessageFilterValue).filter(group=obj).values_list('key', 'value'):
-                if not MessageFilterValue.objects.filter(key=key, value=value).exclude(group=obj).exists():
-                    print ">>> Removing <FilterValue: key=%s, value=%s>" % (key, value)
-                    FilterValue.objects.filter(key=key, value=value).delete()
             print ">>> Removing all matching <SearchDocument: group=%s>" % (obj.pk)
             SearchDocument.objects.filter(group=obj).delete()
             print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
@@ -118,6 +114,32 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
     for obj in RangeQuerySetWrapper(qs):
         print ">>> Removing <%s: id=%s>" % (obj.__class__.__name__, obj.pk)
         obj.delete()
+
+    # Filters
+    qs = FilterKey.objects.all()
+    if project:
+        qs = qs.filter(project=project)
+
+    mqs = MessageFilterValue.objects.all()
+    if project:
+        mqs = mqs.filter(project=project)
+
+    print "checking filters"
+    for obj in RangeQuerySetWrapper(qs):
+        if not mqs.filter(key=obj.key).exists():
+            print ">>> Removing filters for unused filter %s=*" % (obj.key,)
+            qs.filter(key=obj.key).delete()
+            obj.delete()
+
+    qs = FilterValue.objects.all()
+    if project:
+        qs = qs.filter(project=project)
+
+    for obj in RangeQuerySetWrapper(qs):
+        if not mqs.filter(key=obj.key, value=obj.value).exists():
+            print ">>> Removing filters for unused filter %s=%s" % (obj.key, obj.value)
+            qs.filter(key=obj.key).delete()
+            obj.delete()
 
     # attempt to cleanup any groups that may now be empty
     groups_to_delete = []

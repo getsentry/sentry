@@ -57,7 +57,7 @@ class NotificationUserOptionsForm(BaseNotificationUserOptionsForm):
         self.fields['projects'].initial = enabled_projects
 
     def get_description(self):
-        return _('Send notifications for new events when a new event is seen, or when an '
+        return _('Send notifications when a new event is seen, or when an '
                  'already resolved event has changed back to unresolved.')
 
     def save(self):
