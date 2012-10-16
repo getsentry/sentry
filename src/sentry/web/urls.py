@@ -128,6 +128,7 @@ urlpatterns = patterns('',
 
     # API / JS
 
+    url(r'^api/', include(v1_api.urls)),
     url(r'^api/store/$', api.store, name='sentry-api-store'),
     url(r'^api/notification/$', api.notification, name='sentry-api-notification'),
     url(r'^api/(?P<project_id>[\w_-]+)/store/$', api.store, name='sentry-api-store'),
@@ -142,8 +143,6 @@ urlpatterns = patterns('',
     url(r'^api/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/set/public/$', api.make_group_public, name='sentry-api-set-group-public'),
     url(r'^api/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/set/private/$', api.make_group_private, name='sentry-api-set-group-private'),
     url(r'^api/(?P<project_id>[\w_-]+)/tags/search/$', api.search_tags, name='sentry-api-search-tags'),
-
-    url(r'^api/', include(v1_api.urls)),
 
     # Project specific
 

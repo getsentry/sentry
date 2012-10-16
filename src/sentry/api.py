@@ -6,45 +6,55 @@ sentry.api
 :license: BSD, see LICENSE for more details.
 """
 
-from tastypie.authentication import BasicAuthentication
+import base64
+from django.contrib.auth.models import AnonymousUser
+from tastypie.authentication import Authentication
 from tastypie.authorization import Authorization
 from tastypie.api import Api
 from tastypie.resources import ModelResource
-from sentry.models import Group
+from sentry.models import Group, ProjectKey
 from sentry.web.helpers import get_project_list
 
-# TODO: refactor ProjectKey so that keys are not bound to projects, but to users
-# XXX: we still need user-less projects keys
-# class SentryAuthentication(Authentication):
-#     def is_authenticated(self, request, **kwargs):
-#         """
-#         Finds the user and checks their API key.
 
-#         Should return either ``True`` if allowed, ``False`` if not or an
-#         ``HttpResponse`` if you need something custom.
-#         """
-#         auth_vars = extract_auth_vars(request)
-#         if not auth_vars:
-#             return self._unauthorized()
-#         data = request.raw_post_data
+class SentryAuthentication(Authentication):
+    def is_authenticated(self, request, **kwargs):
+        """
+        Simple basic auth where username is the public key, and password
+        is the secret key.
+        """
+        auth = request.META.get('HTTP_AUTHORIZATION')
+        if not auth:
+            return False
 
-#         if auth_vars:
-#             server_version = auth_vars.get('sentry_version', '1.0')
-#             client = auth_vars.get('sentry_client', request.META.get('HTTP_USER_AGENT'))
+        if not auth.startswith('Basic '):
+            return
 
-#     def get_identifier(self, request):
-#         return request.REQUEST.get('username', 'nouser')
+        try:
+            decoded = base64.b64decode(auth.split(' ', 1)[-1])
+            public, secret = decoded.split(':', 1)
+        except Exception:
+            return False
+
+        try:
+            apikey = ProjectKey.objects.get(public_key=public, secret_key=secret)
+        except ProjectKey.DoesNotExist:
+            return False
+
+        request.projects = [apikey.project] or get_project_list(apikey.user)
+        request.user = apikey.user or AnonymousUser()
+        request.apikey = apikey
+
+        return True
+
+    def get_identifier(self, request):
+        return request.apikey.id
 
 
 class SentryAuthorization(Authorization):
     def apply_limits(self, request, object_list):
-        if request and hasattr(request, 'user'):
-            project_list = get_project_list(request.user)
-            if not project_list:
-                return object_list.none()
-            return object_list.filter(project__in=project_list)
-
-        return object_list.none()
+        if not request.projects:
+            return object_list.none()
+        return object_list.filter(project__in=request.projects)
 
 
 class GroupResource(ModelResource):
@@ -52,7 +62,7 @@ class GroupResource(ModelResource):
         queryset = Group.objects.all()
         resource_name = 'group'
         allowed_methods = ['get']
-        authentication = BasicAuthentication()
+        authentication = SentryAuthentication()
         authorization = SentryAuthorization()
 
 v1_api = Api(api_name='v1')
