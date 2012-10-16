@@ -235,7 +235,7 @@ class ProjectKey(Model):
         # TODO: change the DSN to use project slug once clients are compatible
         if project_id and self.project_id != project_id:
             raise ValueError('You cannot use an explicit project to generate a DSN using this API key')
-        elif not (self.project_id and project_id):
+        elif not (self.project_id or project_id):
             raise ValueError('Missing project_id')
 
         if not public:
