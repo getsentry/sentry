@@ -7,8 +7,7 @@ sentry.api
 """
 
 import base64
-import simplejson
-from django.contrib.auth.models import AnonymousUser
+from django.contrib.auth.models import User, AnonymousUser
 from tastypie import fields
 from tastypie.authentication import Authentication
 from tastypie.authorization import Authorization
@@ -93,34 +92,57 @@ class ProjectBasedAuthorization(Authorization):
         return object_list.none()
 
 
+class UserResource(ModelResource):
+    username = fields.CharField('username', readonly=True)
+    # name = fields.CharField('first_name', readonly=True)
+
+    class Meta:
+        queryset = User.objects.all()
+        detail_uri_name = 'username'
+        include_resource_uri = False
+        resource_name = 'user'
+        detail_allowed_methods = []
+        list_allowed_methods = []
+        fields = ['username']
+        authentication = SentryAuthentication()
+
+
 class TeamResource(ModelResource):
     slug = fields.CharField(attribute="slug", readonly=True)
+    owner = fields.ToOneField(UserResource, 'owner', full=True, readonly=True)
     members = fields.ToManyField('sentry.api.TeamMemberResource', 'member_set', full=True)
 
     class Meta:
-        detail_uri_name = 'slug'
         queryset = Team.objects.all()
+        detail_uri_name = 'slug'
         resource_name = 'team'
-        allowed_methods = ['get']
+        detail_allowed_methods = ['get']
+        list_allowed_methods = ['get']
         fields = ['id', 'name']
         authentication = SentryAuthentication()
         authorization = TeamAuthorization()
 
 
 class TeamMemberResource(ModelResource):
-    team = fields.ToOneField(TeamResource, 'team')
+    user = fields.ToOneField(UserResource, 'user', full=True)
+    # access = fields.CharField('type')
 
     class Meta:
         queryset = TeamMember.objects.all()
         include_resource_uri = False
-        allowed_methods = []
-        fields = ['id']
+        detail_allowed_methods = ['get']
+        list_allowed_methods = []
+        fields = ['user']
         authentication = SentryAuthentication()
         authorization = TeamBasedAuthorization()
+
+    # def dehydrate_access(self, bundle):
+    #     return bundle.obj.get_type_display()
 
 
 class ProjectResource(ModelResource):
     slug = fields.CharField(attribute="slug", readonly=True)
+    owner = fields.ToOneField(UserResource, 'owner', full=True, readonly=True)
     team = fields.ToOneField(TeamResource, 'team', full=True)
 
     class Meta:
@@ -162,7 +184,7 @@ class EventResource(ModelResource):
     group = fields.ToOneField(GroupResource, 'group', readonly=True)
     project = fields.ToOneField(ProjectResource, 'project', readonly=True)
     message = fields.CharField('message', readonly=True)
-    data = fields.DictField(readonly=True)
+    # data = fields.DictField(readonly=True)
     datetime = fields.DateTimeField('datetime', readonly=True)
 
     class Meta:
@@ -173,8 +195,8 @@ class EventResource(ModelResource):
         authentication = SentryAuthentication()
         authorization = ProjectBasedAuthorization()
 
-    def dehydrate_data(self, bundle):
-        return bundle.obj.data
+    # def dehydrate_data(self, bundle):
+    #     return bundle.obj.data
 
 
 v1_api = Api(api_name='v1')
