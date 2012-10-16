@@ -758,7 +758,6 @@ table.inline tr{display:inline-block;}
 #popup{background:#fff;padding:10px;margin:10px;}
 small{font-size:0.9em;}
 .form-actions p{padding:6px 10px;line-height:15px;}
-.form-actions .alert{padding:6px 10px;line-height:13px;display:inline-block;vertical-align:top;}
 .inputs-list label{padding-left:18px;}
 .inputs-list label input[type="radio"],.inputs-list label input[type="checkbox"]{float:left;margin-left:-18px;}
 .controls>.inputs-list label:first-child,.controls>.inputs-list label:first-child{padding-top:5px;}

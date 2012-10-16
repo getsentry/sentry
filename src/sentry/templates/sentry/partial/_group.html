@@ -2,7 +2,7 @@
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
-<li class="event level-{{ group.get_level_display }}{% if group.status == 1 %} resolved{% endif %}{% if metadata %} has-sparkline{% endif %}"
+<li class="event level-{{ group.get_level_display }}{% if group.status == 1 %} resolved{% endif %}{% if metadata %} with-metadata{% endif %}"
     data-count="{{ group.times_seen|safe }}" data-score="{{ group.sort_value|safe }}" data-group="{{ group.id|safe }}">
     <div class="count"><span>{{ group.times_seen|small_count }}</span></div>
     <div class="details">

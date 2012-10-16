@@ -4623,12 +4623,6 @@ small {
   padding: 6px 10px;
   line-height: 15px;
 }
-.form-actions .alert {
-  padding: 6px 10px;
-  line-height: 13px;
-  display: inline-block;
-  vertical-align: top;
-}
 .inputs-list label {
   padding-left: 18px;
 }
