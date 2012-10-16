@@ -96,6 +96,17 @@ class ProjectFromApiKeyAndIdTest(BaseAPITest):
 
         self.assertRaises(APIUnauthorized, project_from_api_key_and_id, self.pk.public_key, self.project.id)
 
+    def test_unbound_project_is_authorized_when_user_is_member(self):
+        self.pk.project = None
+
+        project = project_from_api_key_and_id(self.pk.public_key, self.project.id)
+        self.assertEquals(project, self.project)
+
+    def test_invalid_unbound_project(self):
+        self.pk.project = None
+
+        self.assertRaises(APIUnauthorized, project_from_api_key_and_id, self.pk.public_key, -1)
+
 
 class ExtractAuthVarsTest(BaseAPITest):
     def test_valid(self):
