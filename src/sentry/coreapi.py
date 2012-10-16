@@ -81,7 +81,7 @@ def extract_auth_vars(request):
         return None
 
 
-def project_from_auth_vars(auth_vars, data, require_signature=False):
+def project_from_auth_vars(auth_vars, data='', require_signature=False):
     api_key = auth_vars.get('sentry_key')
     if api_key:
         try:
