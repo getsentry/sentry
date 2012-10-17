@@ -46,6 +46,20 @@ p {
   line-height: 22px;
 }
 
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+}
+
+h2 {
+  font-size: 24px;
+  line-height: 36px;
+}
+h3 {
+  line-height: 27px;
+  font-size: 18px;
+}
+
 /* =============================  Layout  ============================== */
 
 .navbar {
@@ -459,7 +473,6 @@ footer {
       font-size: 20px;
       color: @gray;
       font-weight: normal;
-      line-height: 27px;
       width: 85%;
       overflow: hidden;
       span {
@@ -848,12 +861,14 @@ legend {
 .page-header {
   padding-bottom: 0;
   border-bottom: 0;
-}
-.page-header .pull-right {
-  margin-top: 4px;
-}
-.page-header h2 {
-  font-weight: normal;
+  margin: 20px 0;
+
+  .pull-right {
+    margin-top: 4px;
+  }
+  h2 {
+    font-weight: normal;
+  }
 }
 
 .modal {

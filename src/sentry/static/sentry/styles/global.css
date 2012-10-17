@@ -5183,6 +5183,22 @@ p {
   font-size: 14px;
   line-height: 22px;
 }
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+}
+h2 {
+  font-size: 24px;
+  line-height: 36px;
+}
+h3 {
+  line-height: 27px;
+  font-size: 18px;
+}
 /* =============================  Layout  ============================== */
 .navbar {
   margin-bottom: 0;
@@ -5907,7 +5923,6 @@ footer a:hover {
   font-size: 20px;
   color: #6d757e;
   font-weight: normal;
-  line-height: 27px;
   width: 85%;
   overflow: hidden;
 }
@@ -6340,6 +6355,7 @@ legend {
 .page-header {
   padding-bottom: 0;
   border-bottom: 0;
+  margin: 20px 0;
 }
 .page-header .pull-right {
   margin-top: 4px;
