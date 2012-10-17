@@ -5,8 +5,7 @@ sentry.plugins.bases.tag
 :copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from sentry import app
-from sentry.models import FilterValue, MessageFilterValue
+from sentry.models import Group
 from sentry.plugins import Plugin
 from django.db.models import Sum
 
@@ -63,20 +62,4 @@ class TagPlugin(Plugin):
         })
 
     def post_process(self, group, event, is_new, is_sample, **kwargs):
-        for value in self.get_tag_values(event):
-            FilterValue.objects.get_or_create(
-                project=group.project,
-                key=self.tag,
-                value=value,
-            )
-
-            app.buffer.incr(MessageFilterValue, {
-                'times_seen': 1,
-            }, {
-                'group': group,
-                'project': group.project,
-                'key': self.tag,
-                'value': value,
-            }, {
-                'last_seen': group.last_seen,
-            })
+        Group.objects.add_tags(group, [(self.tag, v) for v in self.get_tag_values(event)])

@@ -11,18 +11,20 @@ import logging
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseBadRequest, \
   HttpResponseForbidden, HttpResponseRedirect
+from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_cookie
 from functools import wraps
 from sentry.conf import settings
-from sentry.exceptions import InvalidData
+from sentry.constants import MEMBER_USER
 from sentry.coreapi import project_from_auth_vars, project_from_id, \
   decode_and_decompress_data, safely_load_json_string, validate_data, \
   insert_data_to_database, APIError, APIUnauthorized, extract_auth_vars
-from sentry.models import Group, GroupBookmark, Project, View
-from sentry.templatetags.sentry_helpers import as_bookmarks
+from sentry.exceptions import InvalidData
+from sentry.models import Group, GroupBookmark, Project, View, FilterValue
+from sentry.templatetags.sentry_helpers import with_metadata
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.db import has_trending
@@ -42,7 +44,7 @@ def transform_groups(request, group_list, template='sentry/partial/_group.html')
             'html': render_to_string(template, {
                 'group': m,
                 'request': request,
-                'is_bookmarked': b,
+                'metadata': d,
             }).strip(),
             'title': m.message_top(),
             'message': m.error(),
@@ -52,7 +54,7 @@ def transform_groups(request, group_list, template='sentry/partial/_group.html')
             'is_public': m.is_public,
             'score': getattr(m, 'sort_value', None),
         }
-        for m, b in as_bookmarks(group_list, request.user)
+        for m, d in with_metadata(group_list, request)
     ]
 
 
@@ -115,7 +117,8 @@ def store(request, project=None):
        the user be authenticated, and a project_id be sent in the GET variables.
 
     """
-    logger.debug('Inbound %r request from %r', request.method, request.META['REMOTE_ADDR'])
+    logger.debug('Inbound %r request from %r (%s)', request.method, request.META['REMOTE_ADDR'],
+        request.META.get('HTTP_USER_AGENT'))
     client = '<unknown client>'
 
     response = HttpResponse()
@@ -127,7 +130,7 @@ def store(request, project=None):
 
             if auth_vars:
                 server_version = auth_vars.get('sentry_version', '1.0')
-                client = auth_vars.get('sentry_client')
+                client = auth_vars.get('sentry_client', request.META.get('HTTP_USER_AGENT'))
             else:
                 server_version = request.GET.get('version', '1.0')
                 client = request.META.get('HTTP_USER_AGENT', request.GET.get('client'))
@@ -227,7 +230,7 @@ def poll(request, project):
 
 
 @csrf_exempt
-@has_access
+@has_access(MEMBER_USER)
 @never_cache
 def resolve(request, project):
     gid = request.REQUEST.get('gid')
@@ -238,7 +241,7 @@ def resolve(request, project):
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    now = datetime.datetime.now()
+    now = timezone.now()
 
     Group.objects.filter(pk=group.pk).update(
         status=1,
@@ -255,7 +258,7 @@ def resolve(request, project):
 
 
 @csrf_exempt
-@has_access
+@has_access(MEMBER_USER)
 @never_cache
 def make_group_public(request, project, group_id):
     try:
@@ -273,7 +276,7 @@ def make_group_public(request, project, group_id):
 
 
 @csrf_exempt
-@has_access
+@has_access(MEMBER_USER)
 @never_cache
 def make_group_private(request, project, group_id):
     try:
@@ -291,7 +294,7 @@ def make_group_private(request, project, group_id):
 
 
 @csrf_exempt
-@has_access
+@has_access(MEMBER_USER)
 @never_cache
 def remove_group(request, project, group_id):
     try:
@@ -339,7 +342,7 @@ def bookmark(request, project):
 
 
 @csrf_exempt
-@has_access
+@has_access(MEMBER_USER)
 @never_cache
 def clear(request, project):
     view_id = request.GET.get('view_id')
@@ -418,7 +421,7 @@ def get_group_trends(request, project=None):
         ))[:limit])
     else:
         cutoff = datetime.timedelta(minutes=minutes)
-        cutoff_dt = datetime.datetime.now() - cutoff
+        cutoff_dt = timezone.now() - cutoff
 
         group_list = list(base_qs.filter(
             last_seen__gte=cutoff_dt
@@ -448,7 +451,7 @@ def get_new_groups(request, project=None):
         project_list = get_project_list(request.user).values()
 
     cutoff = datetime.timedelta(minutes=minutes)
-    cutoff_dt = datetime.datetime.now() - cutoff
+    cutoff_dt = timezone.now() - cutoff
 
     group_list = Group.objects.filter(
         project__in=project_list,
@@ -459,6 +462,28 @@ def get_new_groups(request, project=None):
     data = transform_groups(request, group_list, template='sentry/partial/_group_small.html')
 
     response = HttpResponse(json.dumps(data))
+    response['Content-Type'] = 'application/json'
+
+    return response
+
+
+@never_cache
+@csrf_exempt
+@has_access
+def search_tags(request, project):
+    limit = min(100, int(request.GET.get('limit', 10)))
+    name = request.GET['name']
+    query = request.GET['query']
+
+    results = list(FilterValue.objects.filter(
+        project=project,
+        key=name,
+        value__icontains=query,
+    ).values_list('value', flat=True).order_by('value')[:limit])
+
+    response = HttpResponse(json.dumps({
+        'results': results,
+    }))
     response['Content-Type'] = 'application/json'
 
     return response

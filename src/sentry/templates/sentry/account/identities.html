@@ -33,19 +33,19 @@
             <tbody>
                 {% for identity in identity_list %}
                     <tr>
-                        <td>{{ identity }}</td>
+                        <td>{{ identity.provider|title }}</td>
                         <td style="text-align: center;"><a href="{% url socialauth_disconnect_individual identity.provider identity.id %}?next={{ request.build_absolute_uri }}">Disconnect</a></td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
     {% endif %}
-    {% if auth_engines %}
+    {% if AUTH_PROVIDERS %}
         <fieldset>
             <legend>Associate a New Account</legend>
         </fieldset>
         <ul class="auth-options">
-            {% for engine in auth_engines %}
+            {% for engine in AUTH_PROVIDERS %}
                 <li><a href="{% url socialauth_associate_begin engine %}?next={{ request.build_absolute_uri }}" class="auth-{{ engine }}">Identify with {{ engine|title }}</a></li>
             {% endfor %}
         </ul>

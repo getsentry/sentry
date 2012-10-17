@@ -1,10 +1,11 @@
 VERSION = 2.0.0
-GLOBAL_CSS = src/sentry/static/styles/global.css
-GLOBAL_CSS_MIN = src/sentry/static/styles/global.min.css
-BOOTSTRAP_JS = src/sentry/static/scripts/bootstrap.js
-BOOTSTRAP_JS_MIN = src/sentry/static/scripts/bootstrap.min.js
-GLOBAL_JS = src/sentry/static/scripts/global.js
-GLOBAL_JS_MIN = src/sentry/static/scripts/global.min.js
+STATIC_DIR = src/sentry/static/sentry
+GLOBAL_CSS = ${STATIC_DIR}/styles/global.css
+GLOBAL_CSS_MIN = ${STATIC_DIR}/styles/global.min.css
+BOOTSTRAP_JS = ${STATIC_DIR}/scripts/bootstrap.js
+BOOTSTRAP_JS_MIN = ${STATIC_DIR}/scripts/bootstrap.min.js
+GLOBAL_JS = ${STATIC_DIR}/scripts/global.js
+GLOBAL_JS_MIN = ${STATIC_DIR}/scripts/global.min.js
 BOOTSTRAP_LESS = src/sentry.less
 LESS_COMPRESSOR ?= `which lessc`
 UGLIFY_JS ?= `which uglifyjs`
@@ -27,7 +28,7 @@ locale:
 static:
 	@lessc ${BOOTSTRAP_LESS} > ${GLOBAL_CSS};
 	@lessc ${BOOTSTRAP_LESS} > ${GLOBAL_CSS_MIN} --compress;
-	@cat src/sentry/static/scripts/sentry.core.js src/sentry/static/scripts/sentry.realtime.js src/sentry/static/scripts/sentry.charts.js src/sentry/static/scripts/sentry.notifications.js src/sentry/static/scripts/sentry.stream.js > ${GLOBAL_JS};
+	@cat ${STATIC_DIR}/scripts/sentry.core.js ${STATIC_DIR}/scripts/sentry.realtime.js ${STATIC_DIR}/scripts/sentry.charts.js ${STATIC_DIR}/scripts/sentry.notifications.js ${STATIC_DIR}/scripts/sentry.stream.js > ${GLOBAL_JS};
 	@cat src/bootstrap/js/bootstrap-*.js > ${BOOTSTRAP_JS};
 	@uglifyjs -nc ${GLOBAL_JS} > ${GLOBAL_JS_MIN};
 	@uglifyjs -nc ${BOOTSTRAP_JS} > ${BOOTSTRAP_JS_MIN};
@@ -43,6 +44,7 @@ watch:
 	watchr -e "watch('src/bootstrap/.*\.less') { system 'make static' }"
 
 test:
+	pip install flake8 --use-mirrors
 	cd src && flake8 --exclude=migrations --ignore=E501,E225,E121,E123,E124,E125,E127,E128 --exit-zero sentry || exit 1
 	python setup.py test
 

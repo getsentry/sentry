@@ -309,23 +309,51 @@ if (Sentry === undefined) {
     };
 
     $(document).ready(function(){
-        $('.filter-list').each(function(_, el){
-            var $el = $(el);
-            if ($el.find('li').length > 6) {
-                // rebuild this widget as a dropdown select
-                var select = $('<select></select>');
-                var parent = $('<div class="filter-select sidebar-module">').appendTo($el.parent());
-
-                $el.find('li a').each(function(_, a){
-                    a = $(a);
-                    var opt = $('<option value="' + a.attr('href') + '">' + a.text() + '</option>').appendTo(select);
-                    if (a.parent().hasClass('active')) {
-                        opt.attr('selected', 'selected');
+        // replace text inputs with remote select2 widgets
+        $('.filter').each(function(_, el){
+            var $filter = $(el);
+            var $input = $filter.find('input[type=text]');
+            if ($input.length > 0) {
+                $input.select2({
+                    initSelection: function (el, callback) {
+                        var $el = $(el);
+                        callback({id: $el.val(), text: $el.val()});
+                    },
+                    allowClear: true,
+                    minimumInputLength: 3,
+                    ajax: {
+                        url: Sentry.options.urlPrefix + '/api/' + Sentry.options.projectId + '/tags/search/',
+                        dataType: 'json',
+                        data: function (term, page) {
+                            return {
+                                query: term,
+                                quietMillis: 300,
+                                name: $input.attr('name'),
+                                limit: 10
+                            };
+                        },
+                        results: function (data, page) {
+                            var results = [];
+                            $(data.results).each(function(_, val){
+                                results.push({
+                                    id: val,
+                                    text: val
+                                });
+                            });
+                            return {results: results};
+                        }
                     }
                 });
-                $el.remove();
-                select.appendTo(parent).change(function(){
-                    window.location.href = $(this).val();
+            } else {
+                $input = $filter.find('select').select2({
+                    allowClear: true
+                });
+            }
+            if ($input.length) {
+                $input.on('change', function(e){
+                    var query = Sentry.getQueryParams();
+                    query[e.target.name] = e.val;
+                    window.location.href = '?' + $.param(query);
                 });
             }
         });
@@ -524,6 +552,8 @@ if (Sentry === undefined) {
             Sentry.realtime.events.splice(pos, 0, [data.score, data.id]);
         }
 
+        $row.find('.sparkline').sparkline('html', {enableTagOptions: true});
+
         // shiny fx
         $row.css('background-color', '#ddd').animate({backgroundColor: '#fff'}, 1200);
     };
@@ -587,34 +617,15 @@ if (Sentry === undefined) {
             type: 'get',
             dataType: 'json',
             data: {
-                days: 1,
+                days: 7,
                 gid: $sparkline.attr('data-group') || undefined
             },
             success: function(data){
-                var start = new Date().getTime() - data.length * 3600000;
-                var chunks = [];
-                var max = 25;
-                var pairs = [];
-                var chunk = {
-                    data: pairs,
-                    shadowSize: 0,
-                    lines: {
-                        lineWidth: 1,
-                        show: true,
-                        fill: true
-                    }
-                };
-                $.each(data, function(num, val){
-                    pairs.push([start + (3600 * 1000) * num, val]);
-                    if (val > max) {
-                        max = val;
-                    }
-                });
-                chunks.push(chunk);
                 $sparkline.height($sparkline.parent().height());
+
                 $.plot($sparkline, [
                     {
-                        data: pairs,
+                        data: data,
                         color: '#3079d0',
                         shadowSize: 0,
                         lines: {
@@ -629,7 +640,15 @@ if (Sentry === undefined) {
                     },
                     yaxis: {
                        min: 0,
-                       max: max
+                       tickFormatter: function(value) {
+                            if (value > 999999) {
+                                return (value / 1000000) + 'mm';
+                            }
+                            if (value > 999) {
+                                return (value / 1000) + 'k';
+                            }
+                            return value;
+                       }
                     },
                     grid: {
                         show: true,
@@ -638,6 +657,7 @@ if (Sentry === undefined) {
                         borderWidth: 1,
                         tickColor: '#eeeeee'
                     },
+                    hoverable: false,
                     legend: {
                         noColumns: 5
                     },

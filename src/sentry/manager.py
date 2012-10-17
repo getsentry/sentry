@@ -15,28 +15,34 @@ import itertools
 import logging
 import re
 import warnings
+import weakref
 
+from django.conf import settings as dj_settings
 from django.core.signals import request_finished
 from django.db import models, transaction, IntegrityError
 from django.db.models import Sum
 from django.db.models.expressions import F, ExpressionNode
 from django.db.models.signals import post_save, post_delete, post_init, class_prepared
+from django.utils import timezone
+from django.utils.datastructures import SortedDict
 from django.utils.encoding import force_unicode, smart_str
 
 from raven.utils.encoding import to_string
 from sentry import app
 from sentry.conf import settings
+from sentry.constants import STATUS_RESOLVED, STATUS_UNRESOLVED
 from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
 from sentry.tasks.index import index_event
 from sentry.utils.cache import cache, Lock
-from sentry.utils.dates import utc_to_local, get_sql_date_trunc
+from sentry.utils.dates import get_sql_date_trunc
 from sentry.utils.db import get_db_engine, has_charts, resolve_expression_node
 from sentry.utils.queue import maybe_delay
 
 logger = logging.getLogger('sentry.errors')
 
 UNSAVED = dict()
+MAX_TAG_LENGTH = 200
 
 
 def get_checksum_from_event(event):
@@ -58,13 +64,20 @@ class BaseManager(models.Manager):
     def __init__(self, *args, **kwargs):
         self.cache_fields = kwargs.pop('cache_fields', [])
         self.cache_ttl = kwargs.pop('cache_ttl', 60 * 5)
+        self.__cache = weakref.WeakKeyDictionary()
         super(BaseManager, self).__init__(*args, **kwargs)
 
-    def contribute_to_class(self, model, name):
-        super(BaseManager, self).contribute_to_class(model, name)
-        class_prepared.connect(self._class_prepared, sender=model)
+    def __getstate__(self):
+        d = self.__dict__.copy()
+        # we cant serialize weakrefs
+        del d['_BaseManager__cache']
+        return d
 
-    def _prep_value(self, key, value):
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.__cache = weakref.WeakKeyDictionary()
+
+    def __prep_value(self, key, value):
         if isinstance(value, models.Model):
             value = value.pk
         else:
@@ -74,47 +87,47 @@ class BaseManager(models.Manager):
             value = self.lookup_handlers[parts[-1]](value)
         return value
 
-    def _prep_key(self, key):
+    def __prep_key(self, key):
         if key == 'pk':
             return self.model._meta.pk.name
         return key
 
-    def _make_key(self, prefix, kwargs):
+    def __make_key(self, prefix, kwargs):
         kwargs_bits = []
         for k, v in sorted(kwargs.iteritems()):
-            k = self._prep_key(k)
-            v = smart_str(self._prep_value(k, v))
+            k = self.__prep_key(k)
+            v = smart_str(self.__prep_value(k, v))
             kwargs_bits.append('%s=%s' % (k, v))
         kwargs_bits = ':'.join(kwargs_bits)
 
         return '%s:%s:%s' % (prefix, self.model.__name__, hashlib.md5(kwargs_bits).hexdigest())
 
-    def _class_prepared(self, sender, **kwargs):
+    def __class_prepared(self, sender, **kwargs):
         """
         Given the cache is configured, connects the required signals for invalidation.
         """
         if not self.cache_fields:
             return
-        post_init.connect(self._post_init, sender=sender, weak=False)
-        post_save.connect(self._post_save, sender=sender, weak=False)
-        post_delete.connect(self._post_delete, sender=sender, weak=False)
+        post_init.connect(self.__post_init, sender=sender, weak=False)
+        post_save.connect(self.__post_save, sender=sender, weak=False)
+        post_delete.connect(self.__post_delete, sender=sender, weak=False)
 
-    def _cache_state(self, instance):
+    def __cache_state(self, instance):
         """
         Updates the tracked state of an instance.
         """
         if instance.pk:
-            instance.__cache_data = dict((f, getattr(instance, f)) for f in self.cache_fields)
+            self.__cache[instance] = dict((f, getattr(instance, f)) for f in self.cache_fields)
         else:
-            instance.__cache_data = UNSAVED
+            self.__cache[instance] = UNSAVED
 
-    def _post_init(self, instance, **kwargs):
+    def __post_init(self, instance, **kwargs):
         """
         Stores the initial state of an instance.
         """
-        self._cache_state(instance)
+        self.__cache_state(instance)
 
-    def _post_save(self, instance, **kwargs):
+    def __post_save(self, instance, **kwargs):
         """
         Pushes changes to an instance into the cache, and removes invalid (changed)
         lookup values.
@@ -126,26 +139,27 @@ class BaseManager(models.Manager):
             if key in pk_names:
                 continue
             # store pointers
-            cache.set(self._get_from_cache_key(**{key: getattr(instance, key)}), pk_val, self.cache_ttl)  # 1 hour
+            cache.set(self.__get_lookup_cache_key(**{key: getattr(instance, key)}), pk_val, self.cache_ttl)  # 1 hour
 
         # Ensure we dont serialize the database into the cache
         db = instance._state.db
         instance._state.db = None
         # store actual object
-        cache.set(self._get_from_cache_key(**{pk_name: pk_val}), instance, self.cache_ttl)
+        cache.set(self.__get_lookup_cache_key(**{pk_name: pk_val}), instance, self.cache_ttl)
         instance._state.db = db
 
         # Kill off any keys which are no longer valid
-        for key in self.cache_fields:
-            if key not in instance.__cache_data:
-                continue
-            value = instance.__cache_data[key]
-            if value != getattr(instance, key):
-                cache.delete(self._get_from_cache_key(**{key: value}))
+        if instance in self.__cache:
+            for key in self.cache_fields:
+                if key not in self.__cache[instance]:
+                    continue
+                value = self.__cache[instance][key]
+                if value != getattr(instance, key):
+                    cache.delete(self.__get_lookup_cache_key(**{key: value}))
 
-        self._cache_state(instance)
+        self.__cache_state(instance)
 
-    def _post_delete(self, instance, **kwargs):
+    def __post_delete(self, instance, **kwargs):
         """
         Drops instance from all cache storages.
         """
@@ -154,12 +168,16 @@ class BaseManager(models.Manager):
             if key in ('pk', pk_name):
                 continue
             # remove pointers
-            cache.delete(self._get_from_cache_key(**{key: getattr(instance, key)}))
+            cache.delete(self.__get_lookup_cache_key(**{key: getattr(instance, key)}))
         # remove actual object
-        cache.delete(self._get_from_cache_key(**{pk_name: instance.pk}))
+        cache.delete(self.__get_lookup_cache_key(**{pk_name: instance.pk}))
 
-    def _get_from_cache_key(self, **kwargs):
-        return self._make_key('modelcache', kwargs)
+    def __get_lookup_cache_key(self, **kwargs):
+        return self.__make_key('modelcache', kwargs)
+
+    def contribute_to_class(self, model, name):
+        super(BaseManager, self).contribute_to_class(model, name)
+        class_prepared.connect(self.__class_prepared, sender=model)
 
     def get_from_cache(self, **kwargs):
         """
@@ -178,13 +196,13 @@ class BaseManager(models.Manager):
             key = key.split('__exact', 1)[0]
 
         if key in self.cache_fields or key in ('pk', pk_name):
-            cache_key = self._get_from_cache_key(**{key: value})
+            cache_key = self.__get_lookup_cache_key(**{key: value})
 
             retval = cache.get(cache_key)
             if retval is None:
                 result = self.get(**kwargs)
                 # Ensure we're pushing it into the cache
-                self._post_save(instance=result)
+                self.__post_save(instance=result)
                 return result
 
             # If we didn't look up by pk we need to hit the reffed
@@ -208,7 +226,7 @@ class BaseManager(models.Manager):
             return self.get(**kwargs), False
         except self.model.DoesNotExist:
             pass
-        lock_key = self._make_key('lock', kwargs)
+        lock_key = self.__make_key('lock', kwargs)
 
         # instance not found, lets grab a lock and attempt to create it
         with Lock(lock_key):
@@ -233,7 +251,7 @@ class BaseManager(models.Manager):
         affected = self.filter(**kwargs).update(**defaults)
         if affected:
             return affected, False
-        lock_key = self._make_key('lock', kwargs)
+        lock_key = self.__make_key('lock', kwargs)
 
         # instance not found, lets grab a lock and attempt to create it
         with Lock(lock_key) as lock:
@@ -287,70 +305,107 @@ def time_limit(silence):  # ~ 3600 per hour
 
 
 class ChartMixin(object):
-    def get_chart_data_for_group(self, instances, max_days=90):
+    def get_chart_data_for_group(self, instances, max_days=90, key=None):
         if not instances:
-            return []
+            if key is None:
+                return []
+            return {}
 
         if hasattr(instances[0], '_state'):
             db = instances[0]._state.db or 'default'
         else:
             db = 'default'
 
-        if not has_charts(db):
-            return []
-
-        hours = max_days * 24
-        today = datetime.datetime.now().replace(microsecond=0, second=0, minute=0)
-        min_date = today - datetime.timedelta(hours=hours)
-
-        method = get_sql_date_trunc('date', db)
-
         field = self.model.messagecountbyminute_set.related
         column = field.field.name
-        chart_qs = list(field.model.objects.filter(**{
+        queryset = field.model.objects.filter(**{
             '%s__in' % column: instances,
-            'date__gte': min_date,
-        }).extra(
-            select={
-                'grouper': method,
-            }
-        ).values('grouper').annotate(
-            num=Sum('times_seen'),
-        ).values_list('grouper', 'num'))
+        })
 
-        rows = dict(chart_qs)
+        return self._get_chart_data(queryset, max_days, db, key=key)
 
-        return [rows.get(today - datetime.timedelta(hours=d), 0) for d in xrange(hours, -1, -1)]
-
-    def get_chart_data(self, instance, max_days=90):
+    def get_chart_data(self, instance, max_days=90, key=None):
         if hasattr(instance, '_state'):
             db = instance._state.db or 'default'
         else:
             db = 'default'
 
+        queryset = instance.messagecountbyminute_set
+
+        return self._get_chart_data(queryset, max_days, db, key=key)
+
+    def _get_chart_data(self, queryset, max_days=90, db='default', key=None):
         if not has_charts(db):
-            return []
+            if key is None:
+                return []
+            return {}
 
-        hours = max_days * 24
-        today = datetime.datetime.now().replace(microsecond=0, second=0, minute=0)
-        min_date = today - datetime.timedelta(hours=hours)
+        today = timezone.now().replace(microsecond=0, second=0)
 
-        method = get_sql_date_trunc('date', db)
+        # the last interval is not accurate, so we exclude it
+        # TODO: it'd be ideal to normalize the last datapoint so that we can include it
+        # and not have ~inaccurate data for up to MINUTE_NORMALIZATION
+        today -= datetime.timedelta(minutes=settings.MINUTE_NORMALIZATION)
 
-        chart_qs = list(instance.messagecountbyminute_set
-                        .filter(date__gte=min_date)
-                        .extra(select={'grouper': method}).values('grouper')
-                        .annotate(num=Sum('times_seen')).values_list('grouper', 'num')
-                        .order_by('grouper'))
+        if max_days >= 30:
+            g_type = 'date'
+            d_type = 'days'
+            points = max_days
+            modifier = 1
+            today = today.replace(hour=0)
+        elif max_days >= 1:
+            g_type = 'hour'
+            d_type = 'hours'
+            points = max_days * 24
+            modifier = 1
+            today = today.replace(minute=0)
+        else:
+            g_type = 'minute'
+            d_type = 'minutes'
+            modifier = settings.MINUTE_NORMALIZATION
+            points = max_days * 24 * (60 / modifier)
 
-        rows = dict(chart_qs)
+        min_date = today - datetime.timedelta(days=max_days)
 
-        # just skip zeroes
-        first_seen = hours
-        # while not rows.get(today - datetime.timedelta(hours=first_seen)) and first_seen > 24:
-        #     first_seen -= 1
+        method = get_sql_date_trunc('date', db, grouper=g_type)
 
-        return [rows.get(today - datetime.timedelta(hours=d), 0) for d in xrange(first_seen, -1, -1)]
+        chart_qs = queryset.filter(
+            date__gte=min_date,
+        ).extra(
+            select={'grouper': method},
+        )
+        if key:
+            chart_qs = chart_qs.values('grouper', key)
+        else:
+            chart_qs = chart_qs.values('grouper')
+
+        chart_qs = chart_qs.annotate(
+            num=Sum('times_seen'),
+        )
+        if key:
+            chart_qs = chart_qs.values_list(key, 'grouper', 'num').order_by(key, 'grouper')
+        else:
+            chart_qs = chart_qs.values_list('grouper', 'num').order_by('grouper')
+
+        if key is None:
+            rows = {None: dict(chart_qs)}
+        else:
+            rows = {}
+            for item, grouper, num in chart_qs:
+                if item not in rows:
+                    rows[item] = {}
+                rows[item][grouper] = num
+
+        results = {}
+        for item, tsdata in rows.iteritems():
+            results[item] = []
+            for point in xrange(points, -1, -1):
+                dt = today - datetime.timedelta(**{d_type: point * modifier})
+                results[item].append((int((dt).strftime('%s')) * 1000, tsdata.get(dt, 0)))
+
+        if key is None:
+            return results[None]
+        return results
 
 
 class GroupManager(BaseManager, ChartMixin):
@@ -407,7 +462,7 @@ class GroupManager(BaseManager, ChartMixin):
         logger_name = kwargs.pop('logger', None) or settings.DEFAULT_LOGGER_NAME
         server_name = kwargs.pop('server_name', None)
         site = kwargs.pop('site', None)
-        date = kwargs.pop('timestamp', None) or datetime.datetime.utcnow()
+        date = kwargs.pop('timestamp', None) or timezone.now()
         checksum = kwargs.pop('checksum', None)
         tags = kwargs.pop('tags', [])
 
@@ -417,7 +472,12 @@ class GroupManager(BaseManager, ChartMixin):
 
         # We must convert date to local time so Django doesn't mess it up
         # based on TIME_ZONE
-        date = utc_to_local(date)
+        if dj_settings.TIME_ZONE:
+            if not timezone.is_aware(date):
+                date = date.replace(tzinfo=timezone.utc)
+        elif timezone.is_aware(date):
+            date = date.replace(tzinfo=None)
+
         data = kwargs
 
         kwargs = {
@@ -499,8 +559,7 @@ class GroupManager(BaseManager, ChartMixin):
         return event
 
     def _create_group(self, event, tags=None, **kwargs):
-        from sentry.models import ProjectCountByMinute, MessageCountByMinute, STATUS_RESOLVED, \
-          STATUS_UNRESOLVED
+        from sentry.models import ProjectCountByMinute, MessageCountByMinute
 
         date = event.datetime
         time_spent = event.time_spent
@@ -540,6 +599,10 @@ class GroupManager(BaseManager, ChartMixin):
                 'last_seen': max(event.datetime, group.last_seen),
                 'score': ScoreClause(group),
             }
+            message = kwargs.get('message')
+            if message:
+                extra['message'] = message
+
             if group.status == STATUS_RESOLVED:
                 # Group has changed from resolved -> unresolved
                 is_new = True
@@ -608,7 +671,10 @@ class GroupManager(BaseManager, ChartMixin):
         project = group.project
         date = group.last_seen
 
-        for key, value in itertools.ifilter(bool, tags):
+        for key, value in itertools.ifilter(lambda x: bool(x[1]), tags):
+            if len(value) > MAX_TAG_LENGTH:
+                continue
+
             # TODO: FilterKey and FilterValue queries should be create's under a try/except
             FilterKey.objects.get_or_create(
                 project=project,
@@ -642,16 +708,28 @@ class GroupManager(BaseManager, ChartMixin):
         if queryset is None:
             queryset = self
 
-        assert minutes >= settings.MINUTE_NORMALIZATION
+        normalization = float(settings.MINUTE_NORMALIZATION)
+        assert minutes >= normalization
 
         engine = get_db_engine(queryset.db)
+        # We technically only support mysql and postgresql, since there seems to be no standard
+        # way to get the epoch from a datetime/interval
         if engine.startswith('mysql'):
             minute_clause = "interval %s minute"
+            epoch_clause = "unix_timestamp(utc_timestamp()) - unix_timestamp(%(mcbm_tbl)s.date)"
+            now_clause = 'utc_timestamp()'
         else:
             minute_clause = "interval '%s minutes'"
+            epoch_clause = "extract(epoch from now()) - extract(epoch from %(mcbm_tbl)s.date)"
+            now_clause = 'now()'
+
+        epoch_clause = epoch_clause % dict(mcbm_tbl=mcbm_tbl)
 
         queryset = queryset.extra(
-            where=["%s.date >= now() - %s" % (mcbm_tbl, minute_clause % (minutes, ))],
+            where=[
+                "%s.date >= %s - %s" % (mcbm_tbl, now_clause, minute_clause % (minutes + 1, )),
+                "%s.date <= %s - %s" % (mcbm_tbl, now_clause, minute_clause % (1, ))
+            ],
         ).annotate(x=Sum('messagecountbyminute__times_seen')).order_by('id')
 
         sql, params = queryset.query.get_compiler(queryset.db).as_sql()
@@ -663,17 +741,19 @@ class GroupManager(BaseManager, ChartMixin):
         after_group = after_group.split(' ORDER BY ')[0]
 
         query = """
-        SELECT (SUM(%(mcbm_tbl)s.times_seen) + 1.0) / (COALESCE(z.accel, 0) + 1.0) as accel,
-               z.accel as prev_accel,
+        SELECT DISTINCT (SUM(%(mcbm_tbl)s.times_seen) * (%(norm)f / (%(epoch_clause)s / 60)) + 1.0) / (COALESCE(z.rate, 0) + 1.0) as accel,
+               (COALESCE(z.rate, 0) + 1.0) as prev_rate,
                %(before_where)s
-        LEFT JOIN (SELECT a.group_id, SUM(a.times_seen) / 3.0 as accel
+        LEFT JOIN (SELECT a.group_id, SUM(a.times_seen) / COUNT(a.times_seen) / %(norm)f as rate
             FROM %(mcbm_tbl)s as a
-            WHERE a.date BETWEEN now() - %(min_time)s
-            AND now() - %(min_time)s
+            WHERE a.date BETWEEN %(now)s - %(max_time)s
+            AND %(now)s - %(min_time)s
             GROUP BY a.group_id) as z
         ON z.group_id = %(mcbm_tbl)s.group_id
-        WHERE %(before_group)s
-        GROUP BY prev_accel, %(after_group)s
+        WHERE %(mcbm_tbl)s.date BETWEEN %(now)s - %(min_time)s
+        AND %(now)s - %(offset_time)s
+        AND %(before_group)s
+        GROUP BY prev_rate, %(mcbm_tbl)s.date, %(after_group)s
         HAVING SUM(%(mcbm_tbl)s.times_seen) > 0
         ORDER BY accel DESC
         """ % dict(
@@ -681,8 +761,12 @@ class GroupManager(BaseManager, ChartMixin):
             before_where=before_where,
             before_group=before_group,
             after_group=after_group,
+            offset_time=minute_clause % (1,),
             min_time=minute_clause % (minutes + 1,),
-            max_time=minute_clause % (minutes * 4,),
+            max_time=minute_clause % (minutes * (60 / normalization),),
+            norm=normalization,
+            epoch_clause=epoch_clause,
+            now=now_clause,
         )
         return RawQuerySet(self, query, params)
 
@@ -761,6 +845,7 @@ class InstanceMetaManager(BaseManager):
     def get_value_bulk(self, instances, key):
         return dict(self.filter(**{
             '%s__in' % self.field_name: instances,
+            'key': key,
         }).values_list(self.field_name, 'value'))
 
     def get_value(self, instance, key, default=NOTSET):
@@ -1018,3 +1103,32 @@ class FilterKeyManager(BaseManager):
             result = list(self.filter(project=project).values_list('key', flat=True))
             cache.set(key, result, 60)
         return result
+
+
+class TeamManager(BaseManager):
+    def get_for_user(self, user, access=None):
+        """
+        Returns a SortedDict of all teams a user has some level of access to.
+
+        Each <Team> returned has a ``membership`` attribute which holds the
+        <TeamMember> instance.
+        """
+        from sentry.models import TeamMember
+
+        if not user.is_authenticated():
+            return SortedDict()
+
+        qs = TeamMember.objects.filter(
+            user=user,
+            is_active=True,
+        ).select_related('team')
+        if access is not None:
+            qs = qs.filter(type__lte=access)
+
+        results = SortedDict()
+        for tm in sorted(qs, key=lambda x: x.team.name):
+            team = tm.team
+            team.membership = tm
+            results[team.slug] = team
+
+        return results

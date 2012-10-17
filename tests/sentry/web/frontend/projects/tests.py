@@ -7,7 +7,8 @@ import logging
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
-from sentry.models import Project, Team, MEMBER_OWNER
+from sentry.constants import MEMBER_OWNER
+from sentry.models import Project, Team
 
 from tests.base import TestCase
 

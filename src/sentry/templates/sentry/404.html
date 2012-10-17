@@ -4,14 +4,14 @@
 
 {% block title %}{% trans "Page Not Found" %} | {{ block.super }}{% endblock %}
 
+{% block page_header_block %}{% endblock %}
 {% block bodyclass %}{% endblock %}
 
-{% block page_header %}
-    <h2>{% trans "Page Not Found" %}</h2>
-{% endblock %}
-
-{% block content %}
+{% block main %}
     <section class="body">
+        <div class="page-header">
+            <h2>{% trans "Page Not Found" %}</h2>
+        </div>
         <p class="alert-message notice">{% trans "The page you are looking for was not found." %}</p>
         <p><a href="{% url sentry %}">{% trans "Return to the dashboard" %}</a></p>
     </section>

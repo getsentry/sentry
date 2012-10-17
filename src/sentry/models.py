@@ -13,55 +13,38 @@ import math
 import time
 import uuid
 import urlparse
-from datetime import datetime
+
 from hashlib import md5
 from indexer.models import BaseIndex
 from picklefield.fields import PickledObjectField
+from south.modelsinspector import add_introspection_rules
 
 from django.contrib.auth.models import User
+from django.contrib.auth.signals import user_logged_in
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models import F
 from django.db.models.signals import post_syncdb, post_save, pre_delete, \
   class_prepared
 from django.template.defaultfilters import slugify
+from django.utils import timezone
 from django.utils.datastructures import SortedDict
 from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
+from sentry.constants import STATUS_LEVELS, MEMBER_TYPES, \
+  MEMBER_OWNER, MEMBER_USER, MEMBER_SYSTEM  # NOQA
 from sentry.manager import GroupManager, ProjectManager, \
   MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager, \
-  UserOptionManager, FilterKeyManager
+  UserOptionManager, FilterKeyManager, TeamManager
 from sentry.utils import cached_property, \
   MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField, update
-from sentry.templatetags.sentry_helpers import truncatechars
+from sentry.utils.imports import import_string
+from sentry.utils.strings import truncatechars
 
 __all__ = ('Event', 'Group', 'Project', 'SearchDocument')
-
-STATUS_UNRESOLVED = 0
-STATUS_RESOLVED = 1
-STATUS_LEVELS = (
-    (STATUS_UNRESOLVED, _('unresolved')),
-    (STATUS_RESOLVED, _('resolved')),
-)
-
-# These are predefined builtin's
-FILTER_KEYS = (
-    ('server_name', _('server name')),
-    ('logger', _('logger')),
-    ('site', _('site')),
-)
-
-MEMBER_OWNER = 0
-MEMBER_USER = 50
-MEMBER_SYSTEM = 100
-MEMBER_TYPES = (
-    (0, _('owner')),
-    (50, _('user')),
-    (100, _('system agent')),
-)
 
 
 class Option(Model):
@@ -88,7 +71,7 @@ class Team(Model):
     name = models.CharField(max_length=64)
     owner = models.ForeignKey(User)
 
-    objects = BaseManager(cache_fields=(
+    objects = TeamManager(cache_fields=(
         'pk',
         'slug',
     ))
@@ -110,7 +93,7 @@ class TeamMember(Model):
     user = models.ForeignKey(User, related_name="sentry_teammember_set")
     is_active = models.BooleanField(default=True)
     type = models.IntegerField(choices=MEMBER_TYPES, default=globals().get(settings.DEFAULT_PROJECT_ACCESS))
-    date_added = models.DateTimeField(default=datetime.now)
+    date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager()
 
@@ -134,7 +117,7 @@ class Project(Model):
     owner = models.ForeignKey(User, related_name="sentry_owned_project_set", null=True)
     team = models.ForeignKey(Team, null=True)
     public = models.BooleanField(default=settings.ALLOW_PUBLIC_PROJECTS)
-    date_added = models.DateTimeField(default=datetime.now)
+    date_added = models.DateTimeField(default=timezone.now)
     status = models.PositiveIntegerField(default=0, choices=(
         (0, 'Visible'),
         (1, 'Hidden'),
@@ -287,7 +270,7 @@ class PendingTeamMember(Model):
     team = models.ForeignKey(Team, related_name="pending_member_set")
     email = models.EmailField()
     type = models.IntegerField(choices=MEMBER_TYPES, default=globals().get(settings.DEFAULT_PROJECT_ACCESS))
-    date_added = models.DateTimeField(default=datetime.now)
+    date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager()
 
@@ -380,7 +363,7 @@ class MessageBase(Model):
     def message_top(self):
         if self.culprit:
             return self.culprit
-        return truncatechars(self.message.split('\n')[0], 100)
+        return truncatechars(self.message.splitlines()[0], 100)
 
 
 class Group(MessageBase):
@@ -389,8 +372,8 @@ class Group(MessageBase):
     """
     status = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
     times_seen = models.PositiveIntegerField(default=1, db_index=True)
-    last_seen = models.DateTimeField(default=datetime.now, db_index=True)
-    first_seen = models.DateTimeField(default=datetime.now, db_index=True)
+    last_seen = models.DateTimeField(default=timezone.now, db_index=True)
+    first_seen = models.DateTimeField(default=timezone.now, db_index=True)
     resolved_at = models.DateTimeField(null=True, db_index=True)
     # active_at should be the same as first_seen by default
     active_at = models.DateTimeField(null=True, db_index=True)
@@ -416,7 +399,7 @@ class Group(MessageBase):
 
     def save(self, *args, **kwargs):
         if not self.last_seen:
-            self.last_seen = datetime.now()
+            self.last_seen = timezone.now()
         if not self.first_seen:
             self.first_seen = self.last_seen
         if not self.active_at:
@@ -480,7 +463,7 @@ class Event(MessageBase):
     """
     group = models.ForeignKey(Group, blank=True, null=True, related_name="event_set")
     event_id = models.CharField(max_length=32, null=True, db_column="message_id")
-    datetime = models.DateTimeField(default=datetime.now, db_index=True)
+    datetime = models.DateTimeField(default=timezone.now, db_index=True)
     time_spent = models.FloatField(null=True)
     server_name = models.CharField(max_length=128, db_index=True, null=True)
     site = models.CharField(max_length=128, db_index=True, null=True)
@@ -532,13 +515,16 @@ class Event(MessageBase):
     @cached_property
     def interfaces(self):
         result = []
-        for k, v in self.data.iteritems():
-            if '.' not in k:
+        for key, data in self.data.iteritems():
+            if '.' not in key:
                 continue
-            m, c = k.rsplit('.', 1)
-            cls = getattr(__import__(m, {}, {}, [c]), c)
-            v = cls(**v)
-            result.append((v.score, k, v))
+
+            try:
+                cls = import_string(key)
+            except ImportError:
+                pass  # suppress invalid interfaces
+            value = cls(**data)
+            result.append((value.score, key, value))
         return SortedDict((k, v) for _, k, v in sorted(result, key=lambda x: x[0], reverse=True))
 
     def get_version(self):
@@ -587,7 +573,7 @@ class FilterKey(Model):
     Stores references to available filters keys.
     """
     project = models.ForeignKey(Project)
-    key = models.CharField(choices=FILTER_KEYS, max_length=32)
+    key = models.CharField(max_length=32)
 
     objects = FilterKeyManager()
 
@@ -603,7 +589,7 @@ class FilterValue(Model):
     Stores references to available filters.
     """
     project = models.ForeignKey(Project, null=True)
-    key = models.CharField(choices=FILTER_KEYS, max_length=32)
+    key = models.CharField(max_length=32)
     value = models.CharField(max_length=200)
 
     objects = BaseManager()
@@ -623,10 +609,10 @@ class MessageFilterValue(Model):
     project = models.ForeignKey(Project, null=True)
     group = models.ForeignKey(Group)
     times_seen = models.PositiveIntegerField(default=0)
-    key = models.CharField(choices=FILTER_KEYS, max_length=32)
+    key = models.CharField(max_length=32)
     value = models.CharField(max_length=200)
-    last_seen = models.DateTimeField(default=datetime.now, db_index=True, null=True)
-    first_seen = models.DateTimeField(default=datetime.now, db_index=True, null=True)
+    last_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
+    first_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
 
     objects = BaseManager()
 
@@ -652,7 +638,7 @@ class MessageCountByMinute(Model):
 
     project = models.ForeignKey(Project, null=True)
     group = models.ForeignKey(Group)
-    date = models.DateTimeField()  # normalized to HH:MM:00
+    date = models.DateTimeField(db_index=True)  # normalized to HH:MM:00
     times_seen = models.PositiveIntegerField(default=0)
     time_spent_total = models.FloatField(default=0)
     time_spent_count = models.IntegerField(default=0)
@@ -690,8 +676,8 @@ class SearchDocument(Model):
     group = models.ForeignKey(Group)
     total_events = models.PositiveIntegerField(default=1)
     status = models.PositiveIntegerField(default=0)
-    date_added = models.DateTimeField(default=datetime.now)
-    date_changed = models.DateTimeField(default=datetime.now)
+    date_added = models.DateTimeField(default=timezone.now)
+    date_changed = models.DateTimeField(default=timezone.now)
 
     objects = SearchDocumentManager()
 
@@ -846,6 +832,18 @@ def remove_key_for_team_member(instance, **kwargs):
             user=instance.user,
         ).delete()
 
+
+# Set user language if set
+def set_language_on_logon(request, user, **kwargs):
+    language = UserOption.objects.get_value(
+        user=user,
+        project=None,
+        key='language',
+        default=None,
+    )
+    if language and hasattr(request, 'session'):
+        request.session['django_language'] = language
+
 # Signal registration
 post_syncdb.connect(
     create_default_project,
@@ -882,10 +880,6 @@ pre_delete.connect(
     dispatch_uid="remove_key_for_team_member",
     weak=False,
 )
+user_logged_in.connect(set_language_on_logon)
 
-try:
-    import south
-    from south.modelsinspector import add_introspection_rules
-    add_introspection_rules([], ["^social_auth\.fields\.JSONField"])
-except:
-    pass
+add_introspection_rules([], ["^social_auth\.fields\.JSONField"])

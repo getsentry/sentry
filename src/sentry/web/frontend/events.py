@@ -44,7 +44,7 @@ def event_list(request, project):
             logger = logging.getLogger('sentry.filters')
             logger.exception('Error processing filter %r: %s', cls, e)
 
-    today = datetime.datetime.utcnow()
+    today = datetime.date.today()
 
     has_realtime = False
 

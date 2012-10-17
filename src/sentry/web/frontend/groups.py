@@ -14,13 +14,15 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, \
   HttpResponseRedirect, Http404
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from django.utils.safestring import mark_safe
 
 from sentry.conf import settings
 from sentry.constants import SORT_OPTIONS, SEARCH_SORT_OPTIONS, \
-  SORT_CLAUSES, MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES
+  SORT_CLAUSES, MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES, MEMBER_USER
 from sentry.filters import get_filters
-from sentry.models import Group, Event, View, SearchDocument, TeamMember, MEMBER_OWNER
+from sentry.models import Group, Event, View, SearchDocument
+from sentry.permissions import can_admin_group
 from sentry.plugins import plugins
 from sentry.utils import json
 from sentry.utils.dates import parse_date
@@ -57,7 +59,7 @@ def _get_group_list(request, project, view=None):
             logger.exception('Error initializing filter %r: %s', cls, e)
 
     event_list = Group.objects
-    if request.GET.get('bookmarks'):
+    if request.user.is_authenticated() and request.GET.get('bookmarks'):
         event_list = event_list.filter(
             bookmark_set__project=project,
             bookmark_set__user=request.user,
@@ -82,7 +84,7 @@ def _get_group_list(request, project, view=None):
     date_to = request.GET.get('dt')
     time_to = request.GET.get('tt')
 
-    today = datetime.datetime.utcnow()
+    today = timezone.now()
 
     # date format is Y-m-d
     if any(x is not None for x in [date_from, time_from, date_to, time_to]):
@@ -257,17 +259,6 @@ def group(request, project, group):
     # circumstances (such as a post_save signal failing)
     event = group.get_latest_event() or Event(group=group)
 
-    if request.user.is_authenticated():
-        if request.user.is_superuser:
-            access = MEMBER_OWNER
-        else:
-            try:
-                access = TeamMember.objects.get(team=project.team, user=request.user).type
-            except TeamMember.DoesNotExist:
-                access = None
-    else:
-        access = None
-
     return render_to_response('sentry/groups/details.html', {
         'project': project,
         'page': 'details',
@@ -276,7 +267,7 @@ def group(request, project, group):
         'interface_list': _get_rendered_interfaces(event),
         'json_data': event.data.get('extra', {}),
         'version_data': event.data.get('modules', None),
-        'can_admin_event': access is not None,
+        'can_admin_event': can_admin_group(request.user, group),
     }, request)
 
 
@@ -289,11 +280,14 @@ def group_event_list(request, project, group):
         'group': group,
         'event_list': event_list,
         'page': 'event_list',
+        'can_admin_event': can_admin_group(request.user, group),
     }, request)
 
 
-@has_group_access
-def group_event_list_json(request, project, group):
+@has_access(MEMBER_USER)
+def group_event_list_json(request, project, group_id):
+    group = get_object_or_404(Group, pk=group_id, project=project)
+
     limit = request.GET.get('limit', settings.MAX_JSON_RESULTS)
     try:
         limit = int(limit)
@@ -319,11 +313,14 @@ def group_event_details(request, project, group, event_id):
         'interface_list': _get_rendered_interfaces(event),
         'json_data': event.data.get('extra', {}),
         'version_data': event.data.get('modules', None),
+        'can_admin_event': can_admin_group(request.user, group),
     }, request)
 
 
-@has_group_access
-def group_event_details_json(request, project, group, event_id_or_latest):
+@has_access(MEMBER_USER)
+def group_event_details_json(request, project, group_id, event_id_or_latest):
+    group = get_object_or_404(Group, pk=group_id, project=project)
+
     if event_id_or_latest == 'latest':
         # It's possible that a message would not be created under certain
         # circumstances (such as a post_save signal failing)
@@ -335,7 +332,7 @@ def group_event_details_json(request, project, group, event_id_or_latest):
 
 
 @login_required
-@has_access
+@has_access(MEMBER_USER)
 def group_plugin_action(request, project, group_id, slug):
     group = get_object_or_404(Group, pk=group_id, project=project)
 

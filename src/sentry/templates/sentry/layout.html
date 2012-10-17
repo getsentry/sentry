@@ -7,13 +7,14 @@
         <meta http-equiv="content-type" content="text/html; charset=utf-8">
         <meta name="robots" content="NONE,NOARCHIVE">
 
-        <link href="{% url sentry-media "styles/global.min.css" %}" rel="stylesheet" type="text/css"/>
-        <link href="{% url sentry-media "images/favicon.png" %}" rel="shortcut icon" type="image/png"/>
+        <link href="{% url sentry-media "sentry" "scripts/select2/select2.css" %}" rel="stylesheet" type="text/css"/>
+        <link href="{% url sentry-media "sentry" "styles/global.min.css" %}" rel="stylesheet" type="text/css"/>
+        <link href="{% url sentry-media "sentry" "images/favicon.png" %}" rel="shortcut icon" type="image/png"/>
 
         <title>{% block title %}Sentry{% endblock %}</title>
 
         {% if USE_JS_CLIENT %}
-        <script type="text/javascript" src="{% url sentry-media "scripts/client.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/client.js" %}"></script>
         <script type="text/javascript">
         Sentry.client.config({
             server: '{% url sentry-api-store %}',
@@ -25,19 +26,22 @@
         {% endif %}
 
         <!--[if lt IE 9]>
-        <script type="text/javascript" src="{% url sentry-media "scripts/html5shiv.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/html5shiv.js" %}"></script>
         <![endif]-->
-        <script type="text/javascript" src="{% url sentry-media "scripts/jquery.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "scripts/jquery.clippy.min.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "scripts/jquery.flot.min.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "scripts/jquery.animate-colors-min.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "scripts/global.min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.animate-colors-min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.clippy.min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.flot.min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.sparkline.min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/select2/select2.min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/global.min.js" %}"></script>
         <script type="text/javascript">
         Sentry.config({
             urlPrefix: {{ URL_PREFIX|to_json|safe }},
-            mediaUrl: '{% url sentry-media '' %}',
-            defaultImage: '{% url sentry-media 'images/sentry.png' %}',
-            popupCss: '{% url sentry-media 'styles/popup.css' %}'
+            mediaUrl: '{% url sentry-media "sentry" '' %}',
+            projectId: {{ PROJECT_ID|to_json|safe }},
+            defaultImage: '{% url sentry-media "sentry" 'images/sentry.png' %}',
+            popupCss: '{% url sentry-media "sentry" 'styles/popup.css' %}'
         });
         </script>
 
@@ -50,26 +54,28 @@
         {% block header %}
             {% include "sentry/header.html" %}
         {% endblock %}
-        <section id="page-header" class="toolbar">
-            {% block page_header %}
-                <ul class="breadcrumb">
-                    <li><a href="{% url sentry %}">{% trans "Dashboard" %}</a></li>
-                    {% if project %}
-                        <li class="divider">/</li>
-                        <li><a href="{% url sentry project.slug %}">{{ project.name }}</a> <a class="action" href="{% url sentry-manage-project project.slug %}">Edit</a></li>
-                    {% endif %}
-                    {% block breadcrumb %}
-                    {% endblock %}
-                </ul>
-            {% endblock %}
-        </section>
+        {% block page_header_block %}
+            <section id="page-header" class="toolbar">
+                {% block page_header %}
+                    <ul class="breadcrumb">
+                        <li><a href="{% url sentry %}">{% trans "Dashboard" %}</a></li>
+                        {% if project %}
+                            <li class="divider">/</li>
+                            <li><a href="{% url sentry project.slug %}">{{ project.name }}</a></li>
+                        {% endif %}
+                        {% block breadcrumb %}
+                        {% endblock %}
+                    </ul>
+                {% endblock %}
+            </section>
+        {% endblock %}
         <section id="content" class="{% block bodyclass %}with-sidebar{% endblock %}">
             <div class="container">
                 <div class="content">
                     <div id="messages">
                         {% if messages %}
                             {% for message in messages %}
-                                <div class="alert alert-block{% if message.tags %} alert-{{ message.tags }}{% endif %}">{{ message }}</div>
+                                <div class="alert alert-block{% if message.tags %} alert-{{ message.tags }}{% endif %}">{{ message|linebreaks }}</div>
                             {% endfor %}
                         {% endif %}
                     </div>
@@ -110,15 +116,16 @@
           </div>
         </div>
 
-        <script type="text/javascript" src="{% url sentry-media "scripts/bootstrap.min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/bootstrap.min.js" %}"></script>
         <script type="text/javascript">
         $(function(){
             $('.clippy').clippy({
-                clippy_path: '{% url sentry-media "clippy.swf" %}',
+                clippy_path: '{% url sentry-media "sentry" "clippy.swf" %}',
                 keep_text: true
             });
             $('.tip').tooltip();
             $('.nav-tabs .active a').tab('show')
+            $('.sparkline').sparkline('html', {enableTagOptions: true});
         });
         </script>
     </body>

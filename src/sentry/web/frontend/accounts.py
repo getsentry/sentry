@@ -16,22 +16,8 @@ from sentry.plugins import plugins
 from sentry.web.decorators import login_required
 from sentry.web.forms.accounts import AccountSettingsForm, NotificationSettingsForm
 from sentry.web.helpers import render_to_response
+from sentry.utils.auth import get_auth_providers
 from sentry.utils.safe import safe_execute
-
-
-AUTH_ENGINES = {
-    'twitter': ('TWITTER_CONSUMER_KEY', 'TWITTER_CONSUMER_SECRET'),
-    'facebook': ('FACEBOOK_APP_ID', 'FACEBOOK_API_SECRET'),
-    'github': ('GITHUB_APP_ID', 'GITHUB_API_SECRET'),
-    'google': ('GOOGLE_OAUTH2_CLIENT_ID', 'GOOGLE_OAUTH2_CLIENT_SECRET'),
-}
-
-
-def get_auth_engines():
-    return [key
-        for key, cfg_names
-        in AUTH_ENGINES.iteritems()
-        if all(getattr(dj_settings, c, None) for c in cfg_names)]
 
 
 @csrf_protect
@@ -46,16 +32,16 @@ def login(request):
     if form.is_valid():
         login_(request, form.get_user())
         return login_redirect(request)
-    else:
-        request.session.set_test_cookie()
 
-    auth_engines = get_auth_engines()
+    request.session.set_test_cookie()
+
+    AUTH_PROVIDERS = get_auth_providers()
 
     context = csrf(request)
     context.update({
         'form': form,
         'next': request.session.get('_next'),
-        'auth_engines': auth_engines,
+        'AUTH_PROVIDERS': AUTH_PROVIDERS,
         'SOCIAL_AUTH_CREATE_USERS': dj_settings.SOCIAL_AUTH_CREATE_USERS,
     })
     return render_to_response('sentry/login.html', context, request)
@@ -63,7 +49,13 @@ def login(request):
 
 @login_required
 def login_redirect(request):
-    return HttpResponseRedirect(request.session.pop('_next', None) or reverse('sentry'))
+    default = reverse('sentry')
+    login_url = request.session.pop('_next', None) or default
+    if '//' in login_url:
+        login_url = default
+    elif login_url.startswith(reverse('sentry-login')):
+        login_url = default
+    return HttpResponseRedirect(login_url)
 
 
 def logout(request):
@@ -141,12 +133,12 @@ def list_identities(request):
 
     identity_list = list(UserSocialAuth.objects.filter(user=request.user))
 
-    auth_engines = get_auth_engines()
+    AUTH_PROVIDERS = get_auth_providers()
 
     context = csrf(request)
     context.update({
         'identity_list': identity_list,
         'page': 'identities',
-        'auth_engines': auth_engines,
+        'AUTH_PROVIDERS': AUTH_PROVIDERS,
     })
     return render_to_response('sentry/account/identities.html', context, request)

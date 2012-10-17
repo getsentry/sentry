@@ -34,22 +34,27 @@
 {% block breadcrumb %}{% endblock %}
 
 {% block sidebar %}
-    {% querystring from request without bookmarks as bookmark_querystring %}
-    <h6>{% trans "Bookmarks" %}</h6>
-    <form>
-    <ul class="nav nav-tabs nav-stacked filter-list">
-        <li{% if not request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ bookmark_querystring }}">{% trans "All Events" %}</a></li>
-        <li{% if request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ bookmark_querystring }}&amp;bookmarks=1">{% trans "Only Bookmarks" %}</a></li>
-    </ul>
-
-    {% for filter in filters %}
-        {% if filter.show_label %}
-            <h6>{% trans filter.label %}</h6>
+    <form method="get">
+        {% if request.user.is_authenticated %}
+            {% querystring from request without bookmarks as bookmark_querystring %}
+            <h6>{% trans "Bookmarks" %}</h6>
+            <div class="filter">
+                <ul class="nav nav-tabs nav-stacked filter-list">
+                    <li{% if not request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ bookmark_querystring }}">{% trans "All Events" %}</a></li>
+                    <li{% if request.GET.bookmarks %} class="active"{% endif %}><a href="?{{ bookmark_querystring }}&amp;bookmarks=1">{% trans "Only Bookmarks" %}</a></li>
+                </ul>
+            </div>
         {% endif %}
-        <form method="get" action="{{ filter.get_query_string|safe }}">
-            {{ filter.render }}
-        </form>
-    {% endfor %}
+
+        {% for filter in filters %}
+            {% if filter.show_label %}
+                <h6>{% trans filter.label %}</h6>
+            {% endif %}
+            <div class="filter">
+                {{ filter.render }}
+            </div>
+        {% endfor %}
+    </form>
 {% endblock %}
 
 {% block main %}
@@ -132,7 +137,7 @@
     {% if event_list.paginator.objects %}
         {% handle_before_events request event_list.paginator.objects %}
         <ul class="events" id="event_list">
-            {% for group, is_bookmarked in event_list.paginator.objects|as_bookmarks:request.user %}
+            {% for group, metadata in event_list.paginator.objects|with_metadata:request %}
                 {% include "sentry/partial/_group.html" %}
             {% endfor %}
         </ul>

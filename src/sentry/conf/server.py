@@ -28,11 +28,15 @@ MANAGERS = ADMINS
 
 APPEND_SLASH = True
 
-PROJECT_ROOT = os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
+PROJECT_ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir))
 
-sys.path.insert(0, os.path.abspath(os.path.join(PROJECT_ROOT, '..')))
+sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
-CACHE_BACKEND = 'locmem:///'
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+    }
+}
 
 DATABASES = {
     'default': {
@@ -89,7 +93,7 @@ USE_I18N = True
 # calendars according to the current locale
 USE_L10N = True
 
-USE_TZ = False
+USE_TZ = True
 
 # Make this unique, and don't share it with anybody.
 SECRET_KEY = hashlib.md5(socket.gethostname() + ')*)&8a36)6%74e@-ne5(-!8a(vv#tkv)(eyg&@0=zd^pl!7=y@').hexdigest()
@@ -139,20 +143,25 @@ INSTALLED_APPS = (
 
     'crispy_forms',
     'djcelery',
+    'gunicorn',
     'kombu.transport.django',
     'raven.contrib.django',
     'sentry',
     'sentry.plugins.sentry_mail',
     'sentry.plugins.sentry_servers',
-    'sentry.plugins.sentry_sites',
     'sentry.plugins.sentry_urls',
     'sentry.plugins.sentry_user_emails',
     'sentry.plugins.sentry_useragents',
     'social_auth',
     'south',
+    'django_social_auth_trello',
 )
 
-ADMIN_MEDIA_PREFIX = '/_admin_media/'
+STATIC_URL = '/_admin_media/'
+
+LOCALE_PATHS = (
+    os.path.join(PROJECT_ROOT, 'locale'),
+)
 
 # Auth configuration
 
@@ -188,7 +197,8 @@ AUTHENTICATION_BACKENDS = (
     'social_auth.backends.contrib.bitbucket.BitbucketBackend',
     'social_auth.backends.contrib.mixcloud.MixcloudBackend',
     'social_auth.backends.contrib.live.LiveBackend',
-    'django.contrib.auth.backends.ModelBackend',
+    'django_social_auth_trello.backend.TrelloBackend',
+    'sentry.utils.auth.EmailAuthBackend',
 )
 
 TWITTER_CONSUMER_KEY = ''
@@ -203,6 +213,9 @@ GOOGLE_OAUTH2_CLIENT_SECRET = ''
 
 GITHUB_APP_ID = ''
 GITHUB_API_SECRET = ''
+
+TRELLO_API_KEY = ''
+TRELLO_API_SECRET = ''
 
 SOCIAL_AUTH_CREATE_USERS = True
 
@@ -220,7 +233,6 @@ CELERY_SEND_EVENTS = False
 CELERY_RESULT_BACKEND = None
 CELERY_TASK_RESULT_EXPIRES = 1
 
-
 # Sentry and Raven configuration
 
 SENTRY_PUBLIC = False
@@ -228,6 +240,9 @@ SENTRY_PROJECT = 1
 SENTRY_CACHE_BACKEND = 'default'
 
 EMAIL_SUBJECT_PREFIX = '[Sentry] '
+
+# Disable South in tests as it is sending incorrect create signals
+SOUTH_TESTS_MIGRATE = False
 
 # Configure logging
 from raven.conf import setup_logging

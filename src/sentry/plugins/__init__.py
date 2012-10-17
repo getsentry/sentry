@@ -6,4 +6,4 @@ sentry.plugins
 :license: BSD, see LICENSE for more details.
 """
 
-from sentry.plugins.base import *
+from sentry.plugins.base import *  # NOQA

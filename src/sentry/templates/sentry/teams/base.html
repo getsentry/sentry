@@ -4,6 +4,8 @@
 
 {% block title %}{% trans "Team List" %} | {{ block.super }}{% endblock %}
 
+{% block bodyclass %}{% endblock %}
+
 {% block page_header %}
     {% if can_create_projects %}
         <a href="{% url sentry-new-team %}" class="btn pull-right btn-primary">{% trans "Create a new team" %}</a>
@@ -24,8 +26,4 @@
     <section class="body">
         {% block inner %}{% endblock %}
     </section>
-{% endblock %}
-
-{% block sidebar %}
-    {% include "sentry/partial/_account_sidebar.html" %}
 {% endblock %}

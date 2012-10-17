@@ -8,7 +8,7 @@ sentry.web.urls
 
 import re
 
-from django.conf.urls.defaults import *
+from django.conf.urls.defaults import include, patterns, url
 
 from sentry.web import api
 from sentry.web.frontend import accounts, generic, groups, events, \
@@ -32,7 +32,7 @@ def init_all_applications():
 init_all_applications()
 
 urlpatterns = patterns('',
-    url(r'^_static/(?P<path>.*)$', generic.static_media, name='sentry-media'),
+    url(r'^_static/(?P<module>[^/]+)/(?P<path>.*)$', generic.static_media, name='sentry-media'),
 
     # Legacy API
     url(r'^store/$', api.store),
@@ -95,6 +95,12 @@ urlpatterns = patterns('',
         name='sentry-manage-project-plugins'),
     url(r'^account/projects/(?P<project_id>[\w_-]+)/plugins/(?P<slug>[\w_-]+)/$', projects.configure_project_plugin,
         name='sentry-configure-project-plugin'),
+    url(r'^account/projects/(?P<project_id>[\w_-]+)/plugins/(?P<slug>[\w_-]+)/reset/$', projects.reset_project_plugin,
+        name='sentry-reset-project-plugin'),
+    url(r'^account/projects/(?P<project_id>[\w_-]+)/plugins/(?P<slug>[\w_-]+)/disable/$', projects.disable_project_plugin,
+        name='sentry-disable-project-plugin'),
+    url(r'^account/projects/(?P<project_id>[\w_-]+)/plugins/(?P<slug>[\w_-]+)/enable/$', projects.enable_project_plugin,
+        name='sentry-enable-project-plugin'),
     url(r'^account/projects/(?P<project_id>[\w_-]+)/remove/$', projects.remove_project,
         name='sentry-remove-project'),
 
@@ -134,6 +140,7 @@ urlpatterns = patterns('',
     url(r'^api/(?:(?P<project_id>[\w_-]+)/)?groups/newest/$', api.get_new_groups, name='sentry-api-groups-new'),
     url(r'^api/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/set/public/$', api.make_group_public, name='sentry-api-set-group-public'),
     url(r'^api/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/set/private/$', api.make_group_private, name='sentry-api-set-group-private'),
+    url(r'^api/(?P<project_id>[\w_-]+)/tags/search/$', api.search_tags, name='sentry-api-search-tags'),
 
     # Project specific
 

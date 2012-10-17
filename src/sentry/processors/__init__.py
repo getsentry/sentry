@@ -6,4 +6,4 @@ sentry.processors
 :license: BSD, see LICENSE for more details.
 """
 
-from sentry.processors.base import *
+from sentry.processors.base import *  # NOQA

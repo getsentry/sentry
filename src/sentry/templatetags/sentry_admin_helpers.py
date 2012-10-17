@@ -9,6 +9,7 @@ import datetime
 
 from django import template
 from django.db.models import Sum
+from django.utils import timezone
 
 register = template.Library()
 
@@ -18,7 +19,7 @@ def with_event_counts(project_list):
     from sentry.models import ProjectCountByMinute
     results = dict(ProjectCountByMinute.objects.filter(
         project__in=project_list,
-        date__gte=datetime.datetime.now() - datetime.timedelta(days=30),
+        date__gte=timezone.now() - datetime.timedelta(days=30),
     ).values_list('project').annotate(
         total_events=Sum('times_seen'),
     ).values_list('project', 'total_events'))

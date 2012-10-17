@@ -11,27 +11,29 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
-from sentry.models import TeamMember, MEMBER_OWNER, \
-  ProjectKey, Team, FilterKey
+from sentry.constants import MEMBER_OWNER, MEMBER_USER
+from sentry.models import TeamMember, ProjectKey, Team, FilterKey
 from sentry.permissions import can_create_projects, can_remove_project, can_create_teams
 from sentry.plugins import plugins
 from sentry.plugins.helpers import set_option, get_option
 from sentry.web.decorators import login_required, has_access
-from sentry.web.forms import EditProjectForm, RemoveProjectForm, \
-  EditProjectAdminForm
 from sentry.web.forms.projects import NewProjectForm, NewProjectAdminForm,\
-  ProjectTagsForm
+  ProjectTagsForm, EditProjectForm, RemoveProjectForm, EditProjectAdminForm
 from sentry.web.forms.teams import NewTeamForm, SelectTeamForm
 from sentry.web.helpers import render_to_response, get_project_list, \
-  plugin_config, get_team_list
+  plugin_config
 
 
 @login_required
 def project_list(request):
     project_list = get_project_list(request.user, hidden=True).values()
     team_list = dict((t.id, t) for t in Team.objects.filter(pk__in=[p.team_id for p in project_list]))
-    memberships = dict((tm.team_id, tm) for tm in TeamMember.objects.filter(user=request.user, team__in=team_list))
-    keys = dict((p.project_id, p) for p in ProjectKey.objects.filter(user=request.user, project__in=project_list))
+    if request.user.is_authenticated():
+        memberships = dict((tm.team_id, tm) for tm in TeamMember.objects.filter(user=request.user, team__in=team_list))
+        keys = dict((p.project_id, p) for p in ProjectKey.objects.filter(user=request.user, project__in=project_list))
+    else:
+        memberships = {}
+        keys = {}
 
     for project in project_list:
         key = keys.get(project.id)
@@ -55,7 +57,7 @@ def new_project(request):
         return HttpResponseRedirect(reverse('sentry'))
 
     allow_create_teams = can_create_teams(request.user)
-    team_list = get_team_list(request.user)
+    team_list = Team.objects.get_for_user(request.user)
 
     if request.user.has_perm('sentry.can_add_project') and User.objects.all()[0:2] == 2:
         project_form_cls = NewProjectAdminForm
@@ -81,7 +83,7 @@ def new_project(request):
     project_form = project_form_cls(request.POST or None, initial=project_initial, prefix='prj')
 
     is_new_team = new_team_form and new_team_form.is_valid()
-    if is_new_team:
+    if is_new_team or not select_team_form:
         team_form = new_team_form
     else:
         team_form = select_team_form
@@ -107,13 +109,9 @@ def new_project(request):
     }, request)
 
 
-@login_required
 @has_access(MEMBER_OWNER)
 @csrf_protect
 def remove_project(request, project):
-    if project.is_default_project():
-        return HttpResponseRedirect(reverse('sentry-project-list'))
-
     if not can_remove_project(request.user, project):
         return HttpResponseRedirect(reverse('sentry'))
 
@@ -144,7 +142,6 @@ def remove_project(request, project):
     return render_to_response('sentry/projects/remove.html', context, request)
 
 
-@login_required
 @has_access(MEMBER_OWNER)
 @csrf_protect
 def manage_project(request, project):
@@ -152,7 +149,8 @@ def manage_project(request, project):
     if result is False and not request.user.has_perm('sentry.can_change_project'):
         return HttpResponseRedirect(reverse('sentry'))
 
-    team_list = get_team_list(request.user)
+    # XXX: We probably shouldnt allow changing the team unless they're the project owner
+    team_list = Team.objects.get_for_user(project.owner or request.user, MEMBER_OWNER)
 
     if request.user.has_perm('sentry.can_change_project'):
         form_cls = EditProjectAdminForm
@@ -187,8 +185,7 @@ def manage_project(request, project):
     return render_to_response('sentry/projects/manage.html', context, request)
 
 
-@login_required
-@has_access
+@has_access(MEMBER_USER)
 def client_help(request, project):
     try:
         key = ProjectKey.objects.get(user=request.user, project=project)
@@ -209,7 +206,6 @@ def client_help(request, project):
     return render_to_response('sentry/projects/client_help.html', context, request)
 
 
-@login_required
 @has_access(MEMBER_OWNER)
 def manage_project_tags(request, project):
     tag_list = FilterKey.objects.all_keys(project)
@@ -235,7 +231,29 @@ def manage_project_tags(request, project):
     return render_to_response('sentry/projects/manage_tags.html', context, request)
 
 
-@login_required
+@has_access(MEMBER_OWNER)
+@csrf_protect
+def manage_plugins(request, project):
+    result = plugins.first('has_perm', request.user, 'configure_project_plugin', project)
+    if result is False and not request.user.has_perm('sentry.can_change_project'):
+        return HttpResponseRedirect(reverse('sentry'))
+
+    if request.POST:
+        enabled = set(request.POST.getlist('plugin'))
+        for plugin in plugins.all():
+            if plugin.can_enable_for_projects():
+                plugin.set_option('enabled', plugin.slug in enabled, project)
+        return HttpResponseRedirect(request.path + '?success=1')
+
+    context = csrf(request)
+    context.update({
+        'page': 'plugins',
+        'project': project,
+    })
+
+    return render_to_response('sentry/projects/plugins/list.html', context, request)
+
+
 @has_access(MEMBER_OWNER)
 @csrf_protect
 def configure_project_plugin(request, project, slug):
@@ -271,25 +289,61 @@ def configure_project_plugin(request, project, slug):
     return render_to_response('sentry/projects/plugins/configure.html', context, request)
 
 
-@login_required
 @has_access(MEMBER_OWNER)
 @csrf_protect
-def manage_plugins(request, project):
-    result = plugins.first('has_perm', request.user, 'configure_project_plugin', project)
-    if result is False and not request.user.has_perm('sentry.can_change_project'):
+def reset_project_plugin(request, project, slug):
+    try:
+        plugin = plugins.get(slug)
+    except KeyError:
+        return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.slug, slug]))
+
+    if not plugin.is_enabled(project):
+        return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.slug, slug]))
+
+    result = plugins.first('has_perm', request.user, 'configure_project_plugin', project, plugin)
+    if result is False and not request.user.is_superuser:
         return HttpResponseRedirect(reverse('sentry'))
 
-    if request.POST:
-        enabled = set(request.POST.getlist('plugin'))
-        for plugin in plugins.all():
-            if plugin.can_enable_for_projects():
-                plugin.set_option('enabled', plugin.slug in enabled, project)
-        return HttpResponseRedirect(request.path + '?success=1')
+    plugin.reset_options(project=project)
 
-    context = csrf(request)
-    context.update({
-        'page': 'plugins',
-        'project': project,
-    })
+    return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.slug, slug]))
 
-    return render_to_response('sentry/projects/plugins/list.html', context, request)
+
+@has_access(MEMBER_OWNER)
+@csrf_protect
+def enable_project_plugin(request, project, slug):
+    try:
+        plugin = plugins.get(slug)
+    except KeyError:
+        return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.slug, slug]))
+
+    if plugin.is_enabled(project) or not plugin.can_enable_for_projects():
+        return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.slug, slug]))
+
+    result = plugins.first('has_perm', request.user, 'configure_project_plugin', project, plugin)
+    if result is False and not request.user.is_superuser:
+        return HttpResponseRedirect(reverse('sentry'))
+
+    plugin.set_option('enabled', True, project)
+
+    return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.slug, slug]))
+
+
+@has_access(MEMBER_OWNER)
+@csrf_protect
+def disable_project_plugin(request, project, slug):
+    try:
+        plugin = plugins.get(slug)
+    except KeyError:
+        return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.slug, slug]))
+
+    if not plugin.is_enabled(project) or not plugin.can_enable_for_projects():
+        return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.slug, slug]))
+
+    result = plugins.first('has_perm', request.user, 'configure_project_plugin', project, plugin)
+    if result is False and not request.user.is_superuser:
+        return HttpResponseRedirect(reverse('sentry'))
+
+    plugin.set_option('enabled', False, project)
+
+    return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.slug]))

@@ -1,3 +1,20 @@
+Version 5.0.0
+-------------
+
+- Variable versions of Django are no longer supported. Django 1.4.x must now be used.
+- Public projects are restricted to viewing without being authenticated.
+- The default behavior of Sentry is to now use timezone-aware datetimes everywhere.
+- Permissions have been refactored to be more precise.
+
+
+Version 4.10.0
+--------------
+
+- A new IssuePlugin base is available.
+- Charts have been refactored to show 7 days worth of data.
+- django.contrib.staticfiles is now supported.
+- django.contrib.messages is now supported.
+
 Version 4.9.0
 -------------
 

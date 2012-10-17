@@ -29,7 +29,7 @@ class BaseNotificationUserOptionsForm(forms.Form):
         super(BaseNotificationUserOptionsForm, self).__init__(*args, **kwargs)
 
     def get_title(self):
-        raise NotImplementedError
+        return self.plugin.get_conf_title()
 
     def get_description(self):
         return ""
@@ -56,11 +56,8 @@ class NotificationUserOptionsForm(BaseNotificationUserOptionsForm):
                 enabled_projects.append(slug)
         self.fields['projects'].initial = enabled_projects
 
-    def get_title(self):
-        return self.plugin.get_conf_title()
-
     def get_description(self):
-        return _('Send notifications for new events when a new event is seen, or when an '
+        return _('Send notifications when a new event is seen, or when an '
                  'already resolved event has changed back to unresolved.')
 
     def save(self):

@@ -1,3 +1,13 @@
+"""
+sentry.constants
+~~~~~~~~~~~~~~~~
+
+These settings act as the default (base) settings for the Sentry-provided web-server
+
+:copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
+
 from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext_lazy as _
 
@@ -34,3 +44,19 @@ SEARCH_SORT_OPTIONS = SortedDict((
     ('date', _('Last Seen')),
     ('new', _('First Seen')),
 ))
+
+STATUS_UNRESOLVED = 0
+STATUS_RESOLVED = 1
+STATUS_LEVELS = (
+    (STATUS_UNRESOLVED, _('unresolved')),
+    (STATUS_RESOLVED, _('resolved')),
+)
+
+MEMBER_OWNER = 0
+MEMBER_USER = 50
+MEMBER_SYSTEM = 100
+MEMBER_TYPES = (
+    (MEMBER_OWNER, _('admin')),
+    (MEMBER_USER, _('user')),
+    (MEMBER_SYSTEM, _('system agent')),
+)

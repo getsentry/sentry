@@ -7,6 +7,7 @@ sentry.web.views
 """
 
 import logging
+import warnings
 
 from django.conf import settings as dj_settings
 from django.core.urlresolvers import reverse, resolve
@@ -17,8 +18,8 @@ from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 
 from sentry.conf import settings
-from sentry.models import Project, View, \
-  MEMBER_USER, Option, ProjectOption, Team
+from sentry.models import Project, View, Team, \
+  Option, ProjectOption
 from sentry.permissions import can_create_projects, can_create_teams
 
 logger = logging.getLogger('sentry.errors')
@@ -28,9 +29,6 @@ def get_project_list(user=None, access=None, hidden=False, key='id'):
     """
     Returns a SortedDict of all projects a user has some level of access to.
     """
-    if access is None:
-        access = MEMBER_USER
-
     base_qs = Project.objects
     if not hidden:
         base_qs = base_qs.filter(status=0)
@@ -41,12 +39,16 @@ def get_project_list(user=None, access=None, hidden=False, key='id'):
 
     # If we're not requesting specific access include all
     # public projects
-    if access <= MEMBER_USER:
+    if access is None:
         filters |= Q(public=True)
+    elif not (user and user.is_authenticated()):
+        return SortedDict()
 
     # If the user is authenticated, include their memberships
     if user and user.is_authenticated():
-        teams = get_team_list(user, access).values()
+        teams = Team.objects.get_for_user(user, access).values()
+        if not teams and access is not None:
+            return SortedDict()
         filters |= Q(team__in=teams)
 
     return SortedDict((getattr(p, key), p)
@@ -54,21 +56,9 @@ def get_project_list(user=None, access=None, hidden=False, key='id'):
 
 
 def get_team_list(user, access=None):
-    """
-    Returns a SortedDict of all teams a user has some level of access to.
-    """
-    if access is None:
-        access = MEMBER_USER
+    warnings.warn('get_team_list is Deprecated. Use Team.objects.get_for_user instead.', DeprecationWarning)
+    return Team.objects.get_for_user(user, access)
 
-    if not user.is_authenticated():
-        return SortedDict()
-
-    qs = Team.objects.filter(
-        member_set__user=user,
-        member_set__is_active=True,
-        member_set__type__lte=access,
-    ).order_by('name')
-    return SortedDict((p.slug, p) for p in qs)
 
 _LOGIN_URL = None
 
@@ -120,7 +110,7 @@ def get_default_context(request, existing_context=None):
         if not existing_context or 'PROJECT_LIST' not in existing_context:
             context['PROJECT_LIST'] = get_project_list(request.user).values()
         if not existing_context or 'TEAM_LIST' not in existing_context:
-            context['TEAM_LIST'] = get_team_list(request.user).values()
+            context['TEAM_LIST'] = Team.objects.get_for_user(request.user).values()
 
     return context
 
@@ -153,7 +143,7 @@ def plugin_config(plugin, project, request):
     """
     Configure the plugin site wide.
 
-    returns a tuple composed of a redirection boolean and the content to
+    Returns a tuple composed of a redirection boolean and the content to
     be displayed.
     """
     NOTSET = object()
@@ -195,5 +185,6 @@ def plugin_config(plugin, project, request):
     return ('display', mark_safe(render_to_string(template, {
             'form': form,
             'request': request,
+            'plugin': plugin,
             'plugin_description': plugin.get_description() or '',
         }, context_instance=RequestContext(request))))

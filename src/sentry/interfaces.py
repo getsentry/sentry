@@ -242,7 +242,6 @@ class Stacktrace(Interface):
                 result.append('  File "%(filename)s", line %(lineno)s' % frame)
             if 'context_line' in frame:
                 result.append('    %s' % frame['context_line'].strip())
-            result.append('')
 
         return '\n'.join(result)
 

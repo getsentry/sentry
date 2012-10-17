@@ -15,10 +15,7 @@ from sentry.plugins.bases.tag import TagPlugin
 
 class SitesPlugin(TagPlugin):
     """
-    Adds additional support for showing information about sites including:
-
-    * A panel which shows all sites a message was seen on.
-    * A sidebar module which shows the sites most actively seen on.
+    Automatically adds the 'site' tag from events.
     """
     slug = 'sites'
     title = _('Sites')

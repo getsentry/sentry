@@ -12,18 +12,14 @@
                             <input type="hidden" name="sort" value="{% if sort %}{{ sort }}{% endif %}"/>
                             <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="{% if HAS_SEARCH %}{% trans "search query or message id" %}{% else %}{% trans "message id" %}{% endif %}" class="search-query pull-left" />
                         </form>
-                    {% else %}
-                        <form class="navbar-search pull-right" id="search">
-                            <input type="hidden" name="sort" value="{% if sort %}{{ sort }}{% endif %}"/>
-                            <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="{% trans "select a project to enable search" %}" class="search-query pull-left disabled" disabled="disabled" />
-                        </form>
                     {% endif %}
                 {% endblock %}
 
                 <ul class="nav">
                     {% if project %}
-                        <li{% if PAGE == 'dashboard' %} class="active"{% endif %}><a href="{% url sentry project.slug %}">{% trans "Dashboard" %}</a></li>
-                        <li{% if PAGE == 'stream' %} class="active"{% endif %}><a href="{% url sentry-events project.slug %}">{% trans "Stream" %}</a></li>
+                        <li{% if PAGE == 'dashboard' %} class="active"{% endif %}><a href="{% url sentry project.slug %}">{% trans "Stream" %}</a></li>
+                        <li><a href="{% url sentry-manage-project project.slug %}">{% trans "Settings" %}</a></li>
+                        <li><a href="{% url sentry-project-client-help project.slug %}">{% trans "Client Configuration" %}</a></li>
                     {% endif %}
                 </ul>
                 <ul class="nav pull-right">
@@ -31,7 +27,7 @@
                         {% if request.user.is_authenticated %}
                             {% if PROJECT_LIST %}
                                 <li class="dropdown">
-                                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Dashboard" %} <span class="caret"></span></a>
+                                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Projects" %} <span class="caret"></span></a>
                                     <ul class="dropdown-menu">
                                         {% for p in PROJECT_LIST %}
                                             <li{% if project == p %} class="active"{% endif %}><a href="{% url sentry p.slug %}">{{ p.name }}</a></li>
@@ -42,13 +38,14 @@
                             <li class="dropdown">
                                 <a href="#" class="dropdown-toggle" data-toggle="dropdown"><img class="avatar" src="{% gravatar_url user.email size 20 %}"> {{ user.username }} <span class="caret"></span></a>
                                 <ul class="dropdown-menu">
+                                    <li><a href="{% url sentry-account-settings %}">{% trans "Account" %}</a></li>
+                                    <li class="divider">
                                     <li><a href="{% url sentry-project-list %}">{% trans "Projects" %}</a></li>
                                     <li><a href="{% url sentry-team-list %}">{% trans "Teams" %}</a></li>
                                     {% if request.user.is_staff %}
                                         <li><a href="{% url sentry-admin-status %}">{% trans "Admin" %}</a></li>
                                     {% endif %}
-                                    <li class="divider"></li>
-                                    <li><a href="{% url sentry-account-settings %}">{% trans "Settings" %}</a></li>
+                                    <li class="divider">
                                     <li><a href="{% url sentry-logout %}">{% trans "Logout" %}</a></li>
                                 </ul>
                             </li>

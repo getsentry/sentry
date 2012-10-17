@@ -6,6 +6,22 @@ logging parameters. Given these parameters, it then builds a JSON payload
 which it will send to a Sentry server using some sort of authentication
 method.
 
+The following items are expected of production-ready clients:
+
+* DSN configuration
+* Graceful failures (e.g. Sentry server unreachable)
+* Scrubbing w/ processors
+* Tag support
+
+Additionally, the following features are highly encouraged:
+
+* Automated error handling (e.g. default error handlers)
+* Logging integration (to whatever standard solution is available)
+* Non-blocking event submission
+
+Client Usage (End-user)
+-----------------------
+
 Generally, a client consists of three steps to the end user, which should look
 almost identical no matter the language:
 
@@ -65,6 +81,14 @@ like the following::
 
 .. note:: In the above example, we're passing any options that would normally be passed to the capture methods along with
           the block wrapper.
+
+Finally, provide a CLI to test your client's configuration. Python example::
+
+    raven test http://public_key:secret_key@example.com/default
+
+Ruby example::
+
+    rake raven:test http://public_key:secret_key@example.com/default
 
 Parsing the DSN
 ---------------
@@ -173,7 +197,7 @@ The following attributes are required for all events:
 
     The record severity.
 
-    Defaults to ``logging.ERROR``.
+    Defaults to ``error``.
 
     The value can either be the integer value or the string label
     as specified in ``SENTRY_LOG_LEVELS``.
@@ -181,8 +205,16 @@ The following attributes are required for all events:
     ::
 
         {
-            "level": "warn"
+            "level": "warning"
         }
+
+    Acceptable values are:
+
+    * fatal
+    * error
+    * warning
+    * info
+    * debug
 
 .. data:: logger
 
@@ -284,6 +316,9 @@ An authentication header is expected to be sent along with the message body, whi
     sentry_timestamp=<current timestamp>,
     sentry_key=<public api key>
 
+.. note:: You should include the client version string in the User-Agent portion of the header, and it will be used if
+          sentry_client is not sent in the auth header.
+
 .. data:: sentry_version
 
     The protocol version. This should be sent as the value '2.0'.
@@ -293,6 +328,8 @@ An authentication header is expected to be sent along with the message body, whi
     An arbitrary string which identifies your client, including its version.
 
     For example, the Python client might send this as 'raven-python/1.0'
+
+    This should be included in your User-Agent header rather than here if you're using the HTTP protocol.
 
 .. data:: sentry_timestamp
 
@@ -314,6 +351,7 @@ the path is the BASE_URI/api/store/. So given the following DSN::
 The request body should then somewhat resemble the following::
 
     POST /api/store/
+    User-Agent: raven-python/1.0
     X-Sentry-Auth: Sentry sentry_version=2.0, sentry_timestamp=1329096377,
         sentry_key=b70a31b3510c4cf793964a185cfe1fd0, sentry_client=raven-python/1.0
 
@@ -353,3 +391,75 @@ It will also only retry every few seconds, based on how many consecutive failure
             return True
 
         return False
+
+Scrubbing Data
+--------------
+
+Clients should provide some mechanism for scrubbing data. Ideally through an extensible interface that the user
+can customize the behavior of.
+
+This is generally done as part of the client configuration::
+
+    client = Client(..., {
+        'processors': ['processor.className'],
+    })
+
+Each processor listed would be some sort of extensible class or a function callback. It would have a single designated
+method that is passed the data (after it's been populated), and would then return the data fully intact, or modified
+with various bits filtered out.
+
+For example, if you simply supported callbacks for processors, it might look like this::
+
+    function my_processor($data) {
+        foreach ($data['extra'] as $key => $value) {
+            if (strpos($value, 'password')) {
+                $data[$key] = '********';
+            }
+        }
+    }
+
+We recommend scrubbing the following values::
+
+* Values where the keyname matches 'password', 'passwd', or 'secret'.
+* Values that match the regular expression of ``r'^\d{16}$'`` (credit card-like).
+* Session cookies.
+* The Authentication header (HTTP).
+
+Keep in mind, that if your client is passing extra interface data (e.g. HTTP POST variables) you will also
+want to scrub those interfaces. Given that, it is a good idea to simply recursively scrub most variables
+other than predefined things (like HTTP headers).
+
+Tags
+----
+
+Tags are key/value pairs that describe an event. They should be configurable in the following contexts:
+
+* Environment (client-level)
+* Thread (block-level)
+* Event (as part of capture)
+
+Each of these should inherit it's parent. So for example, if you configure your client as so::
+
+    client = Client(..., {
+        'tags': {'foo': 'bar'},
+    })
+
+And then you capture an event::
+
+    client.captureMessage('test', {
+        'tags': {'foo': 'baz'},
+    })
+
+The client should send the following usptream for ``tags``::
+
+    {
+        "tags": [
+            ["foo", "bar"],
+            ["foo", "baz"]
+        ],
+    }
+
+If your platform supports it, block level context should also be available::
+
+    with client.context({'tags': {'foo': 'bar'}}):
+        # ...

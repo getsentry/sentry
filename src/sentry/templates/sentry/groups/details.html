@@ -57,6 +57,24 @@
         {% endif %}
     </dl>
 
+    {% if can_admin_event %}
+        <ul class="nav nav-list">
+            <li class="nav-header">{% trans "Actions" %}</li>
+            {% for label, link, is_active in group|get_actions:request %}
+                {% if forloop.first %}
+                    <li class="divider"></li>
+                {% endif %}
+                <li><a href="{{ link }}">{{ label }}</a></li>
+            {% endfor %}
+            {% comment %}<li><a {% ifequal page 'event_list' %}{% if event %}
+            href="{% url sentry-group-event-json project_id=project.slug group_id=group.id event_id_or_latest=event.id %}"{% else %}
+            href="{% url sentry-group-event-json project_id=project.slug group_id=group.id event_id_or_latest="latest" %}"{% endif %}{% else %}
+            href="{% url sentry-group-events-json project_id=project.slug group_id=group.id %}"{% endifequal %}
+            >{% trans "Raw JSON Data" %}</a></li>{% endcomment %}
+            <li><a href="{% url sentry-api-remove-group project_id=project.slug group_id=group.id %}">{% trans "Remove Event Data" %}</a></li>
+        </ul>
+    {% endif %}
+
     {% for html in group|get_widgets:request %}
         {{ html|safe }}
     {% endfor %}
@@ -98,10 +116,10 @@
                             {% if group.status == 0 %}
                                 <a href="javascript:void(0)" class="tip" onclick="Sentry.stream.resolve('{{ group.project.slug }}', {{ group.id|safe }}, false);" rel="tooltip" title="{% trans "Mark as Resolved" %}">&#10003;</a>
                             {% else %}
-                                <a href="javascript:void(0)" class="tip disabled" rel="tooltip" title="{% trans "Already Resolved" %}">&#10003;</a>
+                                <a href="javascript:void(0)" class="tip checked" rel="tooltip" title="{% trans "Already Resolved" %}">&#10003;</a>
                             {% endif %}
                         </li>
-                        <li><a href="javascript:void(0)" onclick="Sentry.stream.bookmark('{{ group.project.slug }}', {{ group.id|safe }}, this);" class="tip bookmark{% if is_bookmarked %} checked{% endif %}" rel="tooltip" title="{% trans "Bookmark" %}">&#9829;</a></li>
+                        <li><a href="javascript:void(0)" onclick="Sentry.stream.bookmark('{{ group.project.slug }}', {{ group.id|safe }}, this);" class="tip bookmark{% if group|is_bookmarked:request.user %} checked{% endif %}" rel="tooltip" title="{% trans "Bookmark" %}">&#9733;</a></li>
                     </ul>
                 {% endif %}
             </div>
@@ -119,25 +137,6 @@
             {% for label, link, is_active in group|get_panels:request %}
                 <li{% if is_active %} class="active"{% endif %}><a href="{{ link }}">{{ label }}</a></li>
             {% endfor %}
-            {% if can_admin_event %}
-                <li class="dropdown pull-right">
-                    <a class="dropdown-toggle" href="#" data-toggle="dropdown">{% trans "Actions" %} <span class="caret"></span></a>
-                    <ul class="dropdown-menu">
-                        <li><a href="{% url sentry-api-remove-group project_id=project.slug group_id=group.id %}">{% trans "Remove Event" %}</a></li>
-                        <li><a {% ifequal page 'event_list' %}{% if event %}
-                        href="{% url sentry-group-event-json project_id=project.slug group_id=group.id event_id_or_latest=event.id %}"{% else %}
-                        href="{% url sentry-group-event-json project_id=project.slug group_id=group.id event_id_or_latest="latest" %}"{% endif %}{% else %}
-                        href="{% url sentry-group-events-json project_id=project.slug group_id=group.id %}"{% endifequal %}
-                        >{% trans "Raw JSON Data" %}</a></li>
-                        {% for label, link, is_active in group|get_actions:request %}
-                            {% if forloop.first %}
-                                <li class="divider"></li>
-                            {% endif %}
-                            <li><a href="{{ link }}">{{ label }}</a></li>
-                        {% endfor %}
-                    </ul>
-                </li>
-            {% endif %}
         </ul>
 
         {% block inner %}

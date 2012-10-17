@@ -10,14 +10,15 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
-from sentry.models import PendingTeamMember, TeamMember, MEMBER_USER, MEMBER_OWNER
+from sentry.constants import MEMBER_USER, MEMBER_OWNER
+from sentry.models import PendingTeamMember, TeamMember
 from sentry.permissions import can_add_team_member, can_remove_team, can_create_projects, \
-  can_create_teams
+  can_create_teams, can_edit_team_member, can_remove_team_member
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_team_access
 from sentry.web.forms.teams import NewTeamForm, NewTeamAdminForm, \
-  EditTeamForm, EditTeamMemberForm, NewTeamMemberForm, InviteTeamMemberForm, \
-  RemoveTeamForm
+  EditTeamForm, EditTeamAdminForm, EditTeamMemberForm, NewTeamMemberForm, \
+  InviteTeamMemberForm, RemoveTeamForm
 from sentry.web.helpers import render_to_response
 
 
@@ -64,7 +65,14 @@ def manage_team(request, team):
     if result is False and not request.user.has_perm('sentry.can_change_team'):
         return HttpResponseRedirect(reverse('sentry'))
 
-    form = EditTeamForm(request.POST or None, instance=team)
+    if request.user.has_perm('sentry.can_add_team'):
+        form_cls = EditTeamAdminForm
+    else:
+        form_cls = EditTeamForm
+
+    form = form_cls(request.POST or None, initial={
+        'owner': team.owner,
+    }, instance=team)
 
     if form.is_valid():
         team = form.save()
@@ -193,8 +201,7 @@ def edit_team_member(request, team, member_id):
     except TeamMember.DoesNotExist:
         return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
 
-    result = plugins.first('has_perm', request.user, 'edit_team_member', member)
-    if result is False and not request.user.has_perm('sentry.can_change_teammember'):
+    if not can_edit_team_member(request.user, member):
         return HttpResponseRedirect(reverse('sentry'))
 
     form = EditTeamMemberForm(team, request.POST or None, instance=member)
@@ -223,8 +230,7 @@ def remove_team_member(request, team, member_id):
     if member.user == team.owner:
         return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
 
-    result = plugins.first('has_perm', request.user, 'remove_team_member', member)
-    if result is False and not request.user.has_perm('sentry.can_remove_teammember'):
+    if not can_remove_team_member(request.user, member):
         return HttpResponseRedirect(reverse('sentry'))
 
     if request.POST:

@@ -9,11 +9,23 @@ sentry.utils.imports
 
 class ModuleProxyCache(dict):
     def __missing__(self, key):
-        module, class_name = key.rsplit('.', 1)
+        module_name, class_name = key.rsplit('.', 1)
 
-        handler = getattr(__import__(module, {}, {}, [class_name], -1), class_name)
+        try:
+            module = __import__(module_name, {}, {}, [class_name], -1)
+        except ImportError:
+            handler = None
+        else:
+            try:
+                handler = getattr(module, class_name)
+            except AttributeError:
+                handler = None
 
+        # We cache a NoneType for missing imports to avoid repeated lookups
         self[key] = handler
+
+        if handler is None:
+            raise ImportError
 
         return handler
 
