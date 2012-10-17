@@ -39,7 +39,7 @@
         Sentry.config({
             urlPrefix: {{ URL_PREFIX|to_json|safe }},
             mediaUrl: '{% url sentry-media "sentry" '' %}',
-            projectId: {{ PROJECT_ID|to_json|safe }},
+            projectId: {% if project %}{{ project.id|to_json|safe }}{% else %}null{% endif %},
             defaultImage: '{% url sentry-media "sentry" 'images/sentry.png' %}',
             popupCss: '{% url sentry-media "sentry" 'styles/popup.css' %}'
         });
