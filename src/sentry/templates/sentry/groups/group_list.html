@@ -118,10 +118,10 @@
             {% endfor %}
             <div class="input">
               <div class="inline-inputs">
-                <input data-datepicker="datepicker" name="df" class="date" type="text" value="{% if from_date %}{{ from_date|date:"Y-m-d" }}{% endif %}" />
+                <input data-toggle="datepicker"  data-date-format="yyyy-mm-dd"name="df" class="date" type="text" value="{% if from_date %}{{ from_date|date:"Y-m-d" }}{% endif %}" />
                 <input class="time" type="text" name="tf" value="{% if from_date %}{{ from_date|time:"h:i A" }}{% endif %}" />
                 to
-                <input data-datepicker="datepicker" name="dt" class="date" type="text" value="{% if to_date %}{{ to_date|date:"Y-m-d" }}{% endif %}" />
+                <input data-toggle="datepicker" data-date-format="yyyy-mm-dd" name="dt" class="date" type="text" value="{% if to_date %}{{ to_date|date:"Y-m-d" }}{% endif %}" />
                 <input class="time" type="text" name="tt" value="{% if to_date %}{{ to_date|time:"h:i A" }}{% endif %}" />
               </div>
             </div>

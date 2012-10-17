@@ -123,6 +123,7 @@
                 clippy_path: '{% url sentry-media "sentry" "clippy.swf" %}',
                 keep_text: true
             });
+            $('input[data-toggle="datepicker"]').datepicker();
             $('.tip').tooltip();
             $('.nav-tabs .active a').tab('show')
             $('.sparkline').sparkline('html', {enableTagOptions: true});
