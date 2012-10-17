@@ -108,7 +108,7 @@ def project_from_auth_vars(auth_vars, data, require_signature=False):
 
         result = plugins.first('has_perm', tm.user, 'create_event', project)
         if result is False:
-            raise APIUnauthorized('This event cannot be recorded')
+            raise APIForbidden('Creation of this event was blocked')
     else:
         project = None
         secret_key = settings.KEY
@@ -205,7 +205,7 @@ def project_from_id(request):
 
     result = plugins.first('has_perm', request.user, 'create_event', project)
     if result is False:
-        raise APIUnauthorized()
+        raise APIForbidden('Creation of this event was blocked')
 
     return project
 
