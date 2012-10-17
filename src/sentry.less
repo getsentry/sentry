@@ -56,6 +56,7 @@ p {
     .border-radius(0);
     height: 50px;
     background: url(../images/dashboard/navbar-bg.gif);
+    border: 0;
     border-bottom: 1px solid #2c333a;
     .box-shadow(0 1px 0 rgba(255,255,255, .5));
 
@@ -124,14 +125,24 @@ p {
         text-shadow: 0 1px 3px rgba(0, 0, 0, .45);
         font-size: 13px;
       }
-
-      &.active a,
-      &:hover a {
+      > .dropdown-toggle {
+        background: inherit !important;
+      }
+      > .dropdown-menu {
+        a {
+          .transition(none);
+        }
+      }
+      &.active > a,
+      &:hover > a,
+      &:focus > a {
         background: none;
-        font-weight: 500;
+        font-weight: inherit;
+        font-size: inherit;
         color: #fff;
         .border-radius(3px);
       }
+
     }
   }
 }
@@ -287,8 +298,6 @@ p {
     .nav.counted-list {
       margin-bottom: 8px;
       list-style: none;
-      margin-left: 0;
-      padding: 0;
       &.counted-list {
         li {
           position: relative;
@@ -450,6 +459,7 @@ footer {
       font-size: 20px;
       color: @gray;
       font-weight: normal;
+      line-height: 27px;
       width: 85%;
       overflow: hidden;
       span {

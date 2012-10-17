@@ -4921,6 +4921,7 @@ p {
   border-radius: 0;
   height: 50px;
   background: url(../images/dashboard/navbar-bg.gif);
+  border: 0;
   border-bottom: 1px solid #2c333a;
   -webkit-box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
   -moz-box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
@@ -5020,10 +5021,21 @@ p {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
   font-size: 13px;
 }
-.navbar .nav > li.active a,
-.navbar .nav > li:hover a {
+.navbar .nav > li > .dropdown-toggle {
+  background: inherit !important;
+}
+.navbar .nav > li > .dropdown-menu a {
+  -webkit-transition: none;
+  -moz-transition: none;
+  -o-transition: none;
+  transition: none;
+}
+.navbar .nav > li.active > a,
+.navbar .nav > li:hover > a,
+.navbar .nav > li:focus > a {
   background: none;
-  font-weight: 500;
+  font-weight: inherit;
+  font-size: inherit;
   color: #fff;
   -webkit-border-radius: 3px;
   -moz-border-radius: 3px;
@@ -5319,8 +5331,6 @@ p {
 #content .sidebar .nav.counted-list {
   margin-bottom: 8px;
   list-style: none;
-  margin-left: 0;
-  padding: 0;
 }
 #content .sidebar .nav.nav-tabs.nav-stacked.counted-list li,
 #content .sidebar .nav.counted-list.counted-list li {
@@ -5623,6 +5633,7 @@ footer a:hover {
   font-size: 20px;
   color: #6d757e;
   font-weight: normal;
+  line-height: 27px;
   width: 85%;
   overflow: hidden;
 }
