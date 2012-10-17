@@ -5882,7 +5882,7 @@ footer a:hover {
   padding-right: 124px;
 }
 .events .event.with-metadata .meta {
-  right: 150px;
+  right: 155px;
 }
 .events .event:hover {
   background-color: #f4fafe;
@@ -6024,7 +6024,7 @@ footer a:hover {
 }
 .events .event.event-small {
   min-height: 30px;
-  padding: 8px 10px 8px 60px;
+  padding: 10px 10px 10px 60px;
 }
 .events .event.event-small h3 {
   margin: 0;
