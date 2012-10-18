@@ -446,18 +446,21 @@ def get_new_groups(request, project=None):
     limit = min(100, int(request.REQUEST.get('limit', 10)))
 
     if project:
-        project_list = [project]
+        project_dict = {project.id: project}
     else:
-        project_list = get_project_list(request.user).values()
+        project_dict = get_project_list(request.user)
 
     cutoff = datetime.timedelta(minutes=minutes)
     cutoff_dt = timezone.now() - cutoff
 
     group_list = Group.objects.filter(
-        project__in=project_list,
+        project__in=project_dict.keys(),
         status=0,
         active_at__gte=cutoff_dt,
-    ).select_related('project').order_by('-score')[:limit]
+    ).order_by('-score')[:limit]
+
+    for group in group_list:
+        group._project_cache = project_dict.get(group.project_id)
 
     data = transform_groups(request, group_list, template='sentry/partial/_group_small.html')
 
