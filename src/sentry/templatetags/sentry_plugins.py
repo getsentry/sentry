@@ -110,10 +110,9 @@ def handle_before_events(request, event_list):
 
 @register.filter
 def get_plugins(project):
-    return plugins.for_project(project)
+    return list(plugins.for_project(project))
 
 
 @register.filter
 def get_plugins_with_status(project):
-    for plugin in plugins.all():
-        yield plugin, safe_execute(plugin.is_enabled, project)
+    return [(plugin, safe_execute(plugin.is_enabled, project)) for plugin in plugins.all()]

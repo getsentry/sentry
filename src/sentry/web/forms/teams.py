@@ -91,10 +91,10 @@ class InviteTeamMemberForm(BaseTeamMemberForm):
         if not value:
             return None
 
-        if self.project.member_set.filter(user__email__iexact=value).exists():
+        if self.project.team.member_set.filter(user__email__iexact=value).exists():
             raise forms.ValidationError(_('There is already a member with this email address'))
 
-        if self.project.pending_member_set.filter(email__iexact=value).exists():
+        if self.project.team.pending_member_set.filter(email__iexact=value).exists():
             raise forms.ValidationError(_('There is already a pending invite for this user'))
 
         return value

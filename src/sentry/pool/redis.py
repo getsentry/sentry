@@ -5,40 +5,70 @@ sentry.pool.redis
 :copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+import random
 from nydus.db import create_cluster
 
 
 class RedisCappedPool(object):
     """
-    Stores entries in a capped set with pairing entries in a secondary key.
+    Implements a capped queue based on Reservoir Sammpling
     """
     key_expire = 60 * 60  # 1 hour
 
     def __init__(self, keyspace, size=1000, hosts=None, router='nydus.db.routers.keyvalue.PartitionRouter', **options):
-        super(RedisCappedPool, self).__init__(**options)
         if hosts is None:
             hosts = {
                 0: {}  # localhost / default
             }
+
         self.conn = create_cluster({
             'engine': 'nydus.db.backends.redis.Redis',
             'router': router,
             'hosts': hosts,
         })
+        # We could set this to the maximum value of random.random() (1.0) if we new this pool class
+        # could stay instantiated. Unfortuantely we'll need an offset per project, which could grow
+        # indefinitely and would require us to have an LRU.
+        self.offset = None
 
-    def put(self, item):
+    def put(self, *items):
         """
-        Stores the item in a unique key and adds its identifier to a set:
-
-        SADD keyspace "{}:{}".format(item['id'], item['checksum'])
-        SET "{}:{}".format(keyspace, item['checksum']) item
-
-        The size of the set is also checked and cleaned up as needd.
+        Efficiently samples ``items`` onto the pool's keyspace.
         """
-        self.queue.append(item)
+        if self.offset is None:
+            self.offset = self.conn.zrange(self.keyspace, self.size, self.size, withscores=True)
+
+        for item in items:
+            val = random.random()
+            if val < self.offset:
+                with self.conn.map() as conn:
+                    conn.zadd(self.keyspace, val)
+                    conn.zremrangebyrank(self.keyspace, self.size)
+                    result = self.conn.zrange(self.keyspace, self.size, self.size, withscores=True)
+                self.offset = result[-1][-1]
 
     def get(self):
         """
-        SPOP keyspace
+        Pops a random item off the sample set.
         """
-        return self.queue.pop()
+        val = random.random()
+        with self.conn.map() as conn:
+            # we have to fetch both values as we dont know which one is actually set
+            item_a = conn.zrange(self.keyspace, val, 1, withscores=True)
+            item_b = conn.zrevrange(self.keyspace, val, 1, withscores=True)
+
+        # pick either item, doesnt matter
+        item, score = (item_a or item_b)
+
+        # remove matching scored item (even if its not the same item)
+        self.conn.zremrangebyscore(self.keyspace, val, 1)
+
+    def values(self):
+        """
+        Returns all samples and clears the pool.
+        """
+        with self.conn.map() as conn:
+            results = conn.zrange(self.keyspace, 0, self.size)
+            conn.delete(self.keyspace)
+
+        return results
