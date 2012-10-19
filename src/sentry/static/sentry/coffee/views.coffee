@@ -31,11 +31,7 @@ jQuery ->
                 @renderMemberInContainer(member)
 
         updateMember: (member) ->
-            currentPosition = @collection.indexOf(obj)
-
             obj = @collection.get(member.id)
-            # We need previousPosition for sorting
-            obj.set('previousPosition', @collection.indexOf(obj))
             obj.set('count', member.get('count'))
             obj.set('score', member.get('score'))
 
@@ -48,22 +44,16 @@ jQuery ->
             @collection.remove(member)
 
         renderMemberInContainer: (member) ->
-            # TODO: we might want to optimize here and get old positions/new positions
-            # all at once so there's a single sort cost
             new_pos = @collection.indexOf(member)
 
-            # check to see if the row already exists in the sort,
-            # and get the current position
-            old_pos = member.get('previousPosition') || -1;
-
-            # if the row was already present, adjust its score
-            if old_pos == new_pos
-                return
-        
             # create the element if it does not yet exist
             $el = $(@id + member.id)
             if !$el.length
                 $el = @renderMember(member)
+
+            # if the row was already present, ensure it moved
+            else if $el.index() == new_pos
+                return
 
             # top item
             if new_pos == 0
@@ -86,7 +76,7 @@ jQuery ->
                 id: @id + member.id
 
             out = view.render()
-            out.el
+            $(out.el)
 
         unrenderMember: (member) ->
             $(@id + member.id).remove()

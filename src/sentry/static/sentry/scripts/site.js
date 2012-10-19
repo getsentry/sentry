@@ -171,10 +171,8 @@
       };
 
       GroupListView.prototype.updateMember = function(member) {
-        var currentPosition, obj;
-        currentPosition = this.collection.indexOf(obj);
+        var obj;
         obj = this.collection.get(member.id);
-        obj.set('previousPosition', this.collection.indexOf(obj));
         obj.set('count', member.get('count'));
         obj.set('score', member.get('score'));
         return this.collection.sort();
@@ -193,15 +191,13 @@
       };
 
       GroupListView.prototype.renderMemberInContainer = function(member) {
-        var $el, $rel, new_pos, old_pos;
+        var $el, $rel, new_pos;
         new_pos = this.collection.indexOf(member);
-        old_pos = member.get('previousPosition') || -1;
-        if (old_pos === new_pos) {
-          return;
-        }
         $el = $(this.id + member.id);
         if (!$el.length) {
           $el = this.renderMember(member);
+        } else if ($el.index() === new_pos) {
+          return;
         }
         if (new_pos === 0) {
           return this.$parent.prepend($el);
@@ -222,7 +218,7 @@
           id: this.id + member.id
         });
         out = view.render();
-        return out.el;
+        return $(out.el);
       };
 
       GroupListView.prototype.unrenderMember = function(member) {
