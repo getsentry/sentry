@@ -111,18 +111,6 @@
         historicalData: []
       };
 
-      Group.prototype.getHistoricalAsString = function() {
-        if (this.historicalData) {
-          return this.historicalData.join(', ');
-        } else {
-          return '';
-        }
-      };
-
-      Group.prototype.getLevelClassName = function() {
-        return 'level-' + this.level;
-      };
-
       return Group;
 
     })(Backbone.Model);
@@ -227,12 +215,19 @@
         data.historicalData = this.getHistoricalAsString(this.model);
         this.$el.html(this.template(data));
         this.$el.addClass(this.getLevelClassName(this.model));
+        if (data.isResolved) {
+          this.$el.addClass('resolved');
+        }
+        if (data.historicalData) {
+          this.$el.addClass('with-metadata');
+        }
+        this.$el.attr('data-id', data.id);
         return this;
       };
 
       GroupView.prototype.getHistoricalAsString = function(obj) {
         if (obj.historicalData) {
-          return obj.attributes.historicalData.join(', ');
+          return obj.historicalData.join(', ');
         } else {
           return '';
         }

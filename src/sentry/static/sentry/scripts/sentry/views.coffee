@@ -62,10 +62,15 @@ jQuery ->
             data.historicalData = @getHistoricalAsString @model
             @$el.html @template data
             @$el.addClass @getLevelClassName @model
+            if data.isResolved
+                @$el.addClass 'resolved'
+            if data.historicalData
+                @$el.addClass 'with-metadata'
+            @$el.attr('data-id', data.id)
             @
 
         getHistoricalAsString: (obj) ->
-            if obj.historicalData then obj.attributes.historicalData.join ', ' else ''
+            if obj.historicalData then obj.historicalData.join ', ' else ''
 
         getLevelClassName: (obj) ->
             'level-' + obj.attributes.levelName

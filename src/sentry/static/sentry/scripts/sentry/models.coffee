@@ -27,9 +27,3 @@ jQuery ->
             versions: []
             isBookmarked: false
             historicalData: []
-
-        getHistoricalAsString: ->
-            if @historicalData then @historicalData.join(', ') else ''
-
-        getLevelClassName: ->
-            'level-' + @level
