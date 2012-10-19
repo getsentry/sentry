@@ -413,7 +413,7 @@ def get_group_trends(request, project=None):
     base_qs = Group.objects.filter(
         project__in=project_dict.keys(),
         status=0,
-    ).order_by('-score')
+    )
 
     if has_trending():
         group_list = list(Group.objects.get_accelerated(base_qs, minutes=(
@@ -425,7 +425,7 @@ def get_group_trends(request, project=None):
 
         group_list = list(base_qs.filter(
             last_seen__gte=cutoff_dt
-        )[:limit])
+        ).order_by('-score')[:limit])
 
     for group in group_list:
         group._project_cache = project_dict.get(group.project_id)
