@@ -150,7 +150,6 @@
         this.collection = new app.GroupList;
         this.collection.on('add', this.renderMemberInContainer);
         this.collection.on('remove', this.unrenderMember);
-        this.collection.on('resort', this.reSortMembers);
         return this.collection.add(data.members || []);
       };
 
@@ -170,7 +169,7 @@
         obj.set('count', member.get('count'));
         obj.set('score', member.get('score'));
         this.collection.sort();
-        return this.trigger('resort');
+        return this.renderMemberInContainer(obj);
       };
 
       GroupListView.prototype.hasMember = function(member) {

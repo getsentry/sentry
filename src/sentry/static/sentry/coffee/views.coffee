@@ -17,7 +17,7 @@ jQuery ->
             @collection.on('remove', @unrenderMember)
             # @collection.on('add remove', @changeMember)
             # @collection.on('reset', @render)
-            @collection.on('resort', @reSortMembers)
+            # @collection.on('resort', @reSortMembers)
             @collection.add(data.members || []);
 
         addMember: (member) ->
@@ -36,7 +36,8 @@ jQuery ->
             obj.set('score', member.get('score'))
 
             @collection.sort()
-            @trigger('resort')
+
+            @renderMemberInContainer(obj)
 
         hasMember: (member) ->
             if @collection.get(member.id) then true else false
