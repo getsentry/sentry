@@ -148,9 +148,11 @@
         _.bindAll(this);
         this.$parent = $('#' + this.id);
         this.collection = new app.GroupList;
+        this.collection.add(data.members || []);
         this.collection.on('add', this.renderMemberInContainer);
         this.collection.on('remove', this.unrenderMember);
-        return this.collection.add(data.members || []);
+        this.collection.on('reset', this.reSortMembers);
+        return this.collection.sort();
       };
 
       GroupListView.prototype.addMember = function(member) {
@@ -161,6 +163,13 @@
         }
       };
 
+      GroupListView.prototype.reSortMembers = function() {
+        var _this = this;
+        return this.collection.each(function(member) {
+          return _this.renderMemberInContainer(member);
+        });
+      };
+
       GroupListView.prototype.updateMember = function(member) {
         var currentPosition, obj;
         currentPosition = this.collection.indexOf(obj);
@@ -168,8 +177,7 @@
         obj.set('previousPosition', this.collection.indexOf(obj));
         obj.set('count', member.get('count'));
         obj.set('score', member.get('score'));
-        this.collection.sort();
-        return this.renderMemberInContainer(obj);
+        return this.collection.sort();
       };
 
       GroupListView.prototype.hasMember = function(member) {

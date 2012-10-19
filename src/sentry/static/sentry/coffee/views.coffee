@@ -13,18 +13,22 @@ jQuery ->
             @$parent = $('#' + @id)
 
             @collection = new app.GroupList
+            @collection.add(data.members || []);
             @collection.on('add', @renderMemberInContainer)
             @collection.on('remove', @unrenderMember)
             # @collection.on('add remove', @changeMember)
-            # @collection.on('reset', @render)
-            # @collection.on('resort', @reSortMembers)
-            @collection.add(data.members || []);
+            @collection.on('reset', @reSortMembers)
+            @collection.sort()
 
         addMember: (member) ->
             if not @hasMember(member)
                 @collection.add(member)
             else
                 @updateMember(member)
+
+        reSortMembers: ->
+            @collection.each (member) =>
+                @renderMemberInContainer(member)
 
         updateMember: (member) ->
             currentPosition = @collection.indexOf(obj)
@@ -36,8 +40,6 @@ jQuery ->
             obj.set('score', member.get('score'))
 
             @collection.sort()
-
-            @renderMemberInContainer(obj)
 
         hasMember: (member) ->
             if @collection.get(member.id) then true else false
