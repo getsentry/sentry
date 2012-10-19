@@ -34,20 +34,23 @@ def to_json(obj, request=None):
 
 
 def register(type):
-    def wrapped(func):
-        transformers[type()] = func
-        return func
+    def wrapped(cls):
+        transformers[type] = cls()
+        return cls
     return wrapped
 
 
 class Transformer(object):
-    def transform(obj, request=None):
+    def __call__(self, obj, request=None):
+        return self.transform(obj, request)
+
+    def transform(self, obj, request=None):
         return {}
 
 
 @register(Group)
 class GroupTransformer(Transformer):
-    def transform(obj, request=None):
+    def transform(self, obj, request=None):
         d = {
             'id': str(obj.id),
             'count': str(obj.times_seen),
