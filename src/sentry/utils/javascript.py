@@ -13,6 +13,9 @@ from sentry.templatetags.sentry_plugins import get_tags
 from sentry.utils import json
 
 
+transformers = {}
+
+
 def transform(obj, request=None):
     if isinstance(obj, (list, tuple)):
         return [transform(o, request=request) for o in obj]
@@ -25,32 +28,41 @@ def transform(obj, request=None):
     return obj
 
 
-def transform_group(obj, request=None):
-    d = {
-        'id': str(obj.id),
-        'count': str(obj.times_seen),
-        'title': escape(obj.message_top()),
-        'message': escape(obj.error()),
-        'level': obj.level,
-        'levelName': escape(obj.get_level_display()),
-        'logger': escape(obj.logger),
-        'permalink': reverse('sentry-group', args=[obj.project.slug, obj.id]),
-        'versions': list(obj.get_version() or []),
-        'lastSeen': obj.last_seen.isoformat(),
-        'timeSpent': obj.avg_time_spent,
-        'canResolve': request and request.user.is_authenticated(),
-        'isResolved': obj.status == STATUS_RESOLVED,
-    }
-    if request:
-        d['tags'] = list(get_tags(obj, request))
-    return d
-
-
-transformers = {
-    Group: transform_group,
-}
-
-
 def to_json(obj, request=None):
     result = transform(obj, request=request)
     return json.dumps(result)
+
+
+def register(type):
+    def wrapped(func):
+        transformers[type()] = func
+        return func
+    return wrapped
+
+
+class Transformer(object):
+    def transform(obj, request=None):
+        return {}
+
+
+@register(Group)
+class GroupTransformer(Transformer):
+    def transform(obj, request=None):
+        d = {
+            'id': str(obj.id),
+            'count': str(obj.times_seen),
+            'title': escape(obj.message_top()),
+            'message': escape(obj.error()),
+            'level': obj.level,
+            'levelName': escape(obj.get_level_display()),
+            'logger': escape(obj.logger),
+            'permalink': reverse('sentry-group', args=[obj.project.slug, obj.id]),
+            'versions': list(obj.get_version() or []),
+            'lastSeen': obj.last_seen.isoformat(),
+            'timeSpent': obj.avg_time_spent,
+            'canResolve': request and request.user.is_authenticated(),
+            'isResolved': obj.status == STATUS_RESOLVED,
+        }
+        if request:
+            d['tags'] = list(get_tags(obj, request))
+        return d

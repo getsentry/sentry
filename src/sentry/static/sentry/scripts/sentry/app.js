@@ -111,14 +111,6 @@
         historicalData: []
       };
 
-      Group.prototype.getHistorical = function() {
-        if (this.historicalData) {
-          return this.historicalData.join(', ');
-        } else {
-          return '';
-        }
-      };
-
       return Group;
 
     })(Backbone.Model);
@@ -218,10 +210,31 @@
       };
 
       GroupView.prototype.render = function() {
-        this.$el.html(this.template({
-          model: this.model
-        }));
+        var data;
+        data = this.model.toJSON();
+        data.historicalData = this.getHistoricalAsString(this.model);
+        this.$el.html(this.template(data));
+        this.$el.addClass(this.getLevelClassName(this.model));
+        if (data.isResolved) {
+          this.$el.addClass('resolved');
+        }
+        if (data.historicalData) {
+          this.$el.addClass('with-metadata');
+        }
+        this.$el.attr('data-id', data.id);
         return this;
+      };
+
+      GroupView.prototype.getHistoricalAsString = function(obj) {
+        if (obj.historicalData) {
+          return obj.historicalData.join(', ');
+        } else {
+          return '';
+        }
+      };
+
+      GroupView.prototype.getLevelClassName = function(obj) {
+        return 'level-' + obj.attributes.levelName;
       };
 
       GroupView.prototype.updateCount = function(obj) {
