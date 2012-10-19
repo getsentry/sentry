@@ -65,6 +65,7 @@ class GroupTransformer(Transformer):
             'timeSpent': obj.avg_time_spent,
             'canResolve': request and request.user.is_authenticated(),
             'isResolved': obj.status == STATUS_RESOLVED,
+            'score': getattr(obj, 'sort_value', 0),
         }
         if request:
             d['tags'] = list(get_tags(obj, request))

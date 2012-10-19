@@ -4,4 +4,10 @@ jQuery ->
 
     app.GroupList = class GroupList extends Backbone.Collection
 
-        model: app.Group
+        initialize: ->
+            _.bindAll @
+
+            model = app.Group
+
+        comparator: (member) ->
+            -member.get('score')

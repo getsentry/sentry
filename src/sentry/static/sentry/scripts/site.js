@@ -33,6 +33,10 @@
     })(Backbone.View);
   });
 
+  Backbone.sync = function(method, model, success, error) {
+    return success();
+  };
+
   window.app = app = app || {};
 
   jQuery(function() {
@@ -45,7 +49,15 @@
         return GroupList.__super__.constructor.apply(this, arguments);
       }
 
-      GroupList.prototype.model = app.Group;
+      GroupList.prototype.initialize = function() {
+        var model;
+        _.bindAll(this);
+        return model = app.Group;
+      };
+
+      GroupList.prototype.comparator = function(member) {
+        return -member.get('score');
+      };
 
       return GroupList;
 
@@ -133,58 +145,81 @@
       GroupListView.prototype.model = app.Group;
 
       GroupListView.prototype.initialize = function(data) {
-        var inst, obj, _i, _len, _ref, _results;
         _.bindAll(this);
+        this.$parent = $('#' + this.id);
         this.collection = new app.GroupList;
-        this.collection.on('add', this.appendMember);
-        this.collection.on('remove', this.clearMember);
-        _ref = data.members;
-        _results = [];
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          obj = _ref[_i];
-          inst = new this.model(obj);
-          _results.push(this.addMember(inst));
-        }
-        return _results;
+        this.collection.on('add', this.renderMemberInContainer);
+        this.collection.on('remove', this.unrenderMember);
+        this.collection.on('resort', this.reSortMembers);
+        return this.collection.add(data.members || []);
       };
 
-      GroupListView.prototype.changed = function() {
-        return this.trigger("membership");
-      };
-
-      GroupListView.prototype.addMember = function(obj) {
-        if (!this.hasMember(obj)) {
-          return this.collection.add(obj);
+      GroupListView.prototype.addMember = function(member) {
+        if (!this.hasMember(member)) {
+          return this.collection.add(member);
         } else {
-          obj = this.collection.get(obj.id);
-          return obj.set('count', obj.get("count"));
+          return this.updateMember(member);
         }
       };
 
-      GroupListView.prototype.hasMember = function(obj) {
-        if (this.collection.get(obj.id)) {
+      GroupListView.prototype.updateMember = function(member) {
+        var currentPosition, obj;
+        currentPosition = this.collection.indexOf(obj);
+        obj = this.collection.get(member.id);
+        obj.set('previousPosition', this.collection.indexOf(obj));
+        obj.set('count', member.get('count'));
+        obj.set('score', member.get('score'));
+        this.collection.sort();
+        return this.trigger('resort');
+      };
+
+      GroupListView.prototype.hasMember = function(member) {
+        if (this.collection.get(member.id)) {
           return true;
         } else {
           return false;
         }
       };
 
-      GroupListView.prototype.removeMember = function(obj) {
-        return this.collection.remove(obj);
+      GroupListView.prototype.removeMember = function(member) {
+        return this.collection.remove(member);
       };
 
-      GroupListView.prototype.appendMember = function(obj) {
+      GroupListView.prototype.renderMemberInContainer = function(member) {
+        var $el, $rel, new_pos, old_pos;
+        new_pos = this.collection.indexOf(member);
+        old_pos = member.get('previousPosition') || -1;
+        if (old_pos === new_pos) {
+          return;
+        }
+        $el = $(this.id + member.id);
+        if (!$el.length) {
+          $el = this.renderMember(member);
+        }
+        if (new_pos === 0) {
+          return this.$parent.prepend($el);
+        } else {
+          $rel = $(this.id + this.collection.at(new_pos - 1));
+          if (!$rel.length) {
+            return this.$parent.append($el);
+          } else {
+            return this.$parent.insertBefore($rel);
+          }
+        }
+      };
+
+      GroupListView.prototype.renderMember = function(member) {
         var out, view;
         view = new GroupView({
-          model: obj,
-          id: this.id + obj.id
+          model: member,
+          id: this.id + member.id
         });
         out = view.render();
-        return $('#' + this.id).append(out.el);
+        return out.el;
       };
 
-      GroupListView.prototype.clearMember = function(obj) {
-        return $('li[data-id="' + this.id + '"]', el).remove();
+      GroupListView.prototype.unrenderMember = function(member) {
+        return $(this.id + member.id).remove();
       };
 
       return GroupListView;
@@ -226,15 +261,15 @@
       };
 
       GroupView.prototype.getHistoricalAsString = function(obj) {
-        if (obj.historicalData) {
-          return obj.historicalData.join(', ');
+        if (obj.get('historicalData')) {
+          return obj.get('historicalData').join(', ');
         } else {
           return '';
         }
       };
 
       GroupView.prototype.getLevelClassName = function(obj) {
-        return 'level-' + obj.attributes.levelName;
+        return 'level-' + obj.get('levelName');
       };
 
       GroupView.prototype.updateCount = function(obj) {
