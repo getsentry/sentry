@@ -7,14 +7,13 @@ from sentry.conf import settings
 from sentry.utils import json
 from sentry.utils.auth import get_signature, get_auth_header
 from sentry.utils.compat import pickle
-from sentry.utils.compat.db import connections
 
 
 from django.conf import settings as django_settings
 from django.core.cache import cache
 from django.core.management import call_command
 from django.core.urlresolvers import reverse
-from django.db import DEFAULT_DB_ALIAS
+from django.db import connections, DEFAULT_DB_ALIAS
 from django.test import TestCase, TransactionTestCase
 from django.test.client import Client
 

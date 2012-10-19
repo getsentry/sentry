@@ -11,7 +11,7 @@ Sentry is a Server
 ------------------
 
 The Sentry package, at its core, is just a simple server and web UI. It will
-handle authentication clients (such as `Raven <https://github.com/dcramer/raven>`_)
+handle authentication clients (such as `Raven <https://github.com/getsentry/raven-python>`_)
 and all of the logic behind storage and aggregation.
 
 That said, Sentry is not limited to Python. The primary implementation is in
@@ -28,19 +28,18 @@ from setuptools import setup, find_packages
 # in multiprocessing/util.py _exit_function when running `python
 # setup.py test` (see
 # http://www.eby-sarna.com/pipermail/peak/2010-May/003357.html)
-try:
-    import multiprocessing
-except ImportError:
-    pass
+for m in ('multiprocessing', 'billiard'):
+    try:
+        __import__(m)
+    except ImportError:
+        pass
 
 tests_require = [
     'django-nose==1.1',
     'eventlet==0.9.16',
-    'nose==1.1.2',
-    'nydus==0.8.2',
-    'mock==0.8.0',
-    'pyflakes',
-    'pep8',
+    'nose==1.2.1',
+    'nydus==0.9.0',
+    'mock>=0.8.0',
     'redis',
     'unittest2',
 ]
@@ -49,42 +48,39 @@ tests_require = [
 install_requires = [
     'cssutils>=0.9.9',
     'BeautifulSoup>=3.2.1',
-    'django-celery>=2.5.5,<3.0',
+    'django-celery>=2.5.5',
+    'celery>=2.5.3',
     'django-crispy-forms>=1.1.4',
-    'Django>=1.2,<1.4',
+    'Django>=1.4.1,<=1.5',
     'django-indexer>=0.3.0',
     'django-paging>=0.2.4',
     'django-picklefield>=0.2.0',
     'django-templatetag-sugar>=0.1.0',
-    'gunicorn>=0.13.4',
-    'logan>=0.3.1',
+    'gunicorn>=0.14.6',
+    'logan>=0.5.1',
     'pynliner>=0.4.0',
     'python-dateutil>=1.5.0,<2.0.0',
-    'pytz>=2011n',
-    'raven>=1.9.4',
-    'simplejson>=2.3.0,<2.5.0',
-    'South>=0.7',
-    'httpagentparser>=1.0.5'
-]
-
-dependency_links = [
-    'https://github.com/dcramer/pyflakes/tarball/master#egg=pyflakes',
+    'raven>=2.0.6',
+    'simplejson>=2.1.6',
+    'South>=0.7.6',
+    'httpagentparser>=1.0.5',
+    'django-social-auth>=0.7.1,<1.0',
+    'django-social-auth-trello>=1.0.2',
 ]
 
 setup(
     name='sentry',
-    version='4.7.9',
+    version='5.0.17.2',
     author='David Cramer',
     author_email='dcramer@gmail.com',
-    url='http://github.com/dcramer/sentry',
+    url='http://www.getsentry.com',
     description='A realtime logging and aggregation server.',
     long_description=__doc__,
-    packages=find_packages(exclude=['tests']),
+    package_dir={'': 'src'},
+    packages=find_packages('src'),
     zip_safe=False,
     install_requires=install_requires,
     tests_require=tests_require,
-    extras_require={'test': tests_require},
-    dependency_links=dependency_links,
     test_suite='runtests.runtests',
     license='BSD',
     include_package_data=True,

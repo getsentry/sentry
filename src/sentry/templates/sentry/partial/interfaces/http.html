@@ -1,0 +1,153 @@
+{% load i18n %}
+{% load sentry_helpers %}
+
+<div id="request" class="module">
+    <div class="page-header">
+        <a href="{% url sentry-replay event.project.slug event.id %}" class="btn small pull-right">{% trans "Replay this request" %}</a>
+        <h2>{% trans "Request" %}</h2>
+    </div>
+    <div class="module-content">
+        <table class="table table-bordered table-striped">
+            <colgroup>
+                <col style="width:60px;">
+            </colgroup>
+            <tbody>
+                <tr>
+                    <th>{% trans "URL:" %}</th>
+                    <td><a href="{{ url }}{% if query_string %}?{{ query_string }}{% endif %}">{{ url }}</a></td>
+                </tr>
+                {% if method %}
+                    <tr>
+                        <th>{% trans "Method:" %}</th>
+                        <td>{{ method }}</td>
+                    </tr>
+                {% endif %}
+                <tr>
+                    <th>{% trans "Query:" %}</th>
+                    <td>
+                        <code>{{ query_string|pprint }}</code>
+                    </td>
+                </tr>
+                {% if data %}
+                    <tr>
+                        <th>{% trans "Body:" %}</th>
+                        <td>
+                            {% if data_is_dict %}
+                                {% if data|length > 5 %}
+                                    <a href="#" onclick="return varToggle(this, 'HttpBody')"><span>&#x25b6;</span> {% trans "Body" %}</a>
+                                {% endif %}
+                                <table class="table vars" id="vHttpBody"{% if data|length > 5 %} style="display:none;"{% endif %}>
+                                    <colgroup>
+                                        <col style="width:100px;">
+                                    </colgroup>
+                                    <tbody>
+                                        {% for key, value in data.iteritems|as_sorted %}
+                                            <tr>
+                                                <td>{{ key }}</td>
+                                                <td class="code"><pre>{{ value|pprint }}</pre></td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            {% else %}
+                                {% if data|length > 5 %}
+                                    <a href="#" onclick="return varToggle(this, 'HttpBody')"><span>&#x25b6;</span> {% trans "Body" %}</a>
+                                {% endif %}
+                                <div id="vHttpBody"{% if data|length > 5 %} style="display:none;"{% endif %}>
+                                    <pre>{{ data|pprint }}</pre>
+                                </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endif %}
+                {% if cookies %}
+                    <tr>
+                        <th>{% trans "Cookies:" %}</th>
+                        <td>
+                            {% if cookies_is_dict %}
+                                {% if cookies|length > 5 %}
+                                    <a href="#" onclick="return varToggle(this, 'HttpCookies')"><span>&#x25b6;</span> {% trans "Cookies" %}</a>
+                                {% endif %}
+                                <table class="table vars" id="vHttpCookies"{% if cookies|length > 5 %} style="display:none;"{% endif %}>
+                                    <colgroup>
+                                        <col style="width:100px;">
+                                    </colgroup>
+                                    <tbody>
+                                        {% for key, value in cookies.iteritems|as_sorted %}
+                                            <tr>
+                                                <td>{{ key|to_str }}</td>
+                                                <td class="code"><pre>{{ value|pprint }}</pre></td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            {% else %}
+                                {% if cookies|length > 5 %}
+                                    <a href="#" onclick="return varToggle(this, 'HttpCookies')"><span>&#x25b6;</span> {% trans "Cookies" %}</a>
+                                {% endif %}
+                                <div id="vHttpCookies"{% if cookies|length > 5 %} style="display:none;"{% endif %}>
+                                    <pre>{{ cookies|pprint }}</pre>
+                                </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endif %}
+                {% if headers %}
+                    <tr>
+                        <th>{% trans "Headers:" %}</th>
+                        <td>
+                            {% if headers_is_dict %}
+                                {% if headers|length > 5 %}
+                                    <a href="#" onclick="return varToggle(this, 'HttpHeaders')"><span>&#x25b6;</span> {% trans "Headers" %}</a>
+                                {% endif %}
+                                <table class="table vars" id="vHttpHeaders"{% if headers|length > 5 %} style="display:none;"{% endif %}>
+                                    <colgroup>
+                                        <col style="width:100px;">
+                                    </colgroup>
+                                    <tbody>
+                                        {% for key, value in headers.iteritems|as_sorted %}
+                                            <tr>
+                                                <td>{{ key|to_str }}</td>
+                                                <td class="code"><pre>{{ value|pprint }}</pre></td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            {% else %}
+                                {% if headers|length > 5 %}
+                                    <a href="#" onclick="return varToggle(this, 'HttpHeaders')"><span>&#x25b6;</span> {% trans "Headers" %}</a>
+                                {% endif %}
+                                <div id="vHttpHeaders"{% if headers|length > 5 %} style="display:none;"{% endif %}>
+                                    <pre>{{ headers|pprint }}</pre>
+                                </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endif %}
+                {% if env %}
+                    <tr>
+                        <th>{% trans "Environment:" %}</th>
+                        <td>
+                            {% if env|length > 5 %}
+                                <a href="#" onclick="return varToggle(this, 'HttpEnv')"><span>&#x25b6;</span> {% trans "Environment" %}</a>
+                            {% endif %}
+                            <table class="table vars" id="vHttpEnv"{% if env|length > 5 %} style="display:none;"{% endif %}>
+                                <colgroup>
+                                    <col style="width:120px;">
+                                </colgroup>
+                                <tbody>
+                                    {% for key, value in env.iteritems|as_sorted %}
+                                        <tr>
+                                            <td>{{ key }}</td>
+                                            <td class="code"><pre>{{ value|pprint }}</pre></td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>

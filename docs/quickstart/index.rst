@@ -4,7 +4,7 @@ Quickstart
 Some basic prerequisites which you'll need in order to run Sentry:
 
 * Python 2.5, 2.6, or 2.7
-* python-setuptools
+* python-setuptools, python-dev
 * Ideally a real database (like PostgreSQL or MySQL)
 * Likely a UNIX-based operating system
 
@@ -115,12 +115,8 @@ configuration, as well as the default Sentry configuration values. It will use S
     SENTRY_WEB_PORT = 9000
     SENTRY_WEB_OPTIONS = {
         'workers': 3,  # the number of gunicorn workers
-        # 'worker_class': 'gevent',
     }
 
-
-.. note:: We highly recommend using the gevent worker class. To do this, simply ``pip install gevent`` and
-          adjust the worker_class setting in ``SENTRY_WEB_OPTIONS``.
 
 Configure Outbound Mail
 -----------------------
@@ -248,6 +244,70 @@ runserver
 Testing Sentry locally? Spin up Django's builtin runserver (or ``pip install django-devserver`` for something
 slightly better).
 
+
+Enabling Social Auth
+--------------------
+
+Most of the time it doesnt really matter **how** someone authenticates to the service, so much as it that they do. In
+these cases, Sentry provides tight integrated with several large social services, including: Twitter, Facebook, Google,
+and GitHub. Enabling this is as simple as setting up an application with the respective services, and configuring a 
+couple values in your ``sentry.conf.py`` file.
+
+By default, users will be able to both signup (create a new account) as well as associate an existing account. If you
+want to disable account creation, simply set the following value::
+
+  SOCIAL_AUTH_CREATE_USERS = False
+
+Twitter
+~~~~~~~
+
+Register an application at http://twitter.com/apps/new. Take the values given on the page, and configure
+the following::
+
+  TWITTER_CONSUMER_KEY = ''
+  TWITTER_CONSUMER_SECRET = ''
+
+.. note:: It's important that input a callback URL, even if its useless. We have no idea why, consult Twitter.
+
+Facebook
+~~~~~~~~
+
+Register an application at http://developers.facebook.com/setup/. You'll also need to make sure you select the "Website
+with Facebook Login" and fill in the Site URL field (just use the website's URL you're install Sentry on). Take the
+values given on the page, and configure the following::
+
+  FACEBOOK_APP_ID = ''
+  FACEBOOK_API_SECRET = ''
+
+Google
+~~~~~~
+
+Register an application at http://code.google.com/apis/accounts/docs/OAuth2.html#Registering. Take the values given on the page, and configure
+the following::
+
+  GOOGLE_OAUTH2_CLIENT_ID = ''
+  GOOGLE_OAUTH2_CLIENT_SECRET = ''
+
+GitHub
+~~~~~~
+
+Register an application at https://github.com/settings/applications/new. Take the values given on the page, and configure
+the following::
+
+  GITHUB_APP_ID = ''
+  GITHUB_API_SECRET = ''
+
+For more information on configuring social authentication services, consult the `documentation on django-social-auth
+<https://github.com/omab/django-social-auth/>`_.
+
+Trello
+~~~~~~
+
+Generate an application key at https://trello.com/1/appKey/generate. Take the values given on the page, and configure
+the following::
+
+  TRELLO_API_KEY = ''
+  TRELLO_API_SECRET = ''
 
 What's Next?
 ------------

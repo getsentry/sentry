@@ -6,10 +6,11 @@ import datetime
 import mock
 
 from django.core.urlresolvers import reverse
+from django.utils import timezone
 
 from raven import Client
 from sentry.conf import settings
-from sentry.models import Event
+from sentry.models import Group, Event
 
 from tests.base import TestCase
 
@@ -20,6 +21,12 @@ class RavenIntegrationTest(TestCase):
     happen between Raven <--> Sentry over HTTP communication.
     """
     def sendRemote(self, url, data, headers={}):
+        # TODO: make this install a temporary handler which raises an assertion error
+        import logging
+        sentry_errors = logging.getLogger('sentry.errors')
+        sentry_errors.addHandler(logging.StreamHandler())
+        sentry_errors.setLevel(logging.DEBUG)
+
         content_type = headers.pop('Content-Type', None)
         headers = dict(('HTTP_' + k.replace('-', '_').upper(), v) for k, v in headers.iteritems())
         resp = self.client.post(reverse('sentry-api-store'),
@@ -38,8 +45,10 @@ class RavenIntegrationTest(TestCase):
         )
         client.capture('Message', message='foo')
 
-        self.assertEquals(Event.objects.count(), 1)
-        instance = Event.objects.get()
+        self.assertEquals(Group.objects.count(), 1)
+        group = Group.objects.get()
+        self.assertEquals(group.event_set.count(), 1)
+        instance = group.event_set.get()
         self.assertEquals(instance.message, 'foo')
 
 
@@ -73,7 +82,7 @@ class SentryRemoteTest(TestCase):
         self.assertEquals(instance.site, 'not_a_real_site')
 
     def test_timestamp(self):
-        timestamp = datetime.datetime.utcnow().replace(microsecond=0) - datetime.timedelta(hours=1)
+        timestamp = timezone.now().replace(microsecond=0, tzinfo=timezone.utc) - datetime.timedelta(hours=1)
         kwargs = {u'message': 'hello', 'timestamp': timestamp.strftime('%s.%f')}
         resp = self._postWithSignature(kwargs)
         self.assertEquals(resp.status_code, 200, resp.content)
@@ -85,7 +94,7 @@ class SentryRemoteTest(TestCase):
         self.assertEquals(group.last_seen, timestamp)
 
     def test_timestamp_as_iso(self):
-        timestamp = datetime.datetime.utcnow().replace(microsecond=0) - datetime.timedelta(hours=1)
+        timestamp = timezone.now().replace(microsecond=0, tzinfo=timezone.utc) - datetime.timedelta(hours=1)
         kwargs = {u'message': 'hello', 'timestamp': timestamp.strftime('%Y-%m-%dT%H:%M:%S.%f')}
         resp = self._postWithSignature(kwargs)
         self.assertEquals(resp.status_code, 200, resp.content)

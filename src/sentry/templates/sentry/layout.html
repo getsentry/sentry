@@ -1,0 +1,133 @@
+{% load i18n %}
+{% load sentry_helpers %}
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <meta name="robots" content="NONE,NOARCHIVE">
+
+        <link href="{% url sentry-media "sentry" "scripts/select2/select2.css" %}" rel="stylesheet" type="text/css"/>
+        <link href="{% url sentry-media "sentry" "styles/global.min.css" %}" rel="stylesheet" type="text/css"/>
+        <link href="{% url sentry-media "sentry" "images/favicon.png" %}" rel="shortcut icon" type="image/png"/>
+
+        <title>{% block title %}Sentry{% endblock %}</title>
+
+        {% if USE_JS_CLIENT %}
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/client.js" %}"></script>
+        <script type="text/javascript">
+        Sentry.client.config({
+            server: '{% url sentry-api-store %}',
+            projectId: {{ PROJECT_ID|to_json|safe }},
+            logger: 'sentry.errors.javascript'
+        })
+        Sentry.client.registerGlobalHandler();
+        </script>
+        {% endif %}
+
+        <!--[if lt IE 9]>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/html5shiv.js" %}"></script>
+        <![endif]-->
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.animate-colors-min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.clippy.min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.flot.min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.sparkline.min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/select2/select2.min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/global.min.js" %}"></script>
+        <script type="text/javascript">
+        Sentry.config({
+            urlPrefix: {{ URL_PREFIX|to_json|safe }},
+            mediaUrl: '{% url sentry-media "sentry" '' %}',
+            projectId: {% if project %}{{ project.id|to_json|safe }}{% else %}null{% endif %},
+            defaultImage: '{% url sentry-media "sentry" 'images/sentry.png' %}',
+            popupCss: '{% url sentry-media "sentry" 'styles/popup.css' %}'
+        });
+        </script>
+
+        {% block meta %}
+        {% endblock %}
+    </head>
+
+    <body>
+        {% block body %}
+        {% block header %}
+            {% include "sentry/header.html" %}
+        {% endblock %}
+        {% block page_header_block %}
+            <section id="page-header" class="toolbar">
+                {% block page_header %}
+                    <ul class="breadcrumb">
+                        <li><a href="{% url sentry %}">{% trans "Dashboard" %}</a></li>
+                        {% if project %}
+                            <li class="divider">/</li>
+                            <li><a href="{% url sentry project.slug %}">{{ project.name }}</a></li>
+                        {% endif %}
+                        {% block breadcrumb %}
+                        {% endblock %}
+                    </ul>
+                {% endblock %}
+            </section>
+        {% endblock %}
+        <section id="content" class="{% block bodyclass %}with-sidebar{% endblock %}">
+            <div class="container">
+                <div class="content">
+                    <div id="messages">
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-block{% if message.tags %} alert-{{ message.tags }}{% endif %}">{{ message|linebreaks }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    {% block content_before %}
+                    {% endblock %}
+                    {% block content %}
+                        <div class="main">
+                            {% block main %}
+                            {% endblock %}
+                        </div>
+
+                        <div class="sidebar">
+                            {% block sidebar %}
+                            {% endblock %}
+                        </div>
+                    {% endblock %}
+                    {% block content_after %}
+                    {% endblock %}
+                    </div>
+                </div>
+            </div>
+        </section>
+        <footer>
+            <div class="container">
+                {% block footer %}
+                    Sentry {% sentry_version %} | Conjured up by the <a href="http://code.disqus.com">DISQUS</a> team and other noble <a href="https://github.com/getsentry/sentry/contributors">sorcerers</a>. | Sentry is <a href="https://github.com/getsentry/sentry">Open Source Software</a>
+                {% endblock %}
+            </div>
+        </footer>
+        {% endblock %}
+
+        <div class="modal" id="modal" style="display:none">
+          <div class="modal-header">
+            <a class="close" data-dismiss="modal">×</a>
+            <h3></h3>
+          </div>
+          <div class="modal-body">
+          </div>
+        </div>
+
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/bootstrap.min.js" %}"></script>
+        <script type="text/javascript">
+        $(function(){
+            $('.clippy').clippy({
+                clippy_path: '{% url sentry-media "sentry" "clippy.swf" %}',
+                keep_text: true
+            });
+            $('input[data-toggle="datepicker"]').datepicker();
+            $('.tip').tooltip();
+            $('.nav-tabs .active a').tab('show')
+            $('.sparkline').sparkline('html', {enableTagOptions: true});
+        });
+        </script>
+    </body>
+</html>

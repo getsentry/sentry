@@ -3,12 +3,16 @@ import base64
 import logging
 import os
 import sys
+import warnings
 from os.path import dirname, abspath
 from optparse import OptionParser
 
 sys.path.insert(0, dirname(abspath(__file__)))
 
-logging.getLogger('sentry').addHandler(logging.StreamHandler())
+logging.basicConfig(level=logging.DEBUG)
+
+# Force all warnings in Django or Sentry to throw exceptions
+warnings.filterwarnings('error', '', RuntimeWarning, module=r'^(sentry|django).*')
 
 from django.conf import settings
 
@@ -20,6 +24,7 @@ if test_db == 'mysql':
     settings.DATABASES['default'].update({
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'sentry',
+        'USER': 'root',
     })
 elif test_db == 'postgres':
     settings.DATABASES['default'].update({

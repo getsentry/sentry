@@ -66,11 +66,6 @@ STATIC_ROOT = ''
 # Example: "http://media.lawrence.com/static/"
 STATIC_URL = '/static/'
 
-# URL prefix for admin static files -- CSS, JavaScript and images.
-# Make sure to use a trailing slash.
-# Examples: "http://foo.com/static/admin/", "/static/admin/".
-ADMIN_MEDIA_PREFIX = '/static/admin/'
-
 # Additional locations of static files
 STATICFILES_DIRS = (
     # Put strings here, like "/home/html/static" or "C:/www/django/static".
@@ -116,6 +111,10 @@ TEMPLATE_DIRS = (
     os.path.join(PROJECT_ROOT, 'templates'),
 )
 
+LOCALE_PATHS = (
+    os.path.join(PROJECT_ROOT, 'locale'),
+)
+
 INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -131,7 +130,7 @@ INSTALLED_APPS = (
     'raven.contrib.django',
 )
 
-# DSN of your Sentry server (https://github.com/dcramer/sentry)
+# DSN of your Sentry server
 # For info on configuring Django to use Sentry, see
 # http://raven.readthedocs.org/en/latest/config/django.html
 SENTRY_DSN = 'http://public:secret@example.com/1'

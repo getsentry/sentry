@@ -1,0 +1,20 @@
+{% load i18n %}
+
+<p>{% blocktrans with 'https://github.com/getsentry/raven-python' as link %}Start by installing <a href="{{ link }}">raven-python</a>:{% endblocktrans %}</p>
+
+<pre>pip install raven</pre>
+
+<p>{% trans "Then simply modify your Django configuration:" %}</p>
+
+<pre># {% trans "Set your DSN value" %}
+SENTRY_DSN = '{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}'
+
+# {% trans "Add raven to the list of installed apps" %}
+INSTALLED_APPS = INSTALLED_APPS + (
+# ...
+'raven.contrib.django',
+)</pre>
+
+<p>{% trans "That's it! Raven automatically installs an error handling hook to pipe all uncaught exceptions to Sentry." %}</p>
+
+<p>{% blocktrans with 'http://raven.readthedocs.org' as link %}For more information on other uses of Raven with Django, please see the <a href="{{ link }}">official documentation for raven-python</a>.{% endblocktrans %}</p>

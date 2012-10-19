@@ -87,4 +87,4 @@ Contributing Back Code
 
 Ideally all patches should be sent as a pull request on GitHub, and include tests. If you're fixing a bug or making a large change the patch **must** include test coverage.
 
-You can see a list of open pull requests (pending changes) by visiting https://github.com/dcramer/sentry/pulls
+You can see a list of open pull requests (pending changes) by visiting https://github.com/getsentry/sentry/pulls

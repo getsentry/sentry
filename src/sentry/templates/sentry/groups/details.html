@@ -1,0 +1,190 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_plugins %}
+
+{% block title %}{{ group.error }} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-group group.project.slug group.id %}">{{ group.message|truncatechars:30 }}</a></li>
+{% endblock %}
+
+{% block sidebar %}
+    <!--- there is probably a less terrible way to do things like this -->
+    <p id="public-status"><small>
+        <span data-public="true"{% if not group.project.public and not group.is_public %} style="display: none;"{% endif %}>
+            {% trans "This event is <strong>publicly visible</strong>." %}
+        </span>
+        <span data-public="false"{% if group.project.public or group.is_public %} style="display: none;"{% endif %}>
+            {% trans "This event is <strong>not publicly visible</strong>." %}
+        </span>
+        <span data-public="true"{% if not group.project.public and not group.is_public %} style="display: none;"{% endif %}>
+            <a href="{% url sentry-group group.project.slug group.id %}">{% trans "Link" %}</a>{% if can_admin_event and not group.project.public %} | {% endif %}
+        </span>
+        {% if can_admin_event and not group.project.public %}
+            <span data-public="true"{% if not group.is_public %} style="display: none;"{% endif %}>
+                <a href="javascript:void(0)" data-api-url="{% url sentry-api-set-group-private group.project.slug group.id %}" class="action">{% trans "Change" %}</a>
+            </span>
+            <span data-public="false"{% if group.is_public %} style="display: none;"{% endif %}>
+                <a href="javascript:void(0)" data-api-url="{% url sentry-api-set-group-public group.project.slug group.id %}" class="action">{% trans "Change" %}</a>
+            </span>
+        {% endif %}
+    </small></p>
+
+    <h6>{% trans "Aggregate Details" %}</h6>
+
+    <dl class="flat">
+        <dt>{% trans "Logger:" %}</dt>
+        <dd><a href="{% url sentry project.slug %}?logger={{ group.logger }}">{{ group.logger }}</a></dd>
+        <dt>{% trans "Level:" %}</dt>
+        <dd><a href="{% url sentry project.slug %}?level={{ group.level|safe }}">{{ group.get_level_display }}</a></dd>
+        <dt>{% trans "Status:" %}</dt>
+        <dd>{{ group.get_status_display|title }}</dd>
+        <dt>{% trans "First Seen:" %}</dt>
+        <dd class="pretty-date" title="{{ group.first_seen|date:"c" }}Z">{{ group.first_seen|timesince }}</dd>
+        {% if group.active_at and group.active_at != group.first_seen %}
+            <dt>{% trans "Reopened At:" %}</dt>
+            <dd class="pretty-date" title="{{ group.active_at|date:"c" }}Z">{{ group.active_at|timesince }}</dd>
+        {% endif %}
+        <dt>{% trans "Last Seen:" %}</dt>
+        <dd class="pretty-date" title="{{ group.last_seen|date:"c" }}Z">{{ group.last_seen|timesince }}</dd>
+        {% if group.avg_time_spent %}
+            <dt>{% trans "Avg Duration:" %}</dt>
+            <dd>{% if group.avg_time_spent %}{{ group.avg_time_spent|duration }}{% else %}<em>{% trans "n/a" %}</em>{% endif %}</dd>
+        {% endif %}
+    </dl>
+
+    {% if can_admin_event %}
+        <ul class="nav nav-list">
+            <li class="nav-header">{% trans "Actions" %}</li>
+            {% for label, link, is_active in group|get_actions:request %}
+                {% if forloop.first %}
+                    <li class="divider"></li>
+                {% endif %}
+                <li><a href="{{ link }}">{{ label }}</a></li>
+            {% endfor %}
+            {% comment %}<li><a {% ifequal page 'event_list' %}{% if event %}
+            href="{% url sentry-group-event-json project_id=project.slug group_id=group.id event_id_or_latest=event.id %}"{% else %}
+            href="{% url sentry-group-event-json project_id=project.slug group_id=group.id event_id_or_latest="latest" %}"{% endif %}{% else %}
+            href="{% url sentry-group-events-json project_id=project.slug group_id=group.id %}"{% endifequal %}
+            >{% trans "Raw JSON Data" %}</a></li>{% endcomment %}
+            <li><a href="{% url sentry-api-remove-group project_id=project.slug group_id=group.id %}">{% trans "Remove Event Data" %}</a></li>
+        </ul>
+    {% endif %}
+
+    {% for html in group|get_widgets:request %}
+        {{ html|safe }}
+    {% endfor %}
+
+{% endblock %}
+
+{% block main %}
+    {% handle_before_events request group %}
+    <ul class="events" id="event_list">
+        <li class="event level-{{ group.get_level_display }}{% if group.status == 1 %} resolved{% endif %}" data-count="{{ group.times_seen|safe }}" data-score="{{ group.sort_value|safe }}" data-group="{{ group.id|safe }}">
+            <div class="count"><span>{{ group.times_seen|small_count }}</span></div>
+            <div class="details">
+                <h3>
+                    {% if group.view %}
+                        {{ group.view }}
+                    {% else %}
+                        {{ group.message_top|truncatechars:100 }}
+                    {% endif %}
+                </h3>
+                <p class="message" title="{{ group.message }}">
+                    <span class="tag tag-logger">{{ group.logger }}</span>
+                    {% with group.get_version as version %}
+                        {% if version %}
+                            <span class="tag tag-version">{{ version.0 }} {{ version.1 }}</span>
+                        {% endif %}
+                    {% endwith %}
+                    {% for tag in group|get_tags:request %}<span class="tag">{{ tag }}</span> {% endfor %}
+                    {{ group.error }}
+                </p>
+                <div class="meta">
+                    <span class="last-seen pretty-date" title="{{ group.last_seen|date:"c" }}Z">{{ group.last_seen|timesince }}</span>
+                    {% if group.avg_time_spent %}
+                        <span class="time-spent">{{ group.avg_time_spent|duration }}</span>
+                    {% endif %}
+                </div>
+                {% if can_admin_event %}
+                    <ul class="actions">
+                        <li>
+                            {% if group.status == 0 %}
+                                <a href="javascript:void(0)" class="tip" onclick="Sentry.stream.resolve('{{ group.project.slug }}', {{ group.id|safe }}, false);" rel="tooltip" title="{% trans "Mark as Resolved" %}">&#10003;</a>
+                            {% else %}
+                                <a href="javascript:void(0)" class="tip checked" rel="tooltip" title="{% trans "Already Resolved" %}">&#10003;</a>
+                            {% endif %}
+                        </li>
+                        <li><a href="javascript:void(0)" onclick="Sentry.stream.bookmark('{{ group.project.slug }}', {{ group.id|safe }}, this);" class="tip bookmark{% if group|is_bookmarked:request.user %} checked{% endif %}" rel="tooltip" title="{% trans "Bookmark" %}">&#9733;</a></li>
+                    </ul>
+                {% endif %}
+            </div>
+        </li>
+    </ul>
+
+    <section class="body">
+        <ul class="nav nav-tabs">
+            <li{% ifequal page 'details' %} class="active"{% endifequal %}>
+                <a href="{% url sentry-group group.project.slug group.id %}">{% trans "Details" %}</a>
+            </li>
+            <li{% ifequal page 'event_list' %} class="active"{% endifequal %}>
+                <a href="{% url sentry-group-events group.project.slug group.id %}">{% trans "Events" %}</a>
+            </li>
+            {% for label, link, is_active in group|get_panels:request %}
+                <li{% if is_active %} class="active"{% endif %}><a href="{{ link }}">{{ label }}</a></li>
+            {% endfor %}
+        </ul>
+
+        {% block inner %}
+            {% if group.has_two_part_message %}
+                <pre id="full-message">{{ group.message }}</pre>
+            {% endif %}
+
+            {% if group|has_charts %}
+                <div class="module">
+                    <div class="page-header">
+                        <h2>{% trans "Frequency" %}</h2>
+                    </div>
+                    <div class="module-content" style="height: 120px;">
+                        <div id="chart" data-api-url="{% url sentry-api-chart project_id=project.slug %}" data-group="{{ group.id|safe }}">
+                            <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
+                            <p>{% trans "Loading..." %}</p>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% include "sentry/partial/_event_details.html" %}
+        {% endblock %}
+    </section>
+{% endblock %}
+
+{% block content_after %}
+    <script type="text/javascript">
+    $(document).ready(function() {
+        Sentry.charts.render("#chart");
+        $('#public-status .action').click(function(){
+            var $this = $(this);
+            $.ajax({
+                url: $this.attr('data-api-url'),
+                type: 'post',
+                dataType: 'json',
+                success: function(groups){
+                    var group = groups[0];
+                    var selector = (group.is_public ? 'true' : 'false');
+                    var nselector = (group.is_public ? 'false' : 'true')
+                    $('#public-status span[data-public="' + selector + '"]').show();
+                    $('#public-status span[data-public="' + nselector + '"]').hide();
+                },
+                error: function(){
+                    alert('There was an error changing the public status');
+                }
+            });
+        });
+    });
+    </script>
+{% endblock %}

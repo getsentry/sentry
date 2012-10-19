@@ -1,0 +1,52 @@
+{% extends "sentry/projects/manage.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Remove Project" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-remove-project project.slug %}">{% trans "Remove Project" %}</a></li>
+{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <form action="" method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="alert alert-block alert-error">
+                    <p>{% trans "There were errors saving your changes:" %}</p>
+                    <ul>
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            {% for field in form %}
+                {% include "sentry/partial/_form_field.html" %}
+            {% endfor %}
+            <fieldset class="form-actions">
+                <button type="submit" class="btn btn-danger">{% trans "Confirm" %}</button> <a href="{% url sentry-manage-project project.slug %}" class="btn">{% trans "Cancel" %}</a>
+            </fieldset>
+        </form>
+        <script>
+        (function(){
+            $('input[name="removal_type"]').change(function(){
+                $el = $(this);
+                if ($el.val() == 2 && $el.is(':checked')) {
+                    $('.control-group[data-name="project"]').show();
+                } else {
+                    $('.control-group[data-name="project"]').hide();
+                }
+            }).change();
+        }());
+        </script>
+        <style>
+        .control-group[data-name="project"] {
+            margin-left: 20px;
+        }
+        </style>
+    </section>
+{% endblock %}

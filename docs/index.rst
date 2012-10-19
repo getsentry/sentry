@@ -46,8 +46,8 @@ Resources
 ---------
 
 * `Transifex <https://www.transifex.net/projects/p/sentry/>`_ (Translate Sentry!)
-* `Bug Tracker <http://github.com/dcramer/sentry/issues>`_
-* `Code <http://github.com/dcramer/sentry>`_
+* `Bug Tracker <http://github.com/getsentry/sentry/issues>`_
+* `Code <http://github.com/getsentry/sentry>`_
 * `Mailing List <https://groups.google.com/group/getsentry>`_
 * `IRC <irc://irc.freenode.net/sentry>`_  (irc.freenode.net, #sentry)
 
