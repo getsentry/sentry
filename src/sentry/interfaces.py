@@ -212,12 +212,17 @@ class Stacktrace(Interface):
             else:
                 context_vars = []
 
+            if frame.get('lineno') is not None:
+                lineno = int(frame['lineno'])
+            else:
+                lineno = None
+
             frames.append({
                 'abs_path': frame.get('abs_path'),
                 'filename': frame['filename'],
                 'function': frame.get('function'),
                 'start_lineno': start_lineno,
-                'lineno': frame.get('lineno'),
+                'lineno': lineno,
                 'context': context,
                 'vars': context_vars,
             })
@@ -449,7 +454,7 @@ class Template(Interface):
             'event': event,
             'abs_path': self.abs_path,
             'filename': self.filename,
-            'lineno': self.lineno,
+            'lineno': int(self.lineno),
             'start_lineno': context[0][0],
             'context': context,
             'template': self.get_traceback(event, context),
