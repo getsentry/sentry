@@ -9,6 +9,7 @@ GLOBAL_JS_MIN = ${STATIC_DIR}/scripts/global.min.js
 BOOTSTRAP_LESS = src/sentry.less
 LESS_COMPRESSOR ?= `which lessc`
 UGLIFY_JS ?= `which uglifyjs`
+COFFEE ?= `which coffee`
 WATCHR ?= `which watchr`
 
 build: static locale
@@ -25,7 +26,7 @@ locale:
 # Build less files
 #
 
-static:
+static: coffee
 	@lessc ${BOOTSTRAP_LESS} > ${GLOBAL_CSS};
 	@lessc ${BOOTSTRAP_LESS} > ${GLOBAL_CSS_MIN} --compress;
 	@cat ${STATIC_DIR}/scripts/sentry.core.js ${STATIC_DIR}/scripts/sentry.realtime.js ${STATIC_DIR}/scripts/sentry.charts.js ${STATIC_DIR}/scripts/sentry.notifications.js ${STATIC_DIR}/scripts/sentry.stream.js > ${GLOBAL_JS};
@@ -34,6 +35,10 @@ static:
 	@uglifyjs -nc ${BOOTSTRAP_JS} > ${BOOTSTRAP_JS_MIN};
 	@echo "Static assets successfully built! - `date`";
 
+
+coffee:
+	@coffee --join ${STATIC_DIR}/scripts/sentry/app.js -c ${STATIC_DIR}/scripts/sentry/*.coffee
+	@echo "Coffe script assets successfully built! - `date`";
 #
 # Watch less files
 #
@@ -41,7 +46,13 @@ static:
 watch:
 	@echo "Watching less files..."; \
 	make static; \
-	watchr -e "watch('src/bootstrap/.*\.less') { system 'make static' }"
+	watchr -e "watch('src/sentry.less') { system 'make static' }"
+
+cwatch:
+	@echo "Watching coffee script files..."; \
+	make coffee
+	coffee --join ${STATIC_DIR}/scripts/sentry/site.js -cw ${STATIC_DIR}/scripts/sentry/*.coffee
+
 
 test:
 	pip install flake8 --use-mirrors
@@ -53,4 +64,4 @@ coverage:
 	coverage html --omit=*/migrations/* -d cover
 
 
-.PHONY: build watch
+.PHONY: build watch coffee

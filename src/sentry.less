@@ -422,7 +422,7 @@ footer {
   }
 }
 
-.events {
+.group-list, .events {
   margin: 0;
   padding: 0;
   list-style: none;
@@ -434,12 +434,12 @@ footer {
   }
 
   &.no-counts {
-    .event {
+    > li {
       padding-left: 20px;
     }
   }
 
-  .event {
+  > li {
     position: relative;
     padding: 15px 20px 15px 100px;
     position: relative;
@@ -579,7 +579,7 @@ footer {
       }
     }
 
-    &.event-small {
+    &.event-small, &.group-small {
       min-height: 30px;
       padding: 10px 10px 10px 60px;
 
