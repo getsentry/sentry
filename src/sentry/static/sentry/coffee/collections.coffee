@@ -2,10 +2,10 @@ window.app = app = app || {}
 
 jQuery ->
 
-    app.GroupList = class GroupList extends Backbone.Collection
+    app.ScoredList = class ScoredList extends Backbone.Collection
 
         initialize: ->
-            _.bindAll @
+            _.bindAll(@)
 
             model = app.Group
 

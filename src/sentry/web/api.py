@@ -28,6 +28,7 @@ from sentry.templatetags.sentry_helpers import with_metadata
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.db import has_trending
+from sentry.utils.javascript import to_json
 from sentry.utils.http import is_same_domain, is_valid_origin, apply_access_control_headers
 from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
@@ -222,9 +223,9 @@ def poll(request, project):
     event_list = list(event_list[offset:limit])
     handle_before_events(request, event_list)
 
-    data = transform_groups(request, event_list)
+    data = to_json(event_list, request)
 
-    response = HttpResponse(json.dumps(data))
+    response = HttpResponse(data)
     response['Content-Type'] = 'application/json'
     return response
 

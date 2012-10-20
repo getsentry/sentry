@@ -40,26 +40,26 @@
   window.app = app = app || {};
 
   jQuery(function() {
-    var GroupList;
-    return app.GroupList = GroupList = (function(_super) {
+    var ScoredList;
+    return app.ScoredList = ScoredList = (function(_super) {
 
-      __extends(GroupList, _super);
+      __extends(ScoredList, _super);
 
-      function GroupList() {
-        return GroupList.__super__.constructor.apply(this, arguments);
+      function ScoredList() {
+        return ScoredList.__super__.constructor.apply(this, arguments);
       }
 
-      GroupList.prototype.initialize = function() {
+      ScoredList.prototype.initialize = function() {
         var model;
         _.bindAll(this);
         return model = app.Group;
       };
 
-      GroupList.prototype.comparator = function(member) {
+      ScoredList.prototype.comparator = function(member) {
         return -member.get('score');
       };
 
-      return GroupList;
+      return ScoredList;
 
     })(Backbone.Collection);
   });
@@ -130,32 +130,85 @@
 
   window.app = app = app || {};
 
+  app.utils = app.utils || {};
+
   jQuery(function() {
-    var GroupListView, GroupView;
-    app.GroupListView = GroupListView = (function(_super) {
+    app.utils.getQueryParams = function() {
+      var chunk, hash, hashes, href, vars, _i, _len;
+      vars = {};
+      href = window.location.href;
+      if (href.indexOf('?') === -1) {
+        return vars;
+      }
+      hashes = href.slice(href.indexOf('?') + 1, (href.indexOf('#') !== -1 ? href.indexOf('#') : href.length)).split('&');
+      for (_i = 0, _len = hashes.length; _i < _len; _i++) {
+        chunk = hashes[_i];
+        hash = chunk.split('=');
+        if (!hash[0] && !hash[1]) {
+          return;
+        }
+        vars[hash[0]] = hash[1] ? decodeURIComponent(hash[1]).replace(/\+/, ' ') : '';
+      }
+      return vars;
+    };
+    return Date(function() {
+      var numericKeys, origParse;
+      origParse = Date.parse;
+      numericKeys = [1, 4, 5, 6, 7, 10, 11];
+      return Date.parse = function(date) {
+        var k, minutesOffset, struct, timestamp, _i, _len;
+        struct = {};
+        minutesOffset = 0;
+        if ((struct = /^(\d{4}|[+\-]\d{6})(?:-(\d{2})(?:-(\d{2}))?)?(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{3}))?)?(?:(Z)|([+\-])(\d{2})(?::(\d{2}))?)?)?$/.exec(date))) {
+          for (_i = 0, _len = numericKeys.length; _i < _len; _i++) {
+            k = numericKeys[_i];
+            struct[k] = +struct[k] || 0;
+          }
+          struct[2] = (+struct[2] || 1) - 1;
+          struct[3] = +struct[3] || 1;
+          if (struct[8] !== 'Z' && struct[9]) {
+            minutesOffset = struct[10] * 60 + struct[11];
+            if (struct[9] === '+') {
+              minutesOffset = 0 - minutesOffset;
+            }
+          }
+          timestamp = Date.UTC(struct[1], struct[2], struct[3], struct[4], struct[5] + minutesOffset, struct[6], struct[7]);
+        } else {
+          timestamp = origParse ? origParse(date) : NaN;
+        }
+        return timestamp;
+      };
+    });
+  });
 
-      __extends(GroupListView, _super);
+  window.app = app = app || {};
 
-      function GroupListView() {
-        return GroupListView.__super__.constructor.apply(this, arguments);
+  jQuery(function() {
+    var GroupListView, GroupView, OrderedElementsView;
+    app.OrderedElementsView = OrderedElementsView = (function(_super) {
+
+      __extends(OrderedElementsView, _super);
+
+      function OrderedElementsView() {
+        return OrderedElementsView.__super__.constructor.apply(this, arguments);
       }
 
-      GroupListView.prototype.el = '.group-list';
-
-      GroupListView.prototype.model = app.Group;
-
-      GroupListView.prototype.initialize = function(data) {
+      OrderedElementsView.prototype.initialize = function(data) {
         _.bindAll(this);
         this.$parent = $('#' + this.id);
-        this.collection = new app.GroupList;
+        this.queue = new app.ScoredList;
+        this.collection = new app.ScoredList;
         this.collection.add(data.members || []);
         this.collection.on('add', this.renderMemberInContainer);
         this.collection.on('remove', this.unrenderMember);
         this.collection.on('reset', this.reSortMembers);
-        return this.collection.sort();
+        this.collection.sort();
+        this.realtimeEnabled = data.realtimeEnabled || true;
+        this.poll();
+        return window.setInterval(this.tick, 300);
       };
 
-      GroupListView.prototype.addMember = function(member) {
+      OrderedElementsView.prototype.addMember = function(member) {
         if (!this.hasMember(member)) {
           return this.collection.add(member);
         } else {
@@ -163,14 +216,14 @@
         }
       };
 
-      GroupListView.prototype.reSortMembers = function() {
+      OrderedElementsView.prototype.reSortMembers = function() {
         var _this = this;
         return this.collection.each(function(member) {
           return _this.renderMemberInContainer(member);
         });
       };
 
-      GroupListView.prototype.updateMember = function(member) {
+      OrderedElementsView.prototype.updateMember = function(member) {
         var obj;
         obj = this.collection.get(member.id);
         obj.set('count', member.get('count'));
@@ -178,7 +231,7 @@
         return this.collection.sort();
       };
 
-      GroupListView.prototype.hasMember = function(member) {
+      OrderedElementsView.prototype.hasMember = function(member) {
         if (this.collection.get(member.id)) {
           return true;
         } else {
@@ -186,14 +239,14 @@
         }
       };
 
-      GroupListView.prototype.removeMember = function(member) {
+      OrderedElementsView.prototype.removeMember = function(member) {
         return this.collection.remove(member);
       };
 
-      GroupListView.prototype.renderMemberInContainer = function(member) {
+      OrderedElementsView.prototype.renderMemberInContainer = function(member) {
         var $el, $rel, new_pos;
         new_pos = this.collection.indexOf(member);
-        $el = $(this.id + member.id);
+        $el = $('#' + this.id + member.id);
         if (!$el.length) {
           $el = this.renderMember(member);
         } else if ($el.index() === new_pos) {
@@ -202,7 +255,7 @@
         if (new_pos === 0) {
           return this.$parent.prepend($el);
         } else {
-          $rel = $(this.id + this.collection.at(new_pos - 1));
+          $rel = $('#' + this.id + this.collection.at(new_pos - 1));
           if (!$rel.length) {
             return this.$parent.append($el);
           } else {
@@ -211,7 +264,7 @@
         }
       };
 
-      GroupListView.prototype.renderMember = function(member) {
+      OrderedElementsView.prototype.renderMember = function(member) {
         var out, view;
         view = new GroupView({
           model: member,
@@ -221,13 +274,81 @@
         return $(out.el);
       };
 
-      GroupListView.prototype.unrenderMember = function(member) {
-        return $(this.id + member.id).remove();
+      OrderedElementsView.prototype.unrenderMember = function(member) {
+        return $('#' + this.id + member.id).remove();
       };
+
+      OrderedElementsView.prototype.tick = function() {
+        if (!this.queue.length) {
+          return;
+        }
+        $('#no_messages').remove();
+        return this.addMember(this.queue.pop());
+      };
+
+      OrderedElementsView.prototype.getPollUrl = function() {
+        return app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/';
+      };
+
+      OrderedElementsView.prototype.poll = function() {
+        var data, item, _results,
+          _this = this;
+        if (!this.realtimeEnabled) {
+          window.setTimeout(this.poll, 1000);
+        }
+        data = app.utils.getQueryParams();
+        data.view_id = app.config.viewId || void 0;
+        data.cursor = this.cursor || void 0;
+        $.ajax({
+          url: this.getPollUrl(),
+          type: 'get',
+          dataType: 'json',
+          data: data,
+          success: function(groups) {
+            var obj, _i, _len;
+            if (!groups.length) {
+              setTimeout(_this.poll, 5000);
+              return;
+            }
+            _this.cursor = groups[groups.length - 1].score || void 0;
+            for (_i = 0, _len = groups.length; _i < _len; _i++) {
+              data = groups[_i];
+              obj = _this.queue.get(data.id);
+              if (obj) {
+                obj.set('count', data.count);
+                obj.set('score', data.score);
+                _this.queue.sort();
+              } else {
+                _this.queue.add(data);
+              }
+            }
+            return window.setTimeout(_this.poll, 1000);
+          },
+          error: function() {
+            return window.setTimeout(_this.poll, 10000);
+          }
+        });
+        _results = [];
+        while (this.collection.length > 50) {
+          _results.push(item = this.collection.pop());
+        }
+        return _results;
+      };
+
+      return OrderedElementsView;
+
+    })(Backbone.View);
+    app.GroupListView = GroupListView = (function(_super) {
+
+      __extends(GroupListView, _super);
+
+      function GroupListView() {
+        return GroupListView.__super__.constructor.apply(this, arguments);
+      }
 
       return GroupListView;
 
-    })(Backbone.View);
+    })(OrderedElementsView);
     return app.GroupView = GroupView = (function(_super) {
 
       __extends(GroupView, _super);

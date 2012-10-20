@@ -11,8 +11,6 @@
     <script>
     {% if has_realtime %}
         app.config.hasRealtime = {{ hasRealtime|to_json|safe  }};
-        app.config.projectId = {{ project.slug|to_json|safe }};
-        app.config.viewId = {% if view %}{{ view.pk|to_json|safe }}{% else %}null{% endif %};
         Sentry.realtime.config({
             projectId: {{ project.slug|to_json|safe }},
             viewId: {% if view %}{{ view.pk|to_json|safe }}{% else %}null{% endif %}
