@@ -93,6 +93,7 @@ jQuery ->
 
             @views = {}
 
+            # TODO:
             Sentry.charts.render('#chart');
 
             # load content for first tab and initialize
@@ -123,6 +124,7 @@ jQuery ->
                     # error: ->
                     #     $cont.html('<p>{% trans "There was an error fetching data from the server." %}</p>');
     
+            # initialize active tabs
             $('li.active a[data-toggle=ajtab]').click()
 
 
