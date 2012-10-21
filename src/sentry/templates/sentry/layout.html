@@ -157,7 +157,7 @@
                 <div class="meta">
                     <span class="last-seen pretty-date" title="<%= lastSeen %>"><%= Sentry.prettyDate(lastSeen) %></span>
                     <% if (timeSpent) { %>
-                        <span class="time-spent"><%= timeSpent %></span>
+                        <span class="time-spent"><%= app.utils.round(timeSpent) %>ms</span>
                     <% } %>
                 </div>
                 <span class="sparkline" sparkwidth="100" sparkheight="40" sparklineColor="#ccc" sparkfillColor="false" sparkspotRadius="0"><!-- <%= historicalData %> --></span>

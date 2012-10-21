@@ -269,6 +269,9 @@
       }
       return vars;
     };
+    app.utils.round = function(float) {
+      return parseInt(float * 100, 10) / 100;
+    };
     return Date(function() {
       var numericKeys, origParse;
       origParse = Date.parse;

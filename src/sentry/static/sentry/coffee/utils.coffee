@@ -19,6 +19,9 @@ jQuery ->
 
         return vars
 
+    app.utils.round = (float) ->
+        parseInt(float * 100, 10) / 100
+
     # Date.parse with progressive enhancement for ISO 8601 <https://github.com/csnover/js-iso8601>
     # © 2011 Colin Snover <http://zetafleet.com>
     # Released under MIT license.
