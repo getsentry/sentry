@@ -318,8 +318,10 @@
       OrderedElementsView.prototype.initialize = function(data) {
         var _ref;
         _.bindAll(this);
+        this.$empty = $('<li class="empty"><p>There is nothing to show here.</p></li>');
         this.$wrapper = $('#' + this.id);
         this.$parent = $('<ul></ul>');
+        this.$parent.html(this.$empty);
         this.$wrapper.html(this.$parent);
         if (data.className) {
           this.$parent.addClass(data.className);
@@ -369,6 +371,7 @@
       OrderedElementsView.prototype.renderMemberInContainer = function(member) {
         var $el, $rel, item, new_pos, _results;
         new_pos = this.collection.indexOf(member);
+        this.$parent.find('li.empty').remove();
         $el = $('#' + this.id + member.id);
         if (!$el.length) {
           $el = this.renderMember(member);
@@ -403,7 +406,10 @@
       };
 
       OrderedElementsView.prototype.unrenderMember = function(member) {
-        return $('#' + this.id + member.id).remove();
+        $('#' + this.id + member.id).remove();
+        if (!this.$parent.find('li').length) {
+          return this.$parent.html(this.$empty);
+        }
       };
 
       return OrderedElementsView;

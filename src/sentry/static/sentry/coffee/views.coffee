@@ -7,8 +7,10 @@ jQuery ->
 
             _.bindAll(@)
 
+            @$empty = $('<li class="empty"><p>There is nothing to show here.</p></li>')
             @$wrapper = $('#' + @id)
             @$parent = $('<ul></ul>')
+            @$parent.html(@$empty)
             @$wrapper.html(@$parent)
 
             if data.className
@@ -52,6 +54,8 @@ jQuery ->
         renderMemberInContainer: (member) ->
             new_pos = @collection.indexOf(member)
 
+            @$parent.find('li.empty').remove()
+
             # create the element if it does not yet exist
             $el = $('#' + @id + member.id)
 
@@ -90,6 +94,8 @@ jQuery ->
 
         unrenderMember: (member) ->
             $('#' + @id + member.id).remove()
+            if !@$parent.find('li').length
+                @$parent.html(@$empty)
 
 
     app.GroupListView = class GroupListView extends OrderedElementsView

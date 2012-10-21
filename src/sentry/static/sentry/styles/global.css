@@ -5874,14 +5874,6 @@ footer a:hover {
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid #e5e6e7;
-}
-.group-list .empty-result,
-.events .empty-result {
-  padding: 15px 20px;
-  min-height: 60px;
-  /* count height */
-
 }
 .group-list.no-counts > li,
 .events.no-counts > li {
@@ -5893,10 +5885,23 @@ footer a:hover {
   padding: 15px 20px 15px 100px;
   position: relative;
   border: 1px solid #e5e6e7;
-  border-width: 0 0 1px 1px;
+  border-top-width: 0;
   min-height: 60px;
   /* count height */
 
+}
+.group-list > li:first-child,
+.events > li:first-child {
+  border-top-width: 1px;
+}
+.group-list > li.empty,
+.events > li.empty {
+  border: 0;
+  padding: 15px 20px;
+}
+.group-list > li.empty p,
+.events > li.empty p {
+  margin: 5px 0 5px;
 }
 .group-list > li.with-metadata .message,
 .events > li.with-metadata .message {
@@ -5917,9 +5922,6 @@ footer a:hover {
   background-repeat: repeat-x;
   filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#fff7fbfe', endColorstr='#ffeff8fd', GradientType=0);
   border-color: #aec9d7;
-  -webkit-box-shadow: 0 -1px 0 #aec9d7, 1px 0 0 #aec9d7;
-  -moz-box-shadow: 0 -1px 0 #aec9d7, 1px 0 0 #aec9d7;
-  box-shadow: 0 -1px 0 #aec9d7, 1px 0 0 #aec9d7;
 }
 .group-list > li:hover h3 a,
 .events > li:hover h3 a {
@@ -6070,6 +6072,10 @@ footer a:hover {
 .events.small > li {
   min-height: 30px;
   padding: 10px 10px 10px 60px;
+}
+.group-list.small > li.empty,
+.events.small > li.empty {
+  padding: 10px 20px;
 }
 .group-list.small > li h3,
 .events.small > li h3 {
