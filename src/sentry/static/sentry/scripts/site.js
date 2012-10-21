@@ -9,8 +9,8 @@
   app.config = app.config || {};
 
   jQuery(function() {
-    var StreamView;
-    return app.StreamView = StreamView = (function(_super) {
+    var DashboardView, StreamView;
+    app.StreamView = StreamView = (function(_super) {
 
       __extends(StreamView, _super);
 
@@ -21,14 +21,136 @@
       StreamView.prototype.el = $('body');
 
       StreamView.prototype.initialize = function(data) {
-        var group_list;
-        return group_list = new app.GroupListView({
+        var _ref;
+        _.bindAll(this);
+        this.group_list = new app.OrderedElementsView({
+          className: 'group-list',
           id: 'event_list',
-          members: data.groups
+          members: data.groups,
+          maxItems: 50
+        });
+        this.config = {
+          realtime: (_ref = data.realtime) != null ? _ref : true
+        };
+        this.cursor = null;
+        this.queue = new app.ScoredList;
+        this.poll();
+        return window.setInterval(this.tick, 300);
+      };
+
+      StreamView.prototype.tick = function() {
+        if (!this.queue.length) {
+          return;
+        }
+        $('#no_messages').remove();
+        return this.group_list.addMember(this.queue.pop());
+      };
+
+      StreamView.prototype.getPollUrl = function() {
+        return app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/';
+      };
+
+      StreamView.prototype.poll = function() {
+        var data, poll_url,
+          _this = this;
+        poll_url = this.getPollUrl;
+        if (!this.config.realtime) {
+          window.setTimeout(this.poll, 1000);
+          return;
+        }
+        data = app.utils.getQueryParams();
+        data.cursor = this.cursor || void 0;
+        return $.ajax({
+          url: this.getPollUrl(),
+          type: 'get',
+          dataType: 'json',
+          data: data,
+          success: function(groups) {
+            var obj, _i, _len;
+            if (!groups.length) {
+              setTimeout(_this.poll, 5000);
+              return;
+            }
+            _this.cursor = groups[groups.length - 1].score || void 0;
+            for (_i = 0, _len = groups.length; _i < _len; _i++) {
+              data = groups[_i];
+              obj = _this.queue.get(data.id);
+              if (obj) {
+                obj.set('count', data.count);
+                obj.set('score', data.score);
+                _this.queue.sort();
+              } else {
+                _this.queue.add(data);
+              }
+            }
+            return window.setTimeout(_this.poll, 1000);
+          },
+          error: function() {
+            return window.setTimeout(_this.poll, 10000);
+          }
         });
       };
 
       return StreamView;
+
+    })(Backbone.View);
+    return app.DashboardView = DashboardView = (function(_super) {
+
+      __extends(DashboardView, _super);
+
+      function DashboardView() {
+        return DashboardView.__super__.constructor.apply(this, arguments);
+      }
+
+      DashboardView.prototype.el = $('body');
+
+      DashboardView.prototype.getView = function(id) {
+        if (!this.views[id]) {
+          this.views[id] = new app.OrderedElementsView({
+            className: 'group-list small',
+            id: id,
+            maxItems: 5
+          });
+        }
+        return this.views[id];
+      };
+
+      DashboardView.prototype.initialize = function() {
+        var _this = this;
+        _.bindAll(this);
+        this.views = {};
+        Sentry.charts.render('#chart');
+        $('a[data-toggle=ajtab]').click(function(e) {
+          var $cont, $parent, $tab, uri, view, view_id;
+          $tab = $(e.target);
+          view_id = $tab.attr('href').substr(1);
+          uri = $tab.attr('data-uri');
+          if (!uri) {
+            return;
+          }
+          view = _this.getView(view_id);
+          $cont = $(name);
+          $parent = $cont.parent();
+          $parent.css('opacity', .6);
+          e.preventDefault();
+          return $.ajax({
+            url: uri,
+            dataType: 'json',
+            success: function(data) {
+              var item, _i, _len;
+              for (_i = 0, _len = data.length; _i < _len; _i++) {
+                item = data[_i];
+                view.addMember(data);
+              }
+              $parent.css('opacity', 1);
+              return $tab.tab('show');
+            }
+          });
+        });
+        return $('li.active a[data-toggle=ajtab]').click();
+      };
+
+      return DashboardView;
 
     })(Backbone.View);
   });
@@ -145,7 +267,7 @@
         chunk = hashes[_i];
         hash = chunk.split('=');
         if (!hash[0] && !hash[1]) {
-          return;
+          continue;
         }
         vars[hash[0]] = hash[1] ? decodeURIComponent(hash[1]).replace(/\+/, ' ') : '';
       }
@@ -194,18 +316,23 @@
       }
 
       OrderedElementsView.prototype.initialize = function(data) {
+        var _ref;
         _.bindAll(this);
-        this.$parent = $('#' + this.id);
-        this.queue = new app.ScoredList;
+        this.$wrapper = $('#' + this.id);
+        this.$parent = $('<ul></ul>');
+        this.$wrapper.html(this.$parent);
+        if (data.className) {
+          this.$parent.addClass(data.className);
+        }
+        this.config = {
+          maxItems: (_ref = data.maxItems) != null ? _ref : 50
+        };
         this.collection = new app.ScoredList;
         this.collection.add(data.members || []);
         this.collection.on('add', this.renderMemberInContainer);
         this.collection.on('remove', this.unrenderMember);
         this.collection.on('reset', this.reSortMembers);
-        this.collection.sort();
-        this.realtimeEnabled = data.realtimeEnabled || true;
-        this.poll();
-        return window.setInterval(this.tick, 300);
+        return this.collection.sort();
       };
 
       OrderedElementsView.prototype.addMember = function(member) {
@@ -232,11 +359,7 @@
       };
 
       OrderedElementsView.prototype.hasMember = function(member) {
-        if (this.collection.get(member.id)) {
-          return true;
-        } else {
-          return false;
-        }
+        return this.collection.get(member.id) != null;
       };
 
       OrderedElementsView.prototype.removeMember = function(member) {
@@ -244,7 +367,7 @@
       };
 
       OrderedElementsView.prototype.renderMemberInContainer = function(member) {
-        var $el, $rel, new_pos;
+        var $el, $rel, item, new_pos, _results;
         new_pos = this.collection.indexOf(member);
         $el = $('#' + this.id + member.id);
         if (!$el.length) {
@@ -253,15 +376,20 @@
           return;
         }
         if (new_pos === 0) {
-          return this.$parent.prepend($el);
+          this.$parent.prepend($el);
         } else {
-          $rel = $('#' + this.id + this.collection.at(new_pos - 1));
+          $rel = $('#' + this.id + this.collection.at(new_pos).id);
           if (!$rel.length) {
-            return this.$parent.append($el);
+            this.$parent.append($el);
           } else {
-            return this.$parent.insertBefore($rel);
+            $el.insertBefore($rel);
           }
         }
+        _results = [];
+        while (this.collection.length > this.config.maxItems) {
+          _results.push(item = this.collection.pop());
+        }
+        return _results;
       };
 
       OrderedElementsView.prototype.renderMember = function(member) {
@@ -276,63 +404,6 @@
 
       OrderedElementsView.prototype.unrenderMember = function(member) {
         return $('#' + this.id + member.id).remove();
-      };
-
-      OrderedElementsView.prototype.tick = function() {
-        if (!this.queue.length) {
-          return;
-        }
-        $('#no_messages').remove();
-        return this.addMember(this.queue.pop());
-      };
-
-      OrderedElementsView.prototype.getPollUrl = function() {
-        return app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/';
-      };
-
-      OrderedElementsView.prototype.poll = function() {
-        var data, item, _results,
-          _this = this;
-        if (!this.realtimeEnabled) {
-          window.setTimeout(this.poll, 1000);
-        }
-        data = app.utils.getQueryParams();
-        data.view_id = app.config.viewId || void 0;
-        data.cursor = this.cursor || void 0;
-        $.ajax({
-          url: this.getPollUrl(),
-          type: 'get',
-          dataType: 'json',
-          data: data,
-          success: function(groups) {
-            var obj, _i, _len;
-            if (!groups.length) {
-              setTimeout(_this.poll, 5000);
-              return;
-            }
-            _this.cursor = groups[groups.length - 1].score || void 0;
-            for (_i = 0, _len = groups.length; _i < _len; _i++) {
-              data = groups[_i];
-              obj = _this.queue.get(data.id);
-              if (obj) {
-                obj.set('count', data.count);
-                obj.set('score', data.score);
-                _this.queue.sort();
-              } else {
-                _this.queue.add(data);
-              }
-            }
-            return window.setTimeout(_this.poll, 1000);
-          },
-          error: function() {
-            return window.setTimeout(_this.poll, 10000);
-          }
-        });
-        _results = [];
-        while (this.collection.length > 50) {
-          _results.push(item = this.collection.pop());
-        }
-        return _results;
       };
 
       return OrderedElementsView;

@@ -6066,31 +6066,23 @@ footer a:hover {
   opacity: 0.5;
   filter: alpha(opacity=50);
 }
-.group-list > li.event-small,
-.events > li.event-small,
-.group-list > li.group-small,
-.events > li.group-small {
+.group-list.small > li,
+.events.small > li {
   min-height: 30px;
   padding: 10px 10px 10px 60px;
 }
-.group-list > li.event-small h3,
-.events > li.event-small h3,
-.group-list > li.group-small h3,
-.events > li.group-small h3 {
+.group-list.small > li h3,
+.events.small > li h3 {
   margin: 0;
   font-size: 14px;
   line-height: 16px;
 }
-.group-list > li.event-small .message,
-.events > li.event-small .message,
-.group-list > li.group-small .message,
-.events > li.group-small .message {
+.group-list.small > li .message,
+.events.small > li .message {
   font-size: 12px;
 }
-.group-list > li.event-small .count,
-.events > li.event-small .count,
-.group-list > li.group-small .count,
-.events > li.group-small .count {
+.group-list.small > li .count,
+.events.small > li .count {
   left: 10px;
   font-size: 12px;
   width: 36px;
@@ -6100,27 +6092,23 @@ footer a:hover {
   -moz-border-radius: 36px;
   border-radius: 36px;
 }
-.group-list > li.event-small .meta,
-.events > li.event-small .meta,
-.group-list > li.group-small .meta,
-.events > li.group-small .meta {
+.group-list.small > li .actions,
+.events.small > li .actions {
+  display: none;
+}
+.group-list.small > li .meta,
+.events.small > li .meta {
   right: 120px;
 }
-.group-list > li.event-small .sparkline,
-.events > li.event-small .sparkline,
-.group-list > li.group-small .sparkline,
-.events > li.group-small .sparkline {
+.group-list.small > li .sparkline,
+.events.small > li .sparkline {
   right: 10px;
   top: 18px;
 }
-.group-list > li.event-small .tag,
-.events > li.event-small .tag,
-.group-list > li.group-small .tag,
-.events > li.group-small .tag,
-.group-list > li.event-small .meta,
-.events > li.event-small .meta,
-.group-list > li.group-small .meta,
-.events > li.group-small .meta {
+.group-list.small > li .tag,
+.events.small > li .tag,
+.group-list.small > li .meta,
+.events.small > li .meta {
   font-size: 11px;
 }
 label {

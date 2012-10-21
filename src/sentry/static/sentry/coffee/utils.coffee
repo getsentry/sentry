@@ -13,7 +13,7 @@ jQuery ->
         for chunk in hashes
             hash = chunk.split('=')
             if !hash[0] && !hash[1]
-                return
+                continue
 
             vars[hash[0]] = if hash[1] then decodeURIComponent(hash[1]).replace(/\+/, ' ') else ''
 

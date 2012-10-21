@@ -431,9 +431,9 @@ def get_group_trends(request, project=None):
     for group in group_list:
         group._project_cache = project_dict.get(group.project_id)
 
-    data = transform_groups(request, group_list, template='sentry/partial/_group_small.html')
+    data = to_json(group_list, request)
 
-    response = HttpResponse(json.dumps(data))
+    response = HttpResponse(data)
     response['Content-Type'] = 'application/json'
 
     return response
@@ -454,18 +454,18 @@ def get_new_groups(request, project=None):
     cutoff = datetime.timedelta(minutes=minutes)
     cutoff_dt = timezone.now() - cutoff
 
-    group_list = Group.objects.filter(
+    group_list = list(Group.objects.filter(
         project__in=project_dict.keys(),
         status=0,
         active_at__gte=cutoff_dt,
-    ).order_by('-score')[:limit]
+    ).order_by('-score')[:limit])
 
     for group in group_list:
         group._project_cache = project_dict.get(group.project_id)
 
-    data = transform_groups(request, group_list, template='sentry/partial/_group_small.html')
+    data = to_json(group_list, request)
 
-    response = HttpResponse(json.dumps(data))
+    response = HttpResponse(data)
     response['Content-Type'] = 'application/json'
 
     return response

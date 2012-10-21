@@ -8,16 +8,6 @@
 
 {% block meta %}
     {{ block.super }}
-    <script>
-    {% if has_realtime %}
-        app.config.hasRealtime = {{ hasRealtime|to_json|safe  }};
-        Sentry.realtime.config({
-            projectId: {{ project.slug|to_json|safe }},
-            viewId: {% if view %}{{ view.pk|to_json|safe }}{% else %}null{% endif %}
-        })
-        // Sentry.realtime.enable();
-    {% endif %}
-    </script>
 {% endblock %}
 
 {% block page_header %}
@@ -136,8 +126,7 @@
     </div>
 
     {% handle_before_events request event_list.paginator.objects %}
-    <ul class="group-list" id="event_list">
-    </ul>
+    <div id="event_list"></div>
 
     <div class="btn-toolbar">
         <div class="btn-group pull-right">
@@ -149,7 +138,8 @@
     <script>
     $(function(){
         new app.StreamView({
-            groups: {{ event_list.paginator.objects|to_json:request|safe }}
+            groups: {{ event_list.paginator.objects|to_json:request|safe }},
+            realtime: {{ has_realtime|to_json|safe }}
         });
     });
     </script>

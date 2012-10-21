@@ -12,7 +12,7 @@ UGLIFY_JS ?= `which uglifyjs`
 COFFEE ?= `which coffee`
 WATCHR ?= `which watchr`
 
-build: static locale
+build: static coffee locale
 
 #
 # Compile language files
@@ -26,7 +26,7 @@ locale:
 # Build less files
 #
 
-static: coffee
+static:
 	@lessc ${BOOTSTRAP_LESS} > ${GLOBAL_CSS};
 	@lessc ${BOOTSTRAP_LESS} > ${GLOBAL_CSS_MIN} --compress;
 	@cat ${STATIC_DIR}/scripts/sentry.core.js ${STATIC_DIR}/scripts/sentry.realtime.js ${STATIC_DIR}/scripts/sentry.charts.js ${STATIC_DIR}/scripts/sentry.notifications.js ${STATIC_DIR}/scripts/sentry.stream.js > ${GLOBAL_JS};

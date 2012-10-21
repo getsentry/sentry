@@ -7,9 +7,16 @@ jQuery ->
 
             _.bindAll(@)
 
-            @$parent = $('#' + @id)
+            @$wrapper = $('#' + @id)
+            @$parent = $('<ul></ul>')
+            @$wrapper.html(@$parent)
 
-            @queue = new app.ScoredList
+            if data.className
+                @$parent.addClass(data.className)
+
+            # TODO: we can use bindAll to make this more sane
+            @config = 
+                maxItems: data.maxItems ? 50
 
             @collection = new app.ScoredList
             @collection.add(data.members || []);
@@ -18,11 +25,6 @@ jQuery ->
             # @collection.on('add remove', @changeMember)
             @collection.on('reset', @reSortMembers)
             @collection.sort()
-
-            @realtimeEnabled = data.realtimeEnabled || true
-            @poll();
-            window.setInterval(@tick, 300);
-
 
         addMember: (member) ->
             if not @hasMember(member)
@@ -42,7 +44,7 @@ jQuery ->
             @collection.sort()
 
         hasMember: (member) ->
-            if @collection.get(member.id) then true else false
+            @collection.get(member.id)?
 
         removeMember: (member) ->
             @collection.remove(member)
@@ -52,22 +54,31 @@ jQuery ->
 
             # create the element if it does not yet exist
             $el = $('#' + @id + member.id)
+
             if !$el.length
                 $el = @renderMember(member)
 
             # if the row was already present, ensure it moved
-            else if $el.index() == new_pos
+            else if $el.index() is new_pos
                 return
 
             # top item
-            if new_pos == 0
+            if new_pos is 0
                 @$parent.prepend($el)
             else
-                $rel = $('#' + @id + @collection.at(new_pos - 1))
+                # find existing item at new position
+                $rel = $('#' + @id + @collection.at(new_pos).id)
                 if !$rel.length
                     @$parent.append($el)
                 else
-                    @$parent.insertBefore($rel)
+                    $el.insertBefore($rel)
+
+            # $el.find('.sparkline').sparkline('html', {enableTagOptions: true})
+
+            # make sure we limit the number shown
+            while @collection.length > @config.maxItems
+                item = @collection.pop()
+
 
         renderMember: (member) ->
             view = new GroupView
@@ -79,63 +90,6 @@ jQuery ->
 
         unrenderMember: (member) ->
             $('#' + @id + member.id).remove()
-
-        tick: ->
-            if !@queue.length
-                return
-
-            # ensure "no messages" is cleaned up
-            $('#no_messages').remove();
-
-            @addMember(@queue.pop())
-
-            # $row.find('.sparkline').sparkline('html', {enableTagOptions: true});
-
-            # # shiny fx
-            # $row.css('background-color', '#ddd').animate({backgroundColor: '#fff'}, 1200);
-
-        getPollUrl: ->
-            app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/'
-
-        poll: ->
-            if (!@realtimeEnabled)
-                window.setTimeout(@poll, 1000);
-
-            data = app.utils.getQueryParams()
-            data.view_id = app.config.viewId || undefined;
-            data.cursor = @cursor || undefined;
-
-            $.ajax
-                url: @getPollUrl()
-                type: 'get'
-                dataType: 'json'
-                data: data
-                success: (groups) =>
-                    if !groups.length
-                        setTimeout(@poll, 5000)
-                        return
-
-                    @cursor = groups[groups.length - 1].score || undefined
-
-                    for data in groups
-                        obj = @queue.get(data.id)
-                        if obj
-                            # TODO: this code is shared in updateMember above
-                            obj.set('count', data.count)
-                            obj.set('score', data.score)
-                            @queue.sort()
-                        else
-                            @queue.add(data)
-
-                    window.setTimeout(@poll, 1000)
-
-                error: =>
-                    # if an error happened lets give the server a bit of time before we poll again
-                    window.setTimeout(@poll, 10000)
-
-            # make sure we limit the number shown
-            while @collection.length > 50
-                item = @collection.pop()
 
 
     app.GroupListView = class GroupListView extends OrderedElementsView
