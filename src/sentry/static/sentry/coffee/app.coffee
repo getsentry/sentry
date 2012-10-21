@@ -79,15 +79,6 @@ jQuery ->
     app.DashboardView = class DashboardView extends Backbone.View
         el: $('body')
 
-        getView: (id) ->
-            if !@views[id]
-                @views[id] = new app.OrderedElementsView
-                    className: 'group-list small'
-                    id: id
-                    maxItems: 5
-            return @views[id]
-
-
         initialize: ->
             _.bindAll(@)
 
@@ -96,7 +87,7 @@ jQuery ->
             # TODO:
             Sentry.charts.render('#chart')
 
-            # load content for first tab and initialize
+            # initialize tab event handlers
             $('a[data-toggle=ajtab]').click (e) =>
                 $tab = $(e.target)
                 view_id = $tab.attr('href').substr(1)
@@ -127,6 +118,13 @@ jQuery ->
             # initialize active tabs
             $('li.active a[data-toggle=ajtab]').click()
 
+        getView: (id) ->
+            if !@views[id]
+                @views[id] = new app.OrderedElementsView
+                    className: 'group-list small'
+                    id: id
+                    maxItems: 5
+            return @views[id]
 
 # We're not talking to the server
 Backbone.sync = (method, model, success, error) ->

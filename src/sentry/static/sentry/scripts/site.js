@@ -104,17 +104,6 @@
 
       DashboardView.prototype.el = $('body');
 
-      DashboardView.prototype.getView = function(id) {
-        if (!this.views[id]) {
-          this.views[id] = new app.OrderedElementsView({
-            className: 'group-list small',
-            id: id,
-            maxItems: 5
-          });
-        }
-        return this.views[id];
-      };
-
       DashboardView.prototype.initialize = function() {
         var _this = this;
         _.bindAll(this);
@@ -148,6 +137,17 @@
           });
         });
         return $('li.active a[data-toggle=ajtab]').click();
+      };
+
+      DashboardView.prototype.getView = function(id) {
+        if (!this.views[id]) {
+          this.views[id] = new app.OrderedElementsView({
+            className: 'group-list small',
+            id: id,
+            maxItems: 5
+          });
+        }
+        return this.views[id];
       };
 
       return DashboardView;
