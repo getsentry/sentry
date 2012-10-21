@@ -160,6 +160,7 @@
   jQuery(function() {
     var ScoredList;
     return app.ScoredList = ScoredList = (function(_super) {
+      var model;
 
       __extends(ScoredList, _super);
 
@@ -167,11 +168,7 @@
         return ScoredList.__super__.constructor.apply(this, arguments);
       }
 
-      ScoredList.prototype.initialize = function() {
-        var model;
-        _.bindAll(this);
-        return model = app.Group;
-      };
+      model = app.Group;
 
       ScoredList.prototype.comparator = function(member) {
         return -member.get('score');
