@@ -1,4 +1,4 @@
-window.app = app = app || {}
+window.app = app = window.app || {}
 
 jQuery ->
 
