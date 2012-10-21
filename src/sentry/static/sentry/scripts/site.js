@@ -18,8 +18,6 @@
         return StreamView.__super__.constructor.apply(this, arguments);
       }
 
-      StreamView.prototype.el = $('body');
-
       StreamView.prototype.initialize = function(data) {
         var _ref;
         _.bindAll(this);
@@ -101,8 +99,6 @@
       function DashboardView() {
         return DashboardView.__super__.constructor.apply(this, arguments);
       }
-
-      DashboardView.prototype.el = $('body');
 
       DashboardView.prototype.initialize = function() {
         var _this = this;

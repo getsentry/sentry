@@ -4,7 +4,6 @@ app.config = app.config || {};
 jQuery ->
 
     app.StreamView = class StreamView extends Backbone.View
-        el: $('body')
 
         initialize: (data) ->
             _.bindAll(@)
@@ -77,7 +76,6 @@ jQuery ->
                     window.setTimeout(@poll, 10000)
 
     app.DashboardView = class DashboardView extends Backbone.View
-        el: $('body')
 
         initialize: ->
             _.bindAll(@)
