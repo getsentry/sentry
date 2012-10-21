@@ -20,9 +20,9 @@ jQuery ->
 
             @cursor = null
             @queue = new app.ScoredList
-            @poll();
+            @poll()
 
-            window.setInterval(@tick, 300);
+            window.setInterval(@tick, 300)
 
         tick: ->
             if !@queue.length
@@ -34,7 +34,7 @@ jQuery ->
             @group_list.addMember(@queue.pop())
 
             # # shiny fx
-            # $row.css('background-color', '#ddd').animate({backgroundColor: '#fff'}, 1200);
+            # $row.css('background-color', '#ddd').animate({backgroundColor: '#fff'}, 1200)
 
         getPollUrl: ->
             app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/'
@@ -42,11 +42,11 @@ jQuery ->
         poll: ->
             poll_url = @getPollUrl
             if !@config.realtime
-                window.setTimeout(@poll, 1000);
+                window.setTimeout(@poll, 1000)
                 return
 
             data = app.utils.getQueryParams()
-            data.cursor = @cursor || undefined;
+            data.cursor = @cursor || undefined
 
             $.ajax
                 url: @getPollUrl()
@@ -94,7 +94,7 @@ jQuery ->
             @views = {}
 
             # TODO:
-            Sentry.charts.render('#chart');
+            Sentry.charts.render('#chart')
 
             # load content for first tab and initialize
             $('a[data-toggle=ajtab]').click (e) =>
@@ -120,9 +120,9 @@ jQuery ->
                         for item in data
                             view.addMember(data)
                         $parent.css('opacity', 1)
-                        $tab.tab('show');
+                        $tab.tab('show')
                     # error: ->
-                    #     $cont.html('<p>{% trans "There was an error fetching data from the server." %}</p>');
+                    #     $cont.html('<p>{% trans "There was an error fetching data from the server." %}</p>')
     
             # initialize active tabs
             $('li.active a[data-toggle=ajtab]').click()
