@@ -122,7 +122,6 @@ jQuery ->
                     className: 'group-list small'
                     id: id
                     maxItems: 5
-                    loaded: false
             return @views[id]
 
 # We're not talking to the server

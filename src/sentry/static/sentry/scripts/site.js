@@ -137,8 +137,7 @@
           this.views[id] = new app.OrderedElementsView({
             className: 'group-list small',
             id: id,
-            maxItems: 5,
-            loaded: false
+            maxItems: 5
           });
         }
         return this.views[id];
@@ -312,10 +311,10 @@
       OrderedElementsView.prototype.initialize = function(data) {
         var _ref, _ref1;
         _.bindAll(this);
-        this.loaded = (_ref = data.loaded) != null ? _ref : true;
         this.$wrapper = $('#' + this.id);
         this.$parent = $('<ul></ul>');
         this.$empty = $('<li class="empty"></li>');
+        this.loaded = (_ref = data.members) != null ? _ref : false;
         if (this.loaded) {
           this.$empty.html('<p>There is nothing to show here.</p>');
         } else {

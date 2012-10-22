@@ -7,10 +7,10 @@ jQuery ->
 
             _.bindAll(@)
 
-            @loaded = data.loaded ? true
             @$wrapper = $('#' + @id)
             @$parent = $('<ul></ul>')
             @$empty = $('<li class="empty"></li>')
+            @loaded = data.members ? false
             if @loaded
                 @$empty.html('<p>There is nothing to show here.</p>')
             else
