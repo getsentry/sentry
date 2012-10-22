@@ -42,7 +42,7 @@ def handle_sentry(data, address):
         try:
             validate_data(project, data, client)
         except InvalidData, e:
-            raise APIError(unicode(e))
+            raise APIError(u'Invalid data: %s (%s)' % (unicode(e), type(e)))
 
         return insert_data_to_database(data)
     except APIError, error:
