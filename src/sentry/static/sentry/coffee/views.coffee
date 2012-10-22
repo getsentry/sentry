@@ -12,7 +12,7 @@ jQuery ->
             @$parent = $('<ul></ul>')
             @$empty = $('<li class="empty"></li>')
             if @loaded
-                @empty.html('<p>There is nothing to show here.</p>')
+                @$empty.html('<p>There is nothing to show here.</p>')
             else
                 @$empty.html('<p>Loading ...</p>')
             @setEmpty()

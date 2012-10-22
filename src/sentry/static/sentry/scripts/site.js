@@ -317,7 +317,7 @@
         this.$parent = $('<ul></ul>');
         this.$empty = $('<li class="empty"></li>');
         if (this.loaded) {
-          this.empty.html('<p>There is nothing to show here.</p>');
+          this.$empty.html('<p>There is nothing to show here.</p>');
         } else {
           this.$empty.html('<p>Loading ...</p>');
         }
