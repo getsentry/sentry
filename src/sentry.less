@@ -447,9 +447,11 @@ footer {
 
     &.empty {
       border: 0;
-      padding: 15px 20px;
-      p {
-        margin: 5px 0 5px;
+      padding: 0 !important;
+      &:hover {
+        .reset-filter();
+        background-image: none;
+        background-color: inherit;
       }
     }
 
@@ -587,10 +589,6 @@ footer {
     > li {
       min-height: 30px;
       padding: 10px 10px 10px 60px;
-
-      &.empty {
-        padding: 10px 20px;
-      }
 
       h3 {
         margin: 0;

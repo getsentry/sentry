@@ -7,10 +7,15 @@ jQuery ->
 
             _.bindAll(@)
 
-            @$empty = $('<li class="empty"><p>There is nothing to show here.</p></li>')
+            @loaded = data.loaded ? true
             @$wrapper = $('#' + @id)
             @$parent = $('<ul></ul>')
-            @$parent.html(@$empty)
+            @$empty = $('<li class="empty"></li>')
+            if @loaded
+                @empty.html('<p>There is nothing to show here.</p>')
+            else
+                @$empty.html('<p>Loading ...</p>')
+            @setEmpty()
             @$wrapper.html(@$parent)
 
             if data.className
@@ -27,6 +32,18 @@ jQuery ->
             # @collection.on('add remove', @changeMember)
             @collection.on('reset', @reSortMembers)
             @collection.sort()
+
+        load: (data) ->
+            @loaded = true
+            @$empty.html('<p>There is nothing to show here.</p>')
+            @extend(data) if data
+
+        setEmpty: ->
+            @$parent.html(@$empty)
+
+        extend: (data) ->
+            for item in data
+                @addMember(data)
 
         addMember: (member) ->
             if not @hasMember(member)
@@ -95,7 +112,7 @@ jQuery ->
         unrenderMember: (member) ->
             $('#' + @id + member.id).remove()
             if !@$parent.find('li').length
-                @$parent.html(@$empty)
+                @setEmpty()
 
 
     app.GroupListView = class GroupListView extends OrderedElementsView

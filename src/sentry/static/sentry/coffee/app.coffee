@@ -89,12 +89,13 @@ jQuery ->
             $('a[data-toggle=ajtab]').click (e) =>
                 $tab = $(e.target)
                 view_id = $tab.attr('href').substr(1)
+                view = @getView(view_id)
                 uri = $tab.attr('data-uri')
 
                 if (!uri)
+                    view.load()
                     return
 
-                view = @getView(view_id)
                 $cont = $(name)
                 $parent = $cont.parent()
 
@@ -106,8 +107,7 @@ jQuery ->
                     url: uri
                     dataType: 'json'
                     success: (data) =>
-                        for item in data
-                            view.addMember(data)
+                        view.load(data)
                         $parent.css('opacity', 1)
                         $tab.tab('show')
                     # error: ->
@@ -122,6 +122,7 @@ jQuery ->
                     className: 'group-list small'
                     id: id
                     maxItems: 5
+                    loaded: false
             return @views[id]
 
 # We're not talking to the server

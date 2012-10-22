@@ -4,7 +4,7 @@
     __hasProp = {}.hasOwnProperty,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-  window.app = app = app || {};
+  window.app = app = window.app || {};
 
   app.config = app.config || {};
 
@@ -109,11 +109,12 @@
           var $cont, $parent, $tab, uri, view, view_id;
           $tab = $(e.target);
           view_id = $tab.attr('href').substr(1);
+          view = _this.getView(view_id);
           uri = $tab.attr('data-uri');
           if (!uri) {
+            view.load();
             return;
           }
-          view = _this.getView(view_id);
           $cont = $(name);
           $parent = $cont.parent();
           $parent.css('opacity', .6);
@@ -122,11 +123,7 @@
             url: uri,
             dataType: 'json',
             success: function(data) {
-              var item, _i, _len;
-              for (_i = 0, _len = data.length; _i < _len; _i++) {
-                item = data[_i];
-                view.addMember(data);
-              }
+              view.load(data);
               $parent.css('opacity', 1);
               return $tab.tab('show');
             }
@@ -140,7 +137,8 @@
           this.views[id] = new app.OrderedElementsView({
             className: 'group-list small',
             id: id,
-            maxItems: 5
+            maxItems: 5,
+            loaded: false
           });
         }
         return this.views[id];
@@ -155,7 +153,7 @@
     return success();
   };
 
-  window.app = app = app || {};
+  window.app = app = window.app || {};
 
   jQuery(function() {
     var ScoredList;
@@ -243,7 +241,7 @@
     })(Backbone.Model);
   });
 
-  window.app = app = app || {};
+  window.app = app = window.app || {};
 
   app.utils = app.utils || {};
 
@@ -299,7 +297,7 @@
     });
   });
 
-  window.app = app = app || {};
+  window.app = app = window.app || {};
 
   jQuery(function() {
     var GroupListView, GroupView, OrderedElementsView;
@@ -312,18 +310,24 @@
       }
 
       OrderedElementsView.prototype.initialize = function(data) {
-        var _ref;
+        var _ref, _ref1;
         _.bindAll(this);
-        this.$empty = $('<li class="empty"><p>There is nothing to show here.</p></li>');
+        this.loaded = (_ref = data.loaded) != null ? _ref : true;
         this.$wrapper = $('#' + this.id);
         this.$parent = $('<ul></ul>');
-        this.$parent.html(this.$empty);
+        this.$empty = $('<li class="empty"></li>');
+        if (this.loaded) {
+          this.empty.html('<p>There is nothing to show here.</p>');
+        } else {
+          this.$empty.html('<p>Loading ...</p>');
+        }
+        this.setEmpty();
         this.$wrapper.html(this.$parent);
         if (data.className) {
           this.$parent.addClass(data.className);
         }
         this.config = {
-          maxItems: (_ref = data.maxItems) != null ? _ref : 50
+          maxItems: (_ref1 = data.maxItems) != null ? _ref1 : 50
         };
         this.collection = new app.ScoredList;
         this.collection.add(data.members || []);
@@ -331,6 +335,28 @@
         this.collection.on('remove', this.unrenderMember);
         this.collection.on('reset', this.reSortMembers);
         return this.collection.sort();
+      };
+
+      OrderedElementsView.prototype.load = function(data) {
+        this.loaded = true;
+        this.$empty.html('<p>There is nothing to show here.</p>');
+        if (data) {
+          return this.extend(data);
+        }
+      };
+
+      OrderedElementsView.prototype.setEmpty = function() {
+        return this.$parent.html(this.$empty);
+      };
+
+      OrderedElementsView.prototype.extend = function(data) {
+        var item, _i, _len, _results;
+        _results = [];
+        for (_i = 0, _len = data.length; _i < _len; _i++) {
+          item = data[_i];
+          _results.push(this.addMember(data));
+        }
+        return _results;
       };
 
       OrderedElementsView.prototype.addMember = function(member) {
@@ -404,7 +430,7 @@
       OrderedElementsView.prototype.unrenderMember = function(member) {
         $('#' + this.id + member.id).remove();
         if (!this.$parent.find('li').length) {
-          return this.$parent.html(this.$empty);
+          return this.setEmpty();
         }
       };
 
