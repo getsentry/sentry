@@ -272,6 +272,20 @@ def group(request, project, group):
 
 
 @has_group_access
+def group_tag_details(request, project, group, tag_name):
+    return render_to_response('sentry/plugins/bases/tag/index.html', {
+        'project': project,
+        'group': group,
+        'title': tag_name.replace('_', ' ').title(),
+        'tag_name': tag_name,
+        'unique_tags': group.get_unique_tags(tag_name),
+        'group': group,
+        'page': 'tag_details',
+        'can_admin_event': can_admin_group(request.user, group),
+    }, request)
+
+
+@has_group_access
 def group_event_list(request, project, group):
     event_list = group.event_set.all().order_by('-datetime')
 

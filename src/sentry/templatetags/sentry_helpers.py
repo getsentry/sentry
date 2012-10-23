@@ -323,3 +323,18 @@ def with_metadata(group_list, request):
             'is_bookmarked': g.pk in bookmarks,
             'historical_data': ','.join(str(x[1]) for x in historical_data.get(g.id, [])),
         }
+
+
+@register.inclusion_tag('sentry/plugins/bases/tag/widget.html')
+def render_tag_widget(group, tag):
+    return {
+        'title': tag.replace('_', ' ').title(),
+        'tag_name': tag,
+        'unique_tags': list(group.get_unique_tags(tag)[:10]),
+        'group': group,
+    }
+
+
+@register.filter
+def titlize(value):
+    return value.replace('_', ' ').title()
