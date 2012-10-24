@@ -8,11 +8,7 @@ class Migration(SchemaMigration):
 
     def forwards(self, orm):
         # Removing unique constraint on 'GroupedMessage', fields ['logger', 'view', 'checksum']
-        try:
-            db.delete_unique('sentry_groupedmessage', ['logger', 'view', 'checksum'])
-        except Exception:
-            db.rollback_transaction()
-
+        db.delete_unique('sentry_groupedmessage', ['logger', 'view', 'checksum'])
 
     def backwards(self, orm):
         # Adding unique constraint on 'GroupedMessage', fields ['logger', 'view', 'checksum']
