@@ -134,7 +134,6 @@ def _get_group_list(request, project, view=None):
         event_list = event_list.extra(
             select={
                 'cursor_sort_value': sort_clause,
-                'cursor_filter_value': filter_clause,
             },
         ).order_by('-cursor_sort_value', '-last_seen')
         cursor = request.GET.get('cursor')
