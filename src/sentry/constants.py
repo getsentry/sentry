@@ -29,13 +29,20 @@ SORT_CLAUSES = {
     'tottime': 'sentry_groupedmessage.time_spent_total',
     'avgtime': '(sentry_groupedmessage.time_spent_total / sentry_groupedmessage.time_spent_count)',
 }
+FILTER_CLAUSES = SORT_CLAUSES.copy()
 SQLITE_SORT_CLAUSES = SORT_CLAUSES.copy()
 SQLITE_SORT_CLAUSES.update({
     'date': 'sentry_groupedmessage.last_seen',
     'new': 'sentry_groupedmessage.first_seen',
 })
+SQLITE_FILTER_CLAUSES = FILTER_CLAUSES
 MYSQL_SORT_CLAUSES = SORT_CLAUSES.copy()
 MYSQL_SORT_CLAUSES.update({
+    'date': 'sentry_groupedmessage.last_seen',
+    'new': 'sentry_groupedmessage.first_seen',
+})
+MYSQL_FILTER_CLAUSES = FILTER_CLAUSES.copy()
+MYSQL_FILTER_CLAUSES.update({
     'date': 'UNIX_TIMESTAMP(sentry_groupedmessage.last_seen)',
     'new': 'UNIX_TIMESTAMP(sentry_groupedmessage.first_seen)',
 })
