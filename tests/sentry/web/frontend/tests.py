@@ -465,3 +465,35 @@ class SentryHelpersTest(TestCase):
         with self.Settings(SENTRY_LOGIN_URL=None):
             url = get_login_url(True)
             self.assertEquals(url, reverse('sentry-login'))
+
+
+class TestPublicPermissions(TestCase):
+    """
+    These tests verify the behaviour of public groups when SENTRY_PUBLC=False
+    """
+    fixtures = ['tests/fixtures/views.json']
+
+    def setUp(self):
+        self.client.logout()
+        self.project = Project.objects.all()[0]
+        self.group = self.project.group_set.all()[0]
+        self.url = self.group.get_absolute_url()
+        
+    def test_public_groups_with_sentry_public_false(self):
+        self.project.update(public = False)
+        with self.Settings(SENTRY_PUBLC=False):
+            self.group.update(is_public = False)
+            resp = self.client.get(self.url)
+            self.assertEquals(resp.status_code, 302)
+            self.group.update(is_public = True)
+            resp = self.client.get(self.url)
+            self.assertEquals(resp.status_code, 200)
+            # The UI wont let you make a group public if the project is 
+            # already public...
+            self.project.update(public = True)
+            # ...and group.is_public is False by default, though the UI will 
+            # say the event is public (because the project is)
+            self.group.update(is_public = False)
+            resp = self.client.get(self.url)
+            self.assertEquals(resp.status_code, 302)
+

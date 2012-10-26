@@ -15,20 +15,20 @@
 {% block sidebar %}
     <!--- there is probably a less terrible way to do things like this -->
     <p id="public-status"><small>
-        <span data-public="true"{% if not group.project.public and not group.is_public %} style="display: none;"{% endif %}>
+        <span data-public="true"{% if not group.has_been_shared %} style="display: none;"{% endif %}>
             {% trans "This event is <strong>publicly visible</strong>." %}
         </span>
-        <span data-public="false"{% if group.project.public or group.is_public %} style="display: none;"{% endif %}>
+        <span data-public="false"{% if group.has_been_shared %} style="display: none;"{% endif %}>
             {% trans "This event is <strong>not publicly visible</strong>." %}
         </span>
-        <span data-public="true"{% if not group.project.public and not group.is_public %} style="display: none;"{% endif %}>
-            <a href="{% url sentry-group group.project.slug group.id %}">{% trans "Link" %}</a>{% if can_admin_event and not group.project.public %} | {% endif %}
+        <span data-public="true"{% if not group.has_been_shared %} style="display: none;"{% endif %}>
+            <a href="{% url sentry-group group.project.slug group.id %}">{% trans "Link" %}</a>{% if can_admin_event and group.can_be_shared %} | {% endif %}
         </span>
-        {% if can_admin_event and not group.project.public %}
-            <span data-public="true"{% if not group.is_public %} style="display: none;"{% endif %}>
+        {% if can_admin_event and group.can_be_shared %}
+            <span data-public="true"{% if not group.has_been_shared %} style="display: none;"{% endif %}>
                 <a href="javascript:void(0)" data-api-url="{% url sentry-api-set-group-private group.project.slug group.id %}" class="action">{% trans "Change" %}</a>
             </span>
-            <span data-public="false"{% if group.is_public %} style="display: none;"{% endif %}>
+            <span data-public="false"{% if group.has_been_shared %} style="display: none;"{% endif %}>
                 <a href="javascript:void(0)" data-api-url="{% url sentry-api-set-group-public group.project.slug group.id %}" class="action">{% trans "Change" %}</a>
             </span>
         {% endif %}
