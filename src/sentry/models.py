@@ -462,12 +462,10 @@ class Group(MessageBase):
         ).order_by('-times_seen')
 
     def can_be_shared(self):
-        return settings.PUBLIC
+        return (settings.PUBLIC and not self.project.public)
 
     def has_been_shared(self):
-        if not self.can_be_shared():
-            return False
-        return self.project.public or self.is_public
+        return settings.PUBLIC and (self.project.public or self.is_public)
 
 
 class GroupMeta(Model):

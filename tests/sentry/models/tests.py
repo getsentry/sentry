@@ -108,14 +108,14 @@ class EventSharingTest(TestCase):
             self.project.update(public=True)
             self.assertFalse(self.group.can_be_shared())
 
-    def test_can_be_shared_only_if_setting_is_true(self):
+    def test_can_be_shared_only_if_setting_is_true_and_project_is_private(self):
         with self.Settings(SENTRY_PUBLIC=True):
             self.project.update(public=False)
             self.group.update(is_public=False)
             self.assertTrue(self.group.can_be_shared())
             self.project.update(public=True)
             self.group = self.project.group_set.all()[0]
-            self.assertTrue(self.group.can_be_shared())
+            self.assertFalse(self.group.can_be_shared())
 
     def test_has_been_shared_is_false_if_it_cant_be(self):
         with self.Settings(SENTRY_PUBLIC=False):
