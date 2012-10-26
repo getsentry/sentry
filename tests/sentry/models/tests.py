@@ -89,3 +89,48 @@ class PendingTeamMemberTest(TestCase):
             msg = mail.outbox[0]
 
             self.assertEquals(msg.to, ['foo@example.com'])
+
+
+class EventSharingTest(TestCase):
+    fixtures = ['tests/fixtures/views.json']
+
+    def setUp(self):
+        self.client.logout()
+        self.project = Project.objects.all()[0]
+        self.group = self.project.group_set.all()[0]
+
+    def test_cant_be_shared_when_setting_is_false(self):
+        with self.Settings(SENTRY_PUBLIC=False):
+            self.project.update(public=False)
+            self.group.update(is_public=False)
+            self.assertFalse(self.group.can_be_shared())
+            # SENTRY_PUBLIC > project.public
+            self.project.update(public=True)
+            self.assertFalse(self.group.can_be_shared())
+
+    def test_can_be_shared_only_if_setting_is_true(self):
+        with self.Settings(SENTRY_PUBLIC=True):
+            self.project.update(public=False)
+            self.group.update(is_public=False)
+            self.assertTrue(self.group.can_be_shared())
+            self.project.update(public=True)
+            self.group = self.project.group_set.all()[0]
+            self.assertTrue(self.group.can_be_shared())
+
+    def test_has_been_shared_is_false_if_it_cant_be(self):
+        with self.Settings(SENTRY_PUBLIC=False):
+            self.project.update(public=True)
+            self.group = self.project.group_set.all()[0]
+            self.group.update(is_public=True)
+            self.assertFalse(self.group.has_been_shared())
+
+    def test_has_been_shared_is_true(self):
+        with self.Settings(SENTRY_PUBLIC=True):
+            self.project.update(public=True)
+            self.group = self.project.group_set.all()[0]
+            self.group.update(is_public=False)
+            self.assertTrue(self.group.has_been_shared())
+            self.project.update(public=False)
+            self.group = self.project.group_set.all()[0]
+            self.group.update(is_public=True)
+            self.assertTrue(self.group.has_been_shared())
