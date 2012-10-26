@@ -267,11 +267,19 @@ class ValidateDataTest(BaseAPITest):
             'message': 'foo',
         })
 
+    def test_unknown_attribute(self):
+        data = validate_data(self.project, {
+            'project': self.project.slug,
+            'message': 'foo',
+            'foo': 'bar',
+        })
+        self.assertFalse('foo' in data)
+
     def test_invalid_interface_name(self):
         self.assertRaises(InvalidInterface, validate_data, self.project, {
             'project': self.project.id,
             'message': 'foo',
-            'foo': 'bar',
+            'foo.baz': 'bar',
         })
 
     def test_invalid_interface_import_path(self):

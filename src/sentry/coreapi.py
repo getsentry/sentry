@@ -295,12 +295,17 @@ def validate_data(project, data, client=None):
     if data.get('modules') and type(data['modules']) != dict:
         raise InvalidData('Invalid type for \'modules\': must be a mapping')
 
-    for k, v in data.iteritems():
+    for k, v in data.items():
         if k in RESERVED_FIELDS:
             continue
 
         if '.' not in k:
-            raise InvalidInterface('%r is not a valid interface name' % k)
+            logger.error('Ignoring unknown attribute %r passed by client %r',
+                k,
+                client or '<unknown client>',
+            )
+            del data[k]
+            continue
 
         try:
             interface = import_string(k)
