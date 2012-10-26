@@ -5596,6 +5596,7 @@ h3 {
   float: left;
   padding: 18px 20px;
   margin-right: -300px;
+  overflow: hidden;
 }
 #content .sidebar h6 {
   display: block;

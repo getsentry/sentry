@@ -907,7 +907,7 @@ h3{line-height:27px;font-size:18px;}
 #content .btn-toolbar .btn-group .dropdown-toggle small{color:#888;}
 #content .btn-toolbar .btn-group .dropdown-menu li small{color:#aaa;display:inline-block;}
 #content section.body .btn-toolbar{padding:15px 0;}
-#content .sidebar{position:relative;width:260px;float:left;padding:18px 20px;margin-right:-300px;}#content .sidebar h6{display:block;font-size:12px;text-transform:uppercase;font-weight:600;line-height:1.2;color:#aaaaaa;text-shadow:0 1px 0 rgba(255, 255, 255, 0.5);padding:3px 15px;margin:0 -15px 0;font-family:"proxima nova","proxima-nova","helvetica neue",helvetica,sans-serif;font-size:11px;font-weight:bold;line-height:20px;color:#999999;}
+#content .sidebar{position:relative;width:260px;float:left;padding:18px 20px;margin-right:-300px;overflow:hidden;}#content .sidebar h6{display:block;font-size:12px;text-transform:uppercase;font-weight:600;line-height:1.2;color:#aaaaaa;text-shadow:0 1px 0 rgba(255, 255, 255, 0.5);padding:3px 15px;margin:0 -15px 0;font-family:"proxima nova","proxima-nova","helvetica neue",helvetica,sans-serif;font-size:11px;font-weight:bold;line-height:20px;color:#999999;}
 #content .sidebar dl{margin-top:0px;margin-bottom:8px;}
 #content .sidebar .nav.nav-tabs.nav-stacked,#content .sidebar .nav.counted-list{margin-bottom:8px;list-style:none;}#content .sidebar .nav.nav-tabs.nav-stacked.counted-list li,#content .sidebar .nav.counted-list.counted-list li{position:relative;}#content .sidebar .nav.nav-tabs.nav-stacked.counted-list li a,#content .sidebar .nav.counted-list.counted-list li a{padding-left:55px;}
 #content .sidebar .nav.nav-tabs.nav-stacked.counted-list li .count,#content .sidebar .nav.counted-list.counted-list li .count{position:absolute;left:0;line-height:23px;}
