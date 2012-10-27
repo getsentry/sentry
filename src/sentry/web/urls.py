@@ -10,6 +10,7 @@ import re
 
 from django.conf.urls.defaults import include, patterns, url
 
+from sentry.api import v1_api
 from sentry.web import api
 from sentry.web.frontend import accounts, generic, groups, events, \
   projects, admin, docs, teams
@@ -127,6 +128,7 @@ urlpatterns = patterns('',
 
     # API / JS
 
+    url(r'^api/', include(v1_api.urls)),
     url(r'^api/store/$', api.store, name='sentry-api-store'),
     url(r'^api/notification/$', api.notification, name='sentry-api-notification'),
     url(r'^api/(?P<project_id>[\w_-]+)/store/$', api.store, name='sentry-api-store'),

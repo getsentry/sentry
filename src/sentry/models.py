@@ -209,7 +209,11 @@ class Project(Model):
 
 
 class ProjectKey(Model):
-    project = models.ForeignKey(Project, related_name='key_set')
+    """
+    A ProjectKey is simple an API key which **may** be bound to a project and/or
+    a user.
+    """
+    project = models.ForeignKey(Project, related_name='key_set', null=True)
     public_key = models.CharField(max_length=32, unique=True, null=True)
     secret_key = models.CharField(max_length=32, unique=True, null=True)
     user = models.ForeignKey(User, null=True)
@@ -227,14 +231,21 @@ class ProjectKey(Model):
         return uuid.uuid4().hex
 
     def save(self, *args, **kwargs):
+        assert self.project_id or self.user_id, "A key must be bound to at least a user or project."
+
         if not self.public_key:
             self.public_key = ProjectKey.generate_api_key()
         if not self.secret_key:
             self.secret_key = ProjectKey.generate_api_key()
         super(ProjectKey, self).save(*args, **kwargs)
 
-    def get_dsn(self, domain=None, secure=True, public=False):
+    def get_dsn(self, domain=None, secure=True, public=False, project_id=None):
         # TODO: change the DSN to use project slug once clients are compatible
+        if project_id and self.project_id != project_id:
+            raise ValueError('You cannot use an explicit project to generate a DSN using this API key')
+        elif not (self.project_id or project_id):
+            raise ValueError('Missing project_id')
+
         if not public:
             key = '%s:%s' % (self.public_key, self.secret_key)
         else:
@@ -246,7 +257,7 @@ class ProjectKey(Model):
             urlparts.scheme,
             key,
             urlparts.netloc + urlparts.path,
-            self.project_id,
+            project_id or self.project_id,
         )
 
 

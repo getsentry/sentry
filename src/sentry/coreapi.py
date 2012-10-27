@@ -81,7 +81,7 @@ def extract_auth_vars(request):
         return None
 
 
-def project_from_auth_vars(auth_vars, data, require_signature=False):
+def project_from_auth_vars(auth_vars, data='', require_signature=False):
     api_key = auth_vars.get('sentry_key')
     if api_key:
         try:
@@ -147,14 +147,15 @@ def project_from_api_key_and_id(api_key, project_id):
     except ProjectKey.DoesNotExist:
         raise APIUnauthorized('Invalid api key')
 
-    if str(project_id).isdigit():
-        if str(pk.project_id) != str(project_id):
-            raise APIUnauthorized('Invalid project id')
-    else:
-        if str(pk.project.slug) != str(project_id):
-            raise APIUnauthorized('Invalid project id')
+    if pk.project_id:
+        if str(project_id).isdigit():
+            if str(pk.project_id) != str(project_id):
+                raise APIUnauthorized('Invalid project id')
+        else:
+            if str(pk.project.slug) != str(project_id):
+                raise APIUnauthorized('Invalid project id')
 
-    project = Project.objects.get_from_cache(pk=pk.project_id)
+    project = Project.objects.get_from_cache(pk=project_id)
 
     if pk.user:
         team = Team.objects.get_from_cache(pk=project.team_id)
