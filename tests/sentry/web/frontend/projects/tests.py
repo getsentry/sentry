@@ -9,7 +9,7 @@ from django.core.urlresolvers import reverse
 
 from sentry.constants import MEMBER_OWNER
 from sentry.models import Project, Team
-
+from sentry.testutils import fixture
 from tests.base import TestCase
 
 logger = logging.getLogger(__name__)
@@ -18,11 +18,16 @@ logger = logging.getLogger(__name__)
 class NewProjectTest(TestCase):
     fixtures = ['tests/fixtures/views.json']
 
-    def setUp(self):
-        self.user = User(username="admin", email="admin@localhost", is_staff=True, is_superuser=True)
-        self.user.set_password('admin')
-        self.user.save()
-        self.team = Team.objects.create(name='foo', slug='foo', owner=self.user)
+    @fixture
+    def user(self):
+        user = User(username="admin", email="admin@localhost", is_staff=True, is_superuser=True)
+        user.set_password('admin')
+        user.save()
+        return user
+
+    @fixture
+    def team(self):
+        return Team.objects.create(name='foo', slug='foo', owner=self.user)
 
     def test_new_project(self):
         path = reverse('sentry-new-team-project', args=[self.team.slug])
