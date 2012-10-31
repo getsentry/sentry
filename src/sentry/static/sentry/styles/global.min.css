@@ -1030,7 +1030,7 @@ legend{margin-bottom:18px;}
 .nav-pills>li.active>a{background-color:#70ace6;}
 .nav-small.nav-pills>li>a{padding:5px 8px;font-size:12px;}
 .page-header h3.pull-left{margin-right:10px;}
-#messages .alert{padding:20px 20px;-webkit-border-radius:0;-moz-border-radius:0;border-radius:0;}
+#messages .alert{-webkit-border-radius:0;-moz-border-radius:0;border-radius:0;}
 .alert-block{padding-bottom:5px;}.alert-block>p{margin-bottom:9px;}
 .alert-block>ul{margin-bottom:9px;}
 [class*="icon-"]{background-image:url(../images/glyphicons-halflings.png);}

@@ -14,12 +14,16 @@
 
 {% block bodyclass %} with-left-sidebar{% endblock %}
 
+{% block alerts %}
+{% endblock %}
+
 {% block heading %}
     {% trans "Settings" %}
 {% endblock %}
 
 {% block main %}
     <section class="body">
+        {% include "sentry/partial/alerts.html" %}
         {% block inner %}
         {% endblock %}
     </section>

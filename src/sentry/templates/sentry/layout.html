@@ -72,15 +72,13 @@
         <section id="content" class="{% block bodyclass %}with-sidebar{% endblock %}">
             <div class="container">
                 <div class="content">
-                    <div id="messages">
-                        {% if messages %}
-                            {% for message in messages %}
-                                <div class="alert alert-block{% if message.tags %} alert-{{ message.tags }}{% endif %}">{{ message|linebreaks }}</div>
-                            {% endfor %}
-                        {% endif %}
-                    </div>
+                    {% block alerts %}
+                        {% include "sentry/partial/alerts.html" %}
+                    {% endblock %}
+
                     {% block content_before %}
                     {% endblock %}
+
                     {% block content %}
                         <div class="main">
                             {% block main %}
@@ -92,6 +90,7 @@
                             {% endblock %}
                         </div>
                     {% endblock %}
+
                     {% block content_after %}
                     {% endblock %}
                     </div>
