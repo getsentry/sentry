@@ -233,7 +233,7 @@ class Stacktrace(Interface):
             display = UserOption.objects.get_value(
                 user=env.request.user,
                 project=None,
-                key='stacktrace_display',
+                key='stacktrace_order',
             )
             if display == '2':
                 frames.reverse()

@@ -81,7 +81,7 @@ class AccountSettingsForm(forms.Form):
 
 class AppearanceSettingsForm(forms.Form):
     language = forms.ChoiceField(label=_('Language'), choices=settings.LANGUAGES, required=False)
-    stacktrace_display = forms.ChoiceField(label=_('Stacktrace display'), choices=(
+    stacktrace_order = forms.ChoiceField(label=_('Stacktrace order'), choices=(
         ('', 'Default'),
         ('1', 'Most recent call last'),
         ('2', 'Most recent call first'),
@@ -111,8 +111,8 @@ class AppearanceSettingsForm(forms.Form):
         UserOption.objects.set_value(
             user=self.user,
             project=None,
-            key='stacktrace_display',
-            value=self.cleaned_data['stacktrace_display'],
+            key='stacktrace_order',
+            value=self.cleaned_data['stacktrace_order'],
         )
 
         return self.user

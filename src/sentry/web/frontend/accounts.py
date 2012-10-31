@@ -96,7 +96,7 @@ def appearance_settings(request):
 
     form = AppearanceSettingsForm(request.user, request.POST or None, initial={
         'language': options.get('language') or request.LANGUAGE_CODE,
-        'stacktrace_display': options.get('stacktrace_display'),
+        'stacktrace_order': options.get('stacktrace_order'),
     })
     if form.is_valid():
         form.save()

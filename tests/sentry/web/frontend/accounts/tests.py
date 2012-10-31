@@ -50,12 +50,12 @@ class AppearanceSettingsTest(TestCase):
         self.client.login(username=self.user.username, password='password')
         resp = self.client.post(reverse('sentry-account-settings-appearance'), {
             'language': 'en',
-            'stacktrace_display': '2',
+            'stacktrace_order': '2',
         })
         self.assertEquals(resp.status_code, 302)
 
         options = UserOption.objects.get_all_values(user=self.user, project=None)
 
         print options
-        self.assertEquals(options.get('stacktrace_display'), '2')
+        self.assertEquals(options.get('stacktrace_order'), '2')
         self.assertEquals(options.get('language'), 'en')
