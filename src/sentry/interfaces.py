@@ -234,6 +234,7 @@ class Stacktrace(Interface):
                 user=env.request.user,
                 project=None,
                 key='stacktrace_order',
+                default=None,
             )
             if display == '2':
                 frames.reverse()
