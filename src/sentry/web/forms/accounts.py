@@ -91,7 +91,7 @@ class AppearanceSettingsForm(forms.Form):
         self.user = user
         super(AppearanceSettingsForm, self).__init__(*args, **kwargs)
 
-    def save(self, commit=True):
+    def save(self):
         # if self.cleaned_data['new_password2']:
         #     self.user.set_password(self.cleaned_data['new_password1'])
         # self.user.first_name = self.cleaned_data['first_name']

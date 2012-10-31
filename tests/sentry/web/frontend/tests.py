@@ -30,18 +30,6 @@ class SentryViewsTest(TestCase):
         user.save()
         return user
 
-    def test_auth(self):
-        resp = self.client.get(reverse('sentry'), follow=True)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/login.html')
-
-        resp = self.client.post(reverse('sentry-login'), {
-            'username': self.user.username,
-            'password': 'password',
-        }, follow=True)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateNotUsed(resp, 'sentry/login.html')
-
     def test_dashboard(self):
         # no projects redirects them to create new project
         self.client.login(username=self.user.username, password='password')
