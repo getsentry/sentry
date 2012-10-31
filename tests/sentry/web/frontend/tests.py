@@ -12,6 +12,7 @@ from django.core.urlresolvers import reverse
 from sentry.conf import settings
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
 from sentry.models import Group, Project, TeamMember, Team
+from sentry.testutils import fixture
 from sentry.web.helpers import get_login_url
 
 from tests.base import TestCase
@@ -22,10 +23,12 @@ logger = logging.getLogger(__name__)
 class SentryViewsTest(TestCase):
     fixtures = ['tests/fixtures/views.json']
 
-    def setUp(self):
-        self.user = User(username="admin", email="admin@localhost", is_staff=True, is_superuser=True)
-        self.user.set_password('admin')
-        self.user.save()
+    @fixture
+    def user(self):
+        user = User(username="admin", email="admin@localhost", is_staff=True, is_superuser=True)
+        user.set_password('admin')
+        user.save()
+        return user
 
     def test_auth(self):
         resp = self.client.get(reverse('sentry'), follow=True)
@@ -166,32 +169,60 @@ class PermissionBase(TestCase):
     """
     fixtures = ['tests/fixtures/views.json']
 
-    def setUp(self):
-        self.user = User(username="admin", email="admin@localhost", is_staff=True, is_superuser=True)
-        self.user.set_password('admin')
-        self.user.save()
-        self.user2 = User(username="member", email="member@localhost")
-        self.user2.set_password('member')
-        self.user2.save()
-        self.user3 = User(username="nobody", email="nobody@localhost")
-        self.user3.set_password('nobody')
-        self.user3.save()
-        self.user4 = User(username="owner", email="owner@localhost")
-        self.user4.set_password('owner')
-        self.user4.save()
-        self.team = Team.objects.create(owner=self.user4, name='foo', slug='foo')
-        self.project = Project.objects.get(id=1)
-        self.project.update(public=False, team=self.team)
-        self.tm = TeamMember.objects.get_or_create(
-            user=self.user2,
+    @fixture
+    def user(self):
+        user = User(username="admin", email="admin@localhost", is_staff=True, is_superuser=True)
+        user.set_password('admin')
+        user.save()
+        return user
+
+    @fixture
+    def user2(self):
+        user = User(username="member", email="member@localhost")
+        user.set_password('member')
+        user.save()
+
+        TeamMember.objects.get_or_create(
+            user=user,
             team=self.team,
             type=MEMBER_USER,
         )[0]
+        return user
+
+    @fixture
+    def user3(self):
+        user = User(username="nobody", email="nobody@localhost")
+        user.set_password('nobody')
+        user.save()
+        return user
+
+    @fixture
+    def user4(self):
+        user = User(username="owner", email="owner@localhost")
+        user.set_password('owner')
+        user.save()
+
         TeamMember.objects.get_or_create(
-            user=self.user4,
+            user=user,
             team=self.team,
             type=MEMBER_OWNER,
         )[0]
+
+        return user
+
+    @fixture
+    def tm(self):
+        return TeamMember.objects.get(user=self.user2, team=self.team)
+
+    @fixture
+    def team(self):
+        return Team.objects.create(owner=self.user4, name='foo', slug='foo')
+
+    @fixture
+    def project(self):
+        project = Project.objects.get(id=1)
+        project.update(public=False, team=self.team)
+        return project
 
     def _assertPerm(self, path, template, account=None, want=True):
         """
@@ -369,9 +400,9 @@ class EditTeamMemberTest(PermissionBase):
 class RemoveTeamMemberTest(PermissionBase):
     template = 'sentry/teams/members/remove.html'
 
-    def setUp(self):
-        super(RemoveTeamMemberTest, self).setUp()
-        self.path = reverse('sentry-remove-team-member', kwargs={'team_slug': self.team.slug, 'member_id': self.tm.pk})
+    @fixture
+    def path(self):
+        return reverse('sentry-remove-team-member', kwargs={'team_slug': self.team.slug, 'member_id': self.tm.pk})
 
     def test_admin_can_load(self):
         self._assertPerm(self.path, self.template, 'admin')
