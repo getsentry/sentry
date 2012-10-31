@@ -50,8 +50,9 @@ urlpatterns = patterns('',
     url(r'^login-redirect/$', accounts.login_redirect, name='sentry-login-redirect'),
     url(r'^logout/$', accounts.logout, name='sentry-logout'),
     url(r'^account/settings/$', accounts.settings, name='sentry-account-settings'),
-    url(r'^account/settings/notifications/$', accounts.notification_settings, name='sentry-account-settings-notifications'),
+    url(r'^account/settings/appearance/$', accounts.appearance_settings, name='sentry-account-settings-appearance'),
     url(r'^account/settings/identities/$', accounts.list_identities, name='sentry-account-settings-identities'),
+    url(r'^account/settings/notifications/$', accounts.notification_settings, name='sentry-account-settings-notifications'),
 
     # Teams
 

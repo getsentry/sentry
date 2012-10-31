@@ -29,6 +29,7 @@
     <ul class="nav nav-list">
         <li class="nav-header">{% trans "Settings" %}</li>
         <li{% if page == 'settings' %} class="active"{% endif %}><a href="{% url sentry-account-settings %}">{% trans "Account" %}</a></li>
+        <li{% if page == 'appearance' %} class="active"{% endif %}><a href="{% url sentry-account-settings-appearance %}">{% trans "Appearance" %}</a></li>
         <li{% if page == 'notifications' %} class="active"{% endif %}><a href="{% url sentry-account-settings-notifications %}">{% trans "Notifications" %}</a></li>
         <li{% if page == 'identities' %} class="active"{% endif %}><a href="{% url sentry-account-settings-identities %}">{% trans "Identities" %}</a></li>
     </ul>

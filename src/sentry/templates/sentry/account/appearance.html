@@ -1,0 +1,53 @@
+{% extends "sentry/account/base.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Account Settings" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-account-settings %}">{% trans "Account" %}</a></li>
+{% endblock %}
+
+{% block heading %}
+    {% trans "Account Settings" %}
+{% endblock %}
+
+{% block inner %}
+    <form action="" method="post">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+            <div class="alert alert-block alert-error">
+                <p>{% trans "There were errors saving your changes:" %}</p>
+                <ul>
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        <fieldset>
+            <div><legend>{% trans "Events" %}</legend></div>
+
+            {% with form.stacktrace_display as field %}
+                {% include "sentry/partial/_form_field.html" %}
+            {% endwith %}
+        </fieldset>
+
+
+        <fieldset>
+            <div><legend>{% trans "Localization" %}</legend></div>
+
+            {% with form.language as field %}
+                {% include "sentry/partial/_form_field.html" %}
+            {% endwith %}
+        </fieldset>
+
+        <fieldset class="form-actions">
+            <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+        </fieldset>
+    </form>
+{% endblock %}

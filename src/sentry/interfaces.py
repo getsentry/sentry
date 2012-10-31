@@ -15,6 +15,8 @@ import urlparse
 from django.http import QueryDict
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.app import env
+from sentry.models import UserOption
 from sentry.web.helpers import render_to_string
 
 
@@ -226,6 +228,15 @@ class Stacktrace(Interface):
                 'context': context,
                 'vars': context_vars,
             })
+
+        if env.request and env.request.user.is_authenticated():
+            display = UserOption.objects.get_value(
+                user=env.request.user,
+                project=None,
+                key='stacktrace_display',
+            )
+            if display == '2':
+                frames.reverse()
 
         return render_to_string('sentry/partial/interfaces/stacktrace.html', {
             'event': event,
