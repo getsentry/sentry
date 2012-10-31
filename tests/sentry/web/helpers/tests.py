@@ -5,9 +5,10 @@ from __future__ import absolute_import
 import mock
 
 from django.contrib.auth.models import User
+from django.core.urlresolvers import reverse
 from sentry.constants import MEMBER_USER
 from sentry.models import Project
-from sentry.web.helpers import get_project_list
+from sentry.web.helpers import get_project_list, get_login_url
 from tests.base import TestCase
 
 
@@ -45,3 +46,26 @@ class GetProjectListTEst(TestCase):
         get_for_user.assert_called_once_with(self.user, MEMBER_USER)
         self.assertEquals(len(project_list), 1)
         self.assertIn(self.project2.id, project_list)
+
+
+class GetLoginUrlTest(TestCase):
+    def test_as_path(self):
+        with self.Settings(LOGIN_URL='/really-a-404'):
+            url = get_login_url(True)
+            self.assertEquals(url, reverse('sentry-login'))
+
+    def test_as_lazy_url(self):
+        with self.Settings(LOGIN_URL=reverse('sentry-fake-login')):
+            url = get_login_url(True)
+            self.assertEquals(url, reverse('sentry-fake-login'))
+
+    def test_cached(self):
+        # should still be cached
+        with self.Settings(LOGIN_URL='/really-a-404'):
+            url = get_login_url(False)
+            self.assertNotEquals(url, '/really-a-404')
+
+    def test_no_value(self):
+        with self.Settings(SENTRY_LOGIN_URL=None):
+            url = get_login_url(True)
+            self.assertEquals(url, reverse('sentry-login'))

@@ -5,7 +5,6 @@ from __future__ import absolute_import
 import logging
 import json
 
-from django.conf import settings as django_settings
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
@@ -13,7 +12,6 @@ from sentry.conf import settings
 from sentry.constants import MEMBER_USER
 from sentry.models import Group, Project, TeamMember, Team
 from sentry.testutils import fixture
-from sentry.web.helpers import get_login_url
 
 from tests.base import TestCase
 
@@ -458,37 +456,3 @@ class SentrySearchTest(TestCase):
             self.assertEquals(len(context['event_list']), 2)
             self.assertTrue(g1 in context['event_list'])
             self.assertTrue(g2 in context['event_list'])
-
-
-class SentryHelpersTest(TestCase):
-    def test_get_db_engine(self):
-        from sentry.utils.db import get_db_engine
-        _databases = getattr(django_settings, 'DATABASES', {}).copy()
-
-        django_settings.DATABASES['default'] = {'ENGINE': 'blah.sqlite3'}
-
-        self.assertEquals(get_db_engine(), 'sqlite3')
-
-        django_settings.DATABASES['default'] = {'ENGINE': 'blah.mysql'}
-
-        self.assertEquals(get_db_engine(), 'mysql')
-
-        django_settings.DATABASES = _databases
-
-    def test_get_login_url(self):
-        with self.Settings(LOGIN_URL='/really-a-404'):
-            url = get_login_url(True)
-            self.assertEquals(url, reverse('sentry-login'))
-
-        with self.Settings(LOGIN_URL=reverse('sentry-fake-login')):
-            url = get_login_url(True)
-            self.assertEquals(url, reverse('sentry-fake-login'))
-
-        # should still be cached
-        with self.Settings(LOGIN_URL='/really-a-404'):
-            url = get_login_url(False)
-            self.assertEquals(url, reverse('sentry-fake-login'))
-
-        with self.Settings(SENTRY_LOGIN_URL=None):
-            url = get_login_url(True)
-            self.assertEquals(url, reverse('sentry-login'))
