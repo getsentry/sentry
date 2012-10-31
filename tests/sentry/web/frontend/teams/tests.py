@@ -10,7 +10,7 @@ from django.core.urlresolvers import reverse
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
 from sentry.models import Team
 from sentry.testutils import fixture
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class BaseTeamTest(TestCase):

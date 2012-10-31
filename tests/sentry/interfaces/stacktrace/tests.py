@@ -7,7 +7,7 @@ import mock
 from sentry.interfaces import Stacktrace
 from sentry.models import Event
 
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class StacktraceTest(TestCase):

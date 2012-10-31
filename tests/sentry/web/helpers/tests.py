@@ -9,7 +9,7 @@ from django.core.urlresolvers import reverse
 from sentry.constants import MEMBER_USER
 from sentry.models import Project
 from sentry.web.helpers import get_project_list, get_login_url
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class GetProjectListTEst(TestCase):

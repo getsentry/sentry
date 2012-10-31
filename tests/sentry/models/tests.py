@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from sentry.models import Project, ProjectKey, Group, Event, Team, \
   MessageFilterValue, MessageCountByMinute, FilterValue, PendingTeamMember
 
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class ProjectTest(TestCase):

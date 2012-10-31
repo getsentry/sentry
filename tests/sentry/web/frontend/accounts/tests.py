@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from sentry.models import UserOption
 from sentry.testutils import fixture
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class LoginTest(TestCase):

@@ -13,7 +13,7 @@ from sentry.constants import MEMBER_USER
 from sentry.models import Group, Project, TeamMember, Team
 from sentry.testutils import fixture
 
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 logger = logging.getLogger(__name__)
 

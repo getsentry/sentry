@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from sentry.utils.auth import get_auth_header
 from sentry.services.udp import SentryUDPServer
 
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class SentryUDPTest(TestCase):

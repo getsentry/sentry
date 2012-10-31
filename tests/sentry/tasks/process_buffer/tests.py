@@ -6,7 +6,7 @@ import mock
 
 from celery.task import Task
 from sentry.tasks.process_buffer import process_incr
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class ProcessIncrTest(TestCase):

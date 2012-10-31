@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 
 from sentry.utils.db import get_db_engine
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class GetDbEngineTest(TestCase):
