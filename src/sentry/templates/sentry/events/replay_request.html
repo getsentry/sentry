@@ -1,0 +1,50 @@
+{% extends "sentry/groups/details.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Replay Request" %} | {{ block.super }}{% endblock %}
+
+{% block bodyclass %}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{{ request.path }}">{% trans "Replay Request" %}</a></li>
+{% endblock %}
+
+{% block content %}
+    <section class="body">
+        <ul class="nav nav-tabs" data-tabs="tabs">
+            <li{% if not result %} class="active"{% endif %}><a href="#request" data-toggle="tab">Request</a></li>
+            {% if result %}
+                <li class="active"><a href="#result" data-toggle="tab">Result</a></li>
+            {% endif %}
+        </ul>
+
+        <div class="tab-content">
+            <div class="tab-pane{% if not result %} active{% endif %}" id="request">
+                {% if form.errors %}
+                    <p class="error">{% trans "Please fill out all fields." %}</p>
+                {% endif %}
+
+                <form action="" method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        {% include "sentry/partial/_form_field.html" %}
+                    {% endfor %}
+                    <fieldset class="form-actions">
+                        <button type="submit" class="btn btn-primary">{% trans "Submit" %}</button>
+                    </fieldset>
+                </form>
+            </div>
+            {% if result %}
+                <div class="active tab-pane" id="result">
+                    <pre><strong>{{ result.status }} {{ result.reason }}</strong>
+{% for key, value in result.headers %}{{ key }}: {{ value }}
+{% endfor %}
+{{ result.body }}</pre>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}

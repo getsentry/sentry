@@ -1,0 +1,10 @@
+- API needs to work with key authentication globally (not just the store view)
+- Record errors with client information in API
+- Record client information with each event
+- Pause/Play, Sort By, and Notification settings should be saved in a cookie
+- Potentially add graphs per server/url/etc ?
+- Make uninteresting frames in stacktraces opaque
+- Create tailer for apache-style error logs
+- Show admins notices in the Web UI about configuration issues such as missing mail configuration, possibly
+   invalid SENTRY_URL_PREFIX, etc.
+- Add hooks for controlling the queue/routing key (via plugins) that messages are sent to.

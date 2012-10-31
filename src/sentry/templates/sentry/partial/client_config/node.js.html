@@ -1,0 +1,29 @@
+{% load i18n %}
+
+<p>{% blocktrans with 'https://github.com/mattrobenolt/raven-node' as link %}Start by installing <a href="{{ link }}">raven-node</a>:{% endblocktrans %}</p>
+
+<pre>npm install raven</pre>
+
+<p>{% trans "Create an instance of the client:" %}</p>
+
+<pre>var raven = require('raven');
+
+var client = new raven.Client('{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}');</pre>
+
+<p>{% trans "You can also optionally install a default error handler to catch all exceptions:" %}</p>
+
+<pre>client.patchGlobal();</pre>
+
+<p>{% trans "Ensure Node is run with <code>NODE_ENV=production</code>:" %}</p>
+
+<pre>NODE_ENV=production node script.js</pre>
+
+<p>{% trans "Now call out to the raven client to capture events:" %}</p>
+
+<pre>// {% trans "record a simple message" %}
+client.captureMessage('hello world!')
+
+// {% trans "capture an exception" %}
+client.captureError(new Error('Uh oh!!'));</pre>
+
+<p>{% blocktrans with 'https://github.com/mattrobenolt/raven-node' as link %}For more information on other uses of Raven with Node.js, please see the <a href="{{ link }}">official documentation for raven-node</a>.{% endblocktrans %}</p>

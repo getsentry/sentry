@@ -6,6 +6,12 @@ our philosophy, the test suite, and issue tracking.
 
 (Though it actually doesn't describe all of that, yet)
 
+Coding Standards
+----------------
+
+Sentry follows the guidelines layed out in `pep8 <http://www.python.org/dev/peps/pep-0008/>`_  with a little bit
+of flexibility on things like line length. We always give way for the `Zen of Python <http://www.python.org/dev/peps/pep-0020/>`_.
+
 Setting up an Environment
 -------------------------
 
@@ -19,7 +25,13 @@ any base dependancies.
 
     virtualenv ~/.virtualenvs/sentry
     source ~/.virtualenvs/sentry/bin/activate
-    python setup.py develop
+    pip install -e .
+
+You will also need two NPM dependencies if you plan on changing/building static media.
+
+::
+
+    npm install -g less uglify-js
 
 There are other optional dependancies, such as South, Haystack, and Eventlet, but
 they're not required to get a basic stack up and running.
@@ -60,9 +72,23 @@ right at home.
     # Run only the testTimestamp test on SentryRemoteTest
     python runtests.py sentry.SentryRemoteTest.testTimestamp
 
+Building Static Media
+---------------------
+
+Sentry is based on `Bootstrap <https://twitter.github.com/bootstrap>`_, which means its CSS files are compiled using
+LESS. You'll find the main file located in ``bootstrap/sentry.less``. Please note, that we **do not** modify Bootstrap,
+we only extend it.
+
+You will need several Node modules for compiling static media::
+
+    npm install recess connect uglify-js jshint -g
+
+To compile media, just run ``make`` from the root directory. This will handle merging all existing JavaScript as well
+as building the CSS files.
+
 Contributing Back Code
 ----------------------
 
 Ideally all patches should be sent as a pull request on GitHub, and include tests. If you're fixing a bug or making a large change the patch **must** include test coverage.
 
-You can see a list of open pull requests (pending changes) by visiting https://github.com/dcramer/sentry/pulls
+You can see a list of open pull requests (pending changes) by visiting https://github.com/getsentry/sentry/pulls

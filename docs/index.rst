@@ -1,9 +1,9 @@
 Sentry
 ======
 
-Sentry is a realtime event logging and aggregation platform. At it's core it
+Sentry is a realtime event logging and aggregation platform. At its core it
 specializes in monitoring errors and extracting all the information needed
-to do a proper post-mortum without any of the hassle of the standard user
+to do a proper post-mortem without any of the hassle of the standard user
 feedback loop.
 
 Users Guide
@@ -12,12 +12,25 @@ Users Guide
 .. toctree::
    :maxdepth: 2
 
-   install/index
+   quickstart/index
+   upgrading/index
    config/index
+   queue/index
+   buffer/index
+   udp_server/index
    cli/index
    client/index
-   interfaces/index
    plugins/index
+
+Developers
+----------
+
+.. toctree::
+   :maxdepth: 2
+
+   developer/client/index
+   developer/plugins/index
+   developer/interfaces/index
 
 Reference
 ---------
@@ -32,9 +45,10 @@ Reference
 Resources
 ---------
 
-* `Bug Tracker <http://github.com/dcramer/sentry/issues>`_
-* `Code <http://github.com/dcramer/sentry>`_
-* `Mailing List <https://groups.google.com/group/disqus-opensource>`_
+* `Transifex <https://www.transifex.net/projects/p/sentry/>`_ (Translate Sentry!)
+* `Bug Tracker <http://github.com/getsentry/sentry/issues>`_
+* `Code <http://github.com/getsentry/sentry>`_
+* `Mailing List <https://groups.google.com/group/getsentry>`_
 * `IRC <irc://irc.freenode.net/sentry>`_  (irc.freenode.net, #sentry)
 
 Screenshots

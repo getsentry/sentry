@@ -1,0 +1,59 @@
+{% extends "sentry/projects/manage.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block inner %}
+    <div class="page-header">
+        <div class="pull-right">
+            <a href="{% url sentry-disable-project-plugin project.slug plugin.slug %}" class="btn">{% trans "Disable Plugin" %}</a>
+            <a href="{% url sentry-reset-project-plugin project.slug plugin.slug %}" class="btn"
+                onclick="return confirm('{% trans "Are you sure you wish to reset all configuration for this plugin?" %}');">{% trans "Reset Configuration" %}</a>
+        </div>
+        <h2>{% trans "Configure Plugin" %}</h2>
+    </div>
+    <div class="row-fluid">
+        <div class="span8">
+            {% if request.GET.success %}
+                <div class="alert alert-success">
+                    {% trans "Changes to your project were saved successfully." %}
+                    <a class="close" data-dismiss="alert" href="javascript:void(0)">&times;</a>
+                </div>
+            {% endif %}
+            {{ view }}
+        </div>
+        <div class="span4">
+            <div class="well plugin-meta">
+                <h6>Plugin Information</h6>
+                <dl class="flat">
+                    <dt>Name:</dt>
+                    <dd>{{ plugin.get_title }}</dd>
+                    <dt>Author</dt>
+                    <dd>{{ plugin.author }}</dd>
+                    {% if plugin.author_url %}
+                        <dt>URL</dt>
+                        <dd><a href="{{ plugin.author_url }}">{{ plugin.author_url|trim_schema }}</a></dd>
+                    {% endif %}
+                    <dt>Version</dt>
+                    <dd>{{ plugin.version }}</dd>
+                </dl>
+                {% if plugin_description %}
+                    <h6>Description</h6>
+                    <div class="description">
+                        {{ plugin_description|linebreaks }}
+                    </div>
+                {% endif %}
+                {% with plugin.get_resource_links as resource_links %}
+                    {% if resource_links %}
+                        <ul class="nav nav-list" style="padding:0;">
+                            <li class="nav-header">Resources</li>
+                            {% for label, link in resource_links %}
+                                <li><a href="{{ link }}">{{ label }}</a></li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

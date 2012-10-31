@@ -1,0 +1,43 @@
+{% extends "sentry/groups/details.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-group-event group.project.slug group.pk event.pk %}">Event at {{ event.datetime }} UTC</a></li>
+{% endblock %}
+
+{% block sidebar %}
+    <h6>{% trans "Event Details" %}</h6>
+
+    <dl class="flat">
+        <dt>{% trans "Seen:" %}</dt>
+        <dd class="pretty-date" title="{{ event.datetime|date:"c" }}Z">{{ event.datetime|timesince }}</dd>
+        <dt>{% trans "Duration:" %}</dt>
+        <dd>{% if event.time_spent %}{{ event.time_spent|duration }}{% else %}<em>n/a</em>{% endif %}</dd>
+        <dt>{% trans "Server:" %}</dt>
+        <dd>{% if event.server_name %}{{ event.server_name }}{% else %}<em>n/a</em>{% endif %}</dd>
+        <dt>{% trans "Site:" %}</dt>
+        <dd>{% if event.site %}{{ event.site }}{% else %}<em>n/a</em>{% endif %}</dd>
+    </dl>
+
+    <hr>
+
+    {{ block.super }}
+{% endblock %}
+
+{% block inner %}
+    <ul class="events no-counts" id="event_list">
+        {% include "sentry/partial/_event.html" %}
+    </ul>
+
+    <br>
+
+    {% if event.has_two_part_message %}
+        <pre id="full-message">{{ event.message }}</pre>
+    {% endif %}
+
+    {% include "sentry/partial/_event_details.html" %}
+{% endblock %}

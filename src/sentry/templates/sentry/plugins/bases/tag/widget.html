@@ -1,0 +1,11 @@
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% if unique_tags %}
+    <ul class="nav nav-list counted-list">
+        <li class="nav-header">{{ title }}</li>
+        {% for tag_value, times_seen, _, _ in unique_tags %}
+            <li><span class="count">{{ times_seen|small_count }}</span> <a href="{% url sentry group.project.slug %}?{{ tag_name }}={{ tag_value }}">{{ tag_value }}</a></li>
+        {% endfor %}
+    </ul>
+{% endif %}

@@ -1,0 +1,53 @@
+{% extends "sentry/account/base.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Identities" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-account-settings-identities %}">{% trans "Identities" %}</a></li>
+{% endblock %}
+
+{% block heading %}
+    {% trans "Identities" %}
+{% endblock %}
+
+{% block inner %}
+    <fieldset>
+        <legend>{% trans "Current Identities" %}</legend>
+    </fieldset>
+    {% if not identity_list %}
+        <p>{% trans "There are no identities associated with this account." %}</p>
+    {% else %}
+        <table class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>{% trans "Identity" %}</th>
+                    <th style="width: 100px">&nbsp;</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for identity in identity_list %}
+                    <tr>
+                        <td>{{ identity.provider|title }}</td>
+                        <td style="text-align: center;"><a href="{% url socialauth_disconnect_individual identity.provider identity.id %}?next={{ request.build_absolute_uri }}">Disconnect</a></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+    {% if AUTH_PROVIDERS %}
+        <fieldset>
+            <legend>Associate a New Account</legend>
+        </fieldset>
+        <ul class="auth-options">
+            {% for engine in AUTH_PROVIDERS %}
+                <li><a href="{% url socialauth_associate_begin engine %}?next={{ request.build_absolute_uri }}" class="auth-{{ engine }}">Identify with {{ engine|title }}</a></li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endblock %}

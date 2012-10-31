@@ -3,55 +3,50 @@ import base64
 import logging
 import os
 import sys
+import warnings
 from os.path import dirname, abspath
 from optparse import OptionParser
 
 sys.path.insert(0, dirname(abspath(__file__)))
 
-logging.getLogger('sentry').addHandler(logging.StreamHandler())
+logging.basicConfig(level=logging.DEBUG)
+
+# Force all warnings in Django or Sentry to throw exceptions
+warnings.filterwarnings('error', '', RuntimeWarning, module=r'^(sentry|django).*')
 
 from django.conf import settings
 
 if not settings.configured:
-    settings.configure(
-        DATABASE_ENGINE='sqlite3',
-        DATABASES={
-            'default': {
-                'ENGINE': 'sqlite3',
-                'TEST_NAME': 'sentry_tests.db',
-            },
-        },
-        # HACK: this fixes our threaded runserver remote tests
-        # DATABASE_NAME='test_sentry',
-        TEST_DATABASE_NAME='sentry_tests.db',
-        INSTALLED_APPS=[
-            'django.contrib.auth',
-            'django.contrib.admin',
-            'django.contrib.sessions',
-            'django.contrib.sites',
+    os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.conf.server'
 
-            # Included to fix Disqus' test Django which solves IntegrityMessage case
-            'django.contrib.contenttypes',
+test_db = os.environ.get('DB', 'sqlite')
+if test_db == 'mysql':
+    settings.DATABASES['default'].update({
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'sentry',
+        'USER': 'root',
+    })
+elif test_db == 'postgres':
+    settings.DATABASES['default'].update({
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'USER': 'postgres',
+        'NAME': 'sentry',
+        'OPTIONS': {
+            'autocommit': True,
+        }
+    })
+elif test_db == 'sqlite':
+    settings.DATABASES['default'].update({
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
+    })
 
-            'south',
-
-            'sentry',
-
-            # included plugin tests
-            'sentry.plugins.sentry_servers',
-            'sentry.plugins.sentry_sites',
-            'sentry.plugins.sentry_urls',
-            'sentry.plugins.sentry_redmine',
-
-            'tests',
-        ],
-        ROOT_URLCONF='',
-        DEBUG=False,
-        SITE_ID=1,
-        SENTRY_THRASHING_LIMIT=0,
-        TEMPLATE_DEBUG=True,
-        SENTRY_KEY=base64.b64encode(os.urandom(40)),
-    )
+# override a few things with our test specifics
+settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + (
+    'tests',
+)
+settings.SENTRY_KEY = base64.b64encode(os.urandom(40))
+settings.SENTRY_PUBLIC = False
 
 from django_nose import NoseTestSuiteRunner
 
@@ -63,6 +58,8 @@ def runtests(*test_args, **kwargs):
 
     if not test_args:
         test_args = ['tests']
+
+    kwargs.setdefault('interactive', False)
 
     test_runner = NoseTestSuiteRunner(**kwargs)
 

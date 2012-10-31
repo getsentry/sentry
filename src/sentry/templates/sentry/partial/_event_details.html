@@ -1,0 +1,63 @@
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% for interface in interface_list %}
+    {{ interface }}
+{% endfor %}
+
+{% if json_data %}
+    <div id="extra">
+        <div class="page-header">
+            <h2>{% trans "Additional Data" %}</h2>
+        </div>
+        <table class="table table-bordered table-striped vars">
+            {% for k, v in json_data.iteritems|as_sorted %}
+                <tr>
+                    <th class="key">{{ k }}</th>
+                    <td class="values{% if v and not v|is_dict %} code{% endif %}">
+                    {% if v %}
+                        {% if v|is_dict %}
+                            {% if v|length > 5 %}
+                                <a href="#" onclick="return varToggle(this, 'Extra{{ forloop.counter }}')"><span>&#x25b6;</span> {% trans "Expand" %}</a>
+                            {% endif %}
+                            <table class="table vars" id="vExtra{{ forloop.counter }}"{% if v|length > 5 %} style="display:none;"{% endif %}>
+                                <colgroup>
+                                    <col style="width:100px;">
+                                </colgroup>
+                                <tbody>
+                                    {% for k_, v_ in v.iteritems|as_sorted %}
+                                        <tr>
+                                            <td>{{ k_ }}</td>
+                                            <td class="code"><pre>{{ v_|pprint }}</pre></td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        {% else %}
+                            <pre>{{ v|pprint }}</pre>
+                        {% endif %}
+                    {% else %}
+                        <p>{% blocktrans with k as varname %}No data for {{ varname }}{% endblocktrans %}</p>
+                    {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+{% endif %}
+
+{% if version_data %}
+    <div id="versioninfo">
+        <div class="page-header">
+            <h2>{% trans "Package Versions" %}</h2>
+        </div>
+        <table class="table table-bordered table-striped">
+            {% for k, v in version_data.iteritems|as_sorted %}
+                <tr>
+                    <th class="key">{{ k }}</th>
+                    <td class="values"><code>{{ v }}</code></td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+{% endif %}

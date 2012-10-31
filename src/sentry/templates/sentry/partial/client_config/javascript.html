@@ -1,0 +1,40 @@
+{% load i18n %}
+
+{% url sentry-manage-project project.pk as project_link %}
+
+<p>{% blocktrans with 'https://github.com/lincolnloop/raven-js' as link and 'http://jquery.com/' as jquery and 'http://zeptojs.com/' as zepto %}Start by installing <a href="{{ link }}">raven-js</a> and either <a href="{{ jquery }}">jQuery</a> or <a href="{{ zepto }}">Zepto</a>.{% endblocktrans %}</p>
+
+<pre>&lt;script type="text/javascript" src="js/jquery.js"&gt;&lt;/script&gt;
+&lt;script type="text/javascript" src="js/raven.min.js"&gt;&lt;/script&gt;</pre>
+
+
+<p>{% blocktrans %}Add the any URLs which will be logging errors in your project's settings under <a href="{{ project_link }}#client-security">Client Security</a>:{% endblocktrans %}</p>
+
+<div class="image"><img src="{% url sentry-media "sentry" "images/client_security.png" %}"></div>
+
+<p>{% trans "Configure the client:" %}</p>
+
+<pre>&lt;script type="text/javascript"&gt;
+Raven.config('{% if dsn_public %}{{ dsn_public }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}');
+&lt;/script&gt;</pre>
+
+<p>{% trans "Now call out to the raven client to capture events:" %}</p>
+
+<pre>
+// {% trans "record a simple message" %}
+Raven.captureMessage('hello world!')
+
+// {% trans "capture an exception" %}
+try {
+    errorThrowingCode();
+} catch(err) {
+    Raven.captureException(err);
+}</pre>
+
+<p>{% trans "You can also optionally install a default error handler to catch all exceptions:" %}</p>
+
+<pre>window.onerror = Raven.process;</pre>
+
+<p>{% trans "Note: This will only work on browsers that properly support <code>window.onerror</code>." %}</p>
+
+<p>{% blocktrans with 'https://github.com/lincolnloop/raven-js' as link %}For more information on other uses of Raven with Javascript, please see the <a href="{{ link }}">official documentation for raven-js</a>.{% endblocktrans %}</p>

@@ -1,0 +1,26 @@
+<ul class="client-platform-list">
+    <li>
+        <a href="{% url sentry-docs-client project.slug 'python' %}">Python</a>
+        <ul>
+            <li><a href="{% url sentry-docs-client project.slug 'django' %}">Django</a></li>
+            <li><a href="{% url sentry-docs-client project.slug 'flask' %}">Flask</a></li>
+        </ul>
+    </li>
+    <li><a href="{% url sentry-docs-client project.slug 'php' %}">PHP</a></li>
+    <li><a href="{% url sentry-docs-client project.slug 'java' %}">Java</a></li>
+    <li>
+        <a href="{% url sentry-docs-client project.slug 'ruby' %}">Ruby</a>
+        <ul>
+            <li><a href="{% url sentry-docs-client project.slug 'rails3' %}">Rails 3</a></li>
+        </ul>
+    </li>
+    <li><a href="{% url sentry-docs-client project.slug 'javascript' %}">JavaScript</a></li>
+    <li>
+        <a href="{% url sentry-docs-client project.slug 'node.js' %}">Node.js</a>
+        <ul>
+            <li><a href="{% url sentry-docs-client project.slug 'express' %}">Express</a></li>
+            <li><a href="{% url sentry-docs-client project.slug 'connect' %}">Connect</a></li>
+        </ul>
+    </li>
+    <li><a href="{% url sentry-docs-client project.slug 'r' %}">R</a></li>
+</ul>

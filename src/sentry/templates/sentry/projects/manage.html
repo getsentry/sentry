@@ -1,0 +1,158 @@
+{% extends "sentry/projects/base.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_plugins %}
+
+{% block title %}{% blocktrans with project.name as name %}Manage Project: {{ name }}{% endblocktrans %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-manage-project project.slug %}">{{ project.name }}</a></li>
+{% endblock %}
+
+{% block bodyclass %} with-left-sidebar{% endblock %}
+
+{% block main %}
+    <section class="body">
+    {% block inner %}
+        <div class="page-header">
+            <h2>{% trans "Project Details" %}</h2>
+        </div>
+        {% if request.GET.success %}
+            <div class="alert alert-success">{% trans "Changes to your project were saved successfully." %}</div>
+        {% else %}
+            {% if form.errors %}
+                <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
+            {% endif %}
+        {% endif %}
+        <form class="form-stacked" action="" method="post">
+            {% csrf_token %}
+            <fieldset>
+                {% for field in form %}
+                    {% if field.name != 'origins' %}
+                        {% include "sentry/partial/_form_field.html" %}
+                    {% endif %}
+                {% endfor %}
+            </fieldset>
+            <fieldset id="client-security">
+                <div><legend>{% trans "Client Security" %}</legend></div>
+                {% with form.origins as field %}
+                    <p>{% blocktrans with 'https://github.com/lincolnloop/raven-js' as link %}Configure origin URLs which Sentry should accept events from. This is used for communication with clients like <a href="{{ link }}">raven-js</a>.{% endblocktrans %}
+                    <p>{% blocktrans with 'http://en.wikipedia.org/wiki/Cross-origin_resource_sharing' as link %}For more information check out the <a href="{{ link }}">Wikipedia page on CORS</a>.{% endblocktrans %}</p>
+                    <div class="control-group{% if field.errors %} error{% endif %}">
+                        <div class="controls">
+                            <div class="help-block">{% trans "List one URL per line." %}</div>
+                            {{ field }}
+                            {% if field.errors %}
+                                {% for error in field.errors %}
+                                    <div class="help-block error">{{ error }}</div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endwith %}
+            </fieldset>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+                {% if not project.is_default_project %}
+                    <a href="{% url sentry-remove-project project.slug %}" class="btn btn-danger">{% trans "Remove Project" %}</a>
+                {% else %}
+                    <p class="pull-right">{% trans "This project cannot be removed. It is used internally by the Sentry server." %}</p>
+                {% endif %}
+            </div>
+        </form>
+        {% if member_list or can_add_member %}
+            <div class="page-header" id="members">
+                {% if can_add_member %}
+                    <a href="{% url sentry-new-team-member project.slug %}" class="btn pull-right btn-primary">{% trans "New Member" %}</a>
+                {% endif %}
+                <h2>{% trans "Members" %}</h2>
+            </div>
+            {% if project.team %}
+                {% url sentry-manage-team project.team.slug as link %}
+                <p>{% blocktrans with project.team.name as team_name %}You can manage project membership on the <a href="{{ link }}">team settings page for {{ team_name }}</a>.{% endblocktrans %}<p>
+            {% endif %}
+            {% if member_list %}
+                <table class="table table-bordered table-striped">
+                    <colgroup>
+                        <col/>
+                        <col width="100px"/>
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th>{% trans "User" %}</th>
+                            <th style="text-align:center">{% trans "Access" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for member, user in member_list %}
+                            <tr>
+                                <td>
+                                    <a href="{# {% url sentry-view-project-member project.slug member.pk %} #}">{{ user.username }}</a><br>
+                                    {{ user.email }}
+                                </td>
+                                <td style="text-align:center;">
+                                    {% if user == project.team.owner %}
+                                        {% trans "Owner" %}
+                                    {% else %}
+                                        {{ member.get_type_display }}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>{% trans "There are no members of this project." %}</p>
+            {% endif %}
+        {% endif %}
+    {% endblock %}
+    </section>
+{% endblock %}
+
+{% block sidebar %}
+    <ul class="nav nav-list">
+        <li class="nav-header">{% trans "Project" %}</li>
+        <li{% if page == 'details' %} class="active"{% endif %}>
+            <a href="{% url sentry-manage-project project.slug %}">{% trans "Details" %}</a>
+        </li>
+        <li{% if page == 'tags' %} class="active"{% endif %}>
+            <a href="{% url sentry-manage-project-tags project.slug %}">{% trans "Tags" %}</a>
+        </li>
+        <li class="{% if page == 'plugins' %} active{% endif %}">
+            <a href="{% url sentry-manage-project-plugins project.slug %}">{% trans "Manage Plugins" %} ({{ PLUGINS|length }})</a>
+        </li>
+    </ul>
+    <ul class="nav nav-list">
+        <li class="nav-header">{% trans "Client Configuration" %}</li>
+        <li>
+            <a href="{% url sentry-project-client-help project.slug %}">{% trans "All Platforms" %}</a>
+        </li>
+        <li>
+            <a href="{% url sentry-docs-client project.slug "javascript" %}">{% trans "JavaScript" %}</a>
+        </li>
+        <li>
+            <a href="{% url sentry-docs-client project.slug "python" %}">{% trans "Python" %}</a>
+        </li>
+        <li>
+            <a href="{% url sentry-docs-client project.slug "php" %}">{% trans "PHP" %}</a>
+        </li>
+        <li>
+            <a href="{% url sentry-docs-client project.slug "ruby" %}">{% trans "Ruby" %}</a>
+        </li>
+    </ul>
+    {% with project|get_plugins as plugins %}
+        {% if plugins %}
+            <ul class="nav nav-list">
+                <li class="nav-header">Plugins</li>
+                {% for p in plugins %}
+                    <li{% if page == 'plugin' and plugin.slug == p.slug %} class="active"{% endif %}>
+                        <a href="{% url sentry-configure-project-plugin project.slug p.slug %}">{{ p.get_title }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+{% endblock %}

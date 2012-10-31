@@ -1,0 +1,1784 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# 
+# Translators:
+# Juraj Bubniak <>, 2012.
+# Juraj Bubniak <translations@jbub.eu>, 2012.
+msgid ""
+msgstr ""
+"Project-Id-Version: sentry\n"
+"Report-Msgid-Bugs-To: https://github.com/dcramer/sentry/issues\n"
+"POT-Creation-Date: 2012-07-12 17:35+0000\n"
+"PO-Revision-Date: 2012-08-02 19:45+0000\n"
+"Last-Translator: Juraj Bubniak <translations@jbub.eu>\n"
+"Language-Team: Slovak (http://www.transifex.com/projects/p/sentry/language/sk/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: sk\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+
+#: constants.py:5
+msgid "Priority"
+msgstr "Priorita"
+
+#: constants.py:6 constants.py:34 templates/sentry/search.html:16
+#: templates/sentry/plugins/bases/tag/index.html:24
+msgid "Last Seen"
+msgstr "Naposledy Videný"
+
+#: constants.py:7 constants.py:35 templates/sentry/search.html:18
+#: templates/sentry/plugins/bases/tag/index.html:23
+msgid "First Seen"
+msgstr "Prvýkrát Videný"
+
+#: constants.py:8 templates/sentry/groups/details.html:128
+msgid "Frequency"
+msgstr "Početnosť"
+
+#: constants.py:9
+msgid "Total Time Spent"
+msgstr "Celkový Strávený Čas"
+
+#: constants.py:10
+msgid "Average Time Spent"
+msgstr "Priemerný Strávený Čas"
+
+#: constants.py:11 constants.py:12
+#, python-format
+msgid "Trending: %(minutes)d minutes"
+msgstr "Trendové: %(minutes)d minút"
+
+#: constants.py:33 templates/sentry/search.html:17
+msgid "Score"
+msgstr "Skóre"
+
+#: models.py:46
+msgid "unresolved"
+msgstr "nevyriešené"
+
+#: models.py:47
+msgid "resolved"
+msgstr "vyriešené"
+
+#: models.py:52
+msgid "server name"
+msgstr "názov servera"
+
+#: models.py:53
+msgid "logger"
+msgstr "logger"
+
+#: models.py:54
+msgid "site"
+msgstr "stránka"
+
+#: models.py:61
+msgid "owner"
+msgstr "vlastník"
+
+#: models.py:62
+msgid "user"
+msgstr "užívateľ"
+
+#: models.py:63
+msgid "system agent"
+msgstr "systémový agent"
+
+#: models.py:375
+msgid "error"
+msgstr "chyba"
+
+#: models.py:407
+msgid "grouped messages"
+msgstr "zoskupené správy"
+
+#: models.py:408
+msgid "grouped message"
+msgstr "zoskupená správa"
+
+#: models.py:491
+msgid "message"
+msgstr "správa"
+
+#: models.py:492
+msgid "messages"
+msgstr "správy"
+
+#: filters/builtins.py:17 templates/sentry/projects/base.html:34
+#: templates/sentry/projects/list.html:27
+msgid "Status"
+msgstr "Stav"
+
+#: filters/builtins.py:23
+msgid "Unresolved"
+msgstr "Nevyriešené"
+
+#: filters/builtins.py:24
+msgid "Resolved"
+msgstr "Vyriešené"
+
+#: filters/builtins.py:29
+msgid "Logger"
+msgstr "Logger"
+
+#: filters/builtins.py:34
+msgid "Level"
+msgstr "Úroveň"
+
+#: plugins/bases/notify.py:19
+msgid "Include project members"
+msgstr "Zahrnúť členov projektu"
+
+#: plugins/bases/notify.py:20
+msgid "Notify members of this project."
+msgstr "Upozorni členov tohto projektu."
+
+#: plugins/bases/notify.py:21
+msgid "Include sentry admins"
+msgstr "Vrátane sentry administrátorov"
+
+#: plugins/bases/notify.py:22
+msgid "Notify administrators of this Sentry server."
+msgstr "Upozorni administrátorov tohto Sentry servera."
+
+#: plugins/bases/notify.py:63
+msgid ""
+"Send notifications for new events when a new event is seen, or when an "
+"already resolved event has changed back to unresolved."
+msgstr "Posielať upozornenia pre nové udalosti keď je nová udalosť zistená, alebo keď sa už vyriešená udalosť zmení späť na nevyriešenú."
+
+#: plugins/bases/notify.py:75
+msgid ""
+"Notify project members when a new event is seen for the first time, or when "
+"an already resolved event has changed back to unresolved."
+msgstr "Upozorni členov tímu keď je zistená nová udalosť, alebo keď sa už vyriešená udalosť zmení späť na nevyriešenú."
+
+#: plugins/sentry_mail/models.py:38
+msgid "Send to"
+msgstr "Pošli na"
+
+#: plugins/sentry_mail/models.py:39
+msgid "Enter one or more emails separated by commas or lines."
+msgstr "Zadajte jeden alebo viac emailov oddelených čiarkou alebo riadkom."
+
+#: plugins/sentry_mail/models.py:53
+msgid "Mail"
+msgstr "Pošta"
+
+#: plugins/sentry_servers/models.py:24
+msgid "Servers"
+msgstr "Servery"
+
+#: plugins/sentry_servers/models.py:29
+msgid "Server Name"
+msgstr "Názov Servera"
+
+#: plugins/sentry_sites/models.py:24
+msgid "Sites"
+msgstr "Stránky"
+
+#: plugins/sentry_sites/models.py:29
+msgid "Site"
+msgstr "Stránka"
+
+#: plugins/sentry_urls/models.py:24
+msgid "URLs"
+msgstr "URL Adresy"
+
+#: plugins/sentry_urls/models.py:29
+msgid "URL"
+msgstr "URL Adresa"
+
+#: plugins/sentry_user_emails/models.py:24
+msgid "User Emails"
+msgstr "Emaily Užívateľa"
+
+#: plugins/sentry_user_emails/models.py:29
+msgid "User Email"
+msgstr "Email Užívateľa"
+
+#: plugins/sentry_useragents/models.py:47
+msgid "Browsers"
+msgstr "Prehliadače"
+
+#: plugins/sentry_useragents/models.py:49
+msgid "Browser Name"
+msgstr "Názov Prehliadača"
+
+#: plugins/sentry_useragents/models.py:73
+msgid "Operating Systems"
+msgstr "Operačné Systémy"
+
+#: plugins/sentry_useragents/models.py:75
+msgid "Operating System"
+msgstr "Operačný Systém"
+
+#: templates/sentry/404.html:5 templates/sentry/404.html.py:10
+msgid "Page Not Found"
+msgstr "Stránka sa nenašla"
+
+#: templates/sentry/404.html:15
+msgid "The page you are looking for was not found."
+msgstr "Stránka, ktorú hľadáte nebola nájdená."
+
+#: templates/sentry/404.html:16
+msgid "Return to the dashboard"
+msgstr "Návrat do dashboardu"
+
+#: templates/sentry/500.html:5 templates/sentry/500.html.py:10
+msgid "Internal Server Error"
+msgstr "Interná Chyba Servera"
+
+#: templates/sentry/500.html:15
+msgid "There was an internal server error while processing your request."
+msgstr "Pri spracovaní vašej požiadavky došlo k internej chybe servera."
+
+#: templates/sentry/500.html:17
+#, python-format
+msgid "You may reference this error as <strong>%(id)s</strong>."
+msgstr "Môžete odkazovať na túto chybu ako <strong>%(id)s</strong>."
+
+#: templates/sentry/dashboard.html:5 templates/sentry/dashboard.html.py:9
+#: templates/sentry/header.html:25 templates/sentry/header.html.py:34
+#: templates/sentry/layout.html:56
+msgid "Dashboard"
+msgstr "Dashboard"
+
+#: templates/sentry/dashboard.html:14 templates/sentry/account/settings.html:6
+#: templates/sentry/account/settings.html:15
+msgid "Account Settings"
+msgstr "Nastavenia Účtu"
+
+#: templates/sentry/dashboard.html:22
+msgid "Loading historical data..."
+msgstr "Načítavam historické údaje..."
+
+#: templates/sentry/dashboard.html:26
+msgid "Trends"
+msgstr "Trendy"
+
+#: templates/sentry/dashboard.html:28 templates/sentry/dashboard.html.py:41
+msgid "15 minutes"
+msgstr "15 minút"
+
+#: templates/sentry/dashboard.html:29 templates/sentry/dashboard.html.py:42
+msgid "60 minutes"
+msgstr "60 minút"
+
+#: templates/sentry/dashboard.html:30 templates/sentry/dashboard.html.py:43
+msgid "24 hours"
+msgstr "24 hodín"
+
+#: templates/sentry/dashboard.html:39
+msgid "New Events"
+msgstr "Nové Udalosti"
+
+#: templates/sentry/dashboard.html:54
+#, python-format
+msgid ""
+"You do not have access to any projects. Would you like to <a "
+"href=\"%(link)s\">create a new project</a>?"
+msgstr "Nemáte prístup k žiadnym projektom. Chceli by ste <a href=\"%(link)s\">vytvoriť nový projekt</a>?"
+
+#: templates/sentry/dashboard.html:56 templates/sentry/projects/base.html:63
+#: templates/sentry/projects/list.html:56
+msgid ""
+"You do not have access to any projects. Ask an administrator to add you as a"
+" member."
+msgstr "Nemáte prístup do žiadnych projektov. Požiadajte administrátora aby vás pridal ako člena."
+
+#: templates/sentry/dashboard.html:63 templates/sentry/header.html:45
+#: templates/sentry/admin/base.html:17
+#: templates/sentry/admin/projects/list.html:13
+#: templates/sentry/admin/users/edit.html:42
+#: templates/sentry/admin/users/list_projects.html:7
+#: templates/sentry/admin/users/list_projects.html:12
+#: templates/sentry/partial/_account_sidebar.html:9
+#: templates/sentry/teams/manage.html:45
+msgid "Projects"
+msgstr "Projekty"
+
+#: templates/sentry/dashboard.html:75
+#: templates/sentry/partial/_account_sidebar.html:18
+msgid "New project"
+msgstr "Nový projekt"
+
+#: templates/sentry/dashboard.html:78
+#: templates/sentry/partial/_account_sidebar.html:21
+#, python-format
+msgid "View all <strong>%(count)s</strong> projects"
+msgstr "Zobraziť všetkých <strong>%(count)s</strong> projektov"
+
+#: templates/sentry/dashboard.html:82
+#: templates/sentry/partial/_account_sidebar.html:25
+msgid "You are not a part of any projects."
+msgstr "Nieste súčasťou žiadneho projektu."
+
+#: templates/sentry/dashboard.html:84
+#: templates/sentry/partial/_account_sidebar.html:27
+#: templates/sentry/projects/base.html:9
+msgid "Create a new project"
+msgstr "Vytvoriť nový projekt"
+
+#: templates/sentry/dashboard.html:122
+msgid "No unresolved events are listed in the time period selected."
+msgstr "Vo vybranom časovom období sa nenachádzajú žiadne nevyriešené udalosti."
+
+#: templates/sentry/header.html:13
+msgid "search query or message id"
+msgstr "vyhľadávací dopyt alebo id správy"
+
+#: templates/sentry/header.html:13
+msgid "message id"
+msgstr "id správy"
+
+#: templates/sentry/header.html:18
+msgid "select a project to enable search"
+msgstr "pre aktiváciu vyhľadávania vyberte projekt"
+
+#: templates/sentry/header.html:26 templates/sentry/events/event_list.html:11
+msgid "Stream"
+msgstr "Sled"
+
+#: templates/sentry/header.html:46
+#: templates/sentry/partial/_account_sidebar.html:31
+#: templates/sentry/teams/base.html:13
+msgid "Teams"
+msgstr "Tímy"
+
+#: templates/sentry/header.html:48 templates/sentry/admin/base.html:5
+#: templates/sentry/admin/base.html.py:9
+msgid "Admin"
+msgstr "Administrátor"
+
+#: templates/sentry/header.html:51 templates/sentry/account/base.html:6
+#: templates/sentry/account/base.html:10 templates/sentry/account/base.html:16
+#: templates/sentry/partial/_account_sidebar.html:3
+msgid "Settings"
+msgstr "Nastavenia"
+
+#: templates/sentry/header.html:52
+msgid "Logout"
+msgstr "Odhlásiť"
+
+#: templates/sentry/header.html:56 templates/sentry/login.html:5
+#: templates/sentry/login.html.py:37
+msgid "Login"
+msgstr "Prihlásiť"
+
+#: templates/sentry/invalid_message_id.html:5 templates/sentry/search.html:7
+msgid "Search"
+msgstr "Vyhľadávanie"
+
+#: templates/sentry/invalid_message_id.html:9
+msgid "We were unable to find a message matching the ID you entered."
+msgstr "Pre zadané ID sme nenašli žiadne správy."
+
+#: templates/sentry/login.html:15
+msgid "Please login to continue."
+msgstr "Pre pokračovanie sa prosím prihláste."
+
+#: templates/sentry/missing_permissions.html:5
+#: templates/sentry/missing_permissions.html:8
+msgid "Forbidden"
+msgstr "Zakázaný"
+
+#: templates/sentry/missing_permissions.html:13
+msgid "You do not have access to this page with your current permissions."
+msgstr "Vaše práva niesú dostatočné pre vstup na túto stránku."
+
+#: templates/sentry/search.html:14 templates/sentry/groups/group_list.html:68
+#, python-format
+msgid "Sort by: %(label)s"
+msgstr "Zoradiť podľa: %(label)s"
+
+#: templates/sentry/search.html:32
+msgid "No events match your search query."
+msgstr "Vašemu dotazu nevyhovujú žiadne udalosti."
+
+#: templates/sentry/account/notifications.html:7
+#: templates/sentry/account/notifications.html:16
+msgid "Notification Settings"
+msgstr "Nastavenia Oznámení"
+
+#: templates/sentry/account/notifications.html:12
+#: templates/sentry/partial/_account_sidebar.html:6
+msgid "Notifications"
+msgstr "Oznámenia"
+
+#: templates/sentry/account/notifications.html:25
+#: templates/sentry/account/settings.html:23
+#: templates/sentry/admin/users/edit.html:21
+#: templates/sentry/admin/users/remove.html:19
+#: templates/sentry/partial/_form.html:6
+#: templates/sentry/projects/manage_tags.html:19
+#: templates/sentry/projects/remove.html:19
+#: templates/sentry/teams/remove.html:20
+msgid "There were errors saving your changes:"
+msgstr "Pri ukladaní vašich zmien došlo k chybám:"
+
+#: templates/sentry/account/notifications.html:44
+#: templates/sentry/account/settings.html:68
+#: templates/sentry/admin/users/edit.html:33
+#: templates/sentry/partial/_form.html:18
+#: templates/sentry/projects/manage.html:77
+#: templates/sentry/projects/manage_tags.html:31
+#: templates/sentry/teams/manage.html:33 templates/sentry/teams/new.html:26
+#: templates/sentry/teams/members/edit.html:38
+#: templates/sentry/teams/projects/new.html:26
+msgid "Save Changes"
+msgstr "Uložiť Zmeny"
+
+#: templates/sentry/account/settings.html:11
+#: templates/sentry/partial/_account_sidebar.html:5
+msgid "Account"
+msgstr "Účet"
+
+#: templates/sentry/account/settings.html:31
+msgid ""
+"To make changes to your account, you must first enter your current password."
+msgstr "Pokiaľ chcete upraviť svoj účet, musíte najprv zadať svoje aktuálne heslo."
+
+#: templates/sentry/account/settings.html:59
+msgid "You may also optionally change your password."
+msgstr "Môžete tiež zmeniť vaše heslo."
+
+#: templates/sentry/admin/base.html:15 templates/sentry/admin/base.html:42
+msgid "Overview"
+msgstr "Prehľad"
+
+#: templates/sentry/admin/base.html:18
+#: templates/sentry/admin/users/list.html:12
+msgid "Users"
+msgstr "Užívatelia"
+
+#: templates/sentry/admin/base.html:23
+#: templates/sentry/projects/plugins/list.html:12
+msgid "Plugins"
+msgstr "Zásuvné Moduly"
+
+#: templates/sentry/admin/base.html:34
+#: templates/sentry/admin/status/env.html:8
+#: templates/sentry/admin/status/env.html:12
+msgid "Server Status"
+msgstr "Stav Servera"
+
+#: templates/sentry/admin/base.html:36
+#: templates/sentry/admin/status/env.html:17
+#: templates/sentry/partial/interfaces/http.html:123
+msgid "Environment"
+msgstr "Prostredie"
+
+#: templates/sentry/admin/base.html:37
+#: templates/sentry/admin/status/packages.html:8
+#: templates/sentry/admin/status/packages.html:12
+msgid "Packages"
+msgstr "Balíčky"
+
+#: templates/sentry/admin/base.html:38
+#: templates/sentry/admin/status/queue.html:41
+msgid "Queue"
+msgstr "Rad"
+
+#: templates/sentry/admin/base.html:40 templates/sentry/admin/stats.html:17
+msgid "Statistics"
+msgstr "Štatistiky"
+
+#: templates/sentry/admin/stats.html:8 templates/sentry/admin/stats.html:12
+msgid "Stats"
+msgstr "Štatistiky"
+
+#: templates/sentry/admin/projects/list.html:7
+msgid "Manage Projects"
+msgstr "Správa Projektov"
+
+#: templates/sentry/admin/projects/list.html:23
+#: templates/sentry/admin/projects/list.html:81
+#: templates/sentry/admin/users/list.html:26
+#: templates/sentry/admin/users/list.html:83
+#: templates/sentry/events/event_list.html:30
+#: templates/sentry/events/event_list.html:49
+#: templates/sentry/groups/group_list.html:102
+#: templates/sentry/groups/group_list.html:160
+#: templates/sentry/partial/_pager.html:5
+msgid "Previous"
+msgstr "Predchádzajúci"
+
+#: templates/sentry/admin/projects/list.html:24
+#: templates/sentry/admin/projects/list.html:82
+#: templates/sentry/admin/users/list.html:27
+#: templates/sentry/admin/users/list.html:84
+#: templates/sentry/events/event_list.html:31
+#: templates/sentry/events/event_list.html:50
+#: templates/sentry/groups/group_list.html:103
+#: templates/sentry/groups/group_list.html:161
+#: templates/sentry/partial/_pager.html:6
+msgid "Next"
+msgstr "Nasledujúci"
+
+#: templates/sentry/admin/projects/list.html:29
+msgid ""
+"You are viewing projects sorted by the number of events created in the last "
+"30 days. Projects that have not sent any data are not shown in this view."
+msgstr "Prezeráte si projekty zoradené podľa počtu udalostí vytvorených za posledných 30 dní. Projekty, ktoré neodoslali žiadne dáta tu niesú zobrazené."
+
+#: templates/sentry/admin/projects/list.html:44
+#: templates/sentry/admin/users/edit.html:52
+#: templates/sentry/admin/users/list_projects.html:30
+#: templates/sentry/teams/manage.html:55
+msgid "Project"
+msgstr "Projekt"
+
+#: templates/sentry/admin/projects/list.html:45
+#: templates/sentry/admin/users/edit.html:53
+#: templates/sentry/admin/users/list_projects.html:31
+msgid "Daily Events"
+msgstr "Denné Udalosti"
+
+#: templates/sentry/admin/projects/list.html:46
+msgid "Date Added"
+msgstr "Dátum Pridania"
+
+#: templates/sentry/admin/projects/list.html:76
+msgid "There are no active projects in Sentry."
+msgstr "V Sentry sa nenachádzajú žiadne aktívne projekty."
+
+#: templates/sentry/admin/status/env.html:26
+msgid "Server Version"
+msgstr "Verzia Servera"
+
+#: templates/sentry/admin/status/env.html:30
+msgid "Python Version"
+msgstr "Verzia Pythonu"
+
+#: templates/sentry/admin/status/env.html:34
+msgid "Configuration File"
+msgstr "Konfiguračný Súbor"
+
+#: templates/sentry/admin/status/env.html:38
+msgid "Uptime"
+msgstr "Doba prevádzky"
+
+#: templates/sentry/admin/status/env.html:44
+msgid "Environment not found (are you using the builtin Sentry webserver?)."
+msgstr "Prostredie sa nenašlo (používate vstavaný Sentry webserver?)."
+
+#: templates/sentry/admin/status/env.html:48
+msgid "Configuration"
+msgstr "Konfigurácia"
+
+#: templates/sentry/admin/status/packages.html:17
+msgid "Extensions"
+msgstr "Rozšírenia"
+
+#: templates/sentry/admin/status/packages.html:34
+msgid "No extensions registered."
+msgstr "Žiadne rozšírenia niesú zaregistrované."
+
+#: templates/sentry/admin/status/packages.html:37
+msgid "Views"
+msgstr "Zobrazenia:"
+
+#: templates/sentry/admin/status/packages.html:54
+msgid "No views registered."
+msgstr "Žiadne zobrazenia niesú zaregistrované."
+
+#: templates/sentry/admin/status/packages.html:57
+msgid "Modules"
+msgstr "Moduly"
+
+#: templates/sentry/admin/status/queue.html:8
+#: templates/sentry/admin/status/queue.html:12
+msgid "Queue Status"
+msgstr "Stav Rady"
+
+#: templates/sentry/admin/status/queue.html:18
+msgid "Background Processes"
+msgstr "Procesy Na Pozadí"
+
+#: templates/sentry/admin/status/queue.html:29
+msgid "No information available."
+msgstr "Žiadna informácia nie je k dispozícii."
+
+#: templates/sentry/admin/status/queue.html:32
+#: templates/sentry/admin/status/queue.html:42
+msgid "Pending Tasks"
+msgstr "Nevybavené Úlohy"
+
+#: templates/sentry/admin/users/edit.html:7
+msgid "Change User"
+msgstr "Zmeniť Užívateľa"
+
+#: templates/sentry/admin/users/edit.html:35
+#: templates/sentry/admin/users/remove.html:5
+#: templates/sentry/admin/users/remove.html:10
+msgid "Remove User"
+msgstr "Vymazať Užívateľa"
+
+#: templates/sentry/admin/users/edit.html:37
+msgid "Cannot remove yourself"
+msgstr "Nemôžete vymazať seba"
+
+#: templates/sentry/admin/users/list.html:6
+msgid "Manage Users"
+msgstr "Spravovať Užívateľov"
+
+#: templates/sentry/admin/users/list.html:16
+msgid "Create a new user"
+msgstr "Vytvoriť nového užívateľa"
+
+#: templates/sentry/admin/users/list.html:42
+#: templates/sentry/projects/base.html:31
+#: templates/sentry/projects/list.html:24 templates/sentry/teams/list.html:22
+#: web/forms/__init__.py:143 web/forms/accounts.py:46
+msgid "Name"
+msgstr "Meno"
+
+#: templates/sentry/admin/users/list.html:43
+msgid "Joined"
+msgstr "Pridaný"
+
+#: templates/sentry/admin/users/list.html:44
+msgid "Last Login"
+msgstr "Posledné Prihlásenie"
+
+#: templates/sentry/admin/users/list.html:78
+msgid "There are no users matching your query in Sentry."
+msgstr "Vašemu dopytu v Sentry nevyhovujú žiadni užívatelia."
+
+#: templates/sentry/admin/users/list_projects.html:51
+msgid "There are no active projects for this user."
+msgstr "Pre tohto užívateľa niesú dostupné žiadne aktívne projekty."
+
+#: templates/sentry/admin/users/new.html:6
+msgid "New User"
+msgstr "Nový Užívateľ"
+
+#: templates/sentry/admin/users/new.html:11
+msgid "Create New User"
+msgstr "Vytvoriť Nového Užívateľa"
+
+#: templates/sentry/admin/users/remove.html:31
+#: templates/sentry/projects/remove.html:31
+#: templates/sentry/teams/remove.html:32
+#: templates/sentry/teams/members/remove.html:20
+msgid "Confirm"
+msgstr "Potvrdiť"
+
+#: templates/sentry/admin/users/remove.html:31
+#: templates/sentry/projects/remove.html:31
+#: templates/sentry/teams/remove.html:32
+#: templates/sentry/teams/members/remove.html:20
+msgid "Cancel"
+msgstr "Zrušiť"
+
+#: templates/sentry/emails/error.html:109
+msgid "New Event"
+msgstr "Nová Udalosť"
+
+#: templates/sentry/emails/error.html:111
+msgid "Regression"
+msgstr "Návrat"
+
+#: templates/sentry/emails/error.html:129
+#: templates/sentry/groups/details.html:19
+msgid "Logger:"
+msgstr "Logger:"
+
+#: templates/sentry/emails/error.html:131
+#: templates/sentry/groups/details.html:21
+msgid "Level:"
+msgstr "Úroveň:"
+
+#: templates/sentry/emails/error.html:135
+#: templates/sentry/groups/event.html:20
+msgid "Server:"
+msgstr "Server:"
+
+#: templates/sentry/emails/error.html:137
+#: templates/sentry/groups/details.html:25
+msgid "First Seen:"
+msgstr "Prvýkrát Videný:"
+
+#: templates/sentry/events/event_list.html:6
+#, python-format
+msgid "%(name)s events"
+msgstr "%(name)s udalosti"
+
+#: templates/sentry/events/event_list.html:43
+#: templates/sentry/groups/group_list.html:151
+msgid "No events match your filters."
+msgstr "Vašim filtrom nevyhovujú žiadne udalosti."
+
+#: templates/sentry/events/replay_request.html:5
+#: templates/sentry/events/replay_request.html:12
+msgid "Replay Request"
+msgstr "Zopakovať Požiadavku"
+
+#: templates/sentry/events/replay_request.html:27
+msgid "Please fill out all fields."
+msgstr "Vyplňte prosím všetky polia."
+
+#: templates/sentry/events/replay_request.html:36
+msgid "Submit"
+msgstr "Potvrdiť"
+
+#: templates/sentry/groups/details.html:16
+msgid "Aggregate Details"
+msgstr "Súhrnné Podrobnosti"
+
+#: templates/sentry/groups/details.html:23
+msgid "Status:"
+msgstr "Stav:"
+
+#: templates/sentry/groups/details.html:28
+msgid "Reopened At:"
+msgstr "Znovu otvorený Na:"
+
+#: templates/sentry/groups/details.html:31
+msgid "Last Seen:"
+msgstr "Posledne Videný:"
+
+#: templates/sentry/groups/details.html:33
+msgid "Avg Duration:"
+msgstr "Priemerné Trvanie:"
+
+#: templates/sentry/groups/details.html:34
+#: templates/sentry/projects/plugins/list.html:42
+#: templates/sentry/projects/plugins/list.html:48
+msgid "n/a"
+msgstr "nedostupné"
+
+#: templates/sentry/groups/details.html:35
+msgid "Checksum:"
+msgstr "Kontrolný súčet:"
+
+#: templates/sentry/groups/details.html:77
+#: templates/sentry/partial/_group.html:36
+msgid "Mark as Resolved"
+msgstr "Označiť ako Vyriešené"
+
+#: templates/sentry/groups/details.html:79
+#: templates/sentry/partial/_group.html:38
+msgid "Already Resolved"
+msgstr "Už Vyriešené"
+
+#: templates/sentry/groups/details.html:83
+#: templates/sentry/partial/_group.html:42
+msgid "Bookmark"
+msgstr "Záložka"
+
+#: templates/sentry/groups/details.html:93
+#: templates/sentry/projects/manage.html:19
+#: templates/sentry/teams/members/edit.html:25
+msgid "Details"
+msgstr "Podrobnosti"
+
+#: templates/sentry/groups/details.html:96
+msgid "Events"
+msgstr "Udalosti"
+
+#: templates/sentry/groups/details.html:102
+#: templates/sentry/teams/manage.html:56 templates/sentry/teams/manage.html:98
+#: templates/sentry/teams/manage.html:144
+msgid "Actions"
+msgstr "Akcie"
+
+#: templates/sentry/groups/details.html:104
+msgid "Remove Event"
+msgstr "Odstrániť Udalosť"
+
+#: templates/sentry/groups/details.html:109
+msgid "Raw JSON Data"
+msgstr "Nespracované JSON Údaje"
+
+#: templates/sentry/groups/details.html:132
+msgid "Get yourself some JavaScripts dood"
+msgstr "Tak si už zožen tie Javascripty!"
+
+#: templates/sentry/groups/details.html:133
+msgid "Loading..."
+msgstr "Načítavam..."
+
+#: templates/sentry/groups/event.html:13
+msgid "Event Details"
+msgstr "Podrobnosti Udalosti"
+
+#: templates/sentry/groups/event.html:16
+msgid "Seen:"
+msgstr "Videný:"
+
+#: templates/sentry/groups/event.html:18
+msgid "Duration:"
+msgstr "Trvanie:"
+
+#: templates/sentry/groups/event.html:22
+msgid "Site:"
+msgstr "Stránka:"
+
+#: templates/sentry/groups/event_list.html:10
+#, python-format
+msgid ""
+"This list only contains a portion of all events seen. For more information "
+"about how Sentry samples events, see the <a "
+"href=\"%(link)s\">documentation</a>."
+msgstr "Tento zoznam obsahuje len časť zo všetkých zaznamenaných udalostí. Pre viac informácií o tom ako Sentry zistiťuje udalosti, si pozrite <a href=\"%(link)s\">dokumentáciu</a>."
+
+#: templates/sentry/groups/event_list.html:23
+#: templates/sentry/plugins/bases/tag/index.html:41
+msgid "There are no records recorded for this event."
+msgstr "Pre túto udalosť niesú zaevidované žiadne záznamy."
+
+#: templates/sentry/groups/group_list.html:25
+msgid "All"
+msgstr "Všetky"
+
+#: templates/sentry/groups/group_list.html:38
+msgid "Bookmarks"
+msgstr "Záložky"
+
+#: templates/sentry/groups/group_list.html:41
+msgid "All Events"
+msgstr "Všetky Udalosti"
+
+#: templates/sentry/groups/group_list.html:42
+msgid "Only Bookmarks"
+msgstr "Iba Záložky"
+
+#: templates/sentry/groups/group_list.html:62
+msgid "Resolve Feed"
+msgstr "Spracovať Kanál"
+
+#: templates/sentry/groups/group_list.html:65
+msgid "Pause Feed"
+msgstr "Pozastaviť Kanál"
+
+#: templates/sentry/groups/group_list.html:125
+msgid "Apply"
+msgstr "Použi"
+
+#: templates/sentry/groups/group_list.html:127
+msgid "All events are represented in UTC time."
+msgstr "Všetky udalosti sú reprezentované v UTC čase."
+
+#: templates/sentry/groups/group_list.html:145
+#: templates/sentry/projects/client_help.html:12
+msgid ""
+"To start sending events, configure your client with the following DSN value:"
+msgstr "Ak chcete začať odosielať udalosti, nastavte vo vašom klientovi nasledujúcu DSN hodnotu:"
+
+#: templates/sentry/groups/group_list.html:147
+#: templates/sentry/projects/client_help.html:19
+msgid "Choose your platform for quick setup instructions:"
+msgstr "Vyberte si platformu pre rýchle pokyny k nastaveniu:"
+
+#: templates/sentry/groups/group_list.html:149
+#, python-format
+msgid ""
+"For more information, please see the <a href=\"%(link)s\">documentation</a>."
+msgstr "Pre viac informácií si prezrite <a href=\"%(link)s\">dokumentáciu</a>."
+
+#: templates/sentry/partial/_account_sidebar.html:40
+msgid "New team"
+msgstr "Nový tím"
+
+#: templates/sentry/partial/_account_sidebar.html:43
+#, python-format
+msgid "View all <strong>%(count)s</strong> teams"
+msgstr "Zobraziť všetky <strong>%(count)s</strong> tímy"
+
+#: templates/sentry/partial/_account_sidebar.html:47
+msgid "You are not a part of any teams."
+msgstr "Nieste súčasťou žiadneho tímu."
+
+#: templates/sentry/partial/_account_sidebar.html:49
+#: templates/sentry/teams/base.html:9
+msgid "Create a new team"
+msgstr "Vytvoriť nový tím"
+
+#: templates/sentry/partial/_event_details.html:11
+msgid "Additional Data"
+msgstr "Doplňujúce Údaje"
+
+#: templates/sentry/partial/_event_details.html:21
+msgid "Expand"
+msgstr "Zväčšiť"
+
+#: templates/sentry/partial/_event_details.html:40
+#, python-format
+msgid "No data for %(varname)s"
+msgstr "Žiadne údaje pre %(varname)s"
+
+#: templates/sentry/partial/_event_details.html:52
+msgid "Package Versions"
+msgstr "Verzie Balíčka"
+
+#: templates/sentry/partial/client_config/connect.html:3
+#: templates/sentry/partial/client_config/express.html:3
+#: templates/sentry/partial/client_config/node.js.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-node</a>:"
+msgstr "Začnite nainštalovaním <a href=\"%(link)s\">raven-node</a>:"
+
+#: templates/sentry/partial/client_config/connect.html:7
+msgid ""
+"Register an instance of the Connect middleware <strong>after your main "
+"application handler</strong>:"
+msgstr "Zaregistruj inštanciu Connect middlewaru <strong>za vaším hlavným handlerom aplikácie</strong>:"
+
+#: templates/sentry/partial/client_config/connect.html:16
+#: templates/sentry/partial/client_config/express.html:13
+#: templates/sentry/partial/client_config/node.js.html:17
+msgid "Ensure Node is run with <code>NODE_ENV=production</code>:"
+msgstr "Zabezpečte, že Node je spúštaný s <code>NODE_ENV=production</code>:"
+
+#: templates/sentry/partial/client_config/connect.html:20
+#: templates/sentry/partial/client_config/django.html:18
+#: templates/sentry/partial/client_config/express.html:17
+#: templates/sentry/partial/client_config/flask.html:16
+#: templates/sentry/partial/client_config/rails3.html:19
+msgid ""
+"That's it! Raven automatically installs an error handling hook to pipe all "
+"uncaught exceptions to Sentry."
+msgstr "A je to! Raven automaticky nainštaluje chybový handler, ktorý bude posielať všetky neodchytené výnimky do Sentry."
+
+#: templates/sentry/partial/client_config/connect.html:22
+#: templates/sentry/partial/client_config/express.html:19
+#: templates/sentry/partial/client_config/node.js.html:29
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Node.js, please see the <a "
+"href=\"%(link)s\">official documentation for raven-node</a>."
+msgstr "Pre viac informácií o inom využití Raven s Node.js, si pozrite <a href=\"%(link)s\">oficiálnu dokumentáciu raven-node</a>."
+
+#: templates/sentry/partial/client_config/django.html:3
+#: templates/sentry/partial/client_config/python.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-python</a>:"
+msgstr "Začnite nainštalovaním <a href=\"%(link)s\">raven-python</a>:"
+
+#: templates/sentry/partial/client_config/django.html:7
+msgid "Then simply modify your Django configuration:"
+msgstr "Potom jednoducho upravte Django konfiguráciu:"
+
+#: templates/sentry/partial/client_config/django.html:9
+msgid "Set your DSN value"
+msgstr "Nastavte svoju DSN hodnotu"
+
+#: templates/sentry/partial/client_config/django.html:12
+msgid "Add raven to the list of installed apps"
+msgstr "Pridajte raven do zoznamu nainštalovaných aplikácií"
+
+#: templates/sentry/partial/client_config/django.html:20
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Django, please see the <a "
+"href=\"%(link)s\">official documentation for raven-python</a>."
+msgstr "Pre viac informácií o inom využití Raven s frameworkom Django, si pozrite <a href=\"%(link)s\">oficiálnu dokumentáciu raven-python</a>."
+
+#: templates/sentry/partial/client_config/express.html:7
+msgid "Register an instance of the Express middleware:"
+msgstr "Zaregistruj inštanciu Express middlewaru:"
+
+#: templates/sentry/partial/client_config/flask.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-python</a> and Blinker:"
+msgstr "Začnite nainštalovaním <a href=\"%(link)s\">raven-python</a> a Blinker:"
+
+#: templates/sentry/partial/client_config/flask.html:7
+msgid "Blinker is required for signals to work within Flask."
+msgstr "Pre fungovanie signálov vo Flask je potrebný Blinker."
+
+#: templates/sentry/partial/client_config/flask.html:9
+msgid "Add the required configuration in your application setup:"
+msgstr "Pridajte požadovanú konfiguráciu do vašej aplikácie:"
+
+#: templates/sentry/partial/client_config/flask.html:18
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Flask, please see the <a "
+"href=\"%(link)s\">official documentation for raven-python</a>."
+msgstr "Pre viac informácií o inom využití Raven s frameworkom Flask, si pozrite <a href=\"%(link)s\">oficiálnu dokumentáciu raven-python</a>."
+
+#: templates/sentry/partial/client_config/java.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-java</a>."
+msgstr "Začnite nainštalovaním <a href=\"%(link)s\">raven-java</a>."
+
+#: templates/sentry/partial/client_config/java.html:5
+#: templates/sentry/partial/client_config/node.js.html:7
+#: templates/sentry/partial/client_config/php.html:11
+#: templates/sentry/partial/client_config/python.html:7
+#: templates/sentry/partial/client_config/ruby.html:11
+msgid "Create an instance of the client:"
+msgstr "Vytvor inštanciu klienta:"
+
+#: templates/sentry/partial/client_config/java.html:9
+#: templates/sentry/partial/client_config/javascript.html:21
+#: templates/sentry/partial/client_config/node.js.html:21
+#: templates/sentry/partial/client_config/php.html:15
+#: templates/sentry/partial/client_config/python.html:13
+msgid "Now call out to the raven client to capture events:"
+msgstr "Teraz zavolajte raven klient pre zachytenie udalostí:"
+
+#: templates/sentry/partial/client_config/java.html:11
+#: templates/sentry/partial/client_config/javascript.html:24
+#: templates/sentry/partial/client_config/node.js.html:23
+#: templates/sentry/partial/client_config/php.html:17
+#: templates/sentry/partial/client_config/python.html:15
+msgid "record a simple message"
+msgstr "zaznamenať jednoduchú správu"
+
+#: templates/sentry/partial/client_config/java.html:14
+#: templates/sentry/partial/client_config/javascript.html:27
+#: templates/sentry/partial/client_config/node.js.html:26
+#: templates/sentry/partial/client_config/php.html:20
+#: templates/sentry/partial/client_config/python.html:18
+msgid "capture an exception"
+msgstr "zachytiť výnimku"
+
+#: templates/sentry/partial/client_config/java.html:22
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Java, please see the <a "
+"href=\"%(link)s\">official documentation for raven-java</a>."
+msgstr "Pre viac informácií o inom využití Raven s jazykom Java, si pozrite <a href=\"%(link)s\">oficiálnu dokumentáciu raven-java</a>."
+
+#: templates/sentry/partial/client_config/javascript.html:5
+#, python-format
+msgid ""
+"Start by installing <a href=\"%(link)s\">raven-js</a> and either <a "
+"href=\"%(jquery)s\">jQuery</a> or <a href=\"%(zepto)s\">Zepto</a>."
+msgstr "Začnite nainštalovaním <a href=\"%(link)s\">raven-js</a> a jedným z <a href=\"%(jquery)s\">jQuery</a> alebo <a href=\"%(zepto)s\">Zepto</a>."
+
+#: templates/sentry/partial/client_config/javascript.html:11
+#, python-format
+msgid ""
+"Add the any URLs which will be logging errors in your project's settings "
+"under <a href=\"%(project_link)s#client-security\">Client Security</a>:"
+msgstr "Pridajte URL adresy ktoré budú logovať chyby v nastaveniach vašich projektov v <a href=\"%(project_link)s#client-security\">Zabezpečenie Klienta</a>:"
+
+#: templates/sentry/partial/client_config/javascript.html:15
+msgid "Configure the client:"
+msgstr "Konfigurovať klienta:"
+
+#: templates/sentry/partial/client_config/javascript.html:34
+#: templates/sentry/partial/client_config/node.js.html:13
+#: templates/sentry/partial/client_config/php.html:28
+msgid ""
+"You can also optionally install a default error handler to catch all "
+"exceptions:"
+msgstr "Máte možnosť nainštalovať predvolený handler chýb pre zachytenie všetkých výnimiek:"
+
+#: templates/sentry/partial/client_config/javascript.html:38
+msgid ""
+"Note: This will only work on browsers that properly support "
+"<code>window.onerror</code>."
+msgstr "Poznámka: Toto bude fungovať len na prehliadačoch čo podporujú:\n<code>window.onerror</code>."
+
+#: templates/sentry/partial/client_config/javascript.html:40
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Ruby, please see the <a "
+"href=\"%(link)s\">official documentation for raven-js</a>."
+msgstr "Pre viac informácií o inom využití Raven s jazykom Ruby, si pozrite <a href=\"%(link)s\">oficiálnu dokumentáciu raven-js</a>."
+
+#: templates/sentry/partial/client_config/php.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-php</a>."
+msgstr "Začnite nainštalovaním <a href=\"%(link)s\">raven-php</a>."
+
+#: templates/sentry/partial/client_config/php.html:5
+msgid "Register the autoloader:"
+msgstr "Zaregistrovať autoloader:"
+
+#: templates/sentry/partial/client_config/php.html:36
+#, python-format
+msgid ""
+"For more information on other uses of Raven with PHP, please see the <a "
+"href=\"%(link)s\">official documentation for raven-php</a>."
+msgstr "Pre viac informácií o inom využití Raven s jazykom PHP, si pozrite <a href=\"%(link)s\">oficiálnu dokumentáciu raven-php</a>."
+
+#: templates/sentry/partial/client_config/python.html:24
+msgid ""
+"If you want to wrap a WSGI app to record uncaught exceptions, Raven provides"
+" a middleware for that:"
+msgstr "ľľľ"
+
+#: templates/sentry/partial/client_config/python.html:30
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Python, please see the <a "
+"href=\"%(link)s\">official documentation for raven-python</a>."
+msgstr "Pre viac informácií o inom využití Raven s jazykom Python, si pozrite <a href=\"%(link)s\">oficiálnu dokumentáciu raven-python</a>."
+
+#: templates/sentry/partial/client_config/r.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">r-logging</a>:"
+msgstr "Začnite nainštalovaním <a href=\"%(link)s\">r-logging</a>:"
+
+#: templates/sentry/partial/client_config/r.html:5
+msgid "Load the logging package:"
+msgstr "Načítaj logovací balíček:"
+
+#: templates/sentry/partial/client_config/r.html:10
+msgid "Create a Sentry handler and add it to a logger:"
+msgstr "Vytvorte Sentry handler a pridajte ho do loggera:"
+
+#: templates/sentry/partial/client_config/r.html:16
+msgid "Send events via the standard logging interface:"
+msgstr "Posielaj udalosti s využitím štandartného logovacieho rozhrania:"
+
+#: templates/sentry/partial/client_config/r.html:25
+#, python-format
+msgid ""
+"For more information on other uses of the logging package, see the <a "
+"href=\"%(link)s\">documentation for r-logging</a>."
+msgstr "Pre viac informácií o inom využití logovacieho balíčka, si pozrite <a href=\"%(link)s\">dokumentáciu r-logging</a>."
+
+#: templates/sentry/partial/client_config/rails3.html:3
+#: templates/sentry/partial/client_config/ruby.html:3
+#, python-format
+msgid "Start by installing <a href=\"%(link)s\">raven-ruby</a>:"
+msgstr "Začnite nainštalovaním <a href=\"%(link)s\">raven-ruby</a>:"
+
+#: templates/sentry/partial/client_config/rails3.html:7
+#: templates/sentry/partial/client_config/ruby.html:7
+msgid "Or add it to your <code>Gemfile</code>:"
+msgstr "Alebo ich pridajte do svojho <code>Gemfile</code>:"
+
+#: templates/sentry/partial/client_config/rails3.html:11
+msgid "Add a <code>config/initializers/raven.rb</code> containing:"
+msgstr "Pridajte <code>config/initializers/raven.rb</code> obsahujúci:"
+
+#: templates/sentry/partial/client_config/rails3.html:21
+#: templates/sentry/partial/client_config/ruby.html:25
+#, python-format
+msgid ""
+"For more information on other uses of Raven with Ruby, please see the <a "
+"href=\"%(link)s\">official documentation for raven-ruby</a>."
+msgstr "Pre viac informácií o inom využití Raven s jazykom Ruby, si pozrite <a href=\"%(link)s\">oficiálnu dokumentáciu raven-ruby</a>."
+
+#: templates/sentry/partial/client_config/ruby.html:19
+msgid "Now wrap your application to capture events:"
+msgstr "Teraz zabaľte vašu aplikáciu pre zachytenie udalostí:"
+
+#: templates/sentry/partial/interfaces/exception.html:4 views/exception.py:16
+msgid "Exception"
+msgstr "Výnimka"
+
+#: templates/sentry/partial/interfaces/exception.html:12
+msgid "Types:"
+msgstr "Typy:"
+
+#: templates/sentry/partial/interfaces/exception.html:16
+msgid "Value:"
+msgstr "Hodnota:"
+
+#: templates/sentry/partial/interfaces/exception.html:21
+msgid "Location:"
+msgstr "Umiestnenie:"
+
+#: templates/sentry/partial/interfaces/http.html:6
+msgid "Replay this request"
+msgstr "Zopakovať túto požiadavku"
+
+#: templates/sentry/partial/interfaces/http.html:7
+msgid "Request"
+msgstr "Požiadavka"
+
+#: templates/sentry/partial/interfaces/http.html:16
+#: templates/sentry/partial/interfaces/http.txt:8
+msgid "URL:"
+msgstr "URL Adresa:"
+
+#: templates/sentry/partial/interfaces/http.html:21
+#: templates/sentry/partial/interfaces/http.txt:13
+msgid "Method:"
+msgstr "Metóda:"
+
+#: templates/sentry/partial/interfaces/http.html:26
+#: templates/sentry/partial/interfaces/http.txt:18
+msgid "Query:"
+msgstr "Dopyt:"
+
+#: templates/sentry/partial/interfaces/http.html:33
+msgid "Body:"
+msgstr "Telo:"
+
+#: templates/sentry/partial/interfaces/http.html:37
+#: templates/sentry/partial/interfaces/http.html:54
+msgid "Body"
+msgstr "Telo"
+
+#: templates/sentry/partial/interfaces/http.html:65
+msgid "Cookies:"
+msgstr "Cookies:"
+
+#: templates/sentry/partial/interfaces/http.html:69
+#: templates/sentry/partial/interfaces/http.html:86
+msgid "Cookies"
+msgstr "Cookies"
+
+#: templates/sentry/partial/interfaces/http.html:97
+msgid "Headers:"
+msgstr "Hlavičky:"
+
+#: templates/sentry/partial/interfaces/http.html:100
+msgid "Headers"
+msgstr "Hlavičky"
+
+#: templates/sentry/partial/interfaces/http.html:120
+msgid "Environment:"
+msgstr "Prostredie:"
+
+#: templates/sentry/partial/interfaces/stacktrace.html:6
+#: templates/sentry/partial/interfaces/template.html:5
+msgid "Raw"
+msgstr "Nespracované"
+
+#: templates/sentry/partial/interfaces/stacktrace.html:7
+msgid "Stacktrace"
+msgstr "Stacktrace"
+
+#: templates/sentry/partial/interfaces/stacktrace.html:28
+msgid "Local vars"
+msgstr "Lokálne premenné"
+
+#: templates/sentry/partial/interfaces/template.html:6
+msgid "Template Error"
+msgstr "Chyba Šablóny"
+
+#: templates/sentry/partial/interfaces/user.html:6
+#: templates/sentry/projects/manage.html:98
+#: templates/sentry/teams/manage.html:96
+#: templates/sentry/teams/manage.html:142
+#: templates/sentry/teams/members/edit.html:27
+msgid "User"
+msgstr "Užívateľ"
+
+#: templates/sentry/partial/interfaces/user.html:15
+msgid "Authenticated:"
+msgstr "Overený:"
+
+#: templates/sentry/partial/interfaces/user.html:20
+msgid "ID:"
+msgstr "ID:"
+
+#: templates/sentry/partial/interfaces/user.html:24
+msgid "Username:"
+msgstr "Užívateľské meno:"
+
+#: templates/sentry/partial/interfaces/user.html:28
+msgid "Email:"
+msgstr "Email:"
+
+#: templates/sentry/plugins/project_configuration.html:9
+#: templates/sentry/projects/manage.html:43
+msgid "Changes to your project were saved successfully."
+msgstr "Zmeny vo vašom projekte boli úspešne uložené."
+
+#: templates/sentry/plugins/site_configuration.html:5
+msgid "Changes to your configuration were saved successfully."
+msgstr "Zmeny vo vašej konfigurácii boli úspešne uložené."
+
+#: templates/sentry/plugins/bases/tag/index.html:22
+msgid "Times Seen"
+msgstr "Počet Videní"
+
+#: templates/sentry/projects/base.html:5
+#: templates/sentry/projects/base.html:15
+#: templates/sentry/projects/list.html:5 templates/sentry/projects/list.html:8
+msgid "Project List"
+msgstr "Zoznam Projektov"
+
+#: templates/sentry/projects/base.html:21
+#: templates/sentry/projects/list.html:14
+msgid "The following is a list of projects that you are a member of."
+msgstr "Toto je zoznam projektov ktorých ste členom."
+
+#: templates/sentry/projects/base.html:32
+#: templates/sentry/projects/list.html:25
+msgid "Membership"
+msgstr "Členstvo"
+
+#: templates/sentry/projects/base.html:33
+#: templates/sentry/projects/list.html:26 templates/sentry/teams/list.html:23
+msgid "Owner"
+msgstr "Vlastník"
+
+#: templates/sentry/projects/base.html:51
+#: templates/sentry/projects/list.html:44
+msgid "no owner"
+msgstr "žiadny vlastník"
+
+#: templates/sentry/projects/client_help.html:5
+#: templates/sentry/projects/client_help.html:9
+#: templates/sentry/projects/manage.html:33
+msgid "Client Configuration"
+msgstr "Konfigurácia Klienta"
+
+#: templates/sentry/projects/client_help.html:14
+#, python-format
+msgid ""
+"If this is a client that only needs public access (like <a href=\"%(link)s"
+"\">raven-js</a>), you can use the following public DSN:"
+msgstr "Pokiaľ tento klient potrebuje len verejný prístup (ako <a href=\"%(link)s\">raven-js</a>), môžete použiť nasledujúce DSN:"
+
+#: templates/sentry/projects/client_help.html:17
+msgid "Platform Instructions"
+msgstr "Pokyny Platformy"
+
+#: templates/sentry/projects/client_help.html:22
+msgid ""
+"There is no key configured for your account with access to this project."
+msgstr "Pre váš účet nieje nakonfigurovaný žiadny kľúč s prístupom do tohto projektu."
+
+#: templates/sentry/projects/manage.html:7
+#, python-format
+msgid "Manage Project: %(name)s"
+msgstr "Spravovať Projekt: %(name)s"
+
+#: templates/sentry/projects/manage.html:12
+msgid "Manage"
+msgstr "Spravovať"
+
+#: templates/sentry/projects/manage.html:22
+msgid "Tags"
+msgstr "Štítok"
+
+#: templates/sentry/projects/manage.html:30
+#: templates/sentry/projects/plugins/list.html:7
+msgid "Manage Plugins"
+msgstr "Spravovať Zásuvné Moduly"
+
+#: templates/sentry/projects/manage.html:37
+msgid ""
+"Here you can edit project information, as well as control the access list "
+"for a project with fine-grained permissions."
+msgstr "Tu môžete upraviť informácie o projekte, rovnako ako riadiť prístupy pre projekt s rôznymi oprávneniami."
+
+#: templates/sentry/projects/manage.html:40
+#: templates/sentry/teams/projects/new.html:20
+msgid "Project Details"
+msgstr "Podrobnosti Projektu"
+
+#: templates/sentry/projects/manage.html:46
+#: templates/sentry/teams/manage.html:22
+#: templates/sentry/teams/members/edit.html:20
+msgid "Please correct the errors below."
+msgstr "Opravte chyby nižšie."
+
+#: templates/sentry/projects/manage.html:59
+msgid "Client Security"
+msgstr "Bezpečnosť Klienta"
+
+#: templates/sentry/projects/manage.html:61
+#, python-format
+msgid ""
+"Configure origin URLs which Sentry should accept events from. This is used "
+"for communication with client's like <a href=\"%(link)s\">raven-js</a>."
+msgstr "Nakonfigurujte URL adresy z ktorých by mal Sentry prijímať udalosti. Toto je používané v komunikácii s klientmi ako <a href=\"%(link)s\">raven-js</a>."
+
+#: templates/sentry/projects/manage.html:62
+#, python-format
+msgid ""
+"For more information check out the <a href=\"%(link)s\">Wikipedia page on "
+"CORS</a>."
+msgstr "Pre viac informácií si pozrite <a href=\"%(link)s\">Wikipedia stránku o CORS</a>."
+
+#: templates/sentry/projects/manage.html:65
+msgid "List one URL per line."
+msgstr "Vpíšte jednu URL adresu na riadok."
+
+#: templates/sentry/projects/manage.html:79
+#: templates/sentry/projects/remove.html:5
+#: templates/sentry/projects/remove.html:10
+msgid "Remove Project"
+msgstr "Vymazať Projekt"
+
+#: templates/sentry/projects/manage.html:81
+msgid "Cannot remove default project"
+msgstr "Predvolený projekt nieje možné odstrániť"
+
+#: templates/sentry/projects/manage.html:87
+#: templates/sentry/teams/manage.html:77
+#: templates/sentry/teams/members/new.html:5
+#: templates/sentry/teams/members/new.html:10
+msgid "New Member"
+msgstr "Nový Člen"
+
+#: templates/sentry/projects/manage.html:89
+#: templates/sentry/teams/manage.html:79 templates/sentry/teams/manage.html:82
+msgid "Members"
+msgstr "Členovia"
+
+#: templates/sentry/projects/manage.html:99
+#: templates/sentry/teams/manage.html:97
+#: templates/sentry/teams/manage.html:143
+#: templates/sentry/teams/members/edit.html:33
+msgid "Access"
+msgstr "Prístup"
+
+#: templates/sentry/projects/manage_tags.html:6
+#: templates/sentry/projects/manage_tags.html:10
+msgid "Manage Tags"
+msgstr "Spravovať Štítky"
+
+#: templates/sentry/projects/manage_tags.html:13
+msgid "Configure tags which you want to enable filters for."
+msgstr "Nakonfigurujte štítky pre ktoré chcete aktivovať filtre."
+
+#: templates/sentry/projects/manage_tags.html:14
+msgid "Note: You can only configure tags which have already been seen."
+msgstr "Poznámka: Môžete konfigurovať len štítky, ktoré už boli videné."
+
+#: templates/sentry/projects/manage_tags.html:35
+msgid "We have not yet recorded any tags for this project."
+msgstr "Zatiaľ sme nezaznamenali žiadne štítky pre tento projekt."
+
+#: templates/sentry/projects/new.html:5 templates/sentry/projects/new.html:10
+#: templates/sentry/teams/manage.html:43
+#: templates/sentry/teams/projects/new.html:5
+#: templates/sentry/teams/projects/new.html:10
+msgid "New Project"
+msgstr "Nový Projekt"
+
+#: templates/sentry/projects/new.html:16
+msgid "Select a team you are a member of to create a project."
+msgstr "Pre vytvorenie projektu vyberte tím v ktorom ste členom."
+
+#: templates/sentry/projects/new.html:25
+#, python-format
+msgid ""
+"You must first <a href=\"%(create_team_link)s\">create a team</a> to create "
+"a project."
+msgstr "Najskôr musíte <a href=\"%(create_team_link)s\">vytvoriť tím</a> aby ste mohli vytvoriť projekt."
+
+#: templates/sentry/projects/new.html:27
+msgid ""
+"You are not able to create a new project because you are not a member of any"
+" teams. Ask an administrator to add you to a team."
+msgstr "Nemáte možnosť vytvoriť nový projekt pretože nieste členom žiadneho tímu. Požiadajte administrátora aby vás pridal do tímu."
+
+#: templates/sentry/projects/docs/client_config.html:5
+#, python-format
+msgid "%(platform_title)s Client Configuration"
+msgstr "%(platform_title)s Konfigurácia Klienta"
+
+#: templates/sentry/projects/docs/client_config.html:9
+#, python-format
+msgid "Configuring %(platform_title)s"
+msgstr "Konfigurácia %(platform_title)s"
+
+#: templates/sentry/projects/plugins/list.html:16
+msgid "You are able to selectively enable plugins on a per-project basis."
+msgstr "Máte možnosť selektívne povoliť zásuvné moduly na báze projektov."
+
+#: templates/sentry/projects/plugins/list.html:22
+msgid "Plugin"
+msgstr "Zásuvný Modul"
+
+#: templates/sentry/projects/plugins/list.html:23
+msgid "Version"
+msgstr "Verzia"
+
+#: templates/sentry/projects/plugins/list.html:24
+msgid "Enabled"
+msgstr "Povolené"
+
+#: templates/sentry/teams/base.html:5 templates/sentry/teams/base.html:20
+#: templates/sentry/teams/list.html:5 templates/sentry/teams/list.html.py:8
+msgid "Team List"
+msgstr "Zoznam Tímu"
+
+#: templates/sentry/teams/list.html:13
+msgid "The following is a list of teams that you are a member of."
+msgstr "Toto je zoznam tímov v ktorých ste členom."
+
+#: templates/sentry/teams/list.html:43
+msgid ""
+"You are not a member of any teams. Ask an administrator to add you to a "
+"team."
+msgstr "Nieste členom žiadneho z tímov. Pre pridanie do tímu kontaktujte adminstrátora."
+
+#: templates/sentry/teams/manage.html:7
+#, python-format
+msgid "Manage Team: %(name)s"
+msgstr "Spravovať Tím: %(name)s"
+
+#: templates/sentry/teams/manage.html:17
+msgid ""
+"Here you can edit team information, as well as control the access list for a"
+" team with fine-grained permissions."
+msgstr "Tu môžete upraviť informácie o tíme ako aj riadiť prístupy pre tím s rôznymi povoleniami."
+
+#: templates/sentry/teams/manage.html:19
+msgid "Changes to your team were saved successfully."
+msgstr "Zmeny vo vašom tíme boli úspešne uložené."
+
+#: templates/sentry/teams/manage.html:35 templates/sentry/teams/remove.html:5
+#: templates/sentry/teams/remove.html:10
+msgid "Remove Team"
+msgstr "Vymazať Tím"
+
+#: templates/sentry/teams/manage.html:37
+msgid "Cannot remove teams assigned to projects"
+msgstr "Tímy ktoré sú priradené k projektom nemožno odstrániť."
+
+#: templates/sentry/teams/manage.html:66
+msgid "Edit"
+msgstr "Upraviť"
+
+#: templates/sentry/teams/manage.html:73
+msgid "There are no projects managed by this team."
+msgstr "Týmto tímom niesú spravované žiadne projekty."
+
+#: templates/sentry/teams/manage.html:83
+#, python-format
+msgid "Pending (%(count)s)"
+msgstr "Čakajúce (%(count)s)"
+
+#: templates/sentry/teams/manage.html:113
+msgid "unavailable for owner"
+msgstr "nedostupné pre vlastníka"
+
+#: templates/sentry/teams/manage.html:117
+#: templates/sentry/teams/manage.html:157
+msgid "Remove"
+msgstr "Odstrániť"
+
+#: templates/sentry/teams/manage.html:121
+msgid "Suspend"
+msgstr "Pozastaviť"
+
+#: templates/sentry/teams/manage.html:123
+msgid "Restore"
+msgstr "Obnoviť"
+
+#: templates/sentry/teams/manage.html:160
+msgid "Resend"
+msgstr "Odoslať znovu"
+
+#: templates/sentry/teams/new.html:5 templates/sentry/teams/new.html.py:9
+msgid "New Team"
+msgstr "Nový Tím"
+
+#: templates/sentry/teams/new.html:14
+msgid ""
+"Use this page to create a new team within Sentry. Once done, you'll be able "
+"to add members to the team."
+msgstr "Pre vytvorenie tímu v Sentry použite túto stránku. Po dokončení budete môcť pridať členov do tímu."
+
+#: templates/sentry/teams/new.html:19
+msgid "Team Details"
+msgstr "Podrobnosti Tímu"
+
+#: templates/sentry/teams/remove.html:16
+msgid "Are you sure you wish to remove this team? This change is permanent!"
+msgstr "Ste si istý, že chcete odstrániť tento tím ? Táto zmena je trvalá!"
+
+#: templates/sentry/teams/members/edit.html:6
+msgid "Edit Member"
+msgstr "Upraviť Člena"
+
+#: templates/sentry/teams/members/edit.html:17
+msgid "Changes to the member were saved successfully."
+msgstr "Zmeny člena boli úspešne uložené."
+
+#: templates/sentry/teams/members/new.html:17
+msgid "Add an existing user"
+msgstr "Pridať existujúceho užívateľa"
+
+#: templates/sentry/teams/members/new.html:28
+msgid "You may add a user by their username if they already have an account."
+msgstr "Užívateľa môžete pridať pomocou jeho užívateľského mena pokiaľ už má účet."
+
+#: templates/sentry/teams/members/remove.html:5
+#: templates/sentry/teams/members/remove.html:7
+#: templates/sentry/teams/members/remove.html:12
+msgid "Remove Member"
+msgstr "Odobrať Člena"
+
+#: templates/sentry/teams/members/remove.html:18
+msgid ""
+"Are you sure you wish to revoke this user's access? <strong>This change is "
+"permanent and will revoke their API keys immediately.</strong>"
+msgstr "Ste si istí, že chcete zrušiť tento prístup užívateľa? <strong>Táto zmena je trvalá a zruší ihneď jeho API kľúče.</strong>"
+
+#: templates/sentry/teams/projects/new.html:15
+msgid ""
+"Use this page to create a new project within Sentry. Once done, you'll be "
+"able to configure your client to send messages to this project."
+msgstr "Pre vytvorenie projektu v Sentry použite túto stránku. Po dokončení budete môcť nakonfigurovať vašeho klienta aby odosielal správy do tohto projektu."
+
+#: templatetags/sentry_helpers.py:76
+msgid "b"
+msgstr "b"
+
+#: templatetags/sentry_helpers.py:77
+msgid "m"
+msgstr "m"
+
+#: templatetags/sentry_helpers.py:78
+msgid "k"
+msgstr "k"
+
+#: templatetags/sentry_helpers.py:141
+msgid "never"
+msgstr "nikdy"
+
+#: templatetags/sentry_helpers.py:145
+msgid "0 minutes"
+msgstr "0 minút"
+
+#: templatetags/sentry_helpers.py:146
+msgid "just now"
+msgstr "práve teraz"
+
+#: templatetags/sentry_helpers.py:147
+msgid "1 day"
+msgstr "1 deň"
+
+#: templatetags/sentry_helpers.py:148
+msgid "yesterday"
+msgstr "včera"
+
+#: templatetags/sentry_helpers.py:149
+msgid " ago"
+msgstr "dozadu"
+
+#: views/exception.py:17
+msgid "Exceptions"
+msgstr "Výnimky"
+
+#: views/message.py:16
+msgid "Message"
+msgstr "Správa"
+
+#: views/message.py:17
+msgid "Messages"
+msgstr "Správy"
+
+#: views/query.py:16
+msgid "Query"
+msgstr "Dopyt"
+
+#: views/query.py:17
+msgid "Queries"
+msgstr "Dopyty"
+
+#: web/forms/__init__.py:22
+msgid "Remove all attached events."
+msgstr "Odstrániť všetky pripojené udalosti."
+
+#: web/forms/__init__.py:23
+msgid "Migrate events to another project."
+msgstr "Presunúť udalosti do iného projektu."
+
+#: web/forms/__init__.py:27
+msgid "Password"
+msgstr "Heslo"
+
+#: web/forms/__init__.py:27
+msgid "Confirm your identify by entering your password."
+msgstr "Potvrďte svoju identifikáciu zadaním hesla."
+
+#: web/forms/__init__.py:42
+msgid "You must select a project to migrate data"
+msgstr "Pre migráciu údajov musíte vybrať projekt"
+
+#: web/forms/__init__.py:55
+msgid "Your password was entered incorrectly. Please enter it again."
+msgstr "Zadali ste nesprávne heslo. Skúste to znova prosím."
+
+#: web/forms/__init__.py:60
+msgid "e.g. My Project Name"
+msgstr "napr. Môj Názov Projektu"
+
+#: web/forms/__init__.py:61
+msgid "A slug is a URL-safe word and must be unique across all projects."
+msgstr "Slug je bezpečné slovo pre URL adresu a musí byť jedinečný v rámci všetkých projektov."
+
+#: web/forms/__init__.py:62
+msgid "e.g. my-project-name"
+msgstr "napr. moj-nazov-projektu"
+
+#: web/forms/__init__.py:78
+msgid "Allow anyone (even anonymous users) to view this project"
+msgstr "Povoľ zobrazenie projektu pre každého (vrátane anonymných užívateľov)"
+
+#: web/forms/__init__.py:148
+msgid "Create a project for this user."
+msgstr "Vytvoriť projekt pre tohto užívateľa."
+
+#: web/forms/__init__.py:150
+msgid ""
+"Send this user a welcome email which will contain their generated password."
+msgstr "Poslať tomuto užívateľovi uvítací email, ktorý bude obsahovať ich vygenerované heslo."
+
+#: web/forms/__init__.py:165
+msgid "Disable the account."
+msgstr "Zakázať účet."
+
+#: web/forms/__init__.py:166
+msgid "Permanently remove the user and their data."
+msgstr "Natrvalo odstrániť užívateľa a jeho dáta."
+
+#: web/forms/accounts.py:44
+msgid "Current password"
+msgstr "Aktuálne heslo"
+
+#: web/forms/accounts.py:45
+msgid "Email"
+msgstr "Email"
+
+#: web/forms/accounts.py:47
+msgid "New password"
+msgstr "Nové heslo"
+
+#: web/forms/accounts.py:48
+msgid "New password confirmation"
+msgstr "Potvrdenie nového hesla"
+
+#: web/forms/accounts.py:49
+msgid "Language"
+msgstr "Jazyk"
+
+#: web/forms/accounts.py:60
+msgid "The two password fields didn't match."
+msgstr "Polia s heslami sa nezhodujú."
+
+#: web/forms/accounts.py:69
+msgid "Your old password was entered incorrectly. Please enter it again."
+msgstr "Zadali ste nesprávne staré heslo. Skúste to znova prosím."
+
+#: web/forms/fields.py:45
+msgid "Invalid username"
+msgstr "Neplatné užívateľské meno"
+
+#: web/forms/teams.py:20 web/forms/teams.py:30
+msgid "e.g. My Team Name"
+msgstr "napr. Môj Názov Projektu"
+
+#: web/forms/teams.py:21 web/forms/teams.py:31
+msgid "A slug is a URL-safe word and must be unique across all teams."
+msgstr "Slug je bezpečné slovo pre URL adresu a musí byť jedinečný v rámci všetkých tímov."
+
+#: web/forms/teams.py:22 web/forms/teams.py:32
+msgid "e.g. my-team-name"
+msgstr "napr. moj-nazov-timu"
+
+#: web/forms/teams.py:70
+msgid "There is already a member with this email address"
+msgstr "Člen s touto emailovou adresou už existuje. "
+
+#: web/forms/teams.py:73
+msgid "There is already a pending invite for this user"
+msgstr "Pre tohto užívateľa už existuje čakajúca pozvánka"
+
+#: web/forms/teams.py:91
+msgid "User is already a member of this team"
+msgstr "Užívateľ už je členom tohto tímu"

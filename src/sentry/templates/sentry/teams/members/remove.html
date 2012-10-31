@@ -1,0 +1,25 @@
+{% extends "sentry/teams/manage.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Remove Member" %} | {{ block.super }}{% endblock %}
+
+{% block heading %}{% trans "Remove Member" %}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-remove-team-member team.slug member.pk %}">{% trans "Remove Member" %}</a></li>
+{% endblock %}
+
+{% block main %}
+    <form class="form-stacked" action="" method="post">
+        {% csrf_token %}
+        <div class="alert alert-block alert-error">
+            <p>{% trans "Are you sure you wish to revoke this user's access? <strong>This change is permanent and will revoke their API keys immediately.</strong>" %}</p>
+        </div>
+        <div class="actions">
+            <button type="submit" class="btn danger">{% trans "Confirm" %}</button> <a href="{% url sentry-manage-team team.slug %}" class="btn">{% trans "Cancel" %}</a>
+        </div>
+    </form>
+{% endblock %}

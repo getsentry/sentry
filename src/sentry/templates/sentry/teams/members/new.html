@@ -1,0 +1,35 @@
+{% extends "sentry/teams/manage.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "New Member" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-new-team-member team.slug %}">{% trans "New Member" %}</a></li>
+{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <ul class="nav nav-tabs">
+{#             <li class="active"><a href="#invite" data-toggle="tab">{% trans "Invite a new user" %}</a></li> #}
+            <li class="active"><a href="#add" data-toggle="tab">{% trans "Add an existing user" %}</a></li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane" id="invite">
+                <p>{% trans "Invite a member to join this team via their email address. If they do not already have an
+                    account they will first be asked to create one." %}</p>
+                {% with invite_form as form %}
+                    {% include "sentry/partial/_form.html" %}
+                {% endwith %}
+            </div>
+            <div class="tab-paneactive" id="add">
+                <p>{% trans "You may add a user by their username if they already have an account." %}</p>
+                {% with add_form as form %}
+                    {% include "sentry/partial/_form.html" %}
+                {% endwith %}
+            </div>
+        </div>
+    </section>
+{% endblock %}

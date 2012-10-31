@@ -1,0 +1,30 @@
+{% extends "sentry/teams/base.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "New Team" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-new-project %}">{% trans "New Team" %}</a></li>
+{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <p>{% trans "Use this page to create a new team within Sentry. Once done, you'll be able to add members to the team." %}</p>
+        <hr/>
+        <form class="form-stacked" action="" method="post">
+            {% csrf_token %}
+            <fieldset>
+                <legend>{% trans "Team Details" %}</legend>
+                <br/>
+                {% for field in form %}
+                    {% include "sentry/partial/_form_field.html" %}
+                {% endfor %}
+            </fieldset>
+            <div class="actions">
+                <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+            </div>
+        </form>
+    </section>
+{% endblock %}

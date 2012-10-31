@@ -1,0 +1,23 @@
+language: python
+python:
+  - "2.6"
+  - "2.7"
+env:
+  - DJANGO=1.4.1 DB=sqlite
+  - DJANGO=1.4.1 DB=mysql
+  - DJANGO=1.4.1 DB=postgres
+before_script:
+  - mysql -e 'create database sentry;'
+  - psql -c 'create database sentry;' -U postgres
+install:
+  - pip install mysql-python
+  - pip install psycopg2
+  - pip install -q Django==$DJANGO --use-mirrors
+  - pip install -q . --use-mirrors
+script:
+  - make test
+notifications:
+  irc:
+    channels: "irc.freenode.org#sentry"
+    on_success: change
+    on_failure: change

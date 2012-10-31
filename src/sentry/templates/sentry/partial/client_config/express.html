@@ -1,0 +1,19 @@
+{% load i18n %}
+
+<p>{% blocktrans with 'https://github.com/mattrobenolt/raven-node' as link %}Start by installing <a href="{{ link }}">raven-node</a>:{% endblocktrans %}</p>
+
+<pre>npm install raven</pre>
+
+<p>{% trans "Register an instance of the Express middleware:" %}</p>
+
+<pre>var app = require('express').createServer();
+
+app.error(raven.middleware.express('{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}'));</pre>
+
+<p>{% trans "Ensure Node is run with <code>NODE_ENV=production</code>:" %}</p>
+
+<pre>NODE_ENV=production node script.js</pre>
+
+<p>{% trans "That's it! Raven automatically installs an error handling hook to pipe all uncaught exceptions to Sentry." %}</p>
+
+<p>{% blocktrans with 'https://github.com/mattrobenolt/raven-node' as link %}For more information on other uses of Raven with Node.js, please see the <a href="{{ link }}">official documentation for raven-node</a>.{% endblocktrans %}</p>

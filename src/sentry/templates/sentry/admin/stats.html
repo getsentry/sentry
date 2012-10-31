@@ -1,0 +1,32 @@
+{% extends "sentry/admin/base.html" %}
+
+{% block admin-nav-stats %} class="active"{% endblock %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Stats" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-admin-stats %}">{% trans "Stats" %}</a></li>
+{% endblock %}
+
+{% block inner %}
+    <div class="page-header">
+        <h2>{% trans "Statistics" %}</h2>
+    </div>
+    <table class="table vars table-bordered table-striped">
+        <colgroup>
+            <col style="width:220px">
+        </colgroup>
+        <tbody>
+            {% for key, value in statistics %}
+                <tr>
+                    <td>{{ key }}</td>
+                    <td>{{ value }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

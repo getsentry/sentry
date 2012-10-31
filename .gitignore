@@ -1,6 +1,9 @@
+.coverage
+.tox
+/cover
 /build
 /dist
-/*.egg-info
+*.egg-info
 *.pyc
 *.log
 *.egg
@@ -10,3 +13,4 @@ pip-log.txt
 .DS_Store
 /docs/html
 /docs/doctrees
+example/db.sqlite

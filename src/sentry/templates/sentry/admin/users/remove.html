@@ -1,0 +1,35 @@
+{% extends "sentry/admin/users/edit.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Remove User" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-admin-remove-user the_user.pk %}">{% trans "Remove User" %}</a></li>
+{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <form action="" method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="alert alert-block alert-error">
+                    <p>{% trans "There were errors saving your changes:" %}</p>
+                    <ul>
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            {% for field in form %}
+                {% include "sentry/partial/_form_field.html" %}
+            {% endfor %}
+            <fieldset class="form-actions">
+                <button type="submit" class="btn btn-danger">{% trans "Confirm" %}</button> <a href="{% url sentry-admin-edit-user the_user.pk %}" class="btn">{% trans "Cancel" %}</a>
+            </fieldset>
+        </form>
+    </section>
+{% endblock %}

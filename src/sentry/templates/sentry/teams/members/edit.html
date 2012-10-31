@@ -1,0 +1,42 @@
+{% extends "sentry/teams/manage.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Edit Member" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-edit-team-member team.slug member.pk %}">Member: {{ member.user.username|truncatechars:30 }}</a></li>
+{% endblock %}
+
+{% block main %}
+    <section class="body">
+        {% if request.GET.success %}
+            <div class="alert alert-success">{% trans "Changes to the member were saved successfully." %}</div>
+        {% else %}
+            {% if form.errors %}
+                <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
+            {% endif %}
+        {% endif %}
+        <form class="form-stacked" action="" method="post">
+            {% csrf_token %}
+            <legend>{% trans "Details" %}</legend>
+            <div class="control-group">
+                <label>{% trans "User" %}</label>
+                <div class="controls">
+                    {{ member.user.username }}
+                </div>
+            </div>
+            <br/>
+            <legend>{% trans "Access" %}</legend>
+            {% for field in form %}
+                {% include "sentry/partial/_form_field.html" %}
+            {% endfor %}
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+            </div>
+        </form>
+    </section>
+{% endblock %}

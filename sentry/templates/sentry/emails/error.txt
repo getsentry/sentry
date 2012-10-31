@@ -1,8 +1,0 @@
-{% autoescape off %}{% if link %}
-View in detail: {{ link }}
-
-{{ event.message }}
-
-{% endif %}{% if traceback %}{{ traceback }}
-
-{% endif %}{% if request_repr %}{{ request_repr }}{% endif %}{% endautoescape %}

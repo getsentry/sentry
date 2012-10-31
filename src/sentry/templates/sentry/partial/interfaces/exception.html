@@ -1,0 +1,27 @@
+{% load i18n %}
+<div id="exception" class="module">
+    <div class="page-header">
+        <h2>{% trans "Exception" %}</h2>
+    </div>
+    <div class="module-content">
+        <table class="table table-bordered table-striped">
+            <colgroup>
+                <col style="width:100px;">
+            </colgroup>
+            <tr>
+                <th>{% trans "Types:" %}</th>
+                <td class="code"><pre>{{ exception_type|escape }}</pre></td>
+            </tr>
+            <tr>
+                <th>{% trans "Value:" %}</th>
+                <td class="code"><pre>{{ exception_value|escape }}</pre></td>
+            </tr>
+            {% if last_frame %}
+                <tr>
+                    <th>{% trans "Location:" %}</th>
+                    <td>{{ last_frame.filename|escape }}, {{ last_frame.function|escape }}:{{ last_frame.lineno }}</td>
+                </tr>
+            {% endif %}
+        </table>
+    </div>
+</div>

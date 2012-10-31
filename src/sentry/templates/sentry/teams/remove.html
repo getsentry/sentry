@@ -1,0 +1,36 @@
+{% extends "sentry/teams/manage.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Remove Team" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-remove-team team.slug %}">{% trans "Remove Team" %}</a></li>
+{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <form action="" method="post">
+            <p>{% trans "Are you sure you wish to remove this team? This change is permanent!" %}</p>
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="alert alert-block alert-error">
+                    <p>{% trans "There were errors saving your changes:" %}</p>
+                    <ul>
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            {% for field in form %}
+                {% include "sentry/partial/_form_field.html" %}
+            {% endfor %}
+            <fieldset class="form-actions">
+                <button type="submit" class="btn btn-danger">{% trans "Confirm" %}</button> <a href="{% url sentry-manage-team team.slug %}" class="btn">{% trans "Cancel" %}</a>
+            </fieldset>
+        </form>
+    </section>
+{% endblock %}

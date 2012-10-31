@@ -1,0 +1,53 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% blocktrans with project.name as name %}{{ name }} events{% endblocktrans %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-events project.id %}">{% trans "Stream" %}</a></li>
+{% endblock %}
+
+{% block sidebar %}
+    {% for filter in filters %}
+        {% if filter.show_label %}
+            <h6>{% trans filter.label %}</h6>
+        {% endif %}
+        <form method="get" action="{{ filter.get_query_string|safe }}">
+            {{ filter.render }}
+        </form>
+    {% endfor %}
+{% endblock %}
+
+{% block main %}
+    {% paginator event_list from request as event_list per_page MESSAGES_PER_PAGE %}
+
+    <div class="btn-toolbar">
+        <div class="btn-group pull-right">
+            <a class="btn prev{% if not event_list.paginator.has_previous %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
+            <a class="btn next{% if not event_list.paginator.has_next %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+        </div>
+    </div>
+
+    {% if event_list.paginator.objects %}
+        <ul class="events no-counts" id="event_list">
+            {% for event in event_list.paginator.objects %}
+                {% include "sentry/partial/_event.html" %}
+            {% endfor %}
+        </ul>
+    {% else %}
+        <ul class="events" id="event_list">
+            <li class="empty-result" id="no_messages">{% trans "No events match your filters." %}</li>
+        </ul>
+    {% endif %}
+
+    <div class="btn-toolbar">
+        <div class="btn-group pull-right">
+            <a class="btn prev{% if not event_list.paginator.has_previous %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
+            <a class="btn next{% if not event_list.paginator.has_next %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+        </div>
+    </div>
+{% endblock %}

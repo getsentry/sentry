@@ -1,0 +1,132 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Dashboard" %} | {{ block.super }}{% endblock %}
+
+{% block page_header_block %}{% endblock %}
+
+{% block main %}
+    <section class="body">
+        {% if PROJECT_LIST %}
+            <div style="height:200px;">
+                <div id="chart" data-api-url="{% url sentry-api-chart %}">
+                    <span class="loading">{% trans "Loading historical data..." %}</span>
+                </div>
+            </div>
+            <div class="page-header">
+                <h3 class="pull-left">{% trans "Trends" %}</h3>
+                <ul class="nav nav-pills nav-small">
+                    <li><a href="#top_15m" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends %}?minutes=15&amp;limit=5">{% trans "15 minutes" %}</a></li>
+                    <li><a href="#top_60m" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends %}?minutes=60&amp;limit=5">{% trans "60 minutes" %}</a></li>
+                    <li class="active"><a href="#top_24h" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends %}?minutes=1440&amp;limit=5">{% trans "24 hours" %}</a></li>
+                </ul>
+            </div>
+            <div class="tab-content">
+                <div class="tab-pane" id="top_15m"></div>
+                <div class="tab-pane" id="top_60m"></div>
+                <div class="tab-pane active" id="top_24h"><p>{% trans "Loading ..." %}</p></div>
+            </div>
+            <div class="page-header">
+                <h3 class="pull-left">{% trans "New Events" %}</h3>
+                <ul class="nav nav-pills nav-small">
+                    <li><a href="#new_15m" data-toggle="ajtab" data-uri="{% url sentry-api-groups-new %}?minutes=15&amp;limit=5">{% trans "15 minutes" %}</a></li>
+                    <li><a href="#new_60m" data-toggle="ajtab" data-uri="{% url sentry-api-groups-new %}?minutes=60&amp;limit=5">{% trans "60 minutes" %}</a></li>
+                    <li class="active"><a href="#new_24h" data-toggle="ajtab" data-uri="{% url sentry-api-groups-new %}?minutes=1440&amp;limit=5">{% trans "24 hours" %}</a></li>
+                </ul>
+            </div>
+            <div class="tab-content">
+                <div class="tab-pane" id="new_15m"></div>
+                <div class="tab-pane" id="new_60m"></div>
+                <div class="tab-pane active" id="new_24h"><p>{% trans "Loading ..." %}</p></div>
+            </div>
+        {% else %}
+            {% if can_create_projects %}
+                {% url sentry-new-project as link %}
+                <div class="alert alert-info">{% blocktrans %}You do not have access to any projects. Would you like to <a href="{{ link }}">create a new project</a>?{% endblocktrans %}</div>
+            {% else %}
+                <div class="alert alert-notice">{% trans "You do not have access to any projects. Ask an administrator to add you as a member." %}</div>
+            {% endif %}
+        {% endif %}
+    </section>
+{% endblock %}
+
+{% block sidebar %}
+    <h6>{% trans "Projects" %}</h6>
+    {% if PROJECT_LIST %}
+        <ul class="nav nav-tabs nav-stacked" style="margin-bottom:5px">
+            {% for p in PROJECT_LIST|slice:"10" %}
+                <li{% if p == project %} class="active"{% endif %}>
+                    <a class="action" href="{% url sentry-manage-project p.slug %}">{% trans "Settings" %}</a>
+                    <a href="{% url sentry p.slug %}">{{ p.name }}</a>
+                </li>
+            {% endfor %}
+        </ul>
+        <div style="text-align:right;margin-bottom:13px;">
+            {% if can_create_projects %}
+                <a href="{% url sentry-new-project %}" class="btn btn-small">{% trans "New project" %}</a>
+            {% endif %}
+            {% if PROJECT_LIST|length > 10 %}
+                <a href="{% url sentry-project-list %}" class="btn btn-small">{% blocktrans with PROJECT_LIST|length as count %}View all <strong>{{ count }}</strong> projects{% endblocktrans %}</a>
+            {% endif %}
+        </div>
+    {% else %}
+        <p>{% trans "You are not a part of any projects." %}</p>
+        {% if can_create_projects %}
+            <p><a href="{% url sentry-new-project %}">{% trans "Create a new project" %}</a></p>
+        {% endif %}
+    {% endif %}
+{% endblock %}
+
+{% block content_after %}
+    <script type="text/javascript">
+    $(document).ready(function() {
+        Sentry.charts.render('#chart');
+        //load content for first tab and initialize
+        $('a[data-toggle=ajtab]').each(function(){
+            var $el = $(this);
+
+            $el.bind('click', function(e) {
+                var $el = $(e.target);
+                var uri = $el.attr('data-uri');
+                if (!uri) {
+                    return;
+                }
+                var $tab = $(this);
+                var $cont = $($tab.attr('href'));
+                var $parent = $cont.parent();
+
+                $parent.css('opacity', .6)
+                e.preventDefault()
+
+                // load content for selected tab
+                $.ajax({
+                    url: uri,
+                    dataType: 'json',
+                    success: function(data){
+                        if (data.length) {
+                            var $ul = $('<ul class="events"></ul>');
+                            $.each(data, function(_, group){
+                                $ul.append($(group.html));
+                            });
+                            $cont.html($ul);
+                        } else {
+                            $cont.html('<p>{% trans "No unresolved events are listed in the time period selected." %}</p>');
+                        }
+                        $parent.css('opacity', 1)
+                        $tab.tab('show');
+                        $cont.find('.sparkline').sparkline('html', {enableTagOptions: true});
+                    },
+                    error: function(){
+                        $cont.html('<p>{% trans "There was an error fetching data from the server." %}</p>');
+                    }
+                });
+            });
+    
+            if ($el.parent().hasClass('active')) {
+                $el.click();
+            }
+        });
+    });
+    </script>
+{% endblock %}

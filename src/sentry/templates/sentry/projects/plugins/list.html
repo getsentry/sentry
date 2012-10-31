@@ -1,0 +1,61 @@
+{% extends "sentry/projects/manage.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_plugins %}
+
+{% block title %}{% trans "Manage Plugins" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-manage-project-plugins project.slug %}">{% trans "Plugins" %}</a></li>
+{% endblock %}
+
+{% block inner %}
+    <div class="page-header">
+        <h2>{% trans "Manage Plugins" %}</h2>
+    </div>
+    <form method="POST">
+        {% csrf_token %}
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>{% trans "Plugin" %}</th>
+                    <th style="width:100px;text-align:center;">{% trans "Version" %}</th>
+                    <th style="width:100px;text-align:center;">{% trans "Enabled" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plugin, is_enabled in project|get_plugins_with_status %}
+                    <tr>
+                        <td>
+                            {% if plugin.has_project_conf %}
+                                <a href="{% url sentry-configure-project-plugin project.slug plugin.slug %}">{{ plugin.get_title }}</a>
+                            {% else %}
+                                {{ plugin.get_title }}
+                            {% endif %}
+                            <br />
+                            <small>{% if plugin.author %}
+                                By {% if plugin.author_url %}<a href="{{ plugin.author_url }}">{{ plugin.author }}</a>{% else %}{{ plugin.author }}{% endif %}
+                            {% endif %}</small>
+                        </td>
+                        <td style="text-align:center;">
+                            {% if plugin.version %}{{ plugin.version }}{% else %}<em>{% trans "n/a" %}</em>{% endif %}
+                        </td>
+                        <td style="text-align:center;">
+                            {% if plugin.can_enable_for_projects %}
+                                <input type="checkbox" name="plugin" value="{{ plugin.slug }}"{% if is_enabled %} checked="checked"{% endif %}/>
+                            {% else %}
+                                <em>{% trans "n/a" %}</em>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <fieldset class="form-actions">
+            <input type="submit" class="btn btn-primary pull-right" value="Save Changes">
+        </fieldset>
+    </form>
+{% endblock %}

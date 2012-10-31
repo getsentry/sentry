@@ -1,0 +1,22 @@
+{% load i18n %}
+
+<div id="template" class="module">
+    <div class="page-header">
+        <a href="javascript:void(0)" data-container="#raw_template" data-title="Template" class="popup btn small pull-right">{% trans "Raw" %}</a>
+        <h2>{% trans "Template Error" %}</h2>
+    </div>
+    <div class="module-content">
+        <p><code>{{ filename }}</code> at line <code>{{ lineno }}</code></p>
+        {% if context %}
+            <ol start="{{ start_lineno }}" class="context expandable">
+                {% for num, line in context %}
+                    <li{% if num == lineno %} class="active"{% else %} class="template{{ forloop.parentloop.counter0 }}"{% endif %} onclick="$('.template{{ forloop.parentloop.counter0 }}').toggleClass('closed')"><pre>{{ line }}</pre></li>
+                {% endfor %}
+            </ol>
+        {% endif %}
+    </div>
+</div>
+
+<div id="raw_template" style="display: none;">
+    <pre>{{ template }}</pre>
+</div>

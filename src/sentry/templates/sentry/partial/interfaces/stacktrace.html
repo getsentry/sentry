@@ -1,0 +1,58 @@
+{% load i18n %}
+{% load sentry_helpers %}
+
+<div id="traceback" class="module">
+    <div class="page-header">
+      <a href="javascript:void(0)" data-container="#raw_stacktrace" data-title="Stacktrace" class="popup btn small pull-right">{% trans "Raw" %}</a>
+      <h2>{% trans "Stacktrace" %}</h2>
+    </div>
+    <div class="module-content">
+        <ul class="traceback">
+            {% for frame in frames %}
+                <li class="frame">
+                    <p>
+                        <code>{{ frame.filename }}</code>
+                        {% if frame.function %} in <code>{{ frame.function }}</code>{% endif %}
+                        {% if not frame.context %} at line <code>{{ frame.lineno }}</code>{% endif %}
+                    </p>
+
+                    {% if frame.context %}
+                        <ol start="{{ frame.start_lineno }}" class="context expandable" id="c{{ forloop.counter0 }}">
+                        {% for num, line in frame.context %}
+                            <li{% if num == frame.lineno %} class="active"{% else %} class="stack{{ forloop.parentloop.counter0 }} closed"{% endif %} onclick="$('.stack{{ forloop.parentloop.counter0 }}').toggleClass('closed')"><pre>{{ line }}</pre></li>
+                        {% endfor %}
+                        </ol>
+                    {% endif %}
+                    {% if frame.vars %}
+                        <div class="commands">
+                            <a href="#" onclick="return varToggle(this, '{{ forloop.counter0 }}')"><span>&#x25b6;</span> {% trans "Context" %}</a>
+                        </div>
+                        {% if frame.vars|is_dict %}
+                            <table class="table vars" id="v{{ forloop.counter0 }}" style="display:none;">
+                                <colgroup>
+                                    <col style="width:100px;">
+                                </colgroup>
+                                <tbody>
+                                    {% for key, value in frame.vars.iteritems|as_sorted %}
+                                        <tr>
+                                            <td>{{ key }}</td>
+                                            <td class="code"><pre>{{ value|pprint }}</pre></td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        {% else %}
+                            <div id="v{{ forloop.counter0 }}" style="display:none;">
+                                <pre>{{ frame.vars|pprint }}</pre>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div id="raw_stacktrace" style="display: none;">
+    <pre>{{ stacktrace }}</pre>
+</div>

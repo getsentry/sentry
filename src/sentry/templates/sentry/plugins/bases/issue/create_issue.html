@@ -1,0 +1,37 @@
+{% extends "sentry/groups/details.html" %}
+
+{% load i18n %}
+
+{% block title %}{{ title }} | {{ block.super }}{% endblock %}
+
+{% block inner %}
+    <div class="span12">
+        <div class="page-header">
+            <h3>{{ title }}</h3>
+        </div>
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-block alert-error">
+                <ul>
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+
+        <form class="form-stacked" action="" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}" />
+            <fieldset>
+                {% for field in form %}
+                    {% include "sentry/partial/_form_field.html" %}
+                {% endfor %}
+            </fieldset>
+            <p class="actions">
+                <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+            </p>
+        </form>
+    </div>
+{% endblock %}

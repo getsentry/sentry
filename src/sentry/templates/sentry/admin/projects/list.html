@@ -1,0 +1,86 @@
+{% extends "sentry/admin/base.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_admin_helpers %}
+
+{% block title %}{% trans "Manage Projects" %} | {{ block.super }}{% endblock %}
+
+{% block admin-nav-projects %} class="active"{% endblock %}
+
+{% block breadcrumb %}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-admin-projects %}">{% trans "Projects" %}</a></li>
+{% endblock %}
+
+{% block main %}
+    {% paginator project_list from request as project_list per_page 50 %}
+
+    <section class="body">
+        <form class="btn-toolbar" method="GET" action="">
+            <input type="text" name="pquery" value="{% if project_query %}{{ project_query }}{% endif %}" placeholder="search by project name">
+            <div class="btn-group pull-right">
+                <a class="btn prev{% if not project_list.paginator.has_previous %} disabled{% endif %}" href="?{{ project_list.query_string|escape }}&amp;p={{ project_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
+                <a class="btn next{% if not project_list.paginator.has_next %} disabled{% endif %}" href="?{{ project_list.query_string|escape }}&amp;p={{ project_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+            </div>
+        </form>
+
+        {% if sort == "events" %}
+            <p class="alert alert-info">{% trans "You are viewing projects sorted by the number of events created in the last 30 days. Projects that have not sent any data are not shown in this view." %}</p>
+        {% endif %}
+
+        {% querystring from request without sort as sort_querystring %}
+
+        {% if project_list.paginator.objects %}
+            <table class="table table-bordered table-striped">
+                <colgroup>
+                    <col>
+                    <col style="width:150px;">
+                    <col style="width:150px;">
+                    <col style="width:150px;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th><a href="?{{ sort_querystring }}&amp;sort=name">{% trans "Project" %}</a></th>
+                        <th style="text-align:center;"><a href="?{{ sort_querystring }}&amp;sort=events">{% trans "Daily Events" %}</a></th>
+                        <th style="text-align:center;"><a href="?{{ sort_querystring }}&amp;sort=date">{% trans "Date Added" %}</a></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for project, avg_events in project_list.paginator.objects|with_event_counts %}
+                        <tr>
+                            <td>
+                                <strong>{{ project.name }}</strong> <a href="{% url sentry project.slug %}">[view]</a><br/>
+                                {% if project.owner %}
+                                    <small>Owned by <a href="{% url sentry-admin-edit-user project.owner.pk %}">
+                                        {% if project.owner.email %}
+                                            {{ project.owner.email }}
+                                        {% else %}
+                                            {{ project.owner.username }}
+                                        {% endif %}
+                                    </a></smalL>
+                                {% endif %}
+                            </td>
+                            <td style="text-align:center; vertical-align:middle;">
+                                <em>~{{ avg_events }}</em>
+                            </td>
+                            <td style="text-align:center; vertical-align:middle;">
+                                {{ project.date_added|date }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        {% else %}
+            <p class="alert alert-notice">{% trans "There are no active projects in Sentry." %}</p>
+        {% endif %}
+
+        <div class="btn-toolbar">
+            <div class="btn-group pull-right">
+                <a class="btn prev{% if not project_list.paginator.has_previous %} disabled{% endif %}" href="?{{ project_list.query_string|escape }}&amp;p={{ project_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
+                <a class="btn next{% if not project_list.paginator.has_next %} disabled{% endif %}" href="?{{ project_list.query_string|escape }}&amp;p={{ project_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+            </div>
+        </div>
+    </section>
+{% endblock %}

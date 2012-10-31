@@ -10,59 +10,54 @@ Bundled Plugins
 Sentry includes several plugins by default. To enable a plugin, it's as simple as adding it to
 your ``INSTALLED_APPS``::
 
-	INSTALLED_APPS = [
-	  ...
-	  'sentry.plugins.sentry_servers',
-	  'sentry.plugins.sentry_sites',
-	  'sentry.plugins.sentry_urls',
-	]
+    INSTALLED_APPS = [
+      ...
+      'sentry.plugins.sentry_mail',
+      'sentry.plugins.sentry_servers',
+      'sentry.plugins.sentry_urls',
+      'sentry.plugins.sentry_useragents',
+    ]
 
 .. data:: sentry.plugins.sentry_server
     :noindex:
 
-    Enables a list of most seen servers in the message details sidebar, as well
-    as a dedicated panel to view all servers a message has been seen on.
-
-    ::
-
-    	INSTALLED_APPS = [
-    	  'sentry.plugins.sentry_servers',
-    	]
+    Enables auto tagging of servers.
 
 .. data:: sentry.plugins.sentry_urls
     :noindex:
 
-    Enables a list of most seen urls in the message details sidebar, as well
-    as a dedicated panel to view all urls a message has been seen on.
+    Enables auto tagging of urls based on the Http interface contents.
 
-    ::
-
-    	INSTALLED_APPS = [
-    	  'sentry.plugins.sentry_urls',
-    	]
-
-.. data:: sentry.plugins.sentry_sites
+.. data:: sentry.plugins.sentry_mail
     :noindex:
 
-    .. versionadded:: 1.3.13
+    Enables email notifications when new events or regressions happen.
 
-    Enables a list of most seen sites in the message details sidebar, as well
-    as a dedicated panel to view all sites a message has been seen on.
+.. data:: sentry.plugins.sentry_useragents
+    :noindex:
 
-    ::
+    Enables auto tagging of browsers and operating systems based on the
+    'User-Agent' header in the HTTP interface.
 
-    	INSTALLED_APPS = [
-    	  'sentry.plugins.sentry_sites',
-    	]
+    .. versionadded:: 4.5.0
 
-Writing a Plugin
-----------------
+3rd Party Extensions
+--------------------
 
-*The plugin interface is a work in progress and the API is not frozen.**
+The following extensions are available and maintained by members of the Sentry community:
 
-More and better docs coming soon.
+* `sentry-campfire <https://github.com/mkhattab/sentry-campfire>`_
+* `sentry-github <https://github.com/getsentry/sentry-github>`_
+* `sentry-groveio <https://github.com/mattrobenolt/sentry-groveio>`_
+* `sentry-hipchat <https://github.com/linovia/sentry-hipchat>`_
+* `sentry-irc <https://github.com/gisce/sentry-irc>`_
+* `sentry-jira <https://github.com/thurloat/sentry-jira>`_
+* `sentry-phabricator <https://github.com/getsentry/sentry-phabricator>`_
+* `sentry-pivotal <https://github.com/getsentry/sentry-pivotal>`_
+* `sentry-pushover <https://github.com/dz0ny/sentry-pushover>`_
+* `sentry-sprintly <https://github.com/mattrobenolt/sentry-sprintly>`_
+* `sentry-trello <https://github.com/DamianZaremba/sentry-trello>`_
+* `sentry-webhooks <https://github.com/getsentry/sentry-webhooks>`_
 
-.. note::
-
-   If you write a plugin be prepared to maintain it until we're content with the API.
-
+Have an extension that should be listed here? Submit a `pull request <https://github.com/getsentry/sentry>`_ and we'll
+get it added.

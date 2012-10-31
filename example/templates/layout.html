@@ -1,0 +1,45 @@
+{% load i18n %}
+{% load sentry_helpers %}
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <meta name="robots" content="NONE,NOARCHIVE">
+        <link href="{% url sentry-media "sentry" "styles/global.min.css" %}" rel="stylesheet" type="text/css"/>
+        <title>{% block title %}Sentry{% endblock %}</title>
+        {% block meta %}
+        {% endblock %}
+    </head>
+
+    <body>
+        {% block body %}
+        {% block header %}
+        {% endblock %}
+        <section id="content" class="{% block bodyclass %}with-sidebar{% endblock %}">
+            <div class="container">
+                <div class="content">
+                    {% block content_before %}
+                    {% endblock %}
+                    {% block content %}
+                        <div class="main">
+                            {% block main %}
+                            {% endblock %}
+                        </div>
+                    {% endblock %}
+                    {% block content_after %}
+                    {% endblock %}
+                    </div>
+                </div>
+            </div>
+        </section>
+        <footer>
+            <div class="container">
+                {% block footer %}
+                    Sentry {% sentry_version %} | Conjured up by the <a href="http://code.disqus.com">DISQUS</a> team and other noble <a href="https://github.com/getsentry/sentry/contributors">sorcerers</a>. | Sentry is <a href="https://github.com/getsentry/sentry">Open Source Software</a>
+                {% endblock %}
+            </div>
+        </footer>
+        {% endblock %}
+    </body>
+</html>

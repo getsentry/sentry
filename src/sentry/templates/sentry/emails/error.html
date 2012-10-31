@@ -1,0 +1,155 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html>
+    <head>
+        <style type="text/css">
+        * { font-size: 12px; }
+        body, .main {
+            width: 100%;
+            font-family: "helvetica neue", helvetica, sans-serif;
+            border: 0;
+            padding: 0;
+            margin: 0;
+        }
+        pre, code {
+            font-size: 11px;
+            font-family: Menlo, Monaco, "Courier New", monospace;
+        }
+        table {
+            width: 100%;
+        }
+        td {
+            padding: 0;
+            margin: 0;
+        }
+        td {
+            text-align: center;
+        }
+        .body {
+            margin: 0 auto;
+            text-align: left;
+            width: 600px;
+            border: 5px solid #404f60;
+        }
+        .header {
+            background: #404f60;
+            color: #fff;
+            padding: 10px;
+            font-size: 14px;
+            height: 28px;
+        }
+        .count {
+            color: #fff;
+            float: right;
+            margin: -18px -10px 0 10px;
+            -moz-border-radius: 60px;
+            -webkit-border-radius: 60px;
+            border-radius: 60px;
+            width: 60px;
+            height: 60px;
+            background: #cfd3da;
+            line-height: 62px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 400;
+            font-family: "proxima nova", "proxima-nova", "heletica-neue", sans-serif;
+        }
+        .level-debug .count {}
+        .level-info .count { background: #ffa101; }
+        .level-warning .count { background: #ffa101; }
+        .level-error .count { background: #f0431c; }
+        .level-fatal .count { background: #f0431c; }
+        .header h1 {
+            float: left;
+            font-size: 22px;
+            margin: 0;
+            padding: 0;
+        }
+        .header h1 small {
+            font-size: 14px;
+            margin-left: 10px;
+            color: #ccc;
+            font-weight: normal;
+        }
+
+        .inner {
+            background: #fff;
+            padding: 10px;
+        }
+        .inner pre,
+        .inner p,
+        .inner table {
+            margin-bottom: 15px;
+        }
+        .inner table th,
+        .inner table td {
+            text-align: left;
+        }
+        .interface {
+            margin-bottom: 15px;
+        }
+        .interface .title {
+            color: #404f60;
+            font-size: 14px;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #404f60;
+            font-weight: bold;
+        }
+        </style>
+    </head>
+    <body>
+        <table class="main level-{{ event.get_level_display }}">
+            <tr>
+                <td>
+                    <div class="body">
+                        <div class="header">
+                            <h1>Sentry <small>
+                                {% if group.times_seen == 1 %}
+                                    {% trans "New Event" %}
+                                {% else %}
+                                    {% trans "Regression" %}
+                                {% endif %}
+                            </small></h1>
+                            <span class="count">{{ group.times_seen }}</span>
+                        </div>
+                        <div class="inner">
+                            <p>{{ event.message }}</p>
+
+                            <p><a href="{{ link }}">{{ link }}</a></p>
+
+                            <table>
+                                <colgroup>
+                                    <col style="width:25%;">
+                                    <col style="width:25%;">
+                                    <col style="width:25%;">
+                                    <col style="width:25%;">
+                                </colgroup>
+                                <tr>
+                                    <th>{% trans "Logger:" %}</th>
+                                    <td>{{ event.logger }}</td>
+                                    <th>{% trans "Level:" %}</th>
+                                    <td>{{ event.get_level_display }}</td>
+                                </tr>
+                                <tr>
+                                    <th>{% trans "Server:" %}</th>
+                                    <td>{{ event.server_name }}</td>
+                                    <th>{% trans "First Seen:" %}</th>
+                                    <td>{{ group.first_seen|date }}</td>
+                                </tr>
+                            </table>
+
+                            {% for label, text in interfaces %}
+                            <div class="interface">
+                                <div class="title">{{ label }}</div>
+
+                                <pre>{{ text }}</pre>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>

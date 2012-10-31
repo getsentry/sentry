@@ -1,0 +1,22 @@
+{% load i18n %}
+
+<p>{% blocktrans with 'https://github.com/kencochrane/raven-java' as link %}Start by installing <a href="{{ link }}">raven-java</a>.{% endblocktrans %}</p>
+
+<p>{% trans "Create an instance of the client:" %}</p>
+
+<pre>RavenClient client = new RavenClient("{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}");</pre>
+
+<p>{% trans "Now call out to the raven client to capture events:" %}</p>
+
+<pre>// {% trans "record a simple message" %}
+client.captureMessage('hello world!')
+
+// {% trans "capture an exception" %}
+try {
+    throw new RuntimeException("Uh oh!");
+}
+catch (Throwable e) {
+    client.captureException(e);
+}</pre>
+
+<p>{% blocktrans with 'https://github.com/kencochrane/raven-java' as link %}For more information on other uses of Raven with Java, please see the <a href="{{ link }}">official documentation for raven-java</a>.{% endblocktrans %}</p>

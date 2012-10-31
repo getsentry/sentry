@@ -1,0 +1,50 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Admin" %} | {{ block.super }}{% endblock %}
+
+{% block page_header %}
+    <ul class="breadcrumb">
+        <li><a href="#">{% trans "Admin" %}</a></li>
+        {% block breadcrumb %}{% endblock %}
+    </ul>
+{% endblock %}
+
+{% block sidebar %}
+    <h6>{% trans "Overview" %}</h6>
+    <ul class="nav nav-tabs nav-stacked">
+        <li{% block admin-nav-projects %}{% endblock %}><a href="{% url sentry-admin-projects %}">{% trans "Projects" %}</a></li>
+        <li{% block admin-nav-users %}{% endblock %}><a href="{% url sentry-admin-users %}">{% trans "Users" %}</a></li>
+    </ul>
+
+    {% with PLUGINS.for_site as plugins %}
+        {% if plugins %}
+            <h6>{% trans "Plugins" %}</h6>
+            <ul class="nav nav-tabs nav-stacked">
+                {% for p in PLUGINS.for_site %}
+                    <li{% if plugin and plugin.slug == p.slug %} class="active"{% endif %}>
+                        <a href="{% url sentry-admin-configure-plugin p.slug %}">{{ p.get_conf_title }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    <h6>{% trans "Server Status" %}</h6>
+    <ul class="nav nav-tabs nav-stacked">
+        <li{% block admin-nav-status %}{% endblock %}><a href="{% url sentry-admin-status %}">{% trans "Environment" %}</a></li>
+        <li{% block admin-nav-packages %}{% endblock %}><a href="{% url sentry-admin-packages-status %}">{% trans "Packages" %}</a></li>
+        <li{% block admin-nav-queue %}{% endblock %}><a href="{% url sentry-admin-queue-status %}">{% trans "Queue" %}</a></li>
+    </ul>
+    <h6>{% trans "Statistics" %}</h6>
+    <ul class="nav nav-tabs nav-stacked">
+        <li{% block admin-nav-stats %}{% endblock %}><a href="{% url sentry-admin-stats %}">{% trans "Overview" %}</a></li>
+    </ul>
+{% endblock %}
+
+{% block main %}
+    <section class="body">
+        {% block inner %}{% endblock %}
+    </section>
+{% endblock %}

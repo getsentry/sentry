@@ -1,0 +1,72 @@
+{% extends "sentry/admin/users/list.html" %}
+
+{% load i18n %}
+{% load sentry_admin_helpers %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Change User" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-admin-edit-user the_user.pk %}">{{ the_user.username }}</a></li>
+{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <form action="" method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="alert alert-block alert-error">
+                    <p>{% trans "There were errors saving your changes:" %}</p>
+                    <ul>
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            {% for field in form %}
+                {% include "sentry/partial/_form_field.html" %}
+            {% endfor %}
+            <fieldset class="form-actions">
+                <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+                {% if the_user.id != request.user.id %}
+                    <a href="{% url sentry-admin-remove-user the_user.pk %}" class="btn btn-danger">{% trans "Remove User" %}</a>
+                {% else %}
+                    <a href="#" class="btn disabled btn-danger">{% trans "Cannot remove yourself" %}</a>
+                {% endif %}
+            </fieldset>
+        </form>
+        {% if project_list %}
+            <h3>{% trans "Projects" %}</h3>
+            <br/>
+            <table class="table table-bordered table-striped">
+                <colgroup>
+                    <col>
+                    <col style="width:150px;">
+                    <col style="width:150px;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>{% trans "Project" %}</th>
+                        <th style="text-align:center;">{% trans "Daily Events" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for project, avg_events in project_list|with_event_counts %}
+                        <tr>
+                            <td>
+                                {{ project.name }} <a href="{% url sentry project.slug %}">[view]</a>
+                                </a>
+                            </td>
+                            <td style="text-align:center; vertical-align:middle;">
+                                <em>~{{ avg_events }}</em>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </section>
+{% endblock %}

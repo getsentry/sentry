@@ -1,0 +1,12 @@
+{% extends "sentry/projects/client_help.html" %}
+
+{% load i18n %}
+
+{% block title %}{% blocktrans %}{{ platform_title }} Client Configuration{% endblocktrans %} | {{ block.super }}{% endblock %}
+
+{% block inner %}
+    <div class="page-header">
+        <h2>{% blocktrans %}Configuring {{ platform_title }}{% endblocktrans %}</h2>
+    </div>
+    {{ template }}
+{% endblock %}
