@@ -189,26 +189,28 @@ class Stacktrace(Interface):
     Each frame must contain the following attributes:
 
     ``filename``
-      the relative filepath to the call
+      The relative filepath to the call
     ``lineno``
-      the lineno of the call
+      The lineno of the call
 
     The following additional attributes are supported:
 
     ``abs_path``
-      the absolute path to filename
+      The absolute path to filename
     ``function``
-      the name of the function being called
+      The name of the function being called
     ``module``
-      platform-specific module path (e.g. sentry.interfaces.Stacktrace)
+      Platform-specific module path (e.g. sentry.interfaces.Stacktrace)
     ``context_line``
-      source code in filename at lineno
+      Source code in filename at lineno
     ``pre_context``
-      a list of source code lines before context_line (in order) -- usually [lineno - 5:lineno]
+      A list of source code lines before context_line (in order) -- usually [lineno - 5:lineno]
     ``post_context``
-      a list of source code lines after context_line (in order) -- usually [lineno + 1:lineno + 5]
+      A list of source code lines after context_line (in order) -- usually [lineno + 1:lineno + 5]
     ``in_app``
-      signifies whether this frame is part of your app (vs part of a framework/system library)
+      Signifies whether this frame is related to the execution of the relevant code in this stacktrace. For example,
+      the frames that might power the framework's webserver of your app are probably not relevant, however calls to
+      the framework's library once you start handling code likely are.
 
     >>> {
     >>>     "frames": [{
