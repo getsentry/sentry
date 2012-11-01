@@ -3,8 +3,19 @@ Interfaces
 
 Sentry implements data interfaces for storing structured data. At it's core, an interface describes what it's storing, and optionally how it's data should be rendered.
 
-Bundled Interfaces
-------------------
+Within the client, interfaces are referenced by their full Python module path. For example, if you were sending data
+for the ``sentry.interfaces.Message`` class, it would look like this in your JSON packet::
+
+    {
+        // etc.
+        "message": "Hello world"
+        "sentry.interfaces.Message": {
+            "message": "Hello world"
+        }
+    }
+
+Provided Interfaces
+-------------------
 
 .. autoclass:: sentry.interfaces.Message
 
