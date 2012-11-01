@@ -109,6 +109,19 @@ class Interface(object):
 
 
 class Message(Interface):
+    """
+    A standard message consisting of a ``message`` arg, and an optional
+    ``params`` arg for formatting.
+
+    If your message cannot be parameterized, then the message interface
+    will serve no benefit.
+
+    >>> {
+    >>>     "message": "My raw message with interpreted strings like %s",
+    >>>     "params": ["this"]
+    >>> }
+    """
+
     def __init__(self, message, params=()):
         self.message = message
         self.params = params
@@ -135,6 +148,15 @@ class Message(Interface):
 
 
 class Query(Interface):
+    """
+    A SQL query with an optional string describing the SQL driver, ``engine``.
+
+    >>> {
+    >>>     "query": "SELECT 1"
+    >>>     "engine": "psycopg2"
+    >>> }
+    """
+
     def __init__(self, query, engine=None):
         self.query = query
         self.engine = engine
@@ -155,6 +177,62 @@ class Query(Interface):
 
 
 class Stacktrace(Interface):
+    """
+    A stacktrace contains a list of frames, each with various bits (most optional)
+    describing the context of that frame. Frames should be sorted with the most recent
+    caller being the last in the list.
+
+    The stacktrace contains one element, ``frames``, which is a list of hashes. Each
+    hash must contain **at least** ``filename`` and ``lineno``. The rest of the values
+    are optional.
+
+    Each frame must contain the following attributes:
+
+    ``filename``
+      the relative filepath to the call
+    ``lineno``
+      the lineno of the call
+
+    The following additional attributes are supported:
+
+    ``abs_path``
+      the absolute path to filename
+    ``function``
+      the name of the function being called
+    ``module``
+      platform-specific module path (e.g. sentry.interfaces.Stacktrace)
+    ``context_line``
+      source code in filename at lineno
+    ``pre_context``
+      a list of source code lines before context_line (in order) -- usually [lineno - 5:lineno]
+    ``post_context``
+      a list of source code lines after context_line (in order) -- usually [lineno + 1:lineno + 5]
+    ``in_app``
+      signifies whether this frame is part of your app (vs part of a framework/system library)
+
+    >>> {
+    >>>     "frames": [{
+    >>>         "abs_path": "/real/file/name.py"
+    >>>         "filename": "file/name.py",
+    >>>         "function": "myfunction",
+    >>>         "vars": {
+    >>>             "key": "value"
+    >>>         },
+    >>>         "pre_context": [
+    >>>             "line1",
+    >>>             "line2"
+    >>>         ],
+    >>>         "context_line": "line3",
+    >>>         "lineno": 3,
+    >>>         "in_app": true,
+    >>>         "post_context": [
+    >>>             "line4",
+    >>>             "line5"
+    >>>         ],
+    >>>     }]
+    >>> }
+
+    """
     score = 1000
 
     def __init__(self, frames):
@@ -163,8 +241,13 @@ class Stacktrace(Interface):
             # ensure we've got the correct required values
             assert 'filename' in frame
             assert 'lineno' in frame
-            # assert 'context_line' in frame
-            # assert 'function' in frame
+
+            # lineno should be an int
+            frame['lineno'] = int(frame['lineno'])
+
+            # in_app should be a boolean
+            if 'in_app' in frame:
+                frame['in_app'] = bool(frame['in_app'])
 
     def _shorten(self, value, depth=1):
         if depth > 5:
@@ -277,6 +360,18 @@ class Stacktrace(Interface):
 
 
 class Exception(Interface):
+    """
+    A standard exception with a mandatory ``value`` argument, and optional
+    ``type`` and``module`` argument describing the exception class type and
+    module namespace.
+
+    >>>  {
+    >>>     "type": "ValueError",
+    >>>     "value": "My exception value",
+    >>>     "module": "__builtins__"
+    >>> }
+    """
+
     score = 900
 
     def __init__(self, value, type=None, module=None):
@@ -320,6 +415,34 @@ class Exception(Interface):
 
 
 class Http(Interface):
+    """
+    The Request information is stored in the Http interface. Two arguments
+    are required: ``url`` and ``method``.
+
+    The ``env`` variable is a compounded dictionary of HTTP headers as well
+    as environment information passed from the webserver.
+
+    The ``data`` variable should only contain the request body (not the query
+    string). It can either be a dictionary (for standard HTTP requests) or a
+    raw request body.
+
+    >>>  {
+    >>>     "url": "http://absolute.uri/foo",
+    >>>     "method": "POST",
+    >>>     "data": {
+    >>>         "foo": "bar"
+    >>>     },
+    >>>     "query_string": "hello=world",
+    >>>     "cookies": "foo=bar",
+    >>>     "headers": {
+    >>>         "Content-Type": "text/html"
+    >>>     },
+    >>>     "env": {
+    >>>         "REMOTE_ADDR": "192.168.0.1"
+    >>>     }
+    >>>  }
+    """
+
     score = 100
 
     # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
@@ -426,6 +549,27 @@ class Http(Interface):
 
 
 class Template(Interface):
+    """
+    A rendered template (generally used like a single frame in a stacktrace).
+
+    The attributes ``filename``, ``context_line``, and ``lineno`` are required.
+
+    >>>  {
+    >>>     "abs_path": "/real/file/name.html"
+    >>>     "filename": "file/name.html",
+    >>>     "pre_context": [
+    >>>         "line1",
+    >>>         "line2"
+    >>>     ],
+    >>>     "context_line": "line3",
+    >>>     "lineno": 3,
+    >>>     "post_context": [
+    >>>         "line4",
+    >>>         "line5"
+    >>>     ],
+    >>> }
+    """
+
     score = 1001
 
     def __init__(self, filename, context_line, lineno, pre_context=None, post_context=None,
@@ -433,7 +577,7 @@ class Template(Interface):
         self.abs_path = abs_path
         self.filename = filename
         self.context_line = context_line
-        self.lineno = lineno
+        self.lineno = int(lineno)
         self.pre_context = pre_context
         self.post_context = post_context
 
@@ -488,11 +632,27 @@ class Template(Interface):
 
 
 class User(Interface):
+    """
+    An interface which describes the authenticated User for a request.
+
+    All data is arbitrary and optional other than the ``is_authenticated``
+    field which should be a boolean value indiciating whether the user
+    is logged in or not.
+
+    >>> {
+    >>>     "is_authenticated": true,
+    >>>     "id": "unique_id",
+    >>>     "username": "foo",
+    >>>     "email": "foo@example.com"
+    >>> }
+    """
+
     def __init__(self, is_authenticated, **kwargs):
         self.is_authenticated = is_authenticated
-        self.id = kwargs.get('id')
-        self.username = kwargs.get('username')
-        self.email = kwargs.get('email')
+        self.id = kwargs.pop('id', None)
+        self.username = kwargs.pop('username', None)
+        self.email = kwargs.pop('email', None)
+        self.data = kwargs
 
     def serialize(self):
         if self.is_authenticated:
@@ -501,6 +661,7 @@ class User(Interface):
                 'id': self.id,
                 'username': self.username,
                 'email': self.email,
+                'data': self.data,
             }
         else:
             return {
@@ -516,7 +677,8 @@ class User(Interface):
             'user_authenticated': self.is_authenticated,
             'user_id': self.id,
             'user_username': self.username,
-            'user_email': self.email
+            'user_email': self.email,
+            'user_data': self.data,
         })
 
     def get_search_context(self, event):
