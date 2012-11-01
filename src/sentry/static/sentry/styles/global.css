@@ -6078,6 +6078,9 @@ pre span,
 code span {
   display: inline-block;
 }
+pre {
+  border: 0;
+}
 code {
   border: 0;
   background-color: inherit;

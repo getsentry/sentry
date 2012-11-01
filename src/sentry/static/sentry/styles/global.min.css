@@ -964,6 +964,7 @@ footer a{color:#f4f4f4;font-weight:bold;}footer a:hover{color:#fff;}
 .events .event.event-small .tag,.events .event.event-small .meta{font-size:11px;}
 label{font-weight:bold;}
 pre span,code span{display:inline-block;}
+pre{border:0;}
 code{border:0;background-color:inherit;color:#666666;}
 .nav-tabs>li.pull-right{float:right;}
 .table th{vertical-align:top;}
