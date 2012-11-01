@@ -725,12 +725,7 @@ class GroupManager(BaseManager, ChartMixin):
 
         epoch_clause = epoch_clause % dict(mcbm_tbl=mcbm_tbl)
 
-        queryset = queryset.extra(
-            where=[
-                "%s.date >= %s - %s" % (mcbm_tbl, now_clause, minute_clause % (minutes + 1, )),
-                "%s.date <= %s - %s" % (mcbm_tbl, now_clause, minute_clause % (1, ))
-            ],
-        ).annotate(x=Sum('messagecountbyminute__times_seen')).order_by('id')
+        queryset = queryset.annotate(x=Sum('messagecountbyminute__times_seen')).order_by('id')
 
         sql, params = queryset.query.get_compiler(queryset.db).as_sql()
         before_select, after_select = str(sql).split('SELECT ', 1)
@@ -741,17 +736,17 @@ class GroupManager(BaseManager, ChartMixin):
         after_group = after_group.split(' ORDER BY ')[0]
 
         query = """
-        SELECT DISTINCT (SUM(%(mcbm_tbl)s.times_seen) * (%(norm)f / (%(epoch_clause)s / 60)) + 1.0) / (COALESCE(z.rate, 0) + 1.0) as accel,
+        SELECT (SUM(%(mcbm_tbl)s.times_seen) * (%(norm)f / (%(epoch_clause)s / 60)) + 1.0) / (COALESCE(z.rate, 0) + 1.0) as accel,
                (COALESCE(z.rate, 0) + 1.0) as prev_rate,
                %(before_where)s
         LEFT JOIN (SELECT a.group_id, SUM(a.times_seen) / COUNT(a.times_seen) / %(norm)f as rate
             FROM %(mcbm_tbl)s as a
-            WHERE a.date BETWEEN %(now)s - %(max_time)s
-            AND %(now)s - %(min_time)s
+            WHERE a.date >=  %(now)s - %(max_time)s
+            AND a.date < %(now)s - %(min_time)s
             GROUP BY a.group_id) as z
         ON z.group_id = %(mcbm_tbl)s.group_id
-        WHERE %(mcbm_tbl)s.date BETWEEN %(now)s - %(min_time)s
-        AND %(now)s - %(offset_time)s
+        WHERE %(mcbm_tbl)s.date >= %(now)s - %(min_time)s
+        AND %(mcbm_tbl)s.date < %(now)s - %(offset_time)s
         AND %(before_group)s
         GROUP BY prev_rate, %(mcbm_tbl)s.date, %(after_group)s
         HAVING SUM(%(mcbm_tbl)s.times_seen) > 0
