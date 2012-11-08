@@ -36,13 +36,13 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
       MessageFilterValue, FilterKey, FilterValue, SearchDocument, ProjectCountByMinute
     from sentry.utils.query import RangeQuerySetWrapper, SkinnyQuerySet
 
-    logger = cleanup.get_logger()
+    log = cleanup.get_logger()
 
     def cleanup_groups(iterable):
         for obj in iterable:
-            logger.info("Removing all matching <SearchDocument: group=%s>", obj.pk)
+            log.info("Removing all matching <SearchDocument: group=%s>", obj.pk)
             SearchDocument.objects.filter(group=obj).delete()
-            logger.info("Removing <%s: id=%s>", obj.__class__.__name__, obj.pk)
+            log.info("Removing <%s: id=%s>", obj.__class__.__name__, obj.pk)
             obj.delete()
 
     # TODO: we should collect which messages above were deleted
@@ -70,7 +70,7 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
     groups_to_check = set()
     if resolved is None:
         for obj in RangeQuerySetWrapper(qs):
-            logger.info("Removing <%s: id=%s>", obj.__class__.__name__, obj.pk)
+            log.info("Removing <%s: id=%s>", obj.__class__.__name__, obj.pk)
             obj.delete()
             groups_to_check.add(obj.group_id)
 
@@ -89,7 +89,7 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
             qs = qs.filter(group__status=0)
 
         for obj in RangeQuerySetWrapper(qs):
-            logger.info("Removing <%s: id=%s>", obj.__class__.__name__, obj.pk)
+            log.info("Removing <%s: id=%s>", obj.__class__.__name__, obj.pk)
             obj.delete()
 
         # Group
@@ -114,7 +114,7 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
         qs = qs.filter(project=project)
 
     for obj in RangeQuerySetWrapper(qs):
-        logger.info("Removing <%s: id=%s>", obj.__class__.__name__, obj.pk)
+        log.info("Removing <%s: id=%s>", obj.__class__.__name__, obj.pk)
         obj.delete()
 
     # Filters
@@ -128,7 +128,7 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
 
     for obj in RangeQuerySetWrapper(qs):
         if not mqs.filter(key=obj.key).exists():
-            logger.info("Removing filters for unused filter %s=*", obj.key,)
+            log.info("Removing filters for unused filter %s=*", obj.key,)
             qs.filter(key=obj.key).delete()
             obj.delete()
 
@@ -138,7 +138,7 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
 
     for obj in RangeQuerySetWrapper(qs):
         if not mqs.filter(key=obj.key, value=obj.value).exists():
-            logger.info("Removing filters for unused filter %s=%s", obj.key, obj.value)
+            log.info("Removing filters for unused filter %s=%s", obj.key, obj.value)
             qs.filter(key=obj.key).delete()
             obj.delete()
 
