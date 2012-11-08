@@ -9,6 +9,7 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 
 from optparse import make_option
+import sys
 
 
 class Command(BaseCommand):
@@ -71,8 +72,7 @@ class Command(BaseCommand):
         # remove command line arguments to avoid optparse failures with service code
         # that calls call_command which reparses the command line, and if --noupgrade is supplied
         # a parse error is thrown
-        import sys; sys.argv = sys.argv[:1]
+        sys.argv = sys.argv[:1]
 
         print "Running service: %r" % service_name
         service.run()
-
