@@ -68,5 +68,11 @@ class Command(BaseCommand):
             workers=options.get('workers'),
         )
 
+        # remove command line arguments to avoid optparse failures with service code
+        # that calls call_command which reparses the command line, and if --noupgrade is supplied
+        # a parse error is thrown
+        import sys; sys.argv = sys.argv[:1]
+
         print "Running service: %r" % service_name
         service.run()
+
