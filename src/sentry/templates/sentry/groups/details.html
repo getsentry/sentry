@@ -89,7 +89,7 @@
     {% handle_before_events request group %}
     <ul class="events" id="event_list">
         <li class="event level-{{ group.get_level_display }}{% if group.status == 1 %} resolved{% endif %}" data-count="{{ group.times_seen|safe }}" data-score="{{ group.sort_value|safe }}" data-group="{{ group.id|safe }}">
-            <div class="count"><span>{{ group.times_seen|small_count }}</span></div>
+            <div class="count"><span title="{{ group.times_seen }}">{{ group.times_seen|small_count }}</span></div>
             <div class="details">
                 <h3>
                     {% if group.view %}
