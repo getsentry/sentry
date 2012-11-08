@@ -3,7 +3,7 @@
 {% load sentry_plugins %}
 
 <li class="event event-small level-{{ group.get_level_display }}" data-count="{{ group.times_seen }}" data-score="{{ group.sort_value }}" data-group="{{ group.id|safe }}">
-    <div class="count"><span>{{ group.times_seen|small_count }}</span></div>
+    <div class="count"><span title="{{ group.times_seen }}">{{ group.times_seen|small_count }}</span></div>
     <div class="details">
         <h3>
             <a href="{% url sentry-group group.project.slug group.pk %}">
@@ -27,4 +27,3 @@
         <span class="sparkline" sparkwidth="100" sparkheight="20" sparklineColor="#ccc" sparkfillColor="false" sparkspotRadius="0"><!-- {{ metadata.historical_data }} --></span>
     </div>
 </li>
-                
