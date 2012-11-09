@@ -15,7 +15,7 @@ class StacktraceTest(TestCase):
         self.assertRaises(AssertionError, Stacktrace, frames=[{
             'lineno': 1,
         }])
-        self.assertRaises(AssertionError, Stacktrace, frames=[{
+        Stacktrace(frames=[{
             'filename': 'foo.py',
         }])
         Stacktrace(frames=[{

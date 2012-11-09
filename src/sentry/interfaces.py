@@ -183,18 +183,18 @@ class Stacktrace(Interface):
     caller being the last in the list.
 
     The stacktrace contains one element, ``frames``, which is a list of hashes. Each
-    hash must contain **at least** ``filename`` and ``lineno``. The rest of the values
-    are optional.
+    hash must contain **at least** the ``filename`` attribute. The rest of the values
+    are optional, but recommended.
 
     Each frame must contain the following attributes:
 
     ``filename``
       The relative filepath to the call
-    ``lineno``
-      The lineno of the call
 
     The following additional attributes are supported:
 
+    ``lineno``
+      The lineno of the call
     ``abs_path``
       The absolute path to filename
     ``function``
@@ -242,10 +242,10 @@ class Stacktrace(Interface):
         for frame in frames:
             # ensure we've got the correct required values
             assert 'filename' in frame
-            assert 'lineno' in frame
 
             # lineno should be an int
-            frame['lineno'] = int(frame['lineno'])
+            if 'lineno' in frame:
+                frame['lineno'] = int(frame['lineno'])
 
             # in_app should be a boolean
             if 'in_app' in frame:
@@ -279,14 +279,14 @@ class Stacktrace(Interface):
 
             if frame.get('function'):
                 output.append(frame['function'])
-            else:
+            elif frame.get('lineno'):
                 output.append(frame['lineno'])
         return output
 
     def to_html(self, event):
         frames = []
         for frame in self.frames:
-            if frame.get('context_line'):
+            if frame.get('context_line') and frame.get('lineno') is not None:
                 context = get_context(frame['lineno'], frame['context_line'], frame.get('pre_context'), frame.get('post_context'))
                 start_lineno = context[0][0]
             else:
