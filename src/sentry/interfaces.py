@@ -340,8 +340,10 @@ class Stacktrace(Interface):
         for frame in self.frames:
             if 'function' in frame:
                 result.append('  File "%(filename)s", line %(lineno)s, in %(function)s' % frame)
-            else:
+            elif 'lineno' in frame:
                 result.append('  File "%(filename)s", line %(lineno)s' % frame)
+            else:
+                result.append('  File "%(filename)s"')
             if 'context_line' in frame:
                 result.append('    %s' % frame['context_line'].strip())
 
