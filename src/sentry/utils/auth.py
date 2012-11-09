@@ -56,7 +56,7 @@ class EmailAuthBackend(ModelBackend):
             if '@' in username:
                 try:
                     user = User.objects.get(email__iexact=username)
-                except user.DoesNotExist:
+                except User.DoesNotExist:
                     return None
             else:
                 return None
