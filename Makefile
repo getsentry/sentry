@@ -10,6 +10,7 @@ BOOTSTRAP_LESS = src/sentry.less
 LESS_COMPRESSOR ?= `which lessc`
 UGLIFY_JS ?= `which uglifyjs`
 WATCHR ?= `which watchr`
+SENTRY = sentry
 
 build: static locale
 
@@ -18,8 +19,8 @@ build: static locale
 #
 
 locale:
-	cd src/sentry && sentry makemessages -l en
-	cd src/sentry && sentry compilemessages
+	cd src/sentry && ${SENTRY} makemessages -l en
+	cd src/sentry && ${SENTRY} compilemessages
 
 #
 # Build less files

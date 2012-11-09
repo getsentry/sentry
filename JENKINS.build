@@ -5,11 +5,13 @@ START_DIR=`pwd`
 virtualenv --no-site-packages --distribute env
 env/bin/pip install -U distribute
 env/bin/pip uninstall --yes sentry || echo "Sentry not installed."
-#env/bin/python setup.py build install
+
 rm -rf env/project
-mkdir -p env/project
-make STATIC_DIR=env/project/static
+mkdir -p env/project/static
+cp -r src/sentry/static/sentry/ env/project/static/
+make STATIC_DIR=env/project/static/sentry static
 env/bin/python setup.py install
+make STATIC_DIR=env/project/static/sentry SENTRY=env/bin/sentry locale
 
 
 # create test_project environment which uses sqlite mem tables for its database
