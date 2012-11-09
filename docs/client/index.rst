@@ -15,6 +15,7 @@ Additionally, the following experimental clients are availabe:
 
 * CFML (`raven-cfml <https://github.com/jmacul2/raven-cfml>`_)
 * R (`logging <http://logging.r-forge.r-project.org/>`_)
+* Action Script 3 (`raven-as3 <https://github.com/skitoo/raven-as3>`_)
 
 Client Criteria
 ---------------
