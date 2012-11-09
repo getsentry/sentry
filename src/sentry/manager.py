@@ -17,6 +17,7 @@ import re
 import warnings
 import weakref
 
+from celery.signals import task_postrun
 from django.conf import settings as dj_settings
 from django.core.signals import request_finished
 from django.db import models, transaction, IntegrityError
@@ -792,6 +793,7 @@ class MetaManager(BaseManager):
 
     def __init__(self, *args, **kwargs):
         super(MetaManager, self).__init__(*args, **kwargs)
+        task_postrun.connect(self.clear_cache)
         request_finished.connect(self.clear_cache)
 
     def get_value(self, key, default=NOTSET):
@@ -835,6 +837,7 @@ class InstanceMetaManager(BaseManager):
     def __init__(self, field_name, *args, **kwargs):
         super(InstanceMetaManager, self).__init__(*args, **kwargs)
         self.field_name = field_name
+        task_postrun.connect(self.clear_cache)
         request_finished.connect(self.clear_cache)
 
     def get_value_bulk(self, instances, key):
@@ -896,6 +899,7 @@ class UserOptionManager(BaseManager):
 
     def __init__(self, *args, **kwargs):
         super(UserOptionManager, self).__init__(*args, **kwargs)
+        task_postrun.connect(self.clear_cache)
         request_finished.connect(self.clear_cache)
 
     def get_value(self, user, project, key, default=NOTSET):
