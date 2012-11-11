@@ -40,7 +40,7 @@ Running the Test Suite
 ----------------------
 
 The test suite is also powered off of setuptools, and can be run in two fashions. The
-easiest is to simply use setuptools and it's ``test`` command. This will handle installing
+easiest is to simply use setuptools and its ``test`` command. This will handle installing
 any dependancies you're missing automatically.
 
 ::
