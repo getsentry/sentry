@@ -438,7 +438,7 @@ Tags are key/value pairs that describe an event. They should be configurable in 
 * Thread (block-level)
 * Event (as part of capture)
 
-Each of these should inherit it's parent. So for example, if you configure your client as so::
+Each of these should inherit its parent. So for example, if you configure your client as so::
 
     client = Client(..., {
         'tags': {'foo': 'bar'},
