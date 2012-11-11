@@ -62,7 +62,7 @@ class IsValidOriginTestCase(TestCase):
         ProjectOption.objects.create(project=project, key='sentry:origins', value=['http://foo.example'])
 
         with self.Settings(SENTRY_ALLOW_ORIGIN=None):
-            self.assertTrue(is_valid_origin('http://example.com', project))
+            self.assertFalse(is_valid_origin('http://example.com', project))
 
     def test_project_and_setting(self):
         from sentry.models import Project, ProjectOption

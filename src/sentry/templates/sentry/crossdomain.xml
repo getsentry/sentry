@@ -1,0 +1,6 @@
+<cross-domain-policy>
+    {% for origin in origin_list %}
+        <allow-access-from domain="{{ origin }}" secure="true"></allow-access-from>
+    {% endfor %}
+    <allow-http-request-headers-from domain="*" headers="X-Sentry-Auth" secure="true"></allow-http-request-headers-from>
+</cross-domain-policy>
