@@ -1601,7 +1601,7 @@ msgstr "вчера"
 
 #: templatetags/sentry_helpers.py:149
 msgid " ago"
-msgstr "Только закладки"
+msgstr " назад"
 
 #: views/exception.py:17
 msgid "Exceptions"
