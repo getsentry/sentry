@@ -96,7 +96,7 @@ jQuery ->
                     view.load()
                     return
 
-                $cont = $(name)
+                $cont = $('#' + view_id)
                 $parent = $cont.parent()
 
                 $parent.css('opacity', .6)
@@ -110,8 +110,16 @@ jQuery ->
                         view.load(data)
                         $parent.css('opacity', 1)
                         $tab.tab('show')
-                    # error: ->
-                    #     $cont.html('<p>{% trans "There was an error fetching data from the server." %}</p>')
+
+                        if $cont.find('.sparkline canvas').length == 0
+                            $cont.find('.sparkline').each (_, el) =>
+                                # TODO: find a way to not run this check each time
+                                $(el).sparkline 'html'
+                                    enableTagOptions: true
+                                    height: $(el).height()
+
+                    error: ->
+                        $cont.html('<p>There was an error fetching data from the server.</p>')
     
             # initialize active tabs
             $('li.active a[data-toggle=ajtab]').click()

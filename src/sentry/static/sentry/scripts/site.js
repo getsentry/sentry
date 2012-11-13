@@ -115,7 +115,7 @@
             view.load();
             return;
           }
-          $cont = $(name);
+          $cont = $('#' + view_id);
           $parent = $cont.parent();
           $parent.css('opacity', .6);
           e.preventDefault();
@@ -125,7 +125,18 @@
             success: function(data) {
               view.load(data);
               $parent.css('opacity', 1);
-              return $tab.tab('show');
+              $tab.tab('show');
+              if ($cont.find('.sparkline canvas').length === 0) {
+                return $cont.find('.sparkline').each(function(_, el) {
+                  return $(el).sparkline('html', {
+                    enableTagOptions: true,
+                    height: $(el).height()
+                  });
+                });
+              }
+            },
+            error: function() {
+              return $cont.html('<p>There was an error fetching data from the server.</p>');
             }
           });
         });
