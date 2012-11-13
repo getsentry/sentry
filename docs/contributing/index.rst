@@ -84,7 +84,18 @@ You will need several Node modules for compiling static media::
     npm install recess connect uglify-js jshint -g
 
 To compile media, just run ``make`` from the root directory. This will handle merging all existing JavaScript as well
-as building the CSS files.
+as building the CSS files::
+
+    # compile all static media
+    make
+
+If you're working in development mode, the following two commands will assist you in recompiling static content::
+
+    # watch sentry.less for changes
+    make watch
+
+    # watch coffee scripts for changes
+    make cwatch
 
 Contributing Back Code
 ----------------------

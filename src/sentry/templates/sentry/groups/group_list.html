@@ -8,15 +8,6 @@
 
 {% block meta %}
     {{ block.super }}
-    <script>
-    {% if has_realtime %}
-        Sentry.realtime.config({
-            projectId: {{ project.slug|to_json|safe }},
-            viewId: {% if view %}{{ view.pk|to_json|safe }}{% else %}null{% endif %}
-        })
-        Sentry.realtime.enable();
-    {% endif %}
-    </script>
 {% endblock %}
 
 {% block page_header %}
@@ -134,31 +125,8 @@
         </form>
     </div>
 
-    {% if event_list.paginator.objects %}
-        {% handle_before_events request event_list.paginator.objects %}
-        <ul class="events" id="event_list">
-            {% for group, metadata in event_list.paginator.objects|with_metadata:request %}
-                {% include "sentry/partial/_group.html" %}
-            {% endfor %}
-        </ul>
-    {% else %}
-        {% get_project_dsn for request.user from project as project_dsn %}
-        <ul class="events" id="event_list">
-            <li class="empty-result" id="no_messages">
-                <div class="alert alert-block alert-notice">
-                    {% if project_dsn %}
-                        <p>{% trans "To start sending events, configure your client with the following DSN value:" %}</p>
-                        <p><code class="clippy">{{ project_dsn }}</code></p>
-                        <p>{% trans "Choose your platform for quick setup instructions:" %}</p>
-                        {% include "sentry/partial/_client_config.html" %}
-                        <p>{% blocktrans with 'http://sentry.readthedocs.org' as link %}For more information, please see the <a href="{{ link }}">documentation</a>.{% endblocktrans %}</p>
-                    {% else %}
-                        <p>{% trans "No events match your filters." %}</p>
-                    {% endif %}
-                </div>
-            </li>
-        </ul>
-    {% endif %}
+    {% handle_before_events request event_list.paginator.objects %}
+    <div id="event_list"></div>
 
     <div class="btn-toolbar">
         <div class="btn-group pull-right">
@@ -166,5 +134,14 @@
             <a class="btn next{% if not event_list.paginator.has_next %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
         </div>
     </div>
+
+    <script>
+    $(function(){
+        new app.StreamView({
+            groups: {{ event_list.paginator.objects|to_json:request|safe }},
+            realtime: {{ has_realtime|to_json|safe }}
+        });
+    });
+    </script>
 
 {% endblock %}
