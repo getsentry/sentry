@@ -5906,12 +5906,12 @@ footer a:hover {
   background-image: none;
   background-color: inherit;
 }
-.group-list > li.with-metadata .message,
-.events > li.with-metadata .message {
+.group-list > li.with-sparkline .message,
+.events > li.with-sparkline .message {
   padding-right: 124px;
 }
-.group-list > li.with-metadata .meta,
-.events > li.with-metadata .meta {
+.group-list > li.with-sparkline .meta,
+.events > li.with-sparkline .meta {
   right: 155px;
 }
 .group-list > li:hover,
@@ -6086,6 +6086,10 @@ footer a:hover {
 .events.small > li .message {
   font-size: 12px;
 }
+.group-list.small > li .message .tag,
+.events.small > li .message .tag {
+  display: none;
+}
 .group-list.small > li .count,
 .events.small > li .count {
   left: 10px;
@@ -6108,6 +6112,7 @@ footer a:hover {
 .group-list.small > li .sparkline,
 .events.small > li .sparkline {
   right: 10px;
+  height: 20px;
   top: 18px;
 }
 .group-list.small > li .tag,

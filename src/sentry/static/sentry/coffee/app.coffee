@@ -3,7 +3,7 @@ app.config = app.config || {};
 
 jQuery ->
 
-    app.StreamView = class StreamView extends Backbone.View
+    app.StreamPage = class StreamPage extends Backbone.View
 
         initialize: (data) ->
             _.bindAll(@)
@@ -75,7 +75,7 @@ jQuery ->
                     # if an error happened lets give the server a bit of time before we poll again
                     window.setTimeout(@poll, 10000)
 
-    app.DashboardView = class DashboardView extends Backbone.View
+    app.DashboardPage = class DashboardPage extends Backbone.View
 
         initialize: ->
             _.bindAll(@)

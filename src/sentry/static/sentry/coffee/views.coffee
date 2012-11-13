@@ -94,7 +94,10 @@ jQuery ->
                 else
                     $el.insertBefore($rel)
 
-            # $el.find('.sparkline').sparkline('html', {enableTagOptions: true})
+            $el.find('.sparkline').each (_, el) =>
+                $(el).sparkline 'html'
+                    enableTagOptions: true
+                    height: $(el).height()
 
             # make sure we limit the number shown
             while @collection.length > @config.maxItems
@@ -129,13 +132,13 @@ jQuery ->
 
         render: ->
             data = @model.toJSON()
-            data.historicalData = @getHistoricalAsString @model
-            @$el.html @template data
-            @$el.addClass @getLevelClassName @model
+            data.historicalData = @getHistoricalAsString(@model)
+            @$el.html(@template(data))
+            @$el.addClass(@getLevelClassName(@model))
             if data.isResolved
-                @$el.addClass 'resolved'
+                @$el.addClass('resolved')
             if data.historicalData
-                @$el.addClass 'with-metadata'
+                @$el.addClass('with-sparkline')
             @$el.attr('data-id', data.id)
             @
 

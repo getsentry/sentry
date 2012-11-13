@@ -9,16 +9,16 @@
   app.config = app.config || {};
 
   jQuery(function() {
-    var DashboardView, StreamView;
-    app.StreamView = StreamView = (function(_super) {
+    var DashboardPage, StreamPage;
+    app.StreamPage = StreamPage = (function(_super) {
 
-      __extends(StreamView, _super);
+      __extends(StreamPage, _super);
 
-      function StreamView() {
-        return StreamView.__super__.constructor.apply(this, arguments);
+      function StreamPage() {
+        return StreamPage.__super__.constructor.apply(this, arguments);
       }
 
-      StreamView.prototype.initialize = function(data) {
+      StreamPage.prototype.initialize = function(data) {
         var _ref;
         _.bindAll(this);
         this.group_list = new app.OrderedElementsView({
@@ -36,7 +36,7 @@
         return window.setInterval(this.tick, 300);
       };
 
-      StreamView.prototype.tick = function() {
+      StreamPage.prototype.tick = function() {
         if (!this.queue.length) {
           return;
         }
@@ -44,11 +44,11 @@
         return this.group_list.addMember(this.queue.pop());
       };
 
-      StreamView.prototype.getPollUrl = function() {
+      StreamPage.prototype.getPollUrl = function() {
         return app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/';
       };
 
-      StreamView.prototype.poll = function() {
+      StreamPage.prototype.poll = function() {
         var data, poll_url,
           _this = this;
         poll_url = this.getPollUrl;
@@ -89,18 +89,18 @@
         });
       };
 
-      return StreamView;
+      return StreamPage;
 
     })(Backbone.View);
-    return app.DashboardView = DashboardView = (function(_super) {
+    return app.DashboardPage = DashboardPage = (function(_super) {
 
-      __extends(DashboardView, _super);
+      __extends(DashboardPage, _super);
 
-      function DashboardView() {
-        return DashboardView.__super__.constructor.apply(this, arguments);
+      function DashboardPage() {
+        return DashboardPage.__super__.constructor.apply(this, arguments);
       }
 
-      DashboardView.prototype.initialize = function() {
+      DashboardPage.prototype.initialize = function() {
         var _this = this;
         _.bindAll(this);
         this.views = {};
@@ -132,7 +132,7 @@
         return $('li.active a[data-toggle=ajtab]').click();
       };
 
-      DashboardView.prototype.getView = function(id) {
+      DashboardPage.prototype.getView = function(id) {
         if (!this.views[id]) {
           this.views[id] = new app.OrderedElementsView({
             className: 'group-list small',
@@ -143,7 +143,7 @@
         return this.views[id];
       };
 
-      return DashboardView;
+      return DashboardPage;
 
     })(Backbone.View);
   });
@@ -390,7 +390,8 @@
       };
 
       OrderedElementsView.prototype.renderMemberInContainer = function(member) {
-        var $el, $rel, item, new_pos, _results;
+        var $el, $rel, item, new_pos, _results,
+          _this = this;
         new_pos = this.collection.indexOf(member);
         this.$parent.find('li.empty').remove();
         $el = $('#' + this.id + member.id);
@@ -409,6 +410,12 @@
             $el.insertBefore($rel);
           }
         }
+        $el.find('.sparkline').each(function(_, el) {
+          return $(el).sparkline('html', {
+            enableTagOptions: true,
+            height: $(el).height()
+          });
+        });
         _results = [];
         while (this.collection.length > this.config.maxItems) {
           _results.push(item = this.collection.pop());
@@ -476,7 +483,7 @@
           this.$el.addClass('resolved');
         }
         if (data.historicalData) {
-          this.$el.addClass('with-metadata');
+          this.$el.addClass('with-sparkline');
         }
         this.$el.attr('data-id', data.id);
         return this;

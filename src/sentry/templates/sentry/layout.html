@@ -136,7 +136,6 @@
             $('input[data-toggle="datepicker"]').datepicker();
             $('.tip').tooltip();
             $('.nav-tabs .active a').tab('show')
-            $('.sparkline').sparkline('html', {enableTagOptions: true});
         });
         </script>
         <script id="group-template" type="text/template">
@@ -158,8 +157,9 @@
                     <% if (timeSpent) { %>
                         <span class="time-spent"><%= app.utils.round(timeSpent) %>ms</span>
                     <% } %>
+                    <span class="tag tag-project"><%= project.name %></span>
                 </div>
-                <span class="sparkline" sparkwidth="100" sparkheight="40" sparklineColor="#ccc" sparkfillColor="false" sparkspotRadius="0"><!-- <%= historicalData %> --></span>
+                <span class="sparkline" sparkwidth="100" sparklineColor="#ccc" sparkfillColor="false" sparkspotRadius="0"><!-- <%= historicalData %> --></span>
                 <ul class="actions">
                     <% if (canResolve) { %>
                         <li>

@@ -137,7 +137,7 @@
 
     <script>
     $(function(){
-        new app.StreamView({
+        new app.StreamPage({
             groups: {{ event_list.paginator.objects|to_json:request|safe }},
             realtime: {{ has_realtime|to_json|safe }}
         });
