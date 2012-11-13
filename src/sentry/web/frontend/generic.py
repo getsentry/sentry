@@ -26,7 +26,7 @@ def dashboard(request):
 
     if not has_projects:
         if not request.user.is_authenticated():
-            request.session['_next'] = request.build_absolute_uri()
+            request.session['_next'] = request.get_full_path()
             return HttpResponseRedirect(get_login_url())
         elif can_create_projects(request.user):
             return HttpResponseRedirect(reverse('sentry-new-project'))
