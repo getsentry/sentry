@@ -5898,7 +5898,7 @@ footer a:hover {
 .group-list > li.empty,
 .events > li.empty {
   border: 0;
-  padding: 0 !important;
+  padding: 15px 20px !important;
 }
 .group-list > li.empty:hover,
 .events > li.empty:hover {
