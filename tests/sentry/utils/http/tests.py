@@ -7,7 +7,7 @@ from django.http import HttpResponse
 from sentry.utils.http import is_same_domain, apply_access_control_headers, \
   is_valid_origin
 
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class SameDomainTestCase(TestCase):

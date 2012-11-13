@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from sentry.constants import MEMBER_OWNER
 from sentry.models import Project, Team
 
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class SentrySignalTest(TestCase):

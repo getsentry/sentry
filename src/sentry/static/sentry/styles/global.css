@@ -5596,6 +5596,7 @@ h3 {
   float: left;
   padding: 18px 20px;
   margin-right: -300px;
+  overflow: hidden;
 }
 #content .sidebar h6 {
   display: block;
@@ -6122,6 +6123,9 @@ pre span,
 code span {
   display: inline-block;
 }
+pre {
+  border: 0;
+}
 code {
   border: 0;
   background-color: inherit;
@@ -6233,7 +6237,7 @@ td table.vars {
 }
 /* tracebacks */
 .frame table.vars {
-  margin: 5px 0 2px 35px;
+  margin: 5px 0 0 35px;
 }
 table.vars td.code {
   overflow: hidden;
@@ -6251,11 +6255,12 @@ ul.traceback {
   margin-left: 0;
 }
 ul.traceback li.frame {
-  margin-bottom: 1em;
+  margin-bottom: 10px;
   overflow: hidden;
   position: relative;
 }
 div.commands {
+  font-size: 12px;
   margin-top: 10px;
   margin-left: 20px;
 }
@@ -6264,7 +6269,8 @@ div.commands a {
   text-decoration: none;
 }
 div.commands span {
-  font-size: 0.9em;
+  margin-right: 5px;
+  font-size: 10px;
 }
 #versioninfo th {
   text-align: left;
@@ -6477,7 +6483,6 @@ legend {
   margin-right: 10px;
 }
 #messages .alert {
-  padding: 20px 20px;
   -webkit-border-radius: 0;
   -moz-border-radius: 0;
   border-radius: 0;

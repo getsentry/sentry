@@ -7,14 +7,17 @@ sentry.web.frontend.accounts
 """
 from crispy_forms.helper import FormHelper
 from django.conf import settings as dj_settings
+from django.contrib import messages
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 
+from sentry.models import UserOption
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required
-from sentry.web.forms.accounts import AccountSettingsForm, NotificationSettingsForm
+from sentry.web.forms.accounts import AccountSettingsForm, NotificationSettingsForm, \
+  AppearanceSettingsForm
 from sentry.web.helpers import render_to_response
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.safe import safe_execute
@@ -72,16 +75,11 @@ def settings(request):
     form = AccountSettingsForm(request.user, request.POST or None, initial={
         'email': request.user.email,
         'first_name': request.user.first_name,
-        'language': request.LANGUAGE_CODE,
     })
     if form.is_valid():
         form.save()
-        response = HttpResponseRedirect(reverse('sentry-account-settings') + '?success=1')
-        if hasattr(request, 'session'):
-            request.session['django_language'] = form.cleaned_data['language']
-        else:
-            response.set_cookie(dj_settings.LANGUAGE_COOKIE_NAME, form.cleaned_data['language'])
-        return response
+        messages.add_message(request, messages.SUCCESS, 'Your settings were saved.')
+        return HttpResponseRedirect(request.path)
 
     context = csrf(request)
     context.update({
@@ -89,6 +87,28 @@ def settings(request):
         'page': 'settings',
     })
     return render_to_response('sentry/account/settings.html', context, request)
+
+
+@csrf_protect
+@login_required
+def appearance_settings(request):
+    options = UserOption.objects.get_all_values(user=request.user, project=None)
+
+    form = AppearanceSettingsForm(request.user, request.POST or None, initial={
+        'language': options.get('language') or request.LANGUAGE_CODE,
+        'stacktrace_order': options.get('stacktrace_order'),
+    })
+    if form.is_valid():
+        form.save()
+        messages.add_message(request, messages.SUCCESS, 'Your settings were saved.')
+        return HttpResponseRedirect(request.path)
+
+    context = csrf(request)
+    context.update({
+        'form': form,
+        'page': 'appearance',
+    })
+    return render_to_response('sentry/account/appearance.html', context, request)
 
 
 @csrf_protect
@@ -115,8 +135,8 @@ def notification_settings(request):
         if all(f.is_valid() for f, h in forms):
             for form, helper in forms:
                 form.save()
-            response = HttpResponseRedirect(reverse('sentry-account-settings-notifications') + '?success=1')
-            return response
+            messages.add_message(request, messages.SUCCESS, 'Your settings were saved.')
+            return HttpResponseRedirect(request.path)
 
     context = csrf(request)
     context.update({

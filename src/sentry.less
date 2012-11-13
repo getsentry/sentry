@@ -285,6 +285,7 @@ h3 {
     float: left;
     padding: 18px 20px;
     margin-right: -300px;
+    overflow: hidden;
 
     h6 {
       display: block;
@@ -637,6 +638,10 @@ pre, code {
   }
 }
 
+pre {
+  border: 0;
+}
+
 code {
   border: 0;
   background-color: inherit;
@@ -766,20 +771,22 @@ td table.vars {
 #chart { margin-bottom: 15px; overflow: hidden; }
 
 /* tracebacks */
-.frame table.vars { margin:5px 0 2px 35px; }
+.frame table.vars { margin:5px 0 0 35px; }
 table.vars td.code { overflow: hidden; }
 table.vars td.code pre { margin-bottom: 0; }
 div.pastebin textarea { padding: 10px; background: #f9f9f9; border-color: #ddd; }
 
-ul.traceback { list-style-type: none; margin-left: 0;}
-ul.traceback li.frame { margin-bottom: 1em; overflow: hidden; position: relative; }
-div.commands { margin-top: 10px; margin-left: 20px; }
-div.commands a { color:black; text-decoration:none; }
-div.commands span { font-size: 0.9em; }
+ul.traceback { list-style-type: none; margin-left: 0; }
+ul.traceback li.frame { margin-bottom: 10px; overflow: hidden; position: relative; }
+div.commands { font-size: 12px; margin-top: 10px; margin-left: 20px; }
+div.commands a { color: black; text-decoration:none; }
+div.commands span { margin-right: 5px; font-size: 10px; }
 
-#versioninfo th { text-align: left; font-family: monospace; padding-right: 20px; }
-#versioninfo tr:nth-child(odd) {
+#versioninfo {
+  th { text-align: left; font-family: monospace; padding-right: 20px; }
+  tr:nth-child(odd) {
     background: #eee;
+  }
 }
 
 .error { background: #ffc; padding: 5px; }
@@ -953,7 +960,6 @@ legend {
 }
 
 #messages .alert {
-  padding: 20px 20px; 
   .border-radius(0);
 }
 

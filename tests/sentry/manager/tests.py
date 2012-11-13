@@ -12,7 +12,7 @@ from sentry.interfaces import Interface
 from sentry.models import Event, Group, Project, MessageCountByMinute, ProjectCountByMinute, \
   SearchDocument
 from sentry.utils.db import has_trending
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class DummyInterface(Interface):

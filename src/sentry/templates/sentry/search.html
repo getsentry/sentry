@@ -32,4 +32,11 @@
             <li class="empty-result" id="no_messages">{% trans "No events match your search query." %}</li>
         </ul>
     {% endif %}
+
+    <div class="btn-toolbar">
+        <div class="btn-group pull-right">
+            <a class="btn prev disabled"><span>{% trans "Previous" %}</span></a>
+            <a class="btn next disabled"><span>{% trans "Next" %}</span></a>
+        </div>
+    </div>
 {% endblock %}

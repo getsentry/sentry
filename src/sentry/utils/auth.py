@@ -51,14 +51,15 @@ class EmailAuthBackend(ModelBackend):
     def authenticate(self, username=None, password=None):
         try:
             # Assume username is a login and attempt to login.
-            if '@' not in username:
-                user = User.objects.get(username__iexact=username)
-
-            # Treat username as an e-mail address and attempt to login.
-            elif '@' in username:
-                user = User.objects.get(email__iexact=username)
+            user = User.objects.get(username__iexact=username)
         except User.DoesNotExist:
-            return None
+            if '@' in username:
+                try:
+                    user = User.objects.get(email__iexact=username)
+                except User.DoesNotExist:
+                    return None
+            else:
+                return None
 
         if user.check_password(password):
             return user

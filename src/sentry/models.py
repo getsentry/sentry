@@ -23,7 +23,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.signals import user_logged_in
 from django.core.urlresolvers import reverse
 from django.db import models
-from django.db.models import F
+from django.db.models import F, Sum
 from django.db.models.signals import post_syncdb, post_save, pre_delete, \
   class_prepared
 from django.template.defaultfilters import slugify
@@ -198,6 +198,14 @@ class Project(Model):
 
     def is_default_project(self):
         return str(self.id) == str(settings.PROJECT) or str(self.slug) == str(settings.PROJECT)
+
+    def get_tags(self):
+        if not hasattr(self, '_tag_cache'):
+            tags = ProjectOption.objects.get_value(self, 'tags', None)
+            if tags is None:
+                tags = FilterKey.objects.all_keys(self)
+            self._tag_cache = tags
+        return self._tag_cache
 
 
 class ProjectKey(Model):
@@ -406,13 +414,19 @@ class Group(MessageBase):
             self.active_at = self.first_seen
         super(Group, self).save(*args, **kwargs)
 
+    @property
+    def avg_time_spent(self):
+        if not self.time_spent_count:
+            return
+        return float(self.time_spent_total) / self.time_spent_count
+
+    def natural_key(self):
+        return (self.project, self.logger, self.culprit, self.checksum)
+
     def get_absolute_url(self):
         if self.project_id:
             return reverse('sentry-group', kwargs={'group_id': self.pk, 'project_id': self.project.slug})
         return '#'
-
-    def natural_key(self):
-        return (self.project, self.logger, self.culprit, self.checksum)
 
     def get_score(self):
         return int(math.log(self.times_seen) * 600 + float(time.mktime(self.last_seen.timetuple())))
@@ -433,11 +447,19 @@ class Group(MessageBase):
         module = self.data.get('module', 'ver')
         return module, self.data['version']
 
-    @property
-    def avg_time_spent(self):
-        if not self.time_spent_count:
-            return
-        return float(self.time_spent_total) / self.time_spent_count
+    def get_unique_tags(self, tag):
+        return self.messagefiltervalue_set.filter(
+            key=tag,
+        ).values_list(
+            'value',
+        ).annotate(
+            times_seen=Sum('times_seen'),
+        ).values_list(
+            'value',
+            'times_seen',
+            'first_seen',
+            'last_seen',
+        ).order_by('-times_seen')
 
 
 class GroupMeta(Model):

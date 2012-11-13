@@ -15,16 +15,17 @@ Additionally, the following experimental clients are availabe:
 
 * CFML (`raven-cfml <https://github.com/jmacul2/raven-cfml>`_)
 * R (`logging <http://logging.r-forge.r-project.org/>`_)
+* Action Script 3 (`raven-as3 <https://github.com/skitoo/raven-as3>`_)
 
 Client Criteria
 ---------------
 
-To become a recognized client, a library is expected to meet several criteria:
+If you're developing a client for your platform, there's several things we highly encourage:
 
-* It must fully implement the current version of the Sentry protocol.
+* It should fully implement the current version of the Sentry protocol.
 
-* It must conform to the standard DSN configuration method.
+* It should conform to the standard DSN configuration method.
 
-* It must contain an acceptable level of documentation and tests.
+* It should contain an acceptable level of documentation and tests.
 
-* The client must be properly packaged, and named raven-<language>.
+* The client should be properly packaged, and named raven-<platform>.

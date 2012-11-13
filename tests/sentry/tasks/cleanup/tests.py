@@ -8,7 +8,7 @@ from celery.task import Task
 from sentry.models import Event, Group, MessageCountByMinute, \
   MessageFilterValue
 from sentry.tasks.cleanup import cleanup
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class SentryCleanupTest(TestCase):

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style type="text/css">
+        * { font-size: 12px; }
+        body, .main {
+            width: 100%;
+            font-family: "helvetica neue", helvetica, sans-serif;
+            border: 0;
+            padding: 0;
+            margin: 0;
+        }
+        pre, code {
+            font-size: 11px;
+            font-family: Menlo, Monaco, "Courier New", monospace;
+        }
+        table {
+            width: 100%;
+        }
+        td {
+            padding: 0;
+            margin: 0;
+        }
+        td {
+            text-align: center;
+        }
+        .body {
+            margin: 0 auto;
+            text-align: left;
+            border: 5px solid #404f60;
+        }
+        .header {
+            background: #404f60;
+            color: #fff;
+            padding: 10px;
+            font-size: 14px;
+            height: 28px;
+        }
+        .count {
+            color: #fff;
+            float: right;
+            margin: -18px -10px 0 10px;
+            -moz-border-radius: 60px;
+            -webkit-border-radius: 60px;
+            border-radius: 60px;
+            width: 60px;
+            height: 60px;
+            background: #cfd3da;
+            line-height: 62px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 400;
+            font-family: "proxima nova", "proxima-nova", "heletica-neue", sans-serif;
+        }
+        .level-debug .count {}
+        .level-info .count { background: #ffa101; }
+        .level-warning .count { background: #ffa101; }
+        .level-error .count { background: #f0431c; }
+        .level-fatal .count { background: #f0431c; }
+        .header h1 {
+            float: left;
+            font-size: 22px;
+            margin: 0;
+            padding: 0;
+        }
+        .header h1 small {
+            font-size: 14px;
+            margin-left: 10px;
+            color: #ccc;
+            font-weight: normal;
+        }
+
+        .inner {
+            background: #fff;
+            padding: 10px;
+        }
+        .inner pre,
+        .inner p,
+        .inner table {
+            margin-bottom: 15px;
+        }
+        .inner table th,
+        .inner table td {
+            text-align: left;
+        }
+        .metadata table {
+            width: 600px;
+        }
+        .interface {
+            margin-bottom: 15px;
+        }
+        .interface .title {
+            color: #404f60;
+            font-size: 14px;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #404f60;
+            font-weight: bold;
+        }
+        </style>
+    </head>
+    <body{% block bodyclass %}{% endblock %}>
+        <table class="main">
+            <tr>
+                <td>
+                    {% block content %}
+                        <div class="body">
+                            <div class="header">
+                                {% block header %}
+                                    <h1>Sentry</h1>
+                                {% endblock %}
+                            </div>
+                            <div class="inner">
+                                {% block inner %}
+                                    <p>This is the body of an email</p>
+                                {% endblock %}
+                            </div>
+                        </div>
+                    {% endblock %}
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>
