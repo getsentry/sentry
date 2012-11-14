@@ -493,7 +493,7 @@ def get_resolved_groups(request, project=None):
         resolved_at__gte=cutoff_dt,
     ).select_related('project').order_by('-score')[:limit]
 
-    data = transform_groups(request, group_list, template='sentry/partial/_group_small.html')
+    data = to_json(group_list, request)
 
     response = HttpResponse(json.dumps(data))
     response['Content-Type'] = 'application/json'

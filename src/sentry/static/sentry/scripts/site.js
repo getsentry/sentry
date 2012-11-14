@@ -9,7 +9,7 @@
   app.config = app.config || {};
 
   jQuery(function() {
-    var BasePage, DashboardPage, StreamPage;
+    var BasePage, DashboardPage, StreamPage, WallPage;
     BasePage = (function(_super) {
 
       __extends(BasePage, _super);
@@ -160,7 +160,7 @@
       return StreamPage;
 
     })(BasePage);
-    return app.DashboardPage = DashboardPage = (function(_super) {
+    app.DashboardPage = DashboardPage = (function(_super) {
 
       __extends(DashboardPage, _super);
 
@@ -174,6 +174,78 @@
       };
 
       return DashboardPage;
+
+    })(BasePage);
+    return app.WallPage = WallPage = (function(_super) {
+
+      __extends(WallPage, _super);
+
+      function WallPage() {
+        return WallPage.__super__.constructor.apply(this, arguments);
+      }
+
+      WallPage.prototype.initialize = function() {
+        BasePage.prototype.initialize.call(this);
+        this.$sparkline = $('.chart');
+        this.$sparkline.height(this.$sparkline.parent().height());
+        this.$stats = $('#stats');
+        return this.refresh();
+      };
+
+      WallPage.prototype.refresh = function() {
+        var _this = this;
+        $.ajax({
+          url: this.$sparkline.attr('data-api-url'),
+          type: 'get',
+          dataType: 'json',
+          data: {
+            days: 1,
+            gid: this.$sparkline.attr('data-group') || void 0
+          },
+          success: function(data) {
+            return $.plot(_this.$sparkline, [
+              {
+                data: data,
+                color: '#52566c',
+                shadowSize: 0,
+                lines: {
+                  lineWidth: 2,
+                  show: true,
+                  fill: true,
+                  fillColor: '#232428'
+                }
+              }
+            ], {
+              yaxis: {
+                min: 0
+              },
+              grid: {
+                show: false
+              },
+              hoverable: false,
+              legend: {
+                noColumns: 5
+              },
+              lines: {
+                show: false
+              }
+            });
+          }
+        });
+        return $.ajax({
+          url: this.$stats.attr('data-uri'),
+          dataType: 'json',
+          success: function(data) {
+            return _this.$stats.find('[data-stat]').each(function() {
+              var $this;
+              $this = $(this);
+              return $this.find('big').text(data[$this.attr('data-stat')]);
+            });
+          }
+        });
+      };
+
+      return WallPage;
 
     })(BasePage);
   });

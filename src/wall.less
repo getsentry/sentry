@@ -11,116 +11,121 @@
 /* =============================  Global  ============================== */
 
 body {
-    color: @white;
-    background: #232428;
-    font-family: "proxima-nova", "helvetica neue", helvetica, sans-serif;
-    min-width: 768px;
-    zoom: 1.2;
+  color: @white;
+  background: #232428;
+  font-family: "proxima-nova", "helvetica neue", helvetica, sans-serif;
+  min-width: 768px;
+  zoom: 1.2;
 }
 
 #stats {
-    background: #1f2022;
-    padding: 30px 50px 30px;
-    color: @grayDark;
-    font-size: 12pt;
+  background: #1f2022;
+  padding: 30px 50px 30px;
+  color: @grayDark;
+  font-size: 12pt;
 
-    big {
-        text-shadow: 0px 0px 3px #fff;
-        color: @white;
-        font-size: 50pt;
-        line-height: 56pt;
-        font-weight: 200;
-    }
-    strong {
-        color: @gray;
-        font-weight: normal;
-    }
+  big {
+    text-shadow: 0px 0px 3px #fff;
+    color: @white;
+    font-size: 50pt;
+    line-height: 56pt;
+    font-weight: 200;
+  }
+  strong {
+    color: @gray;
+    font-weight: normal;
+  }
 }
 
 #chart {
-    .chart {
-        background: #1f2022;
-        margin-left: -20px;
-        margin-right: -20px;
-        height: 50px;
-    }
+  .chart {
+    background: #1f2022;
+    margin-left: -20px;
+    margin-right: -20px;
+    height: 50px;
+  }
 }
 
 #events {
-    padding: 20px 30px;
+  padding: 20px 30px;
 
-    .nav-labels {
-        .clearfix();
-        margin-left: 10px;
-        > li {
-            float: left;
-            > a {
-                text-transform: uppercase;
-                font-size: 15pt;
-                color: @grayDark;
-                padding-right: 12px;
-                padding-left: 12px;
-                margin-right: 20px;
-                line-height: 16pt;
-                letter-spacing: -1px;
-            }
-            > a:hover,
-            &.active a {
-                background: inherit;
-                color: @gray;
-            }
-        }
+  .nav-labels {
+    .clearfix();
+    margin-left: 10px;
+    > li {
+      float: left;
+      > a {
+        text-transform: uppercase;
+        font-size: 15pt;
+        color: @grayDark;
+        padding-right: 12px;
+        padding-left: 12px;
+        margin-right: 20px;
+        line-height: 16pt;
+        letter-spacing: -1px;
+      }
+      > a:hover,
+      &.active a {
+        background: inherit;
+        color: @gray;
+      }
+    }
+  }
+
+  .group-list {
+    border-top: none;
+  }
+  .group {
+    .border-radius(4px);
+    .box-shadow(none);
+    border-color: #232428;
+    border-width: 2px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    padding-right: 10px;
+
+    &:hover {
+      background: #292b2f;
+      border-color: #44454f;
     }
 
-    .group-list {
-        border-top: none;
+    h3 {
+      font-size: 17pt;
+      margin: 0;
+      font-weight: bold;
     }
-    .group {
-        .border-radius(4px);
-        .box-shadow(none);
-        border-color: #232428;
-        border-width: 2px;
-        padding-top: 12px;
-        padding-bottom: 12px;
 
-        &:hover {
-            background: #292b2f;
-            border-color: #44454f;
-        }
-
-        h3 {
-            font-size: 17pt;
-            margin: 0;
-            font-weight: bold;
-        }
-
-        .meta {
-            position: relative;
-            right: auto;
-            top: auto;
-            color: @grayDark;
-        }
-
-        .tag {
-            background: inherit;
-            border: none;
-            color: inherit;
-        }
-
-        h3, .meta, .message {
-            line-height: 21px;
-        }
-
-        .count {
-            margin-top: 1px;
-        }
-
-        .message {
-            color: @gray;
-        }
-
-        .actions {
-            display: none;
-        }
+    .meta {
+      position: relative;
+      right: auto;
+      top: auto;
+      color: @grayDark;
     }
+
+    .tag {
+      background: inherit;
+      border: none;
+      color: inherit;
+    }
+
+    h3, .meta, .message {
+      line-height: 21px;
+    }
+
+    .count {
+      margin-top: 1px;
+    }
+
+    .sparkline {
+      display: none;
+    }
+
+    .message {
+      color: @gray;
+    }
+
+    .actions {
+      display: none;
+    }
+  }
 }

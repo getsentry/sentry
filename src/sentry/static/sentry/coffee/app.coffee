@@ -139,6 +139,55 @@ jQuery ->
             # TODO:
             Sentry.charts.render('#chart')
 
+    app.WallPage = class WallPage extends BasePage
+
+        initialize: ->
+            BasePage.prototype.initialize.call(@)
+
+            @$sparkline = $('.chart')
+            @$sparkline.height(@$sparkline.parent().height())
+            @$stats = $('#stats')
+
+            @refresh()
+
+        refresh: ->
+            $.ajax
+                url: @$sparkline.attr('data-api-url'),
+                type: 'get'
+                dataType: 'json'
+                data:
+                    days: 1
+                    gid: @$sparkline.attr('data-group') || undefined
+
+                success: (data) =>
+                    $.plot(@$sparkline, [
+                            data: data
+                            color: '#52566c'
+                            shadowSize: 0
+                            lines:
+                                lineWidth: 2
+                                show: true
+                                fill: true
+                                fillColor: '#232428'
+                        ],
+                        yaxis:
+                           min: 0
+                        grid:
+                            show: false
+                        hoverable: false
+                        legend:
+                            noColumns: 5
+                        lines:
+                            show: false
+                    )
+
+            $.ajax
+                url: @$stats.attr('data-uri')
+                dataType: 'json'
+                success: (data) =>
+                    @$stats.find('[data-stat]').each ->
+                        $this = $(this)
+                        $this.find('big').text(data[$this.attr('data-stat')])
 
 # We're not talking to the server
 Backbone.sync = (method, model, success, error) ->
