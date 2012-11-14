@@ -146,8 +146,6 @@ jQuery ->
 
             if data.isResolved
                 @$el.addClass('resolved')
-            if data.isBookmarked
-                @$el.addClass('bookmarked')
             if data.historicalData
                 @$el.addClass('with-sparkline')
             @$el.attr('data-id', data.id)

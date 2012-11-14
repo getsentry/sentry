@@ -504,9 +504,6 @@
         if (data.isResolved) {
           this.$el.addClass('resolved');
         }
-        if (data.isBookmarked) {
-          this.$el.addClass('bookmarked');
-        }
         if (data.historicalData) {
           this.$el.addClass('with-sparkline');
         }
