@@ -1,183 +1,56 @@
+{% extends "sentry/layout.html" %}
+
 {% load i18n %}
 {% load sentry_helpers %}
 
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta http-equiv="content-type" content="text/html; charset=utf-8">
-        <meta name="robots" content="NONE,NOARCHIVE">
+{% block css %}
+    <link href="{% url sentry-media "sentry" "styles/wall.min.css" %}" rel="stylesheet" type="text/css"/>
+{% endblock %}
 
-        <title>{% block title %}{% trans "Wall Display" %} | Sentry{% endblock %}</title>
-
-        <link href="{% url sentry-media "sentry" "styles/wall.min.css" %}" rel="stylesheet" type="text/css"/>
-        <!--[if lt IE 9]>
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/html5shiv.js" %}"></script>
-        <![endif]-->
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.clippy.min.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.flot.min.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.animate-colors-min.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/global.min.js" %}"></script>
-        <script type="text/javascript">
-        Sentry.config({
-            urlPrefix: {{ URL_PREFIX|to_json|safe }},
-            mediaUrl: '{% url sentry-media "sentry" '' %}',
-            defaultImage: '{% url sentry-media "sentry" 'images/sentry.png' %}',
-            popupCss: '{% url sentry-media "sentry" 'styles/popup.css' %}'
-        });
-        </script>
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/bootstrap.min.js" %}"></script>
-    </head>
-
-    <body>
-        <div class="container-fluid" id="stats" data-uri="{% url sentry-api-stats %}?minutes=1440">
-            <div class="row-fluid">
-                <div class="span4" data-stat="events">
-                    <big>???</big>
-                    <div><strong>Events</strong> in the last 24 hours</div>
+{% block body %}
+    <div class="container-fluid" id="stats" data-uri="{% url sentry-api-stats %}?minutes=1440">
+        <div class="row-fluid">
+            <div class="span4" data-stat="events">
+                <big>???</big>
+                <div><strong>Events</strong> in the last 24 hours</div>
+            </div>
+            <div class="span4" data-stat="resolved">
+                <big>???</big>
+                <div><strong>Resolved</strong> in the last 24 hours</div>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid" id="chart">
+        <div class="row-fluid">
+            <div class="chart" data-api-url="{% url sentry-api-chart %}">
+                <span class="loading">{% trans "Loading historical data..." %}</span>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid" id="events">
+        <div class="row-fluid">
+            <div class="span6">
+                <ul class="nav nav-labels">
+                    <li class="active"><a href="#trending" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends %}?minutes=1440&amp;limit=5">{% trans "Trending" %}</a></li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane active" id="trending"><p>Loading ...</p></div>
                 </div>
-                <div class="span4" data-stat="resolved">
-                    <big>???</big>
-                    <div><strong>Resolved</strong> in the last 24 hours</div>
+            </div>
+            <div class="span6">
+                <ul class="nav nav-labels">
+                    <li class="active"><a href="#new" data-toggle="ajtab" data-uri="{% url sentry-api-groups-new %}?minutes=1440&amp;limit=5">{% trans "New" %}</a></li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane active" id="new"><p>Loading ...</p></div>
                 </div>
             </div>
         </div>
-        <div class="container-fluid" id="chart">
-            <div class="row-fluid">
-                <div class="chart" data-api-url="{% url sentry-api-chart %}">
-                    <span class="loading">{% trans "Loading historical data..." %}</span>
-                </div>
-            </div>
-        </div>
-        <div class="container-fluid" id="events">
-            <div class="row-fluid">
-                <div class="span6">
-                    <ul class="nav nav-labels">
-                        <li class="active"><a href="#trending" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends %}?minutes=1440&amp;limit=5">{% trans "Trending" %}</a></li>
-                    </ul>
-                    <div class="tab-content">
-                        <div class="tab-pane active" id="trending"><p>Loading ...</p></div>
-                    </div>
-                </div>
-                <div class="span6">
-                    <ul class="nav nav-labels">
-                        <li class="active"><a href="#new" data-toggle="ajtab" data-uri="{% url sentry-api-groups-new %}?minutes=1440&amp;limit=5">{% trans "New" %}</a></li>
-                    </ul>
-                    <div class="tab-content">
-                        <div class="tab-pane active" id="new"><p>Loading ...</p></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <script type="text/javascript">
-        $(document).ready(function() {
-            var init = function() {
-                //load content for first tab and initialize
-                $('a[data-toggle=ajtab]').each(function(){
-                    var $el = $(this);
+    </div>
 
-                    $el.bind('click', function(e) {
-                        var $el = $(e.target);
-                        var uri = $el.attr('data-uri');
-                        if (!uri) {
-                            return;
-                        }
-                        var $tab = $(this);
-                        var $cont = $($tab.attr('href'));
-                        var $parent = $cont.parent();
-
-                        $parent.css('opacity', .6)
-                        e.preventDefault()
-
-                        // load content for selected tab
-                        $.ajax({
-                            url: uri,
-                            dataType: 'json',
-                            success: function(data){
-                                if (data.length) {
-                                    var $group;
-                                    var $ul = $('<ul class="events"></ul>');
-                                    $.each(data, function(_, group){
-                                        $group = $(group.html);
-                                        $group.removeClass('event-small');
-                                        $ul.append($group);
-                                    });
-                                    $cont.html($ul);
-                                } else {
-                                    $cont.html('<p>{% trans "No unresolved events are listed in the time period selected." %}</p>');
-                                }
-                                $parent.css('opacity', 1)
-                                $tab.tab('show');
-                            }
-                        });
-                    });
-            
-                    if ($el.parent().hasClass('active')) {
-                        $el.click();
-                    }
-                });
-            }
-
-            var refresh = function() {
-                var $sparkline = $('.chart');
-
-                $('li.active a[data-toggle=ajtab]').click();
-
-                $.ajax({
-                    url: $sparkline.attr('data-api-url'),
-                    type: 'get',
-                    dataType: 'json',
-                    data: {
-                        days: 1,
-                        gid: $sparkline.attr('data-group') || undefined
-                    },
-                    success: function(data){
-                        $sparkline.height($sparkline.parent().height());
-
-                        $.plot($sparkline, [
-                            {
-                                data: data,
-                                color: '#52566c',
-                                shadowSize: 0,
-                                lines: {
-                                    lineWidth: 2,
-                                    show: true,
-                                    fill: true,
-                                    fillColor: '#232428'
-                                }
-                            }
-                        ], {
-                            yaxis: {
-                               min: 0
-                            },
-                            grid: {
-                                show: false,
-                            },
-                            hoverable: false,
-                            legend: {
-                                noColumns: 5
-                            },
-                            lines: { show: false }
-
-                        });
-                    }
-                });
-                var $stats = $('#stats');
-
-                $.ajax({
-                    url: $stats.attr('data-uri'),
-                    dataType: 'json',
-                    success: function(data){
-                        $stats.find('[data-stat]').each(function(){
-                            var $this = $(this);
-                            $this.find('big').text(data[$this.attr('data-stat')]);
-                        });
-                    }
-                });
-            };
-            init();
-            refresh();
-        });
-        </script>
-    </body>
-</html>
+    <script>
+    $(function(){
+        new app.WallPage();
+    });
+    </script>
+{% endblock %}
