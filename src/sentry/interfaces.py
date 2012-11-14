@@ -338,12 +338,13 @@ class Stacktrace(Interface):
             'Stacktrace (most recent call last):', '',
         ]
         for frame in self.frames:
+            pieces = ['  File "%(filename)s"']
+            if 'lineno' in frame:
+                pieces.append(', line %(lineno)s')
             if 'function' in frame:
-                result.append('  File "%(filename)s", line %(lineno)s, in %(function)s' % frame)
-            elif 'lineno' in frame:
-                result.append('  File "%(filename)s", line %(lineno)s' % frame)
-            else:
-                result.append('  File "%(filename)s"')
+                pieces.append(', in %(function)s')
+
+            result.append(''.join(pieces) % frame)
             if 'context_line' in frame:
                 result.append('    %s' % frame['context_line'].strip())
 

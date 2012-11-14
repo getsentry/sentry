@@ -99,3 +99,22 @@ class StacktraceTest(TestCase):
         result = interface.to_html(event)
         get_traceback.assert_called_once_with(event)
         self.assertTrue('<div id="traceback" class="module">' in result)
+
+    def test_get_stacktrace_with_only_filename(self):
+        event = mock.Mock(spec=Event)
+        interface = Stacktrace(frames=[{'filename': 'foo'}, {'filename': 'bar'}])
+        result = interface.get_stacktrace(event)
+        self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  File "foo"\n  File "bar"')
+
+    def test_get_stacktrace_with_filename_and_function(self):
+        event = mock.Mock(spec=Event)
+        interface = Stacktrace(frames=[{'filename': 'foo', 'function': 'biz'}, {'filename': 'bar', 'function': 'baz'}])
+        result = interface.get_stacktrace(event)
+        self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  File "foo", in biz\n  File "bar", in baz')
+
+    def test_get_stacktrace_with_filename_function_lineno_and_context(self):
+        event = mock.Mock(spec=Event)
+        interface = Stacktrace(frames=[{'filename': 'foo', 'function': 'biz', 'lineno': 3, 'context_line': '  def foo(r):'},
+            {'filename': 'bar', 'function': 'baz', 'lineno': 5, 'context_line': '    return None'}])
+        result = interface.get_stacktrace(event)
+        self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  File "foo", line 3, in biz\n    def foo(r):\n  File "bar", line 5, in baz\n    return None')
