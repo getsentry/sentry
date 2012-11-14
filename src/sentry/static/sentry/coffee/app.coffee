@@ -83,6 +83,21 @@ jQuery ->
                 realtime: true
                 pollUrl: app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/'
 
+            $('a[data-action=pause]').click (e) =>
+                e.preventDefault()
+                $target = $(e.target)
+                if $target.hasClass('realtime-pause')
+                    @group_list.config.realtime = true
+                    $target.removeClass('realtime-pause')
+                    $target.addClass('realtime-play')
+                    $target.html($target.attr('data-pause-label'))
+                else
+                    @group_list.config.realtime = false
+                    $target.addClass('realtime-pause')
+                    $target.removeClass('realtime-play')
+                    $target.html($target.attr('data-play-label'))
+
+
     app.DashboardPage = class DashboardPage extends BasePage
 
         initialize: (data) ->

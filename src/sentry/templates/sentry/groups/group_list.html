@@ -58,7 +58,7 @@
             <a class="btn" href="javascript:void(0)" id="sentry-resolve-feed" onclick="Sentry.stream.clear('{{ project.slug }}');">{% trans "Resolve Feed" %}</a>
         </div>
         <div class="btn-group">
-            <a class="btn realtime-play" href="javascript:void(0)" id="sentry-realtime" onclick="Sentry.realtime.toggle();">{% trans "Pause Feed" %}</a>
+            <a class="btn realtime-play" data-action="pause" data-pause-label="{% trans "Pause Updates" %}" data-play-label="{% trans "Enable Updates" %}" href="javascript:void(0)">{% trans "Pause Updates" %}</a>
         </div>
         <div class="btn-group">
             <a href="#" class="btn dropdown-toggle" data-toggle="dropdown">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <span class="caret"></span></a>

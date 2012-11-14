@@ -100,14 +100,31 @@
       }
 
       StreamPage.prototype.initialize = function(data) {
+        var _this = this;
         BasePage.prototype.initialize.call(this, data);
-        return this.group_list = new app.GroupListView({
+        this.group_list = new app.GroupListView({
           className: 'group-list',
           id: 'event_list',
           members: data.groups,
           maxItems: 50,
           realtime: true,
           pollUrl: app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/'
+        });
+        return $('a[data-action=pause]').click(function(e) {
+          var $target;
+          e.preventDefault();
+          $target = $(e.target);
+          if ($target.hasClass('realtime-pause')) {
+            _this.group_list.config.realtime = true;
+            $target.removeClass('realtime-pause');
+            $target.addClass('realtime-play');
+            return $target.html($target.attr('data-pause-label'));
+          } else {
+            _this.group_list.config.realtime = false;
+            $target.addClass('realtime-pause');
+            $target.removeClass('realtime-play');
+            return $target.html($target.attr('data-play-label'));
+          }
         });
       };
 
