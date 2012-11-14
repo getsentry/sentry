@@ -23,11 +23,12 @@ from sentry.coreapi import project_from_auth_vars, project_from_id, \
   decode_and_decompress_data, safely_load_json_string, validate_data, \
   insert_data_to_database, APIError, APIUnauthorized, extract_auth_vars
 from sentry.exceptions import InvalidData
-from sentry.models import Group, GroupBookmark, Project, View
+from sentry.models import Group, GroupBookmark, Project, View, FilterValue
 from sentry.templatetags.sentry_helpers import with_metadata
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.db import has_trending
+from sentry.utils.javascript import to_json
 from sentry.utils.http import is_same_domain, is_valid_origin, apply_access_control_headers
 from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
@@ -173,11 +174,11 @@ def store(request, project=None):
             try:
                 validate_data(project, data, client)
             except InvalidData, e:
-                raise APIError(u'Invalid data: %s' % unicode(e))
+                raise APIError(u'Invalid data: %s (%s)' % (unicode(e), type(e)))
 
             insert_data_to_database(data)
         except APIError, error:
-            logger.error('Client %r raised API error: %s', client, error, extra={
+            logger.info('Client %r raised API error: %s', client, error, extra={
                 'request': request,
             }, exc_info=True)
             response = HttpResponse(unicode(error.msg), status=error.http_status)
@@ -222,9 +223,9 @@ def poll(request, project):
     event_list = list(event_list[offset:limit])
     handle_before_events(request, event_list)
 
-    data = transform_groups(request, event_list)
+    data = to_json(event_list, request)
 
-    response = HttpResponse(json.dumps(data))
+    response = HttpResponse(data)
     response['Content-Type'] = 'application/json'
     return response
 
@@ -413,7 +414,7 @@ def get_group_trends(request, project=None):
     base_qs = Group.objects.filter(
         project__in=project_dict.keys(),
         status=0,
-    ).order_by('-score')
+    )
 
     if has_trending():
         group_list = list(Group.objects.get_accelerated(base_qs, minutes=(
@@ -425,14 +426,14 @@ def get_group_trends(request, project=None):
 
         group_list = list(base_qs.filter(
             last_seen__gte=cutoff_dt
-        )[:limit])
+        ).order_by('-score')[:limit])
 
     for group in group_list:
         group._project_cache = project_dict.get(group.project_id)
 
-    data = transform_groups(request, group_list, template='sentry/partial/_group_small.html')
+    data = to_json(group_list, request)
 
-    response = HttpResponse(json.dumps(data))
+    response = HttpResponse(data)
     response['Content-Type'] = 'application/json'
 
     return response
@@ -446,22 +447,47 @@ def get_new_groups(request, project=None):
     limit = min(100, int(request.REQUEST.get('limit', 10)))
 
     if project:
-        project_list = [project]
+        project_dict = {project.id: project}
     else:
-        project_list = get_project_list(request.user).values()
+        project_dict = get_project_list(request.user)
 
     cutoff = datetime.timedelta(minutes=minutes)
     cutoff_dt = timezone.now() - cutoff
 
-    group_list = Group.objects.filter(
-        project__in=project_list,
+    group_list = list(Group.objects.filter(
+        project__in=project_dict.keys(),
         status=0,
         active_at__gte=cutoff_dt,
-    ).select_related('project').order_by('-score')[:limit]
+    ).order_by('-score')[:limit])
 
-    data = transform_groups(request, group_list, template='sentry/partial/_group_small.html')
+    for group in group_list:
+        group._project_cache = project_dict.get(group.project_id)
 
-    response = HttpResponse(json.dumps(data))
+    data = to_json(group_list, request)
+
+    response = HttpResponse(data)
+    response['Content-Type'] = 'application/json'
+
+    return response
+
+
+@never_cache
+@csrf_exempt
+@has_access
+def search_tags(request, project):
+    limit = min(100, int(request.GET.get('limit', 10)))
+    name = request.GET['name']
+    query = request.GET['query']
+
+    results = list(FilterValue.objects.filter(
+        project=project,
+        key=name,
+        value__icontains=query,
+    ).values_list('value', flat=True).order_by('value')[:limit])
+
+    response = HttpResponse(json.dumps({
+        'results': results,
+    }))
     response['Content-Type'] = 'application/json'
 
     return response

@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from django.contrib.auth.models import User, AnonymousUser
 from sentry.permissions import can_create_projects, can_set_public_projects
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class CanCreateProjectTest(TestCase):

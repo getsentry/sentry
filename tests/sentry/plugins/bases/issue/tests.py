@@ -7,7 +7,7 @@ import mock
 from django.contrib.auth.models import User
 from social_auth.models import UserSocialAuth
 from sentry.plugins.bases.issue import IssuePlugin
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class GetAuthForUserTest(TestCase):

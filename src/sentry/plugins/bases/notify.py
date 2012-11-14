@@ -13,6 +13,7 @@ from sentry.plugins import Plugin
 from sentry.models import UserOption
 from sentry.utils.cache import cache
 from sentry.web.helpers import get_project_list
+from sentry.constants import MEMBER_USER
 
 
 class NotificationConfigurationForm(forms.Form):
@@ -44,7 +45,7 @@ class NotificationUserOptionsForm(BaseNotificationUserOptionsForm):
     def __init__(self, *args, **kwargs):
         super(NotificationUserOptionsForm, self).__init__(*args, **kwargs)
         user = self.user
-        self.project_list = get_project_list(user, key='slug')
+        self.project_list = get_project_list(user, access=MEMBER_USER, key='slug')
         project_list = sorted(self.project_list.items())
         self.fields['projects'].choices = project_list
         self.fields['projects'].widget.choices = self.fields['projects'].choices
@@ -57,7 +58,7 @@ class NotificationUserOptionsForm(BaseNotificationUserOptionsForm):
         self.fields['projects'].initial = enabled_projects
 
     def get_description(self):
-        return _('Send notifications for new events when a new event is seen, or when an '
+        return _('Send notifications when a new event is seen, or when an '
                  'already resolved event has changed back to unresolved.')
 
     def save(self):

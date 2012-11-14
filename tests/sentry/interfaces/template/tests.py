@@ -7,7 +7,7 @@ import mock
 from sentry.interfaces import Template
 from sentry.models import Event
 
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class TemplateTest(TestCase):

@@ -25,7 +25,7 @@ class Filter(object):
     default = ''
     show_label = True
     types = [Group, Event]
-    max_choices = 101
+    max_choices = 50
 
     def __init__(self, request, project):
         self.request = request

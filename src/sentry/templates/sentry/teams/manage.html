@@ -6,9 +6,8 @@
 
 {% block title %}{% blocktrans with team.name as name %}Manage Team: {{ name }}{% endblocktrans %} | {{ block.super }}{% endblock %}
 
-{% block bodyclass %} with-left-sidebar{% endblock %}
-
 {% block breadcrumb %}
+    {{ block.super }}
     <li class="divider">/</li>
     <li><a href="{% url sentry-manage-team team.slug %}">{{ team.name }}</a></li>
 {% endblock %}
@@ -36,7 +35,7 @@
                     {% if can_remove_team %}
                         <a href="{% url sentry-remove-team team.slug %}" class="btn btn-danger">{% trans "Remove Team" %}</a>
                     {% else %}
-                        <a class="btn btn-danger disabled">{% trans "Cannot remove teams assigned to projects" %}</a>
+                        <div class="pull-right note">{% trans "You cannot remove this team because it has projects assigned to it" %}</div>
                     {% endif %}
                 </fieldset>
             </form>
@@ -108,7 +107,11 @@
                                         {{ user.email }}
                                     </td>
                                     <td style="text-align:center;">
-                                        {{ member.get_type_display }}
+                                        {% if user == team.owner %}
+                                            {% trans "Owner" %}
+                                        {% else %}
+                                            {{ member.get_type_display }}
+                                        {% endif %}
                                     </td>
                                     {% if user == team.owner %}
                                         <td style="text-align:center;" colspan="2">

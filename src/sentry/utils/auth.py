@@ -8,6 +8,8 @@ sentry.utils.auth
 import hashlib
 import hmac
 from django.conf import settings as dj_settings
+from django.contrib.auth.models import User
+from django.contrib.auth.backends import ModelBackend
 from sentry.conf import settings
 
 
@@ -38,3 +40,28 @@ def get_auth_providers():
         for key, cfg_names
         in settings.AUTH_PROVIDERS.iteritems()
         if all(getattr(dj_settings, c, None) for c in cfg_names)]
+
+
+class EmailAuthBackend(ModelBackend):
+    """
+    Authenticate against django.contrib.auth.models.User.
+
+    Supports authenticating via an email address or a username.
+    """
+    def authenticate(self, username=None, password=None):
+        try:
+            # Assume username is a login and attempt to login.
+            user = User.objects.get(username__iexact=username)
+        except User.DoesNotExist:
+            if '@' in username:
+                try:
+                    user = User.objects.get(email__iexact=username)
+                except User.DoesNotExist:
+                    return None
+            else:
+                return None
+
+        if user.check_password(password):
+            return user
+
+        return None

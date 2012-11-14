@@ -5,69 +5,12 @@ sentry.utils.db
 :copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-import django
-import logging
-import operator
 
+import django
+import operator
 
 from django.conf import settings as django_settings
 from django.db.models.expressions import ExpressionNode, F
-
-
-class InstanceManager(object):
-    def __init__(self, class_list=None, instances=True):
-        if class_list is None:
-            class_list = []
-        self.instances = instances
-        self.update(class_list)
-
-    def get_class_list(self):
-        return self.class_list
-
-    def add(self, class_path):
-        self.cache = None
-        self.class_list.append(class_path)
-
-    def remove(self, class_path):
-        self.cache = None
-        self.class_list.remove(class_path)
-
-    def update(self, class_list):
-        """
-        Updates the class list and wipes the cache.
-        """
-        self.cache = None
-        self.class_list = class_list
-
-    def all(self):
-        """
-        Returns a list of cached instances.
-        """
-        class_list = list(self.get_class_list())
-        if not class_list:
-            self.cache = []
-            return []
-
-        if self.cache is not None:
-            return self.cache
-
-        results = []
-        for cls_path in class_list:
-            module_name, class_name = cls_path.rsplit('.', 1)
-            try:
-                module = __import__(module_name, {}, {}, class_name)
-                cls = getattr(module, class_name)
-                if self.instances:
-                    results.append(cls())
-                else:
-                    results.append(cls)
-            except Exception:
-                logger = logging.getLogger('sentry.errors')
-                logger.exception('Unable to import %s', cls_path)
-                continue
-        self.cache = results
-
-        return results
 
 
 def get_db_engine(alias='default'):
@@ -81,7 +24,9 @@ def get_db_engine(alias='default'):
 
 
 def has_trending(alias='default'):
-    return get_db_engine('default').startswith(('mysql', 'postgres'))
+    # we only support trend queriess for postgres to db optimization
+    # issues in mysql, and lack of anything useful in sqlite
+    return get_db_engine('default').startswith('postgres')
 
 
 def has_charts(db):

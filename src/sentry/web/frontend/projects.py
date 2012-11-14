@@ -17,10 +17,8 @@ from sentry.permissions import can_create_projects, can_remove_project, can_crea
 from sentry.plugins import plugins
 from sentry.plugins.helpers import set_option, get_option
 from sentry.web.decorators import login_required, has_access
-from sentry.web.forms import EditProjectForm, RemoveProjectForm, \
-  EditProjectAdminForm
 from sentry.web.forms.projects import NewProjectForm, NewProjectAdminForm,\
-  ProjectTagsForm
+  ProjectTagsForm, EditProjectForm, RemoveProjectForm, EditProjectAdminForm
 from sentry.web.forms.teams import NewTeamForm, SelectTeamForm
 from sentry.web.helpers import render_to_response, get_project_list, \
   plugin_config
@@ -30,8 +28,12 @@ from sentry.web.helpers import render_to_response, get_project_list, \
 def project_list(request):
     project_list = get_project_list(request.user, hidden=True).values()
     team_list = dict((t.id, t) for t in Team.objects.filter(pk__in=[p.team_id for p in project_list]))
-    memberships = dict((tm.team_id, tm) for tm in TeamMember.objects.filter(user=request.user, team__in=team_list))
-    keys = dict((p.project_id, p) for p in ProjectKey.objects.filter(user=request.user, project__in=project_list))
+    if request.user.is_authenticated():
+        memberships = dict((tm.team_id, tm) for tm in TeamMember.objects.filter(user=request.user, team__in=team_list))
+        keys = dict((p.project_id, p) for p in ProjectKey.objects.filter(user=request.user, project__in=project_list))
+    else:
+        memberships = {}
+        keys = {}
 
     for project in project_list:
         key = keys.get(project.id)
@@ -147,7 +149,8 @@ def manage_project(request, project):
     if result is False and not request.user.has_perm('sentry.can_change_project'):
         return HttpResponseRedirect(reverse('sentry'))
 
-    team_list = Team.objects.get_for_user(request.user, MEMBER_OWNER)
+    # XXX: We probably shouldnt allow changing the team unless they're the project owner
+    team_list = Team.objects.get_for_user(project.owner or request.user, MEMBER_OWNER)
 
     if request.user.has_perm('sentry.can_change_project'):
         form_cls = EditProjectAdminForm

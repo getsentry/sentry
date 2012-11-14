@@ -8,6 +8,11 @@ sentry.app
 
 from sentry.conf import settings
 from sentry.utils.imports import import_string
+from threading import local
+
+
+class State(local):
+    request = None
 
 
 def get_buffer(path, options):
@@ -15,3 +20,4 @@ def get_buffer(path, options):
     return cls(**options)
 
 buffer = get_buffer(settings.BUFFER, settings.BUFFER_OPTIONS)
+env = State()

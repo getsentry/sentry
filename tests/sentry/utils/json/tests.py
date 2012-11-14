@@ -7,7 +7,7 @@ import uuid
 
 from sentry.utils import json
 
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class JSONTest(TestCase):

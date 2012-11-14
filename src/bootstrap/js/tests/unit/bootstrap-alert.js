@@ -13,7 +13,7 @@ $(function () {
       test("should fade element out on clicking .close", function () {
         var alertHTML = '<div class="alert-message warning fade in">'
           + '<a class="close" href="#" data-dismiss="alert">×</a>'
-          + '<p><strong>Holy guacamole!</strong> Best check yo self, you’re not looking too good.</p>'
+          + '<p><strong>Holy guacamole!</strong> Best check yo self, you\'re not looking too good.</p>'
           + '</div>'
           , alert = $(alertHTML).alert()
 
@@ -27,7 +27,7 @@ $(function () {
 
         var alertHTML = '<div class="alert-message warning fade in">'
           + '<a class="close" href="#" data-dismiss="alert">×</a>'
-          + '<p><strong>Holy guacamole!</strong> Best check yo self, you’re not looking too good.</p>'
+          + '<p><strong>Holy guacamole!</strong> Best check yo self, you\'re not looking too good.</p>'
           + '</div>'
           , alert = $(alertHTML).appendTo('#qunit-fixture').alert()
 
@@ -36,6 +36,21 @@ $(function () {
         alert.find('.close').click()
 
         ok(!$('#qunit-fixture').find('.alert-message').length, 'element removed from dom')
+      })
+
+      test("should not fire closed when close is prevented", function () {
+        $.support.transition = false
+        stop();
+        $('<div class="alert"/>')
+          .bind('close', function (e) {
+            e.preventDefault();
+            ok(true);
+            start();
+          })
+          .bind('closed', function () {
+            ok(false);
+          })
+          .alert('close')
       })
 
 })

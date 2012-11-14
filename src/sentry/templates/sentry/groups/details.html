@@ -75,6 +75,10 @@
         </ul>
     {% endif %}
 
+    {% for tag in group.project.get_tags %}
+        {% render_tag_widget group tag %}
+    {% endfor %}
+
     {% for html in group|get_widgets:request %}
         {{ html|safe }}
     {% endfor %}
@@ -85,7 +89,7 @@
     {% handle_before_events request group %}
     <ul class="events" id="event_list">
         <li class="event level-{{ group.get_level_display }}{% if group.status == 1 %} resolved{% endif %}" data-count="{{ group.times_seen|safe }}" data-score="{{ group.sort_value|safe }}" data-group="{{ group.id|safe }}">
-            <div class="count"><span>{{ group.times_seen|small_count }}</span></div>
+            <div class="count"><span title="{{ group.times_seen }}">{{ group.times_seen|small_count }}</span></div>
             <div class="details">
                 <h3>
                     {% if group.view %}
@@ -128,12 +132,17 @@
 
     <section class="body">
         <ul class="nav nav-tabs">
-            <li{% ifequal page 'details' %} class="active"{% endifequal %}>
+            <li{% if page == 'details' %} class="active"{% endif %}>
                 <a href="{% url sentry-group group.project.slug group.id %}">{% trans "Details" %}</a>
             </li>
-            <li{% ifequal page 'event_list' %} class="active"{% endifequal %}>
+            <li{% if page == 'event_list' %} class="active"{% endif %}>
                 <a href="{% url sentry-group-events group.project.slug group.id %}">{% trans "Events" %}</a>
             </li>
+            {% for tag in group.project.get_tags %}
+                <li{% if page == 'tag_details' and tag == tag_name %} class="active"{% endif %}>
+                    <a href="{% url sentry-group-tag-details group.project.slug group.id tag %}">{{ tag|titlize }}</a>
+                </li>
+            {% endfor %}
             {% for label, link, is_active in group|get_panels:request %}
                 <li{% if is_active %} class="active"{% endif %}><a href="{{ link }}">{{ label }}</a></li>
             {% endfor %}

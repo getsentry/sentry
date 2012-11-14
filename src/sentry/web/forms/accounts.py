@@ -46,7 +46,6 @@ class AccountSettingsForm(forms.Form):
     first_name = forms.CharField(required=True, label=_('Name'))
     new_password1 = forms.CharField(label=_('New password'), widget=forms.PasswordInput, required=False)
     new_password2 = forms.CharField(label=_('New password confirmation'), widget=forms.PasswordInput, required=False)
-    language = forms.ChoiceField(label=_('Language'), choices=settings.LANGUAGES)
 
     def __init__(self, user, *args, **kwargs):
         self.user = user
@@ -77,12 +76,43 @@ class AccountSettingsForm(forms.Form):
         if commit:
             self.user.save()
 
+        return self.user
+
+
+class AppearanceSettingsForm(forms.Form):
+    language = forms.ChoiceField(label=_('Language'), choices=settings.LANGUAGES, required=False)
+    stacktrace_order = forms.ChoiceField(label=_('Stacktrace order'), choices=(
+        ('', 'Default'),
+        ('1', 'Most recent call last'),
+        ('2', 'Most recent call first'),
+    ), required=False)
+
+    def __init__(self, user, *args, **kwargs):
+        self.user = user
+        super(AppearanceSettingsForm, self).__init__(*args, **kwargs)
+
+    def save(self):
+        # if self.cleaned_data['new_password2']:
+        #     self.user.set_password(self.cleaned_data['new_password1'])
+        # self.user.first_name = self.cleaned_data['first_name']
+        # self.user.email = self.cleaned_data['email']
+        # if commit:
+        #     self.user.save()
+
         # Save user language
         UserOption.objects.set_value(
             user=self.user,
             project=None,
             key='language',
             value=self.cleaned_data['language'],
+        )
+
+        # Save stacktrace options
+        UserOption.objects.set_value(
+            user=self.user,
+            project=None,
+            key='stacktrace_order',
+            value=self.cleaned_data['stacktrace_order'],
         )
 
         return self.user

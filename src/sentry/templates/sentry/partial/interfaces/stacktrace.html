@@ -13,7 +13,7 @@
                     <p>
                         <code>{{ frame.filename }}</code>
                         {% if frame.function %} in <code>{{ frame.function }}</code>{% endif %}
-                        {% if not frame.context %} at line <code>{{ frame.lineno }}</code>{% endif %}
+                        {% if not frame.context and frame.lineno %} at line <code>{{ frame.lineno }}</code>{% endif %}
                     </p>
 
                     {% if frame.context %}
@@ -25,21 +25,27 @@
                     {% endif %}
                     {% if frame.vars %}
                         <div class="commands">
-                            <a href="#" onclick="return varToggle(this, '{{ forloop.counter0 }}')"><span>&#x25b6;</span> {% trans "Local vars" %}</a>
+                            <a href="#" onclick="return varToggle(this, '{{ forloop.counter0 }}')"><span>&#x25b6;</span> {% trans "Context" %}</a>
                         </div>
-                        <table class="table vars" id="v{{ forloop.counter0 }}" style="display:none;">
-                            <colgroup>
-                                <col style="width:100px;">
-                            </colgroup>
-                            <tbody>
-                                {% for key, value in frame.vars.iteritems|as_sorted %}
-                                    <tr>
-                                        <td>{{ key }}</td>
-                                        <td class="code"><pre>{{ value|pprint }}</pre></td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                        {% if frame.vars|is_dict %}
+                            <table class="table vars" id="v{{ forloop.counter0 }}" style="display:none;">
+                                <colgroup>
+                                    <col style="width:100px;">
+                                </colgroup>
+                                <tbody>
+                                    {% for key, value in frame.vars.iteritems|as_sorted %}
+                                        <tr>
+                                            <td>{{ key }}</td>
+                                            <td class="code"><pre>{{ value|pprint }}</pre></td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        {% else %}
+                            <div id="v{{ forloop.counter0 }}" style="display:none;">
+                                <pre>{{ frame.vars|pprint }}</pre>
+                            </div>
+                        {% endif %}
                     {% endif %}
                 </li>
             {% endfor %}

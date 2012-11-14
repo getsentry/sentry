@@ -11,15 +11,15 @@ import logging
 import re
 
 from django.core.urlresolvers import reverse
-from django.http import HttpResponse, \
-  HttpResponseRedirect, Http404
+from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
 from sentry.conf import settings
-from sentry.constants import SORT_OPTIONS, SEARCH_SORT_OPTIONS, \
-  SORT_CLAUSES, MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES, MEMBER_USER
+from sentry.constants import (SORT_OPTIONS, SEARCH_SORT_OPTIONS,
+    SORT_CLAUSES, MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES, MEMBER_USER,
+    SCORE_CLAUSES, MYSQL_SCORE_CLAUSES, SQLITE_SCORE_CLAUSES)
 from sentry.filters import get_filters
 from sentry.models import Group, Event, View, SearchDocument
 from sentry.permissions import can_admin_group
@@ -113,11 +113,14 @@ def _get_group_list(request, project, view=None):
 
     engine = get_db_engine('default')
     if engine.startswith('sqlite'):
-        sort_clause = SQLITE_SORT_CLAUSES.get(sort)
+        score_clause = SQLITE_SORT_CLAUSES.get(sort)
+        filter_clause = SQLITE_SCORE_CLAUSES.get(sort)
     elif engine.startswith('mysql'):
-        sort_clause = MYSQL_SORT_CLAUSES.get(sort)
+        score_clause = MYSQL_SORT_CLAUSES.get(sort)
+        filter_clause = MYSQL_SCORE_CLAUSES.get(sort)
     else:
-        sort_clause = SORT_CLAUSES.get(sort)
+        score_clause = SORT_CLAUSES.get(sort)
+        filter_clause = SCORE_CLAUSES.get(sort)
 
     # All filters must already be applied once we reach this point
     if sort == 'tottime':
@@ -127,14 +130,14 @@ def _get_group_list(request, project, view=None):
     elif sort.startswith('accel_'):
         event_list = Group.objects.get_accelerated(event_list, minutes=int(sort.split('_', 1)[1]))
 
-    if sort_clause:
+    if score_clause:
         event_list = event_list.extra(
-            select={'sort_value': sort_clause},
+            select={'sort_value': score_clause},
         ).order_by('-sort_value', '-last_seen')
         cursor = request.GET.get('cursor')
         if cursor:
             event_list = event_list.extra(
-                where=['%s > %%s' % sort_clause],
+                where=['%s > %%s' % filter_clause],
                 params=[cursor],
             )
 
@@ -267,6 +270,20 @@ def group(request, project, group):
         'interface_list': _get_rendered_interfaces(event),
         'json_data': event.data.get('extra', {}),
         'version_data': event.data.get('modules', None),
+        'can_admin_event': can_admin_group(request.user, group),
+    }, request)
+
+
+@has_group_access
+def group_tag_details(request, project, group, tag_name):
+    return render_to_response('sentry/plugins/bases/tag/index.html', {
+        'project': project,
+        'group': group,
+        'title': tag_name.replace('_', ' ').title(),
+        'tag_name': tag_name,
+        'unique_tags': group.get_unique_tags(tag_name),
+        'group': group,
+        'page': 'tag_details',
         'can_admin_event': can_admin_group(request.user, group),
     }, request)
 

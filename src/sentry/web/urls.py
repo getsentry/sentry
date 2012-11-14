@@ -50,8 +50,9 @@ urlpatterns = patterns('',
     url(r'^login-redirect/$', accounts.login_redirect, name='sentry-login-redirect'),
     url(r'^logout/$', accounts.logout, name='sentry-logout'),
     url(r'^account/settings/$', accounts.settings, name='sentry-account-settings'),
-    url(r'^account/settings/notifications/$', accounts.notification_settings, name='sentry-account-settings-notifications'),
+    url(r'^account/settings/appearance/$', accounts.appearance_settings, name='sentry-account-settings-appearance'),
     url(r'^account/settings/identities/$', accounts.list_identities, name='sentry-account-settings-identities'),
+    url(r'^account/settings/notifications/$', accounts.notification_settings, name='sentry-account-settings-notifications'),
 
     # Teams
 
@@ -140,6 +141,7 @@ urlpatterns = patterns('',
     url(r'^api/(?:(?P<project_id>[\w_-]+)/)?groups/newest/$', api.get_new_groups, name='sentry-api-groups-new'),
     url(r'^api/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/set/public/$', api.make_group_public, name='sentry-api-set-group-public'),
     url(r'^api/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/set/private/$', api.make_group_private, name='sentry-api-set-group-private'),
+    url(r'^api/(?P<project_id>[\w_-]+)/tags/search/$', api.search_tags, name='sentry-api-search-tags'),
 
     # Project specific
 
@@ -149,6 +151,7 @@ urlpatterns = patterns('',
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/(?P<event_id>\d+)/$', groups.group_event_details, name='sentry-group-event'),
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/(?P<event_id_or_latest>(\d+|latest))/json/$', groups.group_event_details_json, name='sentry-group-event-json'),
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)/', groups.group_plugin_action, name='sentry-group-plugin-action'),
+    url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/tags/(?P<tag_name>[^/]+)/$', groups.group_tag_details, name='sentry-group-tag-details'),
 
     url(r'^(?P<project_id>[\w_-]+)/events/$', events.event_list, name='sentry-events'),
     url(r'^(?P<project_id>[\w_-]+)/events/(?P<event_id>\d+)/replay/$', events.replay_event, name='sentry-replay'),

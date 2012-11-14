@@ -59,7 +59,7 @@
                 {% if not project.is_default_project %}
                     <a href="{% url sentry-remove-project project.slug %}" class="btn btn-danger">{% trans "Remove Project" %}</a>
                 {% else %}
-                    <div class="alert alert-danger">{% trans "This project cannot be removed. It is used internally by the Sentry server." %}</div>
+                    <p class="pull-right">{% trans "This project cannot be removed. It is used internally by the Sentry server." %}</p>
                 {% endif %}
             </div>
         </form>
@@ -94,7 +94,11 @@
                                     {{ user.email }}
                                 </td>
                                 <td style="text-align:center;">
-                                    {{ member.get_type_display }}
+                                    {% if user == project.team.owner %}
+                                        {% trans "Owner" %}
+                                    {% else %}
+                                        {{ member.get_type_display }}
+                                    {% endif %}
                                 </td>
                             </tr>
                         {% endfor %}

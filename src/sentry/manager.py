@@ -17,6 +17,7 @@ import re
 import warnings
 import weakref
 
+from celery.signals import task_postrun
 from django.conf import settings as dj_settings
 from django.core.signals import request_finished
 from django.db import models, transaction, IntegrityError
@@ -725,12 +726,7 @@ class GroupManager(BaseManager, ChartMixin):
 
         epoch_clause = epoch_clause % dict(mcbm_tbl=mcbm_tbl)
 
-        queryset = queryset.extra(
-            where=[
-                "%s.date >= %s - %s" % (mcbm_tbl, now_clause, minute_clause % (minutes + 1, )),
-                "%s.date <= %s - %s" % (mcbm_tbl, now_clause, minute_clause % (1, ))
-            ],
-        ).annotate(x=Sum('messagecountbyminute__times_seen')).order_by('id')
+        queryset = queryset.annotate(x=Sum('messagecountbyminute__times_seen')).order_by('id')
 
         sql, params = queryset.query.get_compiler(queryset.db).as_sql()
         before_select, after_select = str(sql).split('SELECT ', 1)
@@ -746,12 +742,12 @@ class GroupManager(BaseManager, ChartMixin):
                %(before_where)s
         LEFT JOIN (SELECT a.group_id, SUM(a.times_seen) / COUNT(a.times_seen) / %(norm)f as rate
             FROM %(mcbm_tbl)s as a
-            WHERE a.date BETWEEN %(now)s - %(max_time)s
-            AND %(now)s - %(min_time)s
+            WHERE a.date >=  %(now)s - %(max_time)s
+            AND a.date < %(now)s - %(min_time)s
             GROUP BY a.group_id) as z
         ON z.group_id = %(mcbm_tbl)s.group_id
-        WHERE %(mcbm_tbl)s.date BETWEEN %(now)s - %(min_time)s
-        AND %(now)s - %(offset_time)s
+        WHERE %(mcbm_tbl)s.date >= %(now)s - %(min_time)s
+        AND %(mcbm_tbl)s.date < %(now)s - %(offset_time)s
         AND %(before_group)s
         GROUP BY prev_rate, %(mcbm_tbl)s.date, %(after_group)s
         HAVING SUM(%(mcbm_tbl)s.times_seen) > 0
@@ -797,6 +793,7 @@ class MetaManager(BaseManager):
 
     def __init__(self, *args, **kwargs):
         super(MetaManager, self).__init__(*args, **kwargs)
+        task_postrun.connect(self.clear_cache)
         request_finished.connect(self.clear_cache)
 
     def get_value(self, key, default=NOTSET):
@@ -840,6 +837,7 @@ class InstanceMetaManager(BaseManager):
     def __init__(self, field_name, *args, **kwargs):
         super(InstanceMetaManager, self).__init__(*args, **kwargs)
         self.field_name = field_name
+        task_postrun.connect(self.clear_cache)
         request_finished.connect(self.clear_cache)
 
     def get_value_bulk(self, instances, key):
@@ -901,6 +899,7 @@ class UserOptionManager(BaseManager):
 
     def __init__(self, *args, **kwargs):
         super(UserOptionManager, self).__init__(*args, **kwargs)
+        task_postrun.connect(self.clear_cache)
         request_finished.connect(self.clear_cache)
 
     def get_value(self, user, project, key, default=NOTSET):

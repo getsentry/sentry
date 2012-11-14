@@ -33,6 +33,8 @@
         {% include "sentry/partial/_event.html" %}
     </ul>
 
+    <br>
+
     {% if event.has_two_part_message %}
         <pre id="full-message">{{ event.message }}</pre>
     {% endif %}

@@ -9,7 +9,7 @@ from sentry.interfaces import Stacktrace
 from sentry.models import Event, Group, Project
 from sentry.plugins.sentry_mail.models import MailProcessor
 
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class MailProcessorTest(TestCase):
