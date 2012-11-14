@@ -164,13 +164,13 @@
                     <% if (canResolve) { %>
                         <li>
                             <% if (!isResolved) { %>
-                                <a href="#" data-action="resolve" rel="tooltip" title="{% trans "Mark as Resolved" %}">&#10003;</a>
+                                <a href="#" data-action="resolve checked" title="{% trans "Mark as Resolved" %}">&#10003;</a>
                             <% } else { %>
-                                <a class="tip checked" rel="tooltip" title="{% trans "Already Resolved" %}">&#10003;</a>
+                                <a href="#" title="{% trans "Already Resolved" %}">&#10003;</a>
                             <% } %>
                         </li>
                         <li>
-                            <a href="#" data-action="bookmark" class="tip bookmark" rel="tooltip" title="{% trans "Bookmark" %}">&#9733;</a>
+                            <a href="#" data-action="bookmark" class="bookmark<% if (isBookmarked) { %> checked<% } %>" title="{% trans "Bookmark" %}">&#9733;</a>
                         </li>
                     <% } %>
                 </ul>

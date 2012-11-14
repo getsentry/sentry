@@ -129,18 +129,55 @@ jQuery ->
         initialize: ->
             _.bindAll(@)
             @model.on("change:count", @updateCount)
+            @model.on('change:isBookmarked', @render)
+            @model.on('change:isResolved', @render)
 
         render: ->
             data = @model.toJSON()
             data.historicalData = @getHistoricalAsString(@model)
             @$el.html(@template(data))
             @$el.addClass(@getLevelClassName(@model))
+            @$el.find('a[data-action=resolve]').click (e) =>
+                e.preventDefault()
+                @resolve(@model)
+            @$el.find('a[data-action=bookmark]').click (e) =>
+                e.preventDefault()
+                @bookmark(@model)
+
             if data.isResolved
                 @$el.addClass('resolved')
+            if data.isBookmarked
+                @$el.addClass('bookmarked')
             if data.historicalData
                 @$el.addClass('with-sparkline')
             @$el.attr('data-id', data.id)
             @
+
+        getResolveUrl: ->
+            app.config.urlPrefix + '/api/' + app.config.projectId + '/resolve/'
+
+        resolve: (obj) ->
+            $.ajax
+                url: @getResolveUrl()
+                type: 'post'
+                dataType: 'json'
+                data:
+                    gid: @model.get('id')
+                success: (response) =>
+                    @model.set('isResolved', true)
+
+        getBookmarkUrl: ->
+            app.config.urlPrefix + '/api/' + app.config.projectId + '/bookmark/'
+
+        bookmark: (obj) ->
+            $.ajax
+                url: @getBookmarkUrl()
+                type: 'post'
+                dataType: 'json'
+                data:
+                    gid: @model.get('id')
+                success: (response) =>
+                    @model.set('isBookmarked', response.bookmarked)
 
         getHistoricalAsString: (obj) ->
             if obj.get('historicalData') then obj.get('historicalData').join ', ' else ''

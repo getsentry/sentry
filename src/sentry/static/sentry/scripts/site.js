@@ -21,7 +21,7 @@
       StreamPage.prototype.initialize = function(data) {
         var _ref;
         _.bindAll(this);
-        this.group_list = new app.OrderedElementsView({
+        this.group_list = new app.GroupListView({
           className: 'group-list',
           id: 'event_list',
           members: data.groups,
@@ -145,7 +145,7 @@
 
       DashboardPage.prototype.getView = function(id) {
         if (!this.views[id]) {
-          this.views[id] = new app.OrderedElementsView({
+          this.views[id] = new app.GroupListView({
             className: 'group-list small',
             id: id,
             maxItems: 5
@@ -481,23 +481,75 @@
 
       GroupView.prototype.initialize = function() {
         _.bindAll(this);
-        return this.model.on("change:count", this.updateCount);
+        this.model.on("change:count", this.updateCount);
+        this.model.on('change:isBookmarked', this.render);
+        return this.model.on('change:isResolved', this.render);
       };
 
       GroupView.prototype.render = function() {
-        var data;
+        var data,
+          _this = this;
         data = this.model.toJSON();
         data.historicalData = this.getHistoricalAsString(this.model);
         this.$el.html(this.template(data));
         this.$el.addClass(this.getLevelClassName(this.model));
+        this.$el.find('a[data-action=resolve]').click(function(e) {
+          e.preventDefault();
+          return _this.resolve(_this.model);
+        });
+        this.$el.find('a[data-action=bookmark]').click(function(e) {
+          e.preventDefault();
+          return _this.bookmark(_this.model);
+        });
         if (data.isResolved) {
           this.$el.addClass('resolved');
+        }
+        if (data.isBookmarked) {
+          this.$el.addClass('bookmarked');
         }
         if (data.historicalData) {
           this.$el.addClass('with-sparkline');
         }
         this.$el.attr('data-id', data.id);
         return this;
+      };
+
+      GroupView.prototype.getResolveUrl = function() {
+        return app.config.urlPrefix + '/api/' + app.config.projectId + '/resolve/';
+      };
+
+      GroupView.prototype.resolve = function(obj) {
+        var _this = this;
+        return $.ajax({
+          url: this.getResolveUrl(),
+          type: 'post',
+          dataType: 'json',
+          data: {
+            gid: this.model.get('id')
+          },
+          success: function(response) {
+            return _this.model.set('isResolved', true);
+          }
+        });
+      };
+
+      GroupView.prototype.getBookmarkUrl = function() {
+        return app.config.urlPrefix + '/api/' + app.config.projectId + '/bookmark/';
+      };
+
+      GroupView.prototype.bookmark = function(obj) {
+        var _this = this;
+        return $.ajax({
+          url: this.getBookmarkUrl(),
+          type: 'post',
+          dataType: 'json',
+          data: {
+            gid: this.model.get('id')
+          },
+          success: function(response) {
+            return _this.model.set('isBookmarked', response.bookmarked);
+          }
+        });
       };
 
       GroupView.prototype.getHistoricalAsString = function(obj) {

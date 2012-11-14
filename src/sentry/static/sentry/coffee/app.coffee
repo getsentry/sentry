@@ -8,7 +8,7 @@ jQuery ->
         initialize: (data) ->
             _.bindAll(@)
 
-            @group_list = new app.OrderedElementsView
+            @group_list = new app.GroupListView
                 className: 'group-list'
                 id: 'event_list'
                 members: data.groups
@@ -126,7 +126,7 @@ jQuery ->
 
         getView: (id) ->
             if !@views[id]
-                @views[id] = new app.OrderedElementsView
+                @views[id] = new app.GroupListView
                     className: 'group-list small'
                     id: id
                     maxItems: 5
