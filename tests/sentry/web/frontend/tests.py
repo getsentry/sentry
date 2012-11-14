@@ -113,7 +113,7 @@ class SentryViewsTest(TestCase):
         self.assertTemplateUsed(resp, 'sentry/admin/status/packages.html')
 
     def test_status_mail(self):
-        self.client.login(username='admin', password='admin')
+        self.client.login(username=self.user.username, password='password')
         resp = self.client.get(reverse('sentry-admin-mail-status'), follow=True)
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/admin/status/mail.html')
