@@ -6,7 +6,7 @@ import pickle
 
 from sentry.interfaces import Interface
 
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class InterfaceTests(TestCase):

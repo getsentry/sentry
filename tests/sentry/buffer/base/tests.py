@@ -9,7 +9,7 @@ from django.utils import timezone
 from sentry.buffer.base import Buffer
 from sentry.models import Group, Project
 from sentry.tasks.process_buffer import process_incr
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class BufferTest(TestCase):

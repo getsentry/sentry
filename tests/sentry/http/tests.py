@@ -12,7 +12,7 @@ from raven import Client
 from sentry.conf import settings
 from sentry.models import Group, Event
 
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class RavenIntegrationTest(TestCase):

@@ -51,7 +51,7 @@ install_requires = [
     'django-celery>=2.5.5',
     'celery>=2.5.3',
     'django-crispy-forms>=1.1.4',
-    'Django>=1.4.1,<=1.5',
+    'Django>=1.4.2,<=1.5',
     'django-indexer>=0.3.0',
     'django-paging>=0.2.4',
     'django-picklefield>=0.2.0',
@@ -60,7 +60,7 @@ install_requires = [
     'logan>=0.5.1',
     'pynliner>=0.4.0',
     'python-dateutil>=1.5.0,<2.0.0',
-    'raven>=2.0.6',
+    'raven>=2.0.7.1',
     'simplejson>=2.1.6',
     'South>=0.7.6',
     'httpagentparser>=1.0.5',
@@ -70,7 +70,7 @@ install_requires = [
 
 setup(
     name='sentry',
-    version='5.0.19',
+    version='5.1.0',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://www.getsentry.com',

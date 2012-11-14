@@ -16,7 +16,7 @@ from sentry.coreapi import project_from_id, project_from_api_key_and_id, \
   insert_data_to_database, validate_data
 from sentry.utils.auth import get_signature
 
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class BaseAPITest(TestCase):

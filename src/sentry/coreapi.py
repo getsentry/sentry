@@ -56,6 +56,9 @@ class APIError(Exception):
         if msg:
             self.msg = msg
 
+    def __str__(self):
+        return self.msg or ''
+
 
 class APIUnauthorized(APIError):
     http_status = 401

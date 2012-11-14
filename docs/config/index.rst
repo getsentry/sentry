@@ -139,7 +139,7 @@ Authentication
 .. data:: sentry.conf.USE_JS_CLIENT
     :noindex:
 
-    Instructs Sentry to install it's JavaScript error handler to catch internal errors in the
+    Instructs Sentry to install its JavaScript error handler to catch internal errors in the
     Sentry client-side code.
 
     Defaults to ``False``.

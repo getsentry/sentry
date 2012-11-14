@@ -1,26 +1,123 @@
+
+<style type="text/css">
+.client-platform-list {
+    list-style: none;
+    margin-left: 0;
+    margin-bottom: 10px;
+}
+.client-platform-list li {
+    display: inline-block;
+    width: 64px;
+    height: 64px;
+}
+.client-platform-list span {
+    width: 48px;
+    height: 48px;
+    display: block;
+    text-align: center;
+    margin: 0 auto;
+    -moz-border-radius: 48px;
+    -webkit-border-radius: 48px;
+    border-radius: 48px;
+    background: #fff;
+
+}
+.client-platform-list img {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto;
+    display: inline-block;
+}
+.client-platform-list a {
+    text-align: center;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 10px;
+    vertical-align: bottom;
+    display: block;
+}
+</style>
+<div class="page-header">
+    <h3>Languages</h3>
+</div>
 <ul class="client-platform-list">
     <li>
-        <a href="{% url sentry-docs-client project.slug 'python' %}">Python</a>
-        <ul>
-            <li><a href="{% url sentry-docs-client project.slug 'django' %}">Django</a></li>
-            <li><a href="{% url sentry-docs-client project.slug 'flask' %}">Flask</a></li>
-        </ul>
+        <a href="{% url sentry-docs-client project.slug 'python' %}">
+            <span><img src="{% url sentry-media "sentry" "images/platforms/python48x48.png" %}"></span>
+            <strong>Python</strong>
+        </a>
     </li>
-    <li><a href="{% url sentry-docs-client project.slug 'php' %}">PHP</a></li>
-    <li><a href="{% url sentry-docs-client project.slug 'java' %}">Java</a></li>
     <li>
-        <a href="{% url sentry-docs-client project.slug 'ruby' %}">Ruby</a>
-        <ul>
-            <li><a href="{% url sentry-docs-client project.slug 'rails3' %}">Rails 3</a></li>
-        </ul>
+        <a href="{% url sentry-docs-client project.slug 'php' %}">
+            <span><img src="{% url sentry-media "sentry" "images/platforms/php48x48.png" %}"></span>
+            <strong>PHP</strong>
+        </a>
     </li>
-    <li><a href="{% url sentry-docs-client project.slug 'javascript' %}">JavaScript</a></li>
     <li>
-        <a href="{% url sentry-docs-client project.slug 'node.js' %}">Node.js</a>
-        <ul>
-            <li><a href="{% url sentry-docs-client project.slug 'express' %}">Express</a></li>
-            <li><a href="{% url sentry-docs-client project.slug 'connect' %}">Connect</a></li>
-        </ul>
+        <a href="{% url sentry-docs-client project.slug 'ruby' %}">
+            <span><img src="{% url sentry-media "sentry" "images/platforms/ruby48x48.png" %}"></span>
+            <strong>Ruby</strong>
+        </a>
     </li>
-    <li><a href="{% url sentry-docs-client project.slug 'r' %}">R</a></li>
+    <li>
+        <a href="{% url sentry-docs-client project.slug 'javascript' %}">
+            <span><img src="{% url sentry-media "sentry" "images/platforms/javascript48x48.png" %}"></span>
+            <strong>JavaScript</strong>
+        </a>
+    </li>
+    <li>
+        <a href="{% url sentry-docs-client project.slug 'java' %}">
+            <span><img src="{% url sentry-media "sentry" "images/platforms/java48x48.png" %}"></span>
+            <strong>Java</strong>
+        </a>
+    </li>
+    <li>
+        <a href="{% url sentry-docs-client project.slug 'node.js' %}">
+            <span><img src="{% url sentry-media "sentry" "images/platforms/node48x48.png" %}"></span>
+            <strong>Node.js</strong>
+        </a>
+    </li>
+</ul>
+<div class="page-header">
+    <h3>Frameworks</h3>
+</div>
+<ul class="client-platform-list">
+    <li>
+        <a href="{% url sentry-docs-client project.slug 'rails3' %}">
+            <span><img src="{% url sentry-media "sentry" "images/platforms/rails48x48.png" %}"></span>
+            <strong>Rails 3</strong>
+        </a>
+    </li>
+    <li>
+        <a href="{% url sentry-docs-client project.slug 'django' %}">
+            <span><img src="{% url sentry-media "sentry" "images/platforms/django48x48.png" %}"></span>
+            <strong>Django</strong>
+        </a>
+    </li>
+</ul>
+
+<div class="page-header">
+    <h3>More Platforms</h3>
+</div>
+<ul>
+    <li>
+        <a href="{% url sentry-docs-client project.slug 'r' %}">
+            <strong>R Project</strong>
+        </a>
+    </li>
+    <li>
+        <a href="{% url sentry-docs-client project.slug 'flask' %}">
+            <strong>Flask (Python)</strong>
+        </a>
+    </li>
+    <li>
+        <a href="{% url sentry-docs-client project.slug 'express' %}">
+            <strong>Express (Node.js)</strong>
+        </a>
+    </li>
+    <li>
+        <a href="{% url sentry-docs-client project.slug 'connect' %}">
+            <strong>Connect (Node.js)</strong>
+        </a>
+    </li>
 </ul>
