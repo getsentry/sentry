@@ -18,17 +18,28 @@
         return BasePage.__super__.constructor.apply(this, arguments);
       }
 
-      BasePage.prototype.initialize = function() {
-        var _this = this;
+      BasePage.prototype.initialize = function(data) {
+        var _ref;
         _.bindAll(this);
+        if (!(data != null)) {
+          data = {};
+        }
+        this.config = {
+          realtime: (_ref = data.realtime) != null ? _ref : false
+        };
         this.views = {};
+        return this.initializeAjaxTabs();
+      };
+
+      BasePage.prototype.initializeAjaxTabs = function() {
+        var _this = this;
         $('a[data-toggle=ajtab]').click(function(e) {
           var $cont, $parent, $tab, uri, view, view_id;
           e.preventDefault();
           $tab = $(e.target);
-          view_id = $tab.attr('href').substr(1);
-          view = _this.getView(view_id);
           uri = $tab.attr('data-uri');
+          view_id = $tab.attr('href').substr(1);
+          view = _this.getView(view_id, uri);
           if (!uri) {
             view.load();
             return;
@@ -60,17 +71,19 @@
         return $('li.active a[data-toggle=ajtab]').click();
       };
 
-      BasePage.prototype.makeDefaultView = function(id) {
+      BasePage.prototype.makeDefaultView = function(id, uri) {
         return new app.GroupListView({
           className: 'group-list small',
           id: id,
-          maxItems: 5
+          maxItems: 5,
+          pollUrl: uri,
+          realtime: this.config.realtime
         });
       };
 
-      BasePage.prototype.getView = function(id) {
+      BasePage.prototype.getView = function(id, uri) {
         if (!this.views[id]) {
-          this.views[id] = this.makeDefaultView(id);
+          this.views[id] = this.makeDefaultView(id, uri);
         }
         return this.views[id];
       };
@@ -87,73 +100,14 @@
       }
 
       StreamPage.prototype.initialize = function(data) {
-        var _ref;
-        BasePage.prototype.initialize.call(this);
-        this.group_list = new app.GroupListView({
+        BasePage.prototype.initialize.call(this, data);
+        return this.group_list = new app.GroupListView({
           className: 'group-list',
           id: 'event_list',
           members: data.groups,
-          maxItems: 50
-        });
-        this.config = {
-          realtime: (_ref = data.realtime) != null ? _ref : true
-        };
-        this.cursor = null;
-        this.queue = new app.ScoredList;
-        this.poll();
-        return window.setInterval(this.tick, 300);
-      };
-
-      StreamPage.prototype.tick = function() {
-        if (!this.queue.length) {
-          return;
-        }
-        $('#no_messages').remove();
-        return this.group_list.addMember(this.queue.pop());
-      };
-
-      StreamPage.prototype.getPollUrl = function() {
-        return app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/';
-      };
-
-      StreamPage.prototype.poll = function() {
-        var data, poll_url,
-          _this = this;
-        poll_url = this.getPollUrl;
-        if (!this.config.realtime) {
-          window.setTimeout(this.poll, 1000);
-          return;
-        }
-        data = app.utils.getQueryParams();
-        data.cursor = this.cursor || void 0;
-        return $.ajax({
-          url: this.getPollUrl(),
-          type: 'get',
-          dataType: 'json',
-          data: data,
-          success: function(groups) {
-            var obj, _i, _len;
-            if (!groups.length) {
-              setTimeout(_this.poll, 5000);
-              return;
-            }
-            _this.cursor = groups[groups.length - 1].score || void 0;
-            for (_i = 0, _len = groups.length; _i < _len; _i++) {
-              data = groups[_i];
-              obj = _this.queue.get(data.id);
-              if (obj) {
-                obj.set('count', data.count);
-                obj.set('score', data.score);
-                _this.queue.sort();
-              } else {
-                _this.queue.add(data);
-              }
-            }
-            return window.setTimeout(_this.poll, 1000);
-          },
-          error: function() {
-            return window.setTimeout(_this.poll, 10000);
-          }
+          maxItems: 50,
+          realtime: true,
+          pollUrl: app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/'
         });
       };
 
@@ -168,8 +122,8 @@
         return DashboardPage.__super__.constructor.apply(this, arguments);
       }
 
-      DashboardPage.prototype.initialize = function() {
-        BasePage.prototype.initialize.call(this);
+      DashboardPage.prototype.initialize = function(data) {
+        BasePage.prototype.initialize.call(this, data);
         return Sentry.charts.render('#chart');
       };
 
@@ -185,16 +139,20 @@
       }
 
       WallPage.prototype.initialize = function() {
-        BasePage.prototype.initialize.call(this);
+        BasePage.prototype.initialize.call(this, {
+          realtime: true,
+          pollTime: 3000
+        });
         this.$sparkline = $('.chart');
         this.$sparkline.height(this.$sparkline.parent().height());
         this.$stats = $('#stats');
-        return this.refresh();
+        this.refreshSparkline();
+        return this.refreshStats();
       };
 
-      WallPage.prototype.refresh = function() {
+      WallPage.prototype.refreshSparkline = function() {
         var _this = this;
-        $.ajax({
+        return $.ajax({
           url: this.$sparkline.attr('data-api-url'),
           type: 'get',
           dataType: 'json',
@@ -232,15 +190,20 @@
             });
           }
         });
+      };
+
+      WallPage.prototype.refreshStats = function() {
+        var _this = this;
         return $.ajax({
           url: this.$stats.attr('data-uri'),
           dataType: 'json',
           success: function(data) {
-            return _this.$stats.find('[data-stat]').each(function() {
+            _this.$stats.find('[data-stat]').each(function() {
               var $this;
               $this = $(this);
               return $this.find('big').text(data[$this.attr('data-stat')]);
             });
+            return window.setTimeout(_this.refreshStats, 1000);
           }
         });
       };
@@ -532,7 +495,7 @@
           id: this.id + member.id
         });
         out = view.render();
-        return $(out.el);
+        return out.$el;
       };
 
       OrderedElementsView.prototype.unrenderMember = function(member) {
@@ -553,6 +516,68 @@
         return GroupListView.__super__.constructor.apply(this, arguments);
       }
 
+      GroupListView.prototype.initialize = function(data) {
+        var _ref, _ref1, _ref2, _ref3;
+        OrderedElementsView.prototype.initialize.call(this, data);
+        this.config = {
+          realtime: (_ref = data.realtime) != null ? _ref : false,
+          pollUrl: (_ref1 = data.pollUrl) != null ? _ref1 : null,
+          pollTime: (_ref2 = data.pollTime) != null ? _ref2 : 1000,
+          tickTime: (_ref3 = data.tickTime) != null ? _ref3 : 300
+        };
+        this.queue = new app.ScoredList;
+        this.cursor = null;
+        window.setInterval(this.tick, this.config.tickTime);
+        return this.poll();
+      };
+
+      GroupListView.prototype.tick = function() {
+        if (!this.queue.length) {
+          return;
+        }
+        return this.addMember(this.queue.pop());
+      };
+
+      GroupListView.prototype.poll = function() {
+        var data,
+          _this = this;
+        if (!this.config.realtime) {
+          window.setTimeout(this.poll, this.config.pollTime);
+          return;
+        }
+        data = app.utils.getQueryParams();
+        data.cursor = this.cursor || void 0;
+        return $.ajax({
+          url: this.config.pollUrl,
+          type: 'get',
+          dataType: 'json',
+          data: data,
+          success: function(groups) {
+            var obj, _i, _len;
+            if (!groups.length) {
+              setTimeout(_this.poll, _this.config.pollTime * 5);
+              return;
+            }
+            _this.cursor = groups[groups.length - 1].score || void 0;
+            for (_i = 0, _len = groups.length; _i < _len; _i++) {
+              data = groups[_i];
+              obj = _this.queue.get(data.id);
+              if (obj) {
+                obj.set('count', data.count);
+                obj.set('score', data.score);
+                _this.queue.sort();
+              } else {
+                _this.queue.add(data);
+              }
+            }
+            return window.setTimeout(_this.poll, _this.config.pollTime);
+          },
+          error: function() {
+            return window.setTimeout(_this.poll, _this.config.pollTime * 10);
+          }
+        });
+      };
+
       return GroupListView;
 
     })(OrderedElementsView);
@@ -572,7 +597,7 @@
 
       GroupView.prototype.initialize = function() {
         _.bindAll(this);
-        this.model.on("change:count", this.updateCount);
+        this.model.on('change:count', this.updateCount);
         this.model.on('change:isBookmarked', this.render);
         return this.model.on('change:isResolved', this.render);
       };

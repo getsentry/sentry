@@ -4,18 +4,27 @@ app.config = app.config || {};
 jQuery ->
 
     class BasePage extends Backbone.View
-        initialize: ->
+        initialize: (data) ->
             _.bindAll(@)
+
+            if !data?
+                data = {}
+
+            @config =
+                realtime: data.realtime ? false
             @views = {}
 
+            @initializeAjaxTabs()
+
+        initializeAjaxTabs: ->
             # initialize tab event handlers
             $('a[data-toggle=ajtab]').click (e) =>
                 e.preventDefault()
 
                 $tab = $(e.target)
-                view_id = $tab.attr('href').substr(1)
-                view = @getView(view_id)
                 uri = $tab.attr('data-uri')
+                view_id = $tab.attr('href').substr(1)
+                view = @getView(view_id, uri)
 
                 if (!uri)
                     view.load()
@@ -48,93 +57,36 @@ jQuery ->
             # initialize active tabs
             $('li.active a[data-toggle=ajtab]').click()
 
-        makeDefaultView: (id) ->
+        makeDefaultView: (id, uri) ->
             new app.GroupListView
                 className: 'group-list small'
                 id: id
                 maxItems: 5
+                pollUrl: uri
+                realtime: @config.realtime
 
-        getView: (id) ->
+        getView: (id, uri) ->
             if !@views[id]
-                @views[id] = @makeDefaultView(id)
+                @views[id] = @makeDefaultView(id, uri)
             return @views[id]
 
     app.StreamPage = class StreamPage extends BasePage
 
         initialize: (data) ->
-            BasePage.prototype.initialize.call(@)
+            BasePage.prototype.initialize.call(@, data)
 
             @group_list = new app.GroupListView
                 className: 'group-list'
                 id: 'event_list'
                 members: data.groups
                 maxItems: 50
-
-            @config =
-                realtime: data.realtime ? true
-
-            @cursor = null
-            @queue = new app.ScoredList
-            @poll()
-
-            window.setInterval(@tick, 300)
-
-        tick: ->
-            if !@queue.length
-                return
-
-            # ensure "no messages" is cleaned up
-            $('#no_messages').remove()
-
-            @group_list.addMember(@queue.pop())
-
-            # # shiny fx
-            # $row.css('background-color', '#ddd').animate({backgroundColor: '#fff'}, 1200)
-
-        getPollUrl: ->
-            app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/'
-
-        poll: ->
-            poll_url = @getPollUrl
-            if !@config.realtime
-                window.setTimeout(@poll, 1000)
-                return
-
-            data = app.utils.getQueryParams()
-            data.cursor = @cursor || undefined
-
-            $.ajax
-                url: @getPollUrl()
-                type: 'get'
-                dataType: 'json'
-                data: data
-                success: (groups) =>
-                    if !groups.length
-                        setTimeout(@poll, 5000)
-                        return
-
-                    @cursor = groups[groups.length - 1].score || undefined
-
-                    for data in groups
-                        obj = @queue.get(data.id)
-                        if obj
-                            # TODO: this code is shared in updateMember above
-                            obj.set('count', data.count)
-                            obj.set('score', data.score)
-                            @queue.sort()
-                        else
-                            @queue.add(data)
-
-                    window.setTimeout(@poll, 1000)
-
-                error: =>
-                    # if an error happened lets give the server a bit of time before we poll again
-                    window.setTimeout(@poll, 10000)
+                realtime: true
+                pollUrl: app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/'
 
     app.DashboardPage = class DashboardPage extends BasePage
 
-        initialize: ->
-            BasePage.prototype.initialize.call(@)
+        initialize: (data) ->
+            BasePage.prototype.initialize.call(@, data)
 
             # TODO:
             Sentry.charts.render('#chart')
@@ -142,15 +94,19 @@ jQuery ->
     app.WallPage = class WallPage extends BasePage
 
         initialize: ->
-            BasePage.prototype.initialize.call(@)
+            BasePage.prototype.initialize.call(@,
+                realtime: true
+                pollTime: 3000
+            )
 
             @$sparkline = $('.chart')
             @$sparkline.height(@$sparkline.parent().height())
             @$stats = $('#stats')
 
-            @refresh()
+            @refreshSparkline()
+            @refreshStats()
 
-        refresh: ->
+        refreshSparkline: ->
             $.ajax
                 url: @$sparkline.attr('data-api-url'),
                 type: 'get'
@@ -181,6 +137,7 @@ jQuery ->
                             show: false
                     )
 
+        refreshStats: ->
             $.ajax
                 url: @$stats.attr('data-uri')
                 dataType: 'json'
@@ -188,6 +145,7 @@ jQuery ->
                     @$stats.find('[data-stat]').each ->
                         $this = $(this)
                         $this.find('big').text(data[$this.attr('data-stat')])
+                    window.setTimeout(@refreshStats, 1000)
 
 # We're not talking to the server
 Backbone.sync = (method, model, success, error) ->

@@ -3,8 +3,8 @@ window.app = app = window.app || {}
 jQuery ->
 
     app.OrderedElementsView = class OrderedElementsView extends Backbone.View
-        initialize: (data) ->
 
+        initialize: (data) ->
             _.bindAll(@)
 
             @$wrapper = $('#' + @id)
@@ -110,7 +110,7 @@ jQuery ->
                 id: @id + member.id
 
             out = view.render()
-            $(out.el)
+            out.$el
 
         unrenderMember: (member) ->
             $('#' + @id + member.id).remove()
@@ -120,6 +120,66 @@ jQuery ->
 
     app.GroupListView = class GroupListView extends OrderedElementsView
 
+        initialize: (data) ->
+            OrderedElementsView.prototype.initialize.call(@, data)
+
+            @config =
+                realtime: data.realtime ? false
+                pollUrl: data.pollUrl ? null
+                pollTime: data.pollTime ? 1000
+                tickTime: data.tickTime ? 300
+
+            @queue = new app.ScoredList
+            @cursor = null
+
+            window.setInterval(@tick, @config.tickTime)
+
+            @poll()
+
+        tick: ->
+            if !@queue.length
+                return
+
+            @addMember(@queue.pop())
+
+            # # shiny fx
+            # $row.css('background-color', '#ddd').animate({backgroundColor: '#fff'}, 1200)
+
+        poll: ->
+            if !@config.realtime
+                window.setTimeout(@poll, @config.pollTime)
+                return
+
+            data = app.utils.getQueryParams()
+            data.cursor = @cursor || undefined
+
+            $.ajax
+                url: @config.pollUrl
+                type: 'get'
+                dataType: 'json'
+                data: data
+                success: (groups) =>
+                    if !groups.length
+                        setTimeout(@poll, @config.pollTime * 5)
+                        return
+
+                    @cursor = groups[groups.length - 1].score || undefined
+
+                    for data in groups
+                        obj = @queue.get(data.id)
+                        if obj
+                            # TODO: this code is shared in updateMember above
+                            obj.set('count', data.count)
+                            obj.set('score', data.score)
+                            @queue.sort()
+                        else
+                            @queue.add(data)
+
+                    window.setTimeout(@poll, @config.pollTime)
+
+                error: =>
+                    # if an error happened lets give the server a bit of time before we poll again
+                    window.setTimeout(@poll, @config.pollTime * 10)
 
     app.GroupView = class GroupView extends Backbone.View
         tagName: 'li'
@@ -128,7 +188,7 @@ jQuery ->
 
         initialize: ->
             _.bindAll(@)
-            @model.on("change:count", @updateCount)
+            @model.on('change:count', @updateCount)
             @model.on('change:isBookmarked', @render)
             @model.on('change:isResolved', @render)
 
