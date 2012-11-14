@@ -60,7 +60,7 @@ def get_origins(project=None):
     if project:
         optval = get_option('sentry:origins', project)
         if optval:
-            result.extend(map(str.lower, optval))
+            result.extend(map(lambda x: x.lower(), optval))
 
     return frozenset(filter(bool, result))
 
