@@ -57,6 +57,11 @@ class Transformer(object):
 @register(Group)
 class GroupTransformer(Transformer):
     def attach_metadata(self, objects, request=None):
+        from sentry.templatetags.sentry_plugins import handle_before_events
+
+        if request and objects:
+            handle_before_events(request, objects)
+
         if request and request.user.is_authenticated() and objects:
             bookmarks = set(GroupBookmark.objects.filter(
                 user=request.user,

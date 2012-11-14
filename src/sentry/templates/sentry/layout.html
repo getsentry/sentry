@@ -8,53 +8,58 @@
         <meta name="robots" content="NONE,NOARCHIVE">
 
         <link href="{% url sentry-media "sentry" "scripts/select2/select2.css" %}" rel="stylesheet" type="text/css"/>
-        <link href="{% url sentry-media "sentry" "styles/global.min.css" %}" rel="stylesheet" type="text/css"/>
         <link href="{% url sentry-media "sentry" "images/favicon.png" %}" rel="shortcut icon" type="image/png"/>
 
         <title>{% block title %}Sentry{% endblock %}</title>
 
         {% if USE_JS_CLIENT %}
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/client.js" %}"></script>
-        <script type="text/javascript">
-        Sentry.client.config({
-            server: '{% url sentry-api-store %}',
-            projectId: {{ PROJECT_ID|to_json|safe }},
-            logger: 'sentry.errors.javascript'
-        })
-        Sentry.client.registerGlobalHandler();
-        </script>
+            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/client.js" %}"></script>
+            <script type="text/javascript">
+            Sentry.client.config({
+                server: '{% url sentry-api-store %}',
+                projectId: {{ PROJECT_ID|to_json|safe }},
+                logger: 'sentry.errors.javascript'
+            })
+            Sentry.client.registerGlobalHandler();
+            </script>
         {% endif %}
 
         <!--[if lt IE 9]>
         <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/html5shiv.js" %}"></script>
         <![endif]-->
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.animate-colors-min.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.clippy.min.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.flot.min.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.sparkline.min.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/json2.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/underscore.min.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/backbone.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/select2/select2.min.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/global.min.js" %}"></script>
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/site.js" %}"></script>
-        <script type="text/javascript">
-        Sentry.config({
-            urlPrefix: {{ URL_PREFIX|to_json|safe }},
-            mediaUrl: '{% url sentry-media "sentry" '' %}',
-            projectId: {% if project %}{{ project.id|to_json|safe }}{% else %}null{% endif %},
-            defaultImage: '{% url sentry-media "sentry" 'images/sentry.png' %}',
-            popupCss: '{% url sentry-media "sentry" 'styles/popup.css' %}'
-        });
-        app.config.defaultImage = '{% url sentry-media "sentry" 'images/sentry.png' %}';
-        app.config.popupCss = '{% url sentry-media "sentry" 'styles/popup.css' %}';
-        app.config.mediaUrl = '{% url sentry-media "sentry" '' %}';
-        app.config.urlPrefix = {{ URL_PREFIX|to_json|safe }};
-        app.config.hasRealtime = {{ hasRealtime|to_json|safe  }};
-        app.config.projectId = {{ project.slug|to_json|safe }};
-        app.config.viewId = {% if view %}{{ view.pk|to_json|safe }}{% else %}null{% endif %};
-        </script>
+        {% block scripts %}
+            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.js" %}"></script>
+            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.animate-colors-min.js" %}"></script>
+            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.clippy.min.js" %}"></script>
+            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.flot.min.js" %}"></script>
+            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.sparkline.min.js" %}"></script>
+            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/json2.js" %}"></script>
+            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/underscore.min.js" %}"></script>
+            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/backbone.js" %}"></script>
+            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/select2/select2.min.js" %}"></script>
+            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/global.min.js" %}"></script>
+            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/site.js" %}"></script>
+            <script type="text/javascript">
+            Sentry.config({
+                urlPrefix: {{ URL_PREFIX|to_json|safe }},
+                mediaUrl: '{% url sentry-media "sentry" '' %}',
+                projectId: {% if project %}{{ project.id|to_json|safe }}{% else %}null{% endif %},
+                defaultImage: '{% url sentry-media "sentry" 'images/sentry.png' %}',
+                popupCss: '{% url sentry-media "sentry" 'styles/popup.css' %}'
+            });
+            app.config.defaultImage = '{% url sentry-media "sentry" 'images/sentry.png' %}';
+            app.config.popupCss = '{% url sentry-media "sentry" 'styles/popup.css' %}';
+            app.config.mediaUrl = '{% url sentry-media "sentry" '' %}';
+            app.config.urlPrefix = {{ URL_PREFIX|to_json|safe }};
+            app.config.hasRealtime = {{ hasRealtime|to_json|safe  }};
+            app.config.projectId = {{ project.slug|to_json|safe }};
+            app.config.viewId = {% if view %}{{ view.pk|to_json|safe }}{% else %}null{% endif %};
+            </script>
+        {% endblock %}
+
+        {% block css %}
+            <link href="{% url sentry-media "sentry" "styles/global.min.css" %}" rel="stylesheet" type="text/css"/>
+        {% endblock %}
 
         {% block meta %}
         {% endblock %}

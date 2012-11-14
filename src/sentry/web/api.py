@@ -200,8 +200,6 @@ def notification(request, project):
 @has_access
 @never_cache
 def poll(request, project):
-    from sentry.templatetags.sentry_plugins import handle_before_events
-
     offset = 0
     limit = settings.MESSAGES_PER_PAGE
 
@@ -222,7 +220,6 @@ def poll(request, project):
 
     event_list = response['event_list']
     event_list = list(event_list[offset:limit])
-    handle_before_events(request, event_list)
 
     data = to_json(event_list, request)
 

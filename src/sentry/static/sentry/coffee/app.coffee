@@ -3,10 +3,66 @@ app.config = app.config || {};
 
 jQuery ->
 
-    app.StreamPage = class StreamPage extends Backbone.View
+    class BasePage extends Backbone.View
+        initialize: ->
+            _.bindAll(@)
+            @views = {}
+
+            # initialize tab event handlers
+            $('a[data-toggle=ajtab]').click (e) =>
+                e.preventDefault()
+
+                $tab = $(e.target)
+                view_id = $tab.attr('href').substr(1)
+                view = @getView(view_id)
+                uri = $tab.attr('data-uri')
+
+                if (!uri)
+                    view.load()
+                    return
+
+                $cont = $('#' + view_id)
+                $parent = $cont.parent()
+
+                $parent.css('opacity', .6)
+
+                # load content for selected tab
+                $.ajax
+                    url: uri
+                    dataType: 'json'
+                    success: (data) =>
+                        view.load(data)
+                        $parent.css('opacity', 1)
+                        $tab.tab('show')
+
+                        if $cont.find('.sparkline canvas').length == 0
+                            $cont.find('.sparkline').each (_, el) =>
+                                # TODO: find a way to not run this check each time
+                                $(el).sparkline 'html'
+                                    enableTagOptions: true
+                                    height: $(el).height()
+
+                    error: ->
+                        $cont.html('<p>There was an error fetching data from the server.</p>')
+    
+            # initialize active tabs
+            $('li.active a[data-toggle=ajtab]').click()
+
+        makeDefaultView: (id) ->
+            new app.GroupListView
+                className: 'group-list small'
+                id: id
+                maxItems: 5
+
+        getView: (id) ->
+            if !@views[id]
+                @views[id] = @makeDefaultView(id)
+            return @views[id]
+
+    app.StreamPage = class StreamPage extends BasePage
 
         initialize: (data) ->
-            _.bindAll(@)
+            BasePage.prototype.initialize.call(@)
 
             @group_list = new app.GroupListView
                 className: 'group-list'
@@ -75,62 +131,14 @@ jQuery ->
                     # if an error happened lets give the server a bit of time before we poll again
                     window.setTimeout(@poll, 10000)
 
-    app.DashboardPage = class DashboardPage extends Backbone.View
+    app.DashboardPage = class DashboardPage extends BasePage
 
         initialize: ->
-            _.bindAll(@)
-
-            @views = {}
+            BasePage.prototype.initialize.call(@)
 
             # TODO:
             Sentry.charts.render('#chart')
 
-            # initialize tab event handlers
-            $('a[data-toggle=ajtab]').click (e) =>
-                $tab = $(e.target)
-                view_id = $tab.attr('href').substr(1)
-                view = @getView(view_id)
-                uri = $tab.attr('data-uri')
-
-                if (!uri)
-                    view.load()
-                    return
-
-                $cont = $('#' + view_id)
-                $parent = $cont.parent()
-
-                $parent.css('opacity', .6)
-                e.preventDefault()
-
-                # load content for selected tab
-                $.ajax
-                    url: uri
-                    dataType: 'json'
-                    success: (data) =>
-                        view.load(data)
-                        $parent.css('opacity', 1)
-                        $tab.tab('show')
-
-                        if $cont.find('.sparkline canvas').length == 0
-                            $cont.find('.sparkline').each (_, el) =>
-                                # TODO: find a way to not run this check each time
-                                $(el).sparkline 'html'
-                                    enableTagOptions: true
-                                    height: $(el).height()
-
-                    error: ->
-                        $cont.html('<p>There was an error fetching data from the server.</p>')
-    
-            # initialize active tabs
-            $('li.active a[data-toggle=ajtab]').click()
-
-        getView: (id) ->
-            if !@views[id]
-                @views[id] = new app.GroupListView
-                    className: 'group-list small'
-                    id: id
-                    maxItems: 5
-            return @views[id]
 
 # We're not talking to the server
 Backbone.sync = (method, model, success, error) ->

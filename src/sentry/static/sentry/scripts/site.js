@@ -9,7 +9,75 @@
   app.config = app.config || {};
 
   jQuery(function() {
-    var DashboardPage, StreamPage;
+    var BasePage, DashboardPage, StreamPage;
+    BasePage = (function(_super) {
+
+      __extends(BasePage, _super);
+
+      function BasePage() {
+        return BasePage.__super__.constructor.apply(this, arguments);
+      }
+
+      BasePage.prototype.initialize = function() {
+        var _this = this;
+        _.bindAll(this);
+        this.views = {};
+        $('a[data-toggle=ajtab]').click(function(e) {
+          var $cont, $parent, $tab, uri, view, view_id;
+          e.preventDefault();
+          $tab = $(e.target);
+          view_id = $tab.attr('href').substr(1);
+          view = _this.getView(view_id);
+          uri = $tab.attr('data-uri');
+          if (!uri) {
+            view.load();
+            return;
+          }
+          $cont = $('#' + view_id);
+          $parent = $cont.parent();
+          $parent.css('opacity', .6);
+          return $.ajax({
+            url: uri,
+            dataType: 'json',
+            success: function(data) {
+              view.load(data);
+              $parent.css('opacity', 1);
+              $tab.tab('show');
+              if ($cont.find('.sparkline canvas').length === 0) {
+                return $cont.find('.sparkline').each(function(_, el) {
+                  return $(el).sparkline('html', {
+                    enableTagOptions: true,
+                    height: $(el).height()
+                  });
+                });
+              }
+            },
+            error: function() {
+              return $cont.html('<p>There was an error fetching data from the server.</p>');
+            }
+          });
+        });
+        return $('li.active a[data-toggle=ajtab]').click();
+      };
+
+      BasePage.prototype.makeDefaultView = function(id) {
+        return new app.GroupListView({
+          className: 'group-list small',
+          id: id,
+          maxItems: 5
+        });
+      };
+
+      BasePage.prototype.getView = function(id) {
+        if (!this.views[id]) {
+          this.views[id] = this.makeDefaultView(id);
+        }
+        return this.views[id];
+      };
+
+      return BasePage;
+
+    })(Backbone.View);
     app.StreamPage = StreamPage = (function(_super) {
 
       __extends(StreamPage, _super);
@@ -20,7 +88,7 @@
 
       StreamPage.prototype.initialize = function(data) {
         var _ref;
-        _.bindAll(this);
+        BasePage.prototype.initialize.call(this);
         this.group_list = new app.GroupListView({
           className: 'group-list',
           id: 'event_list',
@@ -91,7 +159,7 @@
 
       return StreamPage;
 
-    })(Backbone.View);
+    })(BasePage);
     return app.DashboardPage = DashboardPage = (function(_super) {
 
       __extends(DashboardPage, _super);
@@ -101,62 +169,13 @@
       }
 
       DashboardPage.prototype.initialize = function() {
-        var _this = this;
-        _.bindAll(this);
-        this.views = {};
-        Sentry.charts.render('#chart');
-        $('a[data-toggle=ajtab]').click(function(e) {
-          var $cont, $parent, $tab, uri, view, view_id;
-          $tab = $(e.target);
-          view_id = $tab.attr('href').substr(1);
-          view = _this.getView(view_id);
-          uri = $tab.attr('data-uri');
-          if (!uri) {
-            view.load();
-            return;
-          }
-          $cont = $('#' + view_id);
-          $parent = $cont.parent();
-          $parent.css('opacity', .6);
-          e.preventDefault();
-          return $.ajax({
-            url: uri,
-            dataType: 'json',
-            success: function(data) {
-              view.load(data);
-              $parent.css('opacity', 1);
-              $tab.tab('show');
-              if ($cont.find('.sparkline canvas').length === 0) {
-                return $cont.find('.sparkline').each(function(_, el) {
-                  return $(el).sparkline('html', {
-                    enableTagOptions: true,
-                    height: $(el).height()
-                  });
-                });
-              }
-            },
-            error: function() {
-              return $cont.html('<p>There was an error fetching data from the server.</p>');
-            }
-          });
-        });
-        return $('li.active a[data-toggle=ajtab]').click();
-      };
-
-      DashboardPage.prototype.getView = function(id) {
-        if (!this.views[id]) {
-          this.views[id] = new app.GroupListView({
-            className: 'group-list small',
-            id: id,
-            maxItems: 5
-          });
-        }
-        return this.views[id];
+        BasePage.prototype.initialize.call(this);
+        return Sentry.charts.render('#chart');
       };
 
       return DashboardPage;
 
-    })(Backbone.View);
+    })(BasePage);
   });
 
   Backbone.sync = function(method, model, success, error) {
