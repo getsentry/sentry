@@ -37,3 +37,20 @@ class CrossDomainXmlTest(TestCase):
         self.assertTemplateUsed(resp, 'sentry/crossdomain.xml')
         self.assertIn('<allow-access-from domain="disqus.com" secure="true"></allow-access-from>', resp.content)
         self.assertIn('<allow-access-from domain="www.disqus.com" secure="true"></allow-access-from>', resp.content)
+
+    @mock.patch('sentry.web.api.get_origins')
+    def test_output_with_no_origins(self, get_origins):
+        get_origins.return_value = []
+        resp = self.client.get(self.path)
+        get_origins.assert_called_once_with(self.project)
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp['Content-Type'], 'application/xml')
+        self.assertTemplateUsed(resp, 'sentry/crossdomain.xml')
+        self.assertNotIn('<allow-access-from', resp.content)
+
+    def test_output_allows_x_sentry_auth(self):
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp['Content-Type'], 'application/xml')
+        self.assertTemplateUsed(resp, 'sentry/crossdomain.xml')
+        self.assertIn('<allow-http-request-headers-from domain="*" headers="X-Sentry-Auth" secure="true"></allow-http-request-headers-from>', resp.content)
