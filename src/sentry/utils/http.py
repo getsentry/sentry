@@ -5,7 +5,6 @@ sentry.utils.http
 :copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-import itertools
 import urllib
 from urlparse import urlparse
 
@@ -50,25 +49,31 @@ def is_same_domain(url1, url2):
     return url1.netloc == url2.netloc
 
 
-def is_valid_origin(origin, project=None):
+def get_origins(project=None):
     if settings.ALLOW_ORIGIN == '*':
+        return '*'
+    elif settings.ALLOW_ORIGIN:
+        result = settings.ALLOW_ORIGIN.split(' ')
+    else:
+        result = []
+
+    if project:
+        optval = get_option('sentry:origins', project)
+        if optval:
+            result.extend(map(str.lower, optval))
+
+    return frozenset(filter(bool, result))
+
+
+def is_valid_origin(origin, project=None):
+    allowed = get_origins(project)
+    if allowed == '*':
         return True
 
     if not origin:
         return False
 
-    origin = origin.lower()
-    if origin in (settings.ALLOW_ORIGIN or '').split(' '):
-        return True
-
-    if not project:
-        return False
-
-    optval = get_option('sentry:origins', project)
-    if not optval:
-        return False
-
-    return origin not in itertools.imap(unicode.lower, unicode(optval))
+    return origin in allowed
 
 
 def apply_access_control_headers(response, origin):

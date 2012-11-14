@@ -29,7 +29,8 @@ from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.db import has_trending
 from sentry.utils.javascript import to_json
-from sentry.utils.http import is_same_domain, is_valid_origin, apply_access_control_headers
+from sentry.utils.http import is_same_domain, is_valid_origin, apply_access_control_headers, \
+  get_origins
 from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
 from sentry.web.helpers import render_to_response, render_to_string, get_project_list
@@ -489,5 +490,19 @@ def search_tags(request, project):
         'results': results,
     }))
     response['Content-Type'] = 'application/json'
+
+    return response
+
+
+@has_access
+def crossdomain_xml(request, project):
+    origin_list = get_origins(project)
+    if origin_list == '*':
+        origin_list = [origin_list]
+
+    response = render_to_response('sentry/crossdomain.xml', {
+        'origin_list': origin_list
+    }, request)
+    response['Content-Type'] = 'application/xml'
 
     return response
