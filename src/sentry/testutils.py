@@ -1,3 +1,11 @@
+"""
+sentry.testutils
+~~~~~~~~~~~~~~~~
+
+:copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
+
 from __future__ import absolute_import
 
 import base64
@@ -18,6 +26,10 @@ from django.test import TestCase, TransactionTestCase
 from django.test.client import Client
 
 from sentry.models import ProjectOption, Option
+from sentry.utils import cached_property
+
+
+fixture = cached_property
 
 
 class Settings(object):

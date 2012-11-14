@@ -285,6 +285,7 @@ h3 {
     float: left;
     padding: 18px 20px;
     margin-right: -300px;
+    overflow: hidden;
 
     h6 {
       display: block;
@@ -422,32 +423,40 @@ footer {
   }
 }
 
-.events {
+.group-list, .events {
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid #e5e6e7;
-
-  .empty-result {
-    padding: 15px 20px;
-    min-height: 60px; /* count height */
-  }
-
+ 
   &.no-counts {
-    .event {
+    > li {
       padding-left: 20px;
     }
   }
 
-  .event {
+  > li {
     position: relative;
     padding: 15px 20px 15px 100px;
     position: relative;
     border: 1px solid #e5e6e7;
-    border-width: 0 0 1px 1px;
+    border-top-width: 0;
     min-height: 60px; /* count height */
 
-    &.with-metadata {
+    &:first-child {
+      border-top-width: 1px;
+    }
+
+    &.empty {
+      border: 0;
+      padding: 15px 20px !important;
+      &:hover {
+        .reset-filter();
+        background-image: none;
+        background-color: inherit;
+      }
+    }
+
+    &.with-sparkline {
       .message {
         padding-right: 124px;
       }
@@ -459,8 +468,6 @@ footer {
     &:hover {
       #gradient > .vertical(#f7fbfe, #eff8fd);
       border-color: #aec9d7;
-      @shadow: 0 -1px 0 #aec9d7, 1px 0 0 #aec9d7;
-      .box-shadow(@shadow);
 
       h3 a {
         color: @linkColorHover;
@@ -578,8 +585,9 @@ footer {
         .opacity(50);
       }
     }
-
-    &.event-small {
+  }
+  &.small {
+    > li {
       min-height: 30px;
       padding: 10px 10px 10px 60px;
 
@@ -591,6 +599,9 @@ footer {
 
       .message {
         font-size: 12px;
+        .tag {
+          display: none;
+        }
       }
 
       .count {
@@ -602,12 +613,17 @@ footer {
         .border-radius(36px);
       }
 
+      .actions {
+        display: none;
+      }
+
       .meta {
         right: 120px;
       }
 
       .sparkline {
         right: 10px;
+        height: 20px;
         top: 18px;
       }
 
@@ -624,6 +640,10 @@ pre, code {
   span {
     display: inline-block;
   }
+}
+
+pre {
+  border: 0;
 }
 
 code {
@@ -755,20 +775,22 @@ td table.vars {
 #chart { margin-bottom: 15px; overflow: hidden; }
 
 /* tracebacks */
-.frame table.vars { margin:5px 0 2px 35px; }
+.frame table.vars { margin:5px 0 0 35px; }
 table.vars td.code { overflow: hidden; }
 table.vars td.code pre { margin-bottom: 0; }
 div.pastebin textarea { padding: 10px; background: #f9f9f9; border-color: #ddd; }
 
-ul.traceback { list-style-type: none; margin-left: 0;}
-ul.traceback li.frame { margin-bottom: 1em; overflow: hidden; position: relative; }
-div.commands { margin-top: 10px; margin-left: 20px; }
-div.commands a { color:black; text-decoration:none; }
-div.commands span { font-size: 0.9em; }
+ul.traceback { list-style-type: none; margin-left: 0; }
+ul.traceback li.frame { margin-bottom: 10px; overflow: hidden; position: relative; }
+div.commands { font-size: 12px; margin-top: 10px; margin-left: 20px; }
+div.commands a { color: black; text-decoration:none; }
+div.commands span { margin-right: 5px; font-size: 10px; }
 
-#versioninfo th { text-align: left; font-family: monospace; padding-right: 20px; }
-#versioninfo tr:nth-child(odd) {
+#versioninfo {
+  th { text-align: left; font-family: monospace; padding-right: 20px; }
+  tr:nth-child(odd) {
     background: #eee;
+  }
 }
 
 .error { background: #ffc; padding: 5px; }
@@ -942,7 +964,6 @@ legend {
 }
 
 #messages .alert {
-  padding: 20px 20px; 
   .border-radius(0);
 }
 

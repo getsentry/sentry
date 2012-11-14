@@ -31,7 +31,9 @@ from sentry.templatetags.sentry_helpers import with_metadata
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.db import has_trending
-from sentry.utils.http import is_same_domain, is_valid_origin, apply_access_control_headers
+from sentry.utils.javascript import to_json
+from sentry.utils.http import is_same_domain, is_valid_origin, apply_access_control_headers, \
+  get_origins
 from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
 from sentry.web.helpers import render_to_response, render_to_string, get_project_list
@@ -176,11 +178,11 @@ def store(request, project=None):
             try:
                 validate_data(project, data, client)
             except InvalidData, e:
-                raise APIError(u'Invalid data: %s' % unicode(e))
+                raise APIError(u'Invalid data: %s (%s)' % (unicode(e), type(e)))
 
             insert_data_to_database(data)
         except APIError, error:
-            logger.error('Client %r raised API error: %s', client, error, extra={
+            logger.info('Client %r raised API error: %s', client, error, extra={
                 'request': request,
             }, exc_info=True)
             response = HttpResponse(unicode(error.msg), status=error.http_status)
@@ -225,9 +227,9 @@ def poll(request, project):
     event_list = list(event_list[offset:limit])
     handle_before_events(request, event_list)
 
-    data = transform_groups(request, event_list)
+    data = to_json(event_list, request)
 
-    response = HttpResponse(json.dumps(data))
+    response = HttpResponse(data)
     response['Content-Type'] = 'application/json'
     return response
 
@@ -416,7 +418,7 @@ def get_group_trends(request, project=None):
     base_qs = Group.objects.filter(
         project__in=project_dict.keys(),
         status=0,
-    ).order_by('-score')
+    )
 
     if has_trending():
         group_list = list(Group.objects.get_accelerated(base_qs, minutes=(
@@ -428,14 +430,14 @@ def get_group_trends(request, project=None):
 
         group_list = list(base_qs.filter(
             last_seen__gte=cutoff_dt
-        )[:limit])
+        ).order_by('-score')[:limit])
 
     for group in group_list:
         group._project_cache = project_dict.get(group.project_id)
 
-    data = transform_groups(request, group_list, template='sentry/partial/_group_small.html')
+    data = to_json(group_list, request)
 
-    response = HttpResponse(json.dumps(data))
+    response = HttpResponse(data)
     response['Content-Type'] = 'application/json'
 
     return response
@@ -456,18 +458,18 @@ def get_new_groups(request, project=None):
     cutoff = datetime.timedelta(minutes=minutes)
     cutoff_dt = timezone.now() - cutoff
 
-    group_list = Group.objects.filter(
+    group_list = list(Group.objects.filter(
         project__in=project_dict.keys(),
         status=0,
         active_at__gte=cutoff_dt,
-    ).order_by('-score')[:limit]
+    ).order_by('-score')[:limit])
 
     for group in group_list:
         group._project_cache = project_dict.get(group.project_id)
 
-    data = transform_groups(request, group_list, template='sentry/partial/_group_small.html')
+    data = to_json(group_list, request)
 
-    response = HttpResponse(json.dumps(data))
+    response = HttpResponse(data)
     response['Content-Type'] = 'application/json'
 
     return response
@@ -557,5 +559,19 @@ def search_tags(request, project):
         'results': results,
     }))
     response['Content-Type'] = 'application/json'
+
+    return response
+
+
+@has_access
+def crossdomain_xml(request, project):
+    origin_list = get_origins(project)
+    if origin_list == '*':
+        origin_list = [origin_list]
+
+    response = render_to_response('sentry/crossdomain.xml', {
+        'origin_list': origin_list
+    }, request)
+    response['Content-Type'] = 'application/xml'
 
     return response

@@ -50,8 +50,9 @@ urlpatterns = patterns('',
     url(r'^login-redirect/$', accounts.login_redirect, name='sentry-login-redirect'),
     url(r'^logout/$', accounts.logout, name='sentry-logout'),
     url(r'^account/settings/$', accounts.settings, name='sentry-account-settings'),
-    url(r'^account/settings/notifications/$', accounts.notification_settings, name='sentry-account-settings-notifications'),
+    url(r'^account/settings/appearance/$', accounts.appearance_settings, name='sentry-account-settings-appearance'),
     url(r'^account/settings/identities/$', accounts.list_identities, name='sentry-account-settings-identities'),
+    url(r'^account/settings/notifications/$', accounts.notification_settings, name='sentry-account-settings-notifications'),
 
     # Teams
 
@@ -110,7 +111,7 @@ urlpatterns = patterns('',
     url(r'^wall/$', generic.wall_display, name='sentry-wall'),
     url(r'^manage/status/$', admin.status_env, name='sentry-admin-status'),
     url(r'^manage/status/packages/$', admin.status_packages, name='sentry-admin-packages-status'),
-    url(r'^manage/status/queue/$', admin.status_queue, name='sentry-admin-queue-status'),
+    url(r'^manage/status/mail/$', admin.status_mail, name='sentry-admin-mail-status'),
     url(r'^manage/stats/$', admin.stats, name='sentry-admin-stats'),
 
     # Admin - Projects
@@ -130,6 +131,7 @@ urlpatterns = patterns('',
 
     url(r'^api/store/$', api.store, name='sentry-api-store'),
     url(r'^api/notification/$', api.notification, name='sentry-api-notification'),
+    url(r'^api/(?P<project_id>[\w_-]+)/crossdomain\.xml$', api.crossdomain_xml, name='sentry-api-crossdomain-xml'),
     url(r'^api/(?P<project_id>[\w_-]+)/store/$', api.store, name='sentry-api-store'),
     url(r'^api/(?P<project_id>[\w_-]+)/poll/$', api.poll, name='sentry-api-poll'),
     url(r'^api/(?P<project_id>[\w_-]+)/resolve/$', api.resolve, name='sentry-api-resolve'),
@@ -153,6 +155,7 @@ urlpatterns = patterns('',
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/(?P<event_id>\d+)/$', groups.group_event_details, name='sentry-group-event'),
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/(?P<event_id_or_latest>(\d+|latest))/json/$', groups.group_event_details_json, name='sentry-group-event-json'),
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)/', groups.group_plugin_action, name='sentry-group-plugin-action'),
+    url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/tags/(?P<tag_name>[^/]+)/$', groups.group_tag_details, name='sentry-group-tag-details'),
 
     url(r'^(?P<project_id>[\w_-]+)/events/$', events.event_list, name='sentry-events'),
     url(r'^(?P<project_id>[\w_-]+)/events/(?P<event_id>\d+)/replay/$', events.replay_event, name='sentry-replay'),

@@ -12,21 +12,21 @@ import sys
 import uuid
 
 from django.contrib.auth.models import User
+from django.conf import settings as dj_settings
 from django.core.context_processors import csrf
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
 from django.db import transaction
-from django.db.models import Sum, Count
+from django.db.models import Sum
 from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
-from kombu.transport.django.models import Queue
 
 from sentry import environment
 from sentry.conf import settings
 from sentry.models import Project, MessageCountByMinute
 from sentry.plugins import plugins
-from sentry.web.forms import NewUserForm, ChangeUserForm, RemoveUserForm
+from sentry.web.forms import NewUserForm, ChangeUserForm, RemoveUserForm, TestEmailForm
 from sentry.web.decorators import requires_admin
 from sentry.web.helpers import render_to_response, plugin_config, \
   render_to_string
@@ -293,22 +293,26 @@ def status_packages(request):
 
 
 @requires_admin
-def status_queue(request):
-    worker_status = (settings.QUEUE['transport'] == 'kombu.transport.django.Transport')
-    if worker_status:
-        pending_tasks = list(Queue.objects.filter(
-            messages__visible=True,
-        ).annotate(num=Count('messages__id')).values_list('name', 'num'))
-        # fetch queues which had no pending tasks
-        pending_tasks.extend((q, 0) for q in Queue.objects.exclude(
-            name__in=[p[0] for p in pending_tasks],
-        ).values_list('name', flat=True))
-    else:
-        pending_tasks = None
+@csrf_protect
+def status_mail(request):
+    form = TestEmailForm(request.POST or None)
 
-    return render_to_response('sentry/admin/status/queue.html', {
-        'pending_tasks': pending_tasks,
-        'worker_status': worker_status,
+    if form.is_valid():
+        body = """This email was sent as a request to test the Sentry outbound email configuration."""
+        try:
+            send_mail('%s Test Email' % (settings.EMAIL_SUBJECT_PREFIX,),
+                body, settings.SERVER_EMAIL, [request.user.email],
+                fail_silently=False)
+        except Exception, e:
+            form.errors['__all__'] = [unicode(e)]
+
+    return render_to_response('sentry/admin/status/mail.html', {
+        'form': form,
+        'EMAIL_HOST': dj_settings.EMAIL_HOST,
+        'EMAIL_HOST_PASSWORD': bool(dj_settings.EMAIL_HOST_PASSWORD),
+        'EMAIL_HOST_USER': dj_settings.EMAIL_HOST_USER,
+        'EMAIL_PORT': dj_settings.EMAIL_PORT,
+        'EMAIL_USE_TLS': dj_settings.EMAIL_USE_TLS,
     }, request)
 
 

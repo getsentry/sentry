@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from sentry.models import Event, SearchDocument
 
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class SearchIndexTest(TestCase):

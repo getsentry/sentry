@@ -17,7 +17,6 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
 from sentry.filters.base import TagFilter
 from sentry.plugins import plugins
-from sentry.models import ProjectOption, FilterKey
 
 
 FILTER_CACHE = {}
@@ -42,7 +41,7 @@ def get_filters(model=None, project=None):
         filter_list.append(FILTER_CACHE[class_path])
 
     if project:
-        for tag in ProjectOption.objects.get_value(project, 'tags', FilterKey.objects.all_keys(project)):
+        for tag in project.get_tags():
             if tag not in TAG_FILTER_CACHE:
                 # Generate a new filter class because we are lazy and do
                 # not want to rewrite code

@@ -15,6 +15,8 @@ import urlparse
 from django.http import QueryDict
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.app import env
+from sentry.models import UserOption
 from sentry.web.helpers import render_to_string
 
 
@@ -107,6 +109,19 @@ class Interface(object):
 
 
 class Message(Interface):
+    """
+    A standard message consisting of a ``message`` arg, and an optional
+    ``params`` arg for formatting.
+
+    If your message cannot be parameterized, then the message interface
+    will serve no benefit.
+
+    >>> {
+    >>>     "message": "My raw message with interpreted strings like %s",
+    >>>     "params": ["this"]
+    >>> }
+    """
+
     def __init__(self, message, params=()):
         self.message = message
         self.params = params
@@ -133,6 +148,15 @@ class Message(Interface):
 
 
 class Query(Interface):
+    """
+    A SQL query with an optional string describing the SQL driver, ``engine``.
+
+    >>> {
+    >>>     "query": "SELECT 1"
+    >>>     "engine": "psycopg2"
+    >>> }
+    """
+
     def __init__(self, query, engine=None):
         self.query = query
         self.engine = engine
@@ -153,6 +177,64 @@ class Query(Interface):
 
 
 class Stacktrace(Interface):
+    """
+    A stacktrace contains a list of frames, each with various bits (most optional)
+    describing the context of that frame. Frames should be sorted with the most recent
+    caller being the last in the list.
+
+    The stacktrace contains one element, ``frames``, which is a list of hashes. Each
+    hash must contain **at least** the ``filename`` attribute. The rest of the values
+    are optional, but recommended.
+
+    Each frame must contain the following attributes:
+
+    ``filename``
+      The relative filepath to the call
+
+    The following additional attributes are supported:
+
+    ``lineno``
+      The lineno of the call
+    ``abs_path``
+      The absolute path to filename
+    ``function``
+      The name of the function being called
+    ``module``
+      Platform-specific module path (e.g. sentry.interfaces.Stacktrace)
+    ``context_line``
+      Source code in filename at lineno
+    ``pre_context``
+      A list of source code lines before context_line (in order) -- usually [lineno - 5:lineno]
+    ``post_context``
+      A list of source code lines after context_line (in order) -- usually [lineno + 1:lineno + 5]
+    ``in_app``
+      Signifies whether this frame is related to the execution of the relevant code in this stacktrace. For example,
+      the frames that might power the framework's webserver of your app are probably not relevant, however calls to
+      the framework's library once you start handling code likely are.
+
+    >>> {
+    >>>     "frames": [{
+    >>>         "abs_path": "/real/file/name.py"
+    >>>         "filename": "file/name.py",
+    >>>         "function": "myfunction",
+    >>>         "vars": {
+    >>>             "key": "value"
+    >>>         },
+    >>>         "pre_context": [
+    >>>             "line1",
+    >>>             "line2"
+    >>>         ],
+    >>>         "context_line": "line3",
+    >>>         "lineno": 3,
+    >>>         "in_app": true,
+    >>>         "post_context": [
+    >>>             "line4",
+    >>>             "line5"
+    >>>         ],
+    >>>     }]
+    >>> }
+
+    """
     score = 1000
 
     def __init__(self, frames):
@@ -160,9 +242,14 @@ class Stacktrace(Interface):
         for frame in frames:
             # ensure we've got the correct required values
             assert 'filename' in frame
-            assert 'lineno' in frame
-            # assert 'context_line' in frame
-            # assert 'function' in frame
+
+            # lineno should be an int
+            if 'lineno' in frame:
+                frame['lineno'] = int(frame['lineno'])
+
+            # in_app should be a boolean
+            if 'in_app' in frame:
+                frame['in_app'] = bool(frame['in_app'])
 
     def _shorten(self, value, depth=1):
         if depth > 5:
@@ -192,14 +279,14 @@ class Stacktrace(Interface):
 
             if frame.get('function'):
                 output.append(frame['function'])
-            else:
+            elif frame.get('lineno'):
                 output.append(frame['lineno'])
         return output
 
     def to_html(self, event):
         frames = []
         for frame in self.frames:
-            if frame.get('context_line'):
+            if frame.get('context_line') and frame.get('lineno') is not None:
                 context = get_context(frame['lineno'], frame['context_line'], frame.get('pre_context'), frame.get('post_context'))
                 start_lineno = context[0][0]
             else:
@@ -212,15 +299,30 @@ class Stacktrace(Interface):
             else:
                 context_vars = []
 
+            if frame.get('lineno') is not None:
+                lineno = int(frame['lineno'])
+            else:
+                lineno = None
+
             frames.append({
                 'abs_path': frame.get('abs_path'),
                 'filename': frame['filename'],
                 'function': frame.get('function'),
                 'start_lineno': start_lineno,
-                'lineno': frame.get('lineno'),
+                'lineno': lineno,
                 'context': context,
                 'vars': context_vars,
             })
+
+        if env.request and env.request.user.is_authenticated():
+            display = UserOption.objects.get_value(
+                user=env.request.user,
+                project=None,
+                key='stacktrace_order',
+                default=None,
+            )
+            if display == '2':
+                frames.reverse()
 
         return render_to_string('sentry/partial/interfaces/stacktrace.html', {
             'event': event,
@@ -238,8 +340,10 @@ class Stacktrace(Interface):
         for frame in self.frames:
             if 'function' in frame:
                 result.append('  File "%(filename)s", line %(lineno)s, in %(function)s' % frame)
-            else:
+            elif 'lineno' in frame:
                 result.append('  File "%(filename)s", line %(lineno)s' % frame)
+            else:
+                result.append('  File "%(filename)s"')
             if 'context_line' in frame:
                 result.append('    %s' % frame['context_line'].strip())
 
@@ -260,6 +364,18 @@ class Stacktrace(Interface):
 
 
 class Exception(Interface):
+    """
+    A standard exception with a mandatory ``value`` argument, and optional
+    ``type`` and``module`` argument describing the exception class type and
+    module namespace.
+
+    >>>  {
+    >>>     "type": "ValueError",
+    >>>     "value": "My exception value",
+    >>>     "module": "__builtins__"
+    >>> }
+    """
+
     score = 900
 
     def __init__(self, value, type=None, module=None):
@@ -303,7 +419,35 @@ class Exception(Interface):
 
 
 class Http(Interface):
-    score = 100
+    """
+    The Request information is stored in the Http interface. Two arguments
+    are required: ``url`` and ``method``.
+
+    The ``env`` variable is a compounded dictionary of HTTP headers as well
+    as environment information passed from the webserver.
+
+    The ``data`` variable should only contain the request body (not the query
+    string). It can either be a dictionary (for standard HTTP requests) or a
+    raw request body.
+
+    >>>  {
+    >>>     "url": "http://absolute.uri/foo",
+    >>>     "method": "POST",
+    >>>     "data": {
+    >>>         "foo": "bar"
+    >>>     },
+    >>>     "query_string": "hello=world",
+    >>>     "cookies": "foo=bar",
+    >>>     "headers": {
+    >>>         "Content-Type": "text/html"
+    >>>     },
+    >>>     "env": {
+    >>>         "REMOTE_ADDR": "192.168.0.1"
+    >>>     }
+    >>>  }
+    """
+
+    score = 10000
 
     # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
     METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD', 'DELETE', 'TRACE', 'CONNECT', 'PATCH')
@@ -409,6 +553,27 @@ class Http(Interface):
 
 
 class Template(Interface):
+    """
+    A rendered template (generally used like a single frame in a stacktrace).
+
+    The attributes ``filename``, ``context_line``, and ``lineno`` are required.
+
+    >>>  {
+    >>>     "abs_path": "/real/file/name.html"
+    >>>     "filename": "file/name.html",
+    >>>     "pre_context": [
+    >>>         "line1",
+    >>>         "line2"
+    >>>     ],
+    >>>     "context_line": "line3",
+    >>>     "lineno": 3,
+    >>>     "post_context": [
+    >>>         "line4",
+    >>>         "line5"
+    >>>     ],
+    >>> }
+    """
+
     score = 1001
 
     def __init__(self, filename, context_line, lineno, pre_context=None, post_context=None,
@@ -416,7 +581,7 @@ class Template(Interface):
         self.abs_path = abs_path
         self.filename = filename
         self.context_line = context_line
-        self.lineno = lineno
+        self.lineno = int(lineno)
         self.pre_context = pre_context
         self.post_context = post_context
 
@@ -449,7 +614,7 @@ class Template(Interface):
             'event': event,
             'abs_path': self.abs_path,
             'filename': self.filename,
-            'lineno': self.lineno,
+            'lineno': int(self.lineno),
             'start_lineno': context[0][0],
             'context': context,
             'template': self.get_traceback(event, context),
@@ -471,11 +636,27 @@ class Template(Interface):
 
 
 class User(Interface):
+    """
+    An interface which describes the authenticated User for a request.
+
+    All data is arbitrary and optional other than the ``is_authenticated``
+    field which should be a boolean value indiciating whether the user
+    is logged in or not.
+
+    >>> {
+    >>>     "is_authenticated": true,
+    >>>     "id": "unique_id",
+    >>>     "username": "foo",
+    >>>     "email": "foo@example.com"
+    >>> }
+    """
+
     def __init__(self, is_authenticated, **kwargs):
         self.is_authenticated = is_authenticated
-        self.id = kwargs.get('id')
-        self.username = kwargs.get('username')
-        self.email = kwargs.get('email')
+        self.id = kwargs.pop('id', None)
+        self.username = kwargs.pop('username', None)
+        self.email = kwargs.pop('email', None)
+        self.data = kwargs
 
     def serialize(self):
         if self.is_authenticated:
@@ -484,6 +665,7 @@ class User(Interface):
                 'id': self.id,
                 'username': self.username,
                 'email': self.email,
+                'data': self.data,
             }
         else:
             return {
@@ -499,7 +681,8 @@ class User(Interface):
             'user_authenticated': self.is_authenticated,
             'user_id': self.id,
             'user_username': self.username,
-            'user_email': self.email
+            'user_email': self.email,
+            'user_data': self.data,
         })
 
     def get_search_context(self, event):

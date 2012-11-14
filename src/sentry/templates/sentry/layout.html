@@ -33,8 +33,12 @@
         <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.clippy.min.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.flot.min.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.sparkline.min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/json2.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/underscore.min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/backbone.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/select2/select2.min.js" %}"></script>
         <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/global.min.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/site.js" %}"></script>
         <script type="text/javascript">
         Sentry.config({
             urlPrefix: {{ URL_PREFIX|to_json|safe }},
@@ -43,6 +47,13 @@
             defaultImage: '{% url sentry-media "sentry" 'images/sentry.png' %}',
             popupCss: '{% url sentry-media "sentry" 'styles/popup.css' %}'
         });
+        app.config.defaultImage = '{% url sentry-media "sentry" 'images/sentry.png' %}';
+        app.config.popupCss = '{% url sentry-media "sentry" 'styles/popup.css' %}';
+        app.config.mediaUrl = '{% url sentry-media "sentry" '' %}';
+        app.config.urlPrefix = {{ URL_PREFIX|to_json|safe }};
+        app.config.hasRealtime = {{ hasRealtime|to_json|safe  }};
+        app.config.projectId = {{ project.slug|to_json|safe }};
+        app.config.viewId = {% if view %}{{ view.pk|to_json|safe }}{% else %}null{% endif %};
         </script>
 
         {% block meta %}
@@ -72,15 +83,13 @@
         <section id="content" class="{% block bodyclass %}with-sidebar{% endblock %}">
             <div class="container">
                 <div class="content">
-                    <div id="messages">
-                        {% if messages %}
-                            {% for message in messages %}
-                                <div class="alert alert-block{% if message.tags %} alert-{{ message.tags }}{% endif %}">{{ message|linebreaks }}</div>
-                            {% endfor %}
-                        {% endif %}
-                    </div>
+                    {% block alerts %}
+                        {% include "sentry/partial/alerts.html" %}
+                    {% endblock %}
+
                     {% block content_before %}
                     {% endblock %}
+
                     {% block content %}
                         <div class="main">
                             {% block main %}
@@ -92,6 +101,7 @@
                             {% endblock %}
                         </div>
                     {% endblock %}
+
                     {% block content_after %}
                     {% endblock %}
                     </div>
@@ -126,8 +136,45 @@
             $('input[data-toggle="datepicker"]').datepicker();
             $('.tip').tooltip();
             $('.nav-tabs .active a').tab('show')
-            $('.sparkline').sparkline('html', {enableTagOptions: true});
         });
+        </script>
+        <script id="group-template" type="text/template">
+            <div class="count"><span><%= count %></span></div>
+            <div class="details">
+                <h3><a href="<%= permalink %>"><%= title %></a></h3>
+                <p class="message">
+                    <span class="tag tag-logger"><%= logger %></span>
+                    <% _.each(versions, function(version){ %> 
+                        <span class="tag tag-version">{{ version }}</span>
+                    <% }) %>
+                    <% _.each(tags, function(tag){ %> 
+                        <span class="tag">{{ tag }}</span>
+                    <% }) %>
+                    <%= message %>
+                </p>
+                <div class="meta">
+                    <span class="last-seen pretty-date" title="<%= lastSeen %>"><%= Sentry.prettyDate(lastSeen) %></span>
+                    <% if (timeSpent) { %>
+                        <span class="time-spent"><%= app.utils.round(timeSpent) %>ms</span>
+                    <% } %>
+                    <span class="tag tag-project"><%= project.name %></span>
+                </div>
+                <span class="sparkline" sparkwidth="100" sparklineColor="#ccc" sparkfillColor="false" sparkspotRadius="0"><!-- <%= historicalData %> --></span>
+                <ul class="actions">
+                    <% if (canResolve) { %>
+                        <li>
+                            <% if (!isResolved) { %>
+                                <a href="#" data-action="resolve checked" title="{% trans "Mark as Resolved" %}">&#10003;</a>
+                            <% } else { %>
+                                <a href="#" title="{% trans "Already Resolved" %}">&#10003;</a>
+                            <% } %>
+                        </li>
+                        <li>
+                            <a href="#" data-action="bookmark" class="bookmark<% if (isBookmarked) { %> checked<% } %>" title="{% trans "Bookmark" %}">&#9733;</a>
+                        </li>
+                    <% } %>
+                </ul>
+            </div>
         </script>
     </body>
 </html>

@@ -17,7 +17,7 @@ from django.utils.translation import ugettext as _
 from paging.helpers import paginate as paginate_func
 from sentry.conf import settings
 from sentry.models import Group
-from sentry.utils import json
+from sentry.utils.javascript import to_json
 from sentry.utils.strings import truncatechars
 from templatetag_sugar.register import tag
 from templatetag_sugar.parser import Name, Variable, Constant, Optional
@@ -30,6 +30,8 @@ register = template.Library()
 
 truncatechars = register.filter(stringfilter(truncatechars))
 truncatechars.is_safe = True
+
+to_json = register.filter(to_json)
 
 
 @register.filter
@@ -94,11 +96,6 @@ def small_count(v):
 @register.filter
 def num_digits(value):
     return len(str(value))
-
-
-@register.filter
-def to_json(data):
-    return json.dumps(data)
 
 
 @register.filter
@@ -323,3 +320,18 @@ def with_metadata(group_list, request):
             'is_bookmarked': g.pk in bookmarks,
             'historical_data': ','.join(str(x[1]) for x in historical_data.get(g.id, [])),
         }
+
+
+@register.inclusion_tag('sentry/plugins/bases/tag/widget.html')
+def render_tag_widget(group, tag):
+    return {
+        'title': tag.replace('_', ' ').title(),
+        'tag_name': tag,
+        'unique_tags': list(group.get_unique_tags(tag)[:10]),
+        'group': group,
+    }
+
+
+@register.filter
+def titlize(value):
+    return value.replace('_', ' ').title()

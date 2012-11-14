@@ -3,7 +3,7 @@
 from __future__ import absolute_import
 
 from sentry import app
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class AppTest(TestCase):

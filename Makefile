@@ -12,9 +12,10 @@ SENTRY_LESS = src/sentry.less
 WALL_LESS = src/wall.less
 LESS_COMPRESSOR ?= `which lessc`
 UGLIFY_JS ?= `which uglifyjs`
+COFFEE ?= `which coffee`
 WATCHR ?= `which watchr`
 
-build: static locale
+build: static coffee locale
 
 #
 # Compile language files
@@ -39,6 +40,10 @@ static:
 	@uglifyjs -nc ${BOOTSTRAP_JS} > ${BOOTSTRAP_JS_MIN};
 	@echo "Static assets successfully built! - `date`";
 
+
+coffee:
+	@coffee --join ${STATIC_DIR}/scripts/site.js -c ${STATIC_DIR}/coffee/*.coffee
+	@echo "Coffe script assets successfully built! - `date`";
 #
 # Watch less files
 #
@@ -46,7 +51,13 @@ static:
 watch:
 	@echo "Watching less files..."; \
 	make static; \
-	watchr -e "watch('src/bootstrap/.*\.less') { system 'make static' }"
+	watchr -e "watch('src/sentry.less') { system 'make static' }"
+
+cwatch:
+	@echo "Watching coffee script files..."; \
+	make coffee
+	coffee --join ${STATIC_DIR}/scripts/site.js -cw ${STATIC_DIR}/coffee/*.coffee
+
 
 test:
 	pip install flake8 --use-mirrors
@@ -58,4 +69,4 @@ coverage:
 	coverage html --omit=*/migrations/* -d cover
 
 
-.PHONY: build watch
+.PHONY: build watch coffee

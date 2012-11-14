@@ -231,6 +231,22 @@ The following attributes are required for all events:
 Additionally, there are several optional values which Sentry recognizes and are
 highly encouraged:
 
+
+.. data:: platform
+
+    A string representing the platform the client is submitting from. This will
+    be used by the Sentry interface to customize various components in the
+    interface.
+
+    ::
+
+        {
+            "platform": "python"
+        }
+
+    .. versionadded:: 5.1.0
+
+
 .. data:: culprit
 
     Function call which was the primary perpetrator of this event.
@@ -438,7 +454,7 @@ Tags are key/value pairs that describe an event. They should be configurable in 
 * Thread (block-level)
 * Event (as part of capture)
 
-Each of these should inherit it's parent. So for example, if you configure your client as so::
+Each of these should inherit its parent. So for example, if you configure your client as so::
 
     client = Client(..., {
         'tags': {'foo': 'bar'},
