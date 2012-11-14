@@ -5988,6 +5988,10 @@ footer a:hover {
   padding: 2px 6px;
   color: #aec9d7;
 }
+.group-list > li .tag-project,
+.events > li .tag-project {
+  display: none;
+}
 .group-list > li .sparkline,
 .events > li .sparkline {
   position: absolute;
@@ -6120,6 +6124,10 @@ footer a:hover {
 .group-list.small > li .meta,
 .events.small > li .meta {
   font-size: 11px;
+}
+.group-list.small > li .tag-project,
+.events.small > li .tag-project {
+  display: inline-block;
 }
 label {
   font-weight: bold;
