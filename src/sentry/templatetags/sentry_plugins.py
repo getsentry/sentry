@@ -89,6 +89,9 @@ def get_tags(group, request):
 
 @register.simple_tag
 def handle_before_events(request, event_list):
+    if not event_list:
+        return ''
+
     if not hasattr(event_list, '__iter__'):
         project = event_list.project
         event_list = [event_list]
