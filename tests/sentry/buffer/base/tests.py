@@ -4,11 +4,12 @@ from __future__ import absolute_import
 
 import mock
 
-from datetime import datetime, timedelta
+from datetime import timedelta
+from django.utils import timezone
 from sentry.buffer.base import Buffer
 from sentry.models import Group, Project
 from sentry.tasks.process_buffer import process_incr
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class BufferTest(TestCase):
@@ -35,8 +36,9 @@ class BufferTest(TestCase):
         group = Group.objects.create(project=Project(id=1))
         columns = {'times_seen': 1}
         filters = {'pk': group.pk}
-        the_date = datetime.now() + timedelta(days=5)
+        # strip micrseconds because MySQL doesnt seem to handle them correctly
+        the_date = (timezone.now() + timedelta(days=5)).replace(microsecond=0)
         self.buf.process(Group, columns, filters, {'last_seen': the_date})
         group_ = Group.objects.get(pk=group.pk)
         self.assertEquals(group_.times_seen, group.times_seen + 1)
-        self.assertEquals(group_.last_seen, the_date)
+        self.assertEquals(group_.last_seen.replace(microsecond=0), the_date)

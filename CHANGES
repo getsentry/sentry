@@ -1,3 +1,74 @@
+Version 5.0.0
+-------------
+
+- Variable versions of Django are no longer supported. Django 1.4.x must now be used.
+- Public projects are restricted to viewing without being authenticated.
+- The default behavior of Sentry is to now use timezone-aware datetimes everywhere.
+- Permissions have been refactored to be more precise.
+
+
+Version 4.10.0
+--------------
+
+- A new IssuePlugin base is available.
+- Charts have been refactored to show 7 days worth of data.
+- django.contrib.staticfiles is now supported.
+- django.contrib.messages is now supported.
+
+Version 4.9.0
+-------------
+
+Social authentication is now supported!
+
+By configuring several options (documented on the quickstart guide), you can allow users to signup and login
+with accounts from several social services. Additionally users can associate their existing accounts (via a
+new identities panel in their account settings) with any number of these services.
+
+Currently, the following services are supported:
+
+* GitHub
+* Twitter
+* Facebook
+* Google
+
+Version 4.8.0
+-------------
+
+Tags are now able to be created dynamically! See the documentation for more details on implementing it inside
+of your client.
+
+You can also configure which tags will show up as filters in the sidebar via your project's settings page. By
+default all tags will show up.
+
+Version 4.7.0
+-------------
+
+User options are now available to plugins. The builtin mail plugin also now takes advantage of them.
+
+- sentry_mail will now use the alert_email option over your account email if specified.
+- sentry_mail now allows you to choose which projects to receive alerts for.
+- Numeric slugs will no longer return 404s.
+- Corrected the repair command with the --owner argument.
+
+Version 4.6.0
+-------------
+
+Improvements to the dashboard are trickling in, with this update including:
+
+- Changing "Top Events" to "Trends" (if supported by your RDBMS)
+- Time interval selections for both widgets
+
+Plugins now have a new interface for registering themselves. Please see the developer documentation
+for notes on how to use ``entry_points``.
+
+Additionally:
+
+- Signed messages are now deprecated. Save yourself some CPU cycles, and rely on SSL.
+- A new plugin which tags user's email addresses.
+- Several UI cleanups in various areas, such as improvements to the account dropdown and lists of projects/teams.
+- Long awaited cleanup/fixes for applying the initial database migrations (sorry MySQL users).
+- Initial support for arbitrary event tagging (coming soon to a client near you).
+
 Version 4.5.0
 -------------
 

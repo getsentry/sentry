@@ -1,0 +1,30 @@
+{% load i18n %}
+
+<p>{% blocktrans with 'https://github.com/getsentry/raven-python' as link %}Start by installing <a href="{{ link }}">raven-python</a>:{% endblocktrans %}</p>
+
+<pre>pip install raven</pre>
+
+<p>{% trans "Create an instance of the client:" %}</p>
+
+<pre>from raven import Client
+
+client = Client('{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}')</pre>
+
+<p>{% trans "Now call out to the raven client to capture events:" %}</p>
+
+<pre># {% trans "record a simple message" %}
+client.captureMessage('hello world!')
+
+# {% trans "capture an exception" %}
+try:
+    1 / 0
+except DivisionError:
+    client.captureException()</pre>
+
+<p>{% trans "If you want to wrap a WSGI app to record uncaught exceptions, Raven provides a middleware for that:" %}</p>
+
+<pre>from raven.middleware import Sentry
+
+application = Sentry(application)</pre>
+
+<p>{% blocktrans with 'http://raven.readthedocs.org' as link %}For more information on other uses of Raven with Python, please see the <a href="{{ link }}">official documentation for raven-python</a>.{% endblocktrans %}</p>

@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import mock
 from sentry.plugins.helpers import set_option, \
   unset_option, get_option
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class SentryPluginTest(TestCase):

@@ -2,6 +2,6 @@
 host = https://www.transifex.net
 
 [sentry.djangopo]
-file_filter = sentry/locale/<lang>/LC_MESSAGES/django.po
+file_filter = src/sentry/locale/<lang>/LC_MESSAGES/django.po
 source_lang = en
 

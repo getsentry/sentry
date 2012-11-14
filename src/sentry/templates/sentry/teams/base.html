@@ -1,0 +1,29 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Team List" %} | {{ block.super }}{% endblock %}
+
+{% block bodyclass %}{% endblock %}
+
+{% block page_header %}
+    {% if can_create_projects %}
+        <a href="{% url sentry-new-team %}" class="btn pull-right btn-primary">{% trans "Create a new team" %}</a>
+    {% endif %}
+
+    <ul class="breadcrumb">
+        <li><a href="{% url sentry-team-list %}">{% trans "Teams" %}</a></li>
+        {% block breadcrumb %}
+        {% endblock %}
+    </ul>
+{% endblock %}
+
+{% block heading %}
+    {% trans "Team List" %}
+{% endblock %}
+
+{% block main %}
+    <section class="body">
+        {% block inner %}{% endblock %}
+    </section>
+{% endblock %}

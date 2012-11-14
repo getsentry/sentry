@@ -1,0 +1,42 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_plugins %}
+
+{% block heading %}{% trans "Search" %}{% endblock %}
+
+{% block main %}
+    {% querystring from request without sort as sort_querystring %}
+
+    <div class="btn-toolbar">
+        <div class="btn-group">
+            <a href="#" class="btn dropdown-toggle" data-toggle="dropdown">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <span class="caret"></span></a>
+            <ul class="dropdown-menu">
+                <li{% ifequal sort 'date' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=date">{% trans "Last Seen" %}</a></li>
+                <li{% ifequal sort 'score' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=score">{% trans "Score" %}</a></li>
+                <li{% ifequal sort 'new' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=new">{% trans "First Seen" %}</a></li>
+            </ul>
+        </div>
+    </div>
+
+    {% if event_list %}
+        {% handle_before_events request event_list %}
+        <ul class="events" id="event_list">
+            {% for group, metadata in event_list|with_metadata:request %}
+                {% include "sentry/partial/_group.html" %}
+            {% endfor %}
+        </ul>
+    {% else %}
+        <ul class="events" id="event_list">
+            <li class="empty-result" id="no_messages">{% trans "No events match your search query." %}</li>
+        </ul>
+    {% endif %}
+
+    <div class="btn-toolbar">
+        <div class="btn-group pull-right">
+            <a class="btn prev disabled"><span>{% trans "Previous" %}</span></a>
+            <a class="btn next disabled"><span>{% trans "Next" %}</span></a>
+        </div>
+    </div>
+{% endblock %}

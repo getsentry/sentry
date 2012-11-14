@@ -24,7 +24,7 @@ A plugins layout generally looks like the following::
     setup.py
     sentry_pluginname/
     sentry_pluginname/__init__.py
-    sentry_pluginname/models.py
+    sentry_pluginname/plugin.py
 
 The ``__init__.py`` file should contain no plugin logic, and at most, a VERSION = 'x.x.x' line. For example,
 if you want to pull the version using pkg_resources (which is what we recommend), your file might contain::
@@ -35,12 +35,11 @@ if you want to pull the version using pkg_resources (which is what we recommend)
     except Exception, e:
         VERSION = 'unknown'
 
-Inside of ``models.py``, you'll declare your Plugin class, and register it::
+Inside of ``plugin.py``, you'll declare your Plugin class::
 
     import sentry_pluginname
-    from sentry.plugins import Plugin, register
+    from sentry.plugins import Plugin
 
-    @register
     class PluginName(Plugin):
         title = 'Plugin Name'
         slug = 'pluginname'
@@ -52,6 +51,32 @@ Inside of ``models.py``, you'll declare your Plugin class, and register it::
 
         def widget(self, request, group, **kwargs):
             return "<p>Absolutely useless widget</p>"
+
+And you'll register it via ``entry_points`` in your ``setup.py``::
+
+    setup(
+        # ...
+        entry_points={
+           'sentry.plugins': [
+                'pluginname = sentry_pluginname.plugin:PluginName'
+            ],
+        },
+    )
+
+If you're using models or templates, you'll also want to include the ``sentry.apps`` entry point to ensure full
+registration of your app::
+
+    setup(
+        # ...
+        entry_points={
+           'sentry.apps': [
+                'pluginname = sentry_pluginname'
+            ],
+        },
+    )
+
+That's it! Users will be able to install your plugin via ``pip install <package name>`` and configure it
+via the web interface based on the hooks you enable.
 
 Next Steps
 ----------

@@ -6,7 +6,7 @@ import mock
 
 from celery.task import Task
 from sentry.tasks.store import store_event
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class StoreEventTest(TestCase):

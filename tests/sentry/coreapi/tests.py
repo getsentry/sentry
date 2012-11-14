@@ -16,7 +16,7 @@ from sentry.coreapi import project_from_id, project_from_api_key_and_id, \
   insert_data_to_database, validate_data
 from sentry.utils.auth import get_signature
 
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class BaseAPITest(TestCase):
@@ -261,23 +261,25 @@ class ValidateDataTest(BaseAPITest):
             'message': 'foo',
         })
 
-
     def test_invalid_project_id(self):
         self.assertRaises(APIForbidden, validate_data, self.project, {
             'project': self.project.id + 1,
             'message': 'foo',
         })
 
-    def test_missing_message(self):
-        self.assertRaises(InvalidData, validate_data, self.project, {
-            'project': self.project.id,
+    def test_unknown_attribute(self):
+        data = validate_data(self.project, {
+            'project': self.project.slug,
+            'message': 'foo',
+            'foo': 'bar',
         })
+        self.assertFalse('foo' in data)
 
     def test_invalid_interface_name(self):
         self.assertRaises(InvalidInterface, validate_data, self.project, {
             'project': self.project.id,
             'message': 'foo',
-            'foo': 'bar',
+            'foo.baz': 'bar',
         })
 
     def test_invalid_interface_import_path(self):

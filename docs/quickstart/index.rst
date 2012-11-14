@@ -4,7 +4,7 @@ Quickstart
 Some basic prerequisites which you'll need in order to run Sentry:
 
 * Python 2.5, 2.6, or 2.7
-* python-setuptools
+* python-setuptools, python-dev
 * Ideally a real database (like PostgreSQL or MySQL)
 * Likely a UNIX-based operating system
 
@@ -14,6 +14,26 @@ server.
 
 This guide will step you through setting up a virtualenv, installing the required packages,
 and configuring the basic web service.
+
+Hardware
+--------
+
+Sentry is designed to scale up (to some extent) as you need it. The primary bottleneck will be your database
+and the level of concurrency you can handle. That said, it's very unlikey you'll ever reach a point where Sentry
+cannot scale on commodity hardware.
+
+We don't have any real numbers to tell you what kind of hardware you're going to need, but we'll help you make
+your decision based on existing usage from real customers.
+
+Our primary point of view for Sentry's requirements is going to be Disqus. As of time of writing, Disqus handles
+almost 2 million events a day on a single physical server, which hosts both the database and the Sentry web
+components. The server runs two quad-core processors and has 16GB physical memory. It also runs standard 10k
+RPM drives. Given the amount of resources available, Sentry barely uses any of it. It's likely that without
+any tweaks to the configuration, the hardware Disqus is on could handle 10 million events/day before it hit
+any real limitations.
+
+That said, Disqus is also not configured in an optimal high-concurrency setup. There are many optimizations
+within Sentry that can help with concurrency, one such optimization is the update buffers (described elsewhere).
 
 Setting up an Environment
 -------------------------
@@ -95,12 +115,8 @@ configuration, as well as the default Sentry configuration values. It will use S
     SENTRY_WEB_PORT = 9000
     SENTRY_WEB_OPTIONS = {
         'workers': 3,  # the number of gunicorn workers
-        # 'worker_class': 'gevent',
     }
 
-
-.. note:: We highly recommend using the gevent worker class. To do this, simply ``pip install gevent`` and
-          adjust the worker_class setting in ``SENTRY_WEB_OPTIONS``.
 
 Configure Outbound Mail
 -----------------------
@@ -227,3 +243,106 @@ runserver
 
 Testing Sentry locally? Spin up Django's builtin runserver (or ``pip install django-devserver`` for something
 slightly better).
+
+
+Enabling Social Auth
+--------------------
+
+Most of the time it doesnt really matter **how** someone authenticates to the service, so much as it that they do. In
+these cases, Sentry provides tight integrated with several large social services, including: Twitter, Facebook, Google,
+and GitHub. Enabling this is as simple as setting up an application with the respective services, and configuring a 
+couple values in your ``sentry.conf.py`` file.
+
+By default, users will be able to both signup (create a new account) as well as associate an existing account. If you
+want to disable account creation, simply set the following value::
+
+  SOCIAL_AUTH_CREATE_USERS = False
+
+Twitter
+~~~~~~~
+
+Register an application at http://twitter.com/apps/new. Take the values given on the page, and configure
+the following::
+
+  TWITTER_CONSUMER_KEY = ''
+  TWITTER_CONSUMER_SECRET = ''
+
+.. note:: It's important that input a callback URL, even if its useless. We have no idea why, consult Twitter.
+
+Facebook
+~~~~~~~~
+
+Register an application at http://developers.facebook.com/setup/. You'll also need to make sure you select the "Website
+with Facebook Login" and fill in the Site URL field (just use the website's URL you're install Sentry on). Take the
+values given on the page, and configure the following::
+
+  FACEBOOK_APP_ID = ''
+  FACEBOOK_API_SECRET = ''
+
+Google
+~~~~~~
+
+Register an application at http://code.google.com/apis/accounts/docs/OAuth2.html#Registering. Take the values given on the page, and configure
+the following::
+
+  GOOGLE_OAUTH2_CLIENT_ID = ''
+  GOOGLE_OAUTH2_CLIENT_SECRET = ''
+
+GitHub
+~~~~~~
+
+Register an application at https://github.com/settings/applications/new. Take the values given on the page, and configure
+the following::
+
+  GITHUB_APP_ID = ''
+  GITHUB_API_SECRET = ''
+
+For more information on configuring social authentication services, consult the `documentation on django-social-auth
+<https://github.com/omab/django-social-auth/>`_.
+
+Trello
+~~~~~~
+
+Generate an application key at https://trello.com/1/appKey/generate. Take the values given on the page, and configure
+the following::
+
+  TRELLO_API_KEY = ''
+  TRELLO_API_SECRET = ''
+
+What's Next?
+------------
+
+There are several applications you may want to add to the default Sentry install for various security or other uses. This
+is a bit outside of the scope of normal (locked down) installs, as typically you'll host things on your internal network. That
+said, you'll first need to understand how you can modify the default settings.
+
+First pop open your ``sentry.conf.py``, and add the following to the **very top** of the file::
+
+  from sentry.conf.server import *
+
+Now you'll have access to all of the default settings (Django and Sentry) to modify at your own will.
+
+If you're running in the public domain, we highly recommend looking into `django-secure <http://pypi.python.org/pypi/django-secure>`_
+and `django-bcrypt <http://pypi.python.org/pypi/django-bcrypt>`_ to lock down your installation with a little bit more
+security. For example, to change the password storage to bcrypt (rather than the Django default), you would add the
+following to your ``sentry.conf.py``::
+
+  INSTALLED_APPS = INSTALLED_APPS + (
+      'django_bcrypt',
+  )
+
+You'll also want to consider configuring cache and buffer settings, which respectively require a cache server and a Redis
+server. While the Django configuration covers caching in great detail, Sentry allows you to specify a backend for its
+own internal purposes::
+
+  # You'll need to install django-pyblibmc for this example to work
+  CACHES = {
+      'default': {
+          'BACKEND': 'django_pylibmc.memcached.PyLibMCCache',
+          'LOCATION': 'localhost:11211',
+      }
+  }
+
+  SENTRY_CACHE_BACKEND = 'default'
+
+See :doc:`../buffer/index` for information on how to configure update buffers to improve performance on concurrent writes.

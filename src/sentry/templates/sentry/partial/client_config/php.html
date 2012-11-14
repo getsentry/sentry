@@ -1,0 +1,36 @@
+{% load i18n %}
+
+<p>{% blocktrans with 'https://github.com/getsentry/raven-php' as link %}Start by installing <a href="{{ link }}">raven-php</a>.{% endblocktrans %}</p>
+
+<p>{% trans "Register the autoloader:" %}</p>
+
+<pre>require('/path/to/Raven/Autoloader.php');
+
+Raven_Autoloader::register();</pre>
+
+<p>{% trans "Create an instance of the client:" %}</p>
+
+<pre>$client = new Raven_Client('{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}');</pre>
+
+<p>{% trans "Now call out to the raven client to capture events:" %}</p>
+
+<pre>// {% trans "record a simple message" %}
+$client->captureMessage('hello world!');
+
+// {% trans "capture an exception" %}
+try {
+        throw new Exception('Uh oh!');
+}
+catch ($e) {
+        $client->captureException($e);
+}</pre>
+
+<p>{% trans "You can also optionally install a default error handler to catch all exceptions:" %}</p>
+
+<pre>$error_handler = new Raven_ErrorHandler($client);
+
+// Register error handler callbacks
+set_error_handler(array($error_handler, 'handleError'));
+set_exception_handler(array($error_handler, 'handleException'));</pre>
+
+<p>{% blocktrans with 'https://github.com/getsentry/raven-php' as link %}For more information on other uses of Raven with PHP, please see the <a href="{{ link }}">official documentation for raven-php</a>.{% endblocktrans %}</p>

@@ -1,0 +1,26 @@
+{% extends "sentry/projects/manage.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Client Configuration" %} | {{ block.super }}{% endblock %}
+
+{% block inner %}
+    <div class="page-header">
+        <h2>{% trans "Client Configuration" %}</h2>
+    </div>
+    {% if key %}
+        <p>{% trans "To start sending events, configure your client with the following DSN value:" %}</p>
+        <p><code class="clippy">{{ dsn }}</code></p>
+        <p>{% blocktrans with 'https://github.com/lincolnloop/raven-js' as link %}If this is a client that only needs public access (like <a href="{{ link }}">raven-js</a>), you can use the following public DSN:{% endblocktrans %}</p>
+        <p><code class="clippy">{{ dsn_public }}</code></p>
+        <div class="page-header">
+            <h3>{% trans "Platform Instructions" %}</h3>
+        </div>
+        <p>{% trans "Choose your platform for quick setup instructions:" %}</p>
+        {% include "sentry/partial/_client_config.html" %}
+        <p>{% blocktrans with 'http://sentry.readthedocs.org' as link %}For more information on developing clients and the Sentry API, see the <a href="{{ link }}">documentation</a>.{% endblocktrans %}</p>
+    {% else %}
+        <p>{% trans "There is no key configured for your account with access to this project." %}</p>
+    {% endif %}
+{% endblock %}
+

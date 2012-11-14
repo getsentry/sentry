@@ -8,7 +8,7 @@ from sentry.conf import settings
 from sentry.models import Event
 from sentry.views import View, Exception, Query, Message
 
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class ViewIntegrationTest(TestCase):

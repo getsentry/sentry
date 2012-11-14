@@ -5,11 +5,14 @@ from __future__ import absolute_import
 import datetime
 import mock
 
+from django.utils import timezone
+from nose.plugins.skip import SkipTest
+from sentry.conf import settings
 from sentry.interfaces import Interface
 from sentry.models import Event, Group, Project, MessageCountByMinute, ProjectCountByMinute, \
-  FilterValue, MessageFilterValue
-
-from tests.base import TestCase
+  SearchDocument
+from sentry.utils.db import has_trending
+from sentry.testutils import TestCase
 
 
 class DummyInterface(Interface):
@@ -43,15 +46,6 @@ class SentryManagerTest(TestCase):
         self.assertEquals(event.message, 'foo')
         self.assertEquals(event.project_id, 1)
 
-    # TODO: determine why we need this test
-    # def test_valid_timestamp_with_tz(self):
-    #     with self.Settings(USE_TZ=True):
-    #         date = datetime.datetime.utcnow().replace(tzinfo=pytz.utc)
-    #         event = Group.objects.from_kwargs(1, message='foo', timestamp=date)
-    #         self.assertEquals(event.message, 'foo')
-    #         self.assertEquals(event.project_id, 1)
-    #         self.assertEquals(event.datetime, date)
-
     def test_valid_timestamp_without_tz(self):
         # TODO: this doesnt error, but it will throw a warning. What should we do?
         with self.Settings(USE_TZ=True):
@@ -59,7 +53,7 @@ class SentryManagerTest(TestCase):
             event = Group.objects.from_kwargs(1, message='foo', timestamp=date)
             self.assertEquals(event.message, 'foo')
             self.assertEquals(event.project_id, 1)
-            self.assertEquals(event.datetime, date)
+            self.assertEquals(event.datetime, date.replace(tzinfo=timezone.utc))
 
     def test_url_filter(self):
         event = Group.objects.from_kwargs(1, message='foo')
@@ -103,36 +97,6 @@ class SentryManagerTest(TestCase):
         self.assertEquals(res.value, 'http://example.com/2')
         self.assertEquals(res.times_seen, 1)
 
-    def test_site_filter(self):
-        event = Group.objects.from_kwargs(1, message='foo')
-        group = event.group
-        self.assertEquals(group.messagefiltervalue_set.filter(key='site').count(), 0)
-
-        event = Group.objects.from_kwargs(1, message='foo', site='foo')
-        group = event.group
-        self.assertEquals(group.messagefiltervalue_set.filter(key='site').count(), 1)
-        res = group.messagefiltervalue_set.filter(key='site').get()
-        self.assertEquals(res.value, 'foo')
-        self.assertEquals(res.times_seen, 1)
-
-        event = Group.objects.from_kwargs(1, message='foo', site='foo')
-        group = event.group
-        self.assertEquals(group.messagefiltervalue_set.filter(key='site').count(), 1)
-        res = group.messagefiltervalue_set.filter(key='site').get()
-        self.assertEquals(res.value, 'foo')
-        self.assertEquals(res.times_seen, 2)
-
-        event = Group.objects.from_kwargs(1, message='foo', site='bar')
-        group = event.group
-        self.assertEquals(group.messagefiltervalue_set.filter(key='site').count(), 2)
-        results = list(group.messagefiltervalue_set.filter(key='site').order_by('id'))
-        res = results[0]
-        self.assertEquals(res.value, 'foo')
-        self.assertEquals(res.times_seen, 2)
-        res = results[1]
-        self.assertEquals(res.value, 'bar')
-        self.assertEquals(res.times_seen, 1)
-
     def test_server_name_filter(self):
         event = Group.objects.from_kwargs(1, message='foo')
         group = event.group
@@ -162,6 +126,20 @@ class SentryManagerTest(TestCase):
         res = results[1]
         self.assertEquals(res.value, 'bar')
         self.assertEquals(res.times_seen, 1)
+
+    @mock.patch('sentry.manager.send_group_processors', mock.Mock())
+    @mock.patch('sentry.manager.GroupManager.add_tags')
+    def test_tags_as_list(self, add_tags):
+        event = Group.objects.from_kwargs(1, message='foo', tags=[('foo', 'bar')])
+        group = event.group
+        add_tags.assert_called_once_with(group, [('foo', 'bar'), ('logger', 'root')])
+
+    @mock.patch('sentry.manager.send_group_processors', mock.Mock())
+    @mock.patch('sentry.manager.GroupManager.add_tags')
+    def test_tags_as_dict(self, add_tags):
+        event = Group.objects.from_kwargs(1, message='foo', tags={'foo': 'bar'})
+        group = event.group
+        add_tags.assert_called_once_with(group, [('foo', 'bar'), ('logger', 'root')])
 
     def test_dupe_message_id(self):
         event = Group.objects.from_kwargs(1, event_id=1, message='foo')
@@ -197,9 +175,73 @@ class SentryManagerTest(TestCase):
 
     def test_updates_group(self):
         Group.objects.from_kwargs(1, message='foo', checksum='a' * 32)
-        event = Group.objects.from_kwargs(1, message='foo', checksum='a' * 32)
+        event = Group.objects.from_kwargs(1, message='foo bar', checksum='a' * 32)
 
         group = Group.objects.get(pk=event.group_id)
 
         self.assertEquals(group.times_seen, 2)
-        self.assertEquals(group.last_seen, event.datetime)
+        self.assertEquals(group.last_seen.replace(microsecond=0), event.datetime.replace(microsecond=0))
+        self.assertEquals(group.message, 'foo bar')
+
+    def test_add_tags(self):
+        event = Group.objects.from_kwargs(1, message='rrr')
+        group = event.group
+        Group.objects.add_tags(group, tags=(('foo', 'bar'), ('foo', 'baz'), ('biz', 'boz')))
+
+        self.assertEquals(group.messagefiltervalue_set.filter(key='foo').count(), 2)
+        results = list(group.messagefiltervalue_set.filter(key='foo').order_by('id'))
+        res = results[0]
+        self.assertEquals(res.value, 'bar')
+        self.assertEquals(res.times_seen, 1)
+        res = results[1]
+        self.assertEquals(res.value, 'baz')
+        self.assertEquals(res.times_seen, 1)
+
+        self.assertEquals(group.messagefiltervalue_set.filter(key='biz').count(), 1)
+        results = list(group.messagefiltervalue_set.filter(key='biz').order_by('id'))
+        res = results[0]
+        self.assertEquals(res.value, 'boz')
+        self.assertEquals(res.times_seen, 1)
+
+
+class SearchManagerTest(TestCase):
+    def test_search(self):
+        project = Project.objects.all()[0]
+        group = Group.objects.create(project=project, message='foo', checksum='a' * 32)
+        doc = SearchDocument.objects.create(
+            project=project,
+            group=group,
+            status=group.status,
+            total_events=1,
+            date_added=group.first_seen,
+            date_changed=group.last_seen,
+        )
+        doc.token_set.create(
+            field='text',
+            token='foo',
+        )
+
+        results = list(SearchDocument.objects.search(project, query='foo'))
+        self.assertEquals(len(results), 1)
+        # This uses a raw query set so we have to check the id
+        self.assertEquals(results[0].id, doc.id)
+
+
+class TrendsTest(TestCase):
+    def setUp(self):
+        if not has_trending():
+            raise SkipTest('This database does not support trends.')
+
+    def test_accelerated_works_at_all(self):
+        now = timezone.now() - datetime.timedelta(minutes=5)
+        project = Project.objects.all()[0]
+        group = Group.objects.create(status=0, project=project, message='foo', checksum='a' * 32)
+        group2 = Group.objects.create(status=0, project=project, message='foo', checksum='b' * 32)
+        MessageCountByMinute.objects.create(project=project, group=group, date=now, times_seen=50)
+        MessageCountByMinute.objects.create(project=project, group=group2, date=now, times_seen=40)
+        base_qs = Group.objects.filter(
+            status=0,
+        )
+
+        results = list(Group.objects.get_accelerated(base_qs)[:25])
+        self.assertEquals(results, [group, group2])

@@ -1,0 +1,175 @@
+{% extends "sentry/teams/list.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_plugins %}
+
+{% block title %}{% blocktrans with team.name as name %}Manage Team: {{ name }}{% endblocktrans %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-manage-team team.slug %}">{{ team.name }}</a></li>
+{% endblock %}
+
+{% block main %}
+    <section class="body">
+        {% block inner %}
+            <p>{% trans "Here you can edit team information, as well as control the access list for a team with fine-grained permissions." %}</p>
+            {% if request.GET.success %}
+                <div class="alert alert-success">{% trans "Changes to your team were saved successfully." %}</div>
+            {% else %}
+                {% if form.errors %}
+                    <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
+                {% endif %}
+            {% endif %}
+            <form class="form-stacked" action="" method="post">
+                {% csrf_token %}
+                <fieldset>
+                    {% for field in form %}
+                        {% include "sentry/partial/_form_field.html" %}
+                    {% endfor %}
+                </fieldset>
+                <fieldset class="form-actions">
+                    <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+                    {% if can_remove_team %}
+                        <a href="{% url sentry-remove-team team.slug %}" class="btn btn-danger">{% trans "Remove Team" %}</a>
+                    {% else %}
+                        <div class="pull-right note">{% trans "You cannot remove this team because it has projects assigned to it" %}</div>
+                    {% endif %}
+                </fieldset>
+            </form>
+            <div class="page-header">
+                {% if can_add_project %}
+                    <a href="{% url sentry-new-team-project team.slug %}" class="btn pull-right btn-primary">{% trans "New Project" %}</a>
+                {% endif %}
+                <h2>{% trans "Projects" %}</h2>
+            </div>
+            {% if project_list %}
+                <table class="table table-bordered table-striped">
+                    <colgroup>
+                        <col/>
+                        <col width="90px"/>
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th>{% trans "Project" %}</th>
+                            <th style="text-align:center">{% trans "Actions" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for project in project_list %}
+                            <tr>
+                                <td>
+                                    <a href="{% url sentry project.slug %}">{{ project.name }}</a><br>
+                                </td>
+                                <td style="text-align:center;">
+                                    <a href="{% url sentry-manage-project project.slug %}" class="btn btn-small">{% trans "Settings" %}</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>{% trans "There are no projects managed by this team." %}</p>
+            {% endif %}
+            <div class="page-header">
+                {% if can_add_member %}
+                    <a href="{% url sentry-new-team-member team.slug %}" class="btn pull-right btn-primary">{% trans "New Member" %}</a>
+                {% endif %}
+                <h2>{% trans "Members" %}</h2>
+            </div>
+            <ul class="nav nav-tabs">
+                <li class="active"><a href="#members" data-toggle="tab">{% trans "Members" %}</a></li>
+                <li><a href="#pending-members" data-toggle="tab">{% blocktrans with pending_member_list|length as count %}Pending ({{ count }}){% endblocktrans %}</a></li>
+            </ul>
+            <div class="tab-content">
+                <div class="tab-pane active" id="members">
+                    <table class="table table-bordered table-striped">
+                        <colgroup>
+                            <col/>
+                            <col width="100px"/>
+                            <col width="90px"/>
+                            <col width="90px"/>
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <th>{% trans "User" %}</th>
+                                <th style="text-align:center">{% trans "Access" %}</th>
+                                <th colspan="2" style="text-align:center">{% trans "Actions" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for member, user in member_list %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url sentry-edit-team-member team.slug member.pk %}">{{ user.username }}</a><br>
+                                        {{ user.email }}
+                                    </td>
+                                    <td style="text-align:center;">
+                                        {% if user == team.owner %}
+                                            {% trans "Owner" %}
+                                        {% else %}
+                                            {{ member.get_type_display }}
+                                        {% endif %}
+                                    </td>
+                                    {% if user == team.owner %}
+                                        <td style="text-align:center;" colspan="2">
+                                            <em>{% trans "unavailable for owner" %}</em>
+                                        </td>
+                                    {% else %}
+                                        <td style="text-align:center;">
+                                            <a href="{% url sentry-remove-team-member team.slug member.pk %}" class="btn btn-danger btn-small">{% trans "Remove" %}</a>
+                                        </td>
+                                        <td style="text-align:center;">
+                                            {% if member.is_active %}
+                                                <a href="{% url sentry-suspend-team-member team.slug member.pk %}" class="btn btn-small">{% trans "Suspend" %}</a>
+                                            {% else %}
+                                                <a href="{% url sentry-restore-team-member team.slug member.pk %}" class="btn btn-small">{% trans "Restore" %}</a>
+                                            {% endif %}
+                                        </td>
+                                    {% endif %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="tab-pane" id="pending-members">
+                    <table class="table table-bordered table-striped">
+                        <colgroup>
+                            <col/>
+                            <col width="100px"/>
+                            <col width="90px"/>
+                            <col width="90px"/>
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <th>{% trans "User" %}</th>
+                                <th style="text-align:center">{% trans "Access" %}</th>
+                                <th style="text-align:center" colspan="2">{% trans "Actions" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for member, email in pending_member_list %}
+                                <tr>
+                                    <td>
+                                        {{ email }}
+                                    </td>
+                                    <td style="text-align:center;">
+                                        {{ member.get_type_display }}
+                                    </td>
+                                    <td style="text-align:center;">
+                                        <a href="{% url sentry-remove-pending-team-member team.slug member.pk %}" class="btn btn-small btn-danger">{% trans "Remove" %}</a>
+                                    </td>
+                                    <td style="text-align:center;">
+                                        <a href="{% url sentry-reinvite-pending-team-member team.slug member.pk %}" class="btn btn-small">{% trans "Resend" %}</a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endblock %}
+    </section>
+{% endblock %}

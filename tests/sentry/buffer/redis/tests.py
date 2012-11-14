@@ -4,12 +4,13 @@ from __future__ import absolute_import
 
 import mock
 
-from datetime import datetime, timedelta
+from datetime import timedelta
+from django.utils import timezone
 from sentry.buffer.redis import RedisBuffer
 from sentry.models import Group, Project
 from sentry.tasks.process_buffer import process_incr
 from sentry.utils.compat import pickle
-from tests.base import TestCase
+from sentry.testutils import TestCase
 
 
 class RedisBufferTest(TestCase):
@@ -105,9 +106,9 @@ class RedisBufferTest(TestCase):
         group = Group.objects.create(project=Project(id=1))
         columns = {'times_seen': 1}
         filters = {'pk': group.pk}
-        the_date = datetime.now() + timedelta(days=5)
+        the_date = (timezone.now() + timedelta(days=5)).replace(microsecond=0)
         self.buf.conn.set('foo', 1)
         self.buf.conn.hset('extra', 'last_seen', pickle.dumps(the_date))
         self.buf.process(Group, columns, filters)
         group_ = Group.objects.get(pk=group.pk)
-        self.assertEquals(group_.last_seen, the_date)
+        self.assertEquals(group_.last_seen.replace(microsecond=0), the_date)

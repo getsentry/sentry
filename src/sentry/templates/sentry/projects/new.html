@@ -1,0 +1,48 @@
+{% extends "sentry/projects/base.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "New Project" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-new-project %}">{% trans "New Project" %}</a></li>
+{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <p>{% trans "Use this page to create a new project within Sentry. Once done, you'll be able to configure your client to send messages to this project." %}</p>
+        <hr>
+        <form class="form-stacked" action="" method="post">
+            {% csrf_token %}
+            <fieldset>
+                <legend>{% trans "Project Details" %}</legend>
+                {% for field in project_form %}
+                    {% include "sentry/partial/_form_field.html" %}
+                {% endfor %}
+                {% if not new_team_form %}
+                    {% for field in select_team_form %}
+                        {% include "sentry/partial/_form_field.html" %}
+                    {% endfor %}
+                {% endif %}
+            </fieldset>
+            {% if new_team_form %}
+                <legend>{% trans "Team Details" %}</legend>
+                {% if select_team_form %}
+                    <p>{% trans "Select an existing team to manage this project" %}</p>
+                    {% for field in select_team_form %}
+                        {% include "sentry/partial/_form_field.html" %}
+                    {% endfor %}
+                    <p>{% trans "Or, create a new team" %}</p>
+                {% endif %}
+                {% for field in new_team_form %}
+                    {% include "sentry/partial/_form_field.html" %}
+                {% endfor %}
+            {% endif %}
+            <div class="actions">
+                <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+            </div>
+        </form>
+    </section>
+{% endblock %}
