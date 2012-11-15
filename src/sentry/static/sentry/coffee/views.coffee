@@ -100,8 +100,8 @@ jQuery ->
                     height: $(el).height()
 
             # make sure we limit the number shown
-            while @collection.length > @config.maxItems
-                item = @collection.pop()
+            while @collection.models.length > @config.maxItems
+                @collection.pop()
 
 
         renderMember: (member) ->

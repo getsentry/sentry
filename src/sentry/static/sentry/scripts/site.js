@@ -515,7 +515,7 @@
       };
 
       OrderedElementsView.prototype.renderMemberInContainer = function(member) {
-        var $el, $rel, item, new_pos, _results,
+        var $el, $rel, new_pos, _results,
           _this = this;
         new_pos = this.collection.indexOf(member);
         this.$parent.find('li.empty').remove();
@@ -542,8 +542,8 @@
           });
         });
         _results = [];
-        while (this.collection.length > this.config.maxItems) {
-          _results.push(item = this.collection.pop());
+        while (this.collection.models.length > this.config.maxItems) {
+          _results.push(this.collection.pop());
         }
         return _results;
       };
