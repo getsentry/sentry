@@ -71,8 +71,10 @@ jQuery ->
 
         updateMember: (member) ->
             obj = @collection.get(member.id)
-            obj.set('count', member.get('count'))
-            obj.set('score', member.get('score'))
+            if member.get('count') != obj.get('count')
+                obj.set('count', member.get('count'))
+            if member.get('score') != obj.get('score')
+                obj.set('score', member.get('score'))
 
             @collection.sort()
 
@@ -105,8 +107,11 @@ jQuery ->
                 $rel = $('#' + @id + @collection.at(new_pos).id)
                 if !$rel.length
                     @$parent.append($el)
-                else
+                # TODO: why do we get here?
+                else if $el.id != $rel.id
                     $el.insertBefore($rel)
+                else
+                    return
 
             $el.find('.sparkline').each (_, el) =>
                 $(el).sparkline 'html'
@@ -115,8 +120,6 @@ jQuery ->
 
             if @loaded
                 $el.css('background-color', '#ddd').animate({backgroundColor: '#fff'}, 1200)
-
-
 
         renderMember: (member) ->
             view = new GroupView
@@ -154,7 +157,9 @@ jQuery ->
             if !@queue.length
                 return
 
-            @addMember(@queue.pop())
+            item = @queue.pop()
+            if @config.realtime
+                @addMember(item)
 
         poll: ->
             if !@config.realtime
@@ -255,4 +260,6 @@ jQuery ->
             'level-' + obj.get('levelName')
 
         updateCount: (obj) ->
-            $('.count span', this.$el).text @model.get("count")
+            counter = @$el.find('.count span')
+            counter.text(@model.get("count"))
+            counter.css('opacity', 0.3).animate({opacity: 1.0}, 1200)

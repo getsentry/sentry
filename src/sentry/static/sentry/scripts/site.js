@@ -514,8 +514,12 @@
       OrderedElementsView.prototype.updateMember = function(member) {
         var obj;
         obj = this.collection.get(member.id);
-        obj.set('count', member.get('count'));
-        obj.set('score', member.get('score'));
+        if (member.get('count') !== obj.get('count')) {
+          obj.set('count', member.get('count'));
+        }
+        if (member.get('score') !== obj.get('score')) {
+          obj.set('score', member.get('score'));
+        }
         return this.collection.sort();
       };
 
@@ -544,8 +548,10 @@
           $rel = $('#' + this.id + this.collection.at(new_pos).id);
           if (!$rel.length) {
             this.$parent.append($el);
-          } else {
+          } else if ($el.id !== $rel.id) {
             $el.insertBefore($rel);
+          } else {
+            return;
           }
         }
         $el.find('.sparkline').each(function(_, el) {
@@ -605,10 +611,14 @@
       };
 
       GroupListView.prototype.tick = function() {
+        var item;
         if (!this.queue.length) {
           return;
         }
-        return this.addMember(this.queue.pop());
+        item = this.queue.pop();
+        if (this.config.realtime) {
+          return this.addMember(item);
+        }
       };
 
       GroupListView.prototype.poll = function() {
@@ -751,7 +761,12 @@
       };
 
       GroupView.prototype.updateCount = function(obj) {
-        return $('.count span', this.$el).text(this.model.get("count"));
+        var counter;
+        counter = this.$el.find('.count span');
+        counter.text(this.model.get("count"));
+        return counter.css('opacity', 0.3).animate({
+          opacity: 1.0
+        }, 1200);
       };
 
       return GroupView;

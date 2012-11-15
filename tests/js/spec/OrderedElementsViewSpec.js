@@ -217,7 +217,7 @@ describe("OrderedElementsView", function() {
   describe(".renderMemberInContainer", function() {
     beforeEach(function(){
       view = new app.OrderedElementsView({
-          id: 'foo',
+          id: 'dummy',
           maxItems: 3
       });
 
@@ -230,13 +230,22 @@ describe("OrderedElementsView", function() {
       view.addMember(group3);
     });
 
+    it("pushes highest scored elements to the top on change", function(){
+      group3.set('score', 100);
+      view.addMember(group3);
+      group4 = make_group({id: 4, score: 500});
+      view.addMember(group4);
+      expect(view.$parent.find('li').length).toBe(view.collection.models.length);
+    });
+
+
     it("has the correct number of elements", function(){
       expect(view.$parent.find('li').length).toBe(view.collection.models.length);
     });
 
     it("has list elements sorted correctly", function(){
       view.$parent.find('li').each(function(_, el){
-        expect(this.id).toBe('foo' + view.collection.models[_].id);
+        expect(this.id).toBe('dummy' + view.collection.models[_].id);
       });
     });
   });
