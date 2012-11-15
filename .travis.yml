@@ -14,8 +14,10 @@ install:
   - pip install psycopg2
   - pip install -q Django==$DJANGO --use-mirrors
   - pip install -q . --use-mirrors
+  - make bootstrap-tests
 script:
   - make test
+  - make test-js
 notifications:
   irc:
     channels: "irc.freenode.org#sentry"
