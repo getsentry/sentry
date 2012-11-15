@@ -184,7 +184,7 @@ jQuery ->
     app.GroupView = class GroupView extends Backbone.View
         tagName: 'li'
         className: 'group'
-        template: _.template $('#group-template').html()
+        template: _.template(app.templates.group)
 
         initialize: ->
             _.bindAll(@)
