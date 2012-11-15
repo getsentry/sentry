@@ -47,6 +47,10 @@ jQuery ->
 
         addMember: (member) ->
             if not @hasMember(member)
+                # make sure we limit the number shown
+                while @collection.models.length >= @config.maxItems
+                    @collection.pop()
+
                 @collection.add(member)
             else
                 @updateMember(member)
@@ -98,10 +102,6 @@ jQuery ->
                 $(el).sparkline 'html'
                     enableTagOptions: true
                     height: $(el).height()
-
-            # make sure we limit the number shown
-            while @collection.models.length > @config.maxItems
-                @collection.pop()
 
 
         renderMember: (member) ->

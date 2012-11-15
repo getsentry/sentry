@@ -485,6 +485,9 @@
 
       OrderedElementsView.prototype.addMember = function(member) {
         if (!this.hasMember(member)) {
+          while (this.collection.models.length >= this.config.maxItems) {
+            this.collection.pop();
+          }
           return this.collection.add(member);
         } else {
           return this.updateMember(member);
@@ -515,7 +518,7 @@
       };
 
       OrderedElementsView.prototype.renderMemberInContainer = function(member) {
-        var $el, $rel, new_pos, _results,
+        var $el, $rel, new_pos,
           _this = this;
         new_pos = this.collection.indexOf(member);
         this.$parent.find('li.empty').remove();
@@ -535,17 +538,12 @@
             $el.insertBefore($rel);
           }
         }
-        $el.find('.sparkline').each(function(_, el) {
+        return $el.find('.sparkline').each(function(_, el) {
           return $(el).sparkline('html', {
             enableTagOptions: true,
             height: $(el).height()
           });
         });
-        _results = [];
-        while (this.collection.models.length > this.config.maxItems) {
-          _results.push(this.collection.pop());
-        }
-        return _results;
       };
 
       OrderedElementsView.prototype.renderMember = function(member) {
