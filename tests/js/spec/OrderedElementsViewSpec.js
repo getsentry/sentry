@@ -25,24 +25,39 @@ describe("OrderedElementsView", function() {
   var group3;
   var group4;
 
-  beforeEach(function() {
-    view = new app.OrderedElementsView({
-        id: 'foo',
-        maxItems: 3
+  describe("without initial members", function() {
+    beforeEach(function() {
+      view = new app.OrderedElementsView({
+          id: 'foo'
+      });
+      view.$parent = $('<ul></ul>');
     });
-    view.$parent = $('<ul></ul>');
+
+    it("should suggest its not loaded", function() {
+      expect(view.loaded).toBe(false);
+    });
+
+    it("has status text to loading", function() {
+      expect(view.$empty.html()).toBe(view.loadingMessage.parent().html());
+    });
   });
 
-  describe("with initial data", function() {
+  describe("with initial members", function() {
+    beforeEach(function() {
+      group1 = make_group({id: 1, score: 3});
+      view = new app.OrderedElementsView({
+          id: 'foo',
+          members: [group1]
+      });
+    });
 
-  });
+    it("should suggest its loaded", function() {
+      expect(view.loaded).toBe(true);
+    });
 
-  it("should suggest its not loaded", function() {
-    expect(view.loaded).toBe(false);
-  });
-
-  it("has status text to loading", function() {
-    expect(view.$empty.html()).toBe(view.loadingMessage.parent().html());
+    it("has status text to loading", function() {
+      expect(view.$empty.html()).not.toBe(view.loadingMessage.parent().html());
+    });
   });
 
   describe(".load", function() {
@@ -50,6 +65,9 @@ describe("OrderedElementsView", function() {
     describe("with data", function(){
       beforeEach(function(){
         group1 = make_group({id: 1, score: 3});
+        view = new app.OrderedElementsView({
+            id: 'foo'
+        });
         view.extend = sinon.spy();
         view.load([group1]);
       });
@@ -70,6 +88,9 @@ describe("OrderedElementsView", function() {
 
     describe("without data", function(){
       beforeEach(function(){
+        view = new app.OrderedElementsView({
+            id: 'foo'
+        });
         group1 = make_group({id: 1, score: 3});
         view.extend = sinon.spy();
         view.load([]);
@@ -91,11 +112,17 @@ describe("OrderedElementsView", function() {
   });
 
   describe(".extend", function() {
+    beforeEach(function(){
+      view = new app.OrderedElementsView({
+          id: 'foo'
+      });
+      view.addMember = sinon.spy();
+    });
+
     it("calls addMember for each item", function() {
       group1 = make_group({id: 1, score: 3});
       group2 = make_group({id: 2, score: 5});
 
-      view.addMember = sinon.spy();
       view.extend([group1, group2]);
       expect(view.addMember.callCount).toBe(2);
       expect(view.addMember.calledWithExactly(group1)).toBe(true);
@@ -104,6 +131,13 @@ describe("OrderedElementsView", function() {
   });
 
   describe(".addMember", function() {
+    beforeEach(function(){
+      view = new app.OrderedElementsView({
+          id: 'foo',
+          maxItems: 3
+      });
+    });
+
     it("adds to collection", function() {
       group = make_group();
       view.addMember(group);
@@ -143,6 +177,11 @@ describe("OrderedElementsView", function() {
 
   describe(".renderMemberInContainer", function() {
     beforeEach(function(){
+      view = new app.OrderedElementsView({
+          id: 'foo',
+          maxItems: 3
+      });
+
       group1 = make_group({id: 1, score: 3});
       group2 = make_group({id: 2, score: 5});
       group3 = make_group({id: 3, score: 2});

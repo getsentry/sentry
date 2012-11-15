@@ -12,7 +12,7 @@ jQuery ->
             @$wrapper = $('#' + @id)
             @$parent = $('<ul></ul>')
             @$empty = $('<li class="empty"></li>')
-            @loaded = data.members ? false
+            @loaded = if data.members then true else false
             if @loaded
                 @$empty.html(@emptyMessage)
             else

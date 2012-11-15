@@ -438,12 +438,12 @@
       OrderedElementsView.prototype.loadingMessage = $('<p>Loading...</p>');
 
       OrderedElementsView.prototype.initialize = function(data) {
-        var _ref, _ref1;
+        var _ref;
         _.bindAll(this);
         this.$wrapper = $('#' + this.id);
         this.$parent = $('<ul></ul>');
         this.$empty = $('<li class="empty"></li>');
-        this.loaded = (_ref = data.members) != null ? _ref : false;
+        this.loaded = data.members ? true : false;
         if (this.loaded) {
           this.$empty.html(this.emptyMessage);
         } else {
@@ -455,7 +455,7 @@
           this.$parent.addClass(data.className);
         }
         this.config = {
-          maxItems: (_ref1 = data.maxItems) != null ? _ref1 : 50
+          maxItems: (_ref = data.maxItems) != null ? _ref : 50
         };
         this.collection = new app.ScoredList;
         this.collection.add(data.members || []);
