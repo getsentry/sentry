@@ -33,8 +33,8 @@ describe("OrderedElementsView", function() {
     view.$parent = $('<ul></ul>');
   });
 
-  it("should bind a collection", function() {
-    expect(view.collection);
+  it("should suggest its loading", function() {
+    expect(view.loaded).toBe(false);
   });
 
   describe(".extend", function() {
@@ -45,8 +45,9 @@ describe("OrderedElementsView", function() {
       view.addMember = sinon.spy();
       view.extend([group1, group2]);
       expect(view.addMember.callCount).toBe(2);
-      expect(view.addMember.calledWith(group1));
-      expect(view.addMember.calledWith(group2));
+      console.log(view.addMember.getCall(0));
+      expect(view.addMember.calledWithExactly(group1)).toBe(true);
+      expect(view.addMember.calledWithExactly(group2)).toBe(true);
     });
   });
 

@@ -43,7 +43,7 @@ jQuery ->
 
         extend: (data) ->
             for item in data
-                @addMember(data)
+                @addMember(item)
 
         addMember: (member) ->
             if not @hasMember(member)

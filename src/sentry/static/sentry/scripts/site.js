@@ -478,7 +478,7 @@
         _results = [];
         for (_i = 0, _len = data.length; _i < _len; _i++) {
           item = data[_i];
-          _results.push(this.addMember(data));
+          _results.push(this.addMember(item));
         }
         return _results;
       };
