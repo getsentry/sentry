@@ -98,7 +98,6 @@ describe("OrderedElementsView", function() {
       view.addMember = sinon.spy();
       view.extend([group1, group2]);
       expect(view.addMember.callCount).toBe(2);
-      console.log(view.addMember.getCall(0));
       expect(view.addMember.calledWithExactly(group1)).toBe(true);
       expect(view.addMember.calledWithExactly(group2)).toBe(true);
     });
