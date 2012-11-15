@@ -17,7 +17,6 @@ install:
   - make bootstrap-tests
 script:
   - make test
-  - make test-js
 notifications:
   irc:
     channels: "irc.freenode.org#sentry"
