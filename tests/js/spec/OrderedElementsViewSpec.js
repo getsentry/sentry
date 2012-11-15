@@ -37,7 +37,20 @@ describe("OrderedElementsView", function() {
     expect(view.collection);
   });
 
-  describe("addMember", function() {
+  describe(".extend", function() {
+    it("calls addMember for each item", function() {
+      group1 = make_group({id: 1, score: 3});
+      group2 = make_group({id: 2, score: 5});
+
+      view.addMember = sinon.spy();
+      view.extend([group1, group2]);
+      expect(view.addMember.callCount).toBe(2);
+      expect(view.addMember.calledWith(group1));
+      expect(view.addMember.calledWith(group2));
+    });
+  });
+
+  describe(".addMember", function() {
     it("adds to collection", function() {
       group = make_group();
       view.addMember(group);
@@ -75,7 +88,7 @@ describe("OrderedElementsView", function() {
     });
   });
 
-  describe("renderMemberInContainer", function() {
+  describe(".renderMemberInContainer", function() {
     beforeEach(function(){
       group1 = make_group({id: 1, score: 3});
       group2 = make_group({id: 2, score: 5});
