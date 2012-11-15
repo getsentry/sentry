@@ -173,6 +173,45 @@ describe("OrderedElementsView", function() {
       expect(view.collection.models[0].get('id')).toBe(2);
       expect(view.collection.models[1].get('id')).toBe(1);
     });
+
+    it("doesnt move members that didnt re-rank", function(){
+      view.addMember(make_group({id: 1, score: 1}));
+      view.addMember(make_group({id: 2, score: 10}));
+      view.addMember(make_group({id: 3, score: 100}));
+      // change the score, but keep it in the same rank
+      view.addMember(make_group({id: 2, score: 50}));
+
+      expect(view.collection.models[0].get('id')).toBe(3);
+      expect(view.collection.models[1].get('id')).toBe(2);
+      expect(view.collection.models[2].get('id')).toBe(1);
+    });
+
+    it("resorts members when they change", function(){
+      view.addMember(make_group({id: 1, score: 1}));
+      view.addMember(make_group({id: 2, score: 10}));
+      view.addMember(make_group({id: 3, score: 100}));
+      // change the score so it should be at the top
+      view.addMember(make_group({id: 1, score: 1000}));
+
+      expect(view.collection.models[0].get('id')).toBe(1);
+      expect(view.collection.models[1].get('id')).toBe(3);
+      expect(view.collection.models[2].get('id')).toBe(2);
+    });
+
+    it("correctly handles truncating lowest score values", function(){
+      view.addMember(make_group({id: 1, score: 1}));
+      view.addMember(make_group({id: 2, score: 10}));
+      view.addMember(make_group({id: 3, score: 100}));
+      view.addMember(make_group({id: 4, score: 52}));
+      view.addMember(make_group({id: 5, score: 51}));
+      view.addMember(make_group({id: 2, score: 50}));
+
+      expect(view.collection.length).toBe(3);
+      expect(view.collection.models[0].get('id')).toBe(3);
+      expect(view.collection.models[1].get('id')).toBe(4);
+      expect(view.collection.models[2].get('id')).toBe(5);
+    });
+
   });
 
   describe(".renderMemberInContainer", function() {

@@ -438,13 +438,13 @@
       OrderedElementsView.prototype.loadingMessage = $('<p>Loading...</p>');
 
       OrderedElementsView.prototype.initialize = function(data) {
-        var _ref;
+        var loaded, _ref;
         _.bindAll(this);
         this.$wrapper = $('#' + this.id);
         this.$parent = $('<ul></ul>');
         this.$empty = $('<li class="empty"></li>');
-        this.loaded = data.members ? true : false;
-        if (this.loaded) {
+        loaded = data.members ? true : false;
+        if (loaded) {
           this.$empty.html(this.emptyMessage);
         } else {
           this.$empty.html(this.loadingMessage);
@@ -462,15 +462,16 @@
         this.collection.on('add', this.renderMemberInContainer);
         this.collection.on('remove', this.unrenderMember);
         this.collection.on('reset', this.reSortMembers);
-        return this.collection.sort();
+        this.collection.sort();
+        return this.loaded = loaded;
       };
 
       OrderedElementsView.prototype.load = function(data) {
-        this.loaded = true;
         this.$empty.html(this.emptyMessage);
         if (data) {
-          return this.extend(data);
+          this.extend(data);
         }
+        return this.loaded = true;
       };
 
       OrderedElementsView.prototype.setEmpty = function() {
@@ -489,8 +490,13 @@
 
       OrderedElementsView.prototype.addMember = function(member) {
         if (!this.hasMember(member)) {
-          while (this.collection.models.length >= this.config.maxItems) {
-            this.collection.pop();
+          if (this.collection.models.length >= this.config.maxItems - 1) {
+            if (member.get('score') < this.collection.last().get('score')) {
+              return;
+            }
+            while (this.collection.models.length >= this.config.maxItems) {
+              this.collection.pop();
+            }
           }
           return this.collection.add(member);
         } else {
@@ -542,12 +548,17 @@
             $el.insertBefore($rel);
           }
         }
-        return $el.find('.sparkline').each(function(_, el) {
+        $el.find('.sparkline').each(function(_, el) {
           return $(el).sparkline('html', {
             enableTagOptions: true,
             height: $(el).height()
           });
         });
+        if (this.loaded) {
+          return $el.css('background-color', '#ddd').animate({
+            backgroundColor: '#fff'
+          }, 1200);
+        }
       };
 
       OrderedElementsView.prototype.renderMember = function(member) {

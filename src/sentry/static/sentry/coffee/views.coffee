@@ -12,8 +12,8 @@ jQuery ->
             @$wrapper = $('#' + @id)
             @$parent = $('<ul></ul>')
             @$empty = $('<li class="empty"></li>')
-            @loaded = if data.members then true else false
-            if @loaded
+            loaded = if data.members then true else false
+            if loaded
                 @$empty.html(@emptyMessage)
             else
                 @$empty.html(@loadingMessage)
@@ -35,10 +35,13 @@ jQuery ->
             @collection.on('reset', @reSortMembers)
             @collection.sort()
 
+            # we set this last as it has side effects
+            @loaded = loaded
+
         load: (data) ->
-            @loaded = true
             @$empty.html(@emptyMessage)
             @extend(data) if data
+            @loaded = true
 
         setEmpty: ->
             @$parent.html(@$empty)
@@ -49,9 +52,14 @@ jQuery ->
 
         addMember: (member) ->
             if not @hasMember(member)
-                # make sure we limit the number shown
-                while @collection.models.length >= @config.maxItems
-                    @collection.pop()
+                if @collection.models.length >= @config.maxItems - 1
+                    # bail early if the score is too low
+                    if member.get('score') < @collection.last().get('score')
+                        return
+
+                    # make sure we limit the number shown
+                    while @collection.models.length >= @config.maxItems
+                        @collection.pop()
 
                 @collection.add(member)
             else
@@ -105,6 +113,10 @@ jQuery ->
                     enableTagOptions: true
                     height: $(el).height()
 
+            if @loaded
+                $el.css('background-color', '#ddd').animate({backgroundColor: '#fff'}, 1200)
+
+
 
         renderMember: (member) ->
             view = new GroupView
@@ -143,9 +155,6 @@ jQuery ->
                 return
 
             @addMember(@queue.pop())
-
-            # # shiny fx
-            # $row.css('background-color', '#ddd').animate({backgroundColor: '#fff'}, 1200)
 
         poll: ->
             if !@config.realtime
