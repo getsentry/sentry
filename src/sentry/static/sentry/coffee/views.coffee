@@ -3,6 +3,8 @@ window.app = app = window.app || {}
 jQuery ->
 
     app.OrderedElementsView = class OrderedElementsView extends Backbone.View
+        emptyMessage: $('<p>There is nothing to show here.</p>');
+        loadingMessage: $('<p>Loading...</p>');
 
         initialize: (data) ->
             _.bindAll(@)
@@ -12,9 +14,9 @@ jQuery ->
             @$empty = $('<li class="empty"></li>')
             @loaded = data.members ? false
             if @loaded
-                @$empty.html('<p>There is nothing to show here.</p>')
+                @$empty.html(@emptyMessage)
             else
-                @$empty.html('<p>Loading ...</p>')
+                @$empty.html(@loadingMessage)
             @setEmpty()
             @$wrapper.html(@$parent)
 
@@ -35,7 +37,7 @@ jQuery ->
 
         load: (data) ->
             @loaded = true
-            @$empty.html('<p>There is nothing to show here.</p>')
+            @$empty.html(@emptyMessage)
             @extend(data) if data
 
         setEmpty: ->

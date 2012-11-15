@@ -433,6 +433,10 @@
         return OrderedElementsView.__super__.constructor.apply(this, arguments);
       }
 
+      OrderedElementsView.prototype.emptyMessage = $('<p>There is nothing to show here.</p>');
+
+      OrderedElementsView.prototype.loadingMessage = $('<p>Loading...</p>');
+
       OrderedElementsView.prototype.initialize = function(data) {
         var _ref, _ref1;
         _.bindAll(this);
@@ -441,9 +445,9 @@
         this.$empty = $('<li class="empty"></li>');
         this.loaded = (_ref = data.members) != null ? _ref : false;
         if (this.loaded) {
-          this.$empty.html('<p>There is nothing to show here.</p>');
+          this.$empty.html(this.emptyMessage);
         } else {
-          this.$empty.html('<p>Loading ...</p>');
+          this.$empty.html(this.loadingMessage);
         }
         this.setEmpty();
         this.$wrapper.html(this.$parent);
@@ -463,7 +467,7 @@
 
       OrderedElementsView.prototype.load = function(data) {
         this.loaded = true;
-        this.$empty.html('<p>There is nothing to show here.</p>');
+        this.$empty.html(this.emptyMessage);
         if (data) {
           return this.extend(data);
         }

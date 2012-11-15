@@ -33,8 +33,61 @@ describe("OrderedElementsView", function() {
     view.$parent = $('<ul></ul>');
   });
 
-  it("should suggest its loading", function() {
+  describe("with initial data", function() {
+
+  });
+
+  it("should suggest its not loaded", function() {
     expect(view.loaded).toBe(false);
+  });
+
+  it("has status text to loading", function() {
+    expect(view.$empty.html()).toBe(view.loadingMessage.parent().html());
+  });
+
+  describe(".load", function() {
+
+    describe("with data", function(){
+      beforeEach(function(){
+        group1 = make_group({id: 1, score: 3});
+        view.extend = sinon.spy();
+        view.load([group1]);
+      });
+
+      it("calls extend with data", function() {
+        expect(view.extend.called).toBe(true);
+        expect(view.extend.calledWithExactly([group1])).toBe(true);
+      });
+
+      it("suggests its loaded", function() {
+        expect(view.loaded).toBe(true);
+      });
+
+      it("changes status text to empty", function() {
+        expect(view.$empty.html()).toBe(view.emptyMessage.parent().html());
+      });
+    });
+
+    describe("without data", function(){
+      beforeEach(function(){
+        group1 = make_group({id: 1, score: 3});
+        view.extend = sinon.spy();
+        view.load([]);
+      });
+
+      it("calls extend with data", function() {
+        expect(view.extend.called).toBe(true);
+        expect(view.extend.calledWithExactly([])).toBe(true);
+      });
+
+      it("suggests its loaded", function() {
+        expect(view.loaded).toBe(true);
+      });
+
+      it("changes status text to empty", function() {
+        expect(view.$empty.html()).toBe(view.emptyMessage.parent().html());
+      });
+    });
   });
 
   describe(".extend", function() {
