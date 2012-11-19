@@ -169,7 +169,7 @@ def store(request, project=None):
                     raise APIError('Project ID mismatch')
 
             else:
-                raise APIUnauthorized()
+                raise APIUnauthorized('No authentication provided')
 
             if not data.startswith('{'):
                 data = decode_and_decompress_data(data)
