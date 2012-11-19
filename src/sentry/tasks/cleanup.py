@@ -139,7 +139,7 @@ def cleanup(days=30, logger=None, site=None, server=None, level=None,
     for obj in RangeQuerySetWrapper(qs):
         if not mqs.filter(key=obj.key, value=obj.value).exists():
             log.info("Removing filters for unused filter %s=%s", obj.key, obj.value)
-            qs.filter(key=obj.key).delete()
+            qs.filter(key=obj.key, value=obj.value).delete()
             obj.delete()
 
     # attempt to cleanup any groups that may now be empty
