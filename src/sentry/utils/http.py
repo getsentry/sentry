@@ -84,7 +84,8 @@ def apply_access_control_headers(response, origin):
     """
     if origin:
         response['Access-Control-Allow-Origin'] = origin
-        response['Access-Control-Allow-Headers'] = 'X-Sentry-Auth, Authentication'
-        response['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response['Access-Control-Allow-Headers'] = 'X-Sentry-Auth, X-Requested-With, Origin, Accept, Content-Type, ' \
+            'Authentication'
+        response['Access-Control-Allow-Methods'] = 'HEAD, POST, OPTIONS'
 
     return response

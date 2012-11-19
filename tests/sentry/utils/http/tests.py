@@ -48,10 +48,19 @@ class AccessControlTestCase(TestCase):
             response = apply_access_control_headers(HttpResponse(), "http://foo.example")
             self.assertEqual(response.get('Access-Control-Allow-Origin', None),
                              "http://foo.example")
-            self.assertEqual(response.get('Access-Control-Allow-Headers', None),
-                             "X-Sentry-Auth, Authentication")
-            self.assertEqual(response.get('Access-Control-Allow-Methods', None),
-                             "POST, OPTIONS")
+
+            headers = response.get('Access-Control-Allow-Headers', None)
+            self.assertNotEquals(headers, None)
+            headers = headers.split(', ')
+            self.assertIn('X-Sentry-Auth', headers)
+            self.assertIn('Authentication', headers)
+
+            methods = response.get('Access-Control-Allow-Methods', None)
+            self.assertNotEquals(methods, None)
+            methods = methods.split(', ')
+            self.assertIn('POST', methods)
+            self.assertIn('HEAD', methods)
+            self.assertIn('OPTIONS', methods)
 
 
 class IsValidOriginTestCase(TestCase):
