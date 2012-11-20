@@ -1,9 +1,21 @@
 Version 5.1.0
 -------------
 
+Minor point releases now signify major changes (5.1.0 is a major release). Bugfix and smaller
+releases will continue as normal.
+
+This release includes a very large set of changes from 5.0.0, including a new client protocol
+and an overhaul to the frontend code (specifically the JavaScript).
+
+Protocol Version 3
+==================
+
 - Signed messages are no longer supported (signatures are not calculated).
 - Clients should pass sentry_secret for server-side requests as part of the auth
   header.
+- The ``project`` attribute in the JSON packet is no longer required.
+- The ``platform`` attribute is now recommended.
+- The ``tags`` attribute is now recommended.
 
 
 Version 5.0.0

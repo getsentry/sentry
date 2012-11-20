@@ -41,3 +41,13 @@ This includes several new tables (such as Project), and alters on almost all exi
 also means it needs to backfill the project_id column on all related tables.
 
 You should also read over the installation guide again, as some things have likely changed.
+
+Upgrading to >= 5.1
+~~~~~~~~~~~~~~~~~~~
+
+Version 5.1 of Sentry includes a large set of changes including a new client protocol (version 3). It is
+fully compatible with version 2.0 of the protocl, but no longer supports several deprecated features, including
+version 1.0.
+
+You should always upgrade your client first, but if you're upgrading from a very old version of Sentry, you may
+have a lapse in data during your upgrade process.
