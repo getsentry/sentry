@@ -31,7 +31,7 @@ Builtin Commands
     .. note:: The init command requires you to pass the configuration value as the parameter whereas other
               commands require you to use --config for passing the location of this file.
 
-.. data:: start [services]
+.. data:: start [service]
 
     Starts a Sentry service. By default this value is 'http'.
 
