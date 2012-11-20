@@ -400,3 +400,4 @@ jQuery ->
                     return Math.floor(seconds / format[2]) + ' ' + format[1] + ' ' + token
 
         return time
+        

@@ -100,26 +100,37 @@
           id: 'event_list',
           members: data.groups,
           maxItems: 50,
-          realtime: true,
+          realtime: $.cookie('pausestream') ? false : true,
           pollUrl: app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/',
           model: app.Group
         });
-        return $('a[data-action=pause]').click(function(e) {
-          var $target;
+        this.$streamControl = $('a[data-action=pause]');
+        this.updateStreamOptions();
+        return this.$streamControl.click(function(e) {
           e.preventDefault();
-          $target = $(e.target);
-          if ($target.hasClass('realtime-pause')) {
+          if (_this.$streamControl.hasClass('realtime-pause')) {
             _this.group_list.config.realtime = true;
-            $target.removeClass('realtime-pause');
-            $target.addClass('realtime-play');
-            return $target.html($target.attr('data-pause-label'));
           } else {
             _this.group_list.config.realtime = false;
-            $target.addClass('realtime-pause');
-            $target.removeClass('realtime-play');
-            return $target.html($target.attr('data-play-label'));
           }
+          return _this.updateStreamOptions();
         });
+      };
+
+      StreamPage.prototype.updateStreamOptions = function() {
+        if (this.group_list.config.realtime) {
+          $.removeCookie('pausestream');
+          this.$streamControl.removeClass('realtime-pause');
+          this.$streamControl.addClass('realtime-play');
+          return this.$streamControl.html(this.$streamControl.attr('data-pause-label'));
+        } else {
+          $.cookie('pausestream', '1', {
+            expires: 7
+          });
+          this.$streamControl.addClass('realtime-pause');
+          this.$streamControl.removeClass('realtime-play');
+          return this.$streamControl.html(this.$streamControl.attr('data-play-label'));
+        }
       };
 
       return StreamPage;

@@ -74,24 +74,32 @@ jQuery ->
                 id: 'event_list'
                 members: data.groups
                 maxItems: 50
-                realtime: true
+                realtime: if $.cookie('pausestream') then false else true 
                 pollUrl: app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/'
                 model: app.Group
 
-            $('a[data-action=pause]').click (e) =>
+            @$streamControl = $('a[data-action=pause]')
+            @updateStreamOptions()
+
+            @$streamControl.click (e) =>
                 e.preventDefault()
-                $target = $(e.target)
-                if $target.hasClass('realtime-pause')
+                if @$streamControl.hasClass('realtime-pause')
                     @group_list.config.realtime = true
-                    $target.removeClass('realtime-pause')
-                    $target.addClass('realtime-play')
-                    $target.html($target.attr('data-pause-label'))
                 else
                     @group_list.config.realtime = false
-                    $target.addClass('realtime-pause')
-                    $target.removeClass('realtime-play')
-                    $target.html($target.attr('data-play-label'))
+                @updateStreamOptions()
 
+        updateStreamOptions: () ->
+            if @group_list.config.realtime
+                $.removeCookie('pausestream')
+                @$streamControl.removeClass('realtime-pause')
+                @$streamControl.addClass('realtime-play')
+                @$streamControl.html(@$streamControl.attr('data-pause-label'))
+            else
+                $.cookie('pausestream', '1', {expires: 7})
+                @$streamControl.addClass('realtime-pause')
+                @$streamControl.removeClass('realtime-play')
+                @$streamControl.html(@$streamControl.attr('data-play-label'))
 
     app.DashboardPage = class DashboardPage extends BasePage
 
