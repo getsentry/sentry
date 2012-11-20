@@ -15,24 +15,21 @@ from django.http import HttpResponse, HttpResponseBadRequest, \
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
 from django.views.decorators.vary import vary_on_cookie
-from functools import wraps
+from django.views.generic.base import View as BaseView
 from sentry.conf import settings
 from sentry.constants import MEMBER_USER
-from sentry.coreapi import project_from_auth_vars, project_from_id, \
+from sentry.coreapi import project_from_auth_vars, \
   decode_and_decompress_data, safely_load_json_string, validate_data, \
-  insert_data_to_database, APIError, APIUnauthorized, extract_auth_vars
-from sentry.models import Group, GroupBookmark, Project, ProjectCountByMinute, \
-  View
+  insert_data_to_database, APIError, extract_auth_vars
 from sentry.exceptions import InvalidData
-from sentry.models import Group, GroupBookmark, Project, View, FilterValue
+from sentry.models import Group, GroupBookmark, Project, ProjectCountByMinute, View, FilterValue
 from sentry.templatetags.sentry_helpers import with_metadata
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.db import has_trending
 from sentry.utils.javascript import to_json
-from sentry.utils.http import is_same_domain, is_valid_origin, apply_access_control_headers, \
+from sentry.utils.http import is_valid_origin, apply_access_control_headers, \
   get_origins
 from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
@@ -63,37 +60,86 @@ def transform_groups(request, group_list, template='sentry/partial/_group.html')
     ]
 
 
-def api_method(func):
-    @wraps(func)
-    @csrf_exempt
-    def wrapped(request, project_id=None, *args, **kwargs):
+class Auth(object):
+    def __init__(self, auth_vars):
+        self.client = auth_vars.get('client')
+
+
+class APIView(BaseView):
+    def _get_project_from_id(self, project_id):
         if project_id:
             if project_id.isdigit():
                 lookup_kwargs = {'id': int(project_id)}
             else:
                 lookup_kwargs = {'slug': project_id}
+
             try:
-                project = Project.objects.get_from_cache(**lookup_kwargs)
+                return Project.objects.get_from_cache(**lookup_kwargs)
             except Project.DoesNotExist:
-                return HttpResponse('Invalid project_id: %r' % project_id, status=400)
-        else:
-            project = None
+                raise APIError('Invalid project_id: %r' % project_id)
+        return None
+
+    def _parse_header(self, request, project):
+        auth_vars = extract_auth_vars(request)
+
+        if not auth_vars:
+            raise APIError('Client/server version mismatch: Unsupported client')
+
+        server_version = auth_vars.get('sentry_version', '1.0')
+        client = auth_vars.get('sentry_client')
+
+        if server_version not in ('2.0', '3'):
+            raise APIError('Client/server version mismatch: Unsupported protocol version (%s)' % server_version)
+
+        if not client:
+            raise APIError('Client request error: Missing client version identifier.')
+
+        return auth_vars
+
+    @csrf_exempt
+    def dispatch(self, request, project_id=None, *args, **kwargs):
+        try:
+            project = self._get_project_from_id(project_id)
+        except APIError, e:
+            return HttpResponse(str(e), status=400)
+
+        try:
+            auth_vars = self._parse_header(request, project)
+        except APIError, e:
+            return HttpResponse(str(e), status=400)
+
+        project_ = project_from_auth_vars(auth_vars)
+
+        # Legacy API was /api/store/ and the project ID was only available elsewhere
+        if not project:
+            if not project_:
+                return HttpResponse('Unable to identify project', status=400)
+            project = project_
+        elif project_ != project:
+            return HttpResponse('Project ID mismatch', status=400)
 
         origin = request.META.get('HTTP_ORIGIN', None)
         if origin is not None and not is_valid_origin(origin, project):
             return HttpResponse('Invalid origin: %r' % origin, status=400)
 
-        response = func(request, project, *args, **kwargs)
-        response = apply_access_control_headers(response, origin)
+        auth = Auth(auth_vars)
+
+        try:
+            response = super(APIView, self).dispatch(request, project=project, auth=auth, **kwargs)
+
+        except APIError, error:
+            logger.info('Project %r raised API error: %s', project.slug, error, extra={
+                'request': request,
+            }, exc_info=True)
+            response = HttpResponse(unicode(error.msg), status=error.http_status)
+
+        else:
+            response = apply_access_control_headers(response, origin)
 
         return response
-    return wrapped
 
 
-@require_http_methods(['POST', 'OPTIONS'])
-@never_cache
-@api_method
-def store(request, project=None):
+class StoreView(APIView):
     """
     The primary endpoint for storing new events.
 
@@ -122,74 +168,26 @@ def store(request, project=None):
        the user be authenticated, and a project_id be sent in the GET variables.
 
     """
-    logger.debug('Inbound %r request from %r (%s)', request.method, request.META['REMOTE_ADDR'],
-        request.META.get('HTTP_USER_AGENT'))
-    client = '<unknown client>'
+    http_method_names = ['post', 'options']
 
-    response = HttpResponse()
+    @never_cache
+    def post(self, request, project, auth, **kwargs):
+        data = request.raw_post_data
 
-    if request.method == 'POST':
+        if not data.startswith('{'):
+            data = decode_and_decompress_data(data)
+        data = safely_load_json_string(data)
+
         try:
-            auth_vars = extract_auth_vars(request)
-            data = request.raw_post_data
+            validate_data(project, data, auth.client)
+        except InvalidData, e:
+            raise APIError(u'Invalid data: %s (%s)' % (unicode(e), type(e)))
 
-            if auth_vars:
-                server_version = auth_vars.get('sentry_version', '1.0')
-                client = auth_vars.get('sentry_client', request.META.get('HTTP_USER_AGENT'))
-            else:
-                server_version = request.GET.get('version', '1.0')
-                client = request.META.get('HTTP_USER_AGENT', request.GET.get('client'))
+        insert_data_to_database(data)
 
-            if server_version not in ('1.0', '2.0'):
-                raise APIError('Client/server version mismatch: Unsupported version: %r' % server_version)
+        logger.info('New event from project %r (id=%s)', project.slug, data['event_id'])
 
-            if server_version != '1.0' and not client:
-                raise APIError('Client request error: Missing client version identifier.')
-
-            referrer = request.META.get('HTTP_REFERER')
-
-            if auth_vars:
-                # We only require a signature if a referrer was not set
-                # (this is restricted via the CORS headers)
-                project_ = project_from_auth_vars(auth_vars, data,
-                    require_signature=False)
-
-                if not project:
-                    project = project_
-                elif project_ != project:
-                    raise APIError('Project ID mismatch')
-
-            elif request.user.is_authenticated() and is_same_domain(request.build_absolute_uri(), referrer):
-                # authenticated users are simply trusted to provide the right id
-                project_ = project_from_id(request)
-
-                if not project:
-                    project = project_
-                elif project_ != project:
-                    raise APIError('Project ID mismatch')
-
-            else:
-                raise APIUnauthorized('No authentication provided')
-
-            if not data.startswith('{'):
-                data = decode_and_decompress_data(data)
-            data = safely_load_json_string(data)
-
-            try:
-                validate_data(project, data, client)
-            except InvalidData, e:
-                raise APIError(u'Invalid data: %s (%s)' % (unicode(e), type(e)))
-
-            insert_data_to_database(data)
-        except APIError, error:
-            logger.info('Client %r raised API error: %s', client, error, extra={
-                'request': request,
-            }, exc_info=True)
-            response = HttpResponse(unicode(error.msg), status=error.http_status)
-        else:
-            logger.info('New event from client %r (id=%s)', client, data['event_id'])
-
-    return response
+        return HttpResponse()
 
 
 @csrf_exempt

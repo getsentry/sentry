@@ -5,13 +5,12 @@ from __future__ import absolute_import
 import datetime
 import mock
 
+from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
 from raven import Client
-from sentry.conf import settings
-from sentry.models import Group, Event
-
+from sentry.models import Group, Event, Project
 from sentry.testutils import TestCase
 
 
@@ -20,6 +19,12 @@ class RavenIntegrationTest(TestCase):
     This mocks the test server and specifically tests behavior that would
     happen between Raven <--> Sentry over HTTP communication.
     """
+    def setUp(self):
+        self.user = User.objects.create(username='coreapi')
+        self.project = Project.objects.create(owner=self.user, name='Foo', slug='bar')
+        self.pm = self.project.team.member_set.get_or_create(user=self.user)[0]
+        self.pk = self.project.key_set.get_or_create(user=self.user)[0]
+
     def sendRemote(self, url, data, headers={}):
         # TODO: make this install a temporary handler which raises an assertion error
         import logging
@@ -29,7 +34,7 @@ class RavenIntegrationTest(TestCase):
 
         content_type = headers.pop('Content-Type', None)
         headers = dict(('HTTP_' + k.replace('-', '_').upper(), v) for k, v in headers.iteritems())
-        resp = self.client.post(reverse('sentry-api-store'),
+        resp = self.client.post(reverse('sentry-api-store', args=[self.pk.project_id]),
             data=data,
             content_type=content_type,
             **headers)
@@ -39,12 +44,14 @@ class RavenIntegrationTest(TestCase):
     def test_basic(self, send_remote):
         send_remote.side_effect = self.sendRemote
         client = Client(
-            project=settings.PROJECT,
-            servers=['http://localhost:8000%s' % reverse('sentry-api-store')],
-            key=settings.KEY,
+            project=self.pk.project_id,
+            servers=['http://localhost:8000%s' % reverse('sentry-api-store', args=[self.pk.project_id])],
+            public_key=self.pk.public_key,
+            secret_key=self.pk.secret_key,
         )
         client.capture('Message', message='foo')
 
+        send_remote.assert_called_once()
         self.assertEquals(Group.objects.count(), 1)
         group = Group.objects.get()
         self.assertEquals(group.event_set.count(), 1)
@@ -53,18 +60,10 @@ class RavenIntegrationTest(TestCase):
 
 
 class SentryRemoteTest(TestCase):
-    def test_no_client_version(self):
-        resp = self.client.post(reverse('sentry-api-store') + '?version=2.0')
-        self.assertEquals(resp.status_code, 400, resp.content)
-
-    def test_no_key(self):
-        resp = self.client.post(reverse('sentry-api-store'))
-        self.assertEquals(resp.status_code, 401, resp.content)
-
     def test_correct_data(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
-        resp = self._postWithSignature(kwargs)
-        self.assertEquals(resp.status_code, 200)
+        resp = self._postWithHeader(kwargs)
+        self.assertEquals(resp.status_code, 200, resp.content)
         instance = Event.objects.get()
         self.assertEquals(instance.message, 'hello')
         self.assertEquals(instance.server_name, 'not_dcramer.local')
@@ -153,4 +152,3 @@ class SentryRemoteTest(TestCase):
         self.assertEquals(instance.server_name, 'not_dcramer.local')
         self.assertEquals(instance.site, 'not_a_real_site')
         self.assertEquals(instance.level, 40)
-

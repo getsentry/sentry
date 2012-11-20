@@ -9,15 +9,14 @@ sentry.testutils
 from __future__ import absolute_import
 
 import base64
-import time
 
 from sentry.conf import settings
 from sentry.utils import json
-from sentry.utils.auth import get_signature, get_auth_header
-from sentry.utils.compat import pickle
+from sentry.utils.auth import get_auth_header
 
 
 from django.conf import settings as django_settings
+from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.core.management import call_command
 from django.core.urlresolvers import reverse
@@ -25,7 +24,7 @@ from django.db import connections, DEFAULT_DB_ALIAS
 from django.test import TestCase, TransactionTestCase
 from django.test.client import Client
 
-from sentry.models import ProjectOption, Option
+from sentry.models import Project, ProjectOption, Option
 from sentry.utils import cached_property
 
 
@@ -74,42 +73,43 @@ class BaseTestCase(object):
 
     Settings = Settings
 
+    @fixture
+    def projectkey(self):
+        user = User.objects.create(username='coreapi')
+        project = Project.objects.create(owner=user, name='Foo', slug='bar')
+        project.team.member_set.get_or_create(user=user)[0]
+        return project.key_set.get_or_create(user=user)[0]
+
     def _pre_setup(self):
         cache.clear()
         ProjectOption.objects.clear_cache()
         Option.objects.clear_cache()
         super(BaseTestCase, self)._pre_setup()
 
+    def _makeMessage(self, data):
+        return base64.b64encode(json.dumps(data))
+
     def _postWithKey(self, data, key=None):
         resp = self.client.post(reverse('sentry-api-store'), {
-            'data': base64.b64encode(pickle.dumps(data)),
+            'data': self._makeMessage(data),
             'key': settings.KEY,
         })
         return resp
 
-    def _makeMessage(self, data, key=None):
-        ts = time.time()
-        message = base64.b64encode(json.dumps(data))
-        sig = get_signature(message, ts, key)
-        return ts, message, sig
+    def _postWithHeader(self, data, key=None, secret=None):
+        if key is None:
+            key = self.projectkey.public_key
+            secret = self.projectkey.secret_key
 
-    def _postWithSignature(self, data, key=None):
-        ts, message, sig = self._makeMessage(data, key)
-
+        message = self._makeMessage(data)
         resp = self.client.post(reverse('sentry-api-store'), message,
             content_type='application/octet-stream',
-            HTTP_AUTHORIZATION=get_auth_header(sig, ts, '_postWithSignature', key),
+            HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
         )
         return resp
 
-    def _postWithNewSignature(self, data, key=None):
-        ts, message, sig = self._makeMessage(data, key)
-
-        resp = self.client.post(reverse('sentry-api-store'), message,
-            content_type='application/octet-stream',
-            HTTP_X_SENTRY_AUTH=get_auth_header(sig, ts, '_postWithSignature', key),
-        )
-        return resp
+    _postWithSignature = _postWithHeader
+    _postWithNewSignature = _postWithHeader
 
 
 class TestCase(BaseTestCase, TestCase):

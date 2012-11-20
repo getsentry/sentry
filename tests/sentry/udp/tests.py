@@ -18,6 +18,6 @@ class SentryUDPTest(TestCase):
 
     def test_success(self):
         data = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
-        ts, message, sig = self._makeMessage(data)
-        packet = get_auth_header(sig, ts, 'udpTest') + '\n\n' + message
+        message = self._makeMessage(data)
+        packet = get_auth_header('udpTest') + '\n\n' + message
         self.assertEquals(None, self.server.handle(packet, self.address))

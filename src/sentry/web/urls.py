@@ -34,16 +34,6 @@ init_all_applications()
 urlpatterns = patterns('',
     url(r'^_static/(?P<module>[^/]+)/(?P<path>.*)$', generic.static_media, name='sentry-media'),
 
-    # Legacy API
-    url(r'^store/$', api.store),
-
-    # Legacy redirects
-
-    url(r'^group/(?P<group_id>\d+)$', groups.group),
-    url(r'^group/(?P<group_id>\d+)/messages$', groups.group_event_list),
-    url(r'^group/(?P<group_id>\d+)/messages/(?P<event_id>\d+)$', groups.group_event_details),
-    url(r'^group/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)$', groups.group_plugin_action),
-
     # Account
 
     url(r'^login/$', accounts.login, name='sentry-login'),
@@ -129,10 +119,10 @@ urlpatterns = patterns('',
 
     # API / JS
 
-    url(r'^api/store/$', api.store, name='sentry-api-store'),
+    url(r'^api/store/$', api.StoreView.as_view(), name='sentry-api-store'),
     url(r'^api/notification/$', api.notification, name='sentry-api-notification'),
     url(r'^api/(?P<project_id>[\w_-]+)/crossdomain\.xml$', api.crossdomain_xml, name='sentry-api-crossdomain-xml'),
-    url(r'^api/(?P<project_id>[\w_-]+)/store/$', api.store, name='sentry-api-store'),
+    url(r'^api/(?P<project_id>[\w_-]+)/store/$', api.StoreView.as_view(), name='sentry-api-store'),
     url(r'^api/(?P<project_id>[\w_-]+)/poll/$', api.poll, name='sentry-api-poll'),
     url(r'^api/(?P<project_id>[\w_-]+)/resolve/$', api.resolve, name='sentry-api-resolve'),
     url(r'^api/(?P<project_id>[\w_-]+)/bookmark/$', api.bookmark, name='sentry-api-bookmark'),

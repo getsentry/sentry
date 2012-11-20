@@ -1,3 +1,11 @@
+Version 5.1.0
+-------------
+
+- Signed messages are no longer supported (signatures are not calculated).
+- Clients should pass sentry_secret for server-side requests as part of the auth
+  header.
+
+
 Version 5.0.0
 -------------
 

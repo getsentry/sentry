@@ -31,7 +31,7 @@ def handle_sentry(data, address):
             raise APIError('missing auth header')
 
         auth_vars = parse_auth_header(auth_header)
-        project = project_from_auth_vars(auth_vars, data)
+        project = project_from_auth_vars(auth_vars)
 
         client = auth_vars.get('sentry_client')
 

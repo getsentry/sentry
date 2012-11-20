@@ -12,7 +12,6 @@ sentry.coreapi
 from datetime import datetime
 import base64
 import logging
-import time
 import uuid
 import zlib
 
@@ -24,7 +23,7 @@ from sentry.models import Project, ProjectKey, TeamMember, Team
 from sentry.plugins import plugins
 from sentry.tasks.store import store_event
 from sentry.utils import is_float, json
-from sentry.utils.auth import get_signature, parse_auth_header
+from sentry.utils.auth import parse_auth_header
 from sentry.utils.imports import import_string
 from sentry.utils.queue import maybe_delay
 
@@ -75,69 +74,46 @@ class APITimestampExpired(APIError):
 
 def extract_auth_vars(request):
     if request.META.get('HTTP_X_SENTRY_AUTH', '').startswith('Sentry'):
-        # Auth version 3.0 (same as 2.0, diff header)
         return parse_auth_header(request.META['HTTP_X_SENTRY_AUTH'])
     elif request.META.get('HTTP_AUTHORIZATION', '').startswith('Sentry'):
-        # Auth version 2.0
         return parse_auth_header(request.META['HTTP_AUTHORIZATION'])
     else:
         return None
 
 
-def project_from_auth_vars(auth_vars, data, require_signature=False):
+def project_from_auth_vars(auth_vars):
     api_key = auth_vars.get('sentry_key')
-    if api_key:
+    if not api_key:
+        return None
+    try:
+        pk = ProjectKey.objects.get_from_cache(public_key=api_key)
+    except ProjectKey.DoesNotExist:
+        raise APIForbidden('Invalid api key')
+
+    if pk.secret_key != auth_vars.get('sentry_secret', pk.secret_key):
+        raise APIForbidden('Invalid api key')
+
+    project = Project.objects.get_from_cache(pk=pk.project_id)
+
+    if pk.user:
         try:
-            pk = ProjectKey.objects.get_from_cache(public_key=api_key)
-        except ProjectKey.DoesNotExist:
-            raise APIForbidden('Invalid signature')
+            team = Team.objects.get_from_cache(pk=project.team_id)
+        except Team.DoesNotExist:
+            raise APIUnauthorized('Member does not have access to project')
 
-        project = Project.objects.get_from_cache(pk=pk.project_id)
-        secret_key = pk.secret_key
+        try:
+            tm = TeamMember.objects.get(team=team, user=pk.user, is_active=True)
+        except TeamMember.DoesNotExist:
+            raise APIUnauthorized('Member does not have access to project')
 
-        if pk.user:
-            try:
-                team = Team.objects.get_from_cache(pk=project.team_id)
-            except Team.DoesNotExist:
-                raise APIUnauthorized('Member does not have access to project')
+        if not pk.user.is_active:
+            raise APIUnauthorized('Account is not active')
 
-            try:
-                tm = TeamMember.objects.get(team=team, user=pk.user, is_active=True)
-            except TeamMember.DoesNotExist:
-                raise APIUnauthorized('Member does not have access to project')
-
-            if not pk.user.is_active:
-                raise APIUnauthorized('Account is not active')
-
-        result = plugins.first('has_perm', tm.user, 'create_event', project)
-        if result is False:
-            raise APIForbidden('Creation of this event was blocked')
-    else:
-        project = None
-        secret_key = settings.KEY
-
-    signature = auth_vars.get('sentry_signature')
-    timestamp = auth_vars.get('sentry_timestamp')
-    if signature and timestamp:
-        validate_hmac(data, signature, timestamp, secret_key)
-    elif require_signature:
-        raise APIUnauthorized('Missing signature')
+    result = plugins.first('has_perm', tm.user, 'create_event', project)
+    if result is False:
+        raise APIForbidden('Creation of this event was blocked')
 
     return project
-
-
-def validate_hmac(message, signature, timestamp, secret_key):
-    try:
-        timestamp_float = float(timestamp)
-    except ValueError:
-        raise APIError('Invalid timestamp')
-
-    if timestamp_float < time.time() - 3600:  # 1 hour
-        raise APITimestampExpired('Message has expired')
-
-    sig_hmac = get_signature(message, timestamp, secret_key)
-    if sig_hmac != signature:
-        raise APIForbidden('Invalid signature')
 
 
 def project_from_api_key_and_id(api_key, project_id):
@@ -244,12 +220,14 @@ def safely_load_json_string(json_string):
 def ensure_valid_project_id(desired_project, data):
     # Confirm they're using either the master key, or their specified project
     # matches with the signed project.
-    if desired_project:
-        if str(data.get('project', '')) not in [str(desired_project.pk), desired_project.slug]:
+    if desired_project and data.get('project'):
+        if str(data.get('project')) not in [str(desired_project.id), desired_project.slug]:
             raise APIForbidden('Invalid credentials')
-        data['project'] = desired_project.pk
+        data['project'] = desired_project.id
     elif not desired_project:
         data['project'] = 1
+    elif not data.get('project'):
+        data['project'] = desired_project.id
 
 
 def process_data_timestamp(data):

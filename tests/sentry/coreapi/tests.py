@@ -4,18 +4,15 @@ from __future__ import absolute_import
 
 import datetime
 import mock
-import time
 
 from django.contrib.auth.models import User
 
 from sentry.models import Project
 from sentry.exceptions import InvalidTimestamp, InvalidInterface, InvalidData
 from sentry.coreapi import project_from_id, project_from_api_key_and_id, \
-  extract_auth_vars, project_from_auth_vars, validate_hmac, APIUnauthorized, \
-  APIForbidden, APITimestampExpired, APIError, process_data_timestamp, \
+  extract_auth_vars, project_from_auth_vars, APIUnauthorized, \
+  APIForbidden, process_data_timestamp, \
   insert_data_to_database, validate_data
-from sentry.utils.auth import get_signature
-
 from sentry.testutils import TestCase
 
 
@@ -25,14 +22,6 @@ class BaseAPITest(TestCase):
         self.project = Project.objects.create(owner=self.user, name='Foo', slug='bar')
         self.pm = self.project.team.member_set.get_or_create(user=self.user)[0]
         self.pk = self.project.key_set.get_or_create(user=self.user)[0]
-
-
-class GetSignatureTest(BaseAPITest):
-    def test_valid_string(self):
-        self.assertEquals(get_signature('x', 'y', 'z'), '77e1f5656ddc2e93f64469cc18f9f195fe665428')
-
-    def test_valid_unicode(self):
-        self.assertEquals(get_signature(u'x', u'y', u'z'), '77e1f5656ddc2e93f64469cc18f9f195fe665428')
 
 
 class ProjectFromIdTest(BaseAPITest):
@@ -133,86 +122,45 @@ class ExtractAuthVarsTest(BaseAPITest):
 
 class ProjectFromAuthVarsTest(BaseAPITest):
     def test_valid_without_key(self):
-        auth_vars = {
-            'sentry_signature': 'adf',
-            'sentry_timestamp': time.time(),
-        }
-        with mock.patch('sentry.coreapi.validate_hmac') as validate_hmac_:
-            validate_hmac_.return_value = True
+        auth_vars = {}
 
-            # without key
-            result = project_from_auth_vars(auth_vars, '')
-            self.assertEquals(result, None)
+        # without key
+        result = project_from_auth_vars(auth_vars)
+        self.assertEquals(result, None)
 
-            # with key
-            auth_vars['sentry_key'] = self.pk.public_key
-            result = project_from_auth_vars(auth_vars, '')
-            self.assertEquals(result, self.project)
+        # with key
+        auth_vars['sentry_key'] = self.pk.public_key
+        result = project_from_auth_vars(auth_vars)
+        self.assertEquals(result, self.project)
 
     def test_inactive_user(self):
         user = self.pm.user
         user.is_active = False
         user.save()
 
-        auth_vars = {
-            'sentry_signature': 'adf',
-            'sentry_timestamp': time.time(),
-        }
-        with mock.patch('sentry.coreapi.validate_hmac') as validate_hmac_:
-            validate_hmac_.return_value = True
+        auth_vars = {}
 
-            # without key
-            result = project_from_auth_vars(auth_vars, '')
-            self.assertEquals(result, None)
+        # without key
+        result = project_from_auth_vars(auth_vars)
+        self.assertEquals(result, None)
 
-            # with key
-            auth_vars['sentry_key'] = self.pk.public_key
-            self.assertRaises(APIUnauthorized, project_from_auth_vars, auth_vars, '')
+        # with key
+        auth_vars['sentry_key'] = self.pk.public_key
+        self.assertRaises(APIUnauthorized, project_from_auth_vars, auth_vars)
 
     def test_inactive_member(self):
         self.pm.is_active = False
         self.pm.save()
 
-        auth_vars = {
-            'sentry_signature': 'adf',
-            'sentry_timestamp': time.time(),
-        }
-        with mock.patch('sentry.coreapi.validate_hmac') as validate_hmac_:
-            validate_hmac_.return_value = True
+        auth_vars = {}
 
-            # without key
-            result = project_from_auth_vars(auth_vars, '')
-            self.assertEquals(result, None)
+        # without key
+        result = project_from_auth_vars(auth_vars)
+        self.assertEquals(result, None)
 
-            # with key
-            auth_vars['sentry_key'] = self.pk.public_key
-            self.assertRaises(APIUnauthorized, project_from_auth_vars, auth_vars, '')
-
-
-class ValidateHmacTest(BaseAPITest):
-    def test_valid(self):
-        with mock.patch('sentry.coreapi.get_signature') as get_signature:
-            get_signature.return_value = 'signature'
-
-            validate_hmac('foo', 'signature', time.time(), 'foo')
-
-    def test_invalid_signature(self):
-        with mock.patch('sentry.coreapi.get_signature') as get_signature:
-            get_signature.return_value = 'notsignature'
-
-            self.assertRaises(APIForbidden, validate_hmac, 'foo', 'signature', time.time(), 'foo')
-
-    def test_timestamp_expired(self):
-        with mock.patch('sentry.coreapi.get_signature') as get_signature:
-            get_signature.return_value = 'signature'
-
-            self.assertRaises(APITimestampExpired, validate_hmac, 'foo', 'signature', time.time() - 3601, 'foo')
-
-    def test_invalid_timestamp(self):
-        with mock.patch('sentry.coreapi.get_signature') as get_signature:
-            get_signature.return_value = 'signature'
-
-            self.assertRaises(APIError, validate_hmac, 'foo', 'signature', 'foo', 'foo')
+        # with key
+        auth_vars['sentry_key'] = self.pk.public_key
+        self.assertRaises(APIUnauthorized, project_from_auth_vars, auth_vars)
 
 
 class ProcessDataTimestampTest(BaseAPITest):
@@ -257,9 +205,10 @@ class InsertDataToDatabaseTest(BaseAPITest):
 
 class ValidateDataTest(BaseAPITest):
     def test_missing_project_id(self):
-        self.assertRaises(APIForbidden, validate_data, self.project, {
+        data = validate_data(self.project, {
             'message': 'foo',
         })
+        self.assertEquals(data['project'], self.project.id)
 
     def test_invalid_project_id(self):
         self.assertRaises(APIForbidden, validate_data, self.project, {

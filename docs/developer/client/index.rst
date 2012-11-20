@@ -131,7 +131,6 @@ For example, with an included Exception event, a basic JSON body might resemble 
 
         {
             "event_id": "fc6d8c0c43fc4630ad850ee518f1b9d0",
-            "project": "default",
             "culprit": "my.module.function_name",
             "timestamp": "2011-05-02T17:41:36",
             "message": "SyntaxError: Wattttt!",
@@ -146,16 +145,6 @@ For example, with an included Exception event, a basic JSON body might resemble 
         }
 
 The following attributes are required for all events:
-
-.. data:: project
-
-    String value representing the project
-
-    ::
-
-        {
-            "project": "default"
-        }
 
 .. data:: event_id
 
@@ -330,7 +319,8 @@ An authentication header is expected to be sent along with the message body, whi
     X-Sentry-Auth: Sentry sentry_version=2.0,
     sentry_client=<client version, arbitrary>,
     sentry_timestamp=<current timestamp>,
-    sentry_key=<public api key>
+    sentry_key=<public api key>,
+    sentry_secret=<secret api key>
 
 .. note:: You should include the client version string in the User-Agent portion of the header, and it will be used if
           sentry_client is not sent in the auth header.
@@ -353,7 +343,15 @@ An authentication header is expected to be sent along with the message body, whi
 
 .. data:: sentry_key
 
-    The public key which should be provided as part of the client configuration
+    The public key which should be provided as part of the client configuration.
+
+.. data:: sentry_secret
+
+    The secret key which should be provided as part of the client configuration.
+
+    .. note:: You should only pass the secret key if you're communicating via the server. Client-side behavior (such
+              as JavaScript) should use CORS.
+
 
 
 A Working Example
@@ -368,8 +366,9 @@ The request body should then somewhat resemble the following::
 
     POST /api/store/
     User-Agent: raven-python/1.0
-    X-Sentry-Auth: Sentry sentry_version=2.0, sentry_timestamp=1329096377,
-        sentry_key=b70a31b3510c4cf793964a185cfe1fd0, sentry_client=raven-python/1.0
+    X-Sentry-Auth: Sentry sentry_version=3, sentry_timestamp=1329096377,
+        sentry_key=b70a31b3510c4cf793964a185cfe1fd0, sentry_client=raven-python/1.0,
+        sentry_secret=b7d80b520139450f903720eb7991bf3d
 
     {
         "project": "default",
