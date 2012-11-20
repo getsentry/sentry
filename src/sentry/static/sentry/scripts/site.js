@@ -51,7 +51,18 @@
             url: uri,
             dataType: 'json',
             success: function(data) {
-              view.load(data);
+              var d;
+              view.load([
+                (function() {
+                  var _i, _len, _results;
+                  _results = [];
+                  for (_i = 0, _len = data.length; _i < _len; _i++) {
+                    d = data[_i];
+                    _results.push(new app.Group(d));
+                  }
+                  return _results;
+                })()
+              ]);
               $parent.css('opacity', 1);
               return $tab.tab('show');
             },

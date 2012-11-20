@@ -40,7 +40,7 @@ jQuery ->
                     url: uri
                     dataType: 'json'
                     success: (data) =>
-                        view.load(data)
+                        view.load([new app.Group(d) for d in data])
                         $parent.css('opacity', 1)
                         $tab.tab('show')
 
