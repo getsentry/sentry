@@ -73,10 +73,12 @@ jQuery ->
             obj = @collection.get(member.id)
             if member.get('count') != obj.get('count')
                 obj.set('count', member.get('count'))
+
             if member.get('score') != obj.get('score')
                 obj.set('score', member.get('score'))
 
-            @collection.sort()
+                # score changed, resort
+                @collection.sort()
 
         hasMember: (member) ->
             @collection.get(member.id)?
@@ -143,15 +145,15 @@ jQuery ->
             @config =
                 realtime: data.realtime ? false
                 pollUrl: data.pollUrl ? null
-                pollTime: data.pollTime ? 2000
-                tickTime: data.tickTime ? 300
+                pollTime: data.pollTime ? 1000
+                tickTime: data.tickTime ? 100
 
             @queue = new app.ScoredList
             @cursor = null
 
-            window.setInterval(@tick, @config.tickTime)
-
             @poll()
+
+            window.setInterval(@tick, @config.tickTime)
 
         tick: ->
             if !@queue.length

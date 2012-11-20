@@ -519,8 +519,8 @@
         }
         if (member.get('score') !== obj.get('score')) {
           obj.set('score', member.get('score'));
+          return this.collection.sort();
         }
-        return this.collection.sort();
       };
 
       OrderedElementsView.prototype.hasMember = function(member) {
@@ -601,13 +601,13 @@
         this.config = {
           realtime: (_ref = data.realtime) != null ? _ref : false,
           pollUrl: (_ref1 = data.pollUrl) != null ? _ref1 : null,
-          pollTime: (_ref2 = data.pollTime) != null ? _ref2 : 2000,
-          tickTime: (_ref3 = data.tickTime) != null ? _ref3 : 300
+          pollTime: (_ref2 = data.pollTime) != null ? _ref2 : 1000,
+          tickTime: (_ref3 = data.tickTime) != null ? _ref3 : 100
         };
         this.queue = new app.ScoredList;
         this.cursor = null;
-        window.setInterval(this.tick, this.config.tickTime);
-        return this.poll();
+        this.poll();
+        return window.setInterval(this.tick, this.config.tickTime);
       };
 
       GroupListView.prototype.tick = function() {
