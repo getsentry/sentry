@@ -2,7 +2,7 @@ window.app = app = window.app || {}
 app.templates = {}
 
 app.templates.group = '
-        <div class="count"><span><%= count %></span></div>
+        <div class="count" data-count="<%= app.formatNumber(count) %>"><span><%= app.formatNumber(count) %></span></div>
         <div class="details">
             <h3><a href="<%= permalink %>"><%= title %></a></h3>
             <p class="message">

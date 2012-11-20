@@ -2359,7 +2359,7 @@ table [class*=span],
 .open {
   *z-index: 1000;
 }
-.open  > .dropdown-menu {
+.open > .dropdown-menu {
   display: block;
 }
 .pull-right > .dropdown-menu {
@@ -4972,7 +4972,7 @@ a.badge:hover {
   background-image: -o-linear-gradient(top, #fdd49a, #fdf59a);
   background-image: linear-gradient(top, #fdd49a, #fdf59a);
   background-repeat: repeat-x;
-  filter: progid:dximagetransform.microsoft.gradient(startColorstr='#fdd49a', endColorstr='#fdf59a', GradientType=0);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#fdd49a', endColorstr='#fdf59a', GradientType=0);
   border-color: #fdf59a #fdf59a #fbed50;
   border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
   filter: progid:dximagetransform.microsoft.gradient(enabled=false);
@@ -5021,7 +5021,7 @@ a.badge:hover {
   background-image: -o-linear-gradient(top, #0088cc, #0044cc);
   background-image: linear-gradient(top, #0088cc, #0044cc);
   background-repeat: repeat-x;
-  filter: progid:dximagetransform.microsoft.gradient(startColorstr='#0088cc', endColorstr='#0044cc', GradientType=0);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#0088cc', endColorstr='#0044cc', GradientType=0);
   border-color: #0044cc #0044cc #002a80;
   border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
   filter: progid:dximagetransform.microsoft.gradient(enabled=false);
@@ -5093,7 +5093,7 @@ a.badge:hover {
   background-image: -o-linear-gradient(top, #0088cc, #0044cc);
   background-image: linear-gradient(top, #0088cc, #0044cc);
   background-repeat: repeat-x;
-  filter: progid:dximagetransform.microsoft.gradient(startColorstr='#0088cc', endColorstr='#0044cc', GradientType=0);
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#0088cc', endColorstr='#0044cc', GradientType=0);
   border-color: #0044cc #0044cc #002a80;
   border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
   filter: progid:dximagetransform.microsoft.gradient(enabled=false);
@@ -5412,7 +5412,6 @@ h3 {
   border-color: #c5c5c5;
   border-color: rgba(0, 0, 0, 0.15) rgba(0, 0, 0, 0.15) rgba(0, 0, 0, 0.25);
   padding: 3px 9px;
-  font-size: 11px;
   line-height: 18px;
   position: relative !important;
   padding: 3px 7px;
@@ -5702,7 +5701,6 @@ h3 {
   border-color: #c5c5c5;
   border-color: rgba(0, 0, 0, 0.15) rgba(0, 0, 0, 0.15) rgba(0, 0, 0, 0.25);
   padding: 3px 9px;
-  font-size: 11px;
   line-height: 18px;
   padding: 3px 7px;
   position: absolute;
@@ -5882,7 +5880,6 @@ footer a:hover {
 }
 .group-list > li,
 .events > li {
-  position: relative;
   padding: 15px 20px 15px 100px;
   position: relative;
   border: 1px solid #e5e6e7;
@@ -5964,6 +5961,17 @@ footer a:hover {
   font-weight: 400;
   letter-spacing: -1px;
   font-family: "proxima nova", "proxima-nova", "heletica-neue", sans-serif;
+  overflow: hidden;
+}
+.group-list > li .count span,
+.events > li .count span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  width: 60px;
+  height: 60px;
+  text-align: center;
+  display: block;
 }
 .group-list > li .message,
 .events > li .message {

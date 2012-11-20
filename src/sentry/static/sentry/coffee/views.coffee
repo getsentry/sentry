@@ -71,10 +71,10 @@ jQuery ->
 
         updateMember: (member) ->
             obj = @collection.get(member.id)
-            if member.count != obj.get('count')
-                obj.set('count', member.count)
-            if member.score != obj.get('score')
-                obj.set('score', member.score)
+            if member.get('count') != obj.get('count')
+                obj.set('count', member.get('count'))
+            if member.get('score') != obj.get('score')
+                obj.set('score', member.get('score'))
 
             @collection.sort()
 
@@ -143,7 +143,7 @@ jQuery ->
             @config =
                 realtime: data.realtime ? false
                 pollUrl: data.pollUrl ? null
-                pollTime: data.pollTime ? 1000
+                pollTime: data.pollTime ? 2000
                 tickTime: data.tickTime ? 300
 
             @queue = new app.ScoredList
@@ -189,7 +189,7 @@ jQuery ->
                             obj.set('score', data.score)
                             @queue.sort()
                         else
-                            @queue.add(data)
+                            @queue.add(new app.Group(data))
 
                     window.setTimeout(@poll, @config.pollTime)
 
@@ -260,6 +260,58 @@ jQuery ->
             'level-' + obj.get('levelName')
 
         updateCount: (obj) ->
-            counter = @$el.find('.count span')
-            counter.text(@model.get("count"))
-            counter.css('opacity', 0.3).animate({opacity: 1.0}, 1200)
+            new_count = app.formatNumber(obj.get('count'))
+            counter = @$el.find('.count')
+            digit = counter.find('span')
+
+            if digit.is(':animated')
+                return false
+
+            if counter.data('count') == new_count
+                # We are already showing this number
+                return false
+
+            counter.data('count', new_count)
+
+            replacement = $('<span></span>', {
+                css: {
+                    top: '-2.1em',
+                    opacity: 0
+                },
+                text: new_count
+            })
+
+            # The .static class is added when the animation
+            # completes. This makes it run smoother.
+
+            digit
+                .before(replacement)
+                .animate({top:'2.5em', opacity:0}, 'fast', () ->
+                    digit.remove()
+                )
+
+            replacement
+                .delay(100)
+                .animate({top:0, opacity:1}, 'fast')
+
+    app.floatFormat = (number, places) ->
+        multi = 10 * places
+        return parseInt(number * multi, 10) / multi
+
+    app.formatNumber = (number) ->
+        number = parseInt(number, 10)
+        z = [
+            [1000000000, 'b'],
+            [1000000, 'm'],
+            [1000, 'k'],
+        ]
+        for b in z
+            x = b[0]
+            y = b[1]
+            o = Math.floor(number / x)
+            p = number % x
+            if o > 0
+                if ('' + o.length) > 2 or not p
+                    return '' + o + y
+                return '' + @floatFormat(number / x, 1) + y
+        return number

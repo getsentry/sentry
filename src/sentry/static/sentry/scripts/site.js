@@ -327,7 +327,7 @@
   app.templates = {};
 
   app.templates.group = '\
-        <div class="count"><span><%= count %></span></div>\
+        <div class="count" data-count="<%= app.formatNumber(count) %>"><span><%= app.formatNumber(count) %></span></div>\
         <div class="details">\
             <h3><a href="<%= permalink %>"><%= title %></a></h3>\
             <p class="message">\
@@ -514,11 +514,11 @@
       OrderedElementsView.prototype.updateMember = function(member) {
         var obj;
         obj = this.collection.get(member.id);
-        if (member.count !== obj.get('count')) {
-          obj.set('count', member.count);
+        if (member.get('count') !== obj.get('count')) {
+          obj.set('count', member.get('count'));
         }
-        if (member.score !== obj.get('score')) {
-          obj.set('score', member.score);
+        if (member.get('score') !== obj.get('score')) {
+          obj.set('score', member.get('score'));
         }
         return this.collection.sort();
       };
@@ -601,7 +601,7 @@
         this.config = {
           realtime: (_ref = data.realtime) != null ? _ref : false,
           pollUrl: (_ref1 = data.pollUrl) != null ? _ref1 : null,
-          pollTime: (_ref2 = data.pollTime) != null ? _ref2 : 1000,
+          pollTime: (_ref2 = data.pollTime) != null ? _ref2 : 2000,
           tickTime: (_ref3 = data.tickTime) != null ? _ref3 : 300
         };
         this.queue = new app.ScoredList;
@@ -650,7 +650,7 @@
                 obj.set('score', data.score);
                 _this.queue.sort();
               } else {
-                _this.queue.add(data);
+                _this.queue.add(new app.Group(data));
               }
             }
             return window.setTimeout(_this.poll, _this.config.pollTime);
@@ -664,7 +664,7 @@
       return GroupListView;
 
     })(OrderedElementsView);
-    return app.GroupView = GroupView = (function(_super) {
+    app.GroupView = GroupView = (function(_super) {
 
       __extends(GroupView, _super);
 
@@ -761,17 +761,63 @@
       };
 
       GroupView.prototype.updateCount = function(obj) {
-        var counter;
-        counter = this.$el.find('.count span');
-        counter.text(this.model.get("count"));
-        return counter.css('opacity', 0.3).animate({
-          opacity: 1.0
-        }, 1200);
+        var counter, digit, new_count, replacement;
+        new_count = app.formatNumber(obj.get('count'));
+        counter = this.$el.find('.count');
+        digit = counter.find('span');
+        if (digit.is(':animated')) {
+          return false;
+        }
+        if (counter.data('count') === new_count) {
+          return false;
+        }
+        counter.data('count', new_count);
+        replacement = $('<span></span>', {
+          css: {
+            top: '-2.1em',
+            opacity: 0
+          },
+          text: new_count
+        });
+        digit.before(replacement).animate({
+          top: '2.5em',
+          opacity: 0
+        }, 'fast', function() {
+          return digit.remove();
+        });
+        return replacement.delay(100).animate({
+          top: 0,
+          opacity: 1
+        }, 'fast');
       };
 
       return GroupView;
 
     })(Backbone.View);
+    app.floatFormat = function(number, places) {
+      var multi;
+      multi = 10 * places;
+      return parseInt(number * multi, 10) / multi;
+    };
+    return app.formatNumber = function(number) {
+      var b, o, p, x, y, z, _i, _len;
+      number = parseInt(number, 10);
+      z = [[1000000000, 'b'], [1000000, 'm'], [1000, 'k']];
+      for (_i = 0, _len = z.length; _i < _len; _i++) {
+        b = z[_i];
+        x = b[0];
+        y = b[1];
+        o = Math.floor(number / x);
+        p = number % x;
+        if (o > 0) {
+          if (('' + o.length) > 2 || !p) {
+            return '' + o + y;
+          }
+          return '' + this.floatFormat(number / x, 1) + y;
+        }
+      }
+      return number;
+    };
   });
 
 }).call(this);
