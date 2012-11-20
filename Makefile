@@ -65,7 +65,7 @@ bootstrap-tests:
 test: test-js test-python
 
 test-js:
-	phantomjs runtests.js tests/js/index.html
+	phantomjs runtests.coffee tests/js/index.html
 
 test-python:
 	cd src && flake8 --exclude=migrations --ignore=E501,E225,E121,E123,E124,E125,E127,E128 --exit-zero sentry || exit 1

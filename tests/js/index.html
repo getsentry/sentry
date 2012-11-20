@@ -9,6 +9,7 @@
   <script type="text/javascript" src="lib/jasmine-1.2.0/jasmine.js"></script>
   <script type="text/javascript" src="lib/jasmine-1.2.0/jasmine-html.js"></script>
   <script type="text/javascript" src="lib/sinon-1.5.0.js"></script>
+  <script type="text/javascript" src="lib/console-runner.js"></script>
 
   <!-- include source files here... -->
   <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/jquery.js"></script>
@@ -29,38 +30,18 @@
   <script type="text/javascript" src="spec/floatFormat.js"></script>
   <script type="text/javascript" src="spec/formatNumber.js"></script>
 
-  <script type="text/javascript">
-    $(function() {
-      var jasmineEnv = jasmine.getEnv();
-      jasmineEnv.updateInterval = 1000;
-
-      var htmlReporter = new jasmine.HtmlReporter();
-
-      jasmineEnv.addReporter(htmlReporter);
-
-      jasmineEnv.specFilter = function(spec) {
-        return htmlReporter.specFilter(spec);
-      };
-
-      var currentWindowOnload = window.onload;
-
-      window.onload = function() {
-        if (currentWindowOnload) {
-          currentWindowOnload();
-        }
-        execJasmine();
-      };
-
-      function execJasmine() {
-        jasmineEnv.execute();
-      }
-
-    });
-  </script>
-
 </head>
 
 <body>
   <div id="dummy" style="display:none"></div>
+
+  <script type="text/javascript">
+  var console_reporter = new jasmine.ConsoleReporter()
+  $(function(){
+    jasmine.getEnv().addReporter(new jasmine.TrivialReporter());
+    jasmine.getEnv().addReporter(console_reporter);
+    jasmine.getEnv().execute();
+  });
+  </script>
 </body>
 </html>
