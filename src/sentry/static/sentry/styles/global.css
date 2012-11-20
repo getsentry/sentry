@@ -6015,7 +6015,7 @@ footer a:hover {
   float: left;
   width: 3px;
   margin-right: 1px;
-  height: 40px;
+  height: 100%;
   display: block;
 }
 .group-list > li .sparkline > span > span,
@@ -6145,12 +6145,13 @@ footer a:hover {
 .group-list.small > li .meta,
 .events.small > li .meta {
   right: 120px;
+  top: 17px;
 }
 .group-list.small > li .sparkline,
 .events.small > li .sparkline {
   right: 10px;
   height: 20px;
-  top: 18px;
+  top: 20px;
 }
 .group-list.small > li .tag,
 .events.small > li .tag,
