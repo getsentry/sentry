@@ -1,3 +1,4 @@
+{% load compress %}
 {% load i18n %}
 {% load sentry_helpers %}
 
@@ -28,17 +29,20 @@
         <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/html5shiv.js" %}"></script>
         <![endif]-->
         {% block scripts %}
-            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.js" %}"></script>
-            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.animate-colors-min.js" %}"></script>
-            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.clippy.min.js" %}"></script>
-            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.cookie.js" %}"></script>
-            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.flot.min.js" %}"></script>
-            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/json2.js" %}"></script>
-            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/underscore.min.js" %}"></script>
-            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/backbone.js" %}"></script>
-            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/select2/select2.min.js" %}"></script>
-            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/global.min.js" %}"></script>
-            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/site.js" %}"></script>
+            {% compress js %}
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.js" %}"></script>
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.animate-colors-min.js" %}"></script>
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.clippy.min.js" %}"></script>
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.cookie.js" %}"></script>
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/jquery.flot.min.js" %}"></script>
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/json2.js" %}"></script>
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/underscore.min.js" %}"></script>
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/backbone.js" %}"></script>
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/select2/select2.min.js" %}"></script>
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/bootstrap.min.js" %}"></script>
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/global.min.js" %}"></script>
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/site.js" %}"></script>
+            {% endcompress %}
             <script type="text/javascript">
             Sentry.config({
                 urlPrefix: {{ URL_PREFIX|to_json|safe }},
@@ -131,7 +135,6 @@
           </div>
         </div>
 
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/bootstrap.min.js" %}"></script>
         <script type="text/javascript">
         $(function(){
             $('.clippy').clippy({

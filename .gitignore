@@ -11,6 +11,7 @@
 *.pid
 pip-log.txt
 .DS_Store
+/src/sentry/static/CACHE/
 /docs/html
 /docs/doctrees
 example/db.sqlite

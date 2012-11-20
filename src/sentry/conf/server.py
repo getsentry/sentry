@@ -141,6 +141,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.messages',
 
+    'compressor',
     'crispy_forms',
     'djcelery',
     'gunicorn',
@@ -157,7 +158,8 @@ INSTALLED_APPS = (
     'django_social_auth_trello',
 )
 
-STATIC_URL = '/_admin_media/'
+STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
+STATIC_URL = '/_static/'
 
 LOCALE_PATHS = (
     os.path.join(PROJECT_ROOT, 'locale'),
