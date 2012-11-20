@@ -7,6 +7,9 @@ releases will continue as normal.
 This release includes a very large set of changes from 5.0.0, including a new client protocol
 and an overhaul to the frontend code (specifically the JavaScript).
 
+If you're a contributor, take note that there is now a JavaScript test suite. You can run all
+test suites with the ``make test`` command.
+
 Protocol Version 3
 ==================
 
@@ -16,6 +19,15 @@ Protocol Version 3
 - The ``project`` attribute in the JSON packet is no longer required.
 - The ``platform`` attribute is now recommended.
 - The ``tags`` attribute is now recommended.
+
+Other Changes
+=============
+
+- All streaming components are now powered by Backbone.js.
+- Frontend has been updated to Bootstrap 2.1.
+- A new 1080p wall display is available.
+- The event stream now includes sparklines representing the last 24 hours of data for each event.
+- Trends have greatly improved.
 
 
 Version 5.0.0
