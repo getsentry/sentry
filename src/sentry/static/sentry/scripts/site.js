@@ -801,7 +801,7 @@
     })(Backbone.View);
     app.floatFormat = function(number, places) {
       var multi;
-      multi = 10 * places;
+      multi = Math.pow(10, places);
       return parseInt(number * multi, 10) / multi;
     };
     app.formatNumber = function(number) {
@@ -821,7 +821,7 @@
           return '' + this.floatFormat(number / x, 1) + y;
         }
       }
-      return number;
+      return '' + number;
     };
     return app.prettyDate = function(date_str) {
       var format, list_choice, now, now_utc, seconds, time, time_formats, token, _i, _len;

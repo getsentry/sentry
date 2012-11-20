@@ -301,7 +301,7 @@ jQuery ->
                 .animate({top:0, opacity:1}, 'fast')
 
     app.floatFormat = (number, places) ->
-        multi = 10 * places
+        multi = Math.pow(10, places)
         return parseInt(number * multi, 10) / multi
 
     app.formatNumber = (number) ->
@@ -320,7 +320,7 @@ jQuery ->
                 if ('' + o.length) > 2 or not p
                     return '' + o + y
                 return '' + @floatFormat(number / x, 1) + y
-        return number
+        return '' + number
 
     app.prettyDate = (date_str) ->
         # we need to zero out at CST
