@@ -341,7 +341,7 @@
                 <%= message %>\
             </p>\
             <div class="meta">\
-                <span class="last-seen pretty-date" title="<%= lastSeen %>"><%= Sentry.prettyDate(lastSeen) %></span>\
+                <span class="last-seen title="<%= lastSeen %>"><%= app.prettyDate(lastSeen) %></span>\
                 <% if (timeSpent) { %>\
                     <span class="time-spent"><%= app.utils.round(timeSpent) %>ms</span>\
                 <% } %>\
@@ -681,6 +681,7 @@
       GroupView.prototype.initialize = function() {
         _.bindAll(this);
         this.model.on('change:count', this.updateCount);
+        this.model.on('change:lastSeen', this.updateLastSeen);
         this.model.on('change:isBookmarked', this.render);
         return this.model.on('change:isResolved', this.render);
       };
@@ -760,6 +761,10 @@
         return 'level-' + obj.get('levelName');
       };
 
+      GroupView.prototype.updateLastSeen = function(obj) {
+        return this.$el.find('.last-seen').text(app.prettyDate(obj.get('lastSeen')));
+      };
+
       GroupView.prototype.updateCount = function(obj) {
         var counter, digit, new_count, replacement;
         new_count = app.formatNumber(obj.get('count'));
@@ -799,7 +804,7 @@
       multi = 10 * places;
       return parseInt(number * multi, 10) / multi;
     };
-    return app.formatNumber = function(number) {
+    app.formatNumber = function(number) {
       var b, o, p, x, y, z, _i, _len;
       number = parseInt(number, 10);
       z = [[1000000000, 'b'], [1000000, 'm'], [1000, 'k']];
@@ -817,6 +822,32 @@
         }
       }
       return number;
+    };
+    return app.prettyDate = function(date_str) {
+      var format, list_choice, now, now_utc, seconds, time, time_formats, token, _i, _len;
+      time = Date.parse(date_str);
+      now = new Date();
+      now_utc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds());
+      seconds = (now_utc - time) / 1000;
+      token = 'ago';
+      time_formats = [[60, 'just now', 'just now'], [120, '1 minute ago', '1 minute from now'], [3600, 'minutes', 60], [7200, '1 hour ago', '1 hour from now'], [86400, 'hours', 3600], [172800, 'yesterday', 'tomorrow'], [604800, 'days', 86400], [1209600, 'last week', 'next week'], [2419200, 'weeks', 604800], [4838400, 'last month', 'next month'], [29030400, 'months', 2419200], [58060800, 'last year', 'next year'], [2903040000, 'years', 29030400], [5806080000, 'last century', 'next century'], [58060800000, 'centuries', 2903040000]];
+      list_choice = 1;
+      if (seconds < 0) {
+        seconds = Math.abs(seconds);
+        token = 'from now';
+        list_choice = 2;
+      }
+      for (_i = 0, _len = time_formats.length; _i < _len; _i++) {
+        format = time_formats[_i];
+        if (seconds < format[0]) {
+          if (typeof format[2] === 'string') {
+            return format[list_choice];
+          } else {
+            return Math.floor(seconds / format[2]) + ' ' + format[1] + ' ' + token;
+          }
+        }
+      }
+      return time;
     };
   });
 
