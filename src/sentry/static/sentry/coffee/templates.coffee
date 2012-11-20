@@ -16,7 +16,7 @@ app.templates.group = '
                 <%= message %>
             </p>
             <div class="meta">
-                <span class="last-seen title="<%= lastSeen %>"><%= app.prettyDate(lastSeen) %></span>
+                <span class="last-seen pretty-date" title="<%= lastSeen %>"><%= app.prettyDate(lastSeen) %></span>
                 <% if (timeSpent) { %>
                     <span class="time-spent"><%= app.utils.round(timeSpent) %>ms</span>
                 <% } %>

@@ -69,7 +69,9 @@ jQuery ->
             @collection.each (member) =>
                 @renderMemberInContainer(member)
 
-        updateMember: (member) ->
+        updateMember: (member, options) ->
+            options ||= {}
+
             # TODO: is there a better way to pass both non-models and models here?
             count = member.count ? member.get('count')
             score = member.score ? member.get('score')
@@ -81,6 +83,7 @@ jQuery ->
             if existing.get('score') != score
                 existing.set('score', score)
 
+            if options.sort ? true
                 # score changed, resort
                 @collection.sort()
 
@@ -136,7 +139,7 @@ jQuery ->
                 @setEmpty()
 
 
-    app.GroupListView = class GroupListView extends OrderedElementsView
+    app.GroupListView = class GroupListView extends app.OrderedElementsView
 
         initialize: (data) ->
             if !data?
@@ -151,7 +154,6 @@ jQuery ->
                 tickTime: data.tickTime ? 100
 
             @queue = new app.ScoredList
-                model: data.model
 
             @cursor = null
 
@@ -166,12 +168,13 @@ jQuery ->
             item = @queue.pop()
             if @config.realtime
                 @addMember(item)
+            else
+                if @hasMember(item)
+                    @updateMember(item, {
+                        sort: false
+                    })
 
         poll: ->
-            if !@config.realtime
-                window.setTimeout(@poll, @config.pollTime)
-                return
-
             data = app.utils.getQueryParams()
             data.cursor = @cursor || undefined
 

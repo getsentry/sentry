@@ -335,7 +335,7 @@
                 <%= message %>\
             </p>\
             <div class="meta">\
-                <span class="last-seen title="<%= lastSeen %>"><%= app.prettyDate(lastSeen) %></span>\
+                <span class="last-seen pretty-date" title="<%= lastSeen %>"><%= app.prettyDate(lastSeen) %></span>\
                 <% if (timeSpent) { %>\
                     <span class="time-spent"><%= app.utils.round(timeSpent) %>ms</span>\
                 <% } %>\
@@ -505,8 +505,9 @@
         });
       };
 
-      OrderedElementsView.prototype.updateMember = function(member) {
-        var count, existing, score, _ref, _ref1;
+      OrderedElementsView.prototype.updateMember = function(member, options) {
+        var count, existing, score, _ref, _ref1, _ref2;
+        options || (options = {});
         count = (_ref = member.count) != null ? _ref : member.get('count');
         score = (_ref1 = member.score) != null ? _ref1 : member.get('score');
         existing = this.collection.get(member.id);
@@ -515,6 +516,8 @@
         }
         if (existing.get('score') !== score) {
           existing.set('score', score);
+        }
+        if ((_ref2 = options.sort) != null ? _ref2 : true) {
           return this.collection.sort();
         }
       };
@@ -597,9 +600,7 @@
           pollTime: (_ref2 = data.pollTime) != null ? _ref2 : 1000,
           tickTime: (_ref3 = data.tickTime) != null ? _ref3 : 100
         };
-        this.queue = new app.ScoredList({
-          model: data.model
-        });
+        this.queue = new app.ScoredList;
         this.cursor = null;
         this.poll();
         return window.setInterval(this.tick, this.config.tickTime);
@@ -613,16 +614,18 @@
         item = this.queue.pop();
         if (this.config.realtime) {
           return this.addMember(item);
+        } else {
+          if (this.hasMember(item)) {
+            return this.updateMember(item, {
+              sort: false
+            });
+          }
         }
       };
 
       GroupListView.prototype.poll = function() {
         var data,
           _this = this;
-        if (!this.config.realtime) {
-          window.setTimeout(this.poll, this.config.pollTime);
-          return;
-        }
         data = app.utils.getQueryParams();
         data.cursor = this.cursor || void 0;
         return $.ajax({
@@ -658,7 +661,7 @@
 
       return GroupListView;
 
-    })(OrderedElementsView);
+    })(app.OrderedElementsView);
     app.GroupView = GroupView = (function(_super) {
 
       __extends(GroupView, _super);
