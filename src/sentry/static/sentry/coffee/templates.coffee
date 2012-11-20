@@ -22,7 +22,7 @@ app.templates.group = '
                 <% } %>
                 <span class="tag tag-project"><%= project.name %></span>
             </div>
-            <span class="sparkline" sparkwidth="100" sparklineColor="#ccc" sparkfillColor="false" sparkspotRadius="0"><!-- <%= historicalData %> --></span>
+            <span class="sparkline"></span>
             <ul class="actions">
                 <% if (canResolve) { %>
                     <li>

@@ -44,13 +44,6 @@ jQuery ->
                         $parent.css('opacity', 1)
                         $tab.tab('show')
 
-                        if $cont.find('.sparkline canvas').length == 0
-                            $cont.find('.sparkline').each (_, el) =>
-                                # TODO: find a way to not run this check each time
-                                $(el).sparkline 'html'
-                                    enableTagOptions: true
-                                    height: $(el).height()
-
                     error: ->
                         $cont.html('<p>There was an error fetching data from the server.</p>')
     

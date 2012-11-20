@@ -53,15 +53,7 @@
             success: function(data) {
               view.load(data);
               $parent.css('opacity', 1);
-              $tab.tab('show');
-              if ($cont.find('.sparkline canvas').length === 0) {
-                return $cont.find('.sparkline').each(function(_, el) {
-                  return $(el).sparkline('html', {
-                    enableTagOptions: true,
-                    height: $(el).height()
-                  });
-                });
-              }
+              return $tab.tab('show');
             },
             error: function() {
               return $cont.html('<p>There was an error fetching data from the server.</p>');
@@ -347,7 +339,7 @@
                 <% } %>\
                 <span class="tag tag-project"><%= project.name %></span>\
             </div>\
-            <span class="sparkline" sparkwidth="100" sparklineColor="#ccc" sparkfillColor="false" sparkspotRadius="0"><!-- <%= historicalData %> --></span>\
+            <span class="sparkline"></span>\
             <ul class="actions">\
                 <% if (canResolve) { %>\
                     <li>\
@@ -532,8 +524,7 @@
       };
 
       OrderedElementsView.prototype.renderMemberInContainer = function(member) {
-        var $el, $rel, new_pos,
-          _this = this;
+        var $el, $rel, new_pos;
         new_pos = this.collection.indexOf(member);
         this.$parent.find('li.empty').remove();
         $el = $('#' + this.id + member.id);
@@ -554,14 +545,8 @@
             return;
           }
         }
-        $el.find('.sparkline').each(function(_, el) {
-          return $(el).sparkline('html', {
-            enableTagOptions: true,
-            height: $(el).height()
-          });
-        });
         if (this.loaded) {
-          return $el.css('background-color', '#ddd').animate({
+          return $el.css('background-color', '#eee').animate({
             backgroundColor: '#fff'
           }, 1200);
         }
@@ -683,39 +668,47 @@
         this.model.on('change:count', this.updateCount);
         this.model.on('change:lastSeen', this.updateLastSeen);
         this.model.on('change:isBookmarked', this.render);
-        return this.model.on('change:isResolved', this.render);
+        this.model.on('change:isResolved', this.render);
+        return this.model.on('change:historicalData', this.renderSparkline);
       };
 
       GroupView.prototype.render = function() {
-        var data,
-          _this = this;
-        data = this.model.toJSON();
-        data.historicalData = this.getHistoricalAsString(this.model);
-        this.$el.html(this.template(data));
-        this.$el.addClass(this.getLevelClassName(this.model));
+        var _this = this;
+        this.$el.html(this.template(this.model.toJSON()));
+        this.$el.attr('data-id', this.model.id);
+        this.$el.addClass(this.getLevelClassName());
+        if (this.model.get('isResolved')) {
+          this.$el.addClass('resolved');
+        }
+        if (this.model.get('historicalData')) {
+          this.$el.addClass('with-sparkline');
+        }
         this.$el.find('a[data-action=resolve]').click(function(e) {
           e.preventDefault();
-          return _this.resolve(_this.model);
+          return _this.resolve();
         });
         this.$el.find('a[data-action=bookmark]').click(function(e) {
           e.preventDefault();
-          return _this.bookmark(_this.model);
+          return _this.bookmark();
         });
-        if (data.isResolved) {
-          this.$el.addClass('resolved');
-        }
-        if (data.historicalData) {
-          this.$el.addClass('with-sparkline');
-        }
-        this.$el.attr('data-id', data.id);
+        this.renderSparkline();
         return this;
+      };
+
+      GroupView.prototype.renderSparkline = function(obj) {
+        var data;
+        data = this.model.get('historicalData');
+        if (!data) {
+          return;
+        }
+        return app.createSparkline(this.$el.find('.sparkline'), data);
       };
 
       GroupView.prototype.getResolveUrl = function() {
         return app.config.urlPrefix + '/api/' + app.config.projectId + '/resolve/';
       };
 
-      GroupView.prototype.resolve = function(obj) {
+      GroupView.prototype.resolve = function() {
         var _this = this;
         return $.ajax({
           url: this.getResolveUrl(),
@@ -734,7 +727,7 @@
         return app.config.urlPrefix + '/api/' + app.config.projectId + '/bookmark/';
       };
 
-      GroupView.prototype.bookmark = function(obj) {
+      GroupView.prototype.bookmark = function() {
         var _this = this;
         return $.ajax({
           url: this.getBookmarkUrl(),
@@ -749,25 +742,17 @@
         });
       };
 
-      GroupView.prototype.getHistoricalAsString = function(obj) {
-        if (obj.get('historicalData')) {
-          return obj.get('historicalData').join(', ');
-        } else {
-          return '';
-        }
+      GroupView.prototype.getLevelClassName = function() {
+        return 'level-' + this.model.get('levelName');
       };
 
-      GroupView.prototype.getLevelClassName = function(obj) {
-        return 'level-' + obj.get('levelName');
+      GroupView.prototype.updateLastSeen = function() {
+        return this.$el.find('.last-seen').text(app.prettyDate(this.model.get('lastSeen')));
       };
 
-      GroupView.prototype.updateLastSeen = function(obj) {
-        return this.$el.find('.last-seen').text(app.prettyDate(obj.get('lastSeen')));
-      };
-
-      GroupView.prototype.updateCount = function(obj) {
+      GroupView.prototype.updateCount = function() {
         var counter, digit, new_count, replacement;
-        new_count = app.formatNumber(obj.get('count'));
+        new_count = app.formatNumber(this.model.get('count'));
         counter = this.$el.find('.count');
         digit = counter.find('span');
         if (digit.is(':animated')) {
@@ -799,6 +784,30 @@
       return GroupView;
 
     })(Backbone.View);
+    app.createSparkline = function(el, bits) {
+      var $el, bit, child, existing, maxval, n, pct, _i, _j, _len, _ref, _results;
+      $el = $(el);
+      maxval = 10;
+      for (_i = 0, _len = bits.length; _i < _len; _i++) {
+        bit = bits[_i];
+        if (bit > maxval) {
+          maxval = bit;
+        }
+      }
+      existing = $el.find('> span');
+      _results = [];
+      for (n = _j = 0, _ref = bits.length - 1; 0 <= _ref ? _j <= _ref : _j >= _ref; n = 0 <= _ref ? ++_j : --_j) {
+        bit = bits[n];
+        pct = parseInt(bit / maxval * 100, 10) + '%';
+        child = existing[n];
+        if (!(child != null)) {
+          _results.push($('<span><span style="height:' + pct + '">' + bit + '</span></span>').appendTo($el));
+        } else {
+          _results.push($(child).find('span').css('height', pct).text(bit));
+        }
+      }
+      return _results;
+    };
     app.floatFormat = function(number, places) {
       var multi;
       multi = Math.pow(10, places);

@@ -115,13 +115,8 @@ jQuery ->
                 else
                     return
 
-            $el.find('.sparkline').each (_, el) =>
-                $(el).sparkline 'html'
-                    enableTagOptions: true
-                    height: $(el).height()
-
             if @loaded
-                $el.css('background-color', '#ddd').animate({backgroundColor: '#fff'}, 1200)
+                $el.css('background-color', '#eee').animate({backgroundColor: '#fff'}, 1200)
 
         renderMember: (member) ->
             view = new GroupView
@@ -210,30 +205,36 @@ jQuery ->
             @model.on('change:lastSeen', @updateLastSeen)
             @model.on('change:isBookmarked', @render)
             @model.on('change:isResolved', @render)
+            @model.on('change:historicalData', @renderSparkline)
 
         render: ->
-            data = @model.toJSON()
-            data.historicalData = @getHistoricalAsString(@model)
-            @$el.html(@template(data))
-            @$el.addClass(@getLevelClassName(@model))
+            @$el.html(@template(@model.toJSON()))
+            @$el.attr('data-id', @model.id)
+            @$el.addClass(@getLevelClassName())
+            if @model.get('isResolved')
+                @$el.addClass('resolved')
+            if @model.get('historicalData')
+                @$el.addClass('with-sparkline')
             @$el.find('a[data-action=resolve]').click (e) =>
                 e.preventDefault()
-                @resolve(@model)
+                @resolve()
             @$el.find('a[data-action=bookmark]').click (e) =>
                 e.preventDefault()
-                @bookmark(@model)
-
-            if data.isResolved
-                @$el.addClass('resolved')
-            if data.historicalData
-                @$el.addClass('with-sparkline')
-            @$el.attr('data-id', data.id)
+                @bookmark()
+            @renderSparkline()
             @
+
+        renderSparkline: (obj) ->
+            data = @model.get('historicalData')
+            if not data
+                return
+
+            app.createSparkline(@$el.find('.sparkline'), data)
 
         getResolveUrl: ->
             app.config.urlPrefix + '/api/' + app.config.projectId + '/resolve/'
 
-        resolve: (obj) ->
+        resolve: () ->
             $.ajax
                 url: @getResolveUrl()
                 type: 'post'
@@ -246,7 +247,7 @@ jQuery ->
         getBookmarkUrl: ->
             app.config.urlPrefix + '/api/' + app.config.projectId + '/bookmark/'
 
-        bookmark: (obj) ->
+        bookmark: () ->
             $.ajax
                 url: @getBookmarkUrl()
                 type: 'post'
@@ -256,17 +257,14 @@ jQuery ->
                 success: (response) =>
                     @model.set('isBookmarked', response.bookmarked)
 
-        getHistoricalAsString: (obj) ->
-            if obj.get('historicalData') then obj.get('historicalData').join ', ' else ''
+        getLevelClassName: () ->
+            'level-' + @model.get('levelName')
 
-        getLevelClassName: (obj) ->
-            'level-' + obj.get('levelName')
+        updateLastSeen: () ->
+            @$el.find('.last-seen').text(app.prettyDate(@model.get('lastSeen')))
 
-        updateLastSeen: (obj) ->
-            @$el.find('.last-seen').text(app.prettyDate(obj.get('lastSeen')))
-
-        updateCount: (obj) ->
-            new_count = app.formatNumber(obj.get('count'))
+        updateCount: () ->
+            new_count = app.formatNumber(@model.get('count'))
             counter = @$el.find('.count')
             digit = counter.find('span')
 
@@ -299,6 +297,26 @@ jQuery ->
             replacement
                 .delay(100)
                 .animate({top:0, opacity:1}, 'fast')
+
+    app.createSparkline = (el, bits) ->
+        $el = $(el)
+        # TODO: maxval could default to # of hours since first_seen / times_seen
+        maxval = 10
+        for bit in bits
+            if bit > maxval
+                maxval = bit
+
+        # TODO: we should only remove nodes that are no longer valid
+        existing = $el.find('> span')
+        for n in [0..(bits.length - 1)]
+            bit = bits[n]
+            pct = parseInt(bit / maxval * 100, 10) + '%'
+
+            child = existing[n]
+            if !child?
+                $('<span><span style="height:' + pct + '">' + bit + '</span></span>').appendTo($el)
+            else
+                $(child).find('span').css('height', pct).text(bit)
 
     app.floatFormat = (number, places) ->
         multi = Math.pow(10, places)
