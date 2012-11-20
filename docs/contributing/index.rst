@@ -12,6 +12,11 @@ Coding Standards
 Sentry follows the guidelines layed out in `pep8 <http://www.python.org/dev/peps/pep-0008/>`_  with a little bit
 of flexibility on things like line length. We always give way for the `Zen of Python <http://www.python.org/dev/peps/pep-0020/>`_.
 
+Localization
+------------
+
+If you're just looking to help translate Sentry, apply for membership via `Transifex <https://www.transifex.com/projects/p/sentry/>`_.
+
 Setting up an Environment
 -------------------------
 

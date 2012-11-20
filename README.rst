@@ -35,3 +35,4 @@ Resources
 * `Code <http://github.com/getsentry/sentry>`_
 * `Mailing List <https://groups.google.com/group/getsentry>`_
 * `IRC <irc://irc.freenode.net/sentry>`_  (irc.freenode.net, #sentry)
+* `Transifex <https://www.transifex.net/projects/p/sentry/>`_ (Translate Sentry!)
