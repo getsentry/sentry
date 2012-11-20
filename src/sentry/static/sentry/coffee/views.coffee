@@ -71,10 +71,10 @@ jQuery ->
 
         updateMember: (member) ->
             obj = @collection.get(member.id)
-            if member.get('count') != obj.get('count')
-                obj.set('count', member.get('count'))
-            if member.get('score') != obj.get('score')
-                obj.set('score', member.get('score'))
+            if member.count != obj.get('count')
+                obj.set('count', member.count)
+            if member.score != obj.get('score')
+                obj.set('score', member.score)
 
             @collection.sort()
 

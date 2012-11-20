@@ -514,11 +514,11 @@
       OrderedElementsView.prototype.updateMember = function(member) {
         var obj;
         obj = this.collection.get(member.id);
-        if (member.get('count') !== obj.get('count')) {
-          obj.set('count', member.get('count'));
+        if (member.count !== obj.get('count')) {
+          obj.set('count', member.count);
         }
-        if (member.get('score') !== obj.get('score')) {
-          obj.set('score', member.get('score'));
+        if (member.score !== obj.get('score')) {
+          obj.set('score', member.score);
         }
         return this.collection.sort();
       };
