@@ -40,7 +40,7 @@ jQuery ->
                     url: uri
                     dataType: 'json'
                     success: (data) =>
-                        view.load([new app.Group(d) for d in data])
+                        view.load(data)
                         $parent.css('opacity', 1)
                         $tab.tab('show')
 
@@ -57,6 +57,7 @@ jQuery ->
                 maxItems: 5
                 pollUrl: uri
                 realtime: @config.realtime
+                model: app.Group
 
         getView: (id, uri) ->
             if !@views[id]
@@ -75,6 +76,7 @@ jQuery ->
                 maxItems: 50
                 realtime: true
                 pollUrl: app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/'
+                model: app.Group
 
             $('a[data-action=pause]').click (e) =>
                 e.preventDefault()

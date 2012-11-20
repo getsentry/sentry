@@ -70,12 +70,16 @@ jQuery ->
                 @renderMemberInContainer(member)
 
         updateMember: (member) ->
-            obj = @collection.get(member.id)
-            if member.get('count') != obj.get('count')
-                obj.set('count', member.get('count'))
+            # TODO: is there a better way to pass both non-models and models here?
+            count = member.count ? member.get('count')
+            score = member.score ? member.get('score')
 
-            if member.get('score') != obj.get('score')
-                obj.set('score', member.get('score'))
+            existing = @collection.get(member.id)
+            if existing.get('count') != count
+                existing.set('count', count)
+
+            if existing.get('score') != score
+                existing.set('score', score)
 
                 # score changed, resort
                 @collection.sort()
@@ -135,6 +139,9 @@ jQuery ->
     app.GroupListView = class GroupListView extends OrderedElementsView
 
         initialize: (data) ->
+            if !data?
+                data = {}
+            data.model = app.Group
             OrderedElementsView.prototype.initialize.call(@, data)
 
             @config =
@@ -144,6 +151,8 @@ jQuery ->
                 tickTime: data.tickTime ? 100
 
             @queue = new app.ScoredList
+                model: data.model
+
             @cursor = null
 
             @poll()
@@ -186,7 +195,7 @@ jQuery ->
                             obj.set('score', data.score)
                             @queue.sort()
                         else
-                            @queue.add(new app.Group(data))
+                            @queue.add(data)
 
                     window.setTimeout(@poll, @config.pollTime)
 
@@ -208,7 +217,8 @@ jQuery ->
             @model.on('change:historicalData', @renderSparkline)
 
         render: ->
-            @$el.html(@template(@model.toJSON()))
+            data = @model.toJSON()
+            @$el.html(@template(data))
             @$el.attr('data-id', @model.id)
             @$el.addClass(@getLevelClassName())
             if @model.get('isResolved')

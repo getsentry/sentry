@@ -51,18 +51,7 @@
             url: uri,
             dataType: 'json',
             success: function(data) {
-              var d;
-              view.load([
-                (function() {
-                  var _i, _len, _results;
-                  _results = [];
-                  for (_i = 0, _len = data.length; _i < _len; _i++) {
-                    d = data[_i];
-                    _results.push(new app.Group(d));
-                  }
-                  return _results;
-                })()
-              ]);
+              view.load(data);
               $parent.css('opacity', 1);
               return $tab.tab('show');
             },
@@ -80,7 +69,8 @@
           id: id,
           maxItems: 5,
           pollUrl: uri,
-          realtime: this.config.realtime
+          realtime: this.config.realtime,
+          model: app.Group
         });
       };
 
@@ -111,7 +101,8 @@
           members: data.groups,
           maxItems: 50,
           realtime: true,
-          pollUrl: app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/'
+          pollUrl: app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/',
+          model: app.Group
         });
         return $('a[data-action=pause]').click(function(e) {
           var $target;
@@ -515,13 +506,15 @@
       };
 
       OrderedElementsView.prototype.updateMember = function(member) {
-        var obj;
-        obj = this.collection.get(member.id);
-        if (member.get('count') !== obj.get('count')) {
-          obj.set('count', member.get('count'));
+        var count, existing, score, _ref, _ref1;
+        count = (_ref = member.count) != null ? _ref : member.get('count');
+        score = (_ref1 = member.score) != null ? _ref1 : member.get('score');
+        existing = this.collection.get(member.id);
+        if (existing.get('count') !== count) {
+          existing.set('count', count);
         }
-        if (member.get('score') !== obj.get('score')) {
-          obj.set('score', member.get('score'));
+        if (existing.get('score') !== score) {
+          existing.set('score', score);
           return this.collection.sort();
         }
       };
@@ -593,6 +586,10 @@
 
       GroupListView.prototype.initialize = function(data) {
         var _ref, _ref1, _ref2, _ref3;
+        if (!(data != null)) {
+          data = {};
+        }
+        data.model = app.Group;
         OrderedElementsView.prototype.initialize.call(this, data);
         this.config = {
           realtime: (_ref = data.realtime) != null ? _ref : false,
@@ -600,7 +597,9 @@
           pollTime: (_ref2 = data.pollTime) != null ? _ref2 : 1000,
           tickTime: (_ref3 = data.tickTime) != null ? _ref3 : 100
         };
-        this.queue = new app.ScoredList;
+        this.queue = new app.ScoredList({
+          model: data.model
+        });
         this.cursor = null;
         this.poll();
         return window.setInterval(this.tick, this.config.tickTime);
@@ -646,7 +645,7 @@
                 obj.set('score', data.score);
                 _this.queue.sort();
               } else {
-                _this.queue.add(new app.Group(data));
+                _this.queue.add(data);
               }
             }
             return window.setTimeout(_this.poll, _this.config.pollTime);
@@ -684,8 +683,10 @@
       };
 
       GroupView.prototype.render = function() {
-        var _this = this;
-        this.$el.html(this.template(this.model.toJSON()));
+        var data,
+          _this = this;
+        data = this.model.toJSON();
+        this.$el.html(this.template(data));
         this.$el.attr('data-id', this.model.id);
         this.$el.addClass(this.getLevelClassName());
         if (this.model.get('isResolved')) {
