@@ -28,6 +28,8 @@ Other Changes
 - A new 1080p wall display is available.
 - The event stream now includes sparklines representing the last 24 hours of data for each event.
 - Trends have greatly improved.
+- Grouping events that have identical stacktraces other than the function name (e.g. dynamically generated
+  functions) is not possible.
 
 
 Version 5.0.0

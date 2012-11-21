@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 import mock
 
-from sentry.interfaces import Stacktrace
+from sentry.interfaces import Stacktrace, Exception
 from sentry.models import Event
 
 from sentry.testutils import TestCase
@@ -56,6 +56,29 @@ class StacktraceTest(TestCase):
         }])
         result = interface.get_hash()
         self.assertEquals(result, ['foo.py', 'bar'])
+
+    def test_get_hash_uses_context_line_over_function(self):
+        interface = Stacktrace(frames=[{
+            'context_line': 'foo bar',
+            'lineno': 1,
+            'filename': 'foo.py',
+            'function': 'bar'
+        }])
+        result = interface.get_hash()
+        self.assertEquals(result, ['foo.py', 'foo bar'])
+
+    def test_get_composite_hash_uses_exception_if_present(self):
+        interface = Stacktrace(frames=[{
+            'context_line': 'foo bar',
+            'lineno': 1,
+            'filename': 'foo.py',
+            'function': 'bar'
+        }])
+        interface_exc = Exception(type='exception', value='bar')
+        result = interface.get_composite_hash({
+            'sentry.interfaces.Exception': interface_exc,
+        })
+        self.assertEquals(result[-1], 'exception')
 
     @mock.patch('sentry.interfaces.Stacktrace.get_stacktrace')
     def test_to_string_returns_stacktrace(self, get_stacktrace):

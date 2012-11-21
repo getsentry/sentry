@@ -80,6 +80,9 @@ class Interface(object):
     def serialize(self):
         return dict((k, self.__dict__[k]) for k in self.attrs)
 
+    def get_composite_hash(self, interfaces):
+        return self.get_hash()
+
     def get_hash(self):
         return []
 
@@ -269,6 +272,12 @@ class Stacktrace(Interface):
             'frames': self.frames,
         }
 
+    def get_composite_hash(self, interfaces):
+        output = self.get_hash()
+        if 'sentry.interfaces.Exception' in interfaces:
+            output.append(interfaces['sentry.interfaces.Exception'].type)
+        return output
+
     def get_hash(self):
         output = []
         for frame in self.frames:
@@ -277,7 +286,9 @@ class Stacktrace(Interface):
             else:
                 output.append(frame['filename'])
 
-            if frame.get('function'):
+            if frame.get('context_line'):
+                output.append(frame['context_line'])
+            elif frame.get('function'):
                 output.append(frame['function'])
             elif frame.get('lineno'):
                 output.append(frame['lineno'])

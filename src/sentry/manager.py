@@ -47,8 +47,9 @@ MAX_TAG_LENGTH = 200
 
 
 def get_checksum_from_event(event):
-    for interface in event.interfaces.itervalues():
-        result = interface.get_hash()
+    interfaces = event.interfaces
+    for interface in interfaces.itervalues():
+        result = interface.get_composite_hash(interfaces=event.interfaces)
         if result:
             hash = hashlib.md5()
             for r in result:
