@@ -8,6 +8,7 @@ protocol:
 * PHP (`raven-php <http://github.com/getsentry/raven-php>`_)
 * Java (`raven-java <https://github.com/kencochrane/raven-java>`_)
 * Ruby (`raven-ruby <https://github.com/getsentry/raven-ruby>`_)
+** Chef (`chef-sentry-handler <https://github.com/coderanger/chef-sentry-handler>`_)
 * JavaScript (`raven-js <https://github.com/lincolnloop/raven-js>`_)
 * Node.js (`raven-node <https://github.com/mattrobenolt/raven-node>`_)
 
