@@ -4,20 +4,20 @@ Available Clients
 The following clients are officially recognized as production-ready, and support the current Sentry
 protocol:
 
-* Python (`raven-python <http://github.com/getsentry/raven-python>`_)
-* PHP (`raven-php <http://github.com/getsentry/raven-php>`_)
-* Java (`raven-java <https://github.com/kencochrane/raven-java>`_)
-* Ruby (`raven-ruby <https://github.com/getsentry/raven-ruby>`_)
-  * Chef (`chef-sentry-handler <https://github.com/coderanger/chef-sentry-handler>`_)
-* JavaScript (`raven-js <https://github.com/lincolnloop/raven-js>`_)
-* Node.js (`raven-node <https://github.com/mattrobenolt/raven-node>`_)
+- Python (`raven-python <http://github.com/getsentry/raven-python>`_)
+- PHP (`raven-php <http://github.com/getsentry/raven-php>`_)
+- Java (`raven-java <https://github.com/kencochrane/raven-java>`_)
+- Ruby (`raven-ruby <https://github.com/getsentry/raven-ruby>`_)
+  - Chef (`chef-sentry-handler <https://github.com/coderanger/chef-sentry-handler>`_)
+- JavaScript (`raven-js <https://github.com/lincolnloop/raven-js>`_)
+- Node.js (`raven-node <https://github.com/mattrobenolt/raven-node>`_)
 
 Additionally, the following experimental clients are availabe:
 
-* CFML (`raven-cfml <https://github.com/jmacul2/raven-cfml>`_)
-* R (`logging <http://logging.r-forge.r-project.org/>`_)
-* Action Script 3 (`raven-as3 <https://github.com/skitoo/raven-as3>`_)
-* Erlang (`raven-erlang <https://github.com/soundrop/raven-erlang>`_)
+- CFML (`raven-cfml <https://github.com/jmacul2/raven-cfml>`_)
+- R (`logging <http://logging.r-forge.r-project.org/>`_)
+- Action Script 3 (`raven-as3 <https://github.com/skitoo/raven-as3>`_)
+- Erlang (`raven-erlang <https://github.com/soundrop/raven-erlang>`_)
 
 Client Criteria
 ---------------
