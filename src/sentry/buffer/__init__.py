@@ -6,4 +6,4 @@ sentry.buffer
 :license: BSD, see LICENSE for more details.
 """
 
-from .base import Buffer
+from .base import Buffer  # NOQA

@@ -8,7 +8,7 @@ These settings act as the default (base) settings for the Sentry-provided web-se
 :license: BSD, see LICENSE for more details.
 """
 
-from django.conf.global_settings import *
+from django.conf.global_settings import *  # NOQA
 
 import hashlib
 import os

@@ -6,7 +6,7 @@ sentry.conf.settings
 :license: BSD, see LICENSE for more details.
 """
 
-from sentry.conf.defaults import *
+from sentry.conf.defaults import *  # NOQA
 
 from django.conf import settings
 

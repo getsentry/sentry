@@ -60,16 +60,26 @@ cwatch:
 
 bootstrap-tests:
 	npm install phantomjs
-	pip install flake8 --use-mirrors
+	pip install flake8>=1.6 --use-mirrors
 
-test: test-js test-python
+test: lint test-js test-python
 
 test-js:
-	phantomjs runtests.coffee tests/js/index.html
+	@echo "Running JavaScript tests"
+	phantomjs runtests.coffee tests/js/index.html || exit 1
+	@echo ""
 
 test-python:
-	cd src && flake8 --exclude=migrations --ignore=E501,E225,E121,E123,E124,E125,E127,E128 --exit-zero sentry || exit 1
-	python setup.py test
+	@echo "Running Python tests"
+	python setup.py -q test || exit 1
+	@echo ""
+
+lint: lint-python
+
+lint-python:
+	@echo "Linting Python files"
+	flake8 --exclude=migrations --ignore=E501,E225,E121,E123,E124,E125,E127,E128 --exit-zero src/sentry || exit 1
+	@echo ""
 
 coverage:
 	cd src && coverage run --include=sentry/* setup.py test && \

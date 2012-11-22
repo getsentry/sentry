@@ -6,10 +6,10 @@ sentry.filters
 :license: BSD, see LICENSE for more details.
 """
 
-from sentry.filters.base import *
-from sentry.filters.builtins import *
-from sentry.filters.helpers import *
-from sentry.filters.widgets import *
+from sentry.filters.base import *  # NOQA
+from sentry.filters.builtins import *  # NOQA
+from sentry.filters.helpers import *  # NOQA
+from sentry.filters.widgets import *  # NOQA
 
 # Backwards compatibility
 SentryFilter = Filter

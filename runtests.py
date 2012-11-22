@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import base64
-import logging
+# import logging
 import os
 import sys
 import warnings
@@ -9,7 +9,7 @@ from optparse import OptionParser
 
 sys.path.insert(0, dirname(abspath(__file__)))
 
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 
 # Force all warnings in Django or Sentry to throw exceptions
 warnings.filterwarnings('error', '', RuntimeWarning, module=r'^(sentry|django).*')
