@@ -11,7 +11,7 @@
     {% if key %}
         <p>{% trans "To start sending events, configure your client with the following DSN value:" %}</p>
         <p><code class="clippy">{{ dsn }}</code></p>
-        <p>{% blocktrans with 'https://github.com/lincolnloop/raven-js' as link %}If this is a client that only needs public access (like <a href="{{ link }}">raven-js</a>), you can use the following public DSN:{% endblocktrans %}</p>
+        <p>{% blocktrans with 'https://github.com/getsentry/raven-js' as link %}If this is a client that only needs public access (like <a href="{{ link }}">raven-js</a>), you can use the following public DSN:{% endblocktrans %}</p>
         <p><code class="clippy">{{ dsn_public }}</code></p>
         <div class="page-header">
             <h3>{% trans "Platform Instructions" %}</h3>
