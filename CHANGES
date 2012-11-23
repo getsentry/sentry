@@ -30,6 +30,7 @@ Other Changes
 - Trends have greatly improved.
 - Grouping events that have identical stacktraces other than the function name (e.g. dynamically generated
   functions) is not possible.
+- SiteFilter has been removed, as has the sites plugin.
 
 
 Version 5.0.0

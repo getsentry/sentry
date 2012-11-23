@@ -61,7 +61,6 @@ This document describes additional configuration options available to the Sentry
 		    'sentry.filters.LoggerFilter',
 		    'sentry.filters.LevelFilter',
 		    'sentry.filters.ServerNameFilter',
-		    'sentry.filters.SiteFilter',
 		)
 
 .. data:: sentry.conf.VIEWS
