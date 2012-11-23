@@ -161,7 +161,13 @@ INSTALLED_APPS = (
 
 STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
 STATIC_URL = '/_static/'
-COMPRESS_URL = '/_static/'
+
+COMPRESS_URL = STATIC_URL
+
+COMPRESS_PRECOMPILERS = (
+    ('text/coffeescript', 'coffee --compile --stdio'),
+    ('text/less', 'lessc --strict-imports {infile} {outfile}'),
+)
 
 STATICFILES_FINDERS = (
     "compressor.finders.CompressorFinder",

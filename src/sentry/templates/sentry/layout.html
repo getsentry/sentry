@@ -13,7 +13,9 @@
         {% block css %}
             {% compress css %}
                 <link href="{% url sentry-media "sentry" "scripts/select2/select2.css" %}" rel="stylesheet" type="text/css"/>
-                <link href="{% url sentry-media "sentry" "styles/global.min.css" %}" rel="stylesheet" type="text/css"/>
+            {% endcompress %}
+            {% compress css %}
+                <link href="{% url sentry-media "sentry" "less/sentry.less" %}" rel="stylesheet" type="text/less"/>
             {% endcompress %}
         {% endblock %}
 
