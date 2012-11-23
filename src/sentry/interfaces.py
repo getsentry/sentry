@@ -295,6 +295,7 @@ class Stacktrace(Interface):
         return output
 
     def to_html(self, event):
+        system_frames = 0
         frames = []
         for frame in self.frames:
             if frame.get('context_line') and frame.get('lineno') is not None:
@@ -315,6 +316,8 @@ class Stacktrace(Interface):
             else:
                 lineno = None
 
+            in_app = bool(frame.get('in_app', True))
+
             frames.append({
                 'abs_path': frame.get('abs_path'),
                 'filename': frame['filename'],
@@ -323,7 +326,11 @@ class Stacktrace(Interface):
                 'lineno': lineno,
                 'context': context,
                 'vars': context_vars,
+                'in_app': in_app,
             })
+
+            if not in_app:
+                system_frames += 1
 
         if env.request and env.request.user.is_authenticated():
             display = UserOption.objects.get_value(
@@ -336,6 +343,7 @@ class Stacktrace(Interface):
                 frames.reverse()
 
         return render_to_string('sentry/partial/interfaces/stacktrace.html', {
+            'system_frames': system_frames,
             'event': event,
             'frames': frames,
             'stacktrace': self.get_traceback(event),
