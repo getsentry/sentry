@@ -146,8 +146,7 @@ class APIView(BaseView):
             }, exc_info=True)
             response = HttpResponse(unicode(error.msg), status=error.http_status)
 
-        else:
-            response = apply_access_control_headers(response, origin)
+        response = apply_access_control_headers(response, origin)
 
         return response
 
