@@ -33,14 +33,6 @@ static:
 coffee:
 	@coffee --join ${STATIC_DIR}/scripts/site.js -c ${STATIC_DIR}/coffee/*.coffee
 	@echo "Coffe script assets successfully built! - `date`";
-#
-# Watch less files
-#
-
-watch:
-	@echo "Watching less files..."; \
-	make static; \
-	watchr -e "watch('src/sentry.less') { system 'make static' }"
 
 cwatch:
 	@echo "Watching coffee script files..."; \
