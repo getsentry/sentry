@@ -137,9 +137,10 @@ INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.admin',
     'django.contrib.contenttypes',
+    'django.contrib.messages',
     'django.contrib.sessions',
     'django.contrib.sites',
-    'django.contrib.messages',
+    'django.contrib.staticfiles',
 
     'compressor',
     'crispy_forms',
@@ -160,6 +161,13 @@ INSTALLED_APPS = (
 
 STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
 STATIC_URL = '/_static/'
+COMPRESS_URL = '/_static/'
+
+STATICFILES_FINDERS = (
+    "compressor.finders.CompressorFinder",
+    "django.contrib.staticfiles.finders.FileSystemFinder",
+    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
+)
 
 LOCALE_PATHS = (
     os.path.join(PROJECT_ROOT, 'locale'),
