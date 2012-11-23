@@ -330,7 +330,7 @@ jQuery ->
 
             child = existing[n]
             if !child?
-                $('<span><span style="height:' + pct + '">' + bit + '</span></span>').appendTo($el)
+                $('<span><span style="height:' + pct + '" title="' + bit + '">' + bit + '</span></span>').appendTo($el)
             else
                 $(child).find('span').css('height', pct).text(bit)
 
