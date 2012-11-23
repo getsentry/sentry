@@ -110,6 +110,7 @@ class StacktraceTest(TestCase):
             'event': event,
             'frames': [],
             'stacktrace': 'bar',
+            'system_frames': 0,
         })
         self.assertEquals(result, render_to_string.return_value)
 
