@@ -98,6 +98,13 @@ class APIView(BaseView):
 
     @csrf_exempt
     def dispatch(self, request, project_id=None, *args, **kwargs):
+        response = self._dispatch(request, project_id=project_id, *args, **kwargs)
+        # Set X-Sentry-Error as in many cases it is easier to inspect the headers
+        if response.status_code != 200:
+            response['X-Sentry-Error'] = response.content[:200]  # safety net on content length
+        return response
+
+    def _dispatch(self, request, project_id=None, *args, **kwargs):
         try:
             project = self._get_project_from_id(project_id)
         except APIError, e:
