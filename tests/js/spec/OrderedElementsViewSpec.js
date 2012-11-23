@@ -38,7 +38,7 @@ describe("OrderedElementsView", function() {
     });
 
     it("has status text to loading", function() {
-      expect(view.$empty.html()).toBe(view.loadingMessage.parent().html());
+      expect(view.$empty.html()).toBe(view.loadingMessage);
     });
   });
 
@@ -56,7 +56,7 @@ describe("OrderedElementsView", function() {
     });
 
     it("has status text to loading", function() {
-      expect(view.$empty.html()).not.toBe(view.loadingMessage.parent().html());
+      expect(view.$empty.html()).not.toBe(view.loadingMessage);
     });
   });
 
@@ -82,7 +82,7 @@ describe("OrderedElementsView", function() {
       });
 
       it("changes status text to empty", function() {
-        expect(view.$empty.html()).toBe(view.emptyMessage.parent().html());
+        expect(view.$empty.html()).toBe(view.emptyMessage);
       });
     });
 
@@ -106,7 +106,7 @@ describe("OrderedElementsView", function() {
       });
 
       it("changes status text to empty", function() {
-        expect(view.$empty.html()).toBe(view.emptyMessage.parent().html());
+        expect(view.$empty.html()).toBe(view.emptyMessage);
       });
     });
   });
