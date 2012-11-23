@@ -108,7 +108,13 @@ class APIView(BaseView):
         except APIError, e:
             return HttpResponse(str(e), status=400)
 
-        project_ = project_from_auth_vars(auth_vars)
+        try:
+            project_ = project_from_auth_vars(auth_vars)
+        except APIError, error:
+            logger.info('Project %r raised API error: %s', project.slug, error, extra={
+                'request': request,
+            }, exc_info=True)
+            return HttpResponse(unicode(error.msg), status=error.http_status)
 
         # Legacy API was /api/store/ and the project ID was only available elsewhere
         if not project:
