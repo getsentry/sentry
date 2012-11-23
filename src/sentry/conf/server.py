@@ -163,7 +163,7 @@ STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
 STATIC_URL = '/_static/'
 
 COMPRESS_URL = STATIC_URL
-
+COMPRESS_OUTPUT_DIR = 'CACHE'
 COMPRESS_PRECOMPILERS = (
     ('text/coffeescript', 'coffee --compile --stdio'),
     ('text/less', 'lessc --strict-imports {infile} {outfile}'),
