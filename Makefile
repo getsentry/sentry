@@ -8,19 +8,14 @@ UGLIFY_JS ?= `which uglifyjs`
 COFFEE ?= `which coffee`
 WATCHR ?= `which watchr`
 
-build: static coffee locale
+develop: update-submodules
+	pip install -e . --use-mirrors
 
-#
-# Compile language files
-#
+build: static coffee locale
 
 locale:
 	cd src/sentry && sentry makemessages -l en
 	cd src/sentry && sentry compilemessages
-
-#
-# Build less files
-#
 
 static:
 	@cat ${STATIC_DIR}/scripts/sentry.core.js ${STATIC_DIR}/scripts/sentry.realtime.js ${STATIC_DIR}/scripts/sentry.charts.js ${STATIC_DIR}/scripts/sentry.notifications.js ${STATIC_DIR}/scripts/sentry.stream.js > ${GLOBAL_JS};
@@ -29,6 +24,9 @@ static:
 	@uglifyjs -nc ${BOOTSTRAP_JS} > ${BOOTSTRAP_JS_MIN};
 	@echo "Static assets successfully built! - `date`";
 
+update-submodules:
+	git submodule init
+	git submodule update
 
 coffee:
 	@coffee --join ${STATIC_DIR}/scripts/site.js -c ${STATIC_DIR}/coffee/*.coffee
