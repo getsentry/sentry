@@ -25,7 +25,7 @@ class StoreViewTest(TestCase):
             'sentry_key': 'a' * 40,
             'sentry_version': '2.0',
         }
-        project_from_auth_vars.return_value = self.project
+        project_from_auth_vars.return_value = (self.project, None)
         resp = self.client.options(self.path)
         self.assertEquals(resp.status_code, 200)
         self.assertIn('Allow', resp)

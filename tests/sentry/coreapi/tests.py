@@ -121,45 +121,28 @@ class ExtractAuthVarsTest(BaseAPITest):
 
 
 class ProjectFromAuthVarsTest(BaseAPITest):
-    def test_valid_without_key(self):
+    def test_invalid_if_missing_key(self):
         auth_vars = {}
+        self.assertRaises(APIForbidden, project_from_auth_vars, auth_vars)
 
-        # without key
+    def test_valid_with_key(self):
+        auth_vars = {'sentry_key': self.pk.public_key}
         result = project_from_auth_vars(auth_vars)
-        self.assertEquals(result, None)
-
-        # with key
-        auth_vars['sentry_key'] = self.pk.public_key
-        result = project_from_auth_vars(auth_vars)
-        self.assertEquals(result, self.project)
+        self.assertEquals(result, (self.project, self.pk.user))
 
     def test_inactive_user(self):
         user = self.pm.user
         user.is_active = False
         user.save()
 
-        auth_vars = {}
-
-        # without key
-        result = project_from_auth_vars(auth_vars)
-        self.assertEquals(result, None)
-
-        # with key
-        auth_vars['sentry_key'] = self.pk.public_key
+        auth_vars = {'sentry_key': self.pk.public_key}
         self.assertRaises(APIUnauthorized, project_from_auth_vars, auth_vars)
 
     def test_inactive_member(self):
         self.pm.is_active = False
         self.pm.save()
 
-        auth_vars = {}
-
-        # without key
-        result = project_from_auth_vars(auth_vars)
-        self.assertEquals(result, None)
-
-        # with key
-        auth_vars['sentry_key'] = self.pk.public_key
+        auth_vars = {'sentry_key': self.pk.public_key}
         self.assertRaises(APIUnauthorized, project_from_auth_vars, auth_vars)
 
 

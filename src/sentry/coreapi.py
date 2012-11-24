@@ -84,7 +84,7 @@ def extract_auth_vars(request):
 def project_from_auth_vars(auth_vars):
     api_key = auth_vars.get('sentry_key')
     if not api_key:
-        return None
+        raise APIForbidden('Invalid api key')
     try:
         pk = ProjectKey.objects.get_from_cache(public_key=api_key)
     except ProjectKey.DoesNotExist:
