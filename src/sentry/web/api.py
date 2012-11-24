@@ -153,6 +153,9 @@ class APIView(BaseView):
 
         return response
 
+    def options(self, request, *args, **kwargs):
+        return HttpResponse()
+
 
 class StoreView(APIView):
     """
