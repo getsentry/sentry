@@ -338,10 +338,10 @@
             <p class="message">\
                 <span class="tag tag-logger"><%= logger %></span>\
                 <% _.each(versions, function(version){ %> \
-                    <span class="tag tag-version">{{ version }}</span>\
+                    <span class="tag tag-version"><%= version %></span>\
                 <% }) %>\
                 <% _.each(tags, function(tag){ %> \
-                    <span class="tag">{{ tag }}</span>\
+                    <span class="tag"><%= tag %></span>\
                 <% }) %>\
                 <%= message %>\
             </p>\
