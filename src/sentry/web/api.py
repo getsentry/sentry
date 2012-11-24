@@ -66,6 +66,8 @@ class Auth(object):
 
 
 class APIView(BaseView):
+    http_method_names = ['options']
+
     def _get_project_from_id(self, project_id):
         if project_id:
             if project_id.isdigit():
@@ -153,8 +155,15 @@ class APIView(BaseView):
 
         return response
 
+    # XXX: backported from Django 1.5
+    def _allowed_methods(self):
+        return [m.upper() for m in self.http_method_names if hasattr(self, m)]
+
     def options(self, request, *args, **kwargs):
-        return HttpResponse()
+        response = HttpResponse()
+        response['Allow'] = ', '.join(self._allowed_methods())
+        response['Content-Length'] = '0'
+        return response
 
 
 class StoreView(APIView):
@@ -186,7 +195,7 @@ class StoreView(APIView):
        the user be authenticated, and a project_id be sent in the GET variables.
 
     """
-    http_method_names = ['post', 'options']
+    http_method_names = ['head', 'post', 'options']
 
     @never_cache
     def post(self, request, project, auth, **kwargs):
