@@ -570,6 +570,14 @@ def search_tags(request, project):
     return response
 
 
+def crossdomain_xml_index(request):
+    response = HttpResponse("""<cross-domain-policy>
+        <site-control permitted-cross-domain-policies="all"></site-control>
+    </cross-domain-policy>""")
+    response['Content-Type'] = 'application/xml'
+    return response
+
+
 @has_access
 def crossdomain_xml(request, project):
     origin_list = get_origins(project)

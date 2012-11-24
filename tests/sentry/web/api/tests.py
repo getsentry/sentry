@@ -54,3 +54,15 @@ class CrossDomainXmlTest(TestCase):
         self.assertEquals(resp['Content-Type'], 'application/xml')
         self.assertTemplateUsed(resp, 'sentry/crossdomain.xml')
         self.assertIn('<allow-http-request-headers-from domain="*" headers="X-Sentry-Auth" secure="true"></allow-http-request-headers-from>', resp.content)
+
+
+class CrossDomainXmlIndexTest(TestCase):
+    @fixture
+    def path(self):
+        return reverse('sentry-api-crossdomain-xml-index')
+
+    def test_permits_policies(self):
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp['Content-Type'], 'application/xml')
+        self.assertIn('<site-control permitted-cross-domain-policies="all"></site-control>', resp.content)
