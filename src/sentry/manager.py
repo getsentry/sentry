@@ -661,7 +661,10 @@ class GroupManager(BaseManager, ChartMixin):
         else:
             tags = list(tags)
 
-        tags += [('logger', event.logger)]
+        tags += [
+            ('logger', event.logger),
+            ('level', event.get_level_display()),
+        ]
 
         self.add_tags(group, tags)
 
