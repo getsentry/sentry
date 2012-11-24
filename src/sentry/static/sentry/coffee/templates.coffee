@@ -27,9 +27,9 @@ app.templates.group = '
                 <% if (canResolve) { %>
                     <li>
                         <% if (!isResolved) { %>
-                            <a href="#" data-action="resolve" title="Mark as Resolved>&#10003;</a>
+                            <a href="#" data-action="resolve" title="Mark as Resolved">&#10003;</a>
                         <% } else { %>
-                            <a href="#" class="checked" title="Already Resolved>&#10003;</a>
+                            <a href="#" class="checked" title="Already Resolved">&#10003;</a>
                         <% } %>
                     </li>
                     <li>
