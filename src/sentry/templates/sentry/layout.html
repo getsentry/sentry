@@ -124,7 +124,9 @@
         <footer>
             <div class="container">
                 {% block footer %}
-                    Sentry {% sentry_version %} | Conjured up by the <a href="http://code.disqus.com">DISQUS</a> team and other noble <a href="https://github.com/getsentry/sentry/contributors">sorcerers</a>. | Sentry is <a href="https://github.com/getsentry/sentry">Open Source Software</a>
+                    <div class="contribute">Sentry is open source software <a href="https://github.com/getsentry/sentry" class="btn btn-small">Contribute</a></div>
+                    <div class="version">Sentry {% sentry_version %}</div>
+                    <div class="credits">Created by the <a href="http://code.disqus.com">DISQUS</a> team with <a href="https://github.com/getsentry/sentry/contributors">lots of help</a></div>
                 {% endblock %}
             </div>
         </footer>
