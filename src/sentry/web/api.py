@@ -80,7 +80,10 @@ class APIView(BaseView):
         return None
 
     def _parse_header(self, request, project):
-        auth_vars = extract_auth_vars(request)
+        try:
+            auth_vars = extract_auth_vars(request)
+        except (IndexError, ValueError):
+            raise APIError('Invalid auth header')
 
         if not auth_vars:
             raise APIError('Client/server version mismatch: Unsupported client')
@@ -92,7 +95,7 @@ class APIView(BaseView):
             raise APIError('Client/server version mismatch: Unsupported protocol version (%s)' % server_version)
 
         if not client:
-            raise APIError('Client request error: Missing client version identifier.')
+            raise APIError('Client request error: Missing client version identifier')
 
         return auth_vars
 
