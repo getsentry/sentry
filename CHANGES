@@ -13,6 +13,11 @@ test suites with the ``make test`` command.
 Protocol Version 3
 ==================
 
+Sentry 5.1 removes support for version 1.0 of the protocol, and maintains a compatibility layer
+for version 2.0.
+
+Additionally, the following changes apply to the new protocol:
+
 - Signed messages are no longer supported (signatures are not calculated).
 - Clients should pass sentry_secret for server-side requests as part of the auth
   header.
