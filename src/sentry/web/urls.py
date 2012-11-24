@@ -152,7 +152,6 @@ urlpatterns = patterns('',
 
     url(r'^(?P<project_id>[\w_-]+)/search/$', groups.search, name='sentry-search'),
 
-    url(r'^(?P<project_id>[\w_-]+)/view/(?P<view_id>\d+)/$', groups.group_list, name='sentry'),
     url(r'^(?P<project_id>[\w_-]+)/$', groups.group_list, name='sentry'),
 
     url(r'', include('social_auth.urls')),
