@@ -57,14 +57,14 @@
         <ul class="nav nav-tabs nav-stacked" style="margin-bottom:5px">
             {% for p in PROJECT_LIST|slice:"10" %}
                 <li{% if p == project %} class="active"{% endif %}>
-                    <a class="action" href="{% url sentry-manage-project p.slug %}">{% trans "Settings" %}</a>
+                    <a class="action" href="{% url sentry-manage-project p.slug %}" title="{% trans "Settings" %}"><i aria-hidden="true" class="icon-cog"></i></a>
                     <a href="{% url sentry p.slug %}">{{ p.name }}</a>
                 </li>
             {% endfor %}
         </ul>
         <div style="text-align:right;margin-bottom:13px;">
             {% if can_create_projects %}
-                <a href="{% url sentry-new-project %}" class="btn btn-small">{% trans "New project" %}</a>
+                <a href="{% url sentry-new-project %}">{% trans "New project" %}</a>
             {% endif %}
             {% if PROJECT_LIST|length > 10 %}
                 <a href="{% url sentry-project-list %}" class="btn btn-small">{% blocktrans with PROJECT_LIST|length as count %}View all <strong>{{ count }}</strong> projects{% endblocktrans %}</a>

@@ -99,13 +99,6 @@
                     {% endif %}
                 </h3>
                 <p class="message" title="{{ group.message }}">
-                    <span class="tag tag-logger">{{ group.logger }}</span>
-                    {% with group.get_version as version %}
-                        {% if version %}
-                            <span class="tag tag-version">{{ version.0 }} {{ version.1 }}</span>
-                        {% endif %}
-                    {% endwith %}
-                    {% for tag in group|get_tags:request %}<span class="tag">{{ tag }}</span> {% endfor %}
                     {{ group.error }}
                 </p>
                 <div class="meta">
@@ -113,17 +106,25 @@
                     {% if group.avg_time_spent %}
                         <span class="time-spent">{{ group.avg_time_spent|duration }}</span>
                     {% endif %}
+
+                    <span class="tag tag-logger">{{ group.logger }}</span>
+                    {% with group.get_version as version %}
+                        {% if version %}
+                            <span class="tag tag-version">{{ version.0 }} {{ version.1 }}</span>
+                        {% endif %}
+                    {% endwith %}
+                    {% for tag in group|get_tags:request %}<span class="tag">{{ tag }}</span> {% endfor %}
                 </div>
                 {% if can_admin_event %}
                     <ul class="actions">
                         <li>
                             {% if group.status == 0 %}
-                                <a href="javascript:void(0)" class="tip" onclick="Sentry.stream.resolve('{{ group.project.slug }}', {{ group.id|safe }}, false);" rel="tooltip" title="{% trans "Mark as Resolved" %}">&#10003;</a>
+                                <a href="javascript:void(0)" class="tip" onclick="Sentry.stream.resolve('{{ group.project.slug }}', {{ group.id|safe }}, false);" rel="tooltip" title="{% trans "Mark as Resolved" %}"><i aria-hidden="true" class="icon-checkmark"></i></a>
                             {% else %}
-                                <a href="javascript:void(0)" class="tip checked" rel="tooltip" title="{% trans "Already Resolved" %}">&#10003;</a>
+                                <a href="javascript:void(0)" class="tip checked" rel="tooltip" title="{% trans "Already Resolved" %}"><i aria-hidden="true" class="icon-checkmark"></i></a>
                             {% endif %}
                         </li>
-                        <li><a href="javascript:void(0)" onclick="Sentry.stream.bookmark('{{ group.project.slug }}', {{ group.id|safe }}, this);" class="tip bookmark{% if group|is_bookmarked:request.user %} checked{% endif %}" rel="tooltip" title="{% trans "Bookmark" %}">&#9733;</a></li>
+                        <li><a href="javascript:void(0)" onclick="Sentry.stream.bookmark('{{ group.project.slug }}', {{ group.id|safe }}, this);" class="tip bookmark{% if group|is_bookmarked:request.user %} checked{% endif %}" rel="tooltip" title="{% trans "Bookmark" %}"><i aria-hidden="true" class="icon-star"></i></a></li>
                     </ul>
                 {% endif %}
             </div>
