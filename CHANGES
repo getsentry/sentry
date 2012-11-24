@@ -25,7 +25,6 @@ Other Changes
 
 - All streaming components are now powered by Backbone.js.
 - Frontend has been updated to Bootstrap 2.1.
-- A new 1080p wall display is available.
 - The event stream now includes sparklines representing the last 24 hours of data for each event.
 - Trends have greatly improved.
 - Grouping events that have identical stacktraces other than the function name (e.g. dynamically generated
