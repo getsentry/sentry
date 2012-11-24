@@ -162,6 +162,9 @@ INSTALLED_APPS = (
 STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
 STATIC_URL = '/_static/'
 
+# XXX: There is a bug in django-compressor that causes it to incorrectly handle
+# relative URLs in precompiled files (less) when compression is disabled
+COMPRESS_ENABLED = True
 COMPRESS_URL = STATIC_URL
 COMPRESS_OUTPUT_DIR = 'CACHE'
 COMPRESS_PRECOMPILERS = (
