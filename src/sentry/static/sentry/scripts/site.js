@@ -357,13 +357,13 @@
                 <% if (canResolve) { %>\
                     <li>\
                         <% if (!isResolved) { %>\
-                            <a href="#" data-action="resolve" title="Mark as Resolved>&#10003;</a>\
+                            <a href="#" data-action="resolve" title="Mark as Resolved"><i aria-hidden="true" class="icon-checkmark"></i></a>\
                         <% } else { %>\
-                            <a href="#" class="checked" title="Already Resolved>&#10003;</a>\
+                            <a href="#" class="checked" title="Already Resolved"><i aria-hidden="true" class="icon-checkmark"></i></a>\
                         <% } %>\
                     </li>\
                     <li>\
-                        <a href="#" data-action="bookmark" class="bookmark<% if (isBookmarked) { %> checked<% } %>" title="Bookmark"><i aria-hidden="true" class="icon-star"></i></a>\
+                        <a href="#" data-action="bookmark" class="bookmark<% if (isBookmarked) { %> bookmarked<% } %>" title="Bookmark"><i aria-hidden="true" class="icon-star"></i></a>\
                     </li>\
                 <% } %>\
             </ul>\
