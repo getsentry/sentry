@@ -18,9 +18,13 @@ for version 2.0.
 
 Additionally, the following changes apply to the new protocol:
 
+- sentry_version should be sent as '3' (not 3.0).
 - Signed messages are no longer supported (signatures are not calculated).
+  - sentry_signature is no longer used.
+  - sentry_timestamp is no longer used.
 - Clients should pass sentry_secret for server-side requests as part of the auth
   header.
+  - version 2.0 supports validation of this, version 3 requires it.
 - The ``project`` attribute in the JSON packet is no longer required.
 - The ``platform`` attribute is now recommended.
 - The ``tags`` attribute is now recommended.
