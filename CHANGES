@@ -30,7 +30,8 @@ Other Changes
 - Grouping events that have identical stacktraces other than the function name (e.g. dynamically generated
   functions) is not possible.
 - SiteFilter has been removed, as has the sites plugin.
-
+- If frames are included in a stacktrace have the value ``in_app: false``, they will be hidden by default in the
+  details view.
 
 Version 5.0.0
 -------------
