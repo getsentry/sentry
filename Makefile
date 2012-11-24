@@ -14,6 +14,9 @@ develop: update-submodules bootstrap-tests
 
 build: static coffee locale
 
+clean:
+	rm -r src/sentry/static/CACHE
+
 locale:
 	cd src/sentry && sentry makemessages -l en
 	cd src/sentry && sentry compilemessages
