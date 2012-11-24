@@ -8,6 +8,7 @@ sentry.web.views
 import datetime
 import logging
 
+from django.contrib.auth.models import AnonymousUser
 from django.core.urlresolvers import reverse
 from django.db.models import Sum
 from django.http import HttpResponse, HttpResponseBadRequest, \
@@ -21,9 +22,10 @@ from sentry.conf import settings
 from sentry.constants import MEMBER_USER
 from sentry.coreapi import project_from_auth_vars, \
   decode_and_decompress_data, safely_load_json_string, validate_data, \
-  insert_data_to_database, APIError, extract_auth_vars
+  insert_data_to_database, APIError, APIForbidden, extract_auth_vars
 from sentry.exceptions import InvalidData
 from sentry.models import Group, GroupBookmark, Project, ProjectCountByMinute, View, FilterValue
+from sentry.plugins import plugins
 from sentry.templatetags.sentry_helpers import with_metadata
 from sentry.utils import json
 from sentry.utils.cache import cache
@@ -110,6 +112,8 @@ class APIView(BaseView):
         return response
 
     def _dispatch(self, request, project_id=None, *args, **kwargs):
+        request.user = AnonymousUser()
+
         try:
             project = self._get_project_from_id(project_id)
         except APIError, e:
@@ -121,12 +125,16 @@ class APIView(BaseView):
             return HttpResponse(str(e), status=400)
 
         try:
-            project_ = project_from_auth_vars(auth_vars)
+            project_, user = project_from_auth_vars(auth_vars)
         except APIError, error:
-            logger.info('Project %r raised API error: %s', project.slug, error, extra={
-                'request': request,
-            }, exc_info=True)
+            if project:
+                logger.info('Project %r raised API error: %s', project.slug, error, extra={
+                    'request': request,
+                }, exc_info=True)
             return HttpResponse(unicode(error.msg), status=error.http_status)
+        else:
+            if user:
+                request.user = user
 
         # Legacy API was /api/store/ and the project ID was only available elsewhere
         if not project:
@@ -199,6 +207,10 @@ class StoreView(APIView):
 
     @never_cache
     def post(self, request, project, auth, **kwargs):
+        result = plugins.first('has_perm', request.user, 'create_event', project)
+        if result is False:
+            raise APIForbidden('Creation of this event was blocked')
+
         data = request.raw_post_data
 
         if not data.startswith('{'):
