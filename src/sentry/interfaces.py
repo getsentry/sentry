@@ -332,6 +332,9 @@ class Stacktrace(Interface):
             if not in_app:
                 system_frames += 1
 
+        if len(frames) == system_frames:
+            system_frames = 0
+
         if env.request and env.request.user.is_authenticated():
             display = UserOption.objects.get_value(
                 user=env.request.user,
