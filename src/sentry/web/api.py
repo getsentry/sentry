@@ -195,7 +195,7 @@ class StoreView(APIView):
        the user be authenticated, and a project_id be sent in the GET variables.
 
     """
-    http_method_names = ['head', 'post', 'options']
+    http_method_names = ['get', 'post', 'put', 'delete', 'head', 'options', 'trace']
 
     @never_cache
     def post(self, request, project, auth, **kwargs):
