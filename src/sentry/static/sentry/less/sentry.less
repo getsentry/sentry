@@ -513,6 +513,12 @@ footer {
       }
     }
 
+    &.unseen {
+      h3 {
+        font-weight: bold;
+      }
+    }
+
     h3 {
       margin: 0;
       font-size: 20px;
@@ -609,20 +615,20 @@ footer {
     .actions {
       position: absolute;
       right: 20px;
-      top: 20px;
+      top: 25px;
       list-style-type: none;
       margin: 0;
       padding: 0;
       li {
-        margin-bottom: 12px;
+        margin-bottom: 13px;
         font-size: 14px;
         line-height: 18px;
         text-align: center;
         display: block;
-        width: 18px;
-        height: 18px;
+        width: 20px;
+        height: 20px;
         > a {
-          font-size: 18px;
+          font-size: 19px;
           color: #e7e9ed;
           &:hover {
             color: darken(#e7e9ed, 6);
@@ -632,6 +638,11 @@ footer {
         .checked {
           color: #26ad31;
         }
+
+        .bookmarked {
+          color: @orange;
+        }
+
         .disabled {
           color: @gray;
         }
