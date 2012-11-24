@@ -33,7 +33,7 @@ app.templates.group = '
                         <% } %>
                     </li>
                     <li>
-                        <a href="#" data-action="bookmark" class="bookmark<% if (isBookmarked) { %> checked<% } %>" title="Bookmark">&#9733;</a>
+                        <a href="#" data-action="bookmark" class="bookmark<% if (isBookmarked) { %> checked<% } %>" title="Bookmark"><i aria-hidden="true" class="icon-star"></i></a>
                     </li>
                 <% } %>
             </ul>

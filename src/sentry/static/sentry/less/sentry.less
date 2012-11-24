@@ -1,4 +1,5 @@
 @import url("../bootstrap/less/bootstrap.less");
+@import url("fonts.less");
 @import url("datepicker.less");
 
 @baseFontSize: 13px;
@@ -313,15 +314,17 @@ h3 {
       margin-bottom: 8px;
       list-style: none;
       &.counted-list {
+        margin: 0 -45px 17px;
         li {
           position: relative;
+          padding: 0 30px;
           a {
-            padding-left: 55px;
+            display: inline;
+            padding: 0;
+            margin: 0;
           }
           .count {
-            position: absolute;
-            left: 0;
-            line-height: 23px;
+            padding-right: 5px;
           }
         }
       }
@@ -329,13 +332,6 @@ h3 {
         position: relative;
         margin-left: 0;
         padding-left: 0;
-        .count {
-        text-align: center;
-          width: 35px;
-          position: absolute;
-          display: block;
-          left: 0;
-        }
       }
     }
 
@@ -998,17 +994,13 @@ legend {
 
 .datepicker-box {
   position: absolute;
-  top:45px;
-  left:378px;
+  top:50px;
+  left:400px;
   padding: 15px 15px 0px;
   z-index:900;
   background-color: @white;
-  border-color: #999;
-  border-color: rgba(0, 0, 0, 0.2);
-  border-style: solid;
-  border-width: 1px;
   .border-radius(4px);
-  .box-shadow(0 2px 4px rgba(0,0,0,.2));
+  .box-shadow(0 0 0 2px rgba(70,82,98,.43));
   .background-clip(padding-box);
   .time {
     width: 80px;
@@ -1106,12 +1098,22 @@ legend {
   text-shadow: none;
   font-size: 13px;
 
+  i {
+    color: lighten(#a4adb7, 5);
+    margin: 0 3px 0 0;
+    position: relative;
+    font-size: 15px;
+    top: 1px;
+    left: -1px;
+  }
+
   .caret {
     border-top-color: #a4adb7;
     border-bottom-color: #a4adb7;
   }
 
   &:hover {
+    color: #666d73;
     background: darken(#ecf0f4, 2);
   }
   &:active {
@@ -1133,4 +1135,33 @@ legend {
   font-weight: bold;
   font-size: 14px;
   text-shadow: none;
+}
+
+.btn-group.open .dropdown-toggle {
+background-color: darken(#ecf0f4, 4) !important; 
+  .box-shadow(none);
+}
+
+.dropdown-menu {
+  top: 33px;
+  border: none;
+  .border-radius(4px);
+  .box-shadow(0 0 0 2px rgba(70,82,98,.43));
+  .background-clip(padding-box);
+
+  li a {
+    .transition(none);
+    font-weight: bold;
+    color: #878e94;
+
+    &:hover {
+      background: #fff;
+      color: darken(#878e94, 12);
+    }
+  }
+
+  li.active a, li.active a:hover {
+    background: #56AFE8;
+    color: #fff;
+  }
 }
