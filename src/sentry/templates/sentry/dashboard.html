@@ -4,19 +4,6 @@
 
 {% block title %}{% trans "Dashboard" %} | {{ block.super }}{% endblock %}
 
-{% block page_header %}
-   <ul class="breadcrumb">
-        <li><a href="{% url sentry %}" class="dashboard-btn" title="{% trans "Dashboard" %}"><i aria-hidden="true" class="icon-list"></i></a></li>
-        <li class="projects filter">
-            <select class="filter-list">
-                <option>Select a project...</option>
-                <option>option 2</option>
-                <option>option 3</option>
-            </select>
-        </li>
-    </ul>
-{% endblock %}
-
 {% block main %}
     <section class="body">
         {% if PROJECT_LIST %}

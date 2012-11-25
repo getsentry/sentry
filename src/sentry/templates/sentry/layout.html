@@ -90,15 +90,15 @@
                 {% block page_header %}
                     <ul class="breadcrumb">
                         <li><a href="{% url sentry %}" class="dashboard-btn" title="{% trans "Dashboard" %}"><i aria-hidden="true" class="icon-list"></i></a></li>
-                        {% if project %}
-                        <li class="projects filter">
-                            <select class="filter-list">
-                                <option value="{% url sentry project.slug %}">{{ project.name }}</option>
-                                <option>option 2</option>
-                                <option>option 3</option>
+                        <li class="projects">
+                            <select class="project-selector">
+                                {% for p in PROJECT_LIST %}
+                                    <option value="{{ p.slug }}"{% if p == project %} selected="selected"{% endif %} data-url="{% url sentry p.slug %}">{{ p.name }}</option>
+                                {% endfor %}
                             </select>
                         </li>
-                        <li class="project-settings"><a href="{% url sentry-manage-project project.slug %}" class="{% trans "Settings" %}"><i aria-hidden="true" class="icon-cog"></i></a></li>
+                        {% if project %}
+                            <li class="project-settings"><a href="{% url sentry-manage-project project.slug %}" class="{% trans "Settings" %}"><i aria-hidden="true" class="icon-cog"></i></a></li>
                         {% endif %}
                         {% block breadcrumb %}
                         {% endblock %}
@@ -163,6 +163,12 @@
             $('input[data-toggle="datepicker"]').datepicker();
             $('.tip').tooltip();
             $('.nav-tabs .active a').tab('show')
+            $('.project-selector').select2().on('change', function(e){
+                var $el = $(e.target).get(0);
+                var $opt = $($el.options[$el.selectedIndex]);
+                window.location.href = $opt.attr('data-url');
+                return false;
+            });
         });
         </script>
     </body>
