@@ -27,7 +27,7 @@
             <div class="span6">
                 <form class="form-stacked" action="" method="post">
                     <fieldset>
-                        <legend>Login with your Sentry account</legend>
+                        <legend>{% trans "Login with your Sentry account" %}</legend>
                     </fieldset>
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ next }}" />
@@ -44,7 +44,12 @@
             {% if AUTH_PROVIDERS %}
                 <div class="span6">
                     <fieldset>
-                        <legend>Login{% if SOCIAL_AUTH_CREATE_USERS %} or Register{% endif %} with another account</legend>
+                        <legend>
+                            {% if SOCIAL_AUTH_CREATE_USERS %}
+                                {% trans "Login or Register using another service" %}
+                            {% else %}
+                                {% trans "Login using another service"}
+                            {% endif %}
                     </fieldset>
                     {% url sentry-account-settings-identities as identities_link %}
                     <p>{% blocktrans with identities_link as link %}If you already have an account, you can associate a social identity in the
