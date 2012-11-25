@@ -60,12 +60,15 @@ def login(request):
 def register(request):
     from sentry.conf import settings
 
-    if not settings.ALLOW_REGISTRATION:
+    if not (settings.ALLOW_REGISTRATION or request.session.get('can_register')):
         return HttpResponseRedirect(reverse('sentry'))
 
     form = RegistrationForm(request.POST or None)
     if form.is_valid():
         user = form.save()
+
+        # can_register should only allow a single registration
+        request.session.pop('can_register', None)
 
         # HACK: grab whatever the first backend is and assume it works
         user.backend = dj_settings.AUTHENTICATION_BACKENDS[0]
