@@ -106,9 +106,17 @@ class APIView(BaseView):
     @csrf_exempt
     def dispatch(self, request, project_id=None, *args, **kwargs):
         response = self._dispatch(request, project_id=project_id, *args, **kwargs)
-        # Set X-Sentry-Error as in many cases it is easier to inspect the headers
         if response.status_code != 200:
+            # Set X-Sentry-Error as in many cases it is easier to inspect the headers
             response['X-Sentry-Error'] = response.content[:200]  # safety net on content length
+
+            # We allow all origins on errors
+            response['Access-Control-Allow-Origin'] = '*'
+
+        response['Access-Control-Allow-Headers'] = 'X-Sentry-Auth, X-Requested-With, Origin, Accept, Content-Type, ' \
+            'Authentication'
+        response['Access-Control-Allow-Methods'] = ', '.join(self._allowed_methods())
+
         return response
 
     def _dispatch(self, request, project_id=None, *args, **kwargs):

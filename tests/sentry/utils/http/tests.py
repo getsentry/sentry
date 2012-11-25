@@ -38,29 +38,12 @@ class AccessControlTestCase(TestCase):
             response = apply_access_control_headers(HttpResponse(), None)
             self.assertEqual(response.get('Access-Control-Allow-Origin', None),
                              None)
-            self.assertEqual(response.get('Access-Control-Allow-Headers', None),
-                             None)
-            self.assertEqual(response.get('Access-Control-Allow-Methods', None),
-                             None)
 
     def test_allow_origin(self):
         with self.Settings(SENTRY_ALLOW_ORIGIN="http://foo.example"):
             response = apply_access_control_headers(HttpResponse(), "http://foo.example")
             self.assertEqual(response.get('Access-Control-Allow-Origin', None),
                              "http://foo.example")
-
-            headers = response.get('Access-Control-Allow-Headers', None)
-            self.assertNotEquals(headers, None)
-            headers = headers.split(', ')
-            self.assertIn('X-Sentry-Auth', headers)
-            self.assertIn('Authentication', headers)
-
-            methods = response.get('Access-Control-Allow-Methods', None)
-            self.assertNotEquals(methods, None)
-            methods = methods.split(', ')
-            self.assertIn('POST', methods)
-            self.assertIn('HEAD', methods)
-            self.assertIn('OPTIONS', methods)
 
 
 class IsValidOriginTestCase(TestCase):
