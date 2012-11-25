@@ -21,6 +21,18 @@ class LoginTest(TestCase):
     def path(self):
         return reverse('sentry-login')
 
+    def test_invalid_password(self):
+        # load it once for test cookie
+        self.client.get(self.path)
+
+        resp = self.client.post(self.path, {
+            'username': self.user.username,
+            'password': 'bizbar',
+        })
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp.context['form'].errors['__all__'],
+            u'Please enter a correct username and password. Note that both fields are case-sensitive.')
+
     def test_auth(self):
         # load it once for test cookie
         self.client.get(self.path)
