@@ -61,7 +61,7 @@
             <a class="btn realtime-play" data-action="pause" data-pause-label="{% trans "Pause Updates" %}" data-play-label="{% trans "Enable Updates" %}" href="javascript:void(0)"><i aria-hidden="true" class="icon-pause"></i> {% trans "Pause Updates" %}</a>
         </div>
         <div class="btn-group">
-            <a href="#" class="btn dropdown-toggle" data-toggle="dropdown">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <span class="caret"></span></a>
+            <a href="#" class="btn dropdown-toggle" data-toggle="dropdown">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <i aria-hidden="true" class="icon-arrow-down"></i></a>
             <ul class="dropdown-menu">
                 <li{% ifequal sort 'priority' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=priority">{{ SORT_OPTIONS.priority }}</a></li>
                 <li{% ifequal sort 'date' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=date">{{ SORT_OPTIONS.date }}</a></li>
@@ -92,7 +92,7 @@
                         Between: The Past <small>and</small> The Present
                     {% endif %}
                 {% endif %}
-             <span class="caret"></span></a>
+             <i aria-hidden="true" class="icon-arrow-down"></i></a>
         </div>
         <div class="btn-group pull-right">
             <a class="btn prev{% if not event_list.paginator.has_previous %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
