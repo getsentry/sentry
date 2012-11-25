@@ -352,7 +352,13 @@ An authentication header is expected to be sent along with the message body, whi
     .. note:: You should only pass the secret key if you're communicating via the server. Client-side behavior (such
               as JavaScript) should use CORS.
 
+crossdomain.xml
+~~~~~~~~~~~~~~~
 
+.. versionadded:: 5.1.0
+
+Cross domain requests from flash are supported within the API by specifying sub-policy, which is located at
+`/api/<project id>/crossdomain.xml`.
 
 A Working Example
 -----------------

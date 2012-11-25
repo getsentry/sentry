@@ -3,7 +3,7 @@ describe("formatNumber", function() {
     expect(app.formatNumber(1134134134)).toBe('1.1b');
   });
 
-  it("handles billions", function() {
+  it("handles millions", function() {
     expect(app.formatNumber(1234134)).toBe('1.2m');
   });
 

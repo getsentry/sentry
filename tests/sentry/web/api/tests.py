@@ -33,6 +33,23 @@ class StoreViewTest(TestCase):
         self.assertIn('Content-Length', resp)
         self.assertEquals(resp['Content-Length'], '0')
 
+    def test_options_response_with_invalid_origin(self):
+        resp = self.client.options(self.path, HTTP_ORIGIN='http://foo.com')
+        self.assertEquals(resp.status_code, 400)
+        self.assertIn('Access-Control-Allow-Origin', resp)
+        self.assertEquals(resp['Access-Control-Allow-Origin'], '*')
+        self.assertIn('X-Sentry-Error', resp)
+        self.assertEquals(resp['X-Sentry-Error'], "Invalid origin: 'http://foo.com'")
+        self.assertEquals(resp.content, resp['X-Sentry-Error'])
+
+    @mock.patch('sentry.web.api.is_valid_origin')
+    def test_options_response_with_valid_origin(self, is_valid_origin):
+        is_valid_origin.return_value = True
+        resp = self.client.options(self.path, HTTP_ORIGIN='http://foo.com')
+        self.assertEquals(resp.status_code, 200)
+        self.assertIn('Access-Control-Allow-Origin', resp)
+        self.assertEquals(resp['Access-Control-Allow-Origin'], 'http://foo.com')
+
 
 class CrossDomainXmlTest(TestCase):
     @fixture

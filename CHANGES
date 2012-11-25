@@ -22,8 +22,8 @@ Additionally, the following changes apply to the new protocol:
 - Signed messages are no longer supported (signatures are not calculated).
   - sentry_signature is no longer used.
   - sentry_timestamp is no longer used.
-- Clients should pass sentry_secret for server-side requests as part of the auth
-  header.
+- Clients must pass sentry_secret for server-side requests as part of the auth
+  header. This check runs in the event that there is no Origin header sent.
   - version 2.0 supports validation of this, version 3 requires it.
 - The ``project`` attribute in the JSON packet is no longer required.
 - The ``platform`` attribute is now recommended.
@@ -41,6 +41,7 @@ Other Changes
 - SiteFilter has been removed, as has the sites plugin.
 - If frames are included in a stacktrace that have the attribute ``in_app: false``, they will be hidden by default in
   the details view.
+- crossdomain.xml support is now available (see documentation).
 
 Version 5.0.0
 -------------
