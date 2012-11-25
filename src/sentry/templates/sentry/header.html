@@ -14,27 +14,11 @@
                         </form>
                     {% endif %}
                 {% endblock %}
-
-                <ul class="nav">
-                    {% if project %}
-                        <li{% if PAGE == 'dashboard' %} class="active"{% endif %}><a href="{% url sentry project.slug %}">{% trans "Stream" %}</a></li>
-                        <li><a href="{% url sentry-manage-project project.slug %}">{% trans "Settings" %}</a></li>
-                        <li><a href="{% url sentry-project-client-help project.slug %}">{% trans "Client Configuration" %}</a></li>
-                    {% endif %}
-                </ul>
                 <ul class="nav pull-right">
                     {% block account_nav %}
                         {% if request.user.is_authenticated %}
-                            {% if PROJECT_LIST %}
-                                <li class="dropdown">
-                                    <a href="#" class="dropdown-toggle" data-toggle="dropdown">{% trans "Projects" %} <span class="caret"></span></a>
-                                    <ul class="dropdown-menu">
-                                        {% for p in PROJECT_LIST %}
-                                            <li{% if project == p %} class="active"{% endif %}><a href="{% url sentry p.slug %}">{{ p.name }}</a></li>
-                                        {% endfor %}
-                                    </ul>
-                                </li>
-                            {% endif %}
+                            <li><a href="#">Docs</a></li>
+                            <li><a href="#">Support</a></li>
                             <li class="dropdown">
                                 <a href="#" class="dropdown-toggle" data-toggle="dropdown"><img class="avatar" src="{% gravatar_url user.email size 20 %}"> {{ user.username }} <span class="caret"></span></a>
                                 <ul class="dropdown-menu">

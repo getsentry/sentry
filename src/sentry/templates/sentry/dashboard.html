@@ -4,7 +4,13 @@
 
 {% block title %}{% trans "Dashboard" %} | {{ block.super }}{% endblock %}
 
-{% block page_header_block %}{% endblock %}
+{% block page_header %}
+   <ul class="breadcrumb">
+        <li><a href="{% url sentry %}" class="dashboard-btn" title="{% trans "Dashboard" %}"><i aria-hidden="true" class="icon-list"></i></a></li>
+        <li class="divider"></li>
+        <li>{% trans "Dashboard" %}</li>
+    </ul>
+{% endblock %}
 
 {% block main %}
     <section class="body">

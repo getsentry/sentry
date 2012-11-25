@@ -15,6 +15,8 @@
         <a href="{% url sentry-new-project %}" class="btn pull-right btn-primary">{% trans "Create a new project" %}</a>
     {% endif %}
     <ul class="breadcrumb">
+        <li><a href="{% url sentry %}" class="dashboard-btn" title="{% trans "Dashboard" %}"><i aria-hidden="true" class="icon-list"></i></a></li>
+        <li class="divider"></li>
         <li><a href="{% url sentry-project-list %}">{% trans "Projects" %}</a></li>
         {% block breadcrumb %}{% endblock %}
     </ul>
@@ -24,7 +26,7 @@
     <section class="body">
         {% if PROJECT_LIST %}
             <p>{% trans "The following is a list of projects that you are a member of." %}</p>
-            <table class="table table-bordered table-striped">
+            <table class="table table-striped">
                 <colgroup>
                     <col>
                     <col style="width:100px;">

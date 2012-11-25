@@ -8,7 +8,7 @@
 
 {% block breadcrumb %}
     {{ block.super }}
-    <li class="divider">/</li>
+    <li class="divider"></li>
     <li><a href="{% url sentry-manage-project project.slug %}">{{ project.name }}</a></li>
 {% endblock %}
 
@@ -75,7 +75,7 @@
                 <p>{% blocktrans with project.team.name as team_name %}You can manage project membership on the <a href="{{ link }}">team settings page for {{ team_name }}</a>.{% endblocktrans %}<p>
             {% endif %}
             {% if member_list %}
-                <table class="table table-bordered table-striped">
+                <table class="table table-striped">
                     <colgroup>
                         <col/>
                         <col width="100px"/>

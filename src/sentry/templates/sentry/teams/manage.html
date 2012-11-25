@@ -8,7 +8,7 @@
 
 {% block breadcrumb %}
     {{ block.super }}
-    <li class="divider">/</li>
+    <li class="divider"></li>
     <li><a href="{% url sentry-manage-team team.slug %}">{{ team.name }}</a></li>
 {% endblock %}
 
@@ -46,7 +46,7 @@
                 <h2>{% trans "Projects" %}</h2>
             </div>
             {% if project_list %}
-                <table class="table table-bordered table-striped">
+                <table class="table table-striped">
                     <colgroup>
                         <col/>
                         <col width="90px"/>
@@ -85,7 +85,7 @@
             </ul>
             <div class="tab-content">
                 <div class="tab-pane active" id="members">
-                    <table class="table table-bordered table-striped">
+                    <table class="table table-striped" style="border-top: none">
                         <colgroup>
                             <col/>
                             <col width="100px"/>
@@ -135,7 +135,7 @@
                     </table>
                 </div>
                 <div class="tab-pane" id="pending-members">
-                    <table class="table table-bordered table-striped">
+                    <table class="table table-striped" style="border-top: none">
                         <colgroup>
                             <col/>
                             <col width="100px"/>
