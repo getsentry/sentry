@@ -6,11 +6,15 @@ sentry.web.frontend.accounts
 :license: BSD, see LICENSE for more details.
 """
 from crispy_forms.helper import FormHelper
+
 from django.conf import settings as dj_settings
 from django.contrib import messages
+from django.contrib.auth import login as login_user
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
+from django.db import transaction
 from django.http import HttpResponseRedirect
+from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 
 from sentry.models import UserOption
@@ -24,8 +28,8 @@ from sentry.utils.safe import safe_execute
 
 
 @csrf_protect
+@never_cache
 def login(request):
-    from django.contrib.auth import login as login_
     from django.contrib.auth.forms import AuthenticationForm
 
     if request.user.is_authenticated():
@@ -33,7 +37,7 @@ def login(request):
 
     form = AuthenticationForm(request, request.POST or None)
     if form.is_valid():
-        login_(request, form.get_user())
+        login_user(request, form.get_user())
         return login_redirect(request)
 
     request.session.set_test_cookie()
@@ -61,6 +65,7 @@ def login_redirect(request):
     return HttpResponseRedirect(login_url)
 
 
+@never_cache
 def logout(request):
     from django.contrib.auth import logout
 
@@ -70,7 +75,9 @@ def logout(request):
 
 
 @csrf_protect
+@never_cache
 @login_required
+@transaction.commit_on_success
 def settings(request):
     form = AccountSettingsForm(request.user, request.POST or None, initial={
         'email': request.user.email,
@@ -90,7 +97,9 @@ def settings(request):
 
 
 @csrf_protect
+@never_cache
 @login_required
+@transaction.commit_on_success
 def appearance_settings(request):
     options = UserOption.objects.get_all_values(user=request.user, project=None)
 
@@ -112,7 +121,9 @@ def appearance_settings(request):
 
 
 @csrf_protect
+@never_cache
 @login_required
+@transaction.commit_on_success
 def notification_settings(request):
     forms = []
     for plugin in plugins.all():
@@ -147,6 +158,7 @@ def notification_settings(request):
 
 
 @csrf_protect
+@never_cache
 @login_required
 def list_identities(request):
     from social_auth.models import UserSocialAuth
