@@ -41,6 +41,7 @@ Other Changes
 - SiteFilter has been removed, as has the sites plugin.
 - If frames are included in a stacktrace that have the attribute ``in_app: false``, they will be hidden by default in
   the details view.
+- crossdomain.xml support is now available (see documentation).
 
 Version 5.0.0
 -------------
