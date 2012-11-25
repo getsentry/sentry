@@ -182,14 +182,12 @@ def accept_invite(request, member_id, token):
         }
         return render_to_response('sentry/teams/members/accept_invite_unauthenticated.html', context, request)
 
-    if team.member_set.filter(
-            user=request.user,
-            type=pending_member.type,
-        ):
-        team.member_set.create(
-            user=request.user,
-            type=pending_member.type,
-        )
+    team.member_set.get_or_create(
+        user=request.user,
+        type=pending_member.type,
+    )
+
+    request.session.pop('can_register', None)
 
     pending_member.delete()
 

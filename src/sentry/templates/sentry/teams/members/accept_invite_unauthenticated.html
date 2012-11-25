@@ -1,0 +1,18 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Team Invite" %} | {{ block.super }}{% endblock %}
+
+{% block page_header_block %}{% endblock %}
+{% block bodyclass %}{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <p>{% blocktrans with team.name as team_name %}You have been invited to join the <strong>{{ team_name }}</strong> team.{% endblocktrans %}</p>
+
+        <p>{% trans "To continue, you must either login to your existing account, or create a new one." %}</p>
+
+        <p><a href="{% url sentry-login %}" class="btn btn-large btn-primary">Login</a> or <a href="{% url sentry-register %}" class="btn btn-large btn-primary">New account</a></p>
+    </section>
+{% endblock %}
