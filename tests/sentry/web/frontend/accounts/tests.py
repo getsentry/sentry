@@ -54,21 +54,28 @@ class RegisterTest(TestCase):
     def path(self):
         return reverse('sentry-register')
 
+    def test_redirects_if_registration_disabled(self):
+        with self.Settings(SENTRY_ALLOW_REGISTRATION=False):
+            resp = self.client.get(self.path)
+            self.assertEquals(resp.status_code, 302)
+
     def test_renders_correct_template(self):
-        resp = self.client.get(self.path)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed('sentry/register.html')
+        with self.Settings(SENTRY_ALLOW_REGISTRATION=True):
+            resp = self.client.get(self.path)
+            self.assertEquals(resp.status_code, 200)
+            self.assertTemplateUsed('sentry/register.html')
 
     def test_with_required_params(self):
-        resp = self.client.post(self.path, {
-            'username': 'test',
-            'email': 'test@example.com',
-            'password': 'foobar',
-        })
-        self.assertEquals(resp.status_code, 302)
-        user = User.objects.get(username='test')
-        self.assertEquals(user.email, 'test@example.com')
-        self.assertTrue(user.check_password('foobar'))
+        with self.Settings(SENTRY_ALLOW_REGISTRATION=True):
+            resp = self.client.post(self.path, {
+                'username': 'test',
+                'email': 'test@example.com',
+                'password': 'foobar',
+            })
+            self.assertEquals(resp.status_code, 302)
+            user = User.objects.get(username='test')
+            self.assertEquals(user.email, 'test@example.com')
+            self.assertTrue(user.check_password('foobar'))
 
 
 class AppearanceSettingsTest(TestCase):
