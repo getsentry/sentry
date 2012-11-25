@@ -56,6 +56,5 @@ class AppearanceSettingsTest(TestCase):
 
         options = UserOption.objects.get_all_values(user=self.user, project=None)
 
-        print options
         self.assertEquals(options.get('stacktrace_order'), '2')
         self.assertEquals(options.get('language'), 'en')
