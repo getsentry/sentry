@@ -132,14 +132,14 @@ class SentryManagerTest(TestCase):
     def test_tags_as_list(self, add_tags):
         event = Group.objects.from_kwargs(1, message='foo', tags=[('foo', 'bar')])
         group = event.group
-        add_tags.assert_called_once_with(group, [('foo', 'bar'), ('logger', 'root')])
+        add_tags.assert_called_once_with(group, [('foo', 'bar'), ('logger', 'root'), ('level', 'error')])
 
     @mock.patch('sentry.manager.send_group_processors', mock.Mock())
     @mock.patch('sentry.manager.GroupManager.add_tags')
     def test_tags_as_dict(self, add_tags):
         event = Group.objects.from_kwargs(1, message='foo', tags={'foo': 'bar'})
         group = event.group
-        add_tags.assert_called_once_with(group, [('foo', 'bar'), ('logger', 'root')])
+        add_tags.assert_called_once_with(group, [('foo', 'bar'), ('logger', 'root'), ('level', 'error')])
 
     def test_dupe_message_id(self):
         event = Group.objects.from_kwargs(1, event_id=1, message='foo')

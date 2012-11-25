@@ -19,9 +19,11 @@ class CommandError(Exception):
 
 
 def handle_sentry(data, address):
-    from sentry.exceptions import InvalidData
     from sentry.coreapi import project_from_auth_vars, decode_and_decompress_data, \
-        safely_load_json_string, validate_data, insert_data_to_database, APIError
+        safely_load_json_string, validate_data, insert_data_to_database, APIError, \
+        APIForbidden
+    from sentry.exceptions import InvalidData
+    from sentry.plugins import plugins
     from sentry.utils.auth import parse_auth_header
 
     try:
@@ -30,8 +32,16 @@ def handle_sentry(data, address):
         except ValueError:
             raise APIError('missing auth header')
 
-        auth_vars = parse_auth_header(auth_header)
-        project = project_from_auth_vars(auth_vars)
+        try:
+            auth_vars = parse_auth_header(auth_header)
+        except (ValueError, IndexError):
+            raise APIError('invalid auth header')
+
+        project, user = project_from_auth_vars(auth_vars)
+
+        result = plugins.first('has_perm', user, 'create_event', project)
+        if result is False:
+            raise APIForbidden('Creation of this event was blocked')
 
         client = auth_vars.get('sentry_client')
 

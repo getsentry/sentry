@@ -16,10 +16,10 @@ app.templates.group = '
                 <span class="tag tag-project"><%= project.name %></span>
                 <span class="tag tag-logger"><%= logger %></span>
                 <% _.each(versions, function(version){ %> 
-                    <span class="tag tag-version">{{ version }}</span>
+                    <span class="tag tag-version"><%= version %></span>
                 <% }) %>
                 <% _.each(tags, function(tag){ %> 
-                    <span class="tag">{{ tag }}</span>
+                    <span class="tag"><%= tag %></span>
                 <% }) %>
             </div>
             <span class="sparkline"></span>
@@ -27,9 +27,9 @@ app.templates.group = '
                 <% if (canResolve) { %>
                     <li>
                         <% if (!isResolved) { %>
-                            <a href="#" data-action="resolve" title="Mark as Resolved>&#10003;</a>
+                            <a href="#" data-action="resolve" title="Mark as Resolved">&#10003;</a>
                         <% } else { %>
-                            <a href="#" class="checked" title="Already Resolved>&#10003;</a>
+                            <a href="#" class="checked" title="Already Resolved">&#10003;</a>
                         <% } %>
                     </li>
                     <li>

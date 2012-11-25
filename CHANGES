@@ -13,9 +13,18 @@ test suites with the ``make test`` command.
 Protocol Version 3
 ==================
 
+Sentry 5.1 removes support for version 1.0 of the protocol, and maintains a compatibility layer
+for version 2.0.
+
+Additionally, the following changes apply to the new protocol:
+
+- sentry_version should be sent as '3' (not 3.0).
 - Signed messages are no longer supported (signatures are not calculated).
+  - sentry_signature is no longer used.
+  - sentry_timestamp is no longer used.
 - Clients should pass sentry_secret for server-side requests as part of the auth
   header.
+  - version 2.0 supports validation of this, version 3 requires it.
 - The ``project`` attribute in the JSON packet is no longer required.
 - The ``platform`` attribute is now recommended.
 - The ``tags`` attribute is now recommended.
@@ -25,13 +34,13 @@ Other Changes
 
 - All streaming components are now powered by Backbone.js.
 - Frontend has been updated to Bootstrap 2.1.
-- A new 1080p wall display is available.
 - The event stream now includes sparklines representing the last 24 hours of data for each event.
 - Trends have greatly improved.
 - Grouping events that have identical stacktraces other than the function name (e.g. dynamically generated
   functions) is not possible.
 - SiteFilter has been removed, as has the sites plugin.
-
+- If frames are included in a stacktrace that have the attribute ``in_app: false``, they will be hidden by default in
+  the details view.
 
 Version 5.0.0
 -------------
