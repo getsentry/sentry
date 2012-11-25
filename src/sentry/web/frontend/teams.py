@@ -174,10 +174,13 @@ def accept_invite(request, member_id, token):
 
     if not request.user.is_authenticated():
         # Show login or register form
+        request.session['_next'] = request.get_full_path()
+        request.session['can_register'] = True
+
         context = {
             'team': team,
         }
-        return render_to_response('sentry/teams/members/accept_invite.html', context, request)
+        return render_to_response('sentry/teams/members/accept_invite_unauthenticated.html', context, request)
 
     if team.member_set.filter(
             user=request.user,

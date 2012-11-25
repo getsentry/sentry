@@ -21,6 +21,11 @@ class LoginTest(TestCase):
     def path(self):
         return reverse('sentry-login')
 
+    def test_renders_correct_template(self):
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed('sentry/login.html')
+
     def test_invalid_password(self):
         # load it once for test cookie
         self.client.get(self.path)
@@ -31,9 +36,9 @@ class LoginTest(TestCase):
         })
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp.context['form'].errors['__all__'],
-            u'Please enter a correct username and password. Note that both fields are case-sensitive.')
+            [u'Please enter a correct username and password. Note that both fields are case-sensitive.'])
 
-    def test_auth(self):
+    def test_valid_credentials(self):
         # load it once for test cookie
         self.client.get(self.path)
 
@@ -48,6 +53,11 @@ class RegisterTest(TestCase):
     @fixture
     def path(self):
         return reverse('sentry-register')
+
+    def test_renders_correct_template(self):
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed('sentry/register.html')
 
     def test_with_required_params(self):
         resp = self.client.post(self.path, {

@@ -2,17 +2,13 @@
 
 {% load i18n %}
 
-{% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
+{% block title %}{% trans "Register" %} | {{ block.super }}{% endblock %}
 
 {% block page_header_block %}{% endblock %}
 {% block bodyclass %}{% endblock %}
 
 {% block main %}
     <section class="body">
-       {% if next %}
-            <p class="alert alert-info">{% trans "Please login to continue." %}</p>
-        {% endif %}
-
         {% if form.non_field_errors %}
             <div class="alert alert-block alert-error">
                 <ul>
@@ -27,24 +23,23 @@
             <div class="span6">
                 <form class="form-stacked" action="" method="post">
                     <fieldset>
-                        <legend>Login with your Sentry account</legend>
+                        <legend>{% trans "Create a new account" %}</legend>
                     </fieldset>
                     {% csrf_token %}
-                    <input type="hidden" name="next" value="{{ next }}" />
 
                     {% for field in form %}
                         {% include "sentry/partial/_form_field.html" %}
                     {% endfor %}
 
                     <fieldset class="form-actions">
-                        <button type="submit" class="btn btn-primary">{% trans "Login" %}</button>
+                        <button type="submit" class="btn btn-primary">{% trans "Register" %}</button>
                     </fieldset>
                 </form>
             </div>
             {% if AUTH_PROVIDERS and SOCIAL_AUTH_CREATE_USERS %}
                 <div class="span6">
                     <fieldset>
-                        <legend>Register using another service</legend>
+                        <legend>{% trans "Register using another service" %}</legend>
                     </fieldset>
                     {% url sentry-account-settings-identities as identities_link %}
                     <p>{% blocktrans with identities_link as link %}If you already have an account, you can associate a social identity in the
