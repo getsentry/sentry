@@ -8,6 +8,32 @@ from sentry.models import Project
 from sentry.testutils import TestCase, fixture
 
 
+class StoreViewTest(TestCase):
+    @fixture
+    def project(self):
+        return Project.objects.create(name='foo', slug='foo')
+
+    @fixture
+    def path(self):
+        return reverse('sentry-api-store', kwargs={'project_id': self.project.slug})
+
+    @mock.patch('sentry.web.api.StoreView._parse_header')
+    @mock.patch('sentry.web.api.project_from_auth_vars')
+    def test_options_response(self, project_from_auth_vars, parse_header):
+        parse_header.return_value = {
+            'sentry_project': self.project.id,
+            'sentry_key': 'a' * 40,
+            'sentry_version': '2.0',
+        }
+        project_from_auth_vars.return_value = (self.project, None)
+        resp = self.client.options(self.path)
+        self.assertEquals(resp.status_code, 200)
+        self.assertIn('Allow', resp)
+        self.assertEquals(resp['Allow'], 'POST, OPTIONS')
+        self.assertIn('Content-Length', resp)
+        self.assertEquals(resp['Content-Length'], '0')
+
+
 class CrossDomainXmlTest(TestCase):
     @fixture
     def project(self):
@@ -54,3 +80,15 @@ class CrossDomainXmlTest(TestCase):
         self.assertEquals(resp['Content-Type'], 'application/xml')
         self.assertTemplateUsed(resp, 'sentry/crossdomain.xml')
         self.assertIn('<allow-http-request-headers-from domain="*" headers="X-Sentry-Auth" secure="true"></allow-http-request-headers-from>', resp.content)
+
+
+class CrossDomainXmlIndexTest(TestCase):
+    @fixture
+    def path(self):
+        return reverse('sentry-api-crossdomain-xml-index')
+
+    def test_permits_policies(self):
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp['Content-Type'], 'application/xml')
+        self.assertIn('<site-control permitted-cross-domain-policies="all"></site-control>', resp.content)

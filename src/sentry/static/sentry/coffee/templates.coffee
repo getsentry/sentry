@@ -16,10 +16,10 @@ app.templates.group = '
                 <span class="tag tag-project"><%= project.name %></span>
                 <span class="tag tag-logger"><%= logger %></span>
                 <% _.each(versions, function(version){ %> 
-                    <span class="tag tag-version">{{ version }}</span>
+                    <span class="tag tag-version"><%= version %></span>
                 <% }) %>
                 <% _.each(tags, function(tag){ %> 
-                    <span class="tag">{{ tag }}</span>
+                    <span class="tag"><%= tag %></span>
                 <% }) %>
             </div>
             <span class="sparkline"></span>

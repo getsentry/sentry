@@ -84,7 +84,7 @@ def extract_auth_vars(request):
 def project_from_auth_vars(auth_vars):
     api_key = auth_vars.get('sentry_key')
     if not api_key:
-        return None
+        raise APIForbidden('Invalid api key')
     try:
         pk = ProjectKey.objects.get_from_cache(public_key=api_key)
     except ProjectKey.DoesNotExist:
@@ -102,18 +102,14 @@ def project_from_auth_vars(auth_vars):
             raise APIUnauthorized('Member does not have access to project')
 
         try:
-            tm = TeamMember.objects.get(team=team, user=pk.user, is_active=True)
+            TeamMember.objects.get(team=team, user=pk.user, is_active=True)
         except TeamMember.DoesNotExist:
             raise APIUnauthorized('Member does not have access to project')
 
         if not pk.user.is_active:
             raise APIUnauthorized('Account is not active')
 
-    result = plugins.first('has_perm', tm.user, 'create_event', project)
-    if result is False:
-        raise APIForbidden('Creation of this event was blocked')
-
-    return project
+    return project, pk.user
 
 
 def project_from_api_key_and_id(api_key, project_id):

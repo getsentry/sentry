@@ -216,15 +216,16 @@ def search(request, project):
 
 @login_required
 @has_access
-def group_list(request, project, view_id=None):
+def group_list(request, project):
     try:
         page = int(request.GET.get('p', 1))
     except (TypeError, ValueError):
         page = 1
 
+    view_id = request.GET.get('view')
     if view_id:
         try:
-            view = View.objects.get_from_cache(pk=view_id)
+            view = View.objects.get_from_cache(pk=int(view_id))
         except View.DoesNotExist:
             return HttpResponseRedirect(reverse('sentry', args=[project.slug]))
     else:

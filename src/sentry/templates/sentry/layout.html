@@ -13,8 +13,6 @@
         {% block css %}
             {% compress css %}
                 <link href="{% url sentry-media "sentry" "scripts/select2/select2.css" %}" rel="stylesheet" type="text/css"/>
-            {% endcompress %}
-            {% compress css %}
                 <link href="{% url sentry-media "sentry" "less/sentry.less" %}" rel="stylesheet" type="text/less"/>
             {% endcompress %}
         {% endblock %}
@@ -47,9 +45,18 @@
                 <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/underscore.min.js" %}"></script>
                 <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/backbone.js" %}"></script>
                 <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/select2/select2.min.js" %}"></script>
-                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/bootstrap.min.js" %}"></script>
-                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/global.min.js" %}"></script>
                 <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/site.js" %}"></script>
+            {% endcompress %}
+            {% compress js %}
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/bootstrap.min.js" %}"></script>
+            {% endcompress %}
+            {% comment %}
+                The sentry.* javascript will be replaced by the new app (coffee script) code.
+            {% endcomment %}
+            {% compress js %}
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/sentry.core.js" %}"></script>
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/sentry.charts.js" %}"></script>
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/sentry.stream.js" %}"></script>
             {% endcompress %}
             <script type="text/javascript">
             Sentry.config({

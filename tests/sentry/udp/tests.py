@@ -2,6 +2,8 @@
 
 from __future__ import absolute_import
 
+from django.contrib.auth.models import User
+from sentry.models import Project
 from sentry.utils.auth import get_auth_header
 from sentry.services.udp import SentryUDPServer
 
@@ -12,6 +14,10 @@ class SentryUDPTest(TestCase):
     def setUp(self):
         self.address = (('0.0.0.0', 0))
         self.server = SentryUDPServer(*self.address)
+        self.user = User.objects.create(username='coreapi')
+        self.project = Project.objects.create(owner=self.user, name='Foo', slug='bar')
+        self.pm = self.project.team.member_set.get_or_create(user=self.user)[0]
+        self.pk = self.project.key_set.get_or_create(user=self.user)[0]
 
     def test_failure(self):
         self.assertNotEquals(None, self.server.handle('deadbeef', self.address))
@@ -19,5 +25,6 @@ class SentryUDPTest(TestCase):
     def test_success(self):
         data = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
         message = self._makeMessage(data)
-        packet = get_auth_header('udpTest') + '\n\n' + message
+        header = get_auth_header('udpTest', api_key=self.pk.public_key, secret_key=self.pk.secret_key)
+        packet = header + '\n\n' + message
         self.assertEquals(None, self.server.handle(packet, self.address))

@@ -118,7 +118,7 @@ urlpatterns = patterns('',
     url(r'^manage/plugins/(?P<slug>[\w_-]+)/$', admin.configure_plugin, name='sentry-admin-configure-plugin'),
 
     # API / JS
-
+    url(r'^crossdomain\.xml$', api.crossdomain_xml_index, name='sentry-api-crossdomain-xml-index'),
     url(r'^api/store/$', api.StoreView.as_view(), name='sentry-api-store'),
     url(r'^api/notification/$', api.notification, name='sentry-api-notification'),
     url(r'^api/(?P<project_id>[\w_-]+)/crossdomain\.xml$', api.crossdomain_xml, name='sentry-api-crossdomain-xml'),
@@ -152,7 +152,6 @@ urlpatterns = patterns('',
 
     url(r'^(?P<project_id>[\w_-]+)/search/$', groups.search, name='sentry-search'),
 
-    url(r'^(?P<project_id>[\w_-]+)/view/(?P<view_id>\d+)/$', groups.group_list, name='sentry'),
     url(r'^(?P<project_id>[\w_-]+)/$', groups.group_list, name='sentry'),
 
     url(r'', include('social_auth.urls')),
