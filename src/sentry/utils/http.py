@@ -74,15 +74,3 @@ def is_valid_origin(origin, project=None):
         return False
 
     return origin in allowed
-
-
-def apply_access_control_headers(response, origin):
-    """
-    Provides the Access-Control headers to enable cross-site HTTP requests. You
-    can find more information about these headers here:
-    https://developer.mozilla.org/En/HTTP_access_control#Simple_requests
-    """
-    if origin:
-        response['Access-Control-Allow-Origin'] = origin
-
-    return response

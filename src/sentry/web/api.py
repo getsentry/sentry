@@ -31,8 +31,7 @@ from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.db import has_trending
 from sentry.utils.javascript import to_json
-from sentry.utils.http import is_valid_origin, apply_access_control_headers, \
-  get_origins
+from sentry.utils.http import is_valid_origin, get_origins
 from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
 from sentry.web.helpers import render_to_response, render_to_string, get_project_list
@@ -64,7 +63,10 @@ def transform_groups(request, group_list, template='sentry/partial/_group.html')
 
 class Auth(object):
     def __init__(self, auth_vars):
-        self.client = auth_vars.get('client')
+        self.client = auth_vars.get('sentry_client')
+        self.version = auth_vars.get('sentry_version')
+        self.secret_key = auth_vars.get('sentry_secret')
+        self.public_key = auth_vars.get('sentry_key')
 
 
 class APIView(BaseView):
@@ -105,18 +107,22 @@ class APIView(BaseView):
 
     @csrf_exempt
     def dispatch(self, request, project_id=None, *args, **kwargs):
+        origin = request.META.get('HTTP_ORIGIN', None)
+
         response = self._dispatch(request, project_id=project_id, *args, **kwargs)
 
         if response.status_code != 200:
             # Set X-Sentry-Error as in many cases it is easier to inspect the headers
             response['X-Sentry-Error'] = response.content[:200]  # safety net on content length
 
-            # We allow all origins on errors
-            response['Access-Control-Allow-Origin'] = '*'
+            if origin:
+                # We allow all origins on errors
+                response['Access-Control-Allow-Origin'] = '*'
 
-        response['Access-Control-Allow-Headers'] = 'X-Sentry-Auth, X-Requested-With, Origin, Accept, Content-Type, ' \
-            'Authentication'
-        response['Access-Control-Allow-Methods'] = ', '.join(self._allowed_methods())
+        if origin:
+            response['Access-Control-Allow-Headers'] = 'X-Sentry-Auth, X-Requested-With, Origin, Accept, Content-Type, ' \
+                'Authentication'
+            response['Access-Control-Allow-Methods'] = ', '.join(self._allowed_methods())
 
         return response
 
@@ -166,6 +172,11 @@ class APIView(BaseView):
 
             auth = Auth(auth_vars)
 
+            if auth.version == '3':
+                # Version 3 enforces secret key for server side requests
+                if origin is None and not auth.secret_key:
+                    return HttpResponse('Missing required attribute in authentication header: sentry_secret', status=400)
+
             try:
                 response = super(APIView, self).dispatch(request, project=project, auth=auth, **kwargs)
 
@@ -175,7 +186,8 @@ class APIView(BaseView):
                 }, exc_info=True)
                 response = HttpResponse(unicode(error.msg), status=error.http_status)
 
-        response = apply_access_control_headers(response, origin)
+        if origin:
+            response['Access-Control-Allow-Origin'] = origin
 
         return response
 
