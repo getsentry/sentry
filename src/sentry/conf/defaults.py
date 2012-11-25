@@ -128,6 +128,11 @@ ALLOW_TEAM_CREATION = False
 # make projects public
 ALLOW_PUBLIC_PROJECTS = True
 
+# Should users be allowed to register an account? If this is disabled
+# accounts can only be created when someone is invited or added
+# manually.
+ALLOW_REGISTRATION = True
+
 # Instructs Sentry to utilize it's queue for background jobs. You will
 # need to ensure that you have workers running if you enable the queue.
 

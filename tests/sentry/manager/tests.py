@@ -7,7 +7,6 @@ import mock
 
 from django.utils import timezone
 from nose.plugins.skip import SkipTest
-from sentry.conf import settings
 from sentry.interfaces import Interface
 from sentry.models import Event, Group, Project, MessageCountByMinute, ProjectCountByMinute, \
   SearchDocument

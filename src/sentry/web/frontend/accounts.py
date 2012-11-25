@@ -21,7 +21,7 @@ from sentry.models import UserOption
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required
 from sentry.web.forms.accounts import AccountSettingsForm, NotificationSettingsForm, \
-  AppearanceSettingsForm
+  AppearanceSettingsForm, RegistrationForm
 from sentry.web.helpers import render_to_response
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.safe import safe_execute
@@ -52,6 +52,31 @@ def login(request):
         'SOCIAL_AUTH_CREATE_USERS': dj_settings.SOCIAL_AUTH_CREATE_USERS,
     })
     return render_to_response('sentry/login.html', context, request)
+
+
+@csrf_protect
+@never_cache
+@transaction.commit_on_success
+def register(request):
+    from sentry.conf import settings
+
+    if not settings.ALLOW_REGISTRATION:
+        return HttpResponseRedirect(reverse('sentry'))
+
+    form = RegistrationForm(request.POST or None)
+    if form.is_valid():
+        user = form.save()
+
+        # HACK: grab whatever the first backend is and assume it works
+        user.backend = dj_settings.AUTHENTICATION_BACKENDS[0]
+
+        login_user(request, user)
+
+        return login_redirect(request)
+
+    return render_to_response('sentry/register.html', {
+        'form': form,
+    }, request)
 
 
 @login_required

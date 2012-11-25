@@ -15,6 +15,32 @@ from sentry.conf import settings
 from sentry.models import UserOption
 
 
+class RegistrationForm(forms.ModelForm):
+    email = forms.EmailField()
+    password = forms.CharField(widget=forms.PasswordInput)
+
+    class Meta:
+        fields = ('username', 'email')
+        model = User
+
+    def clean_email(self):
+        value = self.cleaned_data.get('email')
+        if not value:
+            return
+        # We dont really care about why people think they need multiple User accounts with the same
+        # email address -- dealwithit.jpg
+        if User.objects.filter(email__iexact=value).exists():
+            raise forms.ValidationError(_('An account is already registered with that email address.'))
+        return value
+
+    def save(self, commit=True):
+        user = super(RegistrationForm, self).save(commit=False)
+        user.set_password(self.cleaned_data['password'])
+        if commit:
+            user.save()
+        return user
+
+
 class NotificationSettingsForm(forms.Form):
     alert_email = forms.EmailField(help_text='Designate an alternative email address to send email notifications to.')
 

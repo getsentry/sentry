@@ -17,15 +17,36 @@ class LoginTest(TestCase):
         user.save()
         return user
 
+    @fixture
+    def path(self):
+        return reverse('sentry-login')
+
     def test_auth(self):
         # load it once for test cookie
-        self.client.get(reverse('sentry-login'))
+        self.client.get(self.path)
 
-        resp = self.client.post(reverse('sentry-login'), {
+        resp = self.client.post(self.path, {
             'username': self.user.username,
             'password': 'foobar',
         })
         self.assertEquals(resp.status_code, 302)
+
+
+class RegisterTest(TestCase):
+    @fixture
+    def path(self):
+        return reverse('sentry-register')
+
+    def test_with_required_params(self):
+        resp = self.client.post(self.path, {
+            'username': 'test',
+            'email': 'test@example.com',
+            'password': 'foobar',
+        })
+        self.assertEquals(resp.status_code, 302)
+        user = User.objects.get(username='test')
+        self.assertEquals(user.email, 'test@example.com')
+        self.assertTrue(user.check_password('foobar'))
 
 
 class AppearanceSettingsTest(TestCase):
