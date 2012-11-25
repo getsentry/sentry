@@ -106,6 +106,7 @@ class APIView(BaseView):
     @csrf_exempt
     def dispatch(self, request, project_id=None, *args, **kwargs):
         response = self._dispatch(request, project_id=project_id, *args, **kwargs)
+
         if response.status_code != 200:
             # Set X-Sentry-Error as in many cases it is easier to inspect the headers
             response['X-Sentry-Error'] = response.content[:200]  # safety net on content length
@@ -127,45 +128,52 @@ class APIView(BaseView):
         except APIError, e:
             return HttpResponse(str(e), status=400)
 
-        try:
-            auth_vars = self._parse_header(request, project)
-        except APIError, e:
-            return HttpResponse(str(e), status=400)
+        origin = request.META.get('HTTP_ORIGIN', None)
+        if origin is not None:
+            if not project:
+                return HttpResponse('Your client must be upgraded for CORS support.')
+            elif not is_valid_origin(origin, project):
+                return HttpResponse('Invalid origin: %r' % origin, status=400)
 
-        try:
-            project_, user = project_from_auth_vars(auth_vars)
-        except APIError, error:
-            if project:
+        # XXX: It seems that the OPTIONS call does not always include custom headers
+        if request.method == 'OPTIONS':
+            response = self.options(request, project)
+        else:
+            try:
+                auth_vars = self._parse_header(request, project)
+            except APIError, e:
+                return HttpResponse(str(e), status=400)
+
+            try:
+                project_, user = project_from_auth_vars(auth_vars)
+            except APIError, error:
+                if project:
+                    logger.info('Project %r raised API error: %s', project.slug, error, extra={
+                        'request': request,
+                    }, exc_info=True)
+                return HttpResponse(unicode(error.msg), status=error.http_status)
+            else:
+                if user:
+                    request.user = user
+
+            # Legacy API was /api/store/ and the project ID was only available elsewhere
+            if not project:
+                if not project_:
+                    return HttpResponse('Unable to identify project', status=400)
+                project = project_
+            elif project_ != project:
+                return HttpResponse('Project ID mismatch', status=400)
+
+            auth = Auth(auth_vars)
+
+            try:
+                response = super(APIView, self).dispatch(request, project=project, auth=auth, **kwargs)
+
+            except APIError, error:
                 logger.info('Project %r raised API error: %s', project.slug, error, extra={
                     'request': request,
                 }, exc_info=True)
-            return HttpResponse(unicode(error.msg), status=error.http_status)
-        else:
-            if user:
-                request.user = user
-
-        # Legacy API was /api/store/ and the project ID was only available elsewhere
-        if not project:
-            if not project_:
-                return HttpResponse('Unable to identify project', status=400)
-            project = project_
-        elif project_ != project:
-            return HttpResponse('Project ID mismatch', status=400)
-
-        origin = request.META.get('HTTP_ORIGIN', None)
-        if origin is not None and not is_valid_origin(origin, project):
-            return HttpResponse('Invalid origin: %r' % origin, status=400)
-
-        auth = Auth(auth_vars)
-
-        try:
-            response = super(APIView, self).dispatch(request, project=project, auth=auth, **kwargs)
-
-        except APIError, error:
-            logger.info('Project %r raised API error: %s', project.slug, error, extra={
-                'request': request,
-            }, exc_info=True)
-            response = HttpResponse(unicode(error.msg), status=error.http_status)
+                response = HttpResponse(unicode(error.msg), status=error.http_status)
 
         response = apply_access_control_headers(response, origin)
 
