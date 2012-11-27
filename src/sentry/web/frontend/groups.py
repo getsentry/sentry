@@ -171,8 +171,8 @@ def search(request, project):
         # Forward to message if it exists
         # event_id = result.group(1)
         checksum = result.group(2)
-        event_list = Group.objects.filter(checksum=checksum)
-        top_matches = event_list[:2]
+        event_list = Group.objects.filter(project=project, checksum=checksum)
+        top_matches = list(event_list[:2])
         if len(top_matches) == 0:
             return render_to_response('sentry/invalid_message_id.html', {
                 'project': project,
