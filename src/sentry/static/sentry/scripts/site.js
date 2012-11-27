@@ -639,6 +639,10 @@
       GroupListView.prototype.poll = function() {
         var data,
           _this = this;
+        if (!this.config.realtime) {
+          window.setTimeout(this.poll, this.config.pollTime);
+          return;
+        }
         data = app.utils.getQueryParams();
         data.cursor = this.cursor || void 0;
         return $.ajax({

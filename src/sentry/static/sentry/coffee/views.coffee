@@ -178,6 +178,10 @@ jQuery ->
                     })
 
         poll: ->
+            if !@config.realtime
+                window.setTimeout(@poll, @config.pollTime)
+                return
+
             data = app.utils.getQueryParams()
             data.cursor = @cursor || undefined
 
