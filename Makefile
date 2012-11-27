@@ -1,4 +1,5 @@
 VERSION = 2.0.0
+NPM_ROOT = node_modules/
 STATIC_DIR = src/sentry/static/sentry
 BOOTSTRAP_JS = ${STATIC_DIR}/scripts/bootstrap.js
 BOOTSTRAP_JS_MIN = ${STATIC_DIR}/scripts/bootstrap.min.js
@@ -9,8 +10,7 @@ COFFEE ?= `which coffee`
 WATCHR ?= `which watchr`
 
 develop: update-submodules bootstrap-tests
-	npm install coffee-script@1.4.0
-	npm install less@1.3.1
+	npm install
 	pip install -e . --use-mirrors
 
 build: static coffee locale
@@ -32,13 +32,13 @@ update-submodules:
 	git submodule update
 
 coffee:
-	@coffee --join ${STATIC_DIR}/scripts/site.js -c ${STATIC_DIR}/coffee/*.coffee
+	@${NPM_ROOT}/coffee-script/bin/coffee --join ${STATIC_DIR}/scripts/site.js -c ${STATIC_DIR}/coffee/*.coffee
 	@echo "Coffe script assets successfully built! - `date`";
 
 cwatch:
 	@echo "Watching coffee script files..."; \
 	make coffee
-	coffee --join ${STATIC_DIR}/scripts/site.js -cw ${STATIC_DIR}/coffee/*.coffee
+	@${NPM_ROOT}/coffee-script/bin/coffee --join ${STATIC_DIR}/scripts/site.js -cw ${STATIC_DIR}/coffee/*.coffee
 
 bootstrap-tests:
 	npm install phantomjs
@@ -48,7 +48,7 @@ test: lint test-js test-python
 
 test-js:
 	@echo "Running JavaScript tests"
-	phantomjs runtests.coffee tests/js/index.html || exit 1
+	@${NPM_ROOT}/phantomjs/bin/phantomjs runtests.coffee tests/js/index.html || exit 1
 	@echo ""
 
 test-python:
