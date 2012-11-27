@@ -243,5 +243,5 @@ class TrendsTest(TestCase):
             status=0,
         )
 
-        results = list(Group.objects.get_accelerated(base_qs)[:25])
+        results = list(Group.objects.get_accelerated([project.id], base_qs)[:25])
         self.assertEquals(results, [group, group2])

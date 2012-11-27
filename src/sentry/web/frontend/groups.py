@@ -130,7 +130,7 @@ def _get_group_list(request, project, view=None):
     elif sort == 'avgtime':
         event_list = event_list.filter(time_spent_count__gt=0)
     elif sort.startswith('accel_'):
-        event_list = Group.objects.get_accelerated(event_list, minutes=int(sort.split('_', 1)[1]))
+        event_list = Group.objects.get_accelerated([project.id], event_list, minutes=int(sort.split('_', 1)[1]))
 
     if score_clause:
         event_list = event_list.extra(

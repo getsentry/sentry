@@ -706,7 +706,7 @@ class GroupManager(BaseManager, ChartMixin):
     def get_by_natural_key(self, project, logger, culprit, checksum):
         return self.get(project=project, logger=logger, view=culprit, checksum=checksum)
 
-    def get_accelerated(self, queryset=None, minutes=15):
+    def get_accelerated(self, project_ids, queryset=None, minutes=15):
         # mintues should
         from sentry.models import MessageCountByMinute
         mcbm_tbl = MessageCountByMinute._meta.db_table
@@ -749,6 +749,7 @@ class GroupManager(BaseManager, ChartMixin):
             FROM %(mcbm_tbl)s as a
             WHERE a.date >=  %(now)s - %(max_time)s
             AND a.date < %(now)s - %(min_time)s
+            AND a.project_id IN (%(project_ids)s)
             GROUP BY a.group_id) as z
         ON z.group_id = %(mcbm_tbl)s.group_id
         WHERE %(mcbm_tbl)s.date >= %(now)s - %(min_time)s
@@ -768,6 +769,7 @@ class GroupManager(BaseManager, ChartMixin):
             norm=normalization,
             epoch_clause=epoch_clause,
             now=now_clause,
+            project_ids=', '.join((str(int(x)) for x in project_ids)),
         )
         return RawQuerySet(self, query, params)
 
