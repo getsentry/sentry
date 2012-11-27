@@ -9,8 +9,9 @@ UGLIFY_JS ?= `which uglifyjs`
 COFFEE ?= `which coffee`
 WATCHR ?= `which watchr`
 
-develop: update-submodules bootstrap-tests
+develop: update-submodules
 	npm install
+	pip install "flake8>=1.6" --use-mirrors
 	pip install -e . --use-mirrors
 
 build: static coffee locale
@@ -39,10 +40,6 @@ cwatch:
 	@echo "Watching coffee script files..."; \
 	make coffee
 	@${NPM_ROOT}/coffee-script/bin/coffee --join ${STATIC_DIR}/scripts/site.js -cw ${STATIC_DIR}/coffee/*.coffee
-
-bootstrap-tests:
-	npm install phantomjs
-	pip install "flake8>=1.6" --use-mirrors
 
 test: lint test-js test-python
 

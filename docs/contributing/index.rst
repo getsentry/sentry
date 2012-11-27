@@ -73,30 +73,6 @@ right at home.
     # Run only the testTimestamp test on SentryRemoteTest
     python runtests.py sentry.SentryRemoteTest.testTimestamp
 
-Building Static Media
----------------------
-
-Sentry is based on `Bootstrap <https://twitter.github.com/bootstrap>`_, which means its CSS files are compiled using
-LESS. You'll find the main file located in ``bootstrap/sentry.less``. Please note, that we **do not** modify Bootstrap,
-we only extend it.
-
-You will need several Node modules for compiling static media::
-
-    npm install recess connect uglify-js jshint -g
-
-To compile media, just run ``make`` from the root directory. This will handle merging all existing JavaScript as well
-as building the CSS files::
-
-    # compile all static media
-    make
-
-If you're working in development mode, the following two commands will assist you in recompiling static content::
-
-    # watch sentry.less for changes
-    make watch
-
-    # watch coffee scripts for changes
-    make cwatch
 
 Contributing Back Code
 ----------------------
