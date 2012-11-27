@@ -38,7 +38,7 @@
                                 {% endif %}
                                 <table class="table vars" id="vHttpBody"{% if data|length > 5 %} style="display:none;"{% endif %}>
                                     <colgroup>
-                                        <col style="width:100px;">
+                                        <col style="width:150px;">
                                     </colgroup>
                                     <tbody>
                                         {% for key, value in data.iteritems|as_sorted %}
@@ -70,7 +70,7 @@
                                 {% endif %}
                                 <table class="table vars" id="vHttpCookies"{% if cookies|length > 5 %} style="display:none;"{% endif %}>
                                     <colgroup>
-                                        <col style="width:100px;">
+                                        <col style="width:150px;">
                                     </colgroup>
                                     <tbody>
                                         {% for key, value in cookies.iteritems|as_sorted %}
@@ -102,7 +102,7 @@
                                 {% endif %}
                                 <table class="table vars" id="vHttpHeaders"{% if headers|length > 5 %} style="display:none;"{% endif %}>
                                     <colgroup>
-                                        <col style="width:100px;">
+                                        <col style="width:150px;">
                                     </colgroup>
                                     <tbody>
                                         {% for key, value in headers.iteritems|as_sorted %}
@@ -133,7 +133,7 @@
                             {% endif %}
                             <table class="table vars" id="vHttpEnv"{% if env|length > 5 %} style="display:none;"{% endif %}>
                                 <colgroup>
-                                    <col style="width:120px;">
+                                    <col style="width:150px;">
                                 </colgroup>
                                 <tbody>
                                     {% for key, value in env.iteritems|as_sorted %}
