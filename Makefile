@@ -9,7 +9,8 @@ COFFEE ?= `which coffee`
 WATCHR ?= `which watchr`
 
 develop: update-submodules bootstrap-tests
-	npm install coffee-script
+	npm install coffee-script@1.4.0
+	npm install less@1.3.1
 	pip install -e . --use-mirrors
 
 build: static coffee locale
