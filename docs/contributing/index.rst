@@ -23,23 +23,19 @@ Setting up an Environment
 Sentry is designed to run off of setuptools with minimal work. Because of this
 setting up a development environment for Sentry requires only a few steps.
 
-The first thing you're going to want to do, is build a virtualenv and install
-any base dependancies.
+Start by installing the required dependencies:
+
+- python-dev
+- npm
+- virtualenv
+
+One done, create a virtualenv, and bootstrap the environment:
 
 ::
 
     virtualenv ~/.virtualenvs/sentry
     source ~/.virtualenvs/sentry/bin/activate
-    pip install -e .
-
-You will also need two NPM dependencies if you plan on changing/building static media.
-
-::
-
-    npm install -g less uglify-js
-
-There are other optional dependancies, such as South, Haystack, and Eventlet, but
-they're not required to get a basic stack up and running.
+    make  # bootstrap the environment (npm, pip reqs, etc)
 
 Running the Test Suite
 ----------------------
