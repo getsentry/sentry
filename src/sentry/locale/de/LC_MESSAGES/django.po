@@ -1590,7 +1590,7 @@ msgstr "0 Minuten"
 
 #: templatetags/sentry_helpers.py:146
 msgid "just now"
-msgstr "gerade even"
+msgstr "gerade eben"
 
 #: templatetags/sentry_helpers.py:147
 msgid "1 day"
