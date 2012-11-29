@@ -794,7 +794,7 @@ def create_team_and_keys_for_project(instance, created, **kwargs):
     if not instance.owner:
         return
 
-    if not instance.team:
+    if not instance.team_id:
         update(instance, team=Team.objects.create(
             owner=instance.owner,
             name=instance.name,
