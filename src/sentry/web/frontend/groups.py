@@ -95,16 +95,15 @@ def _get_group_list(request, project, view=None):
         date_from = today - datetime.timedelta(days=3)
         date_to = None
 
-    if date_from:
-        if not date_to:
-            event_list = event_list.filter(last_seen__gte=date_from)
-        else:
-            event_list = event_list.filter(messagecountbyminute__date__gte=date_from)
-    if date_to:
-        if not date_from:
-            event_list = event_list.filter(last_seen__lte=date_to)
-        else:
-            event_list = event_list.filter(messagecountbyminute__date__lte=date_to)
+    if date_from and date_to:
+        event_list = event_list.filter(
+            messagecountbyminute__date__gte=date_from,
+            messagecountbyminute__date__lte=date_to,
+        )
+    elif date_from:
+        event_list = event_list.filter(last_seen__gte=date_from)
+    elif date_to:
+        event_list = event_list.filter(last_seen__lte=date_to)
 
     sort = request.GET.get('sort')
     if sort not in SORT_OPTIONS:
