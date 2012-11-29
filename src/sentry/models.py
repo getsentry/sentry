@@ -788,7 +788,7 @@ def create_default_project(created_models, verbosity=2, **kwargs):
 
 
 def create_team_and_keys_for_project(instance, created, **kwargs):
-    if not created:
+    if not created or kwargs.get('raw'):
         return
 
     if not instance.owner:
@@ -837,7 +837,7 @@ def update_document(instance, created, **kwargs):
 
 
 def create_key_for_team_member(instance, created, **kwargs):
-    if not created:
+    if not created or kwargs.get('raw'):
         return
 
     for project in instance.team.project_set.all():
