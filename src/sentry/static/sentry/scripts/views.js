@@ -228,7 +228,7 @@
             if (existing.get('score') != score)
                 existing.set('score', score);
 
-            if (options.sort || true) {
+            if (options.sort !== false) {
                 // score changed, resort
                 this.collection.sort();
             }
