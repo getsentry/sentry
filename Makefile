@@ -1,10 +1,9 @@
 VERSION = 2.0.0
-NPM_ROOT = node_modules/
+NPM_ROOT = node_modules
 STATIC_DIR = src/sentry/static/sentry
 BOOTSTRAP_JS = ${STATIC_DIR}/scripts/lib/bootstrap.js
 BOOTSTRAP_JS_MIN = ${STATIC_DIR}/scripts/lib/bootstrap.min.js
 UGLIFY_JS ?= `which uglifyjs`
-COFFEE ?= `which coffee`
 WATCHR ?= `which watchr`
 
 develop: update-submodules
@@ -12,7 +11,7 @@ develop: update-submodules
 	pip install "flake8>=1.6" --use-mirrors
 	pip install -e . --use-mirrors
 
-build: static coffee locale
+build: static locale
 
 clean:
 	rm -r src/sentry/static/CACHE
@@ -30,20 +29,11 @@ update-submodules:
 	git submodule init
 	git submodule update
 
-coffee:
-	@${NPM_ROOT}/coffee-script/bin/coffee --join ${STATIC_DIR}/scripts/site.js -c ${STATIC_DIR}/coffee/*.coffee
-	@echo "Coffe script assets successfully built! - `date`";
-
-cwatch:
-	@echo "Watching coffee script files..."; \
-	make coffee
-	@${NPM_ROOT}/coffee-script/bin/coffee --join ${STATIC_DIR}/scripts/site.js -cw ${STATIC_DIR}/coffee/*.coffee
-
 test: lint test-js test-python
 
 test-js:
 	@echo "Running JavaScript tests"
-	@${NPM_ROOT}/phantomjs/bin/phantomjs runtests.coffee tests/js/index.html || exit 1
+	${NPM_ROOT}/phantomjs/bin/phantomjs runtests.js tests/js/index.html
 	@echo ""
 
 test-python:
@@ -68,4 +58,4 @@ coverage:
 	coverage html --omit=*/migrations/* -d cover
 
 
-.PHONY: build watch coffee
+.PHONY: build

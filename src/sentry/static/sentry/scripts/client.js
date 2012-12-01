@@ -4,6 +4,8 @@ if (Sentry === undefined) {
     var Sentry = {};
 }
 (function(){
+    "use strict";
+
     Sentry.client = {};
 
     var self = Sentry.client;
@@ -35,6 +37,7 @@ if (Sentry === undefined) {
     };
 
     Sentry.client.getHeaders = function() {
+        var headers;
         if (self.options.fetchHeaders) {
             var req = new XMLHttpRequest();
             req.open('HEAD', document.location, false);

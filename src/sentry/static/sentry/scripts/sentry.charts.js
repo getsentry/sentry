@@ -1,7 +1,11 @@
 if (Sentry === undefined) {
     var Sentry = {};
 }
-(function(){
+(function(jQuery){
+    "use strict";
+
+    var $ = jQuery;
+
     Sentry.charts = {};
     Sentry.charts.render = function(el){
         var $sparkline = $(el);
@@ -65,4 +69,4 @@ if (Sentry === undefined) {
             }
         });
     };
-}());
+}(jQuery));

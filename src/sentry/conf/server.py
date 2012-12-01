@@ -165,10 +165,8 @@ STATIC_URL = '/_static/'
 NPM_ROOT = os.path.abspath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, 'node_modules'))
 if os.path.exists(NPM_ROOT):
     LESS_BIN = os.path.join(NPM_ROOT, 'less', 'bin', 'lessc')
-    COFFEESCRIPT_BIN = os.path.join(NPM_ROOT, 'coffee-script', 'bin', 'coffee')
 else:
     LESS_BIN = 'less'
-    COFFEESCRIPT_BIN = 'coffee'
 
 # XXX: There is a bug in django-compressor that causes it to incorrectly handle
 # relative URLs in precompiled files (less) when compression is disabled
@@ -176,7 +174,6 @@ COMPRESS_ENABLED = True
 COMPRESS_URL = STATIC_URL
 COMPRESS_OUTPUT_DIR = 'CACHE'
 COMPRESS_PRECOMPILERS = (
-    ('text/coffeescript', '%s --compile --stdio' % (COFFEESCRIPT_BIN,)),
     ('text/less', '%s --strict-imports {infile} {outfile}' % (LESS_BIN,)),
 )
 

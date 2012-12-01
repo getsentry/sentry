@@ -48,10 +48,16 @@
                 <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/lib/bootstrap.js" %}"></script>
             {% endcompress %}
             {% compress js %}
-                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/site.js" %}"></script>
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/core.js" %}"></script>
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/models.js" %}"></script>
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/templates.js" %}"></script>
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/utils.js" %}"></script>
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/collections.js" %}"></script>
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/views.js" %}"></script>
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/app.js" %}"></script>
             {% endcompress %}
             {% comment %}
-                The sentry.* javascript will be replaced by the new app (coffee script) code.
+                The sentry.* javascript is deprecated.
             {% endcomment %}
             {% compress js %}
                 <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/sentry.core.js" %}"></script>
