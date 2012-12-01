@@ -19,7 +19,7 @@
                 '<div class="meta">' + 
                     '<span class="last-seen pretty-date" title="<%= lastSeen %>"><%= app.utils.prettyDate(lastSeen) %></span>' + 
                     '<% if (timeSpent) { %>' + 
-                        '<span class="time-spent"><%= app.utils.round(timeSpent) %>ms</span>' + 
+                        '<span class="time-spent"><%= Math.round(timeSpent) %>ms</span>' + 
                     '<% } %>' + 
                     '<span class="tag tag-project"><%= project.name %></span>' + 
                 '</div>' + 

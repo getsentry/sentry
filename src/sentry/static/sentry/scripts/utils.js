@@ -47,10 +47,6 @@
             return vars;
         },
 
-        round: function(float){
-            return parseInt(float * 100, 10) / 100;
-        },
-
         createSparkline: function(el, bits){
             // TODO: maxval could default to # of hours since first_seen / times_seen
             var $el = $(el),
