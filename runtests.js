@@ -1,4 +1,3 @@
-#!/usr/local/bin/phantomjs
 /*global phantom:true console:true console_reporter:true */
 
 // Runs a Jasmine Suite from an html page
