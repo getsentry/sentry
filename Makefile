@@ -41,7 +41,7 @@ test-python:
 	python setup.py -q test || exit 1
 	@echo ""
 
-lint: lint-python
+lint: lint-python lint-js
 
 lint-python:
 	@echo "Linting Python files"
