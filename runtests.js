@@ -14,7 +14,7 @@
     this.max_tries = 10;
 
     this.get_status = function(){
-      this.page.evaluate(function(){
+      return this.page.evaluate(function(){
         return console_reporter.status;
       });
     };
