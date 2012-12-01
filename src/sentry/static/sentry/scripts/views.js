@@ -212,21 +212,19 @@
         },
 
         updateMember: function(member, options){
-            var count, score, existing;
+            if (member.get === undefined) {
+                member = new this.model(member);
+            }
 
             if (_.isUndefined(options))
                 options = {};
 
-            // TODO: is there a better way to pass both non-models and models here?
-            count = (member.count !== undefined ? member.count : member.get('count'));
-            score = (member.score !== undefined ? member.score : member.get('score'));
-
-            existing = this.collection.get(member.id);
-            if (existing.get('count') != count)
-                existing.set('count', count);
-
-            if (existing.get('score') != score)
-                existing.set('score', score);
+            var existing = this.collection.get(member.id);
+            for (var key in member.attributes) {
+                if (existing.get(key) != member.get(key)) {
+                    existing.set(key, member.get(key));
+                }
+            }
 
             if (options.sort !== false) {
                 // score changed, resort
@@ -270,6 +268,7 @@
                     // TODO: why do we get here?
                     $el.insertBefore($rel);
                 } else {
+
                     return;
                 }
             }
