@@ -51,7 +51,7 @@ def is_same_domain(url1, url2):
 
 def get_origins(project=None):
     if settings.ALLOW_ORIGIN == '*':
-        return '*'
+        return frozenset(['*'])
     elif settings.ALLOW_ORIGIN:
         result = settings.ALLOW_ORIGIN.split(' ')
     else:
@@ -66,11 +66,41 @@ def get_origins(project=None):
 
 
 def is_valid_origin(origin, project=None):
+    """
+    Given an ``origin`` which matches a base URI (e.g. http://example.com)
+    determine if a valid origin is present in the project settings.
+
+    Origins may be defined in several ways:
+
+    - http://domain.com[:port]: exact match for base URI (must include port)
+    - *: allow any domain
+    - *.domain.com: matches domain.com and all subdomains, on any port
+    - domain.com: matches domain.com on any port
+    """
     allowed = get_origins(project)
-    if allowed == '*':
+    if '*' in allowed:
         return True
 
     if not origin:
         return False
 
-    return origin in allowed
+    # Fast check
+    if origin in allowed:
+        return True
+
+    parsed = urlparse(origin)
+
+    for valid in allowed:
+        if '://' in valid:
+            continue
+
+        if valid.startswith('*.'):
+            # check foo.domain.com and domain.com
+            if parsed.hostname.endswith(valid[1:]) or parsed.hostname == valid[2:]:
+                return True
+            continue
+
+        if parsed.hostname == valid:
+            return True
+
+    return False
