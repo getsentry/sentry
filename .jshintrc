@@ -1,0 +1,7 @@
+{
+    "strict": true,
+    "browser": true,
+    "predef": [
+        "parseUri"
+    ]
+}
