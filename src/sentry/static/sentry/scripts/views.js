@@ -218,8 +218,8 @@
                 options = {};
 
             // TODO: is there a better way to pass both non-models and models here?
-            count = (member.count || member.get('count'));
-            score = (member.score || member.get('score'));
+            count = (member.count !== undefined ? member.count : member.get('count'));
+            score = (member.score !== undefined ? member.score : member.get('score'));
 
             existing = this.collection.get(member.id);
             if (existing.get('count') != count)
