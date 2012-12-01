@@ -1,3 +1,5 @@
+/*global Sentry:true*/
+
 (function(app, Backbone, jQuery, _){
     "use strict";
 

@@ -1,10 +1,16 @@
+/*jshint browser:true */
+
 if (Sentry === undefined) {
     var Sentry = {};
 }
-(function(){
+(function(jQuery){
+    "use strict";
+
+    var $ = jQuery;
+
     Sentry.stream = {};
     Sentry.stream.clear = function(project_id) {
-        if (confirm("Are you sure you want to mark all your stream as resolved?")) {
+        if (window.confirm("Are you sure you want to mark all your stream as resolved?")) {
             $.ajax({
                 url: Sentry.options.urlPrefix + '/api/' + project_id + '/clear/',
                 type: 'post',
@@ -58,4 +64,4 @@ if (Sentry === undefined) {
             }
         });
     };
-}());
+}(jQuery));
