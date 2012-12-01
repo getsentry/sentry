@@ -9,11 +9,10 @@ import itertools
 from django import forms
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from django.core.validators import URLValidator
 from django.utils.translation import ugettext_lazy as _
 from sentry.models import Project, ProjectOption
 from sentry.permissions import can_set_public_projects
-from sentry.web.forms.fields import RadioFieldRenderer, UserField
+from sentry.web.forms.fields import RadioFieldRenderer, UserField, OriginsField
 
 
 class ProjectTagsForm(forms.Form):
@@ -97,10 +96,7 @@ class RemoveProjectForm(forms.Form):
 class EditProjectForm(forms.ModelForm):
     public = forms.BooleanField(required=False, help_text=_('Allow anyone (even anonymous users) to view this project'))
     team = forms.ChoiceField(choices=())
-    origins = forms.CharField(widget=forms.Textarea(attrs={'placeholder': 'e.g. http://example.com', 'class': 'span8'}),
-        required=False)
-
-    _url_validator = URLValidator(verify_exists=False)
+    origins = OriginsField(required=False)
 
     class Meta:
         fields = ('name', 'public', 'team')
@@ -128,15 +124,6 @@ class EditProjectForm(forms.ModelForm):
             return
 
         return self.team_list[int(value)]
-
-    def clean_origins(self):
-        value = self.cleaned_data.get('origins')
-        if not value:
-            return value
-        values = filter(bool, (v.strip() for v in value.split('\n')))
-        for value in values:
-            self._url_validator(value)
-        return values
 
 
 class EditProjectAdminForm(EditProjectForm):

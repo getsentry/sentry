@@ -6,7 +6,8 @@ sentry.web.forms.teams
 :license: BSD, see LICENSE for more details.
 """
 from django.contrib.auth.models import User
-from django.forms.widgets import RadioFieldRenderer, TextInput
+from django.core.validators import URLValidator
+from django.forms.widgets import RadioFieldRenderer, TextInput, Textarea
 from django.forms import CharField, ValidationError
 from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
@@ -43,3 +44,37 @@ class UserField(CharField):
             return User.objects.get(username=value)
         except User.DoesNotExist:
             raise ValidationError(_('Invalid username'))
+
+
+class OriginsField(CharField):
+    _url_validator = URLValidator(verify_exists=False)
+    widget = Textarea(attrs={'placeholder': 'e.g. http://example.com\n*.example.com', 'class': 'span8'})
+
+    def clean(self, value):
+        if not value:
+            return []
+        values = filter(bool, (v.strip() for v in value.split('\n')))
+        for value in values:
+            if not self.is_valid_origin(value):
+                raise ValidationError('%r is not an acceptable origin' % value)
+        return values
+
+    def is_valid_origin(self, value):
+        if value == '*':
+            return True
+
+        if '://' in value:
+            # URLValidator will raise a forms.ValidationError itself
+            self._url_validator(value)
+            return True
+
+        # ports are not supported on matching expressions (yet)
+        if ':' in value:
+            return False
+
+        # no .com's
+        parts = filter(bool, value.split('.'))
+        if len(parts) < 2:
+            return False
+
+        return True

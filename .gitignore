@@ -1,8 +1,6 @@
 .coverage
 .tox
-/cover
-/build
-/dist
+.DS_Store
 *.egg-info
 *.pyc
 *.log
@@ -10,7 +8,10 @@
 *.db
 *.pid
 pip-log.txt
-.DS_Store
+/cover
+/build
+/dist
+/node_modules/
 /src/sentry/static/CACHE/
 /docs/html
 /docs/doctrees

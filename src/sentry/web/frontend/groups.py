@@ -41,9 +41,9 @@ def _get_rendered_interfaces(event):
             html = interface.to_html(event)
         except Exception:
             logger = logging.getLogger('sentry.interfaces')
-            logger.exception('Error rendering interface %r', interface.__class__, extra={
+            logger.error('Error rendering interface %r', interface.__class__, extra={
                 'event_id': event.id,
-            })
+            }, exc_info=True)
             continue
         if not html:
             continue
@@ -95,16 +95,15 @@ def _get_group_list(request, project, view=None):
         date_from = today - datetime.timedelta(days=3)
         date_to = None
 
-    if date_from:
-        if not date_to:
-            event_list = event_list.filter(last_seen__gte=date_from)
-        else:
-            event_list = event_list.filter(messagecountbyminute__date__gte=date_from)
-    if date_to:
-        if not date_from:
-            event_list = event_list.filter(last_seen__lte=date_to)
-        else:
-            event_list = event_list.filter(messagecountbyminute__date__lte=date_to)
+    if date_from and date_to:
+        event_list = event_list.filter(
+            messagecountbyminute__date__gte=date_from,
+            messagecountbyminute__date__lte=date_to,
+        )
+    elif date_from:
+        event_list = event_list.filter(last_seen__gte=date_from)
+    elif date_to:
+        event_list = event_list.filter(last_seen__lte=date_to)
 
     sort = request.GET.get('sort')
     if sort not in SORT_OPTIONS:
@@ -130,7 +129,7 @@ def _get_group_list(request, project, view=None):
     elif sort == 'avgtime':
         event_list = event_list.filter(time_spent_count__gt=0)
     elif sort.startswith('accel_'):
-        event_list = Group.objects.get_accelerated(event_list, minutes=int(sort.split('_', 1)[1]))
+        event_list = Group.objects.get_accelerated([project.id], event_list, minutes=int(sort.split('_', 1)[1]))
 
     if score_clause:
         event_list = event_list.extra(
@@ -171,8 +170,8 @@ def search(request, project):
         # Forward to message if it exists
         # event_id = result.group(1)
         checksum = result.group(2)
-        event_list = Group.objects.filter(checksum=checksum)
-        top_matches = event_list[:2]
+        event_list = Group.objects.filter(project=project, checksum=checksum)
+        top_matches = list(event_list[:2])
         if len(top_matches) == 0:
             return render_to_response('sentry/invalid_message_id.html', {
                 'project': project,

@@ -483,7 +483,7 @@ def get_group_trends(request, project=None):
     )
 
     if has_trending():
-        group_list = list(Group.objects.get_accelerated(base_qs, minutes=(
+        group_list = list(Group.objects.get_accelerated(project_dict.keys(), base_qs, minutes=(
             minutes
         ))[:limit])
     else:
