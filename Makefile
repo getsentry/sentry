@@ -1,10 +1,8 @@
 VERSION = 2.0.0
 NPM_ROOT = node_modules/
 STATIC_DIR = src/sentry/static/sentry
-BOOTSTRAP_JS = ${STATIC_DIR}/scripts/bootstrap.js
-BOOTSTRAP_JS_MIN = ${STATIC_DIR}/scripts/bootstrap.min.js
-GLOBAL_JS = ${STATIC_DIR}/scripts/global.js
-GLOBAL_JS_MIN = ${STATIC_DIR}/scripts/global.min.js
+BOOTSTRAP_JS = ${STATIC_DIR}/scripts/lib/bootstrap.js
+BOOTSTRAP_JS_MIN = ${STATIC_DIR}/scripts/lib/bootstrap.min.js
 UGLIFY_JS ?= `which uglifyjs`
 COFFEE ?= `which coffee`
 WATCHR ?= `which watchr`
@@ -58,6 +56,11 @@ lint: lint-python
 lint-python:
 	@echo "Linting Python files"
 	flake8 --exclude=migrations --ignore=E501,E225,E121,E123,E124,E125,E127,E128 --exit-zero src/sentry || exit 1
+	@echo ""
+
+lint-js:
+	@echo "Linting JavaScript files"
+	@${NPM_ROOT}/jshint/bin/hint src/sentry/ || exit 1
 	@echo ""
 
 coverage:
