@@ -73,8 +73,8 @@ class BaseTeamMemberForm(forms.ModelForm):
         fields = ('type',)
         model = TeamMember
 
-    def __init__(self, project, *args, **kwargs):
-        self.project = project
+    def __init__(self, team, *args, **kwargs):
+        self.team = team
         super(BaseTeamMemberForm, self).__init__(*args, **kwargs)
 
 
@@ -91,10 +91,10 @@ class InviteTeamMemberForm(BaseTeamMemberForm):
         if not value:
             return None
 
-        if self.project.team.member_set.filter(user__email__iexact=value).exists():
+        if self.team.member_set.filter(user__email__iexact=value).exists():
             raise forms.ValidationError(_('There is already a member with this email address'))
 
-        if self.project.team.pending_member_set.filter(email__iexact=value).exists():
+        if self.team.pending_member_set.filter(email__iexact=value).exists():
             raise forms.ValidationError(_('There is already a pending invite for this user'))
 
         return value
@@ -112,7 +112,7 @@ class NewTeamMemberForm(BaseTeamMemberForm):
         if not value:
             return None
 
-        if self.project.member_set.filter(user=value).exists():
+        if self.team.member_set.filter(user=value).exists():
             raise forms.ValidationError(_('User is already a member of this team'))
 
         return value
