@@ -36,6 +36,11 @@
                     {% endfor %}
 
                     <fieldset class="form-actions">
+                        {% if CAN_REGISTER %}
+                            <div class="pull-right" style="margin-top: 5px;">
+                                <a href="{% url sentry-register %}">{% trans "Create a new account" %}</a>
+                            </div>
+                        {% endif %}
                         <button type="submit" class="btn btn-primary">{% trans "Login" %}</button>
                     </fieldset>
                 </form>

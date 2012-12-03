@@ -242,6 +242,7 @@ class NewTeamMemberTest(BaseTeamTest):
 
 class AcceptInviteTest(BaseTeamTest):
     def test_renders_unauthenticated_template(self):
+        self.client.logout()
         ptm = PendingTeamMember.objects.create(
             email='newuser@example.com',
             token='foobar',
@@ -251,7 +252,7 @@ class AcceptInviteTest(BaseTeamTest):
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/teams/members/accept_invite_unauthenticated.html')
 
-    def test_accepts_invite_and_redirects_if_authenticated(self):
+    def test_renders_authenticated_template(self):
         ptm = PendingTeamMember.objects.create(
             email='newuser@example.com',
             token='foobar',
@@ -259,4 +260,4 @@ class AcceptInviteTest(BaseTeamTest):
         )
         resp = self.client.get(reverse('sentry-accept-invite', args=[ptm.id, ptm.token]))
         self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/teams/members/accept_invite_unauthenticated.html')
+        self.assertTemplateUsed(resp, 'sentry/teams/members/accept_invite.html')

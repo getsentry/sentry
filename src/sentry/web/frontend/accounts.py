@@ -31,6 +31,7 @@ from sentry.utils.safe import safe_execute
 @never_cache
 def login(request):
     from django.contrib.auth.forms import AuthenticationForm
+    from sentry.conf import settings
 
     if request.user.is_authenticated():
         return login_redirect(request)
@@ -42,13 +43,12 @@ def login(request):
 
     request.session.set_test_cookie()
 
-    AUTH_PROVIDERS = get_auth_providers()
-
     context = csrf(request)
     context.update({
         'form': form,
         'next': request.session.get('_next'),
-        'AUTH_PROVIDERS': AUTH_PROVIDERS,
+        'CAN_REGISTER': settings.ALLOW_REGISTRATION or request.session.get('can_register'),
+        'AUTH_PROVIDERS': get_auth_providers(),
         'SOCIAL_AUTH_CREATE_USERS': dj_settings.SOCIAL_AUTH_CREATE_USERS,
     })
     return render_to_response('sentry/login.html', context, request)
@@ -79,6 +79,8 @@ def register(request):
 
     return render_to_response('sentry/register.html', {
         'form': form,
+        'AUTH_PROVIDERS': get_auth_providers(),
+        'SOCIAL_AUTH_CREATE_USERS': dj_settings.SOCIAL_AUTH_CREATE_USERS,
     }, request)
 
 
