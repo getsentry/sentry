@@ -84,6 +84,15 @@ class Team(Model):
             self.slug = slugify(self.name)
         super(Team, self).save(*args, **kwargs)
 
+    def get_owner_name(self):
+        if not self.owner:
+            return None
+        if self.owner.first_name:
+            return self.owner.first_name
+        if self.owner.email:
+            return self.owner.email.split('@', 1)[0]
+        return self.owner.username
+
 
 class TeamMember(Model):
     """

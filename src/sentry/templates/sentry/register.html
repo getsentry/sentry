@@ -32,6 +32,9 @@
                     {% endfor %}
 
                     <fieldset class="form-actions">
+                        <div class="pull-right" style="margin-top: 5px;">
+                            <a href="{% url sentry-login %}">{% trans "Login as an existing user" %}</a>
+                        </div>
                         <button type="submit" class="btn btn-primary">{% trans "Register" %}</button>
                     </fieldset>
                 </form>
@@ -47,7 +50,7 @@
                     <br>
                     <ul class="auth-options">
                         {% for engine in AUTH_PROVIDERS %}
-                            <li><a href="{% url socialauth_begin engine %}" class="auth-{{ engine }}">Sign in with {{ engine|title }}</a></li>
+                            <li><a href="{% url socialauth_begin engine %}" class="auth-{{ engine }}">{% blocktrans with service=engine|title %}Sign in with {{ service }}{% endblocktrans %}</a></li>
                         {% endfor %}
                     </ul>
                 </div>

@@ -240,61 +240,23 @@ class NewTeamMemberTest(BaseTeamTest):
         send_invite_email.assert_called_once_with()
 
 
-class AcceptInviteTEst(BaseTeamTest):
-    def test_redirects_on_invalid_member_id(self):
+class AcceptInviteTest(BaseTeamTest):
+    def test_renders_unauthenticated_template(self):
         ptm = PendingTeamMember.objects.create(
             email='newuser@example.com',
             token='foobar',
+            team=self.team,
         )
-        resp = self.client.get(reverse('sentry-accept-invite', args=[self.team.slug]))
-        self.assertEquals(resp.status_code, 302)
-        self.assertTemplateUsed(resp, 'sentry/teams/members/new.html')
-
-    def test_cannot_add_existing_member(self):
-        resp = self.client.post(self.path, {
-            'add-type': MEMBER_USER,
-            'add-user': self.team.owner.username,
-        })
+        resp = self.client.get(reverse('sentry-accept-invite', args=[ptm.id, ptm.token]))
         self.assertEquals(resp.status_code, 200)
-        self.assertIn('user', resp.context['add_form'].errors)
+        self.assertTemplateUsed(resp, 'sentry/teams/members/accept_invite_unauthenticated.html')
 
-    def test_does_add_existing_user_as_member(self):
-        user = User.objects.create(username='newuser')
-        resp = self.client.post(self.path, {
-            'add-type': MEMBER_USER,
-            'add-user': user.username,
-        })
-        self.assertEquals(resp.status_code, 302, resp.context['add_form'].errors if resp.status_code != 302 else None)
-        member = self.team.member_set.get(user=user)
-        self.assertEquals(member.type, MEMBER_USER)
-
-    def test_cannot_invite_existing_member(self):
-        resp = self.client.post(self.path, {
-            'invite-type': MEMBER_USER,
-            'invite-email': self.team.owner.email,
-        })
+    def test_accepts_invite_and_redirects_if_authenticated(self):
+        ptm = PendingTeamMember.objects.create(
+            email='newuser@example.com',
+            token='foobar',
+            team=self.team,
+        )
+        resp = self.client.get(reverse('sentry-accept-invite', args=[ptm.id, ptm.token]))
         self.assertEquals(resp.status_code, 200)
-        self.assertIn('email', resp.context['invite_form'].errors)
-
-    @mock.patch('sentry.models.PendingTeamMember.send_invite_email')
-    def test_does_invite_already_registered_user(self, send_invite_email):
-        user = User.objects.create(username='newuser', email='newuser@example.com')
-        resp = self.client.post(self.path, {
-            'invite-type': MEMBER_USER,
-            'invite-email': user.email,
-        })
-        self.assertEquals(resp.status_code, 302)
-        ptm = PendingTeamMember.objects.get(email=user.email, team=self.team)
-        self.assertEquals(ptm.type, MEMBER_USER)
-        send_invite_email.assert_called_once_with()
-
-    @mock.patch('sentry.models.PendingTeamMember.send_invite_email')
-    def test_does_invite_unregistered_user(self, send_invite_email):
-        resp = self.client.post(self.path, {
-            'invite-type': MEMBER_USER,
-            'invite-email': 'newuser@example.com',
-        })
-        self.assertEquals(resp.status_code, 302)
-        ptm = PendingTeamMember.objects.get(email='newuser@example.com', team=self.team)
-        self.assertEquals(ptm.type, MEMBER_USER)
-        send_invite_email.assert_called_once_with()
+        self.assertTemplateUsed(resp, 'sentry/teams/members/accept_invite_unauthenticated.html')

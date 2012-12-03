@@ -9,12 +9,28 @@
 
 {% block main %}
     <section class="body">
-        <p>{% blocktrans with team.name as team_name %}You have been invited to join the <strong>{{ team_name }}</strong> team.{% endblocktrans %}</p>
+        <div class="row">
+            <div class="span7">
+                <div class="page-header">
+                    <h2>Team Invite</h2>
+                </div>
 
-        <form method="POST">
-            {% csrf_token %}
-            <p>{% trans "If you do not wish to join this team, you can safely close this page and ignore the invite." %}
-            <p><button type="submit" class="btn btn-primary">{% blocktrans with team.name as team_name %}Join <em>{{ team_name }}</em>{% endblocktrans %}</button></p>
-        </form>
+                <p style="font-size: 1.3em;">{% blocktrans with team_name=team.name %}<strong>{{ team_owner }}</strong> is using Sentry to aggregate errors for the <strong>{{ team_name }}</strong> team.{% endblocktrans %}</p>
+
+                <p>{% blocktrans with project_count=project_list|length %}You have been invited to join this team, which manages <strong>{{ project_count }}</strong> project(s):{% endblocktrans %}</p>
+                <ul>
+                    {% for project in project_list|slice:"5" %}
+                        <li>
+                            {{ project.name }}
+                        </li>
+                    {% endfor %}
+                </ul>
+                <form method="POST">
+                    {% csrf_token %}
+
+                    <p><button type="submit" class="btn btn-primary">{% blocktrans with team_name=team.name %}Join the {{ team_name }} team{% endblocktrans %}</button></p>
+                </form>
+            </div>
+        </div>
     </section>
 {% endblock %}

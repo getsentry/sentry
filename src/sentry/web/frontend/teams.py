@@ -5,6 +5,7 @@ sentry.web.frontend.teams
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from django.contrib import messages
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
@@ -173,33 +174,37 @@ def accept_invite(request, member_id, token):
 
     team = pending_member.team
 
+    context = {
+        'team': team,
+        'team_owner': team.get_owner_name(),
+        'project_list': list(team.project_set.filter(status=0)),
+    }
+
     if not request.user.is_authenticated():
         # Show login or register form
         request.session['_next'] = request.get_full_path()
         request.session['can_register'] = True
 
-        context = {
-            'team': team,
-        }
         return render_to_response('sentry/teams/members/accept_invite_unauthenticated.html', context, request)
 
     form = AcceptInviteForm(request.POST or None)
     if form.is_valid():
         team.member_set.get_or_create(
             user=request.user,
-            type=pending_member.type,
+            defaults={
+                'type': pending_member.type,
+            }
         )
 
         request.session.pop('can_register', None)
 
         pending_member.delete()
 
+        messages.add_message(request, messages.SUCCESS, 'You have been added to the %r team.' % (team.name.encode('utf-8'),))
+
         return HttpResponseRedirect(reverse('sentry', args=[team.slug]))
 
-    context = {
-        'team': team,
-        'form': form,
-    }
+    context['form'] = form
 
     return render_to_response('sentry/teams/members/accept_invite.html', context, request)
 
