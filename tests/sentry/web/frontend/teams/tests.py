@@ -227,3 +227,14 @@ class NewTeamMemberTest(BaseTeamTest):
         ptm = PendingTeamMember.objects.get(email=user.email, team=self.team)
         self.assertEquals(ptm.type, MEMBER_USER)
         send_invite_email.assert_called_once_with()
+
+    @mock.patch('sentry.models.PendingTeamMember.send_invite_email')
+    def test_does_invite_unregistered_user(self, send_invite_email):
+        resp = self.client.post(self.path, {
+            'invite-type': MEMBER_USER,
+            'invite-email': 'newuser@example.com',
+        })
+        self.assertEquals(resp.status_code, 302)
+        ptm = PendingTeamMember.objects.get(email='newuser@example.com', team=self.team)
+        self.assertEquals(ptm.type, MEMBER_USER)
+        send_invite_email.assert_called_once_with()
