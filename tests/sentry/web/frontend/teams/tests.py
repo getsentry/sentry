@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
-from sentry.models import Team
+from sentry.models import Team, PendingTeamMember
 from sentry.testutils import fixture
 from sentry.testutils import TestCase
 
@@ -196,6 +196,7 @@ class NewTeamMemberTest(BaseTeamTest):
             'add-user': self.team.owner.username,
         })
         self.assertEquals(resp.status_code, 200)
+        self.assertIn('user', resp.context['add_form'].errors)
 
     def test_does_add_existing_user_as_member(self):
         user = User.objects.create(username='newuser')
@@ -206,3 +207,23 @@ class NewTeamMemberTest(BaseTeamTest):
         self.assertEquals(resp.status_code, 302, resp.context['add_form'].errors if resp.status_code != 302 else None)
         member = self.team.member_set.get(user=user)
         self.assertEquals(member.type, MEMBER_USER)
+
+    def test_cannot_invite_existing_member(self):
+        resp = self.client.post(self.path, {
+            'invite-type': MEMBER_USER,
+            'invite-email': self.team.owner.email,
+        })
+        self.assertEquals(resp.status_code, 200)
+        self.assertIn('email', resp.context['invite_form'].errors)
+
+    @mock.patch('sentry.models.PendingTeamMember.send_invite_email')
+    def test_does_invite_already_registered_user(self, send_invite_email):
+        user = User.objects.create(username='newuser', email='newuser@example.com')
+        resp = self.client.post(self.path, {
+            'invite-type': MEMBER_USER,
+            'invite-email': user.email,
+        })
+        self.assertEquals(resp.status_code, 302)
+        ptm = PendingTeamMember.objects.get(email=user.email, team=self.team)
+        self.assertEquals(ptm.type, MEMBER_USER)
+        send_invite_email.assert_called_once_with()
