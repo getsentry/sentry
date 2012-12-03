@@ -18,7 +18,7 @@ from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_team_access
 from sentry.web.forms.teams import NewTeamForm, NewTeamAdminForm, \
   EditTeamForm, EditTeamAdminForm, EditTeamMemberForm, NewTeamMemberForm, \
-  InviteTeamMemberForm, RemoveTeamForm
+  InviteTeamMemberForm, RemoveTeamForm, AcceptInviteForm
 from sentry.web.helpers import render_to_response
 
 
@@ -161,6 +161,7 @@ def new_team_member(request, team):
     return render_to_response('sentry/teams/members/new.html', context, request)
 
 
+@csrf_protect
 def accept_invite(request, member_id, token):
     try:
         pending_member = PendingTeamMember.objects.get(pk=member_id)
@@ -182,16 +183,25 @@ def accept_invite(request, member_id, token):
         }
         return render_to_response('sentry/teams/members/accept_invite_unauthenticated.html', context, request)
 
-    team.member_set.get_or_create(
-        user=request.user,
-        type=pending_member.type,
-    )
+    form = AcceptInviteForm(request.POST or None)
+    if form.is_valid():
+        team.member_set.get_or_create(
+            user=request.user,
+            type=pending_member.type,
+        )
 
-    request.session.pop('can_register', None)
+        request.session.pop('can_register', None)
 
-    pending_member.delete()
+        pending_member.delete()
 
-    return HttpResponseRedirect(reverse('sentry', args=[team.slug]))
+        return HttpResponseRedirect(reverse('sentry', args=[team.slug]))
+
+    context = {
+        'team': team,
+        'form': form,
+    }
+
+    return render_to_response('sentry/teams/members/accept_invite.html', context, request)
 
 
 @csrf_protect

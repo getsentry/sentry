@@ -1,0 +1,20 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Team Invite" %} | {{ block.super }}{% endblock %}
+
+{% block page_header_block %}{% endblock %}
+{% block bodyclass %}{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <p>{% blocktrans with team.name as team_name %}You have been invited to join the <strong>{{ team_name }}</strong> team.{% endblocktrans %}</p>
+
+        <form method="POST">
+            {% csrf_token %}
+            <p>{% trans "If you do not wish to join this team, you can safely close this page and ignore the invite." %}
+            <p><button type="submit" class="btn btn-primary">{% blocktrans with team.name as team_name %}Join <em>{{ team_name }}</em>{% endblocktrans %}</button></p>
+        </form>
+    </section>
+{% endblock %}

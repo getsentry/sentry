@@ -116,3 +116,7 @@ class NewTeamMemberForm(BaseTeamMemberForm):
             raise forms.ValidationError(_('User is already a member of this team'))
 
         return value
+
+
+class AcceptInviteForm(forms.Form):
+    pass
