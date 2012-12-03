@@ -54,7 +54,7 @@ class StoreViewTest(TestCase):
 class CrossDomainXmlTest(TestCase):
     @fixture
     def project(self):
-        return Project.objects.create(name='foo', slug='foo')
+        return Project.objects.create(name='foo', slug='foo', public=True)
 
     @fixture
     def path(self):

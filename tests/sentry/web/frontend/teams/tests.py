@@ -178,3 +178,31 @@ class RestoreTeamMemberTest(BaseTeamTest):
         self.assertEquals(resp['Location'], 'http://testserver' + reverse('sentry-manage-team', args=[self.team.slug]) + '?success=1')
         tm = self.team.member_set.get(pk=self.tm2.id)
         self.assertTrue(tm.is_active)
+
+
+class NewTeamMemberTest(BaseTeamTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-new-team-member', args=[self.team.slug])
+
+    def test_does_load(self):
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/teams/members/new.html')
+
+    def test_cannot_add_existing_member(self):
+        resp = self.client.post(self.path, {
+            'add-type': MEMBER_USER,
+            'add-user': self.team.owner.username,
+        })
+        self.assertEquals(resp.status_code, 200)
+
+    def test_does_add_existing_user_as_member(self):
+        user = User.objects.create(username='newuser')
+        resp = self.client.post(self.path, {
+            'add-type': MEMBER_USER,
+            'add-user': user.username,
+        })
+        self.assertEquals(resp.status_code, 302, resp.context['add_form'].errors if resp.status_code != 302 else None)
+        member = self.team.member_set.get(user=user)
+        self.assertEquals(member.type, MEMBER_USER)

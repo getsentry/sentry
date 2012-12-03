@@ -415,6 +415,20 @@ class RemoveTeamMemberTest(PermissionBase):
 
 
 class SentrySearchTest(TestCase):
+    def setUp(self):
+        self.client.login(username=self.user.username, password='password')
+
+    @fixture
+    def user(self):
+        user = User(username="admin", email="admin@localhost", is_staff=True, is_superuser=True)
+        user.set_password('password')
+        user.save()
+        return user
+
+    @fixture
+    def path(self):
+        return reverse('sentry-search', kwargs={'project_id': 1})
+
     def test_checksum_query(self):
         checksum = 'a' * 32
         g = Group.objects.create(
@@ -425,10 +439,9 @@ class SentrySearchTest(TestCase):
             message='hi',
         )
 
-        with self.Settings(SENTRY_PUBLIC=True):
-            response = self.client.get(reverse('sentry-search', kwargs={'project_id': 1}), {'q': '%s$%s' % (checksum, checksum)})
-            self.assertEquals(response.status_code, 302)
-            self.assertEquals(response['Location'], 'http://testserver%s' % (g.get_absolute_url(),))
+        response = self.client.get(self.path, {'q': '%s$%s' % (checksum, checksum)})
+        self.assertEquals(response.status_code, 302)
+        self.assertEquals(response['Location'], 'http://testserver%s' % (g.get_absolute_url(),))
 
     def test_dupe_checksum(self):
         checksum = 'a' * 32
@@ -447,8 +460,8 @@ class SentrySearchTest(TestCase):
             message='hi',
         )
 
-        with self.Settings(SENTRY_PUBLIC=True, SENTRY_USE_SEARCH=False):
-            response = self.client.get(reverse('sentry-search', kwargs={'project_id': 1}), {'q': '%s$%s' % (checksum, checksum)})
+        with self.Settings(SENTRY_USE_SEARCH=False):
+            response = self.client.get(self.path, {'q': '%s$%s' % (checksum, checksum)})
             self.assertEquals(response.status_code, 200)
             self.assertTemplateUsed(response, 'sentry/search.html')
             context = response.context
