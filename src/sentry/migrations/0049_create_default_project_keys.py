@@ -10,10 +10,10 @@ class Migration(DataMigration):
         from sentry.models import ProjectKey
 
         for project in orm['sentry.Project'].objects.all():
-            if ProjectKey.objects.filter(project=project, user=None).exists():
+            if orm['sentry.ProjectKey'].objects.filter(project=project, user=None).exists():
                 continue
 
-            ProjectKey.objects.create(
+            orm['sentry.ProjectKey'].objects.create(
                 project=project,
                 defaults=dict(
                     public_key=ProjectKey.generate_api_key(),
