@@ -187,7 +187,11 @@ def accept_invite(request, member_id, token):
 
         return render_to_response('sentry/teams/members/accept_invite_unauthenticated.html', context, request)
 
-    form = AcceptInviteForm(request.POST or None)
+    if request.method == 'POST':
+        form = AcceptInviteForm(request.POST)
+    else:
+        form = AcceptInviteForm()
+
     if form.is_valid():
         team.member_set.get_or_create(
             user=request.user,

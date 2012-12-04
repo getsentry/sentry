@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
-from sentry.models import Team, PendingTeamMember
+from sentry.models import Team, TeamMember, PendingTeamMember
 from sentry.testutils import fixture
 from sentry.testutils import TestCase
 
@@ -245,7 +245,6 @@ class AcceptInviteTest(BaseTeamTest):
         self.client.logout()
         ptm = PendingTeamMember.objects.create(
             email='newuser@example.com',
-            token='foobar',
             team=self.team,
         )
         resp = self.client.get(reverse('sentry-accept-invite', args=[ptm.id, ptm.token]))
@@ -255,9 +254,30 @@ class AcceptInviteTest(BaseTeamTest):
     def test_renders_authenticated_template(self):
         ptm = PendingTeamMember.objects.create(
             email='newuser@example.com',
-            token='foobar',
             team=self.team,
         )
         resp = self.client.get(reverse('sentry-accept-invite', args=[ptm.id, ptm.token]))
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/teams/members/accept_invite.html')
+
+    def test_can_accept_while_authenticated(self):
+        ptm = PendingTeamMember.objects.create(
+            email='newuser@example.com',
+            type=MEMBER_USER,
+            team=self.team,
+        )
+        resp = self.client.post(reverse('sentry-accept-invite', args=[ptm.id, ptm.token]))
+        self.assertEquals(resp.status_code, 302, resp.context['form'].errors if resp.status_code != 302 else None)
+        self.assertFalse(PendingTeamMember.objects.filter(id=ptm.id).exists())
+        self.assertTrue(TeamMember.objects.filter(user=self.user, team=self.team).exists())
+
+    def test_cannot_accept_while_unauthenticated(self):
+        self.client.logout()
+        ptm = PendingTeamMember.objects.create(
+            email='newuser@example.com',
+            type=MEMBER_USER,
+            team=self.team,
+        )
+        resp = self.client.post(reverse('sentry-accept-invite', args=[ptm.id, ptm.token]))
+        self.assertTemplateUsed(resp, 'sentry/teams/members/accept_invite_unauthenticated.html')
+        self.assertEquals(resp.status_code, 200)
