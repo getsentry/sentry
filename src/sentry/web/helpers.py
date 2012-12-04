@@ -97,7 +97,7 @@ def get_internal_project():
 
     return {
         'id': project.id,
-        'public_key': projectkey.public_key,
+        'dsn': projectkey.get_dsn(public=True)
     }
 
 

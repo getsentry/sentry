@@ -75,12 +75,7 @@
                 <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/lib/raven.js" %}"></script>
             {% endcompress %}
             <script type="text/javascript">
-            Raven.config({
-                servers: ['/'],
-                projectId: {{ INTERNAL_PROJECT.id|to_json|safe }},
-                publicKey: {{ INTERNAL_PROJECT.public_key|to_json|safe }},
-                logger: 'sentry.errors.javascript'
-            })
+            Raven.config({{ INTERNAL_PROJECT.dsn|to_json|safe }});
             window.onerror = Raven.process;
             </script>
         {% endif %}
