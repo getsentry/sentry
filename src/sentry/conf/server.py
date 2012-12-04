@@ -166,7 +166,7 @@ NPM_ROOT = os.path.abspath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, 'nod
 if os.path.exists(NPM_ROOT):
     LESS_BIN = os.path.join(NPM_ROOT, 'less', 'bin', 'lessc')
 else:
-    LESS_BIN = 'less'
+    LESS_BIN = 'lessc'
 
 # XXX: There is a bug in django-compressor that causes it to incorrectly handle
 # relative URLs in precompiled files (less) when compression is disabled
