@@ -48,7 +48,7 @@ class UserField(CharField):
 
 class OriginsField(CharField):
     _url_validator = URLValidator(verify_exists=False)
-    widget = Textarea(attrs={'placeholder': 'e.g. http://example.com\n*.example.com', 'class': 'span8'})
+    widget = Textarea(attrs={'placeholder': mark_safe('e.g. http://example.com<br>*.example.com'), 'class': 'span8'})
 
     def clean(self, value):
         if not value:
