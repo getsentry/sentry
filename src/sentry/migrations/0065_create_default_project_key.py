@@ -15,10 +15,8 @@ class Migration(DataMigration):
 
             orm['sentry.ProjectKey'].objects.create(
                 project=project,
-                defaults=dict(
-                    public_key=ProjectKey.generate_api_key(),
-                    secret_key=ProjectKey.generate_api_key(),
-                )
+                public_key=ProjectKey.generate_api_key(),
+                secret_key=ProjectKey.generate_api_key(),
             )
 
     def backwards(self, orm):

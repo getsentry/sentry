@@ -89,7 +89,10 @@ def iter_data(obj):
 
 
 def get_internal_project():
-    project = Project.objects.get(id=settings.PROJECT)
+    try:
+        project = Project.objects.get(id=settings.PROJECT)
+    except Project.DoesNotExist:
+        return {}
     try:
         projectkey = ProjectKey.objects.filter(project=project).order_by('-user')[0]
     except IndexError:
