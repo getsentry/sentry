@@ -94,6 +94,18 @@ This document describes additional configuration options available to the Sentry
 Authentication
 --------------
 
+
+.. data:: sentry.conf.ALLOW_REGISTRATION
+    :noindex:
+
+    Should Sentry allow users to create new accounts?
+
+    Defaults to ``True`` (can register).
+
+    ::
+
+        SENTRY_ALLOW_REGISTRATION = False
+
 .. data:: sentry.conf.PUBLIC
     :noindex:
 
@@ -108,7 +120,7 @@ Authentication
 .. data:: sentry.conf.ALLOW_PROJECT_CREATION
     :noindex:
 
-    Should sentry allow users without the 'sentry.add_project' permission to
+    Should Sentry allow users without the 'sentry.add_project' permission to
     create new projects?
 
     Defaults to ``False`` (require permission).
@@ -116,6 +128,31 @@ Authentication
     ::
 
         SENTRY_ALLOW_PROJECT_CREATION = True
+
+.. data:: sentry.conf.ALLOW_TEAM_CREATION
+    :noindex:
+
+    Should Sentry allow users without the 'sentry.add_team' permission to
+    create new teams?
+
+    Defaults to ``True`` (require permission).
+
+    ::
+
+        SENTRY_ALLOW_TEAM_CREATION = False
+
+.. data:: sentry.conf.ALLOW_PUBLIC_PROJECTS
+    :noindex:
+
+    Should Sentry allow users without the 'sentry.change_project' permission to
+    make projects globally public?
+
+    Defaults to ``True`` (can set public status).
+
+    ::
+
+        SENTRY_ALLOW_PUBLIC_PROJECTS = False
+
 
 .. data:: sentry.conf.ALLOW_ORIGIN
     :noindex:
