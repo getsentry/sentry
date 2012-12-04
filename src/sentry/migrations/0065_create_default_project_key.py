@@ -1,4 +1,4 @@
-# encoding: utf-8
+# -*- coding: utf-8 -*-
 import datetime
 from south.db import db
 from south.v2 import DataMigration
@@ -22,8 +22,7 @@ class Migration(DataMigration):
             )
 
     def backwards(self, orm):
-        pass
-
+        "Write your backwards methods here."
 
     models = {
         'auth.group': {
@@ -79,6 +78,12 @@ class Migration(DataMigration):
             'site': ('django.db.models.fields.CharField', [], {'max_length': '128', 'null': 'True', 'db_index': 'True'}),
             'time_spent': ('django.db.models.fields.FloatField', [], {'null': 'True'})
         },
+        'sentry.filterkey': {
+            'Meta': {'unique_together': "(('project', 'key'),)", 'object_name': 'FilterKey'},
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'key': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
+            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']"})
+        },
         'sentry.filtervalue': {
             'Meta': {'unique_together': "(('project', 'key', 'value'),)", 'object_name': 'FilterValue'},
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
@@ -88,16 +93,19 @@ class Migration(DataMigration):
         },
         'sentry.group': {
             'Meta': {'unique_together': "(('project', 'logger', 'culprit', 'checksum'),)", 'object_name': 'Group', 'db_table': "'sentry_groupedmessage'"},
+            'active_at': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'db_index': 'True'}),
             'checksum': ('django.db.models.fields.CharField', [], {'max_length': '32', 'db_index': 'True'}),
             'culprit': ('django.db.models.fields.CharField', [], {'max_length': '200', 'null': 'True', 'db_column': "'view'", 'blank': 'True'}),
             'data': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
             'first_seen': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'db_index': 'True'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'is_public': ('django.db.models.fields.NullBooleanField', [], {'default': 'False', 'null': 'True', 'blank': 'True'}),
             'last_seen': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'db_index': 'True'}),
             'level': ('django.db.models.fields.PositiveIntegerField', [], {'default': '40', 'db_index': 'True', 'blank': 'True'}),
             'logger': ('django.db.models.fields.CharField', [], {'default': "'root'", 'max_length': '64', 'db_index': 'True', 'blank': 'True'}),
             'message': ('django.db.models.fields.TextField', [], {}),
             'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'}),
+            'resolved_at': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'db_index': 'True'}),
             'score': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
             'status': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0', 'db_index': 'True'}),
             'time_spent_count': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
@@ -121,7 +129,7 @@ class Migration(DataMigration):
         },
         'sentry.messagecountbyminute': {
             'Meta': {'unique_together': "(('project', 'group', 'date'),)", 'object_name': 'MessageCountByMinute'},
-            'date': ('django.db.models.fields.DateTimeField', [], {}),
+            'date': ('django.db.models.fields.DateTimeField', [], {'db_index': 'True'}),
             'group': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Group']"}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'}),
@@ -153,12 +161,12 @@ class Migration(DataMigration):
             'key': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '64'}),
             'value': ('picklefield.fields.PickledObjectField', [], {})
         },
-        'sentry.pendingprojectmember': {
-            'Meta': {'unique_together': "(('project', 'email'),)", 'object_name': 'PendingProjectMember'},
+        'sentry.pendingteammember': {
+            'Meta': {'unique_together': "(('team', 'email'),)", 'object_name': 'PendingTeamMember'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'email': ('django.db.models.fields.EmailField', [], {'max_length': '75'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'project': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'pending_member_set'", 'to': "orm['sentry.Project']"}),
+            'team': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'pending_member_set'", 'to': "orm['sentry.Team']"}),
             'type': ('django.db.models.fields.IntegerField', [], {'default': '0'})
         },
         'sentry.project': {
@@ -167,8 +175,8 @@ class Migration(DataMigration):
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '200'}),
             'owner': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'sentry_owned_project_set'", 'null': 'True', 'to': "orm['auth.User']"}),
-            'public': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'slug': ('django.db.models.fields.SlugField', [], {'max_length': '50', 'unique': 'True', 'null': 'True', 'db_index': 'True'}),
+            'public': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
+            'slug': ('django.db.models.fields.SlugField', [], {'max_length': '50', 'unique': 'True', 'null': 'True'}),
             'status': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0', 'db_index': 'True'}),
             'team': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Team']", 'null': 'True'})
         },
@@ -181,30 +189,13 @@ class Migration(DataMigration):
             'time_spent_total': ('django.db.models.fields.FloatField', [], {'default': '0'}),
             'times_seen': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'})
         },
-        'sentry.projectdomain': {
-            'Meta': {'unique_together': "(('project', 'domain'),)", 'object_name': 'ProjectDomain'},
-            'domain': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'project': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'domain_set'", 'to': "orm['sentry.Project']"})
-        },
         'sentry.projectkey': {
             'Meta': {'object_name': 'ProjectKey'},
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']"}),
+            'project': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'key_set'", 'to': "orm['sentry.Project']"}),
             'public_key': ('django.db.models.fields.CharField', [], {'max_length': '32', 'unique': 'True', 'null': 'True'}),
             'secret_key': ('django.db.models.fields.CharField', [], {'max_length': '32', 'unique': 'True', 'null': 'True'}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.User']", 'null': 'True'})
-        },
-        'sentry.projectmember': {
-            'Meta': {'unique_together': "(('project', 'user'),)", 'object_name': 'ProjectMember'},
-            'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
-            'project': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'member_set'", 'to': "orm['sentry.Project']"}),
-            'public_key': ('django.db.models.fields.CharField', [], {'max_length': '32', 'unique': 'True', 'null': 'True'}),
-            'secret_key': ('django.db.models.fields.CharField', [], {'max_length': '32', 'unique': 'True', 'null': 'True'}),
-            'type': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'sentry_project_set'", 'to': "orm['auth.User']"})
         },
         'sentry.projectoption': {
             'Meta': {'unique_together': "(('project', 'key'),)", 'object_name': 'ProjectOption', 'db_table': "'sentry_projectoptions'"},
@@ -236,16 +227,24 @@ class Migration(DataMigration):
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
             'owner': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.User']"}),
-            'slug': ('django.db.models.fields.SlugField', [], {'unique': 'True', 'max_length': '50', 'db_index': 'True'})
+            'slug': ('django.db.models.fields.SlugField', [], {'unique': 'True', 'max_length': '50'})
         },
         'sentry.teammember': {
             'Meta': {'unique_together': "(('team', 'user'),)", 'object_name': 'TeamMember'},
             'date_added': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
-            'team': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Team']"}),
+            'team': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'member_set'", 'to': "orm['sentry.Team']"}),
             'type': ('django.db.models.fields.IntegerField', [], {'default': '0'}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'sentry_teammember_set'", 'to': "orm['auth.User']"})
+        },
+        'sentry.useroption': {
+            'Meta': {'unique_together': "(('user', 'project', 'key'),)", 'object_name': 'UserOption'},
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'key': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
+            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'}),
+            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['auth.User']"}),
+            'value': ('picklefield.fields.PickledObjectField', [], {})
         },
         'sentry.view': {
             'Meta': {'object_name': 'View'},
@@ -257,3 +256,4 @@ class Migration(DataMigration):
     }
 
     complete_apps = ['sentry']
+    symmetrical = True

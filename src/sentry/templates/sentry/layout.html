@@ -19,18 +19,6 @@
 
         <title>{% block title %}Sentry{% endblock %}</title>
 
-        {% if USE_JS_CLIENT %}
-            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/client.js" %}"></script>
-            <script type="text/javascript">
-            Sentry.client.config({
-                server: '{% url sentry-api-store %}',
-                projectId: {{ PROJECT_ID|to_json|safe }},
-                logger: 'sentry.errors.javascript'
-            })
-            Sentry.client.registerGlobalHandler();
-            </script>
-        {% endif %}
-
         <!--[if lt IE 9]>
         <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/html5shiv.js" %}"></script>
         <![endif]-->
@@ -81,6 +69,21 @@
             app.config.viewId = {% if view %}{{ view.pk|to_json|safe }}{% else %}null{% endif %};
             </script>
         {% endblock %}
+
+        {% if USE_JS_CLIENT and INTERNAL_PROJECT %}
+            {% compress js %}
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/lib/raven.js" %}"></script>
+            {% endcompress %}
+            <script type="text/javascript">
+            Raven.config({
+                servers: ['/'],
+                projectId: {{ INTERNAL_PROJECT.id|to_json|safe }},
+                publicKey: {{ INTERNAL_PROJECT.public_key|to_json|safe }},
+                logger: 'sentry.errors.javascript'
+            })
+            window.onerror = Raven.process;
+            </script>
+        {% endif %}
 
         {% block meta %}
         {% endblock %}

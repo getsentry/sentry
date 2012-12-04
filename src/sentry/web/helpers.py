@@ -19,7 +19,7 @@ from django.utils.safestring import mark_safe
 
 from sentry.conf import settings
 from sentry.models import Project, View, Team, \
-  Option, ProjectOption
+  Option, ProjectOption, ProjectKey
 from sentry.permissions import can_create_projects, can_create_teams
 
 logger = logging.getLogger('sentry.errors')
@@ -88,12 +88,26 @@ def iter_data(obj):
         yield k, v
 
 
+def get_internal_project():
+    project = Project.objects.get(id=settings.PROJECT)
+    try:
+        projectkey = ProjectKey.objects.filter(project=project).order_by('-user')[0]
+    except IndexError:
+        return {}
+
+    return {
+        'id': project.id,
+        'public_key': projectkey.public_key,
+    }
+
+
 def get_default_context(request, existing_context=None):
     from sentry.plugins import plugins
 
     context = {
         'HAS_SEARCH': settings.USE_SEARCH,
         'MESSAGES_PER_PAGE': settings.MESSAGES_PER_PAGE,
+        'INTERNAL_PROJECT': get_internal_project(),
         'PROJECT_ID': str(settings.PROJECT),
         'VIEWS': list(View.objects.all()),
         'URL_PREFIX': settings.URL_PREFIX,

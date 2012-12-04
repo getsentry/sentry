@@ -780,6 +780,10 @@ def create_default_project(created_models, verbosity=2, **kwargs):
             name='Sentry (Internal)',
             slug='sentry',
         )
+        # default key (used by sentry-js client, etc)
+        ProjectKey.objects.create(
+            project=project,
+        )
 
         if verbosity > 0:
             print 'Created internal Sentry project (slug=%s, id=%s)' % (project.slug, project.id)
