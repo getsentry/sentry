@@ -13,8 +13,14 @@
         {% block css %}
             {% compress css %}
                 <link href="{% url sentry-media "sentry" "scripts/lib/select2/select2.css" %}" rel="stylesheet" type="text/css"/>
-                <link href="{% url sentry-media "sentry" "less/sentry.less" %}" rel="stylesheet" type="text/less"/>
             {% endcompress %}
+            {% if COMPRESS_LESS %}
+                {% compress css %}
+                    <link href="{% url sentry-media "sentry" "less/sentry.less" %}" rel="stylesheet" type="text/less"/>
+                {% endcompress %}
+            {% else %}
+                <link href="{% url sentry-media "sentry" "styles/sentry.css" %}" rel="stylesheet" type="text/css"/>
+            {% endif %}
         {% endblock %}
 
         <title>{% block title %}Sentry{% endblock %}</title>

@@ -3,8 +3,8 @@ NPM_ROOT = node_modules
 STATIC_DIR = src/sentry/static/sentry
 BOOTSTRAP_JS = ${STATIC_DIR}/scripts/lib/bootstrap.js
 BOOTSTRAP_JS_MIN = ${STATIC_DIR}/scripts/lib/bootstrap.min.js
-UGLIFY_JS ?= `which uglifyjs`
-WATCHR ?= `which watchr`
+UGLIFY_JS ?= node_modules/uglify-js/bin/uglifyjs
+LESS = node_modules/less/bin/lessc
 
 develop: update-submodules
 	npm install
@@ -20,9 +20,13 @@ locale:
 	cd src/sentry && sentry makemessages -l en
 	cd src/sentry && sentry compilemessages
 
-static:
+compile-bootstrap-js:
 	@cat src/bootstrap/js/bootstrap-transition.js src/bootstrap/js/bootstrap-alert.js src/bootstrap/js/bootstrap-button.js src/bootstrap/js/bootstrap-carousel.js src/bootstrap/js/bootstrap-collapse.js src/bootstrap/js/bootstrap-dropdown.js src/bootstrap/js/bootstrap-modal.js src/bootstrap/js/bootstrap-tooltip.js src/bootstrap/js/bootstrap-popover.js src/bootstrap/js/bootstrap-scrollspy.js src/bootstrap/js/bootstrap-tab.js src/bootstrap/js/bootstrap-typeahead.js src/bootstrap/js/bootstrap-affix.js ${STATIC_DIR}/scripts/bootstrap-datepicker.js > ${BOOTSTRAP_JS}
-	@uglifyjs -nc ${BOOTSTRAP_JS} > ${BOOTSTRAP_JS_MIN};
+	${UGLIFY_JS} -nc ${BOOTSTRAP_JS} > ${BOOTSTRAP_JS_MIN};
+
+
+static:
+	${LESS} --strict-imports ${STATIC_DIR}/less/sentry.less ${STATIC_DIR}/styles/sentry.css
 	@echo "Static assets successfully built! - `date`";
 
 update-submodules:

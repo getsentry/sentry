@@ -17,7 +17,7 @@ import socket
 import sys
 import urlparse
 
-DEBUG = False
+DEBUG = True
 TEMPLATE_DEBUG = True
 
 ADMINS = ()
@@ -166,21 +166,24 @@ NPM_ROOT = os.path.abspath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, 'nod
 if os.path.exists(NPM_ROOT):
     LESS_BIN = os.path.join(NPM_ROOT, 'less', 'bin', 'lessc')
 else:
-    LESS_BIN = 'lessc'
+    LESS_BIN = None
 
 # XXX: There is a bug in django-compressor that causes it to incorrectly handle
 # relative URLs in precompiled files (less) when compression is disabled
-COMPRESS_ENABLED = True
-COMPRESS_URL = STATIC_URL
-COMPRESS_OUTPUT_DIR = 'CACHE'
-COMPRESS_PRECOMPILERS = (
-    ('text/less', '%s --strict-imports {infile} {outfile}' % (LESS_BIN,)),
-)
+if LESS_BIN and False:
+    COMPRESS_ENABLED = True
+    COMPRESS_URL = STATIC_URL
+    COMPRESS_OUTPUT_DIR = 'CACHE'
+    COMPRESS_PRECOMPILERS = (
+        ('text/less', '%s --strict-imports {infile} {outfile}' % (LESS_BIN,)),
+    )
+else:
+    COMPRESS_ENABLED = False
 
 STATICFILES_FINDERS = (
-    "compressor.finders.CompressorFinder",
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
+    "compressor.finders.CompressorFinder",
 )
 
 LOCALE_PATHS = (
