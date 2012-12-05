@@ -4553,6 +4553,32 @@ footer a:hover {
   height: 13px;
   background: url(../images/dashboard/pagination.png) -13px 0;
 }
+.sparkline > span {
+  position: relative;
+  float: left;
+  height: 100%;
+  display: block;
+}
+.sparkline > span:hover > span {
+  background: #4593de;
+  border-color: #4593de;
+}
+.sparkline > span > span {
+  display: block;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 1px;
+  background: #dfe3e9;
+  -webkit-border-radius: 3px 3px 0 0;
+  -moz-border-radius: 3px 3px 0 0;
+  border-radius: 3px 3px 0 0;
+  border: 1px solid #dfe3e9;
+  min-width: 1px;
+  height: 0;
+  overflow: hidden;
+  text-indent: -9999px;
+}
 .group-list,
 .events {
   margin: 0;
@@ -4700,25 +4726,6 @@ footer a:hover {
   position: relative;
   float: left;
   width: 3px;
-  margin-right: 1px;
-  height: 100%;
-  display: block;
-}
-.group-list > li .sparkline > span > span,
-.events > li .sparkline > span > span {
-  display: block;
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  background: #dfe3e9;
-  -webkit-border-radius: 3px;
-  -moz-border-radius: 3px;
-  border-radius: 3px;
-  border: 1px solid #dfe3e9;
-  width: 1px;
-  height: 0;
-  overflow: hidden;
-  text-indent: -9999px;
 }
 .group-list > li .meta,
 .events > li .meta {
