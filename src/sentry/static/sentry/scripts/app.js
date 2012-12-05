@@ -6,15 +6,18 @@
     var $ = jQuery;
     var BasePage = Backbone.View.extend({
 
+        defaults: {
+            realtime: false
+        },
+
         initialize: function(data){
             _.bindAll(this);
 
-            if (data === undefined)
+            if (_.isUndefined(data))
                 data = {};
 
-            this.config = {
-                realtime: data.realtime || false
-            };
+            this.options = $.extend(this.defaults, this.options, data);
+
             this.views = {};
             this.initializeAjaxTabs();
         },
@@ -60,7 +63,7 @@
                 id: id,
                 maxItems: 5,
                 pollUrl: uri,
-                realtime: this.config.realtime,
+                realtime: this.options.realtime,
                 model: app.Group
             });
         },

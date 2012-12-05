@@ -135,6 +135,10 @@
         emptyMessage: '<p>There is nothing to show here.</p>',
         loadingMessage: '<p>Loading...</p>',
 
+        defaults: {
+            maxItems: 50
+        },
+
         initialize: function(data){
             _.bindAll(this);
 
@@ -153,10 +157,7 @@
             if (data.className)
                 this.$parent.addClass(data.className);
 
-            // TODO: we can use bindAll to make this more sane
-            this.config = {
-                maxItems: data.maxItems || 50
-            };
+            this.options = $.extend(this.defaults, this.options, data);
 
             this.collection = new app.ScoredList();
             this.collection.add(data.members || []);
@@ -190,13 +191,13 @@
 
         addMember: function(member){
             if (!this.hasMember(member)) {
-                if (this.collection.models.length >= (this.config.maxItems - 1))
+                if (this.collection.models.length >= (this.options.maxItems - 1))
                     // bail early if the score is too low
                     if (member.get('score') < this.collection.last().get('score'))
                         return;
 
                     // make sure we limit the number shown
-                    while (this.collection.models.length >= this.config.maxItems)
+                    while (this.collection.models.length >= this.options.maxItems)
                         this.collection.pop();
 
                 this.collection.add(member);
@@ -212,7 +213,7 @@
         },
 
         updateMember: function(member, options){
-            if (member.get === undefined) {
+            if (_.isUndefined(member.get)) {
                 member = new this.model(member);
             }
 
@@ -297,6 +298,13 @@
 
     app.GroupListView = app.OrderedElementsView.extend({
 
+        defaults: {
+            realtime: false,
+            pollUrl: null,
+            pollTime: 1000,
+            tickTime: 100
+        },
+
         initialize: function(data){
             if (_.isUndefined(data))
                 data = {};
@@ -305,19 +313,14 @@
             
             app.OrderedElementsView.prototype.initialize.call(this, data);
 
-            this.config = {
-                realtime: data.realtime || false,
-                pollUrl: data.pollUrl || null,
-                pollTime: data.pollTime || 1000,
-                tickTime: data.tickTime || 100
-            };
+            this.options = $.extend(this.defaults, this.options, data);
 
             this.queue = new app.ScoredList();
             this.cursor = null;
 
             this.poll();
 
-            window.setInterval(this.tick, this.config.tickTime);
+            window.setInterval(this.tick, this.options.tickTime);
         },
 
         tick: function(){
@@ -325,7 +328,7 @@
                 return;
 
             var item = this.queue.pop();
-            if (this.config.realtime){
+            if (this.options.realtime){
                 this.addMember(item);
             } else if (this.hasMember(item)) {
                 this.updateMember(item, {
@@ -337,14 +340,14 @@
         poll: function(){
             var data;
 
-            if (!this.config.realtime)
-                return window.setTimeout(this.poll, this.config.pollTime);
+            if (!this.options.realtime)
+                return window.setTimeout(this.poll, this.options.pollTime);
 
             data = app.utils.getQueryParams();
             data.cursor = this.cursor || undefined;
 
             $.ajax({
-                url: this.config.pollUrl,
+                url: this.options.pollUrl,
                 type: 'get',
                 dataType: 'json',
                 data: data,
@@ -352,7 +355,7 @@
                     var i, data, obj;
 
                     if (!groups.length)
-                        return setTimeout(this.poll, this.config.pollTime * 5);
+                        return setTimeout(this.poll, this.options.pollTime * 5);
 
                     this.cursor = groups[groups.length - 1].score || undefined;
 
@@ -368,11 +371,11 @@
                         }
                     }
 
-                    window.setTimeout(this.poll, this.config.pollTime);
+                    window.setTimeout(this.poll, this.options.pollTime);
                 }, this),
                 error: _.bind(function(){
                     // if an error happened lets give the server a bit of time before we poll again
-                    window.setTimeout(this.poll, this.config.pollTime * 10);
+                    window.setTimeout(this.poll, this.options.pollTime * 10);
                 }, this)
             });
         }
