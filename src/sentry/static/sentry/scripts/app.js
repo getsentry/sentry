@@ -121,7 +121,8 @@
         initialize: function(data){
             BasePage.prototype.initialize.call(this, data);
 
-            app.charts.render('#chart');
+            $('#chart').height('200px');
+            Sentry.charts.render('#chart');
         }
 
     });
@@ -131,7 +132,8 @@
         initialize: function(data){
             BasePage.prototype.initialize.call(this, data);
 
-            app.charts.render('#chart');
+            $('#chart').height('200px');
+            Sentry.charts.render('#chart');
         }
 
     });
