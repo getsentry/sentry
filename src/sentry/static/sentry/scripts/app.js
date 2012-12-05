@@ -97,6 +97,7 @@
                 this.updateStreamOptions();
             }, this));
 
+            $('#chart').height('50px');
             app.charts.render('#chart');
         },
 
