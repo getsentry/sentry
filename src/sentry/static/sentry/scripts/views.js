@@ -213,7 +213,7 @@
         },
 
         updateMember: function(member, options){
-            if (_.isUndefined(member.get)) {
+            if (member.get === undefined) {
                 member = new this.model(member);
             }
 
