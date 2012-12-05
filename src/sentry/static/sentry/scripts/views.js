@@ -190,6 +190,10 @@
         },
 
         addMember: function(member){
+            if (member.get === undefined) {
+                member = new this.model(member);
+            }
+
             if (!this.hasMember(member)) {
                 if (this.collection.models.length >= (this.options.maxItems - 1))
                     // bail early if the score is too low
@@ -213,10 +217,6 @@
         },
 
         updateMember: function(member, options){
-            if (member.get === undefined) {
-                member = new this.model(member);
-            }
-
             if (_.isUndefined(options))
                 options = {};
 
