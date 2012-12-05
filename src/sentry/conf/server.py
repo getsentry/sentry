@@ -170,7 +170,7 @@ else:
 
 # XXX: There is a bug in django-compressor that causes it to incorrectly handle
 # relative URLs in precompiled files (less) when compression is disabled
-if LESS_BIN and False:
+if LESS_BIN:
     COMPRESS_ENABLED = True
     COMPRESS_URL = STATIC_URL
     COMPRESS_OUTPUT_DIR = 'CACHE'
