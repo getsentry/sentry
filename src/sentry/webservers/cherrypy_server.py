@@ -1,5 +1,5 @@
 """
-sentry.webservers.cherry_server
+sentry.webservers.cherrypy_server
 ~~~~~~~~~~~~~~~~~~~~
 
 """
