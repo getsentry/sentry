@@ -426,8 +426,37 @@ footer {
   }
 }
 
+.chart {
+  position: relative;
+
+  > .title {
+    font-size: 2em;
+    text-transform: uppercase;
+    position: absolute;
+    left: 1px;
+    top: 1px;
+    color: #dfe3e9;
+    .opacity(70);
+    background: #fff;
+    padding: 5px 8px;
+    line-height: 100%;
+  }
+
+  > .legend {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 40px;
+    padding-left: 10px;
+    height: 100%;
+    text-align: left;
+    color: @linkColor;
+  }
+}
 .sparkline {
-  > span {
+  position: relative;
+
+  > a {
     position: relative;
     float: left;
     height: 100%;

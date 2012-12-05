@@ -10,26 +10,33 @@
         render: function(el) {
             var $el = $('#chart');
             var url = $el.attr('data-api-url');
+            var title = $(el).attr('data-title');
+            var $spark = $el.find('.sparkline');
 
-            $el.height($el.parent().height());
+            $spark.height($el.height());
+
             $.ajax({
                 url: $el.attr('data-api-url'),
                 type: 'get',
                 dataType: 'json',
                 data: {
-                    days: 7,
+                    days: $el.attr('data-days') || 7,
                     gid: $el.attr('data-group') || undefined
                 },
                 success: function(resp) {
-                    $el.empty();
-                    var data = [];
+                    var data = [], maxval = 10;
+                    $spark.empty();
                     $.each(resp, function(_, val){
+                        var date = new Date(val[0]);
                         data.push({
                             y: val[1],
-                            label: app.utils.prettyDate(new Date(val[0]))
+                            label: app.utils.prettyDate(date)
                         });
+                        if (val[1] > maxval) {
+                            maxval = val[1];
+                        }
                     });
-                    app.charts.createSparkline($el, data);
+                    app.charts.createSparkline($spark, data);
                 }
             });
         },
@@ -37,9 +44,9 @@
         createSparkline: function(el, points){
             // TODO: maxval could default to # of hours since first_seen / times_seen
             var $el = $(el),
-                existing = $el.find('> span'),
+                existing = $el.children(),
                 maxval = 10,
-                point, pct, child, point_width;
+                title, point, pct, child, point_width;
 
             for (var i=0; i<points.length; i++) {
                 point = points[i];
@@ -56,13 +63,19 @@
             point_width = app.utils.floatFormat(100.0 / points.length, 2) + '%';
 
             // TODO: we should only remove nodes that are no longer valid
-            for (i=0; (point = points[i]); i++) {
+            for (i=0; i<points.length; i++) {
+                point = points[i];
                 pct = app.utils.floatFormat(point.y / maxval * 99, 2) + '%';
-                child = existing[i];
-                if (child === undefined) {
-                    $('<span style="width:' + point_width + ';"><span style="height:' + pct + '" title="' + (point.label || point.y) + '">' + point.y + '</span></span>').appendTo($el);
+                title = point.y + ' events';
+                if (point.label) {
+                    title = title + '<br>(' + point.label + ')';
+                }
+                if (existing.get(i) === undefined) {
+                    $('<a style="width:' + point_width + ';" rel="tooltip" title="' + title + '"><span style="height:' + pct + '">' + point.y + '</span></a>').tooltip({
+                        placement: 'bottom'
+                    }).appendTo($el);
                 } else {
-                    $(child).find('span').css('height', pct).text(point.y).attr('title', (point.label || point.y));
+                    $(existing[i]).find('span').css('height', pct).text(point.y).attr('title', (point.label || point.y));
                 }
             }
         }

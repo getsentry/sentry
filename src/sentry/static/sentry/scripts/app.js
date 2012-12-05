@@ -96,6 +96,8 @@
                 this.group_list.config.realtime = this.control.hasClass('realtime-pause');
                 this.updateStreamOptions();
             }, this));
+
+            app.charts.render('#chart');
         },
 
         updateStreamOptions: function(){
@@ -124,6 +126,15 @@
 
     });
 
+    app.GroupDetailsPage = BasePage.extend({
+
+        initialize: function(data){
+            BasePage.prototype.initialize.call(this, data);
+
+            app.charts.render('#chart');
+        }
+
+    });
 
     app.WallPage = BasePage.extend({
 
