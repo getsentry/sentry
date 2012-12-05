@@ -94,6 +94,7 @@ MINUTE_NORMALIZATION = 15
 MESSAGES_PER_PAGE = 15
 
 # Web Service
+WEB_SERVER = 'gunicorn'
 WEB_HOST = 'localhost'
 WEB_PORT = 9000
 WEB_OPTIONS = {

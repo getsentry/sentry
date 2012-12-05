@@ -6,15 +6,19 @@ sentry.services.http
 :license: BSD, see LICENSE for more details.
 """
 
-from django.core.management import call_command
-from sentry.services.base import Service
 
+from sentry.services.base import Service
+from sentry.conf import settings
+
+if settings.WEB_SERVER == 'gunicorn':
+    from sentry.webservers import gunicorn_server as webserver
+else:
+    from sentry.webservers import cherrypy_server as webserver
 
 class SentryHTTPServer(Service):
     name = 'http'
 
     def __init__(self, host=None, port=None, debug=False, workers=None):
-        from sentry.conf import settings
 
         self.host = host or settings.WEB_HOST
         self.port = port or settings.WEB_PORT
@@ -33,6 +37,8 @@ class SentryHTTPServer(Service):
         #     worker.init_process = profiling_init_process.__get__(worker)
 
         options = (settings.WEB_OPTIONS or {}).copy()
+        options['host'] = self.host
+        options['port'] = self.port
         options['bind'] = '%s:%s' % (self.host, self.port)
         options['debug'] = debug
         options.setdefault('daemon', False)
@@ -43,4 +49,4 @@ class SentryHTTPServer(Service):
         self.options = options
 
     def run(self):
-        call_command('run_gunicorn', **self.options)
+        webserver.run_server(self.options)
