@@ -470,6 +470,12 @@ class Group(MessageBase):
             'last_seen',
         ).order_by('-times_seen')
 
+    def get_tags(self):
+        if not hasattr(self, '_tag_cache'):
+            tags = sorted(self.messagefiltervalue_set.values_list('key', flat=True).distinct())
+            self._tag_cache = tags
+        return self._tag_cache
+
 
 class GroupMeta(Model):
     """

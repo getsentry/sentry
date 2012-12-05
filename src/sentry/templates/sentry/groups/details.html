@@ -75,7 +75,7 @@
         </ul>
     {% endif %}
 
-    {% for tag in group.project.get_tags %}
+    {% for tag in group.get_tags %}
         {% render_tag_widget group tag %}
     {% endfor %}
 
@@ -138,7 +138,7 @@
             <li{% if page == 'event_list' %} class="active"{% endif %}>
                 <a href="{% url sentry-group-events group.project.slug group.id %}">{% trans "Events" %}</a>
             </li>
-            {% for tag in group.project.get_tags %}
+            {% for tag in group.get_tags %}
                 <li{% if page == 'tag_details' and tag == tag_name %} class="active"{% endif %}>
                     <a href="{% url sentry-group-tag-details group.project.slug group.id tag %}">{{ tag|titlize }}</a>
                 </li>
