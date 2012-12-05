@@ -481,6 +481,7 @@ class GroupManager(BaseManager, ChartMixin):
             date = date.replace(tzinfo=None)
 
         data = kwargs
+        data['tags'] = tags
 
         kwargs = {
             'level': level,
