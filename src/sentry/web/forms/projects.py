@@ -28,7 +28,7 @@ class ProjectTagsForm(forms.Form):
         )
         self.fields['filters'].widget.choices = self.fields['filters'].choices
 
-        enabled_tags = ProjectOption.objects.get_value(self.project, 'filters', tag_list)
+        enabled_tags = ProjectOption.objects.get_value(self.project, 'tags', tag_list)
         self.fields['filters'].initial = enabled_tags
 
     def save(self):
