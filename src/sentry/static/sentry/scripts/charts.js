@@ -26,7 +26,7 @@
                     $.each(resp, function(_, val){
                         data.push({
                             y: val[1],
-                            label: val[0]
+                            label: app.utils.prettyDate(new Date(val[0]))
                         });
                     });
                     app.charts.createSparkline($el, data);
