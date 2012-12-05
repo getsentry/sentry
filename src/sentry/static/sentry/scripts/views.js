@@ -42,7 +42,7 @@
             if (!data)
                 return;
 
-            app.utils.createSparkline(this.$el.find('.sparkline'), data);
+            app.charts.createSparkline(this.$el.find('.sparkline'), data);
         },
 
         getResolveUrl: function(){

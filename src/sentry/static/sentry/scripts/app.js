@@ -119,8 +119,7 @@
         initialize: function(data){
             BasePage.prototype.initialize.call(this, data);
 
-            // TODO: abstract this out into our newer components
-            Sentry.charts.render('#chart');
+            app.charts.render('#chart');
         }
 
     });

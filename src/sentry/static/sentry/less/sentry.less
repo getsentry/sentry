@@ -426,6 +426,38 @@ footer {
   }
 }
 
+.sparkline {
+  > span {
+    position: relative;
+    float: left;
+    height: 100%;
+    display: block; 
+
+    &:hover {
+      > span {
+        background: @linkColor;
+        border-color: @linkColor;
+      }
+    }
+
+    > span {
+      display: block; 
+      position: absolute; 
+      bottom: 0;
+      left: 0; 
+      right: 1px;
+      background: #dfe3e9;
+      .border-radius(3px 3px 0 0);
+      border: 1px solid #dfe3e9;
+      min-width: 1px;
+      height: 0;
+      overflow: hidden; 
+      text-indent: -9999px;
+
+    }
+  }
+}
+
 .group-list, .events {
   margin: 0;
   padding: 0;
@@ -549,23 +581,6 @@ footer {
         position: relative;
         float: left;
         width: 3px;
-        margin-right: 1px;
-        height: 100%;
-        display: block; 
-
-        > span {
-          display: block; 
-          position: absolute; 
-          bottom: 0;
-          left: 0; 
-          background: #dfe3e9;
-          .border-radius(3px);
-          border: 1px solid #dfe3e9;
-          width: 1px;
-          height: 0;
-          overflow: hidden; 
-          text-indent: -9999px;
-        }
       }
     }
     .meta {

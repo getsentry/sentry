@@ -47,32 +47,6 @@
             return vars;
         },
 
-        createSparkline: function(el, bits){
-            // TODO: maxval could default to # of hours since first_seen / times_seen
-            var $el = $(el),
-                existing = $el.find('> span'),
-                maxval = 10,
-                i, bit, pct, child;
-
-            for (i=0; i<bits.length; i++) {
-                if (bits[i] > maxval) {
-                    maxval = bits[i];
-                }
-            }
-
-            // TODO: we should only remove nodes that are no longer valid
-            for (i=0; i<bits.length; i++) {
-                bit = bits[i];
-                pct = parseInt(bit / maxval * 100, 10) + '%';
-                child = existing[i];
-                if (child === undefined) {
-                    $('<span><span style="height:' + pct + '" title="' + bit + '">' + bit + '</span></span>').appendTo($el);
-                } else {
-                    $(child).find('span').css('height', pct).text(bit);
-                }
-            }
-        },
-
         floatFormat: function(number, places){
             var multi = Math.pow(10, places);
             return parseInt(number * multi, 10) / multi;

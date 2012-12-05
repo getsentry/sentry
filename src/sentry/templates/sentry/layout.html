@@ -26,7 +26,7 @@
         <title>{% block title %}Sentry{% endblock %}</title>
 
         <!--[if lt IE 9]>
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/html5shiv.js" %}"></script>
+        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/lib/html5shiv.js" %}"></script>
         <![endif]-->
         {% block scripts %}
             {% compress js %}
@@ -47,6 +47,7 @@
                 <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/templates.js" %}"></script>
                 <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/utils.js" %}"></script>
                 <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/collections.js" %}"></script>
+                <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/charts.js" %}"></script>
                 <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/views.js" %}"></script>
                 <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/app.js" %}"></script>
             {% endcompress %}
