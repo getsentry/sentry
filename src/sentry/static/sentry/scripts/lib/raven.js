@@ -50,7 +50,7 @@ parseUri.options = {
 
     var self = Raven;
 
-    Raven.VERSION = '0.7';
+    Raven.VERSION = '0.7.1';
 
     // jQuery, Zepto, or Ender owns the `$` variable.
     var $ = root.jQuery || root.Zepto || root.ender;
@@ -463,13 +463,6 @@ parseUri.options = {
         return results;
     };
 
-    Raven.getUTCNow = function() {
-        var now = new Date();
-        
-        return new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(),
-            now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds());
-    };
-
     Raven.pad = function(n, amount) {
         var i,
             len = ('' + n).length;
@@ -509,7 +502,7 @@ parseUri.options = {
             "project": self.options.projectId,
             "logger": self.options.logger,
             "site": self.options.site,
-            "timestamp": self.getUTCNow(),
+            "timestamp": new Date(),
             "sentry.interfaces.Http": {
                 "url": url,
                 "querystring": querystring,
