@@ -96,7 +96,7 @@
 
             this.control.click(_.bind(function(e){
                 e.preventDefault();
-                this.group_list.config.realtime = this.control.hasClass('realtime-pause');
+                this.group_list.options.realtime = this.control.hasClass('realtime-pause');
                 this.updateStreamOptions();
             }, this));
 
@@ -105,7 +105,7 @@
         },
 
         updateStreamOptions: function(){
-            if (this.group_list.config.realtime){
+            if (this.group_list.options.realtime){
                 $.removeCookie('pausestream');
                 this.control.removeClass('realtime-pause');
                 this.control.addClass('realtime-play');
