@@ -155,9 +155,6 @@
 
             {% if group|has_charts %}
                 <div class="module">
-                    <div class="page-header">
-                        <h2>{% trans "Frequency" %}</h2>
-                    </div>
                     <div style="height:50px;" id="chart" class="chart" data-api-url="{% url sentry-api-chart project_id=project.slug %}" data-group="{{ group.id|safe }}">
                         <div class="sparkline">
                             <span class="loading">{% trans "Loading historical data..." %}</span>
