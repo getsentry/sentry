@@ -4555,6 +4555,7 @@ footer a:hover {
 }
 .chart {
   position: relative;
+  max-height: 200px;
 }
 .chart > .title {
   font-size: 2em;

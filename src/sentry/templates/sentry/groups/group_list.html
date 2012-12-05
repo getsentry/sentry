@@ -26,7 +26,7 @@
 {% block breadcrumb %}{% endblock %}
 
 {% block sidebar %}
-    <div style="height:50px;" id="chart" class="chart" data-api-url="{% url sentry-api-chart %}" data-days="1" data-title="{% trans "Events in the last 24 hours" %}">
+    <div id="chart" class="chart" data-api-url="{% url sentry-api-chart %}" data-days="1">
         <div class="sparkline">
             <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
             <span class="loading">{% trans "Loading historical data..." %}</span>
