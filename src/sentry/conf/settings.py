@@ -50,11 +50,3 @@ LANGUAGE_MAP = dict(settings.LANGUAGES)
 LANGUAGES = [(k, LANGUAGE_MAP[k]) for k in get_all_languages() if k in LANGUAGE_MAP]
 
 LOG_LEVEL_REVERSE_MAP = dict((str(v), k) for k, v in LOG_LEVELS)
-
-
-def configure(**kwargs):
-    for k, v in kwargs.iteritems():
-        if k.upper() != k:
-            warnings.warn('Invalid setting, \'%s\' which is not defined by Sentry' % k)
-        else:
-            locals[k] = v
