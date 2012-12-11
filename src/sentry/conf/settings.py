@@ -11,7 +11,6 @@ from sentry.conf.defaults import *  # NOQA
 from django.conf import settings
 
 import hashlib
-import warnings
 
 # Some sane overrides to better mix with Django
 DEBUG = getattr(settings, 'DEBUG', False) and not getattr(settings, 'SENTRY_TESTING', False)
