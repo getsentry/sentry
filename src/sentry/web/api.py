@@ -70,8 +70,6 @@ class Auth(object):
 
 
 class APIView(BaseView):
-    http_method_names = ['get', 'post', 'put', 'delete', 'head', 'options', 'trace']
-
     def _get_project_from_id(self, project_id):
         if project_id:
             if project_id.isdigit():
