@@ -169,7 +169,7 @@ def notification_settings(request):
     ] + forms
 
     if request.POST:
-        if all(f.is_valid() for f, h in forms):
+        if all(f.is_valid() for f in forms):
             for form in forms:
                 form.save()
             messages.add_message(request, messages.SUCCESS, 'Your settings were saved.')
