@@ -214,6 +214,9 @@ class Stacktrace(Interface):
       Signifies whether this frame is related to the execution of the relevant code in this stacktrace. For example,
       the frames that might power the framework's webserver of your app are probably not relevant, however calls to
       the framework's library once you start handling code likely are.
+    ``group_key``
+      A string to identify this frame when grouping. This is useful if your platform does not provide very distinct
+      frames for similar pieces of code (e.g. anonymous functions).
 
     >>> {
     >>>     "frames": [{
@@ -281,6 +284,10 @@ class Stacktrace(Interface):
     def get_hash(self):
         output = []
         for frame in self.frames:
+            if frame.get('group_key'):
+                output.append(frame['group_key'])
+                continue
+
             if frame.get('module'):
                 output.append(frame['module'])
             else:
