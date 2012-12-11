@@ -5,7 +5,6 @@ sentry.web.frontend.projects
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from crispy_forms.helper import FormHelper
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
@@ -214,9 +213,6 @@ def manage_project_tags(request, project):
     else:
         form = None
 
-    helper = FormHelper()
-    helper.form_tag = False
-
     if form and form.is_valid():
         form.save()
         return HttpResponseRedirect(reverse('sentry-manage-project-tags', args=[project.slug]) + '?success=1')
@@ -226,7 +222,6 @@ def manage_project_tags(request, project):
         'page': 'tags',
         'project': project,
         'form': form,
-        'helper': helper,
     }
     return render_to_response('sentry/projects/manage_tags.html', context, request)
 

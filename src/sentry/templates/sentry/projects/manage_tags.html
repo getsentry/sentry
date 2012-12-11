@@ -20,18 +20,11 @@
         <p><small>{% trans "Note: You can only configure tags which have already been seen." %}</small></p>
         <form action="" method="post">
             {% csrf_token %}
-            {% if form.non_field_errors %}
-                <div class="alert alert-block alert-error">
-                    <p>{% trans "There were errors saving your changes:" %}</p>
-                    <ul>
-                        {% for error in form.non_field_errors %}
-                            <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            {% endif %}
+            {{ form|as_crispy_errors }}
             <fieldset>
-                {% crispy form helper %}
+                {% for field in form %}
+                    {{ field|as_crispy_field }}
+                {% endfor %}
             </fieldset>
             <fieldset class="form-actions">
                 <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
