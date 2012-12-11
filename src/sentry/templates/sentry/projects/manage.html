@@ -1,5 +1,6 @@
 {% extends "sentry/projects/base.html" %}
 
+{% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_helpers %}
 {% load sentry_plugins %}
@@ -20,19 +21,19 @@
         <div class="page-header">
             <h2>{% trans "Project Details" %}</h2>
         </div>
-        {% if request.GET.success %}
-            <div class="alert alert-success">{% trans "Changes to your project were saved successfully." %}</div>
-        {% else %}
-            {% if form.errors %}
-                <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
-            {% endif %}
-        {% endif %}
         <form class="form-stacked" action="" method="post">
             {% csrf_token %}
+
+            {% if request.GET.success %}
+                <div class="alert alert-success">{% trans "Changes to your project were saved successfully." %}</div>
+            {% else %}
+                {{ field|as_crispy_errors }}
+            {% endif %}
+
             <fieldset>
                 {% for field in form %}
                     {% if field.name != 'origins' %}
-                        {% include "sentry/partial/_form_field.html" %}
+                        {{ field|as_crispy_field }}
                     {% endif %}
                 {% endfor %}
             </fieldset>
@@ -41,17 +42,7 @@
                 {% with form.origins as field %}
                     <p>{% blocktrans with 'https://github.com/getsentry/raven-js' as link %}Configure origin URLs which Sentry should accept events from. This is used for communication with clients like <a href="{{ link }}">raven-js</a>.{% endblocktrans %}
                     <p>{% blocktrans with 'http://en.wikipedia.org/wiki/Cross-origin_resource_sharing' as link %}For more information check out the <a href="{{ link }}">Wikipedia page on CORS</a>.{% endblocktrans %}</p>
-                    <div class="control-group{% if field.errors %} error{% endif %}">
-                        <div class="controls">
-                            <div class="help-block">{% trans "List one URL per line." %}</div>
-                            {{ field }}
-                            {% if field.errors %}
-                                {% for error in field.errors %}
-                                    <div class="help-block error">{{ error }}</div>
-                                {% endfor %}
-                            {% endif %}
-                        </div>
-                    </div>
+                    {{ field|as_crispy_field }}
                 {% endwith %}
             </fieldset>
             <div class="form-actions">
