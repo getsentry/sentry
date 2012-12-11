@@ -161,20 +161,16 @@ def notification_settings(request):
             form = safe_execute(form, plugin, request.user, request.POST or None)
             if not form:
                 continue
-            helper = FormHelper()
-            helper.form_tag = False
-            forms.append((form, helper))
+            forms.append(form)
 
     # Ensure our form comes first
-    helper = FormHelper()
-    helper.form_tag = False
     forms = [
-        (NotificationSettingsForm(request.user, request.POST or None), helper),
+        NotificationSettingsForm(request.user, request.POST or None),
     ] + forms
 
     if request.POST:
         if all(f.is_valid() for f, h in forms):
-            for form, helper in forms:
+            for form in forms:
                 form.save()
             messages.add_message(request, messages.SUCCESS, 'Your settings were saved.')
             return HttpResponseRedirect(request.path)
