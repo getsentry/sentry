@@ -1,5 +1,6 @@
 {% extends "sentry/projects/base.html" %}
 
+{% load crispy_forms_tags %}
 {% load i18n %}
 
 {% block title %}{% trans "New Project" %} | {{ block.super }}{% endblock %}
@@ -14,31 +15,50 @@
     <section class="body">
         <p>{% trans "Use this page to create a new project within Sentry. Once done, you'll be able to configure your client to send messages to this project." %}</p>
         <hr>
-        <form class="form-stacked" action="" method="post">
+        <form class="form-stacked" action="" method="post" id="new_project">
             {% csrf_token %}
+
+            {{ project_form|as_crispy_errors }}
             {% for field in project_form %}
                 {% include "sentry/partial/_form_field.html" %}
             {% endfor %}
-            {% if not new_team_form %}
-                {% for field in select_team_form %}
-                    {% include "sentry/partial/_form_field.html" %}
-                {% endfor %}
-            {% endif %}
-            {% if new_team_form %}
-                {% if select_team_form %}
-                    <p>{% trans "Select an existing team to manage this project" %}</p>
+
+            {% if select_team_form %}
+                <div id="select_team">
+                    {{ select_team_form|as_crispy_errors }}
+
                     {% for field in select_team_form %}
                         {% include "sentry/partial/_form_field.html" %}
                     {% endfor %}
-                    <p>{% trans "Or, create a new team" %}</p>
-                {% endif %}
-                {% for field in new_team_form %}
-                    {% include "sentry/partial/_form_field.html" %}
-                {% endfor %}
+        
+                    {% if new_team_form %}
+                        <p><small>You can also <a href="#" rel="create-new-team">create a new team</a>.</small></p>
+                    {% endif %}
+                </div>
             {% endif %}
+    
+            {% if new_team_form %}
+                <div id="new_team">
+                    {% for field in new_team_form %}
+                        {% include "sentry/partial/_form_field.html" %}
+                    {% endfor %}
+
+                    {% if select_team_form %}
+                        <p><small>You can also <a href="#" rel="select-team">select an existing team</a>.</small></p>
+                    {% endif %}
+                </div>
+            {% endif %}
+
             <div class="actions">
                 <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
             </div>
         </form>
     </section>
+    <script>
+    new app.NewProjectPage({
+        el: '#new_project',
+        canSelectTeam: {% if select_team_form %}true{% else %}false{% endif %},
+        canCreateTeam: {% if new_team_form %}true{% else %}false{% endif %},
+    })
+    </script>
 {% endblock %}

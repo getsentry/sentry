@@ -146,6 +146,30 @@
 
     });
 
+    app.NewProjectPage = BasePage.extend({
+
+        initialize: function(data){
+            this.el = $(data.el);
+
+            BasePage.prototype.initialize.call(this, data);
+
+            this.el.find('select').select2({width: 'element'});
+
+            if (this.options.canSelectTeam && this.options.canCreateTeam) {
+                $('#new_team').hide();
+                $('a[rel="create-new-team"]').click(function(){
+                    $('#new_team').show();
+                    $('#select_team').hide();
+                });
+                $('a[rel="select-team"]').click(function(){
+                    $('#new_team').hide();
+                    $('#select_team').show();
+                });
+            }
+        }
+
+    });
+
     app.WallPage = BasePage.extend({
 
         initialize: function(){
