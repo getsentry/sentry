@@ -14,16 +14,15 @@ class Migration(DataMigration):
         for project in orm['sentry.Project'].objects.all():
             if project.slug:
                 continue
+
             base_slug = slugify(project.name)
             slug = base_slug
             n = 0
-            while True:
-                if orm['sentry.Project'].objects.filter(slug=slug).exists():
-                    n += 1
-                    slug = base_slug + '-' + str(n)
-                    continue
-                update(project, slug=slug)
-                break
+            while orm['sentry.Project'].objects.filter(slug=slug).exists():
+                n += 1
+                slug = base_slug + '-' + str(n)
+
+            update(project, slug=slug)
 
     def backwards(self, orm):
         pass

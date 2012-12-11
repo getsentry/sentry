@@ -47,6 +47,16 @@ from sentry.utils.strings import truncatechars
 __all__ = ('Event', 'Group', 'Project', 'SearchDocument')
 
 
+def slugify_instance(inst, label):
+    base_slug = slugify(label)
+    manager = type(inst).objects
+    inst.slug = base_slug
+    n = 0
+    while manager.filter(slug=inst.slug).exists():
+        n += 1
+        inst.slug = base_slug + '-' + str(n)
+
+
 class Option(Model):
     """
     Global options which apply in most situations as defaults,
@@ -81,7 +91,7 @@ class Team(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name)
+            self.slug = slugify_instance(self, self.name)
         super(Team, self).save(*args, **kwargs)
 
     def get_owner_name(self):
@@ -142,7 +152,7 @@ class Project(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name)
+            slugify_instance(self, self.name)
         super(Project, self).save(*args, **kwargs)
 
     def delete(self):
