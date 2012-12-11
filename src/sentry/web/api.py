@@ -70,7 +70,7 @@ class Auth(object):
 
 
 class APIView(BaseView):
-    http_method_names = ['options']
+    http_method_names = ['get', 'post', 'put', 'delete', 'head', 'options', 'trace']
 
     def _get_project_from_id(self, project_id):
         if project_id:
@@ -231,8 +231,6 @@ class StoreView(APIView):
        the user be authenticated, and a project_id be sent in the GET variables.
 
     """
-    http_method_names = ['get', 'post', 'put', 'delete', 'head', 'options', 'trace']
-
     @never_cache
     def post(self, request, project, auth, **kwargs):
         result = plugins.first('has_perm', request.user, 'create_event', project)
