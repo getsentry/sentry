@@ -24,7 +24,7 @@ class Replayer(object):
         if isinstance(data, dict):
             data = urlencode(data)
 
-        conn = conn_cls(urlparts.netloc, timeout=5)
+        conn = conn_cls(urlparts.netloc)
         try:
             conn.request(self.method, urlparts.path, data, self.headers or {})
 
