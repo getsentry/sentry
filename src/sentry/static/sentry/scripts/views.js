@@ -300,6 +300,7 @@
 
         defaults: {
             realtime: false,
+            stream: false,
             pollUrl: null,
             pollTime: 1000,
             tickTime: 100
@@ -328,7 +329,7 @@
                 return;
 
             var item = this.queue.pop();
-            if (this.options.realtime){
+            if (this.options.stream){
                 this.addMember(item);
             } else if (this.hasMember(item)) {
                 this.updateMember(item, {
@@ -340,7 +341,7 @@
         poll: function(){
             var data;
 
-            if (!this.options.realtime)
+            if (!this.options.realtime || !this.options.stream)
                 return window.setTimeout(this.poll, this.options.pollTime);
 
             data = app.utils.getQueryParams();
