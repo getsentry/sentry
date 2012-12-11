@@ -111,6 +111,6 @@ def get_team_choices(team_list, default=None):
     if default is None:
         choices.insert(0, (-1, mark_safe('&ndash;' * 8)))
     elif default not in sorted_team_list:
-        choices.insert(0, (team.id, get_team_label(default)))
+        choices.insert(0, (default.id, get_team_label(default)))
 
     return choices
