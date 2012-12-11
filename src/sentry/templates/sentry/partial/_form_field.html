@@ -1,14 +1,3 @@
-<div class="control-group{% if field.errors %} error{% endif %}" data-name="{{ field.name }}">
-    {{ field.label_tag }}
-    <div class="controls">
-        {{ field }}
-        {% if field.help_text %}
-            <span class="help-inline">{{ field.help_text }}</span>
-        {% endif %}
-        {% if field.errors %}
-            {% for error in field.errors %}
-                <span class="help-block error">{{ error }}</span>
-            {% endfor %}
-        {% endif %}
-    </div>
-</div>
+{% load crispy_forms_tags %}
+
+{{ field|as_crispy_field }}

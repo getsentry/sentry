@@ -27,7 +27,7 @@
             {% if request.GET.success %}
                 <div class="alert alert-success">{% trans "Changes to your project were saved successfully." %}</div>
             {% else %}
-                {{ field|as_crispy_errors }}
+                {{ form|as_crispy_errors }}
             {% endif %}
 
             <fieldset>
