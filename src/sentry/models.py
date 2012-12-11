@@ -91,7 +91,7 @@ class Team(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify_instance(self, self.name)
+            slugify_instance(self, self.name)
         super(Team, self).save(*args, **kwargs)
 
     def get_owner_name(self):
