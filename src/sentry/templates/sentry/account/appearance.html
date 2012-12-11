@@ -17,7 +17,7 @@
 {% endblock %}
 
 {% block inner %}
-    <form action="" method="post">
+    <form class="form-stacked" action="" method="post" id="appearance_form">
         {% csrf_token %}
 
         {{ form|as_crispy_errors }}
@@ -43,4 +43,10 @@
             <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
         </fieldset>
     </form>
+
+    <script>
+    $('#appearance_form select').select2({
+        width: 'element'
+    });
+    </script>
 {% endblock %}

@@ -107,11 +107,11 @@ class AccountSettingsForm(forms.Form):
 
 class AppearanceSettingsForm(forms.Form):
     language = forms.ChoiceField(label=_('Language'), choices=settings.LANGUAGES, required=False)
-    stacktrace_order = forms.ChoiceField(label=_('Stacktrace order'), choices=(
-        ('', 'Default'),
-        ('1', 'Most recent call last'),
-        ('2', 'Most recent call first'),
-    ), required=False)
+    stacktrace_order = forms.TypedChoiceField(label=_('Stacktrace order'), choices=(
+        (-1, 'Default (let Sentry decide)'),
+        (1, 'Most recent call last'),
+        (2, 'Most recent call first'),
+    ), help_text='Choose the default ordering of frames in stacktraces.', required=False, coerce=int)
 
     def __init__(self, user, *args, **kwargs):
         self.user = user
