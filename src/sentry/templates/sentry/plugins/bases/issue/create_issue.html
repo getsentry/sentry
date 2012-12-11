@@ -1,5 +1,6 @@
 {% extends "sentry/groups/details.html" %}
 
+{% load crispy_forms_tags %}
 {% load i18n %}
 
 {% block title %}{{ title }} | {{ block.super }}{% endblock %}
@@ -10,16 +11,7 @@
             <h3>{{ title }}</h3>
         </div>
 
-        {% if form.non_field_errors %}
-            <div class="alert alert-block alert-error">
-                <ul>
-                    {% for error in form.non_field_errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        {% endif %}
-
+        {{ form|as_crispy_errors }}
 
         <form class="form-stacked" action="" method="post">
             {% csrf_token %}

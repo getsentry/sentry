@@ -7,6 +7,9 @@
     var BasePage = Backbone.View.extend({
 
         defaults: {
+            // can this view stream updates?
+            stream: false,
+            // should this view default to streaming updates?
             realtime: false
         },
 
@@ -63,6 +66,7 @@
                 id: id,
                 maxItems: 5,
                 pollUrl: uri,
+                stream: this.options.stream,
                 realtime: this.options.realtime,
                 model: app.Group
             });
