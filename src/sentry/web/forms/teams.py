@@ -51,7 +51,7 @@ class SelectTeamForm(forms.Form):
 
     def __init__(self, team_list, data, *args, **kwargs):
         super(SelectTeamForm, self).__init__(data=data, *args, **kwargs)
-        self.team_list = dict((str(t.pk), t) for t in team_list.itervalues())
+        self.team_list = dict((t.pk, t) for t in team_list.itervalues())
         choices = []
         for team in self.team_list.itervalues():
             # TODO: optimize queries
@@ -80,7 +80,7 @@ class SelectTeamForm(forms.Form):
     def clean_team(self):
         value = self.cleaned_data.get('team')
         if not value or value == -1:
-            return value
+            return None
         return self.team_list.get(value)
 
 
