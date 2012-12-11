@@ -9,7 +9,7 @@ from django import forms
 
 from sentry.models import Team, TeamMember, PendingTeamMember
 from sentry.web.forms.fields import UserField
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, ungettext
 
 
 class RemoveTeamForm(forms.Form):
@@ -17,23 +17,18 @@ class RemoveTeamForm(forms.Form):
 
 
 class NewTeamForm(forms.ModelForm):
-    name = forms.CharField(max_length=200, widget=forms.TextInput(attrs={'placeholder': _('e.g. My Team Name')}))
-    slug = forms.SlugField(help_text=_('A slug is a URL-safe word and must be unique across all teams.'),
-        widget=forms.TextInput(attrs={'placeholder': _('e.g. my-team-name')}))
+    name = forms.CharField(label=_('Team Name'), max_length=200, widget=forms.TextInput(attrs={'placeholder': _('My Team Name')}))
 
     class Meta:
-        fields = ('name', 'slug')
+        fields = ('name',)
         model = Team
 
 
-class NewTeamAdminForm(forms.ModelForm):
-    name = forms.CharField(max_length=200, widget=forms.TextInput(attrs={'placeholder': _('e.g. My Team Name')}))
-    slug = forms.SlugField(help_text=_('A slug is a URL-safe word and must be unique across all teams.'),
-        widget=forms.TextInput(attrs={'placeholder': _('e.g. my-team-name')}))
+class NewTeamAdminForm(NewTeamForm):
     owner = UserField(required=False)
 
     class Meta:
-        fields = ('name', 'slug', 'owner')
+        fields = ('name', 'owner')
         model = Team
 
 
@@ -52,18 +47,39 @@ class EditTeamAdminForm(EditTeamForm):
 
 
 class SelectTeamForm(forms.Form):
-    team = forms.ChoiceField(choices=())
+    team = forms.TypedChoiceField(choices=(), coerce=int)
 
     def __init__(self, team_list, data, *args, **kwargs):
         super(SelectTeamForm, self).__init__(data=data, *args, **kwargs)
         self.team_list = dict((str(t.pk), t) for t in team_list.itervalues())
-        self.fields['team'].choices = [c for c in sorted(self.team_list.iteritems(), key=lambda x: x[1].name)]
-        self.fields['team'].choices.insert(0, ('', '-' * 8))
+        choices = []
+        for team in self.team_list.itervalues():
+            # TODO: optimize queries
+            member_count = team.member_set.count()
+            project_count = team.project_set.count()
+
+            if member_count > 1 and project_count:
+                label = _('%(team)s (%(members)s, %(projects)s)')
+            elif project_count:
+                label = _('%(team)s (%(projects)s)')
+            else:
+                label = _('%(team)s (%(members)s)')
+
+            choices.append(
+                (team.id, label % dict(
+                    team=team.name,
+                    members=ungettext('%d member', '%d members', member_count) % (member_count,),
+                    projects=ungettext('%d project', '%d projects', project_count) % (project_count,),
+                ))
+            )
+
+        choices.insert(0, (-1, '-' * 8))
+        self.fields['team'].choices = choices
         self.fields['team'].widget.choices = self.fields['team'].choices
 
     def clean_team(self):
         value = self.cleaned_data.get('team')
-        if not value:
+        if not value or value == -1:
             return value
         return self.team_list.get(value)
 

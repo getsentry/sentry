@@ -37,12 +37,10 @@ class ProjectTagsForm(forms.Form):
 
 
 class NewProjectForm(forms.ModelForm):
-    name = forms.CharField(max_length=200, widget=forms.TextInput(attrs={'placeholder': _('e.g. My Project Name')}))
-    slug = forms.SlugField(help_text=_('A slug is a URL-safe word and must be unique across all projects.'),
-        widget=forms.TextInput(attrs={'placeholder': _('e.g. my-project-name')}))
+    name = forms.CharField(label=_('Project Name'), max_length=200, widget=forms.TextInput(attrs={'placeholder': _('My Project Name')}))
 
     class Meta:
-        fields = ('name', 'slug')
+        fields = ('name',)
         model = Project
 
 
@@ -50,7 +48,7 @@ class NewProjectAdminForm(NewProjectForm):
     owner = UserField(required=False)
 
     class Meta:
-        fields = ('name', 'slug', 'owner')
+        fields = ('name', 'owner')
         model = Project
 
 
