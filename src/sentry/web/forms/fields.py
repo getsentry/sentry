@@ -11,7 +11,7 @@ from django.forms.widgets import RadioFieldRenderer, TextInput, Textarea
 from django.forms import CharField, ValidationError
 from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, ungettext
 
 
 class RadioFieldRenderer(RadioFieldRenderer):
@@ -78,3 +78,39 @@ class OriginsField(CharField):
             return False
 
         return True
+
+
+def get_team_label(team):
+    member_count = team.member_set.count()
+    project_count = team.project_set.count()
+
+    if member_count > 1 and project_count:
+        label = _('%(team)s (%(members)s, %(projects)s)')
+    elif project_count:
+        label = _('%(team)s (%(projects)s)')
+    else:
+        label = _('%(team)s (%(members)s)')
+
+    return label % dict(
+        team=team.name,
+        members=ungettext('%d member', '%d members', member_count) % (member_count,),
+        projects=ungettext('%d project', '%d projects', project_count) % (project_count,),
+    )
+
+
+def get_team_choices(team_list, default=None):
+    sorted_team_list = sorted(team_list.itervalues(), key=lambda x: x.name)
+
+    choices = []
+    for team in sorted_team_list:
+        # TODO: optimize queries
+        choices.append(
+            (team.id, get_team_label(team))
+        )
+
+    if default is None:
+        choices.insert(0, (-1, '-' * 8))
+    elif default not in sorted_team_list:
+        choices.insert(0, (team.id, get_team_label(default)))
+
+    return choices

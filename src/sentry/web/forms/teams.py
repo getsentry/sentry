@@ -8,8 +8,8 @@ sentry.web.forms.teams
 from django import forms
 
 from sentry.models import Team, TeamMember, PendingTeamMember
-from sentry.web.forms.fields import UserField
-from django.utils.translation import ugettext_lazy as _, ungettext
+from sentry.web.forms.fields import UserField, get_team_choices
+from django.utils.translation import ugettext_lazy as _
 
 
 class RemoveTeamForm(forms.Form):
@@ -52,29 +52,7 @@ class SelectTeamForm(forms.Form):
     def __init__(self, team_list, data, *args, **kwargs):
         super(SelectTeamForm, self).__init__(data=data, *args, **kwargs)
         self.team_list = dict((t.pk, t) for t in team_list.itervalues())
-        choices = []
-        for team in self.team_list.itervalues():
-            # TODO: optimize queries
-            member_count = team.member_set.count()
-            project_count = team.project_set.count()
-
-            if member_count > 1 and project_count:
-                label = _('%(team)s (%(members)s, %(projects)s)')
-            elif project_count:
-                label = _('%(team)s (%(projects)s)')
-            else:
-                label = _('%(team)s (%(members)s)')
-
-            choices.append(
-                (team.id, label % dict(
-                    team=team.name,
-                    members=ungettext('%d member', '%d members', member_count) % (member_count,),
-                    projects=ungettext('%d project', '%d projects', project_count) % (project_count,),
-                ))
-            )
-
-        choices.insert(0, (-1, '-' * 8))
-        self.fields['team'].choices = choices
+        self.fields['team'].choices = get_team_choices(self.team_list)
         self.fields['team'].widget.choices = self.fields['team'].choices
 
     def clean_team(self):
