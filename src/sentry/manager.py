@@ -22,7 +22,7 @@ from django.conf import settings as dj_settings
 from django.core.signals import request_finished
 from django.db import models, transaction, IntegrityError
 from django.db.models import Sum
-from django.db.models.expressions import F, ExpressionNode
+from django.db.models.expressions import ExpressionNode
 from django.db.models.signals import post_save, post_delete, post_init, class_prepared
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
@@ -1039,6 +1039,8 @@ class SearchDocumentManager(BaseManager):
         return self.raw(sql, params)
 
     def index(self, event):
+        from sentry.models import SearchToken
+
         group = event.group
         document, created = self.get_or_create(
             project=event.project,
@@ -1051,11 +1053,18 @@ class SearchDocumentManager(BaseManager):
             }
         )
         if not created:
-            document.update(
-                status=group.status,
-                total_events=F('total_events') + 1,
-                date_changed=group.last_seen,
-            )
+            app.buffer.incr(self.model, {
+                'total_events': 1,
+            }, {
+                'id': document.id,
+            }, {
+                'date_changed': group.last_seen,
+                'status': group.status,
+            })
+
+            document.total_events += 1
+            document.date_changed = group.last_seen
+            document.status = group.status
 
         context = defaultdict(list)
         for interface in event.interfaces.itervalues():
@@ -1080,20 +1089,14 @@ class SearchDocumentManager(BaseManager):
                     continue
                 token_counts[field][value.lower()] += 1
 
-        # TODO: might be worthwhile to make this update then create
         for field, tokens in token_counts.iteritems():
             for token, count in tokens.iteritems():
-                token, created = document.token_set.get_or_create(
-                    field=field,
-                    token=token,
-                    defaults={
-                        'times_seen': count,
-                    }
-                )
-                if not created:
-                    token.update(
-                        times_seen=F('times_seen') + count,
-                    )
+                app.buffer.incr(SearchToken, {
+                    'times_seen': 1,
+                }, {
+                    'document': document,
+                    'token': token,
+                })
 
         return document
 

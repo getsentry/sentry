@@ -3,7 +3,6 @@
 from __future__ import absolute_import
 
 from sentry.models import Event, SearchDocument
-
 from sentry.testutils import TestCase
 
 
@@ -12,6 +11,7 @@ class SearchIndexTest(TestCase):
 
     def test_index_behavior(self):
         event = Event.objects.all()[0]
+
         doc = SearchDocument.objects.index(event)
         self.assertEquals(doc.project, event.project)
         self.assertEquals(doc.group, event.group)

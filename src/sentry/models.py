@@ -743,6 +743,9 @@ class SearchToken(Model):
     class Meta:
         unique_together = (('document', 'field', 'token'),)
 
+    def __unicode__(self):
+        return u'%s=%s' % (self.field, self.token)
+
 
 class UserOption(Model):
     """
