@@ -24,7 +24,7 @@ class ReplayForm(forms.Form):
         if not value:
             return
 
-        return dict(line.split(': ') for line in value.split('\n'))
+        return dict(line.split(': ') for line in value.splitlines())
 
 
 class BaseUserForm(forms.ModelForm):
