@@ -5,6 +5,7 @@ sentry.web.forms
 :copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+import re
 from django import forms
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
@@ -24,7 +25,7 @@ class ReplayForm(forms.Form):
         if not value:
             return
 
-        return dict(line.split(': ') for line in value.split('\n'))
+        return dict(line.split(': ') for line in re.split(r'\r\n|\n', value))
 
 
 class BaseUserForm(forms.ModelForm):
