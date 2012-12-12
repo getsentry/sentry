@@ -1092,7 +1092,7 @@ class SearchDocumentManager(BaseManager):
         for field, tokens in token_counts.iteritems():
             for token, count in tokens.iteritems():
                 app.buffer.incr(SearchToken, {
-                    'times_seen': 1,
+                    'times_seen': count,
                 }, {
                     'document': document,
                     'token': token,
