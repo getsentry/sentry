@@ -5,8 +5,6 @@ sentry.web.frontend.accounts
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from crispy_forms.helper import FormHelper
-
 from django.conf import settings as dj_settings
 from django.contrib import messages
 from django.contrib.auth import login as login_user
