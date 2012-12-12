@@ -1039,6 +1039,8 @@ class SearchDocumentManager(BaseManager):
         return self.raw(sql, params)
 
     def index(self, event):
+        from sentry.models import SearchToken
+
         group = event.group
         document, created = self.get_or_create(
             project=event.project,
@@ -1080,20 +1082,21 @@ class SearchDocumentManager(BaseManager):
                     continue
                 token_counts[field][value.lower()] += 1
 
-        # TODO: might be worthwhile to make this update then create
+        to_create = []
         for field, tokens in token_counts.iteritems():
             for token, count in tokens.iteritems():
-                token, created = document.token_set.get_or_create(
+                updated = document.token_set.filter(
                     field=field,
                     token=token,
-                    defaults={
-                        'times_seen': count,
-                    }
-                )
-                if not created:
-                    token.update(
-                        times_seen=F('times_seen') + count,
-                    )
+                ).update(times_seen=F('times_seen') + count)
+                if not updated:
+                    to_create.append(SearchToken(
+                        document=document,
+                        field=field,
+                        token=token,
+                        times_seen=count
+                    ))
+        SearchToken.objects.bulk_create(to_create)
 
         return document
 
