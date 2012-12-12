@@ -1096,6 +1096,7 @@ class SearchDocumentManager(BaseManager):
                 }, {
                     'document': document,
                     'token': token,
+                    'field': field,
                 })
 
         return document
