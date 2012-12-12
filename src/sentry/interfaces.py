@@ -342,7 +342,7 @@ class Stacktrace(Interface):
                 key='stacktrace_order',
                 default=None,
             )
-            if display == '2':
+            if display and int(display) == 2:
                 frames.reverse()
 
         return render_to_string('sentry/partial/interfaces/stacktrace.html', {
