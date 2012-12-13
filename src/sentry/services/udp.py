@@ -56,7 +56,7 @@ def handle_sentry(data, address):
 
         return insert_data_to_database(data)
     except APIError, error:
-        logging.exception('bad message from %s' % (address,))
+        logger.exception('bad message from %s' % (address,))
         return error
 
 
