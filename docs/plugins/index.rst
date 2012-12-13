@@ -46,6 +46,7 @@ your ``INSTALLED_APPS``::
 
 The following extensions are available and maintained by members of the Sentry community:
 
+* `sentry-bitbucket <https://github.com/neilalbrock/sentry-bitbucket>`_
 * `sentry-campfire <https://github.com/mkhattab/sentry-campfire>`_
 * `sentry-github <https://github.com/getsentry/sentry-github>`_
 * `sentry-groveio <https://github.com/mattrobenolt/sentry-groveio>`_
