@@ -1,8 +1,8 @@
 <div id="messages">
     {% if messages %}
         {% for message in messages %}
-            <div class="alert alert-block{% if message.tags %} alert-{{ message.tags }}{% endif %}">
-                <button type="button" class="close" data-dismiss="alert">×</button>
+            <div class="alert alert-block{% if message.tags %}{% for tag in message.tags %} alert-{{ tags }}{% endif %}{% endif %}">
+                <a class="close" data-dismiss="alert">×</a>
                 {{ message|linebreaks }}
             </div>
         {% endfor %}
