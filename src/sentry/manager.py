@@ -991,7 +991,7 @@ class SearchDocumentManager(BaseManager):
 
         text = self.PUNCTUATION_CHARS.sub(' ', text)
 
-        words = [t[:128] for t in text.split() if len(t) >= self.MIN_WORD_LENGTH and t.lower() not in self.STOP_WORDS]
+        words = [t[:128].lower() for t in text.split() if len(t) >= self.MIN_WORD_LENGTH and t.lower() not in self.STOP_WORDS]
 
         return words
 
@@ -1084,10 +1084,12 @@ class SearchDocumentManager(BaseManager):
             if field == 'text':
                 # we only tokenize the base text field
                 values = itertools.chain(*[self._tokenize(force_unicode(v)) for v in values])
+            else:
+                values = [v.lower() for v in values]
             for value in values:
                 if not value:
                     continue
-                token_counts[field][value.lower()] += 1
+                token_counts[field][value] += 1
 
         for field, tokens in token_counts.iteritems():
             for token, count in tokens.iteritems():

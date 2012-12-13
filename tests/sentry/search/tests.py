@@ -25,3 +25,11 @@ class SearchIndexTest(TestCase):
         self.assertEquals(doc.total_events, 2)
         self.assertEquals(doc.date_added, event.group.first_seen)
         self.assertEquals(doc.date_changed, event.group.last_seen)
+
+    def test_search(self):
+        event = Event.objects.all()[0]
+        doc = SearchDocument.objects.index(event)
+
+        results = list(SearchDocument.objects.search(event.project, event.message.upper()))
+        [res] = results
+        self.assertEqual(res.id, doc.id)
