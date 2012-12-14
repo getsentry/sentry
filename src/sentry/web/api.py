@@ -402,7 +402,6 @@ def clear(request, project):
     response = _get_group_list(
         request=request,
         project=project,
-        view=view,
     )
 
     event_list = response['event_list']
