@@ -142,6 +142,8 @@ def _get_group_list(request, project, view=None):
                 params=[cursor],
             )
 
+    event_list = event_list.select_related('project')
+
     return {
         'filters': filters,
         'event_list': event_list,
