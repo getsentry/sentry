@@ -76,6 +76,8 @@ class BaseManager(models.Manager):
         return d
 
     def __setstate__(self, state):
+        if '_state' in state:
+            del state['_state']
         self.__dict__.update(state)
         self.__cache = weakref.WeakKeyDictionary()
 
