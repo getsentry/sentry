@@ -190,14 +190,16 @@ class BaseManager(models.Manager):
         if not self.cache_fields or len(kwargs) > 1:
             return self.get(**kwargs)
 
-        pk_name = self.model._meta.pk.name
         key, value = kwargs.items()[0]
+        pk_name = self.model._meta.pk.name
+        if key == 'pk':
+            key = pk_name
 
         # Kill __exact since it's the default behavior
         if key.endswith('__exact'):
             key = key.split('__exact', 1)[0]
 
-        if key in self.cache_fields or key in ('pk', pk_name):
+        if key in self.cache_fields or key == pk_name:
             cache_key = self.__get_lookup_cache_key(**{key: value})
 
             retval = cache.get(cache_key)
@@ -209,10 +211,12 @@ class BaseManager(models.Manager):
 
             # If we didn't look up by pk we need to hit the reffed
             # key
-            if key not in (pk_name, 'pk'):
-                return self.get(pk=retval)
+            if key != pk_name:
+                return self.get_from_cache(**{pk_name: retval})
 
             return retval
+        else:
+            return self.get(**kwargs)
 
     def get_or_create(self, _cache=False, **kwargs):
         """
