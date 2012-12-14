@@ -15,6 +15,7 @@ import logging
 import uuid
 import zlib
 
+from django.contrib.auth.models import User
 from django.utils.encoding import smart_str
 
 from sentry.conf import settings
@@ -139,7 +140,8 @@ def project_from_api_key_and_id(api_key, project_id):
         except TeamMember.DoesNotExist:
             raise APIUnauthorized('Member does not have access to project')
 
-        if not pk.user.is_active:
+        # We have to refetch this as it may have been catched
+        if not User.objects.get(id=pk.user_id).is_active:
             raise APIUnauthorized('Account is not active')
 
         tm.project = project
