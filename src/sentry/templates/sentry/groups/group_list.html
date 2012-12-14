@@ -10,19 +10,6 @@
     {{ block.super }}
 {% endblock %}
 
-{% block page_header %}
-    <div class="btn-group pull-right">
-        {% if VIEWS %}
-            {% querystring from request without view as view_querystring %}
-            <a class="btn small{% if not view %} active{% endif %}" href="?{{ view_querystring }}">{% trans "All" %}</a>
-            {% for v in VIEWS %}
-                <a class="btn small{% if view == v %} active{% endif %}" href="?{{ view_querystring }}&amp;view={{ v.pk }}">{% trans v.verbose_name_plural %}</a>
-            {% endfor %}
-        {% endif %}
-    </div>
-    {{ block.super }}
-{% endblock %}
-
 {% block breadcrumb %}{% endblock %}
 
 {% block sidebar %}

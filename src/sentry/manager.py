@@ -76,8 +76,6 @@ class BaseManager(models.Manager):
         return d
 
     def __setstate__(self, state):
-        if '_state' in state:
-            del state['_state']
         self.__dict__.update(state)
         self.__cache = weakref.WeakKeyDictionary()
 
@@ -419,39 +417,6 @@ class ChartMixin(object):
 class GroupManager(BaseManager, ChartMixin):
     use_for_related_fields = True
 
-    def _get_views(self, event):
-        from sentry.models import View
-        from sentry.views import View as ViewHandler
-
-        views = set()
-        for viewhandler in ViewHandler.objects.all():
-            try:
-                if not viewhandler.should_store(event):
-                    continue
-
-                path = '%s.%s' % (viewhandler.__module__, viewhandler.__class__.__name__)
-
-                if not viewhandler.ref:
-                    viewhandler.ref = View.objects.get_or_create(
-                        _cache=True,
-                        path=path,
-                        defaults=dict(
-                            verbose_name=viewhandler.verbose_name,
-                            verbose_name_plural=viewhandler.verbose_name_plural,
-                        ),
-                    )[0]
-
-                views.add(viewhandler.ref)
-
-            except Exception, exc:
-                # TODO: should we mail admins when there are failures?
-                try:
-                    logger.exception(exc)
-                except Exception, exc:
-                    warnings.warn(exc)
-
-        return views
-
     @transaction.commit_on_success
     def from_kwargs(self, project, **kwargs):
         # TODO: this function is way too damn long and needs refactored
@@ -521,8 +486,6 @@ class GroupManager(BaseManager, ChartMixin):
             'time_spent_count': time_spent and 1 or 0,
         })
 
-        views = self._get_views(event)
-
         try:
             group, is_new, is_sample = self._create_group(event, tags=tags, **group_kwargs)
         except Exception, exc:
@@ -535,9 +498,6 @@ class GroupManager(BaseManager, ChartMixin):
             return
 
         event.group = group
-
-        for view in views:
-            group.views.add(view)
 
         # save the event unless its been sampled
         if not is_sample:

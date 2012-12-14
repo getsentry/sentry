@@ -63,19 +63,6 @@ This document describes additional configuration options available to the Sentry
 		    'sentry.filters.ServerNameFilter',
 		)
 
-.. data:: sentry.conf.VIEWS
-    :noindex:
-
-    A list of views for enhancing the event aggregation dashboard.
-
-    ::
-
-        SENTRY_VIEWS = (
-            'sentry.views.Exception',
-            'sentry.views.Message',
-            'sentry.views.Query',
-        )
-
 .. data:: sentry.conf.LOG_LEVELS
     :noindex:
 

@@ -32,6 +32,7 @@ Additionally, the following changes apply to the new protocol:
 Other Changes
 =============
 
+- Aggregation 'Views' have been removed.
 - All streaming components are now powered by Backbone.js.
 - Frontend has been updated to Bootstrap 2.1.
 - The event stream now includes sparklines representing the last 24 hours of data for each event.

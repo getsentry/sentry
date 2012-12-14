@@ -51,7 +51,7 @@ def _get_rendered_interfaces(event):
     return interface_list
 
 
-def _get_group_list(request, project, view=None):
+def _get_group_list(request, project):
     filters = []
     for cls in get_filters(Group, project):
         try:
@@ -68,9 +68,6 @@ def _get_group_list(request, project, view=None):
         )
     else:
         event_list = event_list.filter(project=project)
-
-    if view:
-        event_list = event_list.filter(views=view)
 
     for filter_ in filters:
         try:
@@ -223,19 +220,9 @@ def group_list(request, project):
     except (TypeError, ValueError):
         page = 1
 
-    view_id = request.GET.get('view')
-    if view_id:
-        try:
-            view = View.objects.get_from_cache(pk=int(view_id))
-        except View.DoesNotExist:
-            return HttpResponseRedirect(reverse('sentry', args=[project.slug]))
-    else:
-        view = None
-
     response = _get_group_list(
         request=request,
         project=project,
-        view=view,
     )
 
     # XXX: this is duplicate in _get_group_list
@@ -253,7 +240,6 @@ def group_list(request, project):
         'sort': response['sort'],
         'sort_label': sort_label,
         'filters': response['filters'],
-        'view': view,
         'SORT_OPTIONS': SORT_OPTIONS,
         'HAS_TRENDING': has_trending(),
         'PAGE': 'dashboard',

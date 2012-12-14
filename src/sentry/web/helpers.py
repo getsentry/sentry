@@ -18,8 +18,7 @@ from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 
 from sentry.conf import settings
-from sentry.models import Project, View, Team, \
-  Option, ProjectOption, ProjectKey
+from sentry.models import Project, Team, Option, ProjectOption, ProjectKey
 from sentry.permissions import can_create_projects, can_create_teams
 
 logger = logging.getLogger('sentry.errors')
@@ -114,7 +113,6 @@ def get_default_context(request, existing_context=None):
         'MESSAGES_PER_PAGE': settings.MESSAGES_PER_PAGE,
         'INTERNAL_PROJECT': get_internal_project(),
         'PROJECT_ID': str(settings.PROJECT),
-        'VIEWS': list(View.objects.all()),
         'URL_PREFIX': settings.URL_PREFIX,
         'PLUGINS': plugins,
         'USE_JS_CLIENT': settings.USE_JS_CLIENT,
