@@ -11,7 +11,7 @@ import logging
 from django.contrib.auth.models import AnonymousUser
 from django.core.urlresolvers import reverse
 from django.db.models import Sum
-from django.http import HttpResponse, HttpResponseBadRequest, \
+from django.http import HttpResponse, \
   HttpResponseForbidden, HttpResponseRedirect
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
@@ -24,7 +24,7 @@ from sentry.coreapi import project_from_auth_vars, \
   decode_and_decompress_data, safely_load_json_string, validate_data, \
   insert_data_to_database, APIError, APIForbidden, extract_auth_vars
 from sentry.exceptions import InvalidData
-from sentry.models import Group, GroupBookmark, Project, ProjectCountByMinute, View, FilterValue
+from sentry.models import Group, GroupBookmark, Project, ProjectCountByMinute, FilterValue
 from sentry.plugins import plugins
 from sentry.templatetags.sentry_helpers import with_metadata
 from sentry.utils import json
@@ -267,15 +267,6 @@ def poll(request, project):
     offset = 0
     limit = settings.MESSAGES_PER_PAGE
 
-    view_id = request.GET.get('view_id')
-    if view_id:
-        try:
-            view = View.objects.get_from_cache(pk=view_id)
-        except View.DoesNotExist:
-            return HttpResponseBadRequest()
-    else:
-        view = None
-
     response = _get_group_list(
         request=request,
         project=project,
@@ -408,15 +399,6 @@ def bookmark(request, project):
 @has_access(MEMBER_USER)
 @never_cache
 def clear(request, project):
-    view_id = request.GET.get('view_id')
-    if view_id:
-        try:
-            view = View.objects.get_from_cache(pk=view_id)
-        except View.DoesNotExist:
-            return HttpResponseBadRequest()
-    else:
-        view = None
-
     response = _get_group_list(
         request=request,
         project=project,
