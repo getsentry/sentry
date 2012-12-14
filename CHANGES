@@ -42,6 +42,7 @@ Other Changes
 - If frames are included in a stacktrace that have the attribute ``in_app: false``, they will be hidden by default in
   the details view.
 - crossdomain.xml support is now available (see documentation).
+- The search feature now uses buffers to better handle write concurrency.
 
 Version 5.0.0
 -------------
