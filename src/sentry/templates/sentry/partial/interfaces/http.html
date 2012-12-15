@@ -34,7 +34,7 @@
                         <td>
                             {% if data_is_dict %}
                                 {% if data|length > 5 %}
-                                    <a href="#" onclick="return varToggle(this, 'HttpBody')"><span>&#x25b6;</span> {% trans "Body" %}</a>
+                                    <a href="#" onclick="return varToggle(this, '#vHttpBody')"><span>&#x25b6;</span> {% trans "Body" %}</a>
                                 {% endif %}
                                 <table class="table vars" id="vHttpBody"{% if data|length > 5 %} style="display:none;"{% endif %}>
                                     <colgroup>
@@ -51,7 +51,7 @@
                                 </table>
                             {% else %}
                                 {% if data|length > 5 %}
-                                    <a href="#" onclick="return varToggle(this, 'HttpBody')"><span>&#x25b6;</span> {% trans "Body" %}</a>
+                                    <a href="#" onclick="return varToggle(this, '#vHttpBody')"><span>&#x25b6;</span> {% trans "Body" %}</a>
                                 {% endif %}
                                 <div id="vHttpBody"{% if data|length > 5 %} style="display:none;"{% endif %}>
                                     <pre>{{ data|pprint }}</pre>
@@ -66,7 +66,7 @@
                         <td>
                             {% if cookies_is_dict %}
                                 {% if cookies|length > 5 %}
-                                    <a href="#" onclick="return varToggle(this, 'HttpCookies')"><span>&#x25b6;</span> {% trans "Cookies" %}</a>
+                                    <a href="#" onclick="return varToggle(this, '#vHttpCookies')"><span>&#x25b6;</span> {% trans "Cookies" %}</a>
                                 {% endif %}
                                 <table class="table vars" id="vHttpCookies"{% if cookies|length > 5 %} style="display:none;"{% endif %}>
                                     <colgroup>
@@ -83,7 +83,7 @@
                                 </table>
                             {% else %}
                                 {% if cookies|length > 5 %}
-                                    <a href="#" onclick="return varToggle(this, 'HttpCookies')"><span>&#x25b6;</span> {% trans "Cookies" %}</a>
+                                    <a href="#" onclick="return varToggle(this, '#vHttpCookies')"><span>&#x25b6;</span> {% trans "Cookies" %}</a>
                                 {% endif %}
                                 <div id="vHttpCookies"{% if cookies|length > 5 %} style="display:none;"{% endif %}>
                                     <pre>{{ cookies|pprint }}</pre>
@@ -98,7 +98,7 @@
                         <td>
                             {% if headers_is_dict %}
                                 {% if headers|length > 5 %}
-                                    <a href="#" onclick="return varToggle(this, 'HttpHeaders')"><span>&#x25b6;</span> {% trans "Headers" %}</a>
+                                    <a href="#" onclick="return varToggle(this, '#vHttpHeaders')"><span>&#x25b6;</span> {% trans "Headers" %}</a>
                                 {% endif %}
                                 <table class="table vars" id="vHttpHeaders"{% if headers|length > 5 %} style="display:none;"{% endif %}>
                                     <colgroup>
@@ -115,7 +115,7 @@
                                 </table>
                             {% else %}
                                 {% if headers|length > 5 %}
-                                    <a href="#" onclick="return varToggle(this, 'HttpHeaders')"><span>&#x25b6;</span> {% trans "Headers" %}</a>
+                                    <a href="#" onclick="return varToggle(this, '#vHttpHeaders')"><span>&#x25b6;</span> {% trans "Headers" %}</a>
                                 {% endif %}
                                 <div id="vHttpHeaders"{% if headers|length > 5 %} style="display:none;"{% endif %}>
                                     <pre>{{ headers|pprint }}</pre>
@@ -129,7 +129,7 @@
                         <th>{% trans "Environment:" %}</th>
                         <td>
                             {% if env|length > 5 %}
-                                <a href="#" onclick="return varToggle(this, 'HttpEnv')"><span>&#x25b6;</span> {% trans "Environment" %}</a>
+                                <a href="#" onclick="return varToggle(this, '#vHttpEnv')"><span>&#x25b6;</span> {% trans "Environment" %}</a>
                             {% endif %}
                             <table class="table vars" id="vHttpEnv"{% if env|length > 5 %} style="display:none;"{% endif %}>
                                 <colgroup>

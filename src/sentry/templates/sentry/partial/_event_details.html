@@ -18,7 +18,7 @@
                     {% if v %}
                         {% if v|is_dict %}
                             {% if v|length > 5 %}
-                                <a href="#" onclick="return varToggle(this, 'Extra{{ forloop.counter }}')"><span>&#x25b6;</span> {% trans "Expand" %}</a>
+                                <a href="#" onclick="return varToggle(this, '#vExtra{{ forloop.counter }}')"><span>&#x25b6;</span> {% trans "Expand" %}</a>
                             {% endif %}
                             <table class="table vars" id="vExtra{{ forloop.counter }}"{% if v|length > 5 %} style="display:none;"{% endif %}>
                                 <colgroup>
