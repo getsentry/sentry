@@ -149,9 +149,9 @@ def project_from_api_key_and_id(api_key, project_id):
 
         tm.project = project
 
-    result = plugins.first('has_perm', tm.user, 'create_event', project)
-    if result is False:
-        raise APIForbidden('Creation of this event was blocked')
+        result = plugins.first('has_perm', tm.user, 'create_event', project)
+        if result is False:
+            raise APIForbidden('Creation of this event was blocked')
 
     return project
 
