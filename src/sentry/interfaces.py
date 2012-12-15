@@ -265,7 +265,7 @@ class Stacktrace(Interface):
             return value
         elif not value:
             return value
-        return value[:100]
+        return value
 
     def serialize(self):
         return {
