@@ -14,26 +14,30 @@
     <div class="module-content">
         <ul class="traceback">
             {% for frame in frames %}
-                <li class="frame{% if not frame.in_app %} system-frame{% endif %}">
+                <li class="frame{% if not frame.in_app %} system-frame{% endif %} frame-{{ forloop.counter0 }}">
                     <p>
                         <code>{{ frame.filename }}</code>
                         {% if frame.function %} in <code>{{ frame.function }}</code>{% endif %}
                         {% if not frame.context and frame.lineno %} at line <code>{{ frame.lineno }}</code>{% endif %}
                     </p>
 
+                    {% if frame.context or frame.vars %}
+                        <div class="commands">
+                            <a href="javascript:void(0)" onclick="$('.frame-{{ forloop.counter0 }}').toggleClass('expanded')">{% trans "Details" %}</a>
+                        </div>
+                    {% endif %}
+
                     {% if frame.context %}
-                        <ol start="{{ frame.start_lineno }}" class="context expandable" id="c{{ forloop.counter0 }}">
+                        <ol start="{{ frame.start_lineno }}" class="context">
                         {% for num, line in frame.context %}
-                            <li{% if num == frame.lineno %} class="active"{% else %} class="stack{{ forloop.parentloop.counter0 }} closed"{% endif %} onclick="$('.stack{{ forloop.parentloop.counter0 }}').toggleClass('closed')"><pre>{{ line }}</pre></li>
+                            <li{% if num == frame.lineno %} class="active"{% else %} class="expandable"{% endif %} onclick="$('.frame-{{ forloop.parentloop.counter0 }}').toggleClass('expanded')"><pre>{{ line }}</pre></li>
                         {% endfor %}
                         </ol>
                     {% endif %}
+
                     {% if frame.vars %}
-                        <div class="commands">
-                            <a href="#" onclick="return varToggle(this, '{{ forloop.counter0 }}')"><span>&#x25b6;</span> {% trans "Context" %}</a>
-                        </div>
                         {% if frame.vars|is_dict %}
-                            <table class="table vars" id="v{{ forloop.counter0 }}" style="display:none;">
+                            <table class="table vars stack{{ forloop.counter0 }} expandable">
                                 <colgroup>
                                     <col style="width:100px;">
                                 </colgroup>

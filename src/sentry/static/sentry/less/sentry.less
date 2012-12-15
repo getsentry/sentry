@@ -785,11 +785,90 @@ td .clippy {
 
 // Code styles
 
+.frame {
+  padding: 5px;
+  border: 1px solid #fff;
+  margin: -6px -6px 0 -6px;
+
+  &.system-frame {
+    color: #999;
+  }
+
+  code {
+    color: inherit;
+  }
+
+  div.commands {
+    position: absolute;
+    right: 10px;
+    top: 6px;
+    font-size: 0.9em;
+    a {
+      color: #666;
+      text-decoration: none;
+      span {
+        font-size: 9px;
+        margin-right: 5px;
+      }
+    }
+  }
+
+  .context {
+    margin-bottom: 5px;
+  }
+
+  table.vars {
+    margin-bottom: 5px;
+  }
+
+  &.expanded {
+    color: #000;
+    border-color: darken(@infoBorder, 5%);
+
+    > p {
+      color: #000;
+      margin: -5px -5px 5px -5px;
+      padding: 5px;
+      background: @infoBackground;
+    }
+
+    // .context li {
+    //   color: darken(@infoText, 20%);
+    //   background: lighten(@infoBackground, 5%);
+    //   pre {
+    //     color: inherit;
+    //   }
+    //   &.active {
+    //     background: @infoBackground;
+    //     color: #000;
+    //   }
+    // }
+  
+    .commands a {
+      color: @infoText;
+    }
+
+    .expandable {
+      display: block;
+    }
+    table.expandable {
+      display: table;
+    }
+    li.expandable {
+      display: list-item;
+    }
+  }
+}
+
+
+.expandable {
+  display: none;
+}
+
 ol.context {
+  cursor: pointer;
   margin: 0;
   list-style-position: inside;
-  border: 1px solid #ccc;
-  border: 1px solid rgba(0,0,0,.15);
   .border-radius(3px);
   > li {
     padding-left: 20px;
@@ -826,29 +905,35 @@ ol.context-line {
   }
 }
 
-.expandable {
-  cursor: pointer;
-  .closed {
-    height: 0;
-    overflow: hidden;
-  }
-}
-
-
 // Vars display
 table.vars {
   .table-condensed;
+  .table-striped;
+
+  &.closed {
+    display: none;
+  }
+
+  td, th {
+    border: 0;
+  }
 }
+  
+td table.vars {
+  margin-bottom: 0;
+}
+
+
 td.code {
+  overflow: hidden;
+
   > pre {
     background-color: inherit;
     color: rgba(0,0,0,.75);
     padding: 1px 3px;
     border: 0;
+    margin-bottom: 0;
   }
-}
-td table.vars {
-  margin-bottom: 0;
 }
 
 // Generic module stuff
@@ -869,16 +954,10 @@ td table.vars {
 #chart { margin-bottom: 15px; overflow: hidden; }
 
 /* tracebacks */
-.frame table.vars { margin:5px 0 0 35px; }
-table.vars td.code { overflow: hidden; }
-table.vars td.code pre { margin-bottom: 0; }
 div.pastebin textarea { padding: 10px; background: #f9f9f9; border-color: #ddd; }
 
 ul.traceback { list-style-type: none; margin-left: 0; }
 ul.traceback li.frame { margin-bottom: 10px; overflow: hidden; position: relative; }
-div.commands { font-size: 12px; margin-top: 10px; margin-left: 20px; }
-div.commands a { color: black; text-decoration:none; }
-div.commands span { margin-right: 5px; font-size: 10px; }
 
 #versioninfo {
   th { text-align: left; font-family: monospace; padding-right: 20px; }
