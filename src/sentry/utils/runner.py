@@ -38,6 +38,35 @@ DATABASES = {
     }
 }
 
+# If you're expecting any kind of real traffic on Sentry, we highly recommend configuring
+# the CACHES and Redis settings
+
+# CACHES = {
+#     'default': {
+#         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+#         'LOCATION': ['127.0.0.1:11211'],
+#     }
+# }
+
+# Buffers (combined with queueing) act as an intermediate layer between the database and
+# the storage API. They will greatly improve efficiency on large numbers of the same events
+# being sent to the API in a short amount of time.
+
+# SENTRY_USE_QUEUE = True
+# For more information on queue options, see the documentation for Celery:
+# http://celery.readthedocs.org/en/latest/
+# BROKER_URL = 'redis://localhost:6379'
+
+# SENTRY_BUFFER = 'sentry.buffer.redis.RedisBuffer'
+# SENTRY_BUFFER_OPTIONS = {
+#     'hosts': {
+#         0: {
+#             'host': '127.0.0.1',
+#             'port': 6379,
+#         }
+#     }
+# }
+
 SENTRY_KEY = %(default_key)r
 
 # Set this to false to require authentication
