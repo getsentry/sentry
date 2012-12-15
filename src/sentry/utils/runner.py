@@ -25,7 +25,11 @@ DATABASES = {
         # You can swap out the engine for MySQL easily by changing this value
         # to ``django.db.backends.mysql`` or to PostgreSQL with
         # ``django.db.backends.postgresql_psycopg2``
+
+        # If you change this, you'll also need to install the appropriate python
+        # package: psycopg2 (Postgres) or mysql-python
         'ENGINE': 'django.db.backends.sqlite3',
+
         'NAME': os.path.join(CONF_ROOT, 'sentry.db'),
         'USER': 'postgres',
         'PASSWORD': '',
@@ -37,7 +41,7 @@ DATABASES = {
 SENTRY_KEY = %(default_key)r
 
 # Set this to false to require authentication
-SENTRY_PUBLIC = True
+SENTRY_PUBLIC = False
 
 # You should configure the absolute URI to Sentry. It will attempt to guess it if you don't
 # but proxies may interfere with this.
