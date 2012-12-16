@@ -1,5 +1,6 @@
 {% extends "sentry/layout.html" %}
 
+{% load crispy_forms_tags %}
 {% load i18n %}
 
 {% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
@@ -13,30 +14,26 @@
             <p class="alert alert-info">{% trans "Please login to continue." %}</p>
         {% endif %}
 
-        {% if form.non_field_errors %}
-            <div class="alert alert-block alert-error">
-                <ul>
-                    {% for error in form.non_field_errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-        {% endif %}
-
         <div class="row">
             <div class="span6">
                 <form class="form-stacked" action="" method="post">
+                    {{ form|as_crispy_errors }}
+
                     <fieldset>
-                        <legend>Login with your Sentry account</legend>
+                        <legend>{% trans "Login with your Sentry account" %}</legend>
                     </fieldset>
                     {% csrf_token %}
-                    <input type="hidden" name="next" value="{{ next }}" />
 
                     {% for field in form %}
                         {% include "sentry/partial/_form_field.html" %}
                     {% endfor %}
 
                     <fieldset class="form-actions">
+                        {% if CAN_REGISTER %}
+                            <div class="pull-right" style="margin-top: 5px;">
+                                <a href="{% url sentry-register %}">{% trans "Create a new account" %}</a>
+                            </div>
+                        {% endif %}
                         <button type="submit" class="btn btn-primary">{% trans "Login" %}</button>
                     </fieldset>
                 </form>
@@ -44,7 +41,12 @@
             {% if AUTH_PROVIDERS %}
                 <div class="span6">
                     <fieldset>
-                        <legend>Login{% if SOCIAL_AUTH_CREATE_USERS %} or Register{% endif %} with another account</legend>
+                        <legend>
+                            {% if SOCIAL_AUTH_CREATE_USERS %}
+                                {% trans "Login or Register using another service" %}
+                            {% else %}
+                                {% trans "Login using another service"}
+                            {% endif %}
                     </fieldset>
                     {% url sentry-account-settings-identities as identities_link %}
                     <p>{% blocktrans with identities_link as link %}If you already have an account, you can associate a social identity in the

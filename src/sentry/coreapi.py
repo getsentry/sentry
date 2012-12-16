@@ -15,6 +15,7 @@ import logging
 import uuid
 import zlib
 
+from django.contrib.auth.models import User
 from django.utils.encoding import smart_str
 
 from sentry.conf import settings
@@ -106,6 +107,8 @@ def project_from_auth_vars(auth_vars):
         except TeamMember.DoesNotExist:
             raise APIUnauthorized('Member does not have access to project')
 
+        # We have to refetch this as it may have been catched
+        pk.user = User.objects.get(id=pk.user_id)
         if not pk.user.is_active:
             raise APIUnauthorized('Account is not active')
 
@@ -139,14 +142,16 @@ def project_from_api_key_and_id(api_key, project_id):
         except TeamMember.DoesNotExist:
             raise APIUnauthorized('Member does not have access to project')
 
+        # We have to refetch this as it may have been catched
+        pk.user = User.objects.get(id=pk.user_id)
         if not pk.user.is_active:
             raise APIUnauthorized('Account is not active')
 
         tm.project = project
 
-    result = plugins.first('has_perm', tm.user, 'create_event', project)
-    if result is False:
-        raise APIForbidden('Creation of this event was blocked')
+        result = plugins.first('has_perm', tm.user, 'create_event', project)
+        if result is False:
+            raise APIForbidden('Creation of this event was blocked')
 
     return project
 

@@ -7,8 +7,9 @@
 {% block main %}
     <section class="body">
         {% if PROJECT_LIST %}
-            <div style="height:200px;">
-                <div id="chart" data-api-url="{% url sentry-api-chart %}">
+            <div id="chart" class="chart" data-api-url="{% url sentry-api-chart %}">
+                <div class="sparkline">
+                    <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
                     <span class="loading">{% trans "Loading historical data..." %}</span>
                 </div>
             </div>

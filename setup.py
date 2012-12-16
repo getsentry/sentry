@@ -35,10 +35,10 @@ for m in ('multiprocessing', 'billiard'):
         pass
 
 tests_require = [
-    'django-nose==1.1',
-    'eventlet==0.9.16',
-    'nose==1.2.1',
-    'nydus==0.9.0',
+    'eventlet',
+    'pytest',
+    'pytest-django',
+    'nydus',
     'mock>=0.8.0',
     'redis',
     'unittest2',
@@ -58,7 +58,7 @@ install_requires = [
     'django-picklefield>=0.2.0',
     'django-templatetag-sugar>=0.1.0',
     'gunicorn>=0.14.6',
-    'logan>=0.5.1',
+    'logan>=0.5.4',
     'pynliner>=0.4.0',
     'python-dateutil>=1.5.0,<2.0.0',
     'raven>=2.0.10',

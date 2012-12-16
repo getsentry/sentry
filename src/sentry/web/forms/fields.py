@@ -6,11 +6,12 @@ sentry.web.forms.teams
 :license: BSD, see LICENSE for more details.
 """
 from django.contrib.auth.models import User
-from django.forms.widgets import RadioFieldRenderer, TextInput
+from django.core.validators import URLValidator
+from django.forms.widgets import RadioFieldRenderer, TextInput, Textarea
 from django.forms import CharField, ValidationError
 from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, ungettext
 
 
 class RadioFieldRenderer(RadioFieldRenderer):
@@ -43,3 +44,73 @@ class UserField(CharField):
             return User.objects.get(username=value)
         except User.DoesNotExist:
             raise ValidationError(_('Invalid username'))
+
+
+class OriginsField(CharField):
+    _url_validator = URLValidator(verify_exists=False)
+    widget = Textarea(attrs={'placeholder': mark_safe('e.g. http://example.com<br>*.example.com'), 'class': 'span8'})
+
+    def clean(self, value):
+        if not value:
+            return []
+        values = filter(bool, (v.strip() for v in value.split('\n')))
+        for value in values:
+            if not self.is_valid_origin(value):
+                raise ValidationError('%r is not an acceptable origin' % value)
+        return values
+
+    def is_valid_origin(self, value):
+        if value == '*':
+            return True
+
+        if '://' in value:
+            # URLValidator will raise a forms.ValidationError itself
+            self._url_validator(value)
+            return True
+
+        # ports are not supported on matching expressions (yet)
+        if ':' in value:
+            return False
+
+        # no .com's
+        parts = filter(bool, value.split('.'))
+        if len(parts) < 2:
+            return False
+
+        return True
+
+
+def get_team_label(team):
+    member_count = team.member_set.count()
+    project_count = team.project_set.count()
+
+    if member_count > 1 and project_count:
+        label = _('%(team)s (%(members)s, %(projects)s)')
+    elif project_count:
+        label = _('%(team)s (%(projects)s)')
+    else:
+        label = _('%(team)s (%(members)s)')
+
+    return label % dict(
+        team=team.name,
+        members=ungettext('%d member', '%d members', member_count) % (member_count,),
+        projects=ungettext('%d project', '%d projects', project_count) % (project_count,),
+    )
+
+
+def get_team_choices(team_list, default=None):
+    sorted_team_list = sorted(team_list.itervalues(), key=lambda x: x.name)
+
+    choices = []
+    for team in sorted_team_list:
+        # TODO: optimize queries
+        choices.append(
+            (team.id, get_team_label(team))
+        )
+
+    if default is None:
+        choices.insert(0, (-1, mark_safe('&ndash;' * 8)))
+    elif default not in sorted_team_list:
+        choices.insert(0, (default.id, get_team_label(default)))
+
+    return choices

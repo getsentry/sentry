@@ -185,8 +185,9 @@ class IssuePlugin(Plugin):
         return action_list
 
     def before_events(self, request, event_list, **kwargs):
-        prefix = self.get_conf_key()
-        self._cache = GroupMeta.objects.get_value_bulk(event_list, '%s:tid' % prefix)
+        if event_list and self.is_configured(request=request, project=event_list[0].project):
+            prefix = self.get_conf_key()
+            self._cache = GroupMeta.objects.get_value_bulk(event_list, '%s:tid' % prefix)
 
     def tags(self, request, group, tag_list, **kwargs):
         if not self.is_configured(request=request, project=group.project):

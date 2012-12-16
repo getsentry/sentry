@@ -5,6 +5,7 @@ sentry.web.frontend.teams
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from django.contrib import messages
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
@@ -18,7 +19,7 @@ from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_team_access
 from sentry.web.forms.teams import NewTeamForm, NewTeamAdminForm, \
   EditTeamForm, EditTeamAdminForm, EditTeamMemberForm, NewTeamMemberForm, \
-  InviteTeamMemberForm, RemoveTeamForm
+  InviteTeamMemberForm, RemoveTeamForm, AcceptInviteForm
 from sentry.web.helpers import render_to_response
 
 
@@ -161,6 +162,7 @@ def new_team_member(request, team):
     return render_to_response('sentry/teams/members/new.html', context, request)
 
 
+@csrf_protect
 def accept_invite(request, member_id, token):
     try:
         pending_member = PendingTeamMember.objects.get(pk=member_id)
@@ -172,25 +174,43 @@ def accept_invite(request, member_id, token):
 
     team = pending_member.team
 
+    context = {
+        'team': team,
+        'team_owner': team.get_owner_name(),
+        'project_list': list(team.project_set.filter(status=0)),
+    }
+
     if not request.user.is_authenticated():
         # Show login or register form
-        context = {
-            'team': team,
-        }
-        return render_to_response('sentry/teams/members/accept_invite.html', context, request)
+        request.session['_next'] = request.get_full_path()
+        request.session['can_register'] = True
 
-    if team.member_set.filter(
+        return render_to_response('sentry/teams/members/accept_invite_unauthenticated.html', context, request)
+
+    if request.method == 'POST':
+        form = AcceptInviteForm(request.POST)
+    else:
+        form = AcceptInviteForm()
+
+    if form.is_valid():
+        team.member_set.get_or_create(
             user=request.user,
-            type=pending_member.type,
-        ):
-        team.member_set.create(
-            user=request.user,
-            type=pending_member.type,
+            defaults={
+                'type': pending_member.type,
+            }
         )
 
-    pending_member.delete()
+        request.session.pop('can_register', None)
 
-    return HttpResponseRedirect(reverse('sentry', args=[team.slug]))
+        pending_member.delete()
+
+        messages.add_message(request, messages.SUCCESS, 'You have been added to the %r team.' % (team.name.encode('utf-8'),))
+
+        return HttpResponseRedirect(reverse('sentry', args=[team.slug]))
+
+    context['form'] = form
+
+    return render_to_response('sentry/teams/members/accept_invite.html', context, request)
 
 
 @csrf_protect

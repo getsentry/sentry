@@ -17,15 +17,65 @@ class LoginTest(TestCase):
         user.save()
         return user
 
-    def test_auth(self):
-        # load it once for test cookie
-        self.client.get(reverse('sentry-login'))
+    @fixture
+    def path(self):
+        return reverse('sentry-login')
 
-        resp = self.client.post(reverse('sentry-login'), {
+    def test_renders_correct_template(self):
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed('sentry/login.html')
+
+    def test_invalid_password(self):
+        # load it once for test cookie
+        self.client.get(self.path)
+
+        resp = self.client.post(self.path, {
+            'username': self.user.username,
+            'password': 'bizbar',
+        })
+        self.assertEquals(resp.status_code, 200)
+        self.assertEquals(resp.context['form'].errors['__all__'],
+            [u'Please enter a correct username and password. Note that both fields are case-sensitive.'])
+
+    def test_valid_credentials(self):
+        # load it once for test cookie
+        self.client.get(self.path)
+
+        resp = self.client.post(self.path, {
             'username': self.user.username,
             'password': 'foobar',
         })
         self.assertEquals(resp.status_code, 302)
+
+
+class RegisterTest(TestCase):
+    @fixture
+    def path(self):
+        return reverse('sentry-register')
+
+    def test_redirects_if_registration_disabled(self):
+        with self.Settings(SENTRY_ALLOW_REGISTRATION=False):
+            resp = self.client.get(self.path)
+            self.assertEquals(resp.status_code, 302)
+
+    def test_renders_correct_template(self):
+        with self.Settings(SENTRY_ALLOW_REGISTRATION=True):
+            resp = self.client.get(self.path)
+            self.assertEquals(resp.status_code, 200)
+            self.assertTemplateUsed('sentry/register.html')
+
+    def test_with_required_params(self):
+        with self.Settings(SENTRY_ALLOW_REGISTRATION=True):
+            resp = self.client.post(self.path, {
+                'username': 'test',
+                'email': 'test@example.com',
+                'password': 'foobar',
+            })
+            self.assertEquals(resp.status_code, 302)
+            user = User.objects.get(username='test')
+            self.assertEquals(user.email, 'test@example.com')
+            self.assertTrue(user.check_password('foobar'))
 
 
 class AppearanceSettingsTest(TestCase):
@@ -56,6 +106,5 @@ class AppearanceSettingsTest(TestCase):
 
         options = UserOption.objects.get_all_values(user=self.user, project=None)
 
-        print options
         self.assertEquals(options.get('stacktrace_order'), '2')
         self.assertEquals(options.get('language'), 'en')

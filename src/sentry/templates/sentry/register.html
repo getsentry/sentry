@@ -1,0 +1,53 @@
+{% extends "sentry/layout.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Register" %} | {{ block.super }}{% endblock %}
+
+{% block page_header_block %}{% endblock %}
+{% block bodyclass %}{% endblock %}
+
+{% block main %}
+    <section class="body">
+        {{ form|as_crispy_errors }}
+
+        <div class="row">
+            <div class="span6">
+                <form class="form-stacked" action="" method="post">
+                    <fieldset>
+                        <legend>{% trans "Create a new account" %}</legend>
+                    </fieldset>
+                    {% csrf_token %}
+
+                    {% for field in form %}
+                        {% include "sentry/partial/_form_field.html" %}
+                    {% endfor %}
+
+                    <fieldset class="form-actions">
+                        <div class="pull-right" style="margin-top: 5px;">
+                            <a href="{% url sentry-login %}">{% trans "Login as an existing user" %}</a>
+                        </div>
+                        <button type="submit" class="btn btn-primary">{% trans "Register" %}</button>
+                    </fieldset>
+                </form>
+            </div>
+            {% if AUTH_PROVIDERS and SOCIAL_AUTH_CREATE_USERS %}
+                <div class="span6">
+                    <fieldset>
+                        <legend>{% trans "Register using another service" %}</legend>
+                    </fieldset>
+                    {% url sentry-account-settings-identities as identities_link %}
+                    <p>{% blocktrans with identities_link as link %}If you already have an account, you can associate a social identity in the
+                        <a href="{{ link }}">identities</a> page in your account settings (after you login).{% endblocktrans %}</p>
+                    <br>
+                    <ul class="auth-options">
+                        {% for engine in AUTH_PROVIDERS %}
+                            <li><a href="{% url socialauth_begin engine %}" class="auth-{{ engine }}">{% blocktrans with service=engine|title %}Sign in with {{ service }}{% endblocktrans %}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}

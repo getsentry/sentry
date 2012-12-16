@@ -17,7 +17,7 @@ import socket
 import sys
 import urlparse
 
-DEBUG = False
+DEBUG = True
 TEMPLATE_DEBUG = True
 
 ADMINS = ()
@@ -162,20 +162,28 @@ INSTALLED_APPS = (
 STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
 STATIC_URL = '/_static/'
 
+NPM_ROOT = os.path.abspath(os.path.join(PROJECT_ROOT, os.pardir, os.pardir, 'node_modules'))
+if os.path.exists(NPM_ROOT):
+    LESS_BIN = os.path.join(NPM_ROOT, 'less', 'bin', 'lessc')
+else:
+    LESS_BIN = None
+
 # XXX: There is a bug in django-compressor that causes it to incorrectly handle
 # relative URLs in precompiled files (less) when compression is disabled
-COMPRESS_ENABLED = True
-COMPRESS_URL = STATIC_URL
-COMPRESS_OUTPUT_DIR = 'CACHE'
-COMPRESS_PRECOMPILERS = (
-    ('text/coffeescript', 'coffee --compile --stdio'),
-    ('text/less', 'lessc --strict-imports {infile} {outfile}'),
-)
+if LESS_BIN:
+    COMPRESS_ENABLED = True
+    COMPRESS_URL = STATIC_URL
+    COMPRESS_OUTPUT_DIR = 'CACHE'
+    COMPRESS_PRECOMPILERS = (
+        ('text/less', '%s --strict-imports {infile} {outfile}' % (LESS_BIN,)),
+    )
+else:
+    COMPRESS_ENABLED = False
 
 STATICFILES_FINDERS = (
-    "compressor.finders.CompressorFinder",
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
+    "compressor.finders.CompressorFinder",
 )
 
 LOCALE_PATHS = (
@@ -263,28 +271,38 @@ EMAIL_SUBJECT_PREFIX = '[Sentry] '
 # Disable South in tests as it is sending incorrect create signals
 SOUTH_TESTS_MIGRATE = False
 
-# Configure logging
-from raven.conf import setup_logging
-from raven.contrib.django.handlers import SentryHandler
-import logging
-
-# Configure root logger
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
-handler = logging.StreamHandler()
-handler.setLevel(logging.INFO)
-logger.addHandler(handler)
-
-# Disable django.request as it's generally useless
-logger = logging.getLogger('django.request')
-logger.propagate = False
-logger.addHandler(handler)
-
-# Configure default sentry logging
-sentry_handler = SentryHandler()
-sentry_handler.setLevel(logging.ERROR)
-setup_logging(sentry_handler)
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': True,
+    'handlers': {
+        'console': {
+            'level': 'WARNING',
+            'class': 'logging.StreamHandler'
+        },
+        'sentry': {
+            'class': 'raven.contrib.django.handlers.SentryHandler',
+        }
+    },
+    'loggers': {
+        '()': {
+            'handlers': ['console', 'sentry'],
+            'propagate': True,
+        },
+        'root': {
+            'handlers': ['console', 'sentry'],
+        },
+        'sentry.errors': {
+            'level': 'ERROR',
+            'handlers': ['console', 'sentry'],
+            'propagate': False,
+        },
+        'django.request': {
+            'level': 'ERROR',
+            'handlers': ['console'],
+            'propagate': False,
+        },
+    }
+}
 
 # Configure celery
 import djcelery

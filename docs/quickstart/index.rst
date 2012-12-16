@@ -75,11 +75,9 @@ like the following::
 Initializing the Configuration
 ------------------------------
 
-Now you're going to want to initialize your configuration from a template, likely because you'll want to switch
-off of sqlite, which is the default database.
-
-To do this, you'll use the ``init`` command. You can specify an alternative configuration
-path as the argument to init, otherwise it will use the default of ``~/.sentry/sentry.conf.py``.
+Now you'll need to create the default configuration. To do this, you'll use the ``init`` command
+You can specify an alternative configuration path as the argument to init, otherwise it will use
+the default of ``~/.sentry/sentry.conf.py``.
 
 ::
 
@@ -87,7 +85,8 @@ path as the argument to init, otherwise it will use the default of ``~/.sentry/s
     sentry init /etc/sentry.conf.py
 
 The configuration for the server is based on ``sentry.conf.server``, which contains a basic Django project
-configuration, as well as the default Sentry configuration values. It will use SQLite for the database.
+configuration, as well as the default Sentry configuration values. It defaults to SQLite, however **SQLite
+is not a fully supported database and should not be used in production**.
 
 ::
 
@@ -137,8 +136,15 @@ more information on alterantive backends.
 Running Migrations
 ------------------
 
-If you changed from the default SQLite database, make sure you start by creating the database Sentry
-is expecting. Once done, you can create the initial database using the ``upgrade`` command::
+Sentry provides an easy way to run migrations on the database on version upgrades. Before running it for
+the first time you'll need to make sure you've created the database:
+
+::
+
+    # If you're using Postgres, and kept the database ``NAME`` as ``sentry``
+    createdb -E utf-8 sentry
+
+Once done, you can create the initial schema using the ``upgrade`` command::
 
     sentry --config=/etc/sentry.conf.py upgrade
 

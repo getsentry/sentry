@@ -21,7 +21,7 @@ from sentry.constants import (SORT_OPTIONS, SEARCH_SORT_OPTIONS,
     SORT_CLAUSES, MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES, MEMBER_USER,
     SCORE_CLAUSES, MYSQL_SCORE_CLAUSES, SQLITE_SCORE_CLAUSES)
 from sentry.filters import get_filters
-from sentry.models import Group, Event, View, SearchDocument
+from sentry.models import Group, Event, SearchDocument
 from sentry.permissions import can_admin_group
 from sentry.plugins import plugins
 from sentry.utils import json
@@ -41,9 +41,9 @@ def _get_rendered_interfaces(event):
             html = interface.to_html(event)
         except Exception:
             logger = logging.getLogger('sentry.interfaces')
-            logger.exception('Error rendering interface %r', interface.__class__, extra={
+            logger.error('Error rendering interface %r', interface.__class__, extra={
                 'event_id': event.id,
-            })
+            }, exc_info=True)
             continue
         if not html:
             continue
@@ -51,7 +51,7 @@ def _get_rendered_interfaces(event):
     return interface_list
 
 
-def _get_group_list(request, project, view=None):
+def _get_group_list(request, project):
     filters = []
     for cls in get_filters(Group, project):
         try:
@@ -68,9 +68,6 @@ def _get_group_list(request, project, view=None):
         )
     else:
         event_list = event_list.filter(project=project)
-
-    if view:
-        event_list = event_list.filter(views=view)
 
     for filter_ in filters:
         try:
@@ -95,16 +92,15 @@ def _get_group_list(request, project, view=None):
         date_from = today - datetime.timedelta(days=3)
         date_to = None
 
-    if date_from:
-        if not date_to:
-            event_list = event_list.filter(last_seen__gte=date_from)
-        else:
-            event_list = event_list.filter(messagecountbyminute__date__gte=date_from)
-    if date_to:
-        if not date_from:
-            event_list = event_list.filter(last_seen__lte=date_to)
-        else:
-            event_list = event_list.filter(messagecountbyminute__date__lte=date_to)
+    if date_from and date_to:
+        event_list = event_list.filter(
+            messagecountbyminute__date__gte=date_from,
+            messagecountbyminute__date__lte=date_to,
+        )
+    elif date_from:
+        event_list = event_list.filter(last_seen__gte=date_from)
+    elif date_to:
+        event_list = event_list.filter(last_seen__lte=date_to)
 
     sort = request.GET.get('sort')
     if sort not in SORT_OPTIONS:
@@ -130,7 +126,7 @@ def _get_group_list(request, project, view=None):
     elif sort == 'avgtime':
         event_list = event_list.filter(time_spent_count__gt=0)
     elif sort.startswith('accel_'):
-        event_list = Group.objects.get_accelerated(event_list, minutes=int(sort.split('_', 1)[1]))
+        event_list = Group.objects.get_accelerated([project.id], event_list, minutes=int(sort.split('_', 1)[1]))
 
     if score_clause:
         event_list = event_list.extra(
@@ -142,6 +138,8 @@ def _get_group_list(request, project, view=None):
                 where=['%s > %%s' % filter_clause],
                 params=[cursor],
             )
+
+    event_list = event_list.select_related('project')
 
     return {
         'filters': filters,
@@ -171,8 +169,8 @@ def search(request, project):
         # Forward to message if it exists
         # event_id = result.group(1)
         checksum = result.group(2)
-        event_list = Group.objects.filter(checksum=checksum)
-        top_matches = event_list[:2]
+        event_list = Group.objects.filter(project=project, checksum=checksum)
+        top_matches = list(event_list[:2])
         if len(top_matches) == 0:
             return render_to_response('sentry/invalid_message_id.html', {
                 'project': project,
@@ -222,19 +220,9 @@ def group_list(request, project):
     except (TypeError, ValueError):
         page = 1
 
-    view_id = request.GET.get('view')
-    if view_id:
-        try:
-            view = View.objects.get_from_cache(pk=int(view_id))
-        except View.DoesNotExist:
-            return HttpResponseRedirect(reverse('sentry', args=[project.slug]))
-    else:
-        view = None
-
     response = _get_group_list(
         request=request,
         project=project,
-        view=view,
     )
 
     # XXX: this is duplicate in _get_group_list
@@ -252,7 +240,6 @@ def group_list(request, project):
         'sort': response['sort'],
         'sort_label': sort_label,
         'filters': response['filters'],
-        'view': view,
         'SORT_OPTIONS': SORT_OPTIONS,
         'HAS_TRENDING': has_trending(),
         'PAGE': 'dashboard',

@@ -75,7 +75,7 @@
         </ul>
     {% endif %}
 
-    {% for tag in group.project.get_tags %}
+    {% for tag in group.get_tags %}
         {% render_tag_widget group tag %}
     {% endfor %}
 
@@ -139,7 +139,7 @@
             <li{% if page == 'event_list' %} class="active"{% endif %}>
                 <a href="{% url sentry-group-events group.project.slug group.id %}">{% trans "Events" %}</a>
             </li>
-            {% for tag in group.project.get_tags %}
+            {% for tag in group.get_tags %}
                 <li{% if page == 'tag_details' and tag == tag_name %} class="active"{% endif %}>
                     <a href="{% url sentry-group-tag-details group.project.slug group.id tag %}">{{ tag|titlize }}</a>
                 </li>
@@ -156,13 +156,10 @@
 
             {% if group|has_charts %}
                 <div class="module">
-                    <div class="page-header">
-                        <h2>{% trans "Frequency" %}</h2>
-                    </div>
-                    <div class="module-content" style="height: 120px;">
-                        <div id="chart" data-api-url="{% url sentry-api-chart project_id=project.slug %}" data-group="{{ group.id|safe }}">
+                    <div style="height:50px;" id="chart" class="chart" data-api-url="{% url sentry-api-chart project_id=project.slug %}" data-group="{{ group.id|safe }}">
+                        <div class="sparkline">
+                            <span class="loading">{% trans "Loading historical data..." %}</span>
                             <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
-                            <p>{% trans "Loading..." %}</p>
                         </div>
                     </div>
                 </div>
@@ -176,7 +173,7 @@
 {% block content_after %}
     <script type="text/javascript">
     $(document).ready(function() {
-        Sentry.charts.render("#chart");
+        new app.GroupDetailsPage();
         $('#public-status .action').click(function(){
             var $this = $(this);
             $.ajax({

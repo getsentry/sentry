@@ -1,5 +1,8 @@
+/*global jQuery:true*/
 function varToggle(link, id) {
-    $('#v' + id).toggle();
+    "use strict";
+
+    jQuery(id).toggle();
     var s = link.getElementsByTagName('span')[0];
     var uarr = String.fromCharCode(0x25b6);
     var darr = String.fromCharCode(0x25bc);
@@ -7,205 +10,15 @@ function varToggle(link, id) {
     return false;
 }
 
-(function() {
-  /**
-   * @private
-   */
-  var prioritySortLow = function(a, b) {
-    return b.priority - a.priority;
-  };
-
-  /**
-   * @private
-   */
-  var prioritySortHigh = function(a, b) {
-    return a.priority - b.priority;
-  };
-
-  /**
-   * @constructor
-   * @class Queue manages a queue of elements with priorities. Default
-   * is highest priority first.
-   *
-   * @param [options] If low is set to true returns lowest first.
-   */
-  Queue = function(options) {
-    var contents = [];
-
-    var sorted = false;
-    var sortStyle;
-    if(options === undefined) {
-        options = {};
-    }
-
-    if(options.low) {
-      sortStyle = prioritySortLow;
-    } else if(options.high) {
-      sortStyle = prioritySortHigh;
-    }
-
-    /**
-     * @private
-     */
-    var sort = function() {
-      contents.sort(sortStyle);
-      sorted = true;
-    };
-
-    var self = {
-      /**
-       * Removes and returns the next element in the queue.
-       * @member Queue
-       * @return The next element in the queue. If the queue is empty returns
-       * undefined.
-       *
-       * @see PrioirtyQueue#top
-       */
-      pop: function() {
-        if(!sorted && sortStyle) {
-          sort();
-        }
-
-        var element = contents.pop();
-
-        if(element) {
-          return element.object;
-        } else {
-          return undefined;
-        }
-      },
-
-      /**
-       * Returns but does not remove the next element in the queue.
-       * @member Queue
-       * @return The next element in the queue. If the queue is empty returns
-       * undefined.
-       *
-       * @see Queue#pop
-       */
-      top: function() {
-        if(!sorted) {
-          sort();
-        }
-
-        var element = contents[contents.length - 1];
-
-        if(element) {
-          return element.object;
-        } else {
-          return undefined;
-        }
-      },
-
-      /**
-       * @member Queue
-       * @param object The object to check the queue for.
-       * @returns true if the object is in the queue, false otherwise.
-       */
-      includes: function(object) {
-        for(var i = contents.length - 1; i >= 0; i--) {
-          if(contents[i].object === object) {
-            return true;
-          }
-        }
-
-        return false;
-      },
-
-      /**
-       * @member Queue
-       * @param object The object to check the queue for.
-       * @returns true if the object was replaced, false if it was pushed.
-       */
-      replace: function(object, priority, key) {
-        for(var i = contents.length - 1; i >= 0; i--) {
-          if(contents[i].object[key] === object[key]) {
-            contents[i] = {object: object, priority: priority};
-            return true;
-          }
-        }
-        self.push(object, priority);
-        return false;
-      },
-
-      /**
-       * @member Queue
-       * @returns the current number of elements in the queue.
-       */
-      size: function() {
-        return contents.length;
-      },
-
-      /**
-       * @member Queue
-       * @returns true if the queue is empty, false otherwise.
-       */
-      empty: function() {
-        return contents.length === 0;
-      },
-
-      /**
-       * @member Queue
-       * @param object The object to be pushed onto the queue.
-       * @param priority The priority of the object.
-       */
-      push: function(object, priority) {
-        contents.push({object: object, priority: priority});
-        sorted = false;
-      }
-    };
-
-    return self;
-  };
-})();
-
-/**
- * Date.parse with progressive enhancement for ISO 8601 <https://github.com/csnover/js-iso8601>
- * © 2011 Colin Snover <http://zetafleet.com>
- * Released under MIT license.
- */
-(function (Date, undefined) {
-    var origParse = Date.parse, numericKeys = [ 1, 4, 5, 6, 7, 10, 11 ];
-    Date.parse = function (date) {
-        var timestamp, struct, minutesOffset = 0;
-
-        // ES5 §15.9.4.2 states that the string should attempt to be parsed as a Date Time String Format string
-        // before falling back to any implementation-specific date parsing, so that's what we do, even if native
-        // implementations could be faster
-        //              1 YYYY                2 MM       3 DD           4 HH    5 mm       6 ss        7 msec        8 Z 9 ±    10 tzHH    11 tzmm
-        if ((struct = /^(\d{4}|[+\-]\d{6})(?:-(\d{2})(?:-(\d{2}))?)?(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{3}))?)?(?:(Z)|([+\-])(\d{2})(?::(\d{2}))?)?)?$/.exec(date))) {
-            // avoid NaN timestamps caused by "undefined" values being passed to Date.UTC
-            for (var i = 0, k; (k = numericKeys[i]); ++i) {
-                struct[k] = +struct[k] || 0;
-            }
-
-            // allow undefined days and months
-            struct[2] = (+struct[2] || 1) - 1;
-            struct[3] = +struct[3] || 1;
-
-            if (struct[8] !== 'Z' && struct[9] !== undefined) {
-                minutesOffset = struct[10] * 60 + struct[11];
-
-                if (struct[9] === '+') {
-                    minutesOffset = 0 - minutesOffset;
-                }
-            }
-
-            timestamp = Date.UTC(struct[1], struct[2], struct[3], struct[4], struct[5] + minutesOffset, struct[6], struct[7]);
-        }
-        else {
-            timestamp = origParse ? origParse(date) : NaN;
-        }
-
-        return timestamp;
-    };
-}(Date));
-
 if (Sentry === undefined) {
     var Sentry = {};
 }
 
-(function(){
+(function(jQuery){
+    "use strict";
+
+    var $ = jQuery;
+
     Sentry.options = {
         urlPrefix: '',
         mediaUrl: '/media/',
@@ -418,4 +231,4 @@ if (Sentry === undefined) {
             "</html>");
     });
 
-}());
+}(jQuery));

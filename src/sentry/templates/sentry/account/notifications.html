@@ -19,17 +19,9 @@
 {% block inner %}
     <form action="" method="post">
         {% csrf_token %}
-        {% for form, helper in forms %}
-            {% if form.non_field_errors %}
-                <div class="alert alert-block alert-error">
-                    <p>{% trans "There were errors saving your changes:" %}</p>
-                    <ul>
-                        {% for error in form.non_field_errors %}
-                            <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            {% endif %}
+        {% for form in forms %}
+            {{ form|as_crispy_errors }}
+
             <fieldset>
                 <div><legend>{{ form.get_title }}</legend></div>
                 {% with form.get_description as description %}
@@ -37,7 +29,9 @@
                         {{ description|linebreaks }}
                     {% endif %}
                 {% endwith %}
-                {% crispy form helper %}
+                {% for field in form %}
+                    {{ field|as_crispy_field }}
+                {% endfor %}
             </fieldset>
         {% endfor %}
         <fieldset class="form-actions">

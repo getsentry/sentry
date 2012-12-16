@@ -16,7 +16,7 @@ class GetProjectListTEst(TestCase):
     def setUp(self):
         self.user = User.objects.create(username="admin", email="admin@localhost")
         self.project = Project.objects.get()
-        assert self.project.public is True
+        self.project.update(public=True)
         self.project2 = Project.objects.create(name='Test', slug='test', owner=self.user, public=False)
 
     @mock.patch('sentry.models.Team.objects.get_for_user', mock.Mock(return_value={}))

@@ -1,0 +1,4 @@
+tests/
+src/sentry/static/sentry/bootstrap/
+src/sentry/static/sentry/scripts/lib/
+src/sentry/static/CACHE/

@@ -6,7 +6,6 @@ sentry.wsgi
 :license: BSD, see LICENSE for more details.
 """
 
-#!/usr/bin/env python
 import os
 import os.path
 import sys

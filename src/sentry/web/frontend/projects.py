@@ -5,7 +5,6 @@ sentry.web.frontend.projects
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from crispy_forms.helper import FormHelper
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
@@ -13,7 +12,8 @@ from django.views.decorators.csrf import csrf_protect
 
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
 from sentry.models import TeamMember, ProjectKey, Team, FilterKey
-from sentry.permissions import can_create_projects, can_remove_project, can_create_teams
+from sentry.permissions import can_create_projects, can_remove_project, can_create_teams, \
+  can_add_team_member
 from sentry.plugins import plugins
 from sentry.plugins.helpers import set_option, get_option
 from sentry.web.decorators import login_required, has_access
@@ -167,6 +167,25 @@ def manage_project(request, project):
         set_option('sentry:origins', form.cleaned_data.get('origins') or [], project)
         return HttpResponseRedirect(request.path + '?success=1')
 
+    context = csrf(request)
+    context.update({
+        'can_remove_project': can_remove_project(request.user, project),
+        'page': 'details',
+        'form': form,
+        'project': project,
+        'TEAM_LIST': team_list.values(),
+    })
+
+    return render_to_response('sentry/projects/manage.html', context, request)
+
+
+@has_access(MEMBER_OWNER)
+@csrf_protect
+def manage_project_team(request, project):
+    result = plugins.first('has_perm', request.user, 'edit_project', project)
+    if result is False and not request.user.has_perm('sentry.can_change_project'):
+        return HttpResponseRedirect(reverse('sentry'))
+
     if not project.team:
         member_list = []
     else:
@@ -174,15 +193,14 @@ def manage_project(request, project):
 
     context = csrf(request)
     context.update({
-        'can_remove_project': can_remove_project(request.user, project),
-        'page': 'details',
-        'form': form,
+        'page': 'team',
         'project': project,
+        'team': project.team,
         'member_list': member_list,
-        'TEAM_LIST': team_list.values(),
+        'can_add_member': can_add_team_member(request.user, project.team),
     })
 
-    return render_to_response('sentry/projects/manage.html', context, request)
+    return render_to_response('sentry/projects/team.html', context, request)
 
 
 @has_access(MEMBER_USER)
@@ -214,9 +232,6 @@ def manage_project_tags(request, project):
     else:
         form = None
 
-    helper = FormHelper()
-    helper.form_tag = False
-
     if form and form.is_valid():
         form.save()
         return HttpResponseRedirect(reverse('sentry-manage-project-tags', args=[project.slug]) + '?success=1')
@@ -226,7 +241,6 @@ def manage_project_tags(request, project):
         'page': 'tags',
         'project': project,
         'form': form,
-        'helper': helper,
     }
     return render_to_response('sentry/projects/manage_tags.html', context, request)
 

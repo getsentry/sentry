@@ -9,11 +9,11 @@ import itertools
 from django import forms
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from django.core.validators import URLValidator
 from django.utils.translation import ugettext_lazy as _
 from sentry.models import Project, ProjectOption
 from sentry.permissions import can_set_public_projects
-from sentry.web.forms.fields import RadioFieldRenderer, UserField
+from sentry.web.forms.fields import RadioFieldRenderer, UserField, OriginsField, \
+  get_team_choices
 
 
 class ProjectTagsForm(forms.Form):
@@ -29,7 +29,7 @@ class ProjectTagsForm(forms.Form):
         )
         self.fields['filters'].widget.choices = self.fields['filters'].choices
 
-        enabled_tags = ProjectOption.objects.get_value(self.project, 'filters', tag_list)
+        enabled_tags = ProjectOption.objects.get_value(self.project, 'tags', tag_list)
         self.fields['filters'].initial = enabled_tags
 
     def save(self):
@@ -38,12 +38,10 @@ class ProjectTagsForm(forms.Form):
 
 
 class NewProjectForm(forms.ModelForm):
-    name = forms.CharField(max_length=200, widget=forms.TextInput(attrs={'placeholder': _('e.g. My Project Name')}))
-    slug = forms.SlugField(help_text=_('A slug is a URL-safe word and must be unique across all projects.'),
-        widget=forms.TextInput(attrs={'placeholder': _('e.g. my-project-name')}))
+    name = forms.CharField(label=_('Project Name'), max_length=200, widget=forms.TextInput(attrs={'placeholder': _('My Project Name')}))
 
     class Meta:
-        fields = ('name', 'slug')
+        fields = ('name',)
         model = Project
 
 
@@ -51,7 +49,7 @@ class NewProjectAdminForm(NewProjectForm):
     owner = UserField(required=False)
 
     class Meta:
-        fields = ('name', 'slug', 'owner')
+        fields = ('name', 'owner')
         model = Project
 
 
@@ -96,11 +94,8 @@ class RemoveProjectForm(forms.Form):
 
 class EditProjectForm(forms.ModelForm):
     public = forms.BooleanField(required=False, help_text=_('Allow anyone (even anonymous users) to view this project'))
-    team = forms.ChoiceField(choices=())
-    origins = forms.CharField(widget=forms.Textarea(attrs={'placeholder': 'e.g. http://example.com', 'class': 'span8'}),
-        required=False)
-
-    _url_validator = URLValidator(verify_exists=False)
+    team = forms.TypedChoiceField(choices=(), coerce=int)
+    origins = OriginsField(required=False)
 
     class Meta:
         fields = ('name', 'public', 'team')
@@ -109,18 +104,14 @@ class EditProjectForm(forms.ModelForm):
     def __init__(self, request, team_list, data, instance, *args, **kwargs):
         super(EditProjectForm, self).__init__(data=data, instance=instance, *args, **kwargs)
         self.team_list = dict((t.pk, t) for t in team_list.itervalues())
+
         if not can_set_public_projects(request.user):
             del self.fields['public']
         if len(team_list) == 1 and instance.team == team_list.values()[0]:
             del self.fields['team']
         else:
-            team_choices = [(t.pk, t) for t in sorted(self.team_list.values(), key=lambda x: x.name)]
-            if not instance.team:
-                team_choices.insert(0, ('', '-' * 8))
-            elif (instance.team.pk, instance.team) not in team_choices:
-                team_choices.insert(1, (instance.team.pk, instance.team))
-            self.fields['team'].choices = team_choices
-            self.fields['team'].widget.choices = team_choices
+            self.fields['team'].choices = get_team_choices(self.team_list, instance.team)
+            self.fields['team'].widget.choices = self.fields['team'].choices
 
     def clean_team(self):
         value = self.cleaned_data.get('team')
@@ -128,15 +119,6 @@ class EditProjectForm(forms.ModelForm):
             return
 
         return self.team_list[int(value)]
-
-    def clean_origins(self):
-        value = self.cleaned_data.get('origins')
-        if not value:
-            return value
-        values = filter(bool, (v.strip() for v in value.split('\n')))
-        for value in values:
-            self._url_validator(value)
-        return values
 
 
 class EditProjectAdminForm(EditProjectForm):

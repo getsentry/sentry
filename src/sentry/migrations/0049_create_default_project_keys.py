@@ -7,12 +7,16 @@ from django.db import models
 class Migration(DataMigration):
 
     def forwards(self, orm):
-        from sentry.utils.models import update
+        from sentry.models import ProjectKey
 
         for project in orm['sentry.Project'].objects.all():
+            if orm['sentry.ProjectKey'].objects.filter(project=project, user=None).exists():
+                continue
+
             orm['sentry.ProjectKey'].objects.create(
                 project=project,
-                user=None,
+                public_key=ProjectKey.generate_api_key(),
+                secret_key=ProjectKey.generate_api_key(),
             )
 
     def backwards(self, orm):

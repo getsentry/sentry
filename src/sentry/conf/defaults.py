@@ -109,13 +109,6 @@ QUEUE = {
     'transport': 'kombu.transport.django.Transport',
 }
 
-# List of event aggregation views
-VIEWS = (
-    'sentry.views.Exception',
-    'sentry.views.Message',
-    'sentry.views.Query',
-)
-
 # Should users without 'sentry.add_project' permissions be allowed
 # to create new projects
 ALLOW_PROJECT_CREATION = False
@@ -127,6 +120,11 @@ ALLOW_TEAM_CREATION = False
 # Should users without superuser permissions be allowed to
 # make projects public
 ALLOW_PUBLIC_PROJECTS = True
+
+# Should users be allowed to register an account? If this is disabled
+# accounts can only be created when someone is invited or added
+# manually.
+ALLOW_REGISTRATION = True
 
 # Instructs Sentry to utilize it's queue for background jobs. You will
 # need to ensure that you have workers running if you enable the queue.
@@ -178,4 +176,5 @@ AUTH_PROVIDERS = {
     'github': ('GITHUB_APP_ID', 'GITHUB_API_SECRET'),
     'google': ('GOOGLE_OAUTH2_CLIENT_ID', 'GOOGLE_OAUTH2_CLIENT_SECRET'),
     'trello': ('TRELLO_API_KEY', 'TRELLO_API_SECRET'),
+    'bitbucket': ('BITBUCKET_CONSUMER_KEY', 'BITBUCKET_CONSUMER_SECRET'),
 }

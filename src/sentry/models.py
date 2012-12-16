@@ -47,6 +47,16 @@ from sentry.utils.strings import truncatechars
 __all__ = ('Event', 'Group', 'Project', 'SearchDocument')
 
 
+def slugify_instance(inst, label):
+    base_slug = slugify(label)
+    manager = type(inst).objects
+    inst.slug = base_slug
+    n = 0
+    while manager.filter(slug=inst.slug).exists():
+        n += 1
+        inst.slug = base_slug + '-' + str(n)
+
+
 class Option(Model):
     """
     Global options which apply in most situations as defaults,
@@ -81,8 +91,17 @@ class Team(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name)
+            slugify_instance(self, self.name)
         super(Team, self).save(*args, **kwargs)
+
+    def get_owner_name(self):
+        if not self.owner:
+            return None
+        if self.owner.first_name:
+            return self.owner.first_name
+        if self.owner.email:
+            return self.owner.email.split('@', 1)[0]
+        return self.owner.username
 
 
 class TeamMember(Model):
@@ -116,7 +135,7 @@ class Project(Model):
     name = models.CharField(max_length=200)
     owner = models.ForeignKey(User, related_name="sentry_owned_project_set", null=True)
     team = models.ForeignKey(Team, null=True)
-    public = models.BooleanField(default=settings.ALLOW_PUBLIC_PROJECTS)
+    public = models.BooleanField(default=settings.ALLOW_PUBLIC_PROJECTS and settings.PUBLIC)
     date_added = models.DateTimeField(default=timezone.now)
     status = models.PositiveIntegerField(default=0, choices=(
         (0, 'Visible'),
@@ -133,7 +152,7 @@ class Project(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name)
+            slugify_instance(self, self.name)
         super(Project, self).save(*args, **kwargs)
 
     def delete(self):
@@ -318,23 +337,6 @@ class PendingTeamMember(Model):
             logger.exception(e)
 
 
-class View(Model):
-    """
-    A view ties directly to a view extension and simply
-    identifies it at the db level.
-    """
-    path = models.CharField(max_length=100, unique=True)
-    verbose_name = models.CharField(max_length=200, null=True)
-    verbose_name_plural = models.CharField(max_length=200, null=True)
-
-    objects = BaseManager(cache_fields=[
-        'path',
-    ])
-
-    def __unicode__(self):
-        return self.path
-
-
 class MessageBase(Model):
     """
     Abstract base class for both Event and Group.
@@ -388,7 +390,6 @@ class Group(MessageBase):
     time_spent_total = models.FloatField(default=0)
     time_spent_count = models.IntegerField(default=0)
     score = models.IntegerField(default=0)
-    views = models.ManyToManyField(View, blank=True)
     is_public = models.NullBooleanField(default=False, null=True)
 
     objects = GroupManager()
@@ -460,6 +461,12 @@ class Group(MessageBase):
             'first_seen',
             'last_seen',
         ).order_by('-times_seen')
+
+    def get_tags(self):
+        if not hasattr(self, '_tag_cache'):
+            tags = sorted(self.messagefiltervalue_set.values_list('key', flat=True).distinct())
+            self._tag_cache = tags
+        return self._tag_cache
 
 
 class GroupMeta(Model):
@@ -718,6 +725,9 @@ class SearchToken(Model):
     class Meta:
         unique_together = (('document', 'field', 'token'),)
 
+    def __unicode__(self):
+        return u'%s=%s' % (self.field, self.token)
+
 
 class UserOption(Model):
     """
@@ -767,9 +777,13 @@ def create_default_project(created_models, verbosity=2, **kwargs):
             return
 
         project = Project.objects.create(
-            public=settings.ALLOW_PUBLIC_PROJECTS,
+            public=settings.ALLOW_PUBLIC_PROJECTS and settings.PUBLIC,
             name='Sentry (Internal)',
             slug='sentry',
+        )
+        # default key (used by sentry-js client, etc)
+        ProjectKey.objects.create(
+            project=project,
         )
 
         if verbosity > 0:
@@ -788,7 +802,7 @@ def create_default_project(created_models, verbosity=2, **kwargs):
 
 
 def create_team_and_keys_for_project(instance, created, **kwargs):
-    if not created:
+    if not created or kwargs.get('raw'):
         return
 
     if not instance.owner:
@@ -837,7 +851,7 @@ def update_document(instance, created, **kwargs):
 
 
 def create_key_for_team_member(instance, created, **kwargs):
-    if not created:
+    if not created or kwargs.get('raw'):
         return
 
     for project in instance.team.project_set.all():

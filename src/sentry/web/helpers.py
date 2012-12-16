@@ -18,8 +18,7 @@ from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 
 from sentry.conf import settings
-from sentry.models import Project, View, Team, \
-  Option, ProjectOption
+from sentry.models import Project, Team, Option, ProjectOption, ProjectKey
 from sentry.permissions import can_create_projects, can_create_teams
 
 logger = logging.getLogger('sentry.errors')
@@ -88,14 +87,32 @@ def iter_data(obj):
         yield k, v
 
 
+def get_internal_project():
+    try:
+        project = Project.objects.get(id=settings.PROJECT)
+    except Project.DoesNotExist:
+        return {}
+    try:
+        projectkey = ProjectKey.objects.filter(project=project).order_by('-user')[0]
+    except IndexError:
+        return {}
+
+    return {
+        'id': project.id,
+        'dsn': projectkey.get_dsn(public=True)
+    }
+
+
 def get_default_context(request, existing_context=None):
     from sentry.plugins import plugins
 
     context = {
+        'COMPRESS_ENABLED': dj_settings.COMPRESS_ENABLED,
+        'COMPRESS_LESS': dj_settings.COMPRESS_ENABLED and dj_settings.LESS_BIN,
         'HAS_SEARCH': settings.USE_SEARCH,
         'MESSAGES_PER_PAGE': settings.MESSAGES_PER_PAGE,
+        'INTERNAL_PROJECT': get_internal_project(),
         'PROJECT_ID': str(settings.PROJECT),
-        'VIEWS': list(View.objects.all()),
         'URL_PREFIX': settings.URL_PREFIX,
         'PLUGINS': plugins,
         'USE_JS_CLIENT': settings.USE_JS_CLIENT,

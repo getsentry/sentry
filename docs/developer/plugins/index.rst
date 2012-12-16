@@ -7,7 +7,6 @@ Several interfaces exist for extending Sentry:
 
 * Event Filters (sentry.filters)
 * Data Interfaces (sentry.interfaces)
-* Aggregate Views (sentry.views)
 * Plugins (sentry.plugins)
 
 Until we get sample docs up, it's suggested that you review the builtin plugins

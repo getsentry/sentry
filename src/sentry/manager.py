@@ -22,7 +22,7 @@ from django.conf import settings as dj_settings
 from django.core.signals import request_finished
 from django.db import models, transaction, IntegrityError
 from django.db.models import Sum
-from django.db.models.expressions import F, ExpressionNode
+from django.db.models.expressions import ExpressionNode
 from django.db.models.signals import post_save, post_delete, post_init, class_prepared
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
@@ -190,14 +190,16 @@ class BaseManager(models.Manager):
         if not self.cache_fields or len(kwargs) > 1:
             return self.get(**kwargs)
 
-        pk_name = self.model._meta.pk.name
         key, value = kwargs.items()[0]
+        pk_name = self.model._meta.pk.name
+        if key == 'pk':
+            key = pk_name
 
         # Kill __exact since it's the default behavior
         if key.endswith('__exact'):
             key = key.split('__exact', 1)[0]
 
-        if key in self.cache_fields or key in ('pk', pk_name):
+        if key in self.cache_fields or key == pk_name:
             cache_key = self.__get_lookup_cache_key(**{key: value})
 
             retval = cache.get(cache_key)
@@ -209,10 +211,12 @@ class BaseManager(models.Manager):
 
             # If we didn't look up by pk we need to hit the reffed
             # key
-            if key not in (pk_name, 'pk'):
-                return self.get(pk=retval)
+            if key != pk_name:
+                return self.get_from_cache(**{pk_name: retval})
 
             return retval
+        else:
+            return self.get(**kwargs)
 
     def get_or_create(self, _cache=False, **kwargs):
         """
@@ -413,39 +417,6 @@ class ChartMixin(object):
 class GroupManager(BaseManager, ChartMixin):
     use_for_related_fields = True
 
-    def _get_views(self, event):
-        from sentry.models import View
-        from sentry.views import View as ViewHandler
-
-        views = set()
-        for viewhandler in ViewHandler.objects.all():
-            try:
-                if not viewhandler.should_store(event):
-                    continue
-
-                path = '%s.%s' % (viewhandler.__module__, viewhandler.__class__.__name__)
-
-                if not viewhandler.ref:
-                    viewhandler.ref = View.objects.get_or_create(
-                        _cache=True,
-                        path=path,
-                        defaults=dict(
-                            verbose_name=viewhandler.verbose_name,
-                            verbose_name_plural=viewhandler.verbose_name_plural,
-                        ),
-                    )[0]
-
-                views.add(viewhandler.ref)
-
-            except Exception, exc:
-                # TODO: should we mail admins when there are failures?
-                try:
-                    logger.exception(exc)
-                except Exception, exc:
-                    warnings.warn(exc)
-
-        return views
-
     @transaction.commit_on_success
     def from_kwargs(self, project, **kwargs):
         # TODO: this function is way too damn long and needs refactored
@@ -481,6 +452,7 @@ class GroupManager(BaseManager, ChartMixin):
             date = date.replace(tzinfo=None)
 
         data = kwargs
+        data['tags'] = tags
 
         kwargs = {
             'level': level,
@@ -514,8 +486,6 @@ class GroupManager(BaseManager, ChartMixin):
             'time_spent_count': time_spent and 1 or 0,
         })
 
-        views = self._get_views(event)
-
         try:
             group, is_new, is_sample = self._create_group(event, tags=tags, **group_kwargs)
         except Exception, exc:
@@ -528,9 +498,6 @@ class GroupManager(BaseManager, ChartMixin):
             return
 
         event.group = group
-
-        for view in views:
-            group.views.add(view)
 
         # save the event unless its been sampled
         if not is_sample:
@@ -706,7 +673,7 @@ class GroupManager(BaseManager, ChartMixin):
     def get_by_natural_key(self, project, logger, culprit, checksum):
         return self.get(project=project, logger=logger, view=culprit, checksum=checksum)
 
-    def get_accelerated(self, queryset=None, minutes=15):
+    def get_accelerated(self, project_ids, queryset=None, minutes=15):
         # mintues should
         from sentry.models import MessageCountByMinute
         mcbm_tbl = MessageCountByMinute._meta.db_table
@@ -749,6 +716,7 @@ class GroupManager(BaseManager, ChartMixin):
             FROM %(mcbm_tbl)s as a
             WHERE a.date >=  %(now)s - %(max_time)s
             AND a.date < %(now)s - %(min_time)s
+            AND a.project_id IN (%(project_ids)s)
             GROUP BY a.group_id) as z
         ON z.group_id = %(mcbm_tbl)s.group_id
         WHERE %(mcbm_tbl)s.date >= %(now)s - %(min_time)s
@@ -768,6 +736,7 @@ class GroupManager(BaseManager, ChartMixin):
             norm=normalization,
             epoch_clause=epoch_clause,
             now=now_clause,
+            project_ids=', '.join((str(int(x)) for x in project_ids)),
         )
         return RawQuerySet(self, query, params)
 
@@ -988,7 +957,7 @@ class SearchDocumentManager(BaseManager):
 
         text = self.PUNCTUATION_CHARS.sub(' ', text)
 
-        words = [t[:128] for t in text.split() if len(t) >= self.MIN_WORD_LENGTH and t.lower() not in self.STOP_WORDS]
+        words = [t[:128].lower() for t in text.split() if len(t) >= self.MIN_WORD_LENGTH and t.lower() not in self.STOP_WORDS]
 
         return words
 
@@ -1036,6 +1005,8 @@ class SearchDocumentManager(BaseManager):
         return self.raw(sql, params)
 
     def index(self, event):
+        from sentry.models import SearchToken
+
         group = event.group
         document, created = self.get_or_create(
             project=event.project,
@@ -1048,11 +1019,18 @@ class SearchDocumentManager(BaseManager):
             }
         )
         if not created:
-            document.update(
-                status=group.status,
-                total_events=F('total_events') + 1,
-                date_changed=group.last_seen,
-            )
+            app.buffer.incr(self.model, {
+                'total_events': 1,
+            }, {
+                'id': document.id,
+            }, {
+                'date_changed': group.last_seen,
+                'status': group.status,
+            })
+
+            document.total_events += 1
+            document.date_changed = group.last_seen
+            document.status = group.status
 
         context = defaultdict(list)
         for interface in event.interfaces.itervalues():
@@ -1072,25 +1050,22 @@ class SearchDocumentManager(BaseManager):
             if field == 'text':
                 # we only tokenize the base text field
                 values = itertools.chain(*[self._tokenize(force_unicode(v)) for v in values])
+            else:
+                values = [v.lower() for v in values]
             for value in values:
                 if not value:
                     continue
-                token_counts[field][value.lower()] += 1
+                token_counts[field][value] += 1
 
-        # TODO: might be worthwhile to make this update then create
         for field, tokens in token_counts.iteritems():
             for token, count in tokens.iteritems():
-                token, created = document.token_set.get_or_create(
-                    field=field,
-                    token=token,
-                    defaults={
-                        'times_seen': count,
-                    }
-                )
-                if not created:
-                    token.update(
-                        times_seen=F('times_seen') + count,
-                    )
+                app.buffer.incr(SearchToken, {
+                    'times_seen': count,
+                }, {
+                    'document': document,
+                    'token': token,
+                    'field': field,
+                })
 
         return document
 

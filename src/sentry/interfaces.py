@@ -265,7 +265,7 @@ class Stacktrace(Interface):
             return value
         elif not value:
             return value
-        return value[:100]
+        return value
 
     def serialize(self):
         return {
@@ -417,10 +417,7 @@ class Exception(Interface):
         }
 
     def get_hash(self):
-        output = filter(bool, [self.module, self.type])
-        if not output:
-            output = [self.value]
-        return output
+        return filter(bool, [self.type, self.value])
 
     def to_html(self, event):
         last_frame = None

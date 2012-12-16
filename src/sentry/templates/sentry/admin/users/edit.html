@@ -1,5 +1,6 @@
 {% extends "sentry/admin/users/list.html" %}
 
+{% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_admin_helpers %}
 {% load sentry_helpers %}
@@ -16,16 +17,7 @@
     <section class="body">
         <form action="" method="post">
             {% csrf_token %}
-            {% if form.non_field_errors %}
-                <div class="alert alert-block alert-error">
-                    <p>{% trans "There were errors saving your changes:" %}</p>
-                    <ul>
-                        {% for error in form.non_field_errors %}
-                            <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-            {% endif %}
+            {{ form|as_crispy_errors }}
             {% for field in form %}
                 {% include "sentry/partial/_form_field.html" %}
             {% endfor %}
