@@ -54,51 +54,6 @@
                 {% endif %}
             </div>
         </form>
-        {% if member_list or can_add_member %}
-            <div class="page-header" id="members">
-                {% if can_add_member %}
-                    <a href="{% url sentry-new-team-member project.slug %}" class="btn pull-right btn-primary">{% trans "New Member" %}</a>
-                {% endif %}
-                <h2>{% trans "Members" %}</h2>
-            </div>
-            {% if project.team %}
-                {% url sentry-manage-team project.team.slug as link %}
-                <p>{% blocktrans with project.team.name as team_name %}You can manage project membership on the <a href="{{ link }}">team settings page for {{ team_name }}</a>.{% endblocktrans %}<p>
-            {% endif %}
-            {% if member_list %}
-                <table class="table table-bordered table-striped">
-                    <colgroup>
-                        <col/>
-                        <col width="100px"/>
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th>{% trans "User" %}</th>
-                            <th style="text-align:center">{% trans "Access" %}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for member, user in member_list %}
-                            <tr>
-                                <td>
-                                    <a href="{# {% url sentry-view-project-member project.slug member.pk %} #}">{{ user.username }}</a><br>
-                                    {{ user.email }}
-                                </td>
-                                <td style="text-align:center;">
-                                    {% if user == project.team.owner %}
-                                        {% trans "Owner" %}
-                                    {% else %}
-                                        {{ member.get_type_display }}
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p>{% trans "There are no members of this project." %}</p>
-            {% endif %}
-        {% endif %}
     {% endblock %}
     </section>
     <script>
@@ -112,8 +67,13 @@
     <ul class="nav nav-list">
         <li class="nav-header">{% trans "Project" %}</li>
         <li{% if page == 'details' %} class="active"{% endif %}>
-            <a href="{% url sentry-manage-project project.slug %}">{% trans "Details" %}</a>
+            <a href="{% url sentry-manage-project project.slug %}">{% trans "Settings" %}</a>
         </li>
+        {% if project.team %}
+            <li{% if page == 'team' %} class="active"{% endif %}>
+                <a href="{% url sentry-manage-project-team project.slug %}">{% trans "Team" %}</a>
+            </li>
+        {% endif %}
         <li{% if page == 'tags' %} class="active"{% endif %}>
             <a href="{% url sentry-manage-project-tags project.slug %}">{% trans "Tags" %}</a>
         </li>
@@ -142,7 +102,7 @@
     {% with project|get_plugins as plugins %}
         {% if plugins %}
             <ul class="nav nav-list">
-                <li class="nav-header">Plugins</li>
+                <li class="nav-header">{% trans "Active Plugins" %}</li>
                 {% for p in plugins %}
                     <li{% if page == 'plugin' and plugin.slug == p.slug %} class="active"{% endif %}>
                         <a href="{% url sentry-configure-project-plugin project.slug p.slug %}">{{ p.get_title }}</a>
