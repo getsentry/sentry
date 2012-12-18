@@ -130,18 +130,10 @@ class MailProcessor(NotificationPlugin):
 
         link = '%s/%s/group/%d/' % (settings.URL_PREFIX, group.project.slug, group.id)
 
-        body = render_to_string('sentry/emails/error.txt', {
-            'group': group,
-            'event': event,
-            'link': link,
-            'interfaces': interface_list,
-        })
-        html_body = UnicodeSafePynliner().from_string(render_to_string('sentry/emails/error.html', {
-            'group': group,
-            'event': event,
-            'link': link,
-            'interfaces': interface_list,
-        })).run()
+        body = self.get_plaintext_body(group, event, link, interface_list)
+        
+        html_body = self.get_html_body(group, event, link, interface_list)
+        
         headers = {
             'X-Sentry-Logger': event.logger,
             'X-Sentry-Logger-Level': event.get_level_display(),
@@ -157,6 +149,22 @@ class MailProcessor(NotificationPlugin):
             fail_silently=fail_silently,
             headers=headers,
         )
+        
+    def get_plaintext_body(self, group, event, link, interface_list):
+        return render_to_string('sentry/emails/error.txt', {
+            'group': group,
+            'event': event,
+            'link': link,
+            'interfaces': interface_list,
+        })
+    
+    def get_html_body(self, group, event, link, interface_list):
+        return UnicodeSafePynliner().from_string(render_to_string('sentry/emails/error.html', {
+            'group': group,
+            'event': event,
+            'link': link,
+            'interfaces': interface_list,
+        })).run()
 
     def get_option(self, key, *args, **kwargs):
         value = super(MailProcessor, self).get_option(key, *args, **kwargs)
