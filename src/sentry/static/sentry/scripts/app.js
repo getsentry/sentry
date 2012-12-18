@@ -8,7 +8,7 @@
 
         defaults: {
             // can this view stream updates?
-            stream: false,
+            canStream: false,
             // should this view default to streaming updates?
             realtime: false
         },
@@ -91,6 +91,7 @@
                 members: data.groups,
                 maxItems: 50,
                 realtime: ($.cookie('pausestream') ? false : true),
+                canStream: this.options.canStream,
                 pollUrl: app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/',
                 model: app.Group
             });
@@ -100,7 +101,7 @@
 
             this.control.click(_.bind(function(e){
                 e.preventDefault();
-                this.group_list.options.realtime = this.control.hasClass('realtime-pause');
+                this.options.realtime = this.group_list.options.realtime = this.control.hasClass('realtime-pause');
                 this.updateStreamOptions();
             }, this));
 
@@ -109,7 +110,7 @@
         },
 
         updateStreamOptions: function(){
-            if (this.group_list.options.realtime){
+            if (this.options.realtime){
                 $.removeCookie('pausestream');
                 this.control.removeClass('realtime-pause');
                 this.control.addClass('realtime-play');

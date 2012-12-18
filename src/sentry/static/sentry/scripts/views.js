@@ -329,7 +329,7 @@
                 return;
 
             var item = this.queue.pop();
-            if (this.options.stream){
+            if (this.options.canStream){
                 this.addMember(item);
             } else if (this.hasMember(item)) {
                 this.updateMember(item, {
@@ -341,7 +341,7 @@
         poll: function(){
             var data;
 
-            if (!this.options.realtime || !this.options.stream)
+            if (!this.options.realtime)
                 return window.setTimeout(this.poll, this.options.pollTime);
 
             data = app.utils.getQueryParams();
