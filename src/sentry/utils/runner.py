@@ -6,7 +6,7 @@ sentry.utils.runner
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from logan.runner import run_app
+from logan.runner import run_app, configure_app
 from sentry import environment
 
 import base64
@@ -170,6 +170,17 @@ def initialize_app(config):
     environment['start_date'] = timezone.now()
 
     install_plugins(config['settings'])
+
+
+def configure():
+    configure_app(
+        project='sentry',
+        default_config_path='~/.sentry/sentry.conf.py',
+        default_settings='sentry.conf.server',
+        settings_initializer=generate_settings,
+        settings_envvar='SENTRY_CONF',
+        initializer=initialize_app,
+    )
 
 
 def main():

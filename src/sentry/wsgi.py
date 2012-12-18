@@ -14,22 +14,21 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 sys.stdout = sys.stderr
 
-# Set our settings module
-from django.conf import settings
+# Configure the application (Logan)
+from sentry.utils.runner import configure
+configure()
 
-if not settings.configured and not os.environ.get('DJANGO_SETTINGS_MODULE'):
-    os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.conf.server'
-
-os.environ['CELERY_LOADER'] = 'django'
-
+# Build the wsgi app
 import django.core.handlers.wsgi
+
+from django.conf import settings
 from raven.contrib.django.middleware.wsgi import Sentry
 
-# Run WSGI handler for the application
-application = Sentry(django.core.handlers.wsgi.WSGIHandler())
-
-if settings.SESSION_FILE_PATH:
+if settings.SESSION_FILE_PATH and not os.path.exists(settings.SESSION_FILE_PATH):
     try:
         os.makedirs(settings.SESSION_FILE_PATH)
     except OSError:
         pass
+
+# Run WSGI handler for the application
+application = Sentry(django.core.handlers.wsgi.WSGIHandler())
