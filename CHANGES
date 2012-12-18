@@ -44,6 +44,8 @@ Other Changes
   the details view.
 - crossdomain.xml support is now available (see documentation).
 - The search feature now uses buffers to better handle write concurrency.
+- Early support for WSGI (should be functional) exists as ``sentry.wsgi``.
+- Many fixes around cache usage.
 
 Version 5.0.0
 -------------
