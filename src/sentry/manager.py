@@ -214,6 +214,12 @@ class BaseManager(models.Manager):
             if key != pk_name:
                 return self.get_from_cache(**{pk_name: retval})
 
+            if type(retval) != self.model:
+                if settings.DEBUG:
+                    raise ValueError('Unexpected value type returned from cache')
+                logger.error('Cache response returned invalid value %r', retval)
+                return self.get(**kwargs)
+
             return retval
         else:
             return self.get(**kwargs)
