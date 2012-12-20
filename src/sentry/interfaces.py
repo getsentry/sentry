@@ -13,7 +13,7 @@ import itertools
 import urlparse
 
 from django.http import QueryDict
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext as _
 
 from sentry.app import env
 from sentry.models import UserOption
@@ -294,8 +294,22 @@ class Stacktrace(Interface):
                 output.append(frame['lineno'])
         return output
 
-    def is_default_newest_first(self, event):
-        return event.platform not in ('python', None)
+    def is_newest_frame_first(self, event):            
+        newest_first = event.platform not in ('python', None)
+
+        if env.request and env.request.user.is_authenticated():
+            display = UserOption.objects.get_value(
+                user=env.request.user,
+                project=None,
+                key='stacktrace_order',
+                default=None,
+            )
+            if display == '1':
+                newest_first = False
+            elif display == '2':
+                newest_first = True
+
+        return newest_first
 
     def to_html(self, event):
         system_frames = 0
@@ -338,22 +352,9 @@ class Stacktrace(Interface):
         if len(frames) == system_frames:
             system_frames = 0
 
-        newest_first = self.is_default_newest_first(event)
-
-        if env.request and env.request.user.is_authenticated():
-            display = UserOption.objects.get_value(
-                user=env.request.user,
-                project=None,
-                key='stacktrace_order',
-                default=None,
-            )
-            if display == '1':
-                newest_first = False
-            elif display == '2':
-                newest_first = True
-
+        newest_first = self.is_newest_frame_first(event)
         if not newest_first:
-            frames.reverse()
+            frames = frames[::-1]
 
         return render_to_string('sentry/partial/interfaces/stacktrace.html', {
             'newest_first': newest_first,
@@ -367,16 +368,26 @@ class Stacktrace(Interface):
         return self.get_stacktrace(event, system_frames=False)
 
     def get_stacktrace(self, event, system_frames=True):
-        result = [
-            'Stacktrace (most recent call last):', '',
-        ]
+        newest_first = self.is_newest_frame_first(event)
 
+        result = []
+        if newest_first:
+            result.append(_('Stacktrace (most recent call first)'))
+        else:
+            result.append(_('Stacktrace (most recent call last)'))
+
+        result.append('')
+
+        frames = self.frames
         if not system_frames:
-            frames = [f for f in self.frames if f.get('in_app')]
+            frames = [f for f in frames if f.get('in_app')]
             if not frames:
                 frames = self.frames
 
-        for frame in self.frames:
+        if not newest_first:
+            frames = frames[::-1]
+
+        for frame in frames:
             pieces = ['  File "%(filename)s"']
             if 'lineno' in frame:
                 pieces.append(', line %(lineno)s')
