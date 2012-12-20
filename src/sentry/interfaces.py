@@ -189,6 +189,8 @@ class Stacktrace(Interface):
     hash must contain **at least** the ``filename`` attribute. The rest of the values
     are optional, but recommended.
 
+    The list of frames should be ordered by the oldest call first.
+
     Each frame must contain the following attributes:
 
     ``filename``
@@ -294,7 +296,7 @@ class Stacktrace(Interface):
                 output.append(frame['lineno'])
         return output
 
-    def is_newest_frame_first(self, event):            
+    def is_newest_frame_first(self, event):
         newest_first = event.platform not in ('python', None)
 
         if env.request and env.request.user.is_authenticated():
@@ -353,7 +355,7 @@ class Stacktrace(Interface):
             system_frames = 0
 
         newest_first = self.is_newest_frame_first(event)
-        if not newest_first:
+        if newest_first:
             frames = frames[::-1]
 
         return render_to_string('sentry/partial/interfaces/stacktrace.html', {
@@ -361,20 +363,21 @@ class Stacktrace(Interface):
             'system_frames': system_frames,
             'event': event,
             'frames': frames,
-            'stacktrace': self.get_traceback(event),
+            'stacktrace': self.get_traceback(event, newest_first=newest_first),
         })
 
     def to_string(self, event):
         return self.get_stacktrace(event, system_frames=False)
 
-    def get_stacktrace(self, event, system_frames=True):
-        newest_first = self.is_newest_frame_first(event)
+    def get_stacktrace(self, event, system_frames=True, newest_first=None):
+        if newest_first is None:
+            newest_first = self.is_newest_frame_first(event)
 
         result = []
         if newest_first:
-            result.append(_('Stacktrace (most recent call first)'))
+            result.append(_('Stacktrace (most recent call first):'))
         else:
-            result.append(_('Stacktrace (most recent call last)'))
+            result.append(_('Stacktrace (most recent call last):'))
 
         result.append('')
 
@@ -384,7 +387,7 @@ class Stacktrace(Interface):
             if not frames:
                 frames = self.frames
 
-        if not newest_first:
+        if newest_first:
             frames = frames[::-1]
 
         for frame in frames:
@@ -400,10 +403,10 @@ class Stacktrace(Interface):
 
         return '\n'.join(result)
 
-    def get_traceback(self, event):
+    def get_traceback(self, event, newest_first=None):
         result = [
             event.message, '',
-            self.get_stacktrace(event),
+            self.get_stacktrace(event, newest_first=newest_first),
         ]
 
         return '\n'.join(result)
