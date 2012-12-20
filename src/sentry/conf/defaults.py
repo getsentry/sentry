@@ -35,8 +35,6 @@ DEFAULT_LOG_LEVEL = 'error'
 
 DEFAULT_LOGGER_NAME = 'root'
 
-ADMINS = []
-
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
 URL_PREFIX = ''
 

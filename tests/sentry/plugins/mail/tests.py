@@ -191,7 +191,6 @@ class MailProcessorTest(TestCase):
     def test_send_to(self, get_emails_for_users, get_sendable_users, get_value):
         opts = {}
 
-        admins = ['1']
         member_emails = ['2', '3']
         project_emails = ['2', '4']
 
@@ -203,36 +202,16 @@ class MailProcessorTest(TestCase):
         project.id = 1
         project.pk = project.id
 
-        with self.Settings(SENTRY_ADMINS=admins):
-            p = MailProcessor()
-            # member emails without admins
-            self.assertEqual(sorted(set(member_emails)),
-                             sorted(p.get_send_to(project)))
+        p = MailProcessor()
+        # member emails without admins
+        self.assertEqual(sorted(set(member_emails)),
+                         sorted(p.get_send_to(project)))
 
-            # member emails with members
-            opts = {'mail:send_to_admins': True}
-            self.assertEqual(sorted(set(member_emails + admins)),
-                             sorted(p.get_send_to(project)))
-
-            # project emails without members
-            opts = {'mail:send_to': ','.join(project_emails),
-                    'mail:send_to_members': False}
-            self.assertEqual(sorted(set(project_emails)),
-                             sorted(p.get_send_to(project)))
-
-            # project emails with members
-            opts = {'mail:send_to': ','.join(project_emails),
-                    'mail:send_to_members': False,
-                    'mail:send_to_admins': True}
-            self.assertEqual(sorted(set(project_emails + admins)),
-                             sorted(p.get_send_to(project)))
-
-            # project emails with members and admins
-            opts = {'mail:send_to': ','.join(project_emails),
-                    'mail:send_to_members': True,
-                    'mail:send_to_admins': True}
-            self.assertEqual(sorted(set(project_emails + admins + member_emails)),
-                             sorted(p.get_send_to(project)))
+        # project emails without members
+        opts = {'mail:send_to': ','.join(project_emails),
+                'mail:send_to_members': False}
+        self.assertEqual(sorted(set(project_emails)),
+                         sorted(p.get_send_to(project)))
 
     def test_get_emails_for_users(self):
         from django.contrib.auth.models import User
