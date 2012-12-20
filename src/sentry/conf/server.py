@@ -287,14 +287,18 @@ LOGGING = {
     'loggers': {
         '()': {
             'handlers': ['console', 'sentry'],
-            'propagate': True,
         },
         'root': {
             'handlers': ['console', 'sentry'],
         },
-        'sentry.errors': {
+        'sentry': {
             'level': 'ERROR',
             'handlers': ['console', 'sentry'],
+            'propagate': False,
+        },
+        'sentry.errors': {
+            'level': 'ERROR',
+            'handlers': ['console'],
             'propagate': False,
         },
         'django.request': {
