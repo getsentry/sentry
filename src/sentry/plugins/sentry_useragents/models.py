@@ -42,7 +42,7 @@ class BrowserPlugin(UserAgentPlugin):
     from ``sentry.interfaes.Http``.
     """
     slug = 'browsers'
-    title = _('Browsers')
+    title = _('Auto Tag: Browsers')
     tag = 'browser'
     tag_label = _('Browser Name')
 
@@ -66,7 +66,7 @@ class OsPlugin(UserAgentPlugin):
     from ``sentry.interfaes.Http``.
     """
     slug = 'os'
-    title = _('Operating Systems')
+    title = _('Auto Tag: Operating Systems')
     tag = 'os'
     tag_label = _('Operating System')
 

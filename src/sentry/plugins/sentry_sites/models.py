@@ -18,7 +18,7 @@ class SitesPlugin(TagPlugin):
     Automatically adds the 'site' tag from events.
     """
     slug = 'sites'
-    title = _('Sites')
+    title = _('Auto Tag: Sites')
     version = sentry.VERSION
     author = "Sentry Team"
     author_url = "https://github.com/getsentry/sentry"
