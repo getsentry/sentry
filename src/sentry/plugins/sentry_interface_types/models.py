@@ -7,6 +7,8 @@ sentry.plugins.sentry_interface_types.models
 """
 import sentry
 
+from django.utils.translation import ugettext_lazy as _
+
 from sentry.plugins import register
 from sentry.plugins.bases.tag import TagPlugin
 
@@ -17,6 +19,7 @@ class InterfaceTypePlugin(TagPlugin):
     the class name of each interface (e.g. Http, Stacktrace, Exception).
     """
     descrption = __doc__
+    title = _('Interface Types')
     version = sentry.VERSION
     author = "Sentry Team"
     author_url = "https://github.com/getsentry/sentry"
