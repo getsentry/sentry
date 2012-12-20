@@ -348,6 +348,7 @@ class MessageBase(Model):
     culprit = models.CharField(max_length=200, blank=True, null=True, db_column='view')
     checksum = models.CharField(max_length=32, db_index=True)
     data = GzippedDictField(blank=True, null=True)
+    platform = models.CharField(max_length=64, null=True)
 
     class Meta:
         abstract = True

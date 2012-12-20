@@ -444,6 +444,7 @@ class GroupManager(BaseManager, ChartMixin):
         date = kwargs.pop('timestamp', None) or timezone.now()
         checksum = kwargs.pop('checksum', None)
         tags = kwargs.pop('tags', [])
+        platform = kwargs.pop('platform', None)
 
         # full support for dict syntax
         if isinstance(tags, dict):
@@ -463,6 +464,7 @@ class GroupManager(BaseManager, ChartMixin):
         kwargs = {
             'level': level,
             'message': message,
+            'platform': platform,
         }
 
         event = Event(

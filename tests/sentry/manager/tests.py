@@ -140,6 +140,13 @@ class SentryManagerTest(TestCase):
         group = event.group
         add_tags.assert_called_once_with(group, [('foo', 'bar'), ('logger', 'root'), ('level', 'error')])
 
+    @mock.patch('sentry.manager.send_group_processors', mock.Mock())
+    def test_platform_is_saved(self):
+        event = Group.objects.from_kwargs(1, message='foo', platform='python')
+        group = event.group
+        self.assertEquals(group.platform, 'python')
+        self.assertEquals(event.platform, 'python')
+
     def test_dupe_message_id(self):
         event = Group.objects.from_kwargs(1, event_id=1, message='foo')
         self.assertEquals(event.message, 'foo')
