@@ -294,6 +294,9 @@ class Stacktrace(Interface):
                 output.append(frame['lineno'])
         return output
 
+    def is_default_newest_first(self, event):
+        return event.platform not in ('python', None)
+
     def to_html(self, event):
         system_frames = 0
         frames = []
@@ -335,6 +338,8 @@ class Stacktrace(Interface):
         if len(frames) == system_frames:
             system_frames = 0
 
+        newest_first = self.is_default_newest_first(event)
+
         if env.request and env.request.user.is_authenticated():
             display = UserOption.objects.get_value(
                 user=env.request.user,
@@ -342,10 +347,16 @@ class Stacktrace(Interface):
                 key='stacktrace_order',
                 default=None,
             )
-            if display == '2':
-                frames.reverse()
+            if display == '1':
+                newest_first = False
+            elif display == '2':
+                newest_first = True
+
+        if not newest_first:
+            frames.reverse()
 
         return render_to_string('sentry/partial/interfaces/stacktrace.html', {
+            'newest_first': newest_first,
             'system_frames': system_frames,
             'event': event,
             'frames': frames,
@@ -353,12 +364,18 @@ class Stacktrace(Interface):
         })
 
     def to_string(self, event):
-        return self.get_stacktrace(event)
+        return self.get_stacktrace(event, system_frames=False)
 
-    def get_stacktrace(self, event):
+    def get_stacktrace(self, event, system_frames=True):
         result = [
             'Stacktrace (most recent call last):', '',
         ]
+
+        if not system_frames:
+            frames = [f for f in self.frames if f.get('in_app')]
+            if not frames:
+                frames = self.frames
+
         for frame in self.frames:
             pieces = ['  File "%(filename)s"']
             if 'lineno' in frame:
