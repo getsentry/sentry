@@ -35,6 +35,7 @@ for m in ('multiprocessing', 'billiard'):
         pass
 
 tests_require = [
+    'exam>=0.5.1',
     'eventlet',
     'pytest',
     'pytest-django',
