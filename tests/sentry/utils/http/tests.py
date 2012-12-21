@@ -123,3 +123,11 @@ class IsValidOriginTestCase(TestCase):
     def test_full_uri_match_requires_port(self):
         result = self.isValidOrigin('http://example.com:80', ['http://example.com'])
         self.assertEquals(result, False)
+
+    def test_null_valid_with_global(self):
+        result = self.isValidOrigin('null', ['*'])
+        self.assertEquals(result, True)
+
+    def test_null_invalid_graceful_with_domains(self):
+        result = self.isValidOrigin('null', ['http://example.com'])
+        self.assertEquals(result, False)
