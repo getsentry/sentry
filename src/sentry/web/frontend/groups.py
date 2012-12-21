@@ -120,7 +120,10 @@ def _get_group_list(request, project):
         score_clause = SORT_CLAUSES.get(sort)
         filter_clause = SCORE_CLAUSES.get(sort)
 
-    # All filters must already be applied once we reach this point
+    event_list = event_list.select_related('project')
+
+    # IMPORTANT: All filters must already be applied once we reach this point
+
     if sort == 'tottime':
         event_list = event_list.filter(time_spent_count__gt=0)
     elif sort == 'avgtime':
@@ -138,8 +141,6 @@ def _get_group_list(request, project):
                 where=['%s > %%s' % filter_clause],
                 params=[cursor],
             )
-
-    event_list = event_list.select_related('project')
 
     return {
         'filters': filters,
