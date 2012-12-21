@@ -89,7 +89,7 @@ def _get_group_list(request, project):
     if any(x is not None for x in [date_from, time_from, date_to, time_to]):
         date_from, date_to = parse_date(date_from, time_from), parse_date(date_to, time_to)
     else:
-        date_from = today - datetime.timedelta(days=3)
+        date_from = today - datetime.timedelta(days=5)
         date_to = None
 
     if date_from and date_to:
