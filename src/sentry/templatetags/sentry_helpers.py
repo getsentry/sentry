@@ -16,6 +16,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 from paging.helpers import paginate as paginate_func
 from sentry.conf import settings
+from sentry.constants import STATUS_MUTED
 from sentry.models import Group
 from sentry.utils.javascript import to_json
 from sentry.utils.strings import truncatechars
@@ -335,3 +336,8 @@ def render_tag_widget(group, tag):
 @register.filter
 def titlize(value):
     return value.replace('_', ' ').title()
+
+
+@register.filter
+def is_muted(value):
+    return value == STATUS_MUTED
