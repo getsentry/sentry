@@ -88,7 +88,9 @@
         },
 
         updateLastSeen: function(){
-            this.$el.find('.last-seen').text(app.utils.prettyDate(this.model.get('lastSeen')));
+            this.$el.find('.last-seen')
+                .text(app.utils.prettyDate(this.model.get('lastSeen')))
+                .attr('title', this.model.get('lastSeen'));
         },
 
         updateCount: function(){
