@@ -26,7 +26,7 @@
                 '<span class="sparkline"></span>' + 
                 '<ul class="actions">' + 
                     '<% if (canResolve) { %>' + 
-                        '<li>' + 
+                        '<li>' +
                             '<% if (!isResolved) { %>' + 
                                 '<a href="#" data-action="resolve" title="Mark as Resolved">&#10003;</a>' + 
                             '<% } else { %>' + 

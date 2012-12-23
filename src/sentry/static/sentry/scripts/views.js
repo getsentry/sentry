@@ -22,10 +22,12 @@
             this.$el.html(this.template(data));
             this.$el.attr('data-id', this.model.id);
             this.$el.addClass(this.getLevelClassName());
-            if (this.model.get('isResolved'))
+            if (this.model.get('isResolved')) {
                 this.$el.addClass('resolved');
-            if (this.model.get('historicalData'))
+            }
+            if (this.model.get('historicalData').length > 0) {
                 this.$el.addClass('with-sparkline');
+            }
             this.$el.find('a[data-action=resolve]').click(_.bind(function(e){
                 e.preventDefault();
                 this.resolve();
