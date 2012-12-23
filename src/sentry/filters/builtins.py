@@ -8,6 +8,7 @@ sentry.filters.base
 from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
+from sentry.constants import STATUS_LEVELS
 from .base import Filter, GroupFilter
 
 __all__ = ('StatusFilter', 'LoggerFilter', 'LevelFilter')
@@ -17,12 +18,10 @@ class StatusFilter(GroupFilter):
     label = _('Status')
     column = 'status'
     default = '0'
+    choices = SortedDict(STATUS_LEVELS)
 
     def get_choices(self):
-        return SortedDict([
-            (0, _('Unresolved')),
-            (1, _('Resolved')),
-        ])
+        return self.choices
 
 
 class LoggerFilter(Filter):
