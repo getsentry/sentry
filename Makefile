@@ -58,8 +58,8 @@ lint-js:
 	@echo ""
 
 coverage:
-	cd src && coverage run --include=sentry/* setup.py test && \
-	coverage html --omit=*/migrations/* -d cover
+	coverage run --include=src/sentry/* setup.py test
+	coverage html --omit=src/sentry/migrations/* -d htmlcov
 
 
 .PHONY: build

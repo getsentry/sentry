@@ -8,6 +8,7 @@
 *.db
 *.pid
 pip-log.txt
+/htmlcov
 /cover
 /build
 /dist
