@@ -9,19 +9,11 @@ from django.core.urlresolvers import reverse
 
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
 from sentry.models import Team, TeamMember, PendingTeamMember
-from sentry.testutils import fixture
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, fixture, before, with_settings
 
 
 class BaseTeamTest(TestCase):
     fixtures = ['tests/fixtures/views.json']
-
-    @fixture
-    def user(self):
-        user = User(username="user", email="admin@localhost", is_staff=False, is_superuser=False)
-        user.set_password('password')
-        user.save()
-        return user
 
     @fixture
     def user2(self):
@@ -37,9 +29,9 @@ class BaseTeamTest(TestCase):
     def tm2(self):
         return self.team.member_set.get(user=self.user2)
 
-    def setUp(self):
-        self.team = Team.objects.create(name='foo', slug='foo', owner=self.user)
-        assert self.client.login(username=self.user.username, password='password')
+    @before
+    def login_user(self):
+        self.login_as(self.user)
 
 
 class TeamListTest(BaseTeamTest):
@@ -67,6 +59,7 @@ class NewTeamTest(BaseTeamTest):
         self.assertTemplateUsed(resp, 'sentry/teams/new.html')
 
     @mock.patch('sentry.web.frontend.teams.can_create_teams', mock.Mock(return_value=True))
+    @mock.patch('django.contrib.auth.models.User.has_perm', mock.Mock(return_value=False))
     def test_valid_params(self):
         resp = self.client.post(self.path, {
             'name': 'Test Team',
@@ -114,6 +107,7 @@ class ManageTeamTest(BaseTeamTest):
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/teams/manage.html')
 
+    @mock.patch('django.contrib.auth.models.User.has_perm', mock.Mock(return_value=False))
     def test_valid_params(self):
         path = reverse('sentry-manage-team', args=[self.team.slug])
         resp = self.client.post(path, {
@@ -123,6 +117,25 @@ class ManageTeamTest(BaseTeamTest):
         self.assertEquals(resp['Location'], 'http://testserver' + path + '?success=1')
         team = Team.objects.get(pk=self.team.pk)
         self.assertEquals(team.name, 'bar')
+
+    @mock.patch('django.contrib.auth.models.User.has_perm', mock.Mock(return_value=True))
+    @with_settings(SENTRY_DEFAULT_PROJECT_ACCESS='MEMBER_OWNER')
+    def test_superuser_can_set_owner(self):
+        path = reverse('sentry-manage-team', args=[self.team.slug])
+        resp = self.client.post(path, {
+            'name': self.team.name,
+            'owner': self.user2.username,
+        })
+        self.assertNotEquals(resp.status_code, 200)
+
+        team = Team.objects.get(id=self.team.id)
+
+        assert team.owner == self.user2
+
+        members = [(t.user, t.type) for t in self.team.member_set.all()]
+
+        assert (self.user2, MEMBER_OWNER) in members
+        assert (self.user, MEMBER_OWNER) in members
 
 
 class RemoveTeamTest(BaseTeamTest):

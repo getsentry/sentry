@@ -9,7 +9,8 @@ sentry.testutils
 from __future__ import absolute_import
 
 import base64
-from exam import fixture
+from exam import Exam, fixture, before  # NOQA
+from functools import wraps
 
 from sentry.conf import settings
 from sentry.utils import json
@@ -28,6 +29,16 @@ from django.test.client import Client
 from django.utils.importlib import import_module
 
 from sentry.models import Project, ProjectOption, Option, Team
+
+
+def with_settings(**mapping):
+    def wrapped(func):
+        @wraps(func)
+        def _wrapped(*args, **kwargs):
+            with Settings(**mapping):
+                return func(*args, **kwargs)
+        return _wrapped
+    return wrapped
 
 
 class Settings(object):
@@ -67,7 +78,7 @@ class Settings(object):
                 setattr(settings, k, v)
 
 
-class BaseTestCase(object):
+class BaseTestCase(Exam):
     urls = 'tests.sentry.web.urls'
 
     Settings = Settings

@@ -75,8 +75,15 @@ def manage_team(request, team):
         'owner': team.owner,
     }, instance=team)
 
+    # XXX: form.is_valid() changes the foreignkey
+    original_owner = team.owner
     if form.is_valid():
+
         team = form.save()
+        if team.owner != original_owner:
+            # Update access for new membership if it's changed
+            # (e.g. member used to be USER, but is now OWNER)
+            team.member_set.filter(user=team.owner).update(type=MEMBER_OWNER)
 
         return HttpResponseRedirect(request.path + '?success=1')
 

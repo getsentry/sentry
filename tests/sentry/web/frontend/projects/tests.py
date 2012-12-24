@@ -75,3 +75,5 @@ class ManageProjectTeamTest(TestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed('sentry/projects/team.html')
         self.assertIn('pending_member_list', resp.context)
+        self.assertIn('member_list', resp.context)
+        self.assertIn('can_add_member', resp.context)

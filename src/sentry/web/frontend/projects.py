@@ -92,12 +92,14 @@ def new_project(request):
         project = project_form.save(commit=False)
         if not project.owner:
             project.owner = request.user
+
         if is_new_team:
             team = new_team_form.save(commit=False)
             team.owner = project.owner
             team.save()
         else:
             team = select_team_form.cleaned_data['team']
+
         project.team = team
         project.save()
         return HttpResponseRedirect(reverse('sentry-project-client-help', args=[project.slug]))
