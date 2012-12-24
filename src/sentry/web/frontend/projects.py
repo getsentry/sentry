@@ -186,17 +186,22 @@ def manage_project_team(request, project):
     if result is False and not request.user.has_perm('sentry.can_change_project'):
         return HttpResponseRedirect(reverse('sentry'))
 
-    if not project.team:
+    team = project.team
+
+    if not team:
         member_list = []
+        pending_member_list = []
     else:
-        member_list = [(tm, tm.user) for tm in project.team.member_set.select_related('user')]
+        member_list = [(tm, tm.user) for tm in team.member_set.select_related('user')]
+        pending_member_list = [(pm, pm.email) for pm in team.pending_member_set.all().order_by('email')]
 
     context = csrf(request)
     context.update({
         'page': 'team',
         'project': project,
-        'team': project.team,
+        'team': team,
         'member_list': member_list,
+        'pending_member_list': pending_member_list,
         'can_add_member': can_add_team_member(request.user, project.team),
     })
 

@@ -4,42 +4,41 @@ from __future__ import absolute_import
 
 import logging
 
-from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
 from sentry.constants import MEMBER_OWNER
-from sentry.models import Project, Team
-from sentry.testutils import fixture
-from sentry.testutils import TestCase
+from sentry.models import Project
+from sentry.testutils import TestCase, fixture
 
 logger = logging.getLogger(__name__)
 
 
 class NewProjectTest(TestCase):
-    fixtures = ['tests/fixtures/views.json']
-
     @fixture
-    def user(self):
-        user = User(username="admin", email="admin@localhost", is_staff=True, is_superuser=True)
-        user.set_password('admin')
-        user.save()
-        return user
+    def path(self):
+        return reverse('sentry-new-team-project', args=[self.team.slug])
 
-    @fixture
-    def team(self):
-        return Team.objects.create(name='foo', slug='foo', owner=self.user)
+    def test_unauthenticated_does_redirect(self):
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 302)
 
-    def test_new_project(self):
-        path = reverse('sentry-new-team-project', args=[self.team.slug])
+    def test_does_load(self):
+        self.login_as(self.user)
 
-        self.client.login(username='admin', password='admin')
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed('sentry/projects/new.html')
 
-        # missing name
-        resp = self.client.post(path)
+    def test_missing_name(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(self.path)
         self.assertEquals(resp.status_code, 200)
 
-        # valid params
-        resp = self.client.post(path, {
+    def test_valid_params(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(self.path, {
             'name': 'Test Project',
             'slug': 'test',
         })
@@ -58,3 +57,21 @@ class NewProjectTest(TestCase):
         member = member_set[0]
         self.assertEquals(member.user, self.user)
         self.assertEquals(member.type, MEMBER_OWNER)
+
+
+class ManageProjectTeamTest(TestCase):
+    @fixture
+    def path(self):
+        return reverse('sentry-manage-project-team', args=[self.project.id])
+
+    def test_unauthenticated_does_redirect(self):
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 302)
+
+    def test_renders_with_required_context(self):
+        self.login_as(self.user)
+
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed('sentry/projects/team.html')
+        self.assertIn('pending_member_list', resp.context)

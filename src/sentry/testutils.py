@@ -9,26 +9,25 @@ sentry.testutils
 from __future__ import absolute_import
 
 import base64
+from exam import fixture
 
 from sentry.conf import settings
 from sentry.utils import json
 from sentry.utils.auth import get_auth_header
 
-
 from django.conf import settings as django_settings
+from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.core.management import call_command
 from django.core.urlresolvers import reverse
 from django.db import connections, DEFAULT_DB_ALIAS
+from django.http import HttpRequest
 from django.test import TestCase, TransactionTestCase
 from django.test.client import Client
+from django.utils.importlib import import_module
 
-from sentry.models import Project, ProjectOption, Option
-from sentry.utils import cached_property
-
-
-fixture = cached_property
+from sentry.models import Project, ProjectOption, Option, Team
 
 
 class Settings(object):
@@ -75,10 +74,59 @@ class BaseTestCase(object):
 
     @fixture
     def projectkey(self):
-        user = User.objects.create(username='coreapi')
-        project = Project.objects.create(owner=user, name='Foo', slug='bar')
-        project.team.member_set.get_or_create(user=user)[0]
-        return project.key_set.get_or_create(user=user)[0]
+        return self.project.key_set.get_or_create(user=self.user)[0]
+
+    @fixture
+    def user(self):
+        user = User(username="admin", email="admin@localhost", is_staff=True, is_superuser=True)
+        user.set_password('admin')
+        user.save()
+        return user
+
+    @fixture
+    def team(self):
+        return Team.objects.create(
+            name='foo',
+            slug='foo',
+            owner=self.user,
+        )
+
+    @fixture
+    def project(self):
+        return Project.objects.create(
+            owner=self.user,
+            name='Bar',
+            slug='bar',
+            team=self.team,
+        )
+
+    def login_as(self, user):
+        user.backend = django_settings.AUTHENTICATION_BACKENDS[0]
+
+        engine = import_module(django_settings.SESSION_ENGINE)
+
+        request = HttpRequest()
+        if self.client.session:
+            request.session = self.client.session
+        else:
+            request.session = engine.SessionStore()
+
+        login(request, user)
+
+        # Save the session values.
+        request.session.save()
+
+        # Set the cookie to represent the session.
+        session_cookie = django_settings.SESSION_COOKIE_NAME
+        self.client.cookies[session_cookie] = request.session.session_key
+        cookie_data = {
+            'max-age': None,
+            'path': '/',
+            'domain': django_settings.SESSION_COOKIE_DOMAIN,
+            'secure': django_settings.SESSION_COOKIE_SECURE or None,
+            'expires': None,
+        }
+        self.client.cookies[session_cookie].update(cookie_data)
 
     def _pre_setup(self):
         cache.clear()
