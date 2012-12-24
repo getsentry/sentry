@@ -82,62 +82,69 @@ class StacktraceTest(TestCase):
 
     @mock.patch('sentry.interfaces.Stacktrace.get_stacktrace')
     def test_to_string_returns_stacktrace(self, get_stacktrace):
-        event = mock.Mock(spec=Event)
+        event = mock.Mock(spec=Event())
         interface = Stacktrace(frames=[])
         result = interface.to_string(event)
-        get_stacktrace.assert_called_once_with(event)
+        get_stacktrace.assert_called_once_with(event, system_frames=False)
         self.assertEquals(result, get_stacktrace.return_value)
 
     @mock.patch('sentry.interfaces.Stacktrace.get_stacktrace')
+    @mock.patch('sentry.interfaces.Stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_traceback_response(self, get_stacktrace):
-        event = mock.Mock(spec=Event)
+        event = mock.Mock(spec=Event())
         event.message = 'foo'
         get_stacktrace.return_value = 'bar'
         interface = Stacktrace(frames=[])
         result = interface.get_traceback(event)
-        get_stacktrace.assert_called_once_with(event)
+        get_stacktrace.assert_called_once_with(event, newest_first=None)
         self.assertEquals(result, 'foo\n\nbar')
 
     @mock.patch('sentry.interfaces.Stacktrace.get_traceback')
     @mock.patch('sentry.interfaces.render_to_string')
+    @mock.patch('sentry.interfaces.Stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     def test_to_html_render_call(self, render_to_string, get_traceback):
-        event = mock.Mock(spec=Event)
+        event = mock.Mock(spec=Event())
         get_traceback.return_value = 'bar'
         interface = Stacktrace(frames=[])
         result = interface.to_html(event)
-        get_traceback.assert_called_once_with(event)
+        get_traceback.assert_called_once_with(event, newest_first=False)
         render_to_string.assert_called_once_with('sentry/partial/interfaces/stacktrace.html', {
             'event': event,
             'frames': [],
             'stacktrace': 'bar',
             'system_frames': 0,
+            'newest_first': False,
         })
         self.assertEquals(result, render_to_string.return_value)
 
     @mock.patch('sentry.interfaces.Stacktrace.get_traceback')
+    @mock.patch('sentry.interfaces.Stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     def test_to_html_response(self, get_traceback):
-        event = mock.Mock(spec=Event)
+        event = mock.Mock(spec=Event())
         event.message = 'foo'
         get_traceback.return_value = 'bar'
         interface = Stacktrace(frames=[])
         result = interface.to_html(event)
-        get_traceback.assert_called_once_with(event)
+        get_traceback.assert_called_once_with(event, newest_first=False)
         self.assertTrue('<div id="traceback" class="module">' in result)
 
+    @mock.patch('sentry.interfaces.Stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_stacktrace_with_only_filename(self):
-        event = mock.Mock(spec=Event)
+        event = mock.Mock(spec=Event())
         interface = Stacktrace(frames=[{'filename': 'foo'}, {'filename': 'bar'}])
         result = interface.get_stacktrace(event)
         self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  File "foo"\n  File "bar"')
 
+    @mock.patch('sentry.interfaces.Stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_stacktrace_with_filename_and_function(self):
-        event = mock.Mock(spec=Event)
+        event = mock.Mock(spec=Event())
         interface = Stacktrace(frames=[{'filename': 'foo', 'function': 'biz'}, {'filename': 'bar', 'function': 'baz'}])
         result = interface.get_stacktrace(event)
         self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  File "foo", in biz\n  File "bar", in baz')
 
+    @mock.patch('sentry.interfaces.Stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_stacktrace_with_filename_function_lineno_and_context(self):
-        event = mock.Mock(spec=Event)
+        event = mock.Mock(spec=Event())
         interface = Stacktrace(frames=[{'filename': 'foo', 'function': 'biz', 'lineno': 3, 'context_line': '  def foo(r):'},
             {'filename': 'bar', 'function': 'baz', 'lineno': 5, 'context_line': '    return None'}])
         result = interface.get_stacktrace(event)

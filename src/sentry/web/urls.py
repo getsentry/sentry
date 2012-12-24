@@ -137,6 +137,8 @@ urlpatterns = patterns('',
     url(r'^api/(?:(?P<project_id>[\w_-]+)/)?groups/resolved/$', api.get_resolved_groups, name='sentry-api-groups-resolved'),
     url(r'^api/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/set/public/$', api.make_group_public, name='sentry-api-set-group-public'),
     url(r'^api/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/set/private/$', api.make_group_private, name='sentry-api-set-group-private'),
+    url(r'^api/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/set/mute/$', api.mute_group, name='sentry-api-set-group-mute'),
+    url(r'^api/(?P<project_id>[\w_-]+)/group/(?P<group_id>[\w_-]+)/set/unmute/$', api.unmute_group, name='sentry-api-set-group-unmute'),
     url(r'^api/(?:(?P<project_id>[\w_-]+)/)?stats/$', api.get_stats, name='sentry-api-stats'),
     url(r'^api/(?P<project_id>[\w_-]+)/tags/search/$', api.search_tags, name='sentry-api-search-tags'),
 

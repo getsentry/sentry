@@ -7,6 +7,7 @@ sentry.web.views
 """
 import datetime
 import logging
+from functools import wraps
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.urlresolvers import reverse
@@ -19,7 +20,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.vary import vary_on_cookie
 from django.views.generic.base import View as BaseView
 from sentry.conf import settings
-from sentry.constants import MEMBER_USER
+from sentry.constants import MEMBER_USER, STATUS_MUTED, STATUS_UNRESOLVED
 from sentry.coreapi import project_from_auth_vars, \
   decode_and_decompress_data, safely_load_json_string, validate_data, \
   insert_data_to_database, APIError, APIForbidden, extract_auth_vars
@@ -38,6 +39,16 @@ from sentry.web.helpers import render_to_response, render_to_string, get_project
 
 error_logger = logging.getLogger('sentry.errors.api.http')
 logger = logging.getLogger('sentry.api.http')
+
+
+def api(func):
+    @wraps(func)
+    def wrapped(request, *args, **kwargs):
+        data = func(request, *args, **kwargs)
+        response = HttpResponse(json.dumps(data))
+        response['Content-Type'] = 'application/json'
+        return response
+    return wrapped
 
 
 def transform_groups(request, group_list, template='sentry/partial/_group.html'):
@@ -321,11 +332,7 @@ def make_group_public(request, project, group_id):
 
     group.update(is_public=True)
 
-    data = transform_groups(request, [group])
-
-    response = HttpResponse(json.dumps(data))
-    response['Content-Type'] = 'application/json'
-    return response
+    return transform_groups(request, [group])
 
 
 @csrf_exempt
@@ -339,11 +346,37 @@ def make_group_private(request, project, group_id):
 
     group.update(is_public=False)
 
-    data = transform_groups(request, [group])
+    return transform_groups(request, [group])
 
-    response = HttpResponse(json.dumps(data))
-    response['Content-Type'] = 'application/json'
-    return response
+
+@csrf_exempt
+@has_access(MEMBER_USER)
+@never_cache
+@api
+def mute_group(request, project, group_id):
+    try:
+        group = Group.objects.get(pk=group_id)
+    except Group.DoesNotExist:
+        return HttpResponseForbidden()
+
+    group.update(status=STATUS_MUTED)
+
+    return transform_groups(request, [group])
+
+
+@csrf_exempt
+@has_access(MEMBER_USER)
+@never_cache
+@api
+def unmute_group(request, project, group_id):
+    try:
+        group = Group.objects.get(pk=group_id)
+    except Group.DoesNotExist:
+        return HttpResponseForbidden()
+
+    group.update(status=STATUS_UNRESOLVED)
+
+    return transform_groups(request, [group])
 
 
 @csrf_exempt

@@ -214,6 +214,12 @@ class BaseManager(models.Manager):
             if key != pk_name:
                 return self.get_from_cache(**{pk_name: retval})
 
+            if type(retval) != self.model:
+                if settings.DEBUG:
+                    raise ValueError('Unexpected value type returned from cache')
+                logger.error('Cache response returned invalid value %r', retval)
+                return self.get(**kwargs)
+
             return retval
         else:
             return self.get(**kwargs)
@@ -438,6 +444,7 @@ class GroupManager(BaseManager, ChartMixin):
         date = kwargs.pop('timestamp', None) or timezone.now()
         checksum = kwargs.pop('checksum', None)
         tags = kwargs.pop('tags', [])
+        platform = kwargs.pop('platform', None)
 
         # full support for dict syntax
         if isinstance(tags, dict):
@@ -457,6 +464,7 @@ class GroupManager(BaseManager, ChartMixin):
         kwargs = {
             'level': level,
             'message': message,
+            'platform': platform,
         }
 
         event = Event(

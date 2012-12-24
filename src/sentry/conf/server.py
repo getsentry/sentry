@@ -149,6 +149,7 @@ INSTALLED_APPS = (
     'kombu.transport.django',
     'raven.contrib.django',
     'sentry',
+    'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail',
     'sentry.plugins.sentry_servers',
     'sentry.plugins.sentry_urls',
@@ -286,14 +287,18 @@ LOGGING = {
     'loggers': {
         '()': {
             'handlers': ['console', 'sentry'],
-            'propagate': True,
         },
         'root': {
             'handlers': ['console', 'sentry'],
         },
-        'sentry.errors': {
+        'sentry': {
             'level': 'ERROR',
             'handlers': ['console', 'sentry'],
+            'propagate': False,
+        },
+        'sentry.errors': {
+            'level': 'ERROR',
+            'handlers': ['console'],
             'propagate': False,
         },
         'django.request': {

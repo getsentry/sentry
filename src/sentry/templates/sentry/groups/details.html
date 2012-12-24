@@ -87,49 +87,7 @@
 
 {% block main %}
     {% handle_before_events request group %}
-    <ul class="events events-detail" id="event_list">
-        <li class="event level-{{ group.get_level_display }}{% if group.status == 1 %} resolved{% endif %}" data-count="{{ group.times_seen|safe }}" data-score="{{ group.sort_value|safe }}" data-group="{{ group.id|safe }}">
-            <div class="count"><span title="{{ group.times_seen }}">{{ group.times_seen|small_count }}</span></div>
-            <div class="details">
-                <h3>
-                    {% if group.view %}
-                        {{ group.view }}
-                    {% else %}
-                        {{ group.message_top|truncatechars:100 }}
-                    {% endif %}
-                </h3>
-                <p class="message" title="{{ group.message }}">
-                    {{ group.error }}
-                </p>
-                <div class="meta">
-                    <span class="last-seen pretty-date" title="{{ group.last_seen|date:"c" }}Z">{{ group.last_seen|timesince }}</span>
-                    {% if group.avg_time_spent %}
-                        <span class="time-spent">{{ group.avg_time_spent|duration }}</span>
-                    {% endif %}
-
-                    <span class="tag tag-logger">{{ group.logger }}</span>
-                    {% with group.get_version as version %}
-                        {% if version %}
-                            <span class="tag tag-version">{{ version.0 }} {{ version.1 }}</span>
-                        {% endif %}
-                    {% endwith %}
-                    {% for tag in group|get_tags:request %}<span class="tag">{{ tag }}</span> {% endfor %}
-                </div>
-                {% if can_admin_event %}
-                    <ul class="actions">
-                        <li>
-                            {% if group.status == 0 %}
-                                <a href="javascript:void(0)" class="tip" onclick="Sentry.stream.resolve('{{ group.project.slug }}', {{ group.id|safe }}, false);" rel="tooltip" title="{% trans "Mark as Resolved" %}"><i aria-hidden="true" class="icon-checkmark"></i></a>
-                            {% else %}
-                                <a href="javascript:void(0)" class="tip checked" rel="tooltip" title="{% trans "Already Resolved" %}"><i aria-hidden="true" class="icon-checkmark"></i></a>
-                            {% endif %}
-                        </li>
-                        <li><a href="javascript:void(0)" onclick="Sentry.stream.bookmark('{{ group.project.slug }}', {{ group.id|safe }}, this);" class="tip bookmark{% if group|is_bookmarked:request.user %} checked{% endif %}" rel="tooltip" title="{% trans "Bookmark" %}"><i aria-hidden="true" class="icon-star"></i></a></li>
-                    </ul>
-                {% endif %}
-            </div>
-        </li>
-    </ul>
+    <div id="event_list"></div>
 
     <section class="body">
         <ul class="nav nav-tabs">
@@ -173,24 +131,8 @@
 {% block content_after %}
     <script type="text/javascript">
     $(document).ready(function() {
-        new app.GroupDetailsPage();
-        $('#public-status .action').click(function(){
-            var $this = $(this);
-            $.ajax({
-                url: $this.attr('data-api-url'),
-                type: 'post',
-                dataType: 'json',
-                success: function(groups){
-                    var group = groups[0];
-                    var selector = (group.is_public ? 'true' : 'false');
-                    var nselector = (group.is_public ? 'false' : 'true')
-                    $('#public-status span[data-public="' + selector + '"]').show();
-                    $('#public-status span[data-public="' + nselector + '"]').hide();
-                },
-                error: function(){
-                    alert('There was an error changing the public status');
-                }
-            });
+        new app.GroupDetailsPage({
+            group: {{ group|to_json:request|safe }},
         });
     });
     </script>

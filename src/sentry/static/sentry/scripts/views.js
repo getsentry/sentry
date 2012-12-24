@@ -22,10 +22,12 @@
             this.$el.html(this.template(data));
             this.$el.attr('data-id', this.model.id);
             this.$el.addClass(this.getLevelClassName());
-            if (this.model.get('isResolved'))
+            if (this.model.get('isResolved')) {
                 this.$el.addClass('resolved');
-            if (this.model.get('historicalData'))
+            }
+            if (this.model.get('historicalData').length > 0) {
                 this.$el.addClass('with-sparkline');
+            }
             this.$el.find('a[data-action=resolve]').click(_.bind(function(e){
                 e.preventDefault();
                 this.resolve();
@@ -86,7 +88,9 @@
         },
 
         updateLastSeen: function(){
-            this.$el.find('.last-seen').text(app.utils.prettyDate(this.model.get('lastSeen')));
+            this.$el.find('.last-seen')
+                .text(app.utils.prettyDate(this.model.get('lastSeen')))
+                .attr('title', this.model.get('lastSeen'));
         },
 
         updateCount: function(){
@@ -329,7 +333,7 @@
                 return;
 
             var item = this.queue.pop();
-            if (this.options.stream){
+            if (this.options.canStream){
                 this.addMember(item);
             } else if (this.hasMember(item)) {
                 this.updateMember(item, {
@@ -341,7 +345,7 @@
         poll: function(){
             var data;
 
-            if (!this.options.realtime || !this.options.stream)
+            if (!this.options.realtime)
                 return window.setTimeout(this.poll, this.options.pollTime);
 
             data = app.utils.getQueryParams();

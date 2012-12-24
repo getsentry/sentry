@@ -1,6 +1,6 @@
 /*global Sentry:true*/
 
-(function(app, Backbone, jQuery, _){
+(function(window, app, Backbone, jQuery, _){
     "use strict";
 
     var $ = jQuery;
@@ -8,7 +8,7 @@
 
         defaults: {
             // can this view stream updates?
-            stream: false,
+            canStream: false,
             // should this view default to streaming updates?
             realtime: false
         },
@@ -91,6 +91,7 @@
                 members: data.groups,
                 maxItems: 50,
                 realtime: ($.cookie('pausestream') ? false : true),
+                canStream: this.options.canStream,
                 pollUrl: app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/',
                 model: app.Group
             });
@@ -100,7 +101,7 @@
 
             this.control.click(_.bind(function(e){
                 e.preventDefault();
-                this.group_list.options.realtime = this.control.hasClass('realtime-pause');
+                this.options.realtime = this.group_list.options.realtime = this.control.hasClass('realtime-pause');
                 this.updateStreamOptions();
             }, this));
 
@@ -109,7 +110,7 @@
         },
 
         updateStreamOptions: function(){
-            if (this.group_list.options.realtime){
+            if (this.options.realtime){
                 $.removeCookie('pausestream');
                 this.control.removeClass('realtime-pause');
                 this.control.addClass('realtime-play');
@@ -140,8 +141,35 @@
         initialize: function(data){
             BasePage.prototype.initialize.call(this, data);
 
+            this.group_list = new app.GroupListView({
+                className: 'group-list',
+                id: 'event_list',
+                members: [data.group],
+                model: app.Group
+            });
+
             $('#chart').height('200px');
             Sentry.charts.render('#chart');
+
+            $('#public-status .action').click(function(){
+                var $this = $(this);
+                $.ajax({
+                    url: $this.attr('data-api-url'),
+                    type: 'post',
+                    dataType: 'json',
+                    success: function(groups){
+                        var group = groups[0];
+                        var selector = (group.is_public ? 'true' : 'false');
+                        var nselector = (group.is_public ? 'false' : 'true');
+                        $('#public-status span[data-public="' + selector + '"]').show();
+                        $('#public-status span[data-public="' + nselector + '"]').hide();
+                    },
+                    error: function(){
+                        window.alert('There was an error changing the public status');
+                    }
+                });
+            });
+
         }
 
     });
@@ -245,4 +273,4 @@
     Backbone.sync = function(method, model, success, error){
         success();
     };
-}(app, Backbone, jQuery, _));
+}(window, app, Backbone, jQuery, _));

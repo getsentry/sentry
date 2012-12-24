@@ -35,6 +35,7 @@ for m in ('multiprocessing', 'billiard'):
         pass
 
 tests_require = [
+    'exam>=0.5.1',
     'eventlet',
     'pytest',
     'pytest-django',
@@ -61,7 +62,7 @@ install_requires = [
     'logan>=0.5.4',
     'pynliner>=0.4.0',
     'python-dateutil>=1.5.0,<2.0.0',
-    'raven>=2.0.10',
+    'raven>=2.0.12.2',
     'simplejson>=2.1.6',
     'South>=0.7.6',
     'httpagentparser>=1.0.5',

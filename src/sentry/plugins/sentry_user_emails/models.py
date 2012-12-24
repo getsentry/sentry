@@ -21,7 +21,7 @@ class UserEmailsPlugin(TagPlugin):
     * A sidebar module which shows the users most actively seeing event.
     """
     slug = 'user-emails'
-    title = _('User Emails')
+    title = _('Auto Tag: User Emails')
     version = sentry.VERSION
     author = "Sentry Team"
     author_url = "https://github.com/getsentry/sentry"

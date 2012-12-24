@@ -7,20 +7,18 @@ import json
 
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
+from exam import fixture
 
 from sentry.conf import settings
 from sentry.constants import MEMBER_USER
 from sentry.models import Group, Project, TeamMember, Team
-from sentry.testutils import fixture
 
 from sentry.testutils import TestCase
 
 logger = logging.getLogger(__name__)
 
 
-class SentryViewsTest(TestCase):
-    fixtures = ['tests/fixtures/views.json']
-
+class BaseViewTest(TestCase):
     @fixture
     def user(self):
         user = User(username="admin", email="admin@localhost", is_staff=True, is_superuser=True)
@@ -28,26 +26,106 @@ class SentryViewsTest(TestCase):
         user.save()
         return user
 
-    def test_dashboard(self):
-        # no projects redirects them to create new project
+    def login(self):
         self.client.login(username=self.user.username, password='password')
-        resp = self.client.get(reverse('sentry'), follow=True)
+
+
+class DashboardTest(BaseViewTest):
+    @fixture
+    def path(self):
+        return reverse('sentry')
+
+    def test_redirects_to_new_project_when_no_projects(self):
+        self.login()
+
+        resp = self.client.get(self.path, follow=True)
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/projects/new.html')
 
-        # requires at least one project to show dashboard
+    def test_shows_dashboard_with_a_project(self):
+        self.login()
+
         Project.objects.create(name='foo', owner=self.user)
-        Project.objects.create(name='bar', owner=self.user).team
         resp = self.client.get(reverse('sentry'), follow=True)
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/dashboard.html')
 
-        # no projects and unauthenticated
-        self.client.logout()
-        Project.objects.all().delete()
+    def test_requires_authentication(self):
         resp = self.client.get(reverse('sentry'), follow=True)
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/login.html')
+
+
+class EnvStatusTest(BaseViewTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-admin-status')
+
+    def test_requires_auth(self):
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 302)
+
+    def test_renders_template(self):
+        self.login()
+
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/admin/status/env.html')
+
+
+class PackageStatusTest(BaseViewTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-admin-packages-status')
+
+    def test_requires_auth(self):
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 302)
+
+    def test_renders_template(self):
+        self.login()
+
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/admin/status/packages.html')
+
+
+class MailStatusTest(BaseViewTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-admin-mail-status')
+
+    def test_requires_auth(self):
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 302)
+
+    def test_renders_template(self):
+        self.login()
+
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/admin/status/mail.html')
+
+
+class StatsTest(BaseViewTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-admin-stats')
+
+    def test_requires_auth(self):
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 302)
+
+    def test_renders_template(self):
+        self.login()
+
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/admin/stats.html')
+
+
+class SentryViewsTest(BaseViewTest):
+    fixtures = ['tests/fixtures/views.json']
 
     def test_index(self):
         self.client.login(username=self.user.username, password='password')
@@ -99,30 +177,6 @@ class SentryViewsTest(TestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp['Content-Type'], 'application/json')
         self.assertEquals(json.loads(resp.content)['level'], 'error')
-
-    def test_status_env(self):
-        self.client.login(username=self.user.username, password='password')
-        resp = self.client.get(reverse('sentry-admin-status'), follow=True)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/admin/status/env.html')
-
-    def test_status_packages(self):
-        self.client.login(username=self.user.username, password='password')
-        resp = self.client.get(reverse('sentry-admin-packages-status'), follow=True)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/admin/status/packages.html')
-
-    def test_status_mail(self):
-        self.client.login(username=self.user.username, password='password')
-        resp = self.client.get(reverse('sentry-admin-mail-status'), follow=True)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/admin/status/mail.html')
-
-    def test_stats(self):
-        self.client.login(username=self.user.username, password='password')
-        resp = self.client.get(reverse('sentry-admin-stats'), follow=True)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/admin/stats.html')
 
     def test_manage_users(self):
         self.client.login(username=self.user.username, password='password')

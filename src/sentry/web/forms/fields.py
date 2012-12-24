@@ -11,7 +11,7 @@ from django.forms.widgets import RadioFieldRenderer, TextInput, Textarea
 from django.forms import CharField, ValidationError
 from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _, ungettext
+from django.utils.translation import ugettext_lazy as _
 
 
 class RadioFieldRenderer(RadioFieldRenderer):
@@ -81,21 +81,7 @@ class OriginsField(CharField):
 
 
 def get_team_label(team):
-    member_count = team.member_set.count()
-    project_count = team.project_set.count()
-
-    if member_count > 1 and project_count:
-        label = _('%(team)s (%(members)s, %(projects)s)')
-    elif project_count:
-        label = _('%(team)s (%(projects)s)')
-    else:
-        label = _('%(team)s (%(members)s)')
-
-    return label % dict(
-        team=team.name,
-        members=ungettext('%d member', '%d members', member_count) % (member_count,),
-        projects=ungettext('%d project', '%d projects', project_count) % (project_count,),
-    )
+    return '%s (%s)' % (team.name, team.slug)
 
 
 def get_team_choices(team_list, default=None):

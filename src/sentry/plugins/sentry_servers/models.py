@@ -18,7 +18,7 @@ class ServersPlugin(TagPlugin):
     Automatically adds the 'server_name' tag from events.
     """
     slug = 'servers'
-    title = _('Servers')
+    title = _('Auto Tag: Servers')
     version = sentry.VERSION
     author = "Sentry Team"
     author_url = "https://github.com/getsentry/sentry"

@@ -89,7 +89,7 @@ def _get_group_list(request, project):
     if any(x is not None for x in [date_from, time_from, date_to, time_to]):
         date_from, date_to = parse_date(date_from, time_from), parse_date(date_to, time_to)
     else:
-        date_from = today - datetime.timedelta(days=3)
+        date_from = today - datetime.timedelta(days=5)
         date_to = None
 
     if date_from and date_to:
@@ -120,7 +120,10 @@ def _get_group_list(request, project):
         score_clause = SORT_CLAUSES.get(sort)
         filter_clause = SCORE_CLAUSES.get(sort)
 
-    # All filters must already be applied once we reach this point
+    event_list = event_list.select_related('project')
+
+    # IMPORTANT: All filters must already be applied once we reach this point
+
     if sort == 'tottime':
         event_list = event_list.filter(time_spent_count__gt=0)
     elif sort == 'avgtime':
@@ -138,8 +141,6 @@ def _get_group_list(request, project):
                 where=['%s > %%s' % filter_clause],
                 params=[cursor],
             )
-
-    event_list = event_list.select_related('project')
 
     return {
         'filters': filters,

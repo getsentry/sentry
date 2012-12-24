@@ -134,7 +134,7 @@
     $(function(){
         new app.StreamPage({
             groups: {{ event_list.paginator.objects|to_json:request|safe }},
-            stream: {{ has_realtime|to_json|safe }},
+            canStream: {{ has_realtime|to_json|safe }},
             realtime: true
         });
     });

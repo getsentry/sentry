@@ -45,6 +45,7 @@ RESERVED_FIELDS = (
     'extra',
     'modules',
     'tags',
+    'platform',
 )
 
 

@@ -88,6 +88,11 @@ def is_valid_origin(origin, project=None):
     if origin in allowed:
         return True
 
+    # XXX: In some cases origin might be localhost (or something similar) which causes a string value
+    # of 'null' to be sent as the origin
+    if origin == 'null':
+        return False
+
     parsed = urlparse(origin)
 
     for valid in allowed:
