@@ -49,7 +49,7 @@ lint: lint-python lint-js
 
 lint-python:
 	@echo "Linting Python files"
-	flake8 --exclude=migrations --ignore=E501,E225,E121,E123,E124,E125,E127,E128 --exit-zero src/sentry || exit 1
+	flake8 --exclude=migrations --ignore=E501,E225,E121,E123,E124,E125,E127,E128 src/sentry
 	@echo ""
 
 lint-js:
