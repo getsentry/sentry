@@ -256,19 +256,6 @@ class Stacktrace(Interface):
             if 'in_app' in frame:
                 frame['in_app'] = bool(frame['in_app'])
 
-    def _shorten(self, value, depth=1):
-        if depth > 5:
-            return type(value)
-        if isinstance(value, dict):
-            return dict((k, self._shorten(v, depth + 1)) for k, v in sorted(value.iteritems())[:100 / depth])
-        elif isinstance(value, (list, tuple, set, frozenset)):
-            return tuple(self._shorten(v, depth + 1) for v in value)[:100 / depth]
-        elif isinstance(value, (int, long, float)):
-            return value
-        elif not value:
-            return value
-        return value
-
     def serialize(self):
         return {
             'frames': self.frames,
@@ -283,17 +270,22 @@ class Stacktrace(Interface):
     def get_hash(self):
         output = []
         for frame in self.frames:
-            if frame.get('module'):
-                output.append(frame['module'])
-            else:
-                output.append(frame['filename'])
+            output.extend(self.get_frame_hash(frame))
+        return output
 
-            if frame.get('context_line'):
-                output.append(frame['context_line'])
-            elif frame.get('function'):
-                output.append(frame['function'])
-            elif frame.get('lineno'):
-                output.append(frame['lineno'])
+    def get_frame_hash(self, frame):
+        output = []
+        if frame.get('module'):
+            output.append(frame['module'])
+        else:
+            output.append(frame['filename'])
+
+        if frame.get('context_line'):
+            output.append(frame['context_line'])
+        elif frame.get('function'):
+            output.append(frame['function'])
+        elif frame.get('lineno'):
+            output.append(frame['lineno'])
         return output
 
     def is_newest_frame_first(self, event):
@@ -326,7 +318,7 @@ class Stacktrace(Interface):
 
             context_vars = []
             if frame.get('vars'):
-                context_vars = self._shorten(frame['vars'])
+                context_vars = frame['vars']
             else:
                 context_vars = []
 

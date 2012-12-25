@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+import mock
 import pickle
 
 from sentry.interfaces import Interface, Message, Query, Stacktrace
@@ -38,6 +39,11 @@ class InterfaceTest(InterfaceBase):
 
     def test_get_search_context_default(self):
         assert self.interface.get_search_context(self.event) == {}
+
+    @mock.patch('sentry.interfaces.Interface.get_hash')
+    def test_get_composite_hash_calls_get_hash(self, get_hash):
+        assert self.interface.get_composite_hash(self.event) == get_hash.return_value
+        get_hash.assert_called_once_with()
 
 
 class MessageTest(InterfaceBase):
@@ -101,3 +107,31 @@ class QueryTest(InterfaceBase):
         assert self.interface.get_search_context(self.event) == {
             'text': [self.interface.query],
         }
+
+
+class StacktraceTest(InterfaceBase):
+    @fixture
+    def interface(self):
+        return Stacktrace(frames=[
+            {
+                'filename': 'foo/bar.py'
+            },
+            {
+                'filename': 'foo/baz.py',
+                'lineno': 1,
+                'in_app': True,
+            }
+        ])
+
+    def test_serialize_behavior(self):
+        assert self.interface.serialize() == {
+            'frames': self.interface.frames
+        }
+
+    @mock.patch('sentry.interfaces.Stacktrace.get_frame_hash')
+    def test_get_hash_uses_frame_hash(self, get_frame_hash):
+        get_frame_hash.side_effect = lambda x: [x]
+        assert self.interface.get_hash() == self.interface.frames
+        assert get_frame_hash.call_count == 2
+        get_frame_hash.assert_any_call(self.interface.frames[0])
+        get_frame_hash.assert_any_call(self.interface.frames[1])
