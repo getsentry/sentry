@@ -135,3 +135,8 @@ class StacktraceTest(InterfaceBase):
         assert get_frame_hash.call_count == 2
         get_frame_hash.assert_any_call(self.interface.frames[0])
         get_frame_hash.assert_any_call(self.interface.frames[1])
+
+    @mock.patch('sentry.interfaces.Stacktrace.get_stacktrace')
+    def test_to_string_returns_stacktrace(self, get_stacktrace):
+        assert self.interface.to_string(self.event) == get_stacktrace.return_value
+        get_stacktrace.assert_called_once_with(self.event, system_frames=False)
