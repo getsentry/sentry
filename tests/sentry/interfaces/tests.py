@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 import pickle
 
-from sentry.interfaces import Interface, Message, Stacktrace
+from sentry.interfaces import Interface, Message, Query, Stacktrace
 from sentry.models import Event
 from sentry.testutils import TestCase, fixture
 
@@ -69,4 +69,24 @@ class MessageTest(InterfaceBase):
         interface.message = 'Hello there %(who)s!'
         assert self.interface.get_search_context(self.event) == {
             'text': [interface.message] + interface.params.values()
+        }
+
+
+class QueryTest(InterfaceBase):
+    @fixture
+    def interface(self):
+        return Query(query='SELECT 1', engine='psycopg2')
+
+    def test_serialize_behavior(self):
+        assert self.interface.serialize() == {
+            'query': self.interface.query,
+            'engine': self.interface.engine,
+        }
+
+    def test_get_hash_uses_query(self):
+        assert self.interface.get_hash() == [self.interface.query]
+
+    def test_get_search_context(self):
+        assert self.interface.get_search_context(self.event) == {
+            'text': [self.interface.query],
         }
