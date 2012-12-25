@@ -849,20 +849,33 @@ td .clippy {
     }
 
     .expandable {
-      display: block;
-    }
-    table.expandable {
-      display: table;
-    }
-    li.expandable {
-      display: list-item;
+      height: auto;
     }
   }
 }
 
 
 .expandable {
-  display: none;
+  height: 0;
+  overflow: hidden;
+
+  &.vars {
+    display: none;
+  }
+
+}
+
+.expanded {
+  .expandable {
+    overflow: none;
+    height: auto;
+  }
+
+  table.vars {
+    &.expandable {
+      display: table;
+    }
+  }
 }
 
 ol.context {
