@@ -36,6 +36,9 @@ class InterfaceTest(InterfaceBase):
     def test_to_string_default(self):
         assert self.interface.to_string(self.event) == ''
 
+    def test_get_search_context_default(self):
+        assert self.interface.get_search_context(self.event) == {}
+
 
 class MessageTest(InterfaceBase):
     @fixture
