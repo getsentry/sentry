@@ -144,7 +144,7 @@ class Message(Interface):
         elif isinstance(self.params, dict):
             params = self.params.values()
         else:
-            params = ()
+            params = []
         return {
             'text': [self.message] + params,
         }

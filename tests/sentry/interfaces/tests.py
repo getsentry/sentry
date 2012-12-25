@@ -74,6 +74,14 @@ class MessageTest(InterfaceBase):
             'text': [interface.message] + interface.params.values()
         }
 
+    def test_get_search_context_with_unsupported_params(self):
+        interface = self.interface
+        interface.params = object()
+        interface.message = 'Hello there %(who)s!'
+        assert self.interface.get_search_context(self.event) == {
+            'text': [interface.message],
+        }
+
 
 class QueryTest(InterfaceBase):
     @fixture
