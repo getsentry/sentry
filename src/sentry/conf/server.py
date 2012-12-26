@@ -181,6 +181,8 @@ if LESS_BIN:
 else:
     COMPRESS_ENABLED = False
 
+COMPRESS_VERBOSE = True
+
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
