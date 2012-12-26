@@ -106,7 +106,9 @@
             }, this));
 
             $('#chart').height('50px');
-            app.charts.render('#chart');
+            app.charts.render('#chart', {
+                placement: 'left'
+            });
         },
 
         updateStreamOptions: function(){
