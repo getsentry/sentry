@@ -61,9 +61,6 @@
         <ul class="nav nav-list">
             <li class="nav-header">{% trans "Actions" %}</li>
             {% for label, link, is_active in group|get_actions:request %}
-                {% if forloop.first %}
-                    <li class="divider"></li>
-                {% endif %}
                 <li><a href="{{ link }}">{{ label }}</a></li>
             {% endfor %}
             {% comment %}<li><a {% ifequal page 'event_list' %}{% if event %}
