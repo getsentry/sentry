@@ -819,6 +819,10 @@ td .clippy {
 
   table.vars {
     margin-bottom: 5px;
+    th {
+      color: @gray;
+      text-align: right;
+    }
   }
 
   &.expanded {
@@ -878,17 +882,20 @@ td .clippy {
   }
 }
 
+
 ol.context {
   cursor: pointer;
   margin: 0;
   list-style-position: inside;
   .border-radius(3px);
+
   > li {
     padding-left: 20px;
     font-family:monospace;
     white-space:pre;
     color:rgba(0,0,0,.75);
     background-color: #f5f5f5;
+
     > pre {
       background-color: inherit;
       color: rgba(0,0,0,.5);
@@ -905,16 +912,25 @@ ol.context {
   }
   > li.active {
     background-color: #ddd;
+
     pre {
       color: @black;
     }
   }
-}
-ol.context-line {
-  > li {
-    > span {
-      float: right;
+
+  &:hover {
+    li {
+      background-color: #f0f0f0;
+      &.active {
+        background-color: #d3d3d3;
+      }
     }
+  }
+}
+
+.expanded {
+  ol.context li.active {
+    font-weight: bold;
   }
 }
 

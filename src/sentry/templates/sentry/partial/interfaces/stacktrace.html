@@ -54,7 +54,7 @@
                                 <tbody>
                                     {% for key, value in frame.vars.iteritems|as_sorted %}
                                         <tr>
-                                            <td>{{ key }}</td>
+                                            <th>{{ key }}</th>
                                             <td class="code"><pre>{{ value|pprint }}</pre></td>
                                         </tr>
                                     {% endfor %}

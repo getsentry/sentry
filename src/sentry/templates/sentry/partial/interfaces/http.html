@@ -43,7 +43,7 @@
                                     <tbody>
                                         {% for key, value in data.iteritems|as_sorted %}
                                             <tr>
-                                                <td>{{ key }}</td>
+                                                <th>{{ key }}</th>
                                                 <td class="code"><pre>{{ value|pprint }}</pre></td>
                                             </tr>
                                         {% endfor %}
@@ -75,7 +75,7 @@
                                     <tbody>
                                         {% for key, value in cookies.iteritems|as_sorted %}
                                             <tr>
-                                                <td>{{ key|to_str }}</td>
+                                                <th>{{ key|to_str }}</th>
                                                 <td class="code"><pre>{{ value|pprint }}</pre></td>
                                             </tr>
                                         {% endfor %}
@@ -107,7 +107,7 @@
                                     <tbody>
                                         {% for key, value in headers.iteritems|as_sorted %}
                                             <tr>
-                                                <td>{{ key|to_str }}</td>
+                                                <th>{{ key|to_str }}</th>
                                                 <td class="code"><pre>{{ value|pprint }}</pre></td>
                                             </tr>
                                         {% endfor %}
@@ -138,7 +138,7 @@
                                 <tbody>
                                     {% for key, value in env.iteritems|as_sorted %}
                                         <tr>
-                                            <td>{{ key }}</td>
+                                            <th>{{ key }}</th>
                                             <td class="code"><pre>{{ value|pprint }}</pre></td>
                                         </tr>
                                     {% endfor %}
