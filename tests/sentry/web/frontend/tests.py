@@ -123,33 +123,49 @@ class SentryViewsTest(BaseViewTest):
         self.login_as(self.user)
 
     def test_index(self):
-        resp = self.client.get(reverse('sentry', kwargs={'project_id': 1}) + '?sort=freq', follow=False)
-        self.assertEquals(resp.status_code, 200)
+        resp = self.client.get(reverse('sentry', kwargs={'project_id': 1}) + '?sort=freq')
+        assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/group_list.html')
 
     def test_group_details(self):
-        resp = self.client.get(reverse('sentry-group', kwargs={'project_id': 1, 'group_id': 2}), follow=False)
-        self.assertEquals(resp.status_code, 200, resp.content)
+        resp = self.client.get(reverse('sentry-group', kwargs={'project_id': 1, 'group_id': 2}))
+        assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/details.html')
-        self.assertTrue('group' in resp.context)
-        group = Group.objects.get(pk=2)
-        self.assertEquals(resp.context['group'], group)
+        assert 'group' in resp.context
+        assert 'project' in resp.context
+        assert resp.context['group'].id == 2
+        assert resp.context['project'].id == 1
 
     def test_group_event_list(self):
-        resp = self.client.get(reverse('sentry-group-events', kwargs={'project_id': 1, 'group_id': 2}), follow=False)
-        self.assertEquals(resp.status_code, 200, resp.content)
+        resp = self.client.get(reverse('sentry-group-events', kwargs={'project_id': 1, 'group_id': 2}))
+        assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/event_list.html')
-        self.assertTrue('group' in resp.context)
-        group = Group.objects.get(pk=2)
-        self.assertEquals(resp.context['group'], group)
+        assert 'group' in resp.context
+        assert 'project' in resp.context
+        assert 'event_list' in resp.context
+        assert resp.context['group'].id == 2
+        assert resp.context['project'].id == 1
+
+    def test_group_tag_list(self):
+        resp = self.client.get(reverse('sentry-group-tags', kwargs={'project_id': 1, 'group_id': 2}))
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/groups/tag_list.html')
+        assert 'group' in resp.context
+        assert 'project' in resp.context
+        assert 'tag_list' in resp.context
+        assert resp.context['group'].id == 2
+        assert resp.context['project'].id == 1
 
     def test_group_message_details(self):
-        resp = self.client.get(reverse('sentry-group-event', kwargs={'project_id': 1, 'group_id': 2, 'event_id': 4}), follow=True)
-        self.assertEquals(resp.status_code, 200, resp.content)
+        resp = self.client.get(reverse('sentry-group-event', kwargs={'project_id': 1, 'group_id': 2, 'event_id': 4}))
+        assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/event.html')
-        self.assertTrue('group' in resp.context)
-        group = Group.objects.get(pk=2)
-        self.assertEquals(resp.context['group'], group)
+        assert 'group' in resp.context
+        assert 'project' in resp.context
+        assert 'event' in resp.context
+        assert resp.context['group'].id == 2
+        assert resp.context['project'].id == 1
+        assert resp.context['event'].id == 4
 
     def test_group_json_multi(self):
         resp = self.client.get(reverse('sentry-group-events-json', kwargs={'project_id': 1, 'group_id': 2}))
