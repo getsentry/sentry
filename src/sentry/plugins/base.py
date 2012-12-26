@@ -152,6 +152,9 @@ class IPlugin(local):
     # Global enabled state
     enabled = True
 
+    # Should this plugin be enabled by default for projects?
+    project_default_enabled = False
+
     def _get_option_key(self, key):
         return '%s:%s' % (self.get_conf_key(), key)
 
@@ -167,10 +170,14 @@ class IPlugin(local):
             return False
         if not self.can_enable_for_projects():
             return True
+
         if project:
             project_enabled = self.get_option('enabled', project)
-            if project_enabled is False:
-                return False
+            if project_enabled is not None:
+                return project_enabled
+            else:
+                return self.project_default_enabled
+
         return True
 
     def reset_options(self, project=None, user=None):

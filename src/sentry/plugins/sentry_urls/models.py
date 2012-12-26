@@ -25,6 +25,7 @@ class UrlsPlugin(TagPlugin):
     author_url = "https://github.com/getsentry/sentry"
     tag = 'url'
     tag_label = _('URL')
+    project_default_enabled = True
 
     def get_tag_values(self, event):
         http = event.interfaces.get('sentry.interfaces.Http')

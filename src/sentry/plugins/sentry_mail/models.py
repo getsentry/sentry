@@ -58,7 +58,7 @@ class MailProcessor(NotificationPlugin):
     version = sentry.VERSION
     author = "Sentry Team"
     author_url = "https://github.com/getsentry/sentry"
-
+    project_default_enabled = True
     project_conf_form = MailConfigurationForm
 
     def __init__(self, min_level=NOTSET, include_loggers=NOTSET, exclude_loggers=NOTSET,
