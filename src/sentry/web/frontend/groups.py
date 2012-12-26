@@ -5,6 +5,7 @@ sentry.web.frontend.groups
 :copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import division
 
 import datetime
 import logging
@@ -261,6 +262,29 @@ def group(request, project, group):
         'interface_list': _get_rendered_interfaces(event),
         'json_data': event.data.get('extra', {}),
         'version_data': event.data.get('modules', None),
+        'can_admin_event': can_admin_group(request.user, group),
+    }, request)
+
+
+@has_group_access
+def group_tag_list(request, project, group):
+    def percent(total, this):
+        return int(this / total * 100)
+
+    # O(N) db access
+    tag_list = []
+    for tag_name in group.get_tags():
+        tag_list.append((tag_name, [
+            (value, times_seen, percent(group.times_seen, times_seen))
+            for (value, times_seen, first_seen, last_seen)
+            in group.get_unique_tags(tag_name)[:5]
+        ]))
+
+    return render_to_response('sentry/groups/tag_list.html', {
+        'project': project,
+        'group': group,
+        'page': 'tag_list',
+        'tag_list': tag_list,
         'can_admin_event': can_admin_group(request.user, group),
     }, request)
 

@@ -457,6 +457,48 @@ footer {
     color: @linkColor;
   }
 }
+
+ul.tag-list {
+  list-style: none;
+  margin-left: 0;
+  margin-bottom: 15px;
+
+  li {
+    margin-bottom: 5px;
+  }
+}
+
+.progressbar {
+  position: relative;
+  border: 1px solid lighten(@linkColor, 10%);
+  height: 1.5em;
+  line-height: 1.5em;
+
+  > a,
+  > div {
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    max-width: 100%;
+    position: absolute;
+  }
+
+  > a {
+    left: 5px;
+    
+    span {
+      position: absolute;
+      right: 5px;
+    }
+  }
+
+  > div {
+    background-color: lighten(@linkColor, 40%);
+    text-indent: -100000em;
+  }
+}
+
 .sparkline {
   position: relative;
 

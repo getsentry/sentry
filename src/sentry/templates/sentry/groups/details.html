@@ -87,18 +87,16 @@
     <div id="event_list"></div>
 
     <section class="body">
-        <ul class="nav nav-tabs">
+        <ul class="nav nav-pills">
             <li{% if page == 'details' %} class="active"{% endif %}>
                 <a href="{% url sentry-group group.project.slug group.id %}">{% trans "Details" %}</a>
             </li>
-            <li{% if page == 'event_list' %} class="active"{% endif %}>
-                <a href="{% url sentry-group-events group.project.slug group.id %}">{% trans "Events" %}</a>
+            <li{% if page == 'tag_list' %} class="active"{% endif %}>
+                <a href="{% url sentry-group-tags group.project.slug group.id %}">{% trans "Tags" %}</a>
             </li>
-            {% for tag in group.get_tags %}
-                <li{% if page == 'tag_details' and tag == tag_name %} class="active"{% endif %}>
-                    <a href="{% url sentry-group-tag-details group.project.slug group.id tag %}">{{ tag|titlize }}</a>
-                </li>
-            {% endfor %}
+            <li{% if page == 'event_list' %} class="active"{% endif %}>
+                <a href="{% url sentry-group-events group.project.slug group.id %}">{% trans "Similar Events" %}</a>
+            </li>
             {% for label, link, is_active in group|get_panels:request %}
                 <li{% if is_active %} class="active"{% endif %}><a href="{{ link }}">{{ label }}</a></li>
             {% endfor %}
