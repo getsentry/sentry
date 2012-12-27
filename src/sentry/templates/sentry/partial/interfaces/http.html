@@ -1,7 +1,7 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-<div id="request" class="module">
+<div class="module">
     <div class="page-header">
         <a href="{% url sentry-replay event.project.slug event.id %}" class="btn small pull-right">{% trans "Replay this request" %}</a>
         <h2>{% trans "Request" %}</h2>

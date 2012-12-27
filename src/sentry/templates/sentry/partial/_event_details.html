@@ -1,8 +1,10 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% for interface in interface_list %}
-    {{ interface }}
+{% for interface, interface_html in interface_list %}
+    <div id="{{ interface.get_slug }}">
+        {{ interface_html }}
+    </div>
 {% endfor %}
 
 {% if json_data %}

@@ -48,7 +48,7 @@ def _get_rendered_interfaces(event):
             continue
         if not html:
             continue
-        interface_list.append(mark_safe(html))
+        interface_list.append((interface, mark_safe(html)))
     return interface_list
 
 

@@ -92,8 +92,11 @@ class Interface(object):
     def to_string(self, event):
         return ''
 
+    def get_slug(self):
+        return type(self).__name__.lower()
+
     def get_title(self):
-        return _(self.__class__.__name__)
+        return _(type(self).__name__)
 
     def get_search_context(self, event):
         """
@@ -586,6 +589,9 @@ class Http(Interface):
             'headers_is_dict': headers_is_dict,
             'env': self.env,
         })
+
+    def get_title(self):
+        return _('Request')
 
     def get_search_context(self, event):
         return {
