@@ -85,7 +85,7 @@ def client_guide(request, project, platform):
         'platform': platform,
         'platform_title': platform.title(),
         'project': project,
-        'page': 'client_help',
+        'page': 'client_help_%s' % (platform,),
     }
     context.update(get_key_context(request.user, project))
 
