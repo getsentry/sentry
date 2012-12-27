@@ -17,7 +17,7 @@
         <h2>{% trans "Extensions" %}</h2>
     </div>
     {% if extensions %}
-        <table class="table vars table-bordered table-striped">
+        <table class="table table-bordered table-striped">
             <colgroup>
                 <col style="width:220px">
             </colgroup>
@@ -25,7 +25,7 @@
                 {% for key, value in extensions %}
                     <tr>
                         <th>{{ key }}</th>
-                        <td>{{ value }}</td>
+                        <td class="code">{{ value }}</td>
                     </tr>
                 {% endfor %}
             </tbody>
@@ -36,7 +36,7 @@
     <div class="page-header">
         <h2>{% trans "Modules" %}</h2>
     </div>
-    <table class="table vars table-bordered table-striped">
+    <table class="table table-bordered table-striped">
         <colgroup>
             <col style="width:220px">
         </colgroup>
@@ -44,7 +44,7 @@
             {% for key, value in modules %}
                 <tr>
                     <th>{{ key }}</th>
-                    <td>{{ value }}</td>
+                    <td class="code">{{ value }}</td>
                 </tr>
             {% endfor %}
         </tbody>

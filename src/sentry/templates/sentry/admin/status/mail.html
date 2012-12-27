@@ -17,26 +17,26 @@
     <div class="page-header">
         <h2>{% trans "SMTP Settings" %}</h2>
     </div>
-    <table class="table vars table-bordered table-striped">
+    <table class="table table-bordered table-striped">
         <colgroup>
             <col style="width:120px">
         </colgroup>
         <tbody>
             <tr>
                 <th>{% trans "Host" %}</th>
-                <td>{{ EMAIL_HOST }}:{{ EMAIL_PORT }}</td>
+                <td class="code">{{ EMAIL_HOST }}:{{ EMAIL_PORT }}</td>
             </tr>
             <tr>
                 <th>{% trans "Username" %}</th>
-                <td>{% if EMAIL_HOST_USER %}{{ EMAIL_HOST_USER }}{% else %}<em>{% trans "not set" %}</em>{% endif %}</td>
+                <td class="code">{% if EMAIL_HOST_USER %}{{ EMAIL_HOST_USER }}{% else %}<em>{% trans "not set" %}</em>{% endif %}</td>
             </tr>
             <tr>
                 <th>{% trans "Password" %}</th>
-                <td>{% if EMAIL_HOST_PASSWORD %}********{% else %}<em>{% trans "not set" %}</em>{% endif %}</td>
+                <td class="code">{% if EMAIL_HOST_PASSWORD %}********{% else %}<em>{% trans "not set" %}</em>{% endif %}</td>
             </tr>
             <tr>
                 <th>{% trans "TLS?" %}</th>
-                <td>{% if EMAIL_USE_TLS %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</td>
+                <td class="code">{% if EMAIL_USE_TLS %}{% trans "Yes" %}{% else %}{% trans "No" %}{% endif %}</td>
             </tr>
         </tbody>
     </table>
