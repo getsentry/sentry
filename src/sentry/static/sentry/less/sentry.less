@@ -133,7 +133,7 @@ h3 {
   }
 
   .nav {
-    margin: 13px 0 0 10px;
+    margin: 12px 0 0 10px;
 
     > li {
       margin: 0 0 0 10px;
@@ -172,9 +172,11 @@ h3 {
       &.active > a,
       &.active:hover > a,
       &.active:focus > a {
+        padding: 2px 7px;
+        border: 1px solid @navbarInverseSearchBorder;
         color: @navbarInverseLinkColorActive;
-        #gradient > .vertical(rgba(0,0,0, .3), rgba(0,0,0, .1));
-        @shadow: inset 0 1px 2px rgba(0,0,0,.1), 0 1px 0px rgba(255,255,255,.15);
+        #gradient > .vertical(rgba(0,0,0, .1), rgba(0,0,0, .3));
+        @shadow: inset 0 1px 0px rgba(255,255,255,.15), 0 1px 2px rgba(0,0,0,.1);
         .box-shadow(@shadow);
       }
     }
