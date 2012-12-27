@@ -3,6 +3,14 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-manage-project-plugins project.slug %}">{% trans "Plugins" %}</a></li>
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-configure-project-plugin project.slug plugin.slug %}">{{ plugin.get_title }}</a></li>
+{% endblock %}
+
 {% block inner %}
     <div class="page-header">
         <div class="pull-right">

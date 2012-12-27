@@ -27,6 +27,11 @@ PLATFORM_LIST = (
     'javascript',
 )
 
+PLATFORM_TITLES = {
+    'rails3': 'Rails 3',
+    'php': 'PHP',
+}
+
 
 def can_see_global_keys(user, project):
     if user.is_superuser:
@@ -84,7 +89,7 @@ def client_guide(request, project, platform):
 
     context = {
         'platform': platform,
-        'platform_title': platform.title(),
+        'platform_title': PLATFORM_TITLES.get(platform, platform.title()),
         'project': project,
         'page': 'client_help_%s' % (platform,),
         'SECTION': 'docs',

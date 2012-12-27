@@ -4,6 +4,12 @@
 
 {% block title %}{% trans "Client Configuration" %} | {{ block.super }}{% endblock %}
 
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-project-client-help project.slug %}">{% trans "Client Configuration" %}</a></li>
+{% endblock %}
+
 {% block inner %}
     <div class="page-header">
         <h2>{% trans "Client Configuration" %}</h2>
