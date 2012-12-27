@@ -134,3 +134,20 @@ class AppearanceSettingsForm(forms.Form):
         )
 
         return self.user
+
+
+class RecoverPasswordForm(forms.Form):
+    user = forms.CharField(label=_('Username'))
+
+    def clean_user(self):
+        value = self.cleaned_data.get('user')
+        if value:
+            try:
+                return User.objects.get(username__iexact=value)
+            except User.DoesNotExist:
+                raise forms.ValidationError(_("We were unable to find a matching user."))
+        return None
+
+
+class ChangePasswordRecoverForm(forms.Form):
+    password = forms.CharField(widget=forms.PasswordInput())

@@ -1,0 +1,18 @@
+{% extends "sentry/layout.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Recover Account" %} | {{ block.super }}{% endblock %}
+
+{% block page_header_block %}{% endblock %}
+{% block bodyclass %}{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <div class="page-header">
+            <h2>{% trans "Recover Account" %}</h2>
+        </div>
+        <p>{% blocktrans %}We have sent an email to <strong>{{ email }}</strong> with further instructions to reset your password.{% endblocktrans %}</p>
+    </section>
+{% endblock %}

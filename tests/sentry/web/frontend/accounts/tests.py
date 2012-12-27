@@ -2,11 +2,13 @@
 
 from __future__ import absolute_import
 
+import mock
+
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.http import HttpRequest
-from sentry.models import UserOption
-from sentry.testutils import TestCase, fixture
+from sentry.models import UserOption, LostPasswordHash
+from sentry.testutils import TestCase, fixture, before
 from sentry.web.frontend.accounts import login_redirect
 
 
@@ -277,3 +279,63 @@ class ListIdentitiesTest(TestCase):
         self.assertTemplateUsed('sentry/account/identities.html')
         assert 'identity_list' in resp.context
         assert 'AUTH_PROVIDERS' in resp.context
+
+
+class RecoverPasswordTest(TestCase):
+    @fixture
+    def path(self):
+        return reverse('sentry-account-recover')
+
+    def test_renders_with_required_context(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/account/recover/index.html')
+        assert 'form' in resp.context
+
+    def test_invalid_username(self):
+        resp = self.client.post(self.path, {
+            'user': 'nonexistant'
+        })
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/account/recover/index.html')
+        assert 'form' in resp.context
+        assert 'user' in resp.context['form'].errors
+
+    @mock.patch('sentry.models.LostPasswordHash.send_recover_mail')
+    def test_valid_username(self, send_recover_mail):
+        resp = self.client.post(self.path, {
+            'user': self.user.username
+        })
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/account/recover/sent.html')
+        assert 'email' in resp.context
+        send_recover_mail.assert_called_once_with()
+
+
+class RecoverPasswordConfirmTest(TestCase):
+    @before
+    def create_hash(self):
+        self.password_hash = LostPasswordHash.objects.create(user=self.user)
+
+    @fixture
+    def path(self):
+        return reverse('sentry-account-recover-confirm', args=[self.user.id, self.password_hash.hash])
+
+    def test_valid_token(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/account/recover/confirm.html')
+
+    def test_invalid_token(self):
+        resp = self.client.get(reverse('sentry-account-recover-confirm', args=[1, 'adfadsf']))
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/account/recover/failure.html')
+
+    def test_change_password(self):
+        resp = self.client.post(self.path, {
+            'password': 'bar',
+            'confirm_password': 'bar'
+        })
+        assert resp.status_code == 302
+        user = User.objects.get(id=self.user.id)
+        assert user.check_password('bar')

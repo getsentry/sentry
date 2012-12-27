@@ -14,6 +14,7 @@ import time
 import uuid
 import urlparse
 
+from datetime import timedelta
 from hashlib import md5
 from indexer.models import BaseIndex
 from picklefield.fields import PickledObjectField
@@ -341,7 +342,7 @@ class PendingTeamMember(Model):
         body = render_to_string('sentry/emails/member_invite.txt', context)
 
         try:
-            send_mail('%s Invite to join team: %s' % (settings.EMAIL_SUBJECT_PREFIX, self.team.name),
+            send_mail('%sInvite to join team: %s' % (settings.EMAIL_SUBJECT_PREFIX, self.team.name),
                 body, settings.SERVER_EMAIL, [self.email],
                 fail_silently=False)
         except Exception, e:
@@ -761,6 +762,46 @@ class UserOption(Model):
 
     def __unicode__(self):
         return u'user=%s, project=%s, key=%s, value=%s' % (self.user_id, self.project_id, self.key, self.value)
+
+
+class LostPasswordHash(models.Model):
+    user = models.ForeignKey(User, unique=True)
+    hash = models.CharField(max_length=32)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    def save(self, *args, **kwargs):
+        if not self.hash:
+            self.set_hash()
+        super(LostPasswordHash, self).save(*args, **kwargs)
+
+    def set_hash(self):
+        import hashlib
+        import random
+
+        self.hash = hashlib.md5(str(random.randint(1, 10000000))).hexdigest()
+
+    def is_valid(self):
+        return self.date_added > timezone.now() - timedelta(days=1)
+
+    def send_recover_mail(self):
+        from django.core.mail import send_mail
+        from sentry.web.helpers import render_to_string
+
+        context = {
+            'user': self.user,
+            'domain': urlparse.urlparse(settings.URL_PREFIX).hostname,
+            'url': '%s%s' % (settings.URL_PREFIX,
+                reverse('sentry-account-recover-confirm', args=[self.user.id, self.hash])),
+        }
+        body = render_to_string('sentry/emails/recover_account.txt', context)
+
+        try:
+            send_mail('%sPassword Recovery' % (settings.EMAIL_SUBJECT_PREFIX,),
+                body, settings.SERVER_EMAIL, [self.user.email],
+                fail_silently=False)
+        except Exception, e:
+            logger = logging.getLogger('sentry.mail.errors')
+            logger.exception(e)
 
 
 ### django-indexer

@@ -1,0 +1,19 @@
+{% extends "sentry/layout.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Recover Account" %} | {{ block.super }}{% endblock %}
+
+{% block page_header_block %}{% endblock %}
+{% block bodyclass %}{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <div class="page-header">
+            <h2>{% trans "Recover Account" %}</h2>
+        </div>
+        {% url sentry-recover-account as link %}
+        <p>{% blocktrans %}We were unable to confirm your identity. Either the link you followed is invalid, or it has expired. You can always <a href="{{ link }}">try again</a>.{% endblocktrans %}</p>
+    </section>
+{% endblock %}
