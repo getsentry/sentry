@@ -12,7 +12,7 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
-from sentry.constants import MEMBER_OWNER, MEMBER_USER
+from sentry.constants import MEMBER_OWNER
 from sentry.models import TeamMember, ProjectKey, Team, FilterKey
 from sentry.permissions import can_create_projects, can_remove_project, can_create_teams, \
   can_add_team_member, can_add_project_key, can_remove_project_key
@@ -252,9 +252,9 @@ def new_project_key(request, project):
     return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.slug]))
 
 
+@require_http_methods(['POST'])
 @has_access(MEMBER_OWNER)
 @csrf_protect
-@require_http_methods(['POST'])
 def remove_project_key(request, project, key_id):
     try:
         key = ProjectKey.objects.get(id=key_id)

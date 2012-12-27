@@ -8,7 +8,7 @@ sentry.web.frontend.projects
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 
-from sentry.models import ProjectKey, MEMBER_SYSTEM 
+from sentry.models import ProjectKey, MEMBER_SYSTEM, MEMBER_OWNER
 from sentry.web.decorators import has_access
 from sentry.web.helpers import render_to_response, render_to_string
 
@@ -28,11 +28,22 @@ PLATFORM_LIST = (
 )
 
 
+def can_see_global_keys(user, project):
+    if user.is_superuser:
+        return True
+    if not project.team:
+        return False
+    if not project.team.member_set.filter(user=user, type=MEMBER_OWNER).exists():
+        return False
+    return True
+
+
 def get_key_context(user, project):
     try:
         key = ProjectKey.objects.get(user=user, project=project)
     except ProjectKey.DoesNotExist:
-        key_list = list(ProjectKey.objects.filter(project=project, user__isnull=True)[0:2])
+        if can_see_global_keys(user, project):
+            key_list = list(ProjectKey.objects.filter(project=project, user__isnull=True)[0:2])
         if len(key_list) == 1:
             key = key_list[0]
         else:
