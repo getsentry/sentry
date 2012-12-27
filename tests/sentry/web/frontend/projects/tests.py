@@ -20,9 +20,9 @@ class NewProjectTest(TestCase):
     def path(self):
         return reverse('sentry-new-team-project', args=[self.team.slug])
 
-    def test_unauthenticated_does_redirect(self):
+    def test_missing_permission(self):
         resp = self.client.get(self.path)
-        self.assertEquals(resp.status_code, 302)
+        assert resp.status_code == 302
 
     def test_does_load(self):
         self.login_as(self.user)
@@ -66,9 +66,8 @@ class ManageProjectTeamTest(TestCase):
     def path(self):
         return reverse('sentry-manage-project-team', args=[self.project.id])
 
-    def test_unauthenticated_does_redirect(self):
-        resp = self.client.get(self.path)
-        self.assertEquals(resp.status_code, 302)
+    def test_requires_authentication(self):
+        self.assertRequiresAuthentication(self.path)
 
     def test_renders_with_required_context(self):
         self.login_as(self.user)
@@ -86,9 +85,8 @@ class ManageProjectKeysTest(TestCase):
     def path(self):
         return reverse('sentry-manage-project-keys', args=[self.project.id])
 
-    def test_unauthenticated_does_redirect(self):
-        resp = self.client.get(self.path)
-        assert resp.status_code == 302
+    def test_requires_authentication(self):
+        self.assertRequiresAuthentication(self.path)
 
     def test_renders_with_required_context(self):
         self.login_as(self.user)
@@ -105,11 +103,8 @@ class NewProjectKeyTest(TestCase):
     def path(self):
         return reverse('sentry-new-project-key', args=[self.project.id])
 
-    @mock.patch('sentry.models.ProjectKey.objects.create')
-    def test_unauthenticated_does_redirect(self, create):
-        resp = self.client.get(self.path)
-        assert resp.status_code == 302
-        assert not create.called
+    def test_requires_authentication(self):
+        self.assertRequiresAuthentication(self.path)
 
     @mock.patch('sentry.models.ProjectKey.objects.create')
     def test_generates_new_key_and_redirects(self, create):
@@ -131,15 +126,12 @@ class RemoveProjectKeyTest(TestCase):
     def path(self):
         return reverse('sentry-remove-project-key', args=[self.project.id, self.key.id])
 
+    def test_requires_authentication(self):
+        self.assertRequiresAuthentication(self.path, 'POST')
+
     def test_does_not_respond_to_get(self):
         resp = self.client.get(self.path)
         assert resp.status_code == 405
-
-    @mock.patch('sentry.models.ProjectKey.delete')
-    def test_unauthenticated_does_redirect(self, delete):
-        resp = self.client.post(self.path)
-        assert resp.status_code == 302
-        assert not delete.called
 
     def test_removes_key_and_redirects(self):
         self.login_as(self.user)
@@ -155,9 +147,7 @@ class DashboardTest(TestCase):
         return reverse('sentry', args=[self.project.id])
 
     def test_requires_authentication(self):
-        resp = self.client.get(self.path)
-        assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver' + reverse('sentry-login')
+        self.assertRequiresAuthentication(self.path)
 
     def test_redirects_to_getting_started_if_no_groups(self):
         self.login_as(self.user)
@@ -198,9 +188,8 @@ class GetStartedTest(TestCase):
     def path(self):
         return reverse('sentry-get-started', args=[self.project.id])
 
-    def test_unauthenticated_does_redirect(self):
-        resp = self.client.get(self.path)
-        assert resp.status_code == 302
+    def test_requires_authentication(self):
+        self.assertRequiresAuthentication(self.path)
 
     def test_renders_with_required_context(self):
         self.login_as(self.user)

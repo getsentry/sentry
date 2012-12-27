@@ -111,6 +111,11 @@ class BaseTestCase(Exam):
             team=self.team,
         )
 
+    def assertRequiresAuthentication(self, path, method='GET'):
+        resp = getattr(self.client, method.lower())(path)
+        assert resp.status_code == 302
+        assert resp['Location'] == 'http://testserver' + reverse('sentry-login')
+
     def login_as(self, user):
         user.backend = django_settings.AUTHENTICATION_BACKENDS[0]
 
