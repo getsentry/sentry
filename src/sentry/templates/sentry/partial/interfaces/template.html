@@ -8,9 +8,9 @@
     <div class="module-content">
         <p><code>{{ filename }}</code> at line <code>{{ lineno }}</code></p>
         {% if context %}
-            <ol start="{{ start_lineno }}" class="context expandable">
+            <ol start="{{ start_lineno }}" class="context">
                 {% for num, line in context %}
-                    <li{% if num == lineno %} class="active"{% else %} class="template{{ forloop.parentloop.counter0 }}"{% endif %} onclick="$('.template{{ forloop.parentloop.counter0 }}').toggleClass('closed')"><pre>{{ line }}</pre></li>
+                    <li{% if num == lineno %} class="active"{% else %} class="expandable"{% endif %} onclick="$('#template ol').toggleClass('expanded')"><pre>{{ line }}</pre></li>
                 {% endfor %}
             </ol>
         {% endif %}
