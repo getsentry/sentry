@@ -856,7 +856,37 @@ td .clippy {
 
 // Code styles
 
+&.expanded div.commands,
+div.commands:hover {
+  .opacity(100);
+  a {
+    color: @infoText;
+  }
+}
+
+div.commands {
+  position: absolute;
+  right: 10px;
+  top: 6px;
+  font-size: 0.9em;
+  .opacity(30);
+
+  a {
+    color: #666;
+    text-decoration: none;
+    span {
+      font-size: 9px;
+      margin-right: 5px;
+    }
+  }
+}
+
+
+ul.traceback { list-style-type: none; margin-left: 0; }
+
 .frame {
+  overflow: hidden;
+  position: relative;
   padding: 5px;
   border: 1px solid #fff;
   margin: -6px -6px 0 -6px;
@@ -867,21 +897,6 @@ td .clippy {
 
   code {
     color: inherit;
-  }
-
-  div.commands {
-    position: absolute;
-    right: 10px;
-    top: 6px;
-    font-size: 0.9em;
-    a {
-      color: #666;
-      text-decoration: none;
-      span {
-        font-size: 9px;
-        margin-right: 5px;
-      }
-    }
   }
 
   .context {
@@ -898,13 +913,9 @@ td .clippy {
 
   &.expanded {
     color: #000;
-    border-color: darken(@infoBorder, 5%);
 
     > p {
       color: #000;
-      margin: -5px -5px 5px -5px;
-      padding: 5px;
-      background: @infoBackground;
     }
 
     // .context li {
@@ -919,10 +930,6 @@ td .clippy {
     //   }
     // }
   
-    .commands a {
-      color: @infoText;
-    }
-
     .expandable {
       height: auto;
     }
@@ -1056,21 +1063,8 @@ td.code {
 /* tracebacks */
 div.pastebin textarea { padding: 10px; background: #f9f9f9; border-color: #ddd; }
 
-ul.traceback { list-style-type: none; margin-left: 0; }
-ul.traceback li.frame { margin-bottom: 10px; overflow: hidden; position: relative; }
-
-#versioninfo {
-  th { text-align: left; font-family: monospace; padding-right: 20px; }
-  tr:nth-child(odd) {
-    background: #eee;
-  }
-}
-
 .error { background: #ffc; padding: 5px; }
 .specific { color:#cc3300; font-weight:bold; }
-h2 span.commands { font-size:.7em;}
-span.commands a:link {color:#5E5694;}
-pre.exception_value { font-family: sans-serif; font-weight: normal; color: #333; font-size: 1.5em; }
 
 /* message details */
 .server-list, .url-list, .logger-list, .level-list { list-style: none; margin-left: 0; margin-bottom: 0; }
