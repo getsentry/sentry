@@ -217,6 +217,11 @@ def search(request, project):
 @login_required
 @has_access
 def group_list(request, project):
+    if not Group.objects.filter(project=project).exists():
+        return render_to_response('sentry/get_started.html', {
+            'project': project,
+        })
+
     try:
         page = int(request.GET.get('p', 1))
     except (TypeError, ValueError):

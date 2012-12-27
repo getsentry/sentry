@@ -1,0 +1,18 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+
+{% block title %}{{ project.name }} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}{% endblock %}
+{% block bodyclass %}{% endblock %}
+
+{% block main %}
+    <section class="body">
+		<p>{% trans "It looks like you haven't sent any events to Sentry yet." %}</p>
+
+		<p>{% trans "To get started, select a platform:" %}</p>
+
+		{% include "sentry/partial/_client_config.html" %}
+	</seciton>
+{% endblock %}
