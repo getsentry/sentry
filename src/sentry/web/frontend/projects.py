@@ -13,7 +13,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
 from sentry.constants import MEMBER_OWNER
-from sentry.models import TeamMember, ProjectKey, Team, FilterKey
+from sentry.models import TeamMember, ProjectKey, Team, FilterKey, Group
 from sentry.permissions import can_create_projects, can_remove_project, can_create_teams, \
   can_add_team_member, can_add_project_key, can_remove_project_key
 from sentry.plugins import plugins
@@ -24,6 +24,22 @@ from sentry.web.forms.projects import NewProjectForm, NewProjectAdminForm,\
 from sentry.web.forms.teams import NewTeamForm, SelectTeamForm
 from sentry.web.helpers import render_to_response, get_project_list, \
   plugin_config
+
+
+@login_required
+@has_access
+def dashboard(request, project):
+    if not Group.objects.filter(project=project).exists():
+        return HttpResponseRedirect(reverse('sentry-get-started', args=[project.slug]))
+    return HttpResponseRedirect(reverse('sentry', args=[project.slug]))
+
+
+@login_required
+@has_access
+def get_started(request, project):
+    return render_to_response('sentry/get_started.html', {
+        'project': project,
+    }, request)
 
 
 @login_required
@@ -104,7 +120,8 @@ def new_project(request):
 
         project.team = team
         project.save()
-        return HttpResponseRedirect(reverse('sentry-project-client-help', args=[project.slug]))
+
+        return HttpResponseRedirect(reverse('sentry-get-started', args=[project.slug]))
 
     return render_to_response('sentry/projects/new.html', {
         'project_form': project_form,

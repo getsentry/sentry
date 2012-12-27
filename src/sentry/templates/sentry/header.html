@@ -17,7 +17,7 @@
 
                 <ul class="nav">
                     {% if project %}
-                        <li{% if PAGE == 'dashboard' %} class="active"{% endif %}><a href="{% url sentry project.slug %}">{% trans "Stream" %}</a></li>
+                        <li{% if PAGE == 'dashboard' %} class="active"{% endif %}><a href="{% url sentry-stream project.slug %}">{% trans "Stream" %}</a></li>
                         <li><a href="{% url sentry-manage-project project.slug %}">{% trans "Settings" %}</a></li>
                         <li><a href="{% url sentry-project-client-help project.slug %}">{% trans "Client Configuration" %}</a></li>
                     {% endif %}

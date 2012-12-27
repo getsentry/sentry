@@ -150,6 +150,7 @@ urlpatterns = patterns('',
 
     # Project specific
 
+    url(r'^(?P<project_id>[\w_-]+)/get-started/$', projects.get_started, name='sentry-get-started'),
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/$', groups.group, name='sentry-group'),
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/$', groups.group_event_list, name='sentry-group-events'),
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/json/$', groups.group_event_list_json, name='sentry-group-events-json'),
@@ -164,7 +165,8 @@ urlpatterns = patterns('',
 
     url(r'^(?P<project_id>[\w_-]+)/search/$', groups.search, name='sentry-search'),
 
-    url(r'^(?P<project_id>[\w_-]+)/$', groups.group_list, name='sentry'),
+    url(r'^(?P<project_id>[\w_-]+)/stream/$', groups.group_list, name='sentry-stream'),
+    url(r'^(?P<project_id>[\w_-]+)/$', projects.dashboard, name='sentry'),
 
     url(r'', include('social_auth.urls')),
 )
