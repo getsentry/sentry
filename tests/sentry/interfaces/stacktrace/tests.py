@@ -126,7 +126,7 @@ class StacktraceTest(TestCase):
         interface = Stacktrace(frames=[])
         result = interface.to_html(event)
         get_traceback.assert_called_once_with(event, newest_first=False)
-        self.assertTrue('<div id="traceback" class="module">' in result)
+        self.assertTrue('<div class="module">' in result)
 
     @mock.patch('sentry.interfaces.Stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_stacktrace_with_only_filename(self):
