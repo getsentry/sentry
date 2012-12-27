@@ -4,13 +4,6 @@
 {% load sentry_helpers %}
 
 {% block inner %}
-    <div class="alert alert-block alert-info">
-        <p>
-            {% url sentry-manage-project-tags group.project.slug as link %}
-            {% blocktrans %}You can change what tags you care about in your <a href="{{ link }}">project settings</a>.{% endblocktrans %}
-        </p>
-    </div>
-
     {% if tag_list %}
 
         {% for tag_name, tag_values in tag_list %}

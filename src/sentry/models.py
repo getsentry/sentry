@@ -477,11 +477,7 @@ class Group(MessageBase):
 
     def get_tags(self):
         if not hasattr(self, '_tag_cache'):
-            tags = sorted(
-                t for t in
-                self.messagefiltervalue_set.values_list('key', flat=True).distinct()
-                if t in self.project.get_tags()
-            )
+            tags = sorted(self.messagefiltervalue_set.values_list('key', flat=True).distinct())
             self._tag_cache = tags
         return self._tag_cache
 
