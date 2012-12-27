@@ -3884,7 +3884,7 @@ input[type="submit"].btn.btn-mini {
 .navbar-inverse .nav .active > a:hover,
 .navbar-inverse .nav .active > a:focus {
   color: #ffffff;
-  background-color: #111111;
+  background-color: #333333;
 }
 .navbar-inverse .navbar-link {
   color: #999999;
@@ -3899,7 +3899,7 @@ input[type="submit"].btn.btn-mini {
 .navbar-inverse .nav li.dropdown.open > .dropdown-toggle,
 .navbar-inverse .nav li.dropdown.active > .dropdown-toggle,
 .navbar-inverse .nav li.dropdown.open.active > .dropdown-toggle {
-  background-color: #111111;
+  background-color: #333333;
   color: #ffffff;
 }
 .navbar-inverse .nav li.dropdown > .dropdown-toggle .caret {
@@ -5320,6 +5320,7 @@ h3 {
   height: 50px;
   background: url(../images/dashboard/navbar-bg.gif);
   border: 0;
+  padding-right: 0;
   border-bottom: 1px solid #2c333a;
   -webkit-box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
   -moz-box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
@@ -5410,12 +5411,12 @@ h3 {
   margin: 12px 0 0 10px;
 }
 .navbar .nav > li {
-  margin: 0 0 0 20px;
+  margin: 0 0 0 10px;
 }
 .navbar .nav > li > a {
   color: #dde2e7;
   display: block;
-  padding: 3px 0;
+  padding: 3px 8px;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
   font-size: 13px;
 }
@@ -5428,16 +5429,40 @@ h3 {
   -o-transition: none;
   transition: none;
 }
-.navbar .nav > li.active > a,
 .navbar .nav > li:hover > a,
 .navbar .nav > li:focus > a {
   background: none;
+  color: #fff;
+}
+.navbar .nav > li:hover > a,
+.navbar .nav > li:focus > a,
+.navbar .nav > li.active > a {
+  -webkit-box-shadow: none;
+  -moz-box-shadow: none;
+  box-shadow: none;
   font-weight: inherit;
   font-size: inherit;
-  color: #fff;
   -webkit-border-radius: 3px;
   -moz-border-radius: 3px;
   border-radius: 3px;
+}
+.navbar .nav > li.active > a,
+.navbar .nav > li.active:hover > a,
+.navbar .nav > li.active:focus > a {
+  padding: 2px 7px;
+  border: 1px solid #111111;
+  color: #ffffff;
+  background-color: rgba(0, 0, 0, 0.18);
+  background-image: -moz-linear-gradient(top, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.3));
+  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(rgba(0, 0, 0, 0.1)), to(rgba(0, 0, 0, 0.3)));
+  background-image: -webkit-linear-gradient(top, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.3));
+  background-image: -o-linear-gradient(top, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.3));
+  background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.3));
+  background-repeat: repeat-x;
+  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#1a000000', endColorstr='#4d000000', GradientType=0);
+  -webkit-box-shadow: inset 0 1px 0px rgba(255, 255, 255, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
+  -moz-box-shadow: inset 0 1px 0px rgba(255, 255, 255, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: inset 0 1px 0px rgba(255, 255, 255, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 .toolbar {
   *zoom: 1;
@@ -5635,12 +5660,14 @@ h3 {
 }
 #content.with-sidebar {
   background: #ffffff url(../images/dashboard/sidebar-bg-right.png) top right repeat-y;
+  min-width: 1086px;
 }
 #content.with-sidebar .content {
   padding-right: 300px;
 }
 #content.with-left-sidebar {
   background: #ffffff url(../images/dashboard/sidebar-bg-left.png) top left repeat-y;
+  min-width: 1086px;
 }
 #content.with-left-sidebar .content {
   padding-left: 300px;
@@ -5666,6 +5693,7 @@ h3 {
   clear: both;
 }
 #content .main {
+  min-width: 786px;
   width: 100%;
   position: relative;
   float: left;
@@ -6015,6 +6043,40 @@ footer a:hover {
   text-align: left;
   color: #4593de;
 }
+ul.tag-list {
+  list-style: none;
+  margin-left: 0;
+  margin-bottom: 15px;
+}
+ul.tag-list li {
+  margin-bottom: 5px;
+}
+.progressbar {
+  position: relative;
+  border: 1px solid #c7def5;
+  height: 1.5em;
+  line-height: 1.5em;
+}
+.progressbar > a,
+.progressbar > div {
+  top: 0px;
+  left: 0px;
+  right: 0px;
+  bottom: 0px;
+  max-width: 100%;
+  position: absolute;
+}
+.progressbar > a {
+  left: 5px;
+}
+.progressbar > a span {
+  position: absolute;
+  right: 5px;
+}
+.progressbar > div {
+  background-color: #f2f8fd;
+  text-indent: -100000em;
+}
 .sparkline {
   position: relative;
 }
@@ -6320,6 +6382,12 @@ footer a:hover {
 .events.small > li .tag-project {
   display: inline-block;
 }
+.inactive .group-list > li:hover {
+  filter: progid:DXImageTransform.Microsoft.gradient(enabled = false);
+  background-image: none;
+  background-color: inherit;
+  border-color: #e5e6e7;
+}
 label {
   font-weight: bold;
 }
@@ -6402,6 +6470,10 @@ td .clippy {
 .frame table.vars {
   margin-bottom: 5px;
 }
+.frame table.vars th {
+  color: #6d757e;
+  text-align: right;
+}
 .frame.expanded {
   color: #000;
   border-color: #a6e1ec;
@@ -6416,16 +6488,21 @@ td .clippy {
   color: #3a87ad;
 }
 .frame.expanded .expandable {
-  display: block;
-}
-.frame.expanded table.expandable {
-  display: table;
-}
-.frame.expanded li.expandable {
-  display: list-item;
+  height: auto;
 }
 .expandable {
+  height: 0;
+  overflow: hidden;
+}
+.expandable.vars {
   display: none;
+}
+.expanded .expandable {
+  overflow: none;
+  height: auto;
+}
+.expanded table.vars.expandable {
+  display: table;
 }
 ol.context {
   cursor: pointer;
@@ -6461,8 +6538,14 @@ ol.context > li.active {
 ol.context > li.active pre {
   color: #000000;
 }
-ol.context-line > li > span {
-  float: right;
+ol.context:hover li {
+  background-color: #f0f0f0;
+}
+ol.context:hover li.active {
+  background-color: #d3d3d3;
+}
+.expanded ol.context li.active {
+  font-weight: bold;
 }
 table.vars th,
 table.vars td {
@@ -6602,6 +6685,10 @@ small {
 .inputs-list label input[type="checkbox"] {
   float: left;
   margin-left: -18px;
+}
+.help-block {
+  font-size: 12px;
+  font-weight: normal;
 }
 .controls > .inputs-list label:first-child,
 .controls > .inputs-list label:first-child {
@@ -6744,11 +6831,57 @@ legend {
 .alert-block > ul {
   margin-bottom: 9px;
 }
-[class*="icon-"] {
-  background-image: url("../bootstrap/img/glyphicons-halflings.png");
+#event_nav.fixed {
+  overflow: hidden;
+  margin-bottom: 0;
 }
-.icon-white {
-  background-image: url("../bootstrap/img/glyphicons-halflings-white.png");
+#event_nav.fixed > ul {
+  display: block;
+  width: auto;
+  position: fixed;
+  left: 0;
+  right: 300px;
+  top: 0;
+  margin: 0;
+  z-index: 1000000;
+}
+#event_nav.fixed > ul li.dropdown {
+  position: relative;
+}
+#event_nav {
+  margin-bottom: 20px;
+  position: relative;
+}
+#event_nav > ul {
+  padding: 0 10px;
+  margin: -20px -20px 0;
+  background: #eee;
+  border-bottom: 1px solid #ddd;
+}
+#event_nav > ul > li > a {
+  line-height: 16px;
+  color: #000000;
+  -webkit-border-radius: 0;
+  -moz-border-radius: 0;
+  border-radius: 0;
+  margin: 0;
+}
+#event_nav > ul > li > a:hover,
+#event_nav > ul > li > a:focus {
+  -webkit-transition: none;
+  -moz-transition: none;
+  -o-transition: none;
+  transition: none;
+  background-color: #ddd;
+}
+#event_nav > ul > li.active > a {
+  color: #ffffff;
+  background-color: #4593de;
+}
+#event_nav > ul > li > ul.dropdown-menu > li.active > a,
+#event_nav > ul > li > ul.dropdown-menu > li:hover > a,
+#event_nav > ul > li > ul.dropdown-menu > li:focus > a {
+  color: #ffffff;
 }
 .plugin-meta .description p {
   font-size: 13px;
