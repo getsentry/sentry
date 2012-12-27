@@ -114,15 +114,15 @@
         <section id="content" class="{% block bodyclass %}with-sidebar{% endblock %}">
             <div class="container">
                 <div class="content">
-                    {% block alerts %}
-                        {% include "sentry/partial/alerts.html" %}
-                    {% endblock %}
-
                     {% block content_before %}
                     {% endblock %}
 
                     {% block content %}
                         <div class="main">
+                            {% block alerts %}
+                                {% include "sentry/partial/alerts.html" %}
+                            {% endblock %}
+
                             {% block main %}
                             {% endblock %}
                         </div>

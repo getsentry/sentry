@@ -341,3 +341,8 @@ def titlize(value):
 @register.filter
 def is_muted(value):
     return value == STATUS_MUTED
+
+
+@register.filter
+def split(value, delim=''):
+    return value.split(delim)

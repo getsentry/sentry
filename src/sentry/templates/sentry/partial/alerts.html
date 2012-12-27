@@ -1,10 +1,14 @@
+{% load sentry_helpers %}
+
 <div id="messages">
     {% if messages %}
         {% for message in messages %}
-            <div class="alert alert-block{% if message.tags %}{% for tag in message.tags %} alert-{{ tags }}{% endfor %}{% endif %}">
-                <a class="close" data-dismiss="alert">×</a>
-                {{ message|linebreaks }}
-            </div>
+        	{% with message.tags|split:" " as message_tags %}
+	            <div class="alert alert-block{% if message.tags %}{% for tag in message_tags %} alert-{{ tag }}{% endfor %}{% endif %}">
+	                <a class="close" data-dismiss="alert">×</a>
+	                {{ message|linebreaks }}
+	            </div>
+	        {% endwith %}
         {% endfor %}
     {% endif %}
 </div>

@@ -233,6 +233,10 @@ class ProjectKey(Model):
     secret_key = models.CharField(max_length=32, unique=True, null=True)
     user = models.ForeignKey(User, null=True)
 
+    # For audits
+    user_added = models.ForeignKey(User, null=True, related_name='keys_added_set')
+    date_added = models.DateTimeField(default=timezone.now, null=True)
+
     objects = BaseManager(cache_fields=(
         'public_key',
         'secret_key',
@@ -267,6 +271,14 @@ class ProjectKey(Model):
             urlparts.netloc + urlparts.path,
             self.project_id,
         )
+
+    @property
+    def dsn_private(self):
+        return self.get_dsn(public=False)
+
+    @property
+    def dsn_public(self):
+        return self.get_dsn(public=True)
 
 
 class ProjectOption(Model):

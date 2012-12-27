@@ -8,7 +8,7 @@ sentry.web.frontend.projects
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 
-from sentry.models import ProjectKey, MEMBER_SYSTEM
+from sentry.models import ProjectKey, MEMBER_SYSTEM 
 from sentry.web.decorators import has_access
 from sentry.web.helpers import render_to_response, render_to_string
 
@@ -28,14 +28,45 @@ PLATFORM_LIST = (
 )
 
 
+def get_key_context(user, project):
+    try:
+        key = ProjectKey.objects.get(user=user, project=project)
+    except ProjectKey.DoesNotExist:
+        key_list = list(ProjectKey.objects.filter(project=project, user__isnull=True)[0:2])
+        if len(key_list) == 1:
+            key = key_list[0]
+        else:
+            key = None
+
+    if key is None:
+        dsn = 'SENTRY_DSN'
+        dsn_public = 'SENTRY_PUBLIC_DSN'
+    else:
+        dsn = key.dsn_private
+        dsn_public = key.dsn_public
+
+    return {
+        'key': key,
+        'dsn': dsn,
+        'dsn_public': dsn_public,
+    }
+
+
+@has_access(MEMBER_SYSTEM)
+def client_help(request, project):
+    context = {
+        'page': 'client_help',
+        'project': project,
+    }
+    context.update(get_key_context(request.user, project))
+
+    return render_to_response('sentry/projects/client_help.html', context, request)
+
+
 @has_access(MEMBER_SYSTEM)
 def client_guide(request, project, platform):
     if platform not in PLATFORM_LIST:
         return HttpResponseRedirect(reverse('sentry'))
-
-    key = ProjectKey.objects.get(user=request.user, project=project)
-    dsn = key.get_dsn()
-    dsn_public = key.get_dsn(public=True)
 
     template = 'sentry/partial/client_config/%s.html' % (platform,)
 
@@ -43,10 +74,9 @@ def client_guide(request, project, platform):
         'platform': platform,
         'platform_title': platform.title(),
         'project': project,
-        'dsn': dsn,
-        'dsn_public': dsn_public,
-        'page': 'client_help'
+        'page': 'client_help',
     }
+    context.update(get_key_context(request.user, project))
 
     if request.is_ajax():
         return render_to_response(template, context, request)

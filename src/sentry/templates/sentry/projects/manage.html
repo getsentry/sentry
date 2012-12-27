@@ -74,6 +74,9 @@
                 <a href="{% url sentry-manage-project-team project.slug %}">{% trans "Team" %}</a>
             </li>
         {% endif %}
+        <li{% if page == 'keys' %} class="active"{% endif %}>
+            <a href="{% url sentry-manage-project-keys project.slug %}">{% trans "API Keys" %}</a>
+        </li>
         <li{% if page == 'tags' %} class="active"{% endif %}>
             <a href="{% url sentry-manage-project-tags project.slug %}">{% trans "Tags" %}</a>
         </li>
