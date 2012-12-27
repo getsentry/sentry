@@ -4,11 +4,12 @@ from __future__ import absolute_import
 
 import mock
 import logging
+from mock_django.managers import ManagerMock
 
 from django.core.urlresolvers import reverse
 
 from sentry.constants import MEMBER_OWNER
-from sentry.models import Project, ProjectKey
+from sentry.models import Project, ProjectKey, Group
 from sentry.testutils import TestCase, fixture, before
 
 logger = logging.getLogger(__name__)
@@ -146,3 +147,66 @@ class RemoveProjectKeyTest(TestCase):
         resp = self.client.post(self.path)
         assert resp.status_code == 302
         assert not ProjectKey.objects.filter(id=self.key.id).exists()
+
+
+class DashboardTest(TestCase):
+    @fixture
+    def path(self):
+        return reverse('sentry', args=[self.project.id])
+
+    def test_requires_authentication(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 302
+        assert resp['Location'] == 'http://testserver' + reverse('sentry-login')
+
+    def test_redirects_to_getting_started_if_no_groups(self):
+        self.login_as(self.user)
+
+        manager = ManagerMock(Group.objects)
+
+        with mock.patch('sentry.models.Group.objects', manager):
+            resp = self.client.get(self.path)
+
+        manager.assert_chain_calls(
+            mock.call.filter(project=self.project),
+        )
+        manager.exists.assert_called_once_with()
+
+        assert resp.status_code == 302
+        assert resp['Location'] == 'http://testserver' + reverse('sentry-get-started', args=[self.project.slug])
+
+    @mock.patch('sentry.models.Group.objects', ManagerMock(Group.objects, Group()))
+    def test_redirects_to_stream_if_has_groups(self):
+        self.login_as(self.user)
+
+        manager = ManagerMock(Group.objects, Group())
+
+        with mock.patch('sentry.models.Group.objects', manager):
+            resp = self.client.get(self.path)
+
+        manager.assert_chain_calls(
+            mock.call.filter(project=self.project),
+        )
+        manager.exists.assert_called_once_with()
+
+        assert resp.status_code == 302
+        assert resp['Location'] == 'http://testserver' + reverse('sentry-stream', args=[self.project.slug])
+
+
+class GetStartedTest(TestCase):
+    @fixture
+    def path(self):
+        return reverse('sentry-get-started', args=[self.project.id])
+
+    def test_unauthenticated_does_redirect(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 302
+
+    def test_renders_with_required_context(self):
+        self.login_as(self.user)
+
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/get_started.html')
+        assert 'project' in resp.context
+        assert resp.context['project'] == self.project

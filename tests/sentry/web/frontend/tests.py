@@ -122,8 +122,8 @@ class SentryViewsTest(BaseViewTest):
     def login_user(self):
         self.login_as(self.user)
 
-    def test_index(self):
-        resp = self.client.get(reverse('sentry', kwargs={'project_id': 1}) + '?sort=freq')
+    def test_stream_loads(self):
+        resp = self.client.get(reverse('sentry-stream', kwargs={'project_id': 1}))
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/group_list.html')
 
