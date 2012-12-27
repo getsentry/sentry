@@ -6,7 +6,11 @@
 
 {% block title %}{{ project.name }} | {{ block.super }}{% endblock %}
 
-{% block breadcrumb %}{% endblock %}
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-stream project.slug %}">{% trans "Stream" %}</a></li>
+{% endblock %}
 
 {% block sidebar %}
     <div id="chart" class="chart" data-api-url="{% url sentry-api-chart %}" data-days="1">
