@@ -60,16 +60,16 @@ STATUS_UNRESOLVED = 0
 STATUS_RESOLVED = 1
 STATUS_MUTED = 2
 STATUS_LEVELS = (
-    (STATUS_UNRESOLVED, _('unresolved')),
-    (STATUS_RESOLVED, _('resolved')),
-    (STATUS_MUTED, _('muted')),
+    (STATUS_UNRESOLVED, _('Unresolved')),
+    (STATUS_RESOLVED, _('Resolved')),
+    (STATUS_MUTED, _('Muted')),
 )
 
 MEMBER_OWNER = 0
 MEMBER_USER = 50
 MEMBER_SYSTEM = 100
 MEMBER_TYPES = (
-    (MEMBER_OWNER, _('admin')),
-    (MEMBER_USER, _('user')),
-    (MEMBER_SYSTEM, _('system agent')),
+    (MEMBER_OWNER, _('Admin')),
+    (MEMBER_USER, _('User')),
+    (MEMBER_SYSTEM, _('System Agent')),
 )
