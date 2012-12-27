@@ -244,7 +244,7 @@ def group_list(request, project):
         'filters': response['filters'],
         'SORT_OPTIONS': SORT_OPTIONS,
         'HAS_TRENDING': has_trending(),
-        'PAGE': 'dashboard',
+        'SECTION': 'stream',
     }, request)
 
 

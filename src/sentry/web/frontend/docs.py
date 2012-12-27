@@ -68,6 +68,7 @@ def client_help(request, project):
     context = {
         'page': 'client_help',
         'project': project,
+        'SECTION': 'docs',
     }
     context.update(get_key_context(request.user, project))
 
@@ -86,6 +87,7 @@ def client_guide(request, project, platform):
         'platform_title': platform.title(),
         'project': project,
         'page': 'client_help_%s' % (platform,),
+        'SECTION': 'docs',
     }
     context.update(get_key_context(request.user, project))
 

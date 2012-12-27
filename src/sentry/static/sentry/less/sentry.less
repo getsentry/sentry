@@ -4,6 +4,7 @@
 @baseFontSize: 13px;
 @grayDark: #404f60;
 @gray: #6d757e;
+@navbarInverseLinkBackgroundActive: #333;
 
 @linkColor: #4593DE;
 
@@ -74,6 +75,7 @@ h3 {
     height: 50px;
     background: url(../images/dashboard/navbar-bg.gif);
     border: 0;
+    padding-right: 0;
     border-bottom: 1px solid #2c333a;
     .box-shadow(0 1px 0 rgba(255,255,255, .5));
 
@@ -131,14 +133,14 @@ h3 {
   }
 
   .nav {
-    margin: 12px 0 0 10px;
+    margin: 13px 0 0 10px;
 
     > li {
-      margin: 0 0 0 14px;
+      margin: 0 0 0 10px;
       > a {
         color: #dde2e7;
         display: block;
-        padding: 3px;
+        padding: 3px 8px;
         text-shadow: 0 1px 3px rgba(0, 0, 0, .45);
         font-size: 13px;
       }
@@ -167,9 +169,13 @@ h3 {
         .border-radius(3px);
       }
 
-      &.active > a {
+      &.active > a,
+      &.active:hover > a,
+      &.active:focus > a {
         color: @navbarInverseLinkColorActive;
-        background-color: @navbarInverseLinkBackgroundActive;
+        #gradient > .vertical(rgba(0,0,0, .3), rgba(0,0,0, .1));
+        @shadow: inset 0 1px 2px rgba(0,0,0,.1), 0 1px 0px rgba(255,255,255,.15);
+        .box-shadow(@shadow);
       }
     }
   }

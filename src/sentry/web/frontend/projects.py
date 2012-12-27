@@ -195,6 +195,7 @@ def manage_project(request, project):
         'form': form,
         'project': project,
         'TEAM_LIST': team_list.values(),
+        'SECTION': 'settings',
     })
 
     return render_to_response('sentry/projects/manage.html', context, request)
@@ -224,6 +225,7 @@ def manage_project_team(request, project):
         'member_list': member_list,
         'pending_member_list': pending_member_list,
         'can_add_member': can_add_team_member(request.user, project.team),
+        'SECTION': 'settings',
     })
 
     return render_to_response('sentry/projects/team.html', context, request)
@@ -250,6 +252,7 @@ def manage_project_keys(request, project):
         'project': project,
         'key_list': key_list,
         'can_add_key': can_add_project_key(request.user, project),
+        'SECTION': 'settings',
     })
 
     return render_to_response('sentry/projects/keys.html', context, request)
@@ -304,6 +307,7 @@ def manage_project_tags(request, project):
         'page': 'tags',
         'project': project,
         'form': form,
+        'SECTION': 'settings',
     }
     return render_to_response('sentry/projects/manage_tags.html', context, request)
 
@@ -326,6 +330,7 @@ def manage_plugins(request, project):
     context.update({
         'page': 'plugins',
         'project': project,
+        'SECTION': 'settings',
     })
 
     return render_to_response('sentry/projects/plugins/list.html', context, request)
@@ -361,6 +366,7 @@ def configure_project_plugin(request, project, slug):
         'view': view,
         'project': project,
         'plugin': plugin,
+        'SECTION': 'settings',
     })
 
     return render_to_response('sentry/projects/plugins/configure.html', context, request)
