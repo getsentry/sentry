@@ -84,6 +84,9 @@ class MailProcessor(NotificationPlugin):
 
     def _send_mail(self, subject, body, html_body=None, project=None, fail_silently=False, headers=None):
         send_to = self.get_send_to(project)
+        if not send_to:
+            return
+
         subject_prefix = self.get_option('subject_prefix', project) or self.subject_prefix
 
         msg = EmailMultiAlternatives(
@@ -130,12 +133,14 @@ class MailProcessor(NotificationPlugin):
             if isinstance(send_to_list, basestring):
                 send_to_list = [s.strip() for s in send_to_list.split(',')]
 
-            send_to_list = set(filter(bool, send_to_list))
+            send_to_list = set(send_to_list)
 
             send_to_members = self.get_option('send_to_members', project)
             if send_to_members and project and project.team:
                 member_set = self.get_sendable_users(project)
                 send_to_list |= set(self.get_emails_for_users(member_set))
+
+            send_to_list = set(s for s in send_to_list if s)
 
             cache.set(cache_key, send_to_list, 60)  # 1 minute cache
 
