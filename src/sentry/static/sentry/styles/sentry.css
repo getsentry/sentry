@@ -6439,7 +6439,38 @@ code {
 td .clippy {
   border: 0;
 }
+.expanded div.commands,
+div.commands:hover {
+  opacity: 1;
+  filter: alpha(opacity=100);
+}
+.expanded div.commands a,
+div.commands:hover a {
+  color: #3a87ad;
+}
+div.commands {
+  position: absolute;
+  right: 10px;
+  top: 6px;
+  font-size: 0.9em;
+  opacity: 0.3;
+  filter: alpha(opacity=30);
+}
+div.commands a {
+  color: #666;
+  text-decoration: none;
+}
+div.commands a span {
+  font-size: 9px;
+  margin-right: 5px;
+}
+ul.traceback {
+  list-style-type: none;
+  margin-left: 0;
+}
 .frame {
+  overflow: hidden;
+  position: relative;
   padding: 5px;
   border: 1px solid #fff;
   margin: -6px -6px 0 -6px;
@@ -6449,20 +6480,6 @@ td .clippy {
 }
 .frame code {
   color: inherit;
-}
-.frame div.commands {
-  position: absolute;
-  right: 10px;
-  top: 6px;
-  font-size: 0.9em;
-}
-.frame div.commands a {
-  color: #666;
-  text-decoration: none;
-}
-.frame div.commands a span {
-  font-size: 9px;
-  margin-right: 5px;
 }
 .frame .context {
   margin-bottom: 5px;
@@ -6476,16 +6493,9 @@ td .clippy {
 }
 .frame.expanded {
   color: #000;
-  border-color: #a6e1ec;
 }
 .frame.expanded > p {
   color: #000;
-  margin: -5px -5px 5px -5px;
-  padding: 5px;
-  background: #d9edf7;
-}
-.frame.expanded .commands a {
-  color: #3a87ad;
 }
 .frame.expanded .expandable {
   height: auto;
@@ -6591,23 +6601,6 @@ div.pastebin textarea {
   background: #f9f9f9;
   border-color: #ddd;
 }
-ul.traceback {
-  list-style-type: none;
-  margin-left: 0;
-}
-ul.traceback li.frame {
-  margin-bottom: 10px;
-  overflow: hidden;
-  position: relative;
-}
-#versioninfo th {
-  text-align: left;
-  font-family: monospace;
-  padding-right: 20px;
-}
-#versioninfo tr:nth-child(odd) {
-  background: #eee;
-}
 .error {
   background: #ffc;
   padding: 5px;
@@ -6615,18 +6608,6 @@ ul.traceback li.frame {
 .specific {
   color: #cc3300;
   font-weight: bold;
-}
-h2 span.commands {
-  font-size: .7em;
-}
-span.commands a:link {
-  color: #5E5694;
-}
-pre.exception_value {
-  font-family: sans-serif;
-  font-weight: normal;
-  color: #333;
-  font-size: 1.5em;
 }
 /* message details */
 .server-list,
