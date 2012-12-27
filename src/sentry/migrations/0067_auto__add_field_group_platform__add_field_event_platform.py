@@ -10,13 +10,11 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'Group.platform'
         db.add_column('sentry_groupedmessage', 'platform',
-                      self.gf('django.db.models.fields.CharField')(max_length=64, null=True),
-                      keep_default=False)
+                      self.gf('django.db.models.fields.CharField')(max_length=64, null=True))
 
         # Adding field 'Event.platform'
         db.add_column('sentry_message', 'platform',
-                      self.gf('django.db.models.fields.CharField')(max_length=64, null=True),
-                      keep_default=False)
+                      self.gf('django.db.models.fields.CharField')(max_length=64, null=True))
 
 
     def backwards(self, orm):

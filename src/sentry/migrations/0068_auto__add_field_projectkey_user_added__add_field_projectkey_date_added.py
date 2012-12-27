@@ -10,13 +10,11 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'ProjectKey.user_added'
         db.add_column('sentry_projectkey', 'user_added',
-                      self.gf('django.db.models.fields.related.ForeignKey')(related_name='keys_added_set', null=True, to=orm['auth.User']),
-                      keep_default=False)
+                      self.gf('django.db.models.fields.related.ForeignKey')(related_name='keys_added_set', null=True, to=orm['auth.User']))
 
         # Adding field 'ProjectKey.date_added'
         db.add_column('sentry_projectkey', 'date_added',
-                      self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, null=True),
-                      keep_default=False)
+                      self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, null=True))
 
 
     def backwards(self, orm):
