@@ -25,6 +25,7 @@ from templatetag_sugar.parser import Name, Variable, Constant, Optional
 
 import datetime
 import hashlib
+import logging
 import urllib
 
 register = template.Library()
@@ -346,3 +347,21 @@ def is_muted(value):
 @register.filter
 def split(value, delim=''):
     return value.split(delim)
+
+
+@register.filter
+def get_rendered_interfaces(event):
+    interface_list = []
+    for interface in event.interfaces.itervalues():
+        try:
+            html = interface.to_html(event)
+        except Exception:
+            logger = logging.getLogger('sentry.interfaces')
+            logger.error('Error rendering interface %r', interface.__class__, extra={
+                'event_id': event.id,
+            }, exc_info=True)
+            continue
+        if not html:
+            continue
+        interface_list.append((interface, mark_safe(html)))
+    return interface_list

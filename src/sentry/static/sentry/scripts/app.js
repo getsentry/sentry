@@ -173,73 +173,76 @@
             });
 
             var $event_nav = $('#event_nav');
-            var $window = $(window);
-            var $nav_links = $event_nav.find('a[href*=#]');
-            var $nav_targets = $nav_links.map(function(){
-                if (this.hash) {
-                    return $(this.hash);
-                }
-            });
-            var scroll_offset = $event_nav.offset().top;
-            var event_nav_height = $event_nav.outerHeight();
-            var last_target;
+            if ($event_nav) {
+                var $window = $(window);
+                var $nav_links = $event_nav.find('a[href*=#]');
+                var $nav_targets = [];
+                var scroll_offset = $event_nav.offset().top;
+                var event_nav_height;
+                var last_target;
 
-            $nav_links.click(function(e){
-                var $el = $(this);
-                var target = $(this.hash);
+                $nav_links.click(function(e){
+                    var $el = $(this);
+                    var target = $(this.hash);
 
-                $el.parent().addClass('active').siblings().removeClass('active');
+                    $el.parent().addClass('active').siblings().removeClass('active');
 
-                $('html,body').animate({
-                    scrollTop: $(target).position().top + 55
-                }, 'fast');
+                    $('html,body').animate({
+                        scrollTop: $(target).position().top + event_nav_height + 20
+                    }, 'fast');
 
-                e.preventDefault();
-            });
-
-            $window.resize(function(){
-                $event_nav.height($event_nav.outerHeight() + 'px');
-            }).resize();
-
-            $window.scroll(function(){
-                // Change fixed nav if needed
-                if ($window.scrollTop() > scroll_offset) {
-                    if (!$event_nav.hasClass('fixed')) {
-                        $event_nav.addClass('fixed');
-                    }
-                } else if ($event_nav.hasClass('fixed')) {
-                    $event_nav.removeClass('fixed');
-                }
-
-                // Get container scroll position
-                var from_top = $(this).scrollTop() + event_nav_height + 20;
-               
-                // Get id of current scroll item
-                var cur = $nav_targets.map(function(){
-                    if ($(this).offset().top < from_top) {
-                        return this;
+                    e.preventDefault();
+                }).each(function(){
+                    if (this.hash.length > 1 && $(this.hash).length) {
+                        $nav_targets.push(this.hash);
                     }
                 });
 
-                // Get the id of the current element
-                cur = cur[cur.length - 1];
-                var target = cur && cur.length ? cur[0].id : "";
-               
-                if (!target) {
-                    target = $nav_targets[0].id;
-                }
+                $window.resize(function(){
+                    event_nav_height = $event_nav.find('.nav').outerHeight();
+                    $event_nav.height(event_nav_height + 'px');
+                }).resize();
 
-                if (last_target !== target) {
-                   last_target = target;
+                $window.scroll(function(){
+                    // Change fixed nav if needed
+                    if ($window.scrollTop() > scroll_offset) {
+                        if (!$event_nav.hasClass('fixed')) {
+                            $event_nav.addClass('fixed');
+                        }
+                    } else if ($event_nav.hasClass('fixed')) {
+                        $event_nav.removeClass('fixed');
+                    }
 
-                   // Set/remove active class
-                   $nav_links
-                     .parent().removeClass("active")
-                     .end().filter("[href=#" + target + "]").parent().addClass("active");
-                }      
-            });
+                    if ($nav_targets.length) {
+                        // Get container scroll position
+                        var from_top = $window.scrollTop() + event_nav_height + 20;
+                       
+                        // Get id of current scroll item
+                        var cur = $.map($nav_targets, function(hash){
+                            if ($(hash).offset().top < from_top) {
+                                return hash;
+                            }
+                        });
+
+                        // Get the id of the current element
+                        var target = cur ? cur[cur.length - 1] : null;
+
+                        if (!target) {
+                            target = $nav_targets[0];
+                        }
+
+                        if (last_target !== target) {
+                           last_target = target;
+
+                           // Set/remove active class
+                           $nav_links
+                             .parent().removeClass("active")
+                             .end().filter("[href=" + target + "]").parent().addClass("active");
+                        }  
+                    }
+                }).scroll();
+            }
         }
-
     });
 
     app.NewProjectPage = BasePage.extend({

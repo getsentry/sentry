@@ -15,7 +15,6 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from django.utils.safestring import mark_safe
 
 from sentry.conf import settings
 from sentry.constants import (SORT_OPTIONS, SEARCH_SORT_OPTIONS,
@@ -33,23 +32,6 @@ from sentry.web.helpers import render_to_response
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$', re.I)
 event_re = re.compile(r'^(?P<event_id>[a-z0-9]{32})\$(?P<checksum>[a-z0-9]{32})$', re.I)
-
-
-def _get_rendered_interfaces(event):
-    interface_list = []
-    for interface in event.interfaces.itervalues():
-        try:
-            html = interface.to_html(event)
-        except Exception:
-            logger = logging.getLogger('sentry.interfaces')
-            logger.error('Error rendering interface %r', interface.__class__, extra={
-                'event_id': event.id,
-            }, exc_info=True)
-            continue
-        if not html:
-            continue
-        interface_list.append((interface, mark_safe(html)))
-    return interface_list
 
 
 def _get_group_list(request, project):
@@ -248,21 +230,29 @@ def group_list(request, project):
     }, request)
 
 
-@has_group_access
-def group(request, project, group):
+def render_with_group_context(group, template, context, request=None):
     # It's possible that a message would not be created under certain
     # circumstances (such as a post_save signal failing)
-    event = group.get_latest_event() or Event(group=group)
+    event = group.get_latest_event() or Event()
+    event.group = group
 
-    return render_to_response('sentry/groups/details.html', {
-        'project': project,
-        'page': 'details',
+    context.update({
+        'project': group.project,
         'group': group,
         'event': event,
-        'interface_list': _get_rendered_interfaces(event),
         'json_data': event.data.get('extra', {}),
         'version_data': event.data.get('modules', None),
         'can_admin_event': can_admin_group(request.user, group),
+    })
+
+    return render_to_response(template, context, request)
+
+
+@has_group_access
+def group(request, project, group):
+
+    return render_with_group_context(group, 'sentry/groups/details.html', {
+        'page': 'details',
     }, request)
 
 
@@ -280,26 +270,19 @@ def group_tag_list(request, project, group):
             in group.get_unique_tags(tag_name)[:5]
         ]))
 
-    return render_to_response('sentry/groups/tag_list.html', {
-        'project': project,
-        'group': group,
+    return render_with_group_context(group, 'sentry/groups/tag_list.html', {
         'page': 'tag_list',
         'tag_list': tag_list,
-        'can_admin_event': can_admin_group(request.user, group),
     }, request)
 
 
 @has_group_access
 def group_tag_details(request, project, group, tag_name):
-    return render_to_response('sentry/plugins/bases/tag/index.html', {
-        'project': project,
-        'group': group,
+    return render_with_group_context(group, 'sentry/plugins/bases/tag/index.html', {
         'title': tag_name.replace('_', ' ').title(),
         'tag_name': tag_name,
         'unique_tags': group.get_unique_tags(tag_name),
-        'group': group,
         'page': 'tag_details',
-        'can_admin_event': can_admin_group(request.user, group),
     }, request)
 
 
@@ -307,12 +290,9 @@ def group_tag_details(request, project, group, tag_name):
 def group_event_list(request, project, group):
     event_list = group.event_set.all().order_by('-datetime')
 
-    return render_to_response('sentry/groups/event_list.html', {
-        'project': project,
-        'group': group,
+    return render_with_group_context(group, 'sentry/groups/event_list.html', {
         'event_list': event_list,
         'page': 'event_list',
-        'can_admin_event': can_admin_group(request.user, group),
     }, request)
 
 
@@ -339,10 +319,9 @@ def group_event_details(request, project, group, event_id):
 
     return render_to_response('sentry/groups/event.html', {
         'project': project,
-        'page': 'event_list',
+        'page': 'event',
         'group': group,
         'event': event,
-        'interface_list': _get_rendered_interfaces(event),
         'json_data': event.data.get('extra', {}),
         'version_data': event.data.get('modules', None),
         'can_admin_event': can_admin_group(request.user, group),

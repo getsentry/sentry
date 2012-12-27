@@ -19,7 +19,6 @@
                     {% if project %}
                         <li{% if SECTION == 'stream' %} class="active"{% endif %}><a href="{% url sentry-stream project.slug %}">{% trans "Stream" %}</a></li>
                         <li{% if SECTION == 'settings' %} class="active"{% endif %}><a href="{% url sentry-manage-project project.slug %}">{% trans "Settings" %}</a></li>
-                        <li{% if SECTION == 'docs' %} class="active"{% endif %}><a href="{% url sentry-project-client-help project.slug %}">{% trans "Client Configuration" %}</a></li>
                     {% endif %}
                 </ul>
                 <ul class="nav pull-right">
