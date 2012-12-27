@@ -49,10 +49,7 @@
         </fieldset>
         <hr>
         <p>{% trans "You may also optionally change your password." %}</p>
-        {% with form.new_password1 as field %}
-            {% include "sentry/partial/_form_field.html" %}
-        {% endwith %}
-        {% with form.new_password2 as field %}
+        {% with form.new_password as field %}
             {% include "sentry/partial/_form_field.html" %}
         {% endwith %}
 
