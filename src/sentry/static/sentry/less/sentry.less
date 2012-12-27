@@ -134,14 +134,15 @@ h3 {
     margin: 12px 0 0 10px;
 
     > li {
-      margin: 0 0 0 20px;
+      margin: 0 0 0 14px;
       > a {
         color: #dde2e7;
         display: block;
-        padding: 3px 0;
+        padding: 3px;
         text-shadow: 0 1px 3px rgba(0, 0, 0, .45);
         font-size: 13px;
       }
+
       > .dropdown-toggle {
         background: inherit !important;
       }
@@ -150,16 +151,26 @@ h3 {
           .transition(none);
         }
       }
-      &.active > a,
+
       &:hover > a,
       &:focus > a {
         background: none;
+        color: #fff;
+      }
+
+      &:hover > a,
+      &:focus > a,
+      &.active > a {
+        .box-shadow(none);
         font-weight: inherit;
         font-size: inherit;
-        color: #fff;
         .border-radius(3px);
       }
 
+      &.active > a {
+        color: @navbarInverseLinkColorActive;
+        background-color: @navbarInverseLinkBackgroundActive;
+      }
     }
   }
 }
