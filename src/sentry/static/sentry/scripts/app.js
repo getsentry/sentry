@@ -172,8 +172,24 @@
                 });
             });
 
-            $('.event-nav').scrollspy();
+            var $event_nav = $('#event_nav');
+            var scroll_offset = $event_nav.offset().top;
+                
+            $event_nav.scrollspy();
 
+            $(window).resize(function(){
+                $event_nav.height($event_nav.outerHeight() + 'px');
+            }).resize();
+
+            $(window).scroll(function(){
+                if ($(window).scrollTop() > scroll_offset) {
+                    if (!$event_nav.hasClass('fixed')) {
+                        $event_nav.addClass('fixed');
+                    }
+                } else if ($event_nav.hasClass('fixed')) {
+                    $event_nav.removeClass('fixed');
+                }
+            });
         }
 
     });

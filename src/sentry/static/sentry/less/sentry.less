@@ -1248,35 +1248,43 @@ legend {
   }
 }
 
-ul.event-nav {
-  &.fixed {
+#event_nav.fixed {
+  overflow: hidden;
+  margin-bottom: 0;
+
+  > ul {
     position: fixed;
     left: 0;
     right: 0;
     top: 0;
-    z-index: 1000000;
     margin: 0 300px 0 0;
+    z-index: 1000000;
   }
-  padding: 0 20px;
-  margin-top: -20px;
-  margin-left: -20px;
-  margin-right: -20px;
-  background: #eee;
-  border-bottom: 1px solid #ddd;
-  > li {
-    > a {
-      color: @black;
-      .border-radius(0);
-      margin: 0 4px;
-      &:hover,
-      &:focus {
-        background-color: lighten(@linkColor, 5%);
-        color: @white;
+}
+
+#event_nav {
+  margin-bottom: 20px;
+
+  > ul {
+    padding: 0 20px;
+    margin: -20px -20px 0;
+    background: #eee;
+    border-bottom: 1px solid #ddd;
+    > li {
+      > a {
+        color: @black;
+        .border-radius(0);
+        margin: 0 4px;
+        &:hover,
+        &:focus {
+          background-color: lighten(@linkColor, 5%);
+          color: @white;
+        }
       }
-    }
-    &.active > a {
-      color: @white;
-      background-color: darken(@linkColor, 15%);
+      &.active > a {
+        color: @white;
+        background-color: darken(@linkColor, 15%);
+      }
     }
   }
 }
