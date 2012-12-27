@@ -5,12 +5,12 @@
         <a href="javascript:void(0)" data-container="#raw_template" data-title="Template" class="popup btn small pull-right">{% trans "Raw" %}</a>
         <h2>{% trans "Template Error" %}</h2>
     </div>
-    <div class="module-content">
+    <div class="module-content expanded">
         <p><code>{{ filename }}</code> at line <code>{{ lineno }}</code></p>
         {% if context %}
             <ol start="{{ start_lineno }}" class="context">
                 {% for num, line in context %}
-                    <li{% if num == lineno %} class="active"{% else %} class="expandable"{% endif %} onclick="$('#template ol').toggleClass('expanded')"><pre>{{ line }}</pre></li>
+                    <li{% if num == lineno %} class="active"{% else %} class="expandable"{% endif %} onclick="$('#template .module-content').toggleClass('expanded')"><pre>{{ line }}</pre></li>
                 {% endfor %}
             </ol>
         {% endif %}
