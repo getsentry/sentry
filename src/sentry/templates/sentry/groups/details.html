@@ -6,6 +6,8 @@
 
 {% block title %}{{ group.error }} | {{ block.super }}{% endblock %}
 
+{% block bodyclass %}{% endblock %}
+
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider">/</li>
@@ -101,6 +103,16 @@
                         </a>
                     </li>
                 {% endfor %}
+                {% if json_data %}
+                    <li>
+                        <a href="{% if page != 'details' %}{% url sentry-group group.project.slug group.id %}{% endif %}#extra">{% trans "Additional Data" %}</a>
+                    </li>
+                {% endif %}
+                {% if version_data %}
+                    <li>
+                        <a href="{% if page != 'details' %}{% url sentry-group group.project.slug group.id %}{% endif %}#versions">{% trans "Versions" %}</a>
+                    </li>
+                {% endif %}
                 <li{% if page == 'tag_list' %} class="active"{% endif %}>
                     <a href="{% url sentry-group-tags group.project.slug group.id %}">{% trans "Tags" %}</a>
                 </li>

@@ -173,22 +173,70 @@
             });
 
             var $event_nav = $('#event_nav');
+            var $window = $(window);
+            var $nav_links = $event_nav.find('a[href*=#]');
+            var $nav_targets = $nav_links.map(function(){
+                if (this.hash) {
+                    return $(this.hash);
+                }
+            });
             var scroll_offset = $event_nav.offset().top;
-                
-            $event_nav.scrollspy();
+            var event_nav_height = $event_nav.outerHeight();
+            var last_target;
 
-            $(window).resize(function(){
+            $nav_links.click(function(e){
+                var $el = $(this);
+                var target = $(this.hash);
+
+                $el.parent().addClass('active').siblings().removeClass('active');
+
+                $('html,body').animate({
+                    scrollTop: $(target).position().top + 55
+                }, 'fast');
+
+                e.preventDefault();
+            });
+
+            $window.resize(function(){
                 $event_nav.height($event_nav.outerHeight() + 'px');
             }).resize();
 
-            $(window).scroll(function(){
-                if ($(window).scrollTop() > scroll_offset) {
+            $window.scroll(function(){
+                // Change fixed nav if needed
+                if ($window.scrollTop() > scroll_offset) {
                     if (!$event_nav.hasClass('fixed')) {
                         $event_nav.addClass('fixed');
                     }
                 } else if ($event_nav.hasClass('fixed')) {
                     $event_nav.removeClass('fixed');
                 }
+
+                // Get container scroll position
+                var from_top = $(this).scrollTop() + event_nav_height + 20;
+               
+                // Get id of current scroll item
+                var cur = $nav_targets.map(function(){
+                    if ($(this).offset().top < from_top) {
+                        return this;
+                    }
+                });
+
+                // Get the id of the current element
+                cur = cur[cur.length - 1];
+                var target = cur && cur.length ? cur[0].id : "";
+               
+                if (!target) {
+                    target = $nav_targets[0].id;
+                }
+
+                if (last_target !== target) {
+                   last_target = target;
+
+                   // Set/remove active class
+                   $nav_links
+                     .parent().removeClass("active")
+                     .end().filter("[href=#" + target + "]").parent().addClass("active");
+                }      
             });
         }
 
