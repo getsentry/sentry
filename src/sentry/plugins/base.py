@@ -310,6 +310,7 @@ class IPlugin(local):
         return self.resource_links
 
     def get_view_response(self, request, group):
+        from sentry.models import Event
         from sentry.permissions import can_admin_group
 
         self.selected = request.path == self.get_url(group)
@@ -328,10 +329,14 @@ class IPlugin(local):
         if not isinstance(response, Response):
             raise NotImplementedError('Please use self.render() when returning responses.')
 
+        event = group.get_latest_event() or Event()
+        event.group = group
+
         return response.respond(request, {
             'plugin': self,
             'project': group.project,
             'group': group,
+            'event': event,
             'can_admin_event': can_admin_group(request.user, group),
         })
 

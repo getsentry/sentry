@@ -1281,7 +1281,9 @@ legend {
   > ul {
     padding: 0 20px;
     margin: -21px -20px 0;
-    background: #eee;
+    background: #f4f4f4 url(../images/dashboard/toolbar-bg.png);
+    .box-shadow(0 1px 2px rgba(0,0,0, .7));
+
     > li {
       > a {
         padding: 10px 12px;
@@ -1289,6 +1291,7 @@ legend {
         color: #666;
         .border-radius(0);
         margin: 0;
+        .transition(none);
         &:hover,
         &:focus {
           .transition(none);
@@ -1297,6 +1300,7 @@ legend {
         }
       }
       &.active > a {
+        .transition(none);
         color: @white;
         background-color: @linkColor;
       }
