@@ -108,7 +108,7 @@ def to_str(data):
 @register.simple_tag
 def sentry_version():
     import sentry
-    return sentry.VERSION
+    return sentry.get_version()
 
 
 @register.filter
