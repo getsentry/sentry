@@ -566,9 +566,11 @@ class Event(MessageBase):
                 cls = import_string(key)
             except ImportError:
                 pass  # suppress invalid interfaces
+
             value = cls(**data)
-            result.append((value.score, key, value))
-        return SortedDict((k, v) for _, k, v in sorted(result, key=lambda x: x[0], reverse=True))
+            result.append((key, value))
+
+        return SortedDict((k, v) for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True))
 
     def get_version(self):
         if not self.data:

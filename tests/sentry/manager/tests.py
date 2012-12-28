@@ -8,6 +8,7 @@ import pytest
 
 from django.utils import timezone
 from sentry.interfaces import Interface
+from sentry.manager import get_checksum_from_event
 from sentry.models import Event, Group, Project, MessageCountByMinute, ProjectCountByMinute, \
   SearchDocument
 from sentry.utils.db import has_trending  # NOQA
@@ -248,3 +249,30 @@ class TrendsTest(TestCase):
 
         results = list(Group.objects.get_accelerated([project.id], base_qs)[:25])
         self.assertEquals(results, [group, group2])
+
+
+class GetChecksumFromEventTest(TestCase):
+    @mock.patch('sentry.interfaces.Stacktrace.get_composite_hash')
+    @mock.patch('sentry.interfaces.Http.get_composite_hash')
+    def test_stacktrace_wins_over_http(self, http_comp_hash, stack_comp_hash):
+        # this was a regression, and a very important one
+        http_comp_hash.return_value = ['baz']
+        stack_comp_hash.return_value = ['foo', 'bar']
+        event = Event(
+            data={
+                'sentry.interfaces.Stacktrace': {
+                    'frames': [{
+                        'lineno': 1,
+                        'filename': 'foo.py',
+                    }],
+                },
+                'sentry.interfaces.Http': {
+                    'url': 'http://example.com'
+                },
+            },
+            message='Foo bar',
+        )
+        checksum = get_checksum_from_event(event)
+        stack_comp_hash.assert_called_once_with(interfaces=event.interfaces)
+        assert not http_comp_hash.called
+        assert checksum == '3858f62230ac3c915f300c664312c63f'
