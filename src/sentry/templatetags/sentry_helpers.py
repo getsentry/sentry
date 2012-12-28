@@ -364,4 +364,4 @@ def get_rendered_interfaces(event):
         if not html:
             continue
         interface_list.append((interface, mark_safe(html)))
-    return sorted(interface_list, key=lambda x: x.get_display_score(), reverse=True)
+    return sorted(interface_list, key=lambda x: x[0].get_display_score(), reverse=True)
