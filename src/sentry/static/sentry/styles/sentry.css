@@ -5273,6 +5273,7 @@ body {
   background: #6d757e;
 }
 .container {
+  min-width: 786px;
   width: auto;
 }
 a {
