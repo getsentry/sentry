@@ -6259,6 +6259,7 @@ ul.tag-list li {
   position: absolute;
   right: 50px;
   top: 20px;
+  font-size: 12px;
 }
 .group-list > li .actions,
 .events > li .actions {
