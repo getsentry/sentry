@@ -6842,7 +6842,7 @@ legend {
 #event_nav > ul > li > a {
   padding: 10px 12px;
   line-height: 16px;
-  color: #000000;
+  color: #666;
   -webkit-border-radius: 0;
   -moz-border-radius: 0;
   border-radius: 0;
@@ -6854,6 +6854,7 @@ legend {
   -moz-transition: none;
   -o-transition: none;
   transition: none;
+  color: #333;
   background-color: #ddd;
 }
 #event_nav > ul > li.active > a {
