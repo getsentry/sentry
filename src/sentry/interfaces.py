@@ -425,7 +425,7 @@ class Exception(Interface):
     >>> }
     """
 
-    score = 900
+    score = 1200
 
     def __init__(self, value, type=None, module=None):
         # A human readable value for the exception
@@ -623,7 +623,7 @@ class Template(Interface):
     >>> }
     """
 
-    score = 1001
+    score = 1100
 
     def __init__(self, filename, context_line, lineno, pre_context=None, post_context=None,
                  abs_path=None):
