@@ -61,6 +61,7 @@ class Interface(object):
     """
 
     score = 0
+    display_score = None
 
     def __init__(self, **kwargs):
         self.attrs = kwargs.keys()
@@ -97,6 +98,12 @@ class Interface(object):
 
     def get_title(self):
         return _(type(self).__name__)
+
+    def get_display_score(self):
+        return self.display_score or self.score
+
+    def get_score(self):
+        return self.score
 
     def get_search_context(self, event):
         """
@@ -425,7 +432,8 @@ class Exception(Interface):
     >>> }
     """
 
-    score = 1200
+    score = 900
+    display_score = 1200
 
     def __init__(self, value, type=None, module=None):
         # A human readable value for the exception
@@ -493,6 +501,7 @@ class Http(Interface):
     >>>  }
     """
 
+    display = 800
     score = 10000
 
     # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
