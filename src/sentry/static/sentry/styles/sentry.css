@@ -6936,10 +6936,7 @@ legend {
 #event_nav > ul {
   padding: 0 20px;
   margin: -21px -20px 0;
-  background: #f4f4f4 url(../images/dashboard/toolbar-bg.png);
-  -webkit-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
-  -moz-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  background: #eee;
 }
 #event_nav > ul > li > a {
   padding: 10px 12px;
