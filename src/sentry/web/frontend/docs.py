@@ -28,6 +28,14 @@ PLATFORM_LIST = (
     'javascript',
 )
 
+PLATFORM_ROOTS = {
+    'rails3': 'ruby',
+    'django': 'python',
+    'flask': 'python',
+    'express': 'node.js',
+    'connect': 'node.js',
+}
+
 PLATFORM_TITLES = {
     'rails3': 'Rails 3',
     'php': 'PHP',
@@ -93,7 +101,7 @@ def client_guide(request, project, platform):
         'platform': platform,
         'platform_title': PLATFORM_TITLES.get(platform, platform.title()),
         'project': project,
-        'page': 'client_help_%s' % (platform,),
+        'page': 'client_help_%s' % (PLATFORM_ROOTS.get(platform, platform),),
         'SECTION': 'settings',
     }
     context.update(get_key_context(request.user, project))
