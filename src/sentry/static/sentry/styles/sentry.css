@@ -5261,6 +5261,104 @@ a.badge:hover {
   width: 16px;
   height: 16px;
 }
+.github-btn {
+  height: 20px;
+  overflow: hidden;
+  font: bold 11px/14px "Helvetica Neue", Helvetica, Arial, sans-serif;
+  text-rendering: optimizeLegibility;
+}
+.gh-btn,
+.gh-count,
+.gh-ico {
+  float: left;
+}
+.gh-btn,
+.gh-count {
+  padding: 2px 5px 2px 4px;
+  color: #666;
+  text-decoration: none;
+  text-shadow: 0 1px 0 #fff;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+}
+.gh-btn {
+  background-color: #e6e6e6;
+  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#ffffff), color-stop(25%, #ffffff), to(#e6e6e6));
+  background-image: -webkit-linear-gradient(#ffffff, #ffffff 25%, #e6e6e6);
+  background-image: -moz-linear-gradient(top, #ffffff, #ffffff 25%, #e6e6e6);
+  background-image: -ms-linear-gradient(#ffffff, #ffffff 25%, #e6e6e6);
+  background-image: -o-linear-gradient(#ffffff, #ffffff 25%, #e6e6e6);
+  background-image: linear-gradient(#ffffff, #ffffff 25%, #e6e6e6);
+  background-repeat: no-repeat;
+  border: 1px solid #ccc;
+  border-bottom-color: #bbb;
+  -webkit-box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  -moz-box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.gh-btn:hover,
+.gh-btn:focus {
+  color: #333;
+  text-decoration: none;
+  background-position: 0 -10px;
+}
+.gh-btn:hover .gh-icon,
+.gh-btn:focus .gh-icon {
+  opacity: 0.75;
+  filter: alpha(opacity=75);
+}
+.gh-btn:active {
+  -webkit-box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
+  -moz-box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+.gh-ico {
+  width: 14px;
+  height: 14px;
+  margin-right: 4px;
+  vertical-align: middle;
+  background: url(../images/github-icons.png) no-repeat 0 0;
+  opacity: 0.65;
+  filter: alpha(opacity=65);
+}
+.gh-count {
+  display: none;
+  /* hidden to start */
+
+  margin-left: 2px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+}
+.gh-count:hover,
+.gh-count:focus {
+  color: #333;
+  text-decoration: none;
+  background-color: #f5f5f5;
+  border-color: #d5d5d5;
+}
+.github-btn-large {
+  height: 30px;
+}
+.github-btn-large .gh-btn,
+.github-btn-large .gh-count {
+  padding: 3px 10px 3px 8px;
+  font-size: 16px;
+  line-height: 22px;
+  -webkit-border-radius: 5px;
+  -moz-border-radius: 5px;
+  border-radius: 5px;
+}
+.github-btn-large .gh-ico {
+  width: 22px;
+  height: 22px;
+  background-position: 0 -20px;
+}
+.github-btn-large .gh-count {
+  margin-left: 4px;
+}
 /* =============================  Global  ============================== */
 body {
   margin: 0;
@@ -6838,7 +6936,10 @@ legend {
 #event_nav > ul {
   padding: 0 20px;
   margin: -21px -20px 0;
-  background: #eee;
+  background: #f4f4f4 url(../images/dashboard/toolbar-bg.png);
+  -webkit-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  -moz-box-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
 }
 #event_nav > ul > li > a {
   padding: 10px 12px;
@@ -6848,6 +6949,10 @@ legend {
   -moz-border-radius: 0;
   border-radius: 0;
   margin: 0;
+  -webkit-transition: none;
+  -moz-transition: none;
+  -o-transition: none;
+  transition: none;
 }
 #event_nav > ul > li > a:hover,
 #event_nav > ul > li > a:focus {
@@ -6859,6 +6964,10 @@ legend {
   background-color: #ddd;
 }
 #event_nav > ul > li.active > a {
+  -webkit-transition: none;
+  -moz-transition: none;
+  -o-transition: none;
+  transition: none;
   color: #ffffff;
   background-color: #4593de;
 }
