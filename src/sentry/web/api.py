@@ -27,7 +27,6 @@ from sentry.coreapi import project_from_auth_vars, \
 from sentry.exceptions import InvalidData
 from sentry.models import Group, GroupBookmark, Project, ProjectCountByMinute, FilterValue
 from sentry.plugins import plugins
-from sentry.templatetags.sentry_helpers import with_metadata
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.db import has_trending
@@ -35,7 +34,7 @@ from sentry.utils.javascript import to_json
 from sentry.utils.http import is_valid_origin, get_origins
 from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
-from sentry.web.helpers import render_to_response, render_to_string, get_project_list
+from sentry.web.helpers import render_to_response, get_project_list
 
 error_logger = logging.getLogger('sentry.errors.api.http')
 logger = logging.getLogger('sentry.api.http')
@@ -45,31 +44,10 @@ def api(func):
     @wraps(func)
     def wrapped(request, *args, **kwargs):
         data = func(request, *args, **kwargs)
-        response = HttpResponse(json.dumps(data))
+        response = HttpResponse(data)
         response['Content-Type'] = 'application/json'
         return response
     return wrapped
-
-
-def transform_groups(request, group_list, template='sentry/partial/_group.html'):
-    return [
-        {
-            'id': m.pk,
-            'html': render_to_string(template, {
-                'group': m,
-                'request': request,
-                'metadata': d,
-            }).strip(),
-            'title': m.message_top(),
-            'message': m.error(),
-            'level': m.get_level_display(),
-            'logger': m.logger,
-            'count': m.times_seen,
-            'is_public': m.is_public,
-            'score': getattr(m, 'sort_value', None),
-        }
-        for m, d in with_metadata(group_list, request)
-    ]
 
 
 class Auth(object):
@@ -274,6 +252,7 @@ def notification(request, project):
 @csrf_exempt
 @has_access
 @never_cache
+@api
 def poll(request, project):
     offset = 0
     limit = settings.MESSAGES_PER_PAGE
@@ -286,16 +265,13 @@ def poll(request, project):
     event_list = response['event_list']
     event_list = list(event_list[offset:limit])
 
-    data = to_json(event_list, request)
-
-    response = HttpResponse(data)
-    response['Content-Type'] = 'application/json'
-    return response
+    return to_json(event_list, request)
 
 
 @csrf_exempt
 @has_access(MEMBER_USER)
 @never_cache
+@api
 def resolve(request, project):
     gid = request.REQUEST.get('gid')
     if not gid:
@@ -314,16 +290,13 @@ def resolve(request, project):
     group.status = 1
     group.resolved_at = now
 
-    data = transform_groups(request, [group])
-
-    response = HttpResponse(json.dumps(data))
-    response['Content-Type'] = 'application/json'
-    return response
+    return to_json(group, request)
 
 
 @csrf_exempt
 @has_access(MEMBER_USER)
 @never_cache
+@api
 def make_group_public(request, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
@@ -332,12 +305,13 @@ def make_group_public(request, project, group_id):
 
     group.update(is_public=True)
 
-    return transform_groups(request, [group])
+    return to_json(group, request)
 
 
 @csrf_exempt
 @has_access(MEMBER_USER)
 @never_cache
+@api
 def make_group_private(request, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
@@ -346,7 +320,7 @@ def make_group_private(request, project, group_id):
 
     group.update(is_public=False)
 
-    return transform_groups(request, [group])
+    return to_json(group, request)
 
 
 @csrf_exempt
@@ -361,7 +335,7 @@ def mute_group(request, project, group_id):
 
     group.update(status=STATUS_MUTED)
 
-    return transform_groups(request, [group])
+    return to_json(group, request)
 
 
 @csrf_exempt
@@ -376,7 +350,7 @@ def unmute_group(request, project, group_id):
 
     group.update(status=STATUS_UNRESOLVED)
 
-    return transform_groups(request, [group])
+    return to_json(group, request)
 
 
 @csrf_exempt
@@ -401,6 +375,7 @@ def remove_group(request, project, group_id):
 @csrf_exempt
 @has_access
 @never_cache
+@api
 def bookmark(request, project):
     gid = request.REQUEST.get('gid')
     if not gid:
@@ -422,9 +397,7 @@ def bookmark(request, project):
     if not created:
         gb.delete()
 
-    response = HttpResponse(json.dumps({'bookmarked': created}))
-    response['Content-Type'] = 'application/json'
-    return response
+    return to_json(group, request)
 
 
 @csrf_exempt

@@ -158,11 +158,9 @@
                 $.ajax({
                     url: $this.attr('data-api-url'),
                     type: 'post',
-                    dataType: 'json',
-                    success: function(groups){
-                        var group = groups[0];
-                        var selector = (group.is_public ? 'true' : 'false');
-                        var nselector = (group.is_public ? 'false' : 'true');
+                    success: function(group){
+                        var selector = (group.isPublic ? 'true' : 'false');
+                        var nselector = (group.isPublic ? 'false' : 'true');
                         $('#public-status span[data-public="' + selector + '"]').show();
                         $('#public-status span[data-public="' + nselector + '"]').hide();
                     },

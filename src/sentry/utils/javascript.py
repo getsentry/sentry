@@ -98,6 +98,7 @@ class GroupTransformer(Transformer):
             'timeSpent': obj.avg_time_spent,
             'canResolve': request and request.user.is_authenticated(),
             'isResolved': obj.status == STATUS_RESOLVED,
+            'isPublic': obj.is_public,
             'score': getattr(obj, 'sort_value', 0),
             'project': {
                 'name': obj.project.name,

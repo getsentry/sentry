@@ -78,7 +78,7 @@
                     gid: this.model.get('id')
                 },
                 success: _.bind(function(response){
-                    this.model.set('isBookmarked', response.bookmarked);
+                    this.model.set('isBookmarked', response.isBookmarked);
                 }, this)
             });
         },
