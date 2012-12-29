@@ -19,6 +19,7 @@ PLATFORM_LIST = (
     'php',
     'java',
     'node.js',
+    'ios',
     'express',
     'connect',
     'r',
@@ -30,6 +31,7 @@ PLATFORM_LIST = (
 PLATFORM_TITLES = {
     'rails3': 'Rails 3',
     'php': 'PHP',
+    'ios': 'iOS',
 }
 
 
