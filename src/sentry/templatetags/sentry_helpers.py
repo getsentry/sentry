@@ -365,3 +365,11 @@ def get_rendered_interfaces(event):
             continue
         interface_list.append((interface, mark_safe(html)))
     return sorted(interface_list, key=lambda x: x[0].get_display_score(), reverse=True)
+
+
+@register.inclusion_tag('sentry/partial/github_button.html')
+def github_button(user, repo):
+    return {
+        'user': user,
+        'repo': repo,
+    }

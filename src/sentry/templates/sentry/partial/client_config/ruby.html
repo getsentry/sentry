@@ -1,25 +1,31 @@
+{% extends "sentry/partial/client_config/ruby_base.html" %}
+
 {% load i18n %}
 
-<p>{% blocktrans with 'https://github.com/getsentry/raven-ruby' as link %}Start by installing <a href="{{ link }}">raven-ruby</a>:{% endblocktrans %}</p>
+{% block inner %}
 
-<pre>gem install sentry-raven</pre>
+	<p>{% blocktrans with 'https://github.com/getsentry/raven-ruby' as link %}Start by installing <a href="{{ link }}">raven-ruby</a>:{% endblocktrans %}</p>
 
-<p>{% trans "Or add it to your <code>Gemfile</code>:" %}</p>
+	<pre>gem install sentry-raven</pre>
 
-<pre>gem "sentry-raven", :git => "https://github.com/getsentry/raven-ruby.git"</pre>
+	<p>{% trans "Or add it to your <code>Gemfile</code>:" %}</p>
 
-<p>{% trans "Create an instance of the client:" %}</p>
+	<pre>gem "sentry-raven", :git => "https://github.com/getsentry/raven-ruby.git"</pre>
 
-<pre>require 'raven'
+	<p>{% trans "Create an instance of the client:" %}</p>
+
+	<pre>require 'raven'
 
 Raven.configure do |config|
   config.dsn = '{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}'
 end</pre>
 
-<p>{% trans "Now wrap your application to capture events:" %}</p>
+	<p>{% trans "Now wrap your application to capture events:" %}</p>
 
-<pre>Raven.capture do
+	<pre>Raven.capture do
     MyApp.run
 end</pre>
 
-<p>{% blocktrans with 'https://github.com/getsentry/raven-ruby' as link %}For more information on other uses of Raven with Ruby, please see the <a href="{{ link }}">official documentation for raven-ruby</a>.{% endblocktrans %}</p>
+	<p>{% blocktrans with 'https://github.com/getsentry/raven-ruby' as link %}For more information on other uses of Raven with Ruby, please see the <a href="{{ link }}">official documentation for raven-ruby</a>.{% endblocktrans %}</p>
+
+{% endblock %}
