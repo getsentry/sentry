@@ -344,7 +344,7 @@ def configure_project_plugin(request, project, slug):
     except KeyError:
         return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.slug]))
 
-    if not plugin.is_enabled(project):
+    if not plugin.can_enable_for_projects():
         return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.slug]))
 
     result = plugins.first('has_perm', request.user, 'configure_project_plugin', project, plugin)
@@ -366,6 +366,7 @@ def configure_project_plugin(request, project, slug):
         'view': view,
         'project': project,
         'plugin': plugin,
+        'plugin_is_enabled': plugin.is_enabled(project),
         'SECTION': 'settings',
     })
 
@@ -429,4 +430,4 @@ def disable_project_plugin(request, project, slug):
 
     plugin.set_option('enabled', False, project)
 
-    return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.slug]))
+    return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.slug, slug]))

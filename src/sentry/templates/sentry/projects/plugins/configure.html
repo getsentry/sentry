@@ -14,7 +14,11 @@
 {% block inner %}
     <div class="page-header">
         <div class="pull-right">
-            <a href="{% url sentry-disable-project-plugin project.slug plugin.slug %}" class="btn">{% trans "Disable Plugin" %}</a>
+            {% if not plugin_is_enabled %}
+                <a href="{% url sentry-enable-project-plugin project.slug plugin.slug %}" class="btn">{% trans "Enable Plugin" %}</a>
+            {% else %}
+                <a href="{% url sentry-disable-project-plugin project.slug plugin.slug %}" class="btn">{% trans "Disable Plugin" %}</a>
+            {% endif %}
             <a href="{% url sentry-reset-project-plugin project.slug plugin.slug %}" class="btn"
                 onclick="return confirm('{% trans "Are you sure you wish to reset all configuration for this plugin?" %}');">{% trans "Reset Configuration" %}</a>
         </div>
