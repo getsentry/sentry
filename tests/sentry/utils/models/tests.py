@@ -28,3 +28,4 @@ class ModelTest(TestCase):
         self.assertTrue(inst.has_changed('foo'))
         self.assertEquals(inst.old_value('foo'), 'bar')
         models.signals.post_save.send(instance=inst, sender=type(inst), created=False)
+        self.assertFalse(inst.has_changed('foo'))
