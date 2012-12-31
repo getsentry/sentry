@@ -43,13 +43,14 @@ class EmailAuthBackend(ModelBackend):
     Supports authenticating via an email address or a username.
     """
     def authenticate(self, username=None, password=None):
+        qs = User.objects.exclude(password='!')
         try:
             # Assume username is a login and attempt to login.
-            user = User.objects.get(username__iexact=username)
+            user = qs.get(username__iexact=username)
         except User.DoesNotExist:
             if '@' in username:
                 try:
-                    user = User.objects.get(email__iexact=username)
+                    user = qs.get(email__iexact=username)
                 except User.DoesNotExist:
                     return None
             else:
