@@ -988,11 +988,8 @@ class SearchDocumentManager(BaseManager):
             token_sql = ' '
 
         sql = """
-            SELECT sd.id AS id,
-                   sd.group_id AS group_id,
-                   SUM(st.times_seen) / sd.total_events as score,
-                   sd.date_changed AS date_changed,
-                   sd.date_added AS date_added
+            SELECT sd.*,
+                   SUM(st.times_seen) / sd.total_events as score
             FROM sentry_searchdocument as sd
             INNER JOIN sentry_searchtoken as st
                 ON st.document_id = sd.id
