@@ -1,3 +1,12 @@
+Version 5.1.2
+-------------
+
+- [Fix] Option schema (key length = 64).
+- [Fix] Template interface now renders correctly.
+- [Fix] Update design on admin status pages.
+- [New] iOS client documentation.
+- Improved client documentation visuals.
+
 Version 5.1.1
 -------------
 
