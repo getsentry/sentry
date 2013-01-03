@@ -44,7 +44,7 @@ def get_started(request, project):
 
 @login_required
 def project_list(request):
-    project_list = get_project_list(request.user, hidden=True).values()
+    project_list = get_project_list(request.user, hidden=True, select_related=["owner"]).values()
     team_list = Team.objects.in_bulk([p.team_id for p in project_list])
     if request.user.is_authenticated():
         memberships = dict((tm.team_id, tm) for tm in TeamMember.objects.filter(user=request.user, team__in=team_list))
