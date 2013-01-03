@@ -73,3 +73,7 @@ MEMBER_TYPES = (
     (MEMBER_USER, _('User')),
     (MEMBER_SYSTEM, _('System Agent')),
 )
+
+# A list of values which represent an unset or empty password on
+# a User instance.
+EMPTY_PASSWORD_VALUES = ('!', '', '$')

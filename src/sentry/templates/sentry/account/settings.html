@@ -22,7 +22,9 @@
         {{ form|as_crispy_errors }}
         <p>{% trans "To make changes to your account, you must first enter your current password." %}</p>
         {% with form.old_password as field %}
-            {% include "sentry/partial/_form_field.html" %}
+            {% if field %}
+                {% include "sentry/partial/_form_field.html" %}
+            {% endif %}
         {% endwith %}
         <hr>
         <fieldset class="control-group">

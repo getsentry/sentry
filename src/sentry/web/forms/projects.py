@@ -10,6 +10,7 @@ from django import forms
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
+from sentry.constants import EMPTY_PASSWORD_VALUES
 from sentry.models import Project, ProjectOption
 from sentry.permissions import can_set_public_projects
 from sentry.web.forms.fields import RadioFieldRenderer, UserField, OriginsField, \
@@ -71,6 +72,10 @@ class RemoveProjectForm(forms.Form):
         else:
             self.fields['project'].choices = [(p.pk, p.name) for p in project_list]
             self.fields['project'].widget.choices = self.fields['project'].choices
+
+        # HACK: dont require current password if they dont have one
+        if self.user.password in EMPTY_PASSWORD_VALUES:
+            del self.fields['password']
 
     def clean(self):
         data = self.cleaned_data
