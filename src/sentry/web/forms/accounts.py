@@ -116,7 +116,6 @@ class AppearanceSettingsForm(forms.Form):
         # if commit:
         #     self.user.save()
 
-        print self.user, "setting options"
         # Save user language
         UserOption.objects.set_value(
             user=self.user,
