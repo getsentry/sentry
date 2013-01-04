@@ -25,9 +25,6 @@
             if (this.model.get('isResolved')) {
                 this.$el.addClass('resolved');
             }
-            if (this.model.get('historicalData').length > 0) {
-                this.$el.addClass('with-sparkline');
-            }
             this.$el.find('a[data-action=resolve]').click(_.bind(function(e){
                 e.preventDefault();
                 this.resolve();
@@ -41,8 +38,10 @@
 
         renderSparkline: function(obj){
             var data = this.model.get('historicalData');
-            if (!data)
+            if (!data || !data.length)
                 return;
+
+            this.$el.addClass('with-sparkline');
 
             app.charts.createSparkline(this.$el.find('.sparkline'), data);
         },
