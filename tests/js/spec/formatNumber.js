@@ -11,6 +11,11 @@ describe("formatNumber", function() {
     expect(app.utils.formatNumber(5334)).toBe('5.3k');
   });
 
+  it("handles thousands", function() {
+    expect(app.utils.formatNumber(533334)).toBe('533k');
+  });
+
+
   it("doesnt format small numbers", function() {
     expect(app.utils.formatNumber(15)).toBe('15');
   });

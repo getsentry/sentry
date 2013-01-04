@@ -63,7 +63,7 @@
                 o = Math.floor(number / x);
                 p = number % x;
                 if (o > 0) {
-                    if (('' + o.length) > 2 || !p)
+                    if (o / 10 > 10 || !p)
                         return '' + o + y;
                     return '' + this.floatFormat(number / x, 1) + y;
                 }
