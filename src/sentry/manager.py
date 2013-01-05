@@ -526,7 +526,7 @@ class GroupManager(BaseManager, ChartMixin):
 
         if is_new:
             try:
-                regression_signal.send(sender=self.model, instance=group)
+                regression_signal.send_robust(sender=self.model, instance=group)
             except Exception, e:
                 transaction.rollback_unless_managed(using=group._state.db)
                 logger.exception(u'Error sending regression signal: %s', e)
