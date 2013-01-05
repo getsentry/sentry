@@ -39,6 +39,7 @@ from sentry.constants import (STATUS_LEVELS, MEMBER_TYPES,  # NOQA
 from sentry.manager import GroupManager, ProjectManager, \
   MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager, \
   UserOptionManager, FilterKeyManager, TeamManager
+from sentry.signals import buffer_incr_complete
 from sentry.utils import cached_property, \
   MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField, update
@@ -941,6 +942,18 @@ def set_language_on_logon(request, user, **kwargs):
     if language and hasattr(request, 'session'):
         request.session['django_language'] = language
 
+
+@buffer_incr_complete.connect(sender=MessageFilterValue)
+def record_user_count(columns, extra, created, **kwargs):
+    from sentry import app
+
+    if not created:
+        # if it's not a new row, it's not a unique user
+        return
+
+    app.buffer.incr(Group, {'users_seen': 1})
+
+
 # Signal registration
 post_syncdb.connect(
     create_default_project,
@@ -977,6 +990,17 @@ pre_delete.connect(
     dispatch_uid="remove_key_for_team_member",
     weak=False,
 )
-user_logged_in.connect(set_language_on_logon)
+user_logged_in.connect(
+    set_language_on_logon,
+    dispatch_uid="set_language_on_logon",
+    weak=False
+)
+
+buffer_incr_complete.connect(
+    record_user_count,
+    sender=MessageFilterValue,
+    dispatch_uid="record_user_count",
+    weak=False
+)
 
 add_introspection_rules([], ["^social_auth\.fields\.JSONField"])

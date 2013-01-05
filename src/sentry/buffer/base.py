@@ -8,6 +8,7 @@ sentry.buffer.base
 
 from django.db.models import F
 from sentry.utils.queue import maybe_async
+from sentry.signals import buffer_incr_complete
 from sentry.tasks.process_buffer import process_incr
 
 
@@ -42,7 +43,16 @@ class Buffer(object):
         update_kwargs = dict((c, F(c) + v) for c, v in columns.iteritems())
         if extra:
             update_kwargs.update(extra)
-        model.objects.create_or_update(
+
+        _, created = model.objects.create_or_update(
             defaults=update_kwargs,
             **filters
+        )
+
+        buffer_incr_complete.send_robust(
+            model=model,
+            columns=columns,
+            extra=extra,
+            created=created,
+            sender=model,
         )
