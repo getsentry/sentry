@@ -944,7 +944,7 @@ def set_language_on_logon(request, user, **kwargs):
 
 
 @buffer_incr_complete.connect(sender=MessageFilterValue, weak=False)
-def record_user_count(filters, extra, created, **kwargs):
+def record_user_count(filters, created, **kwargs):
     from sentry import app
 
     if not created:
