@@ -7,9 +7,9 @@ sentry.buffer.base
 """
 
 from django.db.models import F
-from sentry.utils.queue import maybe_async
 from sentry.signals import buffer_incr_complete
 from sentry.tasks.process_buffer import process_incr
+from sentry.utils.queue import maybe_async
 
 
 class Buffer(object):
