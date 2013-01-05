@@ -39,6 +39,7 @@ from sentry.constants import (STATUS_LEVELS, MEMBER_TYPES,  # NOQA
 from sentry.manager import GroupManager, ProjectManager, \
   MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager, \
   UserOptionManager, FilterKeyManager, TeamManager
+from sentry.signals import buffer_incr_complete
 from sentry.utils import cached_property, \
   MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField, update
@@ -389,6 +390,10 @@ class MessageBase(Model):
             return self.culprit
         return truncatechars(self.message.splitlines()[0], 100)
 
+    @property
+    def user_data(self):
+        return self.data.get('sentry.interfaces.User', {})
+
 
 class Group(MessageBase):
     """
@@ -396,6 +401,7 @@ class Group(MessageBase):
     """
     status = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
     times_seen = models.PositiveIntegerField(default=1, db_index=True)
+    users_seen = models.PositiveIntegerField(default=0, db_index=True)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
     resolved_at = models.DateTimeField(null=True, db_index=True)
@@ -936,6 +942,25 @@ def set_language_on_logon(request, user, **kwargs):
     if language and hasattr(request, 'session'):
         request.session['django_language'] = language
 
+
+@buffer_incr_complete.connect(sender=MessageFilterValue, weak=False)
+def record_user_count(filters, created, **kwargs):
+    from sentry import app
+
+    if not created:
+        # if it's not a new row, it's not a unique user
+        return
+
+    if filters.get('key') != 'user_email':
+        return
+
+    app.buffer.incr(Group, {
+        'users_seen': 1,
+    }, {
+        'id': filters['group'].id,
+    })
+
+
 # Signal registration
 post_syncdb.connect(
     create_default_project,
@@ -972,6 +997,10 @@ pre_delete.connect(
     dispatch_uid="remove_key_for_team_member",
     weak=False,
 )
-user_logged_in.connect(set_language_on_logon)
+user_logged_in.connect(
+    set_language_on_logon,
+    dispatch_uid="set_language_on_logon",
+    weak=False
+)
 
 add_introspection_rules([], ["^social_auth\.fields\.JSONField"])

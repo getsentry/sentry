@@ -526,7 +526,7 @@ class GroupManager(BaseManager, ChartMixin):
 
         if is_new:
             try:
-                regression_signal.send(sender=self.model, instance=group)
+                regression_signal.send_robust(sender=self.model, instance=group)
             except Exception, e:
                 transaction.rollback_unless_managed(using=group._state.db)
                 logger.exception(u'Error sending regression signal: %s', e)
@@ -594,7 +594,7 @@ class GroupManager(BaseManager, ChartMixin):
             silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
 
             app.buffer.incr(self.model, update_kwargs, {
-                'pk': group.pk,
+                'id': group.id,
             }, extra)
         else:
             # TODO: this update should actually happen as part of create
@@ -640,6 +640,10 @@ class GroupManager(BaseManager, ChartMixin):
             ('logger', event.logger),
             ('level', event.get_level_display()),
         ]
+
+        user_data = event.user_data
+        if user_data.get('email'):
+            tags.append(('user_email', user_data['email']))
 
         self.add_tags(group, tags)
 
