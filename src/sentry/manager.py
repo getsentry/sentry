@@ -594,7 +594,7 @@ class GroupManager(BaseManager, ChartMixin):
             silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
 
             app.buffer.incr(self.model, update_kwargs, {
-                'pk': group.pk,
+                'id': group.id,
             }, extra)
         else:
             # TODO: this update should actually happen as part of create

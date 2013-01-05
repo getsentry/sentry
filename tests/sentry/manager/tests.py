@@ -46,6 +46,32 @@ class SentryManagerTest(TestCase):
         self.assertEquals(event.message, 'foo')
         self.assertEquals(event.project_id, 1)
 
+    def test_records_users_seen(self):
+        # TODO: we could lower the level of this test by just testing our signal receiver's logic
+        event = Group.objects.from_kwargs(1, message='foo', **{
+            'sentry.interfaces.User': {
+                'email': 'foo@example.com',
+            },
+        })
+        group = Group.objects.get(id=event.group_id)
+        assert group.users_seen == 1
+
+        event = Group.objects.from_kwargs(1, message='foo', **{
+            'sentry.interfaces.User': {
+                'email': 'foo@example.com',
+            },
+        })
+        group = Group.objects.get(id=event.group_id)
+        assert group.users_seen == 1
+
+        event = Group.objects.from_kwargs(1, message='foo', **{
+            'sentry.interfaces.User': {
+                'email': 'bar@example.com',
+            },
+        })
+        group = Group.objects.get(id=event.group_id)
+        assert group.users_seen == 2
+
     def test_valid_timestamp_without_tz(self):
         # TODO: this doesnt error, but it will throw a warning. What should we do?
         with self.Settings(USE_TZ=True):

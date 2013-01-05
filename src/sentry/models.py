@@ -943,21 +943,21 @@ def set_language_on_logon(request, user, **kwargs):
         request.session['django_language'] = language
 
 
-@buffer_incr_complete.connect(sender=MessageFilterValue)
-def record_user_count(columns, extra, created, **kwargs):
+@buffer_incr_complete.connect(sender=MessageFilterValue, weak=False)
+def record_user_count(filters, extra, created, **kwargs):
     from sentry import app
 
     if not created:
         # if it's not a new row, it's not a unique user
         return
 
-    if columns.get('key') != 'user_email':
+    if filters.get('key') != 'user_email':
         return
 
     app.buffer.incr(Group, {
         'users_seen': 1,
     }, {
-        'id': columns['group'].id,
+        'id': filters['group'].id,
     })
 
 

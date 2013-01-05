@@ -52,6 +52,7 @@ class Buffer(object):
         buffer_incr_complete.send_robust(
             model=model,
             columns=columns,
+            filters=filters,
             extra=extra,
             created=created,
             sender=model,
