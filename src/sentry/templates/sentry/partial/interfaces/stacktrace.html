@@ -33,7 +33,7 @@
 
                     {% if frame.context or frame.vars %}
                         <div class="commands">
-                            <a href="javascript:void(0)" onclick="$('.frame-{{ forloop.counter0 }}').toggleClass('expanded')" title="{% trans "Toggle Context" %}" rel="tooltip" class="tip"><i class="icon-th-list"></i></a>
+                            <a href="javascript:void(0)" onclick="$('.frame-{{ forloop.counter0 }}').toggleClass('expanded')" title="{% trans "Toggle Context" %}" rel="tooltip" class="tip">{% if frame.vars %}<i class="icon-info-sign"></i> {% endif %}{% if frame.context %}<i class="icon-tasks"></i> {% endif %}</a>
                         </div>
                     {% endif %}
 
