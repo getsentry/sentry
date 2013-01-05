@@ -996,11 +996,4 @@ user_logged_in.connect(
     weak=False
 )
 
-buffer_incr_complete.connect(
-    record_user_count,
-    sender=MessageFilterValue,
-    dispatch_uid="record_user_count",
-    weak=False
-)
-
 add_introspection_rules([], ["^social_auth\.fields\.JSONField"])
