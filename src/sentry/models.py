@@ -389,6 +389,10 @@ class MessageBase(Model):
             return self.culprit
         return truncatechars(self.message.splitlines()[0], 100)
 
+    @property
+    def user_data(self):
+        return self.data.get('sentry.interfaces.User', {})
+
 
 class Group(MessageBase):
     """
@@ -396,6 +400,7 @@ class Group(MessageBase):
     """
     status = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
     times_seen = models.PositiveIntegerField(default=1, db_index=True)
+    users_seen = models.PositiveIntegerField(default=0, db_index=True)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
     resolved_at = models.DateTimeField(null=True, db_index=True)
