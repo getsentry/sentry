@@ -136,6 +136,17 @@ class SentryManagerTest(TestCase):
 
     @mock.patch('sentry.manager.send_group_processors', mock.Mock())
     @mock.patch('sentry.manager.GroupManager.add_tags')
+    def test_does_tag_user_email(self, add_tags):
+        event = Group.objects.from_kwargs(1, message='foo', **{
+            'sentry.interfaces.User': {
+                'email': 'foo@example.com',
+            },
+        })
+        group = event.group
+        add_tags.assert_called_once_with(group, [('logger', 'root'), ('level', 'error'), ('user_email', 'foo@example.com')])
+
+    @mock.patch('sentry.manager.send_group_processors', mock.Mock())
+    @mock.patch('sentry.manager.GroupManager.add_tags')
     def test_tags_as_dict(self, add_tags):
         event = Group.objects.from_kwargs(1, message='foo', tags={'foo': 'bar'})
         group = event.group
