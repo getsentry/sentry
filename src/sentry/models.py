@@ -951,7 +951,14 @@ def record_user_count(columns, extra, created, **kwargs):
         # if it's not a new row, it's not a unique user
         return
 
-    app.buffer.incr(Group, {'users_seen': 1})
+    if columns.get('key') != 'user_email':
+        return
+
+    app.buffer.incr(Group, {
+        'users_seen': 1,
+    }, {
+        'id': columns['group'].id,
+    })
 
 
 # Signal registration
