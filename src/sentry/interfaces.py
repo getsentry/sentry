@@ -697,9 +697,11 @@ class User(Interface):
     """
     An interface which describes the authenticated User for a request.
 
-    All data is arbitrary and optional other than the ``is_authenticated``
-    field which should be a boolean value indiciating whether the user
-    is logged in or not.
+    All data is arbitrary and optional other than the ``email``
+    field which should be a string representing the user's email
+    address.
+
+    The email will automatically be tagged and used to determine unique users.
 
     >>> {
     >>>     "is_authenticated": true,
@@ -709,11 +711,11 @@ class User(Interface):
     >>> }
     """
 
-    def __init__(self, is_authenticated, **kwargs):
-        self.is_authenticated = is_authenticated
+    def __init__(self, email=None, **kwargs):
         self.id = kwargs.pop('id', None)
+        self.email = email
         self.username = kwargs.pop('username', None)
-        self.email = kwargs.pop('email', None)
+        self.is_authenticated = kwargs.get('is_authenticated', None)
         self.data = kwargs
 
     def serialize(self):
