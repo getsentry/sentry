@@ -844,6 +844,28 @@ class LostPasswordHash(models.Model):
             logger.exception(e)
 
 
+class AffectedUserByGroup(Model):
+    """
+    Stores a count of how many times a ``Group`` has affected
+    a user.
+    """
+    project = models.ForeignKey(Project)
+    group = models.ForeignKey(Group)
+    ident = models.CharField(max_length=200)
+    times_seen = models.PositiveIntegerField(default=0)
+    last_seen = models.DateTimeField(default=timezone.now, db_index=True)
+    first_seen = models.DateTimeField(default=timezone.now, db_index=True)
+
+    objects = BaseManager()
+
+    class Meta:
+        unique_together = (('project', 'ident', 'group'),)
+
+    def __unicode__(self):
+        return u'group_id=%s, times_seen=%s, ident=%s' % (self.group_id, self.times_seen,
+                                                          self.ident)
+
+
 ### django-indexer
 
 
@@ -975,15 +997,12 @@ def set_language_on_logon(request, user, **kwargs):
         request.session['django_language'] = language
 
 
-@buffer_incr_complete.connect(sender=MessageFilterValue, weak=False)
+@buffer_incr_complete.connect(sender=AffectedUserByGroup, weak=False)
 def record_user_count(filters, created, **kwargs):
     from sentry import app
 
     if not created:
         # if it's not a new row, it's not a unique user
-        return
-
-    if filters.get('key') != 'user':
         return
 
     app.buffer.incr(Group, {

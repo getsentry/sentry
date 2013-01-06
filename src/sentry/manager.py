@@ -643,11 +643,27 @@ class GroupManager(BaseManager, ChartMixin):
 
         user_ident = event.user_ident
         if user_ident:
-            tags.append(('user', user_ident))
+            self.record_affected_user(group, user_ident)
 
         self.add_tags(group, tags)
 
         return group, is_new, is_sample
+
+    def record_affected_user(self, group, user_ident):
+        from sentry.models import AffectedUserByGroup
+
+        project = group.project
+        date = group.last_seen
+
+        app.buffer.incr(AffectedUserByGroup, {
+            'times_seen': 1,
+        }, {
+            'group': group,
+            'project': project,
+            'ident': user_ident,
+        }, {
+            'last_seen': date,
+        })
 
     def add_tags(self, group, tags):
         from sentry.models import FilterValue, FilterKey, MessageFilterValue
