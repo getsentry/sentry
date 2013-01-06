@@ -40,7 +40,7 @@ class MailConfigurationForm(NotificationConfigurationForm):
     send_to = forms.CharField(label=_('Send to'), required=False,
         help_text=_('Enter one or more emails separated by commas or lines.'),
         widget=forms.Textarea(attrs={
-            'placeholder': 'you@example.com\nother@example.com'}))
+            'placeholder': 'you@example.com'}))
 
     def clean_send_to(self):
         value = self.cleaned_data['send_to']
