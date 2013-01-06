@@ -392,6 +392,17 @@ class MessageBase(Model):
 
     @property
     def user_ident(self):
+        """
+        The identifier from a user is considered from several interfaces.
+
+        In order:
+
+        - User.id
+        - User.email
+        - User.username
+        - Http.env.REMOTE_ADDR
+
+        """
         user_data = self.data.get('sentry.interfaces.User')
         if user_data:
             ident = user_data.get('id')
@@ -401,6 +412,10 @@ class MessageBase(Model):
             ident = user_data.get('email')
             if ident:
                 return 'email:%s' % (ident,)
+
+            ident = user_data.get('username')
+            if ident:
+                return 'username:%s' % (ident,)
 
         http_data = self.data.get('sentry.interfaces.Http')
         if http_data:
