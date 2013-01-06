@@ -39,7 +39,8 @@ class ProjectTagsForm(forms.Form):
 
 
 class NewProjectForm(forms.ModelForm):
-    name = forms.CharField(label=_('Project Name'), max_length=200, widget=forms.TextInput(attrs={'placeholder': _('My Project Name')}))
+    name = forms.CharField(label=_('Project Name'), max_length=200,
+        widget=forms.TextInput(attrs={'placeholder': _('example.com')}))
 
     class Meta:
         fields = ('name',)

@@ -18,7 +18,7 @@ class RemoveTeamForm(forms.Form):
 
 class NewTeamForm(forms.ModelForm):
     name = forms.CharField(label=_('Team Name'), max_length=200,
-        widget=forms.TextInput(attrs={'placeholder': _('My Team Name')}))
+        widget=forms.TextInput(attrs={'placeholder': _('example.com')}))
 
     class Meta:
         fields = ('name',)
