@@ -390,10 +390,6 @@ class MessageBase(Model):
             return self.culprit
         return truncatechars(self.message.splitlines()[0], 100)
 
-    @property
-    def user_data(self):
-        return self.data.get('sentry.interfaces.User', {})
-
 
 class Group(MessageBase):
     """
