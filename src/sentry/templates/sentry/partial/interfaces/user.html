@@ -12,18 +12,16 @@
             </colgroup>
             <tbody>
                 <tr>
-                    <th>{% trans "Authenticated:" %}</th>
-                    <td>{{ user_authenticated }}</td>
+                    <th>{% trans "ID:" %}</th>
+                    <td>{{ user_id }}</td>
                 </tr>
-                {% if user_authenticated %}
-                    <tr>
-                        <th>{% trans "ID:" %}</th>
-                        <td>{{ user_id }}</td>
-                    </tr>
+                {% if user_username %}
                     <tr>
                         <th>{% trans "Username:" %}</th>
                         <td>{{ user_username }}</td>
                     </tr>
+                {% endif %}
+                {% if user_email %}
                     <tr>
                         <th>{% trans "Email:" %}</th>
                         <td>{{ user_email }}</td>

@@ -478,7 +478,8 @@ class Http(Interface):
     are required: ``url`` and ``method``.
 
     The ``env`` variable is a compounded dictionary of HTTP headers as well
-    as environment information passed from the webserver.
+    as environment information passed from the webserver. Sentry will explicitly
+    look for ``REMOTE_ADDR`` in ``env`` for things which require an IP address.
 
     The ``data`` variable should only contain the request body (not the query
     string). It can either be a dictionary (for standard HTTP requests) or a
@@ -697,40 +698,33 @@ class User(Interface):
     """
     An interface which describes the authenticated User for a request.
 
-    All data is arbitrary and optional other than the ``email``
-    field which should be a string representing the user's email
-    address.
-
-    The email will automatically be tagged and used to determine unique users.
+    All data is arbitrary and optional other than the ``id``
+    field which should be a string representing the user's unique identifier.
 
     >>> {
-    >>>     "is_authenticated": true,
     >>>     "id": "unique_id",
-    >>>     "username": "foo",
+    >>>     "username": "my_user",
     >>>     "email": "foo@example.com"
     >>> }
     """
 
-    def __init__(self, email=None, **kwargs):
-        self.id = kwargs.pop('id', None)
+    def __init__(self, id=None, email=None, username=None, **kwargs):
+        self.id = id
         self.email = email
-        self.username = kwargs.pop('username', None)
-        self.is_authenticated = kwargs.get('is_authenticated', None)
+        self.username = username
         self.data = kwargs
 
     def serialize(self):
-        if self.is_authenticated:
-            return {
-                'is_authenticated': self.is_authenticated,
-                'id': self.id,
-                'username': self.username,
-                'email': self.email,
-                'data': self.data,
-            }
-        else:
-            return {
-                'is_authenticated': self.is_authenticated
-            }
+        # XXX: legacy -- delete
+        if hasattr(self, 'is_authenticated'):
+            self.data['is_authenticated'] = self.is_authenticated
+
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'data': self.data,
+        }
 
     def get_hash(self):
         return []
@@ -738,7 +732,6 @@ class User(Interface):
     def to_html(self, event):
         return render_to_string('sentry/partial/interfaces/user.html', {
             'event': event,
-            'user_authenticated': self.is_authenticated,
             'user_id': self.id,
             'user_username': self.username,
             'user_email': self.email,

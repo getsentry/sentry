@@ -641,6 +641,10 @@ class GroupManager(BaseManager, ChartMixin):
             ('level', event.get_level_display()),
         ]
 
+        user_ident = event.user_ident
+        if user_ident:
+            tags.append(('user', user_ident))
+
         self.add_tags(group, tags)
 
         return group, is_new, is_sample

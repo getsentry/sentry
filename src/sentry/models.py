@@ -390,6 +390,27 @@ class MessageBase(Model):
             return self.culprit
         return truncatechars(self.message.splitlines()[0], 100)
 
+    @property
+    def user_ident(self):
+        user_data = self.data.get('sentry.interfaces.User')
+        if user_data:
+            ident = user_data.get('id')
+            if ident:
+                return 'id:%s' % (ident,)
+
+            ident = user_data.get('email')
+            if ident:
+                return 'email:%s' % (ident,)
+
+        http_data = self.data.get('sentry.interfaces.Http')
+        if http_data:
+            if 'env' in http_data:
+                ident = http_data['env'].get('REMOTE_ADDR')
+                if ident:
+                    return 'ip:%s' % (ident,)
+
+        return None
+
 
 class Group(MessageBase):
     """
@@ -947,7 +968,7 @@ def record_user_count(filters, created, **kwargs):
         # if it's not a new row, it's not a unique user
         return
 
-    if filters.get('key') != 'user_email':
+    if filters.get('key') != 'user':
         return
 
     app.buffer.incr(Group, {
