@@ -173,7 +173,9 @@ def manage_project(request, project):
     # XXX: We probably shouldnt allow changing the team unless they're the project owner
     team_list = Team.objects.get_for_user(project.owner or request.user, MEMBER_OWNER)
 
-    if request.user.has_perm('sentry.can_change_project'):
+    can_admin_project = request.user == project.owner or request.user.has_perm('sentry.can_change_project')
+
+    if can_admin_project:
         form_cls = EditProjectAdminForm
     else:
         form_cls = EditProjectForm

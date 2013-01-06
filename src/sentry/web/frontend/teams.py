@@ -66,7 +66,9 @@ def manage_team(request, team):
     if result is False and not request.user.has_perm('sentry.can_change_team'):
         return HttpResponseRedirect(reverse('sentry'))
 
-    if request.user.has_perm('sentry.can_add_team'):
+    can_admin_team = request.user == team.owner or request.user.has_perm('sentry.can_add_team')
+
+    if can_admin_team:
         form_cls = EditTeamAdminForm
     else:
         form_cls = EditTeamForm

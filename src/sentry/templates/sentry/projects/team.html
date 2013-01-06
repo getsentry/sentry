@@ -19,9 +19,11 @@
         {% endif %}
         <h2>
             {% trans "Manage Team" %}
-            <small><a href="{% url sentry-manage-team team.slug %}">{{ team.name }}</a></small>
+            <small>{{ team.name }}</small>
         </h2>
     </div>
+    <p>To change other settings for this team, visit the  <a href="{% url sentry-manage-team team.slug %}">team management page for {{ team.name }}</a>.</p>
+    <br>
     <table class="table table-bordered table-striped">
         <colgroup>
             <col/>

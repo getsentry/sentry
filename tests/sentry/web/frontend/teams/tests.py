@@ -112,6 +112,7 @@ class ManageTeamTest(BaseTeamTest):
         path = reverse('sentry-manage-team', args=[self.team.slug])
         resp = self.client.post(path, {
             'name': 'bar',
+            'owner': self.team.owner.username,
         })
         self.assertNotEquals(resp.status_code, 200)
         self.assertEquals(resp['Location'], 'http://testserver' + path + '?success=1')

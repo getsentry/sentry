@@ -40,7 +40,7 @@ class EditTeamForm(forms.ModelForm):
 
 
 class EditTeamAdminForm(EditTeamForm):
-    owner = UserField(required=False)
+    owner = UserField(required=True)
 
     class Meta:
         fields = ('name', 'owner',)
