@@ -739,8 +739,10 @@ class User(Interface):
         })
 
     def get_search_context(self, event):
-        if not self.is_authenticated:
+        tokens = filter(bool, [self.id, self.username, self.email])
+        if not tokens:
             return {}
+
         return {
-            'text': [self.id, self.username, self.email]
+            'text': tokens
         }
