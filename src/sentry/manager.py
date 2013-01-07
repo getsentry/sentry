@@ -16,6 +16,7 @@ import logging
 import re
 import warnings
 import weakref
+import time
 
 from celery.signals import task_postrun
 from django.conf import settings as dj_settings
@@ -413,7 +414,7 @@ class ChartMixin(object):
             results[item] = []
             for point in xrange(points, -1, -1):
                 dt = today - datetime.timedelta(**{d_type: point * modifier})
-                results[item].append((int((dt).strftime('%s')) * 1000, tsdata.get(dt, 0)))
+                results[item].append((int(time.mktime((dt).timetuple())) * 1000, tsdata.get(dt, 0)))
 
         if key is None:
             return results[None]
