@@ -1015,7 +1015,7 @@ class SearchDocumentManager(BaseManager):
                 ON st.document_id = sd.id
             WHERE %s
                 sd.project_id = %s
-            GROUP BY sd.id, sd.group_id, sd.total_events, sd.date_changed, sd.date_added
+            GROUP BY sd.id, sd.group_id, sd.total_events, sd.date_changed, sd.date_added, sd.project_id, sd.status
             ORDER BY %s
             LIMIT %d OFFSET %d
         """ % (
