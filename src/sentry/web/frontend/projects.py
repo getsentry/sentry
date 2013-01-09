@@ -31,7 +31,8 @@ from sentry.web.helpers import render_to_response, get_project_list, \
 def dashboard(request, project):
     if not Group.objects.filter(project=project).exists():
         return HttpResponseRedirect(reverse('sentry-get-started', args=[project.slug]))
-    return HttpResponseRedirect(reverse('sentry-stream', args=[project.slug]))
+    return HttpResponseRedirect('%s?%s' % (reverse('sentry-stream', args=[project.slug]),
+        request.META.get('QUERY_STRING', '')))
 
 
 @login_required
