@@ -561,6 +561,8 @@ class GroupManager(BaseManager, ChartMixin):
             for g in groups[1:]:
                 g.delete()
             group, is_new = groups[0], False
+        else:
+            transaction.commit_unless_managed(using=group._state.db)
 
         update_kwargs = {
             'times_seen': 1,
