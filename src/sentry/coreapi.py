@@ -80,7 +80,7 @@ def extract_auth_vars(request):
     elif request.META.get('HTTP_AUTHORIZATION', '').startswith('Sentry'):
         return parse_auth_header(request.META['HTTP_AUTHORIZATION'])
     else:
-        return None
+        return request.GET
 
 
 def project_from_auth_vars(auth_vars):
