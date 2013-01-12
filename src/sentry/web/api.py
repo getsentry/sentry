@@ -220,11 +220,18 @@ class StoreView(APIView):
     """
     @never_cache
     def post(self, request, project, auth, **kwargs):
+        data = request.raw_post_data
+        return self.process(request, project, auth, data, **kwargs)
+
+    @never_cache
+    def get(self, request, project, auth, **kwargs):
+        data = request.GET.get('sentry_data')
+        return self.process(request, project, auth, data, **kwargs)
+
+    def process(self, request, project, auth, data, **kwargs):
         result = plugins.first('has_perm', request.user, 'create_event', project)
         if result is False:
             raise APIForbidden('Creation of this event was blocked')
-
-        data = request.raw_post_data
 
         if not data.startswith('{'):
             data = decode_and_decompress_data(data)
