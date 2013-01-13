@@ -97,11 +97,11 @@ class ExtractAuthVarsTest(BaseAPITest):
         self.assertTrue('biz' in result)
         self.assertEquals(result['biz'], 'baz')
 
-    def test_invalid_construct(self):
+    def test_invalid_header_defers_to_GET(self):
         request = mock.Mock()
         request.META = {'HTTP_X_SENTRY_AUTH': 'foobar'}
         result = extract_auth_vars(request)
-        self.assertEquals(result, None)
+        self.assertEquals(result, request.GET)
 
     def test_valid_version_legacy(self):
         request = mock.Mock()
@@ -113,11 +113,11 @@ class ExtractAuthVarsTest(BaseAPITest):
         self.assertTrue('biz' in result)
         self.assertEquals(result['biz'], 'baz')
 
-    def test_invalid_construct_legacy(self):
+    def test_invalid_legacy_header_defers_to_GET(self):
         request = mock.Mock()
         request.META = {'HTTP_AUTHORIZATION': 'foobar'}
         result = extract_auth_vars(request)
-        self.assertEquals(result, None)
+        self.assertEquals(result, request.GET)
 
 
 class ProjectFromAuthVarsTest(BaseAPITest):
