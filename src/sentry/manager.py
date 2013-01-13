@@ -647,7 +647,10 @@ class GroupManager(BaseManager, ChartMixin):
         if user_ident:
             self.record_affected_user(group, user_ident)
 
-        self.add_tags(group, tags)
+        try:
+            self.add_tags(group, tags)
+        except Exception, e:
+            logger.exception('Unable to record tags: %s' % (e,))
 
         return group, is_new, is_sample
 
@@ -674,7 +677,11 @@ class GroupManager(BaseManager, ChartMixin):
         date = group.last_seen
 
         for key, value in itertools.ifilter(lambda x: bool(x[1]), tags):
-            if not value or len(value) > MAX_TAG_LENGTH:
+            if not value:
+                continue
+
+            value = unicode(value)
+            if len(value) > MAX_TAG_LENGTH:
                 continue
 
             # TODO: FilterKey and FilterValue queries should be create's under a try/except
