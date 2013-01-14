@@ -225,7 +225,7 @@ class StoreView(APIView):
 
     @never_cache
     def get(self, request, project, auth, **kwargs):
-        data = request.GET.get('sentry_data')
+        data = request.GET.get('sentry_data', '')
         return self.process(request, project, auth, data, **kwargs)
 
     def process(self, request, project, auth, data, **kwargs):
