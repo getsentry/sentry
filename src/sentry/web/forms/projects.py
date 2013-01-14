@@ -121,10 +121,13 @@ class EditProjectForm(forms.ModelForm):
 
     def clean_team(self):
         value = self.cleaned_data.get('team')
-        if not value:
+        if not value or value is -1:
             return
 
-        return self.team_list[int(value)]
+        if value == self.instance.team.id:
+            return self.instance.team
+
+        return self.team_list[value]
 
 
 class EditProjectAdminForm(EditProjectForm):
