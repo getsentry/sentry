@@ -50,6 +50,7 @@ def is_same_domain(url1, url2):
 
 
 def get_origins(project=None):
+    # TODO: we should cache this
     if settings.ALLOW_ORIGIN == '*':
         return frozenset(['*'])
     elif settings.ALLOW_ORIGIN:
@@ -60,9 +61,11 @@ def get_origins(project=None):
     if project:
         optval = get_option('sentry:origins', project)
         if optval:
-            result.extend(map(lambda x: x.lower(), optval))
+            result.extend(optval)
 
-    return frozenset(filter(bool, result))
+    # lowercase and strip the trailing slash from all origin values
+    # filter out empty values
+    return frozenset(filter(bool, map(lambda x: x.lower().rstrip('/'), result)))
 
 
 def is_valid_origin(origin, project=None):
@@ -77,6 +80,9 @@ def is_valid_origin(origin, project=None):
     - *.domain.com: matches domain.com and all subdomains, on any port
     - domain.com: matches domain.com on any port
     """
+    # we always run a case insensitive check
+    origin = origin.lower()
+
     allowed = get_origins(project)
     if '*' in allowed:
         return True
@@ -97,6 +103,9 @@ def is_valid_origin(origin, project=None):
 
     for valid in allowed:
         if '://' in valid:
+            # Support partial uri matches that may include path
+            if origin.startswith(valid):
+                return True
             continue
 
         if valid.startswith('*.'):
