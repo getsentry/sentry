@@ -139,4 +139,4 @@ class StacktraceTest(InterfaceBase):
     @mock.patch('sentry.interfaces.Stacktrace.get_stacktrace')
     def test_to_string_returns_stacktrace(self, get_stacktrace):
         assert self.interface.to_string(self.event) == get_stacktrace.return_value
-        get_stacktrace.assert_called_once_with(self.event, system_frames=False)
+        get_stacktrace.assert_called_once_with(self.event, system_frames=False, max_frames=5)

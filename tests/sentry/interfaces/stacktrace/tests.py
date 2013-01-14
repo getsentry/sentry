@@ -85,7 +85,7 @@ class StacktraceTest(TestCase):
         event = mock.Mock(spec=Event())
         interface = Stacktrace(frames=[])
         result = interface.to_string(event)
-        get_stacktrace.assert_called_once_with(event, system_frames=False)
+        get_stacktrace.assert_called_once_with(event, system_frames=False, max_frames=5)
         self.assertEquals(result, get_stacktrace.return_value)
 
     @mock.patch('sentry.interfaces.Stacktrace.get_stacktrace')

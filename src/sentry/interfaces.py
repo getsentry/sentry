@@ -369,9 +369,9 @@ class Stacktrace(Interface):
         })
 
     def to_string(self, event):
-        return self.get_stacktrace(event, system_frames=False)
+        return self.get_stacktrace(event, system_frames=False, max_frames=5)
 
-    def get_stacktrace(self, event, system_frames=True, newest_first=None):
+    def get_stacktrace(self, event, system_frames=True, newest_first=None, max_frames=None):
         if newest_first is None:
             newest_first = self.is_newest_frame_first(event)
 
@@ -384,15 +384,23 @@ class Stacktrace(Interface):
         result.append('')
 
         frames = self.frames
+
+        num_frames = len(frames)
+
         if not system_frames:
-            frames = [f for f in frames if f.get('in_app')]
+            frames = [f for f in frames if f.get('in_app') is not False]
             if not frames:
                 frames = self.frames
 
         if newest_first:
             frames = frames[::-1]
 
-        for frame in frames:
+        if max_frames:
+            visible_frames = max_frames
+        else:
+            visible_frames = len(frames)
+
+        for frame in frames[:max_frames]:
             pieces = ['  File "%(filename)s"']
             if 'lineno' in frame:
                 pieces.append(', line %(lineno)s')
@@ -402,6 +410,9 @@ class Stacktrace(Interface):
             result.append(''.join(pieces) % frame)
             if 'context_line' in frame:
                 result.append('    %s' % frame['context_line'].strip())
+
+        if visible_frames < num_frames:
+            result.extend('(%d additional frame(s) were not displayed)' % (num_frames - visible_frames,))
 
         return '\n'.join(result)
 
