@@ -94,7 +94,7 @@ class APIView(BaseView):
 
     @csrf_exempt
     def dispatch(self, request, project_id=None, *args, **kwargs):
-        origin = request.META.get('HTTP_ORIGIN', None)
+        origin = self.get_request_origin(request)
 
         response = self._dispatch(request, project_id=project_id, *args, **kwargs)
 
@@ -113,6 +113,12 @@ class APIView(BaseView):
 
         return response
 
+    def get_request_origin(self, request):
+        """
+        Returns either the Origin or Referer value from the request headers.
+        """
+        return request.META.get('HTTP_ORIGIN', request.META.get('HTTP_REFERER'))
+
     def _dispatch(self, request, project_id=None, *args, **kwargs):
         request.user = AnonymousUser()
 
@@ -121,7 +127,7 @@ class APIView(BaseView):
         except APIError, e:
             return HttpResponse(str(e), status=400)
 
-        origin = request.META.get('HTTP_ORIGIN', None)
+        origin = self.get_request_origin(request)
         if origin is not None:
             if not project:
                 return HttpResponse('Your client must be upgraded for CORS support.')
