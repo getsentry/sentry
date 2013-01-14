@@ -29,7 +29,7 @@ class StoreViewTest(TestCase):
         resp = self.client.options(self.path)
         self.assertEquals(resp.status_code, 200)
         self.assertIn('Allow', resp)
-        self.assertEquals(resp['Allow'], 'POST, OPTIONS')
+        self.assertEquals(resp['Allow'], 'GET, POST, HEAD, OPTIONS')
         self.assertIn('Content-Length', resp)
         self.assertEquals(resp['Content-Length'], '0')
 
