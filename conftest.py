@@ -30,6 +30,9 @@ def pytest_configure(config):
             'NAME': ':memory:',
         })
 
+    # Compressors is not fast, disable it in tests.
+    settings.COMPRESS_ENABLED = False
+
     # override a few things with our test specifics
     settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + (
         'tests',
