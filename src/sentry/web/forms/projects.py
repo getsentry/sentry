@@ -121,7 +121,12 @@ class EditProjectForm(forms.ModelForm):
 
     def clean_team(self):
         value = self.cleaned_data.get('team')
-        if not value or value is -1:
+        if not value:
+            return
+
+        # TODO: why is this not already an int?
+        value = int(value)
+        if value == -1:
             return
 
         if value == self.instance.team.id:
