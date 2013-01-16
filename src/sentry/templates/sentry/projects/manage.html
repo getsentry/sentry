@@ -41,7 +41,7 @@
                 <div><legend>{% trans "Client Security" %}</legend></div>
                 {% with form.origins as field %}
                     <p>{% blocktrans with 'https://github.com/getsentry/raven-js' as link %}Configure origin URLs which Sentry should accept events from. This is used for communication with clients like <a href="{{ link }}">raven-js</a>.{% endblocktrans %}
-                    <p>{% blocktrans with 'http://en.wikipedia.org/wiki/Cross-origin_resource_sharing' as link %}For more information check out the <a href="{{ link }}">Wikipedia page on CORS</a>.{% endblocktrans %}</p>
+                    <p>{% blocktrans %}This will restrict requests based on the <code>Origin</code> and <code>Referer</code> headers.{% endblocktrans %}</p>
                     {{ field|as_crispy_field }}
                 {% endwith %}
             </fieldset>

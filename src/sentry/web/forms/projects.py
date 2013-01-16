@@ -99,9 +99,11 @@ class RemoveProjectForm(forms.Form):
 
 
 class EditProjectForm(forms.ModelForm):
-    public = forms.BooleanField(required=False, help_text=_('Allow anyone (even anonymous users) to view this project'))
+    public = forms.BooleanField(required=False,
+        help_text=_('Allow anyone (even anonymous users) to view this project'))
     team = forms.TypedChoiceField(choices=(), coerce=int)
-    origins = OriginsField(required=False)
+    origins = OriginsField(label=_('Allowed Domains'), required=False,
+        help_text=_('Separate multiple entries with a newline.'))
 
     class Meta:
         fields = ('name', 'platform', 'public', 'team')

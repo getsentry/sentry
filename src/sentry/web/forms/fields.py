@@ -48,7 +48,9 @@ class UserField(CharField):
 
 class OriginsField(CharField):
     _url_validator = URLValidator(verify_exists=False)
-    widget = Textarea(attrs={'placeholder': mark_safe('e.g. http://example.com<br>*.example.com'), 'class': 'span8'})
+    widget = Textarea(
+        attrs={'placeholder': mark_safe(_('e.g. example.com or https://example.com')), 'class': 'span8'},
+    )
 
     def clean(self, value):
         if not value:
@@ -56,7 +58,7 @@ class OriginsField(CharField):
         values = filter(bool, (v.strip() for v in value.split('\n')))
         for value in values:
             if not self.is_valid_origin(value):
-                raise ValidationError('%r is not an acceptable origin' % value)
+                raise ValidationError('%r is not an acceptable value' % value)
         return values
 
     def is_valid_origin(self, value):
