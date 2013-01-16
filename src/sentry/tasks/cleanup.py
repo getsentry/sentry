@@ -50,10 +50,9 @@ def cleanup(days=30, project=None, **kwargs):
         qs.delete()
 
     # We'll need this to confirm deletion of FilterKey and Filtervalue objects.
-    if not project:
-        mqs = MessageFilterValue.objects.all()
-        if project:
-            mqs = mqs.filter(project=project)
+    mqs = MessageFilterValue.objects.all()
+    if project:
+        mqs = mqs.filter(project=project)
 
     # FilterKey
     log.info("Removing %r for days=%s project=%r" % (FilterKey, days, project))
