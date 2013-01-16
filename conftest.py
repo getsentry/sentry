@@ -39,3 +39,7 @@ def pytest_configure(config):
     )
     settings.SENTRY_KEY = base64.b64encode(os.urandom(40))
     settings.SENTRY_PUBLIC = False
+    # This speeds up the tests considerably, pbkdf2 is by design, slow.
+    settings.PASSWORD_HASHERS = [
+        'django.contrib.auth.hashers.MD5PasswordHasher',
+    ]
