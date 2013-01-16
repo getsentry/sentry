@@ -1,6 +1,7 @@
 [
   {
     "fields": {
+      "project": 1,
       "status": 0,
       "first_seen": "2010-08-31 17:50:47Z",
       "level": 30,
@@ -16,6 +17,7 @@
   },
   {
     "fields": {
+      "project": 1,
       "status": 0,
       "first_seen": "2010-08-31 17:53:31Z",
       "level": 40,
@@ -31,6 +33,7 @@
   },
   {
     "fields": {
+      "project": 1,
       "status": 0,
       "first_seen": "2010-08-31 17:53:53Z",
       "level": 40,
@@ -46,6 +49,7 @@
   },
   {
     "fields": {
+      "project": 1,
       "status": 0,
       "first_seen": "2010-08-31 17:54:23Z",
       "level": 40,
@@ -61,6 +65,7 @@
   },
   {
     "fields": {
+      "project": 1,
       "group": 2,
       "server_name": "dcramer.local",
       "level": 30,
@@ -76,6 +81,7 @@
   },
   {
     "fields": {
+      "project": 1,
       "group": 3,
       "server_name": "dcramer.local",
       "level": 40,
@@ -91,6 +97,7 @@
   },
   {
     "fields": {
+      "project": 1,
       "group": 3,
       "server_name": "dcramer.local",
       "level": 40,
@@ -106,6 +113,7 @@
   },
   {
     "fields": {
+      "project": 1,
       "group": 3,
       "server_name": "dcramer.local",
       "level": 40,
@@ -121,6 +129,7 @@
   },
   {
     "fields": {
+      "project": 1,
       "group": 4,
       "server_name": "node.local",
       "level": 40,
@@ -136,6 +145,7 @@
   },
   {
     "fields": {
+      "project": 1,
       "group": 4,
       "server_name": "node.local",
       "level": 40,
@@ -151,6 +161,7 @@
   },
   {
     "fields": {
+      "project": 1,
       "group": 4,
       "server_name": "dcramer.local",
       "level": 40,
@@ -166,6 +177,7 @@
   },
   {
     "fields": {
+      "project": 1,
       "group": 5,
       "server_name": "dcramer.local",
       "level": 40,
@@ -181,6 +193,7 @@
   },
   {
     "fields": {
+      "project": 1,
       "group": 5,
       "server_name": "dcramer.local",
       "level": 40,
@@ -196,6 +209,7 @@
   },
   {
     "fields": {
+      "project": 1,
       "group": 5,
       "server_name": "dcramer.local",
       "level": 40,
