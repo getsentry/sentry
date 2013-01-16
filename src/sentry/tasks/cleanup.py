@@ -60,23 +60,19 @@ def cleanup(days=30, project=None, **kwargs):
     qs = FilterKey.objects.all()
     if project:
         qs = qs.filter(project=project)
-        qs.delete()
-    else:
-        for obj in RangeQuerySetWrapper(qs):
-            if not mqs.filter(key=obj.key).exists():
-                log.info("Removing filters for unused filter %s=*", obj.key,)
-                qs.filter(key=obj.key).delete()
-                obj.delete()
+    for obj in RangeQuerySetWrapper(qs):
+        if not mqs.filter(key=obj.key).exists():
+            log.info("Removing unused filter %s=*", obj.key,)
+            qs.filter(key=obj.key).delete()
+            obj.delete()
 
     # FilterValue
     log.info("Removing %r for days=%s project=%r" % (FilterValue, days, project))
     qs = FilterValue.objects.all()
     if project:
         qs = qs.filter(project=project)
-        qs.delete()
-    else:
-        for obj in RangeQuerySetWrapper(qs):
-            if not mqs.filter(key=obj.key, value=obj.value).exists():
-                log.info("Removing filters for unused filter %s=%s", obj.key, obj.value)
-                qs.filter(key=obj.key, value=obj.value).delete()
-                obj.delete()
+    for obj in RangeQuerySetWrapper(qs):
+        if not mqs.filter(key=obj.key, value=obj.value).exists():
+            log.info("Removing unused filter %s=%s", obj.key, obj.value)
+            qs.filter(key=obj.key, value=obj.value).delete()
+            obj.delete()
