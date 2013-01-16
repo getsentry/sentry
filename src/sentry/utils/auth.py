@@ -8,6 +8,7 @@ sentry.utils.auth
 from django.conf import settings as dj_settings
 from django.contrib.auth.models import User
 from django.contrib.auth.backends import ModelBackend
+from sentry.constants import EMPTY_PASSWORD_VALUES
 from sentry.conf import settings
 
 
@@ -56,7 +57,10 @@ class EmailAuthBackend(ModelBackend):
             else:
                 return None
 
-        if user.check_password(password):
-            return user
+        try:
+            if user.check_password(password):
+                return user
+        except ValueError:
+            return None
 
         return None
