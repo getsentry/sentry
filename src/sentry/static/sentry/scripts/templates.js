@@ -3,7 +3,7 @@
 
     app.templates = {
         group: '' + 
-            '<div class="count" data-count="<%= app.utils.formatNumber(count) %>"><span><%= app.utils.formatNumber(count) %></span></div>' + 
+            '<div class="count" data-count="<%= app.utils.formatNumber(count) %>"><span title="<%= count %>"><%= app.utils.formatNumber(count) %></span></div>' + 
             '<div class="details">' + 
                 '<h3><a href="<%= permalink %>"><%= title %></a></h3>' + 
                 '<p class="message">' + 
