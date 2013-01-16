@@ -5,7 +5,7 @@
     <div class="page-header">
         <a href="javascript:void(0)" data-container="#raw_stacktrace" data-title="Stacktrace" class="popup btn small pull-right">{% trans "Raw" %}</a>
         {% if system_frames %}
-            <form class="pull-right" style="margin:8px 20px 0 0;">
+            <form class="pull-right" style="margin:8px 20px 0 0; white-space: nowrap">
                 <label class="checkbox"><input type="checkbox" id="show_hidden_frames"> Show {{ system_frames }} hidden frames</label>
             </form>
         {% endif %}
