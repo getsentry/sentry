@@ -298,7 +298,7 @@ def group_event_list(request, project, group):
 
 @has_access(MEMBER_USER)
 def group_event_list_json(request, project, group_id):
-    group = get_object_or_404(Group, pk=group_id, project=project)
+    group = get_object_or_404(Group, id=group_id, project=project)
 
     limit = request.GET.get('limit', settings.MAX_JSON_RESULTS)
     try:
@@ -315,13 +315,26 @@ def group_event_list_json(request, project, group_id):
 
 @has_group_access
 def group_event_details(request, project, group, event_id):
-    event = get_object_or_404(group.event_set, pk=event_id)
+    event = get_object_or_404(group.event_set, id=event_id)
+
+    base_qs = group.event_set.exclude(id=event_id)
+    try:
+        next_event = base_qs.filter(datetime__gte=event.datetime).order_by('datetime')[0:1].get()
+    except Event.DoesNotExist:
+        next_event = None
+
+    try:
+        prev_event = base_qs.filter(datetime__lte=event.datetime).order_by('-datetime')[0:1].get()
+    except Event.DoesNotExist:
+        prev_event = None
 
     return render_to_response('sentry/groups/event.html', {
         'project': project,
         'page': 'event',
         'group': group,
         'event': event,
+        'next_event': next_event,
+        'prev_event': prev_event,
         'json_data': event.data.get('extra', {}),
         'version_data': event.data.get('modules', None),
         'can_admin_event': can_admin_group(request.user, group),
