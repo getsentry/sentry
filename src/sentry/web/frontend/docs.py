@@ -8,39 +8,10 @@ sentry.web.frontend.projects
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 
+from sentry.constants import PLATFORM_LIST, PLATFORM_TITLES, PLATFORM_ROOTS
 from sentry.models import ProjectKey, MEMBER_SYSTEM, MEMBER_OWNER
 from sentry.web.decorators import has_access
 from sentry.web.helpers import render_to_response, render_to_string
-
-PLATFORM_LIST = (
-    'python',
-    'django',
-    'flask',
-    'php',
-    'java',
-    'node.js',
-    'ios',
-    'express',
-    'connect',
-    'r',
-    'ruby',
-    'rails3',
-    'javascript',
-)
-
-PLATFORM_ROOTS = {
-    'rails3': 'ruby',
-    'django': 'python',
-    'flask': 'python',
-    'express': 'node.js',
-    'connect': 'node.js',
-}
-
-PLATFORM_TITLES = {
-    'rails3': 'Rails 3',
-    'php': 'PHP',
-    'ios': 'iOS',
-}
 
 
 def can_see_global_keys(user, project):

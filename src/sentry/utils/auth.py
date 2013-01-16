@@ -8,7 +8,6 @@ sentry.utils.auth
 from django.conf import settings as dj_settings
 from django.contrib.auth.models import User
 from django.contrib.auth.backends import ModelBackend
-from sentry.constants import EMPTY_PASSWORD_VALUES
 from sentry.conf import settings
 
 

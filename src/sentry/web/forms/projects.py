@@ -43,7 +43,7 @@ class NewProjectForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'placeholder': _('example.com')}))
 
     class Meta:
-        fields = ('name',)
+        fields = ('name', 'platform')
         model = Project
 
 
@@ -51,7 +51,7 @@ class NewProjectAdminForm(NewProjectForm):
     owner = UserField(required=False)
 
     class Meta:
-        fields = ('name', 'owner')
+        fields = ('name', 'platform', 'owner')
         model = Project
 
 
@@ -104,7 +104,7 @@ class EditProjectForm(forms.ModelForm):
     origins = OriginsField(required=False)
 
     class Meta:
-        fields = ('name', 'public', 'team')
+        fields = ('name', 'platform', 'public', 'team')
         model = Project
 
     def __init__(self, request, team_list, data, instance, *args, **kwargs):

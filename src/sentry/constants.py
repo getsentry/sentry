@@ -56,6 +56,9 @@ SEARCH_SORT_OPTIONS = SortedDict((
     ('new', _('First Seen')),
 ))
 
+STATUS_VISIBLE = 0
+STATUS_HIDDEN = 1
+
 STATUS_UNRESOLVED = 0
 STATUS_RESOLVED = 1
 STATUS_MUTED = 2
@@ -77,3 +80,33 @@ MEMBER_TYPES = (
 # A list of values which represent an unset or empty password on
 # a User instance.
 EMPTY_PASSWORD_VALUES = ('!', '', '$')
+
+PLATFORM_LIST = (
+    'python',
+    'django',
+    'flask',
+    'php',
+    'java',
+    'node.js',
+    'ios',
+    'express',
+    'connect',
+    'r',
+    'ruby',
+    'rails3',
+    'javascript',
+)
+
+PLATFORM_ROOTS = {
+    'rails3': 'ruby',
+    'django': 'python',
+    'flask': 'python',
+    'express': 'node.js',
+    'connect': 'node.js',
+}
+
+PLATFORM_TITLES = {
+    'rails3': 'Rails 3',
+    'php': 'PHP',
+    'ios': 'iOS',
+}

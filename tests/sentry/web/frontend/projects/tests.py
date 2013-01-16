@@ -43,6 +43,7 @@ class NewProjectTest(TestCase):
         resp = self.client.post(self.path, {
             'name': 'Test Project',
             'slug': 'test',
+            'platform': 'python',
         })
         self.assertNotEquals(resp.status_code, 200)
 
