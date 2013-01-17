@@ -412,7 +412,7 @@ class Stacktrace(Interface):
                 result.append('    %s' % frame['context_line'].strip())
 
         if visible_frames < num_frames:
-            result.extend('(%d additional frame(s) were not displayed)' % (num_frames - visible_frames,))
+            result.extend(('', '(%d additional frame(s) were not displayed)' % (num_frames - visible_frames,)))
 
         return '\n'.join(result)
 
