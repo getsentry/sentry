@@ -397,10 +397,19 @@ class Stacktrace(Interface):
 
         if max_frames:
             visible_frames = max_frames
+            if newest_first:
+                start, stop = None, max_frames
+            else:
+                start, stop = -max_frames, None
+
         else:
             visible_frames = len(frames)
+            start, stop = None, None
 
-        for frame in frames[:max_frames]:
+        if not newest_first and visible_frames < num_frames:
+            result.extend(('(%d additional frame(s) were not displayed)' % (num_frames - visible_frames,), '...'))
+
+        for frame in frames[start:stop]:
             pieces = ['  File "%(filename)s"']
             if 'lineno' in frame:
                 pieces.append(', line %(lineno)s')
@@ -411,8 +420,8 @@ class Stacktrace(Interface):
             if 'context_line' in frame:
                 result.append('    %s' % frame['context_line'].strip())
 
-        if visible_frames < num_frames:
-            result.extend(('', '(%d additional frame(s) were not displayed)' % (num_frames - visible_frames,)))
+        if newest_first and visible_frames < num_frames:
+            result.extend(('...', '(%d additional frame(s) were not displayed)' % (num_frames - visible_frames,)))
 
         return '\n'.join(result)
 
