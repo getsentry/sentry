@@ -8,24 +8,32 @@
     <div class="module-content">
         <table class="table table-bordered table-striped">
             <colgroup>
-                <col style="width:60px;">
+                <col style="width:150px;">
             </colgroup>
             <tbody>
                 <tr>
                     <th>{% trans "ID:" %}</th>
-                    <td>{{ user_id }}</td>
+                    <td class="code">{{ user_id }}</td>
                 </tr>
                 {% if user_username %}
                     <tr>
                         <th>{% trans "Username:" %}</th>
-                        <td>{{ user_username }}</td>
+                        <td class="code">{{ user_username }}</td>
                     </tr>
                 {% endif %}
                 {% if user_email %}
                     <tr>
                         <th>{% trans "Email:" %}</th>
-                        <td>{{ user_email }}</td>
+                        <td class="code">{{ user_email }}</td>
                     </tr>
+                {% endif %}
+                {% if user_data %}
+                    {% for key, value in user_data.iteritems %}
+                        <tr>
+                            <th>{{ key|titlize }}</th>
+                            <td class="code">{{ value }}</td>
+                        </tr>
+                    {% endfor %}
                 {% endif %}
             </tbody>
         </table>
