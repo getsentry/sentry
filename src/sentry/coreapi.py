@@ -237,8 +237,7 @@ def process_data_timestamp(data):
         try:
             data['timestamp'] = datetime.fromtimestamp(float(data['timestamp']))
         except Exception:
-            logger.exception('Failed reading timestamp')
-            del data['timestamp']
+            raise InvalidTimestamp('Invalid value for timestamp: %r' % data['timestamp'])
     elif not isinstance(data['timestamp'], datetime):
         if '.' in data['timestamp']:
             format = '%Y-%m-%dT%H:%M:%S.%f'
@@ -251,6 +250,9 @@ def process_data_timestamp(data):
             data['timestamp'] = datetime.strptime(data['timestamp'], format)
         except Exception:
             raise InvalidTimestamp('Invalid value for timestamp: %r' % data['timestamp'])
+
+    if data['timestamp'] > datetime.now():
+        raise InvalidTimestamp('Invalid value for timestamp (in future): %r' % data['timestamp'])
 
     return data
 
