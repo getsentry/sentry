@@ -24,6 +24,13 @@ LINES_OF_CONTEXT = 5
 UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body'])
 
 
+def trim_line(line):
+    line = line.strip('\n')
+    if len(line) > 150:
+        line = line[:140] + ' [... truncated]'
+    return line
+
+
 def get_source_context(source, lineno, context=LINES_OF_CONTEXT):
     # lineno's in JS are 1-indexed
     lineno -= 1
@@ -32,17 +39,17 @@ def get_source_context(source, lineno, context=LINES_OF_CONTEXT):
     upper_bound = min(lineno + 1 + context, len(source))
 
     try:
-        pre_context = [line.strip('\n') for line in source[lower_bound:lineno]]
+        pre_context = map(trim_line, source[lower_bound:lineno])
     except IndexError:
         pre_context = []
 
     try:
-        context_line = source[lineno].strip('\n')
+        context_line = trim_line(source[lineno])
     except IndexError:
         context_line = ''
 
     try:
-        post_context = [line.strip('\n') for line in source[(lineno + 1):upper_bound]]
+        post_context = map(trim_line, source[(lineno + 1):upper_bound])
     except IndexError:
         post_context = []
 
