@@ -70,8 +70,8 @@ def fetch_javascript_source(event, **kwargs):
     # build list of frames that we can actually grab source for
     frames = [f for f in stacktrace['frames']
         if f.get('lineno') is not None
-            and f.get('abs_path', '').startswith(('http://', 'https://')
-            and not f.get('context_line'))]
+            and f.get('abs_path', '').startswith(('http://', 'https://'))
+            and not f.get('context_line')]
     if not frames:
         logger.info('Event %r has no frames with enough context to fetch remote source', event.id)
         return
