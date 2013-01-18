@@ -61,8 +61,7 @@ class LRUCache(object):
 
     def make_key(self, func, args, kwds, tuple=tuple, sorted=sorted, type=type):
         # helper function to build a cache key from positional and keyword args
-        key = [func]
-        key += args
+        key = (func,) + args
         if kwds:
             sorted_items = tuple(sorted(kwds.items()))
             key += self.kwd_mark + sorted_items
