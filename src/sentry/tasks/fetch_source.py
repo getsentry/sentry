@@ -130,7 +130,7 @@ def fetch_javascript_source(event, **kwargs):
     try:
         stacktrace = event.data['sentry.interfaces.Stacktrace']
     except KeyError:
-        logger.info('No stacktrace for event %r', event.id)
+        logger.debug('No stacktrace for event %r', event.id)
         return
 
     # build list of frames that we can actually grab source for
@@ -140,7 +140,7 @@ def fetch_javascript_source(event, **kwargs):
             # and f.get('context_line') is None
             and f.get('abs_path', '').startswith(('http://', 'https://'))]
     if not frames:
-        logger.info('Event %r has no frames with enough context to fetch remote source', event.id)
+        logger.debug('Event %r has no frames with enough context to fetch remote source', event.id)
         return
 
     file_list = set((f['abs_path'] for f in frames))
@@ -151,6 +151,7 @@ def fetch_javascript_source(event, **kwargs):
         filename = file_list.pop()
 
         # TODO: respect cache-contro/max-age headers to some extent
+        logger.debug('Fetching remote source %r', filename)
         result = fetch_url(filename)
 
         if result == BAD_SOURCE:
@@ -160,7 +161,7 @@ def fetch_javascript_source(event, **kwargs):
         sourcemap = discover_sourcemap(result, logger=logger)
         source_code[filename] = (result.body.splitlines(), sourcemap)
         if sourcemap:
-            logger.info('Found sourcemap %r for minified script %r', sourcemap, result.url)
+            logger.debug('Found sourcemap %r for minified script %r', sourcemap, result.url)
 
         # pull down sourcemap
         if sourcemap and sourcemap not in sourcemaps:
@@ -187,6 +188,7 @@ def fetch_javascript_source(event, **kwargs):
             state = find_source(sourcemaps[sourcemap], frame['lineno'], frame['colno'])
             # TODO: is this urljoin right? (is it relative to the sourcemap or the originating file)
             abs_path = urljoin(sourcemap, state.src)
+            logger.debug('Mapping compressed source %r to mapping in %r', frame['abs_path'], abs_path)
             try:
                 source, _ = source_code[abs_path]
             except KeyError:
