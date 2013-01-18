@@ -125,10 +125,7 @@ def fetch_javascript_source(event, **kwargs):
     - abs_path is the HTTP URI to the source
     - context_line is empty
     """
-    import logging
     logger = fetch_javascript_source.get_logger()
-    logger.setLevel(logging.INFO)
-    logger.addHandler(logging.StreamHandler())
 
     try:
         stacktrace = event.data['sentry.interfaces.Stacktrace']
