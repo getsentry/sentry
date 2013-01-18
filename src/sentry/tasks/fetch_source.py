@@ -187,7 +187,7 @@ def fetch_javascript_source(event, **kwargs):
             except KeyError:
                 pass
             else:
-                frame['lineno'] = state.src_line
+                frame['lineno'] = state.src_line + 1
                 frame['colno'] = state.src_col
                 frame['name'] = state.name
                 frame['abs_path'] = abs_path
