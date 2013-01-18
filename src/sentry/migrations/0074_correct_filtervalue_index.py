@@ -8,9 +8,8 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        db.create_unique('sentry_filtervalue', ['project_id', 'key', 'value'])
         db.delete_unique('sentry_filtervalue', ['project_id', 'value', 'key'])
-
+        db.create_unique('sentry_filtervalue', ['project_id', 'key', 'value'])
 
     def backwards(self, orm):
         db.create_unique('sentry_filtervalue', ['project_id', 'value', 'key'])

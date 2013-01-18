@@ -8,8 +8,8 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        db.create_unique('sentry_groupmeta', ['key', 'group_id'])
         db.delete_unique('sentry_groupmeta', ['group_id', 'key'])
+        db.create_unique('sentry_groupmeta', ['key', 'group_id'])
 
     def backwards(self, orm):
         db.delete_unique('sentry_groupmeta', ['key', 'group_id'])
