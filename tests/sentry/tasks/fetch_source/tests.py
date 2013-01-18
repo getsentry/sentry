@@ -15,8 +15,8 @@ class StoreEventTest(TestCase):
         self.assertTrue(isinstance(fetch_javascript_source, Task))
 
     @mock.patch('sentry.models.Event.save')
-    @mock.patch('urllib2.urlopen')
-    def test_calls_from_kwargs(self, urlopen, save):
+    @mock.patch('urllib2.build_opener')
+    def test_calls_from_kwargs(self, build_opener, save):
         event = Event(data={
             'sentry.interfaces.Stacktrace': {
                 'frames': [
@@ -33,12 +33,13 @@ class StoreEventTest(TestCase):
                 ],
             },
         })
-        urlopen.return_value.read.return_value = '\n'.join('hello world')
+        build_opener.return_value.open.return_value.read.return_value = '\n'.join('hello world')
 
         fetch_javascript_source(event)
 
-        urlopen.assert_called_once_with('http://example.com/foo.js')
-        urlopen.return_value.read.assert_called_once_with()
+        build_opener.assert_called_once_with()
+        build_opener.return_value.open.assert_called_once_with('http://example.com/foo.js')
+        build_opener.return_value.open.return_value.read.assert_called_once_with()
         save.assert_called_once_with()
 
         frame_list = event.data['sentry.interfaces.Stacktrace']['frames']

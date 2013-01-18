@@ -19,8 +19,12 @@ LINES_OF_CONTEXT = 5
 
 @lrucache.memoize
 def fetch_url(url, logger=None):
+    import sentry
+
     try:
-        req = urllib2.urlopen(url)
+        opener = urllib2.build_opener()
+        opener.addheaders = [('User-Agent', 'Sentry/%s' % sentry.VERSION)]
+        req = opener.open(url)
         result = req.read()
     except Exception:
         if logger:
@@ -75,11 +79,11 @@ def fetch_javascript_source(event, **kwargs):
 
     for filename in file_list:
         cache_key = 'remotesource:%s' % filename
-        # TODO: respect headers
+        # TODO: respect cache-contro/max-age headers to some extent
         result = cache.get(cache_key)
         if result is None:
             result = fetch_url(filename)
-            cache.set(cache_key, result)
+            cache.set(cache_key, result, 60 * 5)
 
         if result != BAD_SOURCE:
             result = result.splitlines()
