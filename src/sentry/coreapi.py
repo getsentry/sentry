@@ -9,7 +9,7 @@ sentry.coreapi
 #       This will make it so we can more easily control logging with various
 #       metadata (rather than generic log messages which arent useful).
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import base64
 import logging
 import uuid
@@ -251,7 +251,7 @@ def process_data_timestamp(data):
         except Exception:
             raise InvalidTimestamp('Invalid value for timestamp: %r' % data['timestamp'])
 
-    if data['timestamp'] > datetime.now():
+    if data['timestamp'] > datetime.now() + timedelta(minutes=1):
         raise InvalidTimestamp('Invalid value for timestamp (in future): %r' % data['timestamp'])
 
     return data
