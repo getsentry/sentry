@@ -209,7 +209,9 @@ class Stacktrace(Interface):
     The following additional attributes are supported:
 
     ``lineno``
-      The lineno of the call
+      The line number of the call
+    ``colno``
+      The column number of the call
     ``abs_path``
       The absolute path to filename
     ``function``
@@ -261,6 +263,10 @@ class Stacktrace(Interface):
             # lineno should be an int
             if 'lineno' in frame:
                 frame['lineno'] = int(frame['lineno'])
+
+            # colno should be an int
+            if 'colno' in frame:
+                frame['colno'] = int(frame['colno'])
 
             # in_app should be a boolean
             if 'in_app' in frame:
