@@ -14,7 +14,7 @@ from sentry.utils import json
 
 
 SourceMap = namedtuple('SourceMap', ['dst_line', 'dst_col', 'src', 'src_line', 'src_col', 'name'])
-SourceMapIndex = namedtuple('SourceMapIndex', ['state_list', 'key_list'])
+SourceMapIndex = namedtuple('SourceMapIndex', ['states', 'keys', 'sources'])
 
 # Mapping of base64 letter -> integer value.
 B64 = dict(
@@ -97,17 +97,19 @@ def parse_sourcemap(sourcemap):
             yield SourceMap(dst_line, dst_col, src, src_line, src_col, name)
 
 
-def sourcemap_to_index(parsed_sourcemap):
+def sourcemap_to_index(sourcemap):
     state_list = []
     key_list = []
+    src_list = set()
 
-    for state in parsed_sourcemap:
+    for state in parse_sourcemap(sourcemap):
         state_list.append(state)
         key_list.append((state.dst_line, state.dst_col))
+        src_list.add(state.src)
 
-    return SourceMapIndex(state_list, key_list)
+    return SourceMapIndex(state_list, key_list, src_list)
 
 
 def find_source(indexed_sourcemap, lineno, colno):
     # error says "line no 0, column no 56"
-    return indexed_sourcemap.state_list[bisect.bisect_left(indexed_sourcemap.key_list, (0, 56)) - 1]
+    return indexed_sourcemap.states[bisect.bisect_left(indexed_sourcemap.keys, (lineno, colno)) - 1]

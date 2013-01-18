@@ -24,11 +24,13 @@ class StoreEventTest(TestCase):
                         'abs_path': 'http://example.com/foo.js',
                         'filename': 'foo.js',
                         'lineno': 4,
+                        'colno': 0,
                     },
                     {
                         'abs_path': 'http://example.com/foo.js',
                         'filename': 'foo.js',
                         'lineno': 1,
+                        'colno': 0,
                     },
                 ],
             },

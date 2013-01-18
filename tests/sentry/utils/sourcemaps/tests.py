@@ -21,8 +21,7 @@ class ParseVlqTest(TestCase):
 
 class FindSourceTest(TestCase):
     def test_simple(self):
-        parsed_sourcemap = parse_sourcemap(sourcemap)
-        indexed_sourcemap = sourcemap_to_index(parsed_sourcemap)
+        indexed_sourcemap = sourcemap_to_index(sourcemap)
 
         result = find_source(indexed_sourcemap, 0, 56)
 
