@@ -117,7 +117,12 @@ def _get_group_list(request, project):
     if score_clause:
         event_list = event_list.extra(
             select={'sort_value': score_clause},
-        ).order_by('-sort_value', '-last_seen')
+        )
+        # HACK: dont sort by the same column twice
+        if sort == 'date':
+            event_list = event_list.order_by('-last_seen')
+        else:
+            event_list = event_list.order_by('-sort_value', '-last_seen')
         cursor = request.GET.get('cursor')
         if cursor:
             event_list = event_list.extra(
