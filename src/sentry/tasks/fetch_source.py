@@ -133,7 +133,8 @@ def fetch_javascript_source(event, **kwargs):
     frames = [f for f in stacktrace['frames']
         if f.get('lineno') is not None
             and f.get('colno') is not None
-            and f.get('abs_path', '').startswith(('http://', 'https://'))]
+            and f.get('abs_path', '').startswith(('http://', 'https://'))
+            and f.get('context_line') is None]
     if not frames:
         logger.info('Event %r has no frames with enough context to fetch remote source', event.id)
         return
@@ -187,6 +188,7 @@ def fetch_javascript_source(event, **kwargs):
             except KeyError:
                 pass
             else:
+                # SourceMap's return zero-indexed lineno's
                 frame['lineno'] = state.src_line + 1
                 frame['colno'] = state.src_col
                 frame['name'] = state.name

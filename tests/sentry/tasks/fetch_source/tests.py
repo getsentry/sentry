@@ -46,11 +46,11 @@ class StoreEventTest(TestCase):
 
         frame_list = event.data['sentry.interfaces.Stacktrace']['frames']
         frame = frame_list[0]
-        assert frame['pre_context'] == ['h', 'e', 'l', 'l']
-        assert frame['context_line'] == 'o'
-        assert frame['post_context'] == [' ', 'w', 'o', 'r', 'l']
+        assert frame['pre_context'] == ['h', 'e', 'l']
+        assert frame['context_line'] == 'l'
+        assert frame['post_context'] == ['o', ' ', 'w', 'o', 'r']
 
         frame = frame_list[1]
-        assert frame['pre_context'] == ['h']
-        assert frame['context_line'] == 'e'
-        assert frame['post_context'] == ['l', 'l', 'o', ' ', 'w']
+        assert frame['pre_context'] == []
+        assert frame['context_line'] == 'h'
+        assert frame['post_context'] == ['e', 'l', 'l', 'o', ' ']
