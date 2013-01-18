@@ -322,6 +322,9 @@ class Stacktrace(Interface):
         return newest_first
 
     def to_html(self, event):
+        if not self.frames:
+            return ''
+
         system_frames = 0
         frames = []
         for frame in self.frames:
