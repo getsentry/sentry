@@ -157,6 +157,9 @@ ALLOW_ORIGIN = None
 # Enable capturing of JavaScript errors (Sentry internal errors)
 USE_JS_CLIENT = False
 
+# Enable scraping of javascript context for source code
+SCRAPE_JAVASCRIPT_CONTEXT = True
+
 # The alias for the cache backend (MUST be a compatible backend string for < 1.3)
 CACHE_BACKEND = 'dummy://'
 

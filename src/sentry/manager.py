@@ -36,6 +36,7 @@ from sentry.constants import STATUS_RESOLVED, STATUS_UNRESOLVED
 from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
 from sentry.tasks.index import index_event
+from sentry.tasks.fetch_source import fetch_javascript_source
 from sentry.utils.cache import cache, Lock
 from sentry.utils.dates import get_sql_date_trunc
 from sentry.utils.db import get_db_engine, has_charts, resolve_expression_node
@@ -524,6 +525,13 @@ class GroupManager(BaseManager, ChartMixin):
             except Exception, e:
                 transaction.rollback_unless_managed(using=group._state.db)
                 logger.exception(u'Error indexing document: %s', e)
+
+        if settings.SCRAPE_JAVASCRIPT_CONTEXT and event.platform == 'javascript' and not is_sample:
+            try:
+                maybe_delay(fetch_javascript_source, event)
+            except Exception, e:
+                transaction.rollback_unless_managed(using=group._state.db)
+                logger.exception(u'Error fetching javascript source: %s', e)
 
         if is_new:
             try:
