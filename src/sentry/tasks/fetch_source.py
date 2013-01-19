@@ -12,7 +12,6 @@ from urlparse import urljoin
 
 from celery.task import task
 from sentry.utils.cache import cache
-from sentry.utils.lrucache import lrucache
 from sentry.utils.sourcemaps import sourcemap_to_index, find_source
 
 BAD_SOURCE = -1
@@ -81,7 +80,6 @@ def discover_sourcemap(result, logger=None):
     return sourcemap
 
 
-@lrucache.memoize
 def fetch_url(url, logger=None):
     """
     Pull down a URL, returning a UrlResult object.
