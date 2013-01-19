@@ -563,12 +563,12 @@ class Http(Interface):
         else:
             self.cookies = {}
         # if cookies were a string, convert to a dict
-        # QueryDict will parse both acceptable formats:
+        # parse_qsl will parse both acceptable formats:
         #  a=b&c=d
         # and
         #  a=b; c=d
         if isinstance(self.cookies, basestring):
-            self.cookies = dict(QueryDict(self.cookies).items())
+            self.cookies = dict(urlparse.parse_qsl(self.cookies, keep_blank_values=True))
         # if cookies were [also] included in headers we
         # strip them out
         if headers and 'Cookie' in headers:
