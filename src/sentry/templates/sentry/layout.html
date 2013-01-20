@@ -11,9 +11,6 @@
         <link href="{% url sentry-media "sentry" "images/favicon.png" %}" rel="shortcut icon" type="image/png"/>
 
         {% block css %}
-            {% compress css %}
-                <link href="{% url sentry-media "sentry" "scripts/lib/select2/select2.css" %}" rel="stylesheet" type="text/css"/>
-            {% endcompress %}
             {% if COMPRESS_LESS %}
                 {% compress css %}
                     <link href="{% url sentry-media "sentry" "less/sentry.less" %}" rel="stylesheet" type="text/less"/>
