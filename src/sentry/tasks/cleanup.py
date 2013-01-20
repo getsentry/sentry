@@ -34,7 +34,7 @@ def cleanup(days=30, project=None, **kwargs):
         (ProjectCountByMinute, 'date'),
         (MessageFilterValue, 'last_seen'),
         (Event, 'datetime'),
-        (Activity, 'last_seen'),
+        (Activity, 'datetime'),
         (AffectedUserByGroup, 'last_seen'),
 
         # Group should probably be last
