@@ -569,12 +569,15 @@ class GroupManager(BaseManager, ChartMixin):
                 extra['message'] = message
 
             if group.status == STATUS_RESOLVED:
-                # Group has changed from resolved -> unresolved
-                is_new = True
+                # Makin things atomic
+                is_new = self.model.objects.filter(
+                    id=group.id,
+                ).exclude(
+                    status=STATUS_RESOLVED,
+                ).update(active_at=date, status=STATUS_UNRESOLVED)
 
-                # We have to perform this update inline, as waiting on buffers means
-                # this event could be treated as "new" several times
-                group.update(active_at=date, status=STATUS_UNRESOLVED)
+                group.active_at = date
+                group.status = STATUS_UNRESOLVED
 
             group.last_seen = extra['last_seen']
 
