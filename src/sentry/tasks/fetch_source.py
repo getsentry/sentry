@@ -203,4 +203,4 @@ def fetch_javascript_source(event, **kwargs):
         frame['pre_context'], frame['context_line'], frame['post_context'] = get_source_context(
             source=source, lineno=int(frame['lineno']))
 
-    event.save()
+    event.update(data=event.data)
