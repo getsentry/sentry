@@ -59,6 +59,21 @@ def slugify_instance(inst, label):
         inst.slug = base_slug + '-' + str(n)
 
 
+def sane_repr(*attrs):
+    if 'id' not in attrs and 'pk' not in attrs:
+        attrs = ('id',) + attrs
+
+    def _repr(self):
+        cls = type(self).__name__
+
+        pairs = ('%s=%s' % (a, repr(getattr(self, a, None)))
+            for a in attrs)
+
+        return u'<%s at 0x%x: %s>' % (cls, id(self), ', '.join(pairs))
+
+    return _repr
+
+
 class Option(Model):
     """
     Global options which apply in most situations as defaults,
@@ -74,6 +89,8 @@ class Option(Model):
         'key',
     ])
 
+    __repr__ = sane_repr('key', 'value')
+
 
 class Team(Model):
     """
@@ -88,8 +105,7 @@ class Team(Model):
         'slug',
     ))
 
-    def __unicode__(self):
-        return u'%s (%s)' % (self.name, self.slug)
+    __repr__ = sane_repr('slug', 'owner_id')
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -121,8 +137,7 @@ class TeamMember(Model):
     class Meta:
         unique_together = (('team', 'user'),)
 
-    def __unicode__(self):
-        return u'team=%s, user=%s, type=%s' % (self.team_id, self.user_id, self.get_type_display())
+    __repr__ = sane_repr('team_id', 'user_id', 'type')
 
 
 class Project(Model):
@@ -155,8 +170,7 @@ class Project(Model):
         'slug',
     ])
 
-    def __unicode__(self):
-        return u'%s (%s)' % (self.name, self.slug)
+    __repr__ = sane_repr('slug', 'owner_id')
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -250,8 +264,7 @@ class ProjectKey(Model):
         'secret_key',
     ))
 
-    def __unicode__(self):
-        return u'project=%s, user=%s' % (self.project_id, self.user_id)
+    __repr__ = sane_repr('project_id', 'user_id', 'public_key')
 
     @classmethod
     def generate_api_key(cls):
@@ -306,8 +319,7 @@ class ProjectOption(Model):
         db_table = 'sentry_projectoptions'
         unique_together = (('project', 'key',),)
 
-    def __unicode__(self):
-        return u'project=%s, key=%s, value=%s' % (self.project_id, self.key, self.value)
+    __repr__ = sane_repr('project_id', 'key', 'value')
 
 
 class PendingTeamMember(Model):
@@ -324,8 +336,7 @@ class PendingTeamMember(Model):
     class Meta:
         unique_together = (('team', 'email'),)
 
-    def __unicode__(self):
-        return u'team=%s, email=%s, type=%s' % (self.team_id, self.email, self.get_type_display())
+    __repr__ = sane_repr('team_id', 'email', 'type')
 
     @property
     def token(self):
@@ -462,6 +473,8 @@ class Group(MessageBase):
         )
         db_table = 'sentry_groupedmessage'
 
+    __repr__ = sane_repr('project_id', 'checksum')
+
     def __unicode__(self):
         return "(%s) %s" % (self.times_seen, self.error())
 
@@ -544,6 +557,8 @@ class GroupMeta(Model):
     class Meta:
         unique_together = (('group', 'key'),)
 
+    __repr__ = sane_repr('group_id', 'key', 'value')
+
 
 class Event(MessageBase):
     """
@@ -564,8 +579,7 @@ class Event(MessageBase):
         db_table = 'sentry_message'
         unique_together = ('project', 'event_id')
 
-    def __unicode__(self):
-        return self.error()
+    __repr__ = sane_repr('project_id', 'group_id', 'checksum')
 
     def get_absolute_url(self):
         if self.project_id:
@@ -657,6 +671,8 @@ class GroupBookmark(Model):
         # composite index includes project for efficient queries
         unique_together = (('project', 'user', 'group'),)
 
+    __repr__ = sane_repr('project_id', 'group_id', 'user_id')
+
 
 class FilterKey(Model):
     """
@@ -670,8 +686,7 @@ class FilterKey(Model):
     class Meta:
         unique_together = (('project', 'key'),)
 
-    def __unicode__(self):
-        return u'key=%s' % (self.key,)
+    __repr__ = sane_repr('project_id', 'key')
 
 
 class FilterValue(Model):
@@ -687,8 +702,7 @@ class FilterValue(Model):
     class Meta:
         unique_together = (('project', 'key', 'value'),)
 
-    def __unicode__(self):
-        return u'key=%s, value=%s' % (self.key, self.value)
+    __repr__ = sane_repr('project_id', 'key', 'value')
 
 
 class MessageFilterValue(Model):
@@ -709,9 +723,7 @@ class MessageFilterValue(Model):
     class Meta:
         unique_together = (('project', 'key', 'value', 'group'),)
 
-    def __unicode__(self):
-        return u'group_id=%s, times_seen=%s, key=%s, value=%s' % (self.group_id, self.times_seen,
-                                                                  self.key, self.value)
+    __repr__ = sane_repr('project_id', 'group_id', 'key', 'value')
 
     def save(self, *args, **kwargs):
         if not self.first_seen:
@@ -738,8 +750,7 @@ class MessageCountByMinute(Model):
     class Meta:
         unique_together = (('project', 'group', 'date'),)
 
-    def __unicode__(self):
-        return u'group_id=%s, times_seen=%s, date=%s' % (self.group_id, self.times_seen, self.date)
+    __repr__ = sane_repr('project_id', 'group_id', 'date')
 
 
 class ProjectCountByMinute(Model):
@@ -760,6 +771,8 @@ class ProjectCountByMinute(Model):
     class Meta:
         unique_together = (('project', 'date'),)
 
+    __repr__ = sane_repr('project_id', 'date')
+
 
 class SearchDocument(Model):
     project = models.ForeignKey(Project)
@@ -774,6 +787,8 @@ class SearchDocument(Model):
     class Meta:
         unique_together = (('project', 'group'),)
 
+    __repr__ = sane_repr('project_id', 'group_id')
+
 
 class SearchToken(Model):
     document = models.ForeignKey(SearchDocument, related_name="token_set")
@@ -786,8 +801,7 @@ class SearchToken(Model):
     class Meta:
         unique_together = (('document', 'field', 'token'),)
 
-    def __unicode__(self):
-        return u'%s=%s' % (self.field, self.token)
+    __repr__ = sane_repr('document_id', 'field', 'token')
 
 
 class UserOption(Model):
@@ -807,14 +821,15 @@ class UserOption(Model):
     class Meta:
         unique_together = (('user', 'project', 'key',),)
 
-    def __unicode__(self):
-        return u'user=%s, project=%s, key=%s, value=%s' % (self.user_id, self.project_id, self.key, self.value)
+    __repr__ = sane_repr('user_id', 'project_id', 'key', 'value')
 
 
 class LostPasswordHash(Model):
     user = models.ForeignKey(User, unique=True)
     hash = models.CharField(max_length=32)
     date_added = models.DateTimeField(default=timezone.now)
+
+    __repr__ = sane_repr('user_id', 'hash')
 
     def save(self, *args, **kwargs):
         if not self.hash:
@@ -866,6 +881,8 @@ class TrackedUser(Model):
     class Meta:
         unique_together = (('project', 'ident'),)
 
+    __repr__ = sane_repr('project_id', 'ident', 'email')
+
 
 class AffectedUserByGroup(Model):
     """
@@ -885,9 +902,7 @@ class AffectedUserByGroup(Model):
     class Meta:
         unique_together = (('project', 'tuser', 'group'),)
 
-    def __unicode__(self):
-        return u'group_id=%s, times_seen=%s, ident=%s' % (self.group_id, self.times_seen,
-                                                          self.ident)
+    __repr__ = sane_repr('project_id', 'group_id', 'tuser_id')
 
 
 class Activity(Model):
@@ -920,6 +935,8 @@ class Activity(Model):
     user = models.ForeignKey(User, null=True)
     datetime = models.DateTimeField(default=timezone.now)
     data = GzippedDictField(null=True)
+
+    __repr__ = sane_repr('project_id', 'group_id', 'event_id', 'user_id', 'type', 'ident')
 
     def save(self, *args, **kwargs):
         created = bool(not self.id)
