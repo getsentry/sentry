@@ -1374,7 +1374,12 @@ legend {
   overflow: hidden;
   margin-bottom: 0;
 
+
   > ul {
+    padding: 5px 0 5px 30px;
+    background: #fff;
+    @shadow: 0 1px 0 rgba(0,0,0, .08), 0 1px 3px rgba(0,0,0, .05);
+    .box-shadow(@shadow);
     display: block;
     width: auto;
     position: fixed;
@@ -1396,28 +1401,31 @@ legend {
 
   > ul {
     padding: 0 20px;
-    margin: -21px -20px 0;
-    background: #eee;
+    margin: 0 -20px 0;
+
 
     > li {
+      margin: 0 4px 0 0;
       > a {
-        padding: 10px 12px;
+        padding: 8px 18px;
         line-height: 16px;
-        color: #666;
-        .border-radius(0);
+        color: #89919b;
         margin: 0;
+        font-weight: 600;
+
+        .border-radius(30px);
         .transition(none);
         &:hover,
         &:focus {
           .transition(none);
-          color: #333;
-          background-color: #ddd;
+          color: #465262;
+          background-color: #dee3e9;
         }
       }
       &.active > a {
         .transition(none);
         color: @white;
-        background-color: @linkColor;
+        background-color: #56AFE8;
       }
 
       > ul.dropdown-menu {
