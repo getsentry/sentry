@@ -47,7 +47,9 @@ def cleanup(days=30, project=None, **kwargs):
         qs = model.objects.filter(**{'%s__lte' % (date_col,): ts})
         if project:
             qs = qs.filter(project=project)
-        qs.delete()
+        # XXX: we step through because the deletion collector will pull all relations into memory
+        for obj in RangeQuerySetWrapper(qs):
+            obj.delete()
 
     # We'll need this to confirm deletion of FilterKey and Filtervalue objects.
     mqs = MessageFilterValue.objects.all()
