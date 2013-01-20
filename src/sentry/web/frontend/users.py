@@ -5,9 +5,6 @@ sentry.web.frontend.users
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect
-
 from sentry.models import TrackedUser
 from sentry.web.decorators import login_required, has_access
 from sentry.web.helpers import render_to_response
