@@ -25,16 +25,20 @@ def cleanup(days=30, project=None, **kwargs):
 
     from sentry.models import (Group, Event, MessageCountByMinute,
         MessageFilterValue, FilterKey, FilterValue, ProjectCountByMinute,
-        SearchDocument)
+        SearchDocument, Activity, AffectedUserByGroup, LostPasswordHash)
     from sentry.utils.query import RangeQuerySetWrapper
 
     GENERIC_DELETES = (
         (SearchDocument, 'date_changed'),
         (MessageCountByMinute, 'date'),
         (ProjectCountByMinute, 'date'),
-        (Event, 'datetime'),
-        (Group, 'last_seen'),
         (MessageFilterValue, 'last_seen'),
+        (Event, 'datetime'),
+        (Activity, 'last_seen'),
+        (AffectedUserByGroup, 'last_seen'),
+
+        # Group should probably be last
+        (Group, 'last_seen'),
     )
 
     log = cleanup.get_logger()
@@ -51,6 +55,11 @@ def cleanup(days=30, project=None, **kwargs):
         for obj in RangeQuerySetWrapper(qs):
             log.info("Removing %r", obj)
             obj.delete()
+
+    log.info("Removing expired values for %r", LostPasswordHash)
+    LostPasswordHash.objects.filter(
+        date_added__lte=timezone.now() - datetime.timedelta(days=1)
+    ).delete()
 
     # We'll need this to confirm deletion of FilterKey and Filtervalue objects.
     mqs = MessageFilterValue.objects.all()
