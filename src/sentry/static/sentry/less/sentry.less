@@ -239,12 +239,16 @@ h3 {
     }
 
     .select2-container .select2-choice { 
-      width: 150px;
+      width: 160px;
       height: 28px;
       line-height: 28px;
       top: -3px;
       padding: 0 0 0 11px;
       .box-shadow(0 2px 0 rgba(185, 200, 215, .26));
+    }
+
+    .select2-dropdown-open .select2-choice {
+      .box-shadow(0 0 0 2px #a7aeb7);
     }
 
     .project-settings {
@@ -324,6 +328,15 @@ h3 {
   }
   .body {
     padding: 25px 30px 10px;
+
+    .select2-drop {
+      .box-shadow(0 0 0 2px #c3c8ce);
+    }
+
+    .select2-container .select2-choice {
+      @shadow:0 0 0 2px #c3c8ce, 0 4px 0 rgba(0,0,0, .05);
+      .box-shadow(@shadow);
+    }
   }
   .btn-toolbar {
     .clearfix();
@@ -1242,6 +1255,7 @@ small {
 
 legend {
   margin-bottom: 18px;
+  border-bottom-width: 2px;
 }
 
 
@@ -1263,7 +1277,6 @@ legend {
   padding-bottom: 0;
   border-bottom: 0;
   margin: 20px 0;
-  border-bottom: 2px solid #eaedf0;
 
   .pull-right {
     margin-top: 4px;
@@ -1469,6 +1482,7 @@ legend {
   text-shadow: none;
   font-size: 13px;
   .box-shadow(0 2px 0 rgba(205,216,227, .54));
+  -webkit-font-smoothing: antialiased;
 
   i {
     color: lighten(#a4adb7, 5);
@@ -1500,6 +1514,18 @@ legend {
     background: #56AFE8;
     color: #fff;
     .box-shadow(0 2px 0 #589ac3);
+  }
+}
+
+.body {
+  textarea, input[type="text"], input[type="password"], input[type="datetime"], input[type="datetime-local"], input[type="date"], input[type="month"], input[type="time"], input[type="week"], input[type="number"], input[type="email"], input[type="url"], input[type="search"], input[type="tel"], input[type="color"], .uneditable-input {
+    height: auto;
+    line-height: auto;
+    border: 2px solid #c3c8ce;
+    padding: 6px 8px;
+    font-size: 15px;
+    .box-shadow(inset 0 2px 0 rgba(0,0,0, .04));
+    .border-radius(5px); 
   }
 }
 
