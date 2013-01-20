@@ -11,6 +11,15 @@
             isBookmarked: false,
             historicalData: []
         }
+
     });
+
+    app.models.User = Backbone.Model.extend({
+
+        defaults: {
+        }
+
+    });
+
 
 }(app, Backbone));
