@@ -859,6 +859,7 @@ class TrackedUser(Model):
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
     num_events = models.PositiveIntegerField(default=0)
+    groups = models.ManyToManyField(Group, through='sentry.AffectedUserByGroup')
 
     objects = BaseManager()
 

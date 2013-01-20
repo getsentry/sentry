@@ -37,9 +37,24 @@ def user_list(request, project):
     user_list = user_list.filter(email__isnull=False)
 
     return render_to_response('sentry/users/list.html', {
-        'user_list': user_list,
+        'tuser_list': user_list,
         'project': project,
         'sort_label': SORT_OPTIONS[sort],
         'SECTION': 'users',
         'SORT_OPTIONS': SORT_OPTIONS,
+    }, request)
+
+
+@has_access
+@login_required
+def user_details(request, project, user_id):
+    user = TrackedUser.objects.get(project=project, id=user_id)
+
+    event_list = user.groups.all()
+
+    return render_to_response('sentry/users/details.html', {
+        'tuser': user,
+        'event_list': event_list,
+        'project': project,
+        'SECTION': 'users',
     }, request)

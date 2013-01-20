@@ -155,6 +155,7 @@ urlpatterns = patterns('',
 
     # Users
     url(r'^(?P<project_id>[\w_-]+)/users/$', users.user_list, name='sentry-users'),
+    url(r'^(?P<project_id>[\w_-]+)/users/(?P<user_id>\d+)/$', users.user_details, name='sentry-user-details'),
 
     # Project specific
     url(r'^(?P<project_id>[\w_-]+)/get-started/$', projects.get_started, name='sentry-get-started'),
