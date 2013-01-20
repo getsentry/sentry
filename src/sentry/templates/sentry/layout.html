@@ -89,6 +89,7 @@
     </head>
 
     <body>
+        <div class="outer-wrapper">
         {% block body %}
         {% block header %}
             {% include "sentry/header.html" %}
@@ -152,7 +153,6 @@
             </div>
         </footer>
         {% endblock %}
-
         <div class="modal" id="modal" style="display:none">
           <div class="modal-header">
             <a class="close" data-dismiss="modal">×</a>
@@ -160,6 +160,7 @@
           </div>
           <div class="modal-body">
           </div>
+        </div>
         </div>
 
         <script type="text/javascript">
