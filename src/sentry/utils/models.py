@@ -13,6 +13,7 @@ from django.db import models, router
 from django.db.models import signals
 from django.db.models.expressions import ExpressionNode
 
+from sentry.utils.cache import Lock
 from sentry.utils.compat import pickle
 from sentry.utils.db import resolve_expression_node
 
@@ -66,6 +67,35 @@ def update(self, using=None, **kwargs):
         raise ValueError("Somehow we have updated multiple rows, and you are now royally fucked.")
 
 update.alters_data = True
+
+
+def create_or_update(model, **kwargs):
+    """
+    Similar to get_or_create, either updates a row or creates it.
+
+    The result will be (rows affected, False), if the row was not created,
+    or (instance, True) if the object is new.
+    """
+    defaults = kwargs.pop('defaults', {})
+
+    objects = model.objects
+
+    # before locking attempt to fetch the instance
+    affected = objects.filter(**kwargs).update(**defaults)
+    if affected:
+        return affected, False
+    lock_key = objects.make_key('lock', kwargs)
+
+    # instance not found, lets grab a lock and attempt to create it
+    with Lock(lock_key) as lock:
+        if lock.was_locked:
+            affected = objects.filter(**kwargs).update(**defaults)
+            return affected, False
+
+        for k, v in defaults.iteritems():
+            if isinstance(v, ExpressionNode):
+                kwargs[k] = resolve_expression_node(objects.model(), v)
+        return objects.create(**kwargs), True
 
 
 class Model(models.Model):
