@@ -13,7 +13,11 @@ from sentry.web.decorators import login_required, has_access
 from sentry.web.helpers import render_to_response
 
 DEFAULT_SORT_OPTION = 'recent'
-SORT_OPTIONS = ('recent', 'newest', 'events')
+SORT_OPTIONS = {
+    'recent': 'Last Seen',
+    'newest': 'First Seen',
+    'events': 'Number of Events',
+}
 
 
 @has_access
@@ -32,6 +36,13 @@ def user_list(request, project):
     elif sort == 'events':
         user_list = user_list.order_by('-num_events')
 
+    # TODO: add separate pain for unbound users (e.g. missing email addresses)
+    user_list = user_list.filter(email__isnull=False)
+
     return render_to_response('sentry/users/list.html', {
         'user_list': user_list,
+        'project': project,
+        'sort_label': SORT_OPTIONS[sort],
+        'SECTION': 'users',
+        'SORT_OPTIONS': SORT_OPTIONS,
     }, request)

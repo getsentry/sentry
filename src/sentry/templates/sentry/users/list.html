@@ -6,6 +6,8 @@
 
 {% block title %}Users | {{ project.name }} | {{ block.super }}{% endblock %}
 
+{% block bodyclass %}{% endblock %}
+
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider">/</li>
@@ -13,40 +15,49 @@
 {% endblock %}
 
 {% block main %}
-    {% paginator user_list from request as user_list %}
-    {% querystring from request without sort as sort_querystring %}
+    <section class="body">
+        {% paginator user_list from request as user_list %}
+        {% querystring from request without sort as sort_querystring %}
 
-    <div class="btn-toolbar">
-        <div class="btn-group">
-            <a href="#" class="btn dropdown-toggle" data-toggle="dropdown">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <span class="caret"></span></a>
-            <ul class="dropdown-menu">
-                <li{% ifequal sort 'recent' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=recent">{% trans "Last Seen" %}</a></li>
-                <li{% ifequal sort 'new' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=newest">{% trans "First Seen" %}</a></li>
-                <li{% ifequal sort 'events' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=freq">{% trans "Number of Events" %}</a></li>
-                <li class="divider"></li>
-            </ul>
+        <div class="btn-toolbar">
+            <div class="btn-group">
+                <a href="#" class="btn dropdown-toggle" data-toggle="dropdown">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <span class="caret"></span></a>
+                <ul class="dropdown-menu">
+                    <li{% ifequal sort 'recent' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=recent">{{ SORT_OPTIONS.recent }}</a></li>
+                    <li{% ifequal sort 'newest' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=newest">{{ SORT_OPTIONS.newest }}</a></li>
+                    <li{% ifequal sort 'events' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=events">{{ SORT_OPTIONS.events }}</a></li>
+                </ul>
+            </div>
+            <div class="btn-group pull-right">
+                <a class="btn prev{% if not user_list.paginator.has_previous %} disabled{% endif %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
+                <a class="btn next{% if not user_list.paginator.has_next %} disabled{% endif %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+            </div>
         </div>
-        <div class="btn-group pull-right">
-            <a class="btn prev{% if not user_list.paginator.has_previous %} disabled{% endif %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
-            <a class="btn next{% if not user_list.paginator.has_next %} disabled{% endif %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>{% trans "User" %}</th>
+                    <th style="width:150px;text-align:center">{% trans "Last Seen" %}</th>
+                    <th style="width:100px;text-align:center">{% trans "Events Seen" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in user_list.paginator.objects %}
+                    <tr>
+                        <td>{% if user.email %}{{ user.email }}{% else %}{{ user.ident }}{% endif %}</td>
+                        <td style="text-align:center">{{ user.last_seen|timesince }}</td>
+                        <td style="text-align:center">{{ user.num_events|small_count }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="btn-toolbar">
+            <div class="btn-group pull-right">
+                <a class="btn prev{% if not user_list.paginator.has_previous %} disabled{% endif %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
+                <a class="btn next{% if not user_list.paginator.has_next %} disabled{% endif %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+            </div>
         </div>
-    </div>
-
-    <div id="user_list"></div>
-
-    <div class="btn-toolbar">
-        <div class="btn-group pull-right">
-            <a class="btn prev{% if not user_list.paginator.has_previous %} disabled{% endif %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
-            <a class="btn next{% if not user_list.paginator.has_next %} disabled{% endif %}" href="?{{ user_list.query_string|escape }}&amp;p={{ user_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
-        </div>
-    </div>
-
-    <script>
-    $(function(){
-        new app.UserListPage({
-            users: {{ user_list.paginator.objects|to_json:request|safe }}
-        });
-    });
-    </script>
-
+    </section>
 {% endblock %}
