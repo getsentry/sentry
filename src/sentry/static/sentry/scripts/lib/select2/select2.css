@@ -46,6 +46,10 @@ Version: 3.2 Timestamp: Mon Sep 10 10:38:04 PDT 2012
     color: #757f87;
     text-decoration: none;
     font-weight: bold;
+
+    -webkit-box-shadow: 0 2px 0 rgba(205, 216, 227, .32);
+    -moz-box-shadow: 0 2px 0 rgba(205, 216, 227, .32);
+    box-shadow: 0 2px 0 rgba(205, 216, 227, .32);
 }
 
 .select2-container .select2-choice:hover {

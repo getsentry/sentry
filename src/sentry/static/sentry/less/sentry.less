@@ -13,6 +13,8 @@
 @iconSpritePath:          "../bootstrap/img/glyphicons-halflings.png";
 @iconWhiteSpritePath:     "../bootstrap/img/glyphicons-halflings-white.png";
 
+[class^="icon-"], [class*=" icon-"] { background-image: none !important; } /* override bootstrap icon bgs */
+
 
 /* =============================  Global  ============================== */
 
@@ -105,9 +107,9 @@ h3 {
     .search-query {
       width: 194px;
       background: #333b47;
-      .border-radius(3px);
+      .border-radius(4px);
       padding: 5px 10px;
-      @shadow: none;
+      @shadow: inset 0 2px #2e3641;
       .box-shadow(@shadow);
       .placeholder(#b4bdc5);
       border: none;
@@ -186,6 +188,7 @@ h3 {
       position: relative;
       text-shadow: none;
       font-weight: bold;
+      margin: 0 3px 0 0;
 
       a {
         color: #828991;
@@ -224,9 +227,11 @@ h3 {
       line-height: 28px;
       top: -3px;
       padding: 0 0 0 11px;
+      .box-shadow(0 2px 0 rgba(185, 200, 215, .26));
     }
 
     .project-settings {
+      margin: 0 4px;
       a {
         .opacity(60);
         .transition(opacity .3s);
@@ -298,7 +303,7 @@ h3 {
     float: left;
   }
   .body {
-    padding: 20px 30px 10px;
+    padding: 25px 30px 10px;
   }
   .btn-toolbar {
     .clearfix();
@@ -389,7 +394,7 @@ h3 {
         a {
           font-weight: bold;
           background-color: #fff;
-          color: #9ba0a3;
+          color: #909aa3;
           border: none;
           padding: 10px 14px;
           &:hover {
@@ -422,6 +427,13 @@ h3 {
         display: block;
       }
     }
+  }
+}
+
+.nav-tabs.nav-stacked > li:last-child > a {
+  .box-shadow(0 2px 0 rgba(205, 216, 227, .32));
+  &.action {
+    .box-shadow(none);
   }
 }
 
@@ -468,9 +480,6 @@ footer {
 
 /* =============================  Modules  ============================== */
 
-.btn, .btn-primary {
-  font-weight: normal !important;
-}
 .btn {
   span {
     text-indent: -1000em;
@@ -568,7 +577,6 @@ footer {
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid #eff1f4;
  
   &.events-detail {
     li {
@@ -605,7 +613,7 @@ footer {
 
     &.empty {
       border: 0;
-      padding: 15px 20px !important;
+      padding: 0 !important;
       &:hover {
         .reset-filter();
         background-image: none;
@@ -1160,6 +1168,7 @@ legend {
   padding-bottom: 0;
   border-bottom: 0;
   margin: 20px 0;
+  border-bottom: 2px solid #eaedf0;
 
   .pull-right {
     margin-top: 4px;
@@ -1282,8 +1291,27 @@ legend {
 
 /* ////////////////////////////////// Flat overrides ////////////////////////////////// */
 
+.dashboard {
+  .page-header {
+    .nav {
+      margin:0 0 14px;
+      a {
+        font-size: 11px;
+        color: lighten(#909aa3, 5);
+        font-weight: bold;
+        min-width: 50px;
+        text-align: center;
+      }
+      .active a {
+        color: #fff;
+        background: #56AFE8;
+      }
+    }
+  }
+}
+
 .btn {
-  background: #ecf0f4;
+  background: #eff3f7;
   .border-radius(4px);
   .box-shadow(none);
   border: none;
@@ -1291,6 +1319,7 @@ legend {
   font-weight: bold;
   text-shadow: none;
   font-size: 13px;
+  .box-shadow(0 2px 0 rgba(205,216,227, .54));
 
   i {
     color: lighten(#a4adb7, 5);
@@ -1308,15 +1337,20 @@ legend {
 
   &:hover {
     color: #666d73;
-    background: darken(#ecf0f4, 2);
+    background: darken(#eff3f7, 1);
+    .box-shadow(0 2px 0 rgba(205,216,227, .74));
   }
   &:active {
-    .box-shadow(none);
+    padding-top: 6px;
+    padding-bottom: 2px;
+    @shadow: inset 0 2px 0 rgba(205,216,227, .34), 0 2px 0 darken(#eff3f7, 1);
+    .box-shadow(@shadow);
   }
 
   &.btn-primary {
     background: #56AFE8;
     color: #fff;
+    .box-shadow(0 2px 0 #589ac3);
   }
 }
 
@@ -1334,6 +1368,7 @@ legend {
   position: relative;
   top: -3px;
   .border-radius(3px);
+  .box-shadow(0 2px 0 rgba(185, 200, 215, .26));
 
   i {
     position: relative;

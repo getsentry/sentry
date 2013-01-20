@@ -28,10 +28,10 @@ if (Sentry === undefined) {
                 $.plot($sparkline, [
                     {
                         data: data,
-                        color: '#3079d0',
+                        color: '#56AFE8',
                         shadowSize: 0,
                         lines: {
-                            lineWidth: 1,
+                            lineWidth: 2,
                             show: true,
                             fill: true
                         }
@@ -54,10 +54,10 @@ if (Sentry === undefined) {
                     },
                     grid: {
                         show: true,
-                        backgroundColor: '#f9f9f9',
-                        borderColor: '#eeeeee',
-                        borderWidth: 1,
-                        tickColor: '#eeeeee'
+                        backgroundColor: '#ffffff',
+                        borderColor: '#DEE3E9',
+                        borderWidth: 2,
+                        tickColor: '#DEE3E9'
                     },
                     hoverable: false,
                     legend: {
