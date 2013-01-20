@@ -81,9 +81,6 @@ class RangeQuerySetWrapper(object):
         limit = self.limit
 
         queryset = self.queryset
-        if max_value:
-            queryset = queryset.filter(**{'%s__lte' % self.order_by: max_value})
-            # Adjust the sort order if we're stepping through reverse
         if self.desc:
             queryset = queryset.order_by('-%s' % self.order_by)
         else:
