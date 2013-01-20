@@ -85,7 +85,7 @@ class StacktraceTest(TestCase):
         event = mock.Mock(spec=Event())
         interface = Stacktrace(frames=[])
         result = interface.to_string(event)
-        get_stacktrace.assert_called_once_with(event, system_frames=False)
+        get_stacktrace.assert_called_once_with(event, system_frames=False, max_frames=5)
         self.assertEquals(result, get_stacktrace.return_value)
 
     @mock.patch('sentry.interfaces.Stacktrace.get_stacktrace')
@@ -94,7 +94,7 @@ class StacktraceTest(TestCase):
         event = mock.Mock(spec=Event())
         event.message = 'foo'
         get_stacktrace.return_value = 'bar'
-        interface = Stacktrace(frames=[])
+        interface = Stacktrace(frames=[{'lineno': 1, 'filename': 'foo.py'}])
         result = interface.get_traceback(event)
         get_stacktrace.assert_called_once_with(event, newest_first=None)
         self.assertEquals(result, 'foo\n\nbar')
@@ -105,12 +105,12 @@ class StacktraceTest(TestCase):
     def test_to_html_render_call(self, render_to_string, get_traceback):
         event = mock.Mock(spec=Event())
         get_traceback.return_value = 'bar'
-        interface = Stacktrace(frames=[])
+        interface = Stacktrace(frames=[{'lineno': 1, 'filename': 'foo.py'}])
         result = interface.to_html(event)
         get_traceback.assert_called_once_with(event, newest_first=False)
         render_to_string.assert_called_once_with('sentry/partial/interfaces/stacktrace.html', {
             'event': event,
-            'frames': [],
+            'frames': [{'function': None, 'abs_path': None, 'start_lineno': None, 'lineno': 1, 'context': [], 'vars': [], 'in_app': True, 'filename': 'foo.py'}],
             'stacktrace': 'bar',
             'system_frames': 0,
             'newest_first': False,
@@ -123,10 +123,10 @@ class StacktraceTest(TestCase):
         event = mock.Mock(spec=Event())
         event.message = 'foo'
         get_traceback.return_value = 'bar'
-        interface = Stacktrace(frames=[])
+        interface = Stacktrace(frames=[{'lineno': 1, 'filename': 'foo.py'}])
         result = interface.to_html(event)
         get_traceback.assert_called_once_with(event, newest_first=False)
-        self.assertTrue('<div id="traceback" class="module">' in result)
+        self.assertTrue('<div class="module">' in result)
 
     @mock.patch('sentry.interfaces.Stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_stacktrace_with_only_filename(self):

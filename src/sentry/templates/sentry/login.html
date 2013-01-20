@@ -34,7 +34,7 @@
                                 <a href="{% url sentry-register %}">{% trans "Create a new account" %}</a>
                             </div>
                         {% endif %}
-                        <button type="submit" class="btn btn-primary">{% trans "Login" %}</button>
+                        <button type="submit" class="btn btn-primary">{% trans "Login" %}</button> <a href="{% url sentry-account-recover %}">{% trans "Lose your password?" %}</a>
                     </fieldset>
                 </form>
             </div>
@@ -45,7 +45,7 @@
                             {% if SOCIAL_AUTH_CREATE_USERS %}
                                 {% trans "Login or Register using another service" %}
                             {% else %}
-                                {% trans "Login using another service"}
+                                {% trans "Login using another service" %}
                             {% endif %}
                     </fieldset>
                     {% url sentry-account-settings-identities as identities_link %}

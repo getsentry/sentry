@@ -12,6 +12,7 @@ from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
+from sentry.constants import EMPTY_PASSWORD_VALUES
 from sentry.models import UserOption
 
 
@@ -70,20 +71,15 @@ class AccountSettingsForm(forms.Form):
     old_password = forms.CharField(label=_('Current password'), widget=forms.PasswordInput)
     email = forms.EmailField(label=_('Email'))
     first_name = forms.CharField(required=True, label=_('Name'))
-    new_password1 = forms.CharField(label=_('New password'), widget=forms.PasswordInput, required=False)
-    new_password2 = forms.CharField(label=_('New password confirmation'), widget=forms.PasswordInput, required=False)
+    new_password = forms.CharField(label=_('New password'), widget=forms.PasswordInput, required=False)
 
     def __init__(self, user, *args, **kwargs):
         self.user = user
         super(AccountSettingsForm, self).__init__(*args, **kwargs)
 
-    def clean_new_password2(self):
-        password1 = self.cleaned_data.get('new_password1')
-        password2 = self.cleaned_data.get('new_password2')
-        if password1 and password2:
-            if password1 != password2:
-                raise forms.ValidationError(_("The two password fields didn't match."))
-        return password2
+        # HACK: dont require current password if they dont have one
+        if self.user.password in EMPTY_PASSWORD_VALUES:
+            del self.fields['old_password']
 
     def clean_old_password(self):
         """
@@ -95,8 +91,8 @@ class AccountSettingsForm(forms.Form):
         return old_password
 
     def save(self, commit=True):
-        if self.cleaned_data['new_password2']:
-            self.user.set_password(self.cleaned_data['new_password1'])
+        if self.cleaned_data.get('new_password'):
+            self.user.set_password(self.cleaned_data['new_password'])
         self.user.first_name = self.cleaned_data['first_name']
         self.user.email = self.cleaned_data['email']
         if commit:
@@ -142,3 +138,20 @@ class AppearanceSettingsForm(forms.Form):
         )
 
         return self.user
+
+
+class RecoverPasswordForm(forms.Form):
+    user = forms.CharField(label=_('Username'))
+
+    def clean_user(self):
+        value = self.cleaned_data.get('user')
+        if value:
+            try:
+                return User.objects.get(username__iexact=value)
+            except User.DoesNotExist:
+                raise forms.ValidationError(_("We were unable to find a matching user."))
+        return None
+
+
+class ChangePasswordRecoverForm(forms.Form):
+    password = forms.CharField(widget=forms.PasswordInput())

@@ -1,8 +1,25 @@
 {% load i18n %}
+{% load sentry_activity %}
 {% load sentry_helpers %}
 
-{% for interface in interface_list %}
-    {{ interface }}
+{% if activity %}
+    <hr>
+    <ul class="activity">
+        {% for item in activity %}
+            {% with item|render_activity as out %}
+                {% if out %}
+                    <li class="item item-{{ item.get_type_display }}">{{ out }}</li>
+                {% endif %}
+            {% endwith %}
+        {% endfor %}
+    </ul>
+    <hr>
+{% endif %}
+
+{% for interface, interface_html in interface_list %}
+    <div id="{{ interface.get_slug }}">
+        {{ interface_html }}
+    </div>
 {% endfor %}
 
 {% if json_data %}
@@ -14,30 +31,26 @@
             {% for k, v in json_data.iteritems|as_sorted %}
                 <tr>
                     <th class="key">{{ k }}</th>
-                    <td class="values{% if v and not v|is_dict %} code{% endif %}">
-                    {% if v %}
-                        {% if v|is_dict %}
-                            {% if v|length > 5 %}
-                                <a href="#" onclick="return varToggle(this, '#vExtra{{ forloop.counter }}')"><span>&#x25b6;</span> {% trans "Expand" %}</a>
-                            {% endif %}
-                            <table class="table vars" id="vExtra{{ forloop.counter }}"{% if v|length > 5 %} style="display:none;"{% endif %}>
-                                <colgroup>
-                                    <col style="width:100px;">
-                                </colgroup>
-                                <tbody>
-                                    {% for k_, v_ in v.iteritems|as_sorted %}
-                                        <tr>
-                                            <td>{{ k_ }}</td>
-                                            <td class="code"><pre>{{ v_|pprint }}</pre></td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        {% else %}
-                            <pre>{{ v|pprint }}</pre>
+                    <td class="values{% if not v|is_dict %} code{% endif %}">
+                    {% if v|is_dict %}
+                        {% if v|length > 5 %}
+                            <a href="#" onclick="return varToggle(this, '#vExtra{{ forloop.counter }}')"><span>&#x25b6;</span> {% trans "Expand" %}</a>
                         {% endif %}
+                        <table class="table vars" id="vExtra{{ forloop.counter }}"{% if v|length > 5 %} style="display:none;"{% endif %}>
+                            <colgroup>
+                                <col style="width:100px;">
+                            </colgroup>
+                            <tbody>
+                                {% for k_, v_ in v.iteritems|as_sorted %}
+                                    <tr>
+                                        <th>{{ k_ }}</th>
+                                        <td class="code"><pre>{{ v_|pprint }}</pre></td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     {% else %}
-                        <p>{% blocktrans with k as varname %}No data for {{ varname }}{% endblocktrans %}</p>
+                        <pre>{{ v|pprint }}</pre>
                     {% endif %}
                     </td>
                 </tr>
@@ -47,7 +60,7 @@
 {% endif %}
 
 {% if version_data %}
-    <div id="versioninfo">
+    <div id="versions">
         <div class="page-header">
             <h2>{% trans "Package Versions" %}</h2>
         </div>

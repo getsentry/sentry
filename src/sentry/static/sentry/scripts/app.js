@@ -68,7 +68,7 @@
                 pollUrl: uri,
                 stream: this.options.stream,
                 realtime: this.options.realtime,
-                model: app.Group
+                model: app.models.Group
             });
         },
 
@@ -93,7 +93,7 @@
                 realtime: ($.cookie('pausestream') ? false : true),
                 canStream: this.options.canStream,
                 pollUrl: app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/',
-                model: app.Group
+                model: app.models.Group
             });
 
             this.control = $('a[data-action=pause]');
@@ -106,7 +106,9 @@
             }, this));
 
             $('#chart').height('50px');
-            app.charts.render('#chart');
+            app.charts.render('#chart', {
+                placement: 'left'
+            });
         },
 
         updateStreamOptions: function(){
@@ -145,7 +147,7 @@
                 className: 'group-list',
                 id: 'event_list',
                 members: [data.group],
-                model: app.Group
+                model: app.models.Group
             });
 
             $('#chart').height('200px');
@@ -156,11 +158,9 @@
                 $.ajax({
                     url: $this.attr('data-api-url'),
                     type: 'post',
-                    dataType: 'json',
-                    success: function(groups){
-                        var group = groups[0];
-                        var selector = (group.is_public ? 'true' : 'false');
-                        var nselector = (group.is_public ? 'false' : 'true');
+                    success: function(group){
+                        var selector = (group.isPublic ? 'true' : 'false');
+                        var nselector = (group.isPublic ? 'false' : 'true');
                         $('#public-status span[data-public="' + selector + '"]').show();
                         $('#public-status span[data-public="' + nselector + '"]').hide();
                     },
@@ -170,8 +170,77 @@
                 });
             });
 
-        }
+            var $event_nav = $('#event_nav');
+            if ($event_nav) {
+                var $window = $(window);
+                var $nav_links = $event_nav.find('a[href*=#]');
+                var $nav_targets = [];
+                var scroll_offset = $event_nav.offset().top;
+                var event_nav_height;
+                var last_target;
 
+                $nav_links.click(function(e){
+                    var $el = $(this);
+                    var target = $(this.hash);
+
+                    $el.parent().addClass('active').siblings().removeClass('active');
+
+                    $('html,body').animate({
+                        scrollTop: $(target).position().top + event_nav_height + 20
+                    }, 'fast');
+
+                    e.preventDefault();
+                }).each(function(){
+                    if (this.hash.length > 1 && $(this.hash).length) {
+                        $nav_targets.push(this.hash);
+                    }
+                });
+
+                $window.resize(function(){
+                    event_nav_height = $event_nav.find('.nav').outerHeight();
+                    $event_nav.height(event_nav_height + 'px');
+                }).resize();
+
+                $window.scroll(function(){
+                    // Change fixed nav if needed
+                    if ($window.scrollTop() > scroll_offset) {
+                        if (!$event_nav.hasClass('fixed')) {
+                            $event_nav.addClass('fixed');
+                        }
+                    } else if ($event_nav.hasClass('fixed')) {
+                        $event_nav.removeClass('fixed');
+                    }
+
+                    if ($nav_targets.length) {
+                        // Get container scroll position
+                        var from_top = $window.scrollTop() + event_nav_height + 20;
+                       
+                        // Get id of current scroll item
+                        var cur = $.map($nav_targets, function(hash){
+                            if ($(hash).offset().top < from_top) {
+                                return hash;
+                            }
+                        });
+
+                        // Get the id of the current element
+                        var target = cur ? cur[cur.length - 1] : null;
+
+                        if (!target) {
+                            target = $nav_targets[0];
+                        }
+
+                        if (last_target !== target) {
+                           last_target = target;
+
+                           // Set/remove active class
+                           $nav_links
+                             .parent().removeClass("active")
+                             .end().filter("[href=" + target + "]").parent().addClass("active");
+                        }  
+                    }
+                }).scroll();
+            }
+        }
     });
 
     app.NewProjectPage = BasePage.extend({
@@ -265,6 +334,20 @@
                     });
                     window.setTimeout(this.refreshStats, 1000);
                 }, this)
+            });
+        }
+
+    });
+
+    app.UserListPage = BasePage.extend({
+
+        initialize: function(data){
+            BasePage.prototype.initialize.call(this, data);
+
+            this.list = new app.UserListView({
+                className: 'user-list',
+                id: 'user_list',
+                members: data.users
             });
         }
 

@@ -12,6 +12,7 @@ from sentry.plugins import Plugin
 class TagPlugin(Plugin):
     tag = None
     tag_label = None
+    project_default_enabled = True
 
     def get_tag_values(self, event):
         """

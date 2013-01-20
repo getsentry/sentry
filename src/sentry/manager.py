@@ -16,13 +16,13 @@ import logging
 import re
 import warnings
 import weakref
+import time
 
 from celery.signals import task_postrun
 from django.conf import settings as dj_settings
 from django.core.signals import request_finished
 from django.db import models, transaction, IntegrityError
 from django.db.models import Sum
-from django.db.models.expressions import ExpressionNode
 from django.db.models.signals import post_save, post_delete, post_init, class_prepared
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
@@ -35,9 +35,11 @@ from sentry.constants import STATUS_RESOLVED, STATUS_UNRESOLVED
 from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
 from sentry.tasks.index import index_event
+from sentry.tasks.fetch_source import fetch_javascript_source
 from sentry.utils.cache import cache, Lock
 from sentry.utils.dates import get_sql_date_trunc
-from sentry.utils.db import get_db_engine, has_charts, resolve_expression_node
+from sentry.utils.db import get_db_engine, has_charts
+from sentry.utils.models import create_or_update
 from sentry.utils.queue import maybe_delay
 
 logger = logging.getLogger('sentry.errors')
@@ -94,7 +96,7 @@ class BaseManager(models.Manager):
             return self.model._meta.pk.name
         return key
 
-    def __make_key(self, prefix, kwargs):
+    def make_key(self, prefix, kwargs):
         kwargs_bits = []
         for k, v in sorted(kwargs.iteritems()):
             k = self.__prep_key(k)
@@ -175,7 +177,7 @@ class BaseManager(models.Manager):
         cache.delete(self.__get_lookup_cache_key(**{pk_name: instance.pk}))
 
     def __get_lookup_cache_key(self, **kwargs):
-        return self.__make_key('modelcache', kwargs)
+        return self.make_key('modelcache', kwargs)
 
     def contribute_to_class(self, model, name):
         super(BaseManager, self).contribute_to_class(model, name)
@@ -238,7 +240,7 @@ class BaseManager(models.Manager):
             return self.get(**kwargs), False
         except self.model.DoesNotExist:
             pass
-        lock_key = self.__make_key('lock', kwargs)
+        lock_key = self.make_key('lock', kwargs)
 
         # instance not found, lets grab a lock and attempt to create it
         with Lock(lock_key):
@@ -251,30 +253,7 @@ class BaseManager(models.Manager):
         return instance, created
 
     def create_or_update(self, **kwargs):
-        """
-        Similar to get_or_create, either updates a row or creates it.
-
-        The result will be (rows affected, False), if the row was not created,
-        or (instance, True) if the object is new.
-        """
-        defaults = kwargs.pop('defaults', {})
-
-        # before locking attempt to fetch the instance
-        affected = self.filter(**kwargs).update(**defaults)
-        if affected:
-            return affected, False
-        lock_key = self.__make_key('lock', kwargs)
-
-        # instance not found, lets grab a lock and attempt to create it
-        with Lock(lock_key) as lock:
-            if lock.was_locked:
-                affected = self.filter(**kwargs).update(**defaults)
-                return affected, False
-
-            for k, v in defaults.iteritems():
-                if isinstance(v, ExpressionNode):
-                    kwargs[k] = resolve_expression_node(self.model(), v)
-            return self.create(**kwargs), True
+        return create_or_update(self.model, **kwargs)
 
 
 class ScoreClause(object):
@@ -413,7 +392,7 @@ class ChartMixin(object):
             results[item] = []
             for point in xrange(points, -1, -1):
                 dt = today - datetime.timedelta(**{d_type: point * modifier})
-                results[item].append((int((dt).strftime('%s')) * 1000, tsdata.get(dt, 0)))
+                results[item].append((int(time.mktime((dt).timetuple())) * 1000, tsdata.get(dt, 0)))
 
         if key is None:
             return results[None]
@@ -524,9 +503,16 @@ class GroupManager(BaseManager, ChartMixin):
                 transaction.rollback_unless_managed(using=group._state.db)
                 logger.exception(u'Error indexing document: %s', e)
 
+        if settings.SCRAPE_JAVASCRIPT_CONTEXT and event.platform == 'javascript' and not is_sample:
+            try:
+                maybe_delay(fetch_javascript_source, event)
+            except Exception, e:
+                transaction.rollback_unless_managed(using=group._state.db)
+                logger.exception(u'Error fetching javascript source: %s', e)
+
         if is_new:
             try:
-                regression_signal.send(sender=self.model, instance=group)
+                regression_signal.send_robust(sender=self.model, instance=group)
             except Exception, e:
                 transaction.rollback_unless_managed(using=group._state.db)
                 logger.exception(u'Error sending regression signal: %s', e)
@@ -561,6 +547,8 @@ class GroupManager(BaseManager, ChartMixin):
             for g in groups[1:]:
                 g.delete()
             group, is_new = groups[0], False
+        else:
+            transaction.commit_unless_managed(using=group._state.db)
 
         update_kwargs = {
             'times_seen': 1,
@@ -594,7 +582,7 @@ class GroupManager(BaseManager, ChartMixin):
             silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
 
             app.buffer.incr(self.model, update_kwargs, {
-                'pk': group.pk,
+                'id': group.id,
             }, extra)
         else:
             # TODO: this update should actually happen as part of create
@@ -641,9 +629,58 @@ class GroupManager(BaseManager, ChartMixin):
             ('level', event.get_level_display()),
         ]
 
-        self.add_tags(group, tags)
+        user_ident = event.user_ident
+        if user_ident:
+            self.record_affected_user(group, user_ident, event.data.get('sentry.interfaces.User'))
+
+        try:
+            self.add_tags(group, tags)
+        except Exception, e:
+            logger.exception('Unable to record tags: %s' % (e,))
 
         return group, is_new, is_sample
+
+    def record_affected_user(self, group, user_ident, data=None):
+        from sentry.models import TrackedUser, AffectedUserByGroup
+
+        project = group.project
+        date = group.last_seen
+
+        if data:
+            email = data.get('email')
+        else:
+            email = None
+
+        # TODO: we should be able to chain the affected user update so that tracked
+        # user gets updated serially
+        tuser = TrackedUser.objects.get_or_create(
+            project=project,
+            ident=user_ident,
+            defaults={
+                'email': email,
+                'data': data,
+            }
+        )[0]
+
+        app.buffer.incr(TrackedUser, {
+            'num_events': 1,
+        }, {
+            'id': tuser.id,
+        }, {
+            'last_seen': date,
+            'email': email,
+            'data': data,
+        })
+
+        app.buffer.incr(AffectedUserByGroup, {
+            'times_seen': 1,
+        }, {
+            'group': group,
+            'project': project,
+            'tuser': tuser,
+        }, {
+            'last_seen': date,
+        })
 
     def add_tags(self, group, tags):
         from sentry.models import FilterValue, FilterKey, MessageFilterValue
@@ -652,6 +689,10 @@ class GroupManager(BaseManager, ChartMixin):
         date = group.last_seen
 
         for key, value in itertools.ifilter(lambda x: bool(x[1]), tags):
+            if not value:
+                continue
+
+            value = unicode(value)
             if len(value) > MAX_TAG_LENGTH:
                 continue
 
@@ -988,17 +1029,14 @@ class SearchDocumentManager(BaseManager):
             token_sql = ' '
 
         sql = """
-            SELECT sd.id AS id,
-                   sd.group_id AS group_id,
-                   SUM(st.times_seen) / sd.total_events as score,
-                   sd.date_changed AS date_changed,
-                   sd.date_added AS date_added
+            SELECT sd.*,
+                   SUM(st.times_seen) / sd.total_events as score
             FROM sentry_searchdocument as sd
             INNER JOIN sentry_searchtoken as st
                 ON st.document_id = sd.id
             WHERE %s
                 sd.project_id = %s
-            GROUP BY sd.id, sd.group_id, sd.total_events, sd.date_changed, sd.date_added
+            GROUP BY sd.id, sd.group_id, sd.total_events, sd.date_changed, sd.date_added, sd.project_id, sd.status
             ORDER BY %s
             LIMIT %d OFFSET %d
         """ % (

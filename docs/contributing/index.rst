@@ -49,7 +49,14 @@ Create a default Sentry configation just as if this were a production instance:
 
     sentry init
 
-Voila! You're all set to begin developing!
+You'll likely want to make some changes to the default configuration (we recommend developing against Postgres, for example). Once done, migrate your database using the following command:
+
+::
+
+	sentry upgrade
+
+
+.. note:: The ``upgrade`` shortcut is simply a combination of South's migrate, and Django's syncdb commands.
 
 
 Coding Standards
@@ -76,6 +83,19 @@ If you only need to run the Python tests, you can do so with ``make test-python`
 You'll notice that the test suite is structured based on where the code lives, and strongly encourages using the mock library to drive more accurate individual tests.
 
 .. note:: We use py.test for the Python test suite, and a combination of phantomjs and jasmine for the JavaScript tests.
+
+
+Developing with Django
+----------------------
+
+Because Sentry is just Django, you can use all of the standard Django functionality. The only difference is you'll be accessing commands that would normally go through manage.py using the ``sentry`` CLI helper instead.
+
+For example, you probably don't want to use ``sentry start`` for development, as it doesnt support anything like
+automatic reloading on code changes. For that you'd want to use the standard builtin ``runserver`` command:
+
+::
+
+	sentry runserver
 
 
 Contributing Back Code

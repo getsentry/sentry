@@ -30,9 +30,17 @@ def pytest_configure(config):
             'NAME': ':memory:',
         })
 
+    # Compressors is not fast, disable it in tests.
+    settings.COMPRESS_ENABLED = False
+    settings.COMPRESS_PRECOMPILERS = ()
+
     # override a few things with our test specifics
     settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + (
         'tests',
     )
     settings.SENTRY_KEY = base64.b64encode(os.urandom(40))
     settings.SENTRY_PUBLIC = False
+    # This speeds up the tests considerably, pbkdf2 is by design, slow.
+    settings.PASSWORD_HASHERS = [
+        'django.contrib.auth.hashers.MD5PasswordHasher',
+    ]

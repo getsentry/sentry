@@ -8,6 +8,7 @@ import pytest
 
 from django.utils import timezone
 from sentry.interfaces import Interface
+from sentry.manager import get_checksum_from_event
 from sentry.models import Event, Group, Project, MessageCountByMinute, ProjectCountByMinute, \
   SearchDocument
 from sentry.utils.db import has_trending  # NOQA
@@ -44,6 +45,32 @@ class SentryManagerTest(TestCase):
         self.assertEquals(event.group.last_seen, event.datetime)
         self.assertEquals(event.message, 'foo')
         self.assertEquals(event.project_id, 1)
+
+    def test_records_users_seen(self):
+        # TODO: we could lower the level of this test by just testing our signal receiver's logic
+        event = Group.objects.from_kwargs(1, message='foo', **{
+            'sentry.interfaces.User': {
+                'email': 'foo@example.com',
+            },
+        })
+        group = Group.objects.get(id=event.group_id)
+        assert group.users_seen == 1
+
+        event = Group.objects.from_kwargs(1, message='foo', **{
+            'sentry.interfaces.User': {
+                'email': 'foo@example.com',
+            },
+        })
+        group = Group.objects.get(id=event.group_id)
+        assert group.users_seen == 1
+
+        event = Group.objects.from_kwargs(1, message='foo', **{
+            'sentry.interfaces.User': {
+                'email': 'bar@example.com',
+            },
+        })
+        group = Group.objects.get(id=event.group_id)
+        assert group.users_seen == 2
 
     def test_valid_timestamp_without_tz(self):
         # TODO: this doesnt error, but it will throw a warning. What should we do?
@@ -189,6 +216,14 @@ class SentryManagerTest(TestCase):
         self.assertEquals(group.last_seen.replace(microsecond=0), event.datetime.replace(microsecond=0))
         self.assertEquals(group.message, 'foo bar')
 
+    @mock.patch('sentry.manager.maybe_delay')
+    def test_scrapes_javascript_source(self, maybe_delay):
+        from sentry.tasks.fetch_source import fetch_javascript_source
+        with self.Settings(SENTRY_SCRAPE_JAVASCRIPT_CONTEXT=True):
+            event = Group.objects.from_kwargs(1, message='hello', platform='javascript')
+
+            maybe_delay.assert_any_call(fetch_javascript_source, event)
+
     def test_add_tags(self):
         event = Group.objects.from_kwargs(1, message='rrr')
         group = event.group
@@ -248,3 +283,30 @@ class TrendsTest(TestCase):
 
         results = list(Group.objects.get_accelerated([project.id], base_qs)[:25])
         self.assertEquals(results, [group, group2])
+
+
+class GetChecksumFromEventTest(TestCase):
+    @mock.patch('sentry.interfaces.Stacktrace.get_composite_hash')
+    @mock.patch('sentry.interfaces.Http.get_composite_hash')
+    def test_stacktrace_wins_over_http(self, http_comp_hash, stack_comp_hash):
+        # this was a regression, and a very important one
+        http_comp_hash.return_value = ['baz']
+        stack_comp_hash.return_value = ['foo', 'bar']
+        event = Event(
+            data={
+                'sentry.interfaces.Stacktrace': {
+                    'frames': [{
+                        'lineno': 1,
+                        'filename': 'foo.py',
+                    }],
+                },
+                'sentry.interfaces.Http': {
+                    'url': 'http://example.com'
+                },
+            },
+            message='Foo bar',
+        )
+        checksum = get_checksum_from_event(event)
+        stack_comp_hash.assert_called_once_with(interfaces=event.interfaces)
+        assert not http_comp_hash.called
+        assert checksum == '3858f62230ac3c915f300c664312c63f'

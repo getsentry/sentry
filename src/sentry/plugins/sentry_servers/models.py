@@ -24,6 +24,7 @@ class ServersPlugin(TagPlugin):
     author_url = "https://github.com/getsentry/sentry"
     tag = 'server_name'
     tag_label = _('Server Name')
+    project_default_enabled = True
 
     def get_tag_values(self, event):
         if not event.server_name:

@@ -9,7 +9,7 @@ sentry.coreapi
 #       This will make it so we can more easily control logging with various
 #       metadata (rather than generic log messages which arent useful).
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import base64
 import logging
 import uuid
@@ -80,7 +80,7 @@ def extract_auth_vars(request):
     elif request.META.get('HTTP_AUTHORIZATION', '').startswith('Sentry'):
         return parse_auth_header(request.META['HTTP_AUTHORIZATION'])
     else:
-        return None
+        return request.GET
 
 
 def project_from_auth_vars(auth_vars):
@@ -237,8 +237,7 @@ def process_data_timestamp(data):
         try:
             data['timestamp'] = datetime.fromtimestamp(float(data['timestamp']))
         except Exception:
-            logger.exception('Failed reading timestamp')
-            del data['timestamp']
+            raise InvalidTimestamp('Invalid value for timestamp: %r' % data['timestamp'])
     elif not isinstance(data['timestamp'], datetime):
         if '.' in data['timestamp']:
             format = '%Y-%m-%dT%H:%M:%S.%f'
@@ -251,6 +250,9 @@ def process_data_timestamp(data):
             data['timestamp'] = datetime.strptime(data['timestamp'], format)
         except Exception:
             raise InvalidTimestamp('Invalid value for timestamp: %r' % data['timestamp'])
+
+    if data['timestamp'] > datetime.now() + timedelta(minutes=1):
+        raise InvalidTimestamp('Invalid value for timestamp (in future): %r' % data['timestamp'])
 
     return data
 

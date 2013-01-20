@@ -1,0 +1,47 @@
+{% extends "sentry/teams/manage.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-manage-team-projects team.slug %}">{% trans "Projects" %}</a></li>
+{% endblock %}
+
+{% block inner %}
+    <div class="page-header">
+        {% if can_add_project %}
+            <a href="{% url sentry-new-team-project team.slug %}" class="btn pull-right btn-primary">{% trans "New Project" %}</a>
+        {% endif %}
+        <h2>{% trans "Projects" %}</h2>
+    </div>
+    {% if project_list %}
+        <table class="table table-bordered table-striped">
+            <colgroup>
+                <col/>
+                <col width="90px"/>
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>{% trans "Project" %}</th>
+                    <th style="text-align:center">{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for project in project_list %}
+                    <tr>
+                        <td>
+                            <a href="{% url sentry project.slug %}">{{ project.name }}</a><br>
+                        </td>
+                        <td style="text-align:center;">
+                            <a href="{% url sentry-manage-project project.slug %}" class="btn btn-small">{% trans "Settings" %}</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>{% trans "There are no projects managed by this team." %}</p>
+    {% endif %}
+{% endblock %}

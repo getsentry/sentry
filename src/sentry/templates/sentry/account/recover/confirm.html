@@ -1,0 +1,30 @@
+{% extends "sentry/layout.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Recover Account" %} | {{ block.super }}{% endblock %}
+
+{% block page_header_block %}{% endblock %}
+{% block bodyclass %}{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <div class="page-header">
+            <h2>{% trans "Recover Account" %}</h2>
+        </div>
+        <p>{% trans "You have confirmed your email, and may now update your password below." %}</p>
+        <form method="POST" action="">
+            {% csrf_token %}
+            {{ form|as_crispy_errors }}
+
+            {% for field in form %}
+            	{{ field|as_crispy_field }}
+            {% endfor %}
+
+            <fieldset class="form-actions">
+                <button type="submit" class="btn btn-primary">{% trans "Change Password" %}</button>
+            </fieldset>
+        </form>
+    </section>
+{% endblock %}

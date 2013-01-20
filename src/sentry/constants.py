@@ -56,20 +56,61 @@ SEARCH_SORT_OPTIONS = SortedDict((
     ('new', _('First Seen')),
 ))
 
+STATUS_VISIBLE = 0
+STATUS_HIDDEN = 1
+
 STATUS_UNRESOLVED = 0
 STATUS_RESOLVED = 1
 STATUS_MUTED = 2
 STATUS_LEVELS = (
-    (STATUS_UNRESOLVED, _('unresolved')),
-    (STATUS_RESOLVED, _('resolved')),
-    (STATUS_MUTED, _('muted')),
+    (STATUS_UNRESOLVED, _('Unresolved')),
+    (STATUS_RESOLVED, _('Resolved')),
+    (STATUS_MUTED, _('Muted')),
 )
 
 MEMBER_OWNER = 0
 MEMBER_USER = 50
 MEMBER_SYSTEM = 100
 MEMBER_TYPES = (
-    (MEMBER_OWNER, _('admin')),
-    (MEMBER_USER, _('user')),
-    (MEMBER_SYSTEM, _('system agent')),
+    (MEMBER_OWNER, _('Admin')),
+    (MEMBER_USER, _('User')),
+    (MEMBER_SYSTEM, _('System Agent')),
 )
+
+# A list of values which represent an unset or empty password on
+# a User instance.
+EMPTY_PASSWORD_VALUES = ('!', '', '$')
+
+PLATFORM_LIST = (
+    'python',
+    'django',
+    'flask',
+    'php',
+    'java',
+    'node.js',
+    'ios',
+    'express',
+    'connect',
+    'r',
+    'ruby',
+    'rails3',
+    'javascript',
+)
+
+PLATFORM_ROOTS = {
+    'rails3': 'ruby',
+    'django': 'python',
+    'flask': 'python',
+    'express': 'node.js',
+    'connect': 'node.js',
+}
+
+PLATFORM_TITLES = {
+    'rails3': 'Rails 3 (Ruby)',
+    'php': 'PHP',
+    'ios': 'iOS',
+    'express': 'Express (Node.js)',
+    'connect': 'Express (Node.js)',
+    'django': 'Django (Python)',
+    'flask': 'Flask (Python)',
+}

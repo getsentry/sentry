@@ -6,30 +6,19 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider"></li>
-    <li><a href="{% url sentry-group-event group.project.slug group.pk event.pk %}">Event at {{ event.datetime }} UTC</a></li>
-{% endblock %}
-
-{% block sidebar %}
-    <h6>{% trans "Event Details" %}</h6>
-
-    <dl class="flat">
-        <dt>{% trans "Seen:" %}</dt>
-        <dd class="pretty-date" title="{{ event.datetime|date:"c" }}Z">{{ event.datetime|timesince }}</dd>
-        <dt>{% trans "Duration:" %}</dt>
-        <dd>{% if event.time_spent %}{{ event.time_spent|duration }}{% else %}<em>n/a</em>{% endif %}</dd>
-        <dt>{% trans "Server:" %}</dt>
-        <dd>{% if event.server_name %}{{ event.server_name }}{% else %}<em>n/a</em>{% endif %}</dd>
-        <dt>{% trans "Site:" %}</dt>
-        <dd>{% if event.site %}{{ event.site }}{% else %}<em>n/a</em>{% endif %}</dd>
-    </dl>
-
-    <hr>
-
-    {{ block.super }}
+    <li><a href="{% url sentry-group-event group.project.slug group.id event.id %}">Event at {{ event.datetime }} UTC</a></li>
 {% endblock %}
 
 {% block inner %}
-    <ul class="events no-counts" id="event_list">
+    {% include "sentry/partial/event_nav.html" %}
+
+    <div class="btn-toolbar">
+            <!-- We switch the ordering of events here as it makes more sense visually -->
+        <a class="btn {% if not next_event %} disabled{% endif %}"{% if next_event %} href="{% url sentry-group-event group.project.slug group.id next_event.id %}"{% endif %}><span>{% trans "Newer Event" %}</span></a>
+        <a class="btn pull-right {% if not prev_event %} disabled{% endif %}"{% if prev_event %} href="{% url sentry-group-event group.project.slug group.id prev_event.id %}"{% endif %}><span>{% trans "Older Event" %}</span></a>
+    </div>
+
+    <ul class="events no-counts">
         {% include "sentry/partial/_event.html" %}
     </ul>
 

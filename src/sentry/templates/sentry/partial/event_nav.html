@@ -1,0 +1,42 @@
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_plugins %}
+
+<div id="event_nav">
+    <ul class="nav nav-pills">
+        {% with event.group|get_panels:request as panel_list %}
+            {% if panel_list %}
+                <li class="dropdown pull-right">
+                    <a href="javascript:void(0)" class="dropdown-toggle" data-toggle="dropdown">
+                        <i class="icon-list"></i>
+                    </a>
+                    <ul class="dropdown-menu">
+                        {% for label, link, is_active in panel_list %}
+                            <li{% if is_active %} class="active"{% endif %}><a href="{{ link }}">{{ label }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </li>
+            {% endif %}
+        {% endwith %}
+        <li{% if page == 'details' %} class="active"{% endif %}>
+            <a href="#details">{% trans "Details" %}</a>
+        </li>
+        {% for interface, _ in interface_list %}
+            <li>
+                <a href="#{{ interface.get_slug }}">
+                    {{ interface.get_title }}
+                </a>
+            </li>
+        {% endfor %}
+        {% if json_data %}
+            <li>
+                <a href="#extra">{% trans "Additional Data" %}</a>
+            </li>
+        {% endif %}
+        {% if version_data %}
+            <li>
+                <a href="#versions">{% trans "Versions" %}</a>
+            </li>
+        {% endif %}
+    </ul>
+</div>

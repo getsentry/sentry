@@ -4,6 +4,12 @@
 
 {% block title %}{% blocktrans %}{{ platform_title }} Client Configuration{% endblocktrans %} | {{ block.super }}{% endblock %}
 
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-docs-client project.slug platform %}">{{ platform_title }}</a></li>
+{% endblock %}
+
 {% block inner %}
     <div class="page-header">
         <h2>{% blocktrans %}Configuring {{ platform_title }}{% endblocktrans %}</h2>

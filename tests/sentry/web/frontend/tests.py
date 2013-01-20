@@ -7,27 +7,18 @@ import json
 
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
-from exam import fixture
 
 from sentry.conf import settings
 from sentry.constants import MEMBER_USER
 from sentry.models import Group, Project, TeamMember, Team
-
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, fixture, before
 
 logger = logging.getLogger(__name__)
 
 
 class BaseViewTest(TestCase):
-    @fixture
-    def user(self):
-        user = User(username="admin", email="admin@localhost", is_staff=True, is_superuser=True)
-        user.set_password('password')
-        user.save()
-        return user
-
     def login(self):
-        self.client.login(username=self.user.username, password='password')
+        self.login_as(self.user)
 
 
 class DashboardTest(BaseViewTest):
@@ -127,41 +118,56 @@ class StatsTest(BaseViewTest):
 class SentryViewsTest(BaseViewTest):
     fixtures = ['tests/fixtures/views.json']
 
-    def test_index(self):
-        self.client.login(username=self.user.username, password='password')
-        resp = self.client.get(reverse('sentry', kwargs={'project_id': 1}) + '?sort=freq', follow=False)
-        self.assertEquals(resp.status_code, 200)
+    @before
+    def login_user(self):
+        self.login_as(self.user)
+
+    def test_stream_loads(self):
+        resp = self.client.get(reverse('sentry-stream', kwargs={'project_id': 1}))
+        assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/group_list.html')
 
     def test_group_details(self):
-        self.client.login(username=self.user.username, password='password')
-        resp = self.client.get(reverse('sentry-group', kwargs={'project_id': 1, 'group_id': 2}), follow=False)
-        self.assertEquals(resp.status_code, 200, resp.content)
+        resp = self.client.get(reverse('sentry-group', kwargs={'project_id': 1, 'group_id': 2}))
+        assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/details.html')
-        self.assertTrue('group' in resp.context)
-        group = Group.objects.get(pk=2)
-        self.assertEquals(resp.context['group'], group)
+        assert 'group' in resp.context
+        assert 'project' in resp.context
+        assert resp.context['group'].id == 2
+        assert resp.context['project'].id == 1
 
     def test_group_event_list(self):
-        self.client.login(username=self.user.username, password='password')
-        resp = self.client.get(reverse('sentry-group-events', kwargs={'project_id': 1, 'group_id': 2}), follow=False)
-        self.assertEquals(resp.status_code, 200, resp.content)
+        resp = self.client.get(reverse('sentry-group-events', kwargs={'project_id': 1, 'group_id': 2}))
+        assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/event_list.html')
-        self.assertTrue('group' in resp.context)
-        group = Group.objects.get(pk=2)
-        self.assertEquals(resp.context['group'], group)
+        assert 'group' in resp.context
+        assert 'project' in resp.context
+        assert 'event_list' in resp.context
+        assert resp.context['group'].id == 2
+        assert resp.context['project'].id == 1
+
+    def test_group_tag_list(self):
+        resp = self.client.get(reverse('sentry-group-tags', kwargs={'project_id': 1, 'group_id': 2}))
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/groups/tag_list.html')
+        assert 'group' in resp.context
+        assert 'project' in resp.context
+        assert 'tag_list' in resp.context
+        assert resp.context['group'].id == 2
+        assert resp.context['project'].id == 1
 
     def test_group_message_details(self):
-        self.client.login(username=self.user.username, password='password')
-        resp = self.client.get(reverse('sentry-group-event', kwargs={'project_id': 1, 'group_id': 2, 'event_id': 4}), follow=True)
-        self.assertEquals(resp.status_code, 200, resp.content)
+        resp = self.client.get(reverse('sentry-group-event', kwargs={'project_id': 1, 'group_id': 2, 'event_id': 4}))
+        assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/event.html')
-        self.assertTrue('group' in resp.context)
-        group = Group.objects.get(pk=2)
-        self.assertEquals(resp.context['group'], group)
+        assert 'group' in resp.context
+        assert 'project' in resp.context
+        assert 'event' in resp.context
+        assert resp.context['group'].id == 2
+        assert resp.context['project'].id == 1
+        assert resp.context['event'].id == 4
 
     def test_group_json_multi(self):
-        self.client.login(username=self.user.username, password='password')
         resp = self.client.get(reverse('sentry-group-events-json', kwargs={'project_id': 1, 'group_id': 2}))
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp['Content-Type'], 'application/json')
@@ -172,28 +178,24 @@ class SentryViewsTest(BaseViewTest):
         self.assertEquals(resp.status_code, 400)
 
     def test_group_events_details_json(self):
-        self.client.login(username=self.user.username, password='password')
         resp = self.client.get(reverse('sentry-group-event-json', kwargs={'project_id': 1, 'group_id': 2, 'event_id_or_latest': 'latest'}))
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp['Content-Type'], 'application/json')
         self.assertEquals(json.loads(resp.content)['level'], 'error')
 
     def test_manage_users(self):
-        self.client.login(username=self.user.username, password='password')
         resp = self.client.get(reverse('sentry-admin-users'), follow=True)
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/admin/users/list.html')
 
     def test_event_list(self):
-        self.client.login(username=self.user.username, password='password')
-        resp = self.client.get(reverse('sentry-events', kwargs={'project_id': 1}))
+        resp = self.client.get(reverse('sentry-events', kwargs={'project_id': self.project.id}))
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/events/event_list.html')
 
     def test_replay_event(self):
         # bad event_id
-        self.client.login(username=self.user.username, password='password')
-        resp = self.client.get(reverse('sentry-replay', kwargs={'project_id': 1, 'event_id': 1}))
+        resp = self.client.get(reverse('sentry-replay', kwargs={'project_id': self.project.id, 'event_id': 1}))
         self.assertEquals(resp.status_code, 302)
 
         # valid params
@@ -469,24 +471,18 @@ class RemoveTeamMemberTest(PermissionBase):
 
 
 class SentrySearchTest(TestCase):
-    def setUp(self):
-        self.client.login(username=self.user.username, password='password')
-
-    @fixture
-    def user(self):
-        user = User(username="admin", email="admin@localhost", is_staff=True, is_superuser=True)
-        user.set_password('password')
-        user.save()
-        return user
+    @before
+    def login_user(self):
+        self.login_as(self.user)
 
     @fixture
     def path(self):
-        return reverse('sentry-search', kwargs={'project_id': 1})
+        return reverse('sentry-search', kwargs={'project_id': self.project.id})
 
     def test_checksum_query(self):
         checksum = 'a' * 32
         g = Group.objects.create(
-            project_id=1,
+            project=self.project,
             logger='root',
             culprit='a',
             checksum=checksum,
@@ -500,14 +496,14 @@ class SentrySearchTest(TestCase):
     def test_dupe_checksum(self):
         checksum = 'a' * 32
         g1 = Group.objects.create(
-            project_id=1,
+            project=self.project,
             logger='root',
             culprit='a',
             checksum=checksum,
             message='hi',
         )
         g2 = Group.objects.create(
-            project_id=1,
+            project=self.project,
             logger='root',
             culprit='b',
             checksum=checksum,

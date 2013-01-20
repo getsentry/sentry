@@ -25,9 +25,6 @@
             if (this.model.get('isResolved')) {
                 this.$el.addClass('resolved');
             }
-            if (this.model.get('historicalData').length > 0) {
-                this.$el.addClass('with-sparkline');
-            }
             this.$el.find('a[data-action=resolve]').click(_.bind(function(e){
                 e.preventDefault();
                 this.resolve();
@@ -41,8 +38,10 @@
 
         renderSparkline: function(obj){
             var data = this.model.get('historicalData');
-            if (!data)
+            if (!data || !data.length)
                 return;
+
+            this.$el.addClass('with-sparkline');
 
             app.charts.createSparkline(this.$el.find('.sparkline'), data);
         },
@@ -78,7 +77,7 @@
                     gid: this.model.get('id')
                 },
                 success: _.bind(function(response){
-                    this.model.set('isBookmarked', response.bookmarked);
+                    this.model.set('isBookmarked', response.isBookmarked);
                 }, this)
             });
         },
@@ -138,6 +137,7 @@
 
         emptyMessage: '<p>There is nothing to show here.</p>',
         loadingMessage: '<p>Loading...</p>',
+        model: app.models.Group,
 
         defaults: {
             maxItems: 50
@@ -164,6 +164,7 @@
             this.options = $.extend(this.defaults, this.options, data);
 
             this.collection = new app.ScoredList();
+
             this.collection.add(data.members || []);
             this.collection.on('add', this.renderMemberInContainer);
             this.collection.on('remove', this.unrenderMember);
@@ -314,13 +315,14 @@
             if (_.isUndefined(data))
                 data = {};
 
-            data.model = app.Group;
+            data.model = app.models.Group;
             
             app.OrderedElementsView.prototype.initialize.call(this, data);
 
             this.options = $.extend(this.defaults, this.options, data);
 
             this.queue = new app.ScoredList();
+
             this.cursor = null;
 
             this.poll();
@@ -383,6 +385,24 @@
                     window.setTimeout(this.poll, this.options.pollTime * 10);
                 }, this)
             });
+        }
+
+    });
+
+    app.UserListView = app.OrderedElementsView.extend({
+
+        defaults: {
+        },
+
+        initialize: function(data){
+            if (_.isUndefined(data))
+                data = {};
+
+            data.model = app.User;
+            
+            app.OrderedElementsView.prototype.initialize.call(this, data);
+
+            this.options = $.extend(this.defaults, this.options, data);
         }
 
     });

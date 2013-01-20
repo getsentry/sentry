@@ -28,6 +28,7 @@ Developers
 .. toctree::
    :maxdepth: 2
 
+   contributing/index
    developer/client/index
    developer/plugins/index
    developer/interfaces/index
@@ -38,7 +39,6 @@ Reference
 .. toctree::
    :maxdepth: 1
 
-   contributing/index
    changelog/index
    license/index
 

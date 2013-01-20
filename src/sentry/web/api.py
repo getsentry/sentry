@@ -20,14 +20,15 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.vary import vary_on_cookie
 from django.views.generic.base import View as BaseView
 from sentry.conf import settings
-from sentry.constants import MEMBER_USER, STATUS_MUTED, STATUS_UNRESOLVED
-from sentry.coreapi import project_from_auth_vars, \
-  decode_and_decompress_data, safely_load_json_string, validate_data, \
-  insert_data_to_database, APIError, APIForbidden, extract_auth_vars
+from sentry.constants import (MEMBER_USER, STATUS_MUTED, STATUS_UNRESOLVED,
+    STATUS_RESOLVED)
+from sentry.coreapi import (project_from_auth_vars,
+    decode_and_decompress_data, safely_load_json_string, validate_data,
+    insert_data_to_database, APIError, APIForbidden, extract_auth_vars)
 from sentry.exceptions import InvalidData
-from sentry.models import Group, GroupBookmark, Project, ProjectCountByMinute, FilterValue
+from sentry.models import (Group, GroupBookmark, Project, ProjectCountByMinute,
+    FilterValue, Activity)
 from sentry.plugins import plugins
-from sentry.templatetags.sentry_helpers import with_metadata
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.db import has_trending
@@ -35,7 +36,7 @@ from sentry.utils.javascript import to_json
 from sentry.utils.http import is_valid_origin, get_origins
 from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
-from sentry.web.helpers import render_to_response, render_to_string, get_project_list
+from sentry.web.helpers import render_to_response, get_project_list
 
 error_logger = logging.getLogger('sentry.errors.api.http')
 logger = logging.getLogger('sentry.api.http')
@@ -45,31 +46,10 @@ def api(func):
     @wraps(func)
     def wrapped(request, *args, **kwargs):
         data = func(request, *args, **kwargs)
-        response = HttpResponse(json.dumps(data))
+        response = HttpResponse(data)
         response['Content-Type'] = 'application/json'
         return response
     return wrapped
-
-
-def transform_groups(request, group_list, template='sentry/partial/_group.html'):
-    return [
-        {
-            'id': m.pk,
-            'html': render_to_string(template, {
-                'group': m,
-                'request': request,
-                'metadata': d,
-            }).strip(),
-            'title': m.message_top(),
-            'message': m.error(),
-            'level': m.get_level_display(),
-            'logger': m.logger,
-            'count': m.times_seen,
-            'is_public': m.is_public,
-            'score': getattr(m, 'sort_value', None),
-        }
-        for m, d in with_metadata(group_list, request)
-    ]
 
 
 class Auth(object):
@@ -116,7 +96,7 @@ class APIView(BaseView):
 
     @csrf_exempt
     def dispatch(self, request, project_id=None, *args, **kwargs):
-        origin = request.META.get('HTTP_ORIGIN', None)
+        origin = self.get_request_origin(request)
 
         response = self._dispatch(request, project_id=project_id, *args, **kwargs)
 
@@ -135,6 +115,12 @@ class APIView(BaseView):
 
         return response
 
+    def get_request_origin(self, request):
+        """
+        Returns either the Origin or Referer value from the request headers.
+        """
+        return request.META.get('HTTP_ORIGIN', request.META.get('HTTP_REFERER'))
+
     def _dispatch(self, request, project_id=None, *args, **kwargs):
         request.user = AnonymousUser()
 
@@ -143,7 +129,7 @@ class APIView(BaseView):
         except APIError, e:
             return HttpResponse(str(e), status=400)
 
-        origin = request.META.get('HTTP_ORIGIN', None)
+        origin = self.get_request_origin(request)
         if origin is not None:
             if not project:
                 return HttpResponse('Your client must be upgraded for CORS support.')
@@ -242,11 +228,18 @@ class StoreView(APIView):
     """
     @never_cache
     def post(self, request, project, auth, **kwargs):
+        data = request.raw_post_data
+        return self.process(request, project, auth, data, **kwargs)
+
+    @never_cache
+    def get(self, request, project, auth, **kwargs):
+        data = request.GET.get('sentry_data', '')
+        return self.process(request, project, auth, data, **kwargs)
+
+    def process(self, request, project, auth, data, **kwargs):
         result = plugins.first('has_perm', request.user, 'create_event', project)
         if result is False:
             raise APIForbidden('Creation of this event was blocked')
-
-        data = request.raw_post_data
 
         if not data.startswith('{'):
             data = decode_and_decompress_data(data)
@@ -274,6 +267,7 @@ def notification(request, project):
 @csrf_exempt
 @has_access
 @never_cache
+@api
 def poll(request, project):
     offset = 0
     limit = settings.MESSAGES_PER_PAGE
@@ -286,20 +280,18 @@ def poll(request, project):
     event_list = response['event_list']
     event_list = list(event_list[offset:limit])
 
-    data = to_json(event_list, request)
-
-    response = HttpResponse(data)
-    response['Content-Type'] = 'application/json'
-    return response
+    return to_json(event_list, request)
 
 
 @csrf_exempt
 @has_access(MEMBER_USER)
 @never_cache
+@api
 def resolve(request, project):
     gid = request.REQUEST.get('gid')
     if not gid:
         return HttpResponseForbidden()
+
     try:
         group = Group.objects.get(pk=gid)
     except Group.DoesNotExist:
@@ -307,46 +299,70 @@ def resolve(request, project):
 
     now = timezone.now()
 
-    Group.objects.filter(pk=group.pk).update(
-        status=1,
+    happened = Group.objects.filter(
+        pk=group.pk,
+    ).exclude(status=STATUS_RESOLVED).update(
+        status=STATUS_RESOLVED,
         resolved_at=now,
     )
-    group.status = 1
+    group.status = STATUS_RESOLVED
     group.resolved_at = now
 
-    data = transform_groups(request, [group])
+    if happened:
+        Activity.objects.create(
+            project=project,
+            group=group,
+            type=Activity.SET_RESOLVED,
+            user=request.user,
+        )
 
-    response = HttpResponse(json.dumps(data))
-    response['Content-Type'] = 'application/json'
-    return response
+    return to_json(group, request)
 
 
 @csrf_exempt
 @has_access(MEMBER_USER)
 @never_cache
+@api
 def make_group_public(request, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    group.update(is_public=True)
+    happened = group.update(is_public=True)
 
-    return transform_groups(request, [group])
+    if happened:
+        Activity.objects.create(
+            project=project,
+            group=group,
+            type=Activity.SET_PUBLIC,
+            user=request.user,
+        )
+
+    return to_json(group, request)
 
 
 @csrf_exempt
 @has_access(MEMBER_USER)
 @never_cache
+@api
 def make_group_private(request, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    group.update(is_public=False)
+    happened = group.update(is_public=False)
 
-    return transform_groups(request, [group])
+    if happened:
+        Activity.objects.create(
+            project=project,
+            group=group,
+            type=Activity.SET_PRIVATE,
+            user=request.user,
+        )
+
+    return to_json(group, request)
 
 
 @csrf_exempt
@@ -359,9 +375,16 @@ def mute_group(request, project, group_id):
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    group.update(status=STATUS_MUTED)
+    happened = group.update(status=STATUS_MUTED)
+    if happened:
+        Activity.objects.create(
+            project=project,
+            group=group,
+            type=Activity.SET_MUTED,
+            user=request.user,
+        )
 
-    return transform_groups(request, [group])
+    return to_json(group, request)
 
 
 @csrf_exempt
@@ -374,9 +397,16 @@ def unmute_group(request, project, group_id):
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    group.update(status=STATUS_UNRESOLVED)
+    happened = group.update(status=STATUS_UNRESOLVED)
+    if happened:
+        Activity.objects.create(
+            project=project,
+            group=group,
+            type=Activity.SET_UNRESOLVED,
+            user=request.user,
+        )
 
-    return transform_groups(request, [group])
+    return to_json(group, request)
 
 
 @csrf_exempt
@@ -401,6 +431,7 @@ def remove_group(request, project, group_id):
 @csrf_exempt
 @has_access
 @never_cache
+@api
 def bookmark(request, project):
     gid = request.REQUEST.get('gid')
     if not gid:
@@ -422,9 +453,7 @@ def bookmark(request, project):
     if not created:
         gb.delete()
 
-    response = HttpResponse(json.dumps({'bookmarked': created}))
-    response['Content-Type'] = 'application/json'
-    return response
+    return to_json(group, request)
 
 
 @csrf_exempt
@@ -436,8 +465,9 @@ def clear(request, project):
         project=project,
     )
 
+    # TODO: should we record some kind of global event in Activity?
     event_list = response['event_list']
-    event_list.update(status=1)
+    event_list.update(status=STATUS_RESOLVED)
 
     data = []
     response = HttpResponse(json.dumps(data))

@@ -6,8 +6,6 @@ sentry.utils.query
 :license: BSD, see LICENSE for more details.
 """
 
-from django.db.models import Min, Max
-from django.db.models.fields import AutoField, IntegerField
 from django.db.models.query import QuerySet
 
 
@@ -44,12 +42,14 @@ class SkinnyQuerySet(QuerySet):
 
 class RangeQuerySetWrapper(object):
     """
-    Iterates through a result set using MIN/MAX on primary key and stepping through.
+    Iterates through a queryset by chunking results by ``step`` and using GREATER THAN
+    and LESS THAN queries on the primary key.
 
     Very efficient, but ORDER BY statements will not work.
     """
 
-    def __init__(self, queryset, step=10000, limit=None, min_id=None, max_id=None, sorted=False):
+    def __init__(self, queryset, step=1000, limit=None, min_id=None,
+                 order_by='pk'):
         # Support for slicing
         if queryset.query.low_mark == 0 and not\
           (queryset.query.order_by or queryset.query.extra_order_by):
@@ -61,46 +61,67 @@ class RangeQuerySetWrapper(object):
 
         self.limit = limit
         if limit:
-            self.step = min(limit, step)
+            self.step = min(limit, abs(step))
+            self.desc = step < 0
         else:
-            self.step = step
+            self.step = abs(step)
+            self.desc = step < 0
         self.queryset = queryset
-        self.min_id, self.max_id = min_id, max_id
-        self.sorted = sorted
+        self.min_value = min_id
+        self.order_by = order_by
 
     def __iter__(self):
-        pk = self.queryset.model._meta.pk
-        if not isinstance(pk, (IntegerField, AutoField)):
-            raise NotImplementedError
+        max_value = None
+        if self.min_value is not None:
+            cur_value = self.min_value
         else:
-            if self.min_id is not None and self.max_id is not None:
-                at, max_id = self.min_id, self.max_id
-            else:
-                at = self.queryset.aggregate(Min('pk'), Max('pk'))
-                max_id, at = at['pk__max'], at['pk__min']
-                if self.min_id:
-                    at = self.min_id
-                if self.max_id:
-                    max_id = self.max_id
+            cur_value = None
 
-            if not (at and max_id):
-                return
+        num = 0
+        limit = self.limit
 
-            num = 0
-            limit = self.limit or max_id
+        queryset = self.queryset
+        if max_value:
+            queryset = queryset.filter(**{'%s__lte' % self.order_by: max_value})
+            # Adjust the sort order if we're stepping through reverse
+        if self.desc:
+            queryset = queryset.order_by('-%s' % self.order_by)
+        else:
+            queryset = queryset.order_by(self.order_by)
 
-            while at <= max_id and (not self.limit or num < self.limit):
-                results = self.queryset.filter(
-                    id__gte=at,
-                    id__lte=min(at + self.step - 1, max_id),
-                )
-                if self.sorted:
-                    results = results.order_by('id')
-                results = results.iterator()
+        # we implement basic cursor pagination for columns that are not unique
+        last_value = None
+        offset = 0
+        has_results = True
+        while ((max_value and cur_value <= max_value) or has_results) and (not self.limit or num < self.limit):
+            start = num
 
-                for result in results:
-                    yield result
-                    num += 1
-                    if num >= limit:
-                        break
-                at += self.step
+            if cur_value is None:
+                results = queryset
+            elif self.desc:
+                results = queryset.filter(**{'%s__lte' % self.order_by: cur_value})
+            elif not self.desc:
+                results = queryset.filter(**{'%s__gte' % self.order_by: cur_value})
+
+            results = results[offset:offset + self.step].iterator()
+
+            for result in results:
+                yield result
+
+                num += 1
+                cur_value = getattr(result, self.order_by)
+                if cur_value == last_value:
+                    offset += 1
+                else:
+                    # offset needs to be based at 1 so we dont return a row
+                    # that was already selected
+                    last_value = cur_value
+                    offset = 1
+
+                if (max_value and cur_value >= max_value) or (limit and num >= limit):
+                    break
+
+            if cur_value is None:
+                break
+
+            has_results = num > start

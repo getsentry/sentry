@@ -13,26 +13,15 @@
 {% endblock %}
 
 {% block sidebar %}
-    <!--- there is probably a less terrible way to do things like this -->
-    <p id="public-status"><small>
-        <span data-public="true"{% if not group.project.public and not group.is_public %} style="display: none;"{% endif %}>
-            {% trans "This event is <strong>publicly visible</strong>." %}
-        </span>
-        <span data-public="false"{% if group.project.public or group.is_public %} style="display: none;"{% endif %}>
-            {% trans "This event is <strong>not publicly visible</strong>." %}
-        </span>
-        <span data-public="true"{% if not group.project.public and not group.is_public %} style="display: none;"{% endif %}>
-            <a href="{% url sentry-group group.project.slug group.id %}">{% trans "Link" %}</a>{% if can_admin_event and not group.project.public %} | {% endif %}
-        </span>
-        {% if can_admin_event and not group.project.public %}
-            <span data-public="true"{% if not group.is_public %} style="display: none;"{% endif %}>
-                <a href="javascript:void(0)" data-api-url="{% url sentry-api-set-group-private group.project.slug group.id %}" class="action">{% trans "Change" %}</a>
-            </span>
-            <span data-public="false"{% if group.is_public %} style="display: none;"{% endif %}>
-                <a href="javascript:void(0)" data-api-url="{% url sentry-api-set-group-public group.project.slug group.id %}" class="action">{% trans "Change" %}</a>
-            </span>
-        {% endif %}
-    </small></p>
+    <ul class="nav nav-list">
+        <li{% if page == 'details' %} class="active"{% endif %}><a href="{% url sentry-group group.project.slug group.id %}">Aggregate</a></li>
+        <li{% if page == 'tag_list' %} class="active"{% endif %}>
+            <a href="{% url sentry-group-tags group.project.slug group.id %}">{% trans "Tags" %}</a>
+        </li>
+        <li{% if page == 'event_list' or page == 'event' %} class="active"{% endif %}>
+            <a href="{% url sentry-group-events group.project.slug group.id %}">{% trans "Similar Events" %}</a>
+        </li>
+    </ul>
 
     <h6>{% trans "Aggregate Details" %}</h6>
 
@@ -57,13 +46,31 @@
         {% endif %}
     </dl>
 
+    <!--- there is probably a less terrible way to do things like this -->
+    <p id="public-status"><small>
+        <span data-public="true"{% if not group.project.public and not group.is_public %} style="display: none;"{% endif %}>
+            {% trans "This event is <strong>publicly visible</strong>." %}
+        </span>
+        <span data-public="false"{% if group.project.public or group.is_public %} style="display: none;"{% endif %}>
+            {% trans "This event is <strong>not publicly visible</strong>." %}
+        </span>
+        <span data-public="true"{% if not group.project.public and not group.is_public %} style="display: none;"{% endif %}>
+            <a href="{% url sentry-group group.project.slug group.id %}">{% trans "Link" %}</a>{% if can_admin_event and not group.project.public %} | {% endif %}
+        </span>
+        {% if can_admin_event and not group.project.public %}
+            <span data-public="true"{% if not group.is_public %} style="display: none;"{% endif %}>
+                <a href="javascript:void(0)" data-api-url="{% url sentry-api-set-group-private group.project.slug group.id %}" class="action">{% trans "Change" %}</a>
+            </span>
+            <span data-public="false"{% if group.is_public %} style="display: none;"{% endif %}>
+                <a href="javascript:void(0)" data-api-url="{% url sentry-api-set-group-public group.project.slug group.id %}" class="action">{% trans "Change" %}</a>
+            </span>
+        {% endif %}
+    </small></p>
+
     {% if can_admin_event %}
         <ul class="nav nav-list">
             <li class="nav-header">{% trans "Actions" %}</li>
             {% for label, link, is_active in group|get_actions:request %}
-                {% if forloop.first %}
-                    <li class="divider"></li>
-                {% endif %}
                 <li><a href="{{ link }}">{{ label }}</a></li>
             {% endfor %}
             {% comment %}<li><a {% ifequal page 'event_list' %}{% if event %}
@@ -87,45 +94,35 @@
 
 {% block main %}
     {% handle_before_events request group %}
-    <div id="event_list"></div>
 
-    <section class="body">
-        <ul class="nav nav-tabs">
-            <li{% if page == 'details' %} class="active"{% endif %}>
-                <a href="{% url sentry-group group.project.slug group.id %}">{% trans "Details" %}</a>
-            </li>
-            <li{% if page == 'event_list' %} class="active"{% endif %}>
-                <a href="{% url sentry-group-events group.project.slug group.id %}">{% trans "Events" %}</a>
-            </li>
-            {% for tag in group.get_tags %}
-                <li{% if page == 'tag_details' and tag == tag_name %} class="active"{% endif %}>
-                    <a href="{% url sentry-group-tag-details group.project.slug group.id tag %}">{{ tag|titlize }}</a>
-                </li>
-            {% endfor %}
-            {% for label, link, is_active in group|get_panels:request %}
-                <li{% if is_active %} class="active"{% endif %}><a href="{{ link }}">{{ label }}</a></li>
-            {% endfor %}
-        </ul>
+    <div id="details">
+        <div id="event_list" class="inactive"></div>
+    </div>
 
-        {% block inner %}
-            {% if group.has_two_part_message %}
-                <pre id="full-message">{{ group.message }}</pre>
-            {% endif %}
+    {% with event|get_rendered_interfaces as interface_list %}
+        <section class="body">
+            {% block inner %}
+                {% include "sentry/partial/event_nav.html" %}
 
-            {% if group|has_charts %}
-                <div class="module">
-                    <div style="height:50px;" id="chart" class="chart" data-api-url="{% url sentry-api-chart project_id=project.slug %}" data-group="{{ group.id|safe }}">
-                        <div class="sparkline">
-                            <span class="loading">{% trans "Loading historical data..." %}</span>
-                            <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
+                {% if group.has_two_part_message %}
+                    <pre id="full-message">{{ group.message }}</pre>
+                {% endif %}
+
+                {% if group|has_charts %}
+                    <div class="module">
+                        <div style="height:50px;" id="chart" class="chart" data-api-url="{% url sentry-api-chart project_id=project.slug %}" data-group="{{ group.id|safe }}">
+                            <div class="sparkline">
+                                <span class="loading">{% trans "Loading historical data..." %}</span>
+                                <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
+                            </div>
                         </div>
                     </div>
-                </div>
-            {% endif %}
+                {% endif %}
 
-            {% include "sentry/partial/_event_details.html" %}
-        {% endblock %}
-    </section>
+                {% include "sentry/partial/_event_details.html" %}
+            {% endblock %}
+        </section>
+    {% endwith %}
 {% endblock %}
 
 {% block content_after %}

@@ -184,3 +184,33 @@ def can_admin_group(user, group):
         return False
 
     return True
+
+
+@requires_login
+@perm_override('can_add_projectkey')
+def can_add_project_key(user, project):
+    # must be an owner of the team
+    if project.team and not project.team.member_set.filter(user=user, type=MEMBER_OWNER).exists():
+        return False
+
+    result = plugins.first('has_perm', user, 'add_project_key', project)
+    if result is False:
+        return False
+
+    return True
+
+
+@requires_login
+@perm_override('can_remove_projectkey')
+def can_remove_project_key(user, key):
+    project = key.project
+
+    # must be an owner of the team
+    if project.team and not project.team.member_set.filter(user=user, type=MEMBER_OWNER).exists():
+        return False
+
+    result = plugins.first('has_perm', user, 'remove_project_key', project, key)
+    if result is False:
+        return False
+
+    return True

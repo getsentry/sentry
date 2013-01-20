@@ -17,7 +17,7 @@ import socket
 import sys
 import urlparse
 
-DEBUG = True
+DEBUG = False
 TEMPLATE_DEBUG = True
 
 ADMINS = ()
@@ -153,7 +153,6 @@ INSTALLED_APPS = (
     'sentry.plugins.sentry_mail',
     'sentry.plugins.sentry_servers',
     'sentry.plugins.sentry_urls',
-    'sentry.plugins.sentry_user_emails',
     'sentry.plugins.sentry_useragents',
     'social_auth',
     'south',
@@ -180,6 +179,8 @@ if LESS_BIN:
     )
 else:
     COMPRESS_ENABLED = False
+
+COMPRESS_VERBOSE = True
 
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",

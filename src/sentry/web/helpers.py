@@ -24,13 +24,15 @@ from sentry.permissions import can_create_projects, can_create_teams
 logger = logging.getLogger('sentry.errors')
 
 
-def get_project_list(user=None, access=None, hidden=False, key='id'):
+def get_project_list(user=None, access=None, hidden=False, key='id', select_related=None):
     """
     Returns a SortedDict of all projects a user has some level of access to.
     """
     base_qs = Project.objects
     if not hidden:
         base_qs = base_qs.filter(status=0)
+    if select_related is not None:
+        base_qs = base_qs.select_related(*select_related)
 
     # Collect kwarg queries to filter on. We can use this to perform a single
     # query to get all of the desired projects ordered by name

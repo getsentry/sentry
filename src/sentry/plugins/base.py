@@ -152,6 +152,9 @@ class IPlugin(local):
     # Global enabled state
     enabled = True
 
+    # Should this plugin be enabled by default for projects?
+    project_default_enabled = False
+
     def _get_option_key(self, key):
         return '%s:%s' % (self.get_conf_key(), key)
 
@@ -167,10 +170,14 @@ class IPlugin(local):
             return False
         if not self.can_enable_for_projects():
             return True
+
         if project:
             project_enabled = self.get_option('enabled', project)
-            if project_enabled is False:
-                return False
+            if project_enabled is not None:
+                return project_enabled
+            else:
+                return self.project_default_enabled
+
         return True
 
     def reset_options(self, project=None, user=None):
@@ -303,6 +310,7 @@ class IPlugin(local):
         return self.resource_links
 
     def get_view_response(self, request, group):
+        from sentry.models import Event
         from sentry.permissions import can_admin_group
 
         self.selected = request.path == self.get_url(group)
@@ -321,10 +329,14 @@ class IPlugin(local):
         if not isinstance(response, Response):
             raise NotImplementedError('Please use self.render() when returning responses.')
 
+        event = group.get_latest_event() or Event()
+        event.group = group
+
         return response.respond(request, {
             'plugin': self,
             'project': group.project,
             'group': group,
+            'event': event,
             'can_admin_event': can_admin_group(request.user, group),
         })
 

@@ -18,6 +18,7 @@ class UserAgentPlugin(TagPlugin):
     version = sentry.VERSION
     author = "Sentry Team"
     author_url = "https://github.com/getsentry/sentry"
+    project_default_enabled = True
 
     def get_tag_values(self, event):
         http = event.interfaces.get('sentry.interfaces.Http')

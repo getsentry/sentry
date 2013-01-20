@@ -19,98 +19,96 @@
         {% endif %}
         <h2>
             {% trans "Manage Team" %}
-            <small><a href="{% url sentry-manage-team team.slug %}">{{ team.name }}</a></small>
+            <small>{{ team.name }}</small>
         </h2>
     </div>
-    <ul class="nav nav-tabs">
-        <li class="active"><a href="#members" data-toggle="tab">{% trans "Members" %}</a></li>
-        <li><a href="#pending-members" data-toggle="tab">{% blocktrans with pending_member_list|length as count %}Pending ({{ count }}){% endblocktrans %}</a></li>
-    </ul>
-    <div class="tab-content">
-        <div class="tab-pane active" id="members">
-            <table class="table table-bordered table-striped">
-                <colgroup>
-                    <col/>
-                    <col width="100px"/>
-                    <col width="90px"/>
-                    <col width="90px"/>
-                </colgroup>
-                <thead>
-                    <tr>
-                        <th>{% trans "User" %}</th>
-                        <th style="text-align:center">{% trans "Access" %}</th>
-                        <th colspan="2" style="text-align:center">{% trans "Actions" %}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for member, user in member_list %}
-                        <tr>
-                            <td>
-                                <a href="{% url sentry-edit-team-member team.slug member.pk %}">{{ user.username }}</a><br>
-                                {{ user.email }}
-                            </td>
-                            <td style="text-align:center;">
-                                {% if user == team.owner %}
-                                    {% trans "Owner" %}
-                                {% else %}
-                                    {{ member.get_type_display }}
-                                {% endif %}
-                            </td>
-                            {% if user == team.owner %}
-                                <td style="text-align:center;" colspan="2">
-                                    <em>{% trans "unavailable for owner" %}</em>
-                                </td>
+    <p>To change other settings for this team, visit the  <a href="{% url sentry-manage-team team.slug %}">team management page for {{ team.name }}</a>.</p>
+    <br>
+    <table class="table table-bordered table-striped">
+        <colgroup>
+            <col/>
+            <col width="100px"/>
+            <col width="90px"/>
+            <col width="90px"/>
+        </colgroup>
+        <thead>
+            <tr>
+                <th>{% trans "User" %}</th>
+                <th style="text-align:center">{% trans "Access" %}</th>
+                <th colspan="2" style="text-align:center">{% trans "Actions" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for member, user in member_list %}
+                <tr>
+                    <td>
+                        <a href="{% url sentry-edit-team-member team.slug member.pk %}">{{ user.username }}</a><br>
+                        {{ user.email }}
+                    </td>
+                    <td style="text-align:center;">
+                        {% if user == team.owner %}
+                            {% trans "Owner" %}
+                        {% else %}
+                            {{ member.get_type_display }}
+                        {% endif %}
+                    </td>
+                    {% if user == team.owner %}
+                        <td style="text-align:center;" colspan="2">
+                            <em>{% trans "unavailable for owner" %}</em>
+                        </td>
+                    {% else %}
+                        <td style="text-align:center;">
+                            <a href="{% url sentry-remove-team-member team.slug member.pk %}" class="btn btn-danger btn-small">{% trans "Remove" %}</a>
+                        </td>
+                        <td style="text-align:center;">
+                            {% if member.is_active %}
+                                <a href="{% url sentry-suspend-team-member team.slug member.pk %}" class="btn btn-small">{% trans "Suspend" %}</a>
                             {% else %}
-                                <td style="text-align:center;">
-                                    <a href="{% url sentry-remove-team-member team.slug member.pk %}" class="btn btn-danger btn-small">{% trans "Remove" %}</a>
-                                </td>
-                                <td style="text-align:center;">
-                                    {% if member.is_active %}
-                                        <a href="{% url sentry-suspend-team-member team.slug member.pk %}" class="btn btn-small">{% trans "Suspend" %}</a>
-                                    {% else %}
-                                        <a href="{% url sentry-restore-team-member team.slug member.pk %}" class="btn btn-small">{% trans "Restore" %}</a>
-                                    {% endif %}
-                                </td>
+                                <a href="{% url sentry-restore-team-member team.slug member.pk %}" class="btn btn-small">{% trans "Restore" %}</a>
                             {% endif %}
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                        </td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if pending_member_list %}
+        <div class="page-header">
+            <h3>{% trans "Pending Members" %}</h3>
         </div>
-        <div class="tab-pane" id="pending-members">
-            <table class="table table-bordered table-striped">
-                <colgroup>
-                    <col/>
-                    <col width="100px"/>
-                    <col width="90px"/>
-                    <col width="90px"/>
-                </colgroup>
-                <thead>
+        <table class="table table-bordered table-striped">
+            <colgroup>
+                <col/>
+                <col width="100px"/>
+                <col width="90px"/>
+                <col width="90px"/>
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>{% trans "User" %}</th>
+                    <th style="text-align:center">{% trans "Access" %}</th>
+                    <th style="text-align:center" colspan="2">{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for member, email in pending_member_list %}
                     <tr>
-                        <th>{% trans "User" %}</th>
-                        <th style="text-align:center">{% trans "Access" %}</th>
-                        <th style="text-align:center" colspan="2">{% trans "Actions" %}</th>
+                        <td>
+                            {{ email }}
+                        </td>
+                        <td style="text-align:center;">
+                            {{ member.get_type_display }}
+                        </td>
+                        <td style="text-align:center;">
+                            <a href="{% url sentry-remove-pending-team-member team.slug member.pk %}" class="btn btn-small btn-danger">{% trans "Remove" %}</a>
+                        </td>
+                        <td style="text-align:center;">
+                            <a href="{% url sentry-reinvite-pending-team-member team.slug member.pk %}" class="btn btn-small">{% trans "Resend" %}</a>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    {% for member, email in pending_member_list %}
-                        <tr>
-                            <td>
-                                {{ email }}
-                            </td>
-                            <td style="text-align:center;">
-                                {{ member.get_type_display }}
-                            </td>
-                            <td style="text-align:center;">
-                                <a href="{% url sentry-remove-pending-team-member team.slug member.pk %}" class="btn btn-small btn-danger">{% trans "Remove" %}</a>
-                            </td>
-                            <td style="text-align:center;">
-                                <a href="{% url sentry-reinvite-pending-team-member team.slug member.pk %}" class="btn btn-small">{% trans "Resend" %}</a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
 {% endblock %}

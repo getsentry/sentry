@@ -1,0 +1,48 @@
+{% extends "sentry/groups/details.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block inner %}
+    {% if tag_list %}
+
+        {% for tag_name, tag_values in tag_list %}
+            {% if not forloop.counter|divisibleby:2 %}
+                {% if not forloop.first %}
+                    </div>
+                {% endif %}
+                <div class="row-fluid">
+            {% endif %}
+            <div class="span6">
+                <div class="page-header">
+                    <span class="pull-right"><a href="{% url sentry-group-tag-details group.project.slug group.id tag_name %}">More Details</a></span>
+
+                    <h4>{{ tag_name|titlize }}</h4>
+                </div>
+
+                <ul class="tag-list">
+                    {% for tag_value, times_seen, percent in tag_values %}
+                        <li>
+                            <div class="progressbar">
+                                <div style="width:{{ percent }}%;">{{ times_seen }}</div>
+                                <a href="{% url sentry group.project.slug %}?{{ tag_name }}={{ tag_value }}">
+                                    {{ tag_value }}
+                                    <span>{{ times_seen|small_count }} ({{ percent }}%)</span>
+                                </a>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% if forloop.last %}
+                </div>
+            {% endif %}
+        {% endfor %}
+
+    {% else %}
+
+        <p>{% trans "There don't seem to be any tags stored for this event. For more information on how you can tag data, check your client's documentation." %}</p>
+
+    {% endif %}
+
+{% endblock %}

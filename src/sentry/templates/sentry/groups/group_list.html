@@ -6,11 +6,11 @@
 
 {% block title %}{{ project.name }} | {{ block.super }}{% endblock %}
 
-{% block meta %}
+{% block breadcrumb %}
     {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-stream project.slug %}">{% trans "Stream" %}</a></li>
 {% endblock %}
-
-{% block breadcrumb %}{% endblock %}
 
 {% block sidebar %}
     <div id="chart" class="chart" data-api-url="{% url sentry-api-chart %}" data-days="1">
@@ -104,7 +104,7 @@
             {% endfor %}
             <div class="input">
               <div class="inline-inputs">
-                <input data-toggle="datepicker"  data-date-format="yyyy-mm-dd"name="df" class="date" type="text" value="{% if from_date %}{{ from_date|date:"Y-m-d" }}{% endif %}" />
+                <input data-toggle="datepicker" data-date-format="yyyy-mm-dd"name="df" class="date" type="text" value="{% if from_date %}{{ from_date|date:"Y-m-d" }}{% endif %}" />
                 <input class="time" type="text" name="tf" value="{% if from_date %}{{ from_date|time:"h:i A" }}{% endif %}" />
                 to
                 <input data-toggle="datepicker" data-date-format="yyyy-mm-dd" name="dt" class="date" type="text" value="{% if to_date %}{{ to_date|date:"Y-m-d" }}{% endif %}" />
@@ -113,6 +113,7 @@
             </div>
             <div class="submit">
                 <div class="pull-right">
+                    <input type="button" class="btn btn-small" value="{% trans "Clear" %}" onclick="$('#daterange input[type=text]').val(''); this.form.submit();">
                     <input type="submit" class="btn btn-primary btn-small" value="{% trans "Apply" %}">
                 </div>
                 <div class="help-block">{% trans "All events are represented in UTC time." %}</div>
@@ -120,7 +121,6 @@
         </form>
     </div>
 
-    {% handle_before_events request event_list.paginator.objects %}
     <div id="event_list"></div>
 
     <div class="btn-toolbar">

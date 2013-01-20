@@ -100,8 +100,16 @@ class IsValidOriginTestCase(TestCase):
         result = self.isValidOrigin('http://foo.com', ['*.example.com'])
         self.assertEquals(result, False)
 
+    def test_domain_wildcard_matches_domain_with_path(self):
+        result = self.isValidOrigin('http://foo.example.com/foo/bar', ['*.example.com'])
+        self.assertEquals(result, True)
+
     def test_base_domain_matches_domain(self):
         result = self.isValidOrigin('http://example.com', ['example.com'])
+        self.assertEquals(result, True)
+
+    def test_base_domain_matches_domain_with_path(self):
+        result = self.isValidOrigin('http://example.com/foo/bar', ['example.com'])
         self.assertEquals(result, True)
 
     def test_base_domain_matches_domain_with_port(self):
@@ -120,9 +128,13 @@ class IsValidOriginTestCase(TestCase):
         result = self.isValidOrigin('https://example.com', ['http://example.com'])
         self.assertEquals(result, False)
 
-    def test_full_uri_match_requires_port(self):
+    def test_full_uri_match_does_not_require_port(self):
         result = self.isValidOrigin('http://example.com:80', ['http://example.com'])
-        self.assertEquals(result, False)
+        self.assertEquals(result, True)
+
+    def test_partial_uri_match(self):
+        result = self.isValidOrigin('http://example.com/foo/bar', ['http://example.com'])
+        self.assertEquals(result, True)
 
     def test_null_valid_with_global(self):
         result = self.isValidOrigin('null', ['*'])

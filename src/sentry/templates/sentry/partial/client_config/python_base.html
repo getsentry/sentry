@@ -1,0 +1,14 @@
+{% load sentry_helpers %}
+
+<div class="pull-right">
+	{% github_button 'getsentry' 'raven-python' %}
+</div>
+
+<ul class="nav nav-tabs">
+	<li{% if platform == 'python' %} class="active"{% endif %}><a href="{% url sentry-docs-client project.slug 'python' %}">Python</a></li>
+	<li{% if platform == 'django' %} class="active"{% endif %}><a href="{% url sentry-docs-client project.slug 'django' %}">Django</a></li>
+	<li{% if platform == 'flask' %} class="active"{% endif %}><a href="{% url sentry-docs-client project.slug 'flask' %}">Flask</a></li>
+</ul>
+
+{% block inner %}
+{% endblock %}
