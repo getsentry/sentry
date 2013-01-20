@@ -20,12 +20,14 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.vary import vary_on_cookie
 from django.views.generic.base import View as BaseView
 from sentry.conf import settings
-from sentry.constants import MEMBER_USER, STATUS_MUTED, STATUS_UNRESOLVED
-from sentry.coreapi import project_from_auth_vars, \
-  decode_and_decompress_data, safely_load_json_string, validate_data, \
-  insert_data_to_database, APIError, APIForbidden, extract_auth_vars
+from sentry.constants import (MEMBER_USER, STATUS_MUTED, STATUS_UNRESOLVED,
+    STATUS_RESOLVED)
+from sentry.coreapi import (project_from_auth_vars,
+    decode_and_decompress_data, safely_load_json_string, validate_data,
+    insert_data_to_database, APIError, APIForbidden, extract_auth_vars)
 from sentry.exceptions import InvalidData
-from sentry.models import Group, GroupBookmark, Project, ProjectCountByMinute, FilterValue
+from sentry.models import (Group, GroupBookmark, Project, ProjectCountByMinute,
+    FilterValue, Activity)
 from sentry.plugins import plugins
 from sentry.utils import json
 from sentry.utils.cache import cache
@@ -289,6 +291,7 @@ def resolve(request, project):
     gid = request.REQUEST.get('gid')
     if not gid:
         return HttpResponseForbidden()
+
     try:
         group = Group.objects.get(pk=gid)
     except Group.DoesNotExist:
@@ -296,12 +299,22 @@ def resolve(request, project):
 
     now = timezone.now()
 
-    Group.objects.filter(pk=group.pk).update(
-        status=1,
+    happened = Group.objects.filter(
+        pk=group.pk,
+    ).exclude(status=STATUS_RESOLVED).update(
+        status=STATUS_RESOLVED,
         resolved_at=now,
     )
-    group.status = 1
+    group.status = STATUS_RESOLVED
     group.resolved_at = now
+
+    if happened:
+        Activity.objects.create(
+            project=project,
+            group=group,
+            type=Activity.SET_RESOLVED,
+            user=request.user,
+        )
 
     return to_json(group, request)
 
@@ -316,7 +329,15 @@ def make_group_public(request, project, group_id):
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    group.update(is_public=True)
+    happened = group.update(is_public=True)
+
+    if happened:
+        Activity.objects.create(
+            project=project,
+            group=group,
+            type=Activity.SET_PUBLIC,
+            user=request.user,
+        )
 
     return to_json(group, request)
 
@@ -331,7 +352,15 @@ def make_group_private(request, project, group_id):
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    group.update(is_public=False)
+    happened = group.update(is_public=False)
+
+    if happened:
+        Activity.objects.create(
+            project=project,
+            group=group,
+            type=Activity.SET_PRIVATE,
+            user=request.user,
+        )
 
     return to_json(group, request)
 
@@ -346,7 +375,14 @@ def mute_group(request, project, group_id):
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    group.update(status=STATUS_MUTED)
+    happened = group.update(status=STATUS_MUTED)
+    if happened:
+        Activity.objects.create(
+            project=project,
+            group=group,
+            type=Activity.SET_MUTED,
+            user=request.user,
+        )
 
     return to_json(group, request)
 
@@ -361,7 +397,14 @@ def unmute_group(request, project, group_id):
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    group.update(status=STATUS_UNRESOLVED)
+    happened = group.update(status=STATUS_UNRESOLVED)
+    if happened:
+        Activity.objects.create(
+            project=project,
+            group=group,
+            type=Activity.SET_UNRESOLVED,
+            user=request.user,
+        )
 
     return to_json(group, request)
 
@@ -422,8 +465,9 @@ def clear(request, project):
         project=project,
     )
 
+    # TODO: should we record some kind of global event in Activity?
     event_list = response['event_list']
-    event_list.update(status=1)
+    event_list.update(status=STATUS_RESOLVED)
 
     data = []
     response = HttpResponse(json.dumps(data))

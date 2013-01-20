@@ -40,7 +40,7 @@ from sentry.constants import (STATUS_LEVELS, MEMBER_TYPES,  # NOQA
 from sentry.manager import (GroupManager, ProjectManager,
     MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager,
     UserOptionManager, FilterKeyManager, TeamManager)
-from sentry.signals import buffer_incr_complete
+from sentry.signals import buffer_incr_complete, regression_signal
 from sentry.utils import cached_property, MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField, update
 from sentry.utils.imports import import_string
@@ -368,6 +368,7 @@ class MessageBase(Model):
     culprit = models.CharField(max_length=200, blank=True, null=True, db_column='view')
     checksum = models.CharField(max_length=32, db_index=True)
     data = GzippedDictField(blank=True, null=True)
+    num_comments = models.PositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
 
     class Meta:
@@ -888,6 +889,53 @@ class AffectedUserByGroup(Model):
                                                           self.ident)
 
 
+class Activity(models.Model):
+    COMMENT = 0
+    SET_RESOLVED = 1
+    SET_UNRESOLVED = 2
+    SET_MUTED = 3
+    SET_PUBLIC = 4
+    SET_PRIVATE = 5
+    SET_REGRESSION = 6
+
+    TYPE = (
+        # (TYPE, verb-slug)
+        (COMMENT, 'comment'),
+        (SET_RESOLVED, 'set_resolved'),
+        (SET_UNRESOLVED, 'set_unresolved'),
+        (SET_MUTED, 'set_muted'),
+        (SET_PUBLIC, 'set_public'),
+        (SET_PRIVATE, 'set_private'),
+        (SET_REGRESSION, 'set_regression'),
+    )
+
+    project = models.ForeignKey(Project)
+    group = models.ForeignKey(Group, null=True)
+    event = models.ForeignKey(Event, null=True)
+    # index on (type, ident)
+    type = models.PositiveIntegerField(choices=TYPE)
+    ident = models.CharField(max_length=64, null=True)
+    # if the user is not set, it's assumed to be the system
+    user = models.ForeignKey(User, null=True)
+    datetime = models.DateTimeField(default=timezone.now)
+    data = GzippedDictField(null=True)
+
+    def save(self, *args, **kwargs):
+        created = bool(not self.id)
+
+        super(Activity, self).save(*args, **kwargs)
+
+        if not created:
+            return
+
+        # HACK: support Group.num_comments
+        if self.type == Activity.COMMENT:
+            self.group.update(num_comments=F('num_comments') + 1)
+
+            if self.event:
+                self.event.update(num_comments=F('num_comments') + 1)
+
+
 ### django-indexer
 
 
@@ -1032,6 +1080,15 @@ def record_user_count(filters, created, **kwargs):
     }, {
         'id': filters['group'].id,
     })
+
+
+@regression_signal.connect(weak=False)
+def create_regression_activity(instance, **kwargs):
+    Activity.objects.create(
+        project=instance.project,
+        group=instance,
+        type=Activity.SET_REGRESSION,
+    )
 
 
 # Signal registration
