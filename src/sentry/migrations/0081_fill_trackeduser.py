@@ -12,8 +12,8 @@ class Migration(DataMigration):
         "Write your forwards methods here."
         # Note: Remember to use orm['appname.ModelName'] rather than "from appname.models..."
         for affecteduser in orm['sentry.AffectedUserByGroup'].objects.filter(ident__isnull=False):
-            if ident.startswith('email:'):
-                email = ident.split('email:', 1)[-1]
+            if affecteduser.ident.startswith('email:'):
+                email = affecteduser.ident.split('email:', 1)[-1]
             else:
                 email = None
             tuser, created = orm['sentry.TrackedUser'].objects.get_or_create(
