@@ -1,6 +1,6 @@
 """
 sentry.plugins.sentry_user_emails.models
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
@@ -21,7 +21,7 @@ class UserEmailsPlugin(TagPlugin):
     * A sidebar module which shows the users most actively seeing event.
     """
     slug = 'user-emails'
-    title = _('User Emails')
+    title = _('Auto Tag: User Emails')
     version = sentry.VERSION
     author = "Sentry Team"
     author_url = "https://github.com/getsentry/sentry"

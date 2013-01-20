@@ -13,6 +13,7 @@ from django.db import models, router
 from django.db.models import signals
 from django.db.models.expressions import ExpressionNode
 
+from sentry.utils.cache import Lock
 from sentry.utils.compat import pickle
 from sentry.utils.db import resolve_expression_node
 
@@ -68,11 +69,79 @@ def update(self, using=None, **kwargs):
 update.alters_data = True
 
 
+def create_or_update(model, **kwargs):
+    """
+    Similar to get_or_create, either updates a row or creates it.
+
+    The result will be (rows affected, False), if the row was not created,
+    or (instance, True) if the object is new.
+    """
+    defaults = kwargs.pop('defaults', {})
+
+    objects = model.objects
+
+    # before locking attempt to fetch the instance
+    affected = objects.filter(**kwargs).update(**defaults)
+    if affected:
+        return affected, False
+    lock_key = objects.make_key('lock', kwargs)
+
+    # instance not found, lets grab a lock and attempt to create it
+    with Lock(lock_key) as lock:
+        if lock.was_locked:
+            affected = objects.filter(**kwargs).update(**defaults)
+            return affected, False
+
+        for k, v in defaults.iteritems():
+            if isinstance(v, ExpressionNode):
+                kwargs[k] = resolve_expression_node(objects.model(), v)
+        return objects.create(**kwargs), True
+
+
 class Model(models.Model):
     class Meta:
         abstract = True
 
     update = update
+    __UNSAVED = object()
+
+    def __init__(self, *args, **kwargs):
+        super(Model, self).__init__(*args, **kwargs)
+        self._update_tracked_data()
+
+    def __get_field_value(self, field):
+        if isinstance(field, models.ForeignKey):
+            return getattr(self, field.column)
+        return getattr(self, field.name)
+
+    def _update_tracked_data(self):
+        "Updates a local copy of attributes values"
+
+        if self.id:
+            self.__data = dict((f.column, self.__get_field_value(f)) for f in self._meta.fields)
+        else:
+            self.__data = self.__UNSAVED
+
+    def has_changed(self, field_name):
+        "Returns ``True`` if ``field`` has changed since initialization."
+        if self.__data is self.__UNSAVED:
+            return False
+        field = self._meta.get_field(field_name)
+        return self.__data.get(field_name) != self.__get_field_value(field)
+
+    def old_value(self, field_name):
+        "Returns the previous value of ``field``"
+        if self.__data is self.__UNSAVED:
+            return None
+        return self.__data.get(field_name)
+
+
+def __model_post_save(instance, **kwargs):
+    if not isinstance(instance, Model):
+        return
+    instance._update_tracked_data()
+
+signals.post_save.connect(__model_post_save)
 
 
 class GzippedDictField(models.TextField):

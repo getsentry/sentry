@@ -1,0 +1,68 @@
+{% extends "sentry/users/list.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_plugins %}
+
+{% block title %}{{ tuser.email }} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-user-details project.slug tuser.id %}">{{ tuser.email }}</a></li>
+{% endblock %}
+
+{% block bodyclass %} with-sidebar{% endblock %}
+
+{% block sidebar %}
+    <h6>User Details</h6>
+    <dl>
+        <dt>Email:</dt>
+        <dd>{{ tuser.email }}</dd>
+        <dt>First Seen:</dt>
+        <dd>{{ tuser.first_seen|timesince }}</dd>
+        <dt>Last Seen:</dt>
+        <dd>{{ tuser.last_seen|timesince }}</dd>
+        <dt>Number of Events:</dt>
+        <dd>{{ tuser.num_events|small_count }}</dd>
+    </dl>
+    {% if tuser.data %}
+        <h6>Metadata</h6>
+        <dl>
+            {% for key, value in tuser.data.iteritems %}
+                <dt>{{ key|titlize }}</dt>
+                <dd>{{ value }}</dd>
+            {% endfor %}
+        </dl>
+    {% endif %}
+{% endblock %}
+
+{% block main %}
+    {% paginator event_list from request as event_list per_page MESSAGES_PER_PAGE %}
+
+    <div class="btn-toolbar">
+        <div class="btn-group pull-right">
+            <a class="btn prev{% if not event_list.paginator.has_previous %} disabled{% endif %}" href="?p={{ event_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
+            <a class="btn next{% if not event_list.paginator.has_next %} disabled{% endif %}" href="?p={{ event_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+        </div>
+    </div>
+
+    <div id="event_list"></div>
+
+    <script>
+    $(function(){
+        new app.GroupListView({
+            className: 'group-list',
+            members: {{ event_list.paginator.objects|to_json:request|safe }},
+            id: "event_list"
+        });
+    });
+    </script>
+
+    <div class="btn-toolbar">
+        <div class="btn-group pull-right">
+            <a class="btn prev{% if not event_list.paginator.has_previous %} disabled{% endif %}" href="?p={{ event_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
+            <a class="btn next{% if not event_list.paginator.has_next %} disabled{% endif %}" href="?p={{ event_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+        </div>
+    </div>
+{% endblock %}

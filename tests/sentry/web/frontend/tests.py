@@ -11,79 +11,163 @@ from django.core.urlresolvers import reverse
 from sentry.conf import settings
 from sentry.constants import MEMBER_USER
 from sentry.models import Group, Project, TeamMember, Team
-from sentry.testutils import fixture
-
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, fixture, before
 
 logger = logging.getLogger(__name__)
 
 
-class SentryViewsTest(TestCase):
-    fixtures = ['tests/fixtures/views.json']
+class BaseViewTest(TestCase):
+    def login(self):
+        self.login_as(self.user)
 
+
+class DashboardTest(BaseViewTest):
     @fixture
-    def user(self):
-        user = User(username="admin", email="admin@localhost", is_staff=True, is_superuser=True)
-        user.set_password('password')
-        user.save()
-        return user
+    def path(self):
+        return reverse('sentry')
 
-    def test_dashboard(self):
-        # no projects redirects them to create new project
-        self.client.login(username=self.user.username, password='password')
-        resp = self.client.get(reverse('sentry'), follow=True)
+    def test_redirects_to_new_project_when_no_projects(self):
+        self.login()
+
+        resp = self.client.get(self.path, follow=True)
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/projects/new.html')
 
-        # requires at least one project to show dashboard
+    def test_shows_dashboard_with_a_project(self):
+        self.login()
+
         Project.objects.create(name='foo', owner=self.user)
-        Project.objects.create(name='bar', owner=self.user).team
         resp = self.client.get(reverse('sentry'), follow=True)
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/dashboard.html')
 
-        # no projects and unauthenticated
-        self.client.logout()
-        Project.objects.all().delete()
+    def test_requires_authentication(self):
         resp = self.client.get(reverse('sentry'), follow=True)
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/login.html')
 
-    def test_index(self):
-        self.client.login(username=self.user.username, password='password')
-        resp = self.client.get(reverse('sentry', kwargs={'project_id': 1}) + '?sort=freq', follow=False)
+
+class EnvStatusTest(BaseViewTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-admin-status')
+
+    def test_requires_auth(self):
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 302)
+
+    def test_renders_template(self):
+        self.login()
+
+        resp = self.client.get(self.path)
         self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/admin/status/env.html')
+
+
+class PackageStatusTest(BaseViewTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-admin-packages-status')
+
+    def test_requires_auth(self):
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 302)
+
+    def test_renders_template(self):
+        self.login()
+
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/admin/status/packages.html')
+
+
+class MailStatusTest(BaseViewTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-admin-mail-status')
+
+    def test_requires_auth(self):
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 302)
+
+    def test_renders_template(self):
+        self.login()
+
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/admin/status/mail.html')
+
+
+class StatsTest(BaseViewTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-admin-stats')
+
+    def test_requires_auth(self):
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 302)
+
+    def test_renders_template(self):
+        self.login()
+
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 200)
+        self.assertTemplateUsed(resp, 'sentry/admin/stats.html')
+
+
+class SentryViewsTest(BaseViewTest):
+    fixtures = ['tests/fixtures/views.json']
+
+    @before
+    def login_user(self):
+        self.login_as(self.user)
+
+    def test_stream_loads(self):
+        resp = self.client.get(reverse('sentry-stream', kwargs={'project_id': 1}))
+        assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/group_list.html')
 
     def test_group_details(self):
-        self.client.login(username=self.user.username, password='password')
-        resp = self.client.get(reverse('sentry-group', kwargs={'project_id': 1, 'group_id': 2}), follow=False)
-        self.assertEquals(resp.status_code, 200, resp.content)
+        resp = self.client.get(reverse('sentry-group', kwargs={'project_id': 1, 'group_id': 2}))
+        assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/details.html')
-        self.assertTrue('group' in resp.context)
-        group = Group.objects.get(pk=2)
-        self.assertEquals(resp.context['group'], group)
+        assert 'group' in resp.context
+        assert 'project' in resp.context
+        assert resp.context['group'].id == 2
+        assert resp.context['project'].id == 1
 
     def test_group_event_list(self):
-        self.client.login(username=self.user.username, password='password')
-        resp = self.client.get(reverse('sentry-group-events', kwargs={'project_id': 1, 'group_id': 2}), follow=False)
-        self.assertEquals(resp.status_code, 200, resp.content)
+        resp = self.client.get(reverse('sentry-group-events', kwargs={'project_id': 1, 'group_id': 2}))
+        assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/event_list.html')
-        self.assertTrue('group' in resp.context)
-        group = Group.objects.get(pk=2)
-        self.assertEquals(resp.context['group'], group)
+        assert 'group' in resp.context
+        assert 'project' in resp.context
+        assert 'event_list' in resp.context
+        assert resp.context['group'].id == 2
+        assert resp.context['project'].id == 1
+
+    def test_group_tag_list(self):
+        resp = self.client.get(reverse('sentry-group-tags', kwargs={'project_id': 1, 'group_id': 2}))
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/groups/tag_list.html')
+        assert 'group' in resp.context
+        assert 'project' in resp.context
+        assert 'tag_list' in resp.context
+        assert resp.context['group'].id == 2
+        assert resp.context['project'].id == 1
 
     def test_group_message_details(self):
-        self.client.login(username=self.user.username, password='password')
-        resp = self.client.get(reverse('sentry-group-event', kwargs={'project_id': 1, 'group_id': 2, 'event_id': 4}), follow=True)
-        self.assertEquals(resp.status_code, 200, resp.content)
+        resp = self.client.get(reverse('sentry-group-event', kwargs={'project_id': 1, 'group_id': 2, 'event_id': 4}))
+        assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/event.html')
-        self.assertTrue('group' in resp.context)
-        group = Group.objects.get(pk=2)
-        self.assertEquals(resp.context['group'], group)
+        assert 'group' in resp.context
+        assert 'project' in resp.context
+        assert 'event' in resp.context
+        assert resp.context['group'].id == 2
+        assert resp.context['project'].id == 1
+        assert resp.context['event'].id == 4
 
     def test_group_json_multi(self):
-        self.client.login(username=self.user.username, password='password')
         resp = self.client.get(reverse('sentry-group-events-json', kwargs={'project_id': 1, 'group_id': 2}))
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp['Content-Type'], 'application/json')
@@ -94,52 +178,24 @@ class SentryViewsTest(TestCase):
         self.assertEquals(resp.status_code, 400)
 
     def test_group_events_details_json(self):
-        self.client.login(username=self.user.username, password='password')
         resp = self.client.get(reverse('sentry-group-event-json', kwargs={'project_id': 1, 'group_id': 2, 'event_id_or_latest': 'latest'}))
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp['Content-Type'], 'application/json')
         self.assertEquals(json.loads(resp.content)['level'], 'error')
 
-    def test_status_env(self):
-        self.client.login(username=self.user.username, password='password')
-        resp = self.client.get(reverse('sentry-admin-status'), follow=True)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/admin/status/env.html')
-
-    def test_status_packages(self):
-        self.client.login(username=self.user.username, password='password')
-        resp = self.client.get(reverse('sentry-admin-packages-status'), follow=True)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/admin/status/packages.html')
-
-    def test_status_mail(self):
-        self.client.login(username=self.user.username, password='password')
-        resp = self.client.get(reverse('sentry-admin-mail-status'), follow=True)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/admin/status/mail.html')
-
-    def test_stats(self):
-        self.client.login(username=self.user.username, password='password')
-        resp = self.client.get(reverse('sentry-admin-stats'), follow=True)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/admin/stats.html')
-
     def test_manage_users(self):
-        self.client.login(username=self.user.username, password='password')
         resp = self.client.get(reverse('sentry-admin-users'), follow=True)
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/admin/users/list.html')
 
     def test_event_list(self):
-        self.client.login(username=self.user.username, password='password')
-        resp = self.client.get(reverse('sentry-events', kwargs={'project_id': 1}))
+        resp = self.client.get(reverse('sentry-events', kwargs={'project_id': self.project.id}))
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/events/event_list.html')
 
     def test_replay_event(self):
         # bad event_id
-        self.client.login(username=self.user.username, password='password')
-        resp = self.client.get(reverse('sentry-replay', kwargs={'project_id': 1, 'event_id': 1}))
+        resp = self.client.get(reverse('sentry-replay', kwargs={'project_id': self.project.id, 'event_id': 1}))
         self.assertEquals(resp.status_code, 302)
 
         # valid params
@@ -415,24 +471,18 @@ class RemoveTeamMemberTest(PermissionBase):
 
 
 class SentrySearchTest(TestCase):
-    def setUp(self):
-        self.client.login(username=self.user.username, password='password')
-
-    @fixture
-    def user(self):
-        user = User(username="admin", email="admin@localhost", is_staff=True, is_superuser=True)
-        user.set_password('password')
-        user.save()
-        return user
+    @before
+    def login_user(self):
+        self.login_as(self.user)
 
     @fixture
     def path(self):
-        return reverse('sentry-search', kwargs={'project_id': 1})
+        return reverse('sentry-search', kwargs={'project_id': self.project.id})
 
     def test_checksum_query(self):
         checksum = 'a' * 32
         g = Group.objects.create(
-            project_id=1,
+            project=self.project,
             logger='root',
             culprit='a',
             checksum=checksum,
@@ -446,14 +496,14 @@ class SentrySearchTest(TestCase):
     def test_dupe_checksum(self):
         checksum = 'a' * 32
         g1 = Group.objects.create(
-            project_id=1,
+            project=self.project,
             logger='root',
             culprit='a',
             checksum=checksum,
             message='hi',
         )
         g2 = Group.objects.create(
-            project_id=1,
+            project=self.project,
             logger='root',
             culprit='b',
             checksum=checksum,

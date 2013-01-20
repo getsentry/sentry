@@ -17,7 +17,7 @@ import socket
 import sys
 import urlparse
 
-DEBUG = True
+DEBUG = False
 TEMPLATE_DEBUG = True
 
 ADMINS = ()
@@ -149,10 +149,10 @@ INSTALLED_APPS = (
     'kombu.transport.django',
     'raven.contrib.django',
     'sentry',
+    'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail',
     'sentry.plugins.sentry_servers',
     'sentry.plugins.sentry_urls',
-    'sentry.plugins.sentry_user_emails',
     'sentry.plugins.sentry_useragents',
     'social_auth',
     'south',
@@ -179,6 +179,8 @@ if LESS_BIN:
     )
 else:
     COMPRESS_ENABLED = False
+
+COMPRESS_VERBOSE = True
 
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
@@ -286,14 +288,18 @@ LOGGING = {
     'loggers': {
         '()': {
             'handlers': ['console', 'sentry'],
-            'propagate': True,
         },
         'root': {
             'handlers': ['console', 'sentry'],
         },
-        'sentry.errors': {
+        'sentry': {
             'level': 'ERROR',
             'handlers': ['console', 'sentry'],
+            'propagate': False,
+        },
+        'sentry.errors': {
+            'level': 'ERROR',
+            'handlers': ['console'],
             'propagate': False,
         },
         'django.request': {

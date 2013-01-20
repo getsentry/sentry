@@ -11,6 +11,7 @@ protocol:
   - Chef (`chef-sentry-handler <https://github.com/coderanger/chef-sentry-handler>`_)
 - JavaScript (`raven-js <https://github.com/getsentry/raven-js>`_)
 - Node.js (`raven-node <https://github.com/mattrobenolt/raven-node>`_)
+- iOS / Objective-C (`raven-objc <https://github.com/getsentry/raven-objc`_)
 
 Additionally, the following experimental clients are availabe:
 

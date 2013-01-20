@@ -7,7 +7,7 @@
 
     app.charts = {
 
-        render: function(el) {
+        render: function(el, options) {
             var $el = $('#chart');
             var url = $el.attr('data-api-url');
             var title = $(el).attr('data-title');
@@ -36,17 +36,21 @@
                             maxval = val[1];
                         }
                     });
-                    app.charts.createSparkline($spark, data);
+                    app.charts.createSparkline($spark, data, options);
                 }
             });
         },
 
-        createSparkline: function(el, points){
+        createSparkline: function(el, points, options){
             // TODO: maxval could default to # of hours since first_seen / times_seen
             var $el = $(el),
                 existing = $el.children(),
                 maxval = 10,
                 title, point, pct, child, point_width;
+
+            if (options === undefined) {
+                options = {};
+            }
 
             for (var i=0; i<points.length; i++) {
                 point = points[i];
@@ -72,7 +76,7 @@
                 }
                 if (existing.get(i) === undefined) {
                     $('<a style="width:' + point_width + ';" rel="tooltip" title="' + title + '"><span style="height:' + pct + '">' + point.y + '</span></a>').tooltip({
-                        placement: 'bottom'
+                        placement: options.placement || 'bottom'
                     }).appendTo($el);
                 } else {
                     $(existing[i]).find('span').css('height', pct).text(point.y).attr('title', (point.label || point.y));

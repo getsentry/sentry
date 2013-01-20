@@ -7,19 +7,20 @@ sentry.web.frontend.accounts
 """
 from django.conf import settings as dj_settings
 from django.contrib import messages
-from django.contrib.auth import login as login_user
+from django.contrib.auth import login as login_user, authenticate
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
+from django.utils import timezone
 
-from sentry.models import UserOption
+from sentry.models import UserOption, LostPasswordHash
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required
 from sentry.web.forms.accounts import AccountSettingsForm, NotificationSettingsForm, \
-  AppearanceSettingsForm, RegistrationForm
+  AppearanceSettingsForm, RegistrationForm, RecoverPasswordForm, ChangePasswordRecoverForm
 from sentry.web.helpers import render_to_response
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.safe import safe_execute
@@ -100,6 +101,75 @@ def logout(request):
     logout(request)
 
     return HttpResponseRedirect(reverse('sentry'))
+
+
+def recover(request):
+    form = RecoverPasswordForm(request.POST or None)
+    if form.is_valid():
+        password_hash, created = LostPasswordHash.objects.get_or_create(
+            user=form.cleaned_data['user']
+        )
+        if not password_hash.is_valid():
+            created = True
+            password_hash.date_added = timezone.now()
+            password_hash.set_hash()
+
+        if not created:
+            form.errors['__all__'] = ['A password reset was already attempted for this account within the last 24 hours.']
+
+    if form.is_valid():
+        password_hash.send_recover_mail()
+
+        return render_to_response('sentry/account/recover/sent.html', {
+            'email': password_hash.user.email,
+        }, request)
+
+    context = {
+        'form': form,
+    }
+    return render_to_response('sentry/account/recover/index.html', context, request)
+
+
+def recover_confirm(request, user_id, hash):
+    try:
+        password_hash = LostPasswordHash.objects.get(user=user_id, hash=hash)
+        if not password_hash.is_valid():
+            password_hash.delete()
+            raise LostPasswordHash.DoesNotExist
+        user = password_hash.user
+
+    except LostPasswordHash.DoesNotExist:
+        context = {}
+        tpl = 'sentry/account/recover/failure.html'
+
+    else:
+        tpl = 'sentry/account/recover/confirm.html'
+
+        if request.method == 'POST':
+            form = ChangePasswordRecoverForm(request.POST)
+            if form.is_valid():
+                user.set_password(form.cleaned_data['password'])
+                user.save()
+
+                # Ugly way of doing this, but Django requires the backend be set
+                user = authenticate(
+                    username=user.username,
+                    password=form.cleaned_data['password'],
+                )
+
+                login_user(request, user)
+
+                password_hash.delete()
+
+                return login_redirect(request)
+        else:
+            form = ChangePasswordRecoverForm()
+
+        context = {
+            'form': form,
+        }
+
+    return render_to_response(tpl, context, request)
 
 
 @csrf_protect

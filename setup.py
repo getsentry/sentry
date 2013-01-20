@@ -35,11 +35,13 @@ for m in ('multiprocessing', 'billiard'):
         pass
 
 tests_require = [
+    'exam>=0.5.1',
     'eventlet',
     'pytest',
     'pytest-django',
     'nydus',
     'mock>=0.8.0',
+    'mock-django>=0.6.4',
     'redis',
     'unittest2',
 ]
@@ -61,7 +63,7 @@ install_requires = [
     'logan>=0.5.4',
     'pynliner>=0.4.0',
     'python-dateutil>=1.5.0,<2.0.0',
-    'raven>=2.0.10',
+    'raven>=3.0.0',
     'simplejson>=2.1.6',
     'South>=0.7.6',
     'httpagentparser>=1.0.5',
@@ -71,7 +73,7 @@ install_requires = [
 
 setup(
     name='sentry',
-    version='5.1.0',
+    version='5.1.5',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://www.getsentry.com',

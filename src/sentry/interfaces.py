@@ -13,7 +13,7 @@ import itertools
 import urlparse
 
 from django.http import QueryDict
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext as _
 
 from sentry.app import env
 from sentry.models import UserOption
@@ -61,6 +61,7 @@ class Interface(object):
     """
 
     score = 0
+    display_score = None
 
     def __init__(self, **kwargs):
         self.attrs = kwargs.keys()
@@ -92,8 +93,17 @@ class Interface(object):
     def to_string(self, event):
         return ''
 
+    def get_slug(self):
+        return type(self).__name__.lower()
+
     def get_title(self):
-        return _(self.__class__.__name__)
+        return _(type(self).__name__)
+
+    def get_display_score(self):
+        return self.display_score or self.score
+
+    def get_score(self):
+        return self.score
 
     def get_search_context(self, event):
         """
@@ -144,7 +154,7 @@ class Message(Interface):
         elif isinstance(self.params, dict):
             params = self.params.values()
         else:
-            params = ()
+            params = []
         return {
             'text': [self.message] + params,
         }
@@ -189,6 +199,8 @@ class Stacktrace(Interface):
     hash must contain **at least** the ``filename`` attribute. The rest of the values
     are optional, but recommended.
 
+    The list of frames should be ordered by the oldest call first.
+
     Each frame must contain the following attributes:
 
     ``filename``
@@ -197,7 +209,9 @@ class Stacktrace(Interface):
     The following additional attributes are supported:
 
     ``lineno``
-      The lineno of the call
+      The line number of the call
+    ``colno``
+      The column number of the call
     ``abs_path``
       The absolute path to filename
     ``function``
@@ -250,22 +264,13 @@ class Stacktrace(Interface):
             if 'lineno' in frame:
                 frame['lineno'] = int(frame['lineno'])
 
+            # colno should be an int
+            if 'colno' in frame:
+                frame['colno'] = int(frame['colno'])
+
             # in_app should be a boolean
             if 'in_app' in frame:
                 frame['in_app'] = bool(frame['in_app'])
-
-    def _shorten(self, value, depth=1):
-        if depth > 5:
-            return type(value)
-        if isinstance(value, dict):
-            return dict((k, self._shorten(v, depth + 1)) for k, v in sorted(value.iteritems())[:100 / depth])
-        elif isinstance(value, (list, tuple, set, frozenset)):
-            return tuple(self._shorten(v, depth + 1) for v in value)[:100 / depth]
-        elif isinstance(value, (int, long, float)):
-            return value
-        elif not value:
-            return value
-        return value
 
     def serialize(self):
         return {
@@ -281,20 +286,45 @@ class Stacktrace(Interface):
     def get_hash(self):
         output = []
         for frame in self.frames:
-            if frame.get('module'):
-                output.append(frame['module'])
-            else:
-                output.append(frame['filename'])
-
-            if frame.get('context_line'):
-                output.append(frame['context_line'])
-            elif frame.get('function'):
-                output.append(frame['function'])
-            elif frame.get('lineno'):
-                output.append(frame['lineno'])
+            output.extend(self.get_frame_hash(frame))
         return output
 
+    def get_frame_hash(self, frame):
+        output = []
+        if frame.get('module'):
+            output.append(frame['module'])
+        else:
+            output.append(frame['filename'])
+
+        if frame.get('context_line'):
+            output.append(frame['context_line'])
+        elif frame.get('function'):
+            output.append(frame['function'])
+        elif frame.get('lineno'):
+            output.append(frame['lineno'])
+        return output
+
+    def is_newest_frame_first(self, event):
+        newest_first = event.platform not in ('python', None)
+
+        if env.request and env.request.user.is_authenticated():
+            display = UserOption.objects.get_value(
+                user=env.request.user,
+                project=None,
+                key='stacktrace_order',
+                default=None,
+            )
+            if display == '1':
+                newest_first = False
+            elif display == '2':
+                newest_first = True
+
+        return newest_first
+
     def to_html(self, event):
+        if not self.frames:
+            return ''
+
         system_frames = 0
         frames = []
         for frame in self.frames:
@@ -307,7 +337,7 @@ class Stacktrace(Interface):
 
             context_vars = []
             if frame.get('vars'):
-                context_vars = self._shorten(frame['vars'])
+                context_vars = frame['vars']
             else:
                 context_vars = []
 
@@ -335,31 +365,60 @@ class Stacktrace(Interface):
         if len(frames) == system_frames:
             system_frames = 0
 
-        if env.request and env.request.user.is_authenticated():
-            display = UserOption.objects.get_value(
-                user=env.request.user,
-                project=None,
-                key='stacktrace_order',
-                default=None,
-            )
-            if display == '2':
-                frames.reverse()
+        newest_first = self.is_newest_frame_first(event)
+        if newest_first:
+            frames = frames[::-1]
 
         return render_to_string('sentry/partial/interfaces/stacktrace.html', {
+            'newest_first': newest_first,
             'system_frames': system_frames,
             'event': event,
             'frames': frames,
-            'stacktrace': self.get_traceback(event),
+            'stacktrace': self.get_traceback(event, newest_first=newest_first),
         })
 
     def to_string(self, event):
-        return self.get_stacktrace(event)
+        return self.get_stacktrace(event, system_frames=False, max_frames=5)
 
-    def get_stacktrace(self, event):
-        result = [
-            'Stacktrace (most recent call last):', '',
-        ]
-        for frame in self.frames:
+    def get_stacktrace(self, event, system_frames=True, newest_first=None, max_frames=None):
+        if newest_first is None:
+            newest_first = self.is_newest_frame_first(event)
+
+        result = []
+        if newest_first:
+            result.append(_('Stacktrace (most recent call first):'))
+        else:
+            result.append(_('Stacktrace (most recent call last):'))
+
+        result.append('')
+
+        frames = self.frames
+
+        num_frames = len(frames)
+
+        if not system_frames:
+            frames = [f for f in frames if f.get('in_app') is not False]
+            if not frames:
+                frames = self.frames
+
+        if newest_first:
+            frames = frames[::-1]
+
+        if max_frames:
+            visible_frames = max_frames
+            if newest_first:
+                start, stop = None, max_frames
+            else:
+                start, stop = -max_frames, None
+
+        else:
+            visible_frames = len(frames)
+            start, stop = None, None
+
+        if not newest_first and visible_frames < num_frames:
+            result.extend(('(%d additional frame(s) were not displayed)' % (num_frames - visible_frames,), '...'))
+
+        for frame in frames[start:stop]:
             pieces = ['  File "%(filename)s"']
             if 'lineno' in frame:
                 pieces.append(', line %(lineno)s')
@@ -370,12 +429,15 @@ class Stacktrace(Interface):
             if 'context_line' in frame:
                 result.append('    %s' % frame['context_line'].strip())
 
+        if newest_first and visible_frames < num_frames:
+            result.extend(('...', '(%d additional frame(s) were not displayed)' % (num_frames - visible_frames,)))
+
         return '\n'.join(result)
 
-    def get_traceback(self, event):
+    def get_traceback(self, event, newest_first=None):
         result = [
             event.message, '',
-            self.get_stacktrace(event),
+            self.get_stacktrace(event, newest_first=newest_first),
         ]
 
         return '\n'.join(result)
@@ -400,6 +462,7 @@ class Exception(Interface):
     """
 
     score = 900
+    display_score = 1200
 
     def __init__(self, value, type=None, module=None):
         # A human readable value for the exception
@@ -444,7 +507,8 @@ class Http(Interface):
     are required: ``url`` and ``method``.
 
     The ``env`` variable is a compounded dictionary of HTTP headers as well
-    as environment information passed from the webserver.
+    as environment information passed from the webserver. Sentry will explicitly
+    look for ``REMOTE_ADDR`` in ``env`` for things which require an IP address.
 
     The ``data`` variable should only contain the request body (not the query
     string). It can either be a dictionary (for standard HTTP requests) or a
@@ -467,7 +531,8 @@ class Http(Interface):
     >>>  }
     """
 
-    score = 10000
+    display_score = 1000
+    score = 800
 
     # methods as defined by http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html + PATCH
     METHODS = ('GET', 'POST', 'PUT', 'OPTIONS', 'HEAD', 'DELETE', 'TRACE', 'CONNECT', 'PATCH')
@@ -497,6 +562,13 @@ class Http(Interface):
             self.cookies = cookies
         else:
             self.cookies = {}
+        # if cookies were a string, convert to a dict
+        # parse_qsl will parse both acceptable formats:
+        #  a=b&c=d
+        # and
+        #  a=b; c=d
+        if isinstance(self.cookies, basestring):
+            self.cookies = dict(urlparse.parse_qsl(self.cookies, keep_blank_values=True))
         # if cookies were [also] included in headers we
         # strip them out
         if headers and 'Cookie' in headers:
@@ -564,6 +636,9 @@ class Http(Interface):
             'env': self.env,
         })
 
+    def get_title(self):
+        return _('Request')
+
     def get_search_context(self, event):
         return {
             'filters': {
@@ -594,7 +669,7 @@ class Template(Interface):
     >>> }
     """
 
-    score = 1001
+    score = 1100
 
     def __init__(self, filename, context_line, lineno, pre_context=None, post_context=None,
                  abs_path=None):
@@ -659,38 +734,33 @@ class User(Interface):
     """
     An interface which describes the authenticated User for a request.
 
-    All data is arbitrary and optional other than the ``is_authenticated``
-    field which should be a boolean value indiciating whether the user
-    is logged in or not.
+    All data is arbitrary and optional other than the ``id``
+    field which should be a string representing the user's unique identifier.
 
     >>> {
-    >>>     "is_authenticated": true,
     >>>     "id": "unique_id",
-    >>>     "username": "foo",
+    >>>     "username": "my_user",
     >>>     "email": "foo@example.com"
     >>> }
     """
 
-    def __init__(self, is_authenticated, **kwargs):
-        self.is_authenticated = is_authenticated
-        self.id = kwargs.pop('id', None)
-        self.username = kwargs.pop('username', None)
-        self.email = kwargs.pop('email', None)
+    def __init__(self, id=None, email=None, username=None, **kwargs):
+        self.id = id
+        self.email = email
+        self.username = username
         self.data = kwargs
 
     def serialize(self):
-        if self.is_authenticated:
-            return {
-                'is_authenticated': self.is_authenticated,
-                'id': self.id,
-                'username': self.username,
-                'email': self.email,
-                'data': self.data,
-            }
-        else:
-            return {
-                'is_authenticated': self.is_authenticated
-            }
+        # XXX: legacy -- delete
+        if hasattr(self, 'is_authenticated'):
+            self.data['is_authenticated'] = self.is_authenticated
+
+        return {
+            'id': self.id,
+            'username': self.username,
+            'email': self.email,
+            'data': self.data,
+        }
 
     def get_hash(self):
         return []
@@ -698,7 +768,6 @@ class User(Interface):
     def to_html(self, event):
         return render_to_string('sentry/partial/interfaces/user.html', {
             'event': event,
-            'user_authenticated': self.is_authenticated,
             'user_id': self.id,
             'user_username': self.username,
             'user_email': self.email,
@@ -706,8 +775,10 @@ class User(Interface):
         })
 
     def get_search_context(self, event):
-        if not self.is_authenticated:
+        tokens = filter(bool, [self.id, self.username, self.email])
+        if not tokens:
             return {}
+
         return {
-            'text': [self.id, self.username, self.email]
+            'text': tokens
         }

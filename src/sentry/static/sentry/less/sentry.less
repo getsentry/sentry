@@ -1,10 +1,12 @@
 @import url("../bootstrap/less/bootstrap.less");
 @import url("fonts.less");
 @import url("datepicker.less");
+@import url("github.less");
 
 @baseFontSize: 13px;
 @grayDark: #404f60;
 @gray: #465262;
+@navbarInverseLinkBackgroundActive: #333;
 
 @linkColor: #4593DE;
 
@@ -30,6 +32,7 @@ body {
 }
 
 .container {
+  min-width: 786px;
   width: auto;
 }
 
@@ -79,6 +82,7 @@ h3 {
     border: 0;
     .box-shadow(none);
     height: 70px;
+
     .container {
       padding: 9px 10px 0 30px;
     }
@@ -143,6 +147,7 @@ h3 {
         font-size: 14px;
         font-weight: bold;
       }
+
       > .dropdown-toggle {
         background: inherit !important;
         .caret {
@@ -161,10 +166,21 @@ h3 {
       &:focus > a {
         background: none !important;
         color: #fff;
+
         .border-radius(3px);
         .box-shadow(none);
       }
 
+      &.active > a,
+      &.active:hover > a,
+      &.active:focus > a {
+        padding: 2px 7px;
+        border: 1px solid @navbarInverseSearchBorder;
+        color: @navbarInverseLinkColorActive;
+        #gradient > .vertical(rgba(0,0,0, .1), rgba(0,0,0, .3));
+        @shadow: inset 0 1px 0px rgba(255,255,255,.15), 0 1px 2px rgba(0,0,0,.1);
+        .box-shadow(@shadow);
+      }
     }
   }
 }
@@ -275,12 +291,14 @@ h3 {
 
   &.with-sidebar {
     background: #fff url(../images/dashboard/sidebar-bg.png) top right repeat-y;
+    min-width: 1086px;
     .content {
       padding-right: 300px;
     }
   }
   &.with-left-sidebar {
     background: #fff url(../images/dashboard/sidebar-bg.png) top left repeat-y;  
+    min-width: 1086px;
     .content {
       padding-left: 300px;
     }
@@ -298,6 +316,7 @@ h3 {
     position: relative;
   }
   .main {
+    min-width: 786px;
     width: 100%;
     position: relative;
     float: left;
@@ -539,6 +558,48 @@ footer {
     color: @linkColor;
   }
 }
+
+ul.tag-list {
+  list-style: none;
+  margin-left: 0;
+  margin-bottom: 15px;
+
+  li {
+    margin-bottom: 5px;
+  }
+}
+
+.progressbar {
+  position: relative;
+  border: 1px solid lighten(@linkColor, 30%);
+  height: 1.5em;
+  line-height: 1.5em;
+
+  > a,
+  > div {
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    max-width: 100%;
+    position: absolute;
+  }
+
+  > a {
+    left: 5px;
+    
+    span {
+      position: absolute;
+      right: 5px;
+    }
+  }
+
+  > div {
+    background-color: lighten(@linkColor, 40%);
+    text-indent: -100000em;
+  }
+}
+
 .sparkline {
   position: relative;
 
@@ -711,7 +772,6 @@ footer {
         width: 3px;
       }
     }
-
     .actions {
       position: absolute;
       right: 20px;
@@ -821,6 +881,13 @@ footer {
   }
 }
 
+.inactive .group-list > li:hover {
+  .reset-filter();
+  background-image: none;
+  background-color: inherit;
+  border-color: #e5e6e7;
+}
+
 label { font-weight: bold; }
 
 pre, code {
@@ -878,7 +945,37 @@ td .clippy {
 
 // Code styles
 
+&.expanded div.commands,
+div.commands:hover {
+  .opacity(100);
+  a {
+    color: @infoText;
+  }
+}
+
+div.commands {
+  position: absolute;
+  right: 10px;
+  top: 6px;
+  font-size: 0.9em;
+  .opacity(30);
+
+  a {
+    color: #666;
+    text-decoration: none;
+    span {
+      font-size: 9px;
+      margin-right: 5px;
+    }
+  }
+}
+
+
+ul.traceback { list-style-type: none; margin-left: 0; }
+
 .frame {
+  overflow: hidden;
+  position: relative;
   padding: 5px;
   border: 1px solid #fff;
   margin: -6px -6px 0 -6px;
@@ -891,38 +988,23 @@ td .clippy {
     color: inherit;
   }
 
-  div.commands {
-    position: absolute;
-    right: 10px;
-    top: 6px;
-    font-size: 0.9em;
-    a {
-      color: #666;
-      text-decoration: none;
-      span {
-        font-size: 9px;
-        margin-right: 5px;
-      }
-    }
-  }
-
   .context {
     margin-bottom: 5px;
   }
 
   table.vars {
     margin-bottom: 5px;
+    th {
+      color: @gray;
+      text-align: right;
+    }
   }
 
   &.expanded {
     color: #000;
-    border-color: darken(@infoBorder, 5%);
 
     > p {
       color: #000;
-      margin: -5px -5px 5px -5px;
-      padding: 5px;
-      background: @infoBackground;
     }
 
     // .context li {
@@ -937,32 +1019,43 @@ td .clippy {
     //   }
     // }
   
-    .commands a {
-      color: @infoText;
-    }
-
     .expandable {
-      display: block;
-    }
-    table.expandable {
-      display: table;
-    }
-    li.expandable {
-      display: list-item;
+      height: auto;
     }
   }
 }
 
 
 .expandable {
-  display: none;
+  height: 0;
+  overflow: hidden;
+
+  &.vars {
+    display: none;
+  }
+
 }
+
+.expanded {
+  .expandable {
+    overflow: none;
+    height: auto;
+  }
+
+  table.vars {
+    &.expandable {
+      display: table;
+    }
+  }
+}
+
 
 ol.context {
   cursor: pointer;
   margin: 0;
   list-style-position: inside;
   .border-radius(3px);
+
   > li {
     padding-left: 20px;
     font-family:monospace;
@@ -1001,6 +1094,15 @@ ol.context {
 
   li.closed {
     .border-radius(4px);
+  }
+
+  &:hover {
+    > li {
+      background-color: #f0f0f0;
+      &.active {
+        background-color: #d3d3d3;
+      }
+    }
   }
 }
 ol.context-line {
@@ -1061,21 +1163,8 @@ td.code {
 
 div.pastebin textarea { padding: 10px; background: #f9f9f9; border-color: #ddd; }
 
-ul.traceback { list-style-type: none; margin-left: 0; }
-ul.traceback li.frame { margin-bottom: 10px; overflow: hidden; position: relative; }
-
-#versioninfo {
-  th { text-align: left; font-family: monospace; padding-right: 20px; }
-  tr:nth-child(odd) {
-    background: #eee;
-  }
-}
-
 .error { background: #ffc; padding: 5px; }
 .specific { color:#cc3300; font-weight:bold; }
-h2 span.commands { font-size:.7em;}
-span.commands a:link {color:#5E5694;}
-pre.exception_value { font-family: sans-serif; font-weight: normal; color: #333; font-size: 1.5em; }
 
 /* message details */
 .server-list, .url-list, .logger-list, .level-list { list-style: none; margin-left: 0; margin-bottom: 0; }
@@ -1135,6 +1224,11 @@ small {
   float: left;
   margin-left: -18px;
 }
+.help-block {
+  font-size: 12px;
+  font-weight: normal;
+}
+
 
 // Move the options list down to align with labels
 .controls > .inputs-list label:first-child,
@@ -1207,10 +1301,10 @@ legend {
   .box-shadow(0 0 0 2px rgba(70,82,98,.43));
   .background-clip(padding-box);
   .time {
-    width: 80px;
+    width: 60px;
   }
   .date {
-    width: 120px;
+    width: 70px;
   }
   .submit {
     .help-block {
@@ -1258,11 +1352,66 @@ legend {
   }
 }
 
-[class*="icon-"] {
-  background-image: url(@iconSpritePath);
+#event_nav.fixed {
+  overflow: hidden;
+  margin-bottom: 0;
+
+  > ul {
+    display: block;
+    width: auto;
+    position: fixed;
+    left: 0;
+    right: 300px;
+    top: 0;
+    margin: 0;
+    z-index: 1000000;
+    
+    li.dropdown {
+      position: relative;
+    }
+  }
 }
-.icon-white {
-  background-image: url(@iconWhiteSpritePath);
+
+#event_nav {
+  margin-bottom: 20px;
+  position: relative;
+
+  > ul {
+    padding: 0 20px;
+    margin: -21px -20px 0;
+    background: #eee;
+
+    > li {
+      > a {
+        padding: 10px 12px;
+        line-height: 16px;
+        color: #666;
+        .border-radius(0);
+        margin: 0;
+        .transition(none);
+        &:hover,
+        &:focus {
+          .transition(none);
+          color: #333;
+          background-color: #ddd;
+        }
+      }
+      &.active > a {
+        .transition(none);
+        color: @white;
+        background-color: @linkColor;
+      }
+
+      > ul.dropdown-menu {
+        > li.active > a,
+        > li:hover > a,
+        > li:focus > a {
+          color: @white;
+        }
+      }
+
+    }
+  }
 }
 
 .plugin-meta {
@@ -1270,7 +1419,6 @@ legend {
     p { font-size: 13px; }
   }
 }
-
 
 @media print {
     body {

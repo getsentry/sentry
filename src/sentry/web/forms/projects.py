@@ -10,6 +10,7 @@ from django import forms
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
+from sentry.constants import EMPTY_PASSWORD_VALUES
 from sentry.models import Project, ProjectOption
 from sentry.permissions import can_set_public_projects
 from sentry.web.forms.fields import RadioFieldRenderer, UserField, OriginsField, \
@@ -38,10 +39,11 @@ class ProjectTagsForm(forms.Form):
 
 
 class NewProjectForm(forms.ModelForm):
-    name = forms.CharField(label=_('Project Name'), max_length=200, widget=forms.TextInput(attrs={'placeholder': _('My Project Name')}))
+    name = forms.CharField(label=_('Project Name'), max_length=200,
+        widget=forms.TextInput(attrs={'placeholder': _('example.com')}))
 
     class Meta:
-        fields = ('name',)
+        fields = ('name', 'platform')
         model = Project
 
 
@@ -49,7 +51,7 @@ class NewProjectAdminForm(NewProjectForm):
     owner = UserField(required=False)
 
     class Meta:
-        fields = ('name', 'owner')
+        fields = ('name', 'platform', 'owner')
         model = Project
 
 
@@ -72,6 +74,10 @@ class RemoveProjectForm(forms.Form):
             self.fields['project'].choices = [(p.pk, p.name) for p in project_list]
             self.fields['project'].widget.choices = self.fields['project'].choices
 
+        # HACK: dont require current password if they dont have one
+        if self.user.password in EMPTY_PASSWORD_VALUES:
+            del self.fields['password']
+
     def clean(self):
         data = self.cleaned_data
         if data.get('removal_type') == 2 and not data.get('project'):
@@ -93,12 +99,14 @@ class RemoveProjectForm(forms.Form):
 
 
 class EditProjectForm(forms.ModelForm):
-    public = forms.BooleanField(required=False, help_text=_('Allow anyone (even anonymous users) to view this project'))
+    public = forms.BooleanField(required=False,
+        help_text=_('Allow anyone (even anonymous users) to view this project'))
     team = forms.TypedChoiceField(choices=(), coerce=int)
-    origins = OriginsField(required=False)
+    origins = OriginsField(label=_('Allowed Domains'), required=False,
+        help_text=_('Separate multiple entries with a newline.'))
 
     class Meta:
-        fields = ('name', 'public', 'team')
+        fields = ('name', 'platform', 'public', 'team')
         model = Project
 
     def __init__(self, request, team_list, data, instance, *args, **kwargs):
@@ -118,7 +126,15 @@ class EditProjectForm(forms.ModelForm):
         if not value:
             return
 
-        return self.team_list[int(value)]
+        # TODO: why is this not already an int?
+        value = int(value)
+        if value == -1:
+            return
+
+        if value == self.instance.team.id:
+            return self.instance.team
+
+        return self.team_list[value]
 
 
 class EditProjectAdminForm(EditProjectForm):
@@ -126,5 +142,5 @@ class EditProjectAdminForm(EditProjectForm):
     owner = UserField(required=False)
 
     class Meta:
-        fields = ('name', 'public', 'team', 'owner')
+        fields = ('name', 'platform', 'public', 'team', 'owner')
         model = Project

@@ -11,6 +11,10 @@
 {% endblock %}
 
 {% block page_header %}
+    {% if can_create_teams %}
+        <a href="{% url sentry-new-team %}" class="btn pull-right btn-primary">{% trans "Create a new team" %}</a>
+    {% endif %}
+
     <ul class="breadcrumb">
         <li><a href="{% url sentry-team-list %}">{% trans "Teams" %}</a></li>
         {% block breadcrumb %}{% endblock %}
@@ -47,7 +51,7 @@
         </table>
     {% else %}
         {% if can_create_teams %}
-            <div class="alert alert-info">You are not a member of any teams. Would you like to <a href="{% url sentry-new-team %}">create a new team</a>?</div>
+            <div class="alert alert-info">{% trans "You are not a member of any teams." %}</div>
         {% else %}
             <div class="alert alert-notice">{% trans "You are not a member of any teams. Ask an administrator to add you to a team." %}</div>
         {% endif %}

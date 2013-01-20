@@ -1,3 +1,51 @@
+Version 5.1.3
+-------------
+
+A new user's affected-tracking mechanism is present (storage only). This will
+become available in the UX in a future version, and relies on the existing HTTP
+and User interface datas.
+
+- [Fix] Correct a bug with search queries.
+- [New] Group.users_seen will now track unique users when possible.
+- [New] Team and project owners can now change ownership (non-superuser).
+- [Fix] Counts are now formatted correctly when number of visible digits > 3.
+
+Version 5.1.2
+-------------
+
+- [Fix] Option schema (key length = 64).
+- [Fix] Template interface now renders correctly.
+- [Fix] Update design on admin status pages.
+- [New] iOS client documentation.
+- Improved client documentation visuals.
+
+Version 5.1.1
+-------------
+
+Several schema changes are made in this upgrade:
+
+- A new model: LostPasswordHash
+- Two new fields on ProjectKey: date_added and user_added
+- A new field on Event: platform
+- A new field on Group: platform
+
+The following changes are also part of this release:
+
+- [New] A new plugin, sentry-interface-types will now automatically tag the available interface
+  types in an event.
+- [New] The platform value sent with an event is now recorded in the database.
+- [New] A recover account flow has been added.
+- [New] There is now a sticky nav on the event details pages.
+- [New] getting started page now shows if there's no data for a project.
+- [New] An API key management page now exists (under project settings).
+- [New] A tag overview page now exists for group details pages.
+- [Fix] Line numbers now show correctly in collapsed source context.
+- [Fix] Pending members now show correctly on the team management page (under project settings).
+- [Fix] The time since value now updates correctly when events change.
+- Various changes to how event details components render.
+- Various fixes for breadcrumbs and header styles.
+- Most plugins will no longer default to enabled on new projects.
+
 Version 5.1.0
 -------------
 
@@ -44,6 +92,8 @@ Other Changes
   the details view.
 - crossdomain.xml support is now available (see documentation).
 - The search feature now uses buffers to better handle write concurrency.
+- Early support for WSGI (should be functional) exists as ``sentry.wsgi``.
+- Many fixes around cache usage.
 
 Version 5.0.0
 -------------

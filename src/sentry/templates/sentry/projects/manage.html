@@ -41,7 +41,7 @@
                 <div><legend>{% trans "Client Security" %}</legend></div>
                 {% with form.origins as field %}
                     <p>{% blocktrans with 'https://github.com/getsentry/raven-js' as link %}Configure origin URLs which Sentry should accept events from. This is used for communication with clients like <a href="{{ link }}">raven-js</a>.{% endblocktrans %}
-                    <p>{% blocktrans with 'http://en.wikipedia.org/wiki/Cross-origin_resource_sharing' as link %}For more information check out the <a href="{{ link }}">Wikipedia page on CORS</a>.{% endblocktrans %}</p>
+                    <p>{% blocktrans %}This will restrict requests based on the <code>Origin</code> and <code>Referer</code> headers.{% endblocktrans %}</p>
                     {{ field|as_crispy_field }}
                 {% endwith %}
             </fieldset>
@@ -74,6 +74,9 @@
                 <a href="{% url sentry-manage-project-team project.slug %}">{% trans "Team" %}</a>
             </li>
         {% endif %}
+        <li{% if page == 'keys' %} class="active"{% endif %}>
+            <a href="{% url sentry-manage-project-keys project.slug %}">{% trans "API Keys" %}</a>
+        </li>
         <li{% if page == 'tags' %} class="active"{% endif %}>
             <a href="{% url sentry-manage-project-tags project.slug %}">{% trans "Tags" %}</a>
         </li>
@@ -83,20 +86,26 @@
     </ul>
     <ul class="nav nav-list">
         <li class="nav-header">{% trans "Client Configuration" %}</li>
-        <li>
+        <li{% if page == 'client_help' %} class="active"{% endif %}>
             <a href="{% url sentry-project-client-help project.slug %}">{% trans "All Platforms" %}</a>
         </li>
-        <li>
+        <li{% if page == 'client_help_javascript' %} class="active"{% endif %}>
             <a href="{% url sentry-docs-client project.slug "javascript" %}">{% trans "JavaScript" %}</a>
         </li>
-        <li>
+        <li{% if page == 'client_help_python' %} class="active"{% endif %}>
             <a href="{% url sentry-docs-client project.slug "python" %}">{% trans "Python" %}</a>
         </li>
-        <li>
+        <li{% if page == 'client_help_php' %} class="active"{% endif %}>
             <a href="{% url sentry-docs-client project.slug "php" %}">{% trans "PHP" %}</a>
         </li>
-        <li>
+        <li{% if page == 'client_help_ruby' %} class="active"{% endif %}>
             <a href="{% url sentry-docs-client project.slug "ruby" %}">{% trans "Ruby" %}</a>
+        </li>
+        <li{% if page == 'client_help_node.js' %} class="active"{% endif %}>
+            <a href="{% url sentry-docs-client project.slug "node.js" %}">{% trans "Node.js" %}</a>
+        </li>
+        <li{% if page == 'client_help_ios' %} class="active"{% endif %}>
+            <a href="{% url sentry-docs-client project.slug "ios" %}">{% trans "iOS" %}</a>
         </li>
     </ul>
     {% with project|get_plugins as plugins %}

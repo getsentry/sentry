@@ -8,7 +8,6 @@ sentry.plugins.bases.notify
 from django import forms
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
-from sentry.conf import settings
 from sentry.plugins import Plugin
 from sentry.models import UserOption
 from sentry.utils.cache import cache
@@ -19,8 +18,6 @@ from sentry.constants import MEMBER_USER
 class NotificationConfigurationForm(forms.Form):
     send_to_members = forms.BooleanField(label=_('Include project members'), initial=False, required=False,
         help_text=_('Notify members of this project.'))
-    send_to_admins = forms.BooleanField(label=_('Include sentry admins'), initial=False, required=False,
-        help_text=_('Notify administrators of this Sentry server.'))
 
 
 class BaseNotificationUserOptionsForm(forms.Form):
@@ -119,7 +116,6 @@ class NotificationPlugin(Plugin):
 
         The logic for this is a bit complicated, but it does the following:
 
-        - Includes admins if ``send_to_admins`` is enabled.
         - Includes members if ``send_to_members`` is enabled **and** the user has not disabled alerts
           for this project
 
@@ -136,11 +132,6 @@ class NotificationPlugin(Plugin):
         send_to_list = cache.get(cache_key)
         if send_to_list is None:
             send_to_list = set()
-
-            send_to_admins = self.get_option('send_to_admins', project)
-
-            if send_to_admins:
-                send_to_list |= set(settings.ADMINS)
 
             send_to_members = self.get_option('send_to_members', project)
             if send_to_members and project and project.team:

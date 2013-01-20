@@ -1,0 +1,60 @@
+{% extends "sentry/projects/manage.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_plugins %}
+
+{% block title %}{% trans "Manage API Keys" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-manage-project-keys project.slug %}">{% trans "Manage API Keys" %}</a></li>
+{% endblock %}
+
+{% block inner %}
+    <div class="page-header">
+        {% if can_add_key %}
+            <a href="{% url sentry-new-project-key project.slug %}" class="btn pull-right btn-primary">{% trans "Generate New Key" %}</a>
+        {% endif %}
+        <h2>
+            {% trans "Manage API Keys" %}
+        </h2>
+    </div>
+    <table class="table table-bordered table-striped">
+        <colgroup>
+            <col/>
+            <col width="100px"/>
+            <col width="100px"/>
+        </colgroup>
+        <thead>
+            <tr>
+                <th>{% trans "API Key" %}</th>
+                <th style="text-align:center">{% trans "Actions" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for key in key_list %}
+                <tr>
+                    <td>
+                        <strong>{{ key.public_key }}</strong> {% if key.user %} &mdash; {{ key.user.email }}{% endif %}<br>
+                        <code class="clippy">{{ key.dsn_private }}</code><br>
+                        {% if key.user_added %}
+                            <small>Added by {{ key.user_added.email }} ({{ key.date_added|timesince }})</small>
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center; vertical-align:middle;">
+                        {% if key.can_remove %}
+                            <form method="POST" action="{% url sentry-remove-project-key project.slug key.id %}" style="display:inline">
+                                {% csrf_token %}
+                                <input type="submit" class="btn btn-danger btn-small" value="{% trans "Revoke" %}">
+                            </form>
+                        {% else %}
+                            &mdash;
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

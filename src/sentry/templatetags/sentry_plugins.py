@@ -49,8 +49,7 @@ def get_panels(group, request):
 
         panel_list = results
 
-    for panel in panel_list:
-        yield panel[0], panel[1], request.path == panel[1]
+    return [(p[0], p[1], request.path == p[1]) for p in panel_list]
 
 
 @register.filter

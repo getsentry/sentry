@@ -11,7 +11,7 @@ from django.forms.widgets import RadioFieldRenderer, TextInput, Textarea
 from django.forms import CharField, ValidationError
 from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _, ungettext
+from django.utils.translation import ugettext_lazy as _
 
 
 class RadioFieldRenderer(RadioFieldRenderer):
@@ -48,7 +48,9 @@ class UserField(CharField):
 
 class OriginsField(CharField):
     _url_validator = URLValidator(verify_exists=False)
-    widget = Textarea(attrs={'placeholder': mark_safe('e.g. http://example.com<br>*.example.com'), 'class': 'span8'})
+    widget = Textarea(
+        attrs={'placeholder': mark_safe(_('e.g. example.com or https://example.com')), 'class': 'span8'},
+    )
 
     def clean(self, value):
         if not value:
@@ -56,7 +58,7 @@ class OriginsField(CharField):
         values = filter(bool, (v.strip() for v in value.split('\n')))
         for value in values:
             if not self.is_valid_origin(value):
-                raise ValidationError('%r is not an acceptable origin' % value)
+                raise ValidationError('%r is not an acceptable value' % value)
         return values
 
     def is_valid_origin(self, value):
@@ -81,21 +83,7 @@ class OriginsField(CharField):
 
 
 def get_team_label(team):
-    member_count = team.member_set.count()
-    project_count = team.project_set.count()
-
-    if member_count > 1 and project_count:
-        label = _('%(team)s (%(members)s, %(projects)s)')
-    elif project_count:
-        label = _('%(team)s (%(projects)s)')
-    else:
-        label = _('%(team)s (%(members)s)')
-
-    return label % dict(
-        team=team.name,
-        members=ungettext('%d member', '%d members', member_count) % (member_count,),
-        projects=ungettext('%d project', '%d projects', project_count) % (project_count,),
-    )
+    return '%s (%s)' % (team.name, team.slug)
 
 
 def get_team_choices(team_list, default=None):

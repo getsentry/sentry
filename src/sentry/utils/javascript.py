@@ -7,6 +7,7 @@ sentry.utils.javascript
 """
 from django.core.urlresolvers import reverse
 from django.utils.html import escape
+from sentry.app import env
 from sentry.constants import STATUS_RESOLVED
 from sentry.models import Group, GroupBookmark
 from sentry.templatetags.sentry_plugins import get_tags
@@ -17,6 +18,8 @@ transformers = {}
 
 
 def transform(objects, request=None):
+    if request is None:
+        request = getattr(env, 'request', None)
     if not objects:
         return objects
     elif not isinstance(objects, (list, tuple)):
@@ -87,6 +90,7 @@ class GroupTransformer(Transformer):
         d = {
             'id': str(obj.id),
             'count': str(obj.times_seen),
+            'userCount': str(obj.users_seen),
             'title': escape(obj.message_top()),
             'message': escape(obj.error()),
             'level': obj.level,
@@ -98,6 +102,7 @@ class GroupTransformer(Transformer):
             'timeSpent': obj.avg_time_spent,
             'canResolve': request and request.user.is_authenticated(),
             'isResolved': obj.status == STATUS_RESOLVED,
+            'isPublic': obj.is_public,
             'score': getattr(obj, 'sort_value', 0),
             'project': {
                 'name': obj.project.name,

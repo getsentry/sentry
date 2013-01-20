@@ -29,10 +29,11 @@ class StoreViewTest(TestCase):
         resp = self.client.options(self.path)
         self.assertEquals(resp.status_code, 200)
         self.assertIn('Allow', resp)
-        self.assertEquals(resp['Allow'], 'POST, OPTIONS')
+        self.assertEquals(resp['Allow'], 'GET, POST, HEAD, OPTIONS')
         self.assertIn('Content-Length', resp)
         self.assertEquals(resp['Content-Length'], '0')
 
+    @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=False))
     def test_options_response_with_invalid_origin(self):
         resp = self.client.options(self.path, HTTP_ORIGIN='http://foo.com')
         self.assertEquals(resp.status_code, 400)
@@ -42,10 +43,26 @@ class StoreViewTest(TestCase):
         self.assertEquals(resp['X-Sentry-Error'], "Invalid origin: 'http://foo.com'")
         self.assertEquals(resp.content, resp['X-Sentry-Error'])
 
-    @mock.patch('sentry.web.api.is_valid_origin')
-    def test_options_response_with_valid_origin(self, is_valid_origin):
-        is_valid_origin.return_value = True
+    @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=False))
+    def test_options_response_with_invalid_referrer(self):
+        resp = self.client.options(self.path, HTTP_REFERER='http://foo.com')
+        self.assertEquals(resp.status_code, 400)
+        self.assertIn('Access-Control-Allow-Origin', resp)
+        self.assertEquals(resp['Access-Control-Allow-Origin'], '*')
+        self.assertIn('X-Sentry-Error', resp)
+        self.assertEquals(resp['X-Sentry-Error'], "Invalid origin: 'http://foo.com'")
+        self.assertEquals(resp.content, resp['X-Sentry-Error'])
+
+    @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=True))
+    def test_options_response_with_valid_origin(self):
         resp = self.client.options(self.path, HTTP_ORIGIN='http://foo.com')
+        self.assertEquals(resp.status_code, 200)
+        self.assertIn('Access-Control-Allow-Origin', resp)
+        self.assertEquals(resp['Access-Control-Allow-Origin'], 'http://foo.com')
+
+    @mock.patch('sentry.web.api.is_valid_origin', mock.Mock(return_value=True))
+    def test_options_response_with_valid_referrer(self):
+        resp = self.client.options(self.path, HTTP_REFERER='http://foo.com')
         self.assertEquals(resp.status_code, 200)
         self.assertIn('Access-Control-Allow-Origin', resp)
         self.assertEquals(resp['Access-Control-Allow-Origin'], 'http://foo.com')

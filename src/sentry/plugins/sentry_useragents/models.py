@@ -18,6 +18,7 @@ class UserAgentPlugin(TagPlugin):
     version = sentry.VERSION
     author = "Sentry Team"
     author_url = "https://github.com/getsentry/sentry"
+    project_default_enabled = True
 
     def get_tag_values(self, event):
         http = event.interfaces.get('sentry.interfaces.Http')
@@ -42,7 +43,7 @@ class BrowserPlugin(UserAgentPlugin):
     from ``sentry.interfaes.Http``.
     """
     slug = 'browsers'
-    title = _('Browsers')
+    title = _('Auto Tag: Browsers')
     tag = 'browser'
     tag_label = _('Browser Name')
 
@@ -66,7 +67,7 @@ class OsPlugin(UserAgentPlugin):
     from ``sentry.interfaes.Http``.
     """
     slug = 'os'
-    title = _('Operating Systems')
+    title = _('Auto Tag: Operating Systems')
     tag = 'os'
     tag_label = _('Operating System')
 

@@ -38,7 +38,7 @@
 }
 </style>
 <div class="page-header">
-    <h3>Languages</h3>
+    <h3>Platforms</h3>
 </div>
 <ul class="client-platform-list">
     <li>
@@ -77,6 +77,12 @@
             <strong>Node.js</strong>
         </a>
     </li>
+    <li>
+        <a href="{% url sentry-docs-client project.slug 'ios' %}">
+            <span><img src="{% url sentry-media "sentry" "images/platforms/ios48x48.png" %}"></span>
+            <strong>iOS</strong>
+        </a>
+    </li>
 </ul>
 <div class="page-header">
     <h3>Frameworks</h3>
@@ -97,27 +103,12 @@
 </ul>
 
 <div class="page-header">
-    <h3>More Platforms</h3>
+    <h3>More Clients</h3>
 </div>
 <ul>
     <li>
         <a href="{% url sentry-docs-client project.slug 'r' %}">
             <strong>R Project</strong>
-        </a>
-    </li>
-    <li>
-        <a href="{% url sentry-docs-client project.slug 'flask' %}">
-            <strong>Flask (Python)</strong>
-        </a>
-    </li>
-    <li>
-        <a href="{% url sentry-docs-client project.slug 'express' %}">
-            <strong>Express (Node.js)</strong>
-        </a>
-    </li>
-    <li>
-        <a href="{% url sentry-docs-client project.slug 'connect' %}">
-            <strong>Connect (Node.js)</strong>
         </a>
     </li>
 </ul>

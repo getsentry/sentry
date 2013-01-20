@@ -9,6 +9,10 @@
 {% endblock %}
 
 {% block page_header %}
+    {% if can_create_projects %}
+        <a href="{% url sentry-new-project %}" class="btn pull-right btn-primary">{% trans "Create a new project" %}</a>
+    {% endif %}
+
     <ul class="breadcrumb">
         <li><a href="{% url sentry-project-list %}">{% trans "Projects" %}</a></li>
         {% block breadcrumb %}{% endblock %}
@@ -58,7 +62,7 @@
             </table>
         {% else %}
             {% if can_create_projects %}
-                <div class="alert alert-info">You do not have access to any projects. Would you like to <a href="{% url sentry-new-project %}">create a new project</a>?</div>
+                <div class="alert alert-info">{% trans "You do not have access to any projects." %}</div>
             {% else %}
                 <div class="alert alert-notice">{% trans "You do not have access to any projects. Ask an administrator to add you as a member." %}</div>
             {% endif %}

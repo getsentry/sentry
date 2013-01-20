@@ -16,6 +16,7 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 from paging.helpers import paginate as paginate_func
 from sentry.conf import settings
+from sentry.constants import STATUS_MUTED
 from sentry.models import Group
 from sentry.utils.javascript import to_json
 from sentry.utils.strings import truncatechars
@@ -24,6 +25,7 @@ from templatetag_sugar.parser import Name, Variable, Constant, Optional
 
 import datetime
 import hashlib
+import logging
 import urllib
 
 register = template.Library()
@@ -106,7 +108,7 @@ def to_str(data):
 @register.simple_tag
 def sentry_version():
     import sentry
-    return sentry.VERSION
+    return sentry.get_version()
 
 
 @register.filter
@@ -335,3 +337,39 @@ def render_tag_widget(group, tag):
 @register.filter
 def titlize(value):
     return value.replace('_', ' ').title()
+
+
+@register.filter
+def is_muted(value):
+    return value == STATUS_MUTED
+
+
+@register.filter
+def split(value, delim=''):
+    return value.split(delim)
+
+
+@register.filter
+def get_rendered_interfaces(event):
+    interface_list = []
+    for interface in event.interfaces.itervalues():
+        try:
+            html = interface.to_html(event)
+        except Exception:
+            logger = logging.getLogger('sentry.interfaces')
+            logger.error('Error rendering interface %r', interface.__class__, extra={
+                'event_id': event.id,
+            }, exc_info=True)
+            continue
+        if not html:
+            continue
+        interface_list.append((interface, mark_safe(html)))
+    return sorted(interface_list, key=lambda x: x[0].get_display_score(), reverse=True)
+
+
+@register.inclusion_tag('sentry/partial/github_button.html')
+def github_button(user, repo):
+    return {
+        'user': user,
+        'repo': repo,
+    }

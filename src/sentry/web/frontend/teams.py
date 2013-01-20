@@ -10,6 +10,7 @@ from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
+from django.utils.translation import ugettext as _
 
 from sentry.constants import MEMBER_USER, MEMBER_OWNER
 from sentry.models import PendingTeamMember, TeamMember
@@ -66,7 +67,9 @@ def manage_team(request, team):
     if result is False and not request.user.has_perm('sentry.can_change_team'):
         return HttpResponseRedirect(reverse('sentry'))
 
-    if request.user.has_perm('sentry.can_add_team'):
+    can_admin_team = request.user == team.owner or request.user.has_perm('sentry.can_add_team')
+
+    if can_admin_team:
         form_cls = EditTeamAdminForm
     else:
         form_cls = EditTeamForm
@@ -75,30 +78,72 @@ def manage_team(request, team):
         'owner': team.owner,
     }, instance=team)
 
+    # XXX: form.is_valid() changes the foreignkey
+    original_owner = team.owner
     if form.is_valid():
+
         team = form.save()
+        if team.owner != original_owner:
+            # Update access for new membership if it's changed
+            # (e.g. member used to be USER, but is now OWNER)
+            team.member_set.filter(user=team.owner).update(type=MEMBER_OWNER)
 
-        return HttpResponseRedirect(request.path + '?success=1')
+        messages.add_message(request, messages.SUCCESS,
+            _('Changes to your team were saved.'))
 
-    member_list = [(pm, pm.user) for pm in team.member_set.select_related('user').order_by('user__username')]
-    pending_member_list = [(pm, pm.email) for pm in team.pending_member_set.all().order_by('email')]
+        return HttpResponseRedirect(request.path)
+
+    context = csrf(request)
+    context.update({
+        'can_remove_team': can_remove_team(request.user, team),
+        'page': 'details',
+        'form': form,
+        'team': team,
+    })
+
+    return render_to_response('sentry/teams/manage.html', context, request)
+
+
+@has_team_access(MEMBER_OWNER)
+@csrf_protect
+def manage_team_projects(request, team):
+    result = plugins.first('has_perm', request.user, 'edit_team', team)
+    if result is False and not request.user.has_perm('sentry.can_change_team'):
+        return HttpResponseRedirect(reverse('sentry'))
 
     project_list = list(team.project_set.all())
 
     context = csrf(request)
     context.update({
         'can_add_project': can_create_projects(request.user, team),
-        'can_add_member': can_add_team_member(request.user, team),
-        'can_remove_team': can_remove_team(request.user, team),
-        'page': 'details',
-        'form': form,
+        'page': 'projects',
         'team': team,
-        'member_list': member_list,
-        'pending_member_list': pending_member_list,
         'project_list': project_list,
     })
 
-    return render_to_response('sentry/teams/manage.html', context, request)
+    return render_to_response('sentry/teams/projects/index.html', context, request)
+
+
+@has_team_access(MEMBER_OWNER)
+@csrf_protect
+def manage_team_members(request, team):
+    result = plugins.first('has_perm', request.user, 'edit_team', team)
+    if result is False and not request.user.has_perm('sentry.can_change_team'):
+        return HttpResponseRedirect(reverse('sentry'))
+
+    member_list = [(pm, pm.user) for pm in team.member_set.select_related('user').order_by('user__username')]
+    pending_member_list = [(pm, pm.email) for pm in team.pending_member_set.all().order_by('email')]
+
+    context = csrf(request)
+    context.update({
+        'can_add_member': can_add_team_member(request.user, team),
+        'page': 'members',
+        'team': team,
+        'member_list': member_list,
+        'pending_member_list': pending_member_list,
+    })
+
+    return render_to_response('sentry/teams/members/index.html', context, request)
 
 
 @has_team_access(MEMBER_OWNER)
@@ -115,6 +160,7 @@ def remove_team(request, team):
 
     context = csrf(request)
     context.update({
+        'page': 'settings',
         'form': form,
         'team': team,
     })
@@ -141,7 +187,10 @@ def new_team_member(request, team):
         pm.team = team
         pm.save()
 
-        return HttpResponseRedirect(reverse('sentry-edit-team-member', args=[team.slug, pm.id]) + '?success=1')
+        messages.add_message(request, messages.SUCCESS,
+            _('The team member was added.'))
+
+        return HttpResponseRedirect(reverse('sentry-edit-team-member', args=[team.slug, pm.id]))
 
     elif invite_form.is_valid():
         pm = invite_form.save(commit=False)
@@ -154,6 +203,7 @@ def new_team_member(request, team):
 
     context = csrf(request)
     context.update({
+        'page': 'members',
         'team': team,
         'add_form': add_form,
         'invite_form': invite_form,
@@ -204,7 +254,8 @@ def accept_invite(request, member_id, token):
 
         pending_member.delete()
 
-        messages.add_message(request, messages.SUCCESS, 'You have been added to the %r team.' % (team.name.encode('utf-8'),))
+        messages.add_message(request, messages.SUCCESS,
+            _('You have been added to the %r team.') % (team.name.encode('utf-8'),))
 
         return HttpResponseRedirect(reverse('sentry', args=[team.slug]))
 
@@ -227,10 +278,15 @@ def edit_team_member(request, team, member_id):
     form = EditTeamMemberForm(team, request.POST or None, instance=member)
     if form.is_valid():
         member = form.save(commit=True)
-        return HttpResponseRedirect(request.path + '?success=1')
+
+        messages.add_message(request, messages.SUCCESS,
+            _('Changes to your team member were saved.'))
+
+        return HttpResponseRedirect(request.path)
 
     context = csrf(request)
     context.update({
+        'page': 'members',
         'member': member,
         'team': team,
         'form': form,
@@ -260,6 +316,7 @@ def remove_team_member(request, team, member_id):
 
     context = csrf(request)
     context.update({
+        'page': 'members',
         'member': member,
         'team': team,
     })
@@ -284,7 +341,10 @@ def suspend_team_member(request, team, member_id):
 
     member.update(is_active=False)
 
-    return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]) + '?success=1')
+    messages.add_message(request, messages.SUCCESS,
+        _('The team member was suspended.'))
+
+    return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
 
 
 @csrf_protect
@@ -304,7 +364,10 @@ def restore_team_member(request, team, member_id):
 
     member.update(is_active=True)
 
-    return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]) + '?success=1')
+    messages.add_message(request, messages.SUCCESS,
+        _('The team member was made active.'))
+
+    return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
 
 
 @csrf_protect
@@ -321,7 +384,10 @@ def remove_pending_team_member(request, team, member_id):
 
     member.delete()
 
-    return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]) + '?success=1')
+    messages.add_message(request, messages.SUCCESS,
+        _('The team member was removed.'))
+
+    return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
 
 
 @csrf_protect
@@ -338,7 +404,10 @@ def reinvite_pending_team_member(request, team, member_id):
 
     member.send_invite_email()
 
-    return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]) + '?success=1')
+    messages.add_message(request, messages.SUCCESS,
+        _('An email was sent to the pending team member.'))
+
+    return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
 
 
 @csrf_protect
@@ -365,12 +434,16 @@ def create_new_team_project(request, team):
         if not project.owner:
             project.owner = request.user
         project.save()
-        return HttpResponseRedirect(reverse('sentry-manage-project', args=[project.slug]))
+
+        if project.platform not in (None, 'other'):
+            return HttpResponseRedirect(reverse('sentry-docs-client', args=[project.slug, project.platform]))
+        return HttpResponseRedirect(reverse('sentry-get-started', args=[project.slug]))
 
     context = csrf(request)
     context.update({
         'form': form,
         'team': team,
+        'page': 'projects',
     })
 
     return render_to_response('sentry/teams/projects/new.html', context, request)

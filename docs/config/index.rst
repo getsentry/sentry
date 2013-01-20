@@ -3,7 +3,7 @@ Configuration
 
 This document describes additional configuration options available to the Sentry server. If you are looking for documentation for the client, it is maintained in the `Raven <http://github.com/getsentry/raven-python>`_ project.
 
-.. note:: While the options below are labeled without the ``SENTRY_`` prefix, when you are configuring them via your ``settings.py`` you **must* specify the prefix.
+.. note:: While the options below are labeled without the ``SENTRY_`` prefix, when you are configuring them via your ``settings.py`` you **must** specify the prefix.
 
 .. data:: sentry.conf.KEY
     :noindex:
@@ -181,24 +181,6 @@ notifications have been moved to the ``sentry.plugins.sentry_mail``. You'll need
 
 The following settings now act as default values for the ``sentry_mail`` plugin, and can be overwritten per-project
 by visiting the plugin configuration page for that project.
-
-.. data:: sentry.conf.ADMINS
-    :noindex:
-
-    A list of email address to send notification emails to.
-
-    Defaults to ``[]``.
-
-	On smaller sites you may wish to enable throttled emails, we recommend doing this by first
-	removing the ``ADMINS`` setting in Django, and adding in ``SENTRY_ADMINS``::
-
-		# Disable the default admins (for email)
-		ADMINS = ()
-		# Set Sentry's ADMINS to a raw list of email addresses
-		SENTRY_ADMINS = ('root@localhost',)
-
-	This will send out a notification the first time an error is seen, and the first time an error is
-	seen after it has been resolved.
 
 .. data:: sentry.conf.MAIL_LEVEL
     :noindex:

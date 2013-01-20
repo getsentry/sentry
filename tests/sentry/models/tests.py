@@ -4,11 +4,13 @@ from __future__ import absolute_import
 
 
 from django.core import mail
+from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
 from sentry.models import Project, ProjectKey, Group, Event, Team, \
-  MessageFilterValue, MessageCountByMinute, FilterValue, PendingTeamMember
+  MessageFilterValue, MessageCountByMinute, FilterValue, PendingTeamMember, \
+  LostPasswordHash
 
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, fixture
 
 
 class ProjectTest(TestCase):
@@ -89,3 +91,21 @@ class PendingTeamMemberTest(TestCase):
             msg = mail.outbox[0]
 
             self.assertEquals(msg.to, ['foo@example.com'])
+
+
+class LostPasswordTest(TestCase):
+    @fixture
+    def password_hash(self):
+        return LostPasswordHash.objects.create(
+            user=self.user,
+        )
+
+    def test_send_recover_mail(self):
+        self.password_hash.send_recover_mail()
+        assert len(mail.outbox) == 1
+        msg = mail.outbox[0]
+        assert msg.to == [self.user.email]
+        assert msg.subject == '[Sentry] Password Recovery'
+        url = 'http://testserver' + reverse('sentry-account-recover-confirm',
+            args=[self.password_hash.user_id, self.password_hash.hash])
+        assert url in msg.body

@@ -5,6 +5,7 @@ sentry.web.frontend.groups
 :copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import division
 
 import datetime
 import logging
@@ -14,14 +15,13 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from django.utils.safestring import mark_safe
 
 from sentry.conf import settings
 from sentry.constants import (SORT_OPTIONS, SEARCH_SORT_OPTIONS,
     SORT_CLAUSES, MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES, MEMBER_USER,
     SCORE_CLAUSES, MYSQL_SCORE_CLAUSES, SQLITE_SCORE_CLAUSES)
 from sentry.filters import get_filters
-from sentry.models import Group, Event, SearchDocument
+from sentry.models import Group, Event, SearchDocument, Activity
 from sentry.permissions import can_admin_group
 from sentry.plugins import plugins
 from sentry.utils import json
@@ -32,23 +32,6 @@ from sentry.web.helpers import render_to_response
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$', re.I)
 event_re = re.compile(r'^(?P<event_id>[a-z0-9]{32})\$(?P<checksum>[a-z0-9]{32})$', re.I)
-
-
-def _get_rendered_interfaces(event):
-    interface_list = []
-    for interface in event.interfaces.itervalues():
-        try:
-            html = interface.to_html(event)
-        except Exception:
-            logger = logging.getLogger('sentry.interfaces')
-            logger.error('Error rendering interface %r', interface.__class__, extra={
-                'event_id': event.id,
-            }, exc_info=True)
-            continue
-        if not html:
-            continue
-        interface_list.append(mark_safe(html))
-    return interface_list
 
 
 def _get_group_list(request, project):
@@ -89,7 +72,7 @@ def _get_group_list(request, project):
     if any(x is not None for x in [date_from, time_from, date_to, time_to]):
         date_from, date_to = parse_date(date_from, time_from), parse_date(date_to, time_to)
     else:
-        date_from = today - datetime.timedelta(days=3)
+        date_from = today - datetime.timedelta(days=5)
         date_to = None
 
     if date_from and date_to:
@@ -120,7 +103,10 @@ def _get_group_list(request, project):
         score_clause = SORT_CLAUSES.get(sort)
         filter_clause = SCORE_CLAUSES.get(sort)
 
-    # All filters must already be applied once we reach this point
+    event_list = event_list.select_related('project')
+
+    # IMPORTANT: All filters must already be applied once we reach this point
+
     if sort == 'tottime':
         event_list = event_list.filter(time_spent_count__gt=0)
     elif sort == 'avgtime':
@@ -131,15 +117,18 @@ def _get_group_list(request, project):
     if score_clause:
         event_list = event_list.extra(
             select={'sort_value': score_clause},
-        ).order_by('-sort_value', '-last_seen')
+        )
+        # HACK: dont sort by the same column twice
+        if sort == 'date':
+            event_list = event_list.order_by('-last_seen')
+        else:
+            event_list = event_list.order_by('-sort_value', '-last_seen')
         cursor = request.GET.get('cursor')
         if cursor:
             event_list = event_list.extra(
                 where=['%s > %%s' % filter_clause],
                 params=[cursor],
             )
-
-    event_list = event_list.select_related('project')
 
     return {
         'filters': filters,
@@ -242,39 +231,67 @@ def group_list(request, project):
         'filters': response['filters'],
         'SORT_OPTIONS': SORT_OPTIONS,
         'HAS_TRENDING': has_trending(),
-        'PAGE': 'dashboard',
+        'SECTION': 'stream',
     }, request)
+
+
+def render_with_group_context(group, template, context, request=None):
+    # It's possible that a message would not be created under certain
+    # circumstances (such as a post_save signal failing)
+    event = group.get_latest_event() or Event()
+    event.group = group
+
+    context.update({
+        'project': group.project,
+        'group': group,
+        'event': event,
+        'json_data': event.data.get('extra', {}),
+        'version_data': event.data.get('modules', None),
+        'can_admin_event': can_admin_group(request.user, group),
+    })
+
+    return render_to_response(template, context, request)
 
 
 @has_group_access
 def group(request, project, group):
-    # It's possible that a message would not be created under certain
-    # circumstances (such as a post_save signal failing)
-    event = group.get_latest_event() or Event(group=group)
+    activity = Activity.objects.filter(
+        group=group,
+    ).order_by('-datetime').select_related('user')
 
-    return render_to_response('sentry/groups/details.html', {
-        'project': project,
+    return render_with_group_context(group, 'sentry/groups/details.html', {
         'page': 'details',
-        'group': group,
-        'event': event,
-        'interface_list': _get_rendered_interfaces(event),
-        'json_data': event.data.get('extra', {}),
-        'version_data': event.data.get('modules', None),
-        'can_admin_event': can_admin_group(request.user, group),
+        'activity': activity,
+    }, request)
+
+
+@has_group_access
+def group_tag_list(request, project, group):
+    def percent(total, this):
+        return int(this / total * 100)
+
+    # O(N) db access
+    tag_list = []
+    for tag_name in group.get_tags():
+        tag_list.append((tag_name, [
+            (value, times_seen, percent(group.times_seen, times_seen))
+            for (value, times_seen, first_seen, last_seen)
+            in group.get_unique_tags(tag_name)[:5]
+        ]))
+
+    return render_with_group_context(group, 'sentry/groups/tag_list.html', {
+        'page': 'tag_list',
+        'tag_list': tag_list,
     }, request)
 
 
 @has_group_access
 def group_tag_details(request, project, group, tag_name):
-    return render_to_response('sentry/plugins/bases/tag/index.html', {
-        'project': project,
-        'group': group,
+    return render_with_group_context(group, 'sentry/plugins/bases/tag/index.html', {
         'title': tag_name.replace('_', ' ').title(),
         'tag_name': tag_name,
         'unique_tags': group.get_unique_tags(tag_name),
-        'group': group,
         'page': 'tag_details',
-        'can_admin_event': can_admin_group(request.user, group),
     }, request)
 
 
@@ -282,18 +299,15 @@ def group_tag_details(request, project, group, tag_name):
 def group_event_list(request, project, group):
     event_list = group.event_set.all().order_by('-datetime')
 
-    return render_to_response('sentry/groups/event_list.html', {
-        'project': project,
-        'group': group,
+    return render_with_group_context(group, 'sentry/groups/event_list.html', {
         'event_list': event_list,
         'page': 'event_list',
-        'can_admin_event': can_admin_group(request.user, group),
     }, request)
 
 
 @has_access(MEMBER_USER)
 def group_event_list_json(request, project, group_id):
-    group = get_object_or_404(Group, pk=group_id, project=project)
+    group = get_object_or_404(Group, id=group_id, project=project)
 
     limit = request.GET.get('limit', settings.MAX_JSON_RESULTS)
     try:
@@ -310,14 +324,26 @@ def group_event_list_json(request, project, group_id):
 
 @has_group_access
 def group_event_details(request, project, group, event_id):
-    event = get_object_or_404(group.event_set, pk=event_id)
+    event = get_object_or_404(group.event_set, id=event_id)
+
+    base_qs = group.event_set.exclude(id=event_id)
+    try:
+        next_event = base_qs.filter(datetime__gte=event.datetime).order_by('datetime')[0:1].get()
+    except Event.DoesNotExist:
+        next_event = None
+
+    try:
+        prev_event = base_qs.filter(datetime__lte=event.datetime).order_by('-datetime')[0:1].get()
+    except Event.DoesNotExist:
+        prev_event = None
 
     return render_to_response('sentry/groups/event.html', {
         'project': project,
-        'page': 'event_list',
+        'page': 'event',
         'group': group,
         'event': event,
-        'interface_list': _get_rendered_interfaces(event),
+        'next_event': next_event,
+        'prev_event': prev_event,
         'json_data': event.data.get('extra', {}),
         'version_data': event.data.get('modules', None),
         'can_admin_event': can_admin_group(request.user, group),

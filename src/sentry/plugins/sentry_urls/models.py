@@ -19,12 +19,13 @@ class UrlsPlugin(TagPlugin):
     from ``sentry.interfaes.Http``.
     """
     slug = 'urls'
-    title = _('URLs')
+    title = _('Auto Tag: URLs')
     version = sentry.VERSION
     author = "Sentry Team"
     author_url = "https://github.com/getsentry/sentry"
     tag = 'url'
     tag_label = _('URL')
+    project_default_enabled = True
 
     def get_tag_values(self, event):
         http = event.interfaces.get('sentry.interfaces.Http')
