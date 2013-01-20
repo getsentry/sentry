@@ -631,7 +631,7 @@ class GroupManager(BaseManager, ChartMixin):
 
         user_ident = event.user_ident
         if user_ident:
-            self.record_affected_user(group, user_ident)
+            self.record_affected_user(group, user_ident, event.data.get('sentry.interfaces.User'))
 
         try:
             self.add_tags(group, tags)
@@ -640,14 +640,14 @@ class GroupManager(BaseManager, ChartMixin):
 
         return group, is_new, is_sample
 
-    def record_affected_user(self, group, user_ident):
+    def record_affected_user(self, group, user_ident, data=None):
         from sentry.models import TrackedUser, AffectedUserByGroup
 
         project = group.project
         date = group.last_seen
 
-        if user_ident.startswith('email:'):
-            email = user_ident.split('email:', 1)[-1]
+        if data:
+            email = data.get('email')
         else:
             email = None
 
@@ -658,6 +658,7 @@ class GroupManager(BaseManager, ChartMixin):
             ident=user_ident,
             defaults={
                 'email': email,
+                'data': data,
             }
         )[0]
 
@@ -667,6 +668,8 @@ class GroupManager(BaseManager, ChartMixin):
             'id': tuser.id,
         }, {
             'last_seen': date,
+            'email': email,
+            'data': data,
         })
 
         app.buffer.incr(AffectedUserByGroup, {
