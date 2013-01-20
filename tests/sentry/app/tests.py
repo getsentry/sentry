@@ -15,7 +15,9 @@ class AppTest(TestCase):
 
 
 class GetBufferTest(TestCase):
-    def test_raises_import_error_on_invalid_path(self):
+    @mock.patch('sentry.app.import_string')
+    def test_raises_import_error_on_invalid_path(self, import_string):
+        import_string.return_value = None
         with self.assertRaises(ImportError):
             app.get_buffer('lol.FooBar', {})
 
