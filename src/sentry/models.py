@@ -811,7 +811,7 @@ class UserOption(Model):
         return u'user=%s, project=%s, key=%s, value=%s' % (self.user_id, self.project_id, self.key, self.value)
 
 
-class LostPasswordHash(models.Model):
+class LostPasswordHash(Model):
     user = models.ForeignKey(User, unique=True)
     hash = models.CharField(max_length=32)
     date_added = models.DateTimeField(default=timezone.now)
@@ -890,7 +890,7 @@ class AffectedUserByGroup(Model):
                                                           self.ident)
 
 
-class Activity(models.Model):
+class Activity(Model):
     COMMENT = 0
     SET_RESOLVED = 1
     SET_UNRESOLVED = 2
