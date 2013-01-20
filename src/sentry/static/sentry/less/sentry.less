@@ -849,7 +849,11 @@ ul.tag-list {
   &.small {
     > li {
       min-height: 30px;
-      padding: 10px 10px 10px 60px;
+      padding: 14px 14px 14px 50px;
+
+      &:last-child {
+        border-bottom: none;
+      }
 
       h3 {
         margin: 0;
@@ -865,7 +869,7 @@ ul.tag-list {
       }
 
       .count {
-        left: 10px;
+        left: 0;
         font-size: 12px;
         width: 36px;
         height: 36px;
@@ -1455,8 +1459,10 @@ legend {
 
 .dashboard {
   .page-header {
+    margin: 0;
+    border-bottom: 2px solid #eceff2;
     .nav {
-      margin:0 0 14px;
+      margin: 0 0 14px;
       a {
         font-size: 11px;
         color: lighten(#909aa3, 5);

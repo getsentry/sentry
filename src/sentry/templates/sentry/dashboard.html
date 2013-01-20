@@ -61,9 +61,9 @@
                 </li>
             {% endfor %}
         </ul>
-        <div style="text-align:right;margin-bottom:13px;">
+        <div style="margin-bottom:13px;">
             {% if can_create_projects %}
-                <a href="{% url sentry-new-project %}">{% trans "New project" %}</a>
+                <a href="{% url sentry-new-project %}" class="btn btn-primary" style="padding-top: 3px; padding-bottom: 3px; margin-top: 5px; display: block; text-align: center;">{% trans "New project" %}</a>
             {% endif %}
             {% if PROJECT_LIST|length > 10 %}
                 <a href="{% url sentry-project-list %}" class="btn btn-small">{% blocktrans with PROJECT_LIST|length as count %}View all <strong>{{ count }}</strong> projects{% endblocktrans %}</a>
