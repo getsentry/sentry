@@ -43,12 +43,13 @@ def cleanup(days=30, project=None, **kwargs):
 
     # Remove types which can easily be bound to project + date
     for model, date_col in GENERIC_DELETES:
-        log.info("Removing %r for days=%s project=%r" % (model, days, project))
+        log.info("Removing %r for days=%s project=%r", model, days, project or '*')
         qs = model.objects.filter(**{'%s__lte' % (date_col,): ts})
         if project:
             qs = qs.filter(project=project)
         # XXX: we step through because the deletion collector will pull all relations into memory
         for obj in RangeQuerySetWrapper(qs):
+            log.info("Removing %r", obj)
             obj.delete()
 
     # We'll need this to confirm deletion of FilterKey and Filtervalue objects.
@@ -57,7 +58,7 @@ def cleanup(days=30, project=None, **kwargs):
         mqs = mqs.filter(project=project)
 
     # FilterKey
-    log.info("Removing %r for days=%s project=%r" % (FilterKey, days, project))
+    log.info("Removing %r for days=%s project=%r", FilterKey, days, project or '*')
     qs = FilterKey.objects.all()
     if project:
         qs = qs.filter(project=project)
@@ -68,7 +69,7 @@ def cleanup(days=30, project=None, **kwargs):
             obj.delete()
 
     # FilterValue
-    log.info("Removing %r for days=%s project=%r" % (FilterValue, days, project))
+    log.info("Removing %r for days=%s project=%r", FilterValue, days, project or '*')
     qs = FilterValue.objects.all()
     if project:
         qs = qs.filter(project=project)
