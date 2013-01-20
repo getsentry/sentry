@@ -114,6 +114,7 @@ is not a fully supported database and should not be used in production**.
     SENTRY_WEB_PORT = 9000
     SENTRY_WEB_OPTIONS = {
         'workers': 3,  # the number of gunicorn workers
+        'secure_scheme_headers': {'X-FORWARDED-PROTO': 'https'},  # detect HTTPS mode from X-Forwarded-Proto header
     }
 
 
@@ -194,6 +195,8 @@ Apache requires the use of mod_proxy for forwarding requests::
 
     ProxyPass / http://localhost:9000/
     ProxyPassReverse / http://localhost:9000/
+    ProxyPreserveHost On
+    RequestHeader set X-Forwarded-Proto "https" env=HTTPS
 
 Proxying with Nginx
 ~~~~~~~~~~~~~~~~~~~
@@ -204,9 +207,10 @@ You'll use the builtin HttpProxyModule within Nginx to handle proxying::
       proxy_pass         http://localhost:9000;
       proxy_redirect     off;
 
-      proxy_set_header   Host             $host;
-      proxy_set_header   X-Real-IP        $remote_addr;
-      proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
+      proxy_set_header   Host              $host;
+      proxy_set_header   X-Real-IP         $remote_addr;
+      proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+      proxy_set_header   X-Forwarded-Proto $scheme;
     }
 
 Running Sentry as a Service
