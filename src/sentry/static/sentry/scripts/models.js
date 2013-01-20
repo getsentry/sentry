@@ -1,6 +1,8 @@
 (function(app, Backbone){
     "use strict";
 
+    app.models = {};
+
     app.Group = Backbone.Model.extend({
 
         defaults: {
@@ -9,6 +11,15 @@
             isBookmarked: false,
             historicalData: []
         }
+
     });
+
+    app.models.User = Backbone.Model.extend({
+
+        defaults: {
+        }
+
+    });
+
 
 }(app, Backbone));

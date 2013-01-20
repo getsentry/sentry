@@ -386,4 +386,22 @@
 
     });
 
+    app.UserListView = app.OrderedElementsView.extend({
+
+        defaults: {
+        },
+
+        initialize: function(data){
+            if (_.isUndefined(data))
+                data = {};
+
+            data.model = app.User;
+            
+            app.OrderedElementsView.prototype.initialize.call(this, data);
+
+            this.options = $.extend(this.defaults, this.options, data);
+        }
+
+    });
+
 }(app, Backbone, jQuery, _));
