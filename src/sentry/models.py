@@ -1085,6 +1085,9 @@ def record_user_count(filters, created, **kwargs):
 
 @regression_signal.connect(weak=False)
 def create_regression_activity(instance, **kwargs):
+    if instance.times_seen == 1:
+        # this event is new
+        return
     Activity.objects.create(
         project=instance.project,
         group=instance,
