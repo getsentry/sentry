@@ -641,17 +641,40 @@ class GroupManager(BaseManager, ChartMixin):
         return group, is_new, is_sample
 
     def record_affected_user(self, group, user_ident):
-        from sentry.models import AffectedUserByGroup
+        from sentry.models import TrackedUser, AffectedUserByGroup
 
         project = group.project
         date = group.last_seen
+
+        if user_ident.startswith('email:'):
+            email = user_ident.split('email:', 1)[-1]
+        else:
+            email = None
+
+        # TODO: we should be able to chain the affected user update so that tracked
+        # user gets updated serially
+        tuser = TrackedUser.objects.get_or_create(
+            project=project,
+            ident=user_ident,
+            defaults={
+                'email': email,
+            }
+        )[0]
+
+        app.buffer.incr(TrackedUser, {
+            'num_events': 1,
+        }, {
+            'id': tuser.id,
+        }, {
+            'last_seen': date,
+        })
 
         app.buffer.incr(AffectedUserByGroup, {
             'times_seen': 1,
         }, {
             'group': group,
             'project': project,
-            'ident': user_ident,
+            'tuser': tuser,
         }, {
             'last_seen': date,
         })

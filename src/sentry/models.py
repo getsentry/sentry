@@ -850,14 +850,30 @@ class LostPasswordHash(models.Model):
             logger.exception(e)
 
 
+class TrackedUser(Model):
+    project = models.ForeignKey(Project)
+    ident = models.CharField(max_length=200)
+    email = models.EmailField(null=True)
+    data = GzippedDictField(blank=True, null=True)
+    last_seen = models.DateTimeField(default=timezone.now, db_index=True)
+    first_seen = models.DateTimeField(default=timezone.now, db_index=True)
+    num_events = models.PositiveIntegerField(default=0)
+
+    objects = BaseManager()
+
+    class Meta:
+        unique_together = (('project', 'ident'),)
+
+
 class AffectedUserByGroup(Model):
     """
     Stores a count of how many times a ``Group`` has affected
     a user.
     """
     project = models.ForeignKey(Project)
+    tuser = models.ForeignKey(TrackedUser, null=True)
     group = models.ForeignKey(Group)
-    ident = models.CharField(max_length=200)
+    ident = models.CharField(max_length=200, null=True)
     times_seen = models.PositiveIntegerField(default=0)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
@@ -865,7 +881,7 @@ class AffectedUserByGroup(Model):
     objects = BaseManager()
 
     class Meta:
-        unique_together = (('project', 'ident', 'group'),)
+        unique_together = (('project', 'tuser', 'group'),)
 
     def __unicode__(self):
         return u'group_id=%s, times_seen=%s, ident=%s' % (self.group_id, self.times_seen,
