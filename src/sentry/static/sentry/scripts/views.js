@@ -137,6 +137,7 @@
 
         emptyMessage: '<p>There is nothing to show here.</p>',
         loadingMessage: '<p>Loading...</p>',
+        model: app.models.Group,
 
         defaults: {
             maxItems: 50
@@ -163,6 +164,7 @@
             this.options = $.extend(this.defaults, this.options, data);
 
             this.collection = new app.ScoredList();
+
             this.collection.add(data.members || []);
             this.collection.on('add', this.renderMemberInContainer);
             this.collection.on('remove', this.unrenderMember);
@@ -313,13 +315,14 @@
             if (_.isUndefined(data))
                 data = {};
 
-            data.model = app.Group;
+            data.model = app.models.Group;
             
             app.OrderedElementsView.prototype.initialize.call(this, data);
 
             this.options = $.extend(this.defaults, this.options, data);
 
             this.queue = new app.ScoredList();
+
             this.cursor = null;
 
             this.poll();

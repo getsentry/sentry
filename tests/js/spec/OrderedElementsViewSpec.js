@@ -1,7 +1,7 @@
 function make_group(data) {
   data = data || {};
 
-  return new app.Group({
+  return new app.models.Group({
     id: data.id || 1,
     score: data.score || 5,
     count: 1,
