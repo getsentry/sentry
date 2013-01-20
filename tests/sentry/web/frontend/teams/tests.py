@@ -120,7 +120,6 @@ class ManageTeamTest(BaseTeamTest):
         self.assertEquals(team.name, 'bar')
 
     @mock.patch('django.contrib.auth.models.User.has_perm', mock.Mock(return_value=True))
-    @with_settings(SENTRY_DEFAULT_PROJECT_ACCESS='MEMBER_OWNER')
     def test_superuser_can_set_owner(self):
         path = reverse('sentry-manage-team', args=[self.team.slug])
         resp = self.client.post(path, {

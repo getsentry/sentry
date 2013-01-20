@@ -34,9 +34,9 @@ from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
-from sentry.constants import (STATUS_LEVELS, MEMBER_TYPES,  # NOQA
-    MEMBER_OWNER, MEMBER_USER, MEMBER_SYSTEM, PLATFORM_TITLES, PLATFORM_LIST,
-    STATUS_VISIBLE, STATUS_HIDDEN)  # NOQA
+from sentry.constants import (STATUS_LEVELS, MEMBER_TYPES,
+    MEMBER_OWNER, MEMBER_USER, PLATFORM_TITLES, PLATFORM_LIST,
+    STATUS_VISIBLE, STATUS_HIDDEN)
 from sentry.manager import (GroupManager, ProjectManager,
     MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager,
     UserOptionManager, FilterKeyManager, TeamManager)
@@ -113,7 +113,7 @@ class TeamMember(Model):
     team = models.ForeignKey(Team, related_name="member_set")
     user = models.ForeignKey(User, related_name="sentry_teammember_set")
     is_active = models.BooleanField(default=True)
-    type = models.IntegerField(choices=MEMBER_TYPES, default=globals().get(settings.DEFAULT_PROJECT_ACCESS))
+    type = models.IntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager()
@@ -316,7 +316,7 @@ class PendingTeamMember(Model):
     """
     team = models.ForeignKey(Team, related_name="pending_member_set")
     email = models.EmailField()
-    type = models.IntegerField(choices=MEMBER_TYPES, default=globals().get(settings.DEFAULT_PROJECT_ACCESS))
+    type = models.IntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager()
@@ -1023,7 +1023,7 @@ def create_team_member_for_owner(instance, created, **kwargs):
 
     instance.member_set.get_or_create(
         user=instance.owner,
-        type=globals()[settings.DEFAULT_PROJECT_ACCESS]
+        type=MEMBER_OWNER,
     )
 
 
