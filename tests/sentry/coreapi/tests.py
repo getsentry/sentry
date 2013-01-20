@@ -184,6 +184,11 @@ class ProcessDataTimestampTest(BaseAPITest):
             'timestamp': 'foo'
         })
 
+    def test_invalid_numeric_timestamp(self):
+        self.assertRaises(InvalidTimestamp, process_data_timestamp, {
+            'timestamp': '100000000000000000000.0'
+        })
+
     def test_future_timestamp(self):
         self.assertRaises(InvalidTimestamp, process_data_timestamp, {
             'timestamp': '2052-01-01T10:30:45Z'
