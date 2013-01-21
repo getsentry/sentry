@@ -434,7 +434,7 @@ class RemoveProjectTest(PermissionBase):
 
     @fixture
     def path(self):
-        return reverse('sentry-remove-project', kwargs={'project_id': self.project.id})
+        return reverse('sentry-remove-project', kwargs={'team_slug': self.team.slug, 'project_id': self.project.id})
 
     def test_admin_cannot_remove_default(self):
         with self.Settings(SENTRY_PROJECT=1):
@@ -557,7 +557,7 @@ class SentrySearchTest(TestCase):
 
     def test_checksum_query(self):
         checksum = 'a' * 32
-        g = Group.objects.create(
+        group = Group.objects.create(
             project=self.project,
             logger='root',
             culprit='a',
@@ -567,7 +567,11 @@ class SentrySearchTest(TestCase):
 
         response = self.client.get(self.path, {'q': '%s$%s' % (checksum, checksum)})
         self.assertEquals(response.status_code, 302)
-        self.assertEquals(response['Location'], 'http://testserver%s' % (g.get_absolute_url(),))
+        self.assertEquals(response['Location'], 'http://testserver%s' % (reverse('sentry-group', kwargs={
+            'project_id': group.project.slug,
+            'team_slug': group.team.slug,
+            'group_id': group.id,
+        }),))
 
     def test_dupe_checksum(self):
         checksum = 'a' * 32

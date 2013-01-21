@@ -163,7 +163,7 @@ def dashboard(request, team):
 
 @login_required
 @has_access
-def search(request, project):
+def search(request, team, project):
     query = request.GET.get('q')
 
     if not query:
@@ -186,17 +186,27 @@ def search(request, project):
                 'project': project,
             }, request)
         elif len(top_matches) == 1:
-            return HttpResponseRedirect(top_matches[0].get_absolute_url())
+            group = top_matches[0]
+            return HttpResponseRedirect(reverse('sentry-group', kwargs={
+                'project_id': group.project.slug,
+                'team_slug': group.team.slug,
+                'group_id': group.id,
+            }))
     elif uuid_re.match(query):
         # Forward to message if it exists
         try:
-            message = Event.objects.get(project=project, event_id=query)
+            event = Event.objects.get(project=project, event_id=query)
         except Event.DoesNotExist:
             return render_to_response('sentry/invalid_message_id.html', {
                 'project': project,
             }, request)
         else:
-            return HttpResponseRedirect(message.get_absolute_url())
+            return HttpResponseRedirect(reverse('sentry-group-event', {
+                'project_id': event.project.slug,
+                'team_slug': event.team.slug,
+                'group_id': event.group.id,
+                'event_id': event.id,
+            }))
     elif not settings.USE_SEARCH:
         event_list = Group.objects.none()
         # return render_to_response('sentry/invalid_message_id.html', {
