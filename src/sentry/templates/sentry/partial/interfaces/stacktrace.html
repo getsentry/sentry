@@ -23,7 +23,7 @@
             {% for frame in frames %}
                 <li class="frame{% if not frame.in_app %} system-frame{% endif %} frame-{{ forloop.counter0 }}">
                     <p>
-                        <code>{{ frame.filename }}</code>
+                        <code>{{ frame.filename }}</code>{% if frame.sourcemap %} <a href="#" class="annotation tip" rel="tooltip" data-placement="right" data-title="<div style='white-space:nowrap'>Occurred in {{ frame.orig_filename }} (line {{ frame.orig_lineno }}, col {{ frame.orig_colno }})</div><div>(via {{ frame.sourcemap }})</div>">?</a>{% endif %}
                         {% if frame.function %} in <code>{{ frame.function }}</code>{% endif %}
                         {% if not frame.context and frame.lineno %} at line <code>{{ frame.lineno }}</code>{% endif %}
                         {% if system_frames and frame.in_app %}

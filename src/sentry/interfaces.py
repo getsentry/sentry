@@ -352,7 +352,7 @@ class Stacktrace(Interface):
 
             in_app = bool(frame.get('in_app', True))
 
-            frames.append({
+            frame_data = {
                 'abs_path': frame.get('abs_path'),
                 'filename': frame['filename'],
                 'function': frame.get('function'),
@@ -361,7 +361,18 @@ class Stacktrace(Interface):
                 'context': context,
                 'vars': context_vars,
                 'in_app': in_app,
-            })
+            }
+
+            if event.platform == 'javascript' and frame.get('data'):
+                data = frame['data']
+                frame_data.update({
+                    'sourcemap': data['sourcemap'].rsplit('/', 1)[-1],
+                    'orig_filename': data['orig_filename'],
+                    'orig_lineno': data['orig_lineno'],
+                    'orig_colno': data['orig_colno'],
+                })
+
+            frames.append(frame_data)
 
             if not in_app:
                 system_frames += 1
