@@ -524,11 +524,14 @@ h3 {
 }
 
 footer {
+  .box-sizing(border-box);
   .clearfix();
-  background: #dcdfe4;
+  background: lighten(#dee3e9, 2);
   padding: 70px 30px;
   color: #939aa4;
   font-weight: bold;
+  max-width: 1300px;
+  margin: 0 auto;
 
   .container {
     .clearfix();
@@ -550,6 +553,7 @@ footer {
   }
 
   .btn {
+    .transition(all .2s);
     color: #ecf0f5;
     padding-top: 4px;
     padding-bottom: 4px;
@@ -557,9 +561,12 @@ footer {
     position: relative;
     top: -2px;
     margin: 0 0 0 10px;
+
+    .box-shadow(0 2px 0 darken(#b6bbc2, 6));
     &:hover {
-      color: #ecf0f5;
-      background: lighten(#b6bbc2, 5);
+      color: #fff;
+      background: darken(#b6bbc2, 6);
+      .box-shadow(0 2px 0 darken(#b6bbc2, 12));
     }
   }
 }
