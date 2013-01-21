@@ -61,6 +61,7 @@ install_requires = [
     'django-templatetag-sugar>=0.1.0',
     'gunicorn>=0.14.6',
     'logan>=0.5.4',
+    'Pygments>=1.5',
     'pynliner>=0.4.0',
     'python-dateutil>=1.5.0,<2.0.0',
     'raven>=3.0.0',

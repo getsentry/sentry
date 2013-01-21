@@ -12,15 +12,31 @@ validated and rendered.
 import itertools
 import urlparse
 
+from pygments import highlight
+from pygments.lexers import (TextLexer, PythonLexer, RubyLexer, ObjectiveCLexer,
+    GoLexer, ErlangLexer, JavaLexer, JavascriptLexer)
+from pygments.formatters import HtmlFormatter
+
 from django.http import QueryDict
+from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 
 from sentry.app import env
 from sentry.models import UserOption
 from sentry.web.helpers import render_to_string
 
-
 _Exception = Exception
+
+
+LEXERS = {
+    'erlang': ErlangLexer,
+    'java': JavaLexer,
+    'javascript': JavascriptLexer,
+    'go': GoLexer,
+    'objc': ObjectiveCLexer,
+    'python': PythonLexer,
+    'ruby': RubyLexer,
+}
 
 
 def unserialize(klass, data):
@@ -29,7 +45,7 @@ def unserialize(klass, data):
     return value
 
 
-def get_context(lineno, context_line, pre_context=None, post_context=None):
+def get_context(lineno, context_line, pre_context=None, post_context=None, lang=None):
     lineno = int(lineno)
     context = []
     start_lineno = lineno - len(pre_context or [])
@@ -50,6 +66,10 @@ def get_context(lineno, context_line, pre_context=None, post_context=None):
         for line in post_context:
             context.append((at_lineno, line))
             at_lineno += 1
+
+    lexer = LEXERS.get(lang, TextLexer)()
+    formatter = HtmlFormatter()
+    context = tuple((n, mark_safe(highlight(l, lexer, formatter))) for n, l in context)
 
     return context
 
@@ -333,7 +353,13 @@ class Stacktrace(Interface):
         frames = []
         for frame in self.frames:
             if frame.get('context_line') and frame.get('lineno') is not None:
-                context = get_context(frame['lineno'], frame['context_line'], frame.get('pre_context'), frame.get('post_context'))
+                context = get_context(
+                    lineno=frame['lineno'],
+                    context_line=frame['context_line'],
+                    pre_context=frame.get('pre_context'),
+                    post_context=frame.get('post_context'),
+                    lang=event.platform,
+                )
                 start_lineno = context[0][0]
             else:
                 context = []
