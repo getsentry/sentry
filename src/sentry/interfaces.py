@@ -228,6 +228,10 @@ class Stacktrace(Interface):
       Signifies whether this frame is related to the execution of the relevant code in this stacktrace. For example,
       the frames that might power the framework's webserver of your app are probably not relevant, however calls to
       the framework's library once you start handling code likely are.
+    ``vars``
+      A mapping of variables which were available within this frame (usually context-locals).
+    ``extra``
+      A mapping of arbitrary annotated data. Platform-specific.
 
     >>> {
     >>>     "frames": [{

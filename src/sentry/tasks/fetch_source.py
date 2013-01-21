@@ -192,10 +192,20 @@ def fetch_javascript_source(event, **kwargs):
             except KeyError:
                 pass
             else:
+                # Store original data in annotation
+                frame['data'] = {
+                    'orig_lineno': frame['lineno'],
+                    'orig_colno': frame['colno'],
+                    'orig_function': frame['function'],
+                    'orig_abs_path': frame['abs_path'],
+                    'orig_filename': frame['filename'],
+                    'sourcemap': sourcemap,
+                }
+
                 # SourceMap's return zero-indexed lineno's
                 frame['lineno'] = state.src_line + 1
                 frame['colno'] = state.src_col
-                frame['name'] = state.name
+                frame['function'] = state.name
                 frame['abs_path'] = abs_path
                 frame['filename'] = state.src
 
