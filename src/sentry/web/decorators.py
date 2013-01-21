@@ -30,14 +30,15 @@ def has_access(group_or_func=None):
 
     def wrapped(func):
         @wraps(func)
-        def _wrapped(request, team_slug=None, project_id=None, *args, **kwargs):
+        def _wrapped(request, *args, **kwargs):
             # All requests require authentication
             if not request.user.is_authenticated():
                 request.session['_next'] = request.get_full_path()
                 return HttpResponseRedirect(get_login_url())
 
             # Pull in team if it's part of the URL arguments
-            if team_slug:
+            if 'team_slug' in kwargs:
+                team_slug = kwargs.pop('team_slug')
                 if request.user.is_superuser:
                     try:
                         team = Team.objects.get_from_cache(slug=team_slug)
@@ -53,13 +54,14 @@ def has_access(group_or_func=None):
             else:
                 team = None
 
-            # Support project id's
-            if project_id.isdigit():
-                lookup_kwargs = {'id': int(project_id)}
-            else:
-                lookup_kwargs = {'slug': project_id}
+            if 'project_id' in kwargs:
+                project_id = kwargs.pop('project_id')
+                # Support project id's
+                if project_id.isdigit():
+                    lookup_kwargs = {'id': int(project_id)}
+                else:
+                    lookup_kwargs = {'slug': project_id}
 
-            if project_id:
                 if request.user.is_superuser:
                     try:
                         project = Project.objects.get_from_cache(**lookup_kwargs)
