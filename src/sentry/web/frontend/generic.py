@@ -31,7 +31,9 @@ def dashboard(request, template='dashboard.html'):
         elif can_create_projects(request.user):
             return HttpResponseRedirect(reverse('sentry-new-project'))
 
-    return render_to_response('sentry/%s' % template, {}, request)
+    return render_to_response('sentry/%s' % template, {
+        'project_list': project_list.values(),
+    }, request)
 
 
 def wall_display(request):

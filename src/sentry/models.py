@@ -368,7 +368,7 @@ class PendingTeamMember(Model):
             logger.exception(e)
 
 
-class MessageBase(Model):
+class EventBase(Model):
     """
     Abstract base class for both Event and Group.
     """
@@ -388,7 +388,7 @@ class MessageBase(Model):
     def save(self, *args, **kwargs):
         if len(self.logger) > 64:
             self.logger = self.logger[0:61] + u"..."
-        super(MessageBase, self).save(*args, **kwargs)
+        super(EventBase, self).save(*args, **kwargs)
 
     def error(self):
         if self.message:
@@ -407,6 +407,10 @@ class MessageBase(Model):
         if self.culprit:
             return self.culprit
         return truncatechars(self.message.splitlines()[0], 100)
+
+    @property
+    def team(self):
+        return self.project.team
 
     @property
     def user_ident(self):
@@ -445,7 +449,7 @@ class MessageBase(Model):
         return None
 
 
-class Group(MessageBase):
+class Group(EventBase):
     """
     Aggregated message which summarizes a set of Events.
     """
@@ -495,11 +499,6 @@ class Group(MessageBase):
 
     def natural_key(self):
         return (self.project, self.logger, self.culprit, self.checksum)
-
-    def get_absolute_url(self):
-        if self.project_id:
-            return reverse('sentry-group', kwargs={'group_id': self.pk, 'project_id': self.project.slug})
-        return '#'
 
     def get_score(self):
         return int(math.log(self.times_seen) * 600 + float(time.mktime(self.last_seen.timetuple())))
@@ -560,7 +559,7 @@ class GroupMeta(Model):
     __repr__ = sane_repr('group_id', 'key', 'value')
 
 
-class Event(MessageBase):
+class Event(EventBase):
     """
     An individual event.
     """
@@ -580,11 +579,6 @@ class Event(MessageBase):
         unique_together = ('project', 'event_id')
 
     __repr__ = sane_repr('project_id', 'group_id', 'checksum')
-
-    def get_absolute_url(self):
-        if self.project_id:
-            return reverse('sentry-group-event', kwargs={'group_id': self.group_id, 'event_id': self.pk, 'project_id': self.project.slug})
-        return '#'
 
     @cached_property
     def request(self):

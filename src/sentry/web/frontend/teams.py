@@ -17,7 +17,7 @@ from sentry.models import PendingTeamMember, TeamMember
 from sentry.permissions import can_add_team_member, can_remove_team, can_create_projects, \
   can_create_teams, can_edit_team_member, can_remove_team_member
 from sentry.plugins import plugins
-from sentry.web.decorators import login_required, has_team_access
+from sentry.web.decorators import login_required, has_access
 from sentry.web.forms.teams import NewTeamForm, NewTeamAdminForm, \
   EditTeamForm, EditTeamAdminForm, EditTeamMemberForm, NewTeamMemberForm, \
   InviteTeamMemberForm, RemoveTeamForm, AcceptInviteForm
@@ -60,7 +60,7 @@ def create_new_team(request):
     return render_to_response('sentry/teams/new.html', context, request)
 
 
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 @csrf_protect
 def manage_team(request, team):
     result = plugins.first('has_perm', request.user, 'edit_team', team)
@@ -104,7 +104,7 @@ def manage_team(request, team):
     return render_to_response('sentry/teams/manage.html', context, request)
 
 
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 @csrf_protect
 def manage_team_projects(request, team):
     result = plugins.first('has_perm', request.user, 'edit_team', team)
@@ -124,7 +124,7 @@ def manage_team_projects(request, team):
     return render_to_response('sentry/teams/projects/index.html', context, request)
 
 
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 @csrf_protect
 def manage_team_members(request, team):
     result = plugins.first('has_perm', request.user, 'edit_team', team)
@@ -146,7 +146,7 @@ def manage_team_members(request, team):
     return render_to_response('sentry/teams/members/index.html', context, request)
 
 
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 @csrf_protect
 def remove_team(request, team):
     if not can_remove_team(request.user, team):
@@ -169,7 +169,7 @@ def remove_team(request, team):
 
 
 @csrf_protect
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 def new_team_member(request, team):
     can_add_member = can_add_team_member(request.user, team)
     if not can_add_member:
@@ -265,7 +265,7 @@ def accept_invite(request, member_id, token):
 
 
 @csrf_protect
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 def edit_team_member(request, team, member_id):
     try:
         member = team.member_set.get(pk=member_id)
@@ -296,7 +296,7 @@ def edit_team_member(request, team, member_id):
 
 
 @csrf_protect
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 def remove_team_member(request, team, member_id):
     try:
         member = team.member_set.get(pk=member_id)
@@ -325,7 +325,7 @@ def remove_team_member(request, team, member_id):
 
 
 @csrf_protect
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 def suspend_team_member(request, team, member_id):
     try:
         member = team.member_set.get(pk=member_id)
@@ -348,7 +348,7 @@ def suspend_team_member(request, team, member_id):
 
 
 @csrf_protect
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 def restore_team_member(request, team, member_id):
     try:
         member = team.member_set.get(pk=member_id)
@@ -371,7 +371,7 @@ def restore_team_member(request, team, member_id):
 
 
 @csrf_protect
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 def remove_pending_team_member(request, team, member_id):
     try:
         member = team.pending_member_set.get(pk=member_id)
@@ -391,7 +391,7 @@ def remove_pending_team_member(request, team, member_id):
 
 
 @csrf_protect
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 def reinvite_pending_team_member(request, team, member_id):
     try:
         member = team.pending_member_set.get(pk=member_id)
@@ -411,7 +411,7 @@ def reinvite_pending_team_member(request, team, member_id):
 
 
 @csrf_protect
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 def create_new_team_project(request, team):
     from sentry.web.forms.projects import NewProjectAdminForm, NewProjectForm
 
