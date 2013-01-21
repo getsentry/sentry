@@ -26,8 +26,8 @@
                         <code>{{ frame.filename }}</code>
                         {% if frame.function %} in <code>{{ frame.function }}</code>{% endif %}
                         {% if not frame.context and frame.lineno %} at line <code>{{ frame.lineno }}</code>{% endif %}
-                        {% if frame.in_app %}
-                            (application)
+                        {% if system_frames and frame.in_app %}
+                            <span class="tag-app">(application)</span>
                         {% endif %}
                     </p>
 
