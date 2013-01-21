@@ -9,17 +9,17 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider"></li>
-    <li><a href="{% url sentry-group group.project.slug group.id %}">{{ group.message|truncatechars:30 }}</a></li>
+    <li><a href="{% url sentry-group group.team.slug group.project.slug group.id %}">{{ group.message|truncatechars:30 }}</a></li>
 {% endblock %}
 
 {% block sidebar %}
     <ul class="nav nav-list">
-        <li{% if page == 'details' %} class="active"{% endif %}><a href="{% url sentry-group group.project.slug group.id %}">Aggregate</a></li>
+        <li{% if page == 'details' %} class="active"{% endif %}><a href="{% url sentry-group group.team.slug group.project.slug group.id %}">Aggregate</a></li>
         <li{% if page == 'tag_list' %} class="active"{% endif %}>
-            <a href="{% url sentry-group-tags group.project.slug group.id %}">{% trans "Tags" %}</a>
+            <a href="{% url sentry-group-tags group.team.slug group.project.slug group.id %}">{% trans "Tags" %}</a>
         </li>
         <li{% if page == 'event_list' or page == 'event' %} class="active"{% endif %}>
-            <a href="{% url sentry-group-events group.project.slug group.id %}">{% trans "Similar Events" %}</a>
+            <a href="{% url sentry-group-events group.team.slug group.project.slug group.id %}">{% trans "Similar Events" %}</a>
         </li>
     </ul>
 
@@ -55,7 +55,7 @@
             {% trans "This event is <strong>not publicly visible</strong>." %}
         </span>
         <span data-public="true"{% if not group.project.public and not group.is_public %} style="display: none;"{% endif %}>
-            <a href="{% url sentry-group group.project.slug group.id %}">{% trans "Link" %}</a>{% if can_admin_event and not group.project.public %} | {% endif %}
+            <a href="{% url sentry-group group.team.slug group.project.slug group.id %}">{% trans "Link" %}</a>{% if can_admin_event and not group.project.public %} | {% endif %}
         </span>
         {% if can_admin_event and not group.project.public %}
             <span data-public="true"{% if not group.is_public %} style="display: none;"{% endif %}>
@@ -74,9 +74,9 @@
                 <li><a href="{{ link }}">{{ label }}</a></li>
             {% endfor %}
             {% comment %}<li><a {% ifequal page 'event_list' %}{% if event %}
-            href="{% url sentry-group-event-json project_id=project.slug group_id=group.id event_id_or_latest=event.id %}"{% else %}
-            href="{% url sentry-group-event-json project_id=project.slug group_id=group.id event_id_or_latest="latest" %}"{% endif %}{% else %}
-            href="{% url sentry-group-events-json project_id=project.slug group_id=group.id %}"{% endifequal %}
+            href="{% url sentry-group-event-json team_slug=group.team.slug project_id=project.slug group_id=group.id event_id_or_latest=event.id %}"{% else %}
+            href="{% url sentry-group-event-json team_slug=group.team.slug project_id=project.slug group_id=group.id event_id_or_latest="latest" %}"{% endif %}{% else %}
+            href="{% url sentry-group-events-json team_slug=group.team.slug project_id=project.slug group_id=group.id %}"{% endifequal %}
             >{% trans "Raw JSON Data" %}</a></li>{% endcomment %}
             <li><a href="{% url sentry-api-remove-group project_id=project.slug group_id=group.id %}">{% trans "Remove Event Data" %}</a></li>
         </ul>

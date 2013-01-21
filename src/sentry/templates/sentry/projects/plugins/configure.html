@@ -6,20 +6,20 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider"></li>
-    <li><a href="{% url sentry-manage-project-plugins project.slug %}">{% trans "Plugins" %}</a></li>
+    <li><a href="{% url sentry-manage-project-plugins project.team.slug project.slug %}">{% trans "Plugins" %}</a></li>
     <li class="divider"></li>
-    <li><a href="{% url sentry-configure-project-plugin project.slug plugin.slug %}">{{ plugin.get_title }}</a></li>
+    <li><a href="{% url sentry-configure-project-plugin project.team.slug project.slug plugin.slug %}">{{ plugin.get_title }}</a></li>
 {% endblock %}
 
 {% block inner %}
     <div class="page-header">
         <div class="pull-right">
             {% if not plugin_is_enabled %}
-                <a href="{% url sentry-enable-project-plugin project.slug plugin.slug %}" class="btn">{% trans "Enable Plugin" %}</a>
+                <a href="{% url sentry-enable-project-plugin project.team.slug project.slug plugin.slug %}" class="btn">{% trans "Enable Plugin" %}</a>
             {% else %}
-                <a href="{% url sentry-disable-project-plugin project.slug plugin.slug %}" class="btn">{% trans "Disable Plugin" %}</a>
+                <a href="{% url sentry-disable-project-plugin project.team.slug project.slug plugin.slug %}" class="btn">{% trans "Disable Plugin" %}</a>
             {% endif %}
-            <a href="{% url sentry-reset-project-plugin project.slug plugin.slug %}" class="btn"
+            <a href="{% url sentry-reset-project-plugin project.team.slug project.slug plugin.slug %}" class="btn"
                 onclick="return confirm('{% trans "Are you sure you wish to reset all configuration for this plugin?" %}');">{% trans "Reset Configuration" %}</a>
         </div>
         <h2>{% trans "Configure Plugin" %}</h2>

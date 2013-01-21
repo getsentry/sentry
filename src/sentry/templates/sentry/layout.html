@@ -107,7 +107,7 @@
                             </select>
                         </li>
                         {% if project %}
-                            <li class="project-settings"><a href="{% url sentry-manage-project project.slug %}" class="{% trans "Settings" %}"><i aria-hidden="true" class="icon-cog"></i></a></li>
+                            <li class="project-settings"><a href="{% url sentry-manage-project project.team.slug project.slug %}" class="{% trans "Settings" %}"><i aria-hidden="true" class="icon-cog"></i></a></li>
                         {% endif %}
                         {% block breadcrumb %}
                         {% endblock %}

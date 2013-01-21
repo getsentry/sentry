@@ -335,7 +335,7 @@ class ManageProjectTest(PermissionBase):
 
     @fixture
     def path(self):
-        return reverse('sentry-manage-project', kwargs={'project_id': self.project.id})
+        return reverse('sentry-manage-project', kwargs={'team_slug': self.team.slug, 'project_id': self.project.id})
 
     def test_admin_can_load(self):
         self._assertPerm(self.path, self.template, self.admin.username)
@@ -477,7 +477,7 @@ class SentrySearchTest(TestCase):
 
     @fixture
     def path(self):
-        return reverse('sentry-search', kwargs={'project_id': self.project.id})
+        return reverse('sentry-search', kwargs={'team_slug': self.team.slug, 'project_id': self.project.id})
 
     def test_checksum_query(self):
         checksum = 'a' * 32

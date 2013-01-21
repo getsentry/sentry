@@ -6,7 +6,7 @@
 
 {% block main %}
     <section class="body dashboard">
-        {% if PROJECT_LIST %}
+        {% if project_list %}
             <div id="chart" class="chart" data-api-url="{% url sentry-api-chart %}">
                 <div class="sparkline">
                     <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
@@ -52,12 +52,12 @@
 
 {% block sidebar %}
     <h6>{% trans "Projects" %}</h6>
-    {% if PROJECT_LIST %}
+    {% if project_list %}
         <ul class="nav nav-tabs nav-stacked" style="margin-bottom:5px">
-            {% for p in PROJECT_LIST|slice:"10" %}
+            {% for p in project_list|slice:"10" %}
                 <li{% if p == project %} class="active"{% endif %}>
-                    <a class="action" href="{% url sentry-manage-project p.slug %}" title="{% trans "Settings" %}"><i aria-hidden="true" class="icon-cog"></i></a>
-                    <a href="{% url sentry p.slug %}">{{ p.name }}</a>
+                    <a class="action" href="{% url sentry-manage-project p.team.slug p.slug %}" title="{% trans "Settings" %}"><i aria-hidden="true" class="icon-cog"></i></a>
+                    <a href="{% url sentry-stream p.team.slug p.slug %}">{{ p.name }}</a>
                 </li>
             {% endfor %}
         </ul>
@@ -65,14 +65,14 @@
             {% if can_create_projects %}
                 <a href="{% url sentry-new-project %}" class="btn btn-primary" style="padding-top: 3px; padding-bottom: 3px; margin-top: 5px; display: block; text-align: center;">{% trans "New project" %}</a>
             {% endif %}
-            {% if PROJECT_LIST|length > 10 %}
-                <a href="{% url sentry-project-list %}" class="btn btn-small">{% blocktrans with PROJECT_LIST|length as count %}View all <strong>{{ count }}</strong> projects{% endblocktrans %}</a>
+            {% if project_list|length > 10 %}
+                <a href="{% url sentry-project-list team.slug %}" class="btn btn-small">{% blocktrans with PROJECT_LIST|length as count %}View all <strong>{{ count }}</strong> projects{% endblocktrans %}</a>
             {% endif %}
         </div>
     {% else %}
         <p>{% trans "You are not a part of any projects." %}</p>
         {% if can_create_projects %}
-            <p><a href="{% url sentry-new-project %}">{% trans "Create a new project" %}</a></p>
+            <p><a href="{% url sentry-new-project team.slug %}">{% trans "Create a new project" %}</a></p>
         {% endif %}
     {% endif %}
 {% endblock %}

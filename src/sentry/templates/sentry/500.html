@@ -15,10 +15,6 @@
         <p>{% trans "There was an internal server error while processing your request." %}</p>
         {% if request.sentry.id %}
             <p>{% blocktrans with request.sentry.id as id %}You may reference this error as <strong>{{ id }}</strong>.{% endblocktrans %}</p>
-
-            {% if request.sentry.project_id %}
-                <p><a href="{% url sentry-search request.sentry.project_id %}?q={{ request.sentry.id|safe }}">View this error in Sentry</a></p>
-            {% endif %}
         {% endif %}
     </section>
 {% endblock %}

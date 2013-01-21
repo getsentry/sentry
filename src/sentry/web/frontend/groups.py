@@ -2,6 +2,10 @@
 sentry.web.frontend.groups
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Contains views for the "Events" section of Sentry.
+
+TODO: Move all events.py views into here, and rename this file to events.
+
 :copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
@@ -21,8 +25,8 @@ from sentry.constants import (SORT_OPTIONS, SEARCH_SORT_OPTIONS,
     SORT_CLAUSES, MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES, MEMBER_USER,
     SCORE_CLAUSES, MYSQL_SCORE_CLAUSES, SQLITE_SCORE_CLAUSES)
 from sentry.filters import get_filters
-from sentry.models import Group, Event, SearchDocument, Activity
-from sentry.permissions import can_admin_group
+from sentry.models import Project, Group, Event, SearchDocument, Activity
+from sentry.permissions import can_admin_group, can_create_projects
 from sentry.plugins import plugins
 from sentry.utils import json
 from sentry.utils.dates import parse_date
@@ -142,6 +146,22 @@ def _get_group_list(request, project):
 
 @login_required
 @has_access
+def dashboard(request, team):
+    project_list = Project.objects.filter(team=team)
+    has_projects = len(project_list) > 1 or (len(project_list) == 1 and project_list.values()[0].pk != settings.PROJECT)
+
+    if not has_projects:
+        if can_create_projects(request.user, team=team):
+            return HttpResponseRedirect(reverse('sentry-new-project'))
+
+    return render_to_response('sentry/dashboard.html', {
+        'team': team,
+        'project_list': project_list.values(),
+    }, request)
+
+
+@login_required
+@has_access
 def search(request, project):
     query = request.GET.get('q')
 
@@ -193,6 +213,7 @@ def search(request, project):
                 continue
 
     return render_to_response('sentry/search.html', {
+        'team': project.team,
         'project': project,
         'event_list': event_list,
         'query': query,
@@ -203,7 +224,7 @@ def search(request, project):
 
 @login_required
 @has_access
-def group_list(request, project):
+def group_list(request, team, project):
     try:
         page = int(request.GET.get('p', 1))
     except (TypeError, ValueError):
@@ -256,7 +277,7 @@ def render_with_group_context(group, template, context, request=None):
 
 
 @has_group_access
-def group(request, project, group):
+def group(request, team, project, group):
     activity = Activity.objects.filter(
         group=group,
     ).order_by('-datetime').select_related('user')
@@ -268,7 +289,7 @@ def group(request, project, group):
 
 
 @has_group_access
-def group_tag_list(request, project, group):
+def group_tag_list(request, team, project, group):
     def percent(total, this):
         return int(this / total * 100)
 
@@ -288,7 +309,7 @@ def group_tag_list(request, project, group):
 
 
 @has_group_access
-def group_tag_details(request, project, group, tag_name):
+def group_tag_details(request, team, project, group, tag_name):
     return render_with_group_context(group, 'sentry/plugins/bases/tag/index.html', {
         'title': tag_name.replace('_', ' ').title(),
         'tag_name': tag_name,
@@ -298,7 +319,7 @@ def group_tag_details(request, project, group, tag_name):
 
 
 @has_group_access
-def group_event_list(request, project, group):
+def group_event_list(request, team, project, group):
     event_list = group.event_set.all().order_by('-datetime')
 
     return render_with_group_context(group, 'sentry/groups/event_list.html', {
@@ -308,7 +329,7 @@ def group_event_list(request, project, group):
 
 
 @has_access(MEMBER_USER)
-def group_event_list_json(request, project, group_id):
+def group_event_list_json(request, team, project, group_id):
     group = get_object_or_404(Group, id=group_id, project=project)
 
     limit = request.GET.get('limit', settings.MAX_JSON_RESULTS)
@@ -325,7 +346,7 @@ def group_event_list_json(request, project, group_id):
 
 
 @has_group_access
-def group_event_details(request, project, group, event_id):
+def group_event_details(request, team, project, group, event_id):
     event = get_object_or_404(group.event_set, id=event_id)
 
     base_qs = group.event_set.exclude(id=event_id)
@@ -353,7 +374,7 @@ def group_event_details(request, project, group, event_id):
 
 
 @has_access(MEMBER_USER)
-def group_event_details_json(request, project, group_id, event_id_or_latest):
+def group_event_details_json(request, team, project, group_id, event_id_or_latest):
     group = get_object_or_404(Group, pk=group_id, project=project)
 
     if event_id_or_latest == 'latest':
@@ -368,7 +389,7 @@ def group_event_details_json(request, project, group_id, event_id_or_latest):
 
 @login_required
 @has_access(MEMBER_USER)
-def group_plugin_action(request, project, group_id, slug):
+def group_plugin_action(request, team, project, group_id, slug):
     group = get_object_or_404(Group, pk=group_id, project=project)
 
     try:

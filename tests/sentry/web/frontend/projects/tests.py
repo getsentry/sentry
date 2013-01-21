@@ -62,29 +62,10 @@ class NewProjectTest(TestCase):
         self.assertEquals(member.type, MEMBER_OWNER)
 
 
-class ManageProjectTeamTest(TestCase):
-    @fixture
-    def path(self):
-        return reverse('sentry-manage-project-team', args=[self.project.id])
-
-    def test_requires_authentication(self):
-        self.assertRequiresAuthentication(self.path)
-
-    def test_renders_with_required_context(self):
-        self.login_as(self.user)
-
-        resp = self.client.get(self.path)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed('sentry/projects/team.html')
-        self.assertIn('pending_member_list', resp.context)
-        self.assertIn('member_list', resp.context)
-        self.assertIn('can_add_member', resp.context)
-
-
 class ManageProjectKeysTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry-manage-project-keys', args=[self.project.id])
+        return reverse('sentry-manage-project-keys', args=[self.team.slug, self.project.id])
 
     def test_requires_authentication(self):
         self.assertRequiresAuthentication(self.path)
@@ -102,7 +83,7 @@ class ManageProjectKeysTest(TestCase):
 class NewProjectKeyTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry-new-project-key', args=[self.project.id])
+        return reverse('sentry-new-project-key', args=[self.team.slug, self.project.id])
 
     def test_requires_authentication(self):
         self.assertRequiresAuthentication(self.path)
@@ -125,7 +106,7 @@ class RemoveProjectKeyTest(TestCase):
 
     @fixture
     def path(self):
-        return reverse('sentry-remove-project-key', args=[self.project.id, self.key.id])
+        return reverse('sentry-remove-project-key', args=[self.team.slug, self.project.id, self.key.id])
 
     def test_requires_authentication(self):
         self.assertRequiresAuthentication(self.path, 'POST')
@@ -164,7 +145,7 @@ class DashboardTest(TestCase):
         manager.exists.assert_called_once_with()
 
         assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver' + reverse('sentry-get-started', args=[self.project.slug])
+        assert resp['Location'] == 'http://testserver' + reverse('sentry-get-started', args=[self.team.slug, self.project.slug])
 
     @mock.patch('sentry.models.Group.objects', ManagerMock(Group.objects, Group()))
     def test_redirects_to_stream_if_has_groups(self):
@@ -181,7 +162,7 @@ class DashboardTest(TestCase):
         manager.exists.assert_called_once_with()
 
         assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver' + reverse('sentry-stream', args=[self.project.slug])
+        assert resp['Location'] == 'http://testserver' + reverse('sentry-stream', args=[self.team.slug, self.project.slug])
 
 
 class GetStartedTest(TestCase):
