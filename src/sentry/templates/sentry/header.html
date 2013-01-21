@@ -13,16 +13,6 @@
                         <li><a href="#">Team</a></li>
                     </ul>
                 </nav>
-                {% comment %}
-                {% block search %}
-                    {% if project %}
-                        <form action="{% url sentry-search project.slug %}" class="navbar-search pull-right" id="search">
-                            <input type="hidden" name="sort" value="{% if sort %}{{ sort }}{% endif %}"/>
-                            <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="{% if HAS_SEARCH %}{% trans "search query or message id" %}{% else %}{% trans "message id" %}{% endif %}" class="search-query pull-left" />
-                        </form>
-                    {% endif %}
-                {% endblock %}
-                {% endcomment %}
                 <ul class="nav pull-right">
                     {% block account_nav %}
                         {% if request.user.is_authenticated %}
