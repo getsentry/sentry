@@ -13,7 +13,7 @@ import itertools
 import urlparse
 
 from pygments import highlight
-from pygments.lexers import get_lexer_for_filename
+from pygments.lexers import get_lexer_for_filename, TextLexer
 from pygments.formatters import HtmlFormatter
 
 from django.http import QueryDict
@@ -55,7 +55,11 @@ def get_context(filename, lineno, context_line, pre_context=None, post_context=N
             context.append((at_lineno, line))
             at_lineno += 1
 
-    lexer = get_lexer_for_filename(filename)
+    try:
+        lexer = get_lexer_for_filename(filename)
+    except Exception:
+        lexer = TextLexer()
+
     formatter = HtmlFormatter()
     context = tuple((n, mark_safe(highlight(l, lexer, formatter))) for n, l in context)
 
