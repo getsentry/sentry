@@ -55,6 +55,10 @@ def get_context(filename, lineno, context_line, pre_context=None, post_context=N
             context.append((at_lineno, line))
             at_lineno += 1
 
+    # HACK:
+    if '.' not in filename.rsplit('/', 1)[-1]:
+        filename = 'index.html'
+
     try:
         lexer = get_lexer_for_filename(filename)
     except Exception:
