@@ -37,8 +37,6 @@
                                 <ul class="dropdown-menu">
                                     <li><a href="{% url sentry-account-settings %}">{% trans "Account" %}</a></li>
                                     <li class="divider">
-                                    <li><a href="{% url sentry-project-list %}">{% trans "Projects" %}</a></li>
-                                    <li><a href="{% url sentry-team-list %}">{% trans "Teams" %}</a></li>
                                     {% if request.user.is_staff %}
                                         <li><a href="{% url sentry-admin-status %}">{% trans "Admin" %}</a></li>
                                     {% endif %}

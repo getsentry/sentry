@@ -147,12 +147,13 @@ def _get_group_list(request, project):
 @login_required
 @has_access
 def dashboard(request, team):
-    project_list = Project.objects.filter(team=team)
-    has_projects = len(project_list) > 1 or (len(project_list) == 1 and project_list.values()[0].pk != settings.PROJECT)
+    project_list = list(Project.objects.filter(team=team))
 
-    if not has_projects:
-        if can_create_projects(request.user, team=team):
-            return HttpResponseRedirect(reverse('sentry-new-project'))
+    if not project_list and can_create_projects(request.user, team=team):
+        return HttpResponseRedirect(reverse('sentry-new-project', args=[team.slug]))
+
+    for project in project_list.values():
+        project.team = team
 
     return render_to_response('sentry/dashboard.html', {
         'team': team,
@@ -361,6 +362,7 @@ def group_event_details(request, team, project, group, event_id):
         prev_event = None
 
     return render_to_response('sentry/groups/event.html', {
+        'team': team,
         'project': project,
         'page': 'event',
         'group': group,
@@ -400,4 +402,9 @@ def group_plugin_action(request, team, project, group_id, slug):
     response = plugin.get_view_response(request, group)
     if response:
         return response
-    return HttpResponseRedirect(request.META.get('HTTP_REFERER') or reverse('sentry', kwargs={'project_id': group.project.slug}))
+
+    redirect = request.META.get('HTTP_REFERER') or reverse('sentry', kwargs={
+        'team_slug': team.slug,
+        'project_id': group.project.slug
+    })
+    return HttpResponseRedirect(redirect)

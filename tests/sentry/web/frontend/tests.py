@@ -26,21 +26,6 @@ class DashboardTest(BaseViewTest):
     def path(self):
         return reverse('sentry')
 
-    def test_redirects_to_new_project_when_no_projects(self):
-        self.login()
-
-        resp = self.client.get(self.path, follow=True)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/projects/new.html')
-
-    def test_shows_dashboard_with_a_project(self):
-        self.login()
-
-        Project.objects.create(name='foo', owner=self.user)
-        resp = self.client.get(reverse('sentry'), follow=True)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/dashboard.html')
-
     def test_requires_authentication(self):
         resp = self.client.get(reverse('sentry'), follow=True)
         self.assertEquals(resp.status_code, 200)
@@ -115,94 +100,206 @@ class StatsTest(BaseViewTest):
         self.assertTemplateUsed(resp, 'sentry/admin/stats.html')
 
 
-class SentryViewsTest(BaseViewTest):
-    fixtures = ['tests/fixtures/views.json']
+class GroupDetailsTest(BaseViewTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-group', kwargs={
+            'team_slug': self.team.slug,
+            'project_id': self.project.slug,
+            'group_id': self.group.id,
+        })
 
-    @before
-    def login_user(self):
-        self.login_as(self.user)
-
-    def test_stream_loads(self):
-        resp = self.client.get(reverse('sentry-stream', kwargs={'project_id': 1}))
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/groups/group_list.html')
-
-    def test_group_details(self):
-        resp = self.client.get(reverse('sentry-group', kwargs={'project_id': 1, 'group_id': 2}))
+    def test_does_render(self):
+        self.login()
+        resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/details.html')
         assert 'group' in resp.context
         assert 'project' in resp.context
-        assert resp.context['group'].id == 2
-        assert resp.context['project'].id == 1
+        assert 'team' in resp.context
+        assert resp.context['group'] == self.group
+        assert resp.context['project'] == self.project
+        assert resp.context['team'] == self.team
 
-    def test_group_event_list(self):
-        resp = self.client.get(reverse('sentry-group-events', kwargs={'project_id': 1, 'group_id': 2}))
+
+class GroupListTest(BaseViewTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-stream', kwargs={
+            'team_slug': self.team.slug,
+            'project_id': self.project.slug,
+        })
+
+    def test_does_render(self):
+        self.login()
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/groups/group_list.html')
+        assert 'project' in resp.context
+        assert 'team' in resp.context
+        assert 'event_list' in resp.context
+        assert resp.context['project'] == self.project
+        assert resp.context['team'] == self.team
+
+
+class GroupEventListTest(BaseViewTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-group-events', kwargs={
+            'team_slug': self.team.slug,
+            'project_id': self.project.slug,
+            'group_id': self.group.id,
+        })
+
+    def test_does_render(self):
+        self.login()
+        resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/event_list.html')
         assert 'group' in resp.context
         assert 'project' in resp.context
+        assert 'team' in resp.context
         assert 'event_list' in resp.context
-        assert resp.context['group'].id == 2
-        assert resp.context['project'].id == 1
+        assert resp.context['project'] == self.project
+        assert resp.context['team'] == self.team
+        assert resp.context['group'] == self.group
 
-    def test_group_tag_list(self):
-        resp = self.client.get(reverse('sentry-group-tags', kwargs={'project_id': 1, 'group_id': 2}))
+
+class GroupTagListTest(BaseViewTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-group-tags', kwargs={
+            'team_slug': self.team.slug,
+            'project_id': self.project.slug,
+            'group_id': self.group.id,
+        })
+
+    def test_does_render(self):
+        self.login()
+        resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/tag_list.html')
         assert 'group' in resp.context
         assert 'project' in resp.context
+        assert 'team' in resp.context
         assert 'tag_list' in resp.context
-        assert resp.context['group'].id == 2
-        assert resp.context['project'].id == 1
+        assert resp.context['project'] == self.project
+        assert resp.context['team'] == self.team
+        assert resp.context['group'] == self.group
 
-    def test_group_message_details(self):
-        resp = self.client.get(reverse('sentry-group-event', kwargs={'project_id': 1, 'group_id': 2, 'event_id': 4}))
+
+class GroupEventDetailsTest(BaseViewTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-group-event', kwargs={
+            'team_slug': self.team.slug,
+            'project_id': self.project.slug,
+            'group_id': self.group.id,
+            'event_id': self.event.id,
+        })
+
+    def test_does_render(self):
+        self.login()
+        resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/groups/event.html')
         assert 'group' in resp.context
         assert 'project' in resp.context
+        assert 'team' in resp.context
         assert 'event' in resp.context
-        assert resp.context['group'].id == 2
-        assert resp.context['project'].id == 1
-        assert resp.context['event'].id == 4
+        assert resp.context['project'] == self.project
+        assert resp.context['team'] == self.team
+        assert resp.context['group'] == self.group
+        assert resp.context['event'] == self.event
 
-    def test_group_json_multi(self):
-        resp = self.client.get(reverse('sentry-group-events-json', kwargs={'project_id': 1, 'group_id': 2}))
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(resp['Content-Type'], 'application/json')
-        self.assertEquals(json.loads(resp.content)[0]['level'], 'error')
-        resp = self.client.get(reverse('sentry-group-events-json', kwargs={'project_id': 1, 'group_id': 2}), {'limit': 1})
-        self.assertEquals(resp.status_code, 200)
-        resp = self.client.get(reverse('sentry-group-events-json', kwargs={'project_id': 1, 'group_id': 2}), {'limit': settings.MAX_JSON_RESULTS + 1})
-        self.assertEquals(resp.status_code, 400)
 
-    def test_group_events_details_json(self):
-        resp = self.client.get(reverse('sentry-group-event-json', kwargs={'project_id': 1, 'group_id': 2, 'event_id_or_latest': 'latest'}))
-        self.assertEquals(resp.status_code, 200)
-        self.assertEquals(resp['Content-Type'], 'application/json')
-        self.assertEquals(json.loads(resp.content)['level'], 'error')
+class GroupEventListJsonTest(BaseViewTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-group-events-json', kwargs={
+            'team_slug': self.team.slug,
+            'project_id': self.project.slug,
+            'group_id': self.group.id,
+        })
 
-    def test_manage_users(self):
-        resp = self.client.get(reverse('sentry-admin-users'), follow=True)
-        self.assertEquals(resp.status_code, 200)
+    def test_does_render(self):
+        self.login()
+        # HACK: force fixture creation
+        self.event
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp['Content-Type'] == 'application/json'
+        data = json.loads(resp.content)
+        assert len(data) == 1
+        assert data[0]['id'] == str(self.event.event_id)
+
+    def test_does_not_allow_beyond_limit(self):
+        self.login()
+        resp = self.client.get(self.path, {'limit': settings.MAX_JSON_RESULTS + 1})
+        assert resp.status_code == 400
+
+
+class GroupEventJsonTest(BaseViewTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-group-event-json', kwargs={
+            'team_slug': self.team.slug,
+            'project_id': self.project.slug,
+            'group_id': self.group.id,
+            'event_id_or_latest': self.event.id,
+        })
+
+    def test_does_render(self):
+        self.login()
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp['Content-Type'] == 'application/json'
+        data = json.loads(resp.content)
+        assert data['id'] == self.event.event_id
+
+
+class ManageUsersTest(BaseViewTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-admin-users')
+
+    def test_does_render(self):
+        self.login()
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/admin/users/list.html')
 
-    def test_event_list(self):
-        resp = self.client.get(reverse('sentry-events', kwargs={'project_id': self.project.id}))
-        self.assertEquals(resp.status_code, 200)
+
+# class ReplayTest(BaseViewTest):
+#     @fixture
+#     def path(self):
+#         return reverse('sentry-replay', kwargs={
+#             'team_slug': self.team.slug,
+#             'project_id': self.project.slug,
+#             'group_id': self.group.id,
+#             'event_id': self.id,
+#         })
+
+#     def test_does_render(self):
+#         self.login()
+#         resp = self.client.get(self.id)
+#         self.assertEquals(resp.status_code, 200)
+#         self.assertTemplateUsed(resp, 'sentry/events/replay.html')
+
+
+class EventListTest(TestCase):
+    @fixture
+    def path(self):
+        return reverse('sentry-events', kwargs={
+            'team_slug': self.team.slug,
+            'project_id': self.project.id,
+        })
+
+    def test_does_render(self):
+        self.login_as(self.user)
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/events/event_list.html')
-
-    def test_replay_event(self):
-        # bad event_id
-        resp = self.client.get(reverse('sentry-replay', kwargs={'project_id': self.project.id, 'event_id': 1}))
-        self.assertEquals(resp.status_code, 302)
-
-        # valid params
-        # self.client.login(username='admin', password='admin')
-        # resp = self.client.get(reverse('sentry-replay', kwargs={'project_id': 1, 'event_id': 4}))
-        # self.assertEquals(resp.status_code, 200)
-        # self.assertTemplateUsed(resp, 'sentry/events/replay.html')
 
 
 class PermissionBase(TestCase):
@@ -281,29 +378,12 @@ class PermissionBase(TestCase):
             self.assertTemplateNotUsed(resp, template)
 
 
-class ProjectListTest(PermissionBase):
-    template = 'sentry/projects/list.html'
+class NewTeamProjectTest(PermissionBase):
+    template = 'sentry/teams/projects/new.html'
 
     @fixture
     def path(self):
-        return reverse('sentry-project-list')
-
-    def test_admin_can_load(self):
-        self._assertPerm(self.path, self.template, self.admin.username)
-
-    def test_user_can_load(self):
-        self._assertPerm(self.path, self.template, self.nobody.username)
-
-    def test_anonymous_cannot_load(self):
-        self._assertPerm(self.path, self.template, None, False)
-
-
-class NewProjectTest(PermissionBase):
-    template = 'sentry/projects/new.html'
-
-    @fixture
-    def path(self):
-        return reverse('sentry-new-project')
+        return reverse('sentry-new-project', args=[self.team.slug])
 
     def test_admin_can_load(self):
         with self.Settings(SENTRY_ALLOW_PROJECT_CREATION=False, SENTRY_ALLOW_TEAM_CREATION=False):
@@ -320,10 +400,6 @@ class NewProjectTest(PermissionBase):
     def test_public_creation_admin_can_load(self):
         with self.Settings(SENTRY_ALLOW_PROJECT_CREATION=True, SENTRY_ALLOW_TEAM_CREATION=True):
             self._assertPerm(self.path, self.template, self.admin.username)
-
-    def test_public_creation_user_can_load(self):
-        with self.Settings(SENTRY_ALLOW_PROJECT_CREATION=True, SENTRY_ALLOW_TEAM_CREATION=True):
-            self._assertPerm(self.path, self.template, self.nobody.username)
 
     def test_public_anonymous_cannot_load(self):
         with self.Settings(SENTRY_ALLOW_PROJECT_CREATION=True, SENTRY_ALLOW_TEAM_CREATION=True):

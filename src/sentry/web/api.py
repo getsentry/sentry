@@ -672,8 +672,16 @@ def crossdomain_xml_index(request):
     return response
 
 
-@has_access
-def crossdomain_xml(request, project):
+def crossdomain_xml(request, project_id):
+    if project_id.isdigit():
+        lookup = {'id': project_id}
+    else:
+        lookup = {'slug': project_id}
+    try:
+        project = Project.objects.get_from_cache(**lookup)
+    except Project.DoesNotExist:
+        return HttpResponse(status_code=404)
+
     origin_list = get_origins(project)
     if origin_list == '*':
         origin_list = [origin_list]

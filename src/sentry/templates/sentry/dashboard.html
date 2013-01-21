@@ -41,7 +41,7 @@
             </div>
         {% else %}
             {% if can_create_projects %}
-                {% url sentry-new-project as link %}
+                {% url sentry-new-project team.slug as link %}
                 <div class="alert alert-info">{% blocktrans %}You do not have access to any projects. Would you like to <a href="{{ link }}">create a new project</a>?{% endblocktrans %}</div>
             {% else %}
                 <div class="alert alert-notice">{% trans "You do not have access to any projects. Ask an administrator to add you as a member." %}</div>
@@ -63,7 +63,7 @@
         </ul>
         <div style="margin-bottom:13px;">
             {% if can_create_projects %}
-                <a href="{% url sentry-new-project %}" class="btn btn-primary" style="padding-top: 3px; padding-bottom: 3px; margin-top: 5px; display: block; text-align: center;">{% trans "New project" %}</a>
+                <a href="{% url sentry-new-project team.slug %}" class="btn btn-primary" style="padding-top: 3px; padding-bottom: 3px; margin-top: 5px; display: block; text-align: center;">{% trans "New project" %}</a>
             {% endif %}
             {% if project_list|length > 10 %}
                 <a href="{% url sentry-project-list team.slug %}" class="btn btn-small">{% blocktrans with PROJECT_LIST|length as count %}View all <strong>{{ count }}</strong> projects{% endblocktrans %}</a>
