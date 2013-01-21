@@ -6578,7 +6578,20 @@ ul.traceback {
 .frame.system-frame {
   color: #999;
 }
+.frame p {
+  font-size: 12px;
+}
+.frame p a.annotation {
+  color: inherit;
+  padding: 0 1px;
+  border-bottom: 1px dotted #666;
+}
+.frame p a.annotation:hover {
+  text-decoration: none;
+}
 .frame code {
+  padding: 0;
+  font-size: inherit;
   color: inherit;
 }
 .frame .context {
