@@ -6,13 +6,15 @@
         <div class="navbar-inner">
             <div class="container">
                 <a id="logo" href="{% url sentry %}">Sentry</a>
-                <nav id="team-nav">
-                    <ul>
-                        <li class="active"><a href="#">Events</a></li>
-                        <li><a href="#">Users</a></li>
-                        <li><a href="#">Team</a></li>
-                    </ul>
-                </nav>
+                {% if team %}
+                    <nav id="team-nav">
+                        <ul>
+                            <li class="active"><a href="{% url sentry team.slug %}">Events</a></li>
+                            <li><a href="{% url sentry-users team.slug %}">Users</a></li>
+                            <li><a href="{% url sentry-manage-team team.slug %}">Team</a></li>
+                        </ul>
+                    </nav>
+                {% endif %}
                 <ul class="nav pull-right">
                     {% block account_nav %}
                         {% if request.user.is_authenticated %}
