@@ -32,6 +32,7 @@ def pytest_configure(config):
 
     # Compressors is not fast, disable it in tests.
     settings.COMPRESS_ENABLED = False
+    settings.COMPRESS_PRECOMPILERS = ()
 
     # override a few things with our test specifics
     settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + (

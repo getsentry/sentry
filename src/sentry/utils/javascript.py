@@ -7,6 +7,7 @@ sentry.utils.javascript
 """
 from django.core.urlresolvers import reverse
 from django.utils.html import escape
+from sentry.app import env
 from sentry.constants import STATUS_RESOLVED
 from sentry.models import Group, GroupBookmark
 from sentry.templatetags.sentry_plugins import get_tags
@@ -17,6 +18,8 @@ transformers = {}
 
 
 def transform(objects, request=None):
+    if request is None:
+        request = getattr(env, 'request', None)
     if not objects:
         return objects
     elif not isinstance(objects, (list, tuple)):

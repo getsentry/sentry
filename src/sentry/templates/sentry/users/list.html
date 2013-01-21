@@ -1,0 +1,67 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_plugins %}
+
+{% block title %}Users | {{ project.name }} | {{ block.super }}{% endblock %}
+
+{% block bodyclass %}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider">/</li>
+    <li><a href="{% url sentry-users project.slug %}">{% trans "Users" %}</a></li>
+{% endblock %}
+
+{% block main %}
+    <section class="body">
+        {% paginator tuser_list from request as tuser_list %}
+        {% querystring from request without sort as sort_querystring %}
+
+        <div class="btn-toolbar">
+            <div class="btn-group">
+                <a href="#" class="btn dropdown-toggle" data-toggle="dropdown">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <span class="caret"></span></a>
+                <ul class="dropdown-menu">
+                    <li{% ifequal sort 'recent' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=recent">{{ SORT_OPTIONS.recent }}</a></li>
+                    <li{% ifequal sort 'newest' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=newest">{{ SORT_OPTIONS.newest }}</a></li>
+                    <li{% ifequal sort 'events' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=events">{{ SORT_OPTIONS.events }}</a></li>
+                </ul>
+            </div>
+            <div class="btn-group pull-right">
+                <a class="btn prev{% if not tuser_list.paginator.has_previous %} disabled{% endif %}" href="?{{ tuser_list.query_string|escape }}&amp;p={{ tuser_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
+                <a class="btn next{% if not tuser_list.paginator.has_next %} disabled{% endif %}" href="?{{ tuser_list.query_string|escape }}&amp;p={{ tuser_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+            </div>
+        </div>
+
+        {% if not tuser_list.paginator.objects %}
+            <p>{% blocktrans %}You dont seem to have any user data recorded. For more information on how to send this information consult your client's documentation.{% endblocktrans %}</p>
+        {% else %}
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>{% trans "User" %}</th>
+                        <th style="width:150px;text-align:center">{% trans "Last Seen" %}</th>
+                        <th style="width:100px;text-align:center">{% trans "Events Seen" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tuser in tuser_list.paginator.objects %}
+                        <tr>
+                            <td><a href="{% url sentry-user-details project.slug tuser.id %}">{% if tuser.email %}{{ tuser.email }}{% else %}{{ tuser.ident }}{% endif %}</a></td>
+                            <td style="text-align:center">{{ tuser.last_seen|timesince }}</td>
+                            <td style="text-align:center">{{ tuser.num_events|small_count }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="btn-toolbar">
+                <div class="btn-group pull-right">
+                    <a class="btn prev{% if not tuser_list.paginator.has_previous %} disabled{% endif %}" href="?{{ tuser_list.query_string|escape }}&amp;p={{ tuser_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
+                    <a class="btn next{% if not tuser_list.paginator.has_next %} disabled{% endif %}" href="?{{ tuser_list.query_string|escape }}&amp;p={{ tuser_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+                </div>
+            </div>
+        {% endif %}
+    </section>
+{% endblock %}

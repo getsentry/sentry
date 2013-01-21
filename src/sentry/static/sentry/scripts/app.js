@@ -68,7 +68,7 @@
                 pollUrl: uri,
                 stream: this.options.stream,
                 realtime: this.options.realtime,
-                model: app.Group
+                model: app.models.Group
             });
         },
 
@@ -93,7 +93,7 @@
                 realtime: ($.cookie('pausestream') ? false : true),
                 canStream: this.options.canStream,
                 pollUrl: app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/',
-                model: app.Group
+                model: app.models.Group
             });
 
             this.control = $('a[data-action=pause]');
@@ -147,7 +147,7 @@
                 className: 'group-list',
                 id: 'event_list',
                 members: [data.group],
-                model: app.Group
+                model: app.models.Group
             });
 
             $('#chart').height('200px');
@@ -334,6 +334,20 @@
                     });
                     window.setTimeout(this.refreshStats, 1000);
                 }, this)
+            });
+        }
+
+    });
+
+    app.UserListPage = BasePage.extend({
+
+        initialize: function(data){
+            BasePage.prototype.initialize.call(this, data);
+
+            this.list = new app.UserListView({
+                className: 'user-list',
+                id: 'user_list',
+                members: data.users
             });
         }
 

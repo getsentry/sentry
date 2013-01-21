@@ -148,14 +148,14 @@ DEFAULT_SORT_OPTION = 'date'
 # Default sort option for the search results
 SEARCH_DEFAULT_SORT_OPTION = 'date'
 
-# Default project access when a project owner is created
-DEFAULT_PROJECT_ACCESS = 'MEMBER_OWNER'
-
 # Default to not sending the Access-Control-Allow-Origin header on api/store
 ALLOW_ORIGIN = None
 
 # Enable capturing of JavaScript errors (Sentry internal errors)
 USE_JS_CLIENT = False
+
+# Enable scraping of javascript context for source code
+SCRAPE_JAVASCRIPT_CONTEXT = True
 
 # The alias for the cache backend (MUST be a compatible backend string for < 1.3)
 CACHE_BACKEND = 'dummy://'

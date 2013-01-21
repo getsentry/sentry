@@ -145,6 +145,14 @@ class ProjectFromAuthVarsTest(BaseAPITest):
         auth_vars = {'sentry_key': self.pk.public_key}
         self.assertRaises(APIUnauthorized, project_from_auth_vars, auth_vars)
 
+    def test_invalid_key(self):
+        auth_vars = {'sentry_key': 'z'}
+        self.assertRaises(APIForbidden, project_from_auth_vars, auth_vars)
+
+    def test_invalid_secret(self):
+        auth_vars = {'sentry_key': self.pk.public_key, 'sentry_secret': 'z'}
+        self.assertRaises(APIForbidden, project_from_auth_vars, auth_vars)
+
 
 class ProcessDataTimestampTest(BaseAPITest):
     def test_iso_timestamp(self):
@@ -174,6 +182,16 @@ class ProcessDataTimestampTest(BaseAPITest):
     def test_invalid_timestamp(self):
         self.assertRaises(InvalidTimestamp, process_data_timestamp, {
             'timestamp': 'foo'
+        })
+
+    def test_invalid_numeric_timestamp(self):
+        self.assertRaises(InvalidTimestamp, process_data_timestamp, {
+            'timestamp': '100000000000000000000.0'
+        })
+
+    def test_future_timestamp(self):
+        self.assertRaises(InvalidTimestamp, process_data_timestamp, {
+            'timestamp': '2052-01-01T10:30:45Z'
         })
 
 

@@ -21,7 +21,7 @@ from sentry.constants import (SORT_OPTIONS, SEARCH_SORT_OPTIONS,
     SORT_CLAUSES, MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES, MEMBER_USER,
     SCORE_CLAUSES, MYSQL_SCORE_CLAUSES, SQLITE_SCORE_CLAUSES)
 from sentry.filters import get_filters
-from sentry.models import Group, Event, SearchDocument
+from sentry.models import Group, Event, SearchDocument, Activity
 from sentry.permissions import can_admin_group
 from sentry.plugins import plugins
 from sentry.utils import json
@@ -117,7 +117,12 @@ def _get_group_list(request, project):
     if score_clause:
         event_list = event_list.extra(
             select={'sort_value': score_clause},
-        ).order_by('-sort_value', '-last_seen')
+        )
+        # HACK: dont sort by the same column twice
+        if sort == 'date':
+            event_list = event_list.order_by('-last_seen')
+        else:
+            event_list = event_list.order_by('-sort_value', '-last_seen')
         cursor = request.GET.get('cursor')
         if cursor:
             event_list = event_list.extra(
@@ -250,9 +255,13 @@ def render_with_group_context(group, template, context, request=None):
 
 @has_group_access
 def group(request, project, group):
+    activity = Activity.objects.filter(
+        group=group,
+    ).order_by('-datetime').select_related('user')
 
     return render_with_group_context(group, 'sentry/groups/details.html', {
         'page': 'details',
+        'activity': activity,
     }, request)
 
 

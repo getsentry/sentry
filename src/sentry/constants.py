@@ -106,7 +106,11 @@ PLATFORM_ROOTS = {
 }
 
 PLATFORM_TITLES = {
-    'rails3': 'Rails 3',
+    'rails3': 'Rails 3 (Ruby)',
     'php': 'PHP',
     'ios': 'iOS',
+    'express': 'Express (Node.js)',
+    'connect': 'Express (Node.js)',
+    'django': 'Django (Python)',
+    'flask': 'Flask (Python)',
 }

@@ -34,13 +34,13 @@ from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
-from sentry.constants import (STATUS_LEVELS, MEMBER_TYPES,  # NOQA
-    MEMBER_OWNER, MEMBER_USER, MEMBER_SYSTEM, PLATFORM_TITLES, PLATFORM_LIST,
-    STATUS_VISIBLE, STATUS_HIDDEN)  # NOQA
+from sentry.constants import (STATUS_LEVELS, MEMBER_TYPES,
+    MEMBER_OWNER, MEMBER_USER, PLATFORM_TITLES, PLATFORM_LIST,
+    STATUS_VISIBLE, STATUS_HIDDEN)
 from sentry.manager import (GroupManager, ProjectManager,
     MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager,
     UserOptionManager, FilterKeyManager, TeamManager)
-from sentry.signals import buffer_incr_complete
+from sentry.signals import buffer_incr_complete, regression_signal
 from sentry.utils import cached_property, MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField, update
 from sentry.utils.imports import import_string
@@ -59,6 +59,21 @@ def slugify_instance(inst, label):
         inst.slug = base_slug + '-' + str(n)
 
 
+def sane_repr(*attrs):
+    if 'id' not in attrs and 'pk' not in attrs:
+        attrs = ('id',) + attrs
+
+    def _repr(self):
+        cls = type(self).__name__
+
+        pairs = ('%s=%s' % (a, repr(getattr(self, a, None)))
+            for a in attrs)
+
+        return u'<%s at 0x%x: %s>' % (cls, id(self), ', '.join(pairs))
+
+    return _repr
+
+
 class Option(Model):
     """
     Global options which apply in most situations as defaults,
@@ -74,6 +89,8 @@ class Option(Model):
         'key',
     ])
 
+    __repr__ = sane_repr('key', 'value')
+
 
 class Team(Model):
     """
@@ -88,8 +105,7 @@ class Team(Model):
         'slug',
     ))
 
-    def __unicode__(self):
-        return u'%s (%s)' % (self.name, self.slug)
+    __repr__ = sane_repr('slug', 'owner_id')
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -113,7 +129,7 @@ class TeamMember(Model):
     team = models.ForeignKey(Team, related_name="member_set")
     user = models.ForeignKey(User, related_name="sentry_teammember_set")
     is_active = models.BooleanField(default=True)
-    type = models.IntegerField(choices=MEMBER_TYPES, default=globals().get(settings.DEFAULT_PROJECT_ACCESS))
+    type = models.IntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager()
@@ -121,8 +137,7 @@ class TeamMember(Model):
     class Meta:
         unique_together = (('team', 'user'),)
 
-    def __unicode__(self):
-        return u'team=%s, user=%s, type=%s' % (self.team_id, self.user_id, self.get_type_display())
+    __repr__ = sane_repr('team_id', 'user_id', 'type')
 
 
 class Project(Model):
@@ -155,8 +170,7 @@ class Project(Model):
         'slug',
     ])
 
-    def __unicode__(self):
-        return u'%s (%s)' % (self.name, self.slug)
+    __repr__ = sane_repr('slug', 'owner_id')
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -250,8 +264,7 @@ class ProjectKey(Model):
         'secret_key',
     ))
 
-    def __unicode__(self):
-        return u'project=%s, user=%s' % (self.project_id, self.user_id)
+    __repr__ = sane_repr('project_id', 'user_id', 'public_key')
 
     @classmethod
     def generate_api_key(cls):
@@ -306,8 +319,7 @@ class ProjectOption(Model):
         db_table = 'sentry_projectoptions'
         unique_together = (('project', 'key',),)
 
-    def __unicode__(self):
-        return u'project=%s, key=%s, value=%s' % (self.project_id, self.key, self.value)
+    __repr__ = sane_repr('project_id', 'key', 'value')
 
 
 class PendingTeamMember(Model):
@@ -316,7 +328,7 @@ class PendingTeamMember(Model):
     """
     team = models.ForeignKey(Team, related_name="pending_member_set")
     email = models.EmailField()
-    type = models.IntegerField(choices=MEMBER_TYPES, default=globals().get(settings.DEFAULT_PROJECT_ACCESS))
+    type = models.IntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager()
@@ -324,8 +336,7 @@ class PendingTeamMember(Model):
     class Meta:
         unique_together = (('team', 'email'),)
 
-    def __unicode__(self):
-        return u'team=%s, email=%s, type=%s' % (self.team_id, self.email, self.get_type_display())
+    __repr__ = sane_repr('team_id', 'email', 'type')
 
     @property
     def token(self):
@@ -368,6 +379,7 @@ class MessageBase(Model):
     culprit = models.CharField(max_length=200, blank=True, null=True, db_column='view')
     checksum = models.CharField(max_length=32, db_index=True)
     data = GzippedDictField(blank=True, null=True)
+    num_comments = models.PositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
 
     class Meta:
@@ -461,6 +473,8 @@ class Group(MessageBase):
         )
         db_table = 'sentry_groupedmessage'
 
+    __repr__ = sane_repr('project_id', 'checksum')
+
     def __unicode__(self):
         return "(%s) %s" % (self.times_seen, self.error())
 
@@ -543,6 +557,8 @@ class GroupMeta(Model):
     class Meta:
         unique_together = (('group', 'key'),)
 
+    __repr__ = sane_repr('group_id', 'key', 'value')
+
 
 class Event(MessageBase):
     """
@@ -563,8 +579,7 @@ class Event(MessageBase):
         db_table = 'sentry_message'
         unique_together = ('project', 'event_id')
 
-    def __unicode__(self):
-        return self.error()
+    __repr__ = sane_repr('project_id', 'group_id', 'checksum')
 
     def get_absolute_url(self):
         if self.project_id:
@@ -656,6 +671,8 @@ class GroupBookmark(Model):
         # composite index includes project for efficient queries
         unique_together = (('project', 'user', 'group'),)
 
+    __repr__ = sane_repr('project_id', 'group_id', 'user_id')
+
 
 class FilterKey(Model):
     """
@@ -669,8 +686,7 @@ class FilterKey(Model):
     class Meta:
         unique_together = (('project', 'key'),)
 
-    def __unicode__(self):
-        return u'key=%s' % (self.key,)
+    __repr__ = sane_repr('project_id', 'key')
 
 
 class FilterValue(Model):
@@ -686,8 +702,7 @@ class FilterValue(Model):
     class Meta:
         unique_together = (('project', 'key', 'value'),)
 
-    def __unicode__(self):
-        return u'key=%s, value=%s' % (self.key, self.value)
+    __repr__ = sane_repr('project_id', 'key', 'value')
 
 
 class MessageFilterValue(Model):
@@ -708,9 +723,7 @@ class MessageFilterValue(Model):
     class Meta:
         unique_together = (('project', 'key', 'value', 'group'),)
 
-    def __unicode__(self):
-        return u'group_id=%s, times_seen=%s, key=%s, value=%s' % (self.group_id, self.times_seen,
-                                                                  self.key, self.value)
+    __repr__ = sane_repr('project_id', 'group_id', 'key', 'value')
 
     def save(self, *args, **kwargs):
         if not self.first_seen:
@@ -737,8 +750,7 @@ class MessageCountByMinute(Model):
     class Meta:
         unique_together = (('project', 'group', 'date'),)
 
-    def __unicode__(self):
-        return u'group_id=%s, times_seen=%s, date=%s' % (self.group_id, self.times_seen, self.date)
+    __repr__ = sane_repr('project_id', 'group_id', 'date')
 
 
 class ProjectCountByMinute(Model):
@@ -759,6 +771,8 @@ class ProjectCountByMinute(Model):
     class Meta:
         unique_together = (('project', 'date'),)
 
+    __repr__ = sane_repr('project_id', 'date')
+
 
 class SearchDocument(Model):
     project = models.ForeignKey(Project)
@@ -773,6 +787,8 @@ class SearchDocument(Model):
     class Meta:
         unique_together = (('project', 'group'),)
 
+    __repr__ = sane_repr('project_id', 'group_id')
+
 
 class SearchToken(Model):
     document = models.ForeignKey(SearchDocument, related_name="token_set")
@@ -785,8 +801,7 @@ class SearchToken(Model):
     class Meta:
         unique_together = (('document', 'field', 'token'),)
 
-    def __unicode__(self):
-        return u'%s=%s' % (self.field, self.token)
+    __repr__ = sane_repr('document_id', 'field', 'token')
 
 
 class UserOption(Model):
@@ -806,14 +821,15 @@ class UserOption(Model):
     class Meta:
         unique_together = (('user', 'project', 'key',),)
 
-    def __unicode__(self):
-        return u'user=%s, project=%s, key=%s, value=%s' % (self.user_id, self.project_id, self.key, self.value)
+    __repr__ = sane_repr('user_id', 'project_id', 'key', 'value')
 
 
-class LostPasswordHash(models.Model):
+class LostPasswordHash(Model):
     user = models.ForeignKey(User, unique=True)
     hash = models.CharField(max_length=32)
     date_added = models.DateTimeField(default=timezone.now)
+
+    __repr__ = sane_repr('user_id', 'hash')
 
     def save(self, *args, **kwargs):
         if not self.hash:
@@ -850,14 +866,33 @@ class LostPasswordHash(models.Model):
             logger.exception(e)
 
 
+class TrackedUser(Model):
+    project = models.ForeignKey(Project)
+    ident = models.CharField(max_length=200)
+    email = models.EmailField(null=True)
+    data = GzippedDictField(blank=True, null=True)
+    last_seen = models.DateTimeField(default=timezone.now, db_index=True)
+    first_seen = models.DateTimeField(default=timezone.now, db_index=True)
+    num_events = models.PositiveIntegerField(default=0)
+    groups = models.ManyToManyField(Group, through='sentry.AffectedUserByGroup')
+
+    objects = BaseManager()
+
+    class Meta:
+        unique_together = (('project', 'ident'),)
+
+    __repr__ = sane_repr('project_id', 'ident', 'email')
+
+
 class AffectedUserByGroup(Model):
     """
     Stores a count of how many times a ``Group`` has affected
     a user.
     """
     project = models.ForeignKey(Project)
+    tuser = models.ForeignKey(TrackedUser, null=True)
     group = models.ForeignKey(Group)
-    ident = models.CharField(max_length=200)
+    ident = models.CharField(max_length=200, null=True)
     times_seen = models.PositiveIntegerField(default=0)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
@@ -865,11 +900,58 @@ class AffectedUserByGroup(Model):
     objects = BaseManager()
 
     class Meta:
-        unique_together = (('project', 'ident', 'group'),)
+        unique_together = (('project', 'tuser', 'group'),)
 
-    def __unicode__(self):
-        return u'group_id=%s, times_seen=%s, ident=%s' % (self.group_id, self.times_seen,
-                                                          self.ident)
+    __repr__ = sane_repr('project_id', 'group_id', 'tuser_id')
+
+
+class Activity(Model):
+    COMMENT = 0
+    SET_RESOLVED = 1
+    SET_UNRESOLVED = 2
+    SET_MUTED = 3
+    SET_PUBLIC = 4
+    SET_PRIVATE = 5
+    SET_REGRESSION = 6
+
+    TYPE = (
+        # (TYPE, verb-slug)
+        (COMMENT, 'comment'),
+        (SET_RESOLVED, 'set_resolved'),
+        (SET_UNRESOLVED, 'set_unresolved'),
+        (SET_MUTED, 'set_muted'),
+        (SET_PUBLIC, 'set_public'),
+        (SET_PRIVATE, 'set_private'),
+        (SET_REGRESSION, 'set_regression'),
+    )
+
+    project = models.ForeignKey(Project)
+    group = models.ForeignKey(Group, null=True)
+    event = models.ForeignKey(Event, null=True)
+    # index on (type, ident)
+    type = models.PositiveIntegerField(choices=TYPE)
+    ident = models.CharField(max_length=64, null=True)
+    # if the user is not set, it's assumed to be the system
+    user = models.ForeignKey(User, null=True)
+    datetime = models.DateTimeField(default=timezone.now)
+    data = GzippedDictField(null=True)
+
+    __repr__ = sane_repr('project_id', 'group_id', 'event_id', 'user_id', 'type', 'ident')
+
+    def save(self, *args, **kwargs):
+        created = bool(not self.id)
+
+        super(Activity, self).save(*args, **kwargs)
+
+        if not created:
+            return
+
+        # HACK: support Group.num_comments
+        if self.type == Activity.COMMENT:
+            self.group.update(num_comments=F('num_comments') + 1)
+
+            if self.event:
+                self.event.update(num_comments=F('num_comments') + 1)
 
 
 ### django-indexer
@@ -958,7 +1040,7 @@ def create_team_member_for_owner(instance, created, **kwargs):
 
     instance.member_set.get_or_create(
         user=instance.owner,
-        type=globals()[settings.DEFAULT_PROJECT_ACCESS]
+        type=MEMBER_OWNER,
     )
 
 
@@ -1016,6 +1098,18 @@ def record_user_count(filters, created, **kwargs):
     }, {
         'id': filters['group'].id,
     })
+
+
+@regression_signal.connect(weak=False)
+def create_regression_activity(instance, **kwargs):
+    if instance.times_seen == 1:
+        # this event is new
+        return
+    Activity.objects.create(
+        project=instance.project,
+        group=instance,
+        type=Activity.SET_REGRESSION,
+    )
 
 
 # Signal registration

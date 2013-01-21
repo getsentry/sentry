@@ -131,7 +131,7 @@ class EditProjectForm(forms.ModelForm):
         if value == -1:
             return
 
-        if value == self.instance.team.id:
+        if self.instance.team and value == self.instance.team.id:
             return self.instance.team
 
         return self.team_list[value]

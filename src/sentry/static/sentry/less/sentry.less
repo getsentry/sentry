@@ -1,6 +1,7 @@
 @import url("../bootstrap/less/bootstrap.less");
 @import url("datepicker.less");
 @import url("github.less");
+@import url("pygments.less");
 
 @baseFontSize: 13px;
 @grayDark: #404f60;
@@ -898,12 +899,30 @@ ul.traceback { list-style-type: none; margin-left: 0; }
     color: #999;
   }
 
+  p {
+    font-size: 12px;
+
+    a.annotation {
+      color: inherit;
+      padding: 0 1px;
+      border-bottom: 1px dotted #666;
+      &:hover { text-decoration: none; }
+    }
+  }
+
   code {
+    padding: 0;
+    font-size: inherit;
     color: inherit;
   }
 
   .context {
     margin-bottom: 5px;
+  }
+  .tag-app {
+    color: #aaa;
+    font-size: 0.9em;
+    margin-left: 10px;
   }
 
   table.vars {
@@ -939,7 +958,6 @@ ul.traceback { list-style-type: none; margin-left: 0; }
   }
 }
 
-
 .expandable {
   height: 0;
   overflow: hidden;
@@ -972,12 +990,11 @@ ol.context {
 
   > li {
     padding-left: 20px;
-    font-family:monospace;
-    white-space:pre;
-    color:rgba(0,0,0,.75);
-    background-color: #f5f5f5;
+    font-family: monospace;
+    color: rgba(0,0,0,.75);
+    background-color: #f8f8f8;
 
-    > pre {
+    pre {
       background-color: inherit;
       color: rgba(0,0,0,.5);
       margin: 0;
@@ -992,7 +1009,7 @@ ol.context {
     }
   }
   > li.active {
-    background-color: #ddd;
+    background-color: #e8e8e8;
 
     pre {
       color: @black;
@@ -1001,9 +1018,9 @@ ol.context {
 
   &:hover {
     li {
-      background-color: #f0f0f0;
+      background-color: #f3f3f3;
       &.active {
-        background-color: #d3d3d3;
+        background-color: #e0e0e0;
       }
     }
   }

@@ -12,7 +12,7 @@ from django.conf.urls.defaults import include, patterns, url
 
 from sentry.web import api
 from sentry.web.frontend import accounts, generic, groups, events, \
-  projects, admin, docs, teams
+  projects, admin, docs, teams, users
 
 __all__ = ('urlpatterns',)
 
@@ -35,7 +35,6 @@ urlpatterns = patterns('',
     url(r'^_static/(?P<module>[^/]+)/(?P<path>.*)$', generic.static_media, name='sentry-media'),
 
     # Account
-
     url(r'^login/$', accounts.login, name='sentry-login'),
     url(r'^login-redirect/$', accounts.login_redirect, name='sentry-login-redirect'),
     url(r'^logout/$', accounts.logout, name='sentry-logout'),
@@ -47,8 +46,7 @@ urlpatterns = patterns('',
     url(r'^account/settings/identities/$', accounts.list_identities, name='sentry-account-settings-identities'),
     url(r'^account/settings/notifications/$', accounts.notification_settings, name='sentry-account-settings-notifications'),
 
-    # Teams
-
+    # Settings - Teams
     url(r'^account/teams/$', teams.team_list, name='sentry-team-list'),
     url(r'^account/teams/new/$', teams.create_new_team, name='sentry-new-team'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/edit/$', teams.manage_team,
@@ -78,8 +76,7 @@ urlpatterns = patterns('',
     url(r'^accept/(?P<member_id>\d+)/(?P<token>\w+)/$', teams.accept_invite,
         name='sentry-accept-invite'),
 
-    # Projects
-
+    # Settings - Projects
     url(r'^account/projects/$', projects.project_list, name='sentry-project-list'),
     url(r'^account/projects/new/$', projects.new_project, name='sentry-new-project'),
     url(r'^account/projects/(?P<project_id>[\w_-]+)/edit/$', projects.manage_project,
@@ -111,10 +108,11 @@ urlpatterns = patterns('',
     url(r'^account/projects/(?P<project_id>[\w_-]+)/team/$', projects.manage_project_team,
         name='sentry-manage-project-team'),
 
-    # Global
-
+    # Generic
     url(r'^$', generic.dashboard, name='sentry'),
     url(r'^wall/$', generic.wall_display, name='sentry-wall'),
+
+    # Admin
     url(r'^manage/status/$', admin.status_env, name='sentry-admin-status'),
     url(r'^manage/status/packages/$', admin.status_packages, name='sentry-admin-packages-status'),
     url(r'^manage/status/mail/$', admin.status_mail, name='sentry-admin-mail-status'),
@@ -155,8 +153,11 @@ urlpatterns = patterns('',
     url(r'^api/(?:(?P<project_id>[\w_-]+)/)?stats/$', api.get_stats, name='sentry-api-stats'),
     url(r'^api/(?P<project_id>[\w_-]+)/tags/search/$', api.search_tags, name='sentry-api-search-tags'),
 
-    # Project specific
+    # Users
+    url(r'^(?P<project_id>[\w_-]+)/users/$', users.user_list, name='sentry-users'),
+    url(r'^(?P<project_id>[\w_-]+)/users/(?P<user_id>\d+)/$', users.user_details, name='sentry-user-details'),
 
+    # Project specific
     url(r'^(?P<project_id>[\w_-]+)/get-started/$', projects.get_started, name='sentry-get-started'),
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/$', groups.group, name='sentry-group'),
     url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/$', groups.group_event_list, name='sentry-group-events'),

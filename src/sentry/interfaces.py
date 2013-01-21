@@ -12,13 +12,17 @@ validated and rendered.
 import itertools
 import urlparse
 
+from pygments import highlight
+from pygments.lexers import get_lexer_for_filename, TextLexer
+from pygments.formatters import HtmlFormatter
+
 from django.http import QueryDict
+from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 
 from sentry.app import env
 from sentry.models import UserOption
 from sentry.web.helpers import render_to_string
-
 
 _Exception = Exception
 
@@ -29,7 +33,7 @@ def unserialize(klass, data):
     return value
 
 
-def get_context(lineno, context_line, pre_context=None, post_context=None):
+def get_context(filename, lineno, context_line, pre_context=None, post_context=None):
     lineno = int(lineno)
     context = []
     start_lineno = lineno - len(pre_context or [])
@@ -50,6 +54,18 @@ def get_context(lineno, context_line, pre_context=None, post_context=None):
         for line in post_context:
             context.append((at_lineno, line))
             at_lineno += 1
+
+    # HACK:
+    if '.' not in filename.rsplit('/', 1)[-1]:
+        filename = 'index.html'
+
+    try:
+        lexer = get_lexer_for_filename(filename)
+    except Exception:
+        lexer = TextLexer()
+
+    formatter = HtmlFormatter()
+    context = tuple((n, mark_safe(highlight(l, lexer, formatter))) for n, l in context)
 
     return context
 
@@ -209,7 +225,9 @@ class Stacktrace(Interface):
     The following additional attributes are supported:
 
     ``lineno``
-      The lineno of the call
+      The line number of the call
+    ``colno``
+      The column number of the call
     ``abs_path``
       The absolute path to filename
     ``function``
@@ -226,6 +244,10 @@ class Stacktrace(Interface):
       Signifies whether this frame is related to the execution of the relevant code in this stacktrace. For example,
       the frames that might power the framework's webserver of your app are probably not relevant, however calls to
       the framework's library once you start handling code likely are.
+    ``vars``
+      A mapping of variables which were available within this frame (usually context-locals).
+    ``extra``
+      A mapping of arbitrary annotated data. Platform-specific.
 
     >>> {
     >>>     "frames": [{
@@ -261,6 +283,10 @@ class Stacktrace(Interface):
             # lineno should be an int
             if 'lineno' in frame:
                 frame['lineno'] = int(frame['lineno'])
+
+            # colno should be an int
+            if 'colno' in frame:
+                frame['colno'] = int(frame['colno'])
 
             # in_app should be a boolean
             if 'in_app' in frame:
@@ -316,11 +342,20 @@ class Stacktrace(Interface):
         return newest_first
 
     def to_html(self, event):
+        if not self.frames:
+            return ''
+
         system_frames = 0
         frames = []
         for frame in self.frames:
             if frame.get('context_line') and frame.get('lineno') is not None:
-                context = get_context(frame['lineno'], frame['context_line'], frame.get('pre_context'), frame.get('post_context'))
+                context = get_context(
+                    filename=frame.get('filename'),
+                    lineno=frame['lineno'],
+                    context_line=frame['context_line'],
+                    pre_context=frame.get('pre_context'),
+                    post_context=frame.get('post_context'),
+                )
                 start_lineno = context[0][0]
             else:
                 context = []
@@ -339,7 +374,7 @@ class Stacktrace(Interface):
 
             in_app = bool(frame.get('in_app', True))
 
-            frames.append({
+            frame_data = {
                 'abs_path': frame.get('abs_path'),
                 'filename': frame['filename'],
                 'function': frame.get('function'),
@@ -348,7 +383,18 @@ class Stacktrace(Interface):
                 'context': context,
                 'vars': context_vars,
                 'in_app': in_app,
-            })
+            }
+
+            if event.platform == 'javascript' and frame.get('data'):
+                data = frame['data']
+                frame_data.update({
+                    'sourcemap': data['sourcemap'].rsplit('/', 1)[-1],
+                    'orig_filename': data['orig_filename'],
+                    'orig_lineno': data['orig_lineno'],
+                    'orig_colno': data['orig_colno'],
+                })
+
+            frames.append(frame_data)
 
             if not in_app:
                 system_frames += 1
@@ -397,10 +443,19 @@ class Stacktrace(Interface):
 
         if max_frames:
             visible_frames = max_frames
+            if newest_first:
+                start, stop = None, max_frames
+            else:
+                start, stop = -max_frames, None
+
         else:
             visible_frames = len(frames)
+            start, stop = None, None
 
-        for frame in frames[:max_frames]:
+        if not newest_first and visible_frames < num_frames:
+            result.extend(('(%d additional frame(s) were not displayed)' % (num_frames - visible_frames,), '...'))
+
+        for frame in frames[start:stop]:
             pieces = ['  File "%(filename)s"']
             if 'lineno' in frame:
                 pieces.append(', line %(lineno)s')
@@ -411,8 +466,8 @@ class Stacktrace(Interface):
             if 'context_line' in frame:
                 result.append('    %s' % frame['context_line'].strip())
 
-        if visible_frames < num_frames:
-            result.extend(('', '(%d additional frame(s) were not displayed)' % (num_frames - visible_frames,)))
+        if newest_first and visible_frames < num_frames:
+            result.extend(('...', '(%d additional frame(s) were not displayed)' % (num_frames - visible_frames,)))
 
         return '\n'.join(result)
 
@@ -544,6 +599,13 @@ class Http(Interface):
             self.cookies = cookies
         else:
             self.cookies = {}
+        # if cookies were a string, convert to a dict
+        # parse_qsl will parse both acceptable formats:
+        #  a=b&c=d
+        # and
+        #  a=b; c=d
+        if isinstance(self.cookies, basestring):
+            self.cookies = dict(urlparse.parse_qsl(self.cookies, keep_blank_values=True))
         # if cookies were [also] included in headers we
         # strip them out
         if headers and 'Cookie' in headers:
@@ -669,7 +731,14 @@ class Template(Interface):
         return [self.filename, self.context_line]
 
     def to_string(self, event):
-        context = get_context(self.lineno, self.context_line, self.pre_context, self.post_context)
+        context = get_context(
+            filename=self.filename,
+            lineno=self.lineno,
+            context_line=self.context_line,
+            pre_context=self.pre_context,
+            post_context=self.post_context,
+        )
+
         result = [
             'Stacktrace (most recent call last):', '',
             self.get_traceback(event, context)
