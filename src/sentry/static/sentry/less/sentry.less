@@ -44,7 +44,7 @@ body {
 a {
   color: @linkColor;
   text-decoration: none;
-  .transition(color linear .2s);
+  .transition(color linear .1s);
 }
 a:hover {
   color: @linkColorHover;
@@ -77,6 +77,7 @@ h3 {
 }
 
 .navbar {
+  position: relative;
   margin-bottom: 0;
   .navbar-inner {
     color: #bfc6cf;
@@ -107,6 +108,49 @@ h3 {
     text-decoration: none;
     &:hover {
       color: lighten(#eef5fc, 10);
+    }
+  }
+
+  #team-nav {
+    position: absolute;
+    top: 0;
+    left: 124px;
+    ul {
+      .clearfix();
+      margin: 0;
+      li {
+        list-style-type: none;
+        float: left;
+        a {
+          text-decoration: none;
+          display: block;
+          font-size: 16px;
+          font-weight: bold;
+          color: #8f97a3;
+          height: 70px;
+          width: 120px;
+          text-align: center;
+          line-height: 70px;
+          .box-shadow(inset -1px 0 0 rgba(0,0,0, .15));
+
+          &:hover {
+            color: lighten(#8f97a3, 16);
+          }
+        }
+
+        &.active {
+          a {
+            color: darken(#8f97a3, 10);
+            height: 71px;
+            background: #dee3e9;
+            .box-shadow(none);
+          }
+        }
+
+        &:first-child {
+          .box-shadow(~"inset 1px 0 0 rgba(0,0,0, .15)");
+        }
+      }
     }
   }
 
