@@ -35,11 +35,13 @@ def render_activity(item):
 
     action_str = ACTIVITY_ACTION_STRINGS[item.type]
 
+    output = '<p>'
+
     if item.user:
         name = item.user.first_name or item.user.email
-        output = '<p><strong>%s</strong> %s' % (escape(name), action_str)
+        output += '<strong>%s</strong> %s' % (escape(name), action_str)
     else:
-        output = 'The system %s' % (action_str,)
+        output += 'The system %s' % (action_str,)
 
     output += ' &mdash; %s</p>' % (timesince(item.datetime),)
 
