@@ -15,7 +15,7 @@
 {% block page_header %}
     <form action="{% url sentry-search project.slug %}" class="navbar-search pull-right" id="search">
         <input type="hidden" name="sort" value="{% if sort %}{{ sort }}{% endif %}"/>
-        <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="{% if HAS_SEARCH %}{% trans "search query or message id" %}{% else %}{% trans "message id" %}{% endif %}" class="search-query pull-left" />
+        <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="{% if HAS_SEARCH %}{% trans "Search query or message id" %}{% else %}{% trans "Message id" %}{% endif %}" class="search-query pull-left" />
     </form>
     {{ block.super }}
 {% endblock %}
