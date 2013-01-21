@@ -14,7 +14,7 @@ import urlparse
 
 from pygments import highlight
 from pygments.lexers import (TextLexer, PythonLexer, RubyLexer, ObjectiveCLexer,
-    GoLexer, ErlangLexer, JavaLexer, JavascriptLexer)
+    GoLexer, ErlangLexer, JavaLexer, JavascriptLexer, PhpLexer)
 from pygments.formatters import HtmlFormatter
 
 from django.http import QueryDict
@@ -36,6 +36,7 @@ LEXERS = {
     'objc': ObjectiveCLexer,
     'python': PythonLexer,
     'ruby': RubyLexer,
+    'php': PhpLexer,
 }
 
 
