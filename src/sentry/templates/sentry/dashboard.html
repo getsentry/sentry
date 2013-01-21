@@ -56,7 +56,7 @@
         <ul class="nav nav-tabs nav-stacked" style="margin-bottom:5px">
             {% for p in project_list|slice:"10" %}
                 <li{% if p == project %} class="active"{% endif %}>
-                    <a class="action" href="{% url sentry-manage-project project.team.slug p.slug %}" title="{% trans "Settings" %}"><i aria-hidden="true" class="icon-cog"></i></a>
+                    <a class="action" href="{% url sentry-manage-project p.team.slug p.slug %}" title="{% trans "Settings" %}"><i aria-hidden="true" class="icon-cog"></i></a>
                     <a href="{% url sentry-stream p.team.slug p.slug %}">{{ p.name }}</a>
                 </li>
             {% endfor %}
