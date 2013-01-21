@@ -220,6 +220,7 @@ def group_list(request, project):
     has_realtime = page == 1
 
     return render_to_response('sentry/groups/group_list.html', {
+        'team': project.team,
         'project': project,
         'from_date': response['date_from'],
         'to_date': response['date_to'],
@@ -242,6 +243,7 @@ def render_with_group_context(group, template, context, request=None):
     event.group = group
 
     context.update({
+        'team': group.project.team,
         'project': group.project,
         'group': group,
         'event': event,
