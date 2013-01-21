@@ -1445,26 +1445,32 @@ legend {
 }
 
 #event_nav.fixed {
-  overflow: hidden;
+  // overflow: hidden;
   margin-bottom: 0;
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 1000000;
 
+  .event_nav_wrap {
+    max-width: 1300px;
+    margin: 0 auto;
 
-  > ul {
-    padding: 5px 0 5px 30px;
-    background: #fff;
-    @shadow: 0 1px 0 rgba(0,0,0, .08), 0 1px 3px rgba(0,0,0, .05);
-    .box-shadow(@shadow);
-    display: block;
-    width: auto;
-    position: fixed;
-    left: 0;
-    right: 300px;
-    top: 0;
-    margin: 0;
-    z-index: 1000000;
-    
-    li.dropdown {
-      position: relative;
+    > ul {
+      overflow: hidden;
+      .box-sizing(border-box);
+      width: auto;
+      display: block;
+      padding: 5px 0 5px 30px;
+      margin: 0 300px 0 0;
+      background: #fff;
+      @shadow: 0 1px 0 rgba(0,0,0, .08), 0 1px 3px rgba(0,0,0, .05);
+      .box-shadow(@shadow);
+      
+      li.dropdown {
+        position: relative;
+      }
     }
   }
 }
@@ -1472,44 +1478,47 @@ legend {
 #event_nav {
   margin-bottom: 20px;
   position: relative;
+  min-width: 1086px;
 
-  > ul {
-    padding: 0 20px;
-    margin: 0 -20px 0;
+  .event_nav_wrap {
+    > ul {
+      padding: 5px 20px;
+      margin: 0 -20px 0;
 
 
-    > li {
-      margin: 0 4px 0 0;
-      > a {
-        padding: 8px 18px;
-        line-height: 16px;
-        color: #89919b;
-        margin: 0;
-        font-weight: 600;
+      > li {
+        margin: 0 4px 0 0;
+        > a {
+          padding: 8px 18px;
+          line-height: 16px;
+          color: #89919b;
+          margin: 0;
+          font-weight: 600;
 
-        .border-radius(30px);
-        .transition(none);
-        &:hover,
-        &:focus {
+          .border-radius(30px);
           .transition(none);
-          color: #465262;
-          background-color: #dee3e9;
+          &:hover,
+          &:focus {
+            .transition(none);
+            color: #465262;
+            background-color: #dee3e9;
+          }
         }
-      }
-      &.active > a {
-        .transition(none);
-        color: @white;
-        background-color: #56AFE8;
-      }
-
-      > ul.dropdown-menu {
-        > li.active > a,
-        > li:hover > a,
-        > li:focus > a {
+        &.active > a {
+          .transition(none);
           color: @white;
+          background-color: #56AFE8;
         }
-      }
 
+        > ul.dropdown-menu {
+          > li.active > a,
+          > li:hover > a,
+          > li:focus > a {
+            color: @white;
+          }
+        }
+
+      }
     }
   }
 }
