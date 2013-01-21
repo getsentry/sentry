@@ -3,6 +3,7 @@
 @import url("datepicker.less");
 @import url("github.less");
 @import url("select2.less");
+@import url("pygments.less");
 
 @baseFontSize: 13px;
 @grayDark: #404f60;
@@ -1110,7 +1111,6 @@ ul.traceback { list-style-type: none; margin-left: 0; }
   }
 }
 
-
 .expandable {
   height: 0;
   overflow: hidden;
@@ -1143,12 +1143,11 @@ ol.context {
 
   > li {
     padding-left: 20px;
-    font-family:monospace;
-    white-space:pre;
-    color:rgba(0,0,0,.75);
-    background-color: #f4f6f9;
-    line-height: 24px;
-    > pre {
+    font-family: monospace;
+    color: rgba(0,0,0,.75);
+    background-color: #f8f8f8;
+
+    pre {
       background-color: inherit;
       color: rgba(0,0,0,.5);
       margin: 0;
@@ -1182,10 +1181,10 @@ ol.context {
   }
 
   &:hover {
-    > li {
-      background-color: #f0f0f0;
+    li {
+      background-color: #f3f3f3;
       &.active {
-        background-color: #d3d3d3;
+        background-color: #e0e0e0;
       }
     }
   }

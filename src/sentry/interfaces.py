@@ -12,13 +12,17 @@ validated and rendered.
 import itertools
 import urlparse
 
+from pygments import highlight
+from pygments.lexers import get_lexer_for_filename, TextLexer
+from pygments.formatters import HtmlFormatter
+
 from django.http import QueryDict
+from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 
 from sentry.app import env
 from sentry.models import UserOption
 from sentry.web.helpers import render_to_string
-
 
 _Exception = Exception
 
@@ -29,7 +33,7 @@ def unserialize(klass, data):
     return value
 
 
-def get_context(lineno, context_line, pre_context=None, post_context=None):
+def get_context(filename, lineno, context_line, pre_context=None, post_context=None):
     lineno = int(lineno)
     context = []
     start_lineno = lineno - len(pre_context or [])
@@ -50,6 +54,18 @@ def get_context(lineno, context_line, pre_context=None, post_context=None):
         for line in post_context:
             context.append((at_lineno, line))
             at_lineno += 1
+
+    # HACK:
+    if '.' not in filename.rsplit('/', 1)[-1]:
+        filename = 'index.html'
+
+    try:
+        lexer = get_lexer_for_filename(filename)
+    except Exception:
+        lexer = TextLexer()
+
+    formatter = HtmlFormatter()
+    context = tuple((n, mark_safe(highlight(l, lexer, formatter))) for n, l in context)
 
     return context
 
@@ -333,7 +349,13 @@ class Stacktrace(Interface):
         frames = []
         for frame in self.frames:
             if frame.get('context_line') and frame.get('lineno') is not None:
-                context = get_context(frame['lineno'], frame['context_line'], frame.get('pre_context'), frame.get('post_context'))
+                context = get_context(
+                    filename=frame.get('filename'),
+                    lineno=frame['lineno'],
+                    context_line=frame['context_line'],
+                    pre_context=frame.get('pre_context'),
+                    post_context=frame.get('post_context'),
+                )
                 start_lineno = context[0][0]
             else:
                 context = []
@@ -709,7 +731,14 @@ class Template(Interface):
         return [self.filename, self.context_line]
 
     def to_string(self, event):
-        context = get_context(self.lineno, self.context_line, self.pre_context, self.post_context)
+        context = get_context(
+            filename=self.filename,
+            lineno=self.lineno,
+            context_line=self.context_line,
+            pre_context=self.pre_context,
+            post_context=self.post_context,
+        )
+
         result = [
             'Stacktrace (most recent call last):', '',
             self.get_traceback(event, context)

@@ -20,22 +20,22 @@
         <table class="table table-bordered table-striped">
             <colgroup>
                 <col/>
-                <col width="90px"/>
+                <col width="150px"/>
             </colgroup>
             <thead>
                 <tr>
                     <th>{% trans "Project" %}</th>
-                    <th style="text-align:center">{% trans "Actions" %}</th>
+                    <th style="text-align:center;">{% trans "Date Added" %}</th>
                 </tr>
             </thead>
             <tbody>
                 {% for project in project_list %}
                     <tr>
                         <td>
-                            <a href="{% url sentry project.slug %}">{{ project.name }}</a><br>
+                            <a href="{% url sentry-manage-project project.slug %}">{{ project.name }}</a><br>
                         </td>
                         <td style="text-align:center;">
-                            <a href="{% url sentry-manage-project project.slug %}" class="btn btn-small">{% trans "Settings" %}</a>
+                            {{ project.date_added|timesince }}
                         </td>
                     </tr>
                 {% endfor %}

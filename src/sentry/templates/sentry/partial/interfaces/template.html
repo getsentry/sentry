@@ -14,7 +14,7 @@
 
             <ol start="{{ start_lineno }}" class="context">
                 {% for num, line in context %}
-                    <li class="{% if num == lineno %} active{% else %} expandable{% endif %}" onclick="$('#template .module-content').toggleClass('expanded')"><pre>{{ line }}</pre></li>
+                    <li class="{% if num == lineno %} active{% else %} expandable{% endif %}" onclick="$('#template .module-content').toggleClass('expanded')">{{ line }}</li>
                 {% endfor %}
             </ol>
         {% endif %}
