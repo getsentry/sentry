@@ -8,10 +8,12 @@
             <colgroup>
                 <col style="width:100px;">
             </colgroup>
+            {% if exception_type %}
             <tr>
                 <th>{% trans "Types:" %}</th>
                 <td class="code"><pre>{{ exception_type|escape }}</pre></td>
             </tr>
+            {% endif %}
             <tr>
                 <th>{% trans "Value:" %}</th>
                 <td class="code"><pre>{{ exception_value|escape }}</pre></td>
@@ -19,7 +21,7 @@
             {% if last_frame %}
                 <tr>
                     <th>{% trans "Location:" %}</th>
-                    <td>{{ last_frame.filename|escape }}, {{ last_frame.function|escape }}:{{ last_frame.lineno }}</td>
+                    <td>{{ last_frame.filename|escape }}{% if last_frame.function %} in {{ last_frame.function|escape }}, {% endif %} line {{ last_frame.lineno }}{% if last_frame.colno %} (col {{ last_frame.colno }}{% endif %}</td>
                 </tr>
             {% endif %}
         </table>
