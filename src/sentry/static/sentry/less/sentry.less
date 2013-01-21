@@ -1007,12 +1007,30 @@ ul.traceback { list-style-type: none; margin-left: 0; }
     color: #999;
   }
 
+  p {
+    font-size: 12px;
+
+    a.annotation {
+      color: inherit;
+      padding: 0 1px;
+      border-bottom: 1px dotted #666;
+      &:hover { text-decoration: none; }
+    }
+  }
+
   code {
+    padding: 0;
+    font-size: inherit;
     color: inherit;
   }
 
   .context {
     margin-bottom: 5px;
+  }
+  .tag-app {
+    color: #aaa;
+    font-size: 0.9em;
+    margin-left: 10px;
   }
 
   table.vars {

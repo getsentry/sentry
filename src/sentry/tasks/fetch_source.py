@@ -134,16 +134,21 @@ def fetch_javascript_source(event, **kwargs):
     # build list of frames that we can actually grab source for
     frames = [f for f in stacktrace['frames']
         if f.get('lineno') is not None
-            and f.get('colno') is not None
-            # and f.get('context_line') is None
+            and f.get('context_line') is None
             and f.get('abs_path', '').startswith(('http://', 'https://'))]
     if not frames:
         logger.debug('Event %r has no frames with enough context to fetch remote source', event.id)
         return
 
-    file_list = set((f['abs_path'] for f in frames))
+    file_list = set()
+    sourcemap_capable = set()
     source_code = {}
     sourcemaps = {}
+
+    for f in frames:
+        file_list.add(f['abs_path'])
+        if f.get('colno') is not None:
+            sourcemap_capable.add(f['abs_path'])
 
     while file_list:
         filename = file_list.pop()
@@ -153,6 +158,11 @@ def fetch_javascript_source(event, **kwargs):
         result = fetch_url(filename)
 
         if result == BAD_SOURCE:
+            continue
+
+        # If we didn't have a colno, a sourcemap wont do us any good
+        if filename not in sourcemap_capable:
+            source_code[filename] = (result.body.splitlines(), None)
             continue
 
         # TODO: we're currently running splitlines twice
@@ -182,7 +192,7 @@ def fetch_javascript_source(event, **kwargs):
             # we must've failed pulling down the source
             continue
 
-        if sourcemap:
+        if frame.get('colno') and sourcemap:
             state = find_source(sourcemaps[sourcemap], frame['lineno'], frame['colno'])
             # TODO: is this urljoin right? (is it relative to the sourcemap or the originating file)
             abs_path = urljoin(sourcemap, state.src)
@@ -192,10 +202,20 @@ def fetch_javascript_source(event, **kwargs):
             except KeyError:
                 pass
             else:
+                # Store original data in annotation
+                frame['data'] = {
+                    'orig_lineno': frame['lineno'],
+                    'orig_colno': frame['colno'],
+                    'orig_function': frame['function'],
+                    'orig_abs_path': frame['abs_path'],
+                    'orig_filename': frame['filename'],
+                    'sourcemap': sourcemap,
+                }
+
                 # SourceMap's return zero-indexed lineno's
                 frame['lineno'] = state.src_line + 1
                 frame['colno'] = state.src_col
-                frame['name'] = state.name
+                frame['function'] = state.name
                 frame['abs_path'] = abs_path
                 frame['filename'] = state.src
 
@@ -203,4 +223,4 @@ def fetch_javascript_source(event, **kwargs):
         frame['pre_context'], frame['context_line'], frame['post_context'] = get_source_context(
             source=source, lineno=int(frame['lineno']))
 
-    event.save()
+    event.update(data=event.data)

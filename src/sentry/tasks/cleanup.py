@@ -25,16 +25,20 @@ def cleanup(days=30, project=None, **kwargs):
 
     from sentry.models import (Group, Event, MessageCountByMinute,
         MessageFilterValue, FilterKey, FilterValue, ProjectCountByMinute,
-        SearchDocument)
+        SearchDocument, Activity, AffectedUserByGroup, LostPasswordHash)
     from sentry.utils.query import RangeQuerySetWrapper
 
     GENERIC_DELETES = (
         (SearchDocument, 'date_changed'),
         (MessageCountByMinute, 'date'),
         (ProjectCountByMinute, 'date'),
-        (Event, 'datetime'),
-        (Group, 'last_seen'),
         (MessageFilterValue, 'last_seen'),
+        (Event, 'datetime'),
+        (Activity, 'datetime'),
+        (AffectedUserByGroup, 'last_seen'),
+
+        # Group should probably be last
+        (Group, 'last_seen'),
     )
 
     log = cleanup.get_logger()
@@ -43,11 +47,19 @@ def cleanup(days=30, project=None, **kwargs):
 
     # Remove types which can easily be bound to project + date
     for model, date_col in GENERIC_DELETES:
-        log.info("Removing %r for days=%s project=%r" % (model, days, project))
+        log.info("Removing %r for days=%s project=%r", model, days, project or '*')
         qs = model.objects.filter(**{'%s__lte' % (date_col,): ts})
         if project:
             qs = qs.filter(project=project)
-        qs.delete()
+        # XXX: we step through because the deletion collector will pull all relations into memory
+        for obj in RangeQuerySetWrapper(qs):
+            log.info("Removing %r", obj)
+            obj.delete()
+
+    log.info("Removing expired values for %r", LostPasswordHash)
+    LostPasswordHash.objects.filter(
+        date_added__lte=timezone.now() - datetime.timedelta(days=1)
+    ).delete()
 
     # We'll need this to confirm deletion of FilterKey and Filtervalue objects.
     mqs = MessageFilterValue.objects.all()
@@ -55,7 +67,7 @@ def cleanup(days=30, project=None, **kwargs):
         mqs = mqs.filter(project=project)
 
     # FilterKey
-    log.info("Removing %r for days=%s project=%r" % (FilterKey, days, project))
+    log.info("Removing %r for days=%s project=%r", FilterKey, days, project or '*')
     qs = FilterKey.objects.all()
     if project:
         qs = qs.filter(project=project)
@@ -66,7 +78,7 @@ def cleanup(days=30, project=None, **kwargs):
             obj.delete()
 
     # FilterValue
-    log.info("Removing %r for days=%s project=%r" % (FilterValue, days, project))
+    log.info("Removing %r for days=%s project=%r", FilterValue, days, project or '*')
     qs = FilterValue.objects.all()
     if project:
         qs = qs.filter(project=project)
