@@ -570,11 +570,11 @@ class GroupManager(BaseManager, ChartMixin):
 
             if group.status == STATUS_RESOLVED:
                 # Makin things atomic
-                is_new = self.model.objects.filter(
+                is_new = bool(self.filter(
                     id=group.id,
                 ).exclude(
-                    status=STATUS_RESOLVED,
-                ).update(active_at=date, status=STATUS_UNRESOLVED)
+                    status=STATUS_UNRESOLVED,
+                ).update(active_at=date, status=STATUS_UNRESOLVED))
 
                 group.active_at = date
                 group.status = STATUS_UNRESOLVED
