@@ -6671,7 +6671,7 @@ ul.tag-list li {
 }
 .group-list > li.level-info .count,
 .events > li.level-info .count {
-  background: #ffa101;
+  background: #90EE90;
 }
 .group-list > li.level-warning .count,
 .events > li.level-warning .count {
@@ -6683,7 +6683,7 @@ ul.tag-list li {
 }
 .group-list > li.level-fatal .count,
 .events > li.level-fatal .count {
-  background: #f0431c;
+  background: #8B0000;
 }
 .group-list > li.resolved h3,
 .events > li.resolved h3 {
