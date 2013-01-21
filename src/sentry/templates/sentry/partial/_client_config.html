@@ -1,3 +1,4 @@
+{% load i18n %}
 
 <style type="text/css">
 .client-platform-list {
@@ -38,64 +39,64 @@
 }
 </style>
 <div class="page-header">
-    <h3>Platforms</h3>
+    <h3>{% trans "Platforms" %}</h3>
 </div>
 <ul class="client-platform-list">
     <li>
-        <a href="{% url sentry-docs-client project.slug 'python' %}">
+        <a href="{% url sentry-docs-client project.team.slug project.slug 'python' %}">
             <span><img src="{% url sentry-media "sentry" "images/platforms/python48x48.png" %}"></span>
             <strong>Python</strong>
         </a>
     </li>
     <li>
-        <a href="{% url sentry-docs-client project.slug 'php' %}">
+        <a href="{% url sentry-docs-client project.team.slug project.slug 'php' %}">
             <span><img src="{% url sentry-media "sentry" "images/platforms/php48x48.png" %}"></span>
             <strong>PHP</strong>
         </a>
     </li>
     <li>
-        <a href="{% url sentry-docs-client project.slug 'ruby' %}">
+        <a href="{% url sentry-docs-client project.team.slug project.slug 'ruby' %}">
             <span><img src="{% url sentry-media "sentry" "images/platforms/ruby48x48.png" %}"></span>
             <strong>Ruby</strong>
         </a>
     </li>
     <li>
-        <a href="{% url sentry-docs-client project.slug 'javascript' %}">
+        <a href="{% url sentry-docs-client project.team.slug project.slug 'javascript' %}">
             <span><img src="{% url sentry-media "sentry" "images/platforms/javascript48x48.png" %}"></span>
             <strong>JavaScript</strong>
         </a>
     </li>
     <li>
-        <a href="{% url sentry-docs-client project.slug 'java' %}">
+        <a href="{% url sentry-docs-client project.team.slug project.slug 'java' %}">
             <span><img src="{% url sentry-media "sentry" "images/platforms/java48x48.png" %}"></span>
             <strong>Java</strong>
         </a>
     </li>
     <li>
-        <a href="{% url sentry-docs-client project.slug 'node.js' %}">
+        <a href="{% url sentry-docs-client project.team.slug project.slug 'node.js' %}">
             <span><img src="{% url sentry-media "sentry" "images/platforms/node48x48.png" %}"></span>
             <strong>Node.js</strong>
         </a>
     </li>
     <li>
-        <a href="{% url sentry-docs-client project.slug 'ios' %}">
+        <a href="{% url sentry-docs-client project.team.slug project.slug 'ios' %}">
             <span><img src="{% url sentry-media "sentry" "images/platforms/ios48x48.png" %}"></span>
             <strong>iOS</strong>
         </a>
     </li>
 </ul>
 <div class="page-header">
-    <h3>Frameworks</h3>
+    <h3>{% trans "Frameworks" %}</h3>
 </div>
 <ul class="client-platform-list">
     <li>
-        <a href="{% url sentry-docs-client project.slug 'rails3' %}">
+        <a href="{% url sentry-docs-client project.team.slug project.slug 'rails3' %}">
             <span><img src="{% url sentry-media "sentry" "images/platforms/rails48x48.png" %}"></span>
             <strong>Rails 3</strong>
         </a>
     </li>
     <li>
-        <a href="{% url sentry-docs-client project.slug 'django' %}">
+        <a href="{% url sentry-docs-client project.team.slug project.slug 'django' %}">
             <span><img src="{% url sentry-media "sentry" "images/platforms/django48x48.png" %}"></span>
             <strong>Django</strong>
         </a>
@@ -103,7 +104,7 @@
 </ul>
 
 <div class="page-header">
-    <h3>More Clients</h3>
+    <h3>{% trans "More Clients" %}</h3>
 </div>
 <ul>
     <li>

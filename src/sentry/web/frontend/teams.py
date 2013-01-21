@@ -436,8 +436,8 @@ def create_new_team_project(request, team):
         project.save()
 
         if project.platform not in (None, 'other'):
-            return HttpResponseRedirect(reverse('sentry-docs-client', args=[project.slug, project.platform]))
-        return HttpResponseRedirect(reverse('sentry-get-started', args=[project.slug]))
+            return HttpResponseRedirect(reverse('sentry-docs-client', args=[project.team.slug, project.slug, project.platform]))
+        return HttpResponseRedirect(reverse('sentry-get-started', args=[project.team.slug, project.slug]))
 
     context = csrf(request)
     context.update({

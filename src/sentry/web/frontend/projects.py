@@ -115,8 +115,8 @@ def new_project(request):
         project.save()
 
         if project.platform not in (None, 'other'):
-            return HttpResponseRedirect(reverse('sentry-docs-client', args=[project.slug, project.platform]))
-        return HttpResponseRedirect(reverse('sentry-get-started', args=[project.slug]))
+            return HttpResponseRedirect(reverse('sentry-docs-client', args=[project.team.slug, project.slug, project.platform]))
+        return HttpResponseRedirect(reverse('sentry-get-started', args=[project.team.slug, project.slug]))
 
     return render_to_response('sentry/projects/new.html', {
         'project_form': project_form,
