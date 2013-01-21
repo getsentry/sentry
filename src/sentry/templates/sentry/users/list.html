@@ -10,7 +10,7 @@
 
 {% block breadcrumb %}
     {{ block.super }}
-    <li class="divider">/</li>
+    <li class="divider"></li>
     <li><a href="{% url sentry-users project.slug %}">{% trans "Users" %}</a></li>
 {% endblock %}
 
