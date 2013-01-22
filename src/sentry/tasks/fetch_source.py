@@ -185,6 +185,7 @@ def fetch_javascript_source(event, **kwargs):
                 if source not in source_code:
                     file_list.add(urljoin(result.url, source))
 
+    has_changes = False
     for frame in frames:
         try:
             source, sourcemap = source_code[frame['abs_path']]
@@ -219,8 +220,11 @@ def fetch_javascript_source(event, **kwargs):
                 frame['abs_path'] = abs_path
                 frame['filename'] = state.src
 
+        has_changes = True
+
         # TODO: theoretically a minified source could point to another mapped, minified source
         frame['pre_context'], frame['context_line'], frame['post_context'] = get_source_context(
             source=source, lineno=int(frame['lineno']))
 
-    event.update(data=event.data)
+    if has_changes:
+        event.update(data=event.data)
