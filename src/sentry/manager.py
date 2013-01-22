@@ -732,6 +732,9 @@ class GroupManager(BaseManager, ChartMixin):
         if queryset is None:
             queryset = self
 
+        queryset = queryset._clone()
+        queryset.query.select_related = False
+
         normalization = float(settings.MINUTE_NORMALIZATION)
         assert minutes >= normalization
 
