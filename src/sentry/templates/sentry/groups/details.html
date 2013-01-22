@@ -59,10 +59,10 @@
         </span>
         {% if can_admin_event and not group.project.public %}
             <span data-public="true"{% if not group.is_public %} style="display: none;"{% endif %}>
-                <a href="javascript:void(0)" data-api-url="{% url sentry-api-set-group-private group.project.slug group.id %}" class="action">{% trans "Change" %}</a>
+                <a href="javascript:void(0)" data-api-url="{% url sentry-api-set-group-private group.team.slug group.project.slug group.id %}" class="action">{% trans "Change" %}</a>
             </span>
             <span data-public="false"{% if group.is_public %} style="display: none;"{% endif %}>
-                <a href="javascript:void(0)" data-api-url="{% url sentry-api-set-group-public group.project.slug group.id %}" class="action">{% trans "Change" %}</a>
+                <a href="javascript:void(0)" data-api-url="{% url sentry-api-set-group-public group.team.slug group.project.slug group.id %}" class="action">{% trans "Change" %}</a>
             </span>
         {% endif %}
     </small></p>
@@ -74,11 +74,11 @@
                 <li><a href="{{ link }}">{{ label }}</a></li>
             {% endfor %}
             {% comment %}<li><a {% ifequal page 'event_list' %}{% if event %}
-            href="{% url sentry-group-event-json team_slug=group.team.slug project_id=project.slug group_id=group.id event_id_or_latest=event.id %}"{% else %}
-            href="{% url sentry-group-event-json team_slug=group.team.slug project_id=project.slug group_id=group.id event_id_or_latest="latest" %}"{% endif %}{% else %}
-            href="{% url sentry-group-events-json team_slug=group.team.slug project_id=project.slug group_id=group.id %}"{% endifequal %}
+            href="{% url sentry-group-event-json group.team.slug project.slug group.id event.id %}"{% else %}
+            href="{% url sentry-group-event-json group.team.slug project.slug group.id "latest" %}"{% endif %}{% else %}
+            href="{% url sentry-group-events-json group.team.slug project.slug group.id %}"{% endifequal %}
             >{% trans "Raw JSON Data" %}</a></li>{% endcomment %}
-            <li><a href="{% url sentry-api-remove-group project_id=project.slug group_id=group.id %}">{% trans "Remove Event Data" %}</a></li>
+            <li><a href="{% url sentry-api-remove-group group.team.slug project.slug group.id %}">{% trans "Remove Event Data" %}</a></li>
         </ul>
     {% endif %}
 
