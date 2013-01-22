@@ -368,19 +368,21 @@ h3 {
 
 .project-controls {
   background: #fff;
-  padding: 14px 30px 4px;
+  padding: 1px 30px;
   border-bottom: 2px solid #e4e8ec;
+
+  .pull-right {
+    margin-top: 5px;
+  }
 
   .dashboard-icon {
     display: inline-block;
-    .size(35px, 36px);
+    .size(25px, 26px);
     .border-radius(4px);
-    @shadow:0 0 0 2px #c3c8ce, 0 4px 0 rgba(0,0,0, .05);
-    .box-shadow(@shadow);
-    line-height: 35px;
+    line-height: 25px;
     color: #757f87;
     text-align: center;
-    margin: 0 5px 0 0;
+    margin: 8px 5px 0 0;
 
     i {
       position: relative;
@@ -390,14 +392,23 @@ h3 {
     }
   }
 
-  .select2-drop {
-    .box-shadow(0 0 0 2px #c3c8ce);
+  .select2-container {
+    margin-top: 4px;
+    margin-bottom: 0;
+
+    .select2-choice {
+      .box-shadow(none);
+
+    }
+
+    &.select2-container-active .select2-choice {
+      .box-shadow(0 0 0 2px #a7aeb7);
+    }
   }
 
-  .select2-container .select2-choice {
-    @shadow:0 0 0 2px #c3c8ce, 0 4px 0 rgba(0,0,0, .05);
-    .box-shadow(@shadow);
+  .select2-drop {
   }
+
 }
 
 #content {
