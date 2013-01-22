@@ -77,7 +77,6 @@ urlpatterns = patterns('',
         name='sentry-accept-invite'),
 
     # Settings - Projects
-    url(r'^account/teams/(?P<team_slug>[\w_-]+)/projects/$', projects.project_list, name='sentry-project-list'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/projects/new/$', projects.new_project, name='sentry-new-project'),
 
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/$', projects.manage_project,

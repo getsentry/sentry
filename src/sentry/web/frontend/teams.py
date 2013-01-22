@@ -100,6 +100,7 @@ def manage_team(request, team):
         'form': form,
         'team': team,
         'SECTION': 'team',
+        'SUBSECTION': 'settings',
     })
 
     return render_to_response('sentry/teams/manage.html', context, request)
@@ -121,6 +122,7 @@ def manage_team_projects(request, team):
         'team': team,
         'project_list': project_list,
         'SECTION': 'team',
+        'SUBSECTION': 'projects',
     })
 
     return render_to_response('sentry/teams/projects/index.html', context, request)
@@ -144,6 +146,7 @@ def manage_team_members(request, team):
         'member_list': member_list,
         'pending_member_list': pending_member_list,
         'SECTION': 'team',
+        'SUBSECTION': 'members',
     })
 
     return render_to_response('sentry/teams/members/index.html', context, request)
@@ -167,6 +170,7 @@ def remove_team(request, team):
         'form': form,
         'team': team,
         'SECTION': 'team',
+        'SUBSECTION': 'settings',
     })
 
     return render_to_response('sentry/teams/remove.html', context, request)
@@ -212,6 +216,7 @@ def new_team_member(request, team):
         'add_form': add_form,
         'invite_form': invite_form,
         'SECTION': 'team',
+        'SUBSECTION': 'members',
     })
 
     return render_to_response('sentry/teams/members/new.html', context, request)
@@ -296,6 +301,7 @@ def edit_team_member(request, team, member_id):
         'team': team,
         'form': form,
         'SECTION': 'team',
+        'SUBSECTION': 'members',
     })
 
     return render_to_response('sentry/teams/members/edit.html', context, request)
@@ -326,6 +332,7 @@ def remove_team_member(request, team, member_id):
         'member': member,
         'team': team,
         'SECTION': 'team',
+        'SUBSECTION': 'members',
     })
 
     return render_to_response('sentry/teams/members/remove.html', context, request)
@@ -452,6 +459,7 @@ def create_new_team_project(request, team):
         'team': team,
         'page': 'projects',
         'SECTION': 'team',
+        'SUBSECTION': 'settings',
     })
 
     return render_to_response('sentry/teams/projects/new.html', context, request)

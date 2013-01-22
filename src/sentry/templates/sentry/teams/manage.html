@@ -1,27 +1,13 @@
-{% extends "sentry/layout.html" %}
+{% extends "sentry/bases/team.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
-{% block title %}{% blocktrans with team.name as name %}Manage Team: {{ name }}{% endblocktrans %} | {{ block.super }}{% endblock %}
+{% block title %}{% trans "Settings" %} | {{ block.super }}{% endblock %}
 
 {% block bodyclass %}{% endblock %}
-
-{% block page_header %}
-    <ul class="nav nav-tabs">
-        <li{% if page == 'details' %} class="active"{% endif %}>
-            <a href="{% url sentry-manage-team team.slug %}">{% trans "Settings" %}</a>
-        </li>
-        <li{% if page == 'projects' %} class="active"{% endif %}>
-            <a href="{% url sentry-manage-team-projects team.slug %}">{% trans "Projects" %}</a>
-        </li>
-        <li{% if page == 'members' %} class="active"{% endif %}>
-            <a href="{% url sentry-manage-team-members team.slug %}">{% trans "Members" %}</a>
-        </li>
-    </ul>
-{% endblock %}
 
 {% block main %}
     <section class="body">
@@ -55,19 +41,4 @@
             </form>
         {% endblock %}
     </section>
-{% endblock %}
-
-{% block sidebar %}
-    <ul class="nav nav-list">
-        <li class="nav-header">{% trans "Team" %}</li>
-        <li{% if page == 'details' %} class="active"{% endif %}>
-            <a href="{% url sentry-manage-team team.slug %}">{% trans "Settings" %}</a>
-        </li>
-        <li{% if page == 'projects' %} class="active"{% endif %}>
-            <a href="{% url sentry-manage-team-projects team.slug %}">{% trans "Projects" %}</a>
-        </li>
-        <li{% if page == 'members' %} class="active"{% endif %}>
-            <a href="{% url sentry-manage-team-members team.slug %}">{% trans "Members" %}</a>
-        </li>
-    </ul>
 {% endblock %}

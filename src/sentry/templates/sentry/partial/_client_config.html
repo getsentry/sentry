@@ -108,7 +108,7 @@
 </div>
 <ul>
     <li>
-        <a href="{% url sentry-docs-client project.slug 'r' %}">
+        <a href="{% url sentry-docs-client project.team.slug project.slug 'r' %}">
             <strong>R Project</strong>
         </a>
     </li>

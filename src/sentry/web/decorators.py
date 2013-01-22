@@ -36,8 +36,11 @@ def has_access(group_or_func=None):
                 request.session['_next'] = request.get_full_path()
                 return HttpResponseRedirect(get_login_url())
 
+            has_team = 'team_slug' in kwargs
+            has_project = 'project_id' in kwargs
+
             # Pull in team if it's part of the URL arguments
-            if 'team_slug' in kwargs:
+            if kwargs.get('team_slug'):
                 team_slug = kwargs.pop('team_slug')
                 if request.user.is_superuser:
                     try:
@@ -54,7 +57,7 @@ def has_access(group_or_func=None):
             else:
                 team = None
 
-            if 'project_id' in kwargs:
+            if kwargs.get('project_id'):
                 project_id = kwargs.pop('project_id')
                 # Support project id's
                 if project_id.isdigit():
@@ -85,14 +88,14 @@ def has_access(group_or_func=None):
             else:
                 project = None
 
-            if project:
+            if has_project:
                 # ensure we're accessing this url correctly
-                if team and project.team != team:
+                if project and team and project.team != team:
                     return HttpResponseRedirect(reverse('sentry'))
 
                 kwargs['project'] = project
 
-            if team:
+            if has_team:
                 kwargs['team'] = team
 
             return func(request, *args, **kwargs)

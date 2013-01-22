@@ -65,7 +65,7 @@
 
 {% block sidebar %}
     <ul class="nav nav-list">
-        <li class="nav-header">{% trans "Project" %}</li>
+        <li class="nav-header">{{ project.name }}</li>
         <li{% if page == 'details' %} class="active"{% endif %}>
             <a href="{% url sentry-manage-project project.team.slug project.slug %}">{% trans "Settings" %}</a>
         </li>
