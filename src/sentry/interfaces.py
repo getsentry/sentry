@@ -33,7 +33,8 @@ def unserialize(klass, data):
     return value
 
 
-def get_context(lineno, context_line, pre_context=None, post_context=None, filename=None):
+def get_context(lineno, context_line, pre_context=None, post_context=None, filename=None,
+        format=False):
     lineno = int(lineno)
     context = []
     start_lineno = lineno - len(pre_context or [])
@@ -59,19 +60,20 @@ def get_context(lineno, context_line, pre_context=None, post_context=None, filen
     if filename.startswith(('http:', 'https:')) and '.' not in filename.rsplit('/', 1)[-1]:
         filename = 'index.html'
 
-    try:
-        lexer = get_lexer_for_filename(filename)
-    except ClassNotFound:
-        lexer = TextLexer()
+    if format:
+        try:
+            lexer = get_lexer_for_filename(filename)
+        except ClassNotFound:
+            lexer = TextLexer()
 
-    formatter = HtmlFormatter()
+        formatter = HtmlFormatter()
 
-    def format(line):
-        if not line:
-            return ''
-        return mark_safe(highlight(line, lexer, formatter))
+        def format(line):
+            if not line:
+                return ''
+            return mark_safe(highlight(line, lexer, formatter))
 
-    context = tuple((n, format(l)) for n, l in context)
+        context = tuple((n, format(l)) for n, l in context)
 
     return context
 
@@ -743,6 +745,7 @@ class Template(Interface):
             pre_context=self.pre_context,
             post_context=self.post_context,
             filename=self.filename,
+            format=False,
         )
 
         result = [
@@ -753,7 +756,14 @@ class Template(Interface):
         return '\n'.join(result)
 
     def to_html(self, event):
-        context = get_context(self.lineno, self.context_line, self.pre_context, self.post_context)
+        context = get_context(
+            lineno=self.lineno,
+            context_line=self.context_line,
+            pre_context=self.pre_context,
+            post_context=self.post_context,
+            filename=self.filename,
+            format=True,
+        )
 
         return render_to_string('sentry/partial/interfaces/template.html', {
             'event': event,
