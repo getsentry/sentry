@@ -60,7 +60,7 @@ def update(self, using=None, **kwargs):
         signals.post_save.send(sender=self.__class__, instance=self, created=False)
         return True
     elif affected == 0:
-        raise self.DoesNotExist("Cannot update an instance that is not in the database.")
+        return False
     elif affected < 0:
         raise ValueError("Somehow we have updated a negative amount of rows, you seem to have a problem with your db backend.")
     else:
