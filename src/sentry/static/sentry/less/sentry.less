@@ -344,13 +344,59 @@ h3 {
   }
 
   .nav {
-    margin: 4px 0 0;
+    margin: 4px 0 0 -14px;
     > li {
       > a {
+        color: #85909a;
         height: 29px;
         line-height: 29px;
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      &.active {
+        a {
+          line-height: 27px;
+          color: darken(#85909a, 10);
+          padding-left: 14px;
+          padding-right: 14px;
+        }
       }
     }
+  }
+}
+
+.project-controls {
+  background: #fff;
+  padding: 14px 30px 4px;
+  border-bottom: 2px solid #e4e8ec;
+
+  .dashboard-icon {
+    display: inline-block;
+    .size(35px, 36px);
+    .border-radius(4px);
+    @shadow:0 0 0 2px #c3c8ce, 0 4px 0 rgba(0,0,0, .05);
+    .box-shadow(@shadow);
+    line-height: 35px;
+    color: #757f87;
+    text-align: center;
+    margin: 0 5px 0 0;
+
+    i {
+      position: relative;
+      font-size: 16px;
+      top: 0;
+      left: -1px;
+    }
+  }
+
+  .select2-drop {
+    .box-shadow(0 0 0 2px #c3c8ce);
+  }
+
+  .select2-container .select2-choice {
+    @shadow:0 0 0 2px #c3c8ce, 0 4px 0 rgba(0,0,0, .05);
+    .box-shadow(@shadow);
   }
 }
 

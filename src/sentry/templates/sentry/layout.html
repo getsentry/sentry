@@ -118,6 +118,7 @@
         {% endblock %}
         <section id="content" class="{% block bodyclass %}with-sidebar{% endblock %}">
             <div class="container">
+                {% block above_content %}{% endblock %}
                 <div class="content">
                     {% block content_before %}
                     {% endblock %}

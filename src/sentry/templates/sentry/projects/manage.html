@@ -14,6 +14,20 @@
 {% endblock %}
 
 {% block bodyclass %} with-left-sidebar{% endblock %}
+{% block above_content %}
+<div class="project-controls">
+    <div class="pull-right" style="margin-top: 3px">
+        <a href="{% url sentry-new-team-project team.slug %}" class="btn btn-primary">New Project</a>
+    </div>
+    <a href="{% url sentry-manage-team-projects team.slug %}" class="dashboard-icon"><i aria-hidden="true" class="icon-list"></i></a>
+    <select class="project-selector" data-placeholder="{% trans "Select a Project" %}">
+        <option value=""></option>
+        {% for p in PROJECT_LIST %}
+            <option value="{{ p.slug }}"{% if p == project %} selected="selected"{% endif %} data-url="{% url sentry-manage-project p.team.slug p.slug %}">{{ p.name }}</option>
+        {% endfor %}
+    </select>
+</div>
+{% endblock %}
 
 {% block main %}
     <section class="body">
