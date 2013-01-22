@@ -1,4 +1,4 @@
-{% extends "sentry/teams/list.html" %}
+{% extends "sentry/layout.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
@@ -7,12 +7,20 @@
 
 {% block title %}{% blocktrans with team.name as name %}Manage Team: {{ name }}{% endblocktrans %} | {{ block.super }}{% endblock %}
 
-{% block bodyclass %} with-left-sidebar{% endblock %}
+{% block bodyclass %}{% endblock %}
 
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url sentry-manage-team team.slug %}">{{ team.name }}</a></li>
+{% block page_header %}
+    <ul class="nav nav-tabs">
+        <li{% if page == 'details' %} class="active"{% endif %}>
+            <a href="{% url sentry-manage-team team.slug %}">{% trans "Settings" %}</a>
+        </li>
+        <li{% if page == 'projects' %} class="active"{% endif %}>
+            <a href="{% url sentry-manage-team-projects team.slug %}">{% trans "Projects" %}</a>
+        </li>
+        <li{% if page == 'members' %} class="active"{% endif %}>
+            <a href="{% url sentry-manage-team-members team.slug %}">{% trans "Members" %}</a>
+        </li>
+    </ul>
 {% endblock %}
 
 {% block main %}
