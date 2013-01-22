@@ -14,22 +14,10 @@ if (Sentry === undefined) {
     var Sentry = {};
 }
 
-(function(jQuery){
+(function(app, jQuery){
     "use strict";
 
     var $ = jQuery;
-
-    Sentry.options = {
-        urlPrefix: '',
-        mediaUrl: '/media/',
-        defaultImage: '/media/images/sentry.png'
-    };
-
-    Sentry.config = function(data){
-        $.each(data, function(k, v){
-            Sentry.options[k] = v;
-        });
-    };
 
     Sentry.prettyDate = function(date_str) {
         // we need to zero out at CST
@@ -135,7 +123,7 @@ if (Sentry === undefined) {
                     allowClear: true,
                     minimumInputLength: 3,
                     ajax: {
-                        url: Sentry.options.urlPrefix + '/api/' + Sentry.options.projectId + '/tags/search/',
+                        url: app.config.urlPrefix + '/api/' + app.config.teamId + '/' + app.config.projectId + '/tags/search/',
                         dataType: 'json',
                         data: function (term, page) {
                             return {
@@ -225,10 +213,10 @@ if (Sentry === undefined) {
         w.document.write("<!DOCTYPE html><html>" +
             "<head>" +
                 "<title>" + title + "</title>" +
-                "<link href=\"" + Sentry.options.popupCss + "\" rel=\"stylesheet\" type=\"text/css\"/>" +
+                "<link href=\"" + app.config.popupCss + "\" rel=\"stylesheet\" type=\"text/css\"/>" +
             "</head><body>" +
                 "<div id=\"popup\">" + content + "</div></body>" +
             "</html>");
     });
 
-}(jQuery));
+}(app, jQuery));

@@ -3,16 +3,16 @@
 if (Sentry === undefined) {
     var Sentry = {};
 }
-(function(jQuery){
+(function(app, jQuery){
     "use strict";
 
     var $ = jQuery;
 
     Sentry.stream = {};
-    Sentry.stream.clear = function(project_id) {
+    Sentry.stream.clear = function() {
         if (window.confirm("Are you sure you want to mark all your stream as resolved?")) {
             $.ajax({
-                url: Sentry.options.urlPrefix + '/api/' + project_id + '/clear/',
+                url: app.config.urlPrefix + '/api/' + app.config.teamId + '/' + app.config.projectId + '/clear/',
                 type: 'post',
                 dataType: 'json',
                 success: function(groups){
@@ -21,12 +21,12 @@ if (Sentry === undefined) {
             });
         }
     };
-    Sentry.stream.resolve = function(project_id, gid, remove){
+    Sentry.stream.resolve = function(gid, remove){
         if (typeof(remove) == 'undefined') {
             remove = true;
         }
         $.ajax({
-            url: Sentry.options.urlPrefix + '/api/' + project_id + '/resolve/',
+            url: app.config.urlPrefix + '/api/' + app.config.teamId + '/' + app.config.projectId + '/resolve/',
             type: 'post',
             dataType: 'json',
             data: {
@@ -45,7 +45,7 @@ if (Sentry === undefined) {
     };
     Sentry.stream.bookmark = function(project_id, gid, el){
         $.ajax({
-            url: Sentry.options.urlPrefix + '/api/' + project_id + '/bookmark/',
+            url: app.config.urlPrefix + '/api/' + app.config.teamId + '/' + app.config.projectId + '/bookmark/',
             type: 'post',
             dataType: 'json',
             data: {
@@ -64,4 +64,4 @@ if (Sentry === undefined) {
             }
         });
     };
-}(jQuery));
+}(app, jQuery));

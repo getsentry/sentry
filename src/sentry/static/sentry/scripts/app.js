@@ -92,7 +92,7 @@
                 maxItems: 50,
                 realtime: ($.cookie('pausestream') ? false : true),
                 canStream: this.options.canStream,
-                pollUrl: app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/',
+                pollUrl: app.config.urlPrefix + '/api/' + app.config.teamId + '/' + app.config.projectId + '/poll/',
                 model: app.models.Group
             });
 

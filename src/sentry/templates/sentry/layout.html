@@ -57,19 +57,14 @@
                 <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/sentry.stream.js" %}"></script>
             {% endcompress %}
             <script type="text/javascript">
-            Sentry.config({
-                urlPrefix: {{ URL_PREFIX|to_json|safe }},
-                mediaUrl: '{% url sentry-media "sentry" '' %}',
-                projectId: {% if project %}{{ project.id|to_json|safe }}{% else %}null{% endif %},
-                defaultImage: '{% url sentry-media "sentry" 'images/sentry.png' %}',
-                popupCss: '{% url sentry-media "sentry" 'styles/popup.css' %}'
-            });
+            app.config.popupCss: '{% url sentry-media "sentry" 'styles/popup.css' %}'
             app.config.defaultImage = '{% url sentry-media "sentry" 'images/sentry.png' %}';
             app.config.popupCss = '{% url sentry-media "sentry" 'styles/popup.css' %}';
             app.config.mediaUrl = '{% url sentry-media "sentry" '' %}';
             app.config.urlPrefix = {{ URL_PREFIX|to_json|safe }};
             app.config.hasRealtime = {{ hasRealtime|to_json|safe  }};
             app.config.projectId = {{ project.slug|to_json|safe }};
+            app.config.teamId = {{ team.slug|to_json|safe }};
             app.config.viewId = {% if view %}{{ view.pk|to_json|safe }}{% else %}null{% endif %};
             </script>
         {% endblock %}
