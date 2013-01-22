@@ -57,8 +57,7 @@
                 <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/sentry.stream.js" %}"></script>
             {% endcompress %}
             <script type="text/javascript">
-            app.config.popupCss: '{% url sentry-media "sentry" 'styles/popup.css' %}'
-            app.config.defaultImage = '{% url sentry-media "sentry" 'images/sentry.png' %}';
+            app.config.popupCss = '{% url sentry-media "sentry" 'styles/popup.css' %}';
             app.config.popupCss = '{% url sentry-media "sentry" 'styles/popup.css' %}';
             app.config.mediaUrl = '{% url sentry-media "sentry" '' %}';
             app.config.urlPrefix = {{ URL_PREFIX|to_json|safe }};
