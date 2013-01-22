@@ -10,7 +10,7 @@
                     <nav id="team-nav">
                         <ul>
                             <li{% if SECTION == 'events' %} class="active"{% endif %}><a href="{% url sentry team.slug %}">Events</a></li>
-                            <li{% if SECTION == 'users' %} class="active"{% endif %}><a href="{% url sentry-users team.slug %}">Users</a></li>
+                            <!-- <li{% if SECTION == 'users' %} class="active"{% endif %}><a href="{% url sentry-users team.slug %}">Users</a></li> -->
                             <li{% if SECTION == 'team' %} class="active"{% endif %}><a href="{% url sentry-manage-team team.slug %}">Team</a></li>
                         </ul>
                     </nav>
@@ -30,8 +30,6 @@
                                     {% endif %}
                                 </ul>
                             </li>
-                            <li><a href="#">Docs</a></li>
-                            <li><a href="#">Support</a></li>
                             <li class="dropdown">
                                 <a href="#" class="dropdown-toggle" data-toggle="dropdown"><img class="avatar" src="{% gravatar_url user.email size 20 %}"> {{ user.username }} <span class="caret"></span></a>
                                 <ul class="dropdown-menu">
