@@ -65,7 +65,7 @@
 
 {% block sidebar %}
     <ul class="nav nav-list">
-        <li class="nav-header">{{ project.name }}</li>
+        <li class="nav-header">{% trans "Details" %}</li>
         <li{% if page == 'details' %} class="active"{% endif %}>
             <a href="{% url sentry-manage-project project.team.slug project.slug %}">{% trans "Settings" %}</a>
         </li>
@@ -74,9 +74,6 @@
         </li>
         <li{% if page == 'tags' %} class="active"{% endif %}>
             <a href="{% url sentry-manage-project-tags project.team.slug project.slug %}">{% trans "Tags" %}</a>
-        </li>
-        <li class="{% if page == 'plugins' %} active{% endif %}">
-            <a href="{% url sentry-manage-project-plugins project.team.slug project.slug %}">{% trans "Manage Plugins" %} ({{ PLUGINS|length }})</a>
         </li>
     </ul>
     <ul class="nav nav-list">
@@ -104,15 +101,16 @@
         </li>
     </ul>
     {% with project|get_plugins as plugins %}
-        {% if plugins %}
-            <ul class="nav nav-list">
-                <li class="nav-header">{% trans "Active Plugins" %}</li>
-                {% for p in plugins %}
-                    <li{% if page == 'plugin' and plugin.slug == p.slug %} class="active"{% endif %}>
-                        <a href="{% url sentry-configure-project-plugin project.team.slug project.slug p.slug %}">{{ p.get_title }}</a>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% endif %}
+        <ul class="nav nav-list">
+            <li class="nav-header">{% trans "Plugins" %}</li>
+            <li class="{% if page == 'plugins' %} active{% endif %}">
+                <a href="{% url sentry-manage-project-plugins project.team.slug project.slug %}">{% trans "Manage Plugins" %} ({{ PLUGINS|length }})</a>
+            </li>
+            {% for p in plugins %}
+                <li{% if page == 'plugin' and plugin.slug == p.slug %} class="active"{% endif %}>
+                    <a href="{% url sentry-configure-project-plugin project.team.slug project.slug p.slug %}">{{ p.get_title }}</a>
+                </li>
+            {% endfor %}
+        </ul>
     {% endwith %}
 {% endblock %}

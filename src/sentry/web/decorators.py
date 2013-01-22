@@ -39,9 +39,11 @@ def has_access(group_or_func=None):
             has_team = 'team_slug' in kwargs
             has_project = 'project_id' in kwargs
 
+            team_slug = kwargs.pop('team_slug', None)
+            project_id = kwargs.pop('project_id', None)
+
             # Pull in team if it's part of the URL arguments
-            if kwargs.get('team_slug'):
-                team_slug = kwargs.pop('team_slug')
+            if team_slug:
                 if request.user.is_superuser:
                     try:
                         team = Team.objects.get_from_cache(slug=team_slug)
@@ -57,8 +59,7 @@ def has_access(group_or_func=None):
             else:
                 team = None
 
-            if kwargs.get('project_id'):
-                project_id = kwargs.pop('project_id')
+            if project_id:
                 # Support project id's
                 if project_id.isdigit():
                     lookup_kwargs = {'id': int(project_id)}
