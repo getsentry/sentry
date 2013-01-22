@@ -69,7 +69,7 @@ def get_context(lineno, context_line, pre_context=None, post_context=None, filen
     def format(line):
         if not line:
             return ''
-        return mark_safe(highlight(l, lexer, formatter))
+        return mark_safe(highlight(line, lexer, formatter))
 
     context = tuple((n, format(l)) for n, l in context)
 
