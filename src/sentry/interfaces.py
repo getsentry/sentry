@@ -463,7 +463,7 @@ class Stacktrace(Interface):
                 pieces.append(', in %(function)s')
 
             result.append(''.join(pieces) % frame)
-            if fframe.get('context_line', None) is not None:
+            if frame.get('context_line', None) is not None:
                 result.append('    %s' % frame['context_line'].strip())
 
         if newest_first and visible_frames < num_frames:
