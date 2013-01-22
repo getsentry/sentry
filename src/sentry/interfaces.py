@@ -13,7 +13,7 @@ import itertools
 import urlparse
 
 from pygments import highlight
-from pygments.lexers import get_lexer_for_filename, TextLexer
+from pygments.lexers import get_lexer_for_filename, TextLexer, ClassNotFound
 from pygments.formatters import HtmlFormatter
 
 from django.http import QueryDict
@@ -61,7 +61,7 @@ def get_context(lineno, context_line, pre_context=None, post_context=None, filen
 
     try:
         lexer = get_lexer_for_filename(filename)
-    except Exception:
+    except ClassNotFound:
         lexer = TextLexer()
 
     formatter = HtmlFormatter()
