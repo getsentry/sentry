@@ -459,7 +459,7 @@ def create_new_team_project(request, team):
         'team': team,
         'page': 'projects',
         'SECTION': 'team',
-        'SUBSECTION': 'settings',
+        'SUBSECTION': 'projects',
     })
 
     return render_to_response('sentry/teams/projects/new.html', context, request)
