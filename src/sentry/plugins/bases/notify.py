@@ -43,12 +43,12 @@ class NotificationUserOptionsForm(BaseNotificationUserOptionsForm):
         super(NotificationUserOptionsForm, self).__init__(*args, **kwargs)
         user = self.user
         self.project_list = get_project_list(user, access=MEMBER_USER, key='slug')
-        project_list = sorted(self.project_list.items())
-        self.fields['projects'].choices = project_list
+        project_choices = sorted((p.slug, p.name) for p in self.project_list.values())
+        self.fields['projects'].choices = project_choices
         self.fields['projects'].widget.choices = self.fields['projects'].choices
 
         enabled_projects = []
-        for slug, project in project_list:
+        for slug, project in self.project_list.iteritems():
             is_enabled = self.plugin.get_option('alert', project=project, user=user)
             if is_enabled == 1 or is_enabled is None:
                 enabled_projects.append(slug)
