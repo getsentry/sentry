@@ -449,7 +449,7 @@ For example, if you simply supported callbacks for processors, it might look lik
 We recommend scrubbing the following values::
 
 * Values where the keyname matches 'password', 'passwd', or 'secret'.
-* Values that match the regular expression of ``r'^\d{16}$'`` (credit card-like).
+* Values that match the regular expression of ``r'^(?:\d[ -]*?){13,16}$'`` (credit card-like).
 * Session cookies.
 * The Authentication header (HTTP).
 
