@@ -65,7 +65,13 @@ def get_context(lineno, context_line, pre_context=None, post_context=None, filen
         lexer = TextLexer()
 
     formatter = HtmlFormatter()
-    context = tuple((n, mark_safe(highlight(l, lexer, formatter))) for n, l in context)
+
+    def format(line):
+        if not line:
+            return ''
+        return mark_safe(highlight(l, lexer, formatter))
+
+    context = tuple((n, format(l)) for n, l in context)
 
     return context
 
