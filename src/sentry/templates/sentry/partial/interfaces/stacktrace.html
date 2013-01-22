@@ -40,7 +40,7 @@
                     {% if frame.context %}
                         <ol start="{{ frame.start_lineno }}" class="context">
                         {% for num, line in frame.context %}
-                            <li{% if num == frame.lineno %} class="active"{% else %} class="expandable"{% endif %} onclick="$('.frame-{{ forloop.parentloop.counter0 }}').toggleClass('expanded')">{{ line }}</li>
+                            <li{% if num == frame.lineno %} class="active"{% else %} class="expandable"{% endif %} onclick="$('.frame-{{ forloop.parentloop.counter0 }}').toggleClass('expanded')">{{ line|default_if_none:"" }}</li>
                         {% endfor %}
                         </ol>
                     {% endif %}

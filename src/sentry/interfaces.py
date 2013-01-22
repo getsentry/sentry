@@ -33,7 +33,7 @@ def unserialize(klass, data):
     return value
 
 
-def get_context(filename, lineno, context_line, pre_context=None, post_context=None):
+def get_context(lineno, context_line, pre_context=None, post_context=None, filename=None):
     lineno = int(lineno)
     context = []
     start_lineno = lineno - len(pre_context or [])
@@ -56,7 +56,7 @@ def get_context(filename, lineno, context_line, pre_context=None, post_context=N
             at_lineno += 1
 
     # HACK:
-    if '.' not in filename.rsplit('/', 1)[-1]:
+    if filename.startswith(('http:', 'https:')) and '.' not in filename.rsplit('/', 1)[-1]:
         filename = 'index.html'
 
     try:
@@ -350,11 +350,11 @@ class Stacktrace(Interface):
         for frame in self.frames:
             if frame.get('context_line') and frame.get('lineno') is not None:
                 context = get_context(
-                    filename=frame.get('filename'),
                     lineno=frame['lineno'],
                     context_line=frame['context_line'],
                     pre_context=frame.get('pre_context'),
                     post_context=frame.get('post_context'),
+                    filename=frame.get('abs_path', frame.get('filename')),
                 )
                 start_lineno = context[0][0]
             else:
@@ -732,11 +732,11 @@ class Template(Interface):
 
     def to_string(self, event):
         context = get_context(
-            filename=self.filename,
             lineno=self.lineno,
             context_line=self.context_line,
             pre_context=self.pre_context,
             post_context=self.post_context,
+            filename=self.filename,
         )
 
         result = [
