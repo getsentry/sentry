@@ -14,10 +14,12 @@
                 <td class="code"><pre>{{ exception_type|escape }}</pre></td>
             </tr>
             {% endif %}
+            {% if exception_value %}
             <tr>
                 <th>{% trans "Value:" %}</th>
                 <td class="code"><pre>{{ exception_value|escape }}</pre></td>
             </tr>
+            {% endif %}
             {% if last_frame %}
                 <tr>
                     <th>{% trans "Location:" %}</th>
