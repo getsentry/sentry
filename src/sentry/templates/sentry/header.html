@@ -10,7 +10,7 @@
                     <nav id="team-nav">
                         <ul>
                             <li{% if SECTION == 'events' %} class="active"{% endif %}><a href="{% url sentry team.slug %}">Events</a></li>
-                            <li{% if SECTION == 'users' %} class="active"{% endif %}><a href="{% url sentry-users team.slug %}">Users</a></li>
+                            <!-- <li{% if SECTION == 'users' %} class="active"{% endif %}><a href="{% url sentry-users team.slug %}">Users</a></li> -->
                             <li{% if SECTION == 'team' %} class="active"{% endif %}><a href="{% url sentry-manage-team team.slug %}">Team</a></li>
                         </ul>
                     </nav>
