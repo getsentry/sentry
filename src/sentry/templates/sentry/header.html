@@ -34,7 +34,7 @@
                                 <a href="#" class="dropdown-toggle" data-toggle="dropdown"><img class="avatar" src="{% gravatar_url user.email size 20 %}"> {{ user.username }} <span class="caret"></span></a>
                                 <ul class="dropdown-menu">
                                     <li><a href="{% url sentry-account-settings %}">{% trans "Account" %}</a></li>
-                                    <li class="divider">
+                                    <li><a href="{% url sentry-team-list %}">{% trans "Teams" %}</a></li>
                                     {% if request.user.is_staff %}
                                         <li><a href="{% url sentry-admin-status %}">{% trans "Admin" %}</a></li>
                                     {% endif %}
