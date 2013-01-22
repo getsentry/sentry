@@ -13,11 +13,18 @@ The following items are expected of production-ready clients:
 * Scrubbing w/ processors
 * Tag support
 
+Feature based support is required for the following:
+
+* If cookie data is available, it's not sent by default
+* If POST data is available, it's not sent by default
+
 Additionally, the following features are highly encouraged:
 
 * Automated error handling (e.g. default error handlers)
 * Logging integration (to whatever standard solution is available)
 * Non-blocking event submission
+* Basic data sanitization (e.g. filtering out values that look like passwords)
+
 
 Client Usage (End-user)
 -----------------------
