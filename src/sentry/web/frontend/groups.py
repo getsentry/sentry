@@ -152,12 +152,13 @@ def dashboard(request, team):
     if not project_list and can_create_projects(request.user, team=team):
         return HttpResponseRedirect(reverse('sentry-new-project', args=[team.slug]))
 
-    for project in project_list.values():
+    for project in project_list:
         project.team = team
 
     return render_to_response('sentry/dashboard.html', {
         'team': team,
-        'project_list': project_list.values(),
+        'project_list': project_list,
+        'SECTION': 'events',
     }, request)
 
 
@@ -183,7 +184,9 @@ def search(request, team, project):
         top_matches = list(event_list[:2])
         if len(top_matches) == 0:
             return render_to_response('sentry/invalid_message_id.html', {
+                'team': team,
                 'project': project,
+                'SECTION': 'events',
             }, request)
         elif len(top_matches) == 1:
             group = top_matches[0]
@@ -198,7 +201,9 @@ def search(request, team, project):
             event = Event.objects.get(project=project, event_id=query)
         except Event.DoesNotExist:
             return render_to_response('sentry/invalid_message_id.html', {
+                'team': team,
                 'project': project,
+                'SECTION': 'events',
             }, request)
         else:
             return HttpResponseRedirect(reverse('sentry-group-event', {
@@ -230,6 +235,7 @@ def search(request, team, project):
         'query': query,
         'sort': sort,
         'sort_label': sort_label,
+        'SECTION': 'events',
     }, request)
 
 
@@ -264,7 +270,7 @@ def group_list(request, team, project):
         'filters': response['filters'],
         'SORT_OPTIONS': SORT_OPTIONS,
         'HAS_TRENDING': has_trending(),
-        'SECTION': 'stream',
+        'SECTION': 'events',
     }, request)
 
 
@@ -282,6 +288,7 @@ def render_with_group_context(group, template, context, request=None):
         'json_data': event.data.get('extra', {}),
         'version_data': event.data.get('modules', None),
         'can_admin_event': can_admin_group(request.user, group),
+        'SECTION': 'events',
     })
 
     return render_to_response(template, context, request)
@@ -382,6 +389,7 @@ def group_event_details(request, team, project, group, event_id):
         'json_data': event.data.get('extra', {}),
         'version_data': event.data.get('modules', None),
         'can_admin_event': can_admin_group(request.user, group),
+        'SECTION': 'events',
     }, request)
 
 

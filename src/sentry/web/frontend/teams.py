@@ -99,6 +99,7 @@ def manage_team(request, team):
         'page': 'details',
         'form': form,
         'team': team,
+        'SECTION': 'team',
     })
 
     return render_to_response('sentry/teams/manage.html', context, request)
@@ -119,6 +120,7 @@ def manage_team_projects(request, team):
         'page': 'projects',
         'team': team,
         'project_list': project_list,
+        'SECTION': 'team',
     })
 
     return render_to_response('sentry/teams/projects/index.html', context, request)
@@ -141,6 +143,7 @@ def manage_team_members(request, team):
         'team': team,
         'member_list': member_list,
         'pending_member_list': pending_member_list,
+        'SECTION': 'team',
     })
 
     return render_to_response('sentry/teams/members/index.html', context, request)
@@ -163,6 +166,7 @@ def remove_team(request, team):
         'page': 'settings',
         'form': form,
         'team': team,
+        'SECTION': 'team',
     })
 
     return render_to_response('sentry/teams/remove.html', context, request)
@@ -207,6 +211,7 @@ def new_team_member(request, team):
         'team': team,
         'add_form': add_form,
         'invite_form': invite_form,
+        'SECTION': 'team',
     })
 
     return render_to_response('sentry/teams/members/new.html', context, request)
@@ -290,6 +295,7 @@ def edit_team_member(request, team, member_id):
         'member': member,
         'team': team,
         'form': form,
+        'SECTION': 'team',
     })
 
     return render_to_response('sentry/teams/members/edit.html', context, request)
@@ -319,6 +325,7 @@ def remove_team_member(request, team, member_id):
         'page': 'members',
         'member': member,
         'team': team,
+        'SECTION': 'team',
     })
 
     return render_to_response('sentry/teams/members/remove.html', context, request)
@@ -444,6 +451,7 @@ def create_new_team_project(request, team):
         'form': form,
         'team': team,
         'page': 'projects',
+        'SECTION': 'team',
     })
 
     return render_to_response('sentry/teams/projects/new.html', context, request)
