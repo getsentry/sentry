@@ -47,7 +47,7 @@
         },
 
         getResolveUrl: function(){
-            return app.config.urlPrefix + '/api/' + app.config.projectId + '/resolve/';
+            return app.config.urlPrefix + '/api/' + app.config.teamId + '/' + app.config.projectId + '/resolve/';
         },
 
         resolve: function(){
@@ -65,7 +65,7 @@
         },
 
         getBookmarkUrl: function(){
-            return app.config.urlPrefix + '/api/' + app.config.projectId + '/bookmark/';
+            return app.config.urlPrefix + '/api/' + app.config.teamId + '/' + app.config.projectId + '/bookmark/';
         },
 
         bookmark: function(){
