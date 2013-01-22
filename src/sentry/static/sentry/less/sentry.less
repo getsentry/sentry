@@ -311,23 +311,24 @@ h3 {
   }
 
   .navbar-search {
-    margin: 6px 0 0 10px;
+    margin: 10px 0 0 10px;
 
     .search-query {
-      height: auto;
-      .transition(all .2s);
+      height: 18px;
       color: #858f97;
       width: 194px;
       .border-radius(5px);
-      padding: 11px 10px 5px;
+      padding: 5px 10px;
       border: none;
       font-weight: 500;
-      line-height: 15px;
+      line-height: 19px;
       font-size: 13px;
-      background: rgba(0,0,0, .01);
+      background: rgba(255,255,255, 0);
       border: 2px solid #b8bec6;
-      @shadow: inset 0 2px 0 rgba(0,0,0, .05);
+      @shadow: inset 0 2px 0 rgba(0,0,0, .04);
       .box-shadow(@shadow);
+
+      .transition(all .2s);
       
 
       &:focus {
