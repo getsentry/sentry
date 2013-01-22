@@ -70,10 +70,12 @@ def get_context(lineno, context_line, pre_context=None, post_context=None, filen
 
         def format(line):
             if not line:
-                return ''
+                return '<pre></pre>'
             return mark_safe(highlight(line, lexer, formatter))
 
         context = tuple((n, format(l)) for n, l in context)
+    else:
+        context = tuple((n, '<pre>%s</pre>' % (mark_safe(l),)) for n, l in context)
 
     return context
 
@@ -363,6 +365,7 @@ class Stacktrace(Interface):
                     pre_context=frame.get('pre_context'),
                     post_context=frame.get('post_context'),
                     filename=frame.get('abs_path', frame.get('filename')),
+                    format=True,
                 )
                 start_lineno = context[0][0]
             else:
