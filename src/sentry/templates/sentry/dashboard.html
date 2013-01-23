@@ -18,28 +18,24 @@
             <div class="page-header">
                 <h3 class="pull-left">{% trans "Trends" %}</h3>
                 <ul class="nav nav-pills nav-small">
-                    <li><a href="#top_15m" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends %}?minutes=15&amp;limit=5">{% trans "15 minutes" %}</a></li>
-                    <li><a href="#top_60m" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends %}?minutes=60&amp;limit=5">{% trans "60 minutes" %}</a></li>
-                    <li class="active"><a href="#top_24h" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends %}?minutes=1440&amp;limit=5">{% trans "24 hours" %}</a></li>
+                    <li><a href="#top_events" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends %}?minutes=15&amp;limit=5">{% trans "15 minutes" %}</a></li>
+                    <li><a href="#top_events" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends %}?minutes=60&amp;limit=5">{% trans "60 minutes" %}</a></li>
+                    <li class="active"><a href="#top_events" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends %}?minutes=1440&amp;limit=5">{% trans "24 hours" %}</a></li>
                 </ul>
             </div>
             <div class="tab-content">
-                <div class="tab-pane" id="top_15m"></div>
-                <div class="tab-pane" id="top_60m"></div>
-                <div class="tab-pane active" id="top_24h"><p>{% trans "Loading ..." %}</p></div>
+                <div class="tab-pane active" id="top_events"><p>{% trans "Loading ..." %}</p></div>
             </div>
             <div class="page-header">
                 <h3 class="pull-left">{% trans "New Events" %}</h3>
                 <ul class="nav nav-pills nav-small">
-                    <li><a href="#new_15m" data-toggle="ajtab" data-uri="{% url sentry-api-groups-new %}?minutes=15&amp;limit=5">{% trans "15 minutes" %}</a></li>
-                    <li><a href="#new_60m" data-toggle="ajtab" data-uri="{% url sentry-api-groups-new %}?minutes=60&amp;limit=5">{% trans "60 minutes" %}</a></li>
-                    <li class="active"><a href="#new_24h" data-toggle="ajtab" data-uri="{% url sentry-api-groups-new %}?minutes=1440&amp;limit=5">{% trans "24 hours" %}</a></li>
+                    <li><a href="#new_events" data-toggle="ajtab" data-uri="{% url sentry-api-groups-new %}?minutes=15&amp;limit=5">{% trans "15 minutes" %}</a></li>
+                    <li><a href="#new_events" data-toggle="ajtab" data-uri="{% url sentry-api-groups-new %}?minutes=60&amp;limit=5">{% trans "60 minutes" %}</a></li>
+                    <li class="active"><a href="#new_events" data-toggle="ajtab" data-uri="{% url sentry-api-groups-new %}?minutes=1440&amp;limit=5">{% trans "24 hours" %}</a></li>
                 </ul>
             </div>
             <div class="tab-content">
-                <div class="tab-pane" id="new_15m"></div>
-                <div class="tab-pane" id="new_60m"></div>
-                <div class="tab-pane active" id="new_24h"><p>{% trans "Loading ..." %}</p></div>
+                <div class="tab-pane active" id="new_events"><p>{% trans "Loading ..." %}</p></div>
             </div>
         {% else %}
             {% if can_create_projects %}
@@ -82,7 +78,10 @@
 {% block content_after %}
     <script type="text/javascript">
     $(function(){
-        new app.DashboardPage();
+        new app.DashboardPage({
+            realtime: true,
+            stream: true
+        });
     })
     </script>
 {% endblock %}

@@ -530,6 +530,7 @@ def get_group_trends(request, project=None):
         cutoff_dt = timezone.now() - cutoff
 
         group_list = list(base_qs.filter(
+            status=STATUS_UNRESOLVED,
             last_seen__gte=cutoff_dt
         ).order_by('-score')[:limit])
 
@@ -561,7 +562,7 @@ def get_new_groups(request, project=None):
 
     group_list = list(Group.objects.filter(
         project__in=project_dict.keys(),
-        status=0,
+        status=STATUS_UNRESOLVED,
         active_at__gte=cutoff_dt,
     ).order_by('-score')[:limit])
 
@@ -593,7 +594,7 @@ def get_resolved_groups(request, project=None):
 
     group_list = Group.objects.filter(
         project__in=project_list,
-        status=1,
+        status=STATUS_RESOLVED,
         resolved_at__gte=cutoff_dt,
     ).select_related('project').order_by('-score')[:limit]
 
