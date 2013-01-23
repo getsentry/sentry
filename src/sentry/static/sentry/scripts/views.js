@@ -161,7 +161,7 @@
             if (data.className)
                 this.$parent.addClass(data.className);
 
-            this.options = $.extend(this.defaults, this.options, data);
+            this.options = $.extend({}, this.defaults, this.options, data);
 
             this.collection = new app.ScoredList();
 
@@ -319,7 +319,7 @@
             
             app.OrderedElementsView.prototype.initialize.call(this, data);
 
-            this.options = $.extend(this.defaults, this.options, data);
+            this.options = $.extend({}, this.defaults, this.options, data);
 
             this.queue = new app.ScoredList();
 
@@ -402,7 +402,7 @@
             
             app.OrderedElementsView.prototype.initialize.call(this, data);
 
-            this.options = $.extend(this.defaults, this.options, data);
+            this.options = $.extend({}, this.defaults, this.options, data);
         }
 
     });

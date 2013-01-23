@@ -19,7 +19,7 @@
             if (_.isUndefined(data))
                 data = {};
 
-            this.options = $.extend(this.defaults, this.options, data);
+            this.options = $.extend({}, this.defaults, this.options, data);
 
             this.views = {};
             this.initializeAjaxTabs();
