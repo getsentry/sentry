@@ -144,44 +144,44 @@
         },
 
         initialize: function(data){
+            var members = data.members;
+
             _.bindAll(this);
+
+            this.options = $.extend({}, this.defaults, this.options, data);
 
             this.$wrapper = $('#' + this.id);
             this.$parent = $('<ul></ul>');
             this.$empty = $('<li class="empty"></li>');
-
-            var loaded = (data.members !== undefined);
-            if (loaded)
-                this.$empty.html(this.$emptyMessage);
-            else
-                this.$empty.html(this.loadingMessage);
-            this.setEmpty();
             this.$wrapper.html(this.$parent);
 
-            if (data.className)
-                this.$parent.addClass(data.className);
-
-            this.options = $.extend({}, this.defaults, this.options, data);
+            if (this.options.className)
+                this.$parent.addClass(this.options.className);
 
             this.collection = new app.ScoredList();
-
-            this.collection.add(data.members || []);
             this.collection.on('add', this.renderMemberInContainer);
             this.collection.on('remove', this.unrenderMember);
             this.collection.on('reset', this.reSortMembers);
-            this.collection.sort();
 
-            // we set this last as it has side effects
-            this.loaded = loaded;
+            delete data.members;
+
+            this.reset(members);
         },
 
-        load: function(data){
-            this.$empty.html(this.emptyMessage);
-            if (data)
-                this.extend(data);
-            else
+        reset: function(members){
+            this.$parent.empty();
+            this.setEmpty();
+
+            if (members === undefined) {
+                this.$empty.html(this.loadingMessage);
+                this.collection.reset();
                 this.setEmpty();
-            this.loaded = true;
+                this.loaded = false;
+            } else {
+                this.$empty.html(this.emptyMessage);
+                this.collection.reset(members);
+                this.loaded = true;
+            }
         },
 
         setEmpty: function(){
@@ -347,7 +347,7 @@
         poll: function(){
             var data;
 
-            if (!this.options.realtime)
+            if (!this.options.realtime || !this.options.pollUrl)
                 return window.setTimeout(this.poll, this.options.pollTime);
 
             data = app.utils.getQueryParams();

@@ -36,7 +36,7 @@
                 e.preventDefault();
 
                 if (!uri)
-                    return view.load();
+                    return view.reset();
 
                 $cont = $('#' + view_id);
                 $parent = $cont.parent();
@@ -46,7 +46,7 @@
                     url: uri,
                     dataType: 'json',
                     success: function(data){
-                        view.load(data);
+                        view.reset(data);
                         $parent.css('opacity', 1);
                         $tab.tab('show');
                     },
@@ -60,12 +60,11 @@
             $('li.active a[data-toggle=ajtab]').click();
         },
 
-        makeDefaultView: function(id, uri){
+        makeDefaultView: function(id){
             return new app.GroupListView({
                 className: 'group-list small',
                 id: id,
                 maxItems: 5,
-                pollUrl: uri,
                 stream: this.options.stream,
                 realtime: this.options.realtime,
                 model: app.models.Group
@@ -74,8 +73,10 @@
 
         getView: function(id, uri){
             if (!this.views[id])
-                this.views[id] = this.makeDefaultView(id, uri);
-            return this.views[id];
+                this.views[id] = this.makeDefaultView(id);
+            var view = this.views[id];
+            view.options.pollUrl = uri;
+            return view;
         }
 
     });
