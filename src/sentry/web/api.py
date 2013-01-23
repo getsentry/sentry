@@ -564,7 +564,7 @@ def get_new_groups(request, project=None):
         project__in=project_dict.keys(),
         status=STATUS_UNRESOLVED,
         active_at__gte=cutoff_dt,
-    ).order_by('-score')[:limit])
+    ).order_by('-score', '-first_seen')[:limit])
 
     for group in group_list:
         group._project_cache = project_dict.get(group.project_id)
