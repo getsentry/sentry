@@ -20,7 +20,7 @@ from sentry.conf import settings
 from sentry.constants import (SORT_OPTIONS, SEARCH_SORT_OPTIONS,
     SORT_CLAUSES, MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES, MEMBER_USER,
     SCORE_CLAUSES, MYSQL_SCORE_CLAUSES, SQLITE_SCORE_CLAUSES,
-    ORACLE_SORT_CLAUSES,ORACLE_SCORE_CLAUSES)
+    ORACLE_SORT_CLAUSES, ORACLE_SCORE_CLAUSES)
 from sentry.filters import get_filters
 from sentry.models import Group, Event, SearchDocument, Activity
 from sentry.permissions import can_admin_group
