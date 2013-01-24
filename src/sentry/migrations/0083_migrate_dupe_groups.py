@@ -31,6 +31,12 @@ class Migration(DataMigration):
                 continue
 
             updates = defaultdict(int)
+            updates.update({
+                'first_seen': group.first_seen,
+                'last_seen': group.last_seen,
+                'active_at': group.active_at,
+            })
+
             tag_updates = defaultdict(lambda: defaultdict(int))
             counts = defaultdict(lambda: defaultdict(int))
             for other in matches:
@@ -39,11 +45,14 @@ class Migration(DataMigration):
 
                 updates['times_seen'] += other.times_seen
                 updates['users_seen'] += other.users_seen
-                updates['first_seen'] = min(other.first_seen, group.first_seen)
-                updates['last_seen'] = max(other.last_seen, group.last_seen)
-                updates['active_at'] = max(other.active_at, group.active_at)
                 updates['time_spent_total'] += other.time_spent_total
                 updates['time_spent_count'] += other.time_spent_count
+                for datecol in ('active_at', 'last_seen', 'first_seen'):
+                    val = getattr(other, 'datecol')
+                    if val and updates[datecol]:
+                        updates[datecol] = max(val, updates[datecol])
+                    elif val:
+                        updates[datecol] = val
 
                 # determine missing tags
                 for tag in orm['sentry.MessageFilterValue'].objects.filter(group=other):
