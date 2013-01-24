@@ -19,7 +19,8 @@ from django.utils import timezone
 from sentry.conf import settings
 from sentry.constants import (SORT_OPTIONS, SEARCH_SORT_OPTIONS,
     SORT_CLAUSES, MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES, MEMBER_USER,
-    SCORE_CLAUSES, MYSQL_SCORE_CLAUSES, SQLITE_SCORE_CLAUSES)
+    SCORE_CLAUSES, MYSQL_SCORE_CLAUSES, SQLITE_SCORE_CLAUSES,
+    ORACLE_SORT_CLAUSES,ORACLE_SCORE_CLAUSES)
 from sentry.filters import get_filters
 from sentry.models import Group, Event, SearchDocument, Activity
 from sentry.permissions import can_admin_group
@@ -99,6 +100,9 @@ def _get_group_list(request, project):
     elif engine.startswith('mysql'):
         score_clause = MYSQL_SORT_CLAUSES.get(sort)
         filter_clause = MYSQL_SCORE_CLAUSES.get(sort)
+    elif engine.startswith('oracle'):
+        score_clause = ORACLE_SORT_CLAUSES.get(sort)
+        filter_clause = ORACLE_SCORE_CLAUSES.get(sort)
     else:
         score_clause = SORT_CLAUSES.get(sort)
         filter_clause = SCORE_CLAUSES.get(sort)
