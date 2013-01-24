@@ -50,6 +50,14 @@ MYSQL_SCORE_CLAUSES.update({
     'new': 'UNIX_TIMESTAMP(sentry_groupedmessage.first_seen)',
 })
 
+ORACLE_SORT_CLAUSES = SCORE_CLAUSES.copy()
+ORACLE_SORT_CLAUSES.update({
+    'date': "(cast(sentry_groupedmessage.last_seen as date)-TO_DATE('01/01/1970 00:00:00', 'MM-DD-YYYY HH24:MI:SS')) * 24 * 60 * 60",
+    'new': "(cast(sentry_groupedmessage.first_seen as date)-TO_DATE('01/01/1970 00:00:00', 'MM-DD-YYYY HH24:MI:SS')) * 24 * 60 * 60",
+})
+ORACLE_SCORE_CLAUSES = ORACLE_SORT_CLAUSES.copy()
+
+
 SEARCH_SORT_OPTIONS = SortedDict((
     ('score', _('Score')),
     ('date', _('Last Seen')),
