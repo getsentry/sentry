@@ -74,16 +74,20 @@ class Migration(DataMigration):
 
             # migrate tags
             for (key, value), data in tag_updates.iteritems():
+                defaults = {
+                    'times_seen': F('times_seen') + data['times_seen'],
+                }
+                if 'last_seen' in data:
+                    defaults['last_seen'] = data['last_seen']
+                if 'first_seen' in data:
+                    defaults['first_seen'] = data['first_seen']
+
                 create_or_update(orm['sentry.MessageFilterValue'],
                     project=group.project,
                     group=group,
                     key=key,
                     value=value,
-                    defaults={
-                        'times_seen': F('times_seen') + data['times_seen'],
-                        'last_seen': data['first_seen'],
-                        'first_seen': data['last_seen'],
-                    }
+                    defaults=defaults
                 )
 
             db.commit_transaction()
