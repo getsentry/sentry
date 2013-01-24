@@ -159,27 +159,27 @@ def search(request, project):
 
     result = event_re.match(query)
     if result:
-        # Forward to message if it exists
+        # Forward to aggregate if it exists
         # event_id = result.group(1)
         checksum = result.group(2)
-        event_list = Group.objects.filter(project=project, checksum=checksum)
-        top_matches = list(event_list[:2])
-        if len(top_matches) == 0:
+        try:
+            group = Group.objects.filter(project=project, checksum=checksum)[0]
+        except IndexError:
             return render_to_response('sentry/invalid_message_id.html', {
                 'project': project,
             }, request)
-        elif len(top_matches) == 1:
-            return HttpResponseRedirect(top_matches[0].get_absolute_url())
+        else:
+            return HttpResponseRedirect(group.get_absolute_url())
     elif uuid_re.match(query):
-        # Forward to message if it exists
+        # Forward to event if it exists
         try:
-            message = Event.objects.get(project=project, event_id=query)
+            event = Event.objects.get(project=project, event_id=query)
         except Event.DoesNotExist:
             return render_to_response('sentry/invalid_message_id.html', {
                 'project': project,
             }, request)
         else:
-            return HttpResponseRedirect(message.get_absolute_url())
+            return HttpResponseRedirect(event.get_absolute_url())
     elif not settings.USE_SEARCH:
         event_list = Group.objects.none()
         # return render_to_response('sentry/invalid_message_id.html', {

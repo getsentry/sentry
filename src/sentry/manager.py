@@ -407,6 +407,10 @@ class GroupManager(BaseManager, ChartMixin):
         # TODO: this function is way too damn long and needs refactored
         # the inner imports also suck so let's try to move it away from
         # the objects manager
+
+        # TODO: culprit should default to "most recent" frame in stacktraces when
+        # it's not provided.
+
         from sentry.models import Event, Project
 
         project = Project.objects.get_from_cache(pk=project)
@@ -444,13 +448,13 @@ class GroupManager(BaseManager, ChartMixin):
             'level': level,
             'message': message,
             'platform': platform,
+            'culprit': culprit or '',
+            'logger': logger_name,
         }
 
         event = Event(
             project=project,
             event_id=event_id,
-            culprit=culprit or '',
-            logger=logger_name,
             data=data,
             server_name=server_name,
             site=site,
@@ -528,26 +532,12 @@ class GroupManager(BaseManager, ChartMixin):
         time_spent = event.time_spent
         project = event.project
 
-        try:
-            group, is_new = self.get_or_create(
-                project=project,
-                culprit=event.culprit,
-                logger=event.logger,
-                checksum=event.checksum,
-                defaults=kwargs
-            )
-        except self.model.MultipleObjectsReturned:
-            # Fix for multiple groups existing due to a race
-            groups = list(self.filter(
-                project=project,
-                culprit=event.culprit,
-                logger=event.logger,
-                checksum=event.checksum,
-            ))
-            for g in groups[1:]:
-                g.delete()
-            group, is_new = groups[0], False
-        else:
+        group, is_new = self.get_or_create(
+            project=project,
+            checksum=event.checksum,
+            defaults=kwargs
+        )
+        if is_new:
             transaction.commit_unless_managed(using=group._state.db)
 
         update_kwargs = {
