@@ -263,8 +263,10 @@ def validate_data(project, data, client=None):
     if not data.get('message'):
         data['message'] = '<no message value>'
 
-    if 'event_id' not in data:
+    if not data.get('event_id'):
         data['event_id'] = uuid.uuid4().hex
+    elif len(data['event_id']) > 32:
+        raise InvalidData('Invalid value for \'event_id\': must be a 32 character identifier')
 
     if 'timestamp' in data:
         try:
