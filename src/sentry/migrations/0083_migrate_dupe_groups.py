@@ -48,7 +48,7 @@ class Migration(DataMigration):
                 updates['time_spent_total'] += other.time_spent_total
                 updates['time_spent_count'] += other.time_spent_count
                 for datecol in ('active_at', 'last_seen', 'first_seen'):
-                    val = getattr(other, 'datecol')
+                    val = getattr(other, datecol)
                     if val and updates[datecol]:
                         updates[datecol] = max(val, updates[datecol])
                     elif val:
