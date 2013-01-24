@@ -55,7 +55,7 @@ class Migration(DataMigration):
                         updates[datecol] = val
 
                 # determine missing tags
-                for tag in orm['sentry.MessageFilterValue'].objects.filter(group=other):
+                for tag in RangeQuerySetWrapper(orm['sentry.MessageFilterValue'].objects.filter(group=other)):
                     key = tag_updates[(tag.key, tag.value)]
                     key['times_seen'] += other.times_seen
                     for datecol in ('last_seen', 'first_seen'):
@@ -66,7 +66,7 @@ class Migration(DataMigration):
                             updates[datecol] = val
 
                 # determine counts
-                for count in orm['sentry.MessageCountByMinute'].objects.filter(group=other):
+                for count in RangeQuerySetWrapper(orm['sentry.MessageCountByMinute'].objects.filter(group=other)):
                     key = counts[count.date]
                     key['times_seen'] += count.times_seen
                     key['time_spent_total'] += count.time_spent_total
