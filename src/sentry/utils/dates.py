@@ -30,7 +30,7 @@ def get_sql_date_trunc(col, db='default', grouper='hour'):
     if engine.startswith('oracle'):
         method = DATE_TRUNC_GROUPERS['oracle'].get(grouper, DATE_TRUNC_GROUPERS['default'][grouper])
         if not '"' in col:
-            col = '"%s"'%str.upper(col)
+            col = '"%s"' % col.upper()
     else:
         method = DATE_TRUNC_GROUPERS['default'][grouper]
     return conn.ops.date_trunc_sql(method, col)
