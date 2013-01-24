@@ -58,7 +58,7 @@ Upgrading to >= 5.1
 ~~~~~~~~~~~~~~~~~~~
 
 Version 5.1 of Sentry includes a large set of changes including a new client protocol (version 3). It is
-fully compatible with version 2.0 of the protocl, but no longer supports several deprecated features, including
+fully compatible with version 2.0 of the protocol, but no longer supports several deprecated features, including
 version 1.0.
 
 You should always upgrade your client first, but if you're upgrading from a very old version of Sentry, you may
