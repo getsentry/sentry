@@ -23,6 +23,15 @@ class StacktraceTest(TestCase):
             'filename': 'foo.py',
         }])
 
+    def test_allows_abs_path_without_filename(self):
+        interface = Stacktrace(frames=[{
+            'lineno': 1,
+            'abs_path': 'foo/bar/baz.py',
+        }])
+        frame = interface.frames[0]
+        assert frame['filename'] == 'foo/bar/baz.py'
+        assert frame.get('abs_path') is None
+
     def test_coerces_url_filenames(self):
         interface = Stacktrace(frames=[{
             'lineno': 1,
@@ -49,6 +58,7 @@ class StacktraceTest(TestCase):
         }])
         frame = interface.frames[0]
         assert frame['filename'] == 'http://foo.com'
+        assert frame.get('abs_path') is None
 
     def test_serialize_returns_frames(self):
         interface = Stacktrace(frames=[{

@@ -287,8 +287,13 @@ class Stacktrace(Interface):
     def __init__(self, frames):
         self.frames = frames
         for frame in frames:
+            # if for some reason the user provided abs_path but not filename
+            # let it through and fix it for them
+            if 'abs_path' in frame and 'filename' not in frame:
+                frame['filename'] = frame.pop('abs_path', None)
+
             # ensure we've got the correct required values
-            assert 'filename' in frame
+            assert frame.get('filename')
 
             # lineno should be an int
             if 'lineno' in frame:
