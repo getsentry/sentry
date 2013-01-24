@@ -256,8 +256,6 @@ class Stacktrace(Interface):
       the framework's library once you start handling code likely are.
     ``vars``
       A mapping of variables which were available within this frame (usually context-locals).
-    ``extra``
-      A mapping of arbitrary annotated data. Platform-specific.
 
     >>> {
     >>>     "frames": [{
