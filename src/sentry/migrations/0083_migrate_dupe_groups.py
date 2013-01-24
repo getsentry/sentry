@@ -58,10 +58,12 @@ class Migration(DataMigration):
                 for tag in orm['sentry.MessageFilterValue'].objects.filter(group=other):
                     key = tag_updates[(tag.key, tag.value)]
                     key['times_seen'] += other.times_seen
-                    key['users_seen'] += other.users_seen
-                    key['first_seen'] = min(other.first_seen, group.first_seen)
-                    key['last_seen'] = max(other.last_seen, group.last_seen)
-                    key['active_at'] = max(other.active_at, group.active_at)
+                    for datecol in ('last_seen', 'first_seen'):
+                        val = getattr(other, datecol)
+                        if val and updates[datecol]:
+                            updates[datecol] = max(val, updates[datecol])
+                        elif val:
+                            updates[datecol] = val
 
                 # determine counts
                 for count in orm['sentry.MessageCountByMinute'].objects.filter(group=other):
