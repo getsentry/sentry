@@ -295,11 +295,17 @@ class Stacktrace(Interface):
 
             # lineno should be an int
             if 'lineno' in frame:
-                frame['lineno'] = int(frame['lineno'])
+                if frame['lineno'] is None:
+                    del frame['lineno']
+                else:
+                    frame['lineno'] = int(frame['lineno'])
 
             # colno should be an int
             if 'colno' in frame:
-                frame['colno'] = int(frame['colno'])
+                if frame['colno'] is None:
+                    del frame['colno']
+                else:
+                    frame['colno'] = int(frame['colno'])
 
             # in_app should be a boolean
             if 'in_app' in frame:
