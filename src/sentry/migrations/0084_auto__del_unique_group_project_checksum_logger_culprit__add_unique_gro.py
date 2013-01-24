@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 import datetime
+from collections import defaultdict
 from south.db import db
 from south.v2 import SchemaMigration
 from django.db import models
+from django.db.models import F
 
 
 class Migration(SchemaMigration):
