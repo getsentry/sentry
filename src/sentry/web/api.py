@@ -39,6 +39,10 @@ from sentry.web.helpers import render_to_response, get_project_list
 error_logger = logging.getLogger('sentry.errors.api.http')
 logger = logging.getLogger('sentry.api.http')
 
+# Transparent 1x1 gif
+# See http://probablyprogramming.com/2009/03/15/the-tiniest-gif-ever
+PIXEL = 'R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='.decode('base64')
+
 
 def api(func):
     @wraps(func)
@@ -227,12 +231,15 @@ class StoreView(APIView):
     @never_cache
     def post(self, request, project, auth, **kwargs):
         data = request.raw_post_data
-        return self.process(request, project, auth, data, **kwargs)
+        self.process(request, project, auth, data, **kwargs)
+        return HttpResponse()
 
     @never_cache
     def get(self, request, project, auth, **kwargs):
         data = request.GET.get('sentry_data', '')
-        return self.process(request, project, auth, data, **kwargs)
+        self.process(request, project, auth, data, **kwargs)
+        # We should return a simple 1x1 gif for browser so they don't throw a warning
+        return HttpResponse(PIXEL, content_type='image/gif')
 
     def process(self, request, project, auth, data, **kwargs):
         result = plugins.first('has_perm', request.user, 'create_event', project)
@@ -251,8 +258,6 @@ class StoreView(APIView):
         insert_data_to_database(data)
 
         logger.info('New event from project %r (id=%s)', project.slug, data['event_id'])
-
-        return HttpResponse()
 
 
 @csrf_exempt
