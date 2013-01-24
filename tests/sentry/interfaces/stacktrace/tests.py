@@ -23,6 +23,33 @@ class StacktraceTest(TestCase):
             'filename': 'foo.py',
         }])
 
+    def test_coerces_url_filenames(self):
+        interface = Stacktrace(frames=[{
+            'lineno': 1,
+            'filename': 'http://foo.com/foo.js',
+        }])
+        frame = interface.frames[0]
+        assert frame['filename'] == '/foo.js'
+        assert frame['abs_path'] == 'http://foo.com/foo.js'
+
+    def test_coerces_url_abs_paths(self):
+        interface = Stacktrace(frames=[{
+            'lineno': 1,
+            'filename': 'foo.js',
+            'abs_path': 'http://foo.com/foo.js',
+        }])
+        frame = interface.frames[0]
+        assert frame['filename'] == '/foo.js'
+        assert frame['abs_path'] == 'http://foo.com/foo.js'
+
+    def test_ignores_results_with_empty_path(self):
+        interface = Stacktrace(frames=[{
+            'lineno': 1,
+            'filename': 'http://foo.com',
+        }])
+        frame = interface.frames[0]
+        assert frame['filename'] == 'http://foo.com'
+
     def test_serialize_returns_frames(self):
         interface = Stacktrace(frames=[{
             'lineno': 1,

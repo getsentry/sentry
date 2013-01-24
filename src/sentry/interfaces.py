@@ -302,6 +302,13 @@ class Stacktrace(Interface):
             if 'in_app' in frame:
                 frame['in_app'] = bool(frame['in_app'])
 
+            abs_path = frame.get('abs_path') or frame['filename']
+            if abs_path.startswith(('http:', 'https:')):
+                urlparts = urlparse.urlparse(abs_path)
+                if urlparts.path:
+                    frame['abs_path'] = abs_path
+                    frame['filename'] = urlparts.path
+
     def serialize(self):
         return {
             'frames': self.frames,
