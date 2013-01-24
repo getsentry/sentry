@@ -467,7 +467,14 @@ def clear(request, project):
 
     # TODO: should we record some kind of global event in Activity?
     event_list = response['event_list']
-    event_list.update(status=STATUS_RESOLVED)
+    happened = event_list.update(status=STATUS_RESOLVED)
+
+    if happened:
+        Activity.objects.create(
+            project=project,
+            type=Activity.SET_RESOLVED,
+            user=request.user,
+        )
 
     data = []
     response = HttpResponse(json.dumps(data))
