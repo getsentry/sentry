@@ -15,6 +15,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.conf import settings as django_settings
 
 from sentry.conf import settings
 from sentry.constants import (SORT_OPTIONS, SEARCH_SORT_OPTIONS,
@@ -341,6 +342,8 @@ def group_event_details(request, project, group, event_id):
     except Event.DoesNotExist:
         prev_event = None
 
+    local_tz = getattr(django_settings, 'TIME_ZONE', 'UTC')
+
     return render_to_response('sentry/groups/event.html', {
         'project': project,
         'page': 'event',
@@ -348,6 +351,7 @@ def group_event_details(request, project, group, event_id):
         'event': event,
         'next_event': next_event,
         'prev_event': prev_event,
+        'timezone' : local_tz,
         'json_data': event.data.get('extra', {}),
         'version_data': event.data.get('modules', None),
         'can_admin_event': can_admin_group(request.user, group),
