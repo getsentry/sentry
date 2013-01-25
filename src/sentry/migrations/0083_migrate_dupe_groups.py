@@ -12,9 +12,6 @@ class Migration(DataMigration):
         from sentry.utils.models import create_or_update
         from sentry.utils.query import RangeQuerySetWrapper
 
-        # Kill our current transaction
-        db.commit_transaction()
-
         # We don't fully merge results because it's simply not worth it
         for group in RangeQuerySetWrapper(orm['sentry.Group'].objects.all()):
 
@@ -27,8 +24,6 @@ class Migration(DataMigration):
 
             if not matches:
                 continue
-
-            db.start_transaction()
 
             updates = defaultdict(int)
             updates.update({
@@ -90,13 +85,7 @@ class Migration(DataMigration):
                     defaults=defaults
                 )
 
-            db.commit_transaction()
-            db.start_transaction()
-
             orm['sentry.MessageFilterValue'].objects.filter(group__in=matches).delete()
-
-            db.commit_transaction()
-            db.start_transaction()
 
             # migrate counts
             for date, data in counts.iteritems():
@@ -111,13 +100,7 @@ class Migration(DataMigration):
                     }
                 )
 
-            db.commit_transaction()
-            db.start_transaction()
-
             orm['sentry.MessageCountByMinute'].objects.filter(group__in=matches).delete()
-
-            db.commit_transaction()
-            db.start_transaction()
 
             orm['sentry.Group'].objects.filter(id=group.id).update(
                 times_seen=F('times_seen') + updates['times_seen'],
@@ -129,13 +112,8 @@ class Migration(DataMigration):
                 active_at=updates['active_at'],
             )
 
-            db.commit_transaction()
-            db.start_transaction()
-
             for other in matches:
                 other.delete()
-
-            db.commit_transaction()
 
     def backwards(self, orm):
         "Write your backwards methods here."
