@@ -22,13 +22,13 @@ class Migration(DataMigration):
             if not orm['sentry.Group'].objects.filter(id=group.id).exists():
                 continue
 
-            db.start_transaction()
-
             matches = list(orm['sentry.Group'].objects.exclude(id=group.id).filter(
                 checksum=group.checksum, project=group.project))
 
             if not matches:
                 continue
+
+            db.start_transaction()
 
             updates = defaultdict(int)
             updates.update({
