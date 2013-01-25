@@ -74,8 +74,6 @@ def get_context(lineno, context_line, pre_context=None, post_context=None, filen
             return mark_safe(highlight(line, lexer, formatter))
 
         context = tuple((n, format(l)) for n, l in context)
-    else:
-        context = tuple((n, '<pre>%s</pre>' % (mark_safe(l),)) for n, l in context)
 
     return context
 
