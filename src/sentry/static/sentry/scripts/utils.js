@@ -124,6 +124,11 @@
 
     };
 
+    // initialize
+    $(function(){
+        $('select').select2({width: 'element'});
+    });
+
 }(app, jQuery));
 
 /**

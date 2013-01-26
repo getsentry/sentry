@@ -168,7 +168,7 @@
             $('input[data-toggle="datepicker"]').datepicker();
             $('.tip').tooltip();
             $('.nav-tabs .active a').tab('show')
-            $('.project-selector').select2().on('change', function(e){
+            $('.project-selector').on('change', function(e){
                 var $el = $(e.target).get(0);
                 var $opt = $($el.options[$el.selectedIndex]);
                 window.location.href = $opt.attr('data-url');

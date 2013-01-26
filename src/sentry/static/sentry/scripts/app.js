@@ -172,7 +172,7 @@
             });
 
             var $event_nav = $('#event_nav');
-            if ($event_nav) {
+            if ($event_nav.length > 0) {
                 var $window = $(window);
                 var $nav_links = $event_nav.find('a[href*=#]');
                 var $nav_targets = [];
@@ -250,8 +250,6 @@
             this.el = $(data.el);
 
             BasePage.prototype.initialize.call(this, data);
-
-            this.el.find('select').select2({width: 'element'});
 
             if (this.options.canSelectTeam && this.options.canCreateTeam) {
                 $('#new_team').hide();
