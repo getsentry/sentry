@@ -15,7 +15,14 @@ from django.core.management.base import BaseCommand
 
 
 def funcs():
-    exceptions = itertools.cycle([SyntaxError('foo must come before bar'), ValueError('baz is not a valid choice'), TypeError('NoneType cannot be coerced to bar')])
+    exceptions = itertools.cycle([
+        SyntaxError('foo must come before bar'),
+        ValueError('baz is not a valid choice'),
+        TypeError('NoneType cannot be coerced to bar'),
+        NotImplementedError('This feature is not implemented'),
+        ZeroDivisionError('Your math doesn\'t work'),
+        Exception('An unknown exception'),
+    ])
     loggers = itertools.cycle(['root', 'foo', 'foo.bar'])
     emails = itertools.cycle(['foo@example.com', 'bar@example.com', 'baz@example.com'])
     timestamps = range(24 * 60 * 60)

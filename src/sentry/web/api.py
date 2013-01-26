@@ -41,6 +41,10 @@ from sentry.web.helpers import render_to_response, get_project_list
 error_logger = logging.getLogger('sentry.errors.api.http')
 logger = logging.getLogger('sentry.api.http')
 
+# Transparent 1x1 gif
+# See http://probablyprogramming.com/2009/03/15/the-tiniest-gif-ever
+PIXEL = 'R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='.decode('base64')
+
 
 def api(func):
     @wraps(func)
@@ -229,12 +233,15 @@ class StoreView(APIView):
     @never_cache
     def post(self, request, project, auth, **kwargs):
         data = request.raw_post_data
-        return self.process(request, project, auth, data, **kwargs)
+        self.process(request, project, auth, data, **kwargs)
+        return HttpResponse()
 
     @never_cache
     def get(self, request, project, auth, **kwargs):
         data = request.GET.get('sentry_data', '')
-        return self.process(request, project, auth, data, **kwargs)
+        self.process(request, project, auth, data, **kwargs)
+        # We should return a simple 1x1 gif for browser so they don't throw a warning
+        return HttpResponse(PIXEL, content_type='image/gif')
 
     def process(self, request, project, auth, data, **kwargs):
         result = plugins.first('has_perm', request.user, 'create_event', project)
@@ -253,8 +260,6 @@ class StoreView(APIView):
         insert_data_to_database(data)
 
         logger.info('New event from project %r (id=%s)', project.slug, data['event_id'])
-
-        return HttpResponse()
 
 
 @csrf_exempt
@@ -460,7 +465,14 @@ def clear(request, team, project):
 
     # TODO: should we record some kind of global event in Activity?
     event_list = response['event_list']
-    event_list.update(status=STATUS_RESOLVED)
+    happened = event_list.update(status=STATUS_RESOLVED)
+
+    if happened:
+        Activity.objects.create(
+            project=project,
+            type=Activity.SET_RESOLVED,
+            user=request.user,
+        )
 
     data = []
     response = HttpResponse(json.dumps(data))
@@ -533,6 +545,7 @@ def get_group_trends(request, team=None, project=None):
         cutoff_dt = timezone.now() - cutoff
 
         group_list = list(base_qs.filter(
+            status=STATUS_UNRESOLVED,
             last_seen__gte=cutoff_dt
         ).order_by('-score')[:limit])
 
@@ -566,9 +579,9 @@ def get_new_groups(request, team=None, project=None):
 
     group_list = list(Group.objects.filter(
         project__in=project_dict.keys(),
-        status=0,
+        status=STATUS_UNRESOLVED,
         active_at__gte=cutoff_dt,
-    ).order_by('-score')[:limit])
+    ).order_by('-score', '-first_seen')[:limit])
 
     for group in group_list:
         group._project_cache = project_dict.get(group.project_id)
@@ -600,7 +613,7 @@ def get_resolved_groups(request, team=None, project=None):
 
     group_list = Group.objects.filter(
         project__in=project_list,
-        status=1,
+        status=STATUS_RESOLVED,
         resolved_at__gte=cutoff_dt,
     ).select_related('project').order_by('-score')[:limit]
 

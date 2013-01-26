@@ -572,30 +572,3 @@ class SentrySearchTest(TestCase):
             'team_slug': group.team.slug,
             'group_id': group.id,
         }),))
-
-    def test_dupe_checksum(self):
-        checksum = 'a' * 32
-        g1 = Group.objects.create(
-            project=self.project,
-            logger='root',
-            culprit='a',
-            checksum=checksum,
-            message='hi',
-        )
-        g2 = Group.objects.create(
-            project=self.project,
-            logger='root',
-            culprit='b',
-            checksum=checksum,
-            message='hi',
-        )
-
-        with self.Settings(SENTRY_USE_SEARCH=False):
-            response = self.client.get(self.path, {'q': '%s$%s' % (checksum, checksum)})
-            self.assertEquals(response.status_code, 200)
-            self.assertTemplateUsed(response, 'sentry/search.html')
-            context = response.context
-            self.assertTrue('event_list' in context)
-            self.assertEquals(len(context['event_list']), 2)
-            self.assertTrue(g1 in context['event_list'])
-            self.assertTrue(g2 in context['event_list'])

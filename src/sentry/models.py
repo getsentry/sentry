@@ -469,7 +469,7 @@ class Group(EventBase):
     objects = GroupManager()
 
     class Meta:
-        unique_together = (('project', 'logger', 'culprit', 'checksum'),)
+        unique_together = (('project', 'checksum'),)
         verbose_name_plural = _('grouped messages')
         verbose_name = _('grouped message')
         permissions = (

@@ -26,7 +26,7 @@ from django.db.models import Sum
 from django.db.models.signals import post_save, post_delete, post_init, class_prepared
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
-from django.utils.encoding import force_unicode, smart_str
+from django.utils.encoding import force_unicode
 
 from raven.utils.encoding import to_string
 from sentry import app
@@ -39,7 +39,7 @@ from sentry.tasks.fetch_source import fetch_javascript_source
 from sentry.utils.cache import cache, Lock
 from sentry.utils.dates import get_sql_date_trunc
 from sentry.utils.db import get_db_engine, has_charts
-from sentry.utils.models import create_or_update
+from sentry.utils.models import create_or_update, make_key
 from sentry.utils.queue import maybe_delay
 
 logger = logging.getLogger('sentry.errors')
@@ -80,31 +80,6 @@ class BaseManager(models.Manager):
     def __setstate__(self, state):
         self.__dict__.update(state)
         self.__cache = weakref.WeakKeyDictionary()
-
-    def __prep_value(self, key, value):
-        if isinstance(value, models.Model):
-            value = value.pk
-        else:
-            value = unicode(value)
-        parts = key.split('__')
-        if len(key) > 1 and parts[-1] in self.lookup_handlers:
-            value = self.lookup_handlers[parts[-1]](value)
-        return value
-
-    def __prep_key(self, key):
-        if key == 'pk':
-            return self.model._meta.pk.name
-        return key
-
-    def make_key(self, prefix, kwargs):
-        kwargs_bits = []
-        for k, v in sorted(kwargs.iteritems()):
-            k = self.__prep_key(k)
-            v = smart_str(self.__prep_value(k, v))
-            kwargs_bits.append('%s=%s' % (k, v))
-        kwargs_bits = ':'.join(kwargs_bits)
-
-        return '%s:%s:%s' % (prefix, self.model.__name__, hashlib.md5(kwargs_bits).hexdigest())
 
     def __class_prepared(self, sender, **kwargs):
         """
@@ -177,7 +152,7 @@ class BaseManager(models.Manager):
         cache.delete(self.__get_lookup_cache_key(**{pk_name: instance.pk}))
 
     def __get_lookup_cache_key(self, **kwargs):
-        return self.make_key('modelcache', kwargs)
+        return make_key(self.model, 'modelcache', kwargs)
 
     def contribute_to_class(self, model, name):
         super(BaseManager, self).contribute_to_class(model, name)
@@ -240,7 +215,7 @@ class BaseManager(models.Manager):
             return self.get(**kwargs), False
         except self.model.DoesNotExist:
             pass
-        lock_key = self.make_key('lock', kwargs)
+        lock_key = make_key(self.model, 'lock', kwargs)
 
         # instance not found, lets grab a lock and attempt to create it
         with Lock(lock_key):
@@ -407,6 +382,10 @@ class GroupManager(BaseManager, ChartMixin):
         # TODO: this function is way too damn long and needs refactored
         # the inner imports also suck so let's try to move it away from
         # the objects manager
+
+        # TODO: culprit should default to "most recent" frame in stacktraces when
+        # it's not provided.
+
         from sentry.models import Event, Project
 
         project = Project.objects.get_from_cache(pk=project)
@@ -444,13 +423,13 @@ class GroupManager(BaseManager, ChartMixin):
             'level': level,
             'message': message,
             'platform': platform,
+            'culprit': culprit or '',
+            'logger': logger_name,
         }
 
         event = Event(
             project=project,
             event_id=event_id,
-            culprit=culprit or '',
-            logger=logger_name,
             data=data,
             server_name=server_name,
             site=site,
@@ -528,26 +507,12 @@ class GroupManager(BaseManager, ChartMixin):
         time_spent = event.time_spent
         project = event.project
 
-        try:
-            group, is_new = self.get_or_create(
-                project=project,
-                culprit=event.culprit,
-                logger=event.logger,
-                checksum=event.checksum,
-                defaults=kwargs
-            )
-        except self.model.MultipleObjectsReturned:
-            # Fix for multiple groups existing due to a race
-            groups = list(self.filter(
-                project=project,
-                culprit=event.culprit,
-                logger=event.logger,
-                checksum=event.checksum,
-            ))
-            for g in groups[1:]:
-                g.delete()
-            group, is_new = groups[0], False
-        else:
+        group, is_new = self.get_or_create(
+            project=project,
+            checksum=event.checksum,
+            defaults=kwargs
+        )
+        if is_new:
             transaction.commit_unless_managed(using=group._state.db)
 
         update_kwargs = {
@@ -731,6 +696,9 @@ class GroupManager(BaseManager, ChartMixin):
         mcbm_tbl = MessageCountByMinute._meta.db_table
         if queryset is None:
             queryset = self
+
+        queryset = queryset._clone()
+        queryset.query.select_related = False
 
         normalization = float(settings.MINUTE_NORMALIZATION)
         assert minutes >= normalization

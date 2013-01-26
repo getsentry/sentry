@@ -209,13 +209,32 @@ class ValidateDataTest(BaseAPITest):
         data = validate_data(self.project, {
             'message': 'foo',
         })
-        self.assertEquals(data['project'], self.project.id)
+        assert data['project'] == self.project.id
+
+    @mock.patch('uuid.uuid4')
+    def test_empty_event_id(self, uuid4):
+        data = validate_data(self.project, {
+            'event_id': '',
+        })
+        assert data['event_id'] == uuid4.return_value.hex
+
+    @mock.patch('uuid.uuid4')
+    def test_missing_event_id(self, uuid4):
+        data = validate_data(self.project, {})
+        assert data['event_id'] == uuid4.return_value.hex
+
+    def test_invalid_event_id(self):
+        with self.assertRaises(InvalidData):
+            validate_data(self.project, {
+                'event_id': 'a' * 33,
+            })
 
     def test_invalid_project_id(self):
-        self.assertRaises(APIForbidden, validate_data, self.project, {
-            'project': self.project.id + 1,
-            'message': 'foo',
-        })
+        with self.assertRaises(APIForbidden):
+            validate_data(self.project, {
+                'project': self.project.id + 1,
+                'message': 'foo',
+            })
 
     def test_unknown_attribute(self):
         data = validate_data(self.project, {
@@ -223,28 +242,31 @@ class ValidateDataTest(BaseAPITest):
             'message': 'foo',
             'foo': 'bar',
         })
-        self.assertFalse('foo' in data)
+        assert 'foo' not in data
 
     def test_invalid_interface_name(self):
-        self.assertRaises(InvalidInterface, validate_data, self.project, {
-            'project': self.project.id,
-            'message': 'foo',
-            'foo.baz': 'bar',
-        })
+        with self.assertRaises(InvalidInterface):
+            validate_data(self.project, {
+                'project': self.project.id,
+                'message': 'foo',
+                'foo.baz': 'bar',
+            })
 
     def test_invalid_interface_import_path(self):
-        self.assertRaises(InvalidInterface, validate_data, self.project, {
-            'project': self.project.id,
-            'message': 'foo',
-            'sentry.interfaces.Exception2': 'bar',
-        })
+        with self.assertRaises(InvalidInterface):
+            validate_data(self.project, {
+                'project': self.project.id,
+                'message': 'foo',
+                'sentry.interfaces.Exception2': 'bar',
+            })
 
     def test_invalid_interface_args(self):
-        self.assertRaises(InvalidData, validate_data, self.project, {
-            'project': self.project.id,
-            'message': 'foo',
-            'tests.manager.tests.DummyInterface': {'foo': 'bar'}
-        })
+        with self.assertRaises(InvalidData):
+            validate_data(self.project, {
+                'project': self.project.id,
+                'message': 'foo',
+                'tests.manager.tests.DummyInterface': {'foo': 'bar'}
+            })
 
     def test_log_level_as_string(self):
         data = validate_data(self.project, {
@@ -252,11 +274,11 @@ class ValidateDataTest(BaseAPITest):
             'message': 'foo',
             'level': 'error',
         })
-        self.assertEquals(data['level'], 40)
+        assert data['level'] == 40
 
     def test_project_slug(self):
         data = validate_data(self.project, {
             'project': self.project.slug,
             'message': 'foo',
         })
-        self.assertEquals(data['project'], self.project.id)
+        assert data['project'] == self.project.id

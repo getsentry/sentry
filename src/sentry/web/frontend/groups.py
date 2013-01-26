@@ -23,7 +23,8 @@ from django.utils import timezone
 from sentry.conf import settings
 from sentry.constants import (SORT_OPTIONS, SEARCH_SORT_OPTIONS,
     SORT_CLAUSES, MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES, MEMBER_USER,
-    SCORE_CLAUSES, MYSQL_SCORE_CLAUSES, SQLITE_SCORE_CLAUSES)
+    SCORE_CLAUSES, MYSQL_SCORE_CLAUSES, SQLITE_SCORE_CLAUSES,
+    ORACLE_SORT_CLAUSES, ORACLE_SCORE_CLAUSES)
 from sentry.filters import get_filters
 from sentry.models import Project, Group, Event, SearchDocument, Activity
 from sentry.permissions import can_admin_group, can_create_projects
@@ -103,6 +104,9 @@ def _get_group_list(request, project):
     elif engine.startswith('mysql'):
         score_clause = MYSQL_SORT_CLAUSES.get(sort)
         filter_clause = MYSQL_SCORE_CLAUSES.get(sort)
+    elif engine.startswith('oracle'):
+        score_clause = ORACLE_SORT_CLAUSES.get(sort)
+        filter_clause = ORACLE_SCORE_CLAUSES.get(sort)
     else:
         score_clause = SORT_CLAUSES.get(sort)
         filter_clause = SCORE_CLAUSES.get(sort)
@@ -177,26 +181,25 @@ def search(request, team, project):
 
     result = event_re.match(query)
     if result:
-        # Forward to message if it exists
+        # Forward to aggregate if it exists
         # event_id = result.group(1)
         checksum = result.group(2)
-        event_list = Group.objects.filter(project=project, checksum=checksum)
-        top_matches = list(event_list[:2])
-        if len(top_matches) == 0:
+        try:
+            group = Group.objects.filter(project=project, checksum=checksum)[0]
+        except IndexError:
             return render_to_response('sentry/invalid_message_id.html', {
                 'team': team,
                 'project': project,
                 'SECTION': 'events',
             }, request)
-        elif len(top_matches) == 1:
-            group = top_matches[0]
+        else:
             return HttpResponseRedirect(reverse('sentry-group', kwargs={
                 'project_id': group.project.slug,
                 'team_slug': group.team.slug,
                 'group_id': group.id,
             }))
     elif uuid_re.match(query):
-        # Forward to message if it exists
+        # Forward to event if it exists
         try:
             event = Event.objects.get(project=project, event_id=query)
         except Event.DoesNotExist:

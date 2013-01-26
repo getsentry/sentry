@@ -13,11 +13,18 @@ The following items are expected of production-ready clients:
 * Scrubbing w/ processors
 * Tag support
 
+Feature based support is required for the following:
+
+* If cookie data is available, it's not sent by default
+* If POST data is available, it's not sent by default
+
 Additionally, the following features are highly encouraged:
 
 * Automated error handling (e.g. default error handlers)
 * Logging integration (to whatever standard solution is available)
 * Non-blocking event submission
+* Basic data sanitization (e.g. filtering out values that look like passwords)
+
 
 Client Usage (End-user)
 -----------------------
@@ -29,7 +36,7 @@ almost identical no matter the language:
 
   ::
 
-      var myClient = new RavenClient('http://public_key:secret_key@example.com/default');
+      var myClient = new RavenClient('http://public_key:secret_key@example.com/project-id');
 
 2. Capturing an event
 
@@ -47,7 +54,7 @@ The constructor ideally allows several configuration methods. The first argument
 always be the DSN value (if possible), followed by an optional secondary argument which is
 a map of options::
 
-    client = new RavenClient('http://public_key:secret_key@example.com/default', {
+    client = new RavenClient('http://public_key:secret_key@example.com/project-id', {
         'tags': {'foo': 'bar'}
     })
 
@@ -84,11 +91,11 @@ like the following::
 
 Finally, provide a CLI to test your client's configuration. Python example::
 
-    raven test http://public_key:secret_key@example.com/default
+    raven test http://public_key:secret_key@example.com/project-id
 
 Ruby example::
 
-    rake raven:test http://public_key:secret_key@example.com/default
+    rake raven:test http://public_key:secret_key@example.com/project-id
 
 Parsing the DSN
 ---------------
@@ -102,17 +109,30 @@ allow the first argument as a DSN string. This string contains the following bit
 
 For example, given the following constructor::
 
-    new RavenClient('https://public:secret@example.com/sentry/default')
+    new RavenClient('https://public:secret@example.com/sentry/project-id')
 
 You should parse the following settings:
 
-* URI = 'https://example.com/sentry/''
+* URI = 'https://example.com/sentry/'
 * Public Key = 'public'
 * Secret Key = 'secret'
-* Project ID = 'default'
+* Project ID = 'project-id'
 
 If any of these values are not present, the client should notify the user immediately
 that they've misconfigured the client.
+
+The final endpoint you'll be sending requests to is constructed per the following:
+
+::
+
+    '{URI}api/{PROJECT ID}/store/'
+
+So in this case, it would end up as:
+
+::
+
+    'https://example.com/sentry/api/project-id/store/'
+
 
 The protocol value may also include a transport option. For example, in the Python client several
 transports are available on top of HTTP:
@@ -364,20 +384,20 @@ A Working Example
 -----------------
 
 When all is said and done, you should be sending an HTTP POST request to a Sentry webserver, where
-the path is the BASE_URI/api/store/. So given the following DSN::
+the path is the BASE_URI/api/PROJECT_ID/store/. So given the following DSN::
 
     https://b70a31b3510c4cf793964a185cfe1fd0:b7d80b520139450f903720eb7991bf3d@example.com/1
 
 The request body should then somewhat resemble the following::
 
-    POST /api/store/
+    POST /api/project-id/store/
     User-Agent: raven-python/1.0
     X-Sentry-Auth: Sentry sentry_version=3, sentry_timestamp=1329096377,
         sentry_key=b70a31b3510c4cf793964a185cfe1fd0, sentry_client=raven-python/1.0,
         sentry_secret=b7d80b520139450f903720eb7991bf3d
 
     {
-        "project": "default",
+        "project": "project-id",
         "event_id": "fc6d8c0c43fc4630ad850ee518f1b9d0",
         "culprit": "my.module.function_name",
         "timestamp": "2011-05-02T17:41:36",
@@ -442,7 +462,7 @@ For example, if you simply supported callbacks for processors, it might look lik
 We recommend scrubbing the following values::
 
 * Values where the keyname matches 'password', 'passwd', or 'secret'.
-* Values that match the regular expression of ``r'^\d{16}$'`` (credit card-like).
+* Values that match the regular expression of ``r'^(?:\d[ -]*?){13,16}$'`` (credit card-like).
 * Session cookies.
 * The Authentication header (HTTP).
 

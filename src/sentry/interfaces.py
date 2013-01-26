@@ -13,7 +13,7 @@ import itertools
 import urlparse
 
 from pygments import highlight
-from pygments.lexers import get_lexer_for_filename, TextLexer
+from pygments.lexers import get_lexer_for_filename, TextLexer, ClassNotFound
 from pygments.formatters import HtmlFormatter
 
 from django.http import QueryDict
@@ -33,7 +33,8 @@ def unserialize(klass, data):
     return value
 
 
-def get_context(filename, lineno, context_line, pre_context=None, post_context=None):
+def get_context(lineno, context_line, pre_context=None, post_context=None, filename=None,
+        format=False):
     lineno = int(lineno)
     context = []
     start_lineno = lineno - len(pre_context or [])
@@ -56,16 +57,23 @@ def get_context(filename, lineno, context_line, pre_context=None, post_context=N
             at_lineno += 1
 
     # HACK:
-    if '.' not in filename.rsplit('/', 1)[-1]:
+    if filename.startswith(('http:', 'https:')) and '.' not in filename.rsplit('/', 1)[-1]:
         filename = 'index.html'
 
-    try:
-        lexer = get_lexer_for_filename(filename)
-    except Exception:
-        lexer = TextLexer()
+    if format:
+        try:
+            lexer = get_lexer_for_filename(filename)
+        except ClassNotFound:
+            lexer = TextLexer()
 
-    formatter = HtmlFormatter()
-    context = tuple((n, mark_safe(highlight(l, lexer, formatter))) for n, l in context)
+        formatter = HtmlFormatter()
+
+        def format(line):
+            if not line:
+                return mark_safe('<pre></pre>')
+            return mark_safe(highlight(line, lexer, formatter))
+
+        context = tuple((n, format(l)) for n, l in context)
 
     return context
 
@@ -246,8 +254,6 @@ class Stacktrace(Interface):
       the framework's library once you start handling code likely are.
     ``vars``
       A mapping of variables which were available within this frame (usually context-locals).
-    ``extra``
-      A mapping of arbitrary annotated data. Platform-specific.
 
     >>> {
     >>>     "frames": [{
@@ -277,20 +283,38 @@ class Stacktrace(Interface):
     def __init__(self, frames):
         self.frames = frames
         for frame in frames:
+            # if for some reason the user provided abs_path but not filename
+            # let it through and fix it for them
+            if 'abs_path' in frame and 'filename' not in frame:
+                frame['filename'] = frame.pop('abs_path', None)
+
             # ensure we've got the correct required values
-            assert 'filename' in frame
+            assert frame.get('filename')
 
             # lineno should be an int
             if 'lineno' in frame:
-                frame['lineno'] = int(frame['lineno'])
+                if frame['lineno'] is None:
+                    del frame['lineno']
+                else:
+                    frame['lineno'] = int(frame['lineno'])
 
             # colno should be an int
             if 'colno' in frame:
-                frame['colno'] = int(frame['colno'])
+                if frame['colno'] is None:
+                    del frame['colno']
+                else:
+                    frame['colno'] = int(frame['colno'])
 
             # in_app should be a boolean
             if 'in_app' in frame:
                 frame['in_app'] = bool(frame['in_app'])
+
+            abs_path = frame.get('abs_path') or frame['filename']
+            if abs_path.startswith(('http:', 'https:')):
+                urlparts = urlparse.urlparse(abs_path)
+                if urlparts.path:
+                    frame['abs_path'] = abs_path
+                    frame['filename'] = urlparts.path
 
     def serialize(self):
         return {
@@ -350,11 +374,12 @@ class Stacktrace(Interface):
         for frame in self.frames:
             if frame.get('context_line') and frame.get('lineno') is not None:
                 context = get_context(
-                    filename=frame.get('filename'),
                     lineno=frame['lineno'],
                     context_line=frame['context_line'],
                     pre_context=frame.get('pre_context'),
                     post_context=frame.get('post_context'),
+                    filename=frame.get('abs_path', frame.get('filename')),
+                    format=True,
                 )
                 start_lineno = context[0][0]
             else:
@@ -463,7 +488,7 @@ class Stacktrace(Interface):
                 pieces.append(', in %(function)s')
 
             result.append(''.join(pieces) % frame)
-            if 'context_line' in frame:
+            if frame.get('context_line', None) is not None:
                 result.append('    %s' % frame['context_line'].strip())
 
         if newest_first and visible_frames < num_frames:
@@ -732,11 +757,12 @@ class Template(Interface):
 
     def to_string(self, event):
         context = get_context(
-            filename=self.filename,
             lineno=self.lineno,
             context_line=self.context_line,
             pre_context=self.pre_context,
             post_context=self.post_context,
+            filename=self.filename,
+            format=False,
         )
 
         result = [
@@ -747,7 +773,14 @@ class Template(Interface):
         return '\n'.join(result)
 
     def to_html(self, event):
-        context = get_context(self.lineno, self.context_line, self.pre_context, self.post_context)
+        context = get_context(
+            lineno=self.lineno,
+            context_line=self.context_line,
+            pre_context=self.pre_context,
+            post_context=self.post_context,
+            filename=self.filename,
+            format=True,
+        )
 
         return render_to_string('sentry/partial/interfaces/template.html', {
             'event': event,

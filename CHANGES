@@ -1,3 +1,38 @@
+Version 5.2.2
+
+- [New] The dashboard will now stream updates to the new and trending event components.
+
+Version 5.2.1
+-------------
+
+- [Fix] Trends sorting options on the Stream page work correctly again.
+
+Version 5.2.0
+-------------
+
+- [New] A new activity stream exists on event pages.
+- [New] Syntax highlighting now exists on all context frames.
+- [New] Support for JavaScript Sourcemaps now exists.
+- [New] The server will now fetch remote source files for JavaScript events.
+- [New] Sentry will now ask for your project's platform.
+- [Fix] Resolved -> Regressed state change is now atomic.
+- [Fix] ``cleanup`` now runs with lower resource overhead.
+- [Fix] Cookies will now be coerced to dicts if possible.
+- More (storage only still) work on user tracking.
+- Several indexes were added to speed up various queries.
+- Removed savepoint use in plugin hooks (99% of the time there were no queries).
+
+Additional, the following client protocol changes are part of this release:
+
+- Cookies should be not be sent by default.
+- POST data should not be sent by default.
+- Recommended values regexp for sanitizing credit cards was updated.
+- ``colno`` was added to the Stacktrace spec.
+- Timestamps that are more than one minute in the future are now discarded.
+- (Undocumented) Client-side support now exists for GET + Referrer store requests.
+
+We've also reduced the test suite time down to 25% of what it originally was (thanks, Alex!)
+
 Version 5.1.3
 -------------
 

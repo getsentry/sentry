@@ -60,7 +60,7 @@ describe("OrderedElementsView", function() {
     });
   });
 
-  describe(".load", function() {
+  describe(".reset", function() {
 
     describe("with data", function(){
       beforeEach(function(){
@@ -68,13 +68,13 @@ describe("OrderedElementsView", function() {
         view = new app.OrderedElementsView({
             id: 'foo'
         });
-        view.extend = sinon.spy();
-        view.load([group1]);
+        view.collection.reset = sinon.spy();
+        view.reset([group1]);
       });
 
-      it("calls extend with data", function() {
-        expect(view.extend.called).toBe(true);
-        expect(view.extend.calledWithExactly([group1])).toBe(true);
+      it("calls collection.reset with data", function() {
+        expect(view.collection.reset.called).toBe(true);
+        expect(view.collection.reset.calledWithExactly([group1])).toBe(true);
       });
 
       it("suggests its loaded", function() {
@@ -86,19 +86,19 @@ describe("OrderedElementsView", function() {
       });
     });
 
-    describe("without data", function(){
+    describe("with empty list of data", function(){
       beforeEach(function(){
         view = new app.OrderedElementsView({
             id: 'foo'
         });
         group1 = make_group({id: 1, score: 3});
-        view.extend = sinon.spy();
-        view.load([]);
+        view.collection.reset = sinon.spy();
+        view.reset([]);
       });
 
-      it("calls extend with data", function() {
-        expect(view.extend.called).toBe(true);
-        expect(view.extend.calledWithExactly([])).toBe(true);
+      it("calls collection.reset with data", function() {
+        expect(view.collection.reset.called).toBe(true);
+        expect(view.collection.reset.calledWithExactly([])).toBe(true);
       });
 
       it("suggests its loaded", function() {
@@ -107,6 +107,30 @@ describe("OrderedElementsView", function() {
 
       it("changes status text to empty", function() {
         expect(view.$empty.html()).toBe(view.emptyMessage);
+      });
+    });
+
+    describe("with no data value", function(){
+      beforeEach(function(){
+        view = new app.OrderedElementsView({
+            id: 'foo'
+        });
+        group1 = make_group({id: 1, score: 3});
+        view.collection.reset = sinon.spy();
+        view.reset();
+      });
+
+      it("calls collection.reset with no value", function() {
+        expect(view.collection.reset.called).toBe(true);
+        expect(view.collection.reset.calledWithExactly()).toBe(true);
+      });
+
+      it("suggests its not loaded", function() {
+        expect(view.loaded).toBe(false);
+      });
+
+      it("changes status text to loading", function() {
+        expect(view.$empty.html()).toBe(view.loadingMessage);
       });
     });
   });

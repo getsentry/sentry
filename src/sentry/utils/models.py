@@ -7,11 +7,13 @@ sentry.utils.models
 """
 
 import base64
+import hashlib
 import logging
 
 from django.db import models, router
 from django.db.models import signals
 from django.db.models.expressions import ExpressionNode
+from django.utils.encoding import smart_str
 
 from sentry.utils.cache import Lock
 from sentry.utils.compat import pickle
@@ -60,13 +62,38 @@ def update(self, using=None, **kwargs):
         signals.post_save.send(sender=self.__class__, instance=self, created=False)
         return True
     elif affected == 0:
-        raise self.DoesNotExist("Cannot update an instance that is not in the database.")
+        return False
     elif affected < 0:
         raise ValueError("Somehow we have updated a negative amount of rows, you seem to have a problem with your db backend.")
     else:
         raise ValueError("Somehow we have updated multiple rows, and you are now royally fucked.")
 
 update.alters_data = True
+
+
+def __prep_value(model, key, value):
+    if isinstance(value, models.Model):
+        value = value.pk
+    else:
+        value = unicode(value)
+    return value
+
+
+def __prep_key(model, key):
+    if key == 'pk':
+        return model._meta.pk.name
+    return key
+
+
+def make_key(model, prefix, kwargs):
+    kwargs_bits = []
+    for k, v in sorted(kwargs.iteritems()):
+        k = __prep_key(model, k)
+        v = smart_str(__prep_value(model, k, v))
+        kwargs_bits.append('%s=%s' % (k, v))
+    kwargs_bits = ':'.join(kwargs_bits)
+
+    return '%s:%s:%s' % (prefix, model.__name__, hashlib.md5(kwargs_bits).hexdigest())
 
 
 def create_or_update(model, **kwargs):
@@ -84,7 +111,7 @@ def create_or_update(model, **kwargs):
     affected = objects.filter(**kwargs).update(**defaults)
     if affected:
         return affected, False
-    lock_key = objects.make_key('lock', kwargs)
+    lock_key = make_key(model, 'lock', kwargs)
 
     # instance not found, lets grab a lock and attempt to create it
     with Lock(lock_key) as lock:

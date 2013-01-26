@@ -15,10 +15,11 @@ protocol:
 
 Additionally, the following experimental clients are availabe:
 
-- CFML (`raven-cfml <https://github.com/jmacul2/raven-cfml>`_)
-- R (`logging <http://logging.r-forge.r-project.org/>`_)
 - Action Script 3 (`raven-as3 <https://github.com/skitoo/raven-as3>`_)
+- C# (`raven-csharp <https://github.com/getsentry/raven-csharp>`_)
+- CFML (`raven-cfml <https://github.com/jmacul2/raven-cfml>`_)
 - Erlang (`raven-erlang <https://github.com/soundrop/raven-erlang>`_)
+- R (`logging <http://logging.r-forge.r-project.org/>`_)
 
 Client Criteria
 ---------------
