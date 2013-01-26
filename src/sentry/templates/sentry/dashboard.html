@@ -4,6 +4,17 @@
 
 {% block title %}{% trans "Dashboard" %} | {{ block.super }}{% endblock %}
 
+{% block page_header %}
+    {% if can_create_projects %}
+        <div class="pull-right">
+            <a href="{% url sentry-new-project team.slug %}" class="btn">{% trans "Create a new project" %}</a>
+        </div>
+    {% endif %}
+    {{ block.super }}
+{% endblock %}
+
+{% block bodyclass %}{% endblock %}
+
 {% block main %}
     <section class="body dashboard">
         {% if project_list %}
@@ -13,27 +24,33 @@
                     <span class="loading">{% trans "Loading historical data..." %}</span>
                 </div>
             </div>
-            <div class="page-header clearfix">
-                <h3 class="pull-left">{% trans "Trends" %}</h3>
-                <ul class="nav nav-pills nav-small pull-right">
-                    <li><a href="#top_events" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends team.slug %}?minutes=15&amp;limit=5">{% trans "15 minutes" %}</a></li>
-                    <li><a href="#top_events" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends team.slug %}?minutes=60&amp;limit=5">{% trans "60 minutes" %}</a></li>
-                    <li class="active"><a href="#top_events" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends team.slug %}?minutes=1440&amp;limit=5">{% trans "24 hours" %}</a></li>
-                </ul>
-            </div>
-            <div class="tab-content">
-                <div class="tab-pane active" id="top_events"><p>{% trans "Loading ..." %}</p></div>
-            </div>
-            <div class="page-header clearfix">
-                <h3 class="pull-left">{% trans "New Events" %}</h3>
-                <ul class="nav nav-pills nav-small pull-right">
-                    <li><a href="#new_events" data-toggle="ajtab" data-uri="{% url sentry-api-groups-new team.slug %}?minutes=15&amp;limit=5">{% trans "15 minutes" %}</a></li>
-                    <li><a href="#new_events" data-toggle="ajtab" data-uri="{% url sentry-api-groups-new team.slug %}?minutes=60&amp;limit=5">{% trans "60 minutes" %}</a></li>
-                    <li class="active"><a href="#new_events" data-toggle="ajtab" data-uri="{% url sentry-api-groups-new team.slug %}?minutes=1440&amp;limit=5">{% trans "24 hours" %}</a></li>
-                </ul>
-            </div>
-            <div class="tab-content">
-                <div class="tab-pane active" id="new_events"><p>{% trans "Loading ..." %}</p></div>
+            <div class="row-fluid">
+                <div class="span6">
+                    <div class="page-header clearfix">
+                        <h3 class="pull-left">{% trans "Trends" %}</h3>
+                        <ul class="nav nav-pills nav-small pull-right">
+                            <li><a href="#top_events" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends team.slug %}?minutes=15&amp;limit=5">{% trans "15 minutes" %}</a></li>
+                            <li><a href="#top_events" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends team.slug %}?minutes=60&amp;limit=5">{% trans "60 minutes" %}</a></li>
+                            <li class="active"><a href="#top_events" data-toggle="ajtab" data-uri="{% url sentry-api-groups-trends team.slug %}?minutes=1440&amp;limit=5">{% trans "24 hours" %}</a></li>
+                        </ul>
+                    </div>
+                    <div class="tab-content">
+                        <div class="tab-pane active" id="top_events"><p>{% trans "Loading ..." %}</p></div>
+                    </div>
+                </div>
+                <div class="span6">
+                    <div class="page-header clearfix">
+                        <h3 class="pull-left">{% trans "New Events" %}</h3>
+                        <ul class="nav nav-pills nav-small pull-right">
+                            <li><a href="#new_events" data-toggle="ajtab" data-uri="{% url sentry-api-groups-new team.slug %}?minutes=15&amp;limit=5">{% trans "15 minutes" %}</a></li>
+                            <li><a href="#new_events" data-toggle="ajtab" data-uri="{% url sentry-api-groups-new team.slug %}?minutes=60&amp;limit=5">{% trans "60 minutes" %}</a></li>
+                            <li class="active"><a href="#new_events" data-toggle="ajtab" data-uri="{% url sentry-api-groups-new team.slug %}?minutes=1440&amp;limit=5">{% trans "24 hours" %}</a></li>
+                        </ul>
+                    </div>
+                    <div class="tab-content">
+                        <div class="tab-pane active" id="new_events"><p>{% trans "Loading ..." %}</p></div>
+                    </div>
+                </div>
             </div>
         {% else %}
             {% if can_create_projects %}
@@ -44,33 +61,6 @@
             {% endif %}
         {% endif %}
     </section>
-{% endblock %}
-
-{% block sidebar %}
-    <h6>{% trans "Projects" %}</h6>
-    {% if project_list %}
-        <ul class="nav nav-tabs nav-stacked" style="margin-bottom:5px">
-            {% for p in project_list|slice:"10" %}
-                <li{% if p == project %} class="active"{% endif %}>
-                    <a class="action" href="{% url sentry-manage-project p.team.slug p.slug %}" title="{% trans "Settings" %}"><i aria-hidden="true" class="icon-cog"></i></a>
-                    <a href="{% url sentry-stream p.team.slug p.slug %}">{{ p.name }}</a>
-                </li>
-            {% endfor %}
-        </ul>
-        <div style="margin-bottom:13px;">
-            {% if can_create_projects %}
-                <a href="{% url sentry-new-project team.slug %}" class="btn btn-primary" style="padding-top: 3px; padding-bottom: 3px; margin-top: 5px; display: block; text-align: center;">{% trans "New project" %}</a>
-            {% endif %}
-            {% if project_list|length > 10 %}
-                <a href="{% url sentry-project-list team.slug %}" class="btn btn-small">{% blocktrans with PROJECT_LIST|length as count %}View all <strong>{{ count }}</strong> projects{% endblocktrans %}</a>
-            {% endif %}
-        </div>
-    {% else %}
-        <p>{% trans "You are not a part of any projects." %}</p>
-        {% if can_create_projects %}
-            <p><a href="{% url sentry-new-project team.slug %}">{% trans "Create a new project" %}</a></p>
-        {% endif %}
-    {% endif %}
 {% endblock %}
 
 {% block content_after %}
