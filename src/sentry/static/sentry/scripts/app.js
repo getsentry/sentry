@@ -133,7 +133,7 @@
         initialize: function(data){
             BasePage.prototype.initialize.call(this, data);
 
-            $('#chart').height('200px');
+            $('#chart').height('150px');
             Sentry.charts.render('#chart');
         }
 

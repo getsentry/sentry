@@ -23,8 +23,6 @@ if (Sentry === undefined) {
                 gid: $sparkline.attr('data-group') || undefined
             },
             success: function(data){
-                $sparkline.height($sparkline.parent().height());
-
                 var points = [
                     {
                         data: data,
