@@ -38,7 +38,7 @@
                     <!-- We switch the ordering of events here as it makes more sense visually -->
                     <a class="btn pull-left {% if not next_event %} disabled{% endif %}"{% if next_event %} href="{% url sentry-group-event group.team.slug group.project.slug group.id next_event.id %}"{% endif %}><span>{% trans "Newer Event" %}</span></a>
                     <a class="btn pull-right {% if not prev_event %} disabled{% endif %}"{% if prev_event %} href="{% url sentry-group-event group.team.slug group.project.slug group.id prev_event.id %}"{% endif %}><span>{% trans "Older Event" %}</span></a>
-                    <h4>Event at {{ event.datetime }} UTC</h4>
+                    <h4>Event at {{ event.datetime }} {{ event.datetime.tzinfo }}</h4>
                 </div>
 
                 {% include "sentry/partial/event_nav.html" %}
