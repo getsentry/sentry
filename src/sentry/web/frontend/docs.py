@@ -8,8 +8,8 @@ sentry.web.frontend.projects
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 
-from sentry.constants import (MEMBER_SYSTEM, MEMBER_OWNER,
-    PLATFORM_LIST, PLATFORM_TITLES, PLATFORM_ROOTS)
+from sentry.constants import (MEMBER_OWNER, PLATFORM_LIST, PLATFORM_TITLES,
+    PLATFORM_ROOTS)
 from sentry.models import ProjectKey
 from sentry.web.decorators import has_access
 from sentry.web.helpers import render_to_response, render_to_string

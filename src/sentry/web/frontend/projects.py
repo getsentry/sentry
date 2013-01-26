@@ -13,7 +13,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
 from sentry.constants import MEMBER_OWNER
-from sentry.models import TeamMember, ProjectKey, Team, FilterKey
+from sentry.models import ProjectKey, Team, FilterKey
 from sentry.permissions import (can_create_projects, can_remove_project, can_create_teams,
     can_add_project_key, can_remove_project_key)
 from sentry.plugins import plugins
