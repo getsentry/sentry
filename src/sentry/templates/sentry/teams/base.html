@@ -7,12 +7,16 @@
 {% block bodyclass %}{% endblock %}
 
 {% block page_header %}
-    {% if can_create_projects %}
-        <a href="{% url sentry-new-team %}" class="btn pull-right btn-primary">{% trans "Create a new team" %}</a>
+    {% if can_create_teams %}
+        <div class="pull-right">
+            <a href="{% url sentry-new-team %}" class="btn btn-primary">{% trans "Create a new team" %}</a>
+        </div>
     {% endif %}
 
     <ul class="breadcrumb">
-        <li><a href="{% url sentry %}" class="dashboard-btn" title="{% trans "Dashboard" %}"><i aria-hidden="true" class="icon-list"></i></a></li>
+        <li><a href="{% url sentry %}" class="dashboard-btn" title="{% trans "Dashboard" %}">
+            <i aria-hidden="true" class="icon-list"></i>
+        </a></li>
         <li class="divider"></li>
         <li><a href="{% url sentry-team-list %}">{% trans "Teams" %}</a></li>
         {% block breadcrumb %}

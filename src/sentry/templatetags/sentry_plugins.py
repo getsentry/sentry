@@ -29,8 +29,7 @@ def get_actions(group, request):
 
         action_list = results
 
-    for action in action_list:
-        yield action[0], action[1], request.path == action[1]
+    return [(a[0], a[1], request.path == a[1]) for a in action_list]
 
 
 @register.filter
