@@ -29,7 +29,7 @@
                 <ul class="nav nav-pills nav-small pull-right">
                     <li><a href="#new_events" data-toggle="ajtab" data-uri="{% url sentry-api-groups-new team.slug %}?minutes=15&amp;limit=5">{% trans "15 minutes" %}</a></li>
                     <li><a href="#new_events" data-toggle="ajtab" data-uri="{% url sentry-api-groups-new team.slug %}?minutes=60&amp;limit=5">{% trans "60 minutes" %}</a></li>
-                    <li class="active"><a href="#new_24h" data-toggle="ajtab" data-uri="{% url sentry-api-groups-new team.slug %}?minutes=1440&amp;limit=5">{% trans "24 hours" %}</a></li>
+                    <li class="active"><a href="#new_events" data-toggle="ajtab" data-uri="{% url sentry-api-groups-new team.slug %}?minutes=1440&amp;limit=5">{% trans "24 hours" %}</a></li>
                 </ul>
             </div>
             <div class="tab-content">
