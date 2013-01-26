@@ -25,7 +25,7 @@ if (Sentry === undefined) {
             success: function(data){
                 $sparkline.height($sparkline.parent().height());
 
-                $.plot($sparkline, [
+                var points = [
                     {
                         data: data,
                         color: '#56AFE8',
@@ -36,7 +36,8 @@ if (Sentry === undefined) {
                             fill: true
                         }
                     }
-                ], {
+                ];
+                var options = {
                     xaxis: {
                        mode: "time"
                     },
@@ -64,9 +65,16 @@ if (Sentry === undefined) {
                         noColumns: 5
                     },
                     lines: { show: false }
+                };
 
+                $.plot($sparkline, points, options);
+
+                $(window).resize(function(){
+                    $.plot($sparkline, points, options);                    
                 });
+
             }
+
         });
     };
 }(jQuery));
