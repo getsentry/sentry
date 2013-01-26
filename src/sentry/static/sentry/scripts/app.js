@@ -151,7 +151,7 @@
                 model: app.models.Group
             });
 
-            $('#chart').height('200px');
+            $('#chart').height('150px');
             Sentry.charts.render('#chart');
 
             $('#public-status .action').click(function(){

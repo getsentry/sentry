@@ -110,7 +110,7 @@
 
                 {% if group|has_charts %}
                     <div class="module">
-                        <div style="height:50px;" id="chart" class="chart" data-api-url="{% url sentry-api-chart project.team.slug project.slug %}" data-group="{{ group.id|safe }}">
+                        <div id="chart" class="chart" data-api-url="{% url sentry-api-chart project.team.slug project.slug %}" data-group="{{ group.id|safe }}">
                             <div class="sparkline">
                                 <span class="loading">{% trans "Loading historical data..." %}</span>
                                 <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
