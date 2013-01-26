@@ -427,9 +427,9 @@ h3 {
     position: relative;
     float: left;
   }
-  .body {
+  section.body {
     padding: 25px 30px 10px;
-
+ 
     .select2-drop {
       .box-shadow(0 0 0 2px #c3c8ce);
     }
@@ -445,6 +445,13 @@ h3 {
     list-style: none;
     padding: 15px 20px 15px 30px;
     border-bottom: 2px solid #f2f4f7;
+    text-align: center;
+
+    h4 {
+      line-height: 30px;
+      font-weight: normal;
+      color: #aaa;
+    }
     .btn-group {
       .btn {
         float: none;
@@ -464,6 +471,11 @@ h3 {
   }
   section.body .btn-toolbar {
     padding: 15px 0;
+  }
+  section.body .event-toolbar {
+    padding: 5px 30px 15px;
+    margin: 0 -30px 15px;
+    border-bottom: 0;
   }
   .sidebar {
     position: relative;
@@ -1023,7 +1035,7 @@ ul.tag-list {
   .reset-filter();
   background-image: none;
   background-color: inherit;
-  border-color: #e5e6e7;
+  border-color: #f2f4f7;
 }
 
 label { font-weight: bold; }
@@ -1408,7 +1420,7 @@ legend {
 // #5e6a77
 // #505962
 
-.body .page-header:first-child {
+section.body .page-header:first-child {
   margin-top: 0;
 }
 .page-header {
@@ -1506,16 +1518,15 @@ legend {
 
 #event_nav.fixed {
   // overflow: hidden;
-  margin-bottom: 0;
-  position: fixed;
-  left: 0;
-  right: 0;
-  top: 0;
   z-index: 1000000;
 
   .event_nav_wrap {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    min-width: 1086px;
     max-width: 1300px;
-    margin: 0 auto;
 
     > ul {
       overflow: hidden;
@@ -1525,29 +1536,38 @@ legend {
       padding: 5px 0 5px 30px;
       margin: 0 300px 0 0;
       background: #fff;
-      @shadow: 0 1px 0 rgba(0,0,0, .08), 0 1px 3px rgba(0,0,0, .05);
-      .box-shadow(@shadow);
       
       li.dropdown {
         position: relative;
+      }
+
+      li.top {
+        .pull-right;
+        display: block;
       }
     }
   }
 }
 
 #event_nav {
-  margin-bottom: 20px;
   position: relative;
-  min-width: 1086px;
+  margin-bottom: 15px;
+  margin-top: -15px;
 
   .event_nav_wrap {
     > ul {
-      padding: 5px 20px;
-      margin: 0 -20px 0;
-
+      padding: 10px 30px;
+      margin: 0 -30px 0;
+      border-top: 1px solid #dee3e9;
+      @shadow: 0 1px 0 rgba(0,0,0, .08), 0 1px 3px rgba(0,0,0, .05);
+      .box-shadow(@shadow);
 
       > li {
         margin: 0 4px 0 0;
+
+        &.top {
+          display: none;
+        }
         > a {
           padding: 8px 18px;
           line-height: 16px;
@@ -1677,7 +1697,7 @@ legend {
   }
 }
 
-.body {
+section.body {
   textarea, input[type="text"], input[type="password"], input[type="datetime"], input[type="datetime-local"], input[type="date"], input[type="month"], input[type="time"], input[type="week"], input[type="number"], input[type="email"], input[type="url"], input[type="search"], input[type="tel"], input[type="color"], .uneditable-input {
     height: auto;
     line-height: auto;

@@ -506,7 +506,7 @@ class Group(EventBase):
     def get_latest_event(self):
         if not hasattr(self, '_latest_event'):
             try:
-                self._latest_event = self.event_set.order_by('-id')[0]
+                self._latest_event = self.event_set.order_by('-datetime')[0]
             except IndexError:
                 self._latest_event = None
         return self._latest_event

@@ -277,22 +277,38 @@ def group_list(request, team, project):
     }, request)
 
 
-def render_with_group_context(group, template, context, request=None):
-    # It's possible that a message would not be created under certain
-    # circumstances (such as a post_save signal failing)
-    event = group.get_latest_event() or Event()
-    event.group = group
-
+def render_with_group_context(group, template, context, request=None, event=None):
     context.update({
         'team': group.project.team,
         'project': group.project,
         'group': group,
-        'event': event,
-        'json_data': event.data.get('extra', {}),
-        'version_data': event.data.get('modules', None),
         'can_admin_event': can_admin_group(request.user, group),
         'SECTION': 'events',
     })
+
+    if event:
+        if event.id:
+            base_qs = group.event_set.exclude(id=event.id)
+            try:
+                next_event = base_qs.filter(datetime__gte=event.datetime).order_by('datetime')[0:1].get()
+            except Event.DoesNotExist:
+                next_event = None
+
+            try:
+                prev_event = base_qs.filter(datetime__lte=event.datetime).order_by('-datetime')[0:1].get()
+            except Event.DoesNotExist:
+                prev_event = None
+        else:
+            next_event = None
+            prev_event = None
+
+        context.update({
+            'event': event,
+            'json_data': event.data.get('extra', {}),
+            'version_data': event.data.get('modules', None),
+            'next_event': next_event,
+            'prev_event': prev_event,
+        })
 
     return render_to_response(template, context, request)
 
@@ -303,10 +319,15 @@ def group(request, team, project, group):
         group=group,
     ).order_by('-datetime').select_related('user')
 
+    # It's possible that a message would not be created under certain
+    # circumstances (such as a post_save signal failing)
+    event = group.get_latest_event() or Event()
+    event.group
+
     return render_with_group_context(group, 'sentry/groups/details.html', {
         'page': 'details',
         'activity': activity,
-    }, request)
+    }, request, event=event)
 
 
 @has_group_access
@@ -370,30 +391,9 @@ def group_event_list_json(request, team, project, group_id):
 def group_event_details(request, team, project, group, event_id):
     event = get_object_or_404(group.event_set, id=event_id)
 
-    base_qs = group.event_set.exclude(id=event_id)
-    try:
-        next_event = base_qs.filter(datetime__gte=event.datetime).order_by('datetime')[0:1].get()
-    except Event.DoesNotExist:
-        next_event = None
-
-    try:
-        prev_event = base_qs.filter(datetime__lte=event.datetime).order_by('-datetime')[0:1].get()
-    except Event.DoesNotExist:
-        prev_event = None
-
-    return render_to_response('sentry/groups/event.html', {
-        'team': team,
-        'project': project,
-        'page': 'event',
-        'group': group,
-        'event': event,
-        'next_event': next_event,
-        'prev_event': prev_event,
-        'json_data': event.data.get('extra', {}),
-        'version_data': event.data.get('modules', None),
-        'can_admin_event': can_admin_group(request.user, group),
-        'SECTION': 'events',
-    }, request)
+    return render_with_group_context(group, 'sentry/groups/details.html', {
+        'page': 'details',
+    }, request, event=event)
 
 
 @has_access(MEMBER_USER)
