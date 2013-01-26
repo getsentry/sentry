@@ -16,6 +16,7 @@ import logging
 import re
 
 from django.core.urlresolvers import reverse
+from django.db.models import Q
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -278,12 +279,21 @@ def group_list(request, team, project):
 
 
 def render_with_group_context(group, template, context, request=None, event=None):
+    activity = Activity.objects.filter(
+        group=group,
+    ).order_by('-datetime').select_related('user')
+    if event:
+        activity = activity.filter(Q(event__isnull=True) | Q(event=event))
+
+    activity = list(activity)
+
     context.update({
         'team': group.project.team,
         'project': group.project,
         'group': group,
         'can_admin_event': can_admin_group(request.user, group),
         'SECTION': 'events',
+        'activity': activity,
     })
 
     if event:
@@ -315,10 +325,6 @@ def render_with_group_context(group, template, context, request=None, event=None
 
 @has_group_access
 def group(request, team, project, group):
-    activity = Activity.objects.filter(
-        group=group,
-    ).order_by('-datetime').select_related('user')
-
     # It's possible that a message would not be created under certain
     # circumstances (such as a post_save signal failing)
     event = group.get_latest_event() or Event()
@@ -326,7 +332,6 @@ def group(request, team, project, group):
 
     return render_with_group_context(group, 'sentry/groups/details.html', {
         'page': 'details',
-        'activity': activity,
     }, request, event=event)
 
 

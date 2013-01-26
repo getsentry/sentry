@@ -5,7 +5,7 @@
 <div id="event_nav">
     <div class="event_nav_wrap">
         <ul class="nav nav-pills">
-            {% with event.group|get_panels:request as panel_list %}
+            {% with group|get_panels:request as panel_list %}
                 {% if panel_list %}
                     <li class="dropdown pull-right">
                         <a href="javascript:void(0)" class="dropdown-toggle" data-toggle="dropdown">
