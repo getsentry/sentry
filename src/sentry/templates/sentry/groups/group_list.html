@@ -81,7 +81,7 @@
             </ul>
         </div>
         <div class="btn-group">
-            <a href="#" class="btn dropdown-toggle" onclick="Sentry.toggle('#daterange');">
+            <a href="#" class="btn dropdown-toggle" onclick="$('#daterange').toggle();">
                 {% if from_date %}
                     {% if not to_date %}
                         Since: {{ from_date|date:"M jS" }}

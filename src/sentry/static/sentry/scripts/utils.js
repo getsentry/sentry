@@ -124,9 +124,23 @@
 
     };
 
-    // initialize
     $(function(){
+        // Change all select boxes to select2 elements.
         $('select').select2({width: 'element'});
+
+        // Update date strings periodically
+        setInterval(function() {
+            $('.pretty-date').each(function(_, el){
+                var $el = $(el);
+                var title = $el.attr('title');
+                if (title) {
+                    var date = app.utils.prettyDate(title);
+                    if (date) {
+                        $el.text(date);
+                    }
+                }
+            });
+        }, 5000);
     });
 
 }(app, jQuery));
