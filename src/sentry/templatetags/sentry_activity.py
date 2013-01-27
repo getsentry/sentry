@@ -35,7 +35,7 @@ def render_activity(item):
 
     action_str = ACTIVITY_ACTION_STRINGS[item.type]
 
-    output = '<p>'
+    output = ''
 
     if item.user:
         user = item.user
@@ -46,7 +46,7 @@ def render_activity(item):
         output += '<span class="avatar sentry"></span> '
         output += 'The system %s' % (action_str,)
 
-    output += ' <span class="sep">&mdash;</span> <span class="time">%s</span></p>' % (timesince(item.datetime),)
+    output += ' <span class="sep">&mdash;</span> <span class="time">%s</span>' % (timesince(item.datetime),)
 
     if item.type == Activity.COMMENT:
         output += linebreaks(item.data['body'])
