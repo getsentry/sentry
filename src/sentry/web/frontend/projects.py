@@ -28,7 +28,7 @@ from sentry.web.helpers import (render_to_response, get_project_list,
 
 @login_required
 @has_access
-def get_started(request, project):
+def get_started(request, team, project):
     return render_to_response('sentry/get_started.html', {
         'project': project,
         'team': project.team,

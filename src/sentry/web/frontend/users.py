@@ -24,7 +24,8 @@ def user_list(request, team):
     if sort not in SORT_OPTIONS:
         sort = DEFAULT_SORT_OPTION
 
-    user_list = TrackedUser.objects.filter(team=team)
+    # TODO: TrackedUser needs to be team-bound before we can launch it
+    user_list = TrackedUser.objects.filter(project__team=team)
 
     if sort == 'recent':
         user_list = user_list.order_by('-last_seen')
@@ -48,7 +49,7 @@ def user_list(request, team):
 @has_access
 @login_required
 def user_details(request, team, user_id):
-    user = TrackedUser.objects.get(team=team, id=user_id)
+    user = TrackedUser.objects.get(project__team=team, id=user_id)
 
     event_list = user.groups.all()
 

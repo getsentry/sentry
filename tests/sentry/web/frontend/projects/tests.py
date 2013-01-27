@@ -9,7 +9,7 @@ from mock_django.managers import ManagerMock
 from django.core.urlresolvers import reverse
 
 from sentry.constants import MEMBER_OWNER
-from sentry.models import Project, ProjectKey, Group
+from sentry.models import Project, ProjectKey
 from sentry.testutils import TestCase, fixture, before
 
 logger = logging.getLogger(__name__)
@@ -196,7 +196,7 @@ class DashboardTest(TestCase):
 class GetStartedTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry-get-started', args=[self.project.id])
+        return reverse('sentry-get-started', args=[self.team.slug, self.project.slug])
 
     def test_requires_authentication(self):
         self.assertRequiresAuthentication(self.path)
@@ -206,6 +206,8 @@ class GetStartedTest(TestCase):
 
         resp = self.client.get(self.path)
         assert resp.status_code == 200
-        self.assertTemplateUsed('sentry/get_started.html')
-        assert 'project' in resp.context
+        self.assertTemplateUsed(resp, 'sentry/get_started.html')
         assert resp.context['project'] == self.project
+        assert resp.context['team'] == self.team
+        assert resp.context['SECTION'] == 'team'
+        assert resp.context['SUBSECTION'] == 'projects'

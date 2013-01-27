@@ -1,17 +1,17 @@
-{% extends "sentry/layout.html" %}
+{% extends "sentry/bases/team.html" %}
 
 {% load i18n %}
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
-{% block title %}Users | {{ project.name }} | {{ block.super }}{% endblock %}
+{% block title %}Users | {{ team.name }} | {{ block.super }}{% endblock %}
 
 {% block bodyclass %}{% endblock %}
 
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider"></li>
-    <li><a href="{% url sentry-users project.slug %}">{% trans "Users" %}</a></li>
+    <li><a href="{% url sentry-users team.slug %}">{% trans "Users" %}</a></li>
 {% endblock %}
 
 {% block main %}
@@ -48,7 +48,7 @@
                 <tbody>
                     {% for tuser in tuser_list.paginator.objects %}
                         <tr>
-                            <td><a href="{% url sentry-user-details project.slug tuser.id %}">{% if tuser.email %}{{ tuser.email }}{% else %}{{ tuser.ident }}{% endif %}</a></td>
+                            <td><a href="{% url sentry-user-details team.slug tuser.id %}">{% if tuser.email %}{{ tuser.email }}{% else %}{{ tuser.ident }}{% endif %}</a></td>
                             <td style="text-align:center">{{ tuser.last_seen|timesince }}</td>
                             <td style="text-align:center">{{ tuser.num_events|small_count }}</td>
                         </tr>
