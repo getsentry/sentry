@@ -6,6 +6,7 @@ sentry.tasks.fetch_source
 :license: BSD, see LICENSE for more details.
 """
 
+import hashlib
 import urllib2
 from collections import namedtuple
 from urlparse import urljoin
@@ -88,7 +89,7 @@ def fetch_url(url, logger=None):
     """
     import sentry
 
-    cache_key = 'fetch_url:%s' % url
+    cache_key = 'fetch_url:%s' % (hashlib.md5(url).hexdigest(),)
     result = cache.get(cache_key)
     if result is not None:
         return result
