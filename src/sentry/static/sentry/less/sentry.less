@@ -466,8 +466,8 @@ h3 {
     padding: 15px 0;
   }
   section.body .event-toolbar {
-    padding: 5px 30px 15px;
-    margin: 0 -30px 15px;
+    padding: 0;
+    margin: 0 0 20px;
     border-bottom: 0;
     text-align: center;
 
@@ -477,6 +477,15 @@ h3 {
       color: #aaa;
     }
   }
+  .activity {
+    margin-bottom: 20px;
+
+    .sep, .time {
+      font-size: 12px;
+      color: #aaa;
+    }
+  }
+
   .sidebar {
     position: relative;
     width: 240px;
@@ -1322,7 +1331,7 @@ td.code {
   width: ((@gridColumnWidth) * @columnSpan) + (@gridGutterWidth * (@columnSpan - 1)) - 10;
 }
 
-#chart { margin-bottom: 15px; overflow: hidden; }
+#chart { margin-bottom: 10px; overflow: hidden; }
 
 div.pastebin textarea { padding: 10px; background: #f9f9f9; border-color: #ddd; }
 
@@ -1551,7 +1560,6 @@ section.body .page-header:first-child {
 #event_nav {
   position: relative;
   margin-bottom: 15px;
-  margin-top: -15px;
 
   .event_nav_wrap {
     position: relative;

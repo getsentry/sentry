@@ -1,20 +1,5 @@
 {% load i18n %}
-{% load sentry_activity %}
 {% load sentry_helpers %}
-
-{% if activity %}
-    <hr>
-    <ul class="activity">
-        {% for item in activity %}
-            {% with item|render_activity as out %}
-                {% if out %}
-                    <li class="item item-{{ item.get_type_display }}">{{ out }}</li>
-                {% endif %}
-            {% endwith %}
-        {% endfor %}
-    </ul>
-    <hr>
-{% endif %}
 
 {% for interface, interface_html in interface_list %}
     <div id="{{ interface.get_slug }}">

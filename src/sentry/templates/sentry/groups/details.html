@@ -1,6 +1,7 @@
 {% extends "sentry/groups/group_list.html" %}
 
 {% load i18n %}
+{% load sentry_activity %}
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
@@ -32,6 +33,19 @@
                             </div>
                         </div>
                     </div>
+                {% endif %}
+
+
+                {% if activity %}
+                    <ul class="activity">
+                        {% for item in activity %}
+                            {% with item|render_activity as out %}
+                                {% if out %}
+                                    <li class="item item-{{ item.get_type_display }}">{{ out }}</li>
+                                {% endif %}
+                            {% endwith %}
+                        {% endfor %}
+                    </ul>
                 {% endif %}
 
                 <div class="btn-toolbar event-toolbar">
