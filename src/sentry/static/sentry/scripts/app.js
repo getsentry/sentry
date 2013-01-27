@@ -187,7 +187,7 @@
                     $el.parent().addClass('active').siblings().removeClass('active');
 
                     $('html,body').animate({
-                        scrollTop: $(target).position().top + event_nav_height + 20
+                        scrollTop: $(target).position().top + event_nav_height
                     }, 'fast');
 
                     e.preventDefault();
