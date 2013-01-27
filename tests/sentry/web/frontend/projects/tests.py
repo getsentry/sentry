@@ -126,43 +126,71 @@ class RemoveProjectKeyTest(TestCase):
 class DashboardTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry', args=[self.project.id])
+        return reverse('sentry', args=[self.team.slug])
 
     def test_requires_authentication(self):
         self.assertRequiresAuthentication(self.path)
 
-    def test_redirects_to_getting_started_if_no_groups(self):
+    @mock.patch('sentry.web.frontend.groups.can_create_projects')
+    def test_redirects_to_create_project_if_none_and_can_create_projects(self, can_create_projects):
         self.login_as(self.user)
 
-        manager = ManagerMock(Group.objects)
+        can_create_projects.return_value = True
 
-        with mock.patch('sentry.models.Group.objects', manager):
+        manager = ManagerMock(Project.objects)
+
+        with mock.patch('sentry.models.Project.objects', manager):
             resp = self.client.get(self.path)
 
+        can_create_projects.assert_called_once_with(self.user, team=self.team)
+
         manager.assert_chain_calls(
-            mock.call.filter(project=self.project),
+            mock.call.filter(team=self.team),
         )
-        manager.exists.assert_called_once_with()
 
         assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver' + reverse('sentry-get-started', args=[self.team.slug, self.project.slug])
+        assert resp['Location'] == 'http://testserver' + reverse('sentry-new-project', args=[self.team.slug])
 
-    @mock.patch('sentry.models.Group.objects', ManagerMock(Group.objects, Group()))
-    def test_redirects_to_stream_if_has_groups(self):
+    @mock.patch('sentry.web.frontend.groups.can_create_projects')
+    def test_does_not_reidrect_if_missing_project_permission(self, can_create_projects):
         self.login_as(self.user)
 
-        manager = ManagerMock(Group.objects, Group())
+        can_create_projects.return_value = False
 
-        with mock.patch('sentry.models.Group.objects', manager):
+        manager = ManagerMock(Project.objects)
+
+        with mock.patch('sentry.models.Project.objects', manager):
             resp = self.client.get(self.path)
 
-        manager.assert_chain_calls(
-            mock.call.filter(project=self.project),
-        )
-        manager.exists.assert_called_once_with()
+        can_create_projects.assert_called_once_with(self.user, team=self.team)
 
-        assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver' + reverse('sentry-stream', args=[self.team.slug, self.project.slug])
+        manager.assert_chain_calls(
+            mock.call.filter(team=self.team),
+        )
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/dashboard.html')
+
+    @mock.patch('sentry.web.frontend.groups.can_create_projects')
+    def test_does_not_redirect_if_has_projects(self, can_create_projects):
+        self.login_as(self.user)
+
+        manager = ManagerMock(Project.objects, self.project)
+
+        with mock.patch('sentry.models.Project.objects', manager):
+            resp = self.client.get(self.path)
+
+        assert not can_create_projects.called
+
+        manager.assert_chain_calls(
+            mock.call.filter(team=self.team),
+        )
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/dashboard.html')
+        assert resp.context['team'] == self.team
+        assert resp.context['project_list'] == [self.project]
+        assert resp.context['SECTION'] == 'events'
 
 
 class GetStartedTest(TestCase):

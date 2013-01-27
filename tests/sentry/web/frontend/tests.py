@@ -202,7 +202,7 @@ class GroupEventDetailsTest(BaseViewTest):
         self.login()
         resp = self.client.get(self.path)
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, 'sentry/groups/event.html')
+        self.assertTemplateUsed(resp, 'sentry/groups/details.html')
         assert 'group' in resp.context
         assert 'project' in resp.context
         assert 'team' in resp.context
