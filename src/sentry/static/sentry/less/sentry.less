@@ -822,7 +822,7 @@ ul.tag-list {
 
     &.empty {
       border: 0;
-      padding: 0 !important;
+      padding-left: 30px;
       &:hover {
         .reset-filter();
         background-image: none;
@@ -984,6 +984,10 @@ ul.tag-list {
     > li {
       min-height: 30px;
       padding: 14px 14px 14px 50px;
+
+      &.empty {
+        padding-left: 0px;
+      }
 
       &:last-child {
         border-bottom: none;
