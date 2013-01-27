@@ -126,7 +126,7 @@
 
     $(function(){
         // Change all select boxes to select2 elements.
-        $('.body select, .toolbar select').each(function(){
+        $('.body select, .toolbar select, .project-controls select').each(function(){
             var $this = $(this),
                 options = {
                     width: 'element',
