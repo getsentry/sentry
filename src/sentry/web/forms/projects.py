@@ -17,6 +17,9 @@ from sentry.web.forms.fields import RadioFieldRenderer, UserField, OriginsField,
   get_team_choices
 
 
+BLANK_CHOICE = [("", "")]
+
+
 class ProjectTagsForm(forms.Form):
     filters = forms.MultipleChoiceField(choices=(), widget=forms.CheckboxSelectMultiple(), required=False)
 
@@ -38,13 +41,19 @@ class ProjectTagsForm(forms.Form):
         ProjectOption.objects.set_value(self.project, 'tags', filters)
 
 
-class NewProjectForm(forms.ModelForm):
+class BaseProjectForm(forms.ModelForm):
     name = forms.CharField(label=_('Project Name'), max_length=200,
         widget=forms.TextInput(attrs={'placeholder': _('example.com')}))
+    platform = forms.ChoiceField(choices=Project._meta.get_field('platform').get_choices(blank_choice=BLANK_CHOICE),
+        widget=forms.Select(attrs={'data-placeholder': _('Select a platform')}))
 
     class Meta:
         fields = ('name', 'platform')
         model = Project
+
+
+class NewProjectForm(BaseProjectForm):
+    pass
 
 
 class NewProjectAdminForm(NewProjectForm):
@@ -98,7 +107,7 @@ class RemoveProjectForm(forms.Form):
         return password
 
 
-class EditProjectForm(forms.ModelForm):
+class EditProjectForm(BaseProjectForm):
     public = forms.BooleanField(required=False,
         help_text=_('Allow anyone (even anonymous users) to view this project'))
     team = forms.TypedChoiceField(choices=(), coerce=int)
