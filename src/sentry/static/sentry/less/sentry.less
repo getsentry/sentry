@@ -477,14 +477,6 @@ h3 {
       color: #aaa;
     }
   }
-  .activity {
-    margin-bottom: 20px;
-
-    .sep, .time {
-      font-size: 12px;
-      color: #aaa;
-    }
-  }
 
   .sidebar {
     position: relative;
@@ -1829,9 +1821,10 @@ section.body {
 }
 
 .table-striped {
-  border-top: 2px solid #F4F6F9
+  border-top: 2px solid #F4F6F9;
 
-  tbody tr:nth-child(odd) td, .table-striped tbody tr:nth-child(odd) th {
+  tbody tr:nth-child(odd) td,
+  .table-striped tbody tr:nth-child(odd) th {
     background-color: #F4F6F9;
   }
 }
@@ -1843,7 +1836,8 @@ section.body {
   }
 }
 
-.nav-tabs > .active > a, .nav-tabs > .active > a:hover {
+.nav-tabs > .active > a,
+.nav-tabs > .active > a:hover {
   border: 2px solid #dee3e9;
   border-bottom-color: transparent;
 }
@@ -1853,10 +1847,47 @@ section.body {
   font-weight: bold;
   padding-left: 14px;
   padding-right: 14px;
+
   &:hover {
     background-color: transparent;
     border-color: transparent;
   }
 }
 
+.activity {
+  list-style: none;
+  margin: 0 0 20px;
 
+  > li {
+    line-height: 20px;
+    position: relative;
+    padding-left: 20px;
+
+    .avatar {
+      position: absolute;
+      left: 0;
+      top: 2px;
+      width: 16px;
+      height: 16px;
+      display: block;
+      background-size: 16px 16px;
+      background-repeat: no-repeat;
+      background-position: center center;
+
+      img {
+        width: 16px;
+        height: 16px;
+        display: block;
+      }
+
+      &.sentry {
+        background-image: url('../images/favicon.png');
+      }
+    }
+
+    .sep, .time {
+      font-size: 12px;
+      color: #aaa;
+    }
+  }
+}

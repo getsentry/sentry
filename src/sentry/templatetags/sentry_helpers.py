@@ -18,15 +18,14 @@ from paging.helpers import paginate as paginate_func
 from sentry.conf import settings
 from sentry.constants import STATUS_MUTED
 from sentry.models import Group
+from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.javascript import to_json
 from sentry.utils.strings import truncatechars
 from templatetag_sugar.register import tag
 from templatetag_sugar.parser import Name, Variable, Constant, Optional
 
 import datetime
-import hashlib
 import logging
-import urllib
 
 register = template.Library()
 
@@ -273,22 +272,10 @@ def get_project_dsn(context, user, project, asvar):
 # The "mm" default is for the grey, "mystery man" icon. See:
 #   http://en.gravatar.com/site/implement/images/
 @tag(register, [Variable('email'),
-                Optional([Constant('size'), Variable('sizevar')]),
-                Optional([Constant('default'), Variable('defaultvar')])])
-def gravatar_url(context, email, sizevar=None, defaultvar='mm'):
-    base = 'https://secure.gravatar.com'
-
-    gravatar_url = "%s/avatar/%s" % (base, hashlib.md5(email.lower()).hexdigest())
-
-    properties = {}
-    if sizevar:
-        properties['s'] = str(sizevar)
-    if defaultvar:
-        properties['d'] = defaultvar
-    if properties:
-        gravatar_url += "?" + urllib.urlencode(properties)
-
-    return gravatar_url
+                Optional([Constant('size'), Variable('size')]),
+                Optional([Constant('default'), Variable('default')])])
+def gravatar_url(context, email, size=None, default='mm'):
+    return get_gravatar_url(email, size, default)
 
 
 @register.filter
