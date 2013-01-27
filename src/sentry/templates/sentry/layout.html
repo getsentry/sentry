@@ -90,24 +90,26 @@
         {% endblock %}
         {% block page_header_block %}
             <section id="page-header" class="toolbar">
-                {% block page_header %}
-                    <ul class="breadcrumb">
-                        <li><a href="{% url sentry %}" class="dashboard-btn" title="{% trans "Dashboard" %}"><i aria-hidden="true" class="icon-list"></i></a></li>
-                        <li class="projects">
-                            <select class="project-selector" data-placeholder="{% trans "Select a Project" %}">
-                                <option value=""></option>
-                                {% for p in PROJECT_LIST %}
-                                    <option value="{{ p.slug }}"{% if p == project %} selected="selected"{% endif %} data-url="{% url sentry-stream p.team.slug p.slug %}">{{ p.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </li>
-                        {% if project %}
-                            <li class="project-settings"><a href="{% url sentry-manage-project project.team.slug project.slug %}" class="{% trans "Settings" %}"><i aria-hidden="true" class="icon-cog"></i></a></li>
-                        {% endif %}
-                        {% block breadcrumb %}
-                        {% endblock %}
-                    </ul>
-                {% endblock %}
+                <div class="container">
+                    {% block page_header %}
+                        <ul class="breadcrumb">
+                            <li><a href="{% url sentry %}" class="dashboard-btn" title="{% trans "Dashboard" %}"><i aria-hidden="true" class="icon-list"></i></a></li>
+                            <li class="projects">
+                                <select class="project-selector" data-placeholder="{% trans "Select a Project" %}">
+                                    <option value=""></option>
+                                    {% for p in PROJECT_LIST %}
+                                        <option value="{{ p.slug }}"{% if p == project %} selected="selected"{% endif %} data-url="{% url sentry-stream p.team.slug p.slug %}">{{ p.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </li>
+                            {% if project %}
+                                <li class="project-settings"><a href="{% url sentry-manage-project project.team.slug project.slug %}" class="{% trans "Settings" %}"><i aria-hidden="true" class="icon-cog"></i></a></li>
+                            {% endif %}
+                            {% block breadcrumb %}
+                            {% endblock %}
+                        </ul>
+                    {% endblock %}
+                </div>
             </section>
         {% endblock %}
         <section id="content" class="{% block bodyclass %}with-sidebar{% endblock %}">

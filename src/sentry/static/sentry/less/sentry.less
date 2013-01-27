@@ -220,12 +220,17 @@ h3 {
     font-size: 14px;
     font-weight: normal;
     line-height: 53px;
+    overflow: hidden;
+    white-space: nowrap;
 
     > li {
       position: relative;
       text-shadow: none;
       font-weight: bold;
       margin: 0 3px 0 0;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
 
       a {
         color: #828991;
@@ -850,7 +855,10 @@ ul.tag-list {
       font-size: 20px;
       font-weight: normal;
       width: 85%;
+      white-space: nowrap;
       overflow: hidden;
+      text-overflow: ellipsis;
+
       a {
         color: #465262;
       }
@@ -890,6 +898,10 @@ ul.tag-list {
       margin-bottom: 0;
       font-size: 15px;
       padding-right: 24px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+
       .tag {
         .pull-right;
       }
