@@ -126,7 +126,19 @@
 
     $(function(){
         // Change all select boxes to select2 elements.
-        $('select').select2({width: 'element'});
+        $('.body select, .toolbar select').each(function(){
+            var $this = $(this),
+                options = {
+                    width: 'element',
+                    allowClear: false
+                };
+
+            if ($this.attr('data-allowClear')) {
+                options.allowClear = $this.attr('data-allowClear');
+            }
+
+            $this.select2(options);
+        });
 
         // Update date strings periodically
         setInterval(function() {

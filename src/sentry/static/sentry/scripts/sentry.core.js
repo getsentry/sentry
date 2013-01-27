@@ -60,7 +60,7 @@ if (Sentry === undefined) {
                     allowClear: true
                 });
             }
-            if ($input.length) {
+            if ($input.length > 0) {
                 $input.on('change', function(e){
                     var query = app.utils.getQueryParams();
                     query[e.target.name] = e.val;

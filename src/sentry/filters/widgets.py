@@ -26,7 +26,7 @@ class TextWidget(Widget):
     def render(self, value, placeholder='', **kwargs):
         return mark_safe(u'''
             <div class="filter-text">
-                <input type="text" name="%(name)s" value="%(value)s" data-placeholder="Search for a %(label)s"/>
+                <input type="text" name="%(name)s" value="%(value)s" data-allowClear="true" data-placeholder="Search for a %(label)s"/>
             </div>''' % dict(
             name=self.filter.get_query_param(),
             value=escape(value),
@@ -47,7 +47,7 @@ class ChoiceWidget(TextWidget):
         column = self.filter.get_query_param()
         choices = choices.items()
 
-        output = [u'<select name="%(column)s" class="filter-list" rel="%(column)s" data-placeholder="Select a %(label)s">' % dict(
+        output = [u'<select name="%(column)s" class="filter-list" rel="%(column)s" data-allowClear="true" data-placeholder="Select a %(label)s">' % dict(
             column=column,
             label=self.filter.label.lower(),
         )]
