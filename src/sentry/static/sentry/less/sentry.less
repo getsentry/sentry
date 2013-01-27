@@ -1522,22 +1522,22 @@ section.body .page-header:first-child {
 
 #event_nav.fixed {
   // overflow: hidden;
-  z-index: 1000000;
+  min-width: 1086px;
+  max-width: 1300px;
 
   .event_nav_wrap {
+    z-index: 1000000;
     position: fixed;
     left: 0;
     right: 0;
     top: 0;
-    min-width: 1086px;
-    max-width: 1300px;
+    margin: 0 auto;
 
     > ul {
       overflow: hidden;
       .box-sizing(border-box);
       width: auto;
       display: block;
-      padding: 5px 0 5px 30px;
       margin: 0 300px 0 0;
       background: #fff;
       
@@ -1559,6 +1559,8 @@ section.body .page-header:first-child {
   margin-top: -15px;
 
   .event_nav_wrap {
+    position: relative;
+
     > ul {
       padding: 10px 30px;
       margin: 0 -30px 0;
