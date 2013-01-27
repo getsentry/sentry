@@ -228,9 +228,6 @@ h3 {
       text-shadow: none;
       font-weight: bold;
       margin: 0 3px 0 0;
-      text-overflow: ellipsis;
-      overflow: hidden;
-      white-space: nowrap;
 
       a {
         color: #828991;
@@ -405,6 +402,9 @@ h3 {
     .content {
       padding-right: 300px;
     }
+    section.body {
+      min-width: 0;
+    }
   }
   &.with-left-sidebar {
     background: #fff url(../images/dashboard/sidebar-bg.png) top left repeat-y;  
@@ -419,6 +419,10 @@ h3 {
       margin-right: 0;
       margin-left: -300px;
     }
+    section.body {
+      min-width: 0;
+    }
+
   }
 
   .content {
@@ -434,7 +438,7 @@ h3 {
   section.body {
     padding: 25px 30px 10px;
     min-width: 786px;
- 
+
     .select2-drop {
       .box-shadow(0 0 0 2px #c3c8ce);
     }
