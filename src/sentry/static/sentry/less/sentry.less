@@ -1067,12 +1067,7 @@ code {
     float: right;
   }
 }
-.table th {
-  vertical-align: top;
-}
-.table td {
-  vertical-align: middle;
-}
+
 .clippy {
   display: inline-block;
   vertical-align: middle;
@@ -1806,16 +1801,31 @@ section.body {
   }
 }
 
-.table-striped tbody tr:nth-child(odd) td, .table-striped tbody tr:nth-child(odd) th {
-  background-color: #F4F6F9;
-}
 
-.table th, .table td {
-  border: none;
+
+.table {
+  th {
+    vertical-align: top;
+  }
+  td {
+    vertical-align: middle;
+  }
+
+  th, td {
+    border: none;
+  }
+
+  td.values {
+    padding: 0;
+  }
 }
 
 .table-striped {
   border-top: 2px solid #F4F6F9
+
+  tbody tr:nth-child(odd) td, .table-striped tbody tr:nth-child(odd) th {
+    background-color: #F4F6F9;
+  }
 }
 
 .nav-tabs {
