@@ -104,8 +104,8 @@
             {% block inner %}
                 {% include "sentry/partial/event_nav.html" %}
 
-                {% if group.has_two_part_message %}
-                    <pre id="full-message">{{ group.message }}</pre>
+                {% if event.has_two_part_message %}
+                    <pre id="full-message">{{ event.message }}</pre>
                 {% endif %}
 
                 {% if group|has_charts %}
