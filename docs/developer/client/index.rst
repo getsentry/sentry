@@ -170,6 +170,8 @@ The following attributes are required for all events:
 
     Hexadecimal string representing a uuid4 value.
 
+    Maximum length is 32 characters.
+
     ::
 
         {
@@ -179,6 +181,8 @@ The following attributes are required for all events:
 .. data:: message
 
     User-readable representation of this event
+
+    Maximum length is 1000 characters.
 
     ::
 
