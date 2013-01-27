@@ -153,6 +153,8 @@ class Message(Interface):
     If your message cannot be parameterized, then the message interface
     will serve no benefit.
 
+    - ``message`` must be no more than 1000 characters in length.
+
     >>> {
     >>>     "message": "My raw message with interpreted strings like %s",
     >>>     "params": ["this"]
@@ -160,6 +162,8 @@ class Message(Interface):
     """
 
     def __init__(self, message, params=()):
+        assert len(message) <= 1000
+
         self.message = message
         self.params = params
 
