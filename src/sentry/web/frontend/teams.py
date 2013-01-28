@@ -91,7 +91,7 @@ def manage_team(request, team):
         messages.add_message(request, messages.SUCCESS,
             _('Changes to your team were saved.'))
 
-        return HttpResponseRedirect(request.path)
+        return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
 
     context = csrf(request)
     context.update({

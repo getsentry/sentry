@@ -112,6 +112,7 @@ class ManageTeamTest(BaseTeamTest):
         path = reverse('sentry-manage-team', args=[self.team.slug])
         resp = self.client.post(path, {
             'name': 'bar',
+            'slug': self.team.slug,
             'owner': self.team.owner.username,
         })
         self.assertNotEquals(resp.status_code, 200)
@@ -124,6 +125,7 @@ class ManageTeamTest(BaseTeamTest):
         path = reverse('sentry-manage-team', args=[self.team.slug])
         resp = self.client.post(path, {
             'name': self.team.name,
+            'slug': self.team.slug,
             'owner': self.user2.username,
         })
         self.assertNotEquals(resp.status_code, 200)

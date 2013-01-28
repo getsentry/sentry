@@ -43,7 +43,7 @@ class EditTeamAdminForm(EditTeamForm):
     owner = UserField(required=True)
 
     class Meta:
-        fields = ('name', 'owner',)
+        fields = ('name', 'slug', 'owner',)
         model = Team
 
 
