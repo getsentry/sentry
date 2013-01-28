@@ -96,9 +96,11 @@ Authentication
 .. data:: sentry.conf.PUBLIC
     :noindex:
 
-    Should Sentry be protected by a username and password (using @login_required) or be publicly accessible.
+    Should Sentry be default to projects being publicly accessible?
 
-    Defaults to ``False`` (password protection).
+    (Users will still need to have an account to view any data)
+
+    Defaults to ``False``.
 
     ::
 
