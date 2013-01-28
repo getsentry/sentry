@@ -151,5 +151,5 @@ class EditProjectAdminForm(EditProjectForm):
     owner = UserField(required=False)
 
     class Meta:
-        fields = ('name', 'platform', 'public', 'team', 'owner')
+        fields = ('name', 'platform', 'public', 'team', 'owner', 'slug')
         model = Project

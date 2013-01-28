@@ -49,12 +49,12 @@ from sentry.utils.strings import truncatechars
 __all__ = ('Event', 'Group', 'Project', 'SearchDocument')
 
 
-def slugify_instance(inst, label):
+def slugify_instance(inst, label, **kwargs):
     base_slug = slugify(label)
     manager = type(inst).objects
     inst.slug = base_slug
     n = 0
-    while manager.filter(slug=inst.slug).exists():
+    while manager.filter(slug=inst.slug, **kwargs).exists():
         n += 1
         inst.slug = base_slug + '-' + str(n)
 
@@ -153,7 +153,7 @@ class Project(Model):
         for p in PLATFORM_LIST
     ) + (('other', 'Other'),)
 
-    slug = models.SlugField(unique=True, null=True)
+    slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)
     owner = models.ForeignKey(User, related_name="sentry_owned_project_set", null=True)
     team = models.ForeignKey(Team, null=True)
@@ -170,11 +170,14 @@ class Project(Model):
         'slug',
     ])
 
-    __repr__ = sane_repr('slug', 'owner_id')
+    class Meta:
+        unique_together = (('team', 'slug'),)
+
+    __repr__ = sane_repr('team_id', 'slug', 'owner_id')
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            slugify_instance(self, self.name)
+            slugify_instance(self, self.name, team=self.team)
         super(Project, self).save(*args, **kwargs)
 
     def delete(self):

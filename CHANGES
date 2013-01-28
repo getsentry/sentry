@@ -16,6 +16,7 @@ Additionally:
   levels or culprits can now be grouped together.
 - Sentry now requires authentication for all pages.
 - SENTRY_PUBLIC behavior has changed to signify the default state of projects.
+- Project slug's are now only unique within a team.
 
 Version 5.2.2
 -------------
