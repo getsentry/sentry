@@ -3,7 +3,6 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import get_object_or_404
 
-from sentry.conf import settings
 from sentry.models import Project, Team, Group
 from sentry.web.helpers import get_project_list, render_to_response, \
   get_login_url
