@@ -105,7 +105,7 @@ def get_internal_project():
     }
 
 
-def get_default_context(request, existing_context=None):
+def get_default_context(request, existing_context=None, team=None):
     from sentry.plugins import plugins
 
     context = {
@@ -127,7 +127,10 @@ def get_default_context(request, existing_context=None):
             'can_create_teams': can_create_teams(request.user),
         })
         if not existing_context or 'PROJECT_LIST' not in existing_context:
-            context['PROJECT_LIST'] = get_project_list(request.user).values()
+            if team:
+                context['PROJECT_LIST'] = Project.objects.filter(team=team)
+            else:
+                context['PROJECT_LIST'] = get_project_list(request.user).values()
         if not existing_context or 'TEAM_LIST' not in existing_context:
             context['TEAM_LIST'] = Team.objects.get_for_user(request.user).values()
 
@@ -135,7 +138,16 @@ def get_default_context(request, existing_context=None):
 
 
 def render_to_string(template, context=None, request=None):
-    default_context = get_default_context(request, context)
+
+    # HACK: set team session value for dashboard redirect
+    if context and 'team' in context and isinstance(context['team'], Team):
+        team = context['team']
+        if request and request.session.get('team') != team.slug:
+            request.session['team'] = team.slug
+    else:
+        team = None
+
+    default_context = get_default_context(request, context, team=team)
 
     if context is None:
         context = default_context
@@ -154,12 +166,6 @@ def render_to_string(template, context=None, request=None):
 def render_to_response(template, context=None, request=None, status=200):
     response = HttpResponse(render_to_string(template, context, request))
     response.status_code = status
-
-    # HACK: set team session value for dashboard redirect
-    if context and 'team' in context and isinstance(context['team'], Team):
-        team = context['team']
-        if request.session.get('team') != team.slug:
-            request.session['team'] = team.slug
 
     return response
 
