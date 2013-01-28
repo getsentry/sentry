@@ -6542,6 +6542,10 @@ h3 {
   background: #ffffff url(../images/dashboard/sidebar-bg.png) top right repeat-y;
   min-width: 1086px;
 }
+#content.with-sidebar .sidebar {
+  margin-right: -300px;
+  display: block;
+}
 #content.with-sidebar .content {
   padding-right: 300px;
 }
@@ -6559,6 +6563,7 @@ h3 {
   float: right;
 }
 #content.with-left-sidebar .sidebar {
+  display: block;
   margin-right: 0;
   margin-left: -300px;
 }
@@ -6651,7 +6656,7 @@ h3 {
   width: 240px;
   float: left;
   padding: 18px 30px;
-  margin-right: -300px;
+  display: none;
   overflow: hidden;
 }
 #content .sidebar h6 {
