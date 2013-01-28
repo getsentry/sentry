@@ -11,9 +11,6 @@
         <link href="{% url sentry-media "sentry" "images/favicon.png" %}" rel="shortcut icon" type="image/png"/>
 
         {% block css %}
-            {% compress css %}
-                <link href="{% url sentry-media "sentry" "scripts/lib/select2/select2.css" %}" rel="stylesheet" type="text/css"/>
-            {% endcompress %}
             {% if COMPRESS_LESS %}
                 {% compress css %}
                     <link href="{% url sentry-media "sentry" "less/sentry.less" %}" rel="stylesheet" type="text/less"/>
@@ -60,19 +57,13 @@
                 <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/sentry.stream.js" %}"></script>
             {% endcompress %}
             <script type="text/javascript">
-            Sentry.config({
-                urlPrefix: {{ URL_PREFIX|to_json|safe }},
-                mediaUrl: '{% url sentry-media "sentry" '' %}',
-                projectId: {% if project %}{{ project.id|to_json|safe }}{% else %}null{% endif %},
-                defaultImage: '{% url sentry-media "sentry" 'images/sentry.png' %}',
-                popupCss: '{% url sentry-media "sentry" 'styles/popup.css' %}'
-            });
-            app.config.defaultImage = '{% url sentry-media "sentry" 'images/sentry.png' %}';
+            app.config.popupCss = '{% url sentry-media "sentry" 'styles/popup.css' %}';
             app.config.popupCss = '{% url sentry-media "sentry" 'styles/popup.css' %}';
             app.config.mediaUrl = '{% url sentry-media "sentry" '' %}';
             app.config.urlPrefix = {{ URL_PREFIX|to_json|safe }};
             app.config.hasRealtime = {{ hasRealtime|to_json|safe  }};
             app.config.projectId = {{ project.slug|to_json|safe }};
+            app.config.teamId = {{ team.slug|to_json|safe }};
             app.config.viewId = {% if view %}{{ view.pk|to_json|safe }}{% else %}null{% endif %};
             </script>
         {% endblock %}
@@ -92,27 +83,38 @@
     </head>
 
     <body>
+        <div class="outer-wrapper">
         {% block body %}
         {% block header %}
             {% include "sentry/header.html" %}
         {% endblock %}
         {% block page_header_block %}
             <section id="page-header" class="toolbar">
-                {% block page_header %}
-                    <ul class="breadcrumb">
-                        <li><a href="{% url sentry %}">{% trans "Dashboard" %}</a></li>
-                        {% if project %}
-                            <li class="divider">/</li>
-                            <li><a href="{% url sentry project.slug %}">{{ project.name }}</a></li>
-                        {% endif %}
-                        {% block breadcrumb %}
-                        {% endblock %}
-                    </ul>
-                {% endblock %}
+                <div class="container">
+                    {% block page_header %}
+                        <ul class="breadcrumb">
+                            <li><a href="{% url sentry %}" class="dashboard-btn" title="{% trans "Dashboard" %}"><i aria-hidden="true" class="icon-list"></i></a></li>
+                            <li class="projects">
+                                <select class="project-selector" data-placeholder="{% trans "Select a Project" %}">
+                                    <option value=""></option>
+                                    {% for p in PROJECT_LIST %}
+                                        <option value="{{ p.slug }}"{% if p == project %} selected="selected"{% endif %} data-url="{% url sentry-stream p.team.slug p.slug %}">{{ p.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </li>
+                            {% if project %}
+                                <li class="project-settings"><a href="{% url sentry-manage-project project.team.slug project.slug %}" class="{% trans "Settings" %}"><i aria-hidden="true" class="icon-cog"></i></a></li>
+                            {% endif %}
+                            {% block breadcrumb %}
+                            {% endblock %}
+                        </ul>
+                    {% endblock %}
+                </div>
             </section>
         {% endblock %}
         <section id="content" class="{% block bodyclass %}with-sidebar{% endblock %}">
             <div class="container">
+                {% block above_content %}{% endblock %}
                 <div class="content">
                     {% block content_before %}
                     {% endblock %}
@@ -142,12 +144,13 @@
         <footer>
             <div class="container">
                 {% block footer %}
-                    Sentry {% sentry_version %} | Conjured up by the <a href="http://code.disqus.com">DISQUS</a> team and other noble <a href="https://github.com/getsentry/sentry/contributors">sorcerers</a>. | Sentry is <a href="https://github.com/getsentry/sentry">Open Source Software</a>
+                    <div class="contribute">Sentry is open source software <a href="https://github.com/getsentry/sentry" class="btn btn-small">Contribute</a></div>
+                    <div class="version">Sentry {% sentry_version %}</div>
+                    <div class="credits">Created by the <a href="http://code.disqus.com">DISQUS</a> team with <a href="https://github.com/getsentry/sentry/contributors">lots of help</a></div>
                 {% endblock %}
             </div>
         </footer>
         {% endblock %}
-
         <div class="modal" id="modal" style="display:none">
           <div class="modal-header">
             <a class="close" data-dismiss="modal">×</a>
@@ -155,6 +158,7 @@
           </div>
           <div class="modal-body">
           </div>
+        </div>
         </div>
 
         <script type="text/javascript">
@@ -166,6 +170,12 @@
             $('input[data-toggle="datepicker"]').datepicker();
             $('.tip').tooltip();
             $('.nav-tabs .active a').tab('show')
+            $('.project-selector').on('change', function(e){
+                var $el = $(e.target).get(0);
+                var $opt = $($el.options[$el.selectedIndex]);
+                window.location.href = $opt.attr('data-url');
+                return false;
+            });
         });
         </script>
     </body>

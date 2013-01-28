@@ -1,0 +1,24 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+
+{% block title %}{{ team.name }} | {{ block.super }}{% endblock %}
+
+{% block page_header %}
+    <ul class="nav nav-tabs">
+        <li{% if SUBSECTION == 'settings' %} class="active"{% endif %}>
+            <a href="{% url sentry-manage-team team.slug %}">{% trans "Settings" %}</a>
+        </li>
+        <li{% if SUBSECTION == 'projects' %} class="active"{% endif %}>
+            <a href="{% url sentry-manage-team-projects team.slug %}">{% trans "Projects" %}</a>
+        </li>
+        <li{% if SUBSECTION == 'members' %} class="active"{% endif %}>
+            <a href="{% url sentry-manage-team-members team.slug %}">{% trans "Members" %}</a>
+        </li>
+        {% if can_create_projects %}
+            <li class="pull-right{% if SUBSECTION == 'new_project' %} active{% endif %}">
+                <a href="{% url sentry-new-team-project team.slug %}">{% trans "Create a New Project" %}</a>
+            </li>
+        {% endif %}
+    </ul>
+{% endblock %}

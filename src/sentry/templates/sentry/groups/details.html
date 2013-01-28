@@ -1,25 +1,80 @@
-{% extends "sentry/layout.html" %}
+{% extends "sentry/groups/group_list.html" %}
 
 {% load i18n %}
+{% load sentry_activity %}
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
-{% block title %}{{ group.error }} | {{ block.super }}{% endblock %}
+{% block title %}{{ event.error }} | {{ block.super }}{% endblock %}
 
 {% block breadcrumb %}
     {{ block.super }}
-    <li class="divider">/</li>
-    <li><a href="{% url sentry-group group.project.slug group.id %}">{{ group.message|truncatechars:30 }}</a></li>
+    <li class="divider"></li>
+    <li><a href="{% url sentry-group group.team.slug group.project.slug group.id %}">{{ group.message }}</a></li>
+{% endblock %}
+
+{% block main %}
+    {% handle_before_events request group %}
+
+    <div id="details">
+        <div id="event_list" class="inactive"></div>
+    </div>
+
+    <section class="body">
+        {% block inner %}
+            {% with event|get_rendered_interfaces as interface_list %}
+
+                {% if group|has_charts %}
+                    <div class="module">
+                        <div id="chart" class="chart" data-api-url="{% url sentry-api-chart project.team.slug project.slug %}" data-group="{{ group.id|safe }}">
+                            <div class="sparkline">
+                                <span class="loading">{% trans "Loading historical data..." %}</span>
+                                <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+
+                {% if activity %}
+                    <ul class="activity">
+                        {% for item in activity %}
+                            {% with item|render_activity as out %}
+                                {% if out %}
+                                    <li class="item item-{{ item.get_type_display }}">{{ out }}</li>
+                                {% endif %}
+                            {% endwith %}
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+
+                <div class="btn-toolbar event-toolbar">
+                    <!-- We switch the ordering of events here as it makes more sense visually -->
+                    <a class="btn pull-left prev {% if not next_event %} disabled{% endif %}"{% if next_event %} href="{% url sentry-group-event group.team.slug group.project.slug group.id next_event.id %}"{% endif %}><span></span> {% trans "Newer Event" %}</a>
+                    <a class="btn pull-right next {% if not prev_event %} disabled{% endif %}"{% if prev_event %} href="{% url sentry-group-event group.team.slug group.project.slug group.id prev_event.id %}"{% endif %}>{% trans "Older Event" %} <span></span></a>
+                    <h4>Event at {{ event.datetime }} {{ event.datetime.tzinfo }}</h4>
+                </div>
+
+                {% include "sentry/partial/event_nav.html" %}
+            
+                {% if event.has_two_part_message %}
+                    <pre id="full-message">{{ event.message }}</pre>
+                {% endif %}
+
+                {% include "sentry/partial/_event_details.html" %}
+            {% endwith %}
+        {% endblock %}
+    </section>
 {% endblock %}
 
 {% block sidebar %}
     <ul class="nav nav-list">
-        <li{% if page == 'details' %} class="active"{% endif %}><a href="{% url sentry-group group.project.slug group.id %}">Aggregate</a></li>
+        <li{% if page == 'details' %} class="active"{% endif %}><a href="{% url sentry-group group.team.slug group.project.slug group.id %}">Aggregate</a></li>
         <li{% if page == 'tag_list' %} class="active"{% endif %}>
-            <a href="{% url sentry-group-tags group.project.slug group.id %}">{% trans "Tags" %}</a>
+            <a href="{% url sentry-group-tags group.team.slug group.project.slug group.id %}">{% trans "Tags" %}</a>
         </li>
         <li{% if page == 'event_list' or page == 'event' %} class="active"{% endif %}>
-            <a href="{% url sentry-group-events group.project.slug group.id %}">{% trans "Similar Events" %}</a>
+            <a href="{% url sentry-group-events group.team.slug group.project.slug group.id %}">{% trans "Similar Events" %}</a>
         </li>
     </ul>
 
@@ -55,14 +110,14 @@
             {% trans "This event is <strong>not publicly visible</strong>." %}
         </span>
         <span data-public="true"{% if not group.project.public and not group.is_public %} style="display: none;"{% endif %}>
-            <a href="{% url sentry-group group.project.slug group.id %}">{% trans "Link" %}</a>{% if can_admin_event and not group.project.public %} | {% endif %}
+            <a href="{% url sentry-group group.team.slug group.project.slug group.id %}">{% trans "Link" %}</a>{% if can_admin_event and not group.project.public %} | {% endif %}
         </span>
         {% if can_admin_event and not group.project.public %}
             <span data-public="true"{% if not group.is_public %} style="display: none;"{% endif %}>
-                <a href="javascript:void(0)" data-api-url="{% url sentry-api-set-group-private group.project.slug group.id %}" class="action">{% trans "Change" %}</a>
+                <a href="javascript:void(0)" data-api-url="{% url sentry-api-set-group-private group.team.slug group.project.slug group.id %}" class="action">{% trans "Change" %}</a>
             </span>
             <span data-public="false"{% if group.is_public %} style="display: none;"{% endif %}>
-                <a href="javascript:void(0)" data-api-url="{% url sentry-api-set-group-public group.project.slug group.id %}" class="action">{% trans "Change" %}</a>
+                <a href="javascript:void(0)" data-api-url="{% url sentry-api-set-group-public group.team.slug group.project.slug group.id %}" class="action">{% trans "Change" %}</a>
             </span>
         {% endif %}
     </small></p>
@@ -74,11 +129,11 @@
                 <li><a href="{{ link }}">{{ label }}</a></li>
             {% endfor %}
             {% comment %}<li><a {% ifequal page 'event_list' %}{% if event %}
-            href="{% url sentry-group-event-json project_id=project.slug group_id=group.id event_id_or_latest=event.id %}"{% else %}
-            href="{% url sentry-group-event-json project_id=project.slug group_id=group.id event_id_or_latest="latest" %}"{% endif %}{% else %}
-            href="{% url sentry-group-events-json project_id=project.slug group_id=group.id %}"{% endifequal %}
+            href="{% url sentry-group-event-json group.team.slug project.slug group.id event.id %}"{% else %}
+            href="{% url sentry-group-event-json group.team.slug project.slug group.id "latest" %}"{% endif %}{% else %}
+            href="{% url sentry-group-events-json group.team.slug project.slug group.id %}"{% endifequal %}
             >{% trans "Raw JSON Data" %}</a></li>{% endcomment %}
-            <li><a href="{% url sentry-api-remove-group project_id=project.slug group_id=group.id %}">{% trans "Remove Event Data" %}</a></li>
+            <li><a href="{% url sentry-api-remove-group group.team.slug project.slug group.id %}">{% trans "Remove Event Data" %}</a></li>
         </ul>
     {% endif %}
 
@@ -89,40 +144,6 @@
     {% for html in group|get_widgets:request %}
         {{ html|safe }}
     {% endfor %}
-
-{% endblock %}
-
-{% block main %}
-    {% handle_before_events request group %}
-
-    <div id="details">
-        <div id="event_list" class="inactive"></div>
-    </div>
-
-    {% with event|get_rendered_interfaces as interface_list %}
-        <section class="body">
-            {% block inner %}
-                {% include "sentry/partial/event_nav.html" %}
-
-                {% if group.has_two_part_message %}
-                    <pre id="full-message">{{ group.message }}</pre>
-                {% endif %}
-
-                {% if group|has_charts %}
-                    <div class="module">
-                        <div style="height:50px;" id="chart" class="chart" data-api-url="{% url sentry-api-chart project_id=project.slug %}" data-group="{{ group.id|safe }}">
-                            <div class="sparkline">
-                                <span class="loading">{% trans "Loading historical data..." %}</span>
-                                <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
-                            </div>
-                        </div>
-                    </div>
-                {% endif %}
-
-                {% include "sentry/partial/_event_details.html" %}
-            {% endblock %}
-        </section>
-    {% endwith %}
 {% endblock %}
 
 {% block content_after %}

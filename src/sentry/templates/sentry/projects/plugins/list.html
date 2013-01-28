@@ -8,8 +8,8 @@
 
 {% block breadcrumb %}
     {{ block.super }}
-    <li class="divider">/</li>
-    <li><a href="{% url sentry-manage-project-plugins project.slug %}">{% trans "Plugins" %}</a></li>
+    <li class="divider"></li>
+    <li><a href="{% url sentry-manage-project-plugins project.team.slug project.slug %}">{% trans "Plugins" %}</a></li>
 {% endblock %}
 
 {% block inner %}
@@ -18,7 +18,7 @@
     </div>
     <form method="POST">
         {% csrf_token %}
-        <table class="table table-bordered table-striped">
+        <table class="table table-striped">
             <thead>
                 <tr>
                     <th>{% trans "Plugin" %}</th>
@@ -31,7 +31,7 @@
                     <tr>
                         <td>
                             {% if plugin.has_project_conf %}
-                                <a href="{% url sentry-configure-project-plugin project.slug plugin.slug %}">{{ plugin.get_title }}</a>
+                                <a href="{% url sentry-configure-project-plugin project.team.slug project.slug plugin.slug %}">{{ plugin.get_title }}</a>
                             {% else %}
                                 {{ plugin.get_title }}
                             {% endif %}

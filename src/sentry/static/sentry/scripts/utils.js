@@ -124,6 +124,37 @@
 
     };
 
+    $(function(){
+        // Change all select boxes to select2 elements.
+        $('.body select, .toolbar select, .project-controls select').each(function(){
+            var $this = $(this),
+                options = {
+                    width: 'element',
+                    allowClear: false
+                };
+
+            if ($this.attr('data-allowClear')) {
+                options.allowClear = $this.attr('data-allowClear');
+            }
+
+            $this.select2(options);
+        });
+
+        // Update date strings periodically
+        setInterval(function() {
+            $('.pretty-date').each(function(_, el){
+                var $el = $(el);
+                var title = $el.attr('title');
+                if (title) {
+                    var date = app.utils.prettyDate(title);
+                    if (date) {
+                        $el.text(date);
+                    }
+                }
+            });
+        }, 5000);
+    });
+
 }(app, jQuery));
 
 /**

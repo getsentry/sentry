@@ -11,27 +11,28 @@ from django.conf import settings as dj_settings
 from django.core.urlresolvers import reverse
 
 from sentry.conf import settings
-from sentry.permissions import can_create_projects
+from sentry.models import Team
 from sentry.web.decorators import login_required
-from sentry.web.helpers import get_login_url, get_project_list, \
-  render_to_response
 
 STATIC_PATH_CACHE = {}
 
 
 @login_required
 def dashboard(request, template='dashboard.html'):
-    project_list = get_project_list(request.user, key='slug')
-    has_projects = len(project_list) > 1 or (len(project_list) == 1 and project_list.values()[0].pk != settings.PROJECT)
+    team_list = Team.objects.get_for_user(request.user)
+    if not team_list:
+        return HttpResponseRedirect(reverse('sentry-new-team'))
 
-    if not has_projects:
-        if not request.user.is_authenticated():
-            request.session['_next'] = request.get_full_path()
-            return HttpResponseRedirect(get_login_url())
-        elif can_create_projects(request.user):
-            return HttpResponseRedirect(reverse('sentry-new-project'))
+    # This cookie gets automatically set by render_to_response
+    last_team = request.session.get('team')
+    if last_team in team_list:
+        team = team_list[last_team]
+    else:
+        team = team_list.values()[0]
 
-    return render_to_response('sentry/%s' % template, {}, request)
+    # Redirect to first team
+    # TODO: maybe store this in a cookie and redirect to last seen team?
+    return HttpResponseRedirect(reverse('sentry', args=[team.slug]))
 
 
 def wall_display(request):

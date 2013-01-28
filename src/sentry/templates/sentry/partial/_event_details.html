@@ -1,20 +1,5 @@
 {% load i18n %}
-{% load sentry_activity %}
 {% load sentry_helpers %}
-
-{% if activity %}
-    <hr>
-    <ul class="activity">
-        {% for item in activity %}
-            {% with item|render_activity as out %}
-                {% if out %}
-                    <li class="item item-{{ item.get_type_display }}">{{ out }}</li>
-                {% endif %}
-            {% endwith %}
-        {% endfor %}
-    </ul>
-    <hr>
-{% endif %}
 
 {% for interface, interface_html in interface_list %}
     <div id="{{ interface.get_slug }}">
@@ -27,7 +12,7 @@
         <div class="page-header">
             <h2>{% trans "Additional Data" %}</h2>
         </div>
-        <table class="table table-bordered table-striped">
+        <table class="table table-striped vars">
             {% for k, v in json_data.iteritems|as_sorted %}
                 <tr>
                     <th class="key">{{ k }}</th>
@@ -64,7 +49,7 @@
         <div class="page-header">
             <h2>{% trans "Package Versions" %}</h2>
         </div>
-        <table class="table table-bordered table-striped">
+        <table class="table table-striped">
             {% for k, v in version_data.iteritems|as_sorted %}
                 <tr>
                     <th class="key">{{ k }}</th>

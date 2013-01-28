@@ -1,19 +1,13 @@
-{% extends "sentry/teams/list.html" %}
+{% extends "sentry/bases/team.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
-{% block title %}{% blocktrans with team.name as name %}Manage Team: {{ name }}{% endblocktrans %} | {{ block.super }}{% endblock %}
+{% block title %}{% trans "Settings" %} | {{ block.super }}{% endblock %}
 
-{% block bodyclass %} with-left-sidebar{% endblock %}
-
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider">/</li>
-    <li><a href="{% url sentry-manage-team team.slug %}">{{ team.name }}</a></li>
-{% endblock %}
+{% block bodyclass %}{% endblock %}
 
 {% block main %}
     <section class="body">
@@ -28,13 +22,22 @@
                     <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
                 {% endif %}
 
-                {{ form|as_crispy_errors}}
+                {{ form|as_crispy_errors }}
 
                 <fieldset>
                     {% for field in form %}
-                        {% include "sentry/partial/_form_field.html" %}
+                        {% if field.name != 'owner' %}
+                            {{ field|as_crispy_field }}
+                        {% endif %}
                     {% endfor %}
                 </fieldset>
+
+                {% if form.owner %}
+                    <fieldset>
+                        <p>If you wish to transfer ownership of this project, enter the new owner's username:</p>
+                        {{ form.owner|as_crispy_field }}
+                    </fieldset>
+                {% endif %}
 
                 <fieldset class="form-actions">
                     <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
@@ -47,19 +50,4 @@
             </form>
         {% endblock %}
     </section>
-{% endblock %}
-
-{% block sidebar %}
-    <ul class="nav nav-list">
-        <li class="nav-header">{% trans "Team" %}</li>
-        <li{% if page == 'details' %} class="active"{% endif %}>
-            <a href="{% url sentry-manage-team team.slug %}">{% trans "Settings" %}</a>
-        </li>
-        <li{% if page == 'projects' %} class="active"{% endif %}>
-            <a href="{% url sentry-manage-team-projects team.slug %}">{% trans "Projects" %}</a>
-        </li>
-        <li{% if page == 'members' %} class="active"{% endif %}>
-            <a href="{% url sentry-manage-team-members team.slug %}">{% trans "Members" %}</a>
-        </li>
-    </ul>
 {% endblock %}

@@ -8,8 +8,8 @@
 
 {% block breadcrumb %}
     {{ block.super }}
-    <li class="divider">/</li>
-    <li><a href="{% url sentry-edit-team-member team.slug member.pk %}">Member: {{ member.user.username|truncatechars:30 }}</a></li>
+    <li class="divider"></li>
+    <li><a href="{% url sentry-edit-team-member team.slug member.pk %}">Member: {{ member.user.username }}</a></li>
 {% endblock %}
 
 {% block inner %}

@@ -42,7 +42,11 @@ class IssuePlugin(Plugin):
 
     def _get_group_description(self, request, group, event):
         output = [
-            request.build_absolute_uri(group.get_absolute_url()),
+            request.build_absolute_uri(reverse('sentry-group', kwargs={
+                'project_id': group.project.slug,
+                'team_slug': group.team.slug,
+                'group_id': group.id,
+            })),
         ]
         body = self._get_group_body(request, group, event)
         if body:
@@ -167,7 +171,7 @@ class IssuePlugin(Plugin):
         if form.is_valid():
             GroupMeta.objects.set_value(group, '%s:tid' % prefix, issue_id)
 
-            return self.redirect(reverse('sentry-group', args=[group.project_id, group.pk]))
+            return self.redirect(reverse('sentry-group', args=[group.team.slug, group.project_id, group.pk]))
 
         context = {
             'form': form,

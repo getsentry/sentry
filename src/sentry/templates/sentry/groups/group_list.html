@@ -8,12 +8,20 @@
 
 {% block breadcrumb %}
     {{ block.super }}
-    <li class="divider">/</li>
-    <li><a href="{% url sentry-stream project.slug %}">{% trans "Stream" %}</a></li>
+    <li class="divider"></li>
+    <li><a href="{% url sentry-stream project.team.slug project.slug %}">{% trans "Stream" %}</a></li>
+{% endblock %}
+
+{% block page_header %}
+    <form action="{% url sentry-search project.team.slug project.slug %}" class="navbar-search pull-right" id="search">
+        <input type="hidden" name="sort" value="{% if sort %}{{ sort }}{% endif %}"/>
+        <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="{% if HAS_SEARCH %}{% trans "Search query or message id" %}{% else %}{% trans "Message id" %}{% endif %}" class="search-query pull-left" />
+    </form>
+    {{ block.super }}
 {% endblock %}
 
 {% block sidebar %}
-    <div id="chart" class="chart" data-api-url="{% url sentry-api-chart %}" data-days="1">
+    <div id="chart" class="chart" data-api-url="{% url sentry-api-chart project.team.slug %}" data-days="1">
         <div class="sparkline">
             <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
             <span class="loading">{% trans "Loading historical data..." %}</span>
@@ -50,13 +58,13 @@
 
     <div class="btn-toolbar">
         <div class="btn-group">
-            <a class="btn" href="javascript:void(0)" id="sentry-resolve-feed" onclick="Sentry.stream.clear('{{ project.slug }}');">{% trans "Resolve Feed" %}</a>
+            <a class="btn" href="javascript:void(0)" id="sentry-resolve-feed" onclick="Sentry.stream.clear('{{ project.slug }}');"><i aria-hidden="true" class="icon-checkmark"></i> {% trans "Resolve Feed" %}</a>
         </div>
         <div class="btn-group">
-            <a class="btn realtime-play" data-action="pause" data-pause-label="{% trans "Pause Updates" %}" data-play-label="{% trans "Enable Updates" %}" href="javascript:void(0)">{% trans "Pause Updates" %}</a>
+            <a class="btn realtime-play" data-action="pause" data-pause-label="{% trans "Pause Updates" %}" data-play-label="{% trans "Enable Updates" %}" href="javascript:void(0)"><i aria-hidden="true" class="icon-pause"></i> {% trans "Pause Updates" %}</a>
         </div>
         <div class="btn-group">
-            <a href="#" class="btn dropdown-toggle" data-toggle="dropdown">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <span class="caret"></span></a>
+            <a href="#" class="btn dropdown-toggle" data-toggle="dropdown">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <i aria-hidden="true" class="icon-arrow-down"></i></a>
             <ul class="dropdown-menu">
                 <li{% ifequal sort 'priority' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=priority">{{ SORT_OPTIONS.priority }}</a></li>
                 <li{% ifequal sort 'date' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=date">{{ SORT_OPTIONS.date }}</a></li>
@@ -73,7 +81,7 @@
             </ul>
         </div>
         <div class="btn-group">
-            <a href="#" class="btn dropdown-toggle" onclick="Sentry.toggle('#daterange');">
+            <a href="#" class="btn dropdown-toggle" onclick="$('#daterange').toggle();">
                 {% if from_date %}
                     {% if not to_date %}
                         Since: {{ from_date|date:"M jS" }}
@@ -87,7 +95,7 @@
                         Between: The Past <small>and</small> The Present
                     {% endif %}
                 {% endif %}
-             <span class="caret"></span></a>
+             <i aria-hidden="true" class="icon-arrow-down"></i></a>
         </div>
         <div class="btn-group pull-right">
             <a class="btn prev{% if not event_list.paginator.has_previous %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
@@ -123,7 +131,7 @@
 
     <div id="event_list"></div>
 
-    <div class="btn-toolbar">
+    <div class="btn-toolbar" style="border-bottom: none">
         <div class="btn-group pull-right">
             <a class="btn prev{% if not event_list.paginator.has_previous %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
             <a class="btn next{% if not event_list.paginator.has_next %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>

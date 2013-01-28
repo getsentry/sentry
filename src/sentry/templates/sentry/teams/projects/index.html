@@ -5,7 +5,7 @@
 
 {% block breadcrumb %}
     {{ block.super }}
-    <li class="divider">/</li>
+    <li class="divider"></li>
     <li><a href="{% url sentry-manage-team-projects team.slug %}">{% trans "Projects" %}</a></li>
 {% endblock %}
 
@@ -17,7 +17,7 @@
         <h2>{% trans "Projects" %}</h2>
     </div>
     {% if project_list %}
-        <table class="table table-bordered table-striped">
+        <table class="table table-striped">
             <colgroup>
                 <col/>
                 <col width="150px"/>
@@ -32,7 +32,7 @@
                 {% for project in project_list %}
                     <tr>
                         <td>
-                            <a href="{% url sentry-manage-project project.slug %}">{{ project.name }}</a><br>
+                            <a href="{% url sentry-manage-project project.team.slug project.slug %}">{{ project.name }}</a><br>
                         </td>
                         <td style="text-align:center;">
                             {{ project.date_added|timesince }}

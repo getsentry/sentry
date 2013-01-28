@@ -6,7 +6,7 @@
 
 {% block breadcrumb %}
     {{ block.super }}
-    <li class="divider">/</li>
+    <li class="divider"></li>
     <li><a href="{% url sentry-new-team-member team.slug %}">{% trans "New Member" %}</a></li>
 {% endblock %}
 

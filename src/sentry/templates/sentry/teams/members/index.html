@@ -5,7 +5,7 @@
 
 {% block breadcrumb %}
     {{ block.super }}
-    <li class="divider">/</li>
+    <li class="divider"></li>
     <li><a href="{% url sentry-manage-team-members team.slug %}">{% trans "Members" %}</a></li>
 {% endblock %}
 
@@ -16,7 +16,7 @@
         {% endif %}
         <h2>{% trans "Members" %}</h2>
     </div>
-    <table class="table table-bordered table-striped">
+    <table class="table table-striped">
         <colgroup>
             <col/>
             <col width="100px"/>

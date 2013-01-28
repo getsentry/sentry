@@ -41,6 +41,10 @@ from sentry.web.helpers import render_to_response, get_project_list
 error_logger = logging.getLogger('sentry.errors.api.http')
 logger = logging.getLogger('sentry.api.http')
 
+# Transparent 1x1 gif
+# See http://probablyprogramming.com/2009/03/15/the-tiniest-gif-ever
+PIXEL = 'R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='.decode('base64')
+
 
 def api(func):
     @wraps(func)
@@ -229,12 +233,15 @@ class StoreView(APIView):
     @never_cache
     def post(self, request, project, auth, **kwargs):
         data = request.raw_post_data
-        return self.process(request, project, auth, data, **kwargs)
+        self.process(request, project, auth, data, **kwargs)
+        return HttpResponse()
 
     @never_cache
     def get(self, request, project, auth, **kwargs):
         data = request.GET.get('sentry_data', '')
-        return self.process(request, project, auth, data, **kwargs)
+        self.process(request, project, auth, data, **kwargs)
+        # We should return a simple 1x1 gif for browser so they don't throw a warning
+        return HttpResponse(PIXEL, content_type='image/gif')
 
     def process(self, request, project, auth, data, **kwargs):
         result = plugins.first('has_perm', request.user, 'create_event', project)
@@ -254,21 +261,12 @@ class StoreView(APIView):
 
         logger.info('New event from project %r (id=%s)', project.slug, data['event_id'])
 
-        return HttpResponse()
-
-
-@csrf_exempt
-@has_access
-@never_cache
-def notification(request, project):
-    return render_to_response('sentry/partial/_notification.html', request.GET)
-
 
 @csrf_exempt
 @has_access
 @never_cache
 @api
-def poll(request, project):
+def poll(request, team, project):
     offset = 0
     limit = settings.MESSAGES_PER_PAGE
 
@@ -287,7 +285,7 @@ def poll(request, project):
 @has_access(MEMBER_USER)
 @never_cache
 @api
-def resolve(request, project):
+def resolve(request, team, project):
     gid = request.REQUEST.get('gid')
     if not gid:
         return HttpResponseForbidden()
@@ -323,7 +321,7 @@ def resolve(request, project):
 @has_access(MEMBER_USER)
 @never_cache
 @api
-def make_group_public(request, project, group_id):
+def make_group_public(request, team, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
     except Group.DoesNotExist:
@@ -346,7 +344,7 @@ def make_group_public(request, project, group_id):
 @has_access(MEMBER_USER)
 @never_cache
 @api
-def make_group_private(request, project, group_id):
+def make_group_private(request, team, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
     except Group.DoesNotExist:
@@ -369,7 +367,7 @@ def make_group_private(request, project, group_id):
 @has_access(MEMBER_USER)
 @never_cache
 @api
-def mute_group(request, project, group_id):
+def mute_group(request, team, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
     except Group.DoesNotExist:
@@ -391,7 +389,7 @@ def mute_group(request, project, group_id):
 @has_access(MEMBER_USER)
 @never_cache
 @api
-def unmute_group(request, project, group_id):
+def unmute_group(request, team, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
     except Group.DoesNotExist:
@@ -412,7 +410,7 @@ def unmute_group(request, project, group_id):
 @csrf_exempt
 @has_access(MEMBER_USER)
 @never_cache
-def remove_group(request, project, group_id):
+def remove_group(request, team, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
     except Group.DoesNotExist:
@@ -432,7 +430,7 @@ def remove_group(request, project, group_id):
 @has_access
 @never_cache
 @api
-def bookmark(request, project):
+def bookmark(request, team, project):
     gid = request.REQUEST.get('gid')
     if not gid:
         return HttpResponseForbidden()
@@ -459,7 +457,7 @@ def bookmark(request, project):
 @csrf_exempt
 @has_access(MEMBER_USER)
 @never_cache
-def clear(request, project):
+def clear(request, team, project):
     response = _get_group_list(
         request=request,
         project=project,
@@ -485,7 +483,7 @@ def clear(request, project):
 @vary_on_cookie
 @csrf_exempt
 @has_access
-def chart(request, project=None):
+def chart(request, team=None, project=None):
     gid = request.REQUEST.get('gid')
     days = int(request.REQUEST.get('days', '90'))
     if gid:
@@ -497,6 +495,14 @@ def chart(request, project=None):
         data = Group.objects.get_chart_data(group, max_days=days)
     elif project:
         data = Project.objects.get_chart_data(project, max_days=days)
+    elif team:
+        cache_key = 'api.chart:team=%s,days=%s' % (team.id, days)
+
+        data = cache.get(cache_key)
+        if data is None:
+            project_list = list(Project.objects.filter(team=team))
+            data = Project.objects.get_chart_data_for_group(project_list, max_days=days)
+            cache.set(cache_key, data, 300)
     else:
         cache_key = 'api.chart:user=%s,days=%s' % (request.user.id, days)
 
@@ -514,12 +520,14 @@ def chart(request, project=None):
 @never_cache
 @csrf_exempt
 @has_access
-def get_group_trends(request, project=None):
+def get_group_trends(request, team=None, project=None):
     minutes = int(request.REQUEST.get('minutes', 15))
     limit = min(100, int(request.REQUEST.get('limit', 10)))
 
-    if project:
-        project_dict = {project.pk: project}
+    if team:
+        project_dict = dict((p.id, p) for p in Project.objects.filter(team=team))
+    elif project:
+        project_dict = {project.id: project}
     else:
         project_dict = get_project_list(request.user)
 
@@ -555,11 +563,13 @@ def get_group_trends(request, project=None):
 @never_cache
 @csrf_exempt
 @has_access
-def get_new_groups(request, project=None):
+def get_new_groups(request, team=None, project=None):
     minutes = int(request.REQUEST.get('minutes', 15))
     limit = min(100, int(request.REQUEST.get('limit', 10)))
 
-    if project:
+    if team:
+        project_dict = dict((p.id, p) for p in Project.objects.filter(team=team))
+    elif project:
         project_dict = {project.id: project}
     else:
         project_dict = get_project_list(request.user)
@@ -587,11 +597,13 @@ def get_new_groups(request, project=None):
 @never_cache
 @csrf_exempt
 @has_access
-def get_resolved_groups(request, project=None):
+def get_resolved_groups(request, team=None, project=None):
     minutes = int(request.REQUEST.get('minutes', 15))
     limit = min(100, int(request.REQUEST.get('limit', 10)))
 
-    if project:
+    if team:
+        project_list = list(Project.objects.filter(team=team))
+    elif project:
         project_list = [project]
     else:
         project_list = get_project_list(request.user).values()
@@ -653,7 +665,7 @@ def get_stats(request, project=None):
 @never_cache
 @csrf_exempt
 @has_access
-def search_tags(request, project):
+def search_tags(request, team, project):
     limit = min(100, int(request.GET.get('limit', 10)))
     name = request.GET['name']
     query = request.GET['query']
@@ -680,8 +692,16 @@ def crossdomain_xml_index(request):
     return response
 
 
-@has_access
-def crossdomain_xml(request, project):
+def crossdomain_xml(request, project_id):
+    if project_id.isdigit():
+        lookup = {'id': project_id}
+    else:
+        lookup = {'slug': project_id}
+    try:
+        project = Project.objects.get_from_cache(**lookup)
+    except Project.DoesNotExist:
+        return HttpResponse(status_code=404)
+
     origin_list = get_origins(project)
     if origin_list == '*':
         origin_list = [origin_list]

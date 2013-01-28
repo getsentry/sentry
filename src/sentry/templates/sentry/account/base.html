@@ -7,6 +7,8 @@
 
 {% block page_header %}
     <ul class="breadcrumb">
+        <li><a href="{% url sentry %}" class="dashboard-btn" title="{% trans "Dashboard" %}"><i aria-hidden="true" class="icon-list"></i></a></li>
+        <li class="divider"></li>
         <li><a href="#">{% trans "Settings" %}</a></li>
         {% block breadcrumb %}{% endblock %}
     </ul>

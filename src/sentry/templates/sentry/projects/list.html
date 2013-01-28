@@ -10,11 +10,11 @@
 
 {% block page_header %}
     {% if can_create_projects %}
-        <a href="{% url sentry-new-project %}" class="btn pull-right btn-primary">{% trans "Create a new project" %}</a>
+        <a href="{% url sentry-new-project team.slug %}" class="btn pull-right btn-primary">{% trans "Create a new project" %}</a>
     {% endif %}
 
     <ul class="breadcrumb">
-        <li><a href="{% url sentry-project-list %}">{% trans "Projects" %}</a></li>
+        <li><a href="{% url sentry-project-list team.slug %}">{% trans "Projects" %}</a></li>
         {% block breadcrumb %}{% endblock %}
     </ul>
 {% endblock %}
@@ -23,7 +23,7 @@
     <section class="body">
         {% if PROJECT_LIST %}
             <p>{% trans "The following is a list of projects that you are a member of." %}</p>
-            <table class="table table-bordered table-striped">
+            <table class="table table-striped">
                 <colgroup>
                     <col>
                     <col style="width:100px;">
@@ -42,7 +42,7 @@
                     {% for project in PROJECT_LIST %}
                         <tr>
                             <td>
-                                <a href="{% url sentry-manage-project project.slug %}">{{ project.name }}</a> <small>(<a href="{% url sentry project.slug %}">{% trans "Stream" %}</a>)</small><br/>
+                                <a href="{% url sentry-manage-project project.team.slug project.slug %}">{{ project.name }}</a> <small>(<a href="{% url sentry project.slug %}">{% trans "Stream" %}</a>)</small><br/>
                                 {% if project.member_dsn %}
                                     <small><code class="clippy">{{ project.member_dsn }}</code></small>
                                 {% endif %}

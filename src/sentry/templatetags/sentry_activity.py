@@ -11,7 +11,7 @@ from django.utils.safestring import mark_safe
 
 from sentry.models import Activity
 from sentry.templatetags.sentry_helpers import timesince
-
+from sentry.utils.avatar import get_gravatar_url
 
 register = template.Library()
 
@@ -35,15 +35,18 @@ def render_activity(item):
 
     action_str = ACTIVITY_ACTION_STRINGS[item.type]
 
-    output = '<p>'
+    output = ''
 
     if item.user:
-        name = item.user.first_name or item.user.email
+        user = item.user
+        name = user.first_name or user.email
+        output += '<span class="avatar"><img src="%s"></span> ' % (get_gravatar_url(user.email, size=20),)
         output += '<strong>%s</strong> %s' % (escape(name), action_str)
     else:
+        output += '<span class="avatar sentry"></span> '
         output += 'The system %s' % (action_str,)
 
-    output += ' &mdash; %s</p>' % (timesince(item.datetime),)
+    output += ' <span class="sep">&mdash;</span> <span class="time">%s</span>' % (timesince(item.datetime),)
 
     if item.type == Activity.COMMENT:
         output += linebreaks(item.data['body'])

@@ -224,7 +224,7 @@ class IPlugin(local):
 
         >>> plugin.get_url(group)
         """
-        return reverse('sentry-group-plugin-action', args=(group.project.slug, group.pk, self.slug))
+        return reverse('sentry-group-plugin-action', args=(group.team.slug, group.project.slug, group.pk, self.slug))
 
     def get_conf_key(self):
         """

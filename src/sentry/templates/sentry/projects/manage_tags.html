@@ -7,8 +7,8 @@
 
 {% block breadcrumb %}
     {{ block.super }}
-    <li class="divider">/</li>
-    <li><a href="{% url sentry-manage-project-tags project.slug %}">{% trans "Manage Tags" %}</a></li>
+    <li class="divider"></li>
+    <li><a href="{% url sentry-manage-project-tags project.team.slug project.slug %}">{% trans "Manage Tags" %}</a></li>
 {% endblock %}
 
 {% block inner %}

@@ -5,14 +5,13 @@
 {% block title %}{% trans "New Team" %} | {{ block.super }}{% endblock %}
 
 {% block breadcrumb %}
-    <li class="divider">/</li>
-    <li><a href="{% url sentry-new-project %}">{% trans "New Team" %}</a></li>
+    <li class="divider"></li>
+    <li><a href="{% url sentry-new-team %}">{% trans "New Team" %}</a></li>
 {% endblock %}
 
 {% block main %}
     <section class="body">
-        <p>{% trans "Use this page to create a new team within Sentry. Once done, you'll be able to add members to the team." %}</p>
-        <hr/>
+        <p>{% trans "Use this page to create a new team within Sentry. Once done, you'll be able to add new projects and members to the team." %}</p>
         <form class="form-stacked" action="" method="post">
             {% csrf_token %}
             <fieldset>

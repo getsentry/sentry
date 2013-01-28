@@ -1,4 +1,4 @@
-{% extends "sentry/layout.html" %}
+{% extends "sentry/bases/team.html" %}
 
 {% load i18n %}
 
@@ -10,21 +10,11 @@
 
 {% block bodyclass %}{% endblock %}
 
-{% block page_header %}
-    {% if can_create_projects %}
-        <a href="{% url sentry-new-project %}" class="btn pull-right btn-primary">{% trans "Create a new project" %}</a>
-    {% endif %}
-    <ul class="breadcrumb">
-        <li><a href="{% url sentry-project-list %}">{% trans "Projects" %}</a></li>
-        {% block breadcrumb %}{% endblock %}
-    </ul>
-{% endblock %}
-
 {% block main %}
     <section class="body">
         {% if PROJECT_LIST %}
             <p>{% trans "The following is a list of projects that you are a member of." %}</p>
-            <table class="table table-bordered table-striped">
+            <table class="table table-striped">
                 <colgroup>
                     <col>
                     <col style="width:100px;">
@@ -43,7 +33,7 @@
                     {% for project in PROJECT_LIST %}
                         <tr>
                             <td>
-                                <a href="{% url sentry-manage-project project.slug %}">{{ project.name }}</a><br/>
+                                <a href="{% url sentry-manage-project project.team.slug project.slug %}">{{ project.name }}</a><br/>
                                 {% if project.member_dsn %}
                                     <small><code class="clippy">{{ project.member_dsn }}</code></small>
                                 {% endif %}
@@ -63,7 +53,7 @@
             </table>
         {% else %}
             {% if can_create_projects %}
-                <div class="alert alert-info">You do not have access to any projects. Would you like to <a href="{% url sentry-new-project %}">create a new project</a>?</div>
+                <div class="alert alert-info">You do not have access to any projects. Would you like to <a href="{% url sentry-new-project team.slug %}">create a new project</a>?</div>
             {% else %}
                 <div class="alert alert-notice">{% trans "You do not have access to any projects. Ask an administrator to add you as a member." %}</div>
             {% endif %}

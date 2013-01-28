@@ -6,7 +6,7 @@
 
 {% block breadcrumb %}
     {{ block.super }}
-    <li class="divider">/</li>
+    <li class="divider"></li>
     <li><a href="{% url sentry-project-client-help project.slug %}">{% trans "Client Configuration" %}</a></li>
 {% endblock %}
 
@@ -18,11 +18,11 @@
     {% if key %}
         <p>{% trans "To start sending events, configure your client with the following DSN value:" %}</p>
 
-        <p><code class="clippy">{{ dsn }}</code></p>
+        <pre class="clippy">{{ dsn }}</pre>
 
         <p>{% blocktrans with 'https://github.com/getsentry/raven-js' as link %}If this is a client that only needs public access (like <a href="{{ link }}">raven-js</a>), you can use the following public DSN:{% endblocktrans %}</p>
 
-        <p><code class="clippy">{{ dsn_public }}</code></p>
+        <pre class="clippy">{{ dsn_public }}</pre>
     {% else %}
         {% url sentry-project-keys project.slug as link %}
         <p>{% blocktrans %}There is no API key assigned to your account. Generate a new key or select one from the <a href="{{ link }}">API Keys page</a>.{% endblocktrans %}</p>

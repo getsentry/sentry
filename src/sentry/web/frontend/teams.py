@@ -17,7 +17,7 @@ from sentry.models import PendingTeamMember, TeamMember
 from sentry.permissions import can_add_team_member, can_remove_team, can_create_projects, \
   can_create_teams, can_edit_team_member, can_remove_team_member
 from sentry.plugins import plugins
-from sentry.web.decorators import login_required, has_team_access
+from sentry.web.decorators import login_required, has_access
 from sentry.web.forms.teams import NewTeamForm, NewTeamAdminForm, \
   EditTeamForm, EditTeamAdminForm, EditTeamMemberForm, NewTeamMemberForm, \
   InviteTeamMemberForm, RemoveTeamForm, AcceptInviteForm
@@ -60,7 +60,7 @@ def create_new_team(request):
     return render_to_response('sentry/teams/new.html', context, request)
 
 
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 @csrf_protect
 def manage_team(request, team):
     result = plugins.first('has_perm', request.user, 'edit_team', team)
@@ -99,12 +99,14 @@ def manage_team(request, team):
         'page': 'details',
         'form': form,
         'team': team,
+        'SECTION': 'team',
+        'SUBSECTION': 'settings',
     })
 
     return render_to_response('sentry/teams/manage.html', context, request)
 
 
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 @csrf_protect
 def manage_team_projects(request, team):
     result = plugins.first('has_perm', request.user, 'edit_team', team)
@@ -119,12 +121,14 @@ def manage_team_projects(request, team):
         'page': 'projects',
         'team': team,
         'project_list': project_list,
+        'SECTION': 'team',
+        'SUBSECTION': 'projects',
     })
 
     return render_to_response('sentry/teams/projects/index.html', context, request)
 
 
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 @csrf_protect
 def manage_team_members(request, team):
     result = plugins.first('has_perm', request.user, 'edit_team', team)
@@ -141,12 +145,14 @@ def manage_team_members(request, team):
         'team': team,
         'member_list': member_list,
         'pending_member_list': pending_member_list,
+        'SECTION': 'team',
+        'SUBSECTION': 'members',
     })
 
     return render_to_response('sentry/teams/members/index.html', context, request)
 
 
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 @csrf_protect
 def remove_team(request, team):
     if not can_remove_team(request.user, team):
@@ -163,13 +169,15 @@ def remove_team(request, team):
         'page': 'settings',
         'form': form,
         'team': team,
+        'SECTION': 'team',
+        'SUBSECTION': 'settings',
     })
 
     return render_to_response('sentry/teams/remove.html', context, request)
 
 
 @csrf_protect
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 def new_team_member(request, team):
     can_add_member = can_add_team_member(request.user, team)
     if not can_add_member:
@@ -207,6 +215,8 @@ def new_team_member(request, team):
         'team': team,
         'add_form': add_form,
         'invite_form': invite_form,
+        'SECTION': 'team',
+        'SUBSECTION': 'members',
     })
 
     return render_to_response('sentry/teams/members/new.html', context, request)
@@ -265,7 +275,7 @@ def accept_invite(request, member_id, token):
 
 
 @csrf_protect
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 def edit_team_member(request, team, member_id):
     try:
         member = team.member_set.get(pk=member_id)
@@ -290,13 +300,15 @@ def edit_team_member(request, team, member_id):
         'member': member,
         'team': team,
         'form': form,
+        'SECTION': 'team',
+        'SUBSECTION': 'members',
     })
 
     return render_to_response('sentry/teams/members/edit.html', context, request)
 
 
 @csrf_protect
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 def remove_team_member(request, team, member_id):
     try:
         member = team.member_set.get(pk=member_id)
@@ -319,13 +331,15 @@ def remove_team_member(request, team, member_id):
         'page': 'members',
         'member': member,
         'team': team,
+        'SECTION': 'team',
+        'SUBSECTION': 'members',
     })
 
     return render_to_response('sentry/teams/members/remove.html', context, request)
 
 
 @csrf_protect
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 def suspend_team_member(request, team, member_id):
     try:
         member = team.member_set.get(pk=member_id)
@@ -348,7 +362,7 @@ def suspend_team_member(request, team, member_id):
 
 
 @csrf_protect
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 def restore_team_member(request, team, member_id):
     try:
         member = team.member_set.get(pk=member_id)
@@ -371,7 +385,7 @@ def restore_team_member(request, team, member_id):
 
 
 @csrf_protect
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 def remove_pending_team_member(request, team, member_id):
     try:
         member = team.pending_member_set.get(pk=member_id)
@@ -391,7 +405,7 @@ def remove_pending_team_member(request, team, member_id):
 
 
 @csrf_protect
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 def reinvite_pending_team_member(request, team, member_id):
     try:
         member = team.pending_member_set.get(pk=member_id)
@@ -411,7 +425,7 @@ def reinvite_pending_team_member(request, team, member_id):
 
 
 @csrf_protect
-@has_team_access(MEMBER_OWNER)
+@has_access(MEMBER_OWNER)
 def create_new_team_project(request, team):
     from sentry.web.forms.projects import NewProjectAdminForm, NewProjectForm
 
@@ -436,14 +450,16 @@ def create_new_team_project(request, team):
         project.save()
 
         if project.platform not in (None, 'other'):
-            return HttpResponseRedirect(reverse('sentry-docs-client', args=[project.slug, project.platform]))
-        return HttpResponseRedirect(reverse('sentry-get-started', args=[project.slug]))
+            return HttpResponseRedirect(reverse('sentry-docs-client', args=[project.team.slug, project.slug, project.platform]))
+        return HttpResponseRedirect(reverse('sentry-get-started', args=[project.team.slug, project.slug]))
 
     context = csrf(request)
     context.update({
         'form': form,
         'team': team,
         'page': 'projects',
+        'SECTION': 'team',
+        'SUBSECTION': 'new_project',
     })
 
     return render_to_response('sentry/teams/projects/new.html', context, request)

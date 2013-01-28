@@ -23,7 +23,7 @@ from sentry.web.forms import ReplayForm
 
 @login_required
 @has_access
-def event_list(request, project):
+def event_list(request, team, project):
     filters = []
     for cls in get_filters(Event, project):
         try:
@@ -49,6 +49,7 @@ def event_list(request, project):
     has_realtime = False
 
     return render_to_response('sentry/events/event_list.html', {
+        'team': team,
         'project': project,
         'has_realtime': has_realtime,
         'event_list': event_list,
@@ -58,9 +59,9 @@ def event_list(request, project):
     }, request)
 
 
-@login_required
+@has_access
 @csrf_protect
-def replay_event(request, project_id, event_id):
+def replay_event(request, team, project, event_id, group_id=None):
     try:
         event = Event.objects.get(pk=event_id)
     except Event.DoesNotExist:
@@ -101,7 +102,8 @@ def replay_event(request, project_id, event_id):
         result = None
 
     context = {
-        'project': event.project,
+        'team': team,
+        'project': project,
         'group': event.group,
         'event': event,
         'form': form,

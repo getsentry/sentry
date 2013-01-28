@@ -93,7 +93,7 @@
                 maxItems: 50,
                 realtime: ($.cookie('pausestream') ? false : true),
                 canStream: this.options.canStream,
-                pollUrl: app.config.urlPrefix + '/api/' + app.config.projectId + '/poll/',
+                pollUrl: app.config.urlPrefix + '/api/' + app.config.teamId + '/' + app.config.projectId + '/poll/',
                 model: app.models.Group
             });
 
@@ -133,7 +133,7 @@
         initialize: function(data){
             BasePage.prototype.initialize.call(this, data);
 
-            $('#chart').height('200px');
+            $('#chart').height('150px');
             Sentry.charts.render('#chart');
         }
 
@@ -151,7 +151,7 @@
                 model: app.models.Group
             });
 
-            $('#chart').height('200px');
+            $('#chart').height('150px');
             Sentry.charts.render('#chart');
 
             $('#public-status .action').click(function(){
@@ -172,7 +172,7 @@
             });
 
             var $event_nav = $('#event_nav');
-            if ($event_nav) {
+            if ($event_nav.length > 0) {
                 var $window = $(window);
                 var $nav_links = $event_nav.find('a[href*=#]');
                 var $nav_targets = [];
@@ -187,7 +187,7 @@
                     $el.parent().addClass('active').siblings().removeClass('active');
 
                     $('html,body').animate({
-                        scrollTop: $(target).position().top + event_nav_height + 20
+                        scrollTop: $(target).position().top + event_nav_height
                     }, 'fast');
 
                     e.preventDefault();
@@ -250,8 +250,6 @@
             this.el = $(data.el);
 
             BasePage.prototype.initialize.call(this, data);
-
-            this.el.find('select').select2({width: 'element'});
 
             if (this.options.canSelectTeam && this.options.canCreateTeam) {
                 $('#new_team').hide();

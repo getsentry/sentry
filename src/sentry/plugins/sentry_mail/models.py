@@ -10,6 +10,7 @@ import sentry
 from django import forms
 from django.core.mail import EmailMultiAlternatives
 from django.core.validators import email_re, ValidationError
+from django.core.urlresolvers import reverse
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
@@ -159,7 +160,8 @@ class MailProcessor(NotificationPlugin):
         subject = '[%s] %s: %s' % (project.name.encode('utf-8'), event.get_level_display().upper().encode('utf-8'),
             event.error().encode('utf-8').splitlines()[0])
 
-        link = '%s/%s/group/%d/' % (settings.URL_PREFIX, group.project.slug, group.id)
+        link = '%s%s' % (settings.URL_PREFIX,
+            reverse('sentry-group', args=[group.team.slug, group.project.slug, group.id]))
 
         body = self.get_plaintext_body(group, event, link, interface_list)
 

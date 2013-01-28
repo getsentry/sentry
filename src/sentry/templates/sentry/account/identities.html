@@ -8,7 +8,7 @@
 
 {% block breadcrumb %}
     {{ block.super }}
-    <li class="divider">/</li>
+    <li class="divider"></li>
     <li><a href="{% url sentry-account-settings-identities %}">{% trans "Identities" %}</a></li>
 {% endblock %}
 
@@ -23,7 +23,7 @@
     {% if not identity_list %}
         <p>{% trans "There are no identities associated with this account." %}</p>
     {% else %}
-        <table class="table table-striped table-bordered">
+        <table class="table table-striped">
             <thead>
                 <tr>
                     <th>{% trans "Identity" %}</th>

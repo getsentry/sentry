@@ -23,20 +23,19 @@ if (Sentry === undefined) {
                 gid: $sparkline.attr('data-group') || undefined
             },
             success: function(data){
-                $sparkline.height($sparkline.parent().height());
-
-                $.plot($sparkline, [
+                var points = [
                     {
                         data: data,
-                        color: '#3079d0',
+                        color: '#56AFE8',
                         shadowSize: 0,
                         lines: {
-                            lineWidth: 1,
+                            lineWidth: 2,
                             show: true,
                             fill: true
                         }
                     }
-                ], {
+                ];
+                var options = {
                     xaxis: {
                        mode: "time"
                     },
@@ -54,19 +53,26 @@ if (Sentry === undefined) {
                     },
                     grid: {
                         show: true,
-                        backgroundColor: '#f9f9f9',
-                        borderColor: '#eeeeee',
-                        borderWidth: 1,
-                        tickColor: '#eeeeee'
+                        backgroundColor: '#ffffff',
+                        borderColor: '#DEE3E9',
+                        borderWidth: 2,
+                        tickColor: '#DEE3E9'
                     },
                     hoverable: false,
                     legend: {
                         noColumns: 5
                     },
                     lines: { show: false }
+                };
 
+                $.plot($sparkline, points, options);
+
+                $(window).resize(function(){
+                    $.plot($sparkline, points, options);                    
                 });
+
             }
+
         });
     };
 }(jQuery));

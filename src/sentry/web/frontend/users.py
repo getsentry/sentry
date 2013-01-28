@@ -19,12 +19,13 @@ SORT_OPTIONS = {
 
 @has_access
 @login_required
-def user_list(request, project):
+def user_list(request, team):
     sort = request.GET.get('sort')
     if sort not in SORT_OPTIONS:
         sort = DEFAULT_SORT_OPTION
 
-    user_list = TrackedUser.objects.filter(project=project)
+    # TODO: TrackedUser needs to be team-bound before we can launch it
+    user_list = TrackedUser.objects.filter(project__team=team)
 
     if sort == 'recent':
         user_list = user_list.order_by('-last_seen')
@@ -38,7 +39,7 @@ def user_list(request, project):
 
     return render_to_response('sentry/users/list.html', {
         'tuser_list': user_list,
-        'project': project,
+        'team': team,
         'sort_label': SORT_OPTIONS[sort],
         'SECTION': 'users',
         'SORT_OPTIONS': SORT_OPTIONS,
@@ -47,14 +48,14 @@ def user_list(request, project):
 
 @has_access
 @login_required
-def user_details(request, project, user_id):
-    user = TrackedUser.objects.get(project=project, id=user_id)
+def user_details(request, team, user_id):
+    user = TrackedUser.objects.get(project__team=team, id=user_id)
 
     event_list = user.groups.all()
 
     return render_to_response('sentry/users/details.html', {
+        'team': team,
         'tuser': user,
         'event_list': event_list,
-        'project': project,
         'SECTION': 'users',
     }, request)

@@ -28,7 +28,8 @@ from django.test import TestCase, TransactionTestCase
 from django.test.client import Client
 from django.utils.importlib import import_module
 
-from sentry.models import Project, ProjectOption, Option, Team
+from sentry.models import (Project, ProjectOption, Option, Team, Group,
+    Event)
 
 
 def with_settings(**mapping):
@@ -109,6 +110,22 @@ class BaseTestCase(Exam):
             name='Bar',
             slug='bar',
             team=self.team,
+        )
+
+    @fixture
+    def group(self):
+        return Group.objects.create(
+            message='Foo bar',
+            project=self.project,
+        )
+
+    @fixture
+    def event(self):
+        return Event.objects.create(
+            event_id='a' * 32,
+            group=self.group,
+            message='Foo bar',
+            project=self.project,
         )
 
     def assertRequiresAuthentication(self, path, method='GET'):
