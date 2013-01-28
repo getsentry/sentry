@@ -15,8 +15,8 @@ SENTRY_DSN = '{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif
 
 # {% trans "Add raven to the list of installed apps" %}
 INSTALLED_APPS = INSTALLED_APPS + (
-# ...
-'raven.contrib.django',
+    # ...
+    'raven.contrib.django.raven_compat',
 )</pre>
 
 	<p>{% trans "That's it! Raven automatically installs an error handling hook to pipe all uncaught exceptions to Sentry." %}</p>
