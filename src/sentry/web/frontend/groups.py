@@ -91,9 +91,13 @@ def _get_group_list(request, project):
     elif date_to:
         event_list = event_list.filter(last_seen__lte=date_to)
 
-    sort = request.GET.get('sort')
+    sort = request.GET.get('sort') or request.session.get('streamsort')
     if sort not in SORT_OPTIONS:
         sort = settings.DEFAULT_SORT_OPTION
+
+    # Save last sort in session
+    if sort != request.session.get('streamsort'):
+        request.session['streamsort'] = sort
 
     if sort.startswith('accel_') and not has_trending():
         sort = settings.DEFAULT_SORT_OPTION
