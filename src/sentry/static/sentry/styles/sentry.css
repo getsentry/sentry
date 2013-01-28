@@ -7147,8 +7147,10 @@ ul.tag-list li {
   text-decoration: none;
 }
 .group-list > li .actions li .checked,
-.events > li .actions li .checked {
-  color: #26ad31;
+.events > li .actions li .checked,
+.group-list > li .actions li .checked:hover,
+.events > li .actions li .checked:hover {
+  color: #f6de2f;
 }
 .group-list > li .actions li .bookmarked,
 .events > li .actions li .bookmarked {
@@ -7189,6 +7191,10 @@ ul.tag-list li {
 .group-list > li.resolved .count,
 .events > li.resolved .count {
   background: #cfd3da;
+}
+.group-list > li.resolved .icon-checkmark,
+.events > li.resolved .icon-checkmark {
+  color: #27ce8a;
 }
 .group-list.small > li,
 .events.small > li {
