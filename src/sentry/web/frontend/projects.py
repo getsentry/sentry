@@ -11,6 +11,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
+from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import MEMBER_OWNER
 from sentry.models import ProjectKey, Team, FilterKey
@@ -164,7 +165,11 @@ def manage_project(request, team, project):
     if form.is_valid():
         project = form.save()
         set_option('sentry:origins', form.cleaned_data.get('origins') or [], project)
-        return HttpResponseRedirect(request.path + '?success=1')
+
+        messages.add_message(request, messages.SUCCESS,
+            _('Changes to your project were saved.'))
+
+        return HttpResponseRedirect(reverse('sentry-manage-project', args=[team.slug, project.slug]))
 
     context = csrf(request)
     context.update({
@@ -236,7 +241,8 @@ def remove_project_key(request, team, project, key_id):
         return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.team.slug, project.slug]))
 
     key.delete()
-    messages.add_message(request, messages.SUCCESS, 'The API key (%s) was revoked.' % (key.public_key,))
+    messages.add_message(request, messages.SUCCESS,
+        _('The API key (%s) was revoked.') % (key.public_key,))
 
     return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.team.slug, project.slug]))
 
