@@ -69,9 +69,6 @@ DATABASES = {
 
 SENTRY_KEY = %(default_key)r
 
-# Set this to false to require authentication
-SENTRY_PUBLIC = False
-
 # You should configure the absolute URI to Sentry. It will attempt to guess it if you don't
 # but proxies may interfere with this.
 # SENTRY_URL_PREFIX = 'http://sentry.example.com'  # No trailing slash!
