@@ -65,6 +65,9 @@ def has_access(group_or_func=None):
                 else:
                     lookup_kwargs = {'slug': project_id}
 
+                if team:
+                    lookup_kwargs['team'] = team
+
                 if request.user.is_superuser:
                     try:
                         project = Project.objects.get_from_cache(**lookup_kwargs)
