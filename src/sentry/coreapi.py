@@ -30,6 +30,7 @@ from sentry.utils.queue import maybe_delay
 
 logger = logging.getLogger('sentry.errors.coreapi')
 
+MAX_CULPRIT_LENGTH = 200
 MAX_MESSAGE_LENGTH = 1000
 
 RESERVED_FIELDS = (
@@ -265,8 +266,12 @@ def validate_data(project, data, client=None):
     if not data.get('message'):
         data['message'] = '<no message value>'
     elif len(data['message']) > MAX_MESSAGE_LENGTH:
-        raise InvalidData('Value \'message\' is too long. At %d chars, max is %s.' % (
+        raise InvalidData('Value \'message\' is too long. Input is %d chars, max is %s.' % (
             len(data['message']), MAX_MESSAGE_LENGTH))
+
+    if data.get('culprit') and len(data['culprit']) > 200:
+        raise InvalidData('Value \'culprit\' is too long. Input is %d chars, max is %s.' % (
+            len(data['culprit']), MAX_CULPRIT_LENGTH))
 
     if not data.get('event_id'):
         data['event_id'] = uuid.uuid4().hex
