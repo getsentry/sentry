@@ -159,7 +159,7 @@ class MailProcessor(NotificationPlugin):
         subject = '[%s] %s: %s' % (project.name.encode('utf-8'), event.get_level_display().upper().encode('utf-8'),
             event.error().encode('utf-8').splitlines()[0])
 
-        link = '%s/%s/group/%d/' % (settings.URL_PREFIX, group.project.slug, group.id)
+        link = '%s/%s/%s/group/%d/' % (settings.URL_PREFIX, group.team.slug, group.project.slug, group.id)
 
         body = self.get_plaintext_body(group, event, link, interface_list)
 
