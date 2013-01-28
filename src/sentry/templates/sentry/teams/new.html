@@ -11,18 +11,24 @@
 
 {% block main %}
     <section class="body">
-        <p>{% trans "Use this page to create a new team within Sentry. Once done, you'll be able to add new projects and members to the team." %}</p>
+        <div class="page-header">
+            <h2>{% trans "Create a New Team" %}</h2>
+        </div>
+
+        <p>{% blocktrans %}Teams in Sentry represent a collection of users and projects. They're the top level component
+           of your organization allowing you to control access and scope of events.{% endblocktrans %}</p>
+
+        <br>
+
         <form class="form-stacked" action="" method="post">
             {% csrf_token %}
             <fieldset>
-                <legend>{% trans "Team Details" %}</legend>
-                <br/>
                 {% for field in form %}
                     {% include "sentry/partial/_form_field.html" %}
                 {% endfor %}
             </fieldset>
             <div class="actions">
-                <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+                <button type="submit" class="btn btn-primary">{% trans "Create Team" %}</button>
             </div>
         </form>
     </section>
