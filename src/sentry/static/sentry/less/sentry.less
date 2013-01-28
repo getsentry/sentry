@@ -399,6 +399,11 @@ h3 {
   &.with-sidebar {
     background: #fff url(../images/dashboard/sidebar-bg.png) top right repeat-y;
     min-width: 1086px;
+
+    .sidebar {
+      margin-right: -300px;
+      display: block;
+    }
     .content {
       padding-right: 300px;
     }
@@ -416,6 +421,7 @@ h3 {
       float: right;
     }
     .sidebar {
+      display: block;
       margin-right: 0;
       margin-left: -300px;
     }
@@ -499,7 +505,7 @@ h3 {
     width: 240px;
     float: left;
     padding: 18px 30px;
-    margin-right: -300px;
+    display: none;
     overflow: hidden;
 
     h6 {
