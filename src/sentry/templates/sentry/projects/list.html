@@ -14,7 +14,7 @@
     {% endif %}
 
     <ul class="breadcrumb">
-        <li><a href="{% url sentry-project-list team.slug %}">{% trans "Projects" %}</a></li>
+        <li><a href="{% url sentry-manage-team-projects team.slug %}">{% trans "Projects" %}</a></li>
         {% block breadcrumb %}{% endblock %}
     </ul>
 {% endblock %}

@@ -126,7 +126,7 @@ def remove_project(request, team, project):
         else:
             raise ValueError(removal_type)
 
-        return HttpResponseRedirect(reverse('sentry-project-list', args=[project.team.slug]))
+        return HttpResponseRedirect(reverse('sentry-manage-team-projects', args=[project.team.slug]))
 
     context = csrf(request)
     context.update({
