@@ -489,6 +489,9 @@ class Group(EventBase):
             self.first_seen = self.last_seen
         if not self.active_at:
             self.active_at = self.first_seen
+        if self.message:
+            # We limit what we store for the message body
+            self.message = self.message.splitlines()[0][:255]
         super(Group, self).save(*args, **kwargs)
 
     @property
