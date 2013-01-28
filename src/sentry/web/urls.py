@@ -185,8 +185,13 @@ urlpatterns = patterns('',
 
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/search/$', groups.search, name='sentry-search'),
 
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/stream/$', groups.group_list, name='sentry-stream'),
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/stream/$', groups.group_list),
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/$', groups.group_list, name='sentry-stream'),
+
     url(r'^(?P<team_slug>[\w_-]+)/$', groups.dashboard, name='sentry'),
+
+    # Legacy
+    url(r'^[\w_-]+/group/(?P<group_id>\d+)/$', groups.redirect_to_group),
 
     url(r'', include('social_auth.urls')),
 )

@@ -150,6 +150,17 @@ def _get_group_list(request, project):
 
 
 @login_required
+def redirect_to_group(request, group_id):
+    group = Group.objects.get(id=group_id)
+
+    return HttpResponseRedirect(reverse('sentry-group', kwargs={
+        'project_id': group.project.slug,
+        'team_slug': group.team.slug,
+        'group_id': group.id,
+    }))
+
+
+@login_required
 @has_access
 def dashboard(request, team):
     project_list = list(Project.objects.filter(team=team))
