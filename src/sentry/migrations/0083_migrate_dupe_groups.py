@@ -25,6 +25,8 @@ class Migration(DataMigration):
             if not matches:
                 continue
 
+            print "Merging duplicate events for %r" % (group,)
+
             updates = defaultdict(int)
             updates.update({
                 'first_seen': group.first_seen,
