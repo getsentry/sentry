@@ -6157,7 +6157,7 @@ body {
   color: #465262;
   -webkit-font-smoothing: antialiased;
   font-family: "Helvetica Neue", helvetica, sans-serif;
-  background: #c8cbd0;
+  background: #e4e8ed;
 }
 .container {
   min-width: 786px;
@@ -7168,19 +7168,19 @@ ul.tag-list li {
 }
 .group-list > li.level-info .count,
 .events > li.level-info .count {
-  background: #ffa101;
+  background: #2788ce;
 }
 .group-list > li.level-warning .count,
 .events > li.level-warning .count {
-  background: #ffa101;
+  background: #f18500;
 }
 .group-list > li.level-error .count,
 .events > li.level-error .count {
-  background: #f0431c;
+  background: #f43f20;
 }
 .group-list > li.level-fatal .count,
 .events > li.level-fatal .count {
-  background: #f0431c;
+  background: #d20f2a;
 }
 .group-list > li.resolved h3,
 .events > li.resolved h3 {
@@ -7188,7 +7188,7 @@ ul.tag-list li {
 }
 .group-list > li.resolved .count,
 .events > li.resolved .count {
-  background: #26ad31;
+  background: #cfd3da;
 }
 .group-list.small > li,
 .events.small > li {
