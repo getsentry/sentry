@@ -23,9 +23,16 @@ def dashboard(request, template='dashboard.html'):
     if not team_list:
         return HttpResponseRedirect(reverse('sentry-new-team'))
 
+    # This cookie gets automatically set by render_to_response
+    last_team = request.session.get('team')
+    if last_team in team_list:
+        team = team_list[last_team]
+    else:
+        team = team_list.values()[0]
+
     # Redirect to first team
     # TODO: maybe store this in a cookie and redirect to last seen team?
-    return HttpResponseRedirect(reverse('sentry', args=[team_list.values()[0].slug]))
+    return HttpResponseRedirect(reverse('sentry', args=[team.slug]))
 
 
 def wall_display(request):

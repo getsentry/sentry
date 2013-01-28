@@ -155,6 +155,12 @@ def render_to_response(template, context=None, request=None, status=200):
     response = HttpResponse(render_to_string(template, context, request))
     response.status_code = status
 
+    # HACK: set team session value for dashboard redirect
+    if context and 'team' in context and isinstance(context['team'], Team):
+        team = context['team']
+        if request.session.get('team') != team.slug:
+            request.session['team'] = team.slug
+
     return response
 
 
