@@ -43,7 +43,7 @@ class ProjectTagsForm(forms.Form):
 
 class BaseProjectForm(forms.ModelForm):
     name = forms.CharField(label=_('Project Name'), max_length=200,
-        widget=forms.TextInput(attrs={'placeholder': _('example.com')}))
+        widget=forms.TextInput(attrs={'placeholder': _('Production')}))
     platform = forms.ChoiceField(choices=Project._meta.get_field('platform').get_choices(blank_choice=BLANK_CHOICE),
         widget=forms.Select(attrs={'data-placeholder': _('Select a platform')}))
 
