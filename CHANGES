@@ -1,4 +1,24 @@
+Version 5.3.0
+-------------
+
+A brand new Sentry design has landed.
+
+Some things of note:
+
+- An improved dashboard.
+- Improved activity feeds on aggregate details.
+- Similar event navigation links on aggregate details.
+- Redesigned team management flow.
+
+Additionally:
+
+- Aggregates now happen on (project, checksum), which means events that have different
+  levels or culprits can now be grouped together.
+- Sentry now requires authentication for all pages.
+- SENTRY_PUBLIC behavior has changed to signify the default state of projects.
+
 Version 5.2.2
+-------------
 
 - [New] The dashboard will now stream updates to the new and trending event components.
 
