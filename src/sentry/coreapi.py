@@ -18,6 +18,7 @@ import zlib
 from django.contrib.auth.models import User
 from django.utils.encoding import smart_str
 
+from sentry.app import env
 from sentry.conf import settings
 from sentry.exceptions import InvalidInterface, InvalidData, InvalidTimestamp
 from sentry.models import Project, ProjectKey, TeamMember, Team
@@ -284,9 +285,7 @@ def validate_data(project, data, client=None):
         except InvalidTimestamp:
             # Log the error, remove the timestamp, and continue
             logger.info('Client %r passed an invalid value for timestamp %r',
-                client or '<unknown client>',
-                data['timestamp'],
-            )
+                client or '<unknown client>', data['timestamp'], extra={'request': env.request})
             del data['timestamp']
 
     if data.get('modules') and type(data['modules']) != dict:
@@ -298,17 +297,13 @@ def validate_data(project, data, client=None):
 
         if '.' not in k:
             logger.info('Ignoring unknown attribute %r passed by client %r',
-                k,
-                client or '<unknown client>',
-            )
+                k, client or '<unknown client>', extra={'request': env.request})
             del data[k]
             continue
 
         if not v:
             logger.info('Ignoring empty interface %r passed by client %r',
-                k,
-                client or '<unknown client>',
-            )
+                k, client or '<unknown client>', extra={'request': env.request})
             del data[k]
             continue
 
@@ -322,7 +317,7 @@ def validate_data(project, data, client=None):
         except Exception, e:
             logger.error('Client %r passed an invalid value for interface %r',
                 client or '<unknown client>',
-                interface, exc_info=True, extra={'values': v})
+                interface, exc_info=True, extra={'request': env.request})
             raise InvalidData('Unable to validate interface, %r: %s' % (k, e))
 
     level = data.get('level') or settings.DEFAULT_LOG_LEVEL
