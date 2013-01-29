@@ -45,6 +45,7 @@ urlpatterns = patterns('',
     url(r'^account/settings/appearance/$', accounts.appearance_settings, name='sentry-account-settings-appearance'),
     url(r'^account/settings/identities/$', accounts.list_identities, name='sentry-account-settings-identities'),
     url(r'^account/settings/notifications/$', accounts.notification_settings, name='sentry-account-settings-notifications'),
+    url(r'^account/settings/social/', include('social_auth.urls')),
 
     # Settings - Teams
     url(r'^account/teams/$', teams.team_list, name='sentry-team-list'),
@@ -192,6 +193,4 @@ urlpatterns = patterns('',
 
     # Legacy
     url(r'^[\w_-]+/group/(?P<group_id>\d+)/$', groups.redirect_to_group),
-
-    url(r'', include('social_auth.urls')),
 )
