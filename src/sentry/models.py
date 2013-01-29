@@ -99,6 +99,7 @@ class Team(Model):
     slug = models.SlugField(unique=True)
     name = models.CharField(max_length=64)
     owner = models.ForeignKey(User)
+    date_added = models.DateTimeField(default=timezone.now, null=True)
 
     objects = TeamManager(cache_fields=(
         'pk',
