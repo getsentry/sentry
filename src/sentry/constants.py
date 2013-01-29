@@ -118,7 +118,7 @@ PLATFORM_TITLES = {
     'php': 'PHP',
     'ios': 'iOS',
     'express': 'Express (Node.js)',
-    'connect': 'Express (Node.js)',
+    'connect': 'Connect (Node.js)',
     'django': 'Django (Python)',
     'flask': 'Flask (Python)',
 }
