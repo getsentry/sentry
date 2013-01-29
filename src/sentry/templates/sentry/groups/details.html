@@ -81,10 +81,6 @@
     <h6>{% trans "Aggregate Details" %}</h6>
 
     <dl class="flat">
-        <dt>{% trans "Logger:" %}</dt>
-        <dd><a href="{% url sentry project.slug %}?logger={{ group.logger }}">{{ group.logger }}</a></dd>
-        <dt>{% trans "Level:" %}</dt>
-        <dd><a href="{% url sentry project.slug %}?level={{ group.level|safe }}">{{ group.get_level_display }}</a></dd>
         <dt>{% trans "Status:" %}</dt>
         <dd>{{ group.get_status_display|title }}</dd>
         <dt>{% trans "First Seen:" %}</dt>
