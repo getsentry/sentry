@@ -61,5 +61,4 @@ Version 5.1 of Sentry includes a large set of changes including a new client pro
 fully compatible with version 2.0 of the protocol, but no longer supports several deprecated features, including
 version 1.0.
 
-You should always upgrade your client first, but if you're upgrading from a very old version of Sentry, you may
-have a lapse in data during your upgrade process.
+If you're upgrading from a very old version of Sentry, you may have a lapse in data during your upgrade process.
