@@ -234,6 +234,16 @@ class Stacktrace(Interface):
     ``filename``
       The relative filepath to the call
 
+    OR
+
+    ``function``
+      The name of the function being called
+
+    OR
+
+    ``module``
+      Platform-specific module path (e.g. sentry.interfaces.Stacktrace)
+
     The following additional attributes are supported:
 
     ``lineno``
@@ -242,10 +252,6 @@ class Stacktrace(Interface):
       The column number of the call
     ``abs_path``
       The absolute path to filename
-    ``function``
-      The name of the function being called
-    ``module``
-      Platform-specific module path (e.g. sentry.interfaces.Stacktrace)
     ``context_line``
       Source code in filename at lineno
     ``pre_context``
@@ -293,7 +299,7 @@ class Stacktrace(Interface):
                 frame['filename'] = frame.pop('abs_path', None)
 
             # ensure we've got the correct required values
-            assert frame.get('filename')
+            assert frame.get('filename') or frame.get('function') or frame.get('module')
 
             # lineno should be an int
             if 'lineno' in frame:
@@ -313,8 +319,8 @@ class Stacktrace(Interface):
             if 'in_app' in frame:
                 frame['in_app'] = bool(frame['in_app'])
 
-            abs_path = frame.get('abs_path') or frame['filename']
-            if abs_path.startswith(('http:', 'https:')):
+            abs_path = frame.get('abs_path') or frame.get('filename')
+            if abs_path and abs_path.startswith(('http:', 'https:')):
                 urlparts = urlparse.urlparse(abs_path)
                 if urlparts.path:
                     frame['abs_path'] = abs_path
@@ -341,7 +347,7 @@ class Stacktrace(Interface):
         output = []
         if frame.get('module'):
             output.append(frame['module'])
-        else:
+        elif frame.get('filename'):
             output.append(frame['filename'])
 
         if frame.get('context_line'):
@@ -405,7 +411,7 @@ class Stacktrace(Interface):
 
             frame_data = {
                 'abs_path': frame.get('abs_path'),
-                'filename': frame['filename'],
+                'filename': frame.get('filename'),
                 'function': frame.get('function'),
                 'start_lineno': start_lineno,
                 'lineno': lineno,
