@@ -291,7 +291,7 @@ def validate_data(project, data, client=None):
     if data.get('modules') and type(data['modules']) != dict:
         raise InvalidData('Invalid type for \'modules\': must be a mapping')
 
-    for k, v in data.items():
+    for k, v in data.keys():
         if k in RESERVED_FIELDS:
             continue
 
@@ -301,7 +301,7 @@ def validate_data(project, data, client=None):
             del data[k]
             continue
 
-        if not v:
+        if not data[k]:
             logger.info('Ignoring empty interface %r passed by client %r',
                 k, client or '<unknown client>', extra={'request': env.request})
             del data[k]
@@ -313,7 +313,7 @@ def validate_data(project, data, client=None):
             raise InvalidInterface('%r is not a valid interface name: %s' % (k, e))
 
         try:
-            data[k] = interface(**v).serialize()
+            data[k] = interface(**data[k]).serialize()
         except Exception, e:
             logger.error('Client %r passed an invalid value for interface %r',
                 client or '<unknown client>',
