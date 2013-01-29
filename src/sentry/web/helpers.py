@@ -18,6 +18,7 @@ from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 
 from sentry.conf import settings
+from sentry.constants import MEMBER_OWNER
 from sentry.models import Project, Team, Option, ProjectOption, ProjectKey
 from sentry.permissions import can_create_projects, can_create_teams
 
@@ -126,6 +127,11 @@ def get_default_context(request, existing_context=None, team=None):
             'can_create_projects': can_create_projects(request.user),
             'can_create_teams': can_create_teams(request.user),
         })
+        if team:
+            context.update({
+                'can_admin_team': Team.objects.get_for_user(request.user, MEMBER_OWNER)
+            })
+
         if not existing_context or 'PROJECT_LIST' not in existing_context:
             if team:
                 context['PROJECT_LIST'] = Project.objects.filter(team=team)

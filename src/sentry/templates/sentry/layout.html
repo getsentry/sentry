@@ -102,7 +102,7 @@
                                     {% endfor %}
                                 </select>
                             </li>
-                            {% if project %}
+                            {% if project and can_admin_team %}
                                 <li class="project-settings"><a href="{% url sentry-manage-project project.team.slug project.slug %}" class="{% trans "Settings" %}"><i aria-hidden="true" class="icon-cog"></i></a></li>
                             {% endif %}
                             {% block breadcrumb %}
