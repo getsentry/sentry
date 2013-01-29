@@ -8,7 +8,7 @@ from sentry.web.helpers import get_project_list, render_to_response, \
   get_login_url
 
 
-def has_access(group_or_func=None):
+def has_access(access_or_func=None, team=None, access=None):
     """
     Tests and transforms project_id for permissions based on the requesting
     user. Passes the actual project instance to the decorated view.
@@ -24,8 +24,10 @@ def has_access(group_or_func=None):
     >>> def foo(request, project):
     >>>     return
     """
-    if callable(group_or_func):
-        return has_access(None)(group_or_func)
+    if callable(access_or_func):
+        return has_access(None)(access_or_func)
+
+    access = access_or_func
 
     def wrapped(func):
         @wraps(func)
@@ -49,7 +51,7 @@ def has_access(group_or_func=None):
                     except Team.DoesNotExist:
                         return HttpResponseRedirect(reverse('sentry'))
                 else:
-                    team_list = Team.objects.get_for_user(request.user, group_or_func)
+                    team_list = Team.objects.get_for_user(request.user, access)
 
                     try:
                         team = team_list[team_slug]
@@ -82,7 +84,7 @@ def has_access(group_or_func=None):
                             return HttpResponseRedirect(reverse('sentry'))
                 else:
                     key, value = lookup_kwargs.items()[0]
-                    project_list = get_project_list(request.user, group_or_func, key=key)
+                    project_list = get_project_list(request.user, access, key=key)
 
                     try:
                         project = project_list[value]
