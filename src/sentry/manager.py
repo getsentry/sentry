@@ -729,7 +729,7 @@ class GroupManager(BaseManager, ChartMixin):
 
         # TODO: adding project_id to sort clause on left join helps query in many cases
         query = """
-        SELECT (SUM(%(mcbm_tbl)s.times_seen) * (%(norm)f / (%(epoch_clause)s / 60)) + 1.0) / (COALESCE(z.rate, 0) + 1.0) as accel,
+        SELECT (SUM(%(mcbm_tbl)s.times_seen) * (%(norm)f / (%(epoch_clause)s / 60)) + 1.0) / (COALESCE(z.rate, 0) + 1.0) as sort_value,
                (COALESCE(z.rate, 0) + 1.0) as prev_rate,
                %(before_where)s
         LEFT JOIN (SELECT a.group_id, SUM(a.times_seen) / COUNT(a.times_seen) / %(norm)f as rate
@@ -744,7 +744,7 @@ class GroupManager(BaseManager, ChartMixin):
         AND %(before_group)s
         GROUP BY prev_rate, %(mcbm_tbl)s.date, %(after_group)s
         HAVING SUM(%(mcbm_tbl)s.times_seen) > 0
-        ORDER BY accel DESC
+        ORDER BY sort_value DESC
         """ % dict(
             mcbm_tbl=mcbm_tbl,
             before_where=before_where,

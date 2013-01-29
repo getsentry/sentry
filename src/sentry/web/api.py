@@ -547,7 +547,7 @@ def get_group_trends(request, team=None, project=None):
         group_list = list(base_qs.filter(
             status=STATUS_UNRESOLVED,
             last_seen__gte=cutoff_dt
-        ).order_by('-score')[:limit])
+        ).extra(select={'sort_value': 'score'}).order_by('-score')[:limit])
 
     for group in group_list:
         group._project_cache = project_dict.get(group.project_id)
@@ -581,7 +581,7 @@ def get_new_groups(request, team=None, project=None):
         project__in=project_dict.keys(),
         status=STATUS_UNRESOLVED,
         active_at__gte=cutoff_dt,
-    ).order_by('-score', '-first_seen')[:limit])
+    ).extra(select={'sort_value': 'score'}).order_by('-score', '-first_seen')[:limit])
 
     for group in group_list:
         group._project_cache = project_dict.get(group.project_id)
