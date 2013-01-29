@@ -297,7 +297,15 @@ def validate_data(project, data, client=None):
             continue
 
         if '.' not in k:
-            logger.error('Ignoring unknown attribute %r passed by client %r',
+            logger.info('Ignoring unknown attribute %r passed by client %r',
+                k,
+                client or '<unknown client>',
+            )
+            del data[k]
+            continue
+
+        if not v:
+            logger.info('Ignoring empty interface %r passed by client %r',
                 k,
                 client or '<unknown client>',
             )
@@ -308,14 +316,6 @@ def validate_data(project, data, client=None):
             interface = import_string(k)
         except (ImportError, AttributeError), e:
             raise InvalidInterface('%r is not a valid interface name: %s' % (k, e))
-
-        if not v:
-            logger.error('Ignoring empty interface %r passed by client %r',
-                k,
-                client or '<unknown client>',
-            )
-            del data[k]
-            continue
 
         try:
             data[k] = interface(**v).serialize()
