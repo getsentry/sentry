@@ -291,7 +291,7 @@ def validate_data(project, data, client=None):
     if data.get('modules') and type(data['modules']) != dict:
         raise InvalidData('Invalid type for \'modules\': must be a mapping')
 
-    for k, v in data.keys():
+    for k in data.keys():
         if k in RESERVED_FIELDS:
             continue
 
