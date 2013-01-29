@@ -312,6 +312,9 @@ def validate_data(project, data, client=None):
         try:
             data[k] = interface(**v).serialize()
         except Exception, e:
+            logger.error('Client %r passed an invalid value for interface %r',
+                client or '<unknown client>',
+                interface, exc_info=True)
             raise InvalidData('Unable to validate interface, %r: %s' % (k, e))
 
     level = data.get('level') or settings.DEFAULT_LOG_LEVEL
