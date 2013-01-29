@@ -28,7 +28,7 @@ from sentry.utils.auth import parse_auth_header
 from sentry.utils.imports import import_string
 from sentry.utils.queue import maybe_delay
 
-logger = logging.getLogger('sentry.errors.coreapi')
+logger = logging.getLogger('sentry.coreapi.errors')
 
 MAX_CULPRIT_LENGTH = 200
 MAX_MESSAGE_LENGTH = 1000
