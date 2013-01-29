@@ -309,6 +309,14 @@ def validate_data(project, data, client=None):
         except (ImportError, AttributeError), e:
             raise InvalidInterface('%r is not a valid interface name: %s' % (k, e))
 
+        if not v:
+            logger.error('Ignoring empty interface %r passed by client %r',
+                k,
+                client or '<unknown client>',
+            )
+            del data[k]
+            continue
+
         try:
             data[k] = interface(**v).serialize()
         except Exception, e:
