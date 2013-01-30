@@ -198,7 +198,7 @@ def new_team_member(request, team):
         messages.add_message(request, messages.SUCCESS,
             _('The team member was added.'))
 
-        return HttpResponseRedirect(reverse('sentry-edit-team-member', args=[team.slug, pm.id]))
+        return HttpResponseRedirect(reverse('sentry-manage-team-members', args=[team.slug]))
 
     elif invite_form.is_valid():
         pm = invite_form.save(commit=False)
@@ -207,7 +207,10 @@ def new_team_member(request, team):
 
         pm.send_invite_email()
 
-        return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]) + '?success=1')
+        messages.add_message(request, messages.SUCCESS,
+            _('An invitation email was sent to %s.') % (pm.email,))
+
+        return HttpResponseRedirect(reverse('sentry-manage-team-members', args=[team.slug]))
 
     context = csrf(request)
     context.update({
