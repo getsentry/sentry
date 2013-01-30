@@ -422,7 +422,7 @@ def remove_group(request, team, project, group_id):
         response = HttpResponse('{}')
         response['Content-Type'] = 'application/json'
     else:
-        response = HttpResponseRedirect(reverse('sentry', args=[project.slug]))
+        response = HttpResponseRedirect(reverse('sentry-stream', args=[team.slug, project.slug]))
     return response
 
 

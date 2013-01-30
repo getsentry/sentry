@@ -188,7 +188,7 @@ def search(request, team, project):
     query = request.GET.get('q')
 
     if not query:
-        return HttpResponseRedirect(reverse('sentry', args=[project.slug]))
+        return HttpResponseRedirect(reverse('sentry-stream', args=[team.slug, project.slug]))
 
     sort = request.GET.get('sort')
     if sort not in SEARCH_SORT_OPTIONS:

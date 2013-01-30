@@ -42,7 +42,7 @@
                     {% for project in PROJECT_LIST %}
                         <tr>
                             <td>
-                                <a href="{% url sentry-manage-project project.team.slug project.slug %}">{{ project.name }}</a> <small>(<a href="{% url sentry project.slug %}">{% trans "Stream" %}</a>)</small><br/>
+                                <a href="{% url sentry-manage-project project.team.slug project.slug %}">{{ project.name }}</a> <small>(<a href="{% url sentry-stream project.team.slug project.slug %}">{% trans "Stream" %}</a>)</small><br/>
                                 {% if project.member_dsn %}
                                     <small><code class="clippy">{{ project.member_dsn }}</code></small>
                                 {% endif %}
