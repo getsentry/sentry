@@ -192,5 +192,5 @@ urlpatterns = patterns('',
     url(r'^(?P<team_slug>[\w_-]+)/$', groups.dashboard, name='sentry'),
 
     # Legacy
-    url(r'^[\w_-]+/group/(?P<group_id>\d+)/$', groups.redirect_to_group),
+    url(r'^(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/$', groups.redirect_to_group, name='sentry-group'),
 )

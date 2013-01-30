@@ -154,7 +154,7 @@ def _get_group_list(request, project):
 
 
 @login_required
-def redirect_to_group(request, group_id):
+def redirect_to_group(request, project_id, group_id):
     group = get_object_or_404(Group, id=group_id)
 
     return HttpResponseRedirect(reverse('sentry-group', kwargs={
