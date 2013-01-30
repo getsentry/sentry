@@ -9,10 +9,9 @@ from django.contrib.auth.models import User
 
 from sentry.models import Project
 from sentry.exceptions import InvalidTimestamp, InvalidInterface, InvalidData
-from sentry.coreapi import project_from_id, project_from_api_key_and_id, \
-  extract_auth_vars, project_from_auth_vars, APIUnauthorized, \
-  APIForbidden, process_data_timestamp, \
-  insert_data_to_database, validate_data
+from sentry.coreapi import (project_from_id, project_from_api_key_and_id,
+    extract_auth_vars, project_from_auth_vars, APIUnauthorized, APIForbidden,
+    process_data_timestamp, insert_data_to_database, validate_data, INTERFACE_ALIASES)
 from sentry.testutils import TestCase
 
 
@@ -22,6 +21,23 @@ class BaseAPITest(TestCase):
         self.project = Project.objects.create(owner=self.user, name='Foo', slug='bar')
         self.pm = self.project.team.member_set.get_or_create(user=self.user)[0]
         self.pk = self.project.key_set.get_or_create(user=self.user)[0]
+
+
+class InterfaceAliasesTest(BaseAPITest):
+    def test_http(self):
+        assert INTERFACE_ALIASES['request'] == 'sentry.interfaces.Http'
+
+    def test_user(self):
+        assert INTERFACE_ALIASES['user'] == 'sentry.interfaces.User'
+
+    def test_exception(self):
+        assert INTERFACE_ALIASES['exception'] == 'sentry.interfaces.Exception'
+
+    def test_stacktrace(self):
+        assert INTERFACE_ALIASES['stacktrace'] == 'sentry.interfaces.Stacktrace'
+
+    def test_template(self):
+        assert INTERFACE_ALIASES['template'] == 'sentry.interfaces.Template'
 
 
 class ProjectFromIdTest(BaseAPITest):
@@ -267,6 +283,22 @@ class ValidateDataTest(BaseAPITest):
                 'message': 'foo',
                 'tests.manager.tests.DummyInterface': {'foo': 'bar'}
             })
+
+    @mock.patch('sentry.coreapi.import_string')
+    def test_an_alias_maps_correctly(self, import_string):
+        alias, full_path = INTERFACE_ALIASES.items()[0]
+
+        result = validate_data(self.project, {
+            'project': self.project.id,
+            'message': 'foo',
+            alias: {'foo': 'bar'},
+        })
+        import_string.assert_called_once_with(full_path)
+        interface = import_string.return_value
+        interface.assert_called_once_with(foo='bar')
+        assert alias not in result
+        assert full_path in result
+        assert result[full_path] == interface.return_value.serialize.return_value
 
     def test_log_level_as_string(self):
         data = validate_data(self.project, {

@@ -34,6 +34,14 @@ logger = logging.getLogger('sentry.coreapi.errors')
 MAX_CULPRIT_LENGTH = 200
 MAX_MESSAGE_LENGTH = 1000
 
+INTERFACE_ALIASES = {
+    'exception': 'sentry.interfaces.Exception',
+    'request': 'sentry.interfaces.Http',
+    'user': 'sentry.interfaces.User',
+    'stacktrace': 'sentry.interfaces.Stacktrace',
+    'template': 'sentry.interfaces.Template',
+}
+
 RESERVED_FIELDS = (
     'project',
     'event_id',
@@ -295,25 +303,27 @@ def validate_data(project, data, client=None):
         if k in RESERVED_FIELDS:
             continue
 
-        if '.' not in k:
-            logger.info('Ignoring unknown attribute %r passed by client %r',
-                k, client or '<unknown client>', extra={'request': env.request})
-            del data[k]
-            continue
-
         if not data[k]:
             logger.info('Ignoring empty interface %r passed by client %r',
                 k, client or '<unknown client>', extra={'request': env.request})
             del data[k]
             continue
 
+        import_path = INTERFACE_ALIASES.get(k, k)
+
+        if '.' not in import_path:
+            logger.info('Ignoring unknown attribute %r passed by client %r',
+                k, client or '<unknown client>', extra={'request': env.request})
+            del data[k]
+            continue
+
         try:
-            interface = import_string(k)
+            interface = import_string(import_path)
         except (ImportError, AttributeError), e:
             raise InvalidInterface('%r is not a valid interface name: %s' % (k, e))
 
         try:
-            data[k] = interface(**data[k]).serialize()
+            data[import_path] = interface(**data.pop(k)).serialize()
         except Exception, e:
             logger.error('Client %r passed an invalid value for interface %r',
                 client or '<unknown client>',
