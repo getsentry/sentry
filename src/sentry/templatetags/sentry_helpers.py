@@ -20,12 +20,12 @@ from sentry.constants import STATUS_MUTED
 from sentry.models import Group
 from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.javascript import to_json
+from sentry.utils.safe import safe_execute
 from sentry.utils.strings import truncatechars
 from templatetag_sugar.register import tag
 from templatetag_sugar.parser import Name, Variable, Constant, Optional
 
 import datetime
-import logging
 
 register = template.Library()
 
@@ -340,14 +340,7 @@ def split(value, delim=''):
 def get_rendered_interfaces(event):
     interface_list = []
     for interface in event.interfaces.itervalues():
-        try:
-            html = interface.to_html(event)
-        except Exception:
-            logger = logging.getLogger('sentry.interfaces')
-            logger.error('Error rendering interface %r', interface.__class__, extra={
-                'event_id': event.id,
-            }, exc_info=True)
-            continue
+        html = safe_execute(interface.to_html, event)
         if not html:
             continue
         interface_list.append((interface, mark_safe(html)))

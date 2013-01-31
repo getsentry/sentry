@@ -44,6 +44,7 @@ from sentry.signals import buffer_incr_complete, regression_signal
 from sentry.utils import cached_property, MockDjangoRequest
 from sentry.utils.models import Model, GzippedDictField, update
 from sentry.utils.imports import import_string
+from sentry.utils.safe import safe_execute
 from sentry.utils.strings import truncatechars
 
 __all__ = ('Event', 'Group', 'Project', 'SearchDocument')
@@ -625,9 +626,12 @@ class Event(EventBase):
             try:
                 cls = import_string(key)
             except ImportError:
-                pass  # suppress invalid interfaces
+                continue  # suppress invalid interfaces
 
-            value = cls(**data)
+            value = safe_execute(cls, **data)
+            if not value:
+                continue
+
             result.append((key, value))
 
         return SortedDict((k, v) for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True))
