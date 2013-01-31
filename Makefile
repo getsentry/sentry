@@ -8,7 +8,7 @@ LESS = node_modules/less/bin/lessc
 
 develop: update-submodules
 	npm install
-	pip install "flake8>=1.6" --use-mirrors
+	pip install "file://`pwd`#egg=sentry[dev]"
 	pip install -e . --use-mirrors
 
 build: static locale
@@ -29,11 +29,14 @@ static:
 	${LESS} --strict-imports ${STATIC_DIR}/less/sentry.less ${STATIC_DIR}/styles/sentry.css
 	@echo "Static assets successfully built! - `date`";
 
+install-test-requirements:
+	pip install "file://`pwd`#egg=sentry[tests]"
+
 update-submodules:
 	git submodule init
 	git submodule update
 
-test: lint test-js test-python
+test: install-test-requirements lint test-js test-python
 
 test-js:
 	@echo "Running JavaScript tests"

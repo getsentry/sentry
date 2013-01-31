@@ -34,6 +34,10 @@ for m in ('multiprocessing', 'billiard'):
     except ImportError:
         pass
 
+dev_requires = [
+    'flake8>=1.6',
+]
+
 tests_require = [
     'exam>=0.5.1',
     'eventlet',
@@ -84,7 +88,10 @@ setup(
     packages=find_packages('src'),
     zip_safe=False,
     install_requires=install_requires,
-    tests_require=tests_require,
+    extras_require={
+        'tests': tests_require,
+        'dev': dev_requires,
+    },
     test_suite='runtests.runtests',
     license='BSD',
     include_package_data=True,
