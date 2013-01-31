@@ -99,6 +99,9 @@ class Interface(object):
     def __getstate__(self):
         return self.serialize()
 
+    def validate(self):
+        pass
+
     def unserialize(self, data):
         return data
 
