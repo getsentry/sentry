@@ -11,17 +11,17 @@ from sentry.testutils import TestCase
 
 
 class StacktraceTest(TestCase):
-    def test_requires_filename_and_lineno(self):
-        self.assertRaises(AssertionError, Stacktrace, frames=[{
-            'lineno': 1,
-        }])
+    def test_requires_filename(self):
+        with self.assertRaises(AssertionError):
+            Stacktrace(frames=[]).validate()
+
         Stacktrace(frames=[{
             'filename': 'foo.py',
-        }])
+        }]).validate()
         Stacktrace(frames=[{
             'lineno': 1,
             'filename': 'foo.py',
-        }])
+        }]).validate()
 
     def test_allows_abs_path_without_filename(self):
         interface = Stacktrace(frames=[{

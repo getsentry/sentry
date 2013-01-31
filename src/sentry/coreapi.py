@@ -323,7 +323,11 @@ def validate_data(project, data, client=None):
             raise InvalidInterface('%r is not a valid interface name: %s' % (k, e))
 
         try:
-            data[import_path] = interface(**data.pop(k)).serialize()
+            inst = interface(**data.pop(k))
+            inst.validate()
+            data[import_path] = inst.serialize()
+        except AssertionError, e:
+            raise InvalidData('Unable to validate interface, %r: %s' % (k, e))
         except Exception, e:
             logger.error('Client %r passed an invalid value for interface %r',
                 client or '<unknown client>',

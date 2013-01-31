@@ -162,10 +162,11 @@ class Message(Interface):
     """
 
     def __init__(self, message, params=()):
-        assert len(message) <= 1000
-
         self.message = message
         self.params = params
+
+    def validate(self):
+        assert len(self.message) <= 1000
 
     def serialize(self):
         return {
@@ -298,9 +299,6 @@ class Stacktrace(Interface):
             if 'abs_path' in frame and 'filename' not in frame:
                 frame['filename'] = frame.pop('abs_path', None)
 
-            # ensure we've got the correct required values
-            assert frame.get('filename') or frame.get('function') or frame.get('module')
-
             # lineno should be an int
             if 'lineno' in frame:
                 if frame['lineno'] is None:
@@ -325,6 +323,11 @@ class Stacktrace(Interface):
                 if urlparts.path:
                     frame['abs_path'] = abs_path
                     frame['filename'] = urlparts.path
+
+    def validate(self):
+        for frame in self.frames:
+            # ensure we've got the correct required values
+            assert frame.get('filename') or frame.get('function') or frame.get('module')
 
     def serialize(self):
         return {
