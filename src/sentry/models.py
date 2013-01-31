@@ -123,6 +123,8 @@ class Team(Model):
             return self.owner.email.split('@', 1)[0]
         return self.owner.username
 
+    def __unicode__(self):
+        return u'%s' % self.name
 
 class TeamMember(Model):
     """
