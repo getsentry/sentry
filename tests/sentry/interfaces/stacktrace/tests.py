@@ -13,7 +13,7 @@ from sentry.testutils import TestCase
 class StacktraceTest(TestCase):
     def test_requires_filename(self):
         with self.assertRaises(AssertionError):
-            Stacktrace(frames=[]).validate()
+            Stacktrace(frames=[{}]).validate()
 
         Stacktrace(frames=[{
             'filename': 'foo.py',
