@@ -2,9 +2,9 @@
     "name": "Sentry",
     "version": "0.1.0",
     "dependencies": {
-        "less": "1.3.x",
+        "less": "1.3.3",
         "phantomjs": "0.2.x",
         "jshint": "0.9.x",
-        "uglify-js": "2.2.1"
+        "uglify-js": "2.2.4"
     }
 }

@@ -110,8 +110,6 @@ def get_default_context(request, existing_context=None, team=None):
     from sentry.plugins import plugins
 
     context = {
-        'COMPRESS_ENABLED': dj_settings.COMPRESS_ENABLED,
-        'COMPRESS_LESS': dj_settings.COMPRESS_ENABLED and dj_settings.LESS_BIN,
         'HAS_SEARCH': settings.USE_SEARCH,
         'MESSAGES_PER_PAGE': settings.MESSAGES_PER_PAGE,
         'INTERNAL_PROJECT': get_internal_project(),
