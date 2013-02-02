@@ -333,6 +333,11 @@ if os.path.exists(NPM_ROOT):
                     "sentry/less/sentry.less": "sentry/styles/sentry.css",
                 },
             },
+            "sentry/styles/wall.min.css": {
+                "src": {
+                    "sentry/less/wall.less": "sentry/styles/wall.css",
+                },
+            },
         },
         "postcompilers": {
             "*.js": ["node_modules/uglify-js/bin/uglifyjs {input} --source-map-root={relroot}/ --source-map-url={name}.map{ext} --source-map={relpath}/{name}.map{ext} -o {output}"],

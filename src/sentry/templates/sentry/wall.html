@@ -1,13 +1,11 @@
 {% extends "sentry/layout.html" %}
 
-{% load compress %}
 {% load i18n %}
 {% load sentry_helpers %}
+{% load static_compiler %}
 
 {% block css %}
-    {% compress css %}
-        <link href="{% url sentry-media "sentry" "less/wall.less" %}" rel="stylesheet" type="text/less"/>
-    {% endcompress %}
+    {% staticbundle 'sentry/styles/wall.min.css' %}
 {% endblock %}
 
 {% block body %}
