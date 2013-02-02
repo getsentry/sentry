@@ -6143,11 +6143,6 @@ disabled look for already selected choices in the results dropdown
 .highlight .hll {
   background-color: #ffffcc;
 }
-[class^="icon-"],
-[class*=" icon-"] {
-  background-image: none !important;
-}
-/* override bootstrap icon bgs */
 /* =============================  Global  ============================== */
 body {
   margin: 0;
@@ -6438,6 +6433,7 @@ h3 {
   filter: alpha(opacity=100);
 }
 .toolbar .breadcrumb .project-settings i {
+  background-image: none;
   font-size: 16px;
   position: relative;
   top: 2px;
@@ -6516,6 +6512,7 @@ h3 {
   border-right: 1px solid #e4e8ec;
 }
 .project-controls .dashboard-icon i {
+  background-image: none;
   position: relative;
   font-size: 16px;
   top: 0;
@@ -7150,6 +7147,10 @@ ul.tag-list li {
 .events > li .actions li > a:hover {
   color: #d6d9e0;
   text-decoration: none;
+}
+.group-list > li .actions li > a i,
+.events > li .actions li > a i {
+  background-image: none;
 }
 .group-list > li .actions li .checked,
 .events > li .actions li .checked,
@@ -7848,6 +7849,7 @@ section.body .page-header:first-child {
   -webkit-font-smoothing: antialiased;
 }
 .btn i {
+  background-image: none;
   color: #b2bac2;
   margin: 0 3px 0 0;
   position: relative;
@@ -7930,6 +7932,7 @@ section.body .uneditable-input {
   box-shadow: 0 2px 0 rgba(185, 200, 215, 0.26);
 }
 .dashboard-btn i {
+  background-image: none;
   position: relative;
   font-size: 16px;
   top: 5px;
