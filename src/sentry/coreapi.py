@@ -86,6 +86,33 @@ class APITimestampExpired(APIError):
     http_status = 410
 
 
+def client_metadata(client=None, exception=None, **kwargs):
+    data = {
+        'extra': {
+            'client': client,
+        },
+        'tags': {
+            'client': client,
+        },
+    }
+    if exception:
+        data['tags']['exc_type'] = type(exception)
+
+    if env.request:
+        user = env.request.user
+        data['sentry.interfaes.User'] = {
+            'id': user.id,
+            'email': user.email,
+            'username': user.username,
+        }
+
+    data['extra'].update(kwargs.pop('extra', {}))
+    data['tags'].update(kwargs.pop('tags', {}))
+    data.update(kwargs)
+
+    return {'extra': data}
+
+
 def extract_auth_vars(request):
     if request.META.get('HTTP_X_SENTRY_AUTH', '').startswith('Sentry'):
         return parse_auth_header(request.META['HTTP_X_SENTRY_AUTH'])
@@ -212,7 +239,7 @@ def decode_and_decompress_data(encoded_data):
     except Exception, e:
         # This error should be caught as it suggests that there's a
         # bug somewhere in the client's code.
-        logger.exception('Bad data received')
+        logger.info(e, **client_metadata(exception=e))
         raise APIForbidden('Bad data decoding request (%s, %s)' % (
             e.__class__.__name__, e))
 
@@ -223,7 +250,7 @@ def safely_load_json_string(json_string):
     except Exception, e:
         # This error should be caught as it suggests that there's a
         # bug somewhere in the client's code.
-        logger.exception('Bad data received')
+        logger.info(e, **client_metadata(exception=e))
         raise APIForbidden('Bad data reconstructing object (%s, %s)' % (
             e.__class__.__name__, e))
 
@@ -231,11 +258,13 @@ def safely_load_json_string(json_string):
     return dict((smart_str(k), v) for k, v in obj.iteritems())
 
 
-def ensure_valid_project_id(desired_project, data):
+def ensure_valid_project_id(desired_project, data, client=None):
     # Confirm they're using either the master key, or their specified project
     # matches with the signed project.
     if desired_project and data.get('project'):
         if str(data.get('project')) not in [str(desired_project.id), desired_project.slug]:
+            logger.info('Project ID mismatch: %s != %s', desired_project.id, desired_project.slug,
+                **client_metadata(client))
             raise APIForbidden('Invalid credentials')
         data['project'] = desired_project.id
     elif not desired_project:
@@ -270,33 +299,36 @@ def process_data_timestamp(data):
 
 
 def validate_data(project, data, client=None):
-    ensure_valid_project_id(project, data)
+    ensure_valid_project_id(project, data, client=client)
 
     if not data.get('message'):
         data['message'] = '<no message value>'
     elif len(data['message']) > MAX_MESSAGE_LENGTH:
+        logger.error('Value for message was too long (%d chars)', len(data['message']), **client_metadata(client))
         raise InvalidData('Value \'message\' is too long. Input is %d chars, max is %s.' % (
             len(data['message']), MAX_MESSAGE_LENGTH))
 
     if data.get('culprit') and len(data['culprit']) > 200:
+        logger.error('Value for culprit was too long (%d chars)', len(data['culprit']), **client_metadata(client))
         raise InvalidData('Value \'culprit\' is too long. Input is %d chars, max is %s.' % (
             len(data['culprit']), MAX_CULPRIT_LENGTH))
 
     if not data.get('event_id'):
         data['event_id'] = uuid.uuid4().hex
     elif len(data['event_id']) > 32:
+        logger.error('Value for event_id was too long (%d chars)', len(data['event_id']), **client_metadata(client))
         raise InvalidData('Invalid value for \'event_id\': must be a 32 character identifier')
 
     if 'timestamp' in data:
         try:
             process_data_timestamp(data)
-        except InvalidTimestamp:
+        except InvalidTimestamp, e:
             # Log the error, remove the timestamp, and continue
-            logger.info('Client %r passed an invalid value for timestamp %r',
-                client or '<unknown client>', data['timestamp'], extra={'request': env.request})
+            logger.warning('Invalid value for timestamp: %r', data['timestamp'], **client_metadata(client, exception=e))
             del data['timestamp']
 
     if data.get('modules') and type(data['modules']) != dict:
+        logger.error('Invalid type for modules: %s', type(data['modules']), **client_metadata(client))
         raise InvalidData('Invalid type for \'modules\': must be a mapping')
 
     for k in data.keys():
@@ -304,22 +336,21 @@ def validate_data(project, data, client=None):
             continue
 
         if not data[k]:
-            logger.info('Ignoring empty interface %r passed by client %r',
-                k, client or '<unknown client>', extra={'request': env.request})
+            logger.warning('Ignored empty interface value: %s', k, **client_metadata(client))
             del data[k]
             continue
 
         import_path = INTERFACE_ALIASES.get(k, k)
 
         if '.' not in import_path:
-            logger.info('Ignoring unknown attribute %r passed by client %r',
-                k, client or '<unknown client>', extra={'request': env.request})
+            logger.warning('Ignored unknown attribute: %s', k, **client_metadata(client))
             del data[k]
             continue
 
         try:
             interface = import_string(import_path)
         except (ImportError, AttributeError), e:
+            logger.warning('Invalid interface name: %s', k, **client_metadata(client, exception=e))
             raise InvalidInterface('%r is not a valid interface name: %s' % (k, e))
 
         try:
@@ -327,11 +358,10 @@ def validate_data(project, data, client=None):
             inst.validate()
             data[import_path] = inst.serialize()
         except AssertionError, e:
+            logger.warning('Invalid value for interface: %s', k, **client_metadata(client, exception=e))
             raise InvalidData('Unable to validate interface, %r: %s' % (k, e))
         except Exception, e:
-            logger.error('Client %r passed an invalid value for interface %r',
-                client or '<unknown client>',
-                interface, exc_info=True, extra={'request': env.request})
+            logger.error('Invalid value for interface: %s', k, **client_metadata(client, exception=e))
             raise InvalidData('Unable to validate interface, %r: %s' % (k, e))
 
     level = data.get('level') or settings.DEFAULT_LOG_LEVEL
@@ -339,7 +369,8 @@ def validate_data(project, data, client=None):
         # assume it's something like 'warning'
         try:
             data['level'] = settings.LOG_LEVEL_REVERSE_MAP[level]
-        except KeyError:
+        except KeyError, e:
+            logger.warning('Ignored invalid logger value: %s', level, **client_metadata(client, exception=e))
             raise InvalidData('Invalid logging level specified: %r' % level)
 
     return data
