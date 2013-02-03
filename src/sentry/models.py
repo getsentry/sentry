@@ -126,6 +126,7 @@ class Team(Model):
     def __unicode__(self):
         return u'%s' % self.name
 
+
 class TeamMember(Model):
     """
     Identifies relationships between teams and users.

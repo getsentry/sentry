@@ -5,8 +5,7 @@ sentry.web.frontend.generic
 :copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from django.http import HttpResponseRedirect, Http404, HttpResponseNotModified, \
-  HttpResponse
+from django.http import HttpResponseRedirect
 from django.contrib.staticfiles import finders
 from django.core.urlresolvers import reverse
 from django.utils.datastructures import SortedDict
