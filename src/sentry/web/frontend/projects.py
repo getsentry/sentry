@@ -14,7 +14,7 @@ from django.views.decorators.http import require_http_methods
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import MEMBER_OWNER
-from sentry.models import ProjectKey, Team, FilterKey
+from sentry.models import Project, ProjectKey, Team, FilterKey
 from sentry.permissions import (can_create_projects, can_remove_project, can_create_teams,
     can_add_project_key, can_remove_project_key)
 from sentry.plugins import plugins
@@ -23,8 +23,7 @@ from sentry.web.decorators import login_required, has_access
 from sentry.web.forms.projects import (NewProjectForm, NewProjectAdminForm,
     ProjectTagsForm, EditProjectForm, RemoveProjectForm, EditProjectAdminForm)
 from sentry.web.forms.teams import NewTeamForm, SelectTeamForm
-from sentry.web.helpers import (render_to_response, get_project_list,
-    plugin_config)
+from sentry.web.helpers import render_to_response, plugin_config
 
 
 @login_required
@@ -110,7 +109,7 @@ def remove_project(request, team, project):
     if not can_remove_project(request.user, project):
         return HttpResponseRedirect(reverse('sentry'))
 
-    project_list = filter(lambda x: x != project, get_project_list(request.user).itervalues())
+    project_list = filter(lambda x: x != project, Project.objects.get_for_user(request.user))
 
     form = RemoveProjectForm(request.user, project_list, request.POST or None)
 

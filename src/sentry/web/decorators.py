@@ -4,7 +4,7 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import get_object_or_404
 
 from sentry.models import Project, Team, Group
-from sentry.web.helpers import get_project_list, render_to_response, \
+from sentry.web.helpers import render_to_response, \
   get_login_url
 
 
@@ -84,11 +84,13 @@ def has_access(access_or_func=None, team=None, access=None):
                             return HttpResponseRedirect(reverse('sentry'))
                 else:
                     key, value = lookup_kwargs.items()[0]
-                    project_list = get_project_list(request.user, access, key=key, team=team)
+                    project_list = Project.objects.get_for_user(request.user, access, team=team)
 
-                    try:
-                        project = project_list[value]
-                    except KeyError:
+                    for p in project_list:
+                        if getattr(p, key) == value:
+                            project = p
+                            break
+                    else:
                         return HttpResponseRedirect(reverse('sentry'))
             else:
                 project = None

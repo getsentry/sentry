@@ -36,7 +36,7 @@ from sentry.utils.javascript import to_json
 from sentry.utils.http import is_valid_origin, get_origins
 from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
-from sentry.web.helpers import render_to_response, get_project_list
+from sentry.web.helpers import render_to_response
 
 error_logger = logging.getLogger('sentry.errors.api.http')
 logger = logging.getLogger('sentry.api.http')
@@ -508,7 +508,7 @@ def chart(request, team=None, project=None):
 
         data = cache.get(cache_key)
         if data is None:
-            project_list = get_project_list(request.user).values()
+            project_list = Project.objects.get_for_user(request.user)
             data = Project.objects.get_chart_data_for_group(project_list, max_days=days)
             cache.set(cache_key, data, 300)
 
@@ -524,20 +524,20 @@ def get_group_trends(request, team=None, project=None):
     minutes = int(request.REQUEST.get('minutes', 15))
     limit = min(100, int(request.REQUEST.get('limit', 10)))
 
-    if team:
-        project_dict = get_project_list(request.user, team=team)
-    elif project:
-        project_dict = {project.id: project}
+    if not team and project:
+        project_list = [project]
     else:
-        project_dict = get_project_list(request.user)
+        project_list = Project.objects.get_for_user(request.user, team=team)
+
+    project_dict = dict((p.id, p) for p in project_list)
 
     base_qs = Group.objects.filter(
-        project__in=project_dict.keys(),
+        project__in=project_list,
         status=0,
     )
 
     if has_trending():
-        group_list = list(Group.objects.get_accelerated(project_dict.keys(), base_qs, minutes=(
+        group_list = list(Group.objects.get_accelerated(project_dict, base_qs, minutes=(
             minutes
         ))[:limit])
     else:
@@ -567,12 +567,12 @@ def get_new_groups(request, team=None, project=None):
     minutes = int(request.REQUEST.get('minutes', 15))
     limit = min(100, int(request.REQUEST.get('limit', 10)))
 
-    if team:
-        project_dict = get_project_list(request.user, team=team)
-    elif project:
-        project_dict = {project.id: project}
+    if not team and project:
+        project_list = [project]
     else:
-        project_dict = get_project_list(request.user)
+        project_list = Project.objects.get_for_user(request.user, team=team)
+
+    project_dict = dict((p.id, p) for p in project_list)
 
     cutoff = datetime.timedelta(minutes=minutes)
     cutoff_dt = timezone.now() - cutoff
@@ -601,21 +601,24 @@ def get_resolved_groups(request, team=None, project=None):
     minutes = int(request.REQUEST.get('minutes', 15))
     limit = min(100, int(request.REQUEST.get('limit', 10)))
 
-    if team:
-        project_list = get_project_list(request.user, team=team).values()
-    elif project:
+    if not team and project:
         project_list = [project]
     else:
-        project_list = get_project_list(request.user).values()
+        project_list = Project.objects.get_for_user(request.user, team=team)
+
+    project_dict = dict((p.id, p) for p in project_list)
 
     cutoff = datetime.timedelta(minutes=minutes)
     cutoff_dt = timezone.now() - cutoff
 
-    group_list = Group.objects.filter(
+    group_list = list(Group.objects.filter(
         project__in=project_list,
         status=STATUS_RESOLVED,
         resolved_at__gte=cutoff_dt,
-    ).select_related('project').order_by('-score')[:limit]
+    ).order_by('-score')[:limit])
+
+    for group in group_list:
+        group._project_cache = project_dict.get(group.project_id)
 
     data = to_json(group_list, request)
 
@@ -628,13 +631,13 @@ def get_resolved_groups(request, team=None, project=None):
 @never_cache
 @csrf_exempt
 @has_access
-def get_stats(request, project=None):
+def get_stats(request, team=None, project=None):
     minutes = int(request.REQUEST.get('minutes', 15))
 
-    if project:
+    if not team and project:
         project_list = [project]
     else:
-        project_list = get_project_list(request.user).values()
+        project_list = Project.objects.get_for_user(request.user, team=team)
 
     cutoff = datetime.timedelta(minutes=minutes)
     cutoff_dt = timezone.now() - cutoff

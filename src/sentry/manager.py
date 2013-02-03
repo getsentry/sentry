@@ -22,7 +22,7 @@ from celery.signals import task_postrun
 from django.conf import settings as dj_settings
 from django.core.signals import request_finished
 from django.db import models, transaction, IntegrityError
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from django.db.models.signals import post_save, post_delete, post_init, class_prepared
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
@@ -779,7 +779,45 @@ class RawQuerySet(object):
 
 
 class ProjectManager(BaseManager, ChartMixin):
-    pass
+    def get_for_user(self, user=None, access=None, hidden=False, team=None):
+        """
+        Returns a SortedDict of all projects a user has some level of access to.
+        """
+        from sentry.models import Team
+
+        # TODO: the result of this function should be cached
+        is_authenticated = (user and user.is_authenticated())
+
+        base_qs = self
+        if not hidden:
+            base_qs = base_qs.filter(status=0)
+        if team:
+            base_qs = base_qs.filter(team=team)
+
+        # Collect kwarg queries to filter on. We can use this to perform a single
+        # query to get all of the desired projects ordered by name
+        filters = Q()
+
+        # If we're not requesting specific access include all
+        # public projects
+        if access is None:
+            filters |= Q(public=True)
+        elif not (user and user.is_authenticated()):
+            return SortedDict()
+
+        # If the user is authenticated, include their memberships
+        if is_authenticated:
+            teams = Team.objects.get_for_user(user, access).values()
+            if not teams and access is not None:
+                return SortedDict()
+            filters |= Q(team__in=teams)
+
+        projects = set(base_qs.filter(filters))
+
+        if is_authenticated:
+            projects |= set(base_qs.filter(accessgroup__members=user))
+
+        return sorted(projects, key=lambda x: x.name)
 
 
 class MetaManager(BaseManager):

@@ -11,7 +11,6 @@ import warnings
 
 from django.conf import settings as dj_settings
 from django.core.urlresolvers import reverse, resolve
-from django.db.models import Q
 from django.http import HttpResponse
 from django.template import loader, RequestContext, Context
 from django.utils.datastructures import SortedDict
@@ -26,43 +25,9 @@ logger = logging.getLogger('sentry.errors')
 
 
 def get_project_list(user=None, access=None, hidden=False, key='id', team=None):
-    """
-    Returns a SortedDict of all projects a user has some level of access to.
-    """
-    # TODO: the result of this function should be cached
-    is_authenticated = (user and user.is_authenticated())
-
-    base_qs = Project.objects
-    if not hidden:
-        base_qs = base_qs.filter(status=0)
-    if team:
-        base_qs = base_qs.filter(team=team)
-
-    # Collect kwarg queries to filter on. We can use this to perform a single
-    # query to get all of the desired projects ordered by name
-    filters = Q()
-
-    # If we're not requesting specific access include all
-    # public projects
-    if access is None:
-        filters |= Q(public=True)
-    elif not (user and user.is_authenticated()):
-        return SortedDict()
-
-    # If the user is authenticated, include their memberships
-    if is_authenticated:
-        teams = Team.objects.get_for_user(user, access).values()
-        if not teams and access is not None:
-            return SortedDict()
-        filters |= Q(team__in=teams)
-
-    projects = set(base_qs.filter(filters))
-
-    if is_authenticated:
-        projects |= set(base_qs.filter(accessgroup__members=user))
-
+    warnings.warn('get_project_list is Deprecated. Use Project.objects.get_for_user instead.', DeprecationWarning)
     return SortedDict((getattr(p, key), p)
-        for p in sorted(projects, key=lambda x: x.name))
+            for p in Project.objects.get_for_user(user, access))
 
 
 def get_team_list(user, access=None):

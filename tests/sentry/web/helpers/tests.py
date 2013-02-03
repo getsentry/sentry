@@ -12,7 +12,7 @@ from sentry.web.helpers import get_project_list, get_login_url
 from sentry.testutils import TestCase
 
 
-class GetProjectListTEst(TestCase):
+class GetProjectListTest(TestCase):
     def setUp(self):
         self.user = User.objects.create(username="admin", email="admin@localhost")
         self.project = Project.objects.get()

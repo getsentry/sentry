@@ -9,9 +9,8 @@ from django import forms
 from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 from sentry.plugins import Plugin
-from sentry.models import UserOption
+from sentry.models import UserOption, Project
 from sentry.utils.cache import cache
-from sentry.web.helpers import get_project_list
 from sentry.constants import MEMBER_USER
 
 
@@ -42,7 +41,10 @@ class NotificationUserOptionsForm(BaseNotificationUserOptionsForm):
     def __init__(self, *args, **kwargs):
         super(NotificationUserOptionsForm, self).__init__(*args, **kwargs)
         user = self.user
-        self.project_list = get_project_list(user, access=MEMBER_USER, key='slug')
+        self.project_list = dict(
+            (p.slug, p) for p in
+            Project.objects.get_for_user(user, access=MEMBER_USER)
+        )
         project_choices = sorted((p.slug, p.name) for p in self.project_list.values())
         self.fields['projects'].choices = project_choices
         self.fields['projects'].widget.choices = self.fields['projects'].choices
