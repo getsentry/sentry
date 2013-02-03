@@ -165,6 +165,7 @@ STATIC_URL = '/_static/'
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
+    "static_compiler.finders.StaticCompilerFinder",
 )
 
 LOCALE_PATHS = (
