@@ -86,31 +86,21 @@ class APITimestampExpired(APIError):
     http_status = 410
 
 
-def client_metadata(client=None, exception=None, **kwargs):
-    data = {
-        'extra': {
-            'client': client,
-        },
-        'tags': {
-            'client': client,
-        },
-    }
+def client_metadata(client=None, exception=None, tags=None, extra=None):
+    if not extra:
+        extra = {}
+    if not tags:
+        tags = {}
+
+    extra['client'] = client
+    extra['request'] = env.request
+    extra['tags'] = tags
+
+    tags['client'] = client
     if exception:
-        data['tags']['exc_type'] = type(exception).__name__
+        tags['exc_type'] = type(exception).__name__
 
-    if env.request:
-        user = env.request.user
-        data['sentry.interfaces.User'] = {
-            'id': user.id,
-            'email': user.email,
-            'username': user.username,
-        }
-
-    data['extra'].update(kwargs.pop('extra', {}))
-    data['tags'].update(kwargs.pop('tags', {}))
-    data.update(kwargs)
-
-    return {'extra': data}
+    return {'extra': extra}
 
 
 def extract_auth_vars(request):
@@ -355,7 +345,7 @@ def validate_data(project, data, client=None):
 
         value = data.pop(k)
         try:
-            inst = interface(**data.pop(k))
+            inst = interface(**value)
             inst.validate()
             data[import_path] = inst.serialize()
         except Exception, e:
