@@ -13,7 +13,7 @@ pip-log.txt
 /build
 /dist
 /node_modules/
-/src/sentry/static/CACHE/
 /docs/html
 /docs/doctrees
 example/db.sqlite
+/src/sentry/static/
