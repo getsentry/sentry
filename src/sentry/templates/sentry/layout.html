@@ -11,7 +11,7 @@
         <link href="{% url sentry-media "sentry" "images/favicon.png" %}" rel="shortcut icon" type="image/png"/>
 
         {% block css %}
-        {% staticbundle 'sentry/styles/global.min.css' %}
+            {% staticbundle 'sentry/styles/global.min.css' %}
         {% endblock %}
 
         <title>{% block title %}Sentry{% endblock %}</title>
