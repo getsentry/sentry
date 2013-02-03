@@ -100,7 +100,7 @@ def client_metadata(client=None, exception=None, **kwargs):
 
     if env.request:
         user = env.request.user
-        data['sentry.interfaes.User'] = {
+        data['sentry.interfaces.User'] = {
             'id': user.id,
             'email': user.email,
             'username': user.username,

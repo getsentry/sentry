@@ -24,9 +24,6 @@ class ModuleProxyCache(dict):
         # We cache a NoneType for missing imports to avoid repeated lookups
         self[key] = handler
 
-        if handler is None:
-            raise ImportError
-
         return handler
 
 _cache = ModuleProxyCache()
@@ -38,4 +35,7 @@ def import_string(path):
 
     >>> cls = import_string('sentry.models.Group')
     """
-    return _cache[path]
+    result = _cache[path]
+    if result is None:
+        raise ImportError(path)
+    return result
