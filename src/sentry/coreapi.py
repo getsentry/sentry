@@ -96,7 +96,7 @@ def client_metadata(client=None, exception=None, **kwargs):
         },
     }
     if exception:
-        data['tags']['exc_type'] = type(exception)
+        data['tags']['exc_type'] = type(exception).__name__
 
     if env.request:
         user = env.request.user
@@ -353,15 +353,18 @@ def validate_data(project, data, client=None):
             logger.warning('Invalid interface name: %s', k, **client_metadata(client, exception=e))
             raise InvalidInterface('%r is not a valid interface name: %s' % (k, e))
 
+        value = data.pop(k)
         try:
             inst = interface(**data.pop(k))
             inst.validate()
             data[import_path] = inst.serialize()
-        except AssertionError, e:
-            logger.warning('Invalid value for interface: %s', k, **client_metadata(client, exception=e))
-            raise InvalidData('Unable to validate interface, %r: %s' % (k, e))
         except Exception, e:
-            logger.error('Invalid value for interface: %s', k, **client_metadata(client, exception=e))
+            if isinstance(e, AssertionError):
+                func = logger.warning
+            else:
+                func = logger.error
+            func('Invalid value for interface: %s', k,
+                **client_metadata(client, exception=e, extra={'value': value}))
             raise InvalidData('Unable to validate interface, %r: %s' % (k, e))
 
     level = data.get('level') or settings.DEFAULT_LOG_LEVEL
