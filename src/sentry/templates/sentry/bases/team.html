@@ -15,6 +15,9 @@
         <li{% if SUBSECTION == 'members' %} class="active"{% endif %}>
             <a href="{% url sentry-manage-team-members team.slug %}">{% trans "Members" %}</a>
         </li>
+        <li{% if SUBSECTION == 'groups' %} class="active"{% endif %}>
+            <a href="{% url sentry-manage-access-groups team.slug %}">{% trans "Access Groups" %}</a>
+        </li>
         {% if can_create_projects %}
             <li class="pull-right{% if SUBSECTION == 'new_project' %} active{% endif %}">
                 <a href="{% url sentry-new-team-project team.slug %}">{% trans "Create a New Project" %}</a>

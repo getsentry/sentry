@@ -101,13 +101,14 @@ class Team(Model):
     name = models.CharField(max_length=64)
     owner = models.ForeignKey(User)
     date_added = models.DateTimeField(default=timezone.now, null=True)
+    members = models.ManyToManyField(User, through='sentry.TeamMember', related_name='team_memberships')
 
     objects = TeamManager(cache_fields=(
         'pk',
         'slug',
     ))
 
-    __repr__ = sane_repr('slug', 'owner_id')
+    __repr__ = sane_repr('slug', 'owner_id', 'name')
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -127,9 +128,40 @@ class Team(Model):
         return u'%s' % self.name
 
 
+class AccessGroup(Model):
+    """
+    An access group identifies a set of members with a defined set
+    of permissions (and project access) for a Team.
+
+    Groups may be automated through extensions (such as LDAP) so that
+    membership is automatically maintained. If this is the case the
+    ``managed`` attribute will be ``True``.
+    """
+    team = models.ForeignKey(Team)
+    name = models.CharField(max_length=64)
+    type = models.IntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
+    managed = models.BooleanField(default=False)
+    data = GzippedDictField(blank=True, null=True)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    projects = models.ManyToManyField('sentry.Project')
+    members = models.ManyToManyField(User)
+
+    objects = BaseManager()
+
+    class Meta:
+        unique_together = (('team', 'name'),)
+
+    __repr__ = sane_repr('team_id', 'name', 'type', 'managed')
+
+
 class TeamMember(Model):
     """
     Identifies relationships between teams and users.
+
+    Users listed as team members are considered to have access to all projects
+    and could be thought of as team owners (though their access level may not)
+    be set to ownership.
     """
     team = models.ForeignKey(Team, related_name="member_set")
     user = models.ForeignKey(User, related_name="sentry_teammember_set")

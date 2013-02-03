@@ -13,14 +13,14 @@ from django.views.decorators.csrf import csrf_protect
 from django.utils.translation import ugettext as _
 
 from sentry.constants import MEMBER_USER, MEMBER_OWNER
-from sentry.models import PendingTeamMember, TeamMember
-from sentry.permissions import can_add_team_member, can_remove_team, can_create_projects, \
-  can_create_teams, can_edit_team_member, can_remove_team_member
+from sentry.models import PendingTeamMember, TeamMember, AccessGroup
+from sentry.permissions import (can_add_team_member, can_remove_team, can_create_projects,
+    can_create_teams, can_edit_team_member, can_remove_team_member)
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_access
-from sentry.web.forms.teams import NewTeamForm, NewTeamAdminForm, \
-  EditTeamForm, EditTeamAdminForm, EditTeamMemberForm, NewTeamMemberForm, \
-  InviteTeamMemberForm, RemoveTeamForm, AcceptInviteForm
+from sentry.web.forms.teams import (NewTeamForm, NewTeamAdminForm,
+    EditTeamForm, EditTeamAdminForm, EditTeamMemberForm, NewTeamMemberForm,
+    InviteTeamMemberForm, RemoveTeamForm, AcceptInviteForm, NewAccessGroupForm)
 from sentry.web.helpers import render_to_response
 
 
@@ -108,6 +108,30 @@ def manage_team(request, team):
 
 @has_access(MEMBER_OWNER)
 @csrf_protect
+def remove_team(request, team):
+    if not can_remove_team(request.user, team):
+        return HttpResponseRedirect(reverse('sentry'))
+
+    form = RemoveTeamForm(request.POST or None)
+
+    if form.is_valid():
+        team.delete()
+        return HttpResponseRedirect(reverse('sentry-team-list'))
+
+    context = csrf(request)
+    context.update({
+        'page': 'settings',
+        'form': form,
+        'team': team,
+        'SECTION': 'team',
+        'SUBSECTION': 'settings',
+    })
+
+    return render_to_response('sentry/teams/remove.html', context, request)
+
+
+@has_access(MEMBER_OWNER)
+@csrf_protect
 def manage_team_projects(request, team):
     result = plugins.first('has_perm', request.user, 'edit_team', team)
     if result is False and not request.user.has_perm('sentry.can_change_team'):
@@ -150,30 +174,6 @@ def manage_team_members(request, team):
     })
 
     return render_to_response('sentry/teams/members/index.html', context, request)
-
-
-@has_access(MEMBER_OWNER)
-@csrf_protect
-def remove_team(request, team):
-    if not can_remove_team(request.user, team):
-        return HttpResponseRedirect(reverse('sentry'))
-
-    form = RemoveTeamForm(request.POST or None)
-
-    if form.is_valid():
-        team.delete()
-        return HttpResponseRedirect(reverse('sentry-team-list'))
-
-    context = csrf(request)
-    context.update({
-        'page': 'settings',
-        'form': form,
-        'team': team,
-        'SECTION': 'team',
-        'SUBSECTION': 'settings',
-    })
-
-    return render_to_response('sentry/teams/remove.html', context, request)
 
 
 @csrf_protect
@@ -466,3 +466,48 @@ def create_new_team_project(request, team):
     })
 
     return render_to_response('sentry/teams/projects/new.html', context, request)
+
+
+@has_access(MEMBER_OWNER)
+@csrf_protect
+def manage_access_groups(request, team):
+    result = plugins.first('has_perm', request.user, 'edit_team', team)
+    if result is False and not request.user.has_perm('sentry.can_change_team'):
+        return HttpResponseRedirect(reverse('sentry'))
+
+    context = csrf(request)
+    context.update({
+        'can_add_group': True,
+        'team': team,
+        'group_list': AccessGroup.objects.filter(team=team),
+        'SECTION': 'team',
+        'SUBSECTION': 'groups',
+    })
+
+    return render_to_response('sentry/teams/groups/list.html', context, request)
+
+
+@csrf_protect
+@has_access(MEMBER_OWNER)
+def new_access_group(request, team):
+    initial = {
+        'type': MEMBER_USER,
+    }
+
+    form = NewAccessGroupForm(request.POST or None, initial=initial)
+    if form.is_valid():
+        inst = form.save(commit=False)
+        inst.team = team
+        inst.managed = False
+        inst.save()
+        return HttpResponseRedirect(reverse('sentry-manage-access-groups', args=[team.slug]))
+
+    context = csrf(request)
+    context.update({
+        'team': team,
+        'form': form,
+        'SECTION': 'team',
+        'SUBSECTION': 'groups',
+    })
+
+    return render_to_response('sentry/teams/groups/new.html', context, request)

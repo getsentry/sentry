@@ -1,0 +1,48 @@
+{% extends "sentry/teams/manage.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider"></li>
+    <li><a href="{% url sentry-manage-access-groups team.slug %}">{% trans "Access Groups" %}</a></li>
+{% endblock %}
+
+{% block bodyclass %} with-sidebar{% endblock %}
+
+{% block inner %}
+    <div class="page-header">
+        {% if can_add_group %}
+            <a href="{% url sentry-new-access-group team.slug %}" class="btn pull-right btn-primary">{% trans "New Access Group" %}</a>
+        {% endif %}
+        <h2>{% trans "Access Groups" %}</h2>
+    </div>
+    {% if group_list %}
+        <table class="table table-striped">
+            <colgroup>
+                <col/>
+                <col width="100px"/>
+                <col width="100px"/>
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>{% trans "Name" %}</th>
+                    <th style="text-align:center;">{% trans "Access" %}</th>
+                    <th style="text-align:center">{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for group in group_list %}
+                    <tr>
+                        <td><a href="#">{{ group.name }}</a></td>
+                        <td style="text-align:center">{{ group.get_type_display }}</td>
+                        <td style="text-align:center"><a href="#" class="btn">{% trans "Remove" %}</a></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>{% trans "You have not created any access groups yet." %}</p>
+    {% endif %}
+{% endblock %}

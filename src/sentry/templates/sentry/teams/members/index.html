@@ -9,6 +9,14 @@
     <li><a href="{% url sentry-manage-team-members team.slug %}">{% trans "Members" %}</a></li>
 {% endblock %}
 
+{% block bodyclass %} with-sidebar{% endblock %}
+
+{% block sidebar %}
+    <h6>{% trans "About Memberships" %}</h6>
+    {% url sentry-manage-team-access-groups team.slug as link %}
+    <p>{% blocktrans %}This page lists team-wide memberships whom have access to all projects owned by this team. If you wish to add memberships bound to individual projects, you can do so with <a href="{{ link }}">Access Groups</a>.{% endblocktrans %}</p>
+{% endblock %}
+
 {% block inner %}
     <div class="page-header">
         {% if can_add_member %}
@@ -20,14 +28,13 @@
         <colgroup>
             <col/>
             <col width="100px"/>
-            <col width="90px"/>
-            <col width="90px"/>
+            <col width="180px"/>
         </colgroup>
         <thead>
             <tr>
                 <th>{% trans "User" %}</th>
-                <th style="text-align:center">{% trans "Access" %}</th>
-                <th colspan="2" style="text-align:center">{% trans "Actions" %}</th>
+                <th style="text-align:center;">{% trans "Access" %}</th>
+                <th style="text-align:center">{% trans "Actions" %}</th>
             </tr>
         </thead>
         <tbody>
@@ -45,14 +52,13 @@
                         {% endif %}
                     </td>
                     {% if user == team.owner %}
-                        <td style="text-align:center;" colspan="2">
+                        <td style="text-align:center;">
                             <em>{% trans "unavailable for owner" %}</em>
                         </td>
                     {% else %}
                         <td style="text-align:center;">
                             <a href="{% url sentry-remove-team-member team.slug member.pk %}" class="btn btn-danger btn-small">{% trans "Remove" %}</a>
-                        </td>
-                        <td style="text-align:center;">
+
                             {% if member.is_active %}
                                 <a href="{% url sentry-suspend-team-member team.slug member.pk %}" class="btn btn-small">{% trans "Suspend" %}</a>
                             {% else %}
