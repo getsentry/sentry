@@ -32,7 +32,7 @@ from sentry.utils.queue import maybe_delay
 logger = logging.getLogger('sentry.coreapi.errors')
 
 MAX_CULPRIT_LENGTH = 200
-MAX_MESSAGE_LENGTH = 1000
+MAX_MESSAGE_LENGTH = 5000
 
 INTERFACE_ALIASES = {
     'exception': 'sentry.interfaces.Exception',

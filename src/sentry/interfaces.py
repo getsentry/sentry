@@ -169,7 +169,7 @@ class Message(Interface):
         self.params = params
 
     def validate(self):
-        assert len(self.message) <= 1000
+        assert len(self.message) <= 5000
 
     def serialize(self):
         return {
