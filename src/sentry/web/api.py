@@ -525,7 +525,7 @@ def get_group_trends(request, team=None, project=None):
     limit = min(100, int(request.REQUEST.get('limit', 10)))
 
     if team:
-        project_dict = dict((p.id, p) for p in Project.objects.filter(team=team))
+        project_dict = get_project_list(request.user, team=team)
     elif project:
         project_dict = {project.id: project}
     else:
@@ -568,7 +568,7 @@ def get_new_groups(request, team=None, project=None):
     limit = min(100, int(request.REQUEST.get('limit', 10)))
 
     if team:
-        project_dict = dict((p.id, p) for p in Project.objects.filter(team=team))
+        project_dict = get_project_list(request.user, team=team)
     elif project:
         project_dict = {project.id: project}
     else:
@@ -602,7 +602,7 @@ def get_resolved_groups(request, team=None, project=None):
     limit = min(100, int(request.REQUEST.get('limit', 10)))
 
     if team:
-        project_list = list(Project.objects.filter(team=team))
+        project_list = get_project_list(request.user, team=team).values()
     elif project:
         project_list = [project]
     else:

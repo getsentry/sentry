@@ -25,15 +25,18 @@ from sentry.permissions import can_create_projects, can_create_teams
 logger = logging.getLogger('sentry.errors')
 
 
-def get_project_list(user=None, access=None, hidden=False, key='id', select_related=None):
+def get_project_list(user=None, access=None, hidden=False, key='id', team=None):
     """
     Returns a SortedDict of all projects a user has some level of access to.
     """
+    # TODO: the result of this function should be cached
+    is_authenticated = (user and user.is_authenticated())
+
     base_qs = Project.objects
     if not hidden:
         base_qs = base_qs.filter(status=0)
-    if select_related is not None:
-        base_qs = base_qs.select_related(*select_related)
+    if team:
+        base_qs = base_qs.filter(team=team)
 
     # Collect kwarg queries to filter on. We can use this to perform a single
     # query to get all of the desired projects ordered by name
@@ -47,14 +50,19 @@ def get_project_list(user=None, access=None, hidden=False, key='id', select_rela
         return SortedDict()
 
     # If the user is authenticated, include their memberships
-    if user and user.is_authenticated():
+    if is_authenticated:
         teams = Team.objects.get_for_user(user, access).values()
         if not teams and access is not None:
             return SortedDict()
         filters |= Q(team__in=teams)
 
+    projects = set(base_qs.filter(filters))
+
+    if is_authenticated:
+        projects |= set(base_qs.filter(accessgroup__members=user))
+
     return SortedDict((getattr(p, key), p)
-        for p in base_qs.filter(filters).order_by('name'))
+        for p in sorted(projects, key=lambda x: x.name))
 
 
 def get_team_list(user, access=None):
@@ -131,10 +139,7 @@ def get_default_context(request, existing_context=None, team=None):
             })
 
         if not existing_context or 'PROJECT_LIST' not in existing_context:
-            if team:
-                project_list = Project.objects.filter(team=team)
-            else:
-                project_list = get_project_list(request.user).values()
+            project_list = get_project_list(request.user, team=team).values()
             context['PROJECT_LIST'] = sorted(project_list, key=lambda x: x.name)
         if not existing_context or 'TEAM_LIST' not in existing_context:
             context['TEAM_LIST'] = sorted(Team.objects.get_for_user(request.user).values(), key=lambda x: x.name)

@@ -84,7 +84,7 @@ def has_access(access_or_func=None, team=None, access=None):
                             return HttpResponseRedirect(reverse('sentry'))
                 else:
                     key, value = lookup_kwargs.items()[0]
-                    project_list = get_project_list(request.user, access, key=key)
+                    project_list = get_project_list(request.user, access, key=key, team=team)
 
                     try:
                         project = project_list[value]
