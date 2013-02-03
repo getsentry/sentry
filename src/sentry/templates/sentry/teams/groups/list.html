@@ -35,7 +35,7 @@
             <tbody>
                 {% for group in group_list %}
                     <tr>
-                        <td><a href="#">{{ group.name }}</a></td>
+                        <td><a href="#">{{ group.name }}</a>{% if group.managed %} ({% trans "automatically managed" %}){% endif %}</td>
                         <td style="text-align:center">{{ group.get_type_display }}</td>
                         <td style="text-align:center"><a href="#" class="btn">{% trans "Remove" %}</a></td>
                     </tr>
