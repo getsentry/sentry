@@ -13,7 +13,8 @@ import itertools
 import urlparse
 
 from pygments import highlight
-from pygments.lexers import get_lexer_for_filename, TextLexer, ClassNotFound
+# from pygments.lexers import get_lexer_for_filename, TextLexer, ClassNotFound
+from pygments.lexers import TextLexer
 from pygments.formatters import HtmlFormatter
 
 from django.http import QueryDict
