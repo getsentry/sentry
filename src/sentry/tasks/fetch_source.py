@@ -6,6 +6,7 @@ sentry.tasks.fetch_source
 :license: BSD, see LICENSE for more details.
 """
 
+import zlib
 import hashlib
 import urllib2
 from collections import namedtuple
@@ -99,7 +100,13 @@ def fetch_url(url, logger=None):
         opener.addheaders = [('User-Agent', 'Sentry/%s' % sentry.VERSION)]
         req = opener.open(url)
         headers = dict(req.headers)
-        body = req.read().rstrip('\n')
+        body = req.read()
+        if headers.get('content-encoding') == 'gzip':
+            # Content doesn't *have* to respect the Accept-Encoding header
+            # and may send gzipped data regardless.
+            # See: http://stackoverflow.com/questions/2423866/python-decompressing-gzip-chunk-by-chunk/2424549#2424549
+            body = zlib.decompress(body, 16 + zlib.MAX_WBITS)
+        body = body.rstrip('\n')
     except Exception:
         if logger:
             logger.error('Unable to fetch remote source for %r', url, exc_info=True)
