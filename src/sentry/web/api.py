@@ -100,18 +100,28 @@ class APIView(BaseView):
 
     @csrf_exempt
     def dispatch(self, request, project_id=None, *args, **kwargs):
-        origin = self.get_request_origin(request)
+        try:
+            origin = self.get_request_origin(request)
 
-        response = self._dispatch(request, project_id=project_id, *args, **kwargs)
+            response = self._dispatch(request, project_id=project_id, *args, **kwargs)
+        except Exception:
+            response = HttpResponse(status=500)
 
         if response.status_code != 200:
             # Set X-Sentry-Error as in many cases it is easier to inspect the headers
             response['X-Sentry-Error'] = response.content[:200]  # safety net on content length
 
-            logger.info('status=%s project_id=%s %s', response.status_code, project_id,
+            if response.status_code == 500:
+                func = logger.error
+                exc_info = True
+            else:
+                func = logger.info
+                exc_info = None
+
+            func('status=%s project_id=%s %s', response.status_code, project_id,
                 response['X-Sentry-Error'], extra={
                     'request': request,
-                },
+                }, exc_info=exc_info,
             )
 
             if origin:
