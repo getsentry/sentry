@@ -7,6 +7,7 @@ import mock
 import pytest
 
 from django.utils import timezone
+from sentry.constants import MEMBER_USER
 from sentry.interfaces import Interface
 from sentry.manager import get_checksum_from_event
 from sentry.models import Event, Group, Project, MessageCountByMinute, ProjectCountByMinute, \
@@ -310,3 +311,38 @@ class GetChecksumFromEventTest(TestCase):
         stack_comp_hash.assert_called_once_with(interfaces=event.interfaces)
         assert not http_comp_hash.called
         assert checksum == '3858f62230ac3c915f300c664312c63f'
+
+
+class ProjectManagerTest(TestCase):
+    def setUp(self):
+        self.project = Project.objects.get()
+        self.project.update(public=True)
+        self.project2 = Project.objects.create(name='Test', slug='test', owner=self.user, public=False)
+
+    @mock.patch('sentry.models.Team.objects.get_for_user', mock.Mock(return_value={}))
+    def test_includes_public_projects_without_access(self):
+        project_list = Project.objects.get_for_user(self.user)
+        self.assertEquals(len(project_list), 1)
+        self.assertIn(self.project, project_list)
+
+    @mock.patch('sentry.models.Team.objects.get_for_user', mock.Mock(return_value={}))
+    def test_does_exclude_public_projects_without_access(self):
+        project_list = Project.objects.get_for_user(self.user, MEMBER_USER)
+        self.assertEquals(len(project_list), 0)
+
+    @mock.patch('sentry.models.Team.objects.get_for_user')
+    def test_does_include_private_projects_without_access(self, get_for_user):
+        get_for_user.return_value = {self.project2.team.id: self.project2.team}
+        project_list = Project.objects.get_for_user(self.user)
+        get_for_user.assert_called_once_with(self.user, None)
+        self.assertEquals(len(project_list), 2)
+        self.assertIn(self.project, project_list)
+        self.assertIn(self.project2, project_list)
+
+    @mock.patch('sentry.models.Team.objects.get_for_user')
+    def test_does_exclude_public_projects_but_include_private_with_access(self, get_for_user):
+        get_for_user.return_value = {self.project2.team.id: self.project2.team}
+        project_list = Project.objects.get_for_user(self.user, MEMBER_USER)
+        get_for_user.assert_called_once_with(self.user, MEMBER_USER)
+        self.assertEquals(len(project_list), 1)
+        self.assertIn(self.project2, project_list)

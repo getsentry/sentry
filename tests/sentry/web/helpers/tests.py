@@ -4,7 +4,6 @@ from __future__ import absolute_import
 
 import mock
 
-from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from sentry.constants import MEMBER_USER
 from sentry.models import Project
@@ -14,7 +13,6 @@ from sentry.testutils import TestCase
 
 class GetProjectListTest(TestCase):
     def setUp(self):
-        self.user = User.objects.create(username="admin", email="admin@localhost")
         self.project = Project.objects.get()
         self.project.update(public=True)
         self.project2 = Project.objects.create(name='Test', slug='test', owner=self.user, public=False)
