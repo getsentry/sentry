@@ -100,7 +100,10 @@ def client_metadata(client=None, exception=None, tags=None, extra=None):
     if exception:
         tags['exc_type'] = type(exception).__name__
 
-    return {'extra': extra}
+    result = {'extra': extra}
+    if exception:
+        result['exc_info'] = True
+    return result
 
 
 def extract_auth_vars(request):
