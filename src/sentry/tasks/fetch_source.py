@@ -62,7 +62,7 @@ def discover_sourcemap(result, logger=None):
     """
     # When coercing the headers returned by urllib to a dict
     # all keys become lowercase so they're normalized
-    sourcemap = result.headers.get('x-sourcemap')
+    sourcemap = result.headers.get('sourcemap', result.headers.get('x-sourcemap'))
 
     if not sourcemap:
         parsed_body = result.body.splitlines()
