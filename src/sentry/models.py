@@ -188,7 +188,7 @@ class Project(Model):
     def delete(self):
         # This hadles cascades properly
         # TODO: this doesnt clean up the index
-        for model in (Event, Group, FilterValue, MessageFilterValue, MessageCountByMinute):
+        for model in (Event, Group, FilterValue, GroupTag, MessageCountByMinute):
             model.objects.filter(project=self).delete()
         super(Project, self).delete()
 
@@ -206,13 +206,13 @@ class Project(Model):
                 )
             except Group.DoesNotExist:
                 group.update(project=project)
-                for model in (Event, MessageFilterValue, MessageCountByMinute):
+                for model in (Event, GroupTag, MessageCountByMinute):
                     model.objects.filter(project=self, group=group).update(project=project)
             else:
                 Event.objects.filter(group=group).update(group=other)
 
-                for obj in MessageFilterValue.objects.filter(group=group):
-                    obj2, created = MessageFilterValue.objects.get_or_create(
+                for obj in GroupTag.objects.filter(group=group):
+                    obj2, created = GroupTag.objects.get_or_create(
                         project=project,
                         group=group,
                         key=obj.key,
@@ -531,7 +531,7 @@ class Group(EventBase):
         return module, self.data['version']
 
     def get_unique_tags(self, tag):
-        return self.messagefiltervalue_set.filter(
+        return self.grouptag_set.filter(
             key=tag,
         ).values_list(
             'value',
@@ -546,7 +546,7 @@ class Group(EventBase):
 
     def get_tags(self):
         if not hasattr(self, '_tag_cache'):
-            tags = sorted(self.messagefiltervalue_set.values_list('key', flat=True).distinct())
+            tags = sorted(self.grouptag_set.values_list('key', flat=True).distinct())
             self._tag_cache = tags
         return self._tag_cache
 
@@ -713,7 +713,7 @@ class FilterValue(Model):
     __repr__ = sane_repr('project_id', 'key', 'value')
 
 
-class MessageFilterValue(Model):
+class GroupTag(Model):
     """
     Stores the total number of messages seen by a group matching
     the given filter.
@@ -729,6 +729,7 @@ class MessageFilterValue(Model):
     objects = BaseManager()
 
     class Meta:
+        db_table = 'sentry_messagefiltervalue'
         unique_together = (('project', 'key', 'value', 'group'),)
 
     __repr__ = sane_repr('project_id', 'group_id', 'key', 'value')
@@ -736,7 +737,10 @@ class MessageFilterValue(Model):
     def save(self, *args, **kwargs):
         if not self.first_seen:
             self.first_seen = self.last_seen
-        super(MessageFilterValue, self).save(*args, **kwargs)
+        super(GroupTag, self).save(*args, **kwargs)
+
+# Legacy
+MessageFilterValue = GroupTag
 
 
 class MessageCountByMinute(Model):
@@ -1002,7 +1006,7 @@ def create_default_project(created_models, verbosity=2, **kwargs):
             print 'Created internal Sentry project (slug=%s, id=%s)' % (project.slug, project.id)
 
         # Iterate all groups to update their relations
-        for model in (Group, Event, FilterValue, MessageFilterValue,
+        for model in (Group, Event, FilterValue, GroupTag,
                       MessageCountByMinute):
             if verbosity > 0:
                 print ('Backfilling project ids for %s.. ' % model),

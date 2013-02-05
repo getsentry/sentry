@@ -93,12 +93,12 @@ class TagFilter(Filter):
         col, val = self.get_column(), self.get_value()
         if queryset.model == Event:
             queryset = queryset.filter(**dict(
-                group__messagefiltervalue__key=col,
-                group__messagefiltervalue__value=val,
+                group__grouptag__key=col,
+                group__grouptag__value=val,
             ))
         else:
             queryset = queryset.filter(**dict(
-                messagefiltervalue__key=col,
-                messagefiltervalue__value=val,
+                grouptag__key=col,
+                grouptag__value=val,
             ))
         return queryset.distinct()
