@@ -225,7 +225,7 @@ def search(request, team, project):
                 'SECTION': 'events',
             }, request)
         else:
-            return HttpResponseRedirect(reverse('sentry-group-event', {
+            return HttpResponseRedirect(reverse('sentry-group-event', kwargs={
                 'project_id': event.project.slug,
                 'team_slug': event.team.slug,
                 'group_id': event.group.id,
