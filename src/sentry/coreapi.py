@@ -360,7 +360,7 @@ def validate_data(project, data, client=None):
                 log = logger.warning
             else:
                 log = logger.error
-            log('Discarding invalid value for interface: %s', k,
+            log('Discarded invalid value for interface: %s', k,
                 **client_metadata(client, exception=e, extra={'value': value}))
 
     level = data.get('level') or settings.DEFAULT_LOG_LEVEL
@@ -369,7 +369,7 @@ def validate_data(project, data, client=None):
         try:
             data['level'] = settings.LOG_LEVEL_REVERSE_MAP[level]
         except KeyError, e:
-            logger.warning('Ignored invalid logger value: %s', level, **client_metadata(client, exception=e))
+            logger.warning('Discarded invalid logger value: %s', level, **client_metadata(client, exception=e))
             data['level'] = settings.LOG_LEVEL_REVERSE_MAP.get(settings.DEFAULT_LOG_LEVEL,
                 settings.DEFAULT_LOG_LEVEL)
 
