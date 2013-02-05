@@ -20,7 +20,7 @@ from django.utils.encoding import smart_str
 
 from sentry.app import env
 from sentry.conf import settings
-from sentry.exceptions import InvalidInterface, InvalidData, InvalidTimestamp
+from sentry.exceptions import InvalidTimestamp
 from sentry.models import Project, ProjectKey, TeamMember, Team
 from sentry.plugins import plugins
 from sentry.tasks.store import store_event
@@ -297,32 +297,35 @@ def validate_data(project, data, client=None):
     if not data.get('message'):
         data['message'] = '<no message value>'
     elif len(data['message']) > MAX_MESSAGE_LENGTH:
-        logger.error('Value for message was too long (%d chars)', len(data['message']), **client_metadata(client))
-        raise InvalidData('Value \'message\' is too long. Input is %d chars, max is %s.' % (
-            len(data['message']), MAX_MESSAGE_LENGTH))
+        logger.error('Truncated value for message was too long (%d chars)', len(data['message']),
+            **client_metadata(client))
+        data['message'] = data['message'][:MAX_MESSAGE_LENGTH]
 
-    if data.get('culprit') and len(data['culprit']) > 200:
-        logger.error('Value for culprit was too long (%d chars)', len(data['culprit']), **client_metadata(client))
-        raise InvalidData('Value \'culprit\' is too long. Input is %d chars, max is %s.' % (
-            len(data['culprit']), MAX_CULPRIT_LENGTH))
+    if data.get('culprit') and len(data['culprit']) > MAX_CULPRIT_LENGTH:
+        logger.error('Truncated value for culprit was too long (%d chars)', len(data['culprit']),
+            **client_metadata(client))
+        data['culprit'][:MAX_CULPRIT_LENGTH]
 
     if not data.get('event_id'):
         data['event_id'] = uuid.uuid4().hex
-    elif len(data['event_id']) > 32:
-        logger.error('Value for event_id was too long (%d chars)', len(data['event_id']), **client_metadata(client))
-        raise InvalidData('Invalid value for \'event_id\': must be a 32 character identifier')
+    if len(data['event_id']) > 32:
+        logger.error('Discarded value for event_id was too long (%d chars)', len(data['event_id']),
+            **client_metadata(client))
+        data['event_id'] = uuid.uuid4().hex
 
     if 'timestamp' in data:
         try:
             process_data_timestamp(data)
         except InvalidTimestamp, e:
             # Log the error, remove the timestamp, and continue
-            logger.info('Discarding invalid value for timestamp: %r', data['timestamp'], **client_metadata(client, exception=e))
+            logger.info('Discarded invalid value for timestamp: %r', data['timestamp'],
+                **client_metadata(client, exception=e))
             del data['timestamp']
 
     if data.get('modules') and type(data['modules']) != dict:
-        logger.error('Invalid type for modules: %s', type(data['modules']), **client_metadata(client))
-        raise InvalidData('Invalid type for \'modules\': must be a mapping')
+        logger.error('Discardied invalid type for modules: %s', type(data['modules']),
+            **client_metadata(client))
+        del data['modules']
 
     for k in data.keys():
         if k in RESERVED_FIELDS:
@@ -343,8 +346,9 @@ def validate_data(project, data, client=None):
         try:
             interface = import_string(import_path)
         except (ImportError, AttributeError), e:
-            logger.warning('Invalid interface name: %s', k, **client_metadata(client, exception=e))
-            raise InvalidInterface('%r is not a valid interface name: %s' % (k, e))
+            logger.warning('Invalid unknown attribute: %s', k, **client_metadata(client, exception=e))
+            del data[k]
+            continue
 
         value = data.pop(k)
         try:
@@ -356,9 +360,8 @@ def validate_data(project, data, client=None):
                 log = logger.warning
             else:
                 log = logger.error
-            log('Invalid value for interface: %s', k,
+            log('Discarding invalid value for interface: %s', k,
                 **client_metadata(client, exception=e, extra={'value': value}))
-            raise InvalidData('Unable to validate interface, %r: %s' % (k, e))
 
     level = data.get('level') or settings.DEFAULT_LOG_LEVEL
     if isinstance(level, basestring) and not level.isdigit():
@@ -367,7 +370,8 @@ def validate_data(project, data, client=None):
             data['level'] = settings.LOG_LEVEL_REVERSE_MAP[level]
         except KeyError, e:
             logger.warning('Ignored invalid logger value: %s', level, **client_metadata(client, exception=e))
-            raise InvalidData('Invalid logging level specified: %r' % level)
+            data['level'] = settings.LOG_LEVEL_REVERSE_MAP.get(settings.DEFAULT_LOG_LEVEL,
+                settings.DEFAULT_LOG_LEVEL)
 
     return data
 

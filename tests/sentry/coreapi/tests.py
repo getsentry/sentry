@@ -8,7 +8,7 @@ import mock
 from django.contrib.auth.models import User
 
 from sentry.models import Project
-from sentry.exceptions import InvalidTimestamp, InvalidInterface, InvalidData
+from sentry.exceptions import InvalidTimestamp
 from sentry.coreapi import (project_from_id, project_from_api_key_and_id,
     extract_auth_vars, project_from_auth_vars, APIUnauthorized, APIForbidden,
     process_data_timestamp, insert_data_to_database, validate_data, INTERFACE_ALIASES)
@@ -239,11 +239,12 @@ class ValidateDataTest(BaseAPITest):
         data = validate_data(self.project, {})
         assert data['event_id'] == uuid4.return_value.hex
 
-    def test_invalid_event_id(self):
-        with self.assertRaises(InvalidData):
-            validate_data(self.project, {
-                'event_id': 'a' * 33,
-            })
+    @mock.patch('uuid.uuid4')
+    def test_invalid_event_id(self, uuid4):
+        data = validate_data(self.project, {
+            'event_id': 'a' * 33,
+        })
+        assert data['event_id'] == uuid4.return_value.hex
 
     def test_invalid_project_id(self):
         with self.assertRaises(APIForbidden):
@@ -254,35 +255,31 @@ class ValidateDataTest(BaseAPITest):
 
     def test_unknown_attribute(self):
         data = validate_data(self.project, {
-            'project': self.project.slug,
             'message': 'foo',
             'foo': 'bar',
         })
         assert 'foo' not in data
 
     def test_invalid_interface_name(self):
-        with self.assertRaises(InvalidInterface):
-            validate_data(self.project, {
-                'project': self.project.id,
-                'message': 'foo',
-                'foo.baz': 'bar',
-            })
+        data = validate_data(self.project, {
+            'message': 'foo',
+            'foo.baz': 'bar',
+        })
+        assert 'foo.baz' not in data
 
     def test_invalid_interface_import_path(self):
-        with self.assertRaises(InvalidInterface):
-            validate_data(self.project, {
-                'project': self.project.id,
-                'message': 'foo',
-                'sentry.interfaces.Exception2': 'bar',
-            })
+        data = validate_data(self.project, {
+            'message': 'foo',
+            'sentry.interfaces.Exception2': 'bar',
+        })
+        assert 'sentry.interfaces.Exception2' not in data
 
     def test_invalid_interface_args(self):
-        with self.assertRaises(InvalidData):
-            validate_data(self.project, {
-                'project': self.project.id,
-                'message': 'foo',
-                'tests.manager.tests.DummyInterface': {'foo': 'bar'}
-            })
+        data = validate_data(self.project, {
+            'message': 'foo',
+            'tests.manager.tests.DummyInterface': {'foo': 'bar'}
+        })
+        assert 'tests.manager.tests.DummyInterface' not in data
 
     @mock.patch('sentry.coreapi.import_string')
     def test_an_alias_maps_correctly(self, import_string):
@@ -302,9 +299,15 @@ class ValidateDataTest(BaseAPITest):
 
     def test_log_level_as_string(self):
         data = validate_data(self.project, {
-            'project': self.project.id,
             'message': 'foo',
             'level': 'error',
+        })
+        assert data['level'] == 40
+
+    def test_invalid_log_level(self):
+        data = validate_data(self.project, {
+            'message': 'foo',
+            'level': 'foobar',
         })
         assert data['level'] == 40
 
