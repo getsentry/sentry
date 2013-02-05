@@ -24,7 +24,7 @@ from django.views.decorators.csrf import csrf_protect
 
 from sentry import environment
 from sentry.conf import settings
-from sentry.models import Project, MessageCountByMinute
+from sentry.models import Project, GroupCountByMinute
 from sentry.plugins import plugins
 from sentry.web.forms import NewUserForm, ChangeUserForm, RemoveUserForm, TestEmailForm
 from sentry.web.decorators import requires_admin
@@ -320,8 +320,8 @@ def stats(request):
         ('Projects (24h)', Project.objects.filter(
             date_added__gte=timezone.now() - datetime.timedelta(hours=24),
         ).count()),
-        ('Events', MessageCountByMinute.objects.aggregate(x=Sum('times_seen'))['x'] or 0),
-        ('Events (24h)', MessageCountByMinute.objects.filter(
+        ('Events', GroupCountByMinute.objects.aggregate(x=Sum('times_seen'))['x'] or 0),
+        ('Events (24h)', GroupCountByMinute.objects.filter(
             date__gte=timezone.now() - datetime.timedelta(hours=24),
         ).aggregate(x=Sum('times_seen'))['x'] or 0)
     )

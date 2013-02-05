@@ -100,7 +100,10 @@ def client_metadata(client=None, exception=None, tags=None, extra=None):
     if exception:
         tags['exc_type'] = type(exception).__name__
 
-    return {'extra': extra}
+    result = {'extra': extra}
+    if exception:
+        result['exc_info'] = True
+    return result
 
 
 def extract_auth_vars(request):
@@ -314,7 +317,7 @@ def validate_data(project, data, client=None):
             process_data_timestamp(data)
         except InvalidTimestamp, e:
             # Log the error, remove the timestamp, and continue
-            logger.warning('Invalid value for timestamp: %r', data['timestamp'], **client_metadata(client, exception=e))
+            logger.info('Discarding invalid value for timestamp: %r', data['timestamp'], **client_metadata(client, exception=e))
             del data['timestamp']
 
     if data.get('modules') and type(data['modules']) != dict:
@@ -326,7 +329,7 @@ def validate_data(project, data, client=None):
             continue
 
         if not data[k]:
-            logger.warning('Ignored empty interface value: %s', k, **client_metadata(client))
+            logger.info('Ignored empty interface value: %s', k, **client_metadata(client))
             del data[k]
             continue
 
@@ -350,10 +353,10 @@ def validate_data(project, data, client=None):
             data[import_path] = inst.serialize()
         except Exception, e:
             if isinstance(e, AssertionError):
-                func = logger.warning
+                log = logger.warning
             else:
-                func = logger.error
-            func('Invalid value for interface: %s', k,
+                log = logger.error
+            log('Invalid value for interface: %s', k,
                 **client_metadata(client, exception=e, extra={'value': value}))
             raise InvalidData('Unable to validate interface, %r: %s' % (k, e))
 

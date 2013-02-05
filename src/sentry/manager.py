@@ -282,7 +282,7 @@ class ChartMixin(object):
         else:
             db = 'default'
 
-        field = self.model.messagecountbyminute_set.related
+        field = self.model.groupcountbyminute_set.related
         column = field.field.name
         queryset = field.model.objects.filter(**{
             '%s__in' % column: instances,
@@ -296,7 +296,7 @@ class ChartMixin(object):
         else:
             db = 'default'
 
-        queryset = instance.messagecountbyminute_set
+        queryset = instance.groupcountbyminute_set
 
         return self._get_chart_data(queryset, max_days, db, key=key)
 
@@ -501,7 +501,7 @@ class GroupManager(BaseManager, ChartMixin):
         return event
 
     def _create_group(self, event, tags=None, **kwargs):
-        from sentry.models import ProjectCountByMinute, MessageCountByMinute
+        from sentry.models import ProjectCountByMinute, GroupCountByMinute
 
         date = event.datetime
         time_spent = event.time_spent
@@ -576,7 +576,7 @@ class GroupManager(BaseManager, ChartMixin):
             minutes = date.minute
         normalized_datetime = date.replace(second=0, microsecond=0, minute=minutes)
 
-        app.buffer.incr(MessageCountByMinute, update_kwargs, {
+        app.buffer.incr(GroupCountByMinute, update_kwargs, {
             'group': group,
             'project': project,
             'date': normalized_datetime,
@@ -651,7 +651,7 @@ class GroupManager(BaseManager, ChartMixin):
         })
 
     def add_tags(self, group, tags):
-        from sentry.models import FilterValue, FilterKey, MessageFilterValue
+        from sentry.models import FilterValue, FilterKey, GroupTag
 
         project = group.project
         date = group.last_seen
@@ -676,7 +676,7 @@ class GroupManager(BaseManager, ChartMixin):
                 value=value,
             )
 
-            app.buffer.incr(MessageFilterValue, {
+            app.buffer.incr(GroupTag, {
                 'times_seen': 1,
             }, {
                 'group': group,
@@ -692,8 +692,8 @@ class GroupManager(BaseManager, ChartMixin):
 
     def get_accelerated(self, project_ids, queryset=None, minutes=15):
         # mintues should
-        from sentry.models import MessageCountByMinute
-        mcbm_tbl = MessageCountByMinute._meta.db_table
+        from sentry.models import GroupCountByMinute
+        mcbm_tbl = GroupCountByMinute._meta.db_table
         if queryset is None:
             queryset = self
 
@@ -717,7 +717,7 @@ class GroupManager(BaseManager, ChartMixin):
 
         epoch_clause = epoch_clause % dict(mcbm_tbl=mcbm_tbl)
 
-        queryset = queryset.annotate(x=Sum('messagecountbyminute__times_seen')).order_by('id')
+        queryset = queryset.annotate(x=Sum('groupcountbyminute__times_seen')).order_by('id')
 
         sql, params = queryset.query.get_compiler(queryset.db).as_sql()
         before_select, after_select = str(sql).split('SELECT ', 1)

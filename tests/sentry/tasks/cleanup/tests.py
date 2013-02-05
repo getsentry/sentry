@@ -3,12 +3,12 @@
 from __future__ import absolute_import
 
 from celery.task import Task
-from sentry.models import (Event, Group, MessageCountByMinute,
-    MessageFilterValue, ProjectCountByMinute, FilterValue, FilterKey)
+from sentry.models import (Event, Group, GroupCountByMinute,
+    GroupTag, ProjectCountByMinute, FilterValue, FilterKey)
 from sentry.tasks.cleanup import cleanup
 from sentry.testutils import TestCase
 
-ALL_MODELS = (Event, Group, ProjectCountByMinute, MessageCountByMinute, MessageFilterValue,
+ALL_MODELS = (Event, Group, ProjectCountByMinute, GroupCountByMinute, GroupTag,
               FilterValue, FilterKey)
 
 

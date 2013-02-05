@@ -83,8 +83,8 @@ def _get_group_list(request, project):
 
     if date_from and date_to:
         event_list = event_list.filter(
-            messagecountbyminute__date__gte=date_from,
-            messagecountbyminute__date__lte=date_to,
+            groupcountbyminute__date__gte=date_from,
+            groupcountbyminute__date__lte=date_to,
         )
     elif date_from:
         event_list = event_list.filter(last_seen__gte=date_from)
@@ -225,7 +225,7 @@ def search(request, team, project):
                 'SECTION': 'events',
             }, request)
         else:
-            return HttpResponseRedirect(reverse('sentry-group-event', {
+            return HttpResponseRedirect(reverse('sentry-group-event', kwargs={
                 'project_id': event.project.slug,
                 'team_slug': event.team.slug,
                 'group_id': event.group.id,

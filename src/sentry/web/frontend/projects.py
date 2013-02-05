@@ -256,7 +256,11 @@ def manage_project_tags(request, team, project):
 
     if form and form.is_valid():
         form.save()
-        return HttpResponseRedirect(reverse('sentry-manage-project-tags', args=[project.slug]) + '?success=1')
+
+        messages.add_message(request, messages.SUCCESS,
+            _('Your settings were saved successfully.'))
+
+        return HttpResponseRedirect(reverse('sentry-manage-project-tags', args=[project.team.slug, project.slug]))
 
     context = {
         'team': team,
@@ -282,7 +286,11 @@ def manage_plugins(request, team, project):
         for plugin in plugins.all():
             if plugin.can_enable_for_projects():
                 plugin.set_option('enabled', plugin.slug in enabled, project)
-        return HttpResponseRedirect(request.path + '?success=1')
+
+        messages.add_message(request, messages.SUCCESS,
+            _('Your settings were saved successfully.'))
+
+        return HttpResponseRedirect(request.path)
 
     context = csrf(request)
     context.update({
@@ -317,7 +325,10 @@ def configure_project_plugin(request, team, project, slug):
 
     action, view = plugin_config(plugin, project, request)
     if action == 'redirect':
-        return HttpResponseRedirect(request.path + '?success=1')
+        messages.add_message(request, messages.SUCCESS,
+            _('Your settings were saved successfully.'))
+
+        return HttpResponseRedirect(request.path)
 
     context = csrf(request)
     context.update({

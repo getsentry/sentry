@@ -100,13 +100,29 @@ class APIView(BaseView):
 
     @csrf_exempt
     def dispatch(self, request, project_id=None, *args, **kwargs):
-        origin = self.get_request_origin(request)
+        try:
+            origin = self.get_request_origin(request)
 
-        response = self._dispatch(request, project_id=project_id, *args, **kwargs)
+            response = self._dispatch(request, project_id=project_id, *args, **kwargs)
+        except Exception:
+            response = HttpResponse(status=500)
 
         if response.status_code != 200:
             # Set X-Sentry-Error as in many cases it is easier to inspect the headers
             response['X-Sentry-Error'] = response.content[:200]  # safety net on content length
+
+            if response.status_code == 500:
+                log = logger.error
+                exc_info = True
+            else:
+                log = logger.info
+                exc_info = None
+
+            log('status=%s project_id=%s %s', response.status_code, project_id,
+                response['X-Sentry-Error'], extra={
+                    'request': request,
+                }, exc_info=exc_info,
+            )
 
             if origin:
                 # We allow all origins on errors
@@ -152,10 +168,6 @@ class APIView(BaseView):
             try:
                 project_, user = project_from_auth_vars(auth_vars)
             except APIError, error:
-                if project:
-                    logger.info('Project %r raised API error: %s', project.slug, error, extra={
-                        'request': request,
-                    }, exc_info=True)
                 return HttpResponse(unicode(error.msg), status=error.http_status)
             else:
                 if user:
@@ -180,9 +192,6 @@ class APIView(BaseView):
                 response = super(APIView, self).dispatch(request, project=project, auth=auth, **kwargs)
 
             except APIError, error:
-                logger.info('Project %r raised API error: %s', project.slug, error, extra={
-                    'request': request,
-                }, exc_info=True)
                 response = HttpResponse(unicode(error.msg), status=error.http_status)
 
         if origin:
@@ -259,7 +268,7 @@ class StoreView(APIView):
 
         insert_data_to_database(data)
 
-        logger.info('New event from project %r (id=%s)', project.slug, data['event_id'])
+        logger.debug('New event from project %s/%s (id=%s)', project.team.slug, project.slug, data['event_id'])
 
 
 @csrf_exempt

@@ -13,7 +13,8 @@ import itertools
 import urlparse
 
 from pygments import highlight
-from pygments.lexers import get_lexer_for_filename, TextLexer, ClassNotFound
+# from pygments.lexers import get_lexer_for_filename, TextLexer, ClassNotFound
+from pygments.lexers import TextLexer
 from pygments.formatters import HtmlFormatter
 
 from django.http import QueryDict
@@ -61,10 +62,11 @@ def get_context(lineno, context_line, pre_context=None, post_context=None, filen
         filename = 'index.html'
 
     if format:
-        try:
-            lexer = get_lexer_for_filename(filename)
-        except ClassNotFound:
-            lexer = TextLexer()
+        # try:
+        #     lexer = get_lexer_for_filename(filename)
+        # except ClassNotFound:
+        #     lexer = TextLexer()
+        lexer = TextLexer()
 
         formatter = HtmlFormatter()
 

@@ -7,7 +7,7 @@ from django.core import mail
 from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
 from sentry.models import Project, ProjectKey, Group, Event, Team, \
-  MessageFilterValue, MessageCountByMinute, FilterValue, PendingTeamMember, \
+  GroupTag, GroupCountByMinute, FilterValue, PendingTeamMember, \
   LostPasswordHash
 
 from sentry.testutils import TestCase, fixture
@@ -26,14 +26,14 @@ class ProjectTest(TestCase):
         self.assertFalse(Project.objects.filter(pk=1).exists())
         self.assertFalse(Group.objects.filter(project__isnull=True).exists())
         self.assertFalse(Event.objects.filter(project__isnull=True).exists())
-        self.assertFalse(MessageFilterValue.objects.filter(project__isnull=True).exists())
-        self.assertFalse(MessageCountByMinute.objects.filter(project__isnull=True).exists())
+        self.assertFalse(GroupTag.objects.filter(project__isnull=True).exists())
+        self.assertFalse(GroupCountByMinute.objects.filter(project__isnull=True).exists())
         self.assertFalse(FilterValue.objects.filter(project__isnull=True).exists())
 
         self.assertEquals(project2.group_set.count(), 4)
         self.assertEquals(project2.event_set.count(), 10)
-        self.assertEquals(project2.messagefiltervalue_set.count(), 0)
-        self.assertEquals(project2.messagecountbyminute_set.count(), 0)
+        self.assertEquals(project2.grouptag_set.count(), 0)
+        self.assertEquals(project2.groupcountbyminute_set.count(), 0)
         self.assertEquals(project2.filtervalue_set.count(), 0)
 
 
