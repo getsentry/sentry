@@ -9,7 +9,7 @@ import pytest
 from django.utils import timezone
 from sentry.interfaces import Interface
 from sentry.manager import get_checksum_from_event
-from sentry.models import Event, Group, Project, MessageCountByMinute, ProjectCountByMinute, \
+from sentry.models import Event, Group, Project, GroupCountByMinute, ProjectCountByMinute, \
   SearchDocument
 from sentry.utils.db import has_trending  # NOQA
 from sentry.testutils import TestCase
@@ -184,15 +184,15 @@ class SentryManagerTest(TestCase):
         Group.objects.from_kwargs(1, event_id=1, message='foo')
         self.assertEquals(Event.objects.count(), 1)
 
-    def test_does_update_messagecountbyminute(self):
+    def test_does_update_groupcountbyminute(self):
         event = Group.objects.from_kwargs(1, message='foo')
-        inst = MessageCountByMinute.objects.filter(group=event.group)
+        inst = GroupCountByMinute.objects.filter(group=event.group)
         self.assertTrue(inst.exists())
         inst = inst.get()
         self.assertEquals(inst.times_seen, 1)
 
         event = Group.objects.from_kwargs(1, message='foo')
-        inst = MessageCountByMinute.objects.get(group=event.group)
+        inst = GroupCountByMinute.objects.get(group=event.group)
         self.assertEquals(inst.times_seen, 2)
 
     def test_does_update_projectcountbyminute(self):
@@ -275,8 +275,8 @@ class TrendsTest(TestCase):
         project = Project.objects.all()[0]
         group = Group.objects.create(status=0, project=project, message='foo', checksum='a' * 32)
         group2 = Group.objects.create(status=0, project=project, message='foo', checksum='b' * 32)
-        MessageCountByMinute.objects.create(project=project, group=group, date=now, times_seen=50)
-        MessageCountByMinute.objects.create(project=project, group=group2, date=now, times_seen=40)
+        GroupCountByMinute.objects.create(project=project, group=group, date=now, times_seen=50)
+        GroupCountByMinute.objects.create(project=project, group=group2, date=now, times_seen=40)
         base_qs = Group.objects.filter(
             status=0,
         )

@@ -188,7 +188,7 @@ class Project(Model):
     def delete(self):
         # This hadles cascades properly
         # TODO: this doesnt clean up the index
-        for model in (Event, Group, FilterValue, GroupTag, MessageCountByMinute):
+        for model in (Event, Group, FilterValue, GroupTag, GroupCountByMinute):
             model.objects.filter(project=self).delete()
         super(Project, self).delete()
 
@@ -206,7 +206,7 @@ class Project(Model):
                 )
             except Group.DoesNotExist:
                 group.update(project=project)
-                for model in (Event, GroupTag, MessageCountByMinute):
+                for model in (Event, GroupTag, GroupCountByMinute):
                     model.objects.filter(project=self, group=group).update(project=project)
             else:
                 Event.objects.filter(group=group).update(group=other)
@@ -222,8 +222,8 @@ class Project(Model):
                     if not created:
                         obj2.update(times_seen=F('times_seen') + obj.times_seen)
 
-                for obj in MessageCountByMinute.objects.filter(group=group):
-                    obj2, created = MessageCountByMinute.objects.get_or_create(
+                for obj in GroupCountByMinute.objects.filter(group=group):
+                    obj2, created = GroupCountByMinute.objects.get_or_create(
                         project=project,
                         group=group,
                         date=obj.date,
@@ -743,7 +743,7 @@ class GroupTag(Model):
 MessageFilterValue = GroupTag
 
 
-class MessageCountByMinute(Model):
+class GroupCountByMinute(Model):
     """
     Stores the total number of messages seen by a group at N minute intervals.
 
@@ -760,9 +760,13 @@ class MessageCountByMinute(Model):
     objects = BaseManager()
 
     class Meta:
+        db_table = 'sentry_messagecountbyminute'
         unique_together = (('project', 'group', 'date'),)
 
     __repr__ = sane_repr('project_id', 'group_id', 'date')
+
+# Legacy
+MessageCountByMinute = GroupCountByMinute
 
 
 class ProjectCountByMinute(Model):
@@ -1007,7 +1011,7 @@ def create_default_project(created_models, verbosity=2, **kwargs):
 
         # Iterate all groups to update their relations
         for model in (Group, Event, FilterValue, GroupTag,
-                      MessageCountByMinute):
+                      GroupCountByMinute):
             if verbosity > 0:
                 print ('Backfilling project ids for %s.. ' % model),
             model.objects.filter(project__isnull=True).update(
