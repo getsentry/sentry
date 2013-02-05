@@ -304,7 +304,7 @@ def validate_data(project, data, client=None):
     if data.get('culprit') and len(data['culprit']) > MAX_CULPRIT_LENGTH:
         logger.error('Truncated value for culprit due to length (%d chars)', len(data['culprit']),
             **client_metadata(client))
-        data['culprit'][:MAX_CULPRIT_LENGTH]
+        data['culprit'] = data['culprit'][:MAX_CULPRIT_LENGTH]
 
     if not data.get('event_id'):
         data['event_id'] = uuid.uuid4().hex
