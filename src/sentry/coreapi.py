@@ -297,19 +297,19 @@ def validate_data(project, data, client=None):
     if not data.get('message'):
         data['message'] = '<no message value>'
     elif len(data['message']) > MAX_MESSAGE_LENGTH:
-        logger.error('Truncated value for message was too long (%d chars)', len(data['message']),
+        logger.error('Truncated value for message due to length (%d chars)', len(data['message']),
             **client_metadata(client))
         data['message'] = data['message'][:MAX_MESSAGE_LENGTH]
 
     if data.get('culprit') and len(data['culprit']) > MAX_CULPRIT_LENGTH:
-        logger.error('Truncated value for culprit was too long (%d chars)', len(data['culprit']),
+        logger.error('Truncated value for culprit due to length (%d chars)', len(data['culprit']),
             **client_metadata(client))
         data['culprit'][:MAX_CULPRIT_LENGTH]
 
     if not data.get('event_id'):
         data['event_id'] = uuid.uuid4().hex
     if len(data['event_id']) > 32:
-        logger.error('Discarded value for event_id was too long (%d chars)', len(data['event_id']),
+        logger.error('Discarded value for event_id due to length (%d chars)', len(data['event_id']),
             **client_metadata(client))
         data['event_id'] = uuid.uuid4().hex
 
