@@ -118,7 +118,7 @@ class AcceptInviteForm(forms.Form):
     pass
 
 
-class NewAccessGroupForm(forms.ModelForm):
+class BaseAccessGroupForm(forms.ModelForm):
     name = forms.CharField(label=_('Group Name'), max_length=200,
         widget=forms.TextInput(attrs={'placeholder': _('API Team')}))
     type = forms.ChoiceField(label=_('Access Type'), choices=MEMBER_TYPES,
@@ -127,3 +127,11 @@ class NewAccessGroupForm(forms.ModelForm):
     class Meta:
         fields = ('name', 'type')
         model = AccessGroup
+
+
+class NewAccessGroupForm(BaseAccessGroupForm):
+    pass
+
+
+class EditAccessGroupForm(BaseAccessGroupForm):
+    pass

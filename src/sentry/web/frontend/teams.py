@@ -20,7 +20,8 @@ from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms.teams import (NewTeamForm, NewTeamAdminForm,
     EditTeamForm, EditTeamAdminForm, EditTeamMemberForm, NewTeamMemberForm,
-    InviteTeamMemberForm, RemoveTeamForm, AcceptInviteForm, NewAccessGroupForm)
+    InviteTeamMemberForm, RemoveTeamForm, AcceptInviteForm, NewAccessGroupForm,
+    EditAccessGroupForm)
 from sentry.web.helpers import render_to_response
 
 
@@ -471,10 +472,6 @@ def create_new_team_project(request, team):
 @has_access(MEMBER_OWNER)
 @csrf_protect
 def manage_access_groups(request, team):
-    result = plugins.first('has_perm', request.user, 'edit_team', team)
-    if result is False and not request.user.has_perm('sentry.can_change_team'):
-        return HttpResponseRedirect(reverse('sentry'))
-
     context = csrf(request)
     context.update({
         'can_add_group': True,
@@ -511,3 +508,29 @@ def new_access_group(request, team):
     })
 
     return render_to_response('sentry/teams/groups/new.html', context, request)
+
+
+@has_access(MEMBER_OWNER)
+@csrf_protect
+def access_group_details(request, team, group_id):
+    try:
+        group = AccessGroup.objects.get(team=team, id=group_id)
+    except AccessGroup.DoesNotExist:
+        return HttpResponseRedirect(reverse('sentry-manage-access-groups', args=[team.slug]))
+
+    form = EditAccessGroupForm(request.POST or None, instance=group)
+    if form.is_valid():
+        form.save()
+
+    context = csrf(request)
+    context.update({
+        'team': team,
+        'group': group,
+        'form': form,
+        'projects': group.projects.all(),
+        'members': group.members.all(),
+        'SECTION': 'team',
+        'SUBSECTION': 'groups',
+    })
+
+    return render_to_response('sentry/teams/groups/details.html', context, request)
