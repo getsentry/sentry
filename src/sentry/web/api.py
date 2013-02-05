@@ -112,13 +112,13 @@ class APIView(BaseView):
             response['X-Sentry-Error'] = response.content[:200]  # safety net on content length
 
             if response.status_code == 500:
-                func = logger.error
+                log = logger.error
                 exc_info = True
             else:
-                func = logger.info
+                log = logger.info
                 exc_info = None
 
-            func('status=%s project_id=%s %s', response.status_code, project_id,
+            log('status=%s project_id=%s %s', response.status_code, project_id,
                 response['X-Sentry-Error'], extra={
                     'request': request,
                 }, exc_info=exc_info,

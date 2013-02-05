@@ -329,7 +329,7 @@ def validate_data(project, data, client=None):
             continue
 
         if not data[k]:
-            logger.warning('Ignored empty interface value: %s', k, **client_metadata(client))
+            logger.info('Ignored empty interface value: %s', k, **client_metadata(client))
             del data[k]
             continue
 
@@ -353,10 +353,10 @@ def validate_data(project, data, client=None):
             data[import_path] = inst.serialize()
         except Exception, e:
             if isinstance(e, AssertionError):
-                func = logger.warning
+                log = logger.warning
             else:
-                func = logger.error
-            func('Invalid value for interface: %s', k,
+                log = logger.error
+            log('Invalid value for interface: %s', k,
                 **client_metadata(client, exception=e, extra={'value': value}))
             raise InvalidData('Unable to validate interface, %r: %s' % (k, e))
 
