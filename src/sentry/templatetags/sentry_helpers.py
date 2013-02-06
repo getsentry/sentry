@@ -71,11 +71,6 @@ def as_sorted(value):
 
 
 @register.filter
-def is_dict(value):
-    return isinstance(value, dict)
-
-
-@register.filter
 def small_count(v):
     z = [
         (1000000000, _('b')),
