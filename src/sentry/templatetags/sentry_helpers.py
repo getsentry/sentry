@@ -18,6 +18,7 @@ from paging.helpers import paginate as paginate_func
 from sentry.conf import settings
 from sentry.constants import STATUS_MUTED
 from sentry.models import Group
+from sentry.web.helpers import group_is_public
 from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.javascript import to_json
 from sentry.utils.safe import safe_execute
@@ -337,10 +338,11 @@ def split(value, delim=''):
 
 
 @register.filter
-def get_rendered_interfaces(event):
+def get_rendered_interfaces(event, request):
     interface_list = []
+    is_public = group_is_public(event.group, request.user)
     for interface in event.interfaces.itervalues():
-        html = safe_execute(interface.to_html, event)
+        html = safe_execute(interface.to_html, event, is_public)
         if not html:
             continue
         interface_list.append((interface, mark_safe(html)))

@@ -3,7 +3,9 @@
 
 <div class="module">
     <div class="page-header">
-        <a href="{% url sentry-replay event.team.slug event.project.slug event.id %}" class="btn small pull-right">{% trans "Replay this request" %}</a>
+        {% if not is_public %}
+            <a href="{% url sentry-replay event.team.slug event.project.slug event.id %}" class="btn small pull-right">{% trans "Replay this request" %}</a>
+        {% endif %}
         <h2>{% trans "Request" %}</h2>
     </div>
     <div class="module-content">

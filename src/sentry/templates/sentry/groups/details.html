@@ -22,7 +22,7 @@
 
     <section class="body">
         {% block inner %}
-            {% with event|get_rendered_interfaces as interface_list %}
+            {% with event|get_rendered_interfaces:request as interface_list %}
 
                 {% if group|has_charts %}
                     <div class="module">

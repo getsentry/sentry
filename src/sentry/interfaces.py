@@ -116,10 +116,10 @@ class Interface(object):
     def get_hash(self):
         return []
 
-    def to_html(self, event):
+    def to_html(self, event, is_public=False, **kwargs):
         return ''
 
-    def to_string(self, event):
+    def to_string(self, event, is_public=False, **kwargs):
         return ''
 
     def get_slug(self):
@@ -383,7 +383,7 @@ class Stacktrace(Interface):
 
         return newest_first
 
-    def to_html(self, event):
+    def to_html(self, event, is_public=False, **kwargs):
         if not self.frames:
             return ''
 
@@ -404,12 +404,6 @@ class Stacktrace(Interface):
                 context = []
                 start_lineno = None
 
-            context_vars = []
-            if frame.get('vars'):
-                context_vars = frame['vars']
-            else:
-                context_vars = []
-
             if frame.get('lineno') is not None:
                 lineno = int(frame['lineno'])
             else:
@@ -424,9 +418,10 @@ class Stacktrace(Interface):
                 'start_lineno': start_lineno,
                 'lineno': lineno,
                 'context': context,
-                'vars': context_vars,
                 'in_app': in_app,
             }
+            if not is_public:
+                frame_data['vars'] = frame.get('vars') or []
 
             if event.platform == 'javascript' and frame.get('data'):
                 data = frame['data']
@@ -450,6 +445,7 @@ class Stacktrace(Interface):
             frames = frames[::-1]
 
         return render_to_string('sentry/partial/interfaces/stacktrace.html', {
+            'is_public': is_public,
             'newest_first': newest_first,
             'system_frames': system_frames,
             'event': event,
@@ -457,7 +453,7 @@ class Stacktrace(Interface):
             'stacktrace': self.get_traceback(event, newest_first=newest_first),
         })
 
-    def to_string(self, event):
+    def to_string(self, event, is_public=False, **kwargs):
         return self.get_stacktrace(event, system_frames=False, max_frames=5)
 
     def get_stacktrace(self, event, system_frames=True, newest_first=None, max_frames=None):
@@ -562,12 +558,13 @@ class Exception(Interface):
     def get_hash(self):
         return filter(bool, [self.type, self.value])
 
-    def to_html(self, event):
+    def to_html(self, event, is_public=False, **kwargs):
         last_frame = None
         interface = event.interfaces.get('sentry.interfaces.Stacktrace')
         if interface is not None and interface.frames:
             last_frame = interface.frames[-1]
         return render_to_string('sentry/partial/interfaces/exception.html', {
+            'is_public': is_public,
             'event': event,
             'exception_value': self.value,
             'exception_type': self.type,
@@ -669,7 +666,7 @@ class Http(Interface):
             'env': self.env,
         }
 
-    def to_string(self, event):
+    def to_string(self, event, is_public=False, **kwargs):
         return render_to_string('sentry/partial/interfaces/http.txt', {
             'event': event,
             'full_url': '?'.join(filter(bool, [self.url, self.query_string])),
@@ -690,7 +687,7 @@ class Http(Interface):
         else:
             return True, value
 
-    def to_html(self, event):
+    def to_html(self, event, is_public=False, **kwargs):
         data = self.data
         data_is_dict = False
         headers_is_dict, headers = self._to_dict(self.headers)
@@ -698,10 +695,10 @@ class Http(Interface):
         if headers_is_dict and headers.get('Content-Type') == 'application/x-www-form-urlencoded':
             data_is_dict, data = self._to_dict(data)
 
-        # It's kind of silly we store this twice
-        cookies_is_dict, cookies = self._to_dict(self.cookies or headers.pop('Cookie', {}))
+        cookies = self.cookies or headers.pop('Cookie', {})
 
-        return render_to_string('sentry/partial/interfaces/http.html', {
+        context = {
+            'is_public': is_public,
             'event': event,
             'full_url': '?'.join(filter(bool, [self.url, self.query_string])),
             'url': self.url,
@@ -709,12 +706,20 @@ class Http(Interface):
             'data': data,
             'data_is_dict': data_is_dict,
             'query_string': self.query_string,
-            'cookies': cookies,
-            'cookies_is_dict': cookies_is_dict,
             'headers': self.headers,
             'headers_is_dict': headers_is_dict,
-            'env': self.env,
-        })
+        }
+        if not is_public:
+            # It's kind of silly we store this twice
+            cookies_is_dict, cookies = self._to_dict(cookies)
+
+            context.update({
+                'cookies': cookies,
+                'cookies_is_dict': cookies_is_dict,
+                'env': self.env,
+            })
+
+        return render_to_string('sentry/partial/interfaces/http.html', context)
 
     def get_title(self):
         return _('Request')
@@ -773,7 +778,7 @@ class Template(Interface):
     def get_hash(self):
         return [self.filename, self.context_line]
 
-    def to_string(self, event):
+    def to_string(self, event, is_public=False, **kwargs):
         context = get_context(
             lineno=self.lineno,
             context_line=self.context_line,
@@ -790,7 +795,7 @@ class Template(Interface):
 
         return '\n'.join(result)
 
-    def to_html(self, event):
+    def to_html(self, event, is_public=False, **kwargs):
         context = get_context(
             lineno=self.lineno,
             context_line=self.context_line,
@@ -808,6 +813,7 @@ class Template(Interface):
             'start_lineno': context[0][0],
             'context': context,
             'template': self.get_traceback(event, context),
+            'is_public': is_public,
         })
 
     def get_traceback(self, event, context):
@@ -860,8 +866,9 @@ class User(Interface):
     def get_hash(self):
         return []
 
-    def to_html(self, event):
+    def to_html(self, event, is_public=False, **kwargs):
         return render_to_string('sentry/partial/interfaces/user.html', {
+            'is_public': is_public,
             'event': event,
             'user_id': self.id,
             'user_username': self.username,

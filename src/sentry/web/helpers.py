@@ -57,6 +57,14 @@ def get_project_list(user=None, access=None, hidden=False, key='id', select_rela
         for p in base_qs.filter(filters).order_by('name'))
 
 
+def group_is_public(group, user):
+    """
+    Return ``True`` if the this group is publicly viewable and the user viewing it should
+    see a restricted view.
+    """
+    return group.is_public and not (user.is_authenticated() and group.project in get_project_list(user))
+
+
 def get_team_list(user, access=None):
     warnings.warn('get_team_list is Deprecated. Use Team.objects.get_for_user instead.', DeprecationWarning)
     return Team.objects.get_for_user(user, access)
