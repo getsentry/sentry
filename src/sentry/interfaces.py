@@ -695,8 +695,6 @@ class Http(Interface):
         if headers_is_dict and headers.get('Content-Type') == 'application/x-www-form-urlencoded':
             data_is_dict, data = self._to_dict(data)
 
-        cookies = self.cookies or headers.pop('Cookie', {})
-
         context = {
             'is_public': is_public,
             'event': event,
@@ -711,7 +709,7 @@ class Http(Interface):
         }
         if not is_public:
             # It's kind of silly we store this twice
-            cookies_is_dict, cookies = self._to_dict(cookies)
+            cookies_is_dict, cookies = self._to_dict(self.cookies)
 
             context.update({
                 'cookies': cookies,
