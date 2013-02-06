@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from sentry.constants import MEMBER_USER
 from sentry.models import Project
-from sentry.web.helpers import get_project_list, get_login_url
+from sentry.web.helpers import get_project_list, get_login_url, group_is_public
 from sentry.testutils import TestCase
 
 
@@ -69,3 +69,37 @@ class GetLoginUrlTest(TestCase):
         with self.Settings(SENTRY_LOGIN_URL=None):
             url = get_login_url(True)
             self.assertEquals(url, reverse('sentry-login'))
+
+
+class GroupIsPublicTest(TestCase):
+    @mock.patch('sentry.web.helpers.get_project_list', mock.Mock(return_value={}))
+    def test_non_public_group_returns_false(self):
+        self.group.is_public = False
+        self.user.is_superuser = False
+        result = group_is_public(self.group, self.user)
+        assert result is False
+
+    @mock.patch('sentry.web.helpers.get_project_list')
+    def test_public_group_returns_true_with_missing_project(self, get_project_list):
+        get_project_list.return_value = {}
+        self.group.is_public = True
+        self.user.is_superuser = False
+        result = group_is_public(self.group, self.user)
+        assert result is True
+        get_project_list.assert_called_once_with(self.user)
+
+    @mock.patch('sentry.web.helpers.get_project_list')
+    def test_public_group_returns_false_with_project_membership(self, get_project_list):
+        get_project_list.return_value = {self.group.project.id: self.group.project}
+        self.group.is_public = True
+        self.user.is_superuser = False
+        result = group_is_public(self.group, self.user)
+        assert result is False
+        get_project_list.assert_called_once_with(self.user)
+
+    @mock.patch('sentry.web.helpers.get_project_list', mock.Mock(return_value={}))
+    def test_superuser_is_false_with_missing_project(self):
+        self.group.is_public = True
+        self.user.is_superuser = True
+        result = group_is_public(self.group, self.user)
+        assert result is False
