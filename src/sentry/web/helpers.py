@@ -62,7 +62,7 @@ def group_is_public(group, user):
     Return ``True`` if the this group is publicly viewable and the user viewing it should
     see a restricted view.
     """
-    return group.is_public and not (user.is_authenticated() and group.project in get_project_list(user))
+    return group.is_public and not (user.is_authenticated() and group.project in get_project_list(user).values())
 
 
 def get_team_list(user, access=None):
