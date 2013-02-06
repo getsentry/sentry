@@ -85,6 +85,20 @@ You'll notice that the test suite is structured based on where the code lives, a
 .. note:: We use py.test for the Python test suite, and a combination of phantomjs and jasmine for the JavaScript tests.
 
 
+Static Media
+------------
+
+Sentry uses a library that compiles it's static media assets (LESS and JS files) automatically. If you're developing using
+runserver you'll see changes happen not only in the original files, but also the minified or processed versions of the file.
+
+If you've made changes and need to compile them by hand for any reason, you can do so by running:
+
+::
+
+    sentry compilestatic
+
+The minified and processed files should be committed alongside the unprocessed changes.
+
 Developing with Django
 ----------------------
 
