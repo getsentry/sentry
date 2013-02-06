@@ -17,26 +17,9 @@
                 <tr>
                     <th class="key">{{ k }}</th>
                     <td class="values{% if not v|is_dict %} code{% endif %}">
-                    {% if v|is_dict %}
-                        {% if v|length > 5 %}
-                            <a href="#" onclick="return varToggle(this, '#vExtra{{ forloop.counter }}')"><span>&#x25b6;</span> {% trans "Expand" %}</a>
-                        {% endif %}
-                        <table class="table vars" id="vExtra{{ forloop.counter }}"{% if v|length > 5 %} style="display:none;"{% endif %}>
-                            <colgroup>
-                                <col style="width:100px;">
-                            </colgroup>
-                            <tbody>
-                                {% for k_, v_ in v.iteritems|as_sorted %}
-                                    <tr>
-                                        <th>{{ k_ }}</th>
-                                        <td class="code"><pre>{{ v_|pprint }}</pre></td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    {% else %}
-                        <pre>{{ v|pprint }}</pre>
-                    {% endif %}
+                        {% with value=v threshold=5 template="sentry/partial/_event_details_code_values.html" %}
+                            {% include template %}
+                        {% endwith %}
                     </td>
                 </tr>
             {% endfor %}
