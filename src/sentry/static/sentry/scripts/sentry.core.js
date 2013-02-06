@@ -1,8 +1,8 @@
 /*global jQuery:true*/
-function varToggle(link, id) {
+function varToggle(link, $elm) {
     "use strict";
 
-    jQuery(id).toggle();
+    $elm.toggle();
     var s = link.getElementsByTagName('span')[0];
     var uarr = String.fromCharCode(0x25b6);
     var darr = String.fromCharCode(0x25bc);
