@@ -18,6 +18,7 @@ KEY = getattr(settings, 'SENTRY_KEY', hashlib.md5(settings.SECRET_KEY).hexdigest
 EMAIL_SUBJECT_PREFIX = getattr(settings, 'EMAIL_SUBJECT_PREFIX', EMAIL_SUBJECT_PREFIX)
 INTERNAL_IPS = getattr(settings, 'INTERNAL_IPS', INTERNAL_IPS)
 SERVER_EMAIL = getattr(settings, 'SERVER_EMAIL', SERVER_EMAIL)
+ALLOW_REGISTRATION = getattr(settings, 'ALLOW_REGISTRATION', ALLOW_REGISTRATION)
 
 for k in dir(settings):
     if k.startswith('SENTRY_'):
