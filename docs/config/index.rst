@@ -96,9 +96,10 @@ Authentication
 .. data:: sentry.conf.PUBLIC
     :noindex:
 
-    Should Sentry be default to projects being publicly accessible?
+    Should Sentry make all data publicly accessible? This should **only** be
+    used if you're installing Sentry behind your company's firewall.
 
-    (Users will still need to have an account to view any data)
+    Users will still need to have an account to view any data.
 
     Defaults to ``False``.
 
