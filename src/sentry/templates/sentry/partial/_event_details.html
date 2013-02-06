@@ -16,10 +16,8 @@
             {% for k, v in json_data.iteritems|as_sorted %}
                 <tr>
                     <th class="key">{{ k }}</th>
-                    <td class="values{% if not v|is_dict %} code{% endif %}">
-                        {% with value=v threshold=5 template="sentry/partial/_event_details_code_values.html" %}
-                            {% include template %}
-                        {% endwith %}
+                    <td class="values">
+                        {% render_values v %}
                     </td>
                 </tr>
             {% endfor %}

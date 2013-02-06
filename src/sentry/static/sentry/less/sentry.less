@@ -1318,35 +1318,6 @@ ol.context-line {
   }
 }
 
-// Vars display
-table.vars {
-
-  &.closed {
-    display: none;
-  }
-
-  td, th {
-    border: 0;
-  }
-}
-  
-td table.vars {
-  margin-bottom: 0;
-}
-
-
-td.code {
-  overflow: hidden;
-
-  > pre {
-    background-color: inherit;
-    color: rgba(0,0,0,.75);
-    padding: 1px 3px;
-    border: 0;
-    margin-bottom: 0;
-  }
-}
-
 // Generic module stuff
 
 .module {
@@ -1843,21 +1814,48 @@ section.body {
 }
 
 
-
-.table {
+table.table {
   th {
     vertical-align: top;
   }
   td {
     vertical-align: middle;
   }
+}
+
+table.table, table.vars {
+  &.closed {
+    display: none;
+  }
 
   th, td {
     border: none;
+    padding: 5px 8px;
   }
 
-  td.values {
-    padding: 0;
+  td.values, td.code {
+    overflow: hidden;
+
+    > pre {
+      background-color: inherit;
+      color: rgba(0,0,0,.75);
+      padding: 1px 3px;
+      border: 0;
+      margin-bottom: 0;
+    }
+  }
+
+}
+
+table.vars {
+  td, th {
+    border: 0;
+    vertical-align: top;
+  }
+  td table {
+    border-top: 0;
+    margin-top: -5px;
+    margin-bottom: 5px;
   }
 }
 
@@ -1865,8 +1863,12 @@ section.body {
   border-top: 2px solid #F4F6F9;
 
   tbody tr:nth-child(odd) td,
-  .table-striped tbody tr:nth-child(odd) th {
+  tbody tr:nth-child(odd) th {
     background-color: #F4F6F9;
+  }
+  tbody tr:nth-child(even) td,
+  tbody tr:nth-child(even) th {
+    background-color: #fff;
   }
 }
 
@@ -1936,8 +1938,13 @@ section.body {
   }
 }
 
-
 .toggle-expand {
-  display: block;
-  padding: 8px;
+  padding: 0 !important;
+  a {
+    display: block;
+    text-align: center;
+    padding: 3px 5px;
+    font-size: 0.9em;
+    background: #dee3e9;
+  }
 }

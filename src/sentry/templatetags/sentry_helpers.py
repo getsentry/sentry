@@ -355,3 +355,37 @@ def github_button(user, repo):
         'user': user,
         'repo': repo,
     }
+
+
+@register.inclusion_tag('sentry/partial/data_values.html')
+def render_values(value, threshold=5, collapse_to=3):
+    is_dict = isinstance(value, dict)
+    context = {
+        'is_dict': is_dict,
+        'threshold': threshold,
+        'collapse_to': collapse_to,
+    }
+
+    if is_dict:
+        value = sorted(value.iteritems())
+        value_len = len(value)
+        over_threshold = value_len > threshold
+        if over_threshold:
+            context.update({
+                'over_threshold': over_threshold,
+                'hidden_values': value_len - collapse_to,
+                'value_before_expand': value[:collapse_to],
+                'value_after_expand': value[collapse_to:],
+            })
+        else:
+            context.update({
+                'over_threshold': over_threshold,
+                'hidden_values': 0,
+                'value_before_expand': value,
+                'value_after_expand': [],
+            })
+
+    else:
+        context['value'] = value
+
+    return context

@@ -689,11 +689,10 @@ class Http(Interface):
 
     def to_html(self, event, is_public=False, **kwargs):
         data = self.data
-        data_is_dict = False
         headers_is_dict, headers = self._to_dict(self.headers)
 
         if headers_is_dict and headers.get('Content-Type') == 'application/x-www-form-urlencoded':
-            data_is_dict, data = self._to_dict(data)
+            _, data = self._to_dict(data)
 
         context = {
             'is_public': is_public,
@@ -702,18 +701,15 @@ class Http(Interface):
             'url': self.url,
             'method': self.method,
             'data': data,
-            'data_is_dict': data_is_dict,
             'query_string': self.query_string,
             'headers': self.headers,
-            'headers_is_dict': headers_is_dict,
         }
         if not is_public:
             # It's kind of silly we store this twice
-            cookies_is_dict, cookies = self._to_dict(self.cookies)
+            _, cookies = self._to_dict(self.cookies)
 
             context.update({
                 'cookies': cookies,
-                'cookies_is_dict': cookies_is_dict,
                 'env': self.env,
             })
 

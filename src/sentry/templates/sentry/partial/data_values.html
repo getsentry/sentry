@@ -1,0 +1,41 @@
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% if is_dict %}
+    <table class="table table-striped vars">
+        <colgroup>
+            <col style="width:100px;">
+        </colgroup>
+        <tbody>
+            {% for k, v in value_before_expand %}
+                <tr>
+                    <th>{{ k }}</th>
+                    <td class="values">
+                        {% render_values v %}
+                    </td>
+                </tr>
+            {% endfor %}
+            {% for k, v in value_after_expand %}
+                <tr class="js-expand" style="display:none">
+                    <th>{{ k }}</th>
+                    <td class="values">
+                        {% render_values v %}
+                    </td>
+                </tr>
+            {% endfor %}
+            {% if over_threshold %}
+                <tr>
+                    <td colspan="2" class="toggle-expand">
+                        <a href="javascript:void(0)" onclick="app.utils.varToggle(this, $(this).parent().parent().siblings('.js-expand'));"
+                            data-collapse-label="{% trans "Collapse Context" %}">
+                            {% blocktrans with num=hidden_values %}Expand Context ({{ num }} hidden){% endblocktrans %}
+                        </a>
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+{% else %}
+    <pre>{{ value|pprint }}</pre>
+{% endif %}
