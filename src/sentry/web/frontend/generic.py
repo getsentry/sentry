@@ -9,9 +9,12 @@ from django.http import HttpResponseRedirect
 from django.contrib.staticfiles import finders
 from django.core.urlresolvers import reverse
 from django.utils.datastructures import SortedDict
+from django.utils.translation import ugettext as _
 
 from sentry.models import Team
+from sentry.permissions import can_create_teams
 from sentry.web.decorators import login_required
+from sentry.web.helpers import render_to_response
 
 
 def find_static_files(ignore_patterns=()):
@@ -26,7 +29,13 @@ def find_static_files(ignore_patterns=()):
 def dashboard(request, template='dashboard.html'):
     team_list = Team.objects.get_for_user(request.user)
     if not team_list:
-        return HttpResponseRedirect(reverse('sentry-new-team'))
+        if can_create_teams(request.user):
+            return HttpResponseRedirect(reverse('sentry-new-team'))
+
+        return render_to_response('sentry/generic_error.html', {
+            'title': _('No Membership'),
+            'message': _('You are not a member of any teams in Sentry and you do not have access to create a new team.'),
+        }, request)
 
     # This cookie gets automatically set by render_to_response
     last_team = request.session.get('team')

@@ -17,19 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class BaseViewTest(TestCase):
-    def login(self):
-        self.login_as(self.user)
-
-
-class DashboardTest(BaseViewTest):
-    @fixture
-    def path(self):
-        return reverse('sentry')
-
-    def test_requires_authentication(self):
-        resp = self.client.get(reverse('sentry'), follow=True)
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/login.html')
+    pass
 
 
 class EnvStatusTest(BaseViewTest):

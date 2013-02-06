@@ -161,6 +161,9 @@ class BaseTestCase(Exam):
         }
         self.client.cookies[session_cookie].update(cookie_data)
 
+    def login(self):
+        self.login_as(self.user)
+
     def _pre_setup(self):
         cache.clear()
         ProjectOption.objects.clear_cache()
