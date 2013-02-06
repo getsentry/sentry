@@ -39,14 +39,11 @@ to_json = register.filter(to_json)
 @register.filter
 def pprint(value, break_after=10):
     """
-    A wrapper around pprint.pprint -- for debugging, really.
-
     break_after is used to define how often a <span> is
     inserted (for soft wrapping).
     """
-    from pprint import pformat
 
-    value = pformat(value).decode('utf-8', 'replace')
+    value = unicode(value).decode('utf-8', 'replace')
     return mark_safe(u'<span></span>'.join(
         [escape(value[i:(i + break_after)]) for i in xrange(0, len(value), break_after)]
     ))
