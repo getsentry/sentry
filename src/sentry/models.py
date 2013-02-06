@@ -162,7 +162,7 @@ class Project(Model):
     name = models.CharField(max_length=200)
     owner = models.ForeignKey(User, related_name="sentry_owned_project_set", null=True)
     team = models.ForeignKey(Team, null=True)
-    public = models.BooleanField(default=settings.ALLOW_PUBLIC_PROJECTS and settings.PUBLIC)
+    public = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now)
     status = models.PositiveIntegerField(default=0, choices=(
         (STATUS_VISIBLE, 'Visible'),
@@ -997,7 +997,7 @@ def create_default_project(created_models, verbosity=2, **kwargs):
             return
 
         project = Project.objects.create(
-            public=settings.ALLOW_PUBLIC_PROJECTS and settings.PUBLIC,
+            public=False,
             name='Sentry (Internal)',
             slug='sentry',
         )

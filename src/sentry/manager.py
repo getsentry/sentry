@@ -1111,20 +1111,25 @@ class TeamManager(BaseManager):
         """
         from sentry.models import TeamMember
 
-        if not user.is_authenticated():
-            return SortedDict()
-
-        qs = TeamMember.objects.filter(
-            user=user,
-            is_active=True,
-        ).select_related('team')
-        if access is not None:
-            qs = qs.filter(type__lte=access)
-
         results = SortedDict()
-        for tm in sorted(qs, key=lambda x: x.team.name):
-            team = tm.team
-            team.membership = tm
-            results[team.slug] = team
+
+        if not user.is_authenticated():
+            return results
+
+        if settings.PUBLIC and access is None:
+            for team in self.order_by('name').iterator():
+                results[team.slug] = team
+        else:
+            qs = TeamMember.objects.filter(
+                user=user,
+                is_active=True,
+            ).select_related('team')
+            if access is not None:
+                qs = qs.filter(type__lte=access)
+
+            for tm in sorted(qs, key=lambda x: x.team.name):
+                team = tm.team
+                team.membership = tm
+                results[team.slug] = team
 
         return results
