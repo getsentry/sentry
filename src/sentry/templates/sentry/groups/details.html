@@ -5,7 +5,7 @@
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
-{% block title %}{{ event.error }} | {{ block.super }}{% endblock %}
+{% block title %}{% if event %}{{ event.error }}{% else %}{{ group.message }}{% endif %} | {{ block.super }}{% endblock %}
 
 {% block breadcrumb %}
     {{ block.super }}
