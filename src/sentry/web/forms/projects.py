@@ -109,7 +109,7 @@ class RemoveProjectForm(forms.Form):
 
 class EditProjectForm(BaseProjectForm):
     public = forms.BooleanField(required=False,
-        help_text=_('Allow anyone (even anonymous users) to view this project'))
+        help_text=_('Imply public access to any event for this project.'))
     team = forms.TypedChoiceField(choices=(), coerce=int)
     origins = OriginsField(label=_('Allowed Domains'), required=False,
         help_text=_('Separate multiple entries with a newline.'))

@@ -6,11 +6,13 @@ import datetime
 import mock
 import pytest
 
+from django.contrib.auth.models import User
 from django.utils import timezone
+from sentry.constants import MEMBER_OWNER
 from sentry.interfaces import Interface
 from sentry.manager import get_checksum_from_event
 from sentry.models import Event, Group, Project, GroupCountByMinute, ProjectCountByMinute, \
-  SearchDocument
+  SearchDocument, Team
 from sentry.utils.db import has_trending  # NOQA
 from sentry.testutils import TestCase
 
@@ -310,3 +312,34 @@ class GetChecksumFromEventTest(TestCase):
         stack_comp_hash.assert_called_once_with(interfaces=event.interfaces)
         assert not http_comp_hash.called
         assert checksum == '3858f62230ac3c915f300c664312c63f'
+
+
+class TeamManagerTest(TestCase):
+    def test_public_install_returns_all_teams_without_access(self):
+        teams = {self.team.slug: self.team}
+        user = User.objects.create()
+
+        with self.Settings(SENTRY_PUBLIC=True):
+            result = Team.objects.get_for_user(user)
+
+        assert result == teams
+
+    def test_public_install_returns_accessible_teams_with_access(self):
+        user = User.objects.create()
+        team = Team.objects.create(name='Test', owner=user)
+        teams = {team.slug: team}
+
+        with self.Settings(SENTRY_PUBLIC=True):
+            result = Team.objects.get_for_user(user, access=MEMBER_OWNER)
+
+        assert result == teams
+
+    def test_private_install_returns_accessible_teams(self):
+        user = User.objects.create()
+        team = Team.objects.create(name='Test', owner=user)
+        teams = {team.slug: team}
+
+        with self.Settings(SENTRY_PUBLIC=False):
+            result = Team.objects.get_for_user(user, access=MEMBER_OWNER)
+
+        assert result == teams
