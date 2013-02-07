@@ -612,7 +612,7 @@ class Event(EventBase):
             return MockDjangoRequest()
 
         fake_request = MockDjangoRequest(**kwargs)
-        if kwargs['url']:
+        if 'url' in kwargs and kwargs['url']:
             fake_request.path_info = '/' + kwargs['url'].split('/', 3)[-1]
         else:
             fake_request.path_info = ''
