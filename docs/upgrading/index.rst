@@ -62,3 +62,9 @@ fully compatible with version 2.0 of the protocol, but no longer supports severa
 version 1.0.
 
 If you're upgrading from a very old version of Sentry, you may have a lapse in data during your upgrade process.
+
+Upgrading from <= 5.3
+~~~~~~~~~~~~~~~~~~~~~
+
+If you were previously using social auth backends, take note that the callback URLs have been moved. They are now
+all prefixed with '/account/settings/social'.
