@@ -1,3 +1,30 @@
+Version 5.4.0
+-------------
+
+SENTRY_PUBLIC now dictates whether or not a Sentry install should be considered
+accessible by all users or not. This should better solve the use-case of companies
+hosting a Sentry instance internally and not nescesarily needing the permissions
+that teams give you.
+
+If enabled, all teams and all projects will be accessible all members (for any endpoint
+which does not require a certain level of access). Project.is_public now dictates the
+implied state of all events, but will not allow a non-member to browse events.
+
+Additionally, this includes the following other items:
+
+- [Important!] The URLS for social authentication have been moved.
+- Improved rendering of data values in all interfaces.
+- django-compressor was replaced with django-static-compiler.
+- A better defined public view of events (which removes several items from being visible).
+- Improved SourceMap discovery.
+- Most events will no longer cause a hard error when validation fails. Instead we attempt
+  to drop any non-required data so that at least a partial event is stored.
+- MessageCountByMinute was renamed to GroupCountByMinute.
+- MessageFilterValue was renamed to GroupTag.
+- Syntax highlighting was disabled (pending performance solutions).
+- Added Team.date_added column.
+
+
 Version 5.3.0
 -------------
 
