@@ -151,6 +151,7 @@ class StacktraceTest(TestCase):
             'stacktrace': 'bar',
             'system_frames': 0,
             'newest_first': False,
+            'is_public': False,
         })
         self.assertEquals(result, render_to_string.return_value)
 

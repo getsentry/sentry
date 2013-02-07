@@ -18,6 +18,7 @@ from paging.helpers import paginate as paginate_func
 from sentry.conf import settings
 from sentry.constants import STATUS_MUTED
 from sentry.models import Group
+from sentry.web.helpers import group_is_public
 from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.javascript import to_json
 from sentry.utils.safe import safe_execute
@@ -38,14 +39,11 @@ to_json = register.filter(to_json)
 @register.filter
 def pprint(value, break_after=10):
     """
-    A wrapper around pprint.pprint -- for debugging, really.
-
     break_after is used to define how often a <span> is
     inserted (for soft wrapping).
     """
-    from pprint import pformat
 
-    value = pformat(value).decode('utf-8', 'replace')
+    value = unicode(value).decode('utf-8', 'replace')
     return mark_safe(u'<span></span>'.join(
         [escape(value[i:(i + break_after)]) for i in xrange(0, len(value), break_after)]
     ))
@@ -70,11 +68,6 @@ def has_charts(group):
 @register.filter
 def as_sorted(value):
     return sorted(value)
-
-
-@register.filter
-def is_dict(value):
-    return isinstance(value, dict)
 
 
 @register.filter
@@ -337,10 +330,11 @@ def split(value, delim=''):
 
 
 @register.filter
-def get_rendered_interfaces(event):
+def get_rendered_interfaces(event, request):
     interface_list = []
+    is_public = group_is_public(event.group, request.user)
     for interface in event.interfaces.itervalues():
-        html = safe_execute(interface.to_html, event)
+        html = safe_execute(interface.to_html, event, is_public)
         if not html:
             continue
         interface_list.append((interface, mark_safe(html)))
@@ -353,3 +347,37 @@ def github_button(user, repo):
         'user': user,
         'repo': repo,
     }
+
+
+@register.inclusion_tag('sentry/partial/data_values.html')
+def render_values(value, threshold=5, collapse_to=3):
+    is_dict = isinstance(value, dict)
+    context = {
+        'is_dict': is_dict,
+        'threshold': threshold,
+        'collapse_to': collapse_to,
+    }
+
+    if is_dict:
+        value = sorted(value.iteritems())
+        value_len = len(value)
+        over_threshold = value_len > threshold
+        if over_threshold:
+            context.update({
+                'over_threshold': over_threshold,
+                'hidden_values': value_len - collapse_to,
+                'value_before_expand': value[:collapse_to],
+                'value_after_expand': value[collapse_to:],
+            })
+        else:
+            context.update({
+                'over_threshold': over_threshold,
+                'hidden_values': 0,
+                'value_before_expand': value,
+                'value_after_expand': [],
+            })
+
+    else:
+        context['value'] = value
+
+    return context

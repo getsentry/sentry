@@ -5,7 +5,7 @@
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
-{% block title %}{{ event.error }} | {{ block.super }}{% endblock %}
+{% block title %}{% if event %}{{ event.error }}{% else %}{{ group.message }}{% endif %} | {{ block.super }}{% endblock %}
 
 {% block breadcrumb %}
     {{ block.super }}
@@ -22,7 +22,7 @@
 
     <section class="body">
         {% block inner %}
-            {% with event|get_rendered_interfaces as interface_list %}
+            {% with event|get_rendered_interfaces:request as interface_list %}
 
                 {% if group|has_charts %}
                     <div class="module">

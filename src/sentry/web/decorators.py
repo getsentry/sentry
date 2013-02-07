@@ -131,7 +131,7 @@ def has_group_access(func):
         if team_slug != group.team.slug:
             return HttpResponse(status=404)
 
-        if group.is_public:
+        if group.is_public or group.project.public:
             team = Team.objects.get_from_cache(slug=team_slug)
             return func(request, team=team, project=group.project, group=group, *args, **kwargs)
 

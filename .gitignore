@@ -16,4 +16,4 @@ pip-log.txt
 /docs/html
 /docs/doctrees
 example/db.sqlite
-/src/sentry/static/
+/src/sentry/static/CACHE/

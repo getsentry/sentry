@@ -120,6 +120,20 @@
                 .replace(/-+/g, '-'); // collapse dashes
 
             return str;
+        },
+
+        varToggle: function(link, $elm) {
+            var $link = $(link);
+
+            // assume its collapsed by default
+            if (!$link.attr('data-expand-label'))
+                $link.attr('data-expand-label', $link.html());
+
+            $elm.toggle();
+            if ($elm.is(':visible'))
+                $link.html($link.attr('data-collapse-label'));
+            else
+                $link.html($link.attr('data-expand-label'));
         }
 
     };

@@ -1,14 +1,4 @@
 /*global jQuery:true*/
-function varToggle(link, id) {
-    "use strict";
-
-    jQuery(id).toggle();
-    var s = link.getElementsByTagName('span')[0];
-    var uarr = String.fromCharCode(0x25b6);
-    var darr = String.fromCharCode(0x25bc);
-    s.innerHTML = s.innerHTML == uarr ? darr : uarr;
-    return false;
-}
 
 if (Sentry === undefined) {
     var Sentry = {};

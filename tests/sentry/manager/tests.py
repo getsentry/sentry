@@ -6,12 +6,13 @@ import datetime
 import mock
 import pytest
 
+from django.contrib.auth.models import User
 from django.utils import timezone
-from sentry.constants import MEMBER_USER
+from sentry.constants import MEMBER_OWNER, MEMBER_USER
 from sentry.interfaces import Interface
 from sentry.manager import get_checksum_from_event
 from sentry.models import Event, Group, Project, GroupCountByMinute, ProjectCountByMinute, \
-  SearchDocument
+  SearchDocument, Team
 from sentry.utils.db import has_trending  # NOQA
 from sentry.testutils import TestCase
 
@@ -320,29 +321,52 @@ class ProjectManagerTest(TestCase):
         self.project2 = Project.objects.create(name='Test', slug='test', owner=self.user, public=False)
 
     @mock.patch('sentry.models.Team.objects.get_for_user', mock.Mock(return_value={}))
-    def test_includes_public_projects_without_access(self):
+    def test_does_not_include_public_projects(self):
         project_list = Project.objects.get_for_user(self.user)
-        self.assertEquals(len(project_list), 1)
-        self.assertIn(self.project, project_list)
+        assert project_list == []
 
-    @mock.patch('sentry.models.Team.objects.get_for_user', mock.Mock(return_value={}))
-    def test_does_exclude_public_projects_without_access(self):
         project_list = Project.objects.get_for_user(self.user, MEMBER_USER)
-        self.assertEquals(len(project_list), 0)
+        assert project_list == []
 
     @mock.patch('sentry.models.Team.objects.get_for_user')
-    def test_does_include_private_projects_without_access(self, get_for_user):
+    def test_does_not_include_private_projects(self, get_for_user):
         get_for_user.return_value = {self.project2.team.id: self.project2.team}
         project_list = Project.objects.get_for_user(self.user)
         get_for_user.assert_called_once_with(self.user, None)
-        self.assertEquals(len(project_list), 2)
-        self.assertIn(self.project, project_list)
-        self.assertIn(self.project2, project_list)
+        assert project_list == [self.project2]
 
-    @mock.patch('sentry.models.Team.objects.get_for_user')
-    def test_does_exclude_public_projects_but_include_private_with_access(self, get_for_user):
-        get_for_user.return_value = {self.project2.team.id: self.project2.team}
+        get_for_user.reset_mock()
         project_list = Project.objects.get_for_user(self.user, MEMBER_USER)
         get_for_user.assert_called_once_with(self.user, MEMBER_USER)
-        self.assertEquals(len(project_list), 1)
-        self.assertIn(self.project2, project_list)
+        assert project_list == [self.project2]
+
+
+class TeamManagerTest(TestCase):
+    def test_public_install_returns_all_teams_without_access(self):
+        teams = {self.team.slug: self.team}
+        user = User.objects.create()
+
+        with self.Settings(SENTRY_PUBLIC=True):
+            result = Team.objects.get_for_user(user)
+
+        assert result == teams
+
+    def test_public_install_returns_accessible_teams_with_access(self):
+        user = User.objects.create()
+        team = Team.objects.create(name='Test', owner=user)
+        teams = {team.slug: team}
+
+        with self.Settings(SENTRY_PUBLIC=True):
+            result = Team.objects.get_for_user(user, access=MEMBER_OWNER)
+
+        assert result == teams
+
+    def test_private_install_returns_accessible_teams(self):
+        user = User.objects.create()
+        team = Team.objects.create(name='Test', owner=user)
+        teams = {team.slug: team}
+
+        with self.Settings(SENTRY_PUBLIC=False):
+            result = Team.objects.get_for_user(user, access=MEMBER_OWNER)
+
+        assert result == teams

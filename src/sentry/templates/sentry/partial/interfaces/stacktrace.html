@@ -55,25 +55,9 @@
                     {% endif %}
 
                     {% if frame.vars %}
-                        {% if frame.vars|is_dict %}
-                            <table class="table vars stack{{ forloop.counter0 }} expandable">
-                                <colgroup>
-                                    <col style="width:100px;">
-                                </colgroup>
-                                <tbody>
-                                    {% for key, value in frame.vars.iteritems|as_sorted %}
-                                        <tr>
-                                            <th>{{ key }}</th>
-                                            <td class="code"><pre>{{ value|pprint }}</pre></td>
-                                        </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        {% else %}
-                            <div id="v{{ forloop.counter0 }}" style="display:none;">
-                                <pre>{{ frame.vars|pprint }}</pre>
-                            </div>
-                        {% endif %}
+                        <div class="stack{{ forloop.counter0 }} expandable">
+                            {% render_values frame.vars %}
+                        </div>
                     {% endif %}
                 </li>
             {% endfor %}

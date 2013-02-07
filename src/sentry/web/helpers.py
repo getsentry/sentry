@@ -30,6 +30,29 @@ def get_project_list(user=None, access=None, hidden=False, key='id', team=None):
             for p in Project.objects.get_for_user(user, access))
 
 
+def group_is_public(group, user):
+    """
+    Return ``True`` if the this group if the user viewing it should see a restricted view.
+
+    This check should be used in combination with project membership checks, as we're only
+    verifying if the user should have a restricted view of something they already have access
+    to.
+    """
+    # if the group isn't public, this check doesnt matter
+    if not group.is_public:
+        return False
+    # anonymous users always are viewing as if it were public
+    if not user.is_authenticated():
+        return True
+    # superusers can always view events
+    if user.is_superuser:
+        return False
+    # project owners can view events
+    if group.project in get_project_list(user).values():
+        return False
+    return True
+
+
 def get_team_list(user, access=None):
     warnings.warn('get_team_list is Deprecated. Use Team.objects.get_for_user instead.', DeprecationWarning)
     return Team.objects.get_for_user(user, access)

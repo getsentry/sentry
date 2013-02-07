@@ -6,6 +6,7 @@ sentry.tasks.fetch_source
 :license: BSD, see LICENSE for more details.
 """
 
+import zlib
 import hashlib
 import urllib2
 from collections import namedtuple
@@ -60,19 +61,26 @@ def discover_sourcemap(result, logger=None):
     """
     Given a UrlResult object, attempt to discover a sourcemap.
     """
-    sourcemap = result.headers.get('X-SourceMap', None)
+    # When coercing the headers returned by urllib to a dict
+    # all keys become lowercase so they're normalized
+    sourcemap = result.headers.get('sourcemap', result.headers.get('x-sourcemap'))
 
     if not sourcemap:
         parsed_body = result.body.splitlines()
-        indicator = parsed_body[-1]
-        if indicator.startswith('//@'):
-            try:
-                parsed = dict(v.split('=') for v in indicator[3:].strip().split(' '))
-            except Exception:
-                if logger:
-                    logger.error('Failed parsing source map line for %r (line was %r)', result.url, indicator, exc_info=True)
-            else:
-                sourcemap = parsed.get('sourceMappingURL')
+        # Source maps are only going to exist at either the top or bottom of the document.
+        # Technically, there isn't anything indicating *where* it should exist, so we
+        # are generous and assume it's somewhere either in the first or last 5 lines.
+        # If it's somewhere else in the document, you're probably doing it wrong.
+        if len(parsed_body) > 10:
+            possibilities = set(parsed_body[:5] + parsed_body[-5:])
+        else:
+            possibilities = set(parsed_body)
+
+        for line in possibilities:
+            if line.startswith('//@ sourceMappingURL='):
+                # We want everything AFTER the indicator, which is 21 chars long
+                sourcemap = line[21:].rstrip()
+                break
 
     if sourcemap:
         # fix url so its absolute
@@ -99,7 +107,13 @@ def fetch_url(url, logger=None):
         opener.addheaders = [('User-Agent', 'Sentry/%s' % sentry.VERSION)]
         req = opener.open(url)
         headers = dict(req.headers)
-        body = req.read().rstrip('\n')
+        body = req.read()
+        if headers.get('content-encoding') == 'gzip':
+            # Content doesn't *have* to respect the Accept-Encoding header
+            # and may send gzipped data regardless.
+            # See: http://stackoverflow.com/questions/2423866/python-decompressing-gzip-chunk-by-chunk/2424549#2424549
+            body = zlib.decompress(body, 16 + zlib.MAX_WBITS)
+        body = body.rstrip('\n')
     except Exception:
         if logger:
             logger.error('Unable to fetch remote source for %r', url, exc_info=True)
@@ -178,7 +192,13 @@ def fetch_javascript_source(event, **kwargs):
             if result == BAD_SOURCE:
                 continue
 
-            index = sourcemap_to_index(result.body)
+            body = result.body
+            # According to spec (https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.h7yy76c5il9v)
+            # A SouceMap may be prepended with ")]}'" to cause a Javascript error.
+            # If the file starts with that string, ignore the entire first line.
+            if body.startswith(")]}'"):
+                body = body.split('\n', 1)[1]
+            index = sourcemap_to_index(body)
             sourcemaps[sourcemap] = index
 
             # queue up additional source files for download

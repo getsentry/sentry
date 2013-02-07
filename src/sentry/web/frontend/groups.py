@@ -34,7 +34,7 @@ from sentry.utils import json
 from sentry.utils.dates import parse_date
 from sentry.utils.db import has_trending, get_db_engine
 from sentry.web.decorators import has_access, has_group_access, login_required
-from sentry.web.helpers import render_to_response
+from sentry.web.helpers import render_to_response, group_is_public
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$', re.I)
 event_re = re.compile(r'^(?P<event_id>[a-z0-9]{32})\$(?P<checksum>[a-z0-9]{32})$', re.I)
@@ -151,6 +151,51 @@ def _get_group_list(request, project):
         'today': today,
         'sort': sort,
     }
+
+
+def render_with_group_context(group, template, context, request=None, event=None):
+    activity = Activity.objects.filter(
+        group=group,
+    ).order_by('-datetime').select_related('user')
+    if event:
+        activity = activity.filter(Q(event__isnull=True) | Q(event=event))
+
+    activity = list(activity)
+
+    context.update({
+        'team': group.project.team,
+        'project': group.project,
+        'group': group,
+        'can_admin_event': can_admin_group(request.user, group),
+        'SECTION': 'events',
+        'activity': activity,
+    })
+
+    if event:
+        if event.id:
+            base_qs = group.event_set.exclude(id=event.id)
+            try:
+                next_event = base_qs.filter(datetime__gte=event.datetime).order_by('datetime')[0:1].get()
+            except Event.DoesNotExist:
+                next_event = None
+
+            try:
+                prev_event = base_qs.filter(datetime__lte=event.datetime).order_by('-datetime')[0:1].get()
+            except Event.DoesNotExist:
+                prev_event = None
+        else:
+            next_event = None
+            prev_event = None
+
+        context.update({
+            'event': event,
+            'json_data': event.data.get('extra', {}),
+            'version_data': event.data.get('modules', None),
+            'next_event': next_event,
+            'prev_event': prev_event,
+        })
+
+    return render_to_response(template, context, request)
 
 
 @login_required
@@ -293,61 +338,22 @@ def group_list(request, team, project):
     }, request)
 
 
-def render_with_group_context(group, template, context, request=None, event=None):
-    activity = Activity.objects.filter(
-        group=group,
-    ).order_by('-datetime').select_related('user')
-    if event:
-        activity = activity.filter(Q(event__isnull=True) | Q(event=event))
-
-    activity = list(activity)
-
-    context.update({
-        'team': group.project.team,
-        'project': group.project,
-        'group': group,
-        'can_admin_event': can_admin_group(request.user, group),
-        'SECTION': 'events',
-        'activity': activity,
-    })
-
-    if event:
-        if event.id:
-            base_qs = group.event_set.exclude(id=event.id)
-            try:
-                next_event = base_qs.filter(datetime__gte=event.datetime).order_by('datetime')[0:1].get()
-            except Event.DoesNotExist:
-                next_event = None
-
-            try:
-                prev_event = base_qs.filter(datetime__lte=event.datetime).order_by('-datetime')[0:1].get()
-            except Event.DoesNotExist:
-                prev_event = None
-        else:
-            next_event = None
-            prev_event = None
-
-        context.update({
-            'event': event,
-            'json_data': event.data.get('extra', {}),
-            'version_data': event.data.get('modules', None),
-            'next_event': next_event,
-            'prev_event': prev_event,
-        })
-
-    return render_to_response(template, context, request)
-
-
 @has_group_access
 def group(request, team, project, group):
     # It's possible that a message would not be created under certain
     # circumstances (such as a post_save signal failing)
     event = group.get_latest_event() or Event()
-    event.group
+    event.group = group
 
-    return render_with_group_context(group, 'sentry/groups/details.html', {
-        'page': 'details',
-    }, request, event=event)
+    context = {'page': 'details'}
+
+    if group_is_public(group, request.user):
+        template = 'sentry/groups/public_details.html'
+        context['PROJECT_LIST'] = [project]
+    else:
+        template = 'sentry/groups/details.html'
+
+    return render_with_group_context(group, template, context, request, event=event)
 
 
 @has_group_access

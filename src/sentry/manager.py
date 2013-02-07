@@ -22,7 +22,7 @@ from celery.signals import task_postrun
 from django.conf import settings as dj_settings
 from django.core.signals import request_finished
 from django.db import models, transaction, IntegrityError
-from django.db.models import Sum, Q
+from django.db.models import Sum
 from django.db.models.signals import post_save, post_delete, post_init, class_prepared
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
@@ -785,6 +785,9 @@ class ProjectManager(BaseManager, ChartMixin):
         """
         from sentry.models import Team
 
+        if not (user and user.is_authenticated()):
+            return []
+
         # TODO: the result of this function should be cached
         is_authenticated = (user and user.is_authenticated())
 
@@ -794,25 +797,17 @@ class ProjectManager(BaseManager, ChartMixin):
         if team:
             base_qs = base_qs.filter(team=team)
 
-        # Collect kwarg queries to filter on. We can use this to perform a single
-        # query to get all of the desired projects ordered by name
-        filters = Q()
-
-        # If we're not requesting specific access include all
-        # public projects
-        if access is None:
-            filters |= Q(public=True)
-        elif not (user and user.is_authenticated()):
-            return SortedDict()
-
-        # If the user is authenticated, include their memberships
-        if is_authenticated:
+        if not settings.PUBLIC:
+            # If the user is authenticated, include their memberships
             teams = Team.objects.get_for_user(user, access).values()
-            if not teams and access is not None:
-                return SortedDict()
-            filters |= Q(team__in=teams)
+            if not teams:
+                return []
+            if team and team not in teams:
+                return []
+            elif not team:
+                base_qs = base_qs.filter(team__in=teams)
 
-        projects = set(base_qs.filter(filters))
+        projects = set(base_qs)
 
         if is_authenticated:
             projects |= set(base_qs.filter(accessgroup__members=user))
@@ -1149,20 +1144,25 @@ class TeamManager(BaseManager):
         """
         from sentry.models import TeamMember
 
-        if not user.is_authenticated():
-            return SortedDict()
-
-        qs = TeamMember.objects.filter(
-            user=user,
-            is_active=True,
-        ).select_related('team')
-        if access is not None:
-            qs = qs.filter(type__lte=access)
-
         results = SortedDict()
-        for tm in sorted(qs, key=lambda x: x.team.name):
-            team = tm.team
-            team.membership = tm
-            results[team.slug] = team
+
+        if not user.is_authenticated():
+            return results
+
+        if settings.PUBLIC and access is None:
+            for team in self.order_by('name').iterator():
+                results[team.slug] = team
+        else:
+            qs = TeamMember.objects.filter(
+                user=user,
+                is_active=True,
+            ).select_related('team')
+            if access is not None:
+                qs = qs.filter(type__lte=access)
+
+            for tm in sorted(qs, key=lambda x: x.team.name):
+                team = tm.team
+                team.membership = tm
+                results[team.slug] = team
 
         return results
