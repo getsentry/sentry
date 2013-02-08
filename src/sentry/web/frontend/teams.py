@@ -21,7 +21,7 @@ from sentry.web.decorators import login_required, has_access
 from sentry.web.forms.teams import (NewTeamForm, NewTeamAdminForm,
     EditTeamForm, EditTeamAdminForm, EditTeamMemberForm, NewTeamMemberForm,
     InviteTeamMemberForm, RemoveTeamForm, AcceptInviteForm, NewAccessGroupForm,
-    EditAccessGroupForm)
+    EditAccessGroupForm, NewAccessGroupMemberForm)
 from sentry.web.helpers import render_to_response
 
 
@@ -544,10 +544,21 @@ def access_group_members(request, team, group_id):
     except AccessGroup.DoesNotExist:
         return HttpResponseRedirect(reverse('sentry-manage-access-groups', args=[team.slug]))
 
+    form = NewAccessGroupMemberForm(group, request.POST or None)
+    if form.is_valid():
+        user = form.cleaned_data['user']
+        group.members.add(user)
+
+        messages.add_message(request, messages.SUCCESS,
+            _('%s was added to this access group.') % (user.email,))
+
+        return HttpResponseRedirect(reverse('sentry-access-group-members', args=[team.slug, group.id]))
+
     context = csrf(request)
     context.update({
         'team': team,
         'group': group,
+        'form': form,
         'member_list': group.members.all(),
         'group_list': AccessGroup.objects.filter(team=team),
         'page': 'members',

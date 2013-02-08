@@ -135,3 +135,21 @@ class NewAccessGroupForm(BaseAccessGroupForm):
 
 class EditAccessGroupForm(BaseAccessGroupForm):
     pass
+
+
+class NewAccessGroupMemberForm(forms.Form):
+    user = UserField()
+
+    def __init__(self, group, data, *args, **kwargs):
+        super(NewAccessGroupMemberForm, self).__init__(data=data, *args, **kwargs)
+        self.group = group
+
+    def clean_user(self):
+        value = self.cleaned_data['user']
+        if not value:
+            return None
+
+        if self.group.members.filter(id=value.id).exists():
+            raise forms.ValidationError(_('User is already a member of this acces group'))
+
+        return value

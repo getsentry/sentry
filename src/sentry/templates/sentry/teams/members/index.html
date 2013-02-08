@@ -41,7 +41,7 @@
             {% for member, user in member_list %}
                 <tr>
                     <td>
-                        <a href="{% url sentry-edit-team-member team.slug member.pk %}">{{ user.username }}</a><br>
+                        <a href="{% url sentry-edit-team-member team.slug member.pk %}">{% if user.first_name %}{{ user.first_name }} &mdash; {% endif %}{{ user.username }}</a><br>
                         {{ user.email }}
                     </td>
                     <td style="text-align:center;">

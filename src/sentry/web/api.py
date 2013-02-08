@@ -691,6 +691,7 @@ def search_tags(request, team, project):
 
     response = HttpResponse(json.dumps({
         'results': results,
+        'query': query,
     }))
     response['Content-Type'] = 'application/json'
 
@@ -712,6 +713,7 @@ def search_users(request, team):
 
     response = HttpResponse(json.dumps({
         'results': results,
+        'query': query,
     }))
     response['Content-Type'] = 'application/json'
 
