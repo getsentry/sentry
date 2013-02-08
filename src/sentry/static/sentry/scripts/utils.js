@@ -134,6 +134,52 @@
                 $link.html($link.attr('data-collapse-label'));
             else
                 $link.html($link.attr('data-expand-label'));
+        },
+
+        getSearchUsersUrl: function(){
+            return app.config.urlPrefix + '/api/' + app.config.teamId + '/users/search/';
+        },
+
+        makeSearchableUsersInput: function(el) {
+            $(el).select2({
+                allowClear: true,
+                width: 'element',
+                minimumInputLength: 3,
+                ajax: {
+                    url: this.getSearchUsersUrl(),
+                    dataType: 'json',
+                    data: function (term, page) {
+                        return {
+                            query: term,
+                            quietMillis: 300,
+                            limit: 10
+                        };
+                    },
+                    results: function (data, page, context) {
+                        var results = [];
+                        $(data.results).each(function(_, val){
+                            var label;
+                            if (val.first_name) {
+                                label = val.first_name + ' &mdash; ' + val.username;
+                            } else {
+                                label = val.username;
+                            }
+                            label += '<br>' + val.email;
+                            results.push({
+                                id: val.username,
+                                text: label
+                            });
+                        });
+                        if ($(results).filter(function(){
+                            return this.id.localeCompare(data.query) === 0;
+                        }).length === 0) {
+                            results.push({id:data.query, text:data.query});
+                        }
+
+                        return {results: results};
+                    }
+                }
+            });
         }
 
     };
