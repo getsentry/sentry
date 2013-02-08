@@ -1,6 +1,7 @@
 {% extends "sentry/layout.html" %}
 
 {% load i18n %}
+{% load sentry_helpers %}
 
 {% block title %}{{ project.name }} | {{ block.super }}{% endblock %}
 
@@ -18,8 +19,6 @@
     		<h2>{% trans "Getting Started" %}</h2>
     	</div>
 
-		<p>{% trans "To start sending events to Sentry select a platform:" %}</p>
-
-		{% include "sentry/partial/_client_config.html" %}
-	</seciton>
+		{% client_help request.user project %}
+	</section>
 {% endblock %}

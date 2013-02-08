@@ -117,7 +117,9 @@ class APIView(BaseView):
                 log = logger.info
                 exc_info = None
 
-            log('status=%s project_id=%s %s', response.status_code, project_id,
+            log('status=%s project_id=%s user_id=%s ip=%s agent=%s %s', response.status_code, project_id,
+                request.user.is_authenticated() and request.user.id or None,
+                request.META['REMOTE_ADDR'], request.META.get('HTTP_USER_AGENT'),
                 response['X-Sentry-Error'], extra={
                     'request': request,
                 }, exc_info=exc_info,
@@ -717,9 +719,7 @@ def search_users(request, team):
 
 
 def crossdomain_xml_index(request):
-    response = HttpResponse("""<cross-domain-policy>
-        <site-control permitted-cross-domain-policies="all"></site-control>
-    </cross-domain-policy>""")
+    response = render_to_response('sentry/crossdomain_index.xml')
     response['Content-Type'] = 'application/xml'
     return response
 
@@ -740,7 +740,7 @@ def crossdomain_xml(request, project_id):
 
     response = render_to_response('sentry/crossdomain.xml', {
         'origin_list': origin_list
-    }, request)
+    })
     response['Content-Type'] = 'application/xml'
 
     return response

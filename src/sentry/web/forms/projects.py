@@ -71,7 +71,7 @@ class RemoveProjectForm(forms.Form):
         # ('3', _('Hide this project.')),
     ), widget=forms.RadioSelect(renderer=RadioFieldRenderer))
     project = forms.ChoiceField(choices=(), required=False)
-    password = forms.CharField(label=_("Password"), widget=forms.PasswordInput, help_text=_("Confirm your identify by entering your password."))
+    password = forms.CharField(label=_("Password"), widget=forms.PasswordInput, help_text=_("Confirm your identity by entering your password."))
 
     def __init__(self, user, project_list, *args, **kwargs):
         super(RemoveProjectForm, self).__init__(*args, **kwargs)

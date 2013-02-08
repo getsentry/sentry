@@ -12,11 +12,11 @@ protocol:
 - JavaScript (`raven-js <https://github.com/getsentry/raven-js>`_)
 - Node.js (`raven-node <https://github.com/mattrobenolt/raven-node>`_)
 - iOS / Objective-C (`raven-objc <https://github.com/getsentry/raven-objc>`_)
+- C# (`raven-csharp <https://github.com/getsentry/raven-csharp>`_)
 
 Additionally, the following experimental clients are availabe:
 
 - Action Script 3 (`raven-as3 <https://github.com/skitoo/raven-as3>`_)
-- C# (`raven-csharp <https://github.com/getsentry/raven-csharp>`_)
 - CFML (`raven-cfml <https://github.com/jmacul2/raven-cfml>`_)
 - Erlang (`raven-erlang <https://github.com/soundrop/raven-erlang>`_)
 - R (`logging <http://logging.r-forge.r-project.org/>`_)

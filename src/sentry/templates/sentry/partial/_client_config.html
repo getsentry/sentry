@@ -38,6 +38,19 @@
     display: block;
 }
 </style>
+{% if key %}
+    <p>{% trans "To start sending events, configure your client with the following DSN value:" %}</p>
+
+    <pre class="clippy">{{ dsn }}</pre>
+
+    <p>{% blocktrans with 'https://github.com/getsentry/raven-js' as link %}If this is a client that only needs public access (like <a href="{{ link }}">raven-js</a>), you can use the following public DSN:{% endblocktrans %}</p>
+
+    <pre class="clippy">{{ dsn_public }}</pre>
+{% else %}
+    {% url sentry-project-keys project.slug as link %}
+    <p>{% blocktrans %}There is no API key assigned to your account. Generate a new key or select one from the <a href="{{ link }}">API Keys page</a>.{% endblocktrans %}</p>
+{% endif %}
+
 <div class="page-header">
     <h3>{% trans "Platforms" %}</h3>
 </div>
@@ -108,8 +121,15 @@
 </div>
 <ul>
     <li>
+        <a href="{% url sentry-docs-client project.team.slug project.slug 'csharp' %}">
+            <strong>C#</strong>
+        </a>
+    </li>
+    <li>
         <a href="{% url sentry-docs-client project.team.slug project.slug 'r' %}">
             <strong>R Project</strong>
         </a>
     </li>
 </ul>
+
+<p>{% blocktrans with 'http://sentry.readthedocs.org' as link %}For more information on developing clients and the Sentry API, see the <a href="{{ link }}">documentation</a>.{% endblocktrans %}</p>

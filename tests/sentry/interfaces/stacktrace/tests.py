@@ -125,8 +125,8 @@ class StacktraceTest(TestCase):
         get_stacktrace.assert_called_once_with(event, system_frames=False, max_frames=5)
         self.assertEquals(result, get_stacktrace.return_value)
 
-    @mock.patch('sentry.interfaces.Stacktrace.get_stacktrace')
     @mock.patch('sentry.interfaces.Stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
+    @mock.patch('sentry.interfaces.Stacktrace.get_stacktrace')
     def test_get_traceback_response(self, get_stacktrace):
         event = mock.Mock(spec=Event())
         event.message = 'foo'
@@ -136,18 +136,20 @@ class StacktraceTest(TestCase):
         get_stacktrace.assert_called_once_with(event, newest_first=None)
         self.assertEquals(result, 'foo\n\nbar')
 
+    @mock.patch('sentry.interfaces.Stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     @mock.patch('sentry.interfaces.Stacktrace.get_traceback')
     @mock.patch('sentry.interfaces.render_to_string')
-    @mock.patch('sentry.interfaces.Stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
-    def test_to_html_render_call(self, render_to_string, get_traceback):
+    @mock.patch('sentry.interfaces.Stacktrace.get_frame_context')
+    def test_to_html_render_call(self, get_frame_context, render_to_string, get_traceback):
         event = mock.Mock(spec=Event())
         get_traceback.return_value = 'bar'
         interface = Stacktrace(frames=[{'lineno': 1, 'filename': 'foo.py'}])
         result = interface.to_html(event)
         get_traceback.assert_called_once_with(event, newest_first=False)
+        get_frame_context.assert_called_once_with(interface.frames[0], event=event, is_public=False)
         render_to_string.assert_called_once_with('sentry/partial/interfaces/stacktrace.html', {
             'event': event,
-            'frames': [{'function': None, 'abs_path': None, 'start_lineno': None, 'lineno': 1, 'context': [], 'vars': [], 'in_app': True, 'filename': 'foo.py'}],
+            'frames': [get_frame_context.return_value],
             'stacktrace': 'bar',
             'system_frames': 0,
             'newest_first': False,
@@ -155,8 +157,8 @@ class StacktraceTest(TestCase):
         })
         self.assertEquals(result, render_to_string.return_value)
 
-    @mock.patch('sentry.interfaces.Stacktrace.get_traceback')
     @mock.patch('sentry.interfaces.Stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
+    @mock.patch('sentry.interfaces.Stacktrace.get_traceback')
     def test_to_html_response(self, get_traceback):
         event = mock.Mock(spec=Event())
         event.message = 'foo'
