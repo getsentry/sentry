@@ -1,0 +1,47 @@
+{% extends "sentry/teams/groups/details.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}
+    {{ group.name }} | {{ block.super }}
+{% endblock %}
+
+
+{% block inner %}
+    <div class="page-header">
+        <h2>{% trans "Group Members" %}</h2>
+    </div>
+
+    {% if member_list %}
+        <table class="table table-striped">
+            <colgroup>
+                <col/>
+                <col width="100px"/>
+                <col width="180px"/>
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>{% trans "User" %}</th>
+                    <th style="text-align:center">{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for member, user in member_list %}
+                    <tr>
+                        <td>
+                            <a href="{% url sentry-edit-group-member team.slug member.id %}">{{ user.username }}</a><br>
+                            {{ user.email }}
+                        </td>
+                        <td style="text-align:center;">
+                            <a href="{% url sentry-remove-group-member team.slug member.id %}" class="btn btn-danger btn-small">{% trans "Remove" %}</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>{% trans "There are no members assigned to this group." %}
+    {% endif %}
+
+{% endblock %}

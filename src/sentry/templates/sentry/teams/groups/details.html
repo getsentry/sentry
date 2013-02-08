@@ -1,96 +1,45 @@
 {% extends "sentry/teams/groups/list.html" %}
 
+{% load i18n %}
+{% load sentry_helpers %}
+
 {% block title %}
     {{ group.name }} | {{ block.super }}
 {% endblock %}
 
-{% load i18n %}
-{% load sentry_helpers %}
+{% block bodyclass %} with-left-sidebar{% endblock %}
 
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url sentry-edit-access-group team.slug group.id %}">{{ group.name }}</a></li>
+{% block above_content %}
+    <div class="project-controls">
+        <a href="{% url sentry-manage-access-groups team.slug %}" class="dashboard-icon"><i aria-hidden="true" class="icon-list"></i></a>
+        <select class="project-selector" data-placeholder="{% trans "Select a Project" %}">
+            <option value=""></option>
+            {% for g in group_list %}
+                <option {% if g == group %} selected="selected"{% endif %} data-url="{% url sentry-edit-access-group g.team.slug g.id %}">{{ g.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
 {% endblock %}
 
-{% block bodyclass %}{% endblock %}
+{% block sidebar %}
+    <ul class="nav nav-list">
+        <li class="nav-header">{% trans "Access Group" %}</li>
+        <li{% if page == 'details' %} class="active"{% endif %}>
+            <a href="{% url sentry-edit-access-group group.team.slug group.id %}">{% trans "Settings" %}</a>
+        </li>
+        <li{% if page == 'members' %} class="active"{% endif %}>
+            <a href="{% url sentry-access-group-members group.team.slug group.id %}">{% trans "Members" %}</a>
+        </li>
+        <li{% if page == 'projects' %} class="active"{% endif %}>
+            <a href="{% url sentry-access-group-projects group.team.slug group.id %}">{% trans "Projects" %}</a>
+        </li>
+    </ul>
+{% endblock %}
 
 {% block inner %}
     <div class="page-header">
-        <h2>{{ group.name }}</h2>
+        <h2>{% trans "Group Settings" %}</h2>
     </div>
 
-    <div class="row-fluid">
-        <div class="span4">
-            <h3>Settings</h3>
-            {% include "sentry/partial/_form.html" %}
-        </div>
-        <div class="span4">
-            <div class="pull-right">
-                <a href="#" class="btn btn-small btn-primary">Add Project</a>
-            </div>
-            <h3>Projects</h3>
-            {% if group_list %}
-                <table class="table table-striped">
-                    <colgroup>
-                        <col/>
-                        <col width="100px"/>
-                        <col width="100px"/>
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th>{% trans "Name" %}</th>
-                            <th style="text-align:center;">{% trans "Access Type" %}</th>
-                            <th style="text-align:center">{% trans "Actions" %}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for group in group_list %}
-                            <tr>
-                                <td><a href="{% url sentry-edit-access-group team.slug group.id %}">{{ group.name }}</a>{% if group.managed %} ({% trans "automatically managed" %}){% endif %}</td>
-                                <td style="text-align:center">{{ group.get_type_display }}</td>
-                                <td style="text-align:center"><a href="#" class="btn">{% trans "Remove" %}</a></td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p>{% trans "You have not created any access groups yet." %}</p>
-            {% endif %}
-        </div>
-
-        <div class="span4">
-            <div class="pull-right">
-                <a href="#" class="btn btn-small btn-primary">Add Member</a>
-            </div>
-            <h3>Members</h3>
-            {% if group_list %}
-                <table class="table table-striped">
-                    <colgroup>
-                        <col/>
-                        <col width="100px"/>
-                        <col width="100px"/>
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th>{% trans "Name" %}</th>
-                            <th style="text-align:center;">{% trans "Access Type" %}</th>
-                            <th style="text-align:center">{% trans "Actions" %}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for group in group_list %}
-                            <tr>
-                                <td><a href="{% url sentry-edit-access-group team.slug group.id %}">{{ group.name }}</a>{% if group.managed %} ({% trans "automatically managed" %}){% endif %}</td>
-                                <td style="text-align:center">{{ group.get_type_display }}</td>
-                                <td style="text-align:center"><a href="#" class="btn">{% trans "Remove" %}</a></td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p>{% trans "You have not created any access groups yet." %}</p>
-            {% endif %}
-        </div>
-    </div>
+    {% include "sentry/partial/_form.html" %}
 {% endblock %}

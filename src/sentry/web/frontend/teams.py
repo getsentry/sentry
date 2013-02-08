@@ -527,10 +527,54 @@ def access_group_details(request, team, group_id):
         'team': team,
         'group': group,
         'form': form,
-        'projects': group.projects.all(),
-        'members': group.members.all(),
+        'group_list': AccessGroup.objects.filter(team=team),
+        'page': 'details',
         'SECTION': 'team',
         'SUBSECTION': 'groups',
     })
 
     return render_to_response('sentry/teams/groups/details.html', context, request)
+
+
+@has_access(MEMBER_OWNER)
+@csrf_protect
+def access_group_members(request, team, group_id):
+    try:
+        group = AccessGroup.objects.get(team=team, id=group_id)
+    except AccessGroup.DoesNotExist:
+        return HttpResponseRedirect(reverse('sentry-manage-access-groups', args=[team.slug]))
+
+    context = csrf(request)
+    context.update({
+        'team': team,
+        'group': group,
+        'member_list': group.members.all(),
+        'group_list': AccessGroup.objects.filter(team=team),
+        'page': 'members',
+        'SECTION': 'team',
+        'SUBSECTION': 'groups',
+    })
+
+    return render_to_response('sentry/teams/groups/members.html', context, request)
+
+
+@has_access(MEMBER_OWNER)
+@csrf_protect
+def access_group_projects(request, team, group_id):
+    try:
+        group = AccessGroup.objects.get(team=team, id=group_id)
+    except AccessGroup.DoesNotExist:
+        return HttpResponseRedirect(reverse('sentry-manage-access-groups', args=[team.slug]))
+
+    context = csrf(request)
+    context.update({
+        'team': team,
+        'group': group,
+        'project_list': group.projects.all(),
+        'group_list': AccessGroup.objects.filter(team=team),
+        'page': 'projects',
+        'SECTION': 'team',
+        'SUBSECTION': 'groups',
+    })
+
+    return render_to_response('sentry/teams/groups/projects.html', context, request)

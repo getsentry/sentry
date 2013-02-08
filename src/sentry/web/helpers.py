@@ -127,7 +127,7 @@ def get_default_context(request, existing_context=None, team=None):
             })
 
         if not existing_context or 'PROJECT_LIST' not in existing_context:
-            project_list = get_project_list(request.user, team=team).values()
+            project_list = Project.objects.get_for_user(request.user, team=team)
             context['PROJECT_LIST'] = sorted(project_list, key=lambda x: x.name)
         if not existing_context or 'TEAM_LIST' not in existing_context:
             context['TEAM_LIST'] = sorted(Team.objects.get_for_user(request.user).values(), key=lambda x: x.name)

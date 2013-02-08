@@ -3,9 +3,11 @@
 from __future__ import absolute_import
 
 import mock
+from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
-from sentry.models import Project
-from sentry.testutils import TestCase, fixture
+from sentry.models import Project, TeamMember, AccessGroup
+from sentry.testutils import TestCase, fixture, before
+from sentry.utils import json
 
 
 class StoreViewTest(TestCase):
@@ -126,3 +128,59 @@ class CrossDomainXmlIndexTest(TestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp['Content-Type'], 'application/xml')
         self.assertIn('<site-control permitted-cross-domain-policies="all"></site-control>', resp.content)
+
+
+class SearchUsersTest(TestCase):
+    @fixture
+    def path(self):
+        return reverse('sentry-api-search-users', args=[self.team.slug])
+
+    @before
+    def login_user(self):
+        self.login()
+
+    def test_finds_users_from_team_members(self):
+        otheruser = User.objects.create(first_name='Bob Ross', username='bobross', email='bob@example.com')
+        TeamMember.objects.create(team=self.team, user=otheruser)
+
+        resp = self.client.get(self.path, {'query': 'bob'})
+
+        assert resp.status_code == 200
+        assert resp['Content-Type'] == 'application/json'
+        assert json.loads(resp.content) == {
+            'results': [{
+                'id': otheruser.id,
+                'first_name': otheruser.first_name,
+                'username': otheruser.username,
+                'email': otheruser.email,
+            }]
+        }
+
+    def test_finds_users_from_access_group_members(self):
+        otheruser = User.objects.create(first_name='Bob Ross', username='bobross', email='bob@example.com')
+        group = AccessGroup.objects.create(team=self.team, name='Test')
+        group.members.add(otheruser)
+
+        resp = self.client.get(self.path, {'query': 'bob'})
+
+        assert resp.status_code == 200
+        assert resp['Content-Type'] == 'application/json'
+        assert json.loads(resp.content) == {
+            'results': [{
+                'id': otheruser.id,
+                'first_name': otheruser.first_name,
+                'username': otheruser.username,
+                'email': otheruser.email,
+            }]
+        }
+
+    def test_does_not_include_users_who_are_not_members(self):
+        User.objects.create(first_name='Bob Ross', username='bobross', email='bob@example.com')
+
+        resp = self.client.get(self.path, {'query': 'bob'})
+
+        assert resp.status_code == 200
+        assert resp['Content-Type'] == 'application/json'
+        assert json.loads(resp.content) == {
+            'results': []
+        }

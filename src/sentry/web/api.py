@@ -9,11 +9,10 @@ import datetime
 import logging
 from functools import wraps
 
-from django.contrib.auth.models import AnonymousUser
+from django.contrib.auth.models import AnonymousUser, User
 from django.core.urlresolvers import reverse
-from django.db.models import Sum
-from django.http import HttpResponse, \
-  HttpResponseForbidden, HttpResponseRedirect
+from django.db.models import Sum, Q
+from django.http import HttpResponse, HttpResponseForbidden, HttpResponseRedirect
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
@@ -687,6 +686,27 @@ def search_tags(request, team, project):
         key=name,
         value__icontains=query,
     ).values_list('value', flat=True).order_by('value')[:limit])
+
+    response = HttpResponse(json.dumps({
+        'results': results,
+    }))
+    response['Content-Type'] = 'application/json'
+
+    return response
+
+
+@never_cache
+@csrf_exempt
+@has_access
+def search_users(request, team):
+    limit = min(100, int(request.GET.get('limit', 10)))
+    query = request.GET['query']
+
+    results = list(User.objects.filter(
+        Q(email__istartswith=query) | Q(first_name__istartswith=query) | Q(username__istartswith=query),
+    ).filter(
+        Q(team_memberships=team) | Q(accessgroup__team=team),
+    ).distinct().order_by('first_name', 'email').values('id', 'username', 'first_name', 'email')[:limit])
 
     response = HttpResponse(json.dumps({
         'results': results,
