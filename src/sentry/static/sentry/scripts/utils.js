@@ -144,7 +144,10 @@
             $(el).select2({
                 allowClear: true,
                 width: 'element',
-                minimumInputLength: 3,
+                initSelection: function (el, callback) {
+                    var $el = $(el);
+                    callback({id: $el.val(), text: $el.val()});
+                },
                 ajax: {
                     url: this.getSearchUsersUrl(),
                     dataType: 'json',
