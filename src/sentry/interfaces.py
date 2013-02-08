@@ -496,7 +496,10 @@ class Stacktrace(Interface):
             result.extend(('(%d additional frame(s) were not displayed)' % (num_frames - visible_frames,), '...'))
 
         for frame in frames[start:stop]:
-            pieces = ['  File "%(filename)s"']
+            if frame.get('filename'):
+                pieces = ['  File "%(filename)s"']
+            else:
+                pieces = ['  Module "%(module)s"']
             if 'lineno' in frame:
                 pieces.append(', line %(lineno)s')
             if 'function' in frame:
