@@ -396,7 +396,7 @@ class Stacktrace(Interface):
                     context_line=frame['context_line'],
                     pre_context=frame.get('pre_context'),
                     post_context=frame.get('post_context'),
-                    filename=frame.get('abs_path', frame.get('filename')),
+                    filename=frame.get('abs_path') or frame.get('filename'),
                     format=True,
                 )
                 start_lineno = context[0][0]
