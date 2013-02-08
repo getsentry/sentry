@@ -383,6 +383,53 @@ class Stacktrace(Interface):
 
         return newest_first
 
+    def get_frame_context(self, frame, event, is_public=False, **kwargs):
+        if (frame.get('context_line') and frame.get('lineno') is not None
+            and (frame.get('pre_context') or frame.get('post_context'))):
+            context = get_context(
+                lineno=frame['lineno'],
+                context_line=frame['context_line'],
+                pre_context=frame.get('pre_context'),
+                post_context=frame.get('post_context'),
+                filename=frame.get('abs_path') or frame.get('filename') or frame.get('module'),
+                format=True,
+            )
+            start_lineno = context[0][0]
+        else:
+            context = []
+            start_lineno = None
+
+        if frame.get('lineno') is not None:
+            lineno = int(frame['lineno'])
+        else:
+            lineno = None
+
+        in_app = bool(frame.get('in_app', True))
+
+        frame_data = {
+            'abs_path': frame.get('abs_path'),
+            'filename': frame.get('filename'),
+            'module': frame.get('module'),
+            'function': frame.get('function'),
+            'start_lineno': start_lineno,
+            'lineno': lineno,
+            'context': context,
+            'context_line': frame.get('context_line'),
+            'in_app': in_app,
+        }
+        if not is_public:
+            frame_data['vars'] = frame.get('vars') or []
+
+        if event.platform == 'javascript' and frame.get('data'):
+            data = frame['data']
+            frame_data.update({
+                'sourcemap': data['sourcemap'].rsplit('/', 1)[-1],
+                'orig_filename': data['orig_filename'],
+                'orig_lineno': data['orig_lineno'],
+                'orig_colno': data['orig_colno'],
+            })
+        return frame_data
+
     def to_html(self, event, is_public=False, **kwargs):
         if not self.frames:
             return ''
@@ -390,52 +437,11 @@ class Stacktrace(Interface):
         system_frames = 0
         frames = []
         for frame in self.frames:
-            if frame.get('context_line') and frame.get('lineno') is not None:
-                context = get_context(
-                    lineno=frame['lineno'],
-                    context_line=frame['context_line'],
-                    pre_context=frame.get('pre_context'),
-                    post_context=frame.get('post_context'),
-                    filename=frame.get('abs_path') or frame.get('filename') or frame.get('module'),
-                    format=True,
-                )
-                start_lineno = context[0][0]
-            else:
-                context = []
-                start_lineno = None
-
-            if frame.get('lineno') is not None:
-                lineno = int(frame['lineno'])
-            else:
-                lineno = None
-
-            in_app = bool(frame.get('in_app', True))
-
-            frame_data = {
-                'abs_path': frame.get('abs_path'),
-                'filename': frame.get('filename'),
-                'module': frame.get('module'),
-                'function': frame.get('function'),
-                'start_lineno': start_lineno,
-                'lineno': lineno,
-                'context': context,
-                'in_app': in_app,
-            }
-            if not is_public:
-                frame_data['vars'] = frame.get('vars') or []
-
-            if event.platform == 'javascript' and frame.get('data'):
-                data = frame['data']
-                frame_data.update({
-                    'sourcemap': data['sourcemap'].rsplit('/', 1)[-1],
-                    'orig_filename': data['orig_filename'],
-                    'orig_lineno': data['orig_lineno'],
-                    'orig_colno': data['orig_colno'],
-                })
+            frame_data = self.get_frame_context(frame, event=event, is_public=is_public)
 
             frames.append(frame_data)
 
-            if not in_app:
+            if not frame.get('in_app'):
                 system_frames += 1
 
         if len(frames) == system_frames:
