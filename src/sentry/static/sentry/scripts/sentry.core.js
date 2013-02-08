@@ -9,57 +9,6 @@ if (Sentry === undefined) {
 
     var $ = jQuery;
 
-    $(document).ready(function(){
-        // replace text inputs with remote select2 widgets
-        $('.filter').each(function(_, el){
-            var $filter = $(el);
-            var $input = $filter.find('input[type=text]');
-            if ($input.length > 0) {
-                $input.select2({
-                    initSelection: function (el, callback) {
-                        var $el = $(el);
-                        callback({id: $el.val(), text: $el.val()});
-                    },
-                    allowClear: true,
-                    minimumInputLength: 3,
-                    ajax: {
-                        url: app.config.urlPrefix + '/api/' + app.config.teamId + '/' + app.config.projectId + '/tags/search/',
-                        dataType: 'json',
-                        data: function (term, page) {
-                            return {
-                                query: term,
-                                quietMillis: 300,
-                                name: $input.attr('name'),
-                                limit: 10
-                            };
-                        },
-                        results: function (data, page) {
-                            var results = [];
-                            $(data.results).each(function(_, val){
-                                results.push({
-                                    id: val,
-                                    text: val
-                                });
-                            });
-                            return {results: results};
-                        }
-                    }
-                });
-            } else {
-                $input = $filter.find('select').select2({
-                    allowClear: true
-                });
-            }
-            if ($input.length > 0) {
-                $input.on('change', function(e){
-                    var query = app.utils.getQueryParams();
-                    query[e.target.name] = e.val;
-                    window.location.href = '?' + $.param(query);
-                });
-            }
-        });
-    });
-
     $(document).ajaxSend(function(event, xhr, settings) {
         function getCookie(name) {
             var cookieValue = null;
