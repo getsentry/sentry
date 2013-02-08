@@ -118,7 +118,8 @@ class APIView(BaseView):
                 log = logger.info
                 exc_info = None
 
-            log('status=%s project_id=%s %s', response.status_code, project_id,
+            log('status=%s project_id=%s ip=%s agent=%s %s', response.status_code, project_id,
+                request.META['REMOTE_ADDR'], request.META.get('HTTP_USER_AGENT'),
                 response['X-Sentry-Error'], extra={
                     'request': request,
                 }, exc_info=exc_info,
