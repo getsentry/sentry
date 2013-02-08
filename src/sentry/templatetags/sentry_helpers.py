@@ -19,6 +19,7 @@ from sentry.conf import settings
 from sentry.constants import STATUS_MUTED
 from sentry.models import Group
 from sentry.web.helpers import group_is_public
+from sentry.utils import to_unicode
 from sentry.utils.avatar import get_gravatar_url
 from sentry.utils.javascript import to_json
 from sentry.utils.safe import safe_execute
@@ -43,7 +44,7 @@ def pprint(value, break_after=10):
     inserted (for soft wrapping).
     """
 
-    value = unicode(value).decode('utf-8', 'replace')
+    value = to_unicode(value)
     return mark_safe(u'<span></span>'.join(
         [escape(value[i:(i + break_after)]) for i in xrange(0, len(value), break_after)]
     ))
