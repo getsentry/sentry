@@ -90,19 +90,20 @@ MEMBER_TYPES = (
 EMPTY_PASSWORD_VALUES = ('!', '', '$')
 
 PLATFORM_LIST = (
-    'python',
-    'django',
-    'flask',
-    'php',
-    'java',
-    'node.js',
-    'ios',
-    'express',
+    'csharp',
     'connect',
+    'django',
+    'express',
+    'flask',
+    'ios',
+    'java',
+    'javascript',
+    'node.js',
+    'php',
+    'python',
     'r',
     'ruby',
     'rails3',
-    'javascript',
 )
 
 PLATFORM_ROOTS = {
@@ -121,4 +122,5 @@ PLATFORM_TITLES = {
     'connect': 'Connect (Node.js)',
     'django': 'Django (Python)',
     'flask': 'Flask (Python)',
+    'csharp': 'C#',
 }
