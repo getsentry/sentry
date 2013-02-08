@@ -10,6 +10,6 @@
     {% endfor %}
 
     <fieldset class="form-actions">
-        <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+        <button type="submit" class="btn btn-primary">{% if submit_label %}{{ submit_label }}{% else %}{% trans "Save Changes" %}{% endif %}</button>
     </fieldset>
 </form>
