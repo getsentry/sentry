@@ -390,7 +390,9 @@ class Stacktrace(Interface):
         system_frames = 0
         frames = []
         for frame in self.frames:
-            if frame.get('context_line') and frame.get('lineno') is not None:
+            if (frame.get('context_line') and frame.get('lineno') is not None
+                and (frame.get('pre_context') or frame.get('post_context'))):
+
                 context = get_context(
                     lineno=frame['lineno'],
                     context_line=frame['context_line'],
