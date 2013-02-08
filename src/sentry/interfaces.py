@@ -504,8 +504,10 @@ class Stacktrace(Interface):
         for frame in frames[start:stop]:
             if frame.get('filename'):
                 pieces = ['  File "%(filename)s"']
-            else:
+            elif frame.get('module'):
                 pieces = ['  Module "%(module)s"']
+            else:
+                pieces = ['  ?']
             if 'lineno' in frame:
                 pieces.append(', line %(lineno)s')
             if 'function' in frame:
