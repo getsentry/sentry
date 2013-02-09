@@ -154,7 +154,8 @@ class SearchUsersTest(TestCase):
                 'first_name': otheruser.first_name,
                 'username': otheruser.username,
                 'email': otheruser.email,
-            }]
+            }],
+            'query': 'bob',
         }
 
     def test_finds_users_from_access_group_members(self):
@@ -172,7 +173,8 @@ class SearchUsersTest(TestCase):
                 'first_name': otheruser.first_name,
                 'username': otheruser.username,
                 'email': otheruser.email,
-            }]
+            }],
+            'query': 'bob',
         }
 
     def test_does_not_include_users_who_are_not_members(self):
@@ -183,7 +185,8 @@ class SearchUsersTest(TestCase):
         assert resp.status_code == 200
         assert resp['Content-Type'] == 'application/json'
         assert json.loads(resp.content) == {
-            'results': []
+            'results': [],
+            'query': 'bob',
         }
 
 
@@ -207,7 +210,8 @@ class SearchProjectsTest(TestCase):
                 'id': project.id,
                 'slug': project.slug,
                 'name': project.name,
-            }]
+            }],
+            'query': 'sample',
         }
 
     def test_does_not_include_projects_from_other_teams(self):
@@ -219,5 +223,6 @@ class SearchProjectsTest(TestCase):
         assert resp.status_code == 200
         assert resp['Content-Type'] == 'application/json'
         assert json.loads(resp.content) == {
-            'results': []
+            'results': [],
+            'query': 'sample',
         }
