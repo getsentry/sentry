@@ -8,7 +8,7 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
-from sentry.models import Team, TeamMember, PendingTeamMember, AccessGroup
+from sentry.models import Team, TeamMember, PendingTeamMember, AccessGroup, Project
 from sentry.testutils import TestCase, fixture, before
 
 
@@ -302,6 +302,8 @@ class BaseAccessGroupTest(BaseTeamTest):
     @before
     def create_group(self):
         self.group = AccessGroup.objects.create(team=self.team, name='Test')
+        self.group.members.add(self.user)
+        self.group.projects.add(self.project)
 
 
 class ManageAccessGroupsTest(BaseAccessGroupTest):
@@ -346,3 +348,49 @@ class RemoveAccessGroupTest(BaseAccessGroupTest):
         assert resp.status_code == 302
         assert resp['Location'] == 'http://testserver' + reverse('sentry-manage-access-groups', args=[self.team.slug])
         assert not AccessGroup.objects.filter(id=self.group.id).exists()
+
+
+class AccessGroupMembersTest(BaseAccessGroupTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-access-group-members', args=[self.team.slug, self.group.id])
+
+    def test_does_render_with_context(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/teams/groups/members.html')
+        assert 'form' in resp.context
+        assert resp.context['group'] == self.group
+        assert list(resp.context['member_list']) == [self.user]
+
+    def test_does_add_member(self):
+        user = User.objects.create(username='bobross')
+        resp = self.client.post(self.path, {
+            'user': user.username
+        })
+        assert resp.status_code == 302
+        assert resp['Location'] == 'http://testserver' + self.path
+        assert self.group.members.filter(id=user.id).exists()
+
+
+class AccessGroupProjectsTest(BaseAccessGroupTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-access-group-projects', args=[self.team.slug, self.group.id])
+
+    def test_does_render_with_context(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/teams/groups/projects.html')
+        assert 'form' in resp.context
+        assert resp.context['group'] == self.group
+        assert list(resp.context['project_list']) == [self.project]
+
+    def test_does_add_member(self):
+        project = Project.objects.create(team=self.team, name='Sample')
+        resp = self.client.post(self.path, {
+            'project': project.slug
+        })
+        assert resp.status_code == 302
+        assert resp['Location'] == 'http://testserver' + self.path
+        assert self.group.projects.filter(id=project.id).exists()
