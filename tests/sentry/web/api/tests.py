@@ -87,7 +87,7 @@ class CrossDomainXmlTest(TestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp['Content-Type'], 'application/xml')
         self.assertTemplateUsed(resp, 'sentry/crossdomain.xml')
-        self.assertIn('<allow-access-from domain="*" secure="true"></allow-access-from>', resp.content)
+        assert '<allow-access-from domain="*" secure="false" />' in resp.content
 
     @mock.patch('sentry.web.api.get_origins')
     def test_output_with_whitelist(self, get_origins):
@@ -97,8 +97,8 @@ class CrossDomainXmlTest(TestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp['Content-Type'], 'application/xml')
         self.assertTemplateUsed(resp, 'sentry/crossdomain.xml')
-        self.assertIn('<allow-access-from domain="disqus.com" secure="true"></allow-access-from>', resp.content)
-        self.assertIn('<allow-access-from domain="www.disqus.com" secure="true"></allow-access-from>', resp.content)
+        assert '<allow-access-from domain="disqus.com" secure="false" />' in resp.content
+        assert '<allow-access-from domain="www.disqus.com" secure="false" />' in resp.content
 
     @mock.patch('sentry.web.api.get_origins')
     def test_output_with_no_origins(self, get_origins):
@@ -108,14 +108,14 @@ class CrossDomainXmlTest(TestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp['Content-Type'], 'application/xml')
         self.assertTemplateUsed(resp, 'sentry/crossdomain.xml')
-        self.assertNotIn('<allow-access-from', resp.content)
+        assert '<allow-access-from' not in resp.content
 
     def test_output_allows_x_sentry_auth(self):
         resp = self.client.get(self.path)
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp['Content-Type'], 'application/xml')
         self.assertTemplateUsed(resp, 'sentry/crossdomain.xml')
-        self.assertIn('<allow-http-request-headers-from domain="*" headers="X-Sentry-Auth" secure="true"></allow-http-request-headers-from>', resp.content)
+        assert '<allow-http-request-headers-from domain="*" headers="X-Sentry-Auth" secure="false" />' in resp.content
 
 
 class CrossDomainXmlIndexTest(TestCase):
@@ -127,7 +127,8 @@ class CrossDomainXmlIndexTest(TestCase):
         resp = self.client.get(self.path)
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp['Content-Type'], 'application/xml')
-        self.assertIn('<site-control permitted-cross-domain-policies="all"></site-control>', resp.content)
+        self.assertTemplateUsed(resp, 'sentry/crossdomain_index.xml')
+        assert '<site-control permitted-cross-domain-policies="all" />' in resp.content
 
 
 class SearchUsersTest(TestCase):
