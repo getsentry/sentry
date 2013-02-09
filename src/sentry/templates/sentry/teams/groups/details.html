@@ -1,5 +1,6 @@
 {% extends "sentry/teams/groups/list.html" %}
 
+{% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_helpers %}
 
@@ -41,5 +42,18 @@
         <h2>{% trans "Group Settings" %}</h2>
     </div>
 
-    {% include "sentry/partial/_form.html" %}
+    <form action="" method="post">
+        {% csrf_token %}
+        {{ form|as_crispy_errors }}
+
+        {% for field in form %}
+            {% include "sentry/partial/_form_field.html" %}
+        {% endfor %}
+
+        <fieldset class="form-actions">
+            <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+            <a href="{% url sentry-remove-access-group group.team.slug group.id %}" class="btn btn-danger">{% trans "Remove Access Group" %}</a>
+        </fieldset>
+    </form>
+    
 {% endblock %}

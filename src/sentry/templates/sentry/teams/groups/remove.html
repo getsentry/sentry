@@ -1,0 +1,28 @@
+{% extends "sentry/teams/groups/details.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Remove Access Group" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider"></li>
+    <li><a href="{% url sentry-remove-access-group group.team.slug group.id %}">{% trans "Remove Access Group" %}</a></li>
+{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <form action="" method="post">
+            <p>{% trans "Are you sure you wish to remove this acess group? This change is permanent!" %}</p>
+            {% csrf_token %}
+            {{ form|as_crispy_errors }}
+            {% for field in form %}
+                {% include "sentry/partial/_form_field.html" %}
+            {% endfor %}
+            <fieldset class="form-actions">
+                <button type="submit" class="btn btn-danger">{% trans "Confirm" %}</button> <a href="{% url sentry-manage-access-groups group.team.slug %}" class="btn">{% trans "Cancel" %}</a>
+            </fieldset>
+        </form>
+    </section>
+{% endblock %}

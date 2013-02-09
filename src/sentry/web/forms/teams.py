@@ -9,7 +9,7 @@ from django import forms
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import MEMBER_TYPES
-from sentry.models import Team, TeamMember, PendingTeamMember, AccessGroup
+from sentry.models import Team, TeamMember, PendingTeamMember, AccessGroup, Project
 from sentry.web.forms.fields import UserField, get_team_choices
 
 
@@ -137,19 +137,24 @@ class EditAccessGroupForm(BaseAccessGroupForm):
     pass
 
 
+class RemoveAccessGroupForm(forms.Form):
+    pass
+
+
 class NewAccessGroupMemberForm(forms.Form):
     user = UserField()
 
-    def __init__(self, group, data, *args, **kwargs):
-        super(NewAccessGroupMemberForm, self).__init__(data=data, *args, **kwargs)
+
+class NewAccessGroupProjectForm(forms.Form):
+    project = forms.CharField(label=_('Project'), widget=forms.TextInput(attrs={'placeholder': _('slug')}))
+
+    def __init__(self, group, *args, **kwargs):
+        super(NewAccessGroupProjectForm, self).__init__(*args, **kwargs)
         self.group = group
 
-    def clean_user(self):
-        value = self.cleaned_data['user']
-        if not value:
-            return None
-
-        if self.group.members.filter(id=value.id).exists():
-            raise forms.ValidationError(_('User is already a member of this acces group'))
-
-        return value
+    def clean_project(self):
+        value = self.cleaned_data['project']
+        try:
+            return Project.objects.get(team=self.group.team, slug=value)
+        except Project.DoesNotExist:
+            raise forms.ValidationError(_('Invalid project slug'))

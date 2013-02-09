@@ -720,6 +720,26 @@ def search_users(request, team):
     return response
 
 
+@never_cache
+@csrf_exempt
+@has_access
+def search_projects(request, team):
+    limit = min(100, int(request.GET.get('limit', 10)))
+    query = request.GET['query']
+
+    results = list(Project.objects.filter(
+        Q(name__istartswith=query) | Q(slug__istartswith=query),
+    ).filter(team=team).distinct().order_by('name', 'slug').values('id', 'name', 'slug')[:limit])
+
+    response = HttpResponse(json.dumps({
+        'results': results,
+        'query': query,
+    }))
+    response['Content-Type'] = 'application/json'
+
+    return response
+
+
 def crossdomain_xml_index(request):
     response = render_to_response('sentry/crossdomain_index.xml')
     response['Content-Type'] = 'application/xml'
