@@ -102,33 +102,36 @@ class NewTeamTest(BaseTeamTest):
 
 
 class ManageTeamTest(BaseTeamTest):
-    def test_loads(self):
-        resp = self.client.get(reverse('sentry-manage-team', args=[self.team.slug]))
+    @fixture
+    def path(self):
+        return reverse('sentry-manage-team', args=[self.team.slug])
+
+    def test_renders_with_context(self):
+        resp = self.client.get(self.path)
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/teams/manage.html')
+        assert resp.context['team'] == self.team
 
     @mock.patch('django.contrib.auth.models.User.has_perm', mock.Mock(return_value=False))
     def test_valid_params(self):
-        path = reverse('sentry-manage-team', args=[self.team.slug])
-        resp = self.client.post(path, {
+        resp = self.client.post(self.path, {
             'name': 'bar',
             'slug': self.team.slug,
             'owner': self.team.owner.username,
         })
-        self.assertNotEquals(resp.status_code, 200)
-        self.assertEquals(resp['Location'], 'http://testserver' + path)
+        assert resp.status_code == 302
+        self.assertEquals(resp['Location'], 'http://testserver' + self.path)
         team = Team.objects.get(pk=self.team.pk)
         self.assertEquals(team.name, 'bar')
 
     @mock.patch('django.contrib.auth.models.User.has_perm', mock.Mock(return_value=True))
     def test_superuser_can_set_owner(self):
-        path = reverse('sentry-manage-team', args=[self.team.slug])
-        resp = self.client.post(path, {
+        resp = self.client.post(self.path, {
             'name': self.team.name,
             'slug': self.team.slug,
             'owner': self.user2.username,
         })
-        self.assertNotEquals(resp.status_code, 200)
+        assert resp.status_code == 302
 
         team = Team.objects.get(id=self.team.id)
 
@@ -141,22 +144,25 @@ class ManageTeamTest(BaseTeamTest):
 
 
 class RemoveTeamTest(BaseTeamTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-remove-team', args=[self.team.slug])
+
     @mock.patch('sentry.web.frontend.teams.can_remove_team', mock.Mock(return_value=False))
     def test_missing_permission(self):
-        resp = self.client.post(reverse('sentry-remove-team', args=[self.team.slug]))
+        resp = self.client.post(self.path)
         self.assertEquals(resp.status_code, 302)
         self.assertEquals(resp['Location'], 'http://testserver' + reverse('sentry'))
 
     @mock.patch('sentry.web.frontend.teams.can_remove_team', mock.Mock(return_value=True))
     def test_loads(self):
-        resp = self.client.get(reverse('sentry-remove-team', args=[self.team.slug]))
+        resp = self.client.get(self.path)
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/teams/remove.html')
 
     @mock.patch('sentry.web.frontend.teams.can_remove_team', mock.Mock(return_value=True))
     def test_valid_params(self):
-        path = reverse('sentry-remove-team', args=[self.team.slug])
-        resp = self.client.post(path, {'a': 'b'})  # HACK: pass a param since we're faking CSRF to get the form to load
+        resp = self.client.post(self.path)
         self.assertNotEquals(resp.status_code, 200)
         self.assertEquals(resp['Location'], 'http://testserver' + reverse('sentry-team-list'))
         self.assertFalse(Team.objects.filter(pk=self.team.pk).exists())
