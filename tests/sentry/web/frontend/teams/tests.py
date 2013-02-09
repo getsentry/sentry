@@ -8,8 +8,8 @@ from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
-from sentry.models import Team, TeamMember, PendingTeamMember
-from sentry.testutils import TestCase, fixture, before, with_settings
+from sentry.models import Team, TeamMember, PendingTeamMember, AccessGroup
+from sentry.testutils import TestCase, fixture, before
 
 
 class BaseTeamTest(TestCase):
@@ -296,3 +296,53 @@ class AcceptInviteTest(BaseTeamTest):
         resp = self.client.post(reverse('sentry-accept-invite', args=[ptm.id, ptm.token]))
         self.assertTemplateUsed(resp, 'sentry/teams/members/accept_invite_unauthenticated.html')
         self.assertEquals(resp.status_code, 200)
+
+
+class BaseAccessGroupTest(BaseTeamTest):
+    @before
+    def create_group(self):
+        self.group = AccessGroup.objects.create(team=self.team, name='Test')
+
+
+class ManageAccessGroupsTest(BaseAccessGroupTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-manage-access-groups', args=[self.team.slug])
+
+    def test_does_render_with_context(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/teams/groups/list.html')
+        assert list(resp.context['group_list']) == [self.group]
+
+
+class AccessGroupDetailsTest(BaseAccessGroupTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-edit-access-group', args=[self.team.slug, self.group.id])
+
+    def test_does_render_with_context(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/teams/groups/details.html')
+        assert 'form' in resp.context
+        assert resp.context['group'] == self.group
+
+
+class RemoveAccessGroupTest(BaseAccessGroupTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-remove-access-group', args=[self.team.slug, self.group.id])
+
+    def test_does_render_with_context(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/teams/groups/remove.html')
+        assert 'form' in resp.context
+        assert resp.context['group'] == self.group
+
+    def test_does_delete(self):
+        resp = self.client.post(self.path, {})
+        assert resp.status_code == 302
+        assert resp['Location'] == 'http://testserver' + reverse('sentry-manage-access-groups', args=[self.team.slug])
+        assert not AccessGroup.objects.filter(id=self.group.id).exists()

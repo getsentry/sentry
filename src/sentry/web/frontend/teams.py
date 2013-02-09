@@ -115,7 +115,10 @@ def remove_team(request, team):
     if not can_remove_team(request.user, team):
         return HttpResponseRedirect(reverse('sentry'))
 
-    form = RemoveTeamForm(request.POST or None)
+    if request.method == 'POST':
+        form = RemoveTeamForm(request.POST)
+    else:
+        form = RemoveTeamForm()
 
     if form.is_valid():
         team.delete()
@@ -546,7 +549,10 @@ def remove_access_group(request, team, group_id):
     except AccessGroup.DoesNotExist:
         return HttpResponseRedirect(reverse('sentry-manage-access-groups', args=[team.slug]))
 
-    form = RemoveAccessGroupForm(request.POST or None)
+    if request.method == 'POST':
+        form = RemoveAccessGroupForm(request.POST)
+    else:
+        form = RemoveAccessGroupForm()
 
     if form.is_valid():
         group.delete()
