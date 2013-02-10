@@ -37,3 +37,8 @@ class OriginsFieldTest(TestCase):
         value = '*.example.com:80'
         with self.assertRaises(forms.ValidationError):
             self.field.clean(value)
+
+    def test_supports_localhost(self):
+        value = 'localhost'
+        result = self.field.clean(value)
+        self.assertEquals(result, ['localhost'])
