@@ -664,17 +664,24 @@ class GroupManager(BaseManager, ChartMixin):
             if len(value) > MAX_TAG_LENGTH:
                 continue
 
-            # TODO: FilterKey and FilterValue queries should be create's under a try/except
-            FilterKey.objects.get_or_create(
-                project=project,
-                key=key,
-            )
+            app.buffer.incr(FilterKey, {
+                'times_seen': 1,
+            }, {
+                'project': project,
+                'key': key,
+            }, {
+                'last_seen': date,
+            })
 
-            FilterValue.objects.get_or_create(
-                project=project,
-                key=key,
-                value=value,
-            )
+            app.buffer.incr(FilterValue, {
+                'times_seen': 1,
+            }, {
+                'project': project,
+                'key': key,
+                'value': value,
+            }, {
+                'last_seen': date,
+            })
 
             app.buffer.incr(GroupTag, {
                 'times_seen': 1,

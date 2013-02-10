@@ -36,6 +36,8 @@ def cleanup(days=30, project=None, **kwargs):
         (Event, 'datetime'),
         (Activity, 'datetime'),
         (AffectedUserByGroup, 'last_seen'),
+        (FilterKey, 'last_seen'),
+        (FilterValue, 'last_seen'),
 
         # Group should probably be last
         (Group, 'last_seen'),
@@ -60,30 +62,3 @@ def cleanup(days=30, project=None, **kwargs):
     LostPasswordHash.objects.filter(
         date_added__lte=timezone.now() - datetime.timedelta(days=1)
     ).delete()
-
-    # We'll need this to confirm deletion of FilterKey and Filtervalue objects.
-    mqs = GroupTag.objects.all()
-    if project:
-        mqs = mqs.filter(project=project)
-
-    # FilterKey
-    log.info("Removing %r for days=%s project=%r", FilterKey, days, project or '*')
-    qs = FilterKey.objects.all()
-    if project:
-        qs = qs.filter(project=project)
-    for obj in RangeQuerySetWrapper(qs):
-        if not mqs.filter(key=obj.key).exists():
-            log.info("Removing unused filter %s=*", obj.key,)
-            qs.filter(key=obj.key).delete()
-            obj.delete()
-
-    # FilterValue
-    log.info("Removing %r for days=%s project=%r", FilterValue, days, project or '*')
-    qs = FilterValue.objects.all()
-    if project:
-        qs = qs.filter(project=project)
-    for obj in RangeQuerySetWrapper(qs):
-        if not mqs.filter(key=obj.key, value=obj.value).exists():
-            log.info("Removing unused filter %s=%s", obj.key, obj.value)
-            qs.filter(key=obj.key, value=obj.value).delete()
-            obj.delete()

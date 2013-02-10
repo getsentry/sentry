@@ -720,6 +720,9 @@ class FilterKey(Model):
     """
     project = models.ForeignKey(Project)
     key = models.CharField(max_length=32)
+    times_seen = models.PositiveIntegerField(default=0)
+    last_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
+    first_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
 
     objects = FilterKeyManager()
 
@@ -736,6 +739,9 @@ class FilterValue(Model):
     project = models.ForeignKey(Project, null=True)
     key = models.CharField(max_length=32)
     value = models.CharField(max_length=200)
+    times_seen = models.PositiveIntegerField(default=0)
+    last_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
+    first_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
 
     objects = BaseManager()
 
