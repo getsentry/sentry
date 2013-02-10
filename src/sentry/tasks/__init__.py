@@ -10,3 +10,5 @@ import sentry.tasks.cleanup  # NOQA
 import sentry.tasks.fetch_source  # NOQA
 import sentry.tasks.index  # NOQA
 import sentry.tasks.store  # NOQA
+import sentry.tasks.post_process  # NOQA
+import sentry.tasks.process_buffer  # NOQA
