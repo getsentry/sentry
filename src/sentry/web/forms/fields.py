@@ -14,6 +14,10 @@ from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
 
+# Special case origins that don't fit the normal regex pattern, but are valid
+WHITELIST_ORIGINS = ('*', 'localhost')
+
+
 class RadioFieldRenderer(RadioFieldRenderer):
     """
     This is identical to Django's builtin widget, except that
@@ -62,7 +66,7 @@ class OriginsField(CharField):
         return values
 
     def is_valid_origin(self, value):
-        if value == '*':
+        if value in WHITELIST_ORIGINS:
             return True
 
         if '://' in value:
