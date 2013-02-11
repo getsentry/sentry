@@ -49,10 +49,11 @@ class EmailAuthBackend(ModelBackend):
             user = qs.get(username__iexact=username)
         except User.DoesNotExist:
             if '@' in username:
-                try:
-                    user = qs.get(email__iexact=username)
-                except User.DoesNotExist:
-                    return None
+                # email isn't guaranteed unique
+                for user in qs.filter(email__iexact=username):
+                    if user.check_password(password):
+                        return user
+                return None
             else:
                 return None
 
