@@ -53,9 +53,7 @@ class EmailAuthBackend(ModelBackend):
                 for user in qs.filter(email__iexact=username):
                     if user.check_password(password):
                         return user
-                return None
-            else:
-                return None
+            return None
 
         try:
             if user.check_password(password):
