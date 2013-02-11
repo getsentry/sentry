@@ -664,14 +664,10 @@ class GroupManager(BaseManager, ChartMixin):
             if len(value) > MAX_TAG_LENGTH:
                 continue
 
-            app.buffer.incr(FilterKey, {
-                'times_seen': 1,
-            }, {
-                'project': project,
-                'key': key,
-            }, {
-                'last_seen': date,
-            })
+            FilterKey.objects.get_or_create(
+                project=project,
+                key=key,
+            )
 
             app.buffer.incr(FilterValue, {
                 'times_seen': 1,

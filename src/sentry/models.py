@@ -720,9 +720,7 @@ class FilterKey(Model):
     """
     project = models.ForeignKey(Project)
     key = models.CharField(max_length=32)
-    times_seen = models.PositiveIntegerField(default=0)
-    last_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
-    first_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
+    values_seen = models.PositiveIntegerField(default=0)
 
     objects = FilterKeyManager()
 
@@ -749,6 +747,25 @@ class FilterValue(Model):
         unique_together = (('project', 'key', 'value'),)
 
     __repr__ = sane_repr('project_id', 'key', 'value')
+
+
+class GroupTagKey(Model):
+    """
+    Stores a unique tag key name for a group.
+
+    An example key might be "url" or "server_name".
+    """
+    project = models.ForeignKey(Project, null=True)
+    group = models.ForeignKey(Group)
+    key = models.CharField(max_length=32)
+    values_seen = models.PositiveIntegerField(default=0)
+
+    objects = BaseManager()
+
+    class Meta:
+        unique_together = (('project', 'group', 'key'),)
+
+    __repr__ = sane_repr('project_id', 'group_id', 'key')
 
 
 class GroupTag(Model):

@@ -23,8 +23,9 @@ def cleanup(days=30, project=None, **kwargs):
 
     from django.utils import timezone
 
+    # TODO: FilterKey and GroupTagKey need cleaned up
     from sentry.models import (Group, Event, GroupCountByMinute,
-        GroupTag, FilterKey, FilterValue, ProjectCountByMinute,
+        GroupTag, FilterValue, ProjectCountByMinute,
         SearchDocument, Activity, AffectedUserByGroup, LostPasswordHash)
     from sentry.utils.query import RangeQuerySetWrapper
 
@@ -36,7 +37,6 @@ def cleanup(days=30, project=None, **kwargs):
         (Event, 'datetime'),
         (Activity, 'datetime'),
         (AffectedUserByGroup, 'last_seen'),
-        (FilterKey, 'last_seen'),
         (FilterValue, 'last_seen'),
 
         # Group should probably be last

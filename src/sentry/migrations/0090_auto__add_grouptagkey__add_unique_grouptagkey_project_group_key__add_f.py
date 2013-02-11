@@ -8,6 +8,19 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
+        # Adding model 'GroupTagKey'
+        db.create_table('sentry_grouptagkey', (
+            ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('project', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.Project'], null=True)),
+            ('group', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.Group'])),
+            ('key', self.gf('django.db.models.fields.CharField')(max_length=32)),
+            ('values_seen', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
+        ))
+        db.send_create_signal('sentry', ['GroupTagKey'])
+
+        # Adding unique constraint on 'GroupTagKey', fields ['project', 'group', 'key']
+        db.create_unique('sentry_grouptagkey', ['project_id', 'group_id', 'key'])
+
         # Adding field 'FilterValue.times_seen'
         db.add_column('sentry_filtervalue', 'times_seen',
                       self.gf('django.db.models.fields.PositiveIntegerField')(default=0),
@@ -23,23 +36,19 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, null=True, db_index=True),
                       keep_default=False)
 
-        # Adding field 'FilterKey.times_seen'
-        db.add_column('sentry_filterkey', 'times_seen',
+        # Adding field 'FilterKey.values_seen'
+        db.add_column('sentry_filterkey', 'values_seen',
                       self.gf('django.db.models.fields.PositiveIntegerField')(default=0),
-                      keep_default=False)
-
-        # Adding field 'FilterKey.last_seen'
-        db.add_column('sentry_filterkey', 'last_seen',
-                      self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, null=True, db_index=True),
-                      keep_default=False)
-
-        # Adding field 'FilterKey.first_seen'
-        db.add_column('sentry_filterkey', 'first_seen',
-                      self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, null=True, db_index=True),
                       keep_default=False)
 
 
     def backwards(self, orm):
+        # Removing unique constraint on 'GroupTagKey', fields ['project', 'group', 'key']
+        db.delete_unique('sentry_grouptagkey', ['project_id', 'group_id', 'key'])
+
+        # Deleting model 'GroupTagKey'
+        db.delete_table('sentry_grouptagkey')
+
         # Deleting field 'FilterValue.times_seen'
         db.delete_column('sentry_filtervalue', 'times_seen')
 
@@ -49,14 +58,8 @@ class Migration(SchemaMigration):
         # Deleting field 'FilterValue.first_seen'
         db.delete_column('sentry_filtervalue', 'first_seen')
 
-        # Deleting field 'FilterKey.times_seen'
-        db.delete_column('sentry_filterkey', 'times_seen')
-
-        # Deleting field 'FilterKey.last_seen'
-        db.delete_column('sentry_filterkey', 'last_seen')
-
-        # Deleting field 'FilterKey.first_seen'
-        db.delete_column('sentry_filterkey', 'first_seen')
+        # Deleting field 'FilterKey.values_seen'
+        db.delete_column('sentry_filterkey', 'values_seen')
 
 
     models = {
@@ -152,12 +155,10 @@ class Migration(SchemaMigration):
         },
         'sentry.filterkey': {
             'Meta': {'unique_together': "(('project', 'key'),)", 'object_name': 'FilterKey'},
-            'first_seen': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'null': 'True', 'db_index': 'True'}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'key': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
-            'last_seen': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'null': 'True', 'db_index': 'True'}),
             'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']"}),
-            'times_seen': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'})
+            'values_seen': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'})
         },
         'sentry.filtervalue': {
             'Meta': {'unique_together': "(('project', 'key', 'value'),)", 'object_name': 'FilterValue'},
@@ -227,6 +228,14 @@ class Migration(SchemaMigration):
             'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'}),
             'times_seen': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'}),
             'value': ('django.db.models.fields.CharField', [], {'max_length': '200'})
+        },
+        'sentry.grouptagkey': {
+            'Meta': {'unique_together': "(('project', 'group', 'key'),)", 'object_name': 'GroupTagKey'},
+            'group': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Group']"}),
+            'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'key': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
+            'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']", 'null': 'True'}),
+            'values_seen': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'})
         },
         'sentry.lostpasswordhash': {
             'Meta': {'object_name': 'LostPasswordHash'},
