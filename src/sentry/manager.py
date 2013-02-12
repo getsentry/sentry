@@ -38,7 +38,7 @@ from sentry.tasks.index import index_event
 from sentry.tasks.fetch_source import fetch_javascript_source
 from sentry.utils.cache import cache, Lock
 from sentry.utils.dates import get_sql_date_trunc
-from sentry.utils.db import get_db_engine, has_charts
+from sentry.utils.db import get_db_engine, has_charts, attach_foreignkey
 from sentry.utils.models import create_or_update, make_key
 from sentry.utils.queue import maybe_delay
 
@@ -809,6 +809,8 @@ class ProjectManager(BaseManager, ChartMixin):
 
         if is_authenticated:
             projects |= set(base_qs.filter(accessgroup__members=user))
+
+        attach_foreignkey(projects, self.model.team)
 
         return sorted(projects, key=lambda x: x.name)
 
