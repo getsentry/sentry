@@ -47,7 +47,7 @@ class RedisCounter(Counter):
         now = time.time()
         with self.conn.map() as conn:
             keys = [self._make_key('global', '1', now)]
-            keys.extend(self._make_key(k, v, now) for k, v in kwargs.iteritems())
+            keys.extend(self._make_key(k, v, now, False) for k, v in kwargs.iteritems())
             if created:
                 keys.extend(self._make_key(k, v, now, True) for k, v in kwargs.iteritems())
             for key in keys:
@@ -66,8 +66,8 @@ class RedisCounter(Counter):
         results = []
         with self.conn.map() as conn:
             for minute in xrange(minutes):
-                key = self._make_key(key, value, now - (minutes * 60), unique)
-                results.append(conn.get(key))
+                redis_key = self._make_key(key, value, now - (minute * 60), unique)
+                results.append(conn.get(redis_key))
 
         return sum(int(r or 0) for r in results)
 

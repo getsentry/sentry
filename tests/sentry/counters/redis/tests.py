@@ -37,3 +37,19 @@ class RedisCounterTest(TestCase):
         assert self.counter._make_key('team_id', 1, now, unique=True) == 'sentry.counters:22677571:1:team_id=1'
 
         assert self.counter._make_key('project_id', 'foo', now, unique=True) == 'sentry.counters:22677571:1:project_id=foo'
+
+    def test_all_the_things(self):
+        self.counter.incr(1, team_id=1, project_id=1, group_id=1, created=False)
+        self.counter.incr(1, team_id=1, project_id=1, group_id=1, created=True)
+        self.counter.incr(1, team_id=1, project_id=2, group_id=1, created=False)
+        self.counter.incr(2, team_id=1, project_id=2, group_id=2, created=True)
+        assert self.counter.total('team_id', 1) == 5
+        assert self.counter.total('project_id', 1) == 2
+        assert self.counter.total('project_id', 2) == 3
+        assert self.counter.total('group_id', 1) == 3
+        assert self.counter.total('group_id', 2) == 2
+        assert self.counter.unique('team_id', 1) == 3
+        assert self.counter.unique('project_id', 1) == 1
+        assert self.counter.unique('project_id', 2) == 2
+        assert self.counter.unique('group_id', 1) == 1
+        assert self.counter.unique('group_id', 2) == 2
