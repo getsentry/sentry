@@ -49,6 +49,9 @@ def get_context(lineno, context_line, pre_context=None, post_context=None, filen
         start_lineno = lineno
         at_lineno = lineno
 
+    if start_lineno < 0:
+        start_lineno = 0
+
     context.append((at_lineno, context_line))
     at_lineno += 1
 

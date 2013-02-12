@@ -34,7 +34,9 @@ def trim_line(line):
 
 def get_source_context(source, lineno, context=LINES_OF_CONTEXT):
     # lineno's in JS are 1-indexed
-    lineno -= 1
+    # just in case. sometimes math is hard
+    if lineno > 0:
+        lineno -= 1
 
     lower_bound = max(0, lineno - context)
     upper_bound = min(lineno + 1 + context, len(source))
