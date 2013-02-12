@@ -813,7 +813,9 @@ class ProjectManager(BaseManager, ChartMixin):
         if team:
             base_qs = base_qs.filter(team=team)
 
-        if team and not user.is_superuser:
+        if team and user.is_superuser:
+            projects = set(base_qs)
+        else:
             if not settings.PUBLIC:
                 # If the user is authenticated, include their memberships
                 teams = Team.objects.get_for_user(user, access).values()
@@ -828,8 +830,6 @@ class ProjectManager(BaseManager, ChartMixin):
 
             if is_authenticated:
                 projects |= set(base_qs.filter(accessgroup__members=user))
-        else:
-            projects = set(base_qs)
 
         attach_foreignkey(projects, self.model.team)
 
