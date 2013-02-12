@@ -1156,6 +1156,37 @@ def set_language_on_logon(request, user, **kwargs):
         request.session['django_language'] = language
 
 
+@buffer_incr_complete.connect(sender=FilterValue, weak=False)
+def record_project_tag_count(filters, created, **kwargs):
+    from sentry import app
+
+    if not created:
+        return
+
+    app.buffer.incr(FilterKey, {
+        'values_seen': 1,
+    }, {
+        'project': filters['project'],
+        'key': filters['key'],
+    })
+
+
+@buffer_incr_complete.connect(sender=GroupTag, weak=False)
+def record_group_tag_count(filters, created, **kwargs):
+    from sentry import app
+
+    if not created:
+        return
+
+    app.buffer.incr(GroupTagKey, {
+        'values_seen': 1,
+    }, {
+        'project': filters['project'],
+        'group': filters['group'],
+        'key': filters['key'],
+    })
+
+
 @buffer_incr_complete.connect(sender=AffectedUserByGroup, weak=False)
 def record_user_count(filters, created, **kwargs):
     from sentry import app

@@ -651,7 +651,7 @@ class GroupManager(BaseManager, ChartMixin):
         })
 
     def add_tags(self, group, tags):
-        from sentry.models import FilterValue, FilterKey, GroupTag
+        from sentry.models import FilterValue, GroupTag
 
         project = group.project
         date = group.last_seen
@@ -663,11 +663,6 @@ class GroupManager(BaseManager, ChartMixin):
             value = unicode(value)
             if len(value) > MAX_TAG_LENGTH:
                 continue
-
-            FilterKey.objects.get_or_create(
-                project=project,
-                key=key,
-            )
 
             app.buffer.incr(FilterValue, {
                 'times_seen': 1,
