@@ -9,14 +9,12 @@ sentry.counter.base
 
 class Counter(object):
     """
-    Counters are temporary stores for querying real-time counts of events.
+    A counter is a temporary store for real-time counts for recent historical
+    data on events.
 
-    Specifically, they store the following distinct counters:
+    Specifically, they store the following:
 
-    - events (global)
-    - events per team
     - events per project
-    - events per group
 
     Each grouping tracks the following:
 
@@ -25,12 +23,14 @@ class Counter(object):
 
     Each counter stores counts at minute-level intervals for 15 minutes.
     """
+    MINUTES = 15
+
     def __init__(self, **options):
         pass
 
-    def incr(self, amount=1, is_new=False, **kwargs):
+    def incr(self, group, is_new=False, **kwargs):
         """
-        >>> incr(1, team_id=1, project_id=1, group_id=1, is_new=False)
+        >>> incr(group, is_new=False)
         """
         pass
 

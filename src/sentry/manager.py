@@ -617,10 +617,7 @@ class GroupManager(BaseManager, ChartMixin):
 
     def incr_counters(self, group, is_new):
         app.counter.incr(
-            amount=1,
-            group_id=group.id,
-            team_id=group.team.id,
-            project_id=group.project.id,
+            group=group,
             is_new=is_new,
         )
 

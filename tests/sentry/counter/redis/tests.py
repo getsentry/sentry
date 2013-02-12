@@ -27,26 +27,15 @@ class RedisCounterTest(TestCase):
         time = time.time
 
         time.return_value = 1360644295.816033
-        assert self.counter._make_key('team_id', 1, is_new=False) == 'sentry.counter:22677404:0:team_id=1'
+        assert self.counter._make_key('project', is_new=False) == 'sentry.counter:project:22677404:0'
         time.assert_called_once_with()
 
         now = 1360654295.816033
-        assert self.counter._make_key('team_id', 1, now, is_new=True) == 'sentry.counter:22677571:1:team_id=1'
-
-        assert self.counter._make_key('project_id', 'foo', now, is_new=True) == 'sentry.counter:22677571:1:project_id=foo'
+        assert self.counter._make_key('team', now, is_new=True) == 'sentry.counter:team:22677571:1'
 
     def test_all_the_things(self):
-        self.counter.incr(1, team_id=1, project_id=1, group_id=1, is_new=False)
-        self.counter.incr(1, team_id=1, project_id=1, group_id=1, is_new=True)
-        self.counter.incr(1, team_id=1, project_id=2, group_id=1, is_new=False)
-        self.counter.incr(2, team_id=1, project_id=2, group_id=2, is_new=True)
-        assert self.counter.total('team_id', 1) == 5
-        assert self.counter.total('project_id', 1) == 2
-        assert self.counter.total('project_id', 2) == 3
-        assert self.counter.total('group_id', 1) == 3
-        assert self.counter.total('group_id', 2) == 2
-        assert self.counter.new('team_id', 1) == 3
-        assert self.counter.new('project_id', 1) == 1
-        assert self.counter.new('project_id', 2) == 2
-        assert self.counter.new('group_id', 1) == 1
-        assert self.counter.new('group_id', 2) == 2
+        self.counter.incr(self.group, is_new=False)
+        self.counter.incr(self.group, is_new=False)
+        self.counter.incr(self.group, is_new=True)
+        assert self.counter.total(self.project) == 3
+        assert self.counter.new(self.project) == 1

@@ -266,10 +266,7 @@ class SentryManagerTest(TestCase):
         is_new = mock.Mock()
         Group.objects.incr_counters(self.group, is_new=is_new)
         incr.assert_called_once_with(
-            amount=1,
-            team_id=self.group.team.id,
-            project_id=self.group.project.id,
-            group_id=self.group.id,
+            group=self.group,
             is_new=is_new,
         )
 
