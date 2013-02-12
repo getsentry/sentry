@@ -4,10 +4,7 @@ from __future__ import absolute_import
 
 import mock
 
-# from datetime import timedelta
-# from django.utils import timezone
 from sentry.counters.redis import RedisCounter
-# from sentry.models import Group, Project
 from sentry.testutils import TestCase, fixture
 
 
