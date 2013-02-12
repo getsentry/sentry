@@ -12,6 +12,7 @@ from sentry.constants import STATUS_RESOLVED
 from sentry.models import Group, GroupBookmark
 from sentry.templatetags.sentry_plugins import get_tags
 from sentry.utils import json
+from sentry.utils.db import attach_foreignkey
 
 
 transformers = {}
@@ -61,6 +62,8 @@ class Transformer(object):
 class GroupTransformer(Transformer):
     def attach_metadata(self, objects, request=None):
         from sentry.templatetags.sentry_plugins import handle_before_events
+
+        attach_foreignkey(objects, Group.project, ['team'])
 
         if request and objects:
             handle_before_events(request, objects)
