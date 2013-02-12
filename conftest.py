@@ -5,6 +5,9 @@ import os.path
 
 
 def pytest_configure(config):
+    import warnings
+    warnings.filterwarnings('error', '', Warning, r'(sentry|raven)')
+
     if not settings.configured:
         os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.conf.server'
 
