@@ -606,7 +606,23 @@ class GroupManager(BaseManager, ChartMixin):
         except Exception, e:
             logger.exception('Unable to record tags: %s' % (e,))
 
+        # It's important that we increment short-counters without using the queue otherwise they could
+        # quickly become inaccurate
+        try:
+            self.incr_counters(group, is_new)
+        except Exception, e:
+            logger.exception('Unable to increment counters: %s' % (e,))
+
         return group, is_new, is_sample
+
+    def incr_counters(self, group, is_new):
+        app.counter.incr(
+            amount=1,
+            group_id=group.id,
+            team_id=group.team.id,
+            project_id=group.project.id,
+            is_new=is_new,
+        )
 
     def record_affected_user(self, group, user_ident, data=None):
         from sentry.models import TrackedUser, AffectedUserByGroup

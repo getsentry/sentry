@@ -34,27 +34,27 @@ class RedisCounter(Counter):
             'hosts': options['hosts'],
         })
 
-    def _make_key(self, key, value, when=None, unique=False):
+    def _make_key(self, key, value, when=None, is_new=False):
         """
         Returns a Redis-compatible key for the given key/value combination.
         """
         if when is None:
             when = time.time()
         when = int(when / 60)  # chop it down to the minute
-        return 'sentry.counter:%s:%s:%s=%s' % (when, int(unique), key, value)
+        return 'sentry.counter:%s:%s:%s=%s' % (when, int(is_new), key, value)
 
-    def incr(self, amount, created=False, **kwargs):
+    def incr(self, amount, is_new=False, **kwargs):
         now = time.time()
         with self.conn.map() as conn:
             keys = [self._make_key('global', '1', now)]
             keys.extend(self._make_key(k, v, now, False) for k, v in kwargs.iteritems())
-            if created:
+            if is_new:
                 keys.extend(self._make_key(k, v, now, True) for k, v in kwargs.iteritems())
             for key in keys:
                 conn.incr(key, amount)
                 conn.expire(key, self.key_expire)
 
-    def _get_count(self, key=None, value=None, minutes=None, unique=False):
+    def _get_count(self, key=None, value=None, minutes=None, is_new=False):
         if minutes is None:
             minutes = self.num_minutes
 
@@ -66,13 +66,13 @@ class RedisCounter(Counter):
         results = []
         with self.conn.map() as conn:
             for minute in xrange(minutes):
-                redis_key = self._make_key(key, value, now - (minute * 60), unique)
+                redis_key = self._make_key(key, value, now - (minute * 60), is_new)
                 results.append(conn.get(redis_key))
 
         return sum(int(r or 0) for r in results)
 
     def total(self, key, value, minutes=None):
-        return self._get_count(key, value, minutes=minutes, unique=False)
+        return self._get_count(key, value, minutes=minutes, is_new=False)
 
-    def unique(self, key, value, minutes=None):
-        return self._get_count(key, value, minutes=minutes, unique=True)
+    def new(self, key, value, minutes=None):
+        return self._get_count(key, value, minutes=minutes, is_new=True)
