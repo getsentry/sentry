@@ -41,7 +41,7 @@ Setting up an Environment
 The first thing you'll need is the Python ``virtualenv`` package. You probably already
 have this, but if not, you can install it with::
 
-  easy_install -U virtualenv
+  easy_install -UZ virtualenv
 
 Once that's done, choose a location for the environment, and create it with the ``virtualenv``
 command. For our guide, we're going to choose ``/www/sentry/``::
@@ -61,7 +61,7 @@ Install Sentry
 Once you've got the environment setup, you can install Sentry and all its dependencies with
 the same command you used to grab virtualenv::
 
-  easy_install -U sentry
+  easy_install -UZ sentry
 
 Don't be worried by the amount of dependencies Sentry has. We have a philosophy of using the right tools for
 the job, and not reinventing them if they already exist.
