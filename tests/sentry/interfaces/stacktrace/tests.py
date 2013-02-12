@@ -76,6 +76,31 @@ class StacktraceTest(TestCase):
         result = interface.get_hash()
         self.assertEquals(result, ['foo.py', 1])
 
+    def test_get_hash_ignores_filename_if_http(self):
+        interface = Stacktrace(frames=[{
+            'context_line': 'hello world',
+            'filename': 'http://foo.com/foo.py',
+        }])
+        result = interface.get_hash()
+        self.assertEquals(result, ['hello world'])
+
+    def test_get_hash_ignores_filename_if_https(self):
+        interface = Stacktrace(frames=[{
+            'context_line': 'hello world',
+            'filename': 'https://foo.com/foo.py',
+        }])
+        result = interface.get_hash()
+        self.assertEquals(result, ['hello world'])
+
+    def test_get_hash_ignores_filename_if_abs_path_is_http(self):
+        interface = Stacktrace(frames=[{
+            'context_line': 'hello world',
+            'abs_path': 'https://foo.com/foo.py',
+            'filename': 'foo.py',
+        }])
+        result = interface.get_hash()
+        self.assertEquals(result, ['hello world'])
+
     def test_get_hash_uses_module_over_filename(self):
         interface = Stacktrace(frames=[{
             'lineno': 1,

@@ -353,10 +353,13 @@ class Stacktrace(Interface):
 
     def get_frame_hash(self, frame):
         output = []
+        filename = frame.get('filename')
+        abs_path = frame.get('abs_path') or filename
         if frame.get('module'):
             output.append(frame['module'])
-        elif frame.get('filename'):
-            output.append(frame['filename'])
+        # We only include the filename
+        elif filename and not abs_path.startswith(('http:', 'https:')):
+            output.append(filename)
 
         if frame.get('context_line'):
             output.append(frame['context_line'])
