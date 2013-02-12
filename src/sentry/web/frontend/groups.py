@@ -187,9 +187,13 @@ def render_with_group_context(group, template, context, request=None, event=None
             next_event = None
             prev_event = None
 
+        extra_data = event.data.get('extra', {})
+        if not isinstance(extra_data, dict):
+            extra_data = {}
+
         context.update({
             'event': event,
-            'json_data': event.data.get('extra', {}),
+            'json_data': extra_data,
             'version_data': event.data.get('modules', None),
             'next_event': next_event,
             'prev_event': prev_event,

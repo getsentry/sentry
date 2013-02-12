@@ -323,9 +323,14 @@ def validate_data(project, data, client=None):
             del data['timestamp']
 
     if data.get('modules') and type(data['modules']) != dict:
-        logger.error('Discardied invalid type for modules: %s', type(data['modules']),
+        logger.error('Discarded invalid type for modules: %s', type(data['modules']),
             **client_metadata(client))
         del data['modules']
+
+    if data.get('extra') and type(data['extra']) != dict:
+        logger.error('Discarded invalid type for extra: %s', type(data['extra']),
+            **client_metadata(client))
+        del data['extra']
 
     for k in data.keys():
         if k in RESERVED_FIELDS:
