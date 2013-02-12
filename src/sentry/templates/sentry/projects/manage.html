@@ -80,11 +80,14 @@
         <li{% if page == 'details' %} class="active"{% endif %}>
             <a href="{% url sentry-manage-project project.team.slug project.slug %}">{% trans "Settings" %}</a>
         </li>
-        <li{% if page == 'keys' %} class="active"{% endif %}>
-            <a href="{% url sentry-manage-project-keys project.team.slug project.slug %}">{% trans "API Keys" %}</a>
+        <li{% if page == 'notifications' %} class="active"{% endif %}>
+            <a href="{% url sentry-project-notifications project.team.slug project.slug %}">{% trans "Notifcations" %}</a>
         </li>
         <li{% if page == 'tags' %} class="active"{% endif %}>
             <a href="{% url sentry-manage-project-tags project.team.slug project.slug %}">{% trans "Tags" %}</a>
+        </li>
+        <li{% if page == 'keys' %} class="active"{% endif %}>
+            <a href="{% url sentry-manage-project-keys project.team.slug project.slug %}">{% trans "API Keys" %}</a>
         </li>
     </ul>
     <ul class="nav nav-list">

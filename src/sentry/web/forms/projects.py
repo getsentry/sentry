@@ -153,3 +153,20 @@ class EditProjectAdminForm(EditProjectForm):
     class Meta:
         fields = ('name', 'platform', 'public', 'team', 'owner', 'slug')
         model = Project
+
+
+class NotificationSettingsForm(forms.Form):
+    new_events = forms.BooleanField(help_text=_('Notify the first time an event is seen or becomes a regression.'),
+        required=False)
+    event_age = forms.CharField(help_text=_('Notify when an event hasn\'t been seen for this many hours.'),
+        required=False)
+
+
+class NotificationTagValuesForm(forms.Form):
+    values = forms.CharField()
+
+    def __init__(self, project, tag, *args, **kwargs):
+        self.project = project
+        self.tag = tag
+        super(NotificationTagValuesForm, self).__init__(*args, **kwargs)
+        self.fields['values'].label = self.tag

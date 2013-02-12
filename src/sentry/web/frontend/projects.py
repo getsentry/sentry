@@ -21,7 +21,8 @@ from sentry.plugins import plugins
 from sentry.plugins.helpers import set_option, get_option
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms.projects import (NewProjectForm, NewProjectAdminForm,
-    ProjectTagsForm, EditProjectForm, RemoveProjectForm, EditProjectAdminForm)
+    ProjectTagsForm, EditProjectForm, RemoveProjectForm, EditProjectAdminForm,
+    NotificationSettingsForm, NotificationTagValuesForm)
 from sentry.web.forms.teams import NewTeamForm, SelectTeamForm
 from sentry.web.helpers import render_to_response, plugin_config
 
@@ -272,6 +273,32 @@ def manage_project_tags(request, team, project):
         'SUBSECTION': 'projects'
     }
     return render_to_response('sentry/projects/manage_tags.html', context, request)
+
+
+@has_access(MEMBER_OWNER)
+@csrf_protect
+def notification_settings(request, team, project):
+    initial = {
+        'new_events': True,
+    }
+    form = NotificationSettingsForm(request.POST or None, initial=initial)
+
+    tag_forms = []
+    for tag in FilterKey.objects.all_keys(project):
+        tag_forms.append(NotificationTagValuesForm(project, tag, request.POST or None,
+            prefix='tag-%s' % (tag,)))
+
+    context = csrf(request)
+    context.update({
+        'team': team,
+        'project': project,
+        'form': form,
+        'tag_forms': tag_forms,
+        'page': 'notifications',
+        'SECTION': 'team',
+        'SUBSECTION': 'projects',
+    })
+    return render_to_response('sentry/projects/notifications.html', context, request)
 
 
 @has_access(MEMBER_OWNER)

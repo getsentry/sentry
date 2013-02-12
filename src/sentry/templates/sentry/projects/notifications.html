@@ -1,0 +1,71 @@
+{% extends "sentry/projects/manage.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Notifications" %} | {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider"></li>
+    <li><a href="{% url sentry-project-notifications project.team.slug project.slug %}">{% trans "Notifications" %}</a></li>
+{% endblock %}
+
+{% block inner %}
+    <div class="page-header">
+        <h2>{% trans "Notifications" %}</h2>
+    </div>
+    <form action="" method="post" class="form-stacked">
+        <p>{% trans "Notification settings will guarantee that you will never be notified more than once for a specific event." %}</p>
+        {% csrf_token %}
+
+        <div class="page-header">
+            <h3>{% trans "Global Rules" %}</h3>
+        </div>
+
+        <p>{% trans "The following rules will apply regardless of any other settings." %}</p>
+
+        {{ form|as_crispy_errors }}
+
+        {% for field in form %}
+            {% include "sentry/partial/_form_field.html" %}
+        {% endfor %}
+
+        <div class="page-header">
+            <h3>{% trans "Tags" %}</h3>
+        </div>
+
+        <p>{% trans "Tag restrictions are based on your global notification rules. If tags are specified, notifications will be sent when they match any of the restrictions." %}</p>
+
+        <table class="table table-striped" id="tag_list">
+            <colgroup>
+                <col style="width:130px">
+            </colgroup>
+            <tbody>
+                {% for tag_form in tag_forms %}
+                    <tr>
+                        <th style="vertical-align:middle">{{ tag_form.values.label|titlize }}</th>
+                        <td style="vertical-align:middle">{{ tag_form.values }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <fieldset class="form-actions">
+            <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+        </fieldset>
+
+    </form>
+    <script type="text/javascript">
+    $(function(){
+        $("#tag_list input").select2({
+            multiple: true,
+            width: 'element',
+            tags: ["hello world", "foo", "bar"],
+            tokenSeperators: [","]
+        });
+    });
+    </script>
+{% endblock %}
+
