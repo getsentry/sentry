@@ -32,6 +32,10 @@ update-submodules:
 
 test: install-test-requirements lint test-js test-python
 
+test-loop: install-test-requirements
+	pip install pytest-xdist --use-mirrors
+	py.test tests -f
+
 test-js:
 	@echo "Running JavaScript tests"
 	${NPM_ROOT}/phantomjs/bin/phantomjs runtests.js tests/js/index.html
