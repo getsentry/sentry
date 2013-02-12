@@ -83,11 +83,6 @@ MAIL_INCLUDE_LOGGERS = None
 # A list of loggers to exclude in emails.
 MAIL_EXCLUDE_LOGGERS = []
 
-# Normalize counts to the 15 minute marker. This value MUST be less than 60. A
-# value of 0 would store counts for every minute, and is the lowest level of
-# accuracy provided.
-MINUTE_NORMALIZATION = 15
-
 # The number of events to display per page
 MESSAGES_PER_PAGE = 15
 

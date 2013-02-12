@@ -31,13 +31,13 @@ from django.utils.encoding import force_unicode
 from raven.utils.encoding import to_string
 from sentry import app
 from sentry.conf import settings
-from sentry.constants import STATUS_RESOLVED, STATUS_UNRESOLVED
+from sentry.constants import STATUS_RESOLVED, STATUS_UNRESOLVED, MINUTE_NORMALIZATION
 from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
 from sentry.tasks.index import index_event
 from sentry.tasks.fetch_source import fetch_javascript_source
 from sentry.utils.cache import cache, Lock
-from sentry.utils.dates import get_sql_date_trunc
+from sentry.utils.dates import get_sql_date_trunc, normalize_datetime
 from sentry.utils.db import get_db_engine, has_charts, attach_foreignkey
 from sentry.utils.models import create_or_update, make_key
 from sentry.utils.queue import maybe_delay
@@ -311,7 +311,7 @@ class ChartMixin(object):
         # the last interval is not accurate, so we exclude it
         # TODO: it'd be ideal to normalize the last datapoint so that we can include it
         # and not have ~inaccurate data for up to MINUTE_NORMALIZATION
-        today -= datetime.timedelta(minutes=settings.MINUTE_NORMALIZATION)
+        today -= datetime.timedelta(minutes=MINUTE_NORMALIZATION)
 
         if max_days >= 30:
             g_type = 'date'
@@ -328,7 +328,7 @@ class ChartMixin(object):
         else:
             g_type = 'minute'
             d_type = 'minutes'
-            modifier = settings.MINUTE_NORMALIZATION
+            modifier = MINUTE_NORMALIZATION
             points = max_days * 24 * (60 / modifier)
 
         min_date = today - datetime.timedelta(days=max_days)
@@ -570,11 +570,7 @@ class GroupManager(BaseManager, ChartMixin):
             is_sample = True
 
         # Rounded down to the nearest interval
-        if settings.MINUTE_NORMALIZATION:
-            minutes = (date.minute - (date.minute % settings.MINUTE_NORMALIZATION))
-        else:
-            minutes = date.minute
-        normalized_datetime = date.replace(second=0, microsecond=0, minute=minutes)
+        normalized_datetime = normalize_datetime(date)
 
         app.buffer.incr(GroupCountByMinute, update_kwargs, {
             'group': group,
@@ -713,7 +709,7 @@ class GroupManager(BaseManager, ChartMixin):
         queryset = queryset._clone()
         queryset.query.select_related = False
 
-        normalization = float(settings.MINUTE_NORMALIZATION)
+        normalization = float(MINUTE_NORMALIZATION)
         assert minutes >= normalization
 
         engine = get_db_engine(queryset.db)

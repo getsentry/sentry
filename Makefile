@@ -32,7 +32,7 @@ update-submodules:
 
 test: install-test-requirements lint test-js test-python
 
-test-loop: install-test-requirements
+testloop: install-test-requirements
 	pip install pytest-xdist --use-mirrors
 	py.test tests -f
 

@@ -124,3 +124,8 @@ PLATFORM_TITLES = {
     'flask': 'Flask (Python)',
     'csharp': 'C#',
 }
+
+# Normalize counts to the 15 minute marker. This value MUST be less than 60. A
+# value of 0 would store counts for every minute, and is the lowest level of
+# accuracy provided.
+MINUTE_NORMALIZATION = 15
