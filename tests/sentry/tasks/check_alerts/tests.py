@@ -33,7 +33,7 @@ class CheckProjectAlertsTest(TestCase):
             project_id=self.project.id,
             name='total',
             when=now,
-            count=15
+            count=20
         )
         assert can_alert is False
 
@@ -42,6 +42,6 @@ class CheckProjectAlertsTest(TestCase):
             project_id=self.project.id,
             name='total',
             when=now,
-            count=15
+            count=20
         )
         assert can_alert is True

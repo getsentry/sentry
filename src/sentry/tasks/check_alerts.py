@@ -38,6 +38,7 @@ from celery.task import periodic_task, task
 from celery.task.schedules import crontab
 from django.utils import timezone
 
+
 def fsteps(start, stop, steps):
     step = (stop - start) / steps
     while start <= stop:
@@ -88,10 +89,9 @@ def check_project_alerts(project_id, name, when, count, **kwargs):
         return False
 
     # take a weighted mean, where the oldest value is worth .5 and the newest is 1.0
-    previous = sum((k * v) for k, v in zip(data, fsteps(0.5, 1.0, intervals))) / intervals / MINUTE_NORMALIZATION
-    threshold = 300  # 200 percent
+    previous = sum((k * v) for k, v in zip(data, fsteps(0.7, 1.0, intervals))) / intervals / MINUTE_NORMALIZATION
+    threshold = 300
     if count / previous * 100 > threshold:
         # we could raise an alert here!
         return True
     return False
-
