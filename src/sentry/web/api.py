@@ -754,7 +754,7 @@ def crossdomain_xml(request, project_id):
     try:
         project = Project.objects.get_from_cache(**lookup)
     except Project.DoesNotExist:
-        return HttpResponse(status_code=404)
+        return HttpResponse(status=404)
 
     origin_list = get_origins(project)
     if origin_list == '*':
