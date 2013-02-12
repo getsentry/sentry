@@ -705,7 +705,9 @@ class GroupManager(BaseManager, ChartMixin):
         return self.get(project=project, logger=logger, view=culprit, checksum=checksum)
 
     def get_accelerated(self, project_ids, queryset=None, minutes=15):
-        # mintues should
+        if not project_ids:
+            return self.none()
+
         from sentry.models import GroupCountByMinute
         mcbm_tbl = GroupCountByMinute._meta.db_table
         if queryset is None:
