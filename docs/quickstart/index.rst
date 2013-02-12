@@ -341,9 +341,20 @@ following to your ``sentry.conf.py``::
       'django_bcrypt',
   )
 
+Configuring Memcache
+~~~~~~~~~~~~~~~~~~~~
+
 You'll also want to consider configuring cache and buffer settings, which respectively require a cache server and a Redis
-server. While the Django configuration covers caching in great detail, Sentry allows you to specify a backend for its
-own internal purposes::
+server. You'll need to do two things, starting with installing the memcache dependencies:
+
+::
+
+  pip install python-memcached
+
+While the Django configuration covers caching in great detail, Sentry allows you to specify a backend for its
+own internal purposes:
+
+::
 
   # You'll need to install django-pyblibmc for this example to work
   CACHES = {
