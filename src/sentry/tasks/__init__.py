@@ -6,6 +6,7 @@ sentry.tasks
 :license: BSD, see LICENSE for more details.
 """
 
+import sentry.tasks.check_alerts  # NOQA
 import sentry.tasks.cleanup  # NOQA
 import sentry.tasks.fetch_source  # NOQA
 import sentry.tasks.index  # NOQA

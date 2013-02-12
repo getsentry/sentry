@@ -51,6 +51,23 @@ class RedisCounter(Counter):
                 conn.zincrby(key, group.project_id)
                 conn.expire(key, 60 * self.MINUTES)
 
+    def extract_counts(self, prefix='project'):
+        now = time.time() - 60
+        with self.conn.map() as conn:
+            key = self._make_key(prefix, now)
+            total = conn.zrange(key)
+            conn.delete(key)
+
+            key = self._make_key(prefix, now, True)
+            new = conn.zrange(key)
+            conn.delete(key)
+
+        return {
+            'time': now,
+            'total': total,
+            'new': new,
+        }
+
     def _get_count(self, project, minutes=None, is_new=False):
         if minutes is None:
             minutes = self.MINUTES
