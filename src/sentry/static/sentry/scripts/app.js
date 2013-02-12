@@ -114,7 +114,7 @@
         },
 
         initFilters: function(){
-            $('.filter').each(function(_, el){
+            $('.filter').each(_.bind(function(_, el){
                 var $filter = $(el);
                 var $input = $filter.find('input[type=text]');
                 if ($input.length > 0) {
@@ -160,7 +160,7 @@
                         window.location.href = '?' + $.param(query);
                     });
                 }
-            });
+            }, this));
         },
 
         updateStreamOptions: function(){
