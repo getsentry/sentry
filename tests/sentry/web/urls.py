@@ -1,4 +1,8 @@
-from django.conf.urls.defaults import *
+try:
+    from django.conf.urls import *
+except ImportError:
+    # django < 1.5 compat
+    from django.conf.urls.defaults import *  # NOQA
 from django.contrib import admin
 
 admin.autodiscover()

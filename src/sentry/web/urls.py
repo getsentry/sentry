@@ -8,7 +8,11 @@ sentry.web.urls
 
 import re
 
-from django.conf.urls.defaults import include, patterns, url
+try:
+    from django.conf.urls import include, patterns, url
+except ImportError:
+    # django < 1.5 compat
+    from django.conf.urls.defaults import include, patterns, url  # NOQA
 
 from sentry.web import api
 from sentry.web.frontend import accounts, generic, groups, events, \
