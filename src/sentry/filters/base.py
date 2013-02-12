@@ -14,6 +14,7 @@ __all__ = ('Filter', 'GroupFilter', 'EventFilter')
 from django.utils.datastructures import SortedDict
 
 from sentry.models import Group, Event, FilterValue, MessageIndex
+from sentry.utils.cache import cache
 from .widgets import ChoiceWidget
 
 
@@ -59,11 +60,15 @@ class Filter(object):
         return '?' + query_dict.urlencode()
 
     def get_choices(self):
-        return SortedDict((l, l)
-            for l in FilterValue.objects.filter(
+        key = 'filters:%s:%s' % (self.project.id, self.column)
+        result = cache.get(key)
+        if result is None:
+            result = list(FilterValue.objects.filter(
                 project=self.project,
                 key=self.column,
             ).values_list('value', flat=True).order_by('value')[:self.max_choices])
+            cache.set(key, result, 60)
+        return SortedDict((l, l) for l in result)
 
     def get_query_set(self, queryset):
         kwargs = {self.column: self.get_value()}
