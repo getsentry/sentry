@@ -33,3 +33,9 @@ class Counter(object):
         >>> incr(1, team_id=1, project_id=1, group_id=1, created=False)
         """
         pass
+
+    def total(self, key, value, minutes=None):
+        return None
+
+    def unique(self, key, value, minutes=None):
+        return None
