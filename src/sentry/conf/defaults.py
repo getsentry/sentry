@@ -163,6 +163,9 @@ CACHE_BACKEND = 'dummy://'
 # The maximum number of events which can be requested as JSON
 MAX_JSON_RESULTS = 1000
 
+# Redis connection information (see Nydus documentation)
+REDIS_OPTIONS = {}
+
 # Buffer backend to use
 BUFFER = 'sentry.buffer.Buffer'
 BUFFER_OPTIONS = {}

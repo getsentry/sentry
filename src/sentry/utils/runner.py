@@ -57,8 +57,7 @@ DATABASES = {
 # http://celery.readthedocs.org/en/latest/
 # BROKER_URL = 'redis://localhost:6379'
 
-# SENTRY_BUFFER = 'sentry.buffer.redis.RedisBuffer'
-# SENTRY_BUFFER_OPTIONS = {
+# SENTRY_REDIS_OPTIONS = {
 #     'hosts': {
 #         0: {
 #             'host': '127.0.0.1',
@@ -66,6 +65,8 @@ DATABASES = {
 #         }
 #     }
 # }
+
+# SENTRY_BUFFER = 'sentry.buffer.redis.RedisBuffer'
 
 SENTRY_KEY = %(default_key)r
 

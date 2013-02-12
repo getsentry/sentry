@@ -12,22 +12,27 @@ from django.db import models
 from hashlib import md5
 from nydus.db import create_cluster
 from sentry.buffer import Buffer
+from sentry.conf import settings
 from sentry.utils.compat import pickle
 
 
 class RedisBuffer(Buffer):
     key_expire = 60 * 60  # 1 hour
 
-    def __init__(self, hosts=None, router='nydus.db.routers.keyvalue.PartitionRouter', **options):
+    def __init__(self, **options):
+        if not options:
+            # inherit default options from REDIS_OPTIONS
+            options = settings.REDIS_OPTIONS
+
         super(RedisBuffer, self).__init__(**options)
-        if hosts is None:
-            hosts = {
-                0: {}  # localhost / default
-            }
+        options.setdefault('hosts', {
+            0: {},
+        })
+        options.setdefault('router', 'nydus.db.routers.keyvalue.PartitionRouter')
         self.conn = create_cluster({
             'engine': 'nydus.db.backends.redis.Redis',
-            'router': router,
-            'hosts': hosts,
+            'router': options['router'],
+            'hosts': options['hosts'],
         })
 
     def _map_column(self, model, column, value):
