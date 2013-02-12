@@ -349,6 +349,7 @@ class ProjectManagerTest(TestCase):
 
     @mock.patch('sentry.models.Team.objects.get_for_user', mock.Mock(return_value={}))
     def test_does_not_include_public_projects(self):
+        self.user.is_superuser = False
         project_list = Project.objects.get_for_user(self.user)
         assert project_list == []
 
@@ -357,6 +358,7 @@ class ProjectManagerTest(TestCase):
 
     @mock.patch('sentry.models.Team.objects.get_for_user')
     def test_does_not_include_private_projects(self, get_for_user):
+        self.user.is_superuser = False
         get_for_user.return_value = {self.project2.team.id: self.project2.team}
         project_list = Project.objects.get_for_user(self.user)
         get_for_user.assert_called_once_with(self.user, None)

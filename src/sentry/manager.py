@@ -811,20 +811,23 @@ class ProjectManager(BaseManager, ChartMixin):
         if team:
             base_qs = base_qs.filter(team=team)
 
-        if not settings.PUBLIC:
-            # If the user is authenticated, include their memberships
-            teams = Team.objects.get_for_user(user, access).values()
-            if not teams:
-                return []
-            if team and team not in teams:
-                return []
-            elif not team:
-                base_qs = base_qs.filter(team__in=teams)
+        if team and not user.is_superuser:
+            if not settings.PUBLIC:
+                # If the user is authenticated, include their memberships
+                teams = Team.objects.get_for_user(user, access).values()
+                if not teams:
+                    return []
+                if team and team not in teams:
+                    return []
+                elif not team:
+                    base_qs = base_qs.filter(team__in=teams)
 
-        projects = set(base_qs)
+            projects = set(base_qs)
 
-        if is_authenticated:
-            projects |= set(base_qs.filter(accessgroup__members=user))
+            if is_authenticated:
+                projects |= set(base_qs.filter(accessgroup__members=user))
+        else:
+            projects = set(base_qs)
 
         attach_foreignkey(projects, self.model.team)
 
