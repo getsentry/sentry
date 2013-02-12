@@ -111,5 +111,6 @@ def sourcemap_to_index(sourcemap):
 
 
 def find_source(indexed_sourcemap, lineno, colno):
-    # error says "line no 0, column no 56"
-    return indexed_sourcemap.states[bisect.bisect_left(indexed_sourcemap.keys, (lineno, colno)) - 1]
+    # error says "line no 1, column no 56"
+    assert lineno > 0, 'line numbers are 1-indexed'
+    return indexed_sourcemap.states[bisect.bisect_left(indexed_sourcemap.keys, (lineno - 1, colno)) - 1]

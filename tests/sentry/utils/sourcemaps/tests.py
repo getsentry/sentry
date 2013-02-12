@@ -23,12 +23,13 @@ class FindSourceTest(TestCase):
     def test_simple(self):
         indexed_sourcemap = sourcemap_to_index(sourcemap)
 
-        result = find_source(indexed_sourcemap, 0, 56)
+        result = find_source(indexed_sourcemap, 1, 56)
 
         assert result == SourceMap(dst_line=0, dst_col=50, src='file2.js', src_line=0, src_col=9, name='multiply')
 
 
 class ParseSourcemapTest(TestCase):
+    def test_basic(self):
         states = list(parse_sourcemap(sourcemap))
 
         assert states == [
