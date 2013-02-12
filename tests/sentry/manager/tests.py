@@ -224,7 +224,7 @@ class SentryManagerTest(TestCase):
         with self.Settings(SENTRY_SCRAPE_JAVASCRIPT_CONTEXT=True):
             event = Group.objects.from_kwargs(1, message='hello', platform='javascript')
 
-            maybe_delay.assert_any_call(fetch_javascript_source, event)
+            maybe_delay.assert_any_call(fetch_javascript_source, event, expires=900)
 
     def test_add_tags(self):
         event = Group.objects.from_kwargs(1, message='rrr')

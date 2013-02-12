@@ -484,7 +484,7 @@ class GroupManager(BaseManager, ChartMixin):
 
         if settings.SCRAPE_JAVASCRIPT_CONTEXT and event.platform == 'javascript' and not is_sample:
             try:
-                maybe_delay(fetch_javascript_source, event)
+                maybe_delay(fetch_javascript_source, event, expires=3600)
             except Exception, e:
                 transaction.rollback_unless_managed(using=group._state.db)
                 logger.exception(u'Error fetching javascript source: %s', e)
