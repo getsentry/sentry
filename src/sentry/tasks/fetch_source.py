@@ -143,16 +143,16 @@ def fetch_javascript_source(event, **kwargs):
     logger = fetch_javascript_source.get_logger()
 
     try:
-        stacktrace = event.data['sentry.interfaces.Stacktrace']
+        stacktrace = event.interfaces['sentry.interfaces.Stacktrace']
     except KeyError:
         logger.debug('No stacktrace for event %r', event.id)
         return
 
     # build list of frames that we can actually grab source for
-    frames = [f for f in stacktrace['frames']
-        if f.get('lineno') is not None
-            and f.get('context_line') is None
-            and f.get('abs_path', '').startswith(('http://', 'https://'))]
+    frames = [f for f in stacktrace.frames
+        if f.lineno is not None
+            and f.context_line is None
+            and f.is_url()]
     if not frames:
         logger.debug('Event %r has no frames with enough context to fetch remote source', event.id)
         return
@@ -163,9 +163,9 @@ def fetch_javascript_source(event, **kwargs):
     sourcemaps = {}
 
     for f in frames:
-        file_list.add(f['abs_path'])
-        if f.get('colno') is not None:
-            sourcemap_capable.add(f['abs_path'])
+        file_list.add(f.abs_path)
+        if f.colno is not None:
+            sourcemap_capable.add(f.abs_path)
 
     while file_list:
         filename = file_list.pop()
@@ -211,23 +211,23 @@ def fetch_javascript_source(event, **kwargs):
     has_changes = False
     for frame in frames:
         try:
-            source, sourcemap = source_code[frame['abs_path']]
+            source, sourcemap = source_code[frame.abs_path]
         except KeyError:
             # we must've failed pulling down the source
             continue
 
-        if frame.get('colno') and sourcemap:
-            state = find_source(sourcemaps[sourcemap], frame['lineno'], frame['colno'])
+        if frame.colno is not None and sourcemap:
+            state = find_source(sourcemaps[sourcemap], frame.lineno, frame.colno)
             # TODO: is this urljoin right? (is it relative to the sourcemap or the originating file)
             abs_path = urljoin(sourcemap, state.src)
-            logger.debug('Mapping compressed source %r to mapping in %r', frame['abs_path'], abs_path)
+            logger.debug('Mapping compressed source %r to mapping in %r', frame.abs_path, abs_path)
             try:
                 source, _ = source_code[abs_path]
             except KeyError:
                 pass
             else:
                 # Store original data in annotation
-                frame['data'] = {
+                frame.data = {
                     'orig_lineno': frame['lineno'],
                     'orig_colno': frame['colno'],
                     'orig_function': frame['function'],
@@ -237,17 +237,18 @@ def fetch_javascript_source(event, **kwargs):
                 }
 
                 # SourceMap's return zero-indexed lineno's
-                frame['lineno'] = state.src_line + 1
-                frame['colno'] = state.src_col
-                frame['function'] = state.name
-                frame['abs_path'] = abs_path
-                frame['filename'] = state.src
+                frame.lineno = state.src_line + 1
+                frame.colno = state.src_col
+                frame.function = state.name
+                frame.abs_path = abs_path
+                frame.filename = state.src
 
         has_changes = True
 
         # TODO: theoretically a minified source could point to another mapped, minified source
-        frame['pre_context'], frame['context_line'], frame['post_context'] = get_source_context(
-            source=source, lineno=int(frame['lineno']))
+        frame.pre_context, frame.context_line, frame.post_context = get_source_context(
+            source=source, lineno=frame.lineno)
 
     if has_changes:
+        event.data['sentry.interfaces.Stacktrace'] = stacktrace.serialize()
         event.update(data=event.data)

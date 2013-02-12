@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import mock
 import pickle
 
-from sentry.interfaces import Interface, Message, Query, Stacktrace, get_context
+from sentry.interfaces import Interface, Message, Query, get_context
 from sentry.models import Event
 from sentry.testutils import TestCase, fixture
 

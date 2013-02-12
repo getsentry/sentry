@@ -6,7 +6,6 @@ sentry.utils.models
 :license: BSD, see LICENSE for more details.
 """
 
-import base64
 import hashlib
 import logging
 
@@ -18,6 +17,7 @@ from django.utils.encoding import smart_str
 from sentry.utils.cache import Lock
 from sentry.utils.compat import pickle
 from sentry.utils.db import resolve_expression_node
+from sentry.utils.strings import decompress, compress
 
 logger = logging.getLogger(__name__)
 
@@ -181,7 +181,7 @@ class GzippedDictField(models.TextField):
     def to_python(self, value):
         if isinstance(value, basestring) and value:
             try:
-                value = pickle.loads(base64.b64decode(value).decode('zlib'))
+                value = pickle.loads(decompress(value))
             except Exception, e:
                 logger.exception(e)
                 return {}
@@ -193,7 +193,7 @@ class GzippedDictField(models.TextField):
         if not value and self.null:
             # save ourselves some storage
             return None
-        return base64.b64encode(pickle.dumps(value).encode('zlib'))
+        return compress(pickle.dumps(value))
 
     def value_to_string(self, obj):
         value = self._get_val_from_obj(obj)

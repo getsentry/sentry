@@ -11,6 +11,7 @@ validated and rendered.
 
 import itertools
 import urlparse
+import warnings
 
 from pygments import highlight
 # from pygments.lexers import get_lexer_for_filename, TextLexer, ClassNotFound
@@ -99,6 +100,11 @@ class Interface(object):
     def __init__(self, **kwargs):
         self.attrs = kwargs.keys()
         self.__dict__.update(kwargs)
+
+    def __eq__(self, other):
+        if type(self) != type(other):
+            return False
+        return self.serialize() == other.serialize()
 
     def __setstate__(self, data):
         kwargs = self.unserialize(data)
@@ -230,6 +236,125 @@ class Query(Interface):
         }
 
 
+class Frame(object):
+    def __init__(self, abs_path=None, filename=None, lineno=None, colno=None, in_app=False,
+                 context_line=None, pre_context=(), post_context=(), vars=None,
+                 module=None, function=None, data=None):
+        self.abs_path = abs_path or filename
+        self.filename = filename or abs_path
+
+        if self.is_url():
+            urlparts = urlparse.urlparse(self.abs_path)
+            if urlparts.path:
+                self.filename = urlparts.path
+
+        self.module = module
+        self.function = function
+
+        if lineno is not None:
+            self.lineno = int(lineno)
+        else:
+            self.lineno = None
+        if colno is not None:
+            self.colno = int(colno)
+        else:
+            self.colno = None
+
+        self.in_app = bool(in_app)
+        self.context_line = context_line
+        self.pre_context = pre_context
+        self.post_context = post_context
+        self.vars = vars or {}
+        self.data = data or {}
+
+    def __getitem__(self, key):
+        warnings.warn('Frame[key] is deprecated. Use Frame.key instead.', DeprecationWarning)
+        return getattr(self, key)
+
+    def is_url(self):
+        if not self.abs_path:
+            return False
+        return is_url(self.abs_path)
+
+    def is_valid(self):
+        return self.filename or self.function or self.module
+
+    def get_hash(self):
+        output = []
+        if self.module:
+            output.append(self.module)
+        elif self.filename and not self.is_url():
+            output.append(self.filename)
+
+        if self.context_line:
+            output.append(self.context_line)
+        elif self.function:
+            output.append(self.function)
+        elif self.lineno is not None:
+            output.append(self.lineno)
+        return output
+
+    def get_context(self, event, is_public=False, **kwargs):
+        if (self.context_line and self.lineno is not None
+            and (self.pre_context or self.post_context)):
+            context = get_context(
+                lineno=self.lineno,
+                context_line=self.context_line,
+                pre_context=self.pre_context,
+                post_context=self.post_context,
+                filename=self.filename or self.module,
+                format=True,
+            )
+            start_lineno = context[0][0]
+        else:
+            context = []
+            start_lineno = None
+
+        frame_data = {
+            'abs_path': self.abs_path,
+            'filename': self.filename,
+            'module': self.module,
+            'function': self.function,
+            'start_lineno': start_lineno,
+            'lineno': self.lineno,
+            'context': context,
+            'context_line': self.context_line,
+            'in_app': self.in_app,
+            'is_url': self.is_url(),
+        }
+        if not is_public:
+            frame_data['vars'] = self.vars or {}
+
+        if event.platform == 'javascript' and self.data:
+            frame_data.update({
+                'sourcemap': self.data['sourcemap'].rsplit('/', 1)[-1],
+                'sourcemap_url': urlparse.urljoin(self.abs_path, self.data['sourcemap']),
+                'orig_function': self.data['orig_function'],
+                'orig_filename': self.data['orig_filename'],
+                'orig_lineno': self.data['orig_lineno'],
+                'orig_colno': self.data['orig_colno'],
+            })
+        return frame_data
+
+    def to_string(self):
+        result = []
+        if self.filename:
+            pieces = ['  File "%s"' % (self.filename,)]
+        elif self.module:
+            pieces = ['  Module "%s"' % (self.module,)]
+        else:
+            pieces = ['  ?']
+        if self.lineno is not None:
+            pieces.append(', line %d' % (self.lineno,))
+        if self.function:
+            pieces.append(', in %s' % (self.function,))
+
+        result = ''.join(pieces)
+        if self.context_line is not None:
+            result += '\n    %s' % (self.context_line.strip(),)
+        return result
+
+
 class Stacktrace(Interface):
     """
     A stacktrace contains a list of frames, each with various bits (most optional)
@@ -304,46 +429,16 @@ class Stacktrace(Interface):
     score = 1000
 
     def __init__(self, frames):
-        self.frames = frames
-        for frame in frames:
-            # if for some reason the user provided abs_path but not filename
-            # let it through and fix it for them
-            if 'abs_path' in frame and 'filename' not in frame:
-                frame['filename'] = frame.pop('abs_path', None)
-
-            # lineno should be an int
-            if 'lineno' in frame:
-                if frame['lineno'] is None:
-                    del frame['lineno']
-                else:
-                    frame['lineno'] = int(frame['lineno'])
-
-            # colno should be an int
-            if 'colno' in frame:
-                if frame['colno'] is None:
-                    del frame['colno']
-                else:
-                    frame['colno'] = int(frame['colno'])
-
-            # in_app should be a boolean
-            if 'in_app' in frame:
-                frame['in_app'] = bool(frame['in_app'])
-
-            abs_path = frame.get('abs_path') or frame.get('filename')
-            if abs_path and is_url(abs_path):
-                urlparts = urlparse.urlparse(abs_path)
-                if urlparts.path:
-                    frame['abs_path'] = abs_path
-                    frame['filename'] = urlparts.path
+        self.frames = [Frame(**f) for f in frames]
 
     def validate(self):
         for frame in self.frames:
             # ensure we've got the correct required values
-            assert frame.get('filename') or frame.get('function') or frame.get('module')
+            assert frame.is_valid()
 
     def serialize(self):
         return {
-            'frames': self.frames,
+            'frames': [vars(f) for f in self.frames],
         }
 
     def get_composite_hash(self, interfaces):
@@ -359,25 +454,7 @@ class Stacktrace(Interface):
     def get_hash(self):
         output = []
         for frame in self.frames:
-            output.extend(self.get_frame_hash(frame))
-        return output
-
-    def get_frame_hash(self, frame):
-        output = []
-        filename = frame.get('filename')
-        abs_path = frame.get('abs_path') or filename
-        if frame.get('module'):
-            output.append(frame['module'])
-        # We only include the filename
-        elif filename and not is_url(abs_path):
-            output.append(filename)
-
-        if frame.get('context_line'):
-            output.append(frame['context_line'])
-        elif frame.get('function'):
-            output.append(frame['function'])
-        elif frame.get('lineno'):
-            output.append(frame['lineno'])
+            output.extend(frame.get_hash())
         return output
 
     def is_newest_frame_first(self, event):
@@ -397,61 +474,6 @@ class Stacktrace(Interface):
 
         return newest_first
 
-    def get_frame_context(self, frame, event, is_public=False, **kwargs):
-        if (frame.get('context_line') and frame.get('lineno') is not None
-            and (frame.get('pre_context') or frame.get('post_context'))):
-            context = get_context(
-                lineno=frame['lineno'],
-                context_line=frame['context_line'],
-                pre_context=frame.get('pre_context'),
-                post_context=frame.get('post_context'),
-                filename=frame.get('abs_path') or frame.get('filename') or frame.get('module'),
-                format=True,
-            )
-            start_lineno = context[0][0]
-        else:
-            context = []
-            start_lineno = None
-
-        if frame.get('lineno') is not None:
-            lineno = int(frame['lineno'])
-        else:
-            lineno = None
-        if frame.get('colno') is not None:
-            colno = int(frame['colno'])
-        else:
-            colno = None
-
-        in_app = bool(frame.get('in_app', True))
-
-        frame_data = {
-            'abs_path': frame.get('abs_path'),
-            'filename': frame.get('filename'),
-            'module': frame.get('module'),
-            'function': frame.get('function'),
-            'start_lineno': start_lineno,
-            'lineno': lineno,
-            'colno': colno,
-            'context': context,
-            'context_line': frame.get('context_line'),
-            'in_app': in_app,
-            'is_url': is_url(frame.get('abs_path') or ''),
-        }
-        if not is_public:
-            frame_data['vars'] = frame.get('vars') or []
-
-        if event.platform == 'javascript' and frame.get('data'):
-            data = frame['data']
-            frame_data.update({
-                'sourcemap': data['sourcemap'].rsplit('/', 1)[-1],
-                'sourcemap_url': urlparse.urljoin(frame['abs_path'], data['sourcemap']),
-                'orig_filename': data['orig_filename'],
-                'orig_function': data['orig_function'],
-                'orig_lineno': data['orig_lineno'],
-                'orig_colno': data['orig_colno'],
-            })
-        return frame_data
-
     def to_html(self, event, is_public=False, **kwargs):
         if not self.frames:
             return ''
@@ -459,11 +481,9 @@ class Stacktrace(Interface):
         system_frames = 0
         frames = []
         for frame in self.frames:
-            frame_data = self.get_frame_context(frame, event=event, is_public=is_public)
+            frames.append(frame.get_context(event=event, is_public=is_public))
 
-            frames.append(frame_data)
-
-            if not frame.get('in_app'):
+            if not frame.in_app:
                 system_frames += 1
 
         if len(frames) == system_frames:
@@ -502,7 +522,7 @@ class Stacktrace(Interface):
         num_frames = len(frames)
 
         if not system_frames:
-            frames = [f for f in frames if f.get('in_app') is not False]
+            frames = [f for f in frames if f.in_app is not False]
             if not frames:
                 frames = self.frames
 
@@ -524,20 +544,7 @@ class Stacktrace(Interface):
             result.extend(('(%d additional frame(s) were not displayed)' % (num_frames - visible_frames,), '...'))
 
         for frame in frames[start:stop]:
-            if frame.get('filename'):
-                pieces = ['  File "%(filename)s"']
-            elif frame.get('module'):
-                pieces = ['  Module "%(module)s"']
-            else:
-                pieces = ['  ?']
-            if 'lineno' in frame:
-                pieces.append(', line %(lineno)s')
-            if 'function' in frame:
-                pieces.append(', in %(function)s')
-
-            result.append(''.join(pieces) % frame)
-            if frame.get('context_line', None) is not None:
-                result.append('    %s' % frame['context_line'].strip())
+            result.append(frame.to_string())
 
         if newest_first and visible_frames < num_frames:
             result.extend(('...', '(%d additional frame(s) were not displayed)' % (num_frames - visible_frames,)))
@@ -554,7 +561,7 @@ class Stacktrace(Interface):
 
     def get_search_context(self, event):
         return {
-            'text': list(itertools.chain(*[[f.get('filename'), f.get('function'), f.get('context_line')] for f in self.frames])),
+            'text': list(itertools.chain(*[[f.filename, f.function, f.context_line] for f in self.frames])),
         }
 
 

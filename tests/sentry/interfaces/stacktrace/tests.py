@@ -23,6 +23,14 @@ class StacktraceTest(TestCase):
             }
         ])
 
+    def test_legacy_interface(self):
+        # Simple test to ensure legacy data works correctly with the ``Frame``
+        # objects
+        event = self.event
+        interface = Stacktrace(**event.data['sentry.interfaces.Stacktrace'])
+        assert len(interface.frames) == 5
+        assert interface == event.interfaces['sentry.interfaces.Stacktrace']
+
     def test_requires_filename(self):
         with self.assertRaises(AssertionError):
             Stacktrace(frames=[{}]).validate()
@@ -41,8 +49,8 @@ class StacktraceTest(TestCase):
             'abs_path': 'foo/bar/baz.py',
         }])
         frame = interface.frames[0]
-        assert frame['filename'] == 'foo/bar/baz.py'
-        assert frame.get('abs_path') is None
+        assert frame.filename == 'foo/bar/baz.py'
+        assert frame.abs_path == frame.filename
 
     def test_coerces_url_filenames(self):
         interface = Stacktrace(frames=[{
@@ -50,8 +58,8 @@ class StacktraceTest(TestCase):
             'filename': 'http://foo.com/foo.js',
         }])
         frame = interface.frames[0]
-        assert frame['filename'] == '/foo.js'
-        assert frame['abs_path'] == 'http://foo.com/foo.js'
+        assert frame.filename == '/foo.js'
+        assert frame.abs_path == 'http://foo.com/foo.js'
 
     def test_coerces_url_abs_paths(self):
         interface = Stacktrace(frames=[{
@@ -60,8 +68,8 @@ class StacktraceTest(TestCase):
             'abs_path': 'http://foo.com/foo.js',
         }])
         frame = interface.frames[0]
-        assert frame['filename'] == '/foo.js'
-        assert frame['abs_path'] == 'http://foo.com/foo.js'
+        assert frame.filename == '/foo.js'
+        assert frame.abs_path == 'http://foo.com/foo.js'
 
     def test_ignores_results_with_empty_path(self):
         interface = Stacktrace(frames=[{
@@ -69,8 +77,8 @@ class StacktraceTest(TestCase):
             'filename': 'http://foo.com',
         }])
         frame = interface.frames[0]
-        assert frame['filename'] == 'http://foo.com'
-        assert frame.get('abs_path') is None
+        assert frame.filename == 'http://foo.com'
+        assert frame.abs_path == frame.filename
 
     def test_serialize_returns_frames(self):
         interface = Stacktrace(frames=[{
@@ -78,7 +86,7 @@ class StacktraceTest(TestCase):
             'filename': 'foo.py',
         }])
         result = interface.serialize()
-        self.assertTrue('frames' in result)
+        assert 'frames' in result
 
     def test_get_hash_with_only_required_vars(self):
         interface = Stacktrace(frames=[{
@@ -176,14 +184,14 @@ class StacktraceTest(TestCase):
     @mock.patch('sentry.interfaces.Stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     @mock.patch('sentry.interfaces.Stacktrace.get_traceback')
     @mock.patch('sentry.interfaces.render_to_string')
-    @mock.patch('sentry.interfaces.Stacktrace.get_frame_context')
+    @mock.patch('sentry.interfaces.Frame.get_context')
     def test_to_html_render_call(self, get_frame_context, render_to_string, get_traceback):
         event = mock.Mock(spec=Event())
         get_traceback.return_value = 'bar'
         interface = Stacktrace(frames=[{'lineno': 1, 'filename': 'foo.py'}])
         result = interface.to_html(event)
         get_traceback.assert_called_once_with(event, newest_first=False)
-        get_frame_context.assert_called_once_with(interface.frames[0], event=event, is_public=False)
+        get_frame_context.assert_called_once_with(event=event, is_public=False)
         render_to_string.assert_called_once_with('sentry/partial/interfaces/stacktrace.html', {
             'event': event,
             'frames': [get_frame_context.return_value],

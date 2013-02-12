@@ -44,13 +44,13 @@ class StoreEventTest(TestCase):
         build_opener.return_value.open.return_value.read.assert_called_once_with()
         update.assert_called_once_with(data=event.data)
 
-        frame_list = event.data['sentry.interfaces.Stacktrace']['frames']
+        frame_list = event.interfaces['sentry.interfaces.Stacktrace'].frames
         frame = frame_list[0]
-        assert frame['pre_context'] == ['h', 'e', 'l']
-        assert frame['context_line'] == 'l'
-        assert frame['post_context'] == ['o', ' ', 'w', 'o', 'r']
+        assert frame.pre_context == ['h', 'e', 'l']
+        assert frame.context_line == 'l'
+        assert frame.post_context == ['o', ' ', 'w', 'o', 'r']
 
         frame = frame_list[1]
-        assert frame['pre_context'] == []
-        assert frame['context_line'] == 'h'
-        assert frame['post_context'] == ['e', 'l', 'l', 'o', ' ']
+        assert frame.pre_context == []
+        assert frame.context_line == 'h'
+        assert frame.post_context == ['e', 'l', 'l', 'o', ' ']

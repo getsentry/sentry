@@ -28,6 +28,8 @@ from sentry.utils import is_float, json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.imports import import_string
 from sentry.utils.queue import maybe_delay
+from sentry.utils.strings import decompress
+
 
 logger = logging.getLogger('sentry.coreapi.errors')
 
@@ -226,7 +228,7 @@ def project_from_id(request):
 def decode_and_decompress_data(encoded_data):
     try:
         try:
-            return base64.b64decode(encoded_data).decode('zlib')
+            return decompress(encoded_data)
         except zlib.error:
             return base64.b64decode(encoded_data)
     except Exception, e:
