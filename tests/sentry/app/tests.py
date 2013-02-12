@@ -19,14 +19,14 @@ class GetBufferTest(TestCase):
     def test_raises_import_error_on_invalid_path(self, import_string):
         import_string.return_value = None
         with self.assertRaises(ImportError):
-            app.get_buffer('lol.FooBar', {})
+            app.get_instance('lol.FooBar', {})
 
     @mock.patch('sentry.app.import_string')
     def test_instantiates_class_with_options(self, import_string):
         options = {'hello': 'world'}
         path = 'lol.FooBar'
 
-        result = app.get_buffer(path, options)
+        result = app.get_instance(path, options)
 
         import_string.assert_called_once_with(path)
         import_string.return_value.assert_called_once_with(**options)

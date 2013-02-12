@@ -15,11 +15,12 @@ class State(local):
     request = None
 
 
-def get_buffer(path, options):
+def get_instance(path, options):
     cls = import_string(path)
     if cls is None:
         raise ImportError('Unable to find module %s' % path)
     return cls(**options)
 
-buffer = get_buffer(settings.BUFFER, settings.BUFFER_OPTIONS)
+buffer = get_instance(settings.BUFFER, settings.BUFFER_OPTIONS)
+counter = get_instance(settings.COUNTER, settings.COUNTER_OPTIONS)
 env = State()

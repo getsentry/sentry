@@ -170,6 +170,10 @@ REDIS_OPTIONS = {}
 BUFFER = 'sentry.buffer.Buffer'
 BUFFER_OPTIONS = {}
 
+# Counter backend to use
+COUNTER = 'sentry.counter.Counter'
+COUNTER_OPTIONS = {}
+
 # Auth engines and the settings required for them to be listed
 AUTH_PROVIDERS = {
     'twitter': ('TWITTER_CONSUMER_KEY', 'TWITTER_CONSUMER_SECRET'),
