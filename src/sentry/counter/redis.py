@@ -43,7 +43,7 @@ class RedisCounter(Counter):
         when = int(when / 60)  # chop it down to the minute
         return 'sentry.counter:%s:%s:%s=%s' % (when, int(is_new), key, value)
 
-    def incr(self, amount, is_new=False, **kwargs):
+    def incr(self, amount=1, is_new=False, **kwargs):
         now = time.time()
         with self.conn.map() as conn:
             keys = [self._make_key('global', '1', now)]

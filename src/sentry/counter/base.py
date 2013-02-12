@@ -28,7 +28,7 @@ class Counter(object):
     def __init__(self, **options):
         pass
 
-    def incr(self, amount, is_new=False, **kwargs):
+    def incr(self, amount=1, is_new=False, **kwargs):
         """
         >>> incr(1, team_id=1, project_id=1, group_id=1, is_new=False)
         """
