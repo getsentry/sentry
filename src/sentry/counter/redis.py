@@ -1,6 +1,6 @@
 """
-sentry.counters.redis
-~~~~~~~~~~~~~~~~~~~~~
+sentry.counter.redis
+~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
@@ -10,7 +10,7 @@ from __future__ import with_statement
 
 import time
 from nydus.db import create_cluster
-from sentry.counters import Counter
+from sentry.counter import Counter
 from sentry.conf import settings
 
 
@@ -41,7 +41,7 @@ class RedisCounter(Counter):
         if when is None:
             when = time.time()
         when = int(when / 60)  # chop it down to the minute
-        return 'sentry.counters:%s:%s:%s=%s' % (when, int(unique), key, value)
+        return 'sentry.counter:%s:%s:%s=%s' % (when, int(unique), key, value)
 
     def incr(self, amount, created=False, **kwargs):
         now = time.time()
