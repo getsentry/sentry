@@ -118,8 +118,8 @@ def check_project_alerts(project_id, when, count, **kwargs):
         return
 
     mean = math.mean(data)
-    variance = math.mad(data)
-    previous = (mean + variance * 2) / MINUTE_NORMALIZATION
+    dev = math.mad(data)
+    previous = (mean + dev * 2) / MINUTE_NORMALIZATION
 
     pct_increase = count / previous * 100
     if pct_increase > threshold:
