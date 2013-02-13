@@ -1,0 +1,32 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_plugins %}
+
+{% block title %}{% trans "Alerts" %} | {{ project.name }} | {{ block.super }}{% endblock %}
+
+{% block bodyclass %}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider"></li>
+    <li><a href="{% url sentry-project-alerts project.team.slug project.slug %}">{% trans "Alerts" %}</a></li>
+{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <div class="page-header">
+            <h2>{% trans "Recent Alerts" %}</h2>
+        </div>
+
+        <ul>
+            {% for alert in alert_list %}
+                <li>
+                    <p>{{ alert.message }}</p>
+                    <small>{{ alert.datetime|timesince }} ({{ alert.datetime }})</small>
+                </li>
+            {% endfor %}
+        </ul>
+    </section>
+{% endblock %}
