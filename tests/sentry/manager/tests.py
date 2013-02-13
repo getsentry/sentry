@@ -246,21 +246,6 @@ class SentryManagerTest(TestCase):
         self.assertEquals(res.value, 'boz')
         self.assertEquals(res.times_seen, 1)
 
-    @mock.patch('sentry.manager.send_group_processors', mock.Mock())
-    @mock.patch('sentry.manager.app.counter.incr')
-    def test_calls_incr_counters(self, incr):
-        event = Group.objects.from_kwargs(1, message='foo', tags=[('foo', 'bar')])
-        group = event.group
-        incr.assert_called_once_with(group=group)
-
-    @mock.patch('sentry.manager.send_group_processors', mock.Mock())
-    @mock.patch('sentry.manager.app.counter.incr')
-    def test_handles_incr_counters_failure(self, incr):
-        incr.side_effect = Exception()
-        event = Group.objects.from_kwargs(1, message='foo')
-        group = event.group
-        incr.assert_called_once_with(group=group)
-
 
 class SearchManagerTest(TestCase):
     def test_search(self):

@@ -1,5 +1,5 @@
 import mock
-from datetime import datetime, timedelta
+from datetime import timedelta
 from django.utils import timezone
 from sentry.models import ProjectCountByMinute, Alert
 from sentry.tasks.check_alerts import check_project_alerts, check_alerts
@@ -7,46 +7,40 @@ from sentry.testutils import TestCase
 from sentry.utils.dates import normalize_datetime
 
 
-class CheckAlertsTest(TestCase):
-    @mock.patch('sentry.utils.queue.maybe_delay')
-    @mock.patch('sentry.app.counter')
-    @mock.patch('sentry.tasks.check_alerts.time')
-    def test_does_fire_jobs(self, time, counter, maybe_delay):
-        time = time.time
-        time.return_value = 1360721852.660331
+class BaseTestCase(TestCase):
+    def create_counts(self, when, amount, minute_offset=0, normalize=True):
+        date = when - timedelta(minutes=minute_offset)
+        if normalize:
+            date = normalize_datetime(date)
 
-        timestamp = time.return_value - 60
-        when = datetime.fromtimestamp(timestamp).replace(tzinfo=timezone.utc)
-
-        counter.extract_counts.return_value = {
-            'when': when,
-            'results': [
-                (str(self.project.id), 57.0),
-            ]
-        }
-        check_alerts()
-        time.assert_called_once_with()
-        counter.extract_counts.assert_called_once_with(
-            prefix='project',
-            when=timestamp,
+        ProjectCountByMinute.objects.create(
+            project=self.project,
+            date=date,
+            times_seen=amount,
         )
+
+
+class CheckAlertsTest(BaseTestCase):
+    @mock.patch('sentry.utils.queue.maybe_delay')
+    def test_does_fire_jobs(self, maybe_delay):
+        when = timezone.now()
+        self.create_counts(when, 50, 5, normalize=False)
+
+        with mock.patch('sentry.tasks.check_alerts.timezone.now') as now:
+            now.return_value = when
+            check_alerts()
+            now.assert_called_once_with()
+
         maybe_delay.assert_called_once_with(
             check_project_alerts,
             project_id=self.project.id,
             when=when,
-            count=57,
+            count=10,
             expires=120
         )
 
 
-class CheckProjectAlertsTest(TestCase):
-    def create_counts(self, when, amount, minute_offset=0):
-        ProjectCountByMinute.objects.create(
-            project=self.project,
-            date=normalize_datetime(when - timedelta(minutes=minute_offset)),
-            times_seen=amount,
-        )
-
+class CheckProjectAlertsTest(BaseTestCase):
     def test_it_works(self):
         now = timezone.now()
 

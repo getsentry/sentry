@@ -34,12 +34,11 @@ Alert expiration threshold MUST be > MINUTE_NORMALIZATION.
 from __future__ import division
 
 import math
-import time
-from datetime import datetime, timedelta
+from datetime import timedelta
 from celery.task import periodic_task, task
 from celery.task.schedules import crontab
-from django.conf import settings as dj_settings
 from django.utils import timezone
+from sentry.constants import MINUTE_NORMALIZATION
 
 
 def fsteps(start, stop, steps):
@@ -66,20 +65,21 @@ def check_alerts(**kwargs):
     Iterates all current keys and fires additional tasks to check each individual
     project's alert settings.
     """
-    from sentry import app
+    from sentry.models import ProjectCountByMinute
     from sentry.utils.queue import maybe_delay
 
-    timestamp = time.time() - 60
-    when = datetime.fromtimestamp(timestamp)
-    if dj_settings.USE_TZ:
-        when = when.replace(tzinfo=timezone.utc)
+    when = timezone.now()
 
-    results = app.counter.extract_counts(prefix='project', when=timestamp)['results']
-    for project_id, count in results:
+    # find each project which has data for the last interval
+    # TODO: we could force more work on the db by eliminating onces which dont have the full aggregate we need
+    qs = ProjectCountByMinute.objects.filter(
+        date__gt=when - timedelta(minutes=MINUTE_NORMALIZATION),
+    ).values_list('project_id', 'date', 'times_seen')
+    for project_id, date, count in qs:
         maybe_delay(check_project_alerts,
-            project_id=int(project_id),
+            project_id=project_id,
             when=when,
-            count=int(count),
+            count=int(count / ((when - date).seconds / 60)),
             expires=120,
         )
 
@@ -90,7 +90,6 @@ def check_project_alerts(project_id, when, count, **kwargs):
     Given 'when' and 'count', which should signify recent times we compare it to historical data for this project
     and if over a given threshold, create an alert.
     """
-    from sentry.constants import MINUTE_NORMALIZATION
     from sentry.conf import settings
     from sentry.models import ProjectCountByMinute, ProjectOption, Alert
 

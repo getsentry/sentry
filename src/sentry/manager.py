@@ -602,13 +602,6 @@ class GroupManager(BaseManager, ChartMixin):
         except Exception, e:
             logger.exception('Unable to record tags: %s' % (e,))
 
-        # It's important that we increment short-counters without using the queue otherwise they could
-        # quickly become inaccurate
-        try:
-            app.counter.incr(group=group)
-        except Exception, e:
-            logger.exception('Unable to increment counters: %s' % (e,))
-
         return group, is_new, is_sample
 
     def record_affected_user(self, group, user_ident, data=None):
