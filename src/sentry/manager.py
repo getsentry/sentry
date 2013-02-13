@@ -691,7 +691,7 @@ class GroupManager(BaseManager, ChartMixin):
         from sentry.models import GroupCountByMinute
         mcbm_tbl = GroupCountByMinute._meta.db_table
         if queryset is None:
-            queryset = self
+            queryset = self.filter(project__in=project_ids)
         else:
             queryset = queryset._clone()
             queryset.query.select_related = False
@@ -723,7 +723,6 @@ class GroupManager(BaseManager, ChartMixin):
         # Ensure we remove any ordering clause
         after_group = after_group.split(' ORDER BY ')[0]
 
-        # TODO: adding project_id to sort clause on left join helps query in many cases
         query = """
         SELECT (SUM(%(mcbm_tbl)s.times_seen) * (%(norm)f / (%(epoch_clause)s / 60)) + 1.0) / (COALESCE(z.rate, 0) + 1.0) as sort_value,
                (COALESCE(z.rate, 0) + 1.0) as prev_rate,
