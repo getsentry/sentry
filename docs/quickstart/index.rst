@@ -132,7 +132,7 @@ standard implementation, using a simple SMTP server, you can simply configure th
 
 Being that Django is a pluggable framework, you also have the ability to specify different mail backends. See the
 `official Django documentation <https://docs.djangoproject.com/en/1.3/topics/email/?from=olddocs#email-backends>`_ for
-more information on alterantive backends.
+more information on alternative backends.
 
 Running Migrations
 ------------------
