@@ -60,8 +60,7 @@ class CheckProjectAlertsTest(TestCase):
         self.create_counts(now, 150, 105)  # 105 minutes ago
         self.create_counts(now, 100, 120)  # 120 minutes ago
 
-        # the 45 minute interval should be ignored and the
-        # 30 minute interval should be normalized to the 15 minute interval
+        # missing a data point, should fail
         check_project_alerts(
             project_id=self.project.id,
             when=now,
