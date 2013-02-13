@@ -70,14 +70,14 @@ def check_alerts(**kwargs):
 
     now = timezone.now()
     # we want at least a 60 second window of events
-    min_date = now - timedelta(minutes=MINUTE_NORMALIZATION + 1)
-    max_date = min_date + timedelta(minutes=MINUTE_NORMALIZATION)
+    max_date = now - timedelta(minutes=1)
+    min_date = max_date - timedelta(minutes=MINUTE_NORMALIZATION)
 
     # find each project which has data for the last interval
     # TODO: we could force more work on the db by eliminating onces which dont have the full aggregate we need
     qs = ProjectCountByMinute.objects.filter(
-        date__gt=min_date,
         date__lte=max_date,
+        date__gt=min_date,
         times_seen__gt=0,
     ).values_list('project_id', 'date', 'times_seen')
     for project_id, date, count in qs:
@@ -113,14 +113,14 @@ def check_project_alerts(project_id, when, count, **kwargs):
     # number of 15 minute intervals to capture
     intervals = 8
 
-    min_date = when - timedelta(minutes=MINUTE_NORMALIZATION)
-    max_date = min_date - timedelta(minutes=(intervals * MINUTE_NORMALIZATION))
+    max_date = when - timedelta(minutes=MINUTE_NORMALIZATION)
+    min_date = max_date - timedelta(minutes=(intervals * MINUTE_NORMALIZATION))
 
     # get historical data
     data = list(ProjectCountByMinute.objects.filter(
         project=project_id,
-        date__lte=min_date,
-        date__gt=max_date,
+        date__lte=max_date,
+        date__gt=min_date,
     ).values_list('times_seen', flat=True))
 
     # Bail if we dont have enough data points
