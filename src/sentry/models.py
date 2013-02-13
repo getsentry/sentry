@@ -1032,6 +1032,7 @@ class Alert(Model):
     datetime = models.DateTimeField(default=timezone.now)
     message = models.TextField()
     data = GzippedDictField(null=True)
+    related_groups = models.ManyToManyField(Group, through='sentry.AlertRelatedGroup', related_name='related_alerts')
 
     __repr__ = sane_repr('project_id', 'group_id', 'datetime')
 
@@ -1050,25 +1051,37 @@ class Alert(Model):
         if manager.filter(project=project_id, group=group_id, datetime__gte=now - timedelta(minutes=60)).exists():
             return
 
-        if not group_id and has_trending():
-            # Capture the top 5 trending events at the time of this error
-            related_groups = Group.objects.get_accelerated([project_id], minutes=MINUTE_NORMALIZATION)[:5]
-            data = [{'id': g.id, 'times_seen': g.times_seen}
-                for g in related_groups]
-        else:
-            data = None
-
-        return manager.create(
+        alert = manager.create(
             project_id=project_id,
             group_id=group_id,
             datetime=now,
             message=message,
-            data=data,
         )
+
+        if not group_id and has_trending():
+            # Capture the top 5 trending events at the time of this error
+            related_groups = Group.objects.get_accelerated([project_id], minutes=MINUTE_NORMALIZATION)[:5]
+            for group in related_groups:
+                AlertRelatedGroup.objects.create(
+                    group=group,
+                    alert=alert,
+                )
+
+        return alert
+
+
+class AlertRelatedGroup(Model):
+    group = models.ForeignKey(Group)
+    alert = models.ForeignKey(Alert)
+    data = GzippedDictField(null=True)
+
+    class Meta:
+        unique_together = (('group', 'alert'),)
+
+    __repr__ = sane_repr('group_id', 'alert_id')
 
 
 ### django-indexer
-
 
 class MessageIndex(BaseIndex):
     model = Event
