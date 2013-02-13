@@ -57,11 +57,12 @@ def check_alerts(**kwargs):
     from sentry import app
     from sentry.utils.queue import maybe_delay
 
-    when = datetime.fromtimestamp(time.time() - 60)
+    timestamp = time.time() - 60
+    when = datetime.fromtimestamp(timestamp)
     if dj_settings.USE_TZ:
         when = when.replace(tzinfo=timezone.utc)
 
-    results = app.counter.extract_counts(prefix='project', when=when)['results']
+    results = app.counter.extract_counts(prefix='project', when=timestamp)['results']
     for project_id, count in results:
         maybe_delay(check_project_alerts,
             project_id=int(project_id),

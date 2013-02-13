@@ -57,6 +57,7 @@ class RedisCounter(Counter):
         # items to check
         if not when:
             when = time.time() - 60
+
         with self.conn.map() as conn:
             key = self._make_key(prefix, when)
             results = conn.zrange(key, 0, -1, withscores=True)

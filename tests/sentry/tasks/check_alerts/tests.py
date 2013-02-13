@@ -15,7 +15,8 @@ class CheckAlertsTest(TestCase):
         time = time.time
         time.return_value = 1360721852.660331
 
-        when = datetime.fromtimestamp(time.return_value - 60).replace(tzinfo=timezone.utc)
+        timestamp = time.return_value - 60
+        when = datetime.fromtimestamp(timestamp).replace(tzinfo=timezone.utc)
 
         counter.extract_counts.return_value = {
             'when': when,
@@ -27,7 +28,7 @@ class CheckAlertsTest(TestCase):
         time.assert_called_once_with()
         counter.extract_counts.assert_called_once_with(
             prefix='project',
-            when=when,
+            when=timestamp,
         )
         maybe_delay.assert_called_once_with(
             check_project_alerts,
