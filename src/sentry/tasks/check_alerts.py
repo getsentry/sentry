@@ -76,7 +76,7 @@ def check_project_alerts(project_id, when, count, **kwargs):
     and if over a given threshold, create an alert.
     """
     from sentry.constants import MINUTE_NORMALIZATION
-    from sentry.models import ProjectCountByMinute
+    from sentry.models import ProjectCountByMinute, Alert
 
     # number of 15 minute intervals to capture
     intervals = 8
@@ -100,5 +100,9 @@ def check_project_alerts(project_id, when, count, **kwargs):
     threshold = 300
     if count / previous * 100 > threshold:
         # we could raise an alert here!
+        Alert.maybe_alert(
+            project_id=project_id,
+            message='Rate of events per minute increased from %s to %s' % (previous, count),
+        )
         return True
     return False

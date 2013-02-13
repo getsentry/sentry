@@ -1028,12 +1028,31 @@ class Activity(Model):
 class Alert(Model):
     project = models.ForeignKey(Project)
     group = models.ForeignKey(Group, null=True)
-    users = models.ManyToManyField(User)
     datetime = models.DateTimeField(default=timezone.now)
     message = models.TextField()
     data = GzippedDictField(null=True)
 
     __repr__ = sane_repr('project_id', 'group_id', 'datetime')
+
+    @classmethod
+    def maybe_alert(cls, project_id, message, group_id=None):
+        now = timezone.now()
+        manager = cls.objects
+        # We only create an alert based on:
+        # - an alert for the project hasn't been created in the last 30 minutes
+        # - an alert for the event hasn't been created in the last 60 minutes
+        if manager.filter(project=project_id, datetime__gte=now - timedelta(minutes=30)).exists():
+            return
+
+        if manager.filter(project=project_id, group=group_id, datetime__gte=now - timedelta(minutes=60)).exists():
+            return
+
+        return manager.create(
+            project_id=project_id,
+            group_id=group_id,
+            datetime=now,
+            message=message,
+        )
 
 
 ### django-indexer

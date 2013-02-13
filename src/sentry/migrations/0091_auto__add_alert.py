@@ -19,21 +19,10 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal('sentry', ['Alert'])
 
-        # Adding M2M table for field users on 'Alert'
-        db.create_table('sentry_alert_users', (
-            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('alert', models.ForeignKey(orm['sentry.alert'], null=False)),
-            ('user', models.ForeignKey(orm['auth.user'], null=False))
-        ))
-        db.create_unique('sentry_alert_users', ['alert_id', 'user_id'])
-
 
     def backwards(self, orm):
         # Deleting model 'Alert'
         db.delete_table('sentry_alert')
-
-        # Removing M2M table for field users on 'Alert'
-        db.delete_table('sentry_alert_users')
 
 
     models = {
@@ -116,7 +105,6 @@ class Migration(SchemaMigration):
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'message': ('django.db.models.fields.TextField', [], {}),
             'project': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['sentry.Project']"}),
-            'users': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['auth.User']", 'symmetrical': 'False'})
         },
         'sentry.event': {
             'Meta': {'unique_together': "(('project', 'event_id'),)", 'object_name': 'Event', 'db_table': "'sentry_message'"},
