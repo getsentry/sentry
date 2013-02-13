@@ -1,9 +1,41 @@
-from datetime import timedelta
+import mock
+from datetime import datetime, timedelta
 from django.utils import timezone
 from sentry.models import ProjectCountByMinute, Alert
-from sentry.tasks.check_alerts import check_project_alerts
+from sentry.tasks.check_alerts import check_project_alerts, check_alerts
 from sentry.testutils import TestCase
 from sentry.utils.dates import normalize_datetime
+
+
+class CheckAlertsTest(TestCase):
+    @mock.patch('sentry.utils.queue.maybe_delay')
+    @mock.patch('sentry.app.counter')
+    @mock.patch('sentry.tasks.check_alerts.time')
+    def test_does_fire_jobs(self, time, counter, maybe_delay):
+        time = time.time
+        time.return_value = 1360721852.660331
+
+        when = datetime.fromtimestamp(time.return_value - 60).replace(tzinfo=timezone.utc)
+
+        counter.extract_counts.return_value = {
+            'when': when,
+            'results': [
+                (str(self.project.id), 57.0),
+            ]
+        }
+        check_alerts()
+        time.assert_called_once_with()
+        counter.extract_counts.assert_called_once_with(
+            prefix='project',
+            when=when,
+        )
+        maybe_delay.assert_called_once_with(
+            check_project_alerts,
+            project_id=self.project.id,
+            when=when,
+            count=57,
+            expires=120
+        )
 
 
 class CheckProjectAlertsTest(TestCase):

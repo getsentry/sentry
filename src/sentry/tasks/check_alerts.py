@@ -34,9 +34,10 @@ Alert expiration threshold MUST be > MINUTE_NORMALIZATION.
 from __future__ import division
 
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 from celery.task import periodic_task, task
 from celery.task.schedules import crontab
+from django.conf import settings as dj_settings
 from django.utils import timezone
 
 
@@ -56,15 +57,16 @@ def check_alerts(**kwargs):
     from sentry import app
     from sentry.utils.queue import maybe_delay
 
-    when = time.time() - 60
-    datetime = timezone.fromtimestamp(when)
+    when = datetime.fromtimestamp(time.time() - 60)
+    if dj_settings.USE_TZ:
+        when = when.replace(tzinfo=timezone.utc)
 
     results = app.counter.extract_counts(prefix='project', when=when)['results']
-    for project_id, count in results.iteritems():
+    for project_id, count in results:
         maybe_delay(check_project_alerts,
-            project_id=project_id,
-            when=datetime,
-            count=count,
+            project_id=int(project_id),
+            when=when,
+            count=int(count),
             expires=120,
         )
 

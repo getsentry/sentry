@@ -43,8 +43,10 @@ class RedisCounter(Counter):
     def incr(self, group):
         now = time.time()
         with self.conn.map() as conn:
-            keys = [(self._make_key('project', now), group.project_id)]
-            keys = [(self._make_key('group', now), group.id)]
+            keys = [
+                (self._make_key('project', now), group.project_id),
+                (self._make_key('group', now), group.id),
+            ]
 
             for key, member in keys:
                 conn.zincrby(key, member)
@@ -57,7 +59,7 @@ class RedisCounter(Counter):
             when = time.time() - 60
         with self.conn.map() as conn:
             key = self._make_key(prefix, when)
-            results = conn.zrange(key)
+            results = conn.zrange(key, 0, -1, withscores=True)
             conn.delete(key)
 
         return {

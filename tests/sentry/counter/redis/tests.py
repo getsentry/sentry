@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 import mock
+import time
 
 from sentry.counter.redis import RedisCounter
 from sentry.testutils import TestCase, fixture
@@ -23,12 +24,12 @@ class RedisCounterTest(TestCase):
         self.assertEquals(counter.conn.hosts[0].host, 'localhost')
 
     @mock.patch('sentry.counter.redis.time')
-    def test_make_key_response(self, time):
-        time = time.time
+    def test_make_key_response(self, time_):
+        time_ = time_.time
 
-        time.return_value = 1360644295.816033
+        time_.return_value = 1360644295.816033
         assert self.counter._make_key('project') == 'sentry.counter:project:22677404'
-        time.assert_called_once_with()
+        time_.assert_called_once_with()
 
         now = 1360654295.816033
         assert self.counter._make_key('team', now) == 'sentry.counter:team:22677571'
@@ -38,3 +39,11 @@ class RedisCounterTest(TestCase):
         self.counter.incr(self.group)
         self.counter.incr(self.group)
         self.counter.incr(self.group)
+
+        when = time.time()
+
+        results = self.counter.extract_counts(prefix='project', when=when)
+        assert results == {
+            'when': when,
+            'results': [(str(self.project.id), 3.0)],
+        }
