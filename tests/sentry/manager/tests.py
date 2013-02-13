@@ -247,28 +247,19 @@ class SentryManagerTest(TestCase):
         self.assertEquals(res.times_seen, 1)
 
     @mock.patch('sentry.manager.send_group_processors', mock.Mock())
-    @mock.patch('sentry.manager.GroupManager.incr_counters')
-    def test_calls_incr_counters(self, incr_counters):
+    @mock.patch('sentry.manager.app.counter.incr')
+    def test_calls_incr_counters(self, incr):
         event = Group.objects.from_kwargs(1, message='foo', tags=[('foo', 'bar')])
         group = event.group
-        incr_counters.assert_called_once_with(group, True)
+        incr.assert_called_once_with(group=group)
 
     @mock.patch('sentry.manager.send_group_processors', mock.Mock())
-    @mock.patch('sentry.manager.GroupManager.incr_counters')
-    def test_handles_incr_counters_failure(self, incr_counters):
-        incr_counters.side_effect = Exception()
+    @mock.patch('sentry.manager.app.counter.incr')
+    def test_handles_incr_counters_failure(self, incr):
+        incr.side_effect = Exception()
         event = Group.objects.from_kwargs(1, message='foo')
         group = event.group
-        incr_counters.assert_called_once_with(group, True)
-
-    @mock.patch('sentry.manager.app.counter.incr')
-    def test_incr_counters_calls_buffer(self, incr):
-        is_new = mock.Mock()
-        Group.objects.incr_counters(self.group, is_new=is_new)
-        incr.assert_called_once_with(
-            group=self.group,
-            is_new=is_new,
-        )
+        incr.assert_called_once_with(group=group)
 
 
 class SearchManagerTest(TestCase):

@@ -31,58 +31,36 @@ class RedisCounter(Counter):
             'hosts': options['hosts'],
         })
 
-    def _make_key(self, prefix, when=None, is_new=False):
+    def _make_key(self, prefix, when=None):
         """
         Returns a Redis-compatible key for the given key/value combination.
         """
         if when is None:
             when = time.time()
         when = int(when / 60)  # chop it down to the minute
-        return 'sentry.counter:%s:%s:%s' % (prefix, when, int(is_new))
+        return 'sentry.counter:%s:%s' % (prefix, when)
 
-    def incr(self, group, is_new=False):
+    def incr(self, group):
         now = time.time()
         with self.conn.map() as conn:
-            keys = [self._make_key('project', now)]
-            if is_new:
-                keys.append(self._make_key('project', now, True))
+            keys = [(self._make_key('project', now), group.project_id)]
+            keys = [(self._make_key('group', now), group.id)]
 
-            for key in keys:
-                conn.zincrby(key, group.project_id)
+            for key, member in keys:
+                conn.zincrby(key, member)
                 conn.expire(key, 60 * self.MINUTES)
 
-    def extract_counts(self, prefix='project'):
-        now = time.time() - 60
+    def extract_counts(self, when=None, prefix='project'):
+        # TODO: this could become expensive as it scales linearly with the number of unique
+        # items to check
+        if not when:
+            when = time.time() - 60
         with self.conn.map() as conn:
-            key = self._make_key(prefix, now)
-            total = conn.zrange(key)
-            conn.delete(key)
-
-            key = self._make_key(prefix, now, True)
-            new = conn.zrange(key)
+            key = self._make_key(prefix, when)
+            results = conn.zrange(key)
             conn.delete(key)
 
         return {
-            'time': now,
-            'total': total,
-            'new': new,
+            'when': when,
+            'results': results,
         }
-
-    def _get_count(self, project, minutes=None, is_new=False):
-        if minutes is None:
-            minutes = self.MINUTES
-
-        now = time.time()
-        results = []
-        with self.conn.map() as conn:
-            for minute in xrange(minutes):
-                redis_key = self._make_key('project', now - (minute * 60), is_new)
-                results.append(conn.zscore(redis_key, project.id))
-
-        return sum(int(r or 0) for r in results)
-
-    def total(self, project, minutes=None):
-        return self._get_count(project, minutes=minutes, is_new=False)
-
-    def new(self, project, minutes=None):
-        return self._get_count(project, minutes=minutes, is_new=True)

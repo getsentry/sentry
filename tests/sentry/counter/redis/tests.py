@@ -27,15 +27,14 @@ class RedisCounterTest(TestCase):
         time = time.time
 
         time.return_value = 1360644295.816033
-        assert self.counter._make_key('project', is_new=False) == 'sentry.counter:project:22677404:0'
+        assert self.counter._make_key('project') == 'sentry.counter:project:22677404'
         time.assert_called_once_with()
 
         now = 1360654295.816033
-        assert self.counter._make_key('team', now, is_new=True) == 'sentry.counter:team:22677571:1'
+        assert self.counter._make_key('team', now) == 'sentry.counter:team:22677571'
 
     def test_all_the_things(self):
-        self.counter.incr(self.group, is_new=False)
-        self.counter.incr(self.group, is_new=False)
-        self.counter.incr(self.group, is_new=True)
-        assert self.counter.total(self.project) == 3
-        assert self.counter.new(self.project) == 1
+        # TODO
+        self.counter.incr(self.group)
+        self.counter.incr(self.group)
+        self.counter.incr(self.group)

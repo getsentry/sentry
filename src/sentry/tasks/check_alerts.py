@@ -33,6 +33,7 @@ Alert expiration threshold MUST be > MINUTE_NORMALIZATION.
 """
 from __future__ import division
 
+import time
 from datetime import timedelta
 from celery.task import periodic_task, task
 from celery.task.schedules import crontab
@@ -49,21 +50,27 @@ def fsteps(start, stop, steps):
 @periodic_task(ignore_result=True, run_every=crontab(minute='*'))
 def check_alerts(**kwargs):
     """
-    Iterates all current keys and checks if fires additional tasks
-    to check each individual project's alert settings.
+    Iterates all current keys and fires additional tasks to check each individual
+    project's alert settings.
     """
     from sentry import app
     from sentry.utils.queue import maybe_delay
 
-    count_results = app.counter.extract_counts(prefix='project')
-    when = timezone.fromtimestamp(count_results.pop('time'))
-    for name, results in count_results.iteritems():
-        for project_id, count in results.iteritems():
-            maybe_delay(check_project_alerts, name=name, project_id=project_id, when=when, count=count, expires=120)
+    when = time.time() - 60
+    datetime = timezone.fromtimestamp(when)
+
+    results = app.counter.extract_counts(prefix='project', when=when)['results']
+    for project_id, count in results.iteritems():
+        maybe_delay(check_project_alerts,
+            project_id=project_id,
+            when=datetime,
+            count=count,
+            expires=120,
+        )
 
 
 @task(ignore_result=True)
-def check_project_alerts(project_id, name, when, count, **kwargs):
+def check_project_alerts(project_id, when, count, **kwargs):
     """
     Given 'when' and 'count', which should signify recent times we compare it to historical data for this project
     and if over a given threshold, create an alert.

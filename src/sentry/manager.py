@@ -605,17 +605,11 @@ class GroupManager(BaseManager, ChartMixin):
         # It's important that we increment short-counters without using the queue otherwise they could
         # quickly become inaccurate
         try:
-            self.incr_counters(group, is_new)
+            app.counter.incr(group=group)
         except Exception, e:
             logger.exception('Unable to increment counters: %s' % (e,))
 
         return group, is_new, is_sample
-
-    def incr_counters(self, group, is_new):
-        app.counter.incr(
-            group=group,
-            is_new=is_new,
-        )
 
     def record_affected_user(self, group, user_ident, data=None):
         from sentry.models import TrackedUser, AffectedUserByGroup

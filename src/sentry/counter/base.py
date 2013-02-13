@@ -15,11 +15,11 @@ class Counter(object):
     Specifically, they store the following:
 
     - events per project
+    - events per group (aggregate)
 
     Each grouping tracks the following:
 
     - # of total events
-    - # of unique events
 
     Each counter stores counts at minute-level intervals for 15 minutes.
     """
