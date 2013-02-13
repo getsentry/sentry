@@ -117,5 +117,5 @@ def check_project_alerts(project_id, when, count, **kwargs):
     if count / previous * 100 > threshold:
         Alert.maybe_alert(
             project_id=project_id,
-            message='Rate of events per minute increased from %s to %s' % (previous, count),
+            message='Rate of events per minute increased from %d to %d' % (previous, count),
         )
