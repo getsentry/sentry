@@ -1,6 +1,6 @@
 from datetime import timedelta
 from django.utils import timezone
-from sentry.models import ProjectCountByMinute
+from sentry.models import ProjectCountByMinute, Alert
 from sentry.tasks.check_alerts import check_project_alerts
 from sentry.testutils import TestCase
 from sentry.utils.dates import normalize_datetime
@@ -29,19 +29,17 @@ class CheckProjectAlertsTest(TestCase):
 
         # the 45 minute interval should be ignored and the
         # 30 minute interval should be normalized to the 15 minute interval
-        can_alert = check_project_alerts(
+        check_project_alerts(
             project_id=self.project.id,
-            name='total',
             when=now,
             count=20
         )
-        assert can_alert is False
+        assert not Alert.objects.filter(project=self.project).exists()
 
         self.create_counts(now, 73, 30)  # 15 minutes ago
-        can_alert = check_project_alerts(
+        check_project_alerts(
             project_id=self.project.id,
-            name='total',
             when=now,
             count=20
         )
-        assert can_alert is True
+        assert Alert.objects.filter(project=self.project).exists()
