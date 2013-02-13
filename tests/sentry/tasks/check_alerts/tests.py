@@ -34,7 +34,7 @@ class CheckAlertsTest(BaseTestCase):
         maybe_delay.assert_called_once_with(
             check_project_alerts,
             project_id=self.project.id,
-            when=when - timedelta(minutes=16),
+            when=when - timedelta(minutes=1),
             count=10,
             expires=120
         )

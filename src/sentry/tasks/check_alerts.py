@@ -84,7 +84,7 @@ def check_alerts(**kwargs):
         normalized_count = int(count / ((now - date).seconds / 60))
         maybe_delay(check_project_alerts,
             project_id=project_id,
-            when=min_date,
+            when=max_date,
             count=normalized_count,
             expires=120,
         )
