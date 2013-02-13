@@ -61,7 +61,7 @@ def get_context(lineno, context_line, pre_context=None, post_context=None, filen
             at_lineno += 1
 
     # HACK:
-    if filename.startswith(('http:', 'https:')) and '.' not in filename.rsplit('/', 1)[-1]:
+    if filename and filename.startswith(('http:', 'https:')) and '.' not in filename.rsplit('/', 1)[-1]:
         filename = 'index.html'
 
     if format:
