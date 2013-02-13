@@ -51,12 +51,14 @@ class EmailAuthBackend(ModelBackend):
             if '@' in username:
                 # email isn't guaranteed unique
                 for user in qs.filter(email__iexact=username):
+                    if not user.password:
+                        continue
                     if user.check_password(password):
                         return user
             return None
 
         try:
-            if user.check_password(password):
+            if user.password and user.check_password(password):
                 return user
         except ValueError:
             return None
