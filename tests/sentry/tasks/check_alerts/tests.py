@@ -65,7 +65,7 @@ class CheckProjectAlertsTest(TestCase):
         check_project_alerts(
             project_id=self.project.id,
             when=now,
-            count=20
+            count=100
         )
         assert not Alert.objects.filter(project=self.project).exists()
 
@@ -73,6 +73,6 @@ class CheckProjectAlertsTest(TestCase):
         check_project_alerts(
             project_id=self.project.id,
             when=now,
-            count=20
+            count=100
         )
         assert Alert.objects.filter(project=self.project).exists()

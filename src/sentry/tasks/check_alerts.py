@@ -83,11 +83,14 @@ def check_project_alerts(project_id, when, count, **kwargs):
     from sentry.models import ProjectCountByMinute, ProjectOption, Alert
 
     try:
-        threshold = ProjectOption.objects.get(project=project_id, key='project_alert_pct')
+        threshold, min_events = ProjectOption.objects.get(project=project_id, key='project_alert_pct')
     except ProjectOption.DoesNotExist:
-        threshold = settings.DEFAULT_ALERT_PROJECT_THRESHOLD
+        threshold, min_events = settings.DEFAULT_ALERT_PROJECT_THRESHOLD
 
-    if not threshold:
+    if not threshold and min_events:
+        return
+
+    if min_events > count:
         return
 
     # number of 15 minute intervals to capture
