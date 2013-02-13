@@ -94,7 +94,7 @@ def check_project_alerts(project_id, when, count, **kwargs):
         return
 
     # number of 15 minute intervals to capture
-    intervals = 8
+    intervals = 4
 
     min_date = when
     max_date = when - timedelta(minutes=(intervals * MINUTE_NORMALIZATION))
@@ -110,9 +110,7 @@ def check_project_alerts(project_id, when, count, **kwargs):
     if len(data) != intervals:
         return
 
-    # take a weighted mean, where the oldest value is worth .7 and the newest is 1.0
-    # Note: this math is completely made up, and I make no claim to know how math works
-    previous = sum((k * v) for k, v in zip(data, fsteps(0.7, 1.0, intervals))) / intervals / MINUTE_NORMALIZATION
+    previous = sum(data) / intervals / MINUTE_NORMALIZATION
 
     if count / previous * 100 > threshold:
         Alert.maybe_alert(
