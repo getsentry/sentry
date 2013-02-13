@@ -74,7 +74,7 @@ def check_alerts(**kwargs):
     # TODO: we could force more work on the db by eliminating onces which dont have the full aggregate we need
     qs = ProjectCountByMinute.objects.filter(
         date__gt=when - timedelta(minutes=MINUTE_NORMALIZATION),
-        count__gt=0,
+        times_seen__gt=0,
     ).values_list('project_id', 'date', 'times_seen')
     for project_id, date, count in qs:
         normalized_count = int(count / (((when - date).seconds + 1) / 60))
