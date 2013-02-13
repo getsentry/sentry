@@ -35,7 +35,7 @@ class CheckAlertsTest(BaseTestCase):
             check_project_alerts,
             project_id=self.project.id,
             when=when,
-            count=9,
+            count=10,
             expires=120
         )
 

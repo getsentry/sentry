@@ -69,15 +69,19 @@ def check_alerts(**kwargs):
     from sentry.utils.queue import maybe_delay
 
     when = timezone.now()
+    # we want at least a 60 second window of events
+    min_date = when - timedelta(minutes=MINUTE_NORMALIZATION + 1)
+    max_date = min_date + timedelta(minutes=MINUTE_NORMALIZATION)
 
     # find each project which has data for the last interval
     # TODO: we could force more work on the db by eliminating onces which dont have the full aggregate we need
     qs = ProjectCountByMinute.objects.filter(
-        date__gt=when - timedelta(minutes=MINUTE_NORMALIZATION),
+        date__gt=min_date,
+        date__lte=max_date,
         times_seen__gt=0,
     ).values_list('project_id', 'date', 'times_seen')
     for project_id, date, count in qs:
-        normalized_count = int(count / (((when - date).seconds + 1) / 60))
+        normalized_count = int(count / ((when - date).seconds / 60))
         maybe_delay(check_project_alerts,
             project_id=project_id,
             when=when,
