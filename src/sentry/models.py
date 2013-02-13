@@ -1025,6 +1025,17 @@ class Activity(Model):
                 self.event.update(num_comments=F('num_comments') + 1)
 
 
+class Alert(Model):
+    project = models.ForeignKey(Project)
+    group = models.ForeignKey(Group, null=True)
+    users = models.ManyToManyField(User)
+    datetime = models.DateTimeField(default=timezone.now)
+    message = models.TextField()
+    data = GzippedDictField(null=True)
+
+    __repr__ = sane_repr('project_id', 'group_id', 'datetime')
+
+
 ### django-indexer
 
 
