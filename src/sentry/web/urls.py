@@ -15,8 +15,8 @@ except ImportError:
     from django.conf.urls.defaults import include, patterns, url  # NOQA
 
 from sentry.web import api
-from sentry.web.frontend import accounts, generic, groups, events, \
-  projects, admin, docs, teams, users
+from sentry.web.frontend import (alerts, accounts, generic, groups, events,
+    projects, admin, docs, teams, users)
 
 __all__ = ('urlpatterns',)
 
@@ -207,8 +207,10 @@ urlpatterns = patterns('',
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/events/$', events.event_list, name='sentry-events'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/events/(?P<event_id>\d+)/replay/$', events.replay_event, name='sentry-replay'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/search/$', groups.search, name='sentry-search'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/alerts/$', groups.alert_list,
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/alerts/$', alerts.alert_list,
         name='sentry-project-alerts'),
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/alerts/(?P<alert_id>\d+)/$', alerts.alert_details,
+        name='sentry-project-alert-details'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/stream/$', groups.group_list),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/$', groups.group_list, name='sentry-stream'),
 

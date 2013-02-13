@@ -1,0 +1,35 @@
+{% extends "sentry/alerts/list.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{{ alert.datetime }} | {{ block.super }}{% endblock %}
+
+{% block bodyclass %}{% endblock %}
+
+{% block breadcrumb %}
+    {{ block.super }}
+    <li class="divider"></li>
+    <li><a href="{% url sentry-project-alert-details project.team.slug project.slug alert.id %}">Alert at {{ alert.datetime }}</a></li>
+{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <div class="page-header">
+            <h2>Alert at {{ alert.datetime }}</h2>
+        </div>
+        {{ alert.message|linebreaks }}
+
+        <div id="event_list"></div>
+
+        <script>
+        $(function(){
+            new app.GroupListView({
+                className: 'group-list small',
+                members: {{ related_group_list|to_json:request|safe }},
+                id: "event_list"
+            });
+        });
+        </script>
+    </section>
+{% endblock %}

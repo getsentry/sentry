@@ -1,8 +1,7 @@
-{% extends "sentry/layout.html" %}
+{% extends "sentry/groups/group_list.html" %}
 
 {% load i18n %}
 {% load sentry_helpers %}
-{% load sentry_plugins %}
 
 {% block title %}{% trans "Alerts" %} | {{ project.name }} | {{ block.super }}{% endblock %}
 
@@ -23,7 +22,7 @@
         <ul>
             {% for alert in alert_list %}
                 <li>
-                    <p>{{ alert.message }}</p>
+                    {{ alert.message|linebreaks }}
                     <small>{{ alert.datetime|timesince }} ({{ alert.datetime }})</small>
                 </li>
             {% endfor %}

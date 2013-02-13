@@ -27,8 +27,7 @@ from sentry.constants import (SORT_OPTIONS, SEARCH_SORT_OPTIONS,
     SCORE_CLAUSES, MYSQL_SCORE_CLAUSES, SQLITE_SCORE_CLAUSES,
     ORACLE_SORT_CLAUSES, ORACLE_SCORE_CLAUSES)
 from sentry.filters import get_filters
-from sentry.models import (Project, Group, Event, SearchDocument, Activity,
-    Alert)
+from sentry.models import Project, Group, Event, SearchDocument, Activity
 from sentry.permissions import can_admin_group, can_create_projects
 from sentry.plugins import plugins
 from sentry.utils import json
@@ -304,19 +303,6 @@ def search(request, team, project):
         'query': query,
         'sort': sort,
         'sort_label': sort_label,
-        'SECTION': 'events',
-    }, request)
-
-
-@login_required
-@has_access
-def alert_list(request, team, project):
-    alert_list = Alert.objects.filter(project=project, group__isnull=True).order_by('-datetime')
-
-    return render_to_response('sentry/alerts/list.html', {
-        'team': team,
-        'project': project,
-        'alert_list': alert_list,
         'SECTION': 'events',
     }, request)
 
