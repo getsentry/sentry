@@ -28,14 +28,16 @@ class Counter(object):
     def __init__(self, **options):
         pass
 
-    def incr(self, group, is_new=False, **kwargs):
+    def incr(self, group, **kwargs):
         """
         >>> incr(group, is_new=False)
         """
         pass
 
-    def total(self, key, value, minutes=None):
-        return None
-
-    def unique(self, key, value, minutes=None):
-        return None
+    def extract_counts(self, when=None, prefix='project', **kwargs):
+        return {
+            'when': when,
+            'results': [
+                # (project_id, count)
+            ],
+        }
