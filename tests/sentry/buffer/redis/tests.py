@@ -25,8 +25,11 @@ class RedisBufferTest(TestCase):
         self.assertEquals(len(buf.conn.hosts), 1)
         self.assertEquals(buf.conn.hosts[0].host, 'localhost')
 
-    def test_map_column_handles_foreignkeys(self):
-        self.assertEquals(self.buf._map_column(Group, 'project', Project(id=1)), 1)
+    def test_coerce_val_handles_foreignkeys(self):
+        assert self.buf._coerce_val(Project(id=1)) == '1'
+
+    def test_coerce_val_handles_unicode(self):
+        assert self.buf._coerce_val(u'\u201d') == '”'
 
     def test_make_key_response(self):
         column = 'times_seen'
