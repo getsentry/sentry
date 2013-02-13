@@ -94,7 +94,7 @@ def check_project_alerts(project_id, when, count, **kwargs):
         return
 
     # number of 15 minute intervals to capture
-    intervals = 4
+    intervals = 8
 
     min_date = when - timedelta(minutes=MINUTE_NORMALIZATION)
     max_date = min_date - timedelta(minutes=(intervals * MINUTE_NORMALIZATION))
@@ -111,7 +111,6 @@ def check_project_alerts(project_id, when, count, **kwargs):
         return
 
     previous = sum(data) / intervals / MINUTE_NORMALIZATION
-    print count, previous, count / previous * 100
 
     if count / previous * 100 > threshold:
         Alert.maybe_alert(
