@@ -1053,7 +1053,7 @@ class Alert(Model):
         if not group_id and has_trending():
             # Capture the top 5 trending events at the time of this error
             related_groups = Group.objects.get_accelerated([project_id], minutes=MINUTE_NORMALIZATION)[:5]
-            data = [{'id': g.id, 'times_seen': g.times_seen, 'sort_value': g.sort_value}
+            data = [{'id': g.id, 'times_seen': g.times_seen}
                 for g in related_groups]
         else:
             data = None
