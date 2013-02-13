@@ -123,7 +123,7 @@ def check_project_alerts(project_id, when, count, **kwargs):
         return
 
     mean, stddev = meanstdv(data)
-    previous = (mean + stddev) / MINUTE_NORMALIZATION
+    previous = (mean + stddev * 2) / MINUTE_NORMALIZATION
 
     if count / previous * 100 > threshold:
         Alert.maybe_alert(
