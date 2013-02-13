@@ -204,12 +204,11 @@ urlpatterns = patterns('',
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)/', groups.group_plugin_action, name='sentry-group-plugin-action'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/tags/$', groups.group_tag_list, name='sentry-group-tags'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/tags/(?P<tag_name>[^/]+)/$', groups.group_tag_details, name='sentry-group-tag-details'),
-
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/events/$', events.event_list, name='sentry-events'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/events/(?P<event_id>\d+)/replay/$', events.replay_event, name='sentry-replay'),
-
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/search/$', groups.search, name='sentry-search'),
-
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/alerts/$', groups.alert_list,
+        name='sentry-project-alerts'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/stream/$', groups.group_list),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/$', groups.group_list, name='sentry-stream'),
 

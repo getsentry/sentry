@@ -130,8 +130,9 @@ def check_project_alerts(project_id, when, count, **kwargs):
     mean, stddev = meanstdv(data)
     previous = (mean + stddev * 2) / MINUTE_NORMALIZATION
 
-    if count / previous * 100 > threshold:
+    pct_increase = count / previous * 100
+    if pct_increase > threshold:
         Alert.maybe_alert(
             project_id=project_id,
-            message='Rate of events per minute increased from %d to %d' % (previous, count),
+            message='Rate of events per minute increased from %d to %d (+%d%%)' % (previous, count, pct_increase),
         )
