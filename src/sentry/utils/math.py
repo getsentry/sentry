@@ -34,4 +34,5 @@ def median(values):
 
 def mad(values, K=1.4826):
     # http://en.wikipedia.org/wiki/Median_absolute_deviation
-    return K * median([abs(val - median(values)) for val in values])
+    med = median(values)
+    return K * median([abs(val - med) for val in values])
