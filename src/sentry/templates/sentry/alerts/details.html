@@ -19,17 +19,28 @@
             <h2>Alert at {{ alert.datetime }}</h2>
         </div>
         {{ alert.message|linebreaks }}
+        <dl>
+            <dt>When:</dt>
+            <dd><span class="pretty-date" title="{{ alert.datetime|date:"c" }}Z">{{ alert.datetime|timesince }}</span> ({{ alert.datetime }})</dd>
+        </dl>
 
-        <div id="event_list"></div>
+        {% if related_group_list %}
+            <div class="page-header">
+                <h3>Related Events <small>Trending at time of alert</small></h3>
+            </div>
+            <div id="event_list"></div>
 
-        <script>
-        $(function(){
-            new app.GroupListView({
-                className: 'group-list small',
-                members: {{ related_group_list|to_json:request|safe }},
-                id: "event_list"
+            <p><small>Note: All data represents the event's current state, not it's value at the time of this alert.</small></p>
+
+            <script>
+            $(function(){
+                new app.GroupListView({
+                    className: 'group-list small',
+                    members: {{ related_group_list|to_json:request|safe }},
+                    id: "event_list"
+                });
             });
-        });
-        </script>
+            </script>
+        {% endif %}
     </section>
 {% endblock %}
