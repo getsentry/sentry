@@ -1,6 +1,6 @@
 """
-sentry.tasks.cleanup
-~~~~~~~~~~~~~~~~~~~~
+sentry.tasks.check_alerts
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Store a sorted set per project
 - Each sorted set contains the number of events seen in the interval (1 minute)
