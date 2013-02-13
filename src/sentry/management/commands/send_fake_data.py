@@ -55,9 +55,8 @@ class Command(BaseCommand):
     help = 'Performs any pending database migrations and upgrades'
 
     def handle(self, **options):
-        from raven.contrib.django.models import get_client
+        from raven.contrib.django.models import client
 
-        client = get_client()
         functions = funcs()
 
         s = time.time()
