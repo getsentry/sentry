@@ -110,7 +110,11 @@ def check_project_alerts(project_id, when, count, **kwargs):
     if len(data) != intervals:
         return
 
-    previous = sum(data) / intervals / MINUTE_NORMALIZATION
+    # remove bottom 2 values
+    # Note: I dont know how math works, but the goal is to take:
+    # [3, 20, 17, 4, 23] and end up with a reasonable average
+    data = sorted(data)[2:]
+    previous = sum(data) / len(data) / MINUTE_NORMALIZATION
 
     if count / previous * 100 > threshold:
         Alert.maybe_alert(
