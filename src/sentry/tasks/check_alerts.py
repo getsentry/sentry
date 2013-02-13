@@ -33,6 +33,7 @@ Alert expiration threshold MUST be > MINUTE_NORMALIZATION.
 """
 from __future__ import division
 
+import math
 import time
 from datetime import datetime, timedelta
 from celery.task import periodic_task, task
@@ -46,6 +47,17 @@ def fsteps(start, stop, steps):
     while start <= stop:
         yield start
         start += step
+
+
+def meanstdv(x):
+    n, mean, std = len(x), 0, 0
+    for a in x:
+        mean = mean + a
+    mean = mean / float(n)
+    for a in x:
+        std = std + (a - mean) ** 2
+    std = math.sqrt(std / float(n - 1))
+    return mean, std
 
 
 @periodic_task(ignore_result=True, run_every=crontab(minute='*'))
@@ -110,10 +122,8 @@ def check_project_alerts(project_id, when, count, **kwargs):
     if len(data) != intervals:
         return
 
-    avg_value = sum(data) / len(data)
-    # remove anything thats below the average to better adapt to spikey behavior
-    data = [d for d in data if d > avg_value]
-    previous = sum(data) / len(data) / MINUTE_NORMALIZATION
+    mean, stddev = meanstdv(data)
+    previous = (mean + stddev) / MINUTE_NORMALIZATION
 
     if count / previous * 100 > threshold:
         Alert.maybe_alert(
