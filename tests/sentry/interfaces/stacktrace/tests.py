@@ -6,11 +6,23 @@ import mock
 
 from sentry.interfaces import Stacktrace, Exception
 from sentry.models import Event
-
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, fixture
 
 
 class StacktraceTest(TestCase):
+    @fixture
+    def interface(self):
+        return Stacktrace(frames=[
+            {
+                'filename': 'foo/bar.py'
+            },
+            {
+                'filename': 'foo/baz.py',
+                'lineno': 1,
+                'in_app': True,
+            }
+        ])
+
     def test_requires_filename(self):
         with self.assertRaises(AssertionError):
             Stacktrace(frames=[{}]).validate()
