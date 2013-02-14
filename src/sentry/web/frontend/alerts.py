@@ -39,7 +39,7 @@ def alert_details(request, team, project, alert_id):
     except Alert.DoesNotExist:
         return HttpResponseRedirect(reverse('sentry-project-alerts', args=[team.slug, project.slug]))
 
-    related_group_list = list(alert.related_groups.all())
+    related_group_list = list(alert.related_groups.order_by('-score', '-times_seen'))
 
     return render_to_response('sentry/alerts/details.html', {
         'team': team,
