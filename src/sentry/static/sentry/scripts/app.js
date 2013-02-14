@@ -236,9 +236,7 @@
                 var last_target;
 
                 $window.resize(function(){
-                    console.log('resize');
                     event_nav_height = $event_nav.find('.nav').outerHeight();
-                    console.log(event_nav_height);
                     $event_nav.height(event_nav_height + 'px');
                 }).resize();
 
@@ -254,7 +252,6 @@
 
                     e.preventDefault();
                 }).each(function(){
-                    console.log(this.hash);
                     if (this.hash.length > 1 && $(this.hash).length) {
                         $nav_targets.push(this.hash);
                     }
