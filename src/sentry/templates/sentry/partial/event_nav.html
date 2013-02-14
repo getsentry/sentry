@@ -20,7 +20,7 @@
                 {% endif %}
             {% endwith %}
             <li class="top{% if page == 'details' %} active{% endif %}">
-                <a href="#" onclick="javascript:window.location = '#details'">{% trans "Top" %}</a>
+                <a href="#" onclick="javascript:window.location = '#details'; return false">{% trans "Top" %}</a>
             </li>
             {% for interface, _ in interface_list %}
                 <li>
