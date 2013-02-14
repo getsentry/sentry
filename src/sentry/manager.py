@@ -706,7 +706,7 @@ class GroupManager(BaseManager, ChartMixin):
 
         assert minutes >= normalization
 
-        intervals = (60 / normalization)
+        intervals = 8
 
         engine = get_db_engine(queryset.db)
         # We technically only support mysql and postgresql, since there seems to be no standard
@@ -729,13 +729,11 @@ class GroupManager(BaseManager, ChartMixin):
 
         query = """
         SELECT ((mcbm.times_seen + 1) / ((%(epoch_clause)s) / 60)) / (COALESCE(z.rate, 0) + 1) as sort_value,
-               (COALESCE(z.rate, 0) + 1) as prev_rate,
-               ((mcbm.times_seen + 1) / ((%(epoch_clause)s) / 60)) as cur_rate,
                %(fields)s
         FROM sentry_groupedmessage
         INNER JOIN sentry_messagecountbyminute as mcbm
             ON (sentry_groupedmessage.id = mcbm.group_id)
-        LEFT JOIN (SELECT a.group_id, SUM(a.times_seen) / COUNT(a.times_seen) / %(norm)f as rate
+        LEFT JOIN (SELECT a.group_id, (SUM(a.times_seen)) / COUNT(a.times_seen) / %(norm)f as rate
             FROM sentry_messagecountbyminute as a
             WHERE a.date >=  %(now)s - %(max_time)s
             AND a.date < %(now)s - %(min_time)s
@@ -747,7 +745,7 @@ class GroupManager(BaseManager, ChartMixin):
         AND mcbm.times_seen > 0
         AND ((mcbm.times_seen + 1) / ((%(epoch_clause)s) / 60)) > (COALESCE(z.rate, 0) + 1)
         AND %(after_where)s
-        GROUP BY prev_rate, mcbm.times_seen, mcbm.date, %(fields)s
+        GROUP BY mcbm.times_seen, mcbm.date, %(fields)s
         ORDER BY sort_value DESC
         """ % dict(
             fields=self.model_fields_clause,
