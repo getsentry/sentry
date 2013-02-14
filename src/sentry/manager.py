@@ -745,7 +745,7 @@ class GroupManager(BaseManager, ChartMixin):
         AND mcbm.times_seen > 0
         AND ((mcbm.times_seen + 1) / ((%(epoch_clause)s) / 60)) > (COALESCE(z.rate, 0) + 1)
         AND %(after_where)s
-        GROUP BY mcbm.times_seen, mcbm.date, %(fields)s
+        GROUP BY z.rate, mcbm.times_seen, mcbm.date, %(fields)s
         ORDER BY sort_value DESC
         """ % dict(
             fields=self.model_fields_clause,
