@@ -280,7 +280,7 @@
             }
 
             if (this.loaded)
-                $el.css('background-color', '#eee').animate({backgroundColor: '#fff'}, 1200);
+                $el.css('background-color', '#eee').animate({backgroundColor: '#fff'}, 300);
         },
 
         renderMember: function(member){
