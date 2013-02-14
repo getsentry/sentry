@@ -349,7 +349,11 @@ class Stacktrace(Interface):
     def get_composite_hash(self, interfaces):
         output = self.get_hash()
         if 'sentry.interfaces.Exception' in interfaces:
-            output.append(interfaces['sentry.interfaces.Exception'].type)
+            exc = interfaces['sentry.interfaces.Exception']
+            if exc.type:
+                output.append(exc.type)
+            elif not output:
+                output.append(exc.value)
         return output
 
     def get_hash(self):
