@@ -235,6 +235,13 @@
                 var event_nav_height;
                 var last_target;
 
+                $window.resize(function(){
+                    console.log('resize');
+                    event_nav_height = $event_nav.find('.nav').outerHeight();
+                    console.log(event_nav_height);
+                    $event_nav.height(event_nav_height + 'px');
+                }).resize();
+
                 $nav_links.click(function(e){
                     var $el = $(this);
                     var target = $(this.hash);
@@ -242,20 +249,16 @@
                     $el.parent().addClass('active').siblings().removeClass('active');
 
                     $('html,body').animate({
-                        scrollTop: $(target).position().top + event_nav_height
+                        scrollTop: target.position().top + event_nav_height
                     }, 'fast');
 
                     e.preventDefault();
                 }).each(function(){
+                    console.log(this.hash);
                     if (this.hash.length > 1 && $(this.hash).length) {
                         $nav_targets.push(this.hash);
                     }
                 });
-
-                $window.resize(function(){
-                    event_nav_height = $event_nav.find('.nav').outerHeight();
-                    $event_nav.height(event_nav_height + 'px');
-                }).resize();
 
                 $window.scroll(function(){
                     // Change fixed nav if needed

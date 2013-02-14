@@ -6595,6 +6595,9 @@ h3 {
   -moz-box-shadow: 0 0 0 2px #c3c8ce;
   box-shadow: 0 0 0 2px #c3c8ce;
 }
+#content section.body .select2-container {
+  margin-left: 2px;
+}
 #content section.body .select2-container .select2-choice {
   -webkit-box-shadow: 0 0 0 2px #c3c8ce, 0 4px 0 rgba(0, 0, 0, 0.05);
   -moz-box-shadow: 0 0 0 2px #c3c8ce, 0 4px 0 rgba(0, 0, 0, 0.05);
@@ -7415,6 +7418,9 @@ ol.context > li {
   font-family: monospace;
   color: rgba(0, 0, 0, 0.75);
   background-color: #f8f8f8;
+}
+ol.context > li div {
+  display: inline;
 }
 ol.context > li pre {
   background-color: inherit;
