@@ -7419,6 +7419,9 @@ ol.context > li {
   color: rgba(0, 0, 0, 0.75);
   background-color: #f8f8f8;
 }
+ol.context > li div {
+  display: inline;
+}
 ol.context > li pre {
   background-color: inherit;
   color: rgba(0, 0, 0, 0.5);
