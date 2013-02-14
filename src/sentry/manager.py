@@ -752,7 +752,7 @@ class GroupManager(BaseManager, ChartMixin):
             after_where=after_where,
             offset_time=minute_clause % (1,),
             min_time=minute_clause % (minutes + 1,),
-            max_time=minute_clause % ((minutes + 1) * intervals,),
+            max_time=minute_clause % (minutes * intervals + 1,),
             norm=normalization,
             epoch_clause=epoch_clause,
             now=now_clause,
