@@ -27,7 +27,7 @@
                 '<ul class="actions">' + 
                     '<% if (canResolve) { %>' + 
                         '<li>' + 
-                            '<a href="#"<% if (!isResolved) { %> data-action="resolve" title="Mark as Resolved"<% } %> >' +
+                            '<a href="#" data-action="resolve">' +
                                 '<i aria-hidden="true" class="icon-checkmark"></i>' +
                             '</a>' + 
                         '</li>' + 

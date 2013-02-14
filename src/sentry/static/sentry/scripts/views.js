@@ -13,7 +13,7 @@
             this.model.on('change:count', this.updateCount);
             this.model.on('change:lastSeen', this.updateLastSeen);
             this.model.on('change:isBookmarked', this.render);
-            this.model.on('change:isResolved', this.render);
+            this.model.on('change:isResolved', this.updateResolved);
             this.model.on('change:historicalData', this.renderSparkline);
         },
 
@@ -22,18 +22,28 @@
             this.$el.html(this.template(data));
             this.$el.attr('data-id', this.model.id);
             this.$el.addClass(this.getLevelClassName());
-            if (this.model.get('isResolved')) {
-                this.$el.addClass('resolved');
-            }
             this.$el.find('a[data-action=resolve]').click(_.bind(function(e){
                 e.preventDefault();
-                this.resolve();
+                if (this.model.get('isResolved')) {
+                    this.unresolve();
+                } else {
+                    this.resolve();
+                }
             }, this));
             this.$el.find('a[data-action=bookmark]').click(_.bind(function(e){
                 e.preventDefault();
                 this.bookmark();
             }, this));
             this.renderSparkline();
+            this.updateResolved();
+        },
+
+        updateResolved: function(){
+            if (this.model.get('isResolved')) {
+                this.$el.addClass('resolved');
+            } else {
+                this.$el.removeClass('resolved');
+            }
         },
 
         renderSparkline: function(obj){
@@ -46,22 +56,38 @@
             app.charts.createSparkline(this.$el.find('.sparkline'), data);
         },
 
-        getResolveUrl: function(){
-            return app.config.urlPrefix + '/api/' + app.config.teamId + '/' + app.config.projectId + '/resolve/';
-        },
-
         resolve: function(){
             $.ajax({
                 url: this.getResolveUrl(),
                 type: 'post',
                 dataType: 'json',
-                data: {
-                    gid: this.model.get('id')
-                },
                 success: _.bind(function(response) {
                     this.model.set('isResolved', true);
                 }, this)
             });
+        },
+
+        unresolve: function(){
+            $.ajax({
+                url: this.getUnresolveUrl(),
+                type: 'post',
+                dataType: 'json',
+                success: _.bind(function(response) {
+                    this.model.set('isResolved', false);
+                }, this)
+            });
+        },
+
+        getResolveUrl: function(){
+            return app.config.urlPrefix + '/api/' + app.config.teamId + '/' +
+                    app.config.projectId + '/group/' + this.model.get('id') +
+                    '/set/resolved/';
+        },
+
+        getUnresolveUrl: function(){
+            return app.config.urlPrefix + '/api/' + app.config.teamId + '/' + 
+                    app.config.projectId + '/group/' + this.model.get('id') +
+                    '/set/unresolved/';
         },
 
         getBookmarkUrl: function(){
@@ -198,7 +224,6 @@
             if (member.get === undefined) {
                 member = new this.model(member);
             }
-
             if (!this.hasMember(member)) {
                 if (this.collection.models.length >= (this.options.maxItems - 1))
                     // bail early if the score is too low
@@ -208,7 +233,6 @@
                     // make sure we limit the number shown
                     while (this.collection.models.length >= this.options.maxItems)
                         this.collection.pop();
-
                 this.collection.add(member);
             } else {
                 this.updateMember(member);
