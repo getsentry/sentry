@@ -35,7 +35,6 @@ def team_list(request):
 def render_with_team_context(team, template, context, request=None):
     context.update({
         'team': team,
-        'can_create_projects': can_create_projects(request.user, team),
         'SECTION': 'team',
     })
 
