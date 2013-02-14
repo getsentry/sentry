@@ -9,6 +9,7 @@ from __future__ import absolute_import, division
 
 import math
 
+
 def mean(values):
     return sum(values) / len(values)
 

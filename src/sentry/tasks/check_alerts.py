@@ -48,7 +48,6 @@ def fsteps(start, stop, steps):
         start += step
 
 
-
 @periodic_task(ignore_result=True, run_every=crontab(minute='*'))
 def check_alerts(**kwargs):
     """
