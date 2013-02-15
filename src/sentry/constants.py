@@ -104,10 +104,14 @@ PLATFORM_LIST = (
     'r',
     'ruby',
     'rails3',
+    'sidekiq',
+    'sinatra',
 )
 
 PLATFORM_ROOTS = {
     'rails3': 'ruby',
+    'sinatra': 'ruby',
+    'sidekiq': 'ruby',
     'django': 'python',
     'flask': 'python',
     'express': 'node.js',
