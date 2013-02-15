@@ -1,3 +1,4 @@
+{% load i18n %}
 {% load sentry_helpers %}
 
 <div class="pull-right">
@@ -10,5 +11,11 @@
 	<li{% if platform == 'flask' %} class="active"{% endif %}><a href="{% url sentry-docs-client project.team.slug project.slug 'flask' %}">Flask</a></li>
 </ul>
 
+<p>{% blocktrans with 'https://github.com/getsentry/raven-python' as link %}Start by installing <a href="{{ link }}">raven-python</a>:{% endblocktrans %}</p>
+
+<pre>pip install raven</pre>
+    
 {% block inner %}
 {% endblock %}
+
+<p>{% blocktrans with 'http://raven.readthedocs.org' as link %}For more information on other uses of Raven with Python, please see the <a href="{{ link }}">official documentation for raven-python</a>.{% endblocktrans %}</p>
