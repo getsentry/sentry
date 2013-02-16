@@ -6394,11 +6394,32 @@ h3 {
   font-size: 11px;
 }
 .toolbar .breadcrumb .divider {
-  height: 25px;
-  border-left: 1px solid #c9cfd8;
+  height: 20px;
+  border-left: 2px solid #c9cfd8;
   position: relative;
-  top: 8px;
+  top: 6px;
   margin-left: 10px;
+}
+.toolbar .breadcrumb .projects {
+  position: relative;
+}
+.toolbar .breadcrumb .projects .project-shortcut {
+  position: absolute;
+  top: -3px;
+  left: 0;
+  width: 188px;
+  height: 28px;
+  z-index: 2;
+}
+.toolbar .breadcrumb .projects .project-shortcut:after {
+  content: "";
+  display: block;
+  position: absolute;
+  width: 2px;
+  top: 2px;
+  right: 0;
+  bottom: 2px;
+  background: #f3f5f7;
 }
 .toolbar .breadcrumb .projects.filter {
   margin: 0 5px 0;

@@ -6400,6 +6400,18 @@ h3 {
   top: 8px;
   margin-left: 10px;
 }
+.toolbar .breadcrumb .projects {
+  position: relative;
+}
+.toolbar .breadcrumb .projects .project-shortcut {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 190px;
+  height: 30px;
+  background: red;
+  z-index: 100;
+}
 .toolbar .breadcrumb .projects.filter {
   margin: 0 5px 0;
 }
