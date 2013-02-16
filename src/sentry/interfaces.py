@@ -35,7 +35,7 @@ def unserialize(klass, data):
 
 
 def is_url(filename):
-    return filename.startswith(('http:', 'https:'))
+    return filename.startswith(('http:', 'https:', 'file:'))
 
 
 def get_context(lineno, context_line, pre_context=None, post_context=None, filename=None,
@@ -330,7 +330,7 @@ class Stacktrace(Interface):
                 frame['in_app'] = bool(frame['in_app'])
 
             abs_path = frame.get('abs_path') or frame.get('filename')
-            if abs_path and abs_path.startswith(('http:', 'https:')):
+            if abs_path and is_url(abs_path):
                 urlparts = urlparse.urlparse(abs_path)
                 if urlparts.path:
                     frame['abs_path'] = abs_path
@@ -369,7 +369,7 @@ class Stacktrace(Interface):
         if frame.get('module'):
             output.append(frame['module'])
         # We only include the filename
-        elif filename and not abs_path.startswith(('http:', 'https:')):
+        elif filename and not is_url(abs_path):
             output.append(filename)
 
         if frame.get('context_line'):
