@@ -43,10 +43,11 @@ body {
 a {
   color: @linkColor;
   text-decoration: none;
-  .transition(color linear .1s);
+  .transition(color linear .2s);
 }
 a:hover {
   color: @linkColorHover;
+  text-decoration: none;
 }
 
 p {
@@ -1682,6 +1683,69 @@ section.body .page-header:first-child {
       .active a {
         color: #fff;
         background: #56AFE8;
+      }
+    }
+  }
+
+  .empty-message {
+    padding: 0;
+    width: auto;
+    margin: 0;
+
+    &:after {
+      display:;
+    }
+
+    h2 {
+      font-size: 16px;
+      color: #c2c9d1;
+      letter-spacing: 0;
+    }
+    p {
+      display: none;
+    }
+  }
+}
+
+.empty-message {
+  width: 490px;
+  margin: 130px auto;
+  position: relative;
+
+  &:after {
+    font-family: 'sentry';
+    content: "\2713";
+    position: absolute;
+    display: block;
+    .square(54px);
+    background: #27ce8a;
+    .border-radius(10px);
+    color: #fff;
+    top: -9px;
+    left: -82px;
+    font-size: 30px;
+    text-align: center;
+    line-height: 52px;
+  }
+
+  h2 {
+    font-size: 36px;
+    letter-spacing: -2px;
+    margin: 0 0 18px;
+  }
+
+  p {
+    font-size: 20px;
+    line-height: 1.4;
+    color: #c2c9d1;
+    font-weight: bold;
+    margin: 0 0 18px;
+    letter-spacing: -0.05em;
+
+    &.links {
+      font-size: 16px;
+      a {
+        margin: 0 12px 0 0;
       }
     }
   }

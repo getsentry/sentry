@@ -6161,13 +6161,14 @@ body {
 a {
   color: #4593de;
   text-decoration: none;
-  -webkit-transition: color linear 0.1s;
-  -moz-transition: color linear 0.1s;
-  -o-transition: color linear 0.1s;
-  transition: color linear 0.1s;
+  -webkit-transition: color linear 0.2s;
+  -moz-transition: color linear 0.2s;
+  -o-transition: color linear 0.2s;
+  transition: color linear 0.2s;
 }
 a:hover {
   color: #12659a;
+  text-decoration: none;
 }
 p {
   font-size: 14px;
@@ -7838,6 +7839,64 @@ section.body .page-header:first-child {
 .dashboard .page-header .nav .active a {
   color: #fff;
   background: #56AFE8;
+}
+.dashboard .empty-message {
+  padding: 0;
+  width: auto;
+  margin: 0;
+}
+.dashboard .empty-message:after {
+  display: ;
+}
+.dashboard .empty-message h2 {
+  font-size: 16px;
+  color: #c2c9d1;
+  letter-spacing: 0;
+}
+.dashboard .empty-message p {
+  display: none;
+}
+.empty-message {
+  width: 490px;
+  margin: 130px auto;
+  position: relative;
+}
+.empty-message:after {
+  font-family: 'sentry';
+  content: "\2713";
+  position: absolute;
+  display: block;
+  width: 54px;
+  height: 54px;
+  background: #27ce8a;
+  -webkit-border-radius: 10px;
+  -moz-border-radius: 10px;
+  border-radius: 10px;
+  color: #fff;
+  top: -9px;
+  left: -82px;
+  font-size: 30px;
+  text-align: center;
+  line-height: 52px;
+}
+.empty-message h2 {
+  font-size: 36px;
+  letter-spacing: -2px;
+  margin: 0 0 18px;
+}
+.empty-message p {
+  font-size: 20px;
+  line-height: 1.4;
+  color: #c2c9d1;
+  font-weight: bold;
+  margin: 0 0 18px;
+  letter-spacing: -0.05em;
+}
+.empty-message p.links {
+  font-size: 16px;
+}
+.empty-message p.links a {
+  margin: 0 12px 0 0;
 }
 .btn {
   background: #eff3f7;

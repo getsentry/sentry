@@ -161,7 +161,7 @@
 
     app.OrderedElementsView = Backbone.View.extend({
 
-        emptyMessage: '<p>There is nothing to show here.</p>',
+        emptyMessage: '<div class="empty-message"><h2>No events to show.</h2><p>We’ll notify you if that changes. In the meantime why not take a moment to become more familiar with Sentry.</p><p class="links"><a href="#">Installation instructions</a> <a href="#">Notification settings</a></p>',
         loadingMessage: '<p>Loading...</p>',
         model: app.models.Group,
 
