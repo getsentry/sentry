@@ -28,7 +28,7 @@ body {
   color: @gray;
   -webkit-font-smoothing: antialiased;
   font-family: "Helvetica Neue", helvetica, sans-serif;
-  background: #c8cbd0;
+  background: #e4e8ed;
 }
 
 .container {
@@ -74,6 +74,7 @@ h3 {
 .outer-wrapper {
   max-width: 1300px;
   margin: 0 auto;
+  .transition(margin-top .1s ease);
 }
 
 .navbar {
@@ -650,8 +651,6 @@ footer {
   padding: 70px 30px;
   color: #939aa4;
   font-weight: bold;
-  max-width: 1300px;
-  margin: 0 auto;
 
   .container {
     .clearfix();
@@ -2037,5 +2036,28 @@ table.vars {
     padding: 3px 5px;
     font-size: 0.9em;
     background: #dee3e9;
+  }
+}
+
+/* For wider screens */
+
+@media all and (min-width: 1301px) {
+  body {
+    background: #c8cbd0;
+  }
+
+  .outer-wrapper {
+    margin-top: 30px;
+    margin-bottom: 30px;
+    .box-shadow(0 0 0 2px rgba(0,0,0, .03));
+    .border-radius(9px);
+  }
+
+  .navbar .navbar-inner {
+    .border-radius(7px 7px 0 0);
+  }
+
+  footer {
+    .border-radius(0 0 7px 7px);
   }
 }

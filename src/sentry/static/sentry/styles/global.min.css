@@ -6152,7 +6152,7 @@ body {
   color: #465262;
   -webkit-font-smoothing: antialiased;
   font-family: "Helvetica Neue", helvetica, sans-serif;
-  background: #c8cbd0;
+  background: #e4e8ed;
 }
 .container {
   min-width: 786px;
@@ -6194,6 +6194,10 @@ h3 {
 .outer-wrapper {
   max-width: 1300px;
   margin: 0 auto;
+  -webkit-transition: margin-top 0.1s ease;
+  -moz-transition: margin-top 0.1s ease;
+  -o-transition: margin-top 0.1s ease;
+  transition: margin-top 0.1s ease;
 }
 .navbar {
   position: relative;
@@ -6798,8 +6802,6 @@ footer {
   padding: 70px 30px;
   color: #939aa4;
   font-weight: bold;
-  max-width: 1300px;
-  margin: 0 auto;
 }
 footer:before,
 footer:after {
@@ -8201,4 +8203,30 @@ table.vars td table {
   padding: 3px 5px;
   font-size: 0.9em;
   background: #dee3e9;
+}
+/* For wider screens */
+@media all and (min-width: 1301px) {
+  body {
+    background: #c8cbd0;
+  }
+  .outer-wrapper {
+    margin-top: 30px;
+    margin-bottom: 30px;
+    -webkit-box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.03);
+    -moz-box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.03);
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.03);
+    -webkit-border-radius: 9px;
+    -moz-border-radius: 9px;
+    border-radius: 9px;
+  }
+  .navbar .navbar-inner {
+    -webkit-border-radius: 7px 7px 0 0;
+    -moz-border-radius: 7px 7px 0 0;
+    border-radius: 7px 7px 0 0;
+  }
+  footer {
+    -webkit-border-radius: 0 0 7px 7px;
+    -moz-border-radius: 0 0 7px 7px;
+    border-radius: 0 0 7px 7px;
+  }
 }
