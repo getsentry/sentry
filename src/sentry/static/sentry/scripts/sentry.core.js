@@ -46,7 +46,7 @@ if (Sentry === undefined) {
         }
     });
 
-    $('.popup').live('click', function(){
+    $('.popup').on('click', function(){
         var $this = $(this);
         var $window = $(window);
         var $container = $($this.attr('data-container'));

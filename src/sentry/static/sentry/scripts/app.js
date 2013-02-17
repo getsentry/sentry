@@ -235,6 +235,11 @@
                 var event_nav_height;
                 var last_target;
 
+                $window.resize(function(){
+                    event_nav_height = $event_nav.find('.nav').outerHeight();
+                    $event_nav.height(event_nav_height + 'px');
+                }).resize();
+
                 $nav_links.click(function(e){
                     var $el = $(this);
                     var target = $(this.hash);
@@ -242,8 +247,12 @@
                     $el.parent().addClass('active').siblings().removeClass('active');
 
                     $('html,body').animate({
-                        scrollTop: $(target).position().top + event_nav_height
+                        scrollTop: target.position().top + event_nav_height
                     }, 'fast');
+
+                    if (history.pushState) {
+                        history.pushState({}, '', this.hash);
+                    }
 
                     e.preventDefault();
                 }).each(function(){
@@ -252,48 +261,47 @@
                     }
                 });
 
-                $window.resize(function(){
-                    event_nav_height = $event_nav.find('.nav').outerHeight();
-                    $event_nav.height(event_nav_height + 'px');
-                }).resize();
-
+                var resizeTimer;
                 $window.scroll(function(){
-                    // Change fixed nav if needed
-                    if ($window.scrollTop() > scroll_offset) {
-                        if (!$event_nav.hasClass('fixed')) {
-                            $event_nav.addClass('fixed');
-                        }
-                    } else if ($event_nav.hasClass('fixed')) {
-                        $event_nav.removeClass('fixed');
-                    }
-
-                    if ($nav_targets.length) {
-                        // Get container scroll position
-                        var from_top = $window.scrollTop() + event_nav_height + 20;
-                       
-                        // Get id of current scroll item
-                        var cur = $.map($nav_targets, function(hash){
-                            if ($(hash).offset().top < from_top) {
-                                return hash;
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(function(){
+                        // Change fixed nav if needed
+                        if ($window.scrollTop() > scroll_offset) {
+                            if (!$event_nav.hasClass('fixed')) {
+                                $event_nav.addClass('fixed');
                             }
-                        });
-
-                        // Get the id of the current element
-                        var target = cur ? cur[cur.length - 1] : null;
-
-                        if (!target) {
-                            target = $nav_targets[0];
+                        } else if ($event_nav.hasClass('fixed')) {
+                            $event_nav.removeClass('fixed');
                         }
 
-                        if (last_target !== target) {
-                           last_target = target;
+                        if ($nav_targets.length) {
+                            // Get container scroll position
+                            var from_top = $window.scrollTop() + event_nav_height + 20;
 
-                           // Set/remove active class
-                           $nav_links
-                             .parent().removeClass("active")
-                             .end().filter("[href=" + target + "]").parent().addClass("active");
-                        }  
-                    }
+                            // Get id of current scroll item
+                            var cur = $.map($nav_targets, function(hash){
+                                if ($(hash).offset().top < from_top) {
+                                    return hash;
+                                }
+                            });
+
+                            // Get the id of the current element
+                            var target = cur ? cur[cur.length - 1] : null;
+
+                            if (!target) {
+                                target = $nav_targets[0];
+                            }
+
+                            if (last_target !== target) {
+                               last_target = target;
+
+                               // Set/remove active class
+                               $nav_links
+                                 .parent().removeClass("active")
+                                 .end().filter("[href=" + target + "]").parent().addClass("active");
+                            }
+                        }
+                    }, 50);
                 }).scroll();
             }
         }

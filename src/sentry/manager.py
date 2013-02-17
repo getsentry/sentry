@@ -31,13 +31,14 @@ from django.utils.encoding import force_unicode
 from raven.utils.encoding import to_string
 from sentry import app
 from sentry.conf import settings
-from sentry.constants import STATUS_RESOLVED, STATUS_UNRESOLVED
+from sentry.constants import STATUS_RESOLVED, STATUS_UNRESOLVED, MINUTE_NORMALIZATION
 from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
 from sentry.tasks.index import index_event
 from sentry.tasks.fetch_source import fetch_javascript_source
+from sentry.utils import cached_property
 from sentry.utils.cache import cache, Lock
-from sentry.utils.dates import get_sql_date_trunc
+from sentry.utils.dates import get_sql_date_trunc, normalize_datetime
 from sentry.utils.db import get_db_engine, has_charts, attach_foreignkey
 from sentry.utils.models import create_or_update, make_key
 from sentry.utils.queue import maybe_delay
@@ -311,7 +312,7 @@ class ChartMixin(object):
         # the last interval is not accurate, so we exclude it
         # TODO: it'd be ideal to normalize the last datapoint so that we can include it
         # and not have ~inaccurate data for up to MINUTE_NORMALIZATION
-        today -= datetime.timedelta(minutes=settings.MINUTE_NORMALIZATION)
+        today -= datetime.timedelta(minutes=MINUTE_NORMALIZATION)
 
         if max_days >= 30:
             g_type = 'date'
@@ -328,7 +329,7 @@ class ChartMixin(object):
         else:
             g_type = 'minute'
             d_type = 'minutes'
-            modifier = settings.MINUTE_NORMALIZATION
+            modifier = MINUTE_NORMALIZATION
             points = max_days * 24 * (60 / modifier)
 
         min_date = today - datetime.timedelta(days=max_days)
@@ -484,7 +485,7 @@ class GroupManager(BaseManager, ChartMixin):
 
         if settings.SCRAPE_JAVASCRIPT_CONTEXT and event.platform == 'javascript' and not is_sample:
             try:
-                maybe_delay(fetch_javascript_source, event)
+                maybe_delay(fetch_javascript_source, event, expires=900)
             except Exception, e:
                 transaction.rollback_unless_managed(using=group._state.db)
                 logger.exception(u'Error fetching javascript source: %s', e)
@@ -570,11 +571,7 @@ class GroupManager(BaseManager, ChartMixin):
             is_sample = True
 
         # Rounded down to the nearest interval
-        if settings.MINUTE_NORMALIZATION:
-            minutes = (date.minute - (date.minute % settings.MINUTE_NORMALIZATION))
-        else:
-            minutes = date.minute
-        normalized_datetime = date.replace(second=0, microsecond=0, minute=minutes)
+        normalized_datetime = normalize_datetime(date)
 
         app.buffer.incr(GroupCountByMinute, update_kwargs, {
             'group': group,
@@ -606,23 +603,7 @@ class GroupManager(BaseManager, ChartMixin):
         except Exception, e:
             logger.exception('Unable to record tags: %s' % (e,))
 
-        # It's important that we increment short-counters without using the queue otherwise they could
-        # quickly become inaccurate
-        try:
-            self.incr_counters(group, is_new)
-        except Exception, e:
-            logger.exception('Unable to increment counters: %s' % (e,))
-
         return group, is_new, is_sample
-
-    def incr_counters(self, group, is_new):
-        app.counter.incr(
-            amount=1,
-            group_id=group.id,
-            team_id=group.team.id,
-            project_id=group.project.id,
-            is_new=is_new,
-        )
 
     def record_affected_user(self, group, user_ident, data=None):
         from sentry.models import TrackedUser, AffectedUserByGroup
@@ -704,71 +685,74 @@ class GroupManager(BaseManager, ChartMixin):
     def get_by_natural_key(self, project, logger, culprit, checksum):
         return self.get(project=project, logger=logger, view=culprit, checksum=checksum)
 
+    @cached_property
+    def model_fields_clause(self):
+        return ', '.join('sentry_groupedmessage."%s"' % (f.column,) for f in self.model._meta.fields)
+
     def get_accelerated(self, project_ids, queryset=None, minutes=15):
         if not project_ids:
             return self.none()
 
-        from sentry.models import GroupCountByMinute
-        mcbm_tbl = GroupCountByMinute._meta.db_table
         if queryset is None:
-            queryset = self
+            queryset = self.filter(
+                project__in=project_ids,
+                status=STATUS_UNRESOLVED,
+            )
+        else:
+            queryset = queryset._clone()
+            queryset.query.select_related = False
 
-        queryset = queryset._clone()
-        queryset.query.select_related = False
+        normalization = float(MINUTE_NORMALIZATION)
 
-        normalization = float(settings.MINUTE_NORMALIZATION)
         assert minutes >= normalization
+
+        intervals = 8
 
         engine = get_db_engine(queryset.db)
         # We technically only support mysql and postgresql, since there seems to be no standard
         # way to get the epoch from a datetime/interval
         if engine.startswith('mysql'):
             minute_clause = "interval %s minute"
-            epoch_clause = "unix_timestamp(utc_timestamp()) - unix_timestamp(%(mcbm_tbl)s.date)"
+            epoch_clause = "unix_timestamp(utc_timestamp()) - unix_timestamp(mcbm.date)"
             now_clause = 'utc_timestamp()'
         else:
             minute_clause = "interval '%s minutes'"
-            epoch_clause = "extract(epoch from now()) - extract(epoch from %(mcbm_tbl)s.date)"
+            epoch_clause = "extract(epoch from now()) - extract(epoch from mcbm.date)"
             now_clause = 'now()'
-
-        epoch_clause = epoch_clause % dict(mcbm_tbl=mcbm_tbl)
-
-        queryset = queryset.annotate(x=Sum('groupcountbyminute__times_seen')).order_by('id')
 
         sql, params = queryset.query.get_compiler(queryset.db).as_sql()
         before_select, after_select = str(sql).split('SELECT ', 1)
-        before_where, after_where = after_select.split(' WHERE ', 1)
-        before_group, after_group = after_where.split(' GROUP BY ', 1)
+        after_where = after_select.split(' WHERE ', 1)[1]
 
         # Ensure we remove any ordering clause
-        after_group = after_group.split(' ORDER BY ')[0]
+        after_where = after_where.split(' ORDER BY ')[0]
 
-        # TODO: adding project_id to sort clause on left join helps query in many cases
         query = """
-        SELECT (SUM(%(mcbm_tbl)s.times_seen) * (%(norm)f / (%(epoch_clause)s / 60)) + 1.0) / (COALESCE(z.rate, 0) + 1.0) as sort_value,
-               (COALESCE(z.rate, 0) + 1.0) as prev_rate,
-               %(before_where)s
-        LEFT JOIN (SELECT a.group_id, SUM(a.times_seen) / COUNT(a.times_seen) / %(norm)f as rate
-            FROM %(mcbm_tbl)s as a
+        SELECT ((mcbm.times_seen + 1) / ((%(epoch_clause)s) / 60)) / (COALESCE(z.rate, 0) + 1) as sort_value,
+               %(fields)s
+        FROM sentry_groupedmessage
+        INNER JOIN sentry_messagecountbyminute as mcbm
+            ON (sentry_groupedmessage.id = mcbm.group_id)
+        LEFT JOIN (SELECT a.group_id, (SUM(a.times_seen)) / COUNT(a.times_seen) / %(norm)f as rate
+            FROM sentry_messagecountbyminute as a
             WHERE a.date >=  %(now)s - %(max_time)s
             AND a.date < %(now)s - %(min_time)s
             AND a.project_id IN (%(project_ids)s)
             GROUP BY a.group_id) as z
-        ON z.group_id = %(mcbm_tbl)s.group_id
-        WHERE %(mcbm_tbl)s.date >= %(now)s - %(min_time)s
-        AND %(mcbm_tbl)s.date < %(now)s - %(offset_time)s
-        AND %(before_group)s
-        GROUP BY prev_rate, %(mcbm_tbl)s.date, %(after_group)s
-        HAVING SUM(%(mcbm_tbl)s.times_seen) > 0
+        ON z.group_id = mcbm.group_id
+        WHERE mcbm.date >= %(now)s - %(min_time)s
+        AND mcbm.date < %(now)s - %(offset_time)s
+        AND mcbm.times_seen > 0
+        AND ((mcbm.times_seen + 1) / ((%(epoch_clause)s) / 60)) > (COALESCE(z.rate, 0) + 1)
+        AND %(after_where)s
+        GROUP BY z.rate, mcbm.times_seen, mcbm.date, %(fields)s
         ORDER BY sort_value DESC
         """ % dict(
-            mcbm_tbl=mcbm_tbl,
-            before_where=before_where,
-            before_group=before_group,
-            after_group=after_group,
+            fields=self.model_fields_clause,
+            after_where=after_where,
             offset_time=minute_clause % (1,),
             min_time=minute_clause % (minutes + 1,),
-            max_time=minute_clause % (minutes * (60 / normalization),),
+            max_time=minute_clause % (minutes * intervals + 1,),
             norm=normalization,
             epoch_clause=epoch_clause,
             now=now_clause,

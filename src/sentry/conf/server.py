@@ -318,7 +318,8 @@ if os.path.exists(NPM_ROOT):
             "sentry/scripts/lib.min.js": {
                 "src": [
                     "sentry/scripts/lib/jquery.js",
-                    "sentry/scripts/lib/jquery.animate-colors-min.js",
+                    "sentry/scripts/lib/jquery-migrate.js",
+                    "sentry/scripts/lib/jquery.animate-colors.js",
                     "sentry/scripts/lib/jquery.clippy.min.js",
                     "sentry/scripts/lib/jquery.cookie.js",
                     "sentry/scripts/lib/jquery.flot.min.js",

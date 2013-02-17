@@ -22,5 +22,4 @@ def get_instance(path, options):
     return cls(**options)
 
 buffer = get_instance(settings.BUFFER, settings.BUFFER_OPTIONS)
-counter = get_instance(settings.COUNTER, settings.COUNTER_OPTIONS)
 env = State()

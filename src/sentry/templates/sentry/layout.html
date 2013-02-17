@@ -60,6 +60,9 @@
                         <ul class="breadcrumb">
                             <li><a href="{% url sentry %}" class="dashboard-btn" title="{% trans "Dashboard" %}"><i aria-hidden="true" class="icon-list"></i></a></li>
                             <li class="projects">
+                                {% if project %}
+                                    <a href="{% url sentry-stream project.team.slug project.slug %}" class="project-shortcut"></a>
+                                {% endif %}
                                 <select class="project-selector" data-placeholder="{% trans "Select a Project" %}">
                                     <option value=""></option>
                                     {% for p in PROJECT_LIST %}
@@ -102,7 +105,6 @@
 
                     {% block content_after %}
                     {% endblock %}
-                    </div>
                 </div>
             </div>
         </section>

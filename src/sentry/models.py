@@ -36,12 +36,13 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
 from sentry.constants import (STATUS_LEVELS, MEMBER_TYPES,
     MEMBER_OWNER, MEMBER_USER, PLATFORM_TITLES, PLATFORM_LIST,
-    STATUS_VISIBLE, STATUS_HIDDEN)
+    STATUS_VISIBLE, STATUS_HIDDEN, MINUTE_NORMALIZATION)
 from sentry.manager import (GroupManager, ProjectManager,
     MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager,
     UserOptionManager, FilterKeyManager, TeamManager)
 from sentry.signals import buffer_incr_complete, regression_signal
 from sentry.utils import cached_property, MockDjangoRequest
+from sentry.utils.db import has_trending
 from sentry.utils.models import Model, GzippedDictField, update
 from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute
@@ -1025,8 +1026,62 @@ class Activity(Model):
                 self.event.update(num_comments=F('num_comments') + 1)
 
 
-### django-indexer
+class Alert(Model):
+    project = models.ForeignKey(Project)
+    group = models.ForeignKey(Group, null=True)
+    datetime = models.DateTimeField(default=timezone.now)
+    message = models.TextField()
+    data = GzippedDictField(null=True)
+    related_groups = models.ManyToManyField(Group, through='sentry.AlertRelatedGroup', related_name='related_alerts')
 
+    __repr__ = sane_repr('project_id', 'group_id', 'datetime')
+
+    @classmethod
+    def maybe_alert(cls, project_id, message, group_id=None):
+        now = timezone.now()
+        manager = cls.objects
+        # We only create an alert based on:
+        # - an alert for the project hasn't been created in the last 30 minutes
+        # - an alert for the event hasn't been created in the last 60 minutes
+
+        # TODO: there is a race condition if we're calling this function for the same project
+        if manager.filter(project=project_id, datetime__gte=now - timedelta(minutes=30)).exists():
+            return
+
+        if manager.filter(project=project_id, group=group_id, datetime__gte=now - timedelta(minutes=60)).exists():
+            return
+
+        alert = manager.create(
+            project_id=project_id,
+            group_id=group_id,
+            datetime=now,
+            message=message,
+        )
+
+        if not group_id and has_trending():
+            # Capture the top 5 trending events at the time of this error
+            related_groups = Group.objects.get_accelerated([project_id], minutes=MINUTE_NORMALIZATION)[:5]
+            for group in related_groups:
+                AlertRelatedGroup.objects.create(
+                    group=group,
+                    alert=alert,
+                )
+
+        return alert
+
+
+class AlertRelatedGroup(Model):
+    group = models.ForeignKey(Group)
+    alert = models.ForeignKey(Alert)
+    data = GzippedDictField(null=True)
+
+    class Meta:
+        unique_together = (('group', 'alert'),)
+
+    __repr__ = sane_repr('group_id', 'alert_id')
+
+
+### django-indexer
 
 class MessageIndex(BaseIndex):
     model = Event

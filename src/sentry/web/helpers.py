@@ -118,13 +118,15 @@ def get_default_context(request, existing_context=None, team=None):
     if request:
         context.update({
             'request': request,
-            'can_create_projects': can_create_projects(request.user),
             'can_create_teams': can_create_teams(request.user),
         })
         if team:
             context.update({
-                'can_admin_team': Team.objects.get_for_user(request.user, MEMBER_OWNER)
+                'can_admin_team': Team.objects.get_for_user(request.user, MEMBER_OWNER),
+                'can_create_projects': can_create_projects(request.user, team=team),
             })
+        else:
+            context['can_create_projects'] = can_create_projects(request.user)
 
         if not existing_context or 'PROJECT_LIST' not in existing_context:
             project_list = Project.objects.get_for_user(request.user, team=team)

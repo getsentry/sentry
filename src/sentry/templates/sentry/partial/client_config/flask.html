@@ -3,9 +3,9 @@
 {% load i18n %}
 
 {% block inner %}
-	<p>{% blocktrans with 'https://github.com/getsentry/raven-python' as link %}Start by installing <a href="{{ link }}">raven-python</a> and Blinker:{% endblocktrans %}</p>
+	<p>{% trans "You'll also need blinker if you do not have it already:" %}</p>
 
-	<pre>pip install raven blinker</pre>
+	<pre>pip install blinker</pre>
 
 	<p><em>{% trans "Blinker is required for signals to work within Flask." %}</em></p>
 
@@ -17,6 +17,4 @@ app.config['SENTRY_DSN'] = '{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</s
 sentry = Sentry(app)</pre>
 
 	<p>{% trans "That's it! Raven automatically installs an error handling hook to pipe all uncaught exceptions to Sentry." %}</p>
-
-	<p>{% blocktrans with 'http://raven.readthedocs.org' as link %}For more information on other uses of Raven with Flask, please see the <a href="{{ link }}">official documentation for raven-python</a>.{% endblocktrans %}</p>
 {% endblock %}

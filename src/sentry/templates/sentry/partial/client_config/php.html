@@ -19,10 +19,10 @@ $client->captureMessage('hello world!');
 
 // {% trans "capture an exception" %}
 try {
-        throw new Exception('Uh oh!');
+    throw new Exception('Uh oh!');
 }
 catch ($e) {
-        $client->captureException($e);
+    $client->captureException($e);
 }</pre>
 
 <p>{% trans "You can also optionally install a default error handler to catch all exceptions:" %}</p>
@@ -32,5 +32,7 @@ catch ($e) {
 // Register error handler callbacks
 set_error_handler(array($error_handler, 'handleError'));
 set_exception_handler(array($error_handler, 'handleException'));</pre>
+
+<p>{% blocktrans %}<strong>Note:</strong> We dont recommend registering the generic error handler as it can be quite noisey.{% endblocktrans %}</p>
 
 <p>{% blocktrans with 'https://github.com/getsentry/raven-php' as link %}For more information on other uses of Raven with PHP, please see the <a href="{{ link }}">official documentation for raven-php</a>.{% endblocktrans %}</p>

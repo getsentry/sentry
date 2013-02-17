@@ -224,7 +224,7 @@ class SentryManagerTest(TestCase):
         with self.Settings(SENTRY_SCRAPE_JAVASCRIPT_CONTEXT=True):
             event = Group.objects.from_kwargs(1, message='hello', platform='javascript')
 
-            maybe_delay.assert_any_call(fetch_javascript_source, event)
+            maybe_delay.assert_any_call(fetch_javascript_source, event, expires=900)
 
     def test_add_tags(self):
         event = Group.objects.from_kwargs(1, message='rrr')
@@ -245,33 +245,6 @@ class SentryManagerTest(TestCase):
         res = results[0]
         self.assertEquals(res.value, 'boz')
         self.assertEquals(res.times_seen, 1)
-
-    @mock.patch('sentry.manager.send_group_processors', mock.Mock())
-    @mock.patch('sentry.manager.GroupManager.incr_counters')
-    def test_calls_incr_counters(self, incr_counters):
-        event = Group.objects.from_kwargs(1, message='foo', tags=[('foo', 'bar')])
-        group = event.group
-        incr_counters.assert_called_once_with(group, True)
-
-    @mock.patch('sentry.manager.send_group_processors', mock.Mock())
-    @mock.patch('sentry.manager.GroupManager.incr_counters')
-    def test_handles_incr_counters_failure(self, incr_counters):
-        incr_counters.side_effect = Exception()
-        event = Group.objects.from_kwargs(1, message='foo')
-        group = event.group
-        incr_counters.assert_called_once_with(group, True)
-
-    @mock.patch('sentry.manager.app.counter.incr')
-    def test_incr_counters_calls_buffer(self, incr):
-        is_new = mock.Mock()
-        Group.objects.incr_counters(self.group, is_new=is_new)
-        incr.assert_called_once_with(
-            amount=1,
-            team_id=self.group.team.id,
-            project_id=self.group.project.id,
-            group_id=self.group.id,
-            is_new=is_new,
-        )
 
 
 class SearchManagerTest(TestCase):

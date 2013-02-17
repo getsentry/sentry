@@ -17,7 +17,7 @@ which the worker manager process of the Celery library.
 
 ::
 
-    sentry celeryd
+    sentry celeryd -B
 
 Enable the Queue
 ----------------
@@ -33,9 +33,5 @@ details as part of the `Celery documentation <http://celeryproject.org/>`_, but 
 like Redis will do just fine.
 
 An example configuration using a local Redis server might look like this::
-
-    CELERY_IGNORE_RESULT = True
-    CELERY_SEND_EVENTS = False
-    CELERY_RESULT_BACKEND = 'redis'
 
     BROKER_URL = "redis://localhost:6379/0"

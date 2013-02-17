@@ -83,11 +83,6 @@ MAIL_INCLUDE_LOGGERS = None
 # A list of loggers to exclude in emails.
 MAIL_EXCLUDE_LOGGERS = []
 
-# Normalize counts to the 15 minute marker. This value MUST be less than 60. A
-# value of 0 would store counts for every minute, and is the lowest level of
-# accuracy provided.
-MINUTE_NORMALIZATION = 15
-
 # The number of events to display per page
 MESSAGES_PER_PAGE = 15
 
@@ -170,10 +165,6 @@ REDIS_OPTIONS = {}
 BUFFER = 'sentry.buffer.Buffer'
 BUFFER_OPTIONS = {}
 
-# Counter backend to use
-COUNTER = 'sentry.counter.Counter'
-COUNTER_OPTIONS = {}
-
 # Auth engines and the settings required for them to be listed
 AUTH_PROVIDERS = {
     'twitter': ('TWITTER_CONSUMER_KEY', 'TWITTER_CONSUMER_SECRET'),
@@ -183,3 +174,8 @@ AUTH_PROVIDERS = {
     'trello': ('TRELLO_API_KEY', 'TRELLO_API_SECRET'),
     'bitbucket': ('BITBUCKET_CONSUMER_KEY', 'BITBUCKET_CONSUMER_SECRET'),
 }
+
+
+# Default alerting threshold values
+DEFAULT_ALERT_PROJECT_THRESHOLD = (500, 100)  # 500%, 100 events
+DEFAULT_ALERT_GROUP_THRESHOLD = (1000, 100)  # 1000%, 100 events

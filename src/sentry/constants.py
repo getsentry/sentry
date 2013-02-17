@@ -104,10 +104,14 @@ PLATFORM_LIST = (
     'r',
     'ruby',
     'rails3',
+    'sidekiq',
+    'sinatra',
 )
 
 PLATFORM_ROOTS = {
     'rails3': 'ruby',
+    'sinatra': 'ruby',
+    'sidekiq': 'ruby',
     'django': 'python',
     'flask': 'python',
     'express': 'node.js',
@@ -124,3 +128,8 @@ PLATFORM_TITLES = {
     'flask': 'Flask (Python)',
     'csharp': 'C#',
 }
+
+# Normalize counts to the 15 minute marker. This value MUST be less than 60. A
+# value of 0 would store counts for every minute, and is the lowest level of
+# accuracy provided.
+MINUTE_NORMALIZATION = 15

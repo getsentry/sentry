@@ -32,6 +32,15 @@ def team_list(request):
     return render_to_response('sentry/teams/list.html', {}, request)
 
 
+def render_with_team_context(team, template, context, request=None):
+    context.update({
+        'team': team,
+        'SECTION': 'team',
+    })
+
+    return render_to_response(template, context, request)
+
+
 @login_required
 @csrf_protect
 def create_new_team(request):
@@ -101,12 +110,10 @@ def manage_team(request, team):
         'can_remove_team': can_remove_team(request.user, team),
         'page': 'details',
         'form': form,
-        'team': team,
-        'SECTION': 'team',
         'SUBSECTION': 'settings',
     })
 
-    return render_to_response('sentry/teams/manage.html', context, request)
+    return render_with_team_context(team, 'sentry/teams/manage.html', context, request)
 
 
 @has_access(MEMBER_OWNER)
@@ -128,12 +135,10 @@ def remove_team(request, team):
     context.update({
         'page': 'settings',
         'form': form,
-        'team': team,
-        'SECTION': 'team',
         'SUBSECTION': 'settings',
     })
 
-    return render_to_response('sentry/teams/remove.html', context, request)
+    return render_with_team_context(team, 'sentry/teams/remove.html', context, request)
 
 
 @has_access(MEMBER_OWNER)
@@ -147,15 +152,13 @@ def manage_team_projects(request, team):
 
     context = csrf(request)
     context.update({
-        'can_add_project': can_create_projects(request.user, team),
         'page': 'projects',
         'team': team,
         'project_list': project_list,
-        'SECTION': 'team',
         'SUBSECTION': 'projects',
     })
 
-    return render_to_response('sentry/teams/projects/index.html', context, request)
+    return render_with_team_context(team, 'sentry/teams/projects/index.html', context, request)
 
 
 @has_access(MEMBER_OWNER)
@@ -172,14 +175,12 @@ def manage_team_members(request, team):
     context.update({
         'can_add_member': can_add_team_member(request.user, team),
         'page': 'members',
-        'team': team,
         'member_list': member_list,
         'pending_member_list': pending_member_list,
-        'SECTION': 'team',
         'SUBSECTION': 'members',
     })
 
-    return render_to_response('sentry/teams/members/index.html', context, request)
+    return render_with_team_context(team, 'sentry/teams/members/index.html', context, request)
 
 
 @csrf_protect
@@ -221,14 +222,12 @@ def new_team_member(request, team):
     context = csrf(request)
     context.update({
         'page': 'members',
-        'team': team,
         'add_form': add_form,
         'invite_form': invite_form,
-        'SECTION': 'team',
         'SUBSECTION': 'members',
     })
 
-    return render_to_response('sentry/teams/members/new.html', context, request)
+    return render_with_team_context(team, 'sentry/teams/members/new.html', context, request)
 
 
 @csrf_protect
@@ -307,13 +306,11 @@ def edit_team_member(request, team, member_id):
     context.update({
         'page': 'members',
         'member': member,
-        'team': team,
         'form': form,
-        'SECTION': 'team',
         'SUBSECTION': 'members',
     })
 
-    return render_to_response('sentry/teams/members/edit.html', context, request)
+    return render_with_team_context(team, 'sentry/teams/members/edit.html', context, request)
 
 
 @csrf_protect
@@ -339,12 +336,10 @@ def remove_team_member(request, team, member_id):
     context.update({
         'page': 'members',
         'member': member,
-        'team': team,
-        'SECTION': 'team',
         'SUBSECTION': 'members',
     })
 
-    return render_to_response('sentry/teams/members/remove.html', context, request)
+    return render_with_team_context(team, 'sentry/teams/members/remove.html', context, request)
 
 
 @csrf_protect
@@ -465,13 +460,11 @@ def create_new_team_project(request, team):
     context = csrf(request)
     context.update({
         'form': form,
-        'team': team,
         'page': 'projects',
-        'SECTION': 'team',
         'SUBSECTION': 'new_project',
     })
 
-    return render_to_response('sentry/teams/projects/new.html', context, request)
+    return render_with_team_context(team, 'sentry/teams/projects/new.html', context, request)
 
 
 @has_access(MEMBER_OWNER)
@@ -480,13 +473,11 @@ def manage_access_groups(request, team):
     context = csrf(request)
     context.update({
         'can_add_group': True,
-        'team': team,
         'group_list': AccessGroup.objects.filter(team=team),
-        'SECTION': 'team',
         'SUBSECTION': 'groups',
     })
 
-    return render_to_response('sentry/teams/groups/list.html', context, request)
+    return render_with_team_context(team, 'sentry/teams/groups/list.html', context, request)
 
 
 @csrf_protect
@@ -506,13 +497,11 @@ def new_access_group(request, team):
 
     context = csrf(request)
     context.update({
-        'team': team,
         'form': form,
-        'SECTION': 'team',
         'SUBSECTION': 'groups',
     })
 
-    return render_to_response('sentry/teams/groups/new.html', context, request)
+    return render_with_team_context(team, 'sentry/teams/groups/new.html', context, request)
 
 
 @has_access(MEMBER_OWNER)
@@ -529,16 +518,14 @@ def access_group_details(request, team, group_id):
 
     context = csrf(request)
     context.update({
-        'team': team,
         'group': group,
         'form': form,
         'group_list': AccessGroup.objects.filter(team=team),
         'page': 'details',
-        'SECTION': 'team',
         'SUBSECTION': 'groups',
     })
 
-    return render_to_response('sentry/teams/groups/details.html', context, request)
+    return render_with_team_context(team, 'sentry/teams/groups/details.html', context, request)
 
 
 @has_access(MEMBER_OWNER)
@@ -565,14 +552,12 @@ def remove_access_group(request, team, group_id):
     context = csrf(request)
     context.update({
         'form': form,
-        'team': team,
         'group': group,
         'page': 'details',
-        'SECTION': 'team',
         'SUBSECTION': 'groups',
     })
 
-    return render_to_response('sentry/teams/groups/remove.html', context, request)
+    return render_with_team_context(team, 'sentry/teams/groups/remove.html', context, request)
 
 
 @has_access(MEMBER_OWNER)
@@ -595,17 +580,15 @@ def access_group_members(request, team, group_id):
 
     context = csrf(request)
     context.update({
-        'team': team,
         'group': group,
         'form': form,
         'member_list': group.members.all(),
         'group_list': AccessGroup.objects.filter(team=team),
         'page': 'members',
-        'SECTION': 'team',
         'SUBSECTION': 'groups',
     })
 
-    return render_to_response('sentry/teams/groups/members.html', context, request)
+    return render_with_team_context(team, 'sentry/teams/groups/members.html', context, request)
 
 
 @csrf_protect
@@ -646,17 +629,15 @@ def access_group_projects(request, team, group_id):
 
     context = csrf(request)
     context.update({
-        'team': team,
         'group': group,
         'form': form,
         'project_list': group.projects.all(),
         'group_list': AccessGroup.objects.filter(team=team),
         'page': 'projects',
-        'SECTION': 'team',
         'SUBSECTION': 'groups',
     })
 
-    return render_to_response('sentry/teams/groups/projects.html', context, request)
+    return render_with_team_context(team, 'sentry/teams/groups/projects.html', context, request)
 
 
 @csrf_protect

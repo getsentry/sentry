@@ -154,21 +154,12 @@ def _get_group_list(request, project):
 
 
 def render_with_group_context(group, template, context, request=None, event=None):
-    activity = Activity.objects.filter(
-        group=group,
-    ).order_by('-datetime').select_related('user')
-    if event:
-        activity = activity.filter(Q(event__isnull=True) | Q(event=event))
-
-    activity = list(activity)
-
     context.update({
         'team': group.project.team,
         'project': group.project,
         'group': group,
         'can_admin_event': can_admin_group(request.user, group),
         'SECTION': 'events',
-        'activity': activity,
     })
 
     if event:
@@ -349,7 +340,14 @@ def group(request, team, project, group):
     event = group.get_latest_event() or Event()
     event.group = group
 
-    context = {'page': 'details'}
+    activity = list(Activity.objects.filter(
+        group=group,
+    ).order_by('-datetime').select_related('user')[:10])
+
+    context = {
+        'page': 'details',
+        'activity': activity,
+    }
 
     if group_is_public(group, request.user):
         template = 'sentry/groups/public_details.html'
@@ -421,8 +419,15 @@ def group_event_list_json(request, team, project, group_id):
 def group_event_details(request, team, project, group, event_id):
     event = get_object_or_404(group.event_set, id=event_id)
 
+    activity = list(Activity.objects.filter(
+        group=group,
+    ).filter(
+        Q(event=event) | Q(event__isnull=True),
+    ).order_by('-datetime').select_related('user')[:10])
+
     return render_with_group_context(group, 'sentry/groups/details.html', {
         'page': 'details',
+        'activity': activity,
     }, request, event=event)
 
 

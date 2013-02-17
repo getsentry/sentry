@@ -34,6 +34,10 @@ def unserialize(klass, data):
     return value
 
 
+def is_url(filename):
+    return filename.startswith(('http:', 'https:', 'file:'))
+
+
 def get_context(lineno, context_line, pre_context=None, post_context=None, filename=None,
         format=False):
     lineno = int(lineno)
@@ -61,7 +65,7 @@ def get_context(lineno, context_line, pre_context=None, post_context=None, filen
             at_lineno += 1
 
     # HACK:
-    if filename.startswith(('http:', 'https:')) and '.' not in filename.rsplit('/', 1)[-1]:
+    if filename and is_url(filename) and '.' not in filename.rsplit('/', 1)[-1]:
         filename = 'index.html'
 
     if format:
@@ -326,7 +330,7 @@ class Stacktrace(Interface):
                 frame['in_app'] = bool(frame['in_app'])
 
             abs_path = frame.get('abs_path') or frame.get('filename')
-            if abs_path and abs_path.startswith(('http:', 'https:')):
+            if abs_path and is_url(abs_path):
                 urlparts = urlparse.urlparse(abs_path)
                 if urlparts.path:
                     frame['abs_path'] = abs_path
@@ -345,7 +349,11 @@ class Stacktrace(Interface):
     def get_composite_hash(self, interfaces):
         output = self.get_hash()
         if 'sentry.interfaces.Exception' in interfaces:
-            output.append(interfaces['sentry.interfaces.Exception'].type)
+            exc = interfaces['sentry.interfaces.Exception']
+            if exc.type:
+                output.append(exc.type)
+            elif not output:
+                output.append(exc.value)
         return output
 
     def get_hash(self):
@@ -361,7 +369,7 @@ class Stacktrace(Interface):
         if frame.get('module'):
             output.append(frame['module'])
         # We only include the filename
-        elif filename and not abs_path.startswith(('http:', 'https:')):
+        elif filename and not is_url(abs_path):
             output.append(filename)
 
         if frame.get('context_line'):

@@ -377,6 +377,28 @@ def make_group_private(request, team, project, group_id):
 @has_access(MEMBER_USER)
 @never_cache
 @api
+def resolve_group(request, team, project, group_id):
+    try:
+        group = Group.objects.get(pk=group_id)
+    except Group.DoesNotExist:
+        return HttpResponseForbidden()
+
+    happened = group.update(status=STATUS_RESOLVED)
+    if happened:
+        Activity.objects.create(
+            project=project,
+            group=group,
+            type=Activity.SET_RESOLVED,
+            user=request.user,
+        )
+
+    return to_json(group, request)
+
+
+@csrf_exempt
+@has_access(MEMBER_USER)
+@never_cache
+@api
 def mute_group(request, team, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
@@ -399,7 +421,7 @@ def mute_group(request, team, project, group_id):
 @has_access(MEMBER_USER)
 @never_cache
 @api
-def unmute_group(request, team, project, group_id):
+def unresolve_group(request, team, project, group_id):
     try:
         group = Group.objects.get(pk=group_id)
     except Group.DoesNotExist:
@@ -754,7 +776,7 @@ def crossdomain_xml(request, project_id):
     try:
         project = Project.objects.get_from_cache(**lookup)
     except Project.DoesNotExist:
-        return HttpResponse(status_code=404)
+        return HttpResponse(status=404)
 
     origin_list = get_origins(project)
     if origin_list == '*':

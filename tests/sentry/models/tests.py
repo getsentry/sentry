@@ -3,13 +3,14 @@
 from __future__ import absolute_import
 
 
+import mock
 from django.core import mail
 from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
-from sentry.models import Project, ProjectKey, Group, Event, Team, \
-  GroupTag, GroupCountByMinute, FilterValue, PendingTeamMember, \
-  LostPasswordHash
-
+from sentry.constants import MINUTE_NORMALIZATION
+from sentry.models import (Project, ProjectKey, Group, Event, Team,
+    GroupTag, GroupCountByMinute, FilterValue, PendingTeamMember,
+    LostPasswordHash, Alert)
 from sentry.testutils import TestCase, fixture
 
 
@@ -109,3 +110,20 @@ class LostPasswordTest(TestCase):
         url = 'http://testserver' + reverse('sentry-account-recover-confirm',
             args=[self.password_hash.user_id, self.password_hash.hash])
         assert url in msg.body
+
+
+class AlertTest(TestCase):
+    @fixture
+    def params(self):
+        return {
+            'project_id': self.project.id,
+            'message': 'This is a test message',
+        }
+
+    @mock.patch('sentry.models.has_trending', mock.Mock(return_value=True))
+    @mock.patch('sentry.models.Group.objects.get_accelerated')
+    def test_does_add_trending_events(self, get_accelerated):
+        get_accelerated.return_value = [self.group]
+        alert = Alert.maybe_alert(**self.params)
+        get_accelerated.assert_called_once_with([self.project.id], minutes=MINUTE_NORMALIZATION)
+        assert list(alert.related_groups.all()) == [self.group]

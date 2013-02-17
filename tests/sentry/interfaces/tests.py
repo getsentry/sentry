@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import mock
 import pickle
 
-from sentry.interfaces import Interface, Message, Query, Stacktrace
+from sentry.interfaces import Interface, Message, Query, Stacktrace, get_context
 from sentry.models import Event
 from sentry.testutils import TestCase, fixture
 
@@ -109,34 +109,7 @@ class QueryTest(InterfaceBase):
         }
 
 
-class StacktraceTest(InterfaceBase):
-    @fixture
-    def interface(self):
-        return Stacktrace(frames=[
-            {
-                'filename': 'foo/bar.py'
-            },
-            {
-                'filename': 'foo/baz.py',
-                'lineno': 1,
-                'in_app': True,
-            }
-        ])
-
-    def test_serialize_behavior(self):
-        assert self.interface.serialize() == {
-            'frames': self.interface.frames
-        }
-
-    @mock.patch('sentry.interfaces.Stacktrace.get_frame_hash')
-    def test_get_hash_uses_frame_hash(self, get_frame_hash):
-        get_frame_hash.side_effect = lambda x: [x]
-        assert self.interface.get_hash() == self.interface.frames
-        assert get_frame_hash.call_count == 2
-        get_frame_hash.assert_any_call(self.interface.frames[0])
-        get_frame_hash.assert_any_call(self.interface.frames[1])
-
-    @mock.patch('sentry.interfaces.Stacktrace.get_stacktrace')
-    def test_to_string_returns_stacktrace(self, get_stacktrace):
-        assert self.interface.to_string(self.event) == get_stacktrace.return_value
-        get_stacktrace.assert_called_once_with(self.event, system_frames=False, max_frames=5)
+class GetContextTest(TestCase):
+    def test_works_with_empty_filename(self):
+        result = get_context(0, 'hello world')
+        assert result == [(0, 'hello world')]

@@ -16,6 +16,8 @@ Screenshots
 
 .. image:: https://github.com/getsentry/sentry/raw/master/docs/images/event.png
 
+.. image:: https://github.com/getsentry/sentry/raw/master/docs/images/dashboard.png
+
 Sentry is a Server
 ------------------
 
