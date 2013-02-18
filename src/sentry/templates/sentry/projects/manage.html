@@ -44,10 +44,15 @@
 
             <fieldset>
                 {% for field in form %}
-                    {% if field.name != 'origins' %}
+                    {% if field.name != 'origins' and field.name != 'public' and field.name != 'resolve_age' %}
                         {{ field|as_crispy_field }}
                     {% endif %}
                 {% endfor %}
+            </fieldset>
+            <fieldset id="events">
+                <div><legend>{% trans "Event Settings" %}</legend></div>
+                {{ form.resolve_age|as_crispy_field }}
+                {{ form.public|as_crispy_field }}
             </fieldset>
             <fieldset id="client-security">
                 <div><legend>{% trans "Client Security" %}</legend></div>
@@ -68,7 +73,7 @@
         </form>
 
         <script type="text/javascript">
-        new app.TeamDetailsPage();
+        new app.ProjectDetailsPage();
         </script>
     {% endblock %}
     </section>

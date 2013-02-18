@@ -36,7 +36,8 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
 from sentry.constants import (STATUS_LEVELS, MEMBER_TYPES,
     MEMBER_OWNER, MEMBER_USER, PLATFORM_TITLES, PLATFORM_LIST,
-    STATUS_VISIBLE, STATUS_HIDDEN, MINUTE_NORMALIZATION)
+    STATUS_UNRESOLVED, STATUS_RESOLVED, STATUS_VISIBLE, STATUS_HIDDEN,
+    MINUTE_NORMALIZATION)
 from sentry.manager import (GroupManager, ProjectManager,
     MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager,
     UserOptionManager, FilterKeyManager, TeamManager)
@@ -288,6 +289,13 @@ class Project(Model):
                 tags = FilterKey.objects.all_keys(self)
             self._tag_cache = tags
         return self._tag_cache
+
+    # TODO: Make these a mixin
+    def update_option(self, *args, **kwargs):
+        return ProjectOption.objects.set_value(self, *args, **kwargs)
+
+    def get_option(self, *args, **kwargs):
+        return ProjectOption.objects.get_value(self, *args, **kwargs)
 
 
 class ProjectKey(Model):
@@ -543,6 +551,17 @@ class Group(EventBase):
 
     def natural_key(self):
         return (self.project, self.logger, self.culprit, self.checksum)
+
+    def is_over_resolve_age(self):
+        resolve_age = self.project.get_option('resolve_age', None)
+        if not resolve_age:
+            return False
+        return self.active_at < timezone.now() - timedelta(hours=resolve_age)
+
+    def get_status(self):
+        if self.status == STATUS_UNRESOLVED and self.is_over_resolve_age():
+            return STATUS_RESOLVED
+        return self.status
 
     def get_score(self):
         return int(math.log(self.times_seen) * 600 + float(time.mktime(self.last_seen.timetuple())))

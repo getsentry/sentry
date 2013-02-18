@@ -280,7 +280,6 @@ def manage_project_tags(request, team, project):
 def notification_settings(request, team, project):
     initial = {
         'active': True,
-        'event_age': 24,
     }
     form = NotificationSettingsForm(request.POST or None, initial=initial)
 

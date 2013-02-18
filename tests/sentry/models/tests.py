@@ -4,9 +4,11 @@ from __future__ import absolute_import
 
 
 import mock
+from datetime import timedelta
 from django.core import mail
 from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
+from django.utils import timezone
 from sentry.constants import MINUTE_NORMALIZATION
 from sentry.models import (Project, ProjectKey, Group, Event, Team,
     GroupTag, GroupCountByMinute, FilterValue, PendingTeamMember,
@@ -127,3 +129,13 @@ class AlertTest(TestCase):
         alert = Alert.maybe_alert(**self.params)
         get_accelerated.assert_called_once_with([self.project.id], minutes=MINUTE_NORMALIZATION)
         assert list(alert.related_groups.all()) == [self.group]
+
+
+class GroupIsOverResolveAgeTest(TestCase):
+    def test_simple(self):
+        group = self.group
+        group.active_at = timezone.now() - timedelta(hours=2)
+        group.project.update_option('resolve_age', 1)  # 1 hour
+        assert group.is_over_resolve_age() is True
+        group.active_at = timezone.now()
+        assert group.is_over_resolve_age() is False

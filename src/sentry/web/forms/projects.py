@@ -113,6 +113,8 @@ class EditProjectForm(BaseProjectForm):
     team = forms.TypedChoiceField(choices=(), coerce=int)
     origins = OriginsField(label=_('Allowed Domains'), required=False,
         help_text=_('Separate multiple entries with a newline.'))
+    resolve_age = RangeField(help_text=_('Treat an event as resolved if it hasn\'t been seen for this amount of time.'),
+        required=False, min=0, max=168, step=1)
 
     class Meta:
         fields = ('name', 'platform', 'public', 'team')
@@ -156,6 +158,11 @@ class EditProjectAdminForm(EditProjectForm):
 
 
 class NotificationSettingsForm(forms.Form):
+    active = forms.BooleanField(help_text=_('Enable notifications for this project. Users can override this within their personal settings'),
+        required=False)
+
+
+class AlertSettingsForm(forms.Form):
     active = forms.BooleanField(help_text=_('Enable notifications for this project. Users can override this within their personal settings'),
         required=False)
     event_age = RangeField(help_text=_('Notify the first time an event is seen after this amount of time.'),
