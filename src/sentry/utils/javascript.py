@@ -104,7 +104,7 @@ class GroupTransformer(Transformer):
             'lastSeen': obj.last_seen.isoformat(),
             'timeSpent': obj.avg_time_spent,
             'canResolve': request and request.user.is_authenticated(),
-            'isResolved': obj.status == STATUS_RESOLVED,
+            'isResolved': obj.get_status() == STATUS_RESOLVED,
             'isPublic': obj.is_public,
             'score': getattr(obj, 'sort_value', 0),
             'project': {
