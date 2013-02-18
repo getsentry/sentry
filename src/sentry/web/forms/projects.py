@@ -159,7 +159,7 @@ class NotificationSettingsForm(forms.Form):
     active = forms.BooleanField(help_text=_('Enable notifications for this project. Users can override this within their personal settings'),
         required=False)
     event_age = RangeField(help_text=_('Notify the first time an event is seen after this many hours.'),
-        required=False, min=1, max=168, step=1)
+        required=False, min=0, max=168, step=1)
 
 
 class NotificationTagValuesForm(forms.Form):

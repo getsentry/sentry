@@ -69,7 +69,9 @@
         });
 
         function formatHours(val) {
-            if (val > 23 && val % 24 === 0) {
+            if (val === 0) {
+                return 'Disabled';
+            } else if (val > 23 && val % 24 === 0) {
                 val = (val / 24);
                 return val + ' day' + (val != 1 ? 's' : '');
             }
@@ -78,13 +80,13 @@
 
         $("input[type=range]").each(function(_, el){
             var $el = $(el),
-                min = $el.attr('min')
-                max = $el.attr('max'),
-                step = $el.attr('step'),
+                min = parseInt($el.attr('min'), 10);
+                max = parseInt($el.attr('max'), 10),
+                step = parseInt($el.attr('step'), 10),
                 values = [],
                 $value = $('<span class="value"></span>');
 
-            var i = 1;
+            var i = min;
             while (i <= max) {
                 values.push(i);
                 if (i < 12) {
@@ -102,9 +104,9 @@
 
             $el.on("slider:ready", function (event, data) {
                 $value.appendTo(data.el);
-                $value.html(formatHours(data.value));
+                $value.html(formatHours(parseInt(data.value, 10)));
             }).on("slider:changed", function (event, data) {
-                $value.html(formatHours(data.value));
+                $value.html(formatHours(parseInt(data.value, 10)));
             }).simpleSlider({
                 range: [min, max],
                 step: step,
