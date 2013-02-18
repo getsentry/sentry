@@ -6152,7 +6152,7 @@ body {
   color: #a6a8b7;
   -webkit-font-smoothing: antialiased;
   font-family: "Helvetica Neue", helvetica, sans-serif;
-  background: #c8cbd0;
+  background: #e4e8ed;
 }
 .container {
   min-width: 786px;
@@ -6161,13 +6161,14 @@ body {
 a {
   color: #ffffff;
   text-decoration: none;
-  -webkit-transition: color linear 0.1s;
-  -moz-transition: color linear 0.1s;
-  -o-transition: color linear 0.1s;
-  transition: color linear 0.1s;
+  -webkit-transition: color linear 0.2s;
+  -moz-transition: color linear 0.2s;
+  -o-transition: color linear 0.2s;
+  transition: color linear 0.2s;
 }
 a:hover {
   color: #e6e6e6;
+  text-decoration: none;
 }
 p {
   font-size: 14px;
@@ -6193,6 +6194,10 @@ h3 {
 .outer-wrapper {
   max-width: 1300px;
   margin: 0 auto;
+  -webkit-transition: margin-top 0.1s ease;
+  -moz-transition: margin-top 0.1s ease;
+  -o-transition: margin-top 0.1s ease;
+  transition: margin-top 0.1s ease;
 }
 .navbar {
   position: relative;
@@ -6394,10 +6399,10 @@ h3 {
   font-size: 11px;
 }
 .toolbar .breadcrumb .divider {
-  height: 25px;
-  border-left: 1px solid #c9cfd8;
+  height: 20px;
+  border-left: 2px solid #c9cfd8;
   position: relative;
-  top: 8px;
+  top: 6px;
   margin-left: 10px;
 }
 .toolbar .breadcrumb .projects {
@@ -6405,12 +6410,21 @@ h3 {
 }
 .toolbar .breadcrumb .projects .project-shortcut {
   position: absolute;
-  top: 0;
+  top: -3px;
   left: 0;
-  width: 190px;
-  height: 30px;
-  background: red;
-  z-index: 100;
+  width: 188px;
+  height: 28px;
+  z-index: 2;
+}
+.toolbar .breadcrumb .projects .project-shortcut:after {
+  content: "";
+  display: block;
+  position: absolute;
+  width: 2px;
+  top: 2px;
+  right: 0;
+  bottom: 2px;
+  background: #f3f5f7;
 }
 .toolbar .breadcrumb .projects.filter {
   margin: 0 5px 0;
@@ -6788,8 +6802,6 @@ footer {
   padding: 70px 30px;
   color: #939aa4;
   font-weight: bold;
-  max-width: 1300px;
-  margin: 0 auto;
 }
 footer:before,
 footer:after {
@@ -7830,6 +7842,64 @@ section.body .page-header:first-child {
   color: #fff;
   background: #56AFE8;
 }
+.dashboard .empty-message {
+  padding: 0;
+  width: auto;
+  margin: 0;
+}
+.dashboard .empty-message:after {
+  display: ;
+}
+.dashboard .empty-message h2 {
+  font-size: 16px;
+  color: #c2c9d1;
+  letter-spacing: 0;
+}
+.dashboard .empty-message p {
+  display: none;
+}
+.empty-message {
+  width: 490px;
+  margin: 130px auto;
+  position: relative;
+}
+.empty-message:after {
+  font-family: 'sentry';
+  content: "\2713";
+  position: absolute;
+  display: block;
+  width: 54px;
+  height: 54px;
+  background: #27ce8a;
+  -webkit-border-radius: 10px;
+  -moz-border-radius: 10px;
+  border-radius: 10px;
+  color: #fff;
+  top: -9px;
+  left: -82px;
+  font-size: 30px;
+  text-align: center;
+  line-height: 52px;
+}
+.empty-message h2 {
+  font-size: 36px;
+  letter-spacing: -2px;
+  margin: 0 0 18px;
+}
+.empty-message p {
+  font-size: 20px;
+  line-height: 1.4;
+  color: #c2c9d1;
+  font-weight: bold;
+  margin: 0 0 18px;
+  letter-spacing: -0.05em;
+}
+.empty-message p.links {
+  font-size: 16px;
+}
+.empty-message p.links a {
+  margin: 0 12px 0 0;
+}
 .btn {
   background: #eff3f7;
   -webkit-border-radius: 4px;
@@ -8133,6 +8203,32 @@ table.vars td table {
   padding: 3px 5px;
   font-size: 0.9em;
   background: #dee3e9;
+}
+/* For wider screens */
+@media all and (min-width: 1301px) {
+  body {
+    background: #c8cbd0;
+  }
+  .outer-wrapper {
+    margin-top: 30px;
+    margin-bottom: 30px;
+    -webkit-box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.03);
+    -moz-box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.03);
+    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.03);
+    -webkit-border-radius: 9px;
+    -moz-border-radius: 9px;
+    border-radius: 9px;
+  }
+  .navbar .navbar-inner {
+    -webkit-border-radius: 7px 7px 0 0;
+    -moz-border-radius: 7px 7px 0 0;
+    border-radius: 7px 7px 0 0;
+  }
+  footer {
+    -webkit-border-radius: 0 0 7px 7px;
+    -moz-border-radius: 0 0 7px 7px;
+    border-radius: 0 0 7px 7px;
+  }
 }
 /* =============================  Global  ============================== */
 body {
