@@ -158,7 +158,7 @@ class EditProjectAdminForm(EditProjectForm):
 class NotificationSettingsForm(forms.Form):
     active = forms.BooleanField(help_text=_('Enable notifications for this project. Users can override this within their personal settings'),
         required=False)
-    event_age = RangeField(help_text=_('Notify the first time an event is seen after this many hours.'),
+    event_age = RangeField(help_text=_('Notify the first time an event is seen after this amount of time.'),
         required=False, min=0, max=168, step=1)
 
 
