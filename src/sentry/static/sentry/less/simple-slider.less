@@ -1,6 +1,6 @@
 .slider {
   width: 300px;
-  padding-right: 70px;
+  padding-right: 100px;
 
   > .dragger {
     background: lighten(#4593DE, 5%);
@@ -15,7 +15,7 @@
 
     border: 1px solid #4593DE;
     width: 16px;
-    height: 16px;
+    height: 15px;
   }
 
   > .dragger:hover {
@@ -37,12 +37,14 @@
     border-radius: 8px;
 
     border: 1px solid #aaa;
-    height: 4px;
+    height: 3px;
   }
 
   > .value {
+    top: -1px;
     position: absolute;
-    right: -70px;
-    width: 60px;
+    right: -100px;
+    width: 80px;
+    color: #999;
   }
 }

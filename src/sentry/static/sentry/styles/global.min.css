@@ -6145,7 +6145,7 @@ disabled look for already selected choices in the results dropdown
 }
 .slider {
   width: 300px;
-  padding-right: 70px;
+  padding-right: 100px;
 }
 .slider > .dragger {
   background: #5ba0e2;
@@ -6157,7 +6157,7 @@ disabled look for already selected choices in the results dropdown
   border-radius: 10px;
   border: 1px solid #4593DE;
   width: 16px;
-  height: 16px;
+  height: 15px;
 }
 .slider > .dragger:hover {
   background: #4593DE;
@@ -6174,12 +6174,14 @@ disabled look for already selected choices in the results dropdown
   -moz-border-radius: 8px;
   border-radius: 8px;
   border: 1px solid #aaa;
-  height: 4px;
+  height: 3px;
 }
 .slider > .value {
+  top: -1px;
   position: absolute;
-  right: -70px;
-  width: 60px;
+  right: -100px;
+  width: 80px;
+  color: #999;
 }
 /* =============================  Global  ============================== */
 body {
