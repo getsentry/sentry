@@ -534,12 +534,13 @@ class GroupManager(BaseManager, ChartMixin):
             if message:
                 extra['message'] = message
 
-            if group.status == STATUS_RESOLVED:
+            if group.status == STATUS_RESOLVED or group.is_over_resolve_age():
                 # Makin things atomic
                 is_new = bool(self.filter(
                     id=group.id,
                 ).exclude(
                     status=STATUS_UNRESOLVED,
+                    active_at__gte=date,
                 ).update(active_at=date, status=STATUS_UNRESOLVED))
 
                 group.active_at = date
