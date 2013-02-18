@@ -18,6 +18,10 @@ from django.utils.translation import ugettext_lazy as _
 WHITELIST_ORIGINS = ('*', 'localhost')
 
 
+class RangeInput(TextInput):
+    input_type = 'range'
+
+
 class RadioFieldRenderer(RadioFieldRenderer):
     """
     This is identical to Django's builtin widget, except that
@@ -48,6 +52,23 @@ class UserField(CharField):
             return User.objects.get(username=value)
         except User.DoesNotExist:
             raise ValidationError(_('Invalid username'))
+
+
+class RangeField(CharField):
+    widget = RangeInput
+
+    def __init__(self, *args, **kwargs):
+        self.min_value = kwargs.pop('min', None)
+        self.max_value = kwargs.pop('max', None)
+        self.step_value = kwargs.pop('step', None)
+        super(RangeField, self).__init__(*args, **kwargs)
+
+    def widget_attrs(self, widget):
+        attrs = super(RangeField, self).widget_attrs(widget)
+        attrs.setdefault('min', self.min_value)
+        attrs.setdefault('max', self.max_value)
+        attrs.setdefault('step', self.step_value)
+        return attrs
 
 
 class OriginsField(CharField):

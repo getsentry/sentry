@@ -323,6 +323,7 @@ if os.path.exists(NPM_ROOT):
                     "sentry/scripts/lib/jquery.clippy.min.js",
                     "sentry/scripts/lib/jquery.cookie.js",
                     "sentry/scripts/lib/jquery.flot.min.js",
+                    "sentry/scripts/lib/simple-slider.js",
                     "sentry/scripts/lib/json2.js",
                     "sentry/scripts/lib/underscore.js",
                     "sentry/scripts/lib/backbone.js",

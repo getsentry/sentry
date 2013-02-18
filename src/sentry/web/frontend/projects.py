@@ -279,7 +279,8 @@ def manage_project_tags(request, team, project):
 @csrf_protect
 def notification_settings(request, team, project):
     initial = {
-        'new_events': True,
+        'active': True,
+        'event_age': 24,
     }
     form = NotificationSettingsForm(request.POST or None, initial=initial)
 

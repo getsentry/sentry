@@ -13,8 +13,8 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.constants import EMPTY_PASSWORD_VALUES
 from sentry.models import Project, ProjectOption
 from sentry.permissions import can_set_public_projects
-from sentry.web.forms.fields import RadioFieldRenderer, UserField, OriginsField, \
-  get_team_choices
+from sentry.web.forms.fields import (RadioFieldRenderer, UserField, OriginsField,
+    RangeField, get_team_choices)
 
 
 BLANK_CHOICE = [("", "")]
@@ -156,10 +156,10 @@ class EditProjectAdminForm(EditProjectForm):
 
 
 class NotificationSettingsForm(forms.Form):
-    new_events = forms.BooleanField(help_text=_('Notify the first time an event is seen or becomes a regression.'),
+    active = forms.BooleanField(help_text=_('Enable notifications for this project. Users can override this within their personal settings'),
         required=False)
-    event_age = forms.CharField(help_text=_('Notify when an event hasn\'t been seen for this many hours.'),
-        required=False)
+    event_age = RangeField(help_text=_('Notify the first time an event is seen after this many hours.'),
+        required=False, min=1, max=168, step=1)
 
 
 class NotificationTagValuesForm(forms.Form):

@@ -32,25 +32,27 @@
             {% include "sentry/partial/_form_field.html" %}
         {% endfor %}
 
-        <div class="page-header">
-            <h3>{% trans "Tags" %}</h3>
-        </div>
+        {% if tag_forms %}
+            <div class="page-header">
+                <h3>{% trans "Tags" %}</h3>
+            </div>
 
-        <p>{% trans "Tag restrictions are based on your global notification rules. If tags are specified, notifications will be sent when they match any of the restrictions." %}</p>
+            <p>{% trans "Tag restrictions are based on your global notification rules. If tags are specified, notifications will be sent when they match any of the restrictions." %}</p>
 
-        <table class="table table-striped" id="tag_list">
-            <colgroup>
-                <col style="width:130px">
-            </colgroup>
-            <tbody>
-                {% for tag_form in tag_forms %}
-                    <tr>
-                        <th style="vertical-align:middle">{{ tag_form.values.label|titlize }}</th>
-                        <td style="vertical-align:middle">{{ tag_form.values }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+            <table class="table table-striped" id="tag_list">
+                <colgroup>
+                    <col style="width:130px">
+                </colgroup>
+                <tbody>
+                    {% for tag_form in tag_forms %}
+                        <tr>
+                            <th style="vertical-align:middle">{{ tag_form.values.label|titlize }}</th>
+                            <td style="vertical-align:middle">{{ tag_form.values }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
 
         <fieldset class="form-actions">
             <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
@@ -64,6 +66,51 @@
             width: 'element',
             tags: ["hello world", "foo", "bar"],
             tokenSeperators: [","]
+        });
+
+        function formatHours(val) {
+            if (val > 23 && val % 24 === 0) {
+                val = (val / 24);
+                return val + ' day' + (val != 1 ? 's' : '');
+            }
+            return val + ' hour' + (val != 1 ? 's' : '');
+        };
+
+        $("input[type=range]").each(function(_, el){
+            var $el = $(el),
+                min = $el.attr('min')
+                max = $el.attr('max'),
+                step = $el.attr('step'),
+                values = [],
+                $value = $('<span class="value"></span>');
+
+            var i = 1;
+            while (i <= max) {
+                values.push(i);
+                if (i < 12) {
+                    i += 1;
+                } else if (i < 24) {
+                    i += 3;
+                } else if (i < 36) {
+                    i += 6;
+                } else if (i < 48) {
+                    i += 12;
+                } else {
+                    i += 24;
+                }
+            }
+
+            $el.on("slider:ready", function (event, data) {
+                $value.appendTo(data.el);
+                $value.html(formatHours(data.value));
+            }).on("slider:changed", function (event, data) {
+                $value.html(formatHours(data.value));
+            }).simpleSlider({
+                range: [min, max],
+                step: step,
+                allowedValues: values,
+                snap: true
+            });
         });
     });
     </script>
