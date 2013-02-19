@@ -9,6 +9,7 @@ sentry.buffer.redis
 from __future__ import with_statement
 
 from django.db import models
+from django.utils.encoding import smart_str
 from hashlib import md5
 from nydus.db import create_cluster
 from sentry.buffer import Buffer
@@ -42,12 +43,12 @@ class RedisBuffer(Buffer):
         Returns a Redis-compatible key for the model given filters.
         """
         return '%s:%s:%s' % (model._meta,
-            md5('&'.join('%s=%s' % (k, self._map_column(model, k, v)) for k, v in sorted(filters.iteritems()))).hexdigest(),
+            md5(smart_str('&'.join('%s=%s' % (k, self._map_column(model, k, v)) for k, v in sorted(filters.iteritems())))).hexdigest(),
             column)
 
     def _make_extra_key(self, model, filters):
         return '%s:extra:%s' % (model._meta,
-            md5('&'.join('%s=%s' % (k, self._map_column(model, k, v)) for k, v in sorted(filters.iteritems()))).hexdigest())
+            md5(smart_str('&'.join('%s=%s' % (k, self._map_column(model, k, v)) for k, v in sorted(filters.iteritems())))).hexdigest())
 
     def incr(self, model, columns, filters, extra=None):
         with self.conn.map() as conn:
