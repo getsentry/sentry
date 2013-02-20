@@ -301,7 +301,7 @@
                                  .end().filter("[href=" + target + "]").parent().addClass("active");
                             }
                         }
-                    }, 50);
+                    }, 1);
                 }).scroll();
             }
         }
