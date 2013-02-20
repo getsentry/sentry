@@ -444,6 +444,7 @@ class Stacktrace(Interface):
             data = frame['data']
             frame_data.update({
                 'sourcemap': data['sourcemap'].rsplit('/', 1)[-1],
+                'sourcemap_url': urlparse.urljoin(frame['abs_path'], data['sourcemap']),
                 'orig_filename': data['orig_filename'],
                 'orig_function': data['orig_function'],
                 'orig_lineno': data['orig_lineno'],
