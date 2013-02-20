@@ -41,8 +41,9 @@
                                         <dd>{{ frame.orig_colno|default_if_none:"n/a" }}</dd>
                                         <dt>Function</dt>
                                         <dd>{{ frame.orig_function|default_if_none:"n/a" }}</dd>
-                                    </dl>
-                                    <p>via {{ frame.sourcemap }}</p>">?</a>
+                                        <dt>Sourcemap</dt>
+                                        <dd><a href='{{ frame.sourcemap }}'>{{ frame.sourcemap }}</a></dd>
+                                    </dl>">?</a>
                             {% elif frame.abs_path and frame.abs_path != filename %}
                                 <a class="annotation trigger-popover"
                                     data-placement="right"
