@@ -417,6 +417,10 @@ class Stacktrace(Interface):
             lineno = int(frame['lineno'])
         else:
             lineno = None
+        if frame.get('colno') is not None:
+            colno = int(frame['colno'])
+        else:
+            colno = None
 
         in_app = bool(frame.get('in_app', True))
 
@@ -427,9 +431,11 @@ class Stacktrace(Interface):
             'function': frame.get('function'),
             'start_lineno': start_lineno,
             'lineno': lineno,
+            'colno': colno,
             'context': context,
             'context_line': frame.get('context_line'),
             'in_app': in_app,
+            'is_url': is_url(frame.get('abs_path') or ''),
         }
         if not is_public:
             frame_data['vars'] = frame.get('vars') or []
@@ -439,6 +445,7 @@ class Stacktrace(Interface):
             frame_data.update({
                 'sourcemap': data['sourcemap'].rsplit('/', 1)[-1],
                 'orig_filename': data['orig_filename'],
+                'orig_function': data['orig_function'],
                 'orig_lineno': data['orig_lineno'],
                 'orig_colno': data['orig_colno'],
             })

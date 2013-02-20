@@ -24,12 +24,51 @@
                 <li class="frame{% if not frame.in_app %} system-frame{% endif %} frame-{{ forloop.counter0 }}">
                     <p>
                         {% if frame.filename %}
-                            <code{% if frame.abs_path and frame.abs_path != filename %} title="{{ frame.abs_path }}"{% endif %}>{{ frame.filename }}</code>
+                            {% if frame.is_url %}
+                                <a href="{{ frame.abs_path }}">
+                            {% endif %}
+                            <code>{{ frame.filename }}</code>
+                            {% if frame.sourcemap %}
+                                <a class="annotation trigger-popover"
+                                    data-placement="right"
+                                    data-title="Original Location"
+                                    data-content="<dl>
+                                        <dt>Filename</dt>
+                                        <dd>{{ frame.orig_filename }}</dd>
+                                        <dt>Line Number</dt>
+                                        <dd>{{ frame.orig_lineno|default_if_none:"n/a" }})</dd>
+                                        <dt>Column Number</dt>
+                                        <dd>{{ frame.orig_colno|default_if_none:"n/a" }}</dd>
+                                        <dt>Function</dt>
+                                        <dd>{{ frame.orig_function|default_if_none:"n/a" }}</dd>
+                                    </dl>
+                                    <p>via {{ frame.sourcemap }}</p>">?</a>
+                            {% elif frame.abs_path and frame.abs_path != filename %}
+                                <a class="annotation trigger-popover"
+                                    data-placement="right"
+                                    data-title="Original Location"
+                                    data-content="<dl>
+                                        <dt>Filename</dt>
+                                        <dd>{{ frame.abs_path }}</dd>
+                                        {% if not frame.lineno|is_none %}
+                                            <dt>Line Number</dt>
+                                            <dd>{{ frame.lineno }}</dd>
+                                        {% endif %}
+                                        {% if not frame.colno|is_none %}
+                                            <dt>Column Number</dt>
+                                            <dd>{{ frame.colno }}</dd>
+                                        {% endif %}
+                                        {% if frame.function %}
+                                            <dt>Function</dt>
+                                            <dd>{{ frame.function }}</dd>
+                                        {% endif %}
+                                    </dl>">?</a>
+                            {% endif %}
+                            {% if frame.is_url %}
+                                </a>
+                            {% endif %}
                         {% elif frame.module %}
                             <code>{{ frame.module }}</code>
-                        {% endif %}
-                        {% if frame.sourcemap %}
-                             <a href="#" class="annotation tip" rel="tooltip" data-placement="right" data-title="Occurred in {{ frame.orig_filename }} (line {{ frame.orig_lineno }})<br>(via {{ frame.sourcemap }})">?</a>
                         {% endif %}
                         {% if frame.function %}
                              {% if frame.filename or frame.module %}in {% endif %}<code>{{ frame.function }}</code>

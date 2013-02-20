@@ -1203,6 +1203,9 @@ ul.traceback { list-style-type: none; margin-left: 0; }
     font-size: 12px;
 
     a.annotation {
+      &.trigger-popover {
+        cursor: pointer;
+      }
       color: inherit;
       padding: 0 1px;
       border-bottom: 1px dotted #666;
@@ -2065,4 +2068,26 @@ table.vars {
   footer {
     .border-radius(0 0 7px 7px);
   }
+}
+
+
+.popover {
+  width: auto;
+  min-width: 236px;
+  max-width: 600px;
+}
+.popover * {
+  font-size: 11px;
+  line-height: 14px;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.popover-title {
+  font-size: 10px;
+  background: #56AFE8;
+  color: #fff;
+}
+.popover-title,
+.popover-content {
+  padding: 4px 10px;
 }

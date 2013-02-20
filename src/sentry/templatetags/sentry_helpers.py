@@ -98,6 +98,11 @@ def to_str(data):
     return str(data)
 
 
+@register.filter
+def is_none(value):
+    return value is None
+
+
 @register.simple_tag
 def sentry_version():
     import sentry
