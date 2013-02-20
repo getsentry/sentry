@@ -74,15 +74,6 @@ SAMPLE_TIMES = (
 
 MAX_SAMPLE_TIME = 10000
 
-# Restrict emails to only ``messages >= this value``.
-MAIL_LEVEL = logging.DEBUG
-
-# A list of loggers to restrict emails to.
-MAIL_INCLUDE_LOGGERS = None
-
-# A list of loggers to exclude in emails.
-MAIL_EXCLUDE_LOGGERS = []
-
 # The number of events to display per page
 MESSAGES_PER_PAGE = 15
 

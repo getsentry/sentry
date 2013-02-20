@@ -185,49 +185,6 @@ notifications have been moved to the ``sentry.plugins.sentry_mail``. You'll need
 The following settings now act as default values for the ``sentry_mail`` plugin, and can be overwritten per-project
 by visiting the plugin configuration page for that project.
 
-.. data:: sentry.conf.MAIL_LEVEL
-    :noindex:
-
-	.. versionadded:: 1.10.0
-
-	The threshold level to restrict emails to.
-
-	Defaults to ``logging.DEBUG``.
-
-	::
-
-		SENTRY_MAIL_LEVEL = logging.DEBUG
-
-.. data:: sentry.conf.MAIL_INCLUDE_LOGGERS
-    :noindex:
-
-	.. versionadded:: 1.10.0
-
-	An explicit list of all logger names to restrict emails to.
-
-	Defaults to ``None``, which means to "all loggers".
-
-	::
-
-		SENTRY_MAIL_INCLUDE_LOGGERS = (
-		  'my.custom.logger.name',
-		)
-
-.. data:: sentry.conf.MAIL_EXCLUDE_LOGGERS
-    :noindex:
-
-	.. versionadded:: 1.10.0
-
-	An explicit list of all logger names to exclude from emails.
-
-	Defaults to ``[]``.
-
-	::
-
-		SENTRY_MAIL_EXCLUDE_LOGGERS = (
-		  'some.annoying.logger',
-		)
-
 .. data:: sentry.conf.EMAIL_SUBJECT_PREFIX
     :noindex:
 

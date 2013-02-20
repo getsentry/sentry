@@ -14,7 +14,7 @@ from django.core.urlresolvers import reverse
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
-from sentry.plugins import register
+from sentry.plugins import register, PluginCategory
 from sentry.plugins.bases.notify import NotificationPlugin, NotificationConfigurationForm
 from sentry.utils.cache import cache
 
@@ -62,20 +62,9 @@ class MailProcessor(NotificationPlugin):
     project_default_enabled = True
     project_conf_form = MailConfigurationForm
 
-    def __init__(self, min_level=NOTSET, include_loggers=NOTSET, exclude_loggers=NOTSET,
-                 send_to=None, send_to_members=NOTSET, *args, **kwargs):
-
+    def __init__(self, min_level=0, include_loggers=None, exclude_loggers=None,
+                 send_to=None, send_to_members=True, *args, **kwargs):
         super(MailProcessor, self).__init__(*args, **kwargs)
-
-        if min_level is NOTSET:
-            min_level = settings.MAIL_LEVEL
-        if include_loggers is NOTSET:
-            include_loggers = settings.MAIL_INCLUDE_LOGGERS
-        if exclude_loggers is NOTSET:
-            exclude_loggers = settings.MAIL_EXCLUDE_LOGGERS
-        if send_to_members is NOTSET:
-            send_to_members = True
-
         self.min_level = min_level
         self.include_loggers = include_loggers
         self.exclude_loggers = exclude_loggers
