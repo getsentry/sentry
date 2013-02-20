@@ -162,6 +162,11 @@ class NotificationPlugin(Plugin):
         if exclude_loggers and group.logger in exclude_loggers:
             return False
 
+        allowed_tags = project.get_option('notifcation:tags', {})
+        if allowed_tags:
+            tags = event.data.get('tags', {})
+            if not any(v in allowed_tags.get(k) for k, v in tags.iteritems()):
+                return False
         return True
 
     ## plugin hooks

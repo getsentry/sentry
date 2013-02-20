@@ -157,11 +157,6 @@ class EditProjectAdminForm(EditProjectForm):
         model = Project
 
 
-class NotificationSettingsForm(forms.Form):
-    active = forms.BooleanField(help_text=_('Enable notifications for this project. Users can override this within their personal settings'),
-        required=False)
-
-
 class AlertSettingsForm(forms.Form):
     active = forms.BooleanField(help_text=_('Enable notifications for this project. Users can override this within their personal settings'),
         required=False)
@@ -170,10 +165,13 @@ class AlertSettingsForm(forms.Form):
 
 
 class NotificationTagValuesForm(forms.Form):
-    values = forms.CharField()
+    values = forms.CharField(required=False)
 
     def __init__(self, project, tag, *args, **kwargs):
         self.project = project
         self.tag = tag
         super(NotificationTagValuesForm, self).__init__(*args, **kwargs)
         self.fields['values'].label = self.tag
+
+    def clean_values(self):
+        return set(filter(bool, self.cleaned_data.get('values').split(',')))

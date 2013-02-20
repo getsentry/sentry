@@ -17,26 +17,12 @@
         <h2>{% trans "Notifications" %}</h2>
     </div>
     <form action="" method="post" class="form-stacked">
-        <p>{% trans "Notification settings will guarantee that you will never be notified more than once for a specific event." %}</p>
         {% csrf_token %}
 
         <div class="page-header">
-            <h3>{% trans "Global Rules" %}</h3>
+            <h3>{% trans "Tags" %}</h3>
         </div>
-
-        <p>{% trans "The following rules will apply regardless of any other settings." %}</p>
-
-        {{ form|as_crispy_errors }}
-
-        {% for field in form %}
-            {% include "sentry/partial/_form_field.html" %}
-        {% endfor %}
-
         {% if tag_forms %}
-            <div class="page-header">
-                <h3>{% trans "Tags" %}</h3>
-            </div>
-
             <p>{% trans "Tag restrictions are based on your global notification rules. If tags are specified, notifications will be sent when they match any of the restrictions." %}</p>
 
             <table class="table table-striped" id="tag_list">
@@ -52,11 +38,13 @@
                     {% endfor %}
                 </tbody>
             </table>
-        {% endif %}
 
-        <fieldset class="form-actions">
-            <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
-        </fieldset>
+            <fieldset class="form-actions">
+                <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+            </fieldset>
+        {% else %}
+            <p>{% trans "We have not yet recorded any tags for this project." %}</p>
+        {% endif %}
 
     </form>
     <script type="text/javascript">

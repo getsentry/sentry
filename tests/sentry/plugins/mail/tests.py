@@ -31,6 +31,7 @@ class MailProcessorTest(TestCase):
     def test_should_notify_not_min_level(self):
         p = MailProcessor(min_level=2)
         group = Mock(spec=Group)
+        group.project = Project()
         group.level = 1
         self.assertFalse(p.should_notify(group=group, event=Mock()))
 
@@ -39,6 +40,7 @@ class MailProcessorTest(TestCase):
     def test_should_notify_not_included(self):
         p = MailProcessor(min_level=None, include_loggers=['foo'])
         group = Mock(spec=Group)
+        group.project = Project()
         group.level = 5
         group.logger = 'root'
         self.assertFalse(p.should_notify(group=group, event=Mock()))
@@ -48,6 +50,7 @@ class MailProcessorTest(TestCase):
     def test_should_notify_excluded(self):
         p = MailProcessor(min_level=None, exclude_loggers=['root'])
         group = Mock(spec=Group)
+        group.project = Project()
         group.level = 5
         group.logger = 'root'
         self.assertFalse(p.should_notify(group=group, event=Mock()))
@@ -58,8 +61,13 @@ class MailProcessorTest(TestCase):
         p = MailProcessor(min_level=None)
         group = Mock(spec=Group)
         group.level = 5
+        group.project = Project()
         group.logger = 'root'
-        self.assertTrue(p.should_notify(group=group, event=Mock()))
+        event = Mock()
+        event.data = {}
+        self.assertTrue
+
+        (p.should_notify(group=group, event=event))
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailProcessor._send_mail')
     def test_notify_users_renders_interfaces(self, _send_mail):

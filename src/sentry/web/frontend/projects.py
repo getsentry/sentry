@@ -22,7 +22,7 @@ from sentry.plugins.helpers import set_option, get_option
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms.projects import (NewProjectForm, NewProjectAdminForm,
     ProjectTagsForm, EditProjectForm, RemoveProjectForm, EditProjectAdminForm,
-    NotificationSettingsForm, NotificationTagValuesForm)
+    NotificationTagValuesForm)
 from sentry.web.forms.teams import NewTeamForm, SelectTeamForm
 from sentry.web.helpers import render_to_response, plugin_config
 
@@ -278,21 +278,37 @@ def manage_project_tags(request, team, project):
 @has_access(MEMBER_OWNER)
 @csrf_protect
 def notification_settings(request, team, project):
-    initial = {
-        'active': True,
-    }
-    form = NotificationSettingsForm(request.POST or None, initial=initial)
+    initial = project.get_option('notifcation:tags', {})
 
     tag_forms = []
     for tag in FilterKey.objects.all_keys(project):
-        tag_forms.append(NotificationTagValuesForm(project, tag, request.POST or None,
-            prefix='tag-%s' % (tag,)))
+        tag_forms.append(NotificationTagValuesForm(
+            project=project,
+            tag=tag,
+            data=request.POST or None,
+            prefix='tag-%s' % (tag,),
+            initial={
+                'values': ', '.join(initial.get(tag, [])),
+            },
+        ))
+
+    if all(f.is_valid() for f in tag_forms):
+        tags = {}
+        for form in tag_forms:
+            values = form.cleaned_data['values']
+            if values:
+                tags[form.tag] = values
+        project.update_option('notifcation:tags', tags)
+
+        messages.add_message(request, messages.SUCCESS,
+            _('Your settings were saved successfully.'))
+
+        return HttpResponseRedirect(reverse('sentry-project-notifications', args=[project.team.slug, project.slug]))
 
     context = csrf(request)
     context.update({
         'team': team,
         'project': project,
-        'form': form,
         'tag_forms': tag_forms,
         'page': 'notifications',
         'SECTION': 'team',

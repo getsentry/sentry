@@ -14,7 +14,7 @@ from django.core.urlresolvers import reverse
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
-from sentry.plugins import register, PluginCategory
+from sentry.plugins import register
 from sentry.plugins.bases.notify import NotificationPlugin, NotificationConfigurationForm
 from sentry.utils.cache import cache
 
