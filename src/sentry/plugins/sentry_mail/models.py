@@ -197,6 +197,8 @@ class MailProcessor(NotificationPlugin):
             'event': event,
             'link': link,
             'interfaces': interface_list,
+            'settings_link': '%s%s' % (settings.URL_PREFIX,
+                reverse('sentry-account-settings-notifications')),
         })).run()
 
     def get_option(self, key, *args, **kwargs):
