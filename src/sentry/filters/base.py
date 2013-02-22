@@ -11,6 +11,8 @@ from __future__ import absolute_import
 
 __all__ = ('Filter', 'GroupFilter', 'EventFilter')
 
+import hashlib
+
 from django.utils.datastructures import SortedDict
 
 from sentry.models import Group, Event, FilterValue, MessageIndex
@@ -60,7 +62,7 @@ class Filter(object):
         return '?' + query_dict.urlencode()
 
     def get_choices(self):
-        key = 'filters:%s:%s' % (self.project.id, self.column)
+        key = 'filters:%s:%s' % (self.project.id, hashlib.md5(self.column).hexdigest())
         result = cache.get(key)
         if result is None:
             result = list(FilterValue.objects.filter(
