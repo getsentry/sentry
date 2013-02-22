@@ -21,6 +21,7 @@ from sentry.models import Group
 from sentry.web.helpers import group_is_public
 from sentry.utils import to_unicode
 from sentry.utils.avatar import get_gravatar_url
+from sentry.utils.http import absolute_uri
 from sentry.utils.javascript import to_json
 from sentry.utils.safe import safe_execute
 from sentry.utils.strings import truncatechars
@@ -34,7 +35,9 @@ register = template.Library()
 truncatechars = register.filter(stringfilter(truncatechars))
 truncatechars.is_safe = True
 
-to_json = register.filter(to_json)
+register.filter(to_json)
+
+register.simple_tag(absolute_uri)
 
 
 @register.filter

@@ -6,10 +6,16 @@ sentry.utils.http
 :license: BSD, see LICENSE for more details.
 """
 import urllib
-from urlparse import urlparse
+from urlparse import urlparse, urljoin
 
 from sentry.conf import settings
 from sentry.plugins.helpers import get_option
+
+
+def absolute_uri(url=None):
+    if not url:
+        return settings.SENTRY_URL_PREFIX
+    return urljoin(settings.SENTRY_URL_PREFIX, url)
 
 
 def safe_urlencode(params, doseq=0):

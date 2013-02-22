@@ -14,6 +14,7 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from social_auth.models import UserSocialAuth
 from sentry.utils.auth import get_auth_providers
+from sentry.utils.http import absolute_uri
 
 
 class NewIssueForm(forms.Form):
@@ -42,7 +43,7 @@ class IssuePlugin(Plugin):
 
     def _get_group_description(self, request, group, event):
         output = [
-            request.build_absolute_uri(reverse('sentry-group', kwargs={
+            absolute_uri(reverse('sentry-group', kwargs={
                 'project_id': group.project.slug,
                 'team_slug': group.team.slug,
                 'group_id': group.id,

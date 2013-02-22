@@ -26,6 +26,7 @@ from sentry import environment
 from sentry.conf import settings
 from sentry.models import Project, GroupCountByMinute
 from sentry.plugins import plugins
+from sentry.utils.http import absolute_uri
 from sentry.web.forms import NewUserForm, ChangeUserForm, RemoveUserForm, TestEmailForm
 from sentry.web.decorators import requires_admin
 from sentry.web.helpers import render_to_response, plugin_config, \
@@ -144,7 +145,7 @@ def create_new_user(request):
             context = {
                 'username': user.username,
                 'password': password,
-                'url': request.build_absolute_uri(reverse('sentry')),
+                'url': absolute_uri(reverse('sentry')),
             }
             if form.cleaned_data['create_project']:
                 context.update({
