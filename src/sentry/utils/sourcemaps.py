@@ -63,9 +63,16 @@ def parse_sourcemap(sourcemap):
 
     smap = json.loads(sourcemap)
     sources = smap['sources']
+    sourceRoot = smap.get('sourceRoot')
     names = smap['names']
     mappings = smap['mappings']
     lines = mappings.split(';')
+
+    if sourceRoot:
+        sources = [
+            '%s/%s' % (sourceRoot, src)
+            for src in sources
+        ]
 
     dst_col, src_id, src_line, src_col, name_id = 0, 0, 0, 0, 0
     for dst_line, line in enumerate(lines):
