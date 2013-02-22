@@ -178,6 +178,7 @@ class Message(Interface):
     >>>     "params": ["this"]
     >>> }
     """
+    attrs = ('message', 'params')
 
     def __init__(self, message, params=()):
         self.message = message
@@ -216,6 +217,7 @@ class Query(Interface):
     >>>     "engine": "psycopg2"
     >>> }
     """
+    attrs = ('query', 'engine')
 
     def __init__(self, query, engine=None):
         self.query = query
@@ -237,6 +239,9 @@ class Query(Interface):
 
 
 class Frame(object):
+    attrs = ('abs_path', 'filename', 'lineno', 'colno', 'in_app', 'context_line',
+             'pre_context', 'post_context', 'vars', 'module', 'function', 'data')
+
     def __init__(self, abs_path=None, filename=None, lineno=None, colno=None, in_app=False,
                  context_line=None, pre_context=(), post_context=(), vars=None,
                  module=None, function=None, data=None):
@@ -426,6 +431,7 @@ class Stacktrace(Interface):
     >>> }
 
     """
+    attrs = ('frames',)
     score = 1000
 
     def __init__(self, frames):
@@ -589,6 +595,7 @@ class Exception(Interface):
     >>>     "module": "__builtins__"
     >>> }
     """
+    attrs = ('value', 'type', 'module')
 
     score = 900
     display_score = 1200
@@ -660,6 +667,8 @@ class Http(Interface):
     >>>     }
     >>>  }
     """
+    attrs = ('url', 'method', 'data', 'query_string', 'cookies', 'headers',
+             'env')
 
     display_score = 1000
     score = 800
@@ -800,7 +809,8 @@ class Template(Interface):
     >>>     ],
     >>> }
     """
-
+    attrs = ('filename', 'context_line', 'lineno', 'pre_context', 'post_context',
+             'abs_path')
     score = 1100
 
     def __init__(self, filename, context_line, lineno, pre_context=None, post_context=None,
@@ -891,6 +901,7 @@ class User(Interface):
     >>>     "email": "foo@example.com"
     >>> }
     """
+    attrs = ('id', 'email', 'username', 'data')
 
     def __init__(self, id=None, email=None, username=None, **kwargs):
         self.id = id
