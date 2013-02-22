@@ -162,6 +162,14 @@ class StacktraceTest(TestCase):
         })
         self.assertEquals(result[-1], 'exception')
 
+    def test_get_composite_hash_uses_exception_value_if_no_type_or_stack(self):
+        interface = Stacktrace(frames=[])
+        interface_exc = Exception(value='bar')
+        result = interface.get_composite_hash({
+            'sentry.interfaces.Exception': interface_exc,
+        })
+        self.assertEquals(result[-1], 'bar')
+
     @mock.patch('sentry.interfaces.Stacktrace.get_stacktrace')
     def test_to_string_returns_stacktrace(self, get_stacktrace):
         event = mock.Mock(spec=Event())
@@ -219,6 +227,13 @@ class StacktraceTest(TestCase):
         interface = Stacktrace(frames=[{'filename': 'foo'}, {'filename': 'bar'}])
         result = interface.get_stacktrace(event)
         self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  File "foo"\n  File "bar"')
+
+    @mock.patch('sentry.interfaces.Stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
+    def test_get_stacktrace_with_module(self):
+        event = mock.Mock(spec=Event())
+        interface = Stacktrace(frames=[{'module': 'foo'}, {'module': 'bar'}])
+        result = interface.get_stacktrace(event)
+        self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  Module "foo"\n  Module "bar"')
 
     @mock.patch('sentry.interfaces.Stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_stacktrace_with_filename_and_function(self):
