@@ -45,6 +45,9 @@ class InterfaceTest(InterfaceBase):
         assert self.interface.get_composite_hash(self.event) == get_hash.return_value
         get_hash.assert_called_once_with()
 
+    def test_validate_default(self):
+        self.interface.validate()
+
 
 class MessageTest(InterfaceBase):
     @fixture
