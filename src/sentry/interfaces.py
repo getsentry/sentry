@@ -291,7 +291,7 @@ class Frame(object):
         elif self.filename and not self.is_url():
             output.append(self.filename)
 
-        if self.context_line:
+        if self.context_line is not None:
             output.append(self.context_line)
         elif self.function:
             output.append(self.function)
