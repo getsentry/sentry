@@ -441,6 +441,10 @@ class Stacktrace(Interface):
             'frames': [vars(f) for f in self.frames],
         }
 
+    def unserialize(self, data):
+        data['frames'] = [Frame(**f) for f in data.pop('frames', [])]
+        return data
+
     def get_composite_hash(self, interfaces):
         output = self.get_hash()
         if 'sentry.interfaces.Exception' in interfaces:
