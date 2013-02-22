@@ -10,6 +10,7 @@ from django.http import HttpRequest
 from sentry.models import UserOption, LostPasswordHash
 from sentry.testutils import TestCase, fixture, before
 from sentry.web.frontend.accounts import login_redirect
+from social_auth.models import UserSocialAuth
 
 
 class LoginTest(TestCase):
@@ -273,6 +274,7 @@ class ListIdentitiesTest(TestCase):
 
     def test_renders_with_required_context(self):
         self.login_as(self.user)
+        UserSocialAuth.objects.create(user=self.user, provider='github')
 
         resp = self.client.get(self.path)
         assert resp.status_code == 200
