@@ -14,8 +14,8 @@ from sentry.plugins.helpers import get_option
 
 def absolute_uri(url=None):
     if not url:
-        return settings.SENTRY_URL_PREFIX
-    return urljoin(settings.SENTRY_URL_PREFIX, url)
+        return settings.URL_PREFIX
+    return urljoin(settings.URL_PREFIX, url)
 
 
 def safe_urlencode(params, doseq=0):
