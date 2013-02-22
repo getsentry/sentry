@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 import mock
+import pickle
 
 from sentry.interfaces import Interface, get_context
 from sentry.models import Event
@@ -21,6 +22,14 @@ class InterfaceTest(InterfaceBase):
     @fixture
     def interface(self):
         return Interface(foo=1)
+
+    def test_init_sets_attrs(self):
+        assert self.interface.attrs == ['foo']
+
+    def test_setstate_sets_attrs(self):
+        data = pickle.dumps(self.interface)
+        obj = pickle.loads(data)
+        assert obj.attrs == ['foo']
 
     def test_to_html_default(self):
         assert self.interface.to_html(self.event) == ''

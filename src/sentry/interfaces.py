@@ -98,6 +98,7 @@ class Interface(object):
     display_score = None
 
     def __init__(self, **kwargs):
+        self.attrs = kwargs.keys()
         self.__dict__.update(kwargs)
 
     def __eq__(self, other):
@@ -107,6 +108,7 @@ class Interface(object):
 
     def __setstate__(self, data):
         kwargs = self.unserialize(data)
+        self.attrs = kwargs.keys()
         self.__dict__.update(kwargs)
 
     def __getstate__(self):
@@ -119,7 +121,7 @@ class Interface(object):
         return data
 
     def serialize(self):
-        return vars(self)
+        return dict((k, self.__dict__[k]) for k in self.attrs)
 
     def get_composite_hash(self, interfaces):
         return self.get_hash()
@@ -234,7 +236,7 @@ class Query(Interface):
         }
 
 
-class Frame(Interface):
+class Frame(object):
     def __init__(self, abs_path=None, filename=None, lineno=None, colno=None, in_app=False,
                  context_line=None, pre_context=(), post_context=(), vars=None,
                  module=None, function=None, data=None):
@@ -435,8 +437,16 @@ class Stacktrace(Interface):
             assert frame.is_valid()
 
     def serialize(self):
+        frames = []
+        for f in self.frames:
+            # compatibility with old serialization
+            if isinstance(f, Frame):
+                frames.append(vars(f))
+            else:
+                frames.append(f)
+
         return {
-            'frames': [f.serialize() for f in self.frames],
+            'frames': frames,
         }
 
     def unserialize(self, data):
