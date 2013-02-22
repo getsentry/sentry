@@ -438,7 +438,7 @@ class Stacktrace(Interface):
 
     def serialize(self):
         return {
-            'frames': [vars(f) for f in self.frames],
+            'frames': [(isinstance(f, Frame) and vars(f) or f) for f in self.frames],
         }
 
     def unserialize(self, data):
