@@ -58,9 +58,8 @@ lint-js:
 	@${NPM_ROOT}/jshint/bin/hint src/sentry/ || exit 1
 	@echo ""
 
-coverage:
-	coverage run --include=src/sentry/* setup.py test
-	coverage html --omit=src/sentry/migrations/* -d htmlcov
+coverage: install-test-requirements
+	py.test --cov=src/sentry --cov-report=html
 
 
 .PHONY: build

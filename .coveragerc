@@ -1,0 +1,2 @@
+[report]
+omit=src/sentry/migrations/*

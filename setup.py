@@ -36,6 +36,7 @@ for m in ('multiprocessing', 'billiard'):
 
 dev_requires = [
     'flake8>=1.7.0',
+    'pytest-cov>=1.4',
 ]
 
 tests_require = [
