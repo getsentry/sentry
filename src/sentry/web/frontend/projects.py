@@ -292,7 +292,7 @@ def notification_settings(request, team, project):
             },
         ))
 
-    if all(f.is_valid() for f in tag_forms):
+    if request.method == 'POST' and all(f.is_valid() for f in tag_forms):
         tags = {}
         for form in tag_forms:
             values = form.cleaned_data['values']
