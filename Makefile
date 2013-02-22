@@ -8,6 +8,7 @@ UGLIFY_JS ?= node_modules/uglify-js/bin/uglifyjs
 develop: update-submodules
 	npm install
 	pip install "file://`pwd`#egg=sentry[dev]"
+	pip install "file://`pwd`#egg=sentry[tests]"
 	pip install -e . --use-mirrors
 
 build: locale
