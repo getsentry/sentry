@@ -437,8 +437,16 @@ class Stacktrace(Interface):
             assert frame.is_valid()
 
     def serialize(self):
+        frames = []
+        for f in self.frames:
+            # compatibility with old serialization
+            if isinstance(f, Frame):
+                frames.append(vars(f))
+            else:
+                frames.append(f)
+
         return {
-            'frames': [(isinstance(f, Frame) and vars(f) or f) for f in self.frames],
+            'frames': frames,
         }
 
     def unserialize(self, data):
