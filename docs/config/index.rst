@@ -162,18 +162,6 @@ Authentication
 
 .. _Mozilla developer docs: https://developer.mozilla.org/En/HTTP_access_control#Simple_requests
 
-.. data:: sentry.conf.USE_JS_CLIENT
-    :noindex:
-
-    Instructs Sentry to install its JavaScript error handler to catch internal errors in the
-    Sentry client-side code.
-
-    Defaults to ``False``.
-
-    ::
-
-        SENTRY_USE_JS_CLIENT = True
-
 
 Notifications
 -------------

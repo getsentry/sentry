@@ -137,9 +137,6 @@ SEARCH_DEFAULT_SORT_OPTION = 'date'
 # Default to not sending the Access-Control-Allow-Origin header on api/store
 ALLOW_ORIGIN = None
 
-# Enable capturing of JavaScript errors (Sentry internal errors)
-USE_JS_CLIENT = False
-
 # Enable scraping of javascript context for source code
 SCRAPE_JAVASCRIPT_CONTEXT = True
 
