@@ -18,7 +18,6 @@ from sentry.models import Project, ProjectKey, Team, FilterKey
 from sentry.permissions import (can_create_projects, can_remove_project, can_create_teams,
     can_add_project_key, can_remove_project_key)
 from sentry.plugins import plugins
-from sentry.plugins.helpers import set_option, get_option
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms.projects import (NewProjectForm, NewProjectAdminForm,
     ProjectTagsForm, EditProjectForm, RemoveProjectForm, EditProjectAdminForm,
@@ -158,14 +157,15 @@ def manage_project(request, team, project):
         form_cls = EditProjectForm
 
     form = form_cls(request, team_list, request.POST or None, instance=project, initial={
-        'origins': '\n'.join(get_option('sentry:origins', project) or []),
+        'origins': '\n'.join(project.get_option('sentry:origins', None) or []),
         'owner': project.owner,
+        'resolve_age': project.get_option('sentry:resolve_age', 0),
     })
 
     if form.is_valid():
         project = form.save()
-        set_option('sentry:origins', form.cleaned_data.get('origins') or [], project)
-
+        project.update_option('sentry:origins', form.cleaned_data.get('origins') or [])
+        project.update_option('sentry:resolve_age', form.cleaned_data.get('resolve_age'))
         messages.add_message(request, messages.SUCCESS,
             _('Changes to your project were saved.'))
 

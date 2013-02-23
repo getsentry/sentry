@@ -554,7 +554,7 @@ class Group(EventBase):
         return (self.project, self.logger, self.culprit, self.checksum)
 
     def is_over_resolve_age(self):
-        resolve_age = self.project.get_option('resolve_age', None)
+        resolve_age = self.project.get_option('sentry:resolve_age', None)
         if not resolve_age:
             return False
         return self.active_at < timezone.now() - timedelta(hours=resolve_age)
