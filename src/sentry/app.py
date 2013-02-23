@@ -13,7 +13,7 @@ from threading import local
 
 class State(local):
     request = None
-    data = None
+    data = {}
 
 
 def get_instance(path, options):
