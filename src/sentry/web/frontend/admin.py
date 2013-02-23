@@ -22,7 +22,7 @@ from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
 
-from sentry import environment
+from sentry.app import env
 from sentry.conf import settings
 from sentry.models import Project, GroupCountByMinute
 from sentry.plugins import plugins
@@ -268,7 +268,7 @@ def status_env(request):
     return render_to_response('sentry/admin/status/env.html', {
         'python_version': sys.version,
         'config': config,
-        'environment': environment,
+        'environment': env.data,
     }, request)
 
 

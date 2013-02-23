@@ -47,6 +47,3 @@ def get_version():
 
 __build__ = get_revision()
 __docformat__ = 'restructuredtext en'
-
-# We store global interpreter state in here
-environment = {}
