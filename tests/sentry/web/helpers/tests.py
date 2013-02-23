@@ -4,6 +4,7 @@ from __future__ import absolute_import
 
 import mock
 
+from django.contrib.auth.models import AnonymousUser
 from django.core.urlresolvers import reverse
 from sentry.web.helpers import get_login_url, group_is_public
 from sentry.testutils import TestCase
@@ -64,3 +65,9 @@ class GroupIsPublicTest(TestCase):
         self.user.is_superuser = True
         result = group_is_public(self.group, self.user)
         assert result is False
+
+    @mock.patch('sentry.web.helpers.get_project_list', mock.Mock(return_value={}))
+    def test_anonymous_user(self):
+        self.group.is_public = True
+        result = group_is_public(self.group, AnonymousUser())
+        assert result is True
