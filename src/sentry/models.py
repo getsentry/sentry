@@ -557,7 +557,7 @@ class Group(EventBase):
         resolve_age = self.project.get_option('sentry:resolve_age', None)
         if not resolve_age:
             return False
-        return self.active_at < timezone.now() - timedelta(hours=int(resolve_age))
+        return self.last_seen < timezone.now() - timedelta(hours=int(resolve_age))
 
     def get_status(self):
         if self.status == STATUS_UNRESOLVED and self.is_over_resolve_age():
