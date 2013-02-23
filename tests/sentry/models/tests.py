@@ -130,8 +130,8 @@ class AlertTest(TestCase):
 class GroupIsOverResolveAgeTest(TestCase):
     def test_simple(self):
         group = self.group
-        group.active_at = timezone.now() - timedelta(hours=2)
+        group.last_seen = timezone.now() - timedelta(hours=2)
         group.project.update_option('sentry:resolve_age', 1)  # 1 hour
         assert group.is_over_resolve_age() is True
-        group.active_at = timezone.now()
+        group.last_seen = timezone.now()
         assert group.is_over_resolve_age() is False
