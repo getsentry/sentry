@@ -27,11 +27,6 @@ from sentry.web.forms.teams import (NewTeamForm, NewTeamAdminForm,
 from sentry.web.helpers import render_to_response
 
 
-@login_required
-def team_list(request):
-    return render_to_response('sentry/teams/list.html', {}, request)
-
-
 def render_with_team_context(team, template, context, request=None):
     context.update({
         'team': team,
@@ -39,6 +34,11 @@ def render_with_team_context(team, template, context, request=None):
     })
 
     return render_to_response(template, context, request)
+
+
+@login_required
+def team_list(request):
+    return render_to_response('sentry/teams/list.html', {}, request)
 
 
 @login_required

@@ -35,14 +35,6 @@
             </script>
         {% endblock %}
 
-        {% if USE_JS_CLIENT and INTERNAL_PROJECT %}
-            <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/lib/raven.js" %}"></script>
-            <script type="text/javascript">
-            Raven.config({{ INTERNAL_PROJECT.dsn|to_json|safe }});
-            window.onerror = Raven.process;
-            </script>
-        {% endif %}
-
         {% block meta %}
         {% endblock %}
     </head>

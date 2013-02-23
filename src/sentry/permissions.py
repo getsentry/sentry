@@ -9,6 +9,7 @@ from functools import wraps
 from sentry.conf import settings
 from sentry.constants import MEMBER_OWNER
 from sentry.plugins import plugins
+from sentry.utils.cache import cached_for_request
 
 
 def perm_override(perm):
@@ -34,6 +35,7 @@ def requires_login(func):
     return wrapped
 
 
+@cached_for_request
 @requires_login
 @perm_override('can_add_project')
 def can_create_projects(user, team=None):
@@ -55,6 +57,7 @@ def can_create_projects(user, team=None):
     return True
 
 
+@cached_for_request
 @requires_login
 @perm_override('can_add_team')
 def can_create_teams(user):

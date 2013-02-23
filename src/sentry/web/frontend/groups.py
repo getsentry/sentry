@@ -116,8 +116,6 @@ def _get_group_list(request, project):
         score_clause = SORT_CLAUSES.get(sort)
         filter_clause = SCORE_CLAUSES.get(sort)
 
-    event_list = event_list.select_related('project')
-
     # IMPORTANT: All filters must already be applied once we reach this point
 
     if sort == 'tottime':

@@ -97,8 +97,10 @@ def has_access(access_or_func=None, team=None, access=None):
 
             if has_project:
                 # ensure we're accessing this url correctly
-                if project and team and project.team != team:
-                    return HttpResponseRedirect(reverse('sentry'))
+                if project and team:
+                    if project.team_id != team.id:
+                        return HttpResponseRedirect(reverse('sentry'))
+                    project._team_cache = team
 
                 kwargs['project'] = project
 

@@ -101,11 +101,8 @@ def get_default_context(request, existing_context=None, team=None):
     context = {
         'HAS_SEARCH': settings.USE_SEARCH,
         'MESSAGES_PER_PAGE': settings.MESSAGES_PER_PAGE,
-        'INTERNAL_PROJECT': get_internal_project(),
-        'PROJECT_ID': str(settings.PROJECT),
         'URL_PREFIX': settings.URL_PREFIX,
         'PLUGINS': plugins,
-        'USE_JS_CLIENT': settings.USE_JS_CLIENT,
     }
 
     if request:

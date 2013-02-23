@@ -36,8 +36,7 @@ from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
 from sentry.tasks.index import index_event
 from sentry.tasks.fetch_source import fetch_javascript_source
-from sentry.utils import cached_property
-from sentry.utils.cache import cache, Lock
+from sentry.utils.cache import cache, memoize, Lock
 from sentry.utils.dates import get_sql_date_trunc, normalize_datetime
 from sentry.utils.db import get_db_engine, has_charts, attach_foreignkey
 from sentry.utils.models import create_or_update, make_key
@@ -686,7 +685,7 @@ class GroupManager(BaseManager, ChartMixin):
     def get_by_natural_key(self, project, logger, culprit, checksum):
         return self.get(project=project, logger=logger, view=culprit, checksum=checksum)
 
-    @cached_property
+    @memoize
     def model_fields_clause(self):
         return ', '.join('sentry_groupedmessage."%s"' % (f.column,) for f in self.model._meta.fields)
 

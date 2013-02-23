@@ -209,6 +209,13 @@ class NewTeamMemberTest(BaseTeamTest):
         self.assertEquals(resp.status_code, 200)
         self.assertTemplateUsed(resp, 'sentry/teams/members/new.html')
 
+    @mock.patch('sentry.web.frontend.teams.can_add_team_member')
+    def test_missing_permission(self, can_add_team_member):
+        can_add_team_member.return_value = False
+        resp = self.client.get(self.path)
+        self.assertEquals(resp.status_code, 302)
+        can_add_team_member.assert_called_once_with(self.user, self.team)
+
     def test_cannot_add_existing_member(self):
         resp = self.client.post(self.path, {
             'add-type': MEMBER_USER,
@@ -260,6 +267,18 @@ class NewTeamMemberTest(BaseTeamTest):
 
 
 class AcceptInviteTest(BaseTeamTest):
+    def test_invalid_member_id(self):
+        resp = self.client.get(reverse('sentry-accept-invite', args=[1, 2]))
+        self.assertEquals(resp.status_code, 302)
+
+    def test_invalid_token(self):
+        ptm = PendingTeamMember.objects.create(
+            email='newuser@example.com',
+            team=self.team,
+        )
+        resp = self.client.get(reverse('sentry-accept-invite', args=[ptm.id, 2]))
+        self.assertEquals(resp.status_code, 302)
+
     def test_renders_unauthenticated_template(self):
         self.client.logout()
         ptm = PendingTeamMember.objects.create(

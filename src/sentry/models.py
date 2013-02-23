@@ -42,7 +42,8 @@ from sentry.manager import (GroupManager, ProjectManager,
     MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager,
     UserOptionManager, FilterKeyManager, TeamManager)
 from sentry.signals import buffer_incr_complete, regression_signal
-from sentry.utils import cached_property, MockDjangoRequest
+from sentry.utils import MockDjangoRequest
+from sentry.utils.cache import memoize
 from sentry.utils.db import has_trending
 from sentry.utils.models import Model, GzippedDictField, update
 from sentry.utils.imports import import_string
@@ -643,7 +644,7 @@ class Event(EventBase):
 
     __repr__ = sane_repr('project_id', 'group_id', 'checksum')
 
-    @cached_property
+    @memoize
     def request(self):
         data = self.data
         if 'META' in data:
@@ -671,7 +672,7 @@ class Event(EventBase):
         fake_request.path = fake_request.path_info
         return fake_request
 
-    @cached_property
+    @memoize
     def interfaces(self):
         result = []
         for key, data in self.data.iteritems():
