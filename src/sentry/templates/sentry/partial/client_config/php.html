@@ -22,7 +22,7 @@ try {
     throw new Exception('Uh oh!');
 }
 catch ($e) {
-    $client->captureException($e);
+    $client->captureException(Exception $e);
 }</pre>
 
 <p>{% trans "You can also optionally install a default error handler to catch all exceptions:" %}</p>
