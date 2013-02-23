@@ -398,3 +398,42 @@ class AccessGroupProjectsTest(BaseAccessGroupTest):
         assert resp.status_code == 302
         assert resp['Location'] == 'http://testserver' + self.path
         assert self.group.projects.filter(id=project.id).exists()
+
+
+class ManageProjectsTest(BaseTeamTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-manage-team-projects', args=[self.team.slug])
+
+    def test_does_render_with_context(self):
+        # HACK: force project create
+        project = self.project
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/teams/projects/index.html')
+        assert list(resp.context['project_list']) == [project]
+        assert resp.context['team'] == self.team
+        assert resp.context['page'] == 'projects'
+        assert resp.context['SUBSECTION'] == 'projects'
+
+
+class ManageMembersTest(BaseTeamTest):
+    @fixture
+    def path(self):
+        return reverse('sentry-manage-team-members', args=[self.team.slug])
+
+    def test_does_render_with_context(self):
+        pm = self.team.pending_member_set.create(email='foo@example.com')
+        tm = self.team.member_set.get()
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/teams/members/index.html')
+        assert list(resp.context['member_list']) == [
+            (tm, tm.user),
+        ]
+        assert list(resp.context['pending_member_list']) == [
+            (pm, pm.email),
+        ]
+        assert resp.context['team'] == self.team
+        assert resp.context['page'] == 'members'
+        assert resp.context['SUBSECTION'] == 'members'
