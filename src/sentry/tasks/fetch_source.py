@@ -128,7 +128,7 @@ def fetch_url(url, logger=None):
     return result
 
 
-@task(ignore_result=True)
+@task(queue='sourcemaps')
 def fetch_javascript_source(event, **kwargs):
     """
     Attempt to fetch source code for javascript frames.
