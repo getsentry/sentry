@@ -79,13 +79,6 @@ def get_login_url(reset=False):
     return _LOGIN_URL
 
 
-def iter_data(obj):
-    for k, v in obj.data.iteritems():
-        if k.startswith('_') or k in ['url']:
-            continue
-        yield k, v
-
-
 def get_internal_project():
     try:
         project = Project.objects.get(id=settings.PROJECT)
