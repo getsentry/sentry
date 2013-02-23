@@ -2,6 +2,7 @@
 
 {% load i18n %}
 {% load sentry_helpers %}
+{% load sentry_permissions %}
 
 {% block breadcrumb %}
     {{ block.super }}
@@ -19,7 +20,7 @@
 
 {% block inner %}
     <div class="page-header">
-        {% if can_add_member %}
+        {% if user|can_add_team_member:team %}
             <a href="{% url sentry-new-team-member team.slug %}" class="btn pull-right btn-primary">{% trans "New Member" %}</a>
         {% endif %}
         <h2>{% trans "Members" %}</h2>

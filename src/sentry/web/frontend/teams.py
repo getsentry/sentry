@@ -173,7 +173,6 @@ def manage_team_members(request, team):
 
     context = csrf(request)
     context.update({
-        'can_add_member': can_add_team_member(request.user, team),
         'page': 'members',
         'member_list': member_list,
         'pending_member_list': pending_member_list,
@@ -186,8 +185,7 @@ def manage_team_members(request, team):
 @csrf_protect
 @has_access(MEMBER_OWNER)
 def new_team_member(request, team):
-    can_add_member = can_add_team_member(request.user, team)
-    if not can_add_member:
+    if not can_add_team_member(request.user, team):
         return HttpResponseRedirect(reverse('sentry'))
 
     initial = {
