@@ -2,7 +2,7 @@
 sentry.templatetags.sentry_helpers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2012 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 # XXX: Import django-paging's template tags so we dont have to worry about
