@@ -41,8 +41,6 @@ class ProjectTest(TestCase):
 
 
 class ProjectKeyTest(TestCase):
-    fixtures = ['tests/fixtures/views.json']
-
     def test_get_dsn(self):
         key = ProjectKey(project_id=1, public_key='public', secret_key='secret')
         with self.Settings(SENTRY_URL_PREFIX='http://example.com'):
@@ -71,8 +69,6 @@ class ProjectKeyTest(TestCase):
 
 
 class PendingTeamMemberTest(TestCase):
-    fixtures = ['tests/fixtures/views.json']
-
     def test_token_generation(self):
         member = PendingTeamMember(id=1, team_id=1, email='foo@example.com')
         with self.Settings(SENTRY_KEY='a'):

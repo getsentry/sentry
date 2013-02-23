@@ -294,8 +294,6 @@ class PermissionBase(TestCase):
     """
     These tests simply ensure permission requirements for various views.
     """
-    fixtures = ['tests/fixtures/views.json']
-
     @fixture
     def admin(self):
         user = User(username="admin", email="admin@localhost", is_staff=True, is_superuser=True)

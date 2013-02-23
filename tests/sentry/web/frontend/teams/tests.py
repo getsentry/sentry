@@ -13,8 +13,6 @@ from sentry.testutils import TestCase, fixture, before
 
 
 class BaseTeamTest(TestCase):
-    fixtures = ['tests/fixtures/views.json']
-
     @fixture
     def user2(self):
         user = User.objects.create(username="other", email="other@localhost")

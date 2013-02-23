@@ -2,15 +2,13 @@
 
 from __future__ import absolute_import
 
-from sentry.models import Event, SearchDocument
+from sentry.models import SearchDocument
 from sentry.testutils import TestCase
 
 
 class SearchIndexTest(TestCase):
-    fixtures = ['tests/fixtures/views.json']
-
     def test_index_behavior(self):
-        event = Event.objects.all()[0]
+        event = self.event
 
         doc = SearchDocument.objects.index(event)
         self.assertEquals(doc.project, event.project)
@@ -27,7 +25,7 @@ class SearchIndexTest(TestCase):
         self.assertEquals(doc.date_changed, event.group.last_seen)
 
     def test_search(self):
-        event = Event.objects.all()[0]
+        event = self.event
         doc = SearchDocument.objects.index(event)
 
         results = list(SearchDocument.objects.search(event.project, event.message.upper()))
