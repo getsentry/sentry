@@ -9,7 +9,7 @@ sentry.tasks.cleanup
 from celery.task import task
 
 
-@task(ignore_result=True)
+@task(ignore_result=True, queue='cleanup')
 def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
     """
     Deletes a portion of the trailing data in Sentry based on

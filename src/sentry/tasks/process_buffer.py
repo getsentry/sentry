@@ -9,7 +9,7 @@ sentry.tasks.process_buffer
 from celery.task import task
 
 
-@task(ignore_result=True)
+@task(queue='counters')
 def process_incr(**kwargs):
     """
     Processes a buffer event.

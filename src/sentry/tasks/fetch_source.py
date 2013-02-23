@@ -129,6 +129,7 @@ def fetch_url(url, logger=None):
     return result
 
 
+<<<<<<< HEAD
 def fetch_sourcemap(url, logger=None):
     result = fetch_url(url, logger=logger)
     if result == BAD_SOURCE:
@@ -150,7 +151,7 @@ def fetch_sourcemap(url, logger=None):
         return index
 
 
-@task(ignore_result=True)
+@task(ignore_result=True, queue='sourcemaps')
 def fetch_javascript_source(event, **kwargs):
     """
     Attempt to fetch source code for javascript frames.

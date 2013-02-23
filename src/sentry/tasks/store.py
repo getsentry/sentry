@@ -9,7 +9,7 @@ sentry.tasks.store
 from celery.task import task
 
 
-@task(ignore_result=True)
+@task(queue='events')
 def store_event(data, **kwargs):
     """
     Saves an event to the database.
