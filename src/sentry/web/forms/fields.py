@@ -8,7 +8,7 @@ sentry.web.forms.teams
 from django.contrib.auth.models import User
 from django.core.validators import URLValidator
 from django.forms.widgets import RadioFieldRenderer, TextInput, Textarea
-from django.forms import CharField, ValidationError
+from django.forms import CharField, IntegerField, ValidationError
 from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
@@ -54,7 +54,7 @@ class UserField(CharField):
             raise ValidationError(_('Invalid username'))
 
 
-class RangeField(CharField):
+class RangeField(IntegerField):
     widget = RangeInput
 
     def __init__(self, *args, **kwargs):
