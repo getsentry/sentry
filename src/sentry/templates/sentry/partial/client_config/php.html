@@ -21,8 +21,8 @@ $client->captureMessage('hello world!');
 try {
     throw new Exception('Uh oh!');
 }
-catch ($e) {
-    $client->captureException(Exception $e);
+catch (Exception $e) {
+    $client->captureException($e);
 }</pre>
 
 <p>{% trans "You can also optionally install a default error handler to catch all exceptions:" %}</p>
