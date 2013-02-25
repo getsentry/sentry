@@ -155,7 +155,7 @@ def _get_group_list(request, project):
         'date_to': date_to,
         'today': today,
         'sort': sort,
-        'date_type':date_type
+        'date_type': date_type
     }
 
 
