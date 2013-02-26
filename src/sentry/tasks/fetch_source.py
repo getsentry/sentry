@@ -224,7 +224,7 @@ def fetch_javascript_source(event, **kwargs):
             continue
 
         # may have had a failure pulling down the sourcemap previously
-        if sourcemap not in source_code:
+        if sourcemap not in sourcemaps:
             continue
 
         if frame.colno is not None and sourcemap:
