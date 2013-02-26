@@ -13,6 +13,7 @@ from collections import namedtuple
 from urlparse import urljoin
 
 from celery.task import task
+from django.utils.simplejson import JSONDecodeError
 from sentry.utils.cache import cache
 from sentry.utils.sourcemaps import sourcemap_to_index, find_source
 
@@ -200,7 +201,13 @@ def fetch_javascript_source(event, **kwargs):
             # If the file starts with that string, ignore the entire first line.
             if body.startswith(")]}'"):
                 body = body.split('\n', 1)[1]
-            index = sourcemap_to_index(body)
+            try:
+                index = sourcemap_to_index(body)
+            except JSONDecodeError:
+                logger.warning('Failed parsing sourcemap JSON: %r', body[:15],
+                    exc_info=True)
+                continue
+
             sourcemaps[sourcemap] = index
 
             # queue up additional source files for download
