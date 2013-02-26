@@ -223,6 +223,10 @@ def fetch_javascript_source(event, **kwargs):
             # we must've failed pulling down the source
             continue
 
+        # may have had a failure pulling down the sourcemap previously
+        if sourcemap not in source_code:
+            continue
+
         if frame.colno is not None and sourcemap:
             state = find_source(sourcemaps[sourcemap], frame.lineno, frame.colno)
             # TODO: is this urljoin right? (is it relative to the sourcemap or the originating file)
