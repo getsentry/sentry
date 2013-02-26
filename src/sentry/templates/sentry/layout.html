@@ -25,10 +25,9 @@
             {% staticbundle 'sentry/scripts/legacy.min.js' %}
             <script type="text/javascript">
             app.config.popupCss = '{% url sentry-media "sentry" 'styles/popup.css' %}';
-            app.config.popupCss = '{% url sentry-media "sentry" 'styles/popup.css' %}';
             app.config.mediaUrl = '{% url sentry-media "sentry" '' %}';
             app.config.urlPrefix = {{ URL_PREFIX|to_json|safe }};
-            app.config.hasRealtime = {{ hasRealtime|to_json|safe  }};
+            app.config.hasRealtime = {{ hasRealtime|to_json|safe  }} || false;
             {% if project %}
                 app.config.projectId = {{ project.slug|to_json|safe }};
                 app.config.teamId = {{ project.team.slug|to_json|safe }};
