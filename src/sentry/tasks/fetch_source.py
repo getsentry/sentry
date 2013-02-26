@@ -129,6 +129,27 @@ def fetch_url(url, logger=None):
     return result
 
 
+def fetch_sourcemap(url, logger=None):
+    result = fetch_url(url, logger=logger)
+    if result == BAD_SOURCE:
+        return
+
+    body = result.body
+    # According to spec (https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.h7yy76c5il9v)
+    # A SouceMap may be prepended with ")]}'" to cause a Javascript error.
+    # If the file starts with that string, ignore the entire first line.
+    if body.startswith(")]}'"):
+        body = body.split('\n', 1)[1]
+    try:
+        index = sourcemap_to_index(body)
+    except JSONDecodeError:
+        if logger:
+            logger.warning('Failed parsing sourcemap JSON: %r', body[:15],
+            exc_info=True)
+    else:
+        return index
+
+
 @task(ignore_result=True)
 def fetch_javascript_source(event, **kwargs):
     """
@@ -191,21 +212,8 @@ def fetch_javascript_source(event, **kwargs):
 
         # pull down sourcemap
         if sourcemap and sourcemap not in sourcemaps:
-            result = fetch_url(sourcemap, logger=logger)
-            if result == BAD_SOURCE:
-                continue
-
-            body = result.body
-            # According to spec (https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.h7yy76c5il9v)
-            # A SouceMap may be prepended with ")]}'" to cause a Javascript error.
-            # If the file starts with that string, ignore the entire first line.
-            if body.startswith(")]}'"):
-                body = body.split('\n', 1)[1]
-            try:
-                index = sourcemap_to_index(body)
-            except JSONDecodeError:
-                logger.warning('Failed parsing sourcemap JSON: %r', body[:15],
-                    exc_info=True)
+            index = fetch_sourcemap(sourcemap, logger=logger)
+            if not index:
                 continue
 
             sourcemaps[sourcemap] = index
@@ -224,10 +232,7 @@ def fetch_javascript_source(event, **kwargs):
             continue
 
         # may have had a failure pulling down the sourcemap previously
-        if sourcemap not in sourcemaps:
-            continue
-
-        if frame.colno is not None and sourcemap:
+        if sourcemap in sourcemaps and frame.colno is not None:
             state = find_source(sourcemaps[sourcemap], frame.lineno, frame.colno)
             # TODO: is this urljoin right? (is it relative to the sourcemap or the originating file)
             abs_path = urljoin(sourcemap, state.src)
