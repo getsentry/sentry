@@ -1,5 +1,6 @@
 {% extends "sentry/teams/groups/details.html" %}
 
+{% load url from future %}
 {% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_helpers %}
@@ -34,7 +35,7 @@
                             {{ project.name }} &mdash; {{ project.slug }}
                         </td>
                         <td style="text-align:center;">
-                            <a href="{% url sentry-remove-access-group-project group.team.slug group.id project.id %}" class="btn">{% trans "Remove" %}</a>
+                            <a href="{% url 'sentry-remove-access-group-project' group.team.slug group.id project.id %}" class="btn">{% trans "Remove" %}</a>
                         </td>
                     </tr>
                 {% endfor %}

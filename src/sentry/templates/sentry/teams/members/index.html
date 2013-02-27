@@ -1,5 +1,6 @@
 {% extends "sentry/teams/manage.html" %}
 
+{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
 {% load sentry_permissions %}
@@ -7,21 +8,21 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider"></li>
-    <li><a href="{% url sentry-manage-team-members team.slug %}">{% trans "Members" %}</a></li>
+    <li><a href="{% url 'sentry-manage-team-members' team.slug %}">{% trans "Members" %}</a></li>
 {% endblock %}
 
 {% block bodyclass %} with-sidebar{% endblock %}
 
 {% block sidebar %}
     <h6>{% trans "About Memberships" %}</h6>
-    {% url sentry-manage-team-access-groups team.slug as link %}
+    {% url 'sentry-manage-team-access-groups' team.slug as link %}
     <p>{% blocktrans %}This page lists team-wide memberships whom have access to all projects owned by this team. If you wish to add memberships bound to individual projects, you can do so with <a href="{{ link }}">Access Groups</a>.{% endblocktrans %}</p>
 {% endblock %}
 
 {% block inner %}
     <div class="page-header">
         {% if user|can_add_team_member:team %}
-            <a href="{% url sentry-new-team-member team.slug %}" class="btn pull-right btn-primary">{% trans "New Member" %}</a>
+            <a href="{% url 'sentry-new-team-member' team.slug %}" class="btn pull-right btn-primary">{% trans "New Member" %}</a>
         {% endif %}
         <h2>{% trans "Members" %}</h2>
     </div>
@@ -42,7 +43,7 @@
             {% for member, user in member_list %}
                 <tr>
                     <td>
-                        <a href="{% url sentry-edit-team-member team.slug member.pk %}">{% if user.first_name %}{{ user.first_name }} &mdash; {% endif %}{{ user.username }}</a><br>
+                        <a href="{% url 'sentry-edit-team-member' team.slug member.pk %}">{% if user.first_name %}{{ user.first_name }} &mdash; {% endif %}{{ user.username }}</a><br>
                         {{ user.email }}
                     </td>
                     <td style="text-align:center;">
@@ -58,12 +59,12 @@
                         </td>
                     {% else %}
                         <td style="text-align:center;">
-                            <a href="{% url sentry-remove-team-member team.slug member.pk %}" class="btn btn-danger btn-small">{% trans "Remove" %}</a>
+                            <a href="{% url 'sentry-remove-team-member' team.slug member.pk %}" class="btn btn-danger btn-small">{% trans "Remove" %}</a>
 
                             {% if member.is_active %}
-                                <a href="{% url sentry-suspend-team-member team.slug member.pk %}" class="btn btn-small">{% trans "Suspend" %}</a>
+                                <a href="{% url 'sentry-suspend-team-member' team.slug member.pk %}" class="btn btn-small">{% trans "Suspend" %}</a>
                             {% else %}
-                                <a href="{% url sentry-restore-team-member team.slug member.pk %}" class="btn btn-small">{% trans "Restore" %}</a>
+                                <a href="{% url 'sentry-restore-team-member' team.slug member.pk %}" class="btn btn-small">{% trans "Restore" %}</a>
                             {% endif %}
                         </td>
                     {% endif %}
@@ -99,10 +100,10 @@
                             {{ member.get_type_display }}
                         </td>
                         <td style="text-align:center;">
-                            <a href="{% url sentry-remove-pending-team-member team.slug member.pk %}" class="btn btn-small btn-danger">{% trans "Remove" %}</a>
+                            <a href="{% url 'sentry-remove-pending-team-member' team.slug member.pk %}" class="btn btn-small btn-danger">{% trans "Remove" %}</a>
                         </td>
                         <td style="text-align:center;">
-                            <a href="{% url sentry-reinvite-pending-team-member team.slug member.pk %}" class="btn btn-small">{% trans "Resend" %}</a>
+                            <a href="{% url 'sentry-reinvite-pending-team-member' team.slug member.pk %}" class="btn btn-small">{% trans "Resend" %}</a>
                         </td>
                     </tr>
                 {% endfor %}

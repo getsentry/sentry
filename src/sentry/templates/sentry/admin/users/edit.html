@@ -1,5 +1,6 @@
 {% extends "sentry/admin/users/list.html" %}
 
+{% load url from future %}
 {% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_admin_helpers %}
@@ -10,7 +11,7 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider"></li>
-    <li><a href="{% url sentry-admin-edit-user the_user.pk %}">{{ the_user.username }}</a></li>
+    <li><a href="{% url 'sentry-admin-edit-user' the_user.pk %}">{{ the_user.username }}</a></li>
 {% endblock %}
 
 {% block main %}
@@ -24,7 +25,7 @@
             <fieldset class="form-actions">
                 <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
                 {% if the_user.id != request.user.id %}
-                    <a href="{% url sentry-admin-remove-user the_user.pk %}" class="btn btn-danger">{% trans "Remove User" %}</a>
+                    <a href="{% url 'sentry-admin-remove-user' the_user.pk %}" class="btn btn-danger">{% trans "Remove User" %}</a>
                 {% else %}
                     <a href="#" class="btn disabled btn-danger">{% trans "Cannot remove yourself" %}</a>
                 {% endif %}
@@ -49,7 +50,7 @@
                     {% for project, avg_events in project_list|with_event_counts %}
                         <tr>
                             <td>
-                                {{ project.name }} <a href="{% url sentry-stream project.team.slug project.slug %}">[view]</a>
+                                {{ project.name }} <a href="{% url 'sentry-stream' project.team.slug project.slug %}">[view]</a>
                                 </a>
                             </td>
                             <td style="text-align:center; vertical-align:middle;">

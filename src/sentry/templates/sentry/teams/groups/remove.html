@@ -1,5 +1,6 @@
 {% extends "sentry/teams/groups/details.html" %}
 
+{% load url from future %}
 {% load crispy_forms_tags %}
 {% load i18n %}
 
@@ -8,7 +9,7 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider"></li>
-    <li><a href="{% url sentry-remove-access-group group.team.slug group.id %}">{% trans "Remove Access Group" %}</a></li>
+    <li><a href="{% url 'sentry-remove-access-group' group.team.slug group.id %}">{% trans "Remove Access Group" %}</a></li>
 {% endblock %}
 
 {% block main %}
@@ -21,7 +22,7 @@
                 {% include "sentry/partial/_form_field.html" %}
             {% endfor %}
             <fieldset class="form-actions">
-                <button type="submit" class="btn btn-danger">{% trans "Confirm" %}</button> <a href="{% url sentry-manage-access-groups group.team.slug %}" class="btn">{% trans "Cancel" %}</a>
+                <button type="submit" class="btn btn-danger">{% trans "Confirm" %}</button> <a href="{% url 'sentry-manage-access-groups' group.team.slug %}" class="btn">{% trans "Cancel" %}</a>
             </fieldset>
         </form>
     </section>

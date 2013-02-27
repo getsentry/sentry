@@ -1,3 +1,4 @@
+{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
 
@@ -5,14 +6,14 @@
     <div class="navbar navbar-inverse">
         <div class="navbar-inner">
             <div class="container">
-                <a id="logo" href="{% url sentry %}">Sentry</a>
+                <a id="logo" href="{% url 'sentry' %}">Sentry</a>
                 {% if team %}
                     <nav id="team-nav">
                         <ul>
-                            <li{% if SECTION == 'events' %} class="active"{% endif %}><a href="{% url sentry team.slug %}">Events</a></li>
-                            <!-- <li{% if SECTION == 'users' %} class="active"{% endif %}><a href="{% url sentry-users team.slug %}">Users</a></li> -->
+                            <li{% if SECTION == 'events' %} class="active"{% endif %}><a href="{% url 'sentry' team.slug %}">Events</a></li>
+                            <!-- <li{% if SECTION == 'users' %} class="active"{% endif %}><a href="{% url 'sentry-users' team.slug %}">Users</a></li> -->
                             {% if can_admin_team %}
-                                <li{% if SECTION == 'team' %} class="active"{% endif %}><a href="{% url sentry-manage-team team.slug %}">Team</a></li>
+                                <li{% if SECTION == 'team' %} class="active"{% endif %}><a href="{% url 'sentry-manage-team' team.slug %}">Team</a></li>
                             {% endif %}
                         </ul>
                     </nav>
@@ -22,14 +23,14 @@
                         {% if request.user.is_authenticated %}
                             {% if TEAM_LIST %}
                                 <li class="dropdown">
-                                    <a href="{% url sentry-team-list %}" class="dropdown-toggle" data-toggle="dropdown">{% if team %}{{ team.name }}{% else %}{% trans "Teams" %}{% endif %} <span class="caret"></span></a>
+                                    <a href="{% url 'sentry-team-list' %}" class="dropdown-toggle" data-toggle="dropdown">{% if team %}{{ team.name }}{% else %}{% trans "Teams" %}{% endif %} <span class="caret"></span></a>
                                     <ul class="dropdown-menu">
                                         {% for t in TEAM_LIST %}
-                                            <li><a href="{% url sentry t.slug %}">{{ t.name }}</a></li>
+                                            <li><a href="{% url 'sentry' t.slug %}">{{ t.name }}</a></li>
                                         {% endfor %}
                                         {% if can_create_teams %}
                                             <li class="divider"></li>
-                                            <li><a href="{% url sentry-new-team %}">{% trans "Create new team" %}</a></li>
+                                            <li><a href="{% url 'sentry-new-team' %}">{% trans "Create new team" %}</a></li>
                                         {% endif %}
                                     </ul>
                                 </li>
@@ -37,17 +38,17 @@
                             <li class="dropdown">
                                 <a href="#" class="dropdown-toggle" data-toggle="dropdown"><img class="avatar" src="{% gravatar_url user.email size 20 %}"> {{ user.username }} <span class="caret"></span></a>
                                 <ul class="dropdown-menu">
-                                    <li><a href="{% url sentry-account-settings %}">{% trans "Account" %}</a></li>
-                                    <li><a href="{% url sentry-team-list %}">{% trans "Teams" %}</a></li>
+                                    <li><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a></li>
+                                    <li><a href="{% url 'sentry-team-list' %}">{% trans "Teams" %}</a></li>
                                     {% if request.user.is_staff %}
-                                        <li><a href="{% url sentry-admin-status %}">{% trans "Admin" %}</a></li>
+                                        <li><a href="{% url 'sentry-admin-status' %}">{% trans "Admin" %}</a></li>
                                     {% endif %}
                                     <li class="divider">
-                                    <li><a href="{% url sentry-logout %}">{% trans "Logout" %}</a></li>
+                                    <li><a href="{% url 'sentry-logout' %}">{% trans "Logout" %}</a></li>
                                 </ul>
                             </li>
                         {% else %}
-                            <li><a href="{% url sentry-login %}">{% trans "Login" %}</a></li>
+                            <li><a href="{% url 'sentry-login' %}">{% trans "Login" %}</a></li>
                         {% endif %}
                     {% endblock %}
                 </ul>
