@@ -89,7 +89,7 @@ def check_project_alerts(project_id, when, count, **kwargs):
     from sentry.models import ProjectCountByMinute, ProjectOption, Alert
 
     try:
-        threshold, min_events = ProjectOption.objects.get(project=project_id, key='project_alert_pct')
+        threshold, min_events = ProjectOption.objects.get(project=project_id, key='alert:threshold')
     except ProjectOption.DoesNotExist:
         threshold, min_events = settings.DEFAULT_ALERT_PROJECT_THRESHOLD
 

@@ -33,29 +33,32 @@
                     {% for tag_form in tag_forms %}
                         <tr>
                             <th style="vertical-align:middle">{{ tag_form.values.label|titlize }}</th>
-                            <td style="vertical-align:middle">{{ tag_form.values }}</td>
+                            <td style="vertical-align:middle">{{ tag_form.values }}
+                                {{ tag_form|as_crispy_errors }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
-
-            <fieldset class="form-actions">
-                <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
-            </fieldset>
         {% else %}
             <p>{% trans "We have not yet recorded any tags for this project." %}</p>
         {% endif %}
 
+        <div class="page-header">
+            <h3>{% trans "Alerts" %}</h3>
+        </div>
+        <p>{% trans "Alerts are calculated based on the acceleration of an event. Values represent a 60-second interval." %}
+        {{ alert_form|as_crispy_errors }}
+
+        {% for field in alert_form %}
+            {{ field|as_crispy_field }}
+        {% endfor %}
+
+        <fieldset class="form-actions">
+            <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+        </fieldset>
     </form>
     <script type="text/javascript">
-    $(function(){
-        $("#tag_list input").select2({
-            multiple: true,
-            width: 'element',
-            tags: ["hello world", "foo", "bar"],
-            tokenSeperators: [","]
-        });
-    });
+    new app.ProjectNotificationsPage();
     </script>
 {% endblock %}
 

@@ -158,10 +158,10 @@ class EditProjectAdminForm(EditProjectForm):
 
 
 class AlertSettingsForm(forms.Form):
-    active = forms.BooleanField(help_text=_('Enable notifications for this project. Users can override this within their personal settings'),
-        required=False)
-    event_age = RangeField(help_text=_('Notify the first time an event is seen after this amount of time.'),
-        required=False, min_value=0, max_value=168, step_value=1)
+    pct_threshold = RangeField(label=_('Threshold'), help_text=_('Notify when an event increases by this percentage.'),
+        required=False, min_value=0, max_value=1000, step_value=100)
+    min_events = forms.IntegerField(label=_('Minimum Events'), help_text=_('Generate an alert only when an event is seen more than this many times during the interval.'),
+        required=False, min_value=0)
 
 
 class NotificationTagValuesForm(forms.Form):
@@ -172,6 +172,7 @@ class NotificationTagValuesForm(forms.Form):
         self.tag = tag
         super(NotificationTagValuesForm, self).__init__(*args, **kwargs)
         self.fields['values'].label = self.tag
+        self.fields['values'].widget.attrs['data-tag'] = self.tag
 
     def clean_values(self):
         return set(filter(bool, self.cleaned_data.get('values').split(',')))

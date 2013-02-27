@@ -126,7 +126,7 @@
                         allowClear: true,
                         minimumInputLength: 3,
                         ajax: {
-                            url: this.getSearchTagsUrl(),
+                            url: app.utils.getSearchTagsUrl(),
                             dataType: 'json',
                             data: function (term, page) {
                                 return {
@@ -175,10 +175,6 @@
                 this.control.removeClass('realtime-play');
                 this.control.html(this.control.attr('data-play-label'));
             }
-        },
-
-        getSearchTagsUrl: function(){
-            return app.config.urlPrefix + '/api/' + app.config.teamId + '/' + app.config.projectId + '/tags/search/';
         }
 
     });
@@ -479,6 +475,44 @@
             }
             return val + ' hour' + (val != 1 ? 's' : '');
         }
+    });
+
+    app.ProjectNotificationsPage = BasePage.extend({
+        initialize: function initialize(data){
+            BasePage.prototype.initialize.call(this, data);
+
+            $("input[type=range]").each(_.bind(function loop(n, el){
+                var $el = $(el),
+                    min = parseInt($el.attr('min'), 10),
+                    max = parseInt($el.attr('max'), 10),
+                    step = parseInt($el.attr('step'), 10),
+                    $value = $('<span class="value"></span>');
+
+                $el.on("slider:ready", _.bind(function sliderready(event, data) {
+                    $value.appendTo(data.el);
+                    $value.html(this.formatThreshold(data.value));
+                }, this)).on("slider:changed", _.bind(function sliderchanged(event, data) {
+                    $value.html(this.formatThreshold(data.value));
+                }, this)).simpleSlider({
+                    range: [min, max],
+                    step: step,
+                    snap: true
+                });
+            }, this));
+
+            $("#tag_list input").each(function(_, el){
+                $(el).addClass('span6');
+                app.utils.makeSearchableTagsInput(el);
+            });
+        },
+
+        formatThreshold: function formatThreshold(value) {
+            if (!value) {
+                return 'Disabled';
+            }
+            return value + '%';
+        }
+
     });
 
     app.NewProjectPage = BasePage.extend({

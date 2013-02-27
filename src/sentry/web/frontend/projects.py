@@ -13,6 +13,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.conf import settings
 from sentry.constants import MEMBER_OWNER
 from sentry.models import Project, ProjectKey, Team, FilterKey
 from sentry.permissions import (can_create_projects, can_remove_project, can_create_teams,
@@ -21,7 +22,7 @@ from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms.projects import (NewProjectForm, NewProjectAdminForm,
     ProjectTagsForm, EditProjectForm, RemoveProjectForm, EditProjectAdminForm,
-    NotificationTagValuesForm)
+    NotificationTagValuesForm, AlertSettingsForm)
 from sentry.web.forms.teams import NewTeamForm, SelectTeamForm
 from sentry.web.helpers import render_to_response, plugin_config
 
@@ -292,13 +293,28 @@ def notification_settings(request, team, project):
             },
         ))
 
-    if request.method == 'POST' and all(f.is_valid() for f in tag_forms):
+    threshold, min_events = project.get_option('alert:threshold',
+        settings.DEFAULT_ALERT_PROJECT_THRESHOLD)
+
+    alert_form = AlertSettingsForm(
+        data=request.POST or None,
+        prefix='alert',
+        initial={
+            'pct_threshold': threshold,
+            'min_events': min_events,
+        }
+    )
+
+    if request.method == 'POST' and all(f.is_valid() for f in tag_forms) and alert_form.is_valid():
         tags = {}
         for form in tag_forms:
             values = form.cleaned_data['values']
             if values:
                 tags[form.tag] = values
         project.update_option('notifcation:tags', tags)
+
+        project.update_option('alert:threshold', (
+            alert_form.cleaned_data['pct_threshold'], alert_form.cleaned_data['min_events']))
 
         messages.add_message(request, messages.SUCCESS,
             _('Your settings were saved successfully.'))
@@ -309,6 +325,7 @@ def notification_settings(request, team, project):
     context.update({
         'team': team,
         'project': project,
+        'alert_form': alert_form,
         'tag_forms': tag_forms,
         'page': 'notifications',
         'SECTION': 'team',
