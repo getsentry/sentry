@@ -1,5 +1,6 @@
 {% extends "sentry/admin/users/list.html" %}
 
+{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
 
@@ -8,7 +9,7 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider"></li>
-    <li><a href="{% url sentry-admin-new-user %}">{% trans "Create New User" %}</a></li>
+    <li><a href="{% url 'sentry-admin-new-user' %}">{% trans "Create New User" %}</a></li>
 {% endblock %}
 
 {% block main %}

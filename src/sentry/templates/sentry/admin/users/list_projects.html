@@ -1,5 +1,6 @@
 {% extends "sentry/admin/users/edit.html" %}
 
+{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
 {% load sentry_admin_helpers %}
@@ -9,7 +10,7 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider"></li>
-    <li><a href="{% url sentry-admin-list-user-projects the_user.pk %}">{% trans "Projects" %}</a></li>
+    <li><a href="{% url 'sentry-admin-list-user-projects' the_user.pk %}">{% trans "Projects" %}</a></li>
 {% endblock %}
 
 {% block main %}
@@ -35,7 +36,7 @@
                     {% for project, avg_events in project_list.objects|with_event_counts %}
                         <tr>
                             <td>
-                                {{ project.name }} <a href="{% url sentry-stream project.team.slug project.slug %}">[view]</a>
+                                {{ project.name }} <a href="{% url 'sentry-stream' project.team.slug project.slug %}">[view]</a>
                                 </a>
                             </td>
                             <td style="text-align:center; vertical-align:middle;">

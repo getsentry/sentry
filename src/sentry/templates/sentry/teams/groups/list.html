@@ -1,12 +1,13 @@
 {% extends "sentry/teams/manage.html" %}
 
+{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
 
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider"></li>
-    <li><a href="{% url sentry-manage-access-groups team.slug %}">{% trans "Access Groups" %}</a></li>
+    <li><a href="{% url 'sentry-manage-access-groups' team.slug %}">{% trans "Access Groups" %}</a></li>
 {% endblock %}
 
 {% block bodyclass %} with-sidebar{% endblock %}
@@ -14,7 +15,7 @@
 {% block inner %}
     <div class="page-header">
         {% if can_add_group %}
-            <a href="{% url sentry-new-access-group team.slug %}" class="btn pull-right btn-primary">{% trans "New Access Group" %}</a>
+            <a href="{% url 'sentry-new-access-group' team.slug %}" class="btn pull-right btn-primary">{% trans "New Access Group" %}</a>
         {% endif %}
         <h2>{% trans "Access Groups" %}</h2>
     </div>
@@ -35,7 +36,7 @@
             <tbody>
                 {% for group in group_list %}
                     <tr>
-                        <td><a href="{% url sentry-edit-access-group team.slug group.id %}">{{ group.name }}</a>{% if group.managed %} ({% trans "automatically managed" %}){% endif %}</td>
+                        <td><a href="{% url 'sentry-edit-access-group' team.slug group.id %}">{{ group.name }}</a>{% if group.managed %} ({% trans "automatically managed" %}){% endif %}</td>
                         <td style="text-align:center">{{ group.get_type_display }}</td>
                         <td style="text-align:center"><a href="#" class="btn">{% trans "Remove" %}</a></td>
                     </tr>

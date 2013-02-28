@@ -1,5 +1,6 @@
 {% extends "sentry/alerts/list.html" %}
 
+{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
 
@@ -10,7 +11,7 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider"></li>
-    <li><a href="{% url sentry-project-alert-details project.team.slug project.slug alert.id %}">Alert at {{ alert.datetime }}</a></li>
+    <li><a href="{% url 'sentry-project-alert-details' project.team.slug project.slug alert.id %}">Alert at {{ alert.datetime }}</a></li>
 {% endblock %}
 
 {% block main %}

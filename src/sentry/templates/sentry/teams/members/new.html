@@ -1,5 +1,6 @@
 {% extends "sentry/teams/manage.html" %}
 
+{% load url from future %}
 {% load i18n %}
 
 {% block title %}{% trans "New Member" %} | {{ block.super }}{% endblock %}
@@ -7,7 +8,7 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider"></li>
-    <li><a href="{% url sentry-new-team-member team.slug %}">{% trans "New Member" %}</a></li>
+    <li><a href="{% url 'sentry-new-team-member' team.slug %}">{% trans "New Member" %}</a></li>
 {% endblock %}
 
 {% block inner %}

@@ -1,5 +1,6 @@
 {% extends "sentry/layout.html" %}
 
+{% load url from future %}
 {% load i18n %}
 
 {% block title %}{% trans "Team Invite" %} | {{ block.super }}{% endblock %}
@@ -31,9 +32,9 @@
 
                     <fieldset class="form-actions">
                         <div class="pull-right" style="margin-top: 5px;">
-                            <a href="{% url sentry-login %}">{% trans "Login as an existing user" %}</a>
+                            <a href="{% url 'sentry-login' %}">{% trans "Login as an existing user" %}</a>
                         </div>
-                        <a href="{% url sentry-register %}" class="btn btn-primary">{% trans "Create a new account" %}</a>
+                        <a href="{% url 'sentry-register' %}" class="btn btn-primary">{% trans "Create a new account" %}</a>
                     </fieldset>
                 </form>
             </div>

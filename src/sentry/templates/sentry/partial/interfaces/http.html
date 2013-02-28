@@ -1,10 +1,11 @@
+{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
 
 <div class="module">
     <div class="page-header">
         {% if not is_public %}
-            <a href="{% url sentry-replay event.team.slug event.project.slug event.id %}" class="btn small pull-right">{% trans "Replay this request" %}</a>
+            <a href="{% url 'sentry-replay' event.team.slug event.project.slug event.id %}" class="btn small pull-right">{% trans "Replay this request" %}</a>
         {% endif %}
         <h2>{% trans "Request" %}</h2>
     </div>

@@ -1,5 +1,6 @@
 {% extends "sentry/account/base.html" %}
 
+{% load url from future %}
 {% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_helpers %}
@@ -9,7 +10,7 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider"></li>
-    <li><a href="{% url sentry-account-settings-notifications %}">{% trans "Notifications" %}</a></li>
+    <li><a href="{% url 'sentry-account-settings-notifications' %}">{% trans "Notifications" %}</a></li>
 {% endblock %}
 
 {% block heading %}

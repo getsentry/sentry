@@ -1,5 +1,6 @@
 {% extends "sentry/layout.html" %}
 
+{% load url from future %}
 {% load crispy_forms_tags %}
 {% load i18n %}
 
@@ -13,7 +14,7 @@
         <div class="page-header">
             <h2>{% trans "Recover Account" %}</h2>
         </div>
-        {% url sentry-recover-account as link %}
+        {% url 'sentry-recover-account' as link %}
         <p>{% blocktrans %}We were unable to confirm your identity. Either the link you followed is invalid, or it has expired. You can always <a href="{{ link }}">try again</a>.{% endblocktrans %}</p>
     </section>
 {% endblock %}

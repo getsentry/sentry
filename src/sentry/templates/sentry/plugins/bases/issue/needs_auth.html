@@ -1,5 +1,6 @@
 {% extends "sentry/groups/details.html" %}
 
+{% load url from future %}
 {% load i18n %}
 
 {% block title %}{{ title }} | {{ block.super }}{% endblock %}
@@ -10,7 +11,7 @@
             <h3>{{ title }}</h3>
         </div>
         <div class="alert alert-block">
-            {% url socialauth_associate_begin plugin.auth_provider as link %}
+            {% url 'socialauth_associate_begin' plugin.auth_provider as link %}
             <p>{% blocktrans %}You still need to <a href="{{ link }}">associate an identity</a> with {{ title }} before you can
             create issues with this service.{% endblocktrans %}</p>
         </div>

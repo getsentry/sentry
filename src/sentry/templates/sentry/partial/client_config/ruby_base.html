@@ -1,3 +1,4 @@
+{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
 
@@ -6,10 +7,10 @@
 </div>
 
 <ul class="nav nav-tabs">
-	<li{% if platform == 'ruby' %} class="active"{% endif %}><a href="{% url sentry-docs-client project.team.slug project.slug 'ruby' %}">Ruby</a></li>
-	<li{% if platform == 'rails3' %} class="active"{% endif %}><a href="{% url sentry-docs-client project.team.slug project.slug 'rails3' %}">Rails 3</a></li>
-    <li{% if platform == 'sinatra' %} class="active"{% endif %}><a href="{% url sentry-docs-client project.team.slug project.slug 'sinatra' %}">Sinatra</a></li>
-    <li{% if platform == 'sidekiq' %} class="active"{% endif %}><a href="{% url sentry-docs-client project.team.slug project.slug 'sidekiq' %}">Sidekiq</a></li>
+	<li{% if platform == 'ruby' %} class="active"{% endif %}><a href="{% url 'sentry-docs-client' project.team.slug project.slug 'ruby' %}">Ruby</a></li>
+	<li{% if platform == 'rails3' %} class="active"{% endif %}><a href="{% url 'sentry-docs-client' project.team.slug project.slug 'rails3' %}">Rails 3</a></li>
+    <li{% if platform == 'sinatra' %} class="active"{% endif %}><a href="{% url 'sentry-docs-client' project.team.slug project.slug 'sinatra' %}">Sinatra</a></li>
+    <li{% if platform == 'sidekiq' %} class="active"{% endif %}><a href="{% url 'sentry-docs-client' project.team.slug project.slug 'sidekiq' %}">Sidekiq</a></li>
 </ul>
 
 

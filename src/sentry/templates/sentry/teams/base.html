@@ -1,5 +1,6 @@
 {% extends "sentry/layout.html" %}
 
+{% load url from future %}
 {% load i18n %}
 
 {% block title %}{% trans "Team List" %} | {{ block.super }}{% endblock %}
@@ -9,16 +10,16 @@
 {% block page_header %}
     {% if can_create_teams %}
         <div class="pull-right">
-            <a href="{% url sentry-new-team %}" class="btn btn-primary">{% trans "Create a new team" %}</a>
+            <a href="{% url 'sentry-new-team' %}" class="btn btn-primary">{% trans "Create a new team" %}</a>
         </div>
     {% endif %}
 
     <ul class="breadcrumb">
-        <li><a href="{% url sentry %}" class="dashboard-btn" title="{% trans "Dashboard" %}">
+        <li><a href="{% url 'sentry' %}" class="dashboard-btn" title="{% trans "Dashboard" %}">
             <i aria-hidden="true" class="icon-list"></i>
         </a></li>
         <li class="divider"></li>
-        <li><a href="{% url sentry-team-list %}">{% trans "Teams" %}</a></li>
+        <li><a href="{% url 'sentry-team-list' %}">{% trans "Teams" %}</a></li>
         {% block breadcrumb %}
         {% endblock %}
     </ul>
