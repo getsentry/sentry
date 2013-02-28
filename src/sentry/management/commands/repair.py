@@ -62,9 +62,13 @@ class Command(BaseCommand):
         for team in Team.objects.all():
             for member in team.member_set.select_related('user'):
                 for project in team.project_set.all():
-                    created = ProjectKey.objects.get_or_create(
-                        project=project,
-                        user=member.user,
-                    )[1]
-                    if created:
-                        print "* Created key for %s on %s" % (member.user.username, project)
+                    try:
+                        created = ProjectKey.objects.get_or_create(
+                            project=project,
+                            user=member.user,
+                        )[1]
+                    except ProjectKey.MultipleObjectsReturned:
+                        pass
+                    else:
+                        if created:
+                            print "* Created key for %s on %s" % (member.user.username, project)
