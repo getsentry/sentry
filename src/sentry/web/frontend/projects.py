@@ -159,7 +159,7 @@ def manage_project(request, team, project):
     form = form_cls(request, team_list, request.POST or None, instance=project, initial={
         'origins': '\n'.join(project.get_option('sentry:origins', None) or []),
         'owner': project.owner,
-        'resolve_age': project.get_option('sentry:resolve_age', 0),
+        'resolve_age': int(project.get_option('sentry:resolve_age', 0)),
     })
 
     if form.is_valid():

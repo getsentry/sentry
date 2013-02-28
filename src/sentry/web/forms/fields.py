@@ -58,9 +58,7 @@ class RangeField(IntegerField):
     widget = RangeInput
 
     def __init__(self, *args, **kwargs):
-        self.min_value = kwargs.pop('min', None)
-        self.max_value = kwargs.pop('max', None)
-        self.step_value = kwargs.pop('step', None)
+        self.step_value = kwargs.pop('step_value', None)
         super(RangeField, self).__init__(*args, **kwargs)
 
     def widget_attrs(self, widget):
