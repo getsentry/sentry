@@ -37,6 +37,7 @@ class SentryHTTPServer(Service):
         options.setdefault('bind', '%s:%s' % (self.host, self.port))
         options.setdefault('daemon', False)
         options.setdefault('timeout', 30)
+        options.setdefault('proc_name', 'Sentry')
         if workers:
             options['workers'] = workers
 

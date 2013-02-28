@@ -42,9 +42,15 @@ EXPRESSION_NODE_CALLBACKS = {
     ExpressionNode.MUL: operator.mul,
     ExpressionNode.DIV: operator.div,
     ExpressionNode.MOD: operator.mod,
-    ExpressionNode.AND: operator.and_,
-    ExpressionNode.OR: operator.or_,
 }
+try:
+    EXPRESSION_NODE_CALLBACKS[ExpressionNode.AND] = operator.and_
+except AttributeError:
+    EXPRESSION_NODE_CALLBACKS[ExpressionNode.BITAND] = operator.and_
+try:
+    EXPRESSION_NODE_CALLBACKS[ExpressionNode.OR] = operator.or_
+except AttributeError:
+    EXPRESSION_NODE_CALLBACKS[ExpressionNode.BITOR] = operator.or_
 
 
 class CannotResolve(Exception):
