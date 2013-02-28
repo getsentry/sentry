@@ -43,7 +43,7 @@ class RegistrationForm(forms.ModelForm):
 
 
 class NotificationSettingsForm(forms.Form):
-    alert_email = forms.EmailField(help_text='Designate an alternative email address to send email notifications to.')
+    alert_email = forms.EmailField(help_text=_('Designate an alternative email address to send email notifications to.'))
 
     def __init__(self, user, *args, **kwargs):
         self.user = user
@@ -104,10 +104,10 @@ class AccountSettingsForm(forms.Form):
 class AppearanceSettingsForm(forms.Form):
     language = forms.ChoiceField(label=_('Language'), choices=settings.LANGUAGES, required=False)
     stacktrace_order = forms.ChoiceField(label=_('Stacktrace order'), choices=(
-        ('-1', 'Default (let Sentry decide)'),
-        ('1', 'Most recent call last'),
-        ('2', 'Most recent call first'),
-    ), help_text='Choose the default ordering of frames in stacktraces.', required=False)
+        ('-1', _('Default (let Sentry decide)')),
+        ('1', _('Most recent call last')),
+        ('2', _('Most recent call first')),
+    ), help_text=_('Choose the default ordering of frames in stacktraces.'), required=False)
 
     def __init__(self, user, *args, **kwargs):
         self.user = user
