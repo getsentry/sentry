@@ -1,5 +1,6 @@
 {% extends "sentry/layout.html" %}
 
+{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
 
@@ -8,7 +9,7 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider"></li>
-    <li><a href="{% url sentry-events project.team.slug project.id %}">{% trans "Stream" %}</a></li>
+    <li><a href="{% url 'sentry-events' project.team.slug project.id %}">{% trans "Stream" %}</a></li>
 {% endblock %}
 
 {% block sidebar %}

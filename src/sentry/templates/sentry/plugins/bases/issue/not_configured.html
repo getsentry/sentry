@@ -1,5 +1,6 @@
 {% extends "sentry/groups/details.html" %}
 
+{% load url from future %}
 {% load i18n %}
 
 {% block title %}{{ title }} | {{ block.super }}{% endblock %}
@@ -20,7 +21,7 @@
                     {% endfor %}
                 </ul>
             {% else %}
-                {% url sentry-configure-project-plugin project_id=project.id slug=plugin.slug as link %}
+                {% url 'sentry-configure-project-plugin' project_id=project.id slug=plugin.slug as link %}
                 <p>{% blocktrans %}You still need to <a href="{{ link }}">configure this plugin</a> before you can use it.{% endblocktrans %}</p>
             {% endif %}
         </div>

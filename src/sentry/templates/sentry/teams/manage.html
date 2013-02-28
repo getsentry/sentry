@@ -1,5 +1,6 @@
 {% extends "sentry/bases/team.html" %}
 
+{% load url from future %}
 {% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_helpers %}
@@ -42,7 +43,7 @@
                 <fieldset class="form-actions">
                     <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
                     {% if can_remove_team %}
-                        <a href="{% url sentry-remove-team team.slug %}" class="btn btn-danger">{% trans "Remove Team" %}</a>
+                        <a href="{% url 'sentry-remove-team' team.slug %}" class="btn btn-danger">{% trans "Remove Team" %}</a>
                     {% else %}
                         <div class="pull-right note">{% trans "You cannot remove this team because it has projects assigned to it" %}</div>
                     {% endif %}

@@ -1,5 +1,6 @@
 {% extends "sentry/admin/base.html" %}
 
+{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
 
@@ -9,11 +10,11 @@
 
 {% block breadcrumb %}
     <li class="divider"></li>
-    <li><a href="{% url sentry-admin-users %}">{% trans "Users" %}</a></li>
+    <li><a href="{% url 'sentry-admin-users' %}">{% trans "Users" %}</a></li>
 {% endblock %}
 
 {% block page_header %}
-    <a href="{% url sentry-admin-new-user %}" class="btn pull-right btn-primary">{% trans "Create a new user" %}</a>
+    <a href="{% url 'sentry-admin-new-user' %}" class="btn pull-right btn-primary">{% trans "Create a new user" %}</a>
     {{ block.super }}
 {% endblock %}
 
@@ -48,7 +49,7 @@
                 {% for user in user_list.paginator.objects %}
                     <tr>
                         <td>
-                            <a href="{% url sentry-admin-edit-user user.pk %}">
+                            <a href="{% url 'sentry-admin-edit-user' user.pk %}">
                                 {{ user.username }}
                             </a>
                             {% if not user.is_active %}

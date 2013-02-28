@@ -2,6 +2,7 @@
 
 {% block admin-nav-stats %} class="active"{% endblock %}
 
+{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
 
@@ -9,7 +10,7 @@
 
 {% block breadcrumb %}
     <li class="divider"></li>
-    <li><a href="{% url sentry-admin-stats %}">{% trans "Stats" %}</a></li>
+    <li><a href="{% url 'sentry-admin-stats' %}">{% trans "Stats" %}</a></li>
 {% endblock %}
 
 {% block inner %}

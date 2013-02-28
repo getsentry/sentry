@@ -1,5 +1,6 @@
 {% extends "sentry/layout.html" %}
 
+{% load url from future %}
 {% load crispy_forms_tags %}
 {% load i18n %}
 
@@ -31,10 +32,10 @@
                     <fieldset class="form-actions">
                         {% if CAN_REGISTER %}
                             <div class="pull-right" style="margin-top: 5px;">
-                                <a href="{% url sentry-register %}">{% trans "Create a new account" %}</a>
+                                <a href="{% url 'sentry-register' %}">{% trans "Create a new account" %}</a>
                             </div>
                         {% endif %}
-                        <button type="submit" class="btn btn-primary">{% trans "Login" %}</button> <a href="{% url sentry-account-recover %}">{% trans "Lose your password?" %}</a>
+                        <button type="submit" class="btn btn-primary">{% trans "Login" %}</button> <a href="{% url 'sentry-account-recover' %}">{% trans "Lose your password?" %}</a>
                     </fieldset>
                 </form>
             </div>
@@ -48,13 +49,13 @@
                                 {% trans "Login using another service" %}
                             {% endif %}
                     </fieldset>
-                    {% url sentry-account-settings-identities as identities_link %}
+                    {% url 'sentry-account-settings-identities' as identities_link %}
                     <p>{% blocktrans with identities_link as link %}If you already have an account, you can associate a social identity in the
                         <a href="{{ link }}">identities</a> page in your account settings (after you login).{% endblocktrans %}</p>
                     <br>
                     <ul class="auth-options">
                         {% for engine in AUTH_PROVIDERS %}
-                            <li><a href="{% url socialauth_begin engine %}" class="auth-{{ engine }}">Sign in with {{ engine|title }}</a></li>
+                            <li><a href="{% url 'socialauth_begin' engine %}" class="auth-{{ engine }}">Sign in with {{ engine|title }}</a></li>
                         {% endfor %}
                     </ul>
                 </div>
