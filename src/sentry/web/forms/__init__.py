@@ -44,8 +44,11 @@ class NewUserForm(BaseUserForm):
 
 
 class ChangeUserForm(BaseUserForm):
+    is_staff = forms.BooleanField(required=False, label=_('Admin'),
+        help_text=_("Designates whether this user can perform administrative functions."))
+
     class Meta:
-        fields = ('first_name', 'username', 'email', 'is_active')
+        fields = ('first_name', 'username', 'email', 'is_active', 'is_staff')
         model = User
 
 
