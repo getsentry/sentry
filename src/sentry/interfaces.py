@@ -301,7 +301,7 @@ class Frame(object):
 
     def get_context(self, event, is_public=False, **kwargs):
         if (self.context_line and self.lineno is not None
-            and (self.pre_context or self.post_context)):
+                and (self.pre_context or self.post_context)):
             context = get_context(
                 lineno=self.lineno,
                 context_line=self.context_line,
