@@ -1,0 +1,84 @@
+{% extends "sentry/admin/base.html" %}
+
+{% load url from future %}
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_admin_helpers %}
+
+{% block title %}{% trans "Manage Teams" %} | {{ block.super }}{% endblock %}
+
+{% block admin-nav-teams %} class="active"{% endblock %}
+
+{% block breadcrumb %}
+    <li class="divider"></li>
+    <li><a href="{% url 'sentry-admin-teams' %}">{% trans "Teams" %}</a></li>
+{% endblock %}
+
+{% block main %}
+    {% paginator team_list from request as team_list per_page 50 %}
+
+    <section class="body">
+        <form class="btn-toolbar" method="GET" action="">
+            <input type="text" name="pquery" value="{% if team_query %}{{ team_query }}{% endif %}" placeholder="search by team name">
+            <div class="btn-group pull-right">
+                <a class="btn prev{% if not team_list.paginator.has_previous %} disabled{% endif %}" href="?{{ team_list.query_string|escape }}&amp;p={{ team_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
+                <a class="btn next{% if not team_list.paginator.has_next %} disabled{% endif %}" href="?{{ team_list.query_string|escape }}&amp;p={{ team_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+            </div>
+        </form>
+
+        {% querystring from request without sort as sort_querystring %}
+
+        {% if team_list.paginator.objects %}
+            <table class="table table-bordered table-striped">
+                <colgroup>
+                    <col>
+                    <col style="width:150px;">
+                    <col style="width:150px;">
+                    <col style="width:150px;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th><a href="?{{ sort_querystring }}&amp;sort=name">{% trans "Team" %}</a></th>
+                        <th style="text-align:center;"><a href="?{{ sort_querystring }}&amp;sort=projects">{% trans "Projects" %}</a></th>
+                        <th style="text-align:center;"><a href="?{{ sort_querystring }}&amp;sort=date">{% trans "Date Added" %}</a></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for team in team_list.paginator.objects %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'sentry-manage-team' team.slug %}"><strong>{{ team.slug }}</strong></a>
+                                <a href="{% url 'sentry' team.slug %}">[dashboard]</a><br/>
+                                {% if team.owner %}
+                                    <small>Owned by <a href="{% url 'sentry-admin-edit-user' team.owner.pk %}">
+                                        {% if team.owner.email %}
+                                            {{ team.owner.email }}
+                                        {% else %}
+                                            {{ team.owner.username }}
+                                        {% endif %}
+                                    </a></smalL>
+                                {% endif %}
+                            </td>
+                            <td style="text-align:center; vertical-align:middle;">
+                                <em>{{ team.num_projects }}</em>
+                            </td>
+                            <td style="text-align:center; vertical-align:middle;">
+                                {{ team.date_added|date }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        {% else %}
+            <p class="alert alert-notice">{% trans "There are no active teams in Sentry." %}</p>
+        {% endif %}
+
+        <div class="btn-toolbar">
+            <div class="btn-group pull-right">
+                <a class="btn prev{% if not team_list.paginator.has_previous %} disabled{% endif %}" href="?{{ team_list.query_string|escape }}&amp;p={{ team_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
+                <a class="btn next{% if not team_list.paginator.has_next %} disabled{% endif %}" href="?{{ team_list.query_string|escape }}&amp;p={{ team_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+            </div>
+        </div>
+    </section>
+{% endblock %}
