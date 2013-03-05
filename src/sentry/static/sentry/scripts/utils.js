@@ -1,4 +1,4 @@
-(function(app, jQuery){
+(function(app, jQuery, _){
     "use strict";
 
     var $ = jQuery;
@@ -169,44 +169,51 @@
             });
         },
 
+        escape: function(str) {
+            return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        },
+
         makeSearchableUsersInput: function(el) {
-            this.makeSearchableInput(el, this.getSearchUsersUrl(), function(data){
+            this.makeSearchableInput(el, this.getSearchUsersUrl(), _.bind(function(data){
                 var results = [];
-                $(data.results).each(function(_, val){
+                $(data.results).each(_.bind(function(_, val){
                     var label;
                     if (val.first_name) {
-                        label = val.first_name + ' &mdash; ' + val.username;
+                        label = this.escape(val.first_name) + ' &mdash; ' + this.escape(val.username);
                     } else {
-                        label = val.username;
+                        label = this.escape(val.username);
                     }
-                    label += '<br>' + val.email;
+                    label += '<br>' + this.escape(val.email);
                     results.push({
                         id: val.username,
                         text: label
                     });
-                });
+                }, this));
 
                 if ($(results).filter(function(){
                     return this.id.localeCompare(data.query) === 0;
                 }).length === 0) {
-                    results.push({id:data.query, text:data.query});
+                    results.push({
+                        id: this.escape(data.query),
+                        text: this.escape(data.query)
+                    });
                 }
 
                 return results;
-            });
+            }, this));
         },
 
         makeSearchableProjectsInput: function(el) {
-            this.makeSearchableInput(el, this.getSearchProjectsUrl(), function(data){
+            this.makeSearchableInput(el, this.getSearchProjectsUrl(), _.bind(function(data){
                 var results = [];
-                $(data.results).each(function(_, val){
+                $(data.results).each(_.bind(function(_, val){
                     results.push({
-                        id: val.slug,
-                        text: val.name + '<br>' + val.slug
+                        id: this.escape(val.slug),
+                        text: this.escape(val.name) + '<br>' + this.escape(val.slug)
                     });
-                });
+                }, this));
                 return results;
-            });
+            }, this));
         }
 
     };
@@ -242,7 +249,7 @@
         }, 5000);
     });
 
-}(app, jQuery));
+}(app, jQuery, _));
 
 /**
  * Date.parse with progressive enhancement for ISO 8601 <https://github.com/csnover/js-iso8601>
