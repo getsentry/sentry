@@ -298,6 +298,8 @@ def validate_data(project, data, client=None):
 
     if not data.get('message'):
         data['message'] = '<no message value>'
+    elif not isinstance(data['message'], basestring):
+        raise APIError('Invalid value for message')
     elif len(data['message']) > MAX_MESSAGE_LENGTH:
         logger.error('Truncated value for message due to length (%d chars)', len(data['message']),
             **client_metadata(client))
