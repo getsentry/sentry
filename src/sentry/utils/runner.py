@@ -40,6 +40,9 @@ DATABASES = {
 # If you're expecting any kind of real traffic on Sentry, we highly recommend configuring
 # the CACHES and Redis settings
 
+# You'll need to install the required dependencies for Memcached:
+#   pip install python-memcached
+#
 # CACHES = {
 #     'default': {
 #         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
@@ -56,6 +59,10 @@ DATABASES = {
 # http://celery.readthedocs.org/en/latest/
 # BROKER_URL = 'redis://localhost:6379'
 
+# You'll need to install the required dependencies for Redis buffers:
+#   pip install redis hiredis nydus
+#
+# SENTRY_BUFFER = 'sentry.buffer.redis.RedisBuffer'
 # SENTRY_REDIS_OPTIONS = {
 #     'hosts': {
 #         0: {
@@ -64,8 +71,6 @@ DATABASES = {
 #         }
 #     }
 # }
-
-# SENTRY_BUFFER = 'sentry.buffer.redis.RedisBuffer'
 
 SENTRY_KEY = %(default_key)r
 

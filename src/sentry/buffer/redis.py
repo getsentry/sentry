@@ -8,6 +8,15 @@ sentry.buffer.redis
 
 from __future__ import with_statement
 
+from django.core.exceptions import ImproperlyConfigured
+
+for package in ('nydus', 'redis'):
+    try:
+        __import__(package, {}, {}, [], -1)
+    except ImportError:
+        raise ImproperlyConfigured('Missing %r package, which is required for Redis buffers' %
+            (package,))
+
 from django.db import models
 from django.utils.encoding import smart_str
 from hashlib import md5
