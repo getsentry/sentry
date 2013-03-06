@@ -249,6 +249,7 @@
         }, 5000);
     });
 
+    $.fn.select2.defaults.escapeMarkup = function(s) { return s; };
 }(app, jQuery, _));
 
 /**
