@@ -168,22 +168,22 @@ class IssuePlugin(Plugin):
                 )
             except forms.ValidationError, e:
                 form.errors['__all__'] = [u'Error creating issue: %s' % e]
-            else:
-                issue_information = {
-                    'title': form.cleaned_data['title'],
-                    'provider': self.get_title(),
-                    'location': self.get_issue_url(group, issue_id),
-                }
-                Activity.objects.create(
-                    project=group.project,
-                    group=group,
-                    type=Activity.CREATE_ISSUE,
-                    user=request.user,
-                    data=issue_information,
-                    )
 
         if form.is_valid():
             GroupMeta.objects.set_value(group, '%s:tid' % prefix, issue_id)
+
+            issue_information = {
+                'title': form.cleaned_data['title'],
+                'provider': self.get_title(),
+                'location': self.get_issue_url(group, issue_id),
+            }
+            Activity.objects.create(
+                project=group.project,
+                group=group,
+                type=Activity.CREATE_ISSUE,
+                user=request.user,
+                data=issue_information,
+                )
 
             return self.redirect(reverse('sentry-group', args=[group.team.slug, group.project_id, group.pk]))
 
