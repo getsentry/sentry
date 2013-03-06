@@ -1005,6 +1005,7 @@ class Activity(Model):
     SET_PUBLIC = 4
     SET_PRIVATE = 5
     SET_REGRESSION = 6
+    CREATE_ISSUE = 7
 
     TYPE = (
         # (TYPE, verb-slug)
@@ -1015,6 +1016,7 @@ class Activity(Model):
         (SET_PUBLIC, 'set_public'),
         (SET_PRIVATE, 'set_private'),
         (SET_REGRESSION, 'set_regression'),
+        (CREATE_ISSUE, 'create_issue'),
     )
 
     project = models.ForeignKey(Project)
