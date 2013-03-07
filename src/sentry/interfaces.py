@@ -341,23 +341,17 @@ class Frame(object):
             })
         return frame_data
 
-    def to_string(self):
-        result = []
-        if self.filename:
-            pieces = ['  File "%s"' % (self.filename,)]
-        elif self.module:
-            pieces = ['  Module "%s"' % (self.module,)]
+    def to_string(self, event):
+        if event.platform is not None:
+            choices = [event.platform]
         else:
-            pieces = ['  ?']
-        if self.lineno is not None:
-            pieces.append(', line %d' % (self.lineno,))
-        if self.function:
-            pieces.append(', in %s' % (self.function,))
-
-        result = ''.join(pieces)
-        if self.context_line is not None:
-            result += '\n    %s' % (self.context_line.strip(),)
-        return result
+            choices = []
+        choices.append('default')
+        templates = ['sentry/partial/frames/%s.txt' % choice
+                      for choice in choices]
+        return render_to_string(templates, {
+            'frame': self
+        }).strip('\n')
 
 
 class Stacktrace(Interface):
@@ -562,7 +556,7 @@ class Stacktrace(Interface):
             result.extend(('(%d additional frame(s) were not displayed)' % (num_frames - visible_frames,), '...'))
 
         for frame in frames[start:stop]:
-            result.append(frame.to_string())
+            result.append(frame.to_string(event))
 
         if newest_first and visible_frames < num_frames:
             result.extend(('...', '(%d additional frame(s) were not displayed)' % (num_frames - visible_frames,)))
