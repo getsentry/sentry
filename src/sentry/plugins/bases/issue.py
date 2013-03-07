@@ -13,6 +13,7 @@ from django.core.urlresolvers import reverse
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from social_auth.models import UserSocialAuth
+from sentry.models import Activity
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
 
@@ -183,7 +184,7 @@ class IssuePlugin(Plugin):
                 type=Activity.CREATE_ISSUE,
                 user=request.user,
                 data=issue_information,
-                )
+            )
 
             return self.redirect(reverse('sentry-group', args=[group.team.slug, group.project_id, group.pk]))
 
