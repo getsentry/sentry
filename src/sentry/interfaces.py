@@ -350,7 +350,13 @@ class Frame(object):
         templates = ['sentry/partial/frames/%s.txt' % choice
                       for choice in choices]
         return render_to_string(templates, {
-            'frame': self
+            'abs_path': self.abs_path,
+            'filename': self.filename,
+            'function': self.function,
+            'module': self.module,
+            'lineno': self.lineno,
+            'colno': self.colno,
+            'context_line': self.context_line,
         }).strip('\n')
 
 

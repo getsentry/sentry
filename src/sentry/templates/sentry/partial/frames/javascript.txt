@@ -1,3 +1,3 @@
 {% autoescape off %}
-  at {{ frame.function }} ({{ frame.filename }}{% if frame.lineno %}:{{ frame.lineno }}{% endif %}{% if frame.colno %}:{{ frame.colno }}{% endif %})
+  at {{ function }} ({{ filename }}{% if lineno %}:{{ lineno }}{% endif %}{% if colno %}:{{ colno }}{% endif %})
 {% endautoescape %}
