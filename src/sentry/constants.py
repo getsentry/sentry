@@ -57,6 +57,12 @@ ORACLE_SORT_CLAUSES.update({
 })
 ORACLE_SCORE_CLAUSES = ORACLE_SORT_CLAUSES.copy()
 
+MSSQL_SORT_CLAUSES = SCORE_CLAUSES.copy()
+MSSQL_SORT_CLAUSES.update({
+    'date': "DATEDIFF(s, '1970-01-01T00:00:00', sentry_groupedmessage.last_seen)",
+    'new': "DATEDIFF(s, '1970-01-01T00:00:00', sentry_groupedmessage.first_seen)",
+})
+MSSQL_SCORE_CLAUSES = MSSQL_SORT_CLAUSES.copy()
 
 SEARCH_SORT_OPTIONS = SortedDict((
     ('score', _('Score')),
