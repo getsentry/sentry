@@ -164,8 +164,8 @@ class NotificationPlugin(Plugin):
 
         allowed_tags = project.get_option('notifcation:tags', {})
         if allowed_tags:
-            tags = event.data.get('tags', {})
-            if not any(v in allowed_tags.get(k) for k, v in tags.iteritems()):
+            tags = event.data.get('tags', ())
+            if not any(v in allowed_tags.get(k) for k, v in tags):
                 return False
         return True
 
