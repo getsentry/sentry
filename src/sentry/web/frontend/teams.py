@@ -149,6 +149,7 @@ def manage_team_projects(request, team):
         return HttpResponseRedirect(reverse('sentry'))
 
     project_list = list(team.project_set.all())
+    project_list.sort(key=lambda o: o.slug)
 
     context = csrf(request)
     context.update({
