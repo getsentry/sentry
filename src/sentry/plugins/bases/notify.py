@@ -167,7 +167,7 @@ class NotificationPlugin(Plugin):
             tags = event.data.get('tags', ())
             if not tags:
                 return False
-            if not any(v in allowed_tags.get(k) for k, v in tags):
+            if not any(v in allowed_tags.get(k, ()) for k, v in tags):
                 return False
         return True
 
