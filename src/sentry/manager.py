@@ -120,7 +120,7 @@ class BaseManager(models.Manager):
             # store pointers
             cache.set(self.__get_lookup_cache_key(**{key: getattr(instance, key)}), pk_val, self.cache_ttl)  # 1 hour
 
-        # Ensure we dont serialize the database into the cache
+        # Ensure we don't serialize the database into the cache
         db = instance._state.db
         instance._state.db = None
         # store actual object
@@ -248,7 +248,7 @@ class ScoreClause(object):
         elif engine.startswith('mysql'):
             sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
         else:
-            # XXX: if we cant do it atomicly let's do it the best we can
+            # XXX: if we cant do it atomically let's do it the best we can
             sql = self.group.get_score()
 
         return (sql, [])
@@ -438,7 +438,7 @@ class GroupManager(BaseManager, ChartMixin):
             **kwargs
         )
 
-        # Calculcate the checksum from the first highest scoring interface
+        # Calculate the checksum from the first highest scoring interface
         if not checksum:
             checksum = get_checksum_from_event(event)
 
@@ -534,7 +534,7 @@ class GroupManager(BaseManager, ChartMixin):
                 extra['message'] = message
 
             if group.status == STATUS_RESOLVED or group.is_over_resolve_age():
-                # Makin things atomic
+                # Making things atomic
                 is_new = bool(self.filter(
                     id=group.id,
                 ).exclude(
