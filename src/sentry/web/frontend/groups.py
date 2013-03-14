@@ -133,7 +133,7 @@ def _get_group_list(request, project):
         event_list = event_list.extra(
             select={'sort_value': score_clause},
         )
-        # HACK: dont sort by the same column twice
+        # HACK: don't sort by the same column twice
         if sort == 'date':
             event_list = event_list.order_by('-last_seen')
         else:

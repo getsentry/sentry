@@ -110,7 +110,7 @@ class RangeQuerySetWrapper(object):
                 if cur_value == last_value:
                     offset += 1
                 else:
-                    # offset needs to be based at 1 so we dont return a row
+                    # offset needs to be based at 1 so we don't return a row
                     # that was already selected
                     last_value = cur_value
                     offset = 1

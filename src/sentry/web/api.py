@@ -216,7 +216,7 @@ class StoreView(APIView):
     The primary endpoint for storing new events.
 
     This will validate the client's authentication and data, and if
-    successfull pass on the payload to the internal database handler.
+    successful pass on the payload to the internal database handler.
 
     Authentication works in three flavors:
 

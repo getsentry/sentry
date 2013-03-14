@@ -90,7 +90,7 @@ def get_context(lineno, context_line, pre_context=None, post_context=None, filen
 
 class Interface(object):
     """
-    An interface is a structured represntation of data, which may
+    An interface is a structured representation of data, which may
     render differently than the default ``extra`` metadata in an event.
     """
 

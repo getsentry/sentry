@@ -5,7 +5,7 @@ sentry.templatetags.sentry_helpers
 :copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-# XXX: Import django-paging's template tags so we dont have to worry about
+# XXX: Import django-paging's template tags so we don't have to worry about
 #      INSTALLED_APPS
 from django import template
 from django.template import RequestContext

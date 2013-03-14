@@ -38,7 +38,7 @@ def group_is_public(group, user):
     verifying if the user should have a restricted view of something they already have access
     to.
     """
-    # if the group isn't public, this check doesnt matter
+    # if the group isn't public, this check doesn't matter
     if not group.is_public:
         return False
     # anonymous users always are viewing as if it were public

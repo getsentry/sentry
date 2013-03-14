@@ -14,7 +14,7 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
     """
     Deletes a portion of the trailing data in Sentry based on
     their creation dates. For example, if ``days`` is 30, this
-    would attempt to clean up all data thats older than 30 days.
+    would attempt to clean up all data that's older than 30 days.
 
     :param project: limit all deletion scopes to messages that are part
                     of the given project

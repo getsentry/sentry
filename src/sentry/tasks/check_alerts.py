@@ -63,7 +63,7 @@ def check_alerts(**kwargs):
     min_date = max_date - timedelta(minutes=MINUTE_NORMALIZATION)
 
     # find each project which has data for the last interval
-    # TODO: we could force more work on the db by eliminating onces which dont have the full aggregate we need
+    # TODO: we could force more work on the db by eliminating onces which don't have the full aggregate we need
     qs = ProjectCountByMinute.objects.filter(
         date__lte=max_date,
         date__gt=min_date,
@@ -112,7 +112,7 @@ def check_project_alerts(project_id, when, count, **kwargs):
         date__gt=min_date,
     ).values_list('times_seen', flat=True))
 
-    # Bail if we dont have enough data points
+    # Bail if we don't have enough data points
     if len(data) != intervals:
         return
 

@@ -62,7 +62,7 @@ You'll likely want to make some changes to the default configuration (we recomme
 Coding Standards
 ----------------
 
-Sentry follows the guidelines layed out in `pep8 <http://www.python.org/dev/peps/pep-0008/>`_  with a little bit
+Sentry follows the guidelines laid out in `pep8 <http://www.python.org/dev/peps/pep-0008/>`_  with a little bit
 of flexibility on things like line length. We always give way for the `Zen of Python <http://www.python.org/dev/peps/pep-0020/>`_. We also use strict mode for JavaScript, enforced by jshint.
 
 You can run all linters with ``make lint``, or respectively ``lint-python`` or ``lint-js``.
@@ -104,7 +104,7 @@ Developing with Django
 
 Because Sentry is just Django, you can use all of the standard Django functionality. The only difference is you'll be accessing commands that would normally go through manage.py using the ``sentry`` CLI helper instead.
 
-For example, you probably don't want to use ``sentry start`` for development, as it doesnt support anything like
+For example, you probably don't want to use ``sentry start`` for development, as it doesn't support anything like
 automatic reloading on code changes. For that you'd want to use the standard builtin ``runserver`` command:
 
 ::

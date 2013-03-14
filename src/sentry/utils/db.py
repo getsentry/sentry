@@ -25,7 +25,7 @@ def get_db_engine(alias='default'):
 
 
 def has_trending(alias='default'):
-    # we only support trend queriess for postgres to db optimization
+    # we only support trend queries for postgres to db optimization
     # issues in mysql, and lack of anything useful in sqlite
     return get_db_engine('default').startswith('postgres')
 
