@@ -55,6 +55,8 @@ __all__ = ('Event', 'Group', 'Project', 'SearchDocument')
 
 def slugify_instance(inst, label, **kwargs):
     base_slug = slugify(label)
+    if not base_slug:
+        base_slug = 'default_%s' % (uuid.uuid4())
     manager = type(inst).objects
     inst.slug = base_slug
     n = 0
