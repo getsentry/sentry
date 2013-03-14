@@ -221,8 +221,8 @@ class Project(Model):
         super(Project, self).save(*args, **kwargs)
 
     def delete(self):
-        # This hadles cascades properly
-        # TODO: this doesnt clean up the index
+        # This handles cascades properly
+        # TODO: this doesn't clean up the index
         for model in (Event, Group, FilterValue, GroupTag, GroupCountByMinute):
             model.objects.filter(project=self).delete()
         super(Project, self).delete()
@@ -723,7 +723,7 @@ class GroupBookmark(Model):
     """
     project = models.ForeignKey(Project, related_name="bookmark_set")  # denormalized
     group = models.ForeignKey(Group, related_name="bookmark_set")
-    # namespace related_name on User since we dont own the model
+    # namespace related_name on User since we don't own the model
     user = models.ForeignKey(User, related_name="sentry_bookmark_set")
 
     objects = BaseManager()

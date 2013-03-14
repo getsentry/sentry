@@ -136,7 +136,7 @@ def fetch_sourcemap(url, logger=None):
 
     body = result.body
     # According to spec (https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.h7yy76c5il9v)
-    # A SouceMap may be prepended with ")]}'" to cause a Javascript error.
+    # A SourceMap may be prepended with ")]}'" to cause a Javascript error.
     # If the file starts with that string, ignore the entire first line.
     if body.startswith(")]}'"):
         body = body.split('\n', 1)[1]

@@ -106,7 +106,7 @@ class RedisBuffer(Buffer):
                     continue
                 extra[key] = pickle.loads(str(value))
 
-        # Filter out empty or zero'd results to avoid a potentially unnescesary update
+        # Filter out empty or zero'd results to avoid a potentially unnecessary update
         results = dict((k, int(v)) for k, v in results.iteritems() if int(v or 0) > 0)
         if not results:
             return

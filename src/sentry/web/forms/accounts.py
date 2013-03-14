@@ -28,7 +28,7 @@ class RegistrationForm(forms.ModelForm):
         value = self.cleaned_data.get('email')
         if not value:
             return
-        # We dont really care about why people think they need multiple User accounts with the same
+        # We don't really care about why people think they need multiple User accounts with the same
         # email address -- dealwithit.jpg
         if User.objects.filter(email__iexact=value).exists():
             raise forms.ValidationError(_('An account is already registered with that email address.'))
@@ -77,7 +77,7 @@ class AccountSettingsForm(forms.Form):
         self.user = user
         super(AccountSettingsForm, self).__init__(*args, **kwargs)
 
-        # HACK: dont require current password if they dont have one
+        # HACK: don't require current password if they don't have one
         if self.user.password in EMPTY_PASSWORD_VALUES:
             del self.fields['old_password']
 

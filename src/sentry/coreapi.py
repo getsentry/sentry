@@ -7,7 +7,7 @@ sentry.coreapi
 """
 # TODO: We should make the API a class, and UDP/HTTP just inherit from it
 #       This will make it so we can more easily control logging with various
-#       metadata (rather than generic log messages which arent useful).
+#       metadata (rather than generic log messages which aren't useful).
 
 from datetime import datetime, timedelta
 import base64
@@ -142,7 +142,7 @@ def project_from_auth_vars(auth_vars):
         except TeamMember.DoesNotExist:
             raise APIUnauthorized('Member does not have access to project')
 
-        # We have to refetch this as it may have been catched
+        # We have to refetch this as it may have been caught
         pk.user = User.objects.get(id=pk.user_id)
         if not pk.user.is_active:
             raise APIUnauthorized('Account is not active')
@@ -177,7 +177,7 @@ def project_from_api_key_and_id(api_key, project_id):
         except TeamMember.DoesNotExist:
             raise APIUnauthorized('Member does not have access to project')
 
-        # We have to refetch this as it may have been catched
+        # We have to refetch this as it may have been caught
         pk.user = User.objects.get(id=pk.user_id)
         if not pk.user.is_active:
             raise APIUnauthorized('Account is not active')
