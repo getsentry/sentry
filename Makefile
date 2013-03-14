@@ -11,6 +11,16 @@ develop: update-submodules
 	pip install "file://`pwd`#egg=sentry[tests]"
 	pip install -e . --use-mirrors
 
+dev-postgres:
+	pip install "file://`pwd`#egg=sentry[dev]"
+	pip install "file://`pwd`#egg=sentry[postgres]"
+	pip install -e . --use-mirrors
+
+dev-mysql:
+	pip install "file://`pwd`#egg=sentry[dev]"
+	pip install "file://`pwd`#egg=sentry[mysql]"
+	pip install -e . --use-mirrors
+
 build: locale
 
 clean:

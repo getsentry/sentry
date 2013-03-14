@@ -66,10 +66,12 @@ install_requires = [
     'django-templatetag-sugar>=0.1.0,<0.2.0',
     'gunicorn>=0.17.2,<0.18.0',
     'logan>=0.5.4,<0.6.0',
+    'nydus>=0.10.0,<0.11.0',
     'Pygments>=1.6.0,<1.7.0',
     'pynliner>=0.4.0,<0.5.0',
     'python-dateutil>=1.5.0,<2.0.0',
     'raven>=3.1.17',
+    'redis>2.7.0,<2.8.0',
     'simplejson>=3.1.0,<3.2.0',
     'South>=0.7.6,<0.8.0',
     'httpagentparser>=1.2.1,<1.3.0',
@@ -77,6 +79,15 @@ install_requires = [
     'django-social-auth-trello>=1.0.3,<1.1.0',
     'setproctitle>=1.1.7,<1.2.0',
 ]
+
+postgres_requires = [
+    'psycopg2>=2.4.0,<2.5.0',
+]
+
+mysql_requires = [
+    'MySQL-python>=1.2.0,<1.3.0',
+]
+
 
 setup(
     name='sentry',
@@ -93,6 +104,8 @@ setup(
     extras_require={
         'tests': tests_require,
         'dev': dev_requires,
+        'postgres': install_requires + postgres_requires,
+        'mysql': install_requires + mysql_requires,
     },
     test_suite='runtests.runtests',
     license='BSD',
