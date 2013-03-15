@@ -19,6 +19,7 @@ from sentry.plugins.bases.notify import NotificationPlugin, NotificationConfigur
 from sentry.utils.cache import cache
 
 import re
+import urlparse
 
 from pynliner import Pynliner
 
@@ -149,7 +150,10 @@ class MailProcessor(NotificationPlugin):
         subject = '[%s] %s: %s' % (project.name.encode('utf-8'), event.get_level_display().upper().encode('utf-8'),
             event.error().encode('utf-8').splitlines()[0])
 
-        link = '%s%s' % (settings.URL_PREFIX,
+        url_prefix = settings.URL_PREFIX
+        parsed = urlparse.urlparse(url_prefix)
+        url_prefix = "%s://%s" % (parsed.scheme, parsed.netloc)
+        link = '%s%s' % (url_prefix,
             reverse('sentry-group', args=[group.team.slug, group.project.slug, group.id]))
 
         body = self.get_plaintext_body(group, event, link, interface_list)
