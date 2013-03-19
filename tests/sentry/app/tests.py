@@ -16,12 +16,6 @@ class AppTest(TestCase):
 
 class GetBufferTest(TestCase):
     @mock.patch('sentry.app.import_string')
-    def test_raises_import_error_on_invalid_path(self, import_string):
-        import_string.return_value = None
-        with self.assertRaises(ImportError):
-            app.get_instance('lol.FooBar', {})
-
-    @mock.patch('sentry.app.import_string')
     def test_instantiates_class_with_options(self, import_string):
         options = {'hello': 'world'}
         path = 'lol.FooBar'
