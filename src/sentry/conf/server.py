@@ -246,6 +246,7 @@ CELERY_DEFAULT_QUEUE = "default"
 CELERY_DEFAULT_EXCHANGE = "default"
 CELERY_DEFAULT_EXCHANGE_TYPE = "direct"
 CELERY_DEFAULT_ROUTING_KEY = "default"
+CELERY_CREATE_MISSING_QUEUES = True
 CELERY_QUEUES = (
     Queue('default', routing_key='default'),
     Queue('alerts', routing_key='alerts'),
