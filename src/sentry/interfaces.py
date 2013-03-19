@@ -265,7 +265,7 @@ class Frame(object):
         else:
             self.colno = None
 
-        self.in_app = bool(in_app)
+        self.in_app = in_app
         self.context_line = context_line
         self.pre_context = pre_context
         self.post_context = post_context
@@ -282,6 +282,8 @@ class Frame(object):
         return is_url(self.abs_path)
 
     def is_valid(self):
+        if self.in_app not in (False, True, None):
+            return False
         return self.filename or self.function or self.module
 
     def get_hash(self):
@@ -506,6 +508,11 @@ class Stacktrace(Interface):
 
         if len(frames) == system_frames:
             system_frames = 0
+
+        # if theres no system frames, pretend they're all part of the app
+        if not system_frames:
+            for frame in frames:
+                frame['in_app'] = True
 
         newest_first = self.is_newest_frame_first(event)
         if newest_first:
