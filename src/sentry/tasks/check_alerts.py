@@ -48,7 +48,9 @@ def fsteps(start, stop, steps):
         start += step
 
 
-@periodic_task(run_every=crontab(minute='*'), queue='alerts')
+@periodic_task(
+    name='sentry.tasks.check_alerts',
+    run_every=crontab(minute='*'), queue='alerts')
 def check_alerts(**kwargs):
     """
     Iterates all current keys and fires additional tasks to check each individual
@@ -79,7 +81,7 @@ def check_alerts(**kwargs):
         )
 
 
-@task(queue='alerts')
+@task(name='sentry.tasks.check_alerts.check_project_alerts', queue='alerts')
 def check_project_alerts(project_id, when, count, **kwargs):
     """
     Given 'when' and 'count', which should signify recent times we compare it to historical data for this project
