@@ -11,15 +11,8 @@ class ModuleProxyCache(dict):
     def __missing__(self, key):
         module_name, class_name = key.rsplit('.', 1)
 
-        try:
-            module = __import__(module_name, {}, {}, [class_name], -1)
-        except ImportError:
-            handler = None
-        else:
-            try:
-                handler = getattr(module, class_name)
-            except AttributeError:
-                handler = None
+        module = __import__(module_name, {}, {}, [class_name], -1)
+        handler = getattr(module, class_name)
 
         # We cache a NoneType for missing imports to avoid repeated lookups
         self[key] = handler
@@ -36,6 +29,4 @@ def import_string(path):
     >>> cls = import_string('sentry.models.Group')
     """
     result = _cache[path]
-    if result is None:
-        raise ImportError('Unable to load module %s' % path)
     return result
