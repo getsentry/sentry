@@ -18,8 +18,6 @@ class State(local):
 
 def get_instance(path, options):
     cls = import_string(path)
-    if cls is None:
-        raise ImportError('Unable to find module %s' % path)
     return cls(**options)
 
 buffer = get_instance(settings.BUFFER, settings.BUFFER_OPTIONS)

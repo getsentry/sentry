@@ -37,5 +37,5 @@ def import_string(path):
     """
     result = _cache[path]
     if result is None:
-        raise ImportError(path)
+        raise ImportError('Unable to load module %s' % path)
     return result
