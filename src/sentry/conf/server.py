@@ -247,6 +247,7 @@ CELERY_DEFAULT_EXCHANGE = "default"
 CELERY_DEFAULT_EXCHANGE_TYPE = "direct"
 CELERY_DEFAULT_ROUTING_KEY = "default"
 CELERY_QUEUES = (
+    Queue('default', routing_key='default'),
     Queue('alerts', routing_key='alerts'),
     Queue('cleanup', routing_key='cleanup'),
     Queue('sourcemaps', routing_key='sourcemaps'),
