@@ -66,6 +66,22 @@ the same command you used to grab virtualenv::
 Don't be worried by the amount of dependencies Sentry has. We have a philosophy of using the right tools for
 the job, and not reinventing them if they already exist.
 
+Using MySQL or Postgres
+~~~~~~~~~~~~~~~~~~~~~~~
+
+We **highly** recommend using PostgreSQL for your database, or MySQL if you have no other choice. The default
+is sqlite and will handle very little load.
+
+These databases require additional packages, but Sentry provides a couple of meta packages to make things easier:
+
+::
+
+  # install sentry and its postgresql dependencies
+  easy_install -UZ sentry[postgres]
+
+  # or if you choose, mysql
+  easy_install -UZ sentry[mysql]
+
 
 Installing from Source
 ~~~~~~~~~~~~~~~~~~~~~~
