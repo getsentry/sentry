@@ -12,7 +12,7 @@ from sentry.utils.safe import safe_execute
 from sentry.utils.queue import maybe_delay
 
 
-@task(queue='triggers')
+@task(name='sentry.tasks.post_process.post_process_group', queue='triggers')
 def post_process_group(group, **kwargs):
     """
     Fires post processing hooks for a group.
@@ -23,7 +23,9 @@ def post_process_group(group, **kwargs):
                 plugin.slug, group=group, **kwargs)
 
 
-@task(queue='triggers')
+@task(
+    name='sentry.tasks.post_process.plugin_post_process_group',
+    queue='triggers')
 def plugin_post_process_group(plugin_slug, group, **kwargs):
     """
     Fires post processing hooks for a group.
