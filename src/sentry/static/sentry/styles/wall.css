@@ -7417,6 +7417,7 @@ ul.traceback {
 }
 .frame p {
   font-size: 12px;
+  margin-bottom: 0;
 }
 .frame p a.annotation {
   color: inherit;
