@@ -60,7 +60,6 @@ This document describes additional configuration options available to the Sentry
 		    'sentry.filters.StatusFilter',
 		    'sentry.filters.LoggerFilter',
 		    'sentry.filters.LevelFilter',
-		    'sentry.filters.ServerNameFilter',
 		)
 
 .. data:: sentry.conf.LOG_LEVELS
