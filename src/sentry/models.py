@@ -115,6 +115,9 @@ class Team(Model):
 
     __repr__ = sane_repr('slug', 'owner_id', 'name')
 
+    def __unicode__(self):
+        return u'%s (%s)' % (self.name, self.slug)
+
     def save(self, *args, **kwargs):
         if not self.slug:
             slugify_instance(self, self.name)
@@ -128,9 +131,6 @@ class Team(Model):
         if self.owner.email:
             return self.owner.email.split('@', 1)[0]
         return self.owner.username
-
-    def __unicode__(self):
-        return u'%s' % self.name
 
 
 class AccessGroup(Model):
@@ -216,6 +216,9 @@ class Project(Model):
         unique_together = (('team', 'slug'),)
 
     __repr__ = sane_repr('team_id', 'slug', 'owner_id')
+
+    def __unicode__(self):
+        return u'%s (%s)' % (self.name, self.slug)
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -317,6 +320,9 @@ class ProjectKey(Model):
     ))
 
     __repr__ = sane_repr('project_id', 'user_id', 'public_key')
+
+    def __unicode__(self):
+        return unicode(self.public_key)
 
     @classmethod
     def generate_api_key(cls):
