@@ -593,11 +593,8 @@ class Group(EventBase):
 
     def get_unique_tags(self, tag):
         return self.grouptag_set.filter(
+            project=self.project,
             key=tag,
-        ).values_list(
-            'value',
-        ).annotate(
-            times_seen=Sum('times_seen'),
         ).values_list(
             'value',
             'times_seen',
