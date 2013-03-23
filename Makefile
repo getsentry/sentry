@@ -30,8 +30,9 @@ locale:
 	cd src/sentry && sentry makemessages -l en
 	cd src/sentry && sentry compilemessages
 
-pull-locale-updates:
+update-transifex:
 	pip install transifex-client
+	tx push -s
 	tx pull -a
 
 compile-bootstrap-js:
