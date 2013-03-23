@@ -24,7 +24,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.signals import user_logged_in
 from django.core.urlresolvers import reverse
 from django.db import models
-from django.db.models import F, Sum
+from django.db.models import F
 from django.db.models.signals import (post_syncdb, post_save, pre_delete,
     class_prepared)
 from django.template.defaultfilters import slugify
@@ -604,7 +604,7 @@ class Group(EventBase):
 
     def get_tags(self):
         if not hasattr(self, '_tag_cache'):
-            tags = sorted(self.grouptag_set.values_list('key', flat=True).distinct())
+            tags = sorted(self.grouptagkey_set.values_list('key', flat=True))
             self._tag_cache = tags
         return self._tag_cache
 
