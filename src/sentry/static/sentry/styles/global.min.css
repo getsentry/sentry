@@ -6873,11 +6873,11 @@ footer .container .contribute {
   margin: 0;
 }
 footer a {
-  color: #88909b;
+  color: #77808d;
   font-weight: bold;
 }
 footer a:hover {
-  color: #fff;
+  color: #333;
 }
 footer .btn {
   -webkit-transition: all 0.2s;

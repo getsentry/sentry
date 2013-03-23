@@ -110,7 +110,8 @@
         <footer>
             <div class="container">
                 {% block footer %}
-                    <div class="contribute">Sentry is open source software <a href="https://github.com/getsentry/sentry" class="btn btn-small">Contribute</a></div>
+                    <div class="contribute">Sentry is <a href="http://en.wikipedia.org/wiki/Open-source_software">Open Source Software</a>
+                        <a href="https://github.com/getsentry/sentry" class="btn btn-small">{% trans "Contribute" %}</a> <a href="https://www.transifex.com/projects/p/sentry/" class="btn btn-small">{% trans "Translate" %}</a></div>
                     <div class="version">Sentry {% sentry_version %}</div>
                     <div class="credits">Created by the <a href="http://code.disqus.com">DISQUS</a> team with <a href="https://github.com/getsentry/sentry/contributors">lots of help</a></div>
                 {% endblock %}
