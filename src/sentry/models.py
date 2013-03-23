@@ -604,7 +604,9 @@ class Group(EventBase):
 
     def get_tags(self):
         if not hasattr(self, '_tag_cache'):
-            tags = sorted(self.grouptagkey_set.values_list('key', flat=True))
+            tags = sorted(self.grouptagkey_set.filter(
+                project=self.project,
+            ).values_list('key', flat=True))
             self._tag_cache = tags
         return self._tag_cache
 
