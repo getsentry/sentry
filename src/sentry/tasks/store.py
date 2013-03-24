@@ -12,12 +12,9 @@ from sentry.conf import settings
 
 @task(name='sentry.tasks.store.preprocess_event', queue='events')
 def preprocess_event(data, **kwargs):
-    from sentry.models import Group
     from sentry.tasks.fetch_source import expand_javascript_source
 
     logger = preprocess_event.get_logger()
-
-    data = Group.objects.normalize_event_data(data)
 
     try:
         if settings.SCRAPE_JAVASCRIPT_CONTEXT and data['platform'] == 'javascript':
