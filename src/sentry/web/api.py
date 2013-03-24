@@ -263,13 +263,18 @@ class StoreView(APIView):
         data = safely_load_json_string(data)
 
         try:
+            # mutates data
             validate_data(project, data, auth.client)
         except InvalidData, e:
             raise APIError(u'Invalid data: %s (%s)' % (unicode(e), type(e)))
 
-        insert_data_to_database(data)
+        # mutates data
+        Group.objects.normalize_event_data(data)
 
         logger.debug('New event from project %s/%s (id=%s)', project.team.slug, project.slug, data['event_id'])
+
+        # mutates data (strips a lot of context if not queued)
+        insert_data_to_database(data)
 
 
 @csrf_exempt
