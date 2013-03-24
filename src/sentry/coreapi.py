@@ -23,7 +23,7 @@ from sentry.conf import settings
 from sentry.exceptions import InvalidTimestamp
 from sentry.models import Project, ProjectKey, TeamMember, Team
 from sentry.plugins import plugins
-from sentry.tasks.store import store_event
+from sentry.tasks.store import preprocess_event
 from sentry.utils import is_float, json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.imports import import_string
@@ -385,4 +385,4 @@ def validate_data(project, data, client=None):
 
 
 def insert_data_to_database(data):
-    store_event.delay(data=data)
+    preprocess_event.delay(data=data)
