@@ -238,6 +238,7 @@ from kombu import Queue
 
 BROKER_URL = "django://"
 
+CELERY_ALWAYS_EAGER = True
 CELERY_IGNORE_RESULT = True
 CELERY_SEND_EVENTS = False
 CELERY_RESULT_BACKEND = None
