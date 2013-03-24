@@ -147,7 +147,9 @@ class MailProcessor(NotificationPlugin):
                 continue
             interface_list.append((interface.get_title(), body))
 
-        subject = '[%s] %s: %s' % (project.name.encode('utf-8'), event.get_level_display().upper().encode('utf-8'),
+        subject = '[%s] %s: %s' % (
+            project.name.encode('utf-8'),
+            unicode(event.get_level_display()).upper().encode('utf-8'),
             event.error().encode('utf-8').splitlines()[0])
 
         link = absolute_uri(reverse('sentry-group', args=[group.team.slug, group.project.slug, group.id]))
