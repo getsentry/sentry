@@ -11,7 +11,7 @@ from sentry.models import Project
 from sentry.exceptions import InvalidTimestamp
 from sentry.coreapi import (project_from_id, project_from_api_key_and_id,
     extract_auth_vars, project_from_auth_vars, APIUnauthorized, APIForbidden,
-    process_data_timestamp, insert_data_to_database, validate_data, INTERFACE_ALIASES)
+    process_data_timestamp, validate_data, INTERFACE_ALIASES)
 from sentry.testutils import TestCase
 
 
@@ -209,15 +209,6 @@ class ProcessDataTimestampTest(BaseAPITest):
         self.assertRaises(InvalidTimestamp, process_data_timestamp, {
             'timestamp': '2052-01-01T10:30:45Z'
         })
-
-
-class InsertDataToDatabaseTest(BaseAPITest):
-    @mock.patch('sentry.models.Group.objects.from_kwargs')
-    def test_insert_data_to_database(self, from_kwargs):
-        insert_data_to_database({
-            'foo': 'bar'
-        })
-        from_kwargs.assert_called_once_with(foo='bar')
 
 
 class ValidateDataTest(BaseAPITest):
