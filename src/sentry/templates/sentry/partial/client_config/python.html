@@ -17,7 +17,7 @@ client.captureMessage('hello world!')
 # {% trans "capture an exception" %}
 try:
     1 / 0
-except DivisionError:
+except ZeroDivisionError:
     client.captureException()</pre>
 
 	<p>{% trans "If you want to wrap a WSGI app to record uncaught exceptions, Raven provides a middleware for that:" %}</p>
