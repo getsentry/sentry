@@ -40,7 +40,6 @@ from sentry.utils.cache import cache, memoize, Lock
 from sentry.utils.dates import get_sql_date_trunc, normalize_datetime
 from sentry.utils.db import get_db_engine, has_charts, attach_foreignkey
 from sentry.utils.models import create_or_update, make_key
-from sentry.utils.queue import maybe_delay
 
 logger = logging.getLogger('sentry.errors')
 
@@ -513,7 +512,7 @@ class GroupManager(BaseManager, ChartMixin):
 
         if settings.USE_SEARCH:
             try:
-                maybe_delay(index_event, event)
+                index_event.delay(event)
             except Exception, e:
                 transaction.rollback_unless_managed(using=group._state.db)
                 logger.exception(u'Error indexing document: %s', e)

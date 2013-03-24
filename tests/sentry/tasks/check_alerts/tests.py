@@ -21,8 +21,8 @@ class BaseTestCase(TestCase):
 
 
 class CheckAlertsTest(BaseTestCase):
-    @mock.patch('sentry.utils.queue.maybe_delay')
-    def test_does_fire_jobs(self, maybe_delay):
+    @mock.patch('sentry.tasks.check_alerts.check_project_alerts')
+    def test_does_fire_jobs(self, check_project_alerts):
         when = timezone.now()
         self.create_counts(when, 50, 5, normalize=False)
 
@@ -31,8 +31,7 @@ class CheckAlertsTest(BaseTestCase):
             check_alerts()
             now.assert_called_once_with()
 
-        maybe_delay.assert_called_once_with(
-            check_project_alerts,
+        check_project_alerts.delay.assert_called_once_with(
             project_id=self.project.id,
             when=when - timedelta(minutes=1),
             count=10,

@@ -42,18 +42,19 @@ class RedisBufferTest(TestCase):
 
     @mock.patch('sentry.buffer.redis.RedisBuffer._make_extra_key', mock.Mock(return_value='extra'))
     @mock.patch('sentry.buffer.redis.RedisBuffer._make_key', mock.Mock(return_value='foo'))
-    @mock.patch('sentry.buffer.base.maybe_async')
-    def test_incr_delays_task(self, maybe_async):
+    @mock.patch('sentry.buffer.base.process_incr')
+    def test_incr_delays_task(self, process_incr):
         model = mock.Mock()
         columns = {'times_seen': 1}
         filters = {'pk': 1}
         self.buf.incr(model, columns, filters)
         kwargs = dict(model=model, columns=columns, filters=filters, extra=None)
-        maybe_async.assert_called_once_with(process_incr, kwargs=kwargs, countdown=5)
+        process_incr.apply_async.assert_called_once_with(
+            kwargs=kwargs, countdown=5)
 
     @mock.patch('sentry.buffer.redis.RedisBuffer._make_extra_key', mock.Mock(return_value='extra'))
     @mock.patch('sentry.buffer.redis.RedisBuffer._make_key', mock.Mock(return_value='foo'))
-    @mock.patch('sentry.buffer.base.maybe_async', mock.Mock())
+    @mock.patch('sentry.buffer.base.process_incr', mock.Mock())
     def test_incr_does_buffer_to_conn(self):
         model = mock.Mock()
         columns = {'times_seen': 1}
@@ -95,7 +96,7 @@ class RedisBufferTest(TestCase):
 
     @mock.patch('sentry.buffer.redis.RedisBuffer._make_extra_key', mock.Mock(return_value='extra'))
     @mock.patch('sentry.buffer.redis.RedisBuffer._make_key', mock.Mock(return_value='foo'))
-    @mock.patch('sentry.buffer.base.maybe_async', mock.Mock())
+    @mock.patch('sentry.buffer.base.process_incr', mock.Mock())
     def test_incr_does_buffer_extra_to_conn(self):
         model = mock.Mock()
         columns = {'times_seen': 1}
