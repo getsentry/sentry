@@ -7,11 +7,10 @@ sentry.processors.base
 """
 
 from sentry.tasks.post_process import post_process_group
-from sentry.utils.queue import maybe_delay
 
 
 __all__ = ('send_group_processors',)
 
 
 def send_group_processors(group, **kwargs):
-    maybe_delay(post_process_group, group=group, **kwargs)
+    post_process_group.delay(group=group, **kwargs)

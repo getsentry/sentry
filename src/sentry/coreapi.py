@@ -27,7 +27,6 @@ from sentry.tasks.store import store_event
 from sentry.utils import is_float, json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.imports import import_string
-from sentry.utils.queue import maybe_delay
 from sentry.utils.strings import decompress
 
 
@@ -386,4 +385,4 @@ def validate_data(project, data, client=None):
 
 
 def insert_data_to_database(data):
-    maybe_delay(store_event, data=data)
+    store_event.delay(data=data)

@@ -17,4 +17,4 @@ class StoreEventTest(TestCase):
     def test_calls_from_kwargs(self, preprocess_event):
         data = {'foo': 'bar'}
         store_event(data=data)
-        preprocess_event.assert_called_once_with(data=data)
+        preprocess_event.delay.assert_called_once_with(data=data)

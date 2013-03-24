@@ -57,7 +57,6 @@ def check_alerts(**kwargs):
     project's alert settings.
     """
     from sentry.models import ProjectCountByMinute
-    from sentry.utils.queue import maybe_delay
 
     now = timezone.now()
     # we want at least a 60 second window of events
@@ -73,7 +72,7 @@ def check_alerts(**kwargs):
     ).values_list('project_id', 'date', 'times_seen')
     for project_id, date, count in qs:
         normalized_count = int(count / ((now - date).seconds / 60))
-        maybe_delay(check_project_alerts,
+        check_project_alerts.delay(
             project_id=project_id,
             when=max_date,
             count=normalized_count,

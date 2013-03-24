@@ -9,7 +9,6 @@ sentry.buffer.base
 from django.db.models import F
 from sentry.signals import buffer_incr_complete
 from sentry.tasks.process_buffer import process_incr
-from sentry.utils.queue import maybe_async
 
 
 class Buffer(object):
@@ -32,7 +31,7 @@ class Buffer(object):
         """
         >>> incr(Group, columns={'times_seen': 1}, filters={'pk': group.pk})
         """
-        maybe_async(process_incr, kwargs={
+        process_incr.apply_async(kwargs={
             'model': model,
             'columns': columns,
             'filters': filters,

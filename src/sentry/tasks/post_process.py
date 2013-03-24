@@ -9,7 +9,6 @@ sentry.tasks.post_process
 from celery.task import task
 from sentry.plugins import plugins
 from sentry.utils.safe import safe_execute
-from sentry.utils.queue import maybe_delay
 
 
 @task(name='sentry.tasks.post_process.post_process_group', queue='triggers')
@@ -19,8 +18,7 @@ def post_process_group(group, **kwargs):
     """
     for plugin in plugins.all():
         if safe_execute(plugin.is_enabled, group.project):
-            maybe_delay(plugin_post_process_group,
-                plugin.slug, group=group, **kwargs)
+            plugin_post_process_group.delay(plugin.slug, group=group, **kwargs)
 
 
 @task(

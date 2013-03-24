@@ -14,7 +14,6 @@ from sentry.conf import settings
 def preprocess_event(data, **kwargs):
     from sentry.models import Group
     from sentry.tasks.fetch_source import expand_javascript_source
-    from sentry.utils.queue import maybe_delay
 
     logger = preprocess_event.get_logger()
 
@@ -27,7 +26,7 @@ def preprocess_event(data, **kwargs):
             except Exception, e:
                 logger.exception(u'Error fetching javascript source: %s', e)
     finally:
-        maybe_delay(save_event, data=data)
+        save_event.delay(data=data)
 
 
 @task(name='sentry.tasks.store.save_event', queue='events')
@@ -47,6 +46,4 @@ def store_event(data, **kwargs):
 
     Deprecated.
     """
-    from sentry.utils.queue import maybe_delay
-
-    maybe_delay(preprocess_event, data=data)
+    preprocess_event.delay(data=data)
