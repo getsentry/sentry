@@ -24,7 +24,7 @@ ACTIVITY_ACTION_STRINGS = {
     Activity.SET_PUBLIC: 'made this event public',
     Activity.SET_PRIVATE: 'made this event private',
     Activity.SET_REGRESSION: 'marked this event as a regression',
-    Activity.CREATE_ISSUE: 'created an issue on {provider:s} titled <a href="{location:s}">{title:s}</a>',
+    Activity.CREATE_ISSUE: u'created an issue on {provider:s} titled <a href="{location:s}">{title:s}</a>',
 }
 
 
