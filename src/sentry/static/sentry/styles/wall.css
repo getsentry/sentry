@@ -7198,7 +7198,7 @@ ul.tag-list li {
 }
 .group-list > li .message,
 .events > li .message {
-  color: #868f99;
+  color: #777;
   margin-bottom: 0;
   font-size: 14px;
   padding-right: 24px;
