@@ -31,8 +31,10 @@ def get_key_context(user, project):
     except ProjectKey.DoesNotExist:
         if can_see_global_keys(user, project):
             key_list = list(ProjectKey.objects.filter(project=project, user__isnull=True)[0:2])
-        if len(key_list) == 1:
-            key = key_list[0]
+            if len(key_list) == 1:
+                key = key_list[0]
+            else:
+                key = None
         else:
             key = None
 
