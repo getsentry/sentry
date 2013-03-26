@@ -7176,10 +7176,10 @@ ul.tag-list li {
 .group-list > li .meta a,
 .events > li .meta a {
   color: inherit;
-  text-decoration: underline;
 }
 .group-list > li .meta a:hover,
 .events > li .meta a:hover {
+  text-decoration: underline;
   color: #000;
 }
 .group-list > li .tag,
