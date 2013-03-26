@@ -7236,7 +7236,7 @@ ul.tag-list li {
 .events > li .sparkline {
   position: absolute;
   right: 50px;
-  top: 25px;
+  top: 18px;
   display: inline-block;
   width: 100px;
   height: 52px;

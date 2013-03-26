@@ -6256,7 +6256,7 @@ h3 {
   -webkit-box-shadow: none;
   -moz-box-shadow: none;
   box-shadow: none;
-  height: 70px;
+  height: 60px;
 }
 .navbar .navbar-inner:before,
 .navbar .navbar-inner:after {
@@ -6276,9 +6276,9 @@ h3 {
   font-weight: bold;
   float: left;
   display: block;
-  width: 73px;
+  width: 63px;
   height: 25px;
-  margin: 15px 0 0;
+  margin: 10px 0 0;
   letter-spacing: -1px;
   text-decoration: none;
 }
@@ -6313,10 +6313,10 @@ h3 {
   font-size: 16px;
   font-weight: bold;
   color: #8f97a3;
-  height: 70px;
+  height: 60px;
   width: 120px;
   text-align: center;
-  line-height: 70px;
+  line-height: 60px;
   -webkit-box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.15);
   -moz-box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.15);
   box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.15);
@@ -6326,7 +6326,7 @@ h3 {
 }
 .navbar #team-nav ul li.active a {
   color: #737d8c;
-  height: 71px;
+  height: 61px;
   background: #dee3e9;
   -webkit-box-shadow: none;
   -moz-box-shadow: none;
@@ -6338,7 +6338,7 @@ h3 {
   box-shadow: inset 1px 0 0 rgba(0,0,0, .15);
 }
 .navbar .nav {
-  margin: 12px 0 0 10px;
+  margin: 7px 0 0 10px;
 }
 .navbar .nav > li {
   margin: 0 0 0 35px;
@@ -6450,21 +6450,22 @@ h3 {
 }
 .toolbar .breadcrumb .projects .project-shortcut {
   position: absolute;
-  top: -3px;
+  right: 32px;
   left: 0;
-  width: 188px;
-  height: 28px;
-  z-index: 2;
-}
-.toolbar .breadcrumb .projects .project-shortcut:after {
-  content: "";
+  height: 100%;
+  z-index: 10001;
   display: block;
-  position: absolute;
-  width: 2px;
-  top: 2px;
-  right: 0;
-  bottom: 2px;
-  background: #f3f5f7;
+  height: 28px;
+  top: -3px;
+  line-height: 28px;
+  padding-left: 11px;
+  -webkit-border-radius: 3px 0 0 3px;
+  -moz-border-radius: 3px 0 0 3px;
+  border-radius: 3px 0 0 3px;
+}
+.toolbar .breadcrumb .projects .project-shortcut:hover {
+  color: #000 !important;
+  background: #f9f9f9;
 }
 .toolbar .breadcrumb .projects.filter {
   margin: 0 5px 0;
@@ -6473,10 +6474,56 @@ h3 {
   height: 28px;
   line-height: 28px;
   top: -3px;
-  padding: 0 0 0 11px;
+  padding: 0 0 0 0;
+  z-index: 1000;
   -webkit-box-shadow: 0 2px 0 rgba(185, 200, 215, 0.26);
   -moz-box-shadow: 0 2px 0 rgba(185, 200, 215, 0.26);
   box-shadow: 0 2px 0 rgba(185, 200, 215, 0.26);
+}
+.toolbar .breadcrumb .select2-container .select2-choice span {
+  padding: 0 0 0 11px;
+  margin-right: 35px;
+  -webkit-border-radius: 3px 0 0 3px;
+  -moz-border-radius: 3px 0 0 3px;
+  border-radius: 3px 0 0 3px;
+}
+.toolbar .breadcrumb .select2-container .select2-choice div > b:hover {
+  color: #000 !important;
+  background: #f9f9f9;
+}
+.toolbar .breadcrumb .select2-container .select2-choice div {
+  width: 32px;
+  right: 0;
+  top: 0;
+  -webkit-border-radius: 0 3px 3px 0;
+  -moz-border-radius: 0 3px 3px 0;
+  border-radius: 0 3px 3px 0;
+  z-index: 1000;
+}
+.toolbar .breadcrumb .select2-container .select2-choice div > b {
+  line-height: 28px;
+  display: block;
+  -webkit-border-radius: 0 3px 3px 0;
+  -moz-border-radius: 0 3px 3px 0;
+  border-radius: 0 3px 3px 0;
+}
+.toolbar .breadcrumb .select2-container .select2-choice div > b:before {
+  -webkit-border-radius: 0 3px 3px 0;
+  -moz-border-radius: 0 3px 3px 0;
+  border-radius: 0 3px 3px 0;
+  position: absolute;
+  line-height: 26px;
+  text-align: center;
+  display: block;
+  width: 30px;
+  border-left: 2px solid #ccc;
+  /** i have no idea how css works **/
+
+  left: 0;
+  right: 2px;
+  padding-right: 2px;
+  bottom: 2px;
+  top: 2px;
 }
 .toolbar .breadcrumb .select2-dropdown-open .select2-choice {
   -webkit-box-shadow: 0 0 0 2px #a7aeb7;
@@ -6873,11 +6920,11 @@ footer .container .contribute {
   margin: 0;
 }
 footer a {
-  color: #88909b;
+  color: #77808d;
   font-weight: bold;
 }
 footer a:hover {
-  color: #fff;
+  color: #333;
 }
 footer .btn {
   -webkit-transition: all 0.2s;
@@ -7050,10 +7097,10 @@ ul.tag-list li {
 }
 .group-list > li,
 .events > li {
-  padding: 15px 30px 15px 120px;
+  padding: 10px 30px 10px 110px;
   position: relative;
   border-bottom: 2px solid #f2f4f7;
-  min-height: 70px;
+  min-height: 60px;
   /* count height */
 
 }
@@ -7098,8 +7145,9 @@ ul.tag-list li {
 .group-list > li h3,
 .events > li h3 {
   margin: 0;
-  font-size: 20px;
-  font-weight: normal;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: bold;
   width: 85%;
   white-space: nowrap;
   overflow: hidden;
@@ -7108,6 +7156,10 @@ ul.tag-list li {
 .group-list > li h3 a,
 .events > li h3 a {
   color: #465262;
+}
+.group-list > li h3 a:hover,
+.events > li h3 a:hover {
+  color: #000;
 }
 .group-list > li h3 span,
 .events > li h3 span {
@@ -7120,16 +7172,16 @@ ul.tag-list li {
 .events > li .count {
   color: #fff;
   position: absolute;
-  left: 28px;
-  width: 70px;
-  height: 70px;
+  left: 23px;
+  width: 60px;
+  height: 60px;
+  -webkit-border-radius: 60px;
+  -moz-border-radius: 60px;
+  border-radius: 60px;
+  line-height: 60px;
   background: #cfd3da;
-  -webkit-border-radius: 70px;
-  -moz-border-radius: 70px;
-  border-radius: 70px;
-  line-height: 70px;
   text-align: center;
-  font-size: 19px;
+  font-size: 17px;
   font-weight: bold;
   letter-spacing: -1px;
   overflow: hidden;
@@ -7148,7 +7200,7 @@ ul.tag-list li {
 .events > li .message {
   color: #868f99;
   margin-bottom: 0;
-  font-size: 15px;
+  font-size: 14px;
   padding-right: 24px;
   white-space: nowrap;
   overflow: hidden;
@@ -7161,7 +7213,16 @@ ul.tag-list li {
 .group-list > li .meta,
 .events > li .meta {
   color: #b6bcc2;
-  font-size: 13px;
+  font-size: 12px;
+}
+.group-list > li .meta a,
+.events > li .meta a {
+  color: inherit;
+}
+.group-list > li .meta a:hover,
+.events > li .meta a:hover {
+  text-decoration: underline;
+  color: #000;
 }
 .group-list > li .tag,
 .events > li .tag {
@@ -7175,7 +7236,7 @@ ul.tag-list li {
 .events > li .sparkline {
   position: absolute;
   right: 50px;
-  top: 25px;
+  top: 18px;
   display: inline-block;
   width: 100px;
   height: 52px;
@@ -7190,7 +7251,7 @@ ul.tag-list li {
 .events > li .actions {
   position: absolute;
   right: 20px;
-  top: 25px;
+  top: 17px;
   list-style-type: none;
   margin: 0;
   padding: 0;
