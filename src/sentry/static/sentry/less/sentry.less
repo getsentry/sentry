@@ -261,20 +261,20 @@ h3 {
       position: relative;
       .project-shortcut {
         position: absolute;
-        top: -3px;
+        right: 32px;
         left: 0;
-        width: 188px;
+        height: 100%;
+        z-index: 10001;
+        display: block;
         height: 28px;
-        z-index: 2;
-        &:after {
-          content: "";
-          display: block;
-          position: absolute;
-          width: 2px;
-          top: 2px;
-          right: 0;
-          bottom: 2px;
-          background: lighten(#dee3e9, 7);
+        top: -3px;
+        line-height: 28px;
+        padding-left: 11px;
+        .border-radius(3px 0 0 3px);
+
+        &:hover {
+          color: #000 !important;
+          background: #f9f9f9;
         }
       }
     }
@@ -287,8 +287,48 @@ h3 {
       height: 28px;
       line-height: 28px;
       top: -3px;
-      padding: 0 0 0 11px;
+      padding: 0 0 0 0;
+      z-index: 1000;
       .box-shadow(0 2px 0 rgba(185, 200, 215, .26));
+
+      span {
+        padding: 0 0 0 11px;
+        margin-right: 35px;
+        .border-radius(3px 0 0 3px);
+      }
+
+      div > b:hover {
+        color: #000 !important;
+        background: #f9f9f9;
+      }
+
+      div {
+        width: 32px;
+        right: 0;
+        top: 0;
+        .border-radius(0 3px 3px 0);
+        z-index: 1000;
+        > b {
+          line-height: 28px;
+          display: block;
+          .border-radius(0 3px 3px 0);
+          &:before {
+            .border-radius(0 3px 3px 0);
+            position: absolute;
+            line-height: 26px;
+            text-align: center;
+            display: block;
+            width: 30px;
+            border-left: 2px solid #ccc;
+            /** i have no idea how css works **/
+            left: 0;
+            right: 2px;
+            padding-right: 2px;
+            bottom: 2px;
+            top: 2px;
+          }
+        }
+      }
     }
 
     .select2-dropdown-open .select2-choice {

@@ -6450,21 +6450,22 @@ h3 {
 }
 .toolbar .breadcrumb .projects .project-shortcut {
   position: absolute;
-  top: -3px;
+  right: 32px;
   left: 0;
-  width: 188px;
-  height: 28px;
-  z-index: 2;
-}
-.toolbar .breadcrumb .projects .project-shortcut:after {
-  content: "";
+  height: 100%;
+  z-index: 10001;
   display: block;
-  position: absolute;
-  width: 2px;
-  top: 2px;
-  right: 0;
-  bottom: 2px;
-  background: #f3f5f7;
+  height: 28px;
+  top: -3px;
+  line-height: 28px;
+  padding-left: 11px;
+  -webkit-border-radius: 3px 0 0 3px;
+  -moz-border-radius: 3px 0 0 3px;
+  border-radius: 3px 0 0 3px;
+}
+.toolbar .breadcrumb .projects .project-shortcut:hover {
+  color: #000 !important;
+  background: #f9f9f9;
 }
 .toolbar .breadcrumb .projects.filter {
   margin: 0 5px 0;
@@ -6473,10 +6474,56 @@ h3 {
   height: 28px;
   line-height: 28px;
   top: -3px;
-  padding: 0 0 0 11px;
+  padding: 0 0 0 0;
+  z-index: 1000;
   -webkit-box-shadow: 0 2px 0 rgba(185, 200, 215, 0.26);
   -moz-box-shadow: 0 2px 0 rgba(185, 200, 215, 0.26);
   box-shadow: 0 2px 0 rgba(185, 200, 215, 0.26);
+}
+.toolbar .breadcrumb .select2-container .select2-choice span {
+  padding: 0 0 0 11px;
+  margin-right: 35px;
+  -webkit-border-radius: 3px 0 0 3px;
+  -moz-border-radius: 3px 0 0 3px;
+  border-radius: 3px 0 0 3px;
+}
+.toolbar .breadcrumb .select2-container .select2-choice div > b:hover {
+  color: #000 !important;
+  background: #f9f9f9;
+}
+.toolbar .breadcrumb .select2-container .select2-choice div {
+  width: 32px;
+  right: 0;
+  top: 0;
+  -webkit-border-radius: 0 3px 3px 0;
+  -moz-border-radius: 0 3px 3px 0;
+  border-radius: 0 3px 3px 0;
+  z-index: 1000;
+}
+.toolbar .breadcrumb .select2-container .select2-choice div > b {
+  line-height: 28px;
+  display: block;
+  -webkit-border-radius: 0 3px 3px 0;
+  -moz-border-radius: 0 3px 3px 0;
+  border-radius: 0 3px 3px 0;
+}
+.toolbar .breadcrumb .select2-container .select2-choice div > b:before {
+  -webkit-border-radius: 0 3px 3px 0;
+  -moz-border-radius: 0 3px 3px 0;
+  border-radius: 0 3px 3px 0;
+  position: absolute;
+  line-height: 26px;
+  text-align: center;
+  display: block;
+  width: 30px;
+  border-left: 2px solid #ccc;
+  /** i have no idea how css works **/
+
+  left: 0;
+  right: 2px;
+  padding-right: 2px;
+  bottom: 2px;
+  top: 2px;
 }
 .toolbar .breadcrumb .select2-dropdown-open .select2-choice {
   -webkit-box-shadow: 0 0 0 2px #a7aeb7;

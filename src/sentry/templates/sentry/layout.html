@@ -60,7 +60,9 @@
                             <li><a href="{% url 'sentry' %}" class="dashboard-btn" title="{% trans "Dashboard" %}"><i aria-hidden="true" class="icon-list"></i></a></li>
                             <li class="projects">
                                 {% if project %}
-                                    <a href="{% url 'sentry-stream' project.team.slug project.slug %}" class="project-shortcut"></a>
+                                    <a href="{% url 'sentry-stream' project.team.slug project.slug %}" class="project-shortcut">
+                                        {{ project.name }}
+                                    </a>
                                 {% endif %}
                                 <select class="project-selector" data-placeholder="{% trans "Select a Project" %}">
                                     <option value=""></option>
