@@ -7050,7 +7050,6 @@ ul.tag-list li {
 }
 .group-list > li,
 .events > li {
-  border-left: 10px solid #f2f4f7;
   padding: 10px 30px 10px 110px;
   position: relative;
   border-bottom: 2px solid #f2f4f7;
@@ -7068,10 +7067,6 @@ ul.tag-list li {
 .group-list > li:first-child,
 .events > li:first-child {
   border-top-width: 1px;
-}
-.group-list > li:hover,
-.events > li:hover {
-  border-left-color: #d6d9e0;
 }
 .group-list > li:hover .actions a,
 .events > li:hover .actions a {
