@@ -6256,7 +6256,7 @@ h3 {
   -webkit-box-shadow: none;
   -moz-box-shadow: none;
   box-shadow: none;
-  height: 70px;
+  height: 60px;
 }
 .navbar .navbar-inner:before,
 .navbar .navbar-inner:after {
@@ -6276,9 +6276,9 @@ h3 {
   font-weight: bold;
   float: left;
   display: block;
-  width: 73px;
+  width: 63px;
   height: 25px;
-  margin: 15px 0 0;
+  margin: 10px 0 0;
   letter-spacing: -1px;
   text-decoration: none;
 }
@@ -6313,10 +6313,10 @@ h3 {
   font-size: 16px;
   font-weight: bold;
   color: #8f97a3;
-  height: 70px;
+  height: 60px;
   width: 120px;
   text-align: center;
-  line-height: 70px;
+  line-height: 60px;
   -webkit-box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.15);
   -moz-box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.15);
   box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.15);
@@ -6326,7 +6326,7 @@ h3 {
 }
 .navbar #team-nav ul li.active a {
   color: #737d8c;
-  height: 71px;
+  height: 61px;
   background: #dee3e9;
   -webkit-box-shadow: none;
   -moz-box-shadow: none;
@@ -6338,7 +6338,7 @@ h3 {
   box-shadow: inset 1px 0 0 rgba(0,0,0, .15);
 }
 .navbar .nav {
-  margin: 12px 0 0 10px;
+  margin: 7px 0 0 10px;
 }
 .navbar .nav > li {
   margin: 0 0 0 35px;
