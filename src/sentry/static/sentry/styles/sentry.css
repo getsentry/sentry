@@ -7050,10 +7050,11 @@ ul.tag-list li {
 }
 .group-list > li,
 .events > li {
-  padding: 15px 30px 15px 120px;
+  border-left: 10px solid #f2f4f7;
+  padding: 10px 30px 10px 110px;
   position: relative;
   border-bottom: 2px solid #f2f4f7;
-  min-height: 70px;
+  min-height: 60px;
   /* count height */
 
 }
@@ -7067,6 +7068,10 @@ ul.tag-list li {
 .group-list > li:first-child,
 .events > li:first-child {
   border-top-width: 1px;
+}
+.group-list > li:hover,
+.events > li:hover {
+  border-left-color: #d6d9e0;
 }
 .group-list > li:hover .actions a,
 .events > li:hover .actions a {
@@ -7098,8 +7103,9 @@ ul.tag-list li {
 .group-list > li h3,
 .events > li h3 {
   margin: 0;
-  font-size: 20px;
-  font-weight: normal;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: bold;
   width: 85%;
   white-space: nowrap;
   overflow: hidden;
@@ -7108,6 +7114,10 @@ ul.tag-list li {
 .group-list > li h3 a,
 .events > li h3 a {
   color: #465262;
+}
+.group-list > li h3 a:hover,
+.events > li h3 a:hover {
+  color: #000;
 }
 .group-list > li h3 span,
 .events > li h3 span {
@@ -7120,16 +7130,16 @@ ul.tag-list li {
 .events > li .count {
   color: #fff;
   position: absolute;
-  left: 28px;
-  width: 70px;
-  height: 70px;
+  left: 23px;
+  width: 60px;
+  height: 60px;
+  -webkit-border-radius: 60px;
+  -moz-border-radius: 60px;
+  border-radius: 60px;
+  line-height: 60px;
   background: #cfd3da;
-  -webkit-border-radius: 70px;
-  -moz-border-radius: 70px;
-  border-radius: 70px;
-  line-height: 70px;
   text-align: center;
-  font-size: 19px;
+  font-size: 17px;
   font-weight: bold;
   letter-spacing: -1px;
   overflow: hidden;
@@ -7148,7 +7158,7 @@ ul.tag-list li {
 .events > li .message {
   color: #868f99;
   margin-bottom: 0;
-  font-size: 15px;
+  font-size: 14px;
   padding-right: 24px;
   white-space: nowrap;
   overflow: hidden;
@@ -7161,7 +7171,16 @@ ul.tag-list li {
 .group-list > li .meta,
 .events > li .meta {
   color: #b6bcc2;
-  font-size: 13px;
+  font-size: 12px;
+}
+.group-list > li .meta a,
+.events > li .meta a {
+  color: inherit;
+  text-decoration: underline;
+}
+.group-list > li .meta a:hover,
+.events > li .meta a:hover {
+  color: #000;
 }
 .group-list > li .tag,
 .events > li .tag {
@@ -7190,7 +7209,7 @@ ul.tag-list li {
 .events > li .actions {
   position: absolute;
   right: 20px;
-  top: 25px;
+  top: 17px;
   list-style-type: none;
   margin: 0;
   padding: 0;

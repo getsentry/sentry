@@ -849,10 +849,11 @@ ul.tag-list {
 
   > li {
     position: relative;
-    padding: 15px 30px 15px 120px;
+    border-left: 10px solid #f2f4f7;
+    padding: 10px 30px 10px 110px;
     position: relative;
     border-bottom: 2px solid #f2f4f7;
-    min-height: 70px; /* count height */
+    min-height: 60px; /* count height */
 
     a {
       .transition(none);
@@ -863,6 +864,7 @@ ul.tag-list {
     }
 
     &:hover {
+      border-left-color: darken(#e7e9ed, 6);
       .actions a {
         color: darken(#e7e9ed, 6);
       }
@@ -895,8 +897,9 @@ ul.tag-list {
 
     h3 {
       margin: 0;
-      font-size: 20px;
-      font-weight: normal;
+      font-size: 16px;
+      line-height: 20px;
+      font-weight: bold;
       width: 85%;
       white-space: nowrap;
       overflow: hidden;
@@ -904,6 +907,9 @@ ul.tag-list {
 
       a {
         color: #465262;
+        &:hover {
+          color: #000;
+        }
       }
       span {
         margin-left: 10px;
@@ -915,13 +921,13 @@ ul.tag-list {
     .count {
       color: #fff;
       position: absolute;
-      left: 28px;
-      .square(70px);
+      left: 23px;
+      .square(60px);
+      .border-radius(60px);
+      line-height: 60px;
       background: #cfd3da;
-      .border-radius(70px);
-      line-height: 70px;
       text-align: center;
-      font-size: 19px;
+      font-size: 17px;
       font-weight: bold;
       letter-spacing: -1px;
       overflow: hidden;
@@ -939,7 +945,7 @@ ul.tag-list {
     .message {
       color: #868f99;
       margin-bottom: 0;
-      font-size: 15px;
+      font-size: 14px;
       padding-right: 24px;
       white-space: nowrap;
       overflow: hidden;
@@ -952,7 +958,14 @@ ul.tag-list {
 
     .meta {
       color: #b6bcc2;
-      font-size: 13px;
+      font-size: 12px;
+      a {
+        color: inherit;
+        text-decoration: underline;
+        &:hover {
+          color: #000;
+        }
+      }
     }
 
     .tag {
@@ -978,7 +991,7 @@ ul.tag-list {
     .actions {
       position: absolute;
       right: 20px;
-      top: 25px;
+      top: 17px;
       list-style-type: none;
       margin: 0;
       padding: 0;
