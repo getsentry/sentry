@@ -150,6 +150,8 @@ def manage_team_projects(request, team):
 
     project_list = list(team.project_set.all())
     project_list.sort(key=lambda o: o.slug)
+    for project in project_list:
+        project.team = team
 
     context = csrf(request)
     context.update({
@@ -241,10 +243,14 @@ def accept_invite(request, member_id, token):
 
     team = pending_member.team
 
+    project_list = list(team.project_set.filter(status=0))
+    for project in project_list:
+        project.team = team
+
     context = {
         'team': team,
         'team_owner': team.get_owner_name(),
-        'project_list': list(team.project_set.filter(status=0)),
+        'project_list': project_list,
     }
 
     if not request.user.is_authenticated():
@@ -626,12 +632,16 @@ def access_group_projects(request, team, group_id):
 
         return HttpResponseRedirect(reverse('sentry-access-group-projects', args=[team.slug, group.id]))
 
+    group_list = list(AccessGroup.objects.filter(team=team))
+    for group in group_list:
+        group.team = team
+
     context = csrf(request)
     context.update({
         'group': group,
         'form': form,
         'project_list': group.projects.all(),
-        'group_list': AccessGroup.objects.filter(team=team),
+        'group_list': group_list,
         'page': 'projects',
         'SUBSECTION': 'groups',
     })
