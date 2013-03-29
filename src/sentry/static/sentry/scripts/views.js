@@ -19,8 +19,8 @@
 
         render: function(){
             var data = this.model.toJSON();
-            data.loggerUrl = app.config.urlPrefix + '/' + app.config.team +
-                '/' + app.config.project + '/?logger=' + data.logger;
+            data.loggerUrl = app.config.urlPrefix + '/' + app.config.teamId +
+                '/' + app.config.projectId + '/?logger=' + data.logger;
 
             this.$el.html(this.template(data));
             this.$el.attr('data-id', this.model.id);
