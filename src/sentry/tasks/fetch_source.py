@@ -101,7 +101,8 @@ def fetch_url(url, logger=None):
     """
     import sentry
 
-    cache_key = 'fetch_url:v2:%s' % (hashlib.md5(url).hexdigest(),)
+    cache_key = 'fetch_url:v2:%s' % (
+        hashlib.md5(url.encode('utf-8')).hexdigest(),)
     result = cache.get(cache_key)
     if result is not None:
         return UrlResult(*result)
