@@ -18,9 +18,9 @@
         <li><a href="{% url 'sentry' %}" class="dashboard-btn" title="{% trans "Dashboard" %}">
             <i aria-hidden="true" class="icon-list"></i>
         </a></li>
-        <li class="divider"></li>
-        <li><a href="{% url 'sentry-team-list' %}">{% trans "Teams" %}</a></li>
         {% block breadcrumb %}
+            <li class="divider"></li>
+            <li><a href="{% url 'sentry-team-list' %}">{% trans "Teams" %}</a></li>
         {% endblock %}
     </ul>
 {% endblock %}

@@ -1118,6 +1118,10 @@ class Alert(Model):
         return alert
 
     @property
+    def team(self):
+        return self.project.team
+
+    @property
     def is_resolved(self):
         return (self.status == STATUS_RESOLVED
                 or self.datetime < timezone.now() - timedelta(minutes=60))

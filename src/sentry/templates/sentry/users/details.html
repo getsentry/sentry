@@ -10,7 +10,7 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider"></li>
-    <li><a href="{% url 'sentry-user-details' project.slug tuser.id %}">{{ tuser.email }}</a></li>
+    <li><a href="{% url 'sentry-user-details' team.slug tuser.id %}">{{ tuser.email }}</a></li>
 {% endblock %}
 
 {% block bodyclass %} with-sidebar{% endblock %}

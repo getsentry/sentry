@@ -1,4 +1,4 @@
-{% extends "sentry/bases/team.html" %}
+{% extends "sentry/teams/base.html" %}
 
 {% load url from future %}
 {% load i18n %}
@@ -10,7 +10,6 @@
 {% block bodyclass %}{% endblock %}
 
 {% block breadcrumb %}
-    {{ block.super }}
     <li class="divider"></li>
     <li><a href="{% url 'sentry-users' team.slug %}">{% trans "Users" %}</a></li>
 {% endblock %}
