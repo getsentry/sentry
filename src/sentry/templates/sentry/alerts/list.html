@@ -11,7 +11,7 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider"></li>
-    <li><a href="{% url 'sentry-project-alerts' project.team.slug project.slug %}">{% trans "Alerts" %}</a></li>
+    <li><a href="{% url 'sentry-alerts' project.team.slug project.slug %}">{% trans "Alerts" %}</a></li>
 {% endblock %}
 
 {% block main %}
@@ -23,7 +23,7 @@
         <ul>
             {% for alert in alert_list %}
                 <li>
-                    <h4><a href="{% url 'sentry-project-alert-details' project.team.slug project.slug alert.id %}">{{ alert.datetime }}</a> <small> &mdash; <span class="pretty-date" title="{{ alert.datetime|date:"c" }}Z">{{ alert.datetime|timesince }}</span></small></h4>
+                    <h4><a href="{% url 'sentry-alert-details' project.team.slug project.slug alert.id %}">{{ alert.datetime }}</a> <small> &mdash; <span class="pretty-date" title="{{ alert.datetime|date:"c" }}Z">{{ alert.datetime|timesince }}</span></small></h4>
                     {{ alert.message|linebreaks }}
                 </li>
             {% endfor %}

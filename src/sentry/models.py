@@ -1075,7 +1075,7 @@ class Alert(Model):
         return cls.objects.filter(
             project=project_id,
             group_id__isnull=True,
-            datetime__gte=timezone.now() - timedelta(minutes=30),
+            datetime__gte=timezone.now() - timedelta(minutes=60),
             status=STATUS_UNRESOLVED,
         ).order_by('-datetime')
 
@@ -1089,7 +1089,7 @@ class Alert(Model):
 
         # TODO: there is a race condition if we're calling this function for the same project
         if manager.filter(
-                project=project_id, datetime__gte=now - timedelta(minutes=30),
+                project=project_id, datetime__gte=now - timedelta(minutes=60),
                 status=STATUS_UNRESOLVED).exists():
             return
 
@@ -1116,6 +1116,11 @@ class Alert(Model):
                 )
 
         return alert
+
+    @property
+    def is_resolved(self):
+        return (self.status == STATUS_RESOLVED
+                or self.datetime < timezone.now() - timedelta(minutes=60))
 
 
 class AlertRelatedGroup(Model):

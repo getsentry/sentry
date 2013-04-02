@@ -6,25 +6,24 @@
 
 {% block title %}{{ alert.datetime }} | {{ block.super }}{% endblock %}
 
-{% block bodyclass %}{% endblock %}
-
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider"></li>
-    <li><a href="{% url 'sentry-project-alert-details' project.team.slug project.slug alert.id %}">
+    <li><a href="{% url 'sentry-alert-details' project.team.slug project.slug alert.id %}">
         {% blocktrans with alert.datetime as datetime %}Alert at {{ datetime }}{% endblocktrans %}</a></li>
 {% endblock %}
+
+{% block bodyclass %} with-sidebar{% endblock %}
 
 {% block main %}
     <section class="body">
         <div class="page-header">
-            <h2>{% blocktrans with alert.datetime as datetime %}Alert at {{ datetime }}{% endblocktrans %}</h2>
+            <h2>
+                {% blocktrans with alert.datetime as datetime %}Alert at {{ datetime }}{% endblocktrans %}
+                <small style="color: {% if alert.is_resolved %}green{% else %}red{% endif %};">{{ alert.get_status_display }}</small>
+            </h2>
         </div>
         {{ alert.message|linebreaks }}
-        <dl>
-            <dt>{% trans "When:" %}</dt>
-            <dd><span class="pretty-date" title="{{ alert.datetime|date:"c" }}Z">{{ alert.datetime|timesince }}</span> ({{ alert.datetime }})</dd>
-        </dl>
 
         <div class="page-header">
             <h3>{% trans "Related Events" %} <small>{% trans "Trending at time of alert" %}</small></h3>
@@ -47,4 +46,17 @@
             <p>{% trans "No trends are available for this report." %}</p>
         {% endif %}
     </section>
+{% endblock %}
+
+{% block sidebar %}
+    {% if not alert.is_resolved %}
+        <a href="{% url 'sentry-resolve-alert' project.team.slug project.slug alert.id %}" class="btn btn-primary" style="display: block">Resolve Alert</a>
+        <br>
+    {% endif %}
+    <h6>{% trans "Meta" %}</h6>
+    <dl>
+        <dt>{% trans "When:" %}</dt>
+        <dd><span class="pretty-date" title="{{ alert.datetime|date:"c" }}Z">{{ alert.datetime|timesince }}</span><br>
+            <small>{{ alert.datetime }} {{ alert.datetime.tzinfo }}</small></dd>
+    </dl>
 {% endblock %}

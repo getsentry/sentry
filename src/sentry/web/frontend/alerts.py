@@ -7,13 +7,11 @@ sentry.web.frontend.alerts
 """
 from __future__ import division
 
-
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 
-
+from sentry.constants import STATUS_RESOLVED
 from sentry.models import Alert
-
 from sentry.web.decorators import has_access, login_required
 from sentry.web.helpers import render_to_response
 
@@ -37,7 +35,7 @@ def alert_details(request, team, project, alert_id):
     try:
         alert = Alert.objects.get(id=alert_id, project=project)
     except Alert.DoesNotExist:
-        return HttpResponseRedirect(reverse('sentry-project-alerts', args=[team.slug, project.slug]))
+        return HttpResponseRedirect(reverse('sentry-alerts', args=[team.slug, project.slug]))
 
     related_group_list = list(alert.related_groups.order_by('-score', '-times_seen'))
 
@@ -48,3 +46,16 @@ def alert_details(request, team, project, alert_id):
         'related_group_list': related_group_list,
         'SECTION': 'events',
     }, request)
+
+
+@login_required
+@has_access
+def resolve_alert(request, team, project, alert_id):
+    try:
+        alert = Alert.objects.get(id=alert_id, project=project)
+    except Alert.DoesNotExist:
+        return HttpResponseRedirect(reverse('sentry-alerts', args=[team.slug, project.slug]))
+
+    alert.update(status=STATUS_RESOLVED)
+
+    return HttpResponseRedirect(reverse('sentry-alert-details', args=[team.slug, project.slug, alert.id]))
