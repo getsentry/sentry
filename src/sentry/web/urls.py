@@ -234,10 +234,14 @@ urlpatterns = patterns('',
     url(r'^api/(?P<team_slug>[\w_-]+)/projects/search/$', api.search_projects,
         name='sentry-api-search-projects'),
 
+    # Team-wide alerts
+    url(r'^(?P<team_slug>[\w_-]+)/show/alerts/$', alerts.alert_list,
+        name='sentry-alerts'),
+
     # Users
-    url(r'^(?P<team_slug>[\w_-]+)/users/$', users.user_list,
+    url(r'^(?P<team_slug>[\w_-]+)/show/users/$', users.user_list,
         name='sentry-users'),
-    url(r'^(?P<team_slug>[\w_-]+)/users/(?P<user_id>\d+)/$', users.user_details,
+    url(r'^(?P<team_slug>[\w_-]+)/show/users/(?P<user_id>\d+)/$', users.user_details,
         name='sentry-user-details'),
 
     # Project specific

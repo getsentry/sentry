@@ -18,14 +18,23 @@ from sentry.web.helpers import render_to_response
 
 @login_required
 @has_access
-def alert_list(request, team, project):
-    alert_list = Alert.objects.filter(project=project, group__isnull=True).order_by('-datetime')
+def alert_list(request, team, project=None):
+    alert_list = Alert.objects.filter(group__isnull=True).order_by('-datetime')
 
-    return render_to_response('sentry/alerts/list.html', {
+    if project:
+        alert_list = alert_list.filter(project=project)
+        template = 'sentry/alerts/list.html'
+    else:
+        alert_list = alert_list.filter(
+            project__team=team,
+        ).select_related('project')
+        template = 'sentry/alerts/team.html'
+
+    return render_to_response(template, {
         'team': team,
         'project': project,
         'alert_list': alert_list,
-        'SECTION': 'events',
+        'SECTION': 'alerts',
     }, request)
 
 
@@ -44,7 +53,7 @@ def alert_details(request, team, project, alert_id):
         'project': project,
         'alert': alert,
         'related_group_list': related_group_list,
-        'SECTION': 'events',
+        'SECTION': 'alerts',
     }, request)
 
 
