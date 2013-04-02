@@ -46,11 +46,15 @@ update-submodules:
 	git submodule init
 	git submodule update
 
-test: install-test-requirements lint test-js test-python
+test: install-test-requirements lint test-js test-python test-cli
 
 testloop: install-test-requirements
 	pip install pytest-xdist --use-mirrors
 	py.test tests -f
+
+test-cli:
+	@echo "Testing CLI"
+	sentry help | grep start > /dev/null
 
 test-js:
 	@echo "Running JavaScript tests"
