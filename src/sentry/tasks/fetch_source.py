@@ -176,7 +176,6 @@ def expand_javascript_source(data, **kwargs):
     frames = [
         f for f in stacktrace.frames
         if f.lineno is not None
-        and f.colno is not None
         and f.is_url()
     ]
 
