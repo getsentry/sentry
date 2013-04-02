@@ -11,27 +11,28 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider"></li>
-    <li><a href="{% url 'sentry-project-alert-details' project.team.slug project.slug alert.id %}">Alert at {{ alert.datetime }}</a></li>
+    <li><a href="{% url 'sentry-project-alert-details' project.team.slug project.slug alert.id %}">
+        {% blocktrans with alert.datetime as datetime %}Alert at {{ datetime }}{% endblocktrans %}</a></li>
 {% endblock %}
 
 {% block main %}
     <section class="body">
         <div class="page-header">
-            <h2>Alert at {{ alert.datetime }}</h2>
+            <h2>{% blocktrans with alert.datetime as datetime %}Alert at {{ datetime }}{% endblocktrans %}</h2>
         </div>
         {{ alert.message|linebreaks }}
         <dl>
-            <dt>When:</dt>
+            <dt>{% trans "When:" %}</dt>
             <dd><span class="pretty-date" title="{{ alert.datetime|date:"c" }}Z">{{ alert.datetime|timesince }}</span> ({{ alert.datetime }})</dd>
         </dl>
 
+        <div class="page-header">
+            <h3>{% trans "Related Events" %} <small>{% trans "Trending at time of alert" %}</small></h3>
+        </div>
         {% if related_group_list %}
-            <div class="page-header">
-                <h3>Related Events <small>Trending at time of alert</small></h3>
-            </div>
             <div id="event_list"></div>
 
-            <p><small>Note: All events represent their current state, not their value at the time of this alert.</small></p>
+            <p><small>{% trans "Note: All events represent their current state, not their value at the time of this alert." %}</small></p>
 
             <script>
             $(function(){
@@ -42,6 +43,8 @@
                 });
             });
             </script>
+        {% else %}
+            <p>{% trans "No trends are available for this report." %}</p>
         {% endif %}
     </section>
 {% endblock %}

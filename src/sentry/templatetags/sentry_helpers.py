@@ -399,3 +399,13 @@ def client_help(user, project):
     context = get_key_context(user, project)
     context['project'] = project
     return context
+
+
+@tag(register, [Constant('from'), Variable('project'),
+                Constant('as'), Name('asvar')])
+def recent_alerts(context, project, asvar):
+    from sentry.models import Alert
+
+    context[asvar] = list(Alert.get_recent_for_project(project.id))
+
+    return ''

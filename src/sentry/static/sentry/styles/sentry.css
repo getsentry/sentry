@@ -7813,6 +7813,17 @@ section.body .page-header:first-child {
   -moz-border-radius: 0;
   border-radius: 0;
 }
+.alert {
+  -webkit-border-radius: 4px;
+  -moz-border-radius: 4px;
+  border-radius: 4px;
+  background: #ffc01a;
+  color: #fff;
+}
+.alert a {
+  font-weight: bold;
+  color: inherit;
+}
 .alert-block {
   padding-bottom: 5px;
 }
@@ -7821,6 +7832,22 @@ section.body .page-header:first-child {
 }
 .alert-block > ul {
   margin-bottom: 9px;
+}
+.alert-error {
+  background: #ff2e46;
+}
+.alert-info {
+  background: #2e9fff;
+}
+.alert-success {
+  background: #4bad00;
+}
+.active-alerts {
+  margin: 15px 25px 0;
+  padding: 0 5px;
+}
+.active-alerts li.alert {
+  margin-bottom: 5px;
 }
 #event_nav.fixed .event_nav_wrap {
   z-index: 1000000;

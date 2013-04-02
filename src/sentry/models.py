@@ -202,8 +202,8 @@ class Project(Model):
     public = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now)
     status = models.PositiveIntegerField(default=0, choices=(
-        (STATUS_VISIBLE, 'Visible'),
-        (STATUS_HIDDEN, 'Hidden'),
+        (STATUS_VISIBLE, _('Visible')),
+        (STATUS_HIDDEN, _('Hidden')),
     ), db_index=True)
     platform = models.CharField(max_length=32, choices=PLATFORM_CHOICES, null=True)
 
@@ -1062,8 +1062,22 @@ class Alert(Model):
     message = models.TextField()
     data = GzippedDictField(null=True)
     related_groups = models.ManyToManyField(Group, through='sentry.AlertRelatedGroup', related_name='related_alerts')
+    status = models.PositiveIntegerField(default=0, choices=(
+        (STATUS_UNRESOLVED, _('Unresolved')),
+        (STATUS_RESOLVED, _('Resolved')),
+    ), db_index=True)
 
     __repr__ = sane_repr('project_id', 'group_id', 'datetime')
+
+    # TODO: move classmethods to manager
+    @classmethod
+    def get_recent_for_project(cls, project_id):
+        return cls.objects.filter(
+            project=project_id,
+            group_id__isnull=True,
+            datetime__gte=timezone.now() - timedelta(minutes=30),
+            status=STATUS_UNRESOLVED,
+        ).order_by('-datetime')
 
     @classmethod
     def maybe_alert(cls, project_id, message, group_id=None):
@@ -1074,10 +1088,15 @@ class Alert(Model):
         # - an alert for the event hasn't been created in the last 60 minutes
 
         # TODO: there is a race condition if we're calling this function for the same project
-        if manager.filter(project=project_id, datetime__gte=now - timedelta(minutes=30)).exists():
+        if manager.filter(
+                project=project_id, datetime__gte=now - timedelta(minutes=30),
+                status=STATUS_UNRESOLVED).exists():
             return
 
-        if manager.filter(project=project_id, group=group_id, datetime__gte=now - timedelta(minutes=60)).exists():
+        if manager.filter(
+                project=project_id, group=group_id,
+                datetime__gte=now - timedelta(minutes=60),
+                status=STATUS_UNRESOLVED).exists():
             return
 
         alert = manager.create(

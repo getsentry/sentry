@@ -1599,6 +1599,15 @@ section.body .page-header:first-child {
   .border-radius(0);
 }
 
+.alert {
+  .border-radius(4px);
+  background: #ffc01a;
+  color: #fff;
+  a {
+    font-weight: bold;
+    color: inherit;
+  }
+}
 .alert-block {
   padding-bottom: 5px;
   > p {
@@ -1606,6 +1615,23 @@ section.body .page-header:first-child {
   }
   > ul {
     margin-bottom: 9px;
+  }
+}
+.alert-error {
+  background: #ff2e46;
+}
+.alert-info {
+  background: #2e9fff;
+}
+.alert-success {
+  background: #4bad00;
+}
+
+.active-alerts {
+  margin: 15px 25px 0;
+  padding: 0 5px;
+  li.alert {
+    margin-bottom: 5px;
   }
 }
 
