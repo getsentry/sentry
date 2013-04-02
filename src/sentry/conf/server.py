@@ -234,13 +234,33 @@ SOCIAL_AUTH_DEFAULT_USERNAME = lambda: random.choice(['Darth Vader', 'Obi-Wan Ke
 SOCIAL_AUTH_PROTECTED_USER_FIELDS = ['email']
 
 # Queue configuration
+from kombu import Queue
 
 BROKER_URL = "django://"
 
+CELERY_ALWAYS_EAGER = True
 CELERY_IGNORE_RESULT = True
 CELERY_SEND_EVENTS = False
 CELERY_RESULT_BACKEND = None
 CELERY_TASK_RESULT_EXPIRES = 1
+CELERY_DISABLE_RATE_LIMITS = True
+CELERY_DEFAULT_QUEUE = "default"
+CELERY_DEFAULT_EXCHANGE = "default"
+CELERY_DEFAULT_EXCHANGE_TYPE = "direct"
+CELERY_DEFAULT_ROUTING_KEY = "default"
+CELERY_CREATE_MISSING_QUEUES = True
+CELERY_QUEUES = (
+    Queue('default', routing_key='default'),
+    Queue('celery', routing_key='celery'),
+    Queue('alerts', routing_key='alerts'),
+    Queue('cleanup', routing_key='cleanup'),
+    Queue('sourcemaps', routing_key='sourcemaps'),
+    Queue('search', routing_key='search'),
+    Queue('counters', routing_key='counters'),
+    Queue('events', routing_key='events'),
+    Queue('triggers', routing_key='triggers'),
+)
+
 
 # Sentry and Raven configuration
 

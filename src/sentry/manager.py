@@ -14,9 +14,10 @@ import hashlib
 import itertools
 import logging
 import re
+import time
 import warnings
 import weakref
-import time
+import uuid
 
 from celery.signals import task_postrun
 from django.conf import settings as dj_settings
@@ -35,12 +36,10 @@ from sentry.constants import STATUS_RESOLVED, STATUS_UNRESOLVED, MINUTE_NORMALIZ
 from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
 from sentry.tasks.index import index_event
-from sentry.tasks.fetch_source import fetch_javascript_source
 from sentry.utils.cache import cache, memoize, Lock
 from sentry.utils.dates import get_sql_date_trunc, normalize_datetime
 from sentry.utils.db import get_db_engine, has_charts, attach_foreignkey
 from sentry.utils.models import create_or_update, make_key
-from sentry.utils.queue import maybe_delay
 
 logger = logging.getLogger('sentry.errors')
 
@@ -120,7 +119,7 @@ class BaseManager(models.Manager):
             # store pointers
             cache.set(self.__get_lookup_cache_key(**{key: getattr(instance, key)}), pk_val, self.cache_ttl)  # 1 hour
 
-        # Ensure we dont serialize the database into the cache
+        # Ensure we don't serialize the database into the cache
         db = instance._state.db
         instance._state.db = None
         # store actual object
@@ -248,7 +247,7 @@ class ScoreClause(object):
         elif engine.startswith('mysql'):
             sql = 'log(times_seen) * 600 + unix_timestamp(last_seen)'
         else:
-            # XXX: if we cant do it atomicly let's do it the best we can
+            # XXX: if we cant do it atomically let's do it the best we can
             sql = self.group.get_score()
 
         return (sql, [])
@@ -377,8 +376,56 @@ class ChartMixin(object):
 class GroupManager(BaseManager, ChartMixin):
     use_for_related_fields = True
 
-    @transaction.commit_on_success
+    def normalize_event_data(self, data):
+        # First we pull out our top-level (non-data attr) kwargs
+        if not data.get('level'):
+            data['level'] = logging.ERROR
+        if not data.get('logger'):
+            data['logger'] = settings.DEFAULT_LOGGER_NAME
+
+        tags = data.get('tags')
+        if not tags:
+            tags = []
+        # full support for dict syntax
+        elif isinstance(tags, dict):
+            tags = tags.items()
+        data['tags'] = tags
+
+        timestamp = data.get('timestamp')
+        if not timestamp:
+            timestamp = timezone.now()
+
+        if not data.get('culprit'):
+            data['culprit'] = ''
+
+        # We must convert date to local time so Django doesn't mess it up
+        # based on TIME_ZONE
+        if dj_settings.TIME_ZONE:
+            if not timezone.is_aware(timestamp):
+                timestamp = timestamp.replace(tzinfo=timezone.utc)
+        elif timezone.is_aware(timestamp):
+            timestamp = timestamp.replace(tzinfo=None)
+        data['timestamp'] = timestamp
+
+        if not data.get('event_id'):
+            data['event_id'] = uuid.uuid4().hex
+
+        data.setdefault('message', None)
+        data.setdefault('time_spent', None)
+        data.setdefault('server_name', None)
+        data.setdefault('site', None)
+        data.setdefault('checksum', None)
+        data.setdefault('platform', None)
+
+        return data
+
     def from_kwargs(self, project, **kwargs):
+        data = self.normalize_event_data(kwargs)
+
+        return self.save_data(project, data)
+
+    @transaction.commit_on_success
+    def save_data(self, project, data):
         # TODO: this function is way too damn long and needs refactored
         # the inner imports also suck so let's try to move it away from
         # the objects manager
@@ -391,33 +438,17 @@ class GroupManager(BaseManager, ChartMixin):
         project = Project.objects.get_from_cache(pk=project)
 
         # First we pull out our top-level (non-data attr) kwargs
-        event_id = kwargs.pop('event_id', None)
-        message = kwargs.pop('message', None)
-        culprit = kwargs.pop('culprit', None)
-        level = kwargs.pop('level', None) or logging.ERROR
-        time_spent = kwargs.pop('time_spent', None)
-        logger_name = kwargs.pop('logger', None) or settings.DEFAULT_LOGGER_NAME
-        server_name = kwargs.pop('server_name', None)
-        site = kwargs.pop('site', None)
-        date = kwargs.pop('timestamp', None) or timezone.now()
-        checksum = kwargs.pop('checksum', None)
-        tags = kwargs.pop('tags', [])
-        platform = kwargs.pop('platform', None)
-
-        # full support for dict syntax
-        if isinstance(tags, dict):
-            tags = tags.items()
-
-        # We must convert date to local time so Django doesn't mess it up
-        # based on TIME_ZONE
-        if dj_settings.TIME_ZONE:
-            if not timezone.is_aware(date):
-                date = date.replace(tzinfo=timezone.utc)
-        elif timezone.is_aware(date):
-            date = date.replace(tzinfo=None)
-
-        data = kwargs
-        data['tags'] = tags
+        event_id = data.pop('event_id')
+        message = data.pop('message')
+        culprit = data.pop('culprit')
+        level = data.pop('level')
+        time_spent = data.pop('time_spent')
+        logger_name = data.pop('logger')
+        server_name = data.pop('server_name')
+        site = data.pop('site')
+        date = data.pop('timestamp')
+        checksum = data.pop('checksum')
+        platform = data.pop('platform')
 
         kwargs = {
             'level': level,
@@ -438,7 +469,7 @@ class GroupManager(BaseManager, ChartMixin):
             **kwargs
         )
 
-        # Calculcate the checksum from the first highest scoring interface
+        # Calculate the checksum from the first highest scoring interface
         if not checksum:
             checksum = get_checksum_from_event(event)
 
@@ -453,8 +484,12 @@ class GroupManager(BaseManager, ChartMixin):
         })
 
         try:
-            group, is_new, is_sample = self._create_group(event, tags=tags, **group_kwargs)
-        except Exception, exc:
+            group, is_new, is_sample = self._create_group(
+                event=event,
+                tags=data['tags'],
+                **group_kwargs
+            )
+        except Exception as exc:
             # TODO: should we mail admins when there are failures?
             try:
                 logger.exception(u'Unable to process log entry: %s', exc)
@@ -477,17 +512,10 @@ class GroupManager(BaseManager, ChartMixin):
 
         if settings.USE_SEARCH:
             try:
-                maybe_delay(index_event, event)
+                index_event.delay(event)
             except Exception, e:
                 transaction.rollback_unless_managed(using=group._state.db)
                 logger.exception(u'Error indexing document: %s', e)
-
-        if settings.SCRAPE_JAVASCRIPT_CONTEXT and event.platform == 'javascript' and not is_sample:
-            try:
-                maybe_delay(fetch_javascript_source, event, expires=900)
-            except Exception, e:
-                transaction.rollback_unless_managed(using=group._state.db)
-                logger.exception(u'Error fetching javascript source: %s', e)
 
         if is_new:
             try:
@@ -534,7 +562,7 @@ class GroupManager(BaseManager, ChartMixin):
                 extra['message'] = message
 
             if group.status == STATUS_RESOLVED or group.is_over_resolve_age():
-                # Makin things atomic
+                # Making things atomic
                 is_new = bool(self.filter(
                     id=group.id,
                 ).exclude(

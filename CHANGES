@@ -3,7 +3,7 @@ Version 5.4.0
 
 SENTRY_PUBLIC now dictates whether or not a Sentry install should be considered
 accessible by all users or not. This should better solve the use-case of companies
-hosting a Sentry instance internally and not nescesarily needing the permissions
+hosting a Sentry instance internally and not necessarily needing the permissions
 that teams give you.
 
 If enabled, all teams and all projects will be accessible all members (for any endpoint
@@ -344,14 +344,14 @@ now __init__(request, project).
 Version 3.6.0
 -------------
 
-This version focuses on improving mebership control. It includes the ability to revoke
+This version focuses on improving membership control. It includes the ability to revoke
 project members access temporarily (by suspending them), as well as revoking users
 (outside of Sentry) via the user.is_active flag.
 
 Additionally, it brings the beginnings of an "invite user" flow, allowing you to
 invite users who may or may not already have accounts in the system. We plan to improve
 this flow in an upcoming release to allow invitees easy registration within the system
-if they dont already have an account.
+if they don't already have an account.
 
 Version 3.5.0
 -------------
@@ -539,7 +539,7 @@ Version 2.2.1
 Version 2.2.0
 -------------
 
-* Sentry has a brand new design utlizing Bootstrap 2.
+* Sentry has a brand new design utilizing Bootstrap 2.
 * Superusers can now create projects for users.
 
 Version 2.1.3

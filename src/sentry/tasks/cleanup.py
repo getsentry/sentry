@@ -9,12 +9,12 @@ sentry.tasks.cleanup
 from celery.task import task
 
 
-@task(ignore_result=True)
-def cleanup(days=30, project=None, **kwargs):
+@task(name='sentry.tasks.cleanup.cleanup', queue='cleanup')
+def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
     """
     Deletes a portion of the trailing data in Sentry based on
     their creation dates. For example, if ``days`` is 30, this
-    would attempt to clean up all data thats older than 30 days.
+    would attempt to clean up all data that's older than 30 days.
 
     :param project: limit all deletion scopes to messages that are part
                     of the given project
@@ -27,7 +27,6 @@ def cleanup(days=30, project=None, **kwargs):
     from sentry.models import (Group, Event, GroupCountByMinute,
         GroupTag, FilterValue, ProjectCountByMinute, Alert,
         SearchDocument, Activity, AffectedUserByGroup, LostPasswordHash)
-    from sentry.utils.query import RangeQuerySetWrapper
 
     GENERIC_DELETES = (
         (SearchDocument, 'date_changed'),
@@ -55,9 +54,10 @@ def cleanup(days=30, project=None, **kwargs):
         if project:
             qs = qs.filter(project=project)
         # XXX: we step through because the deletion collector will pull all relations into memory
-        for obj in RangeQuerySetWrapper(qs):
-            log.info("Removing %r", obj)
-            obj.delete()
+        while qs.exists():
+            for obj in list(qs[:chunk_size]):
+                log.info("Removing %r", obj)
+                obj.delete()
 
     log.info("Removing expired values for %r", LostPasswordHash)
     LostPasswordHash.objects.filter(

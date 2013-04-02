@@ -1,6 +1,7 @@
+{% load url from future %}
 {% load i18n %}
 
-{% url sentry-manage-project project.pk as project_link %}
+{% url 'sentry-manage-project' project.pk as project_link %}
 
 <p>{% blocktrans with 'https://github.com/getsentry/raven-js' as link %}Start by installing <a href="{{ link }}">raven-js</a>.{% endblocktrans %}</p>
 
@@ -8,7 +9,7 @@
 
 <p>{% blocktrans %}Add the any URLs which will be logging errors in your project's settings under <a href="{{ project_link }}#client-security">Client Security</a>:{% endblocktrans %}</p>
 
-<div class="image"><img src="{% url sentry-media "sentry" "images/client_security.png" %}"></div>
+<div class="image"><img src="{% url 'sentry-media' "sentry" "images/client_security.png" %}"></div>
 
 <p>{% trans "Configure the client:" %}</p>
 

@@ -1,5 +1,6 @@
 {% extends "sentry/teams/manage.html" %}
 
+{% load url from future %}
 {% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_helpers %}
@@ -9,7 +10,7 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider"></li>
-    <li><a href="{% url sentry-edit-team-member team.slug member.pk %}">Member: {{ member.user.username }}</a></li>
+    <li><a href="{% url 'sentry-edit-team-member' team.slug member.pk %}">Member: {{ member.user.username }}</a></li>
 {% endblock %}
 
 {% block inner %}

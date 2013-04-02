@@ -24,7 +24,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.signals import user_logged_in
 from django.core.urlresolvers import reverse
 from django.db import models
-from django.db.models import F, Sum
+from django.db.models import F
 from django.db.models.signals import (post_syncdb, post_save, pre_delete,
     class_prepared)
 from django.template.defaultfilters import slugify
@@ -55,6 +55,8 @@ __all__ = ('Event', 'Group', 'Project', 'SearchDocument')
 
 def slugify_instance(inst, label, **kwargs):
     base_slug = slugify(label)
+    if not base_slug:
+        base_slug = 'default_%s' % (uuid.uuid4())
     manager = type(inst).objects
     inst.slug = base_slug
     n = 0
@@ -113,6 +115,9 @@ class Team(Model):
 
     __repr__ = sane_repr('slug', 'owner_id', 'name')
 
+    def __unicode__(self):
+        return u'%s (%s)' % (self.name, self.slug)
+
     def save(self, *args, **kwargs):
         if not self.slug:
             slugify_instance(self, self.name)
@@ -126,9 +131,6 @@ class Team(Model):
         if self.owner.email:
             return self.owner.email.split('@', 1)[0]
         return self.owner.username
-
-    def __unicode__(self):
-        return u'%s' % self.name
 
 
 class AccessGroup(Model):
@@ -215,14 +217,17 @@ class Project(Model):
 
     __repr__ = sane_repr('team_id', 'slug', 'owner_id')
 
+    def __unicode__(self):
+        return u'%s (%s)' % (self.name, self.slug)
+
     def save(self, *args, **kwargs):
         if not self.slug:
             slugify_instance(self, self.name, team=self.team)
         super(Project, self).save(*args, **kwargs)
 
     def delete(self):
-        # This hadles cascades properly
-        # TODO: this doesnt clean up the index
+        # This handles cascades properly
+        # TODO: this doesn't clean up the index
         for model in (Event, Group, FilterValue, GroupTag, GroupCountByMinute):
             model.objects.filter(project=self).delete()
         super(Project, self).delete()
@@ -315,6 +320,9 @@ class ProjectKey(Model):
     ))
 
     __repr__ = sane_repr('project_id', 'user_id', 'public_key')
+
+    def __unicode__(self):
+        return unicode(self.public_key)
 
     @classmethod
     def generate_api_key(cls):
@@ -585,11 +593,8 @@ class Group(EventBase):
 
     def get_unique_tags(self, tag):
         return self.grouptag_set.filter(
+            project=self.project,
             key=tag,
-        ).values_list(
-            'value',
-        ).annotate(
-            times_seen=Sum('times_seen'),
         ).values_list(
             'value',
             'times_seen',
@@ -599,7 +604,9 @@ class Group(EventBase):
 
     def get_tags(self):
         if not hasattr(self, '_tag_cache'):
-            tags = sorted(self.grouptag_set.values_list('key', flat=True).distinct())
+            tags = sorted(self.grouptagkey_set.filter(
+                project=self.project,
+            ).values_list('key', flat=True))
             self._tag_cache = tags
         return self._tag_cache
 
@@ -723,7 +730,7 @@ class GroupBookmark(Model):
     """
     project = models.ForeignKey(Project, related_name="bookmark_set")  # denormalized
     group = models.ForeignKey(Group, related_name="bookmark_set")
-    # namespace related_name on User since we dont own the model
+    # namespace related_name on User since we don't own the model
     user = models.ForeignKey(User, related_name="sentry_bookmark_set")
 
     objects = BaseManager()
@@ -1005,6 +1012,7 @@ class Activity(Model):
     SET_PUBLIC = 4
     SET_PRIVATE = 5
     SET_REGRESSION = 6
+    CREATE_ISSUE = 7
 
     TYPE = (
         # (TYPE, verb-slug)
@@ -1015,6 +1023,7 @@ class Activity(Model):
         (SET_PUBLIC, 'set_public'),
         (SET_PRIVATE, 'set_private'),
         (SET_REGRESSION, 'set_regression'),
+        (CREATE_ISSUE, 'create_issue'),
     )
 
     project = models.ForeignKey(Project)

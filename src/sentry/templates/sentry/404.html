@@ -1,5 +1,6 @@
 {% extends "sentry/layout.html" %}
 
+{% load url from future %}
 {% load i18n %}
 
 {% block title %}{% trans "Page Not Found" %} | {{ block.super }}{% endblock %}
@@ -13,6 +14,6 @@
             <h2>{% trans "Page Not Found" %}</h2>
         </div>
         <p class="alert-message notice">{% trans "The page you are looking for was not found." %}</p>
-        <p><a href="{% url sentry %}">{% trans "Return to the dashboard" %}</a></p>
+        <p><a href="{% url 'sentry' %}">{% trans "Return to the dashboard" %}</a></p>
     </section>
 {% endblock %}

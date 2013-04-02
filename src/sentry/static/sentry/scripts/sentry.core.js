@@ -46,22 +46,24 @@ if (Sentry === undefined) {
         }
     });
 
-    $('.popup').on('click', function(){
-        var $this = $(this);
-        var $window = $(window);
-        var $container = $($this.attr('data-container'));
-        var title = $this.attr('data-title') || 'Untitled';
-        var content = $container.html();
-        var height = Math.min($window.height() - 100, $container.height() + 40);
-        var width = Math.min($window.width() - 100, $container.width() + 40);
-        var w = window.open("about:blank", "dsqApiExpand", "toolbar=0,status=0,location=0,menubar=0,height=" + height + ",width=" + width);
-        w.document.write("<!DOCTYPE html><html>" +
-            "<head>" +
-                "<title>" + title + "</title>" +
-                "<link href=\"" + app.config.popupCss + "\" rel=\"stylesheet\" type=\"text/css\"/>" +
-            "</head><body>" +
-                "<div id=\"popup\">" + content + "</div></body>" +
-            "</html>");
+    $(function(){
+        $('.popup').on('click', function(){
+            var $this = $(this);
+            var $window = $(window);
+            var $container = $($this.attr('data-container'));
+            var title = $this.attr('data-title') || 'Untitled';
+            var content = $container.html();
+            var height = Math.min($window.height() - 100, $container.height() + 40);
+            var width = Math.min($window.width() - 100, $container.width() + 40);
+            var w = window.open("about:blank", "dsqApiExpand", "toolbar=0,status=0,location=0,menubar=0,height=" + height + ",width=" + width);
+            w.document.write("<!DOCTYPE html><html>" +
+                "<head>" +
+                    "<title>" + title + "</title>" +
+                    "<link href=\"" + app.config.popupCss + "\" rel=\"stylesheet\" type=\"text/css\"/>" +
+                "</head><body>" +
+                    "<div id=\"popup\">" + content + "</div></body>" +
+                "</html>");
+        });
     });
 
 }(app, jQuery));

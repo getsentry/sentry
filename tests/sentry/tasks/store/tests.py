@@ -11,10 +11,10 @@ from sentry.testutils import TestCase
 
 class StoreEventTest(TestCase):
     def test_is_task(self):
-        self.assertTrue(isinstance(store_event, Task))
+        assert isinstance(store_event, Task)
 
-    @mock.patch('sentry.models.Group.objects.from_kwargs')
-    def test_calls_from_kwargs(self, from_kwargs):
+    @mock.patch('sentry.tasks.store.preprocess_event')
+    def test_calls_from_kwargs(self, preprocess_event):
         data = {'foo': 'bar'}
         store_event(data=data)
-        from_kwargs.assert_called_once_with(foo='bar')
+        preprocess_event.delay.assert_called_once_with(data=data)

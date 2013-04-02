@@ -147,7 +147,7 @@ def manage_project(request, team, project):
     if result is False and not request.user.has_perm('sentry.can_change_project'):
         return HttpResponseRedirect(reverse('sentry'))
 
-    # XXX: We probably shouldnt allow changing the team unless they're the project owner
+    # XXX: We probably shouldn't allow changing the team unless they're the project owner
     team_list = Team.objects.get_for_user(project.owner or request.user, MEMBER_OWNER)
 
     can_admin_project = request.user == project.owner or request.user.has_perm('sentry.can_change_project')

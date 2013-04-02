@@ -19,9 +19,10 @@ class CommandError(Exception):
 
 
 def handle_sentry(data, address):
-    from sentry.coreapi import project_from_auth_vars, decode_and_decompress_data, \
-        safely_load_json_string, validate_data, insert_data_to_database, APIError, \
-        APIForbidden
+    from sentry.coreapi import (project_from_auth_vars, decode_and_decompress_data,
+        safely_load_json_string, validate_data, insert_data_to_database, APIError,
+        APIForbidden)
+    from sentry.models import Group
     from sentry.exceptions import InvalidData
     from sentry.plugins import plugins
     from sentry.utils.auth import parse_auth_header
@@ -53,6 +54,8 @@ def handle_sentry(data, address):
             validate_data(project, data, client)
         except InvalidData, e:
             raise APIError(u'Invalid data: %s (%s)' % (unicode(e), type(e)))
+
+        Group.objects.normalize_event_data(data)
 
         return insert_data_to_database(data)
     except APIError, error:

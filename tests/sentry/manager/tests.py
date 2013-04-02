@@ -11,8 +11,8 @@ from django.utils import timezone
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
 from sentry.interfaces import Interface
 from sentry.manager import get_checksum_from_event
-from sentry.models import Event, Group, Project, GroupCountByMinute, ProjectCountByMinute, \
-  SearchDocument, Team
+from sentry.models import (Event, Group, Project, GroupCountByMinute, ProjectCountByMinute,
+    SearchDocument, Team)
 from sentry.utils.db import has_trending  # NOQA
 from sentry.testutils import TestCase
 
@@ -217,14 +217,6 @@ class SentryManagerTest(TestCase):
         self.assertEquals(group.times_seen, 2)
         self.assertEquals(group.last_seen.replace(microsecond=0), event.datetime.replace(microsecond=0))
         self.assertEquals(group.message, 'foo bar')
-
-    @mock.patch('sentry.manager.maybe_delay')
-    def test_scrapes_javascript_source(self, maybe_delay):
-        from sentry.tasks.fetch_source import fetch_javascript_source
-        with self.Settings(SENTRY_SCRAPE_JAVASCRIPT_CONTEXT=True):
-            event = Group.objects.from_kwargs(1, message='hello', platform='javascript')
-
-            maybe_delay.assert_any_call(fetch_javascript_source, event, expires=900)
 
     def test_add_tags(self):
         event = Group.objects.from_kwargs(1, message='rrr')

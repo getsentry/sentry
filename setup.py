@@ -58,29 +58,40 @@ install_requires = [
     'django-celery>=3.0.11,<3.1.0',
     'celery>=3.0.15,<3.1.0',
     'django-crispy-forms>=1.2.3,<1.3.0',
-    'Django>=1.4.5,<=1.5',
+    'Django>=1.4.5,<1.5',
     'django-indexer>=0.3.0,<0.4.0',
     'django-paging>=0.2.4,<0.3.0',
     'django-picklefield>=0.3.0,<0.4.0',
     'django-static-compiler>=0.3.0,<0.4.0',
     'django-templatetag-sugar>=0.1.0,<0.2.0',
     'gunicorn>=0.17.2,<0.18.0',
-    'logan>=0.5.4,<0.6.0',
+    'logan>=0.5.5,<0.6.0',
+    'nydus>=0.10.0,<0.11.0',
     'Pygments>=1.6.0,<1.7.0',
     'pynliner>=0.4.0,<0.5.0',
     'python-dateutil>=1.5.0,<2.0.0',
-    'raven>=3.1.16',
+    'raven>=3.1.17',
+    'redis>2.7.0,<2.8.0',
     'simplejson>=3.1.0,<3.2.0',
     'South>=0.7.6,<0.8.0',
     'httpagentparser>=1.2.1,<1.3.0',
-    'django-social-auth>=0.7.1,<1.0',
-    'django-social-auth-trello>=1.0.2,<1.1.0',
+    'django-social-auth>=0.7.1,<0.8.0',
+    'django-social-auth-trello>=1.0.3,<1.1.0',
     'setproctitle>=1.1.7,<1.2.0',
 ]
 
+postgres_requires = [
+    'psycopg2>=2.4.0,<2.5.0',
+]
+
+mysql_requires = [
+    'MySQL-python>=1.2.0,<1.3.0',
+]
+
+
 setup(
     name='sentry',
-    version='5.4.1',
+    version='5.4.5',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://www.getsentry.com',
@@ -93,6 +104,8 @@ setup(
     extras_require={
         'tests': tests_require,
         'dev': dev_requires,
+        'postgres': install_requires + postgres_requires,
+        'mysql': install_requires + mysql_requires,
     },
     test_suite='runtests.runtests',
     license='BSD',

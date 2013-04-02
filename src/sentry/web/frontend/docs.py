@@ -8,6 +8,7 @@ sentry.web.frontend.projects
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 
+from sentry.conf import settings
 from sentry.constants import (MEMBER_OWNER, PLATFORM_LIST, PLATFORM_TITLES,
     PLATFORM_ROOTS)
 from sentry.models import ProjectKey
@@ -17,6 +18,8 @@ from sentry.web.helpers import render_to_response, render_to_string
 
 def can_see_global_keys(user, project):
     if user.is_superuser:
+        return True
+    if settings.PUBLIC:
         return True
     if not project.team:
         return False
@@ -31,8 +34,10 @@ def get_key_context(user, project):
     except ProjectKey.DoesNotExist:
         if can_see_global_keys(user, project):
             key_list = list(ProjectKey.objects.filter(project=project, user__isnull=True)[0:2])
-        if len(key_list) == 1:
-            key = key_list[0]
+            if len(key_list) == 1:
+                key = key_list[0]
+            else:
+                key = None
         else:
             key = None
 

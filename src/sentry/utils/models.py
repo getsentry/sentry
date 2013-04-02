@@ -9,12 +9,11 @@ sentry.utils.models
 import hashlib
 import logging
 
-from django.db import models, router
+from django.db import models, router, transaction, IntegrityError
 from django.db.models import signals
 from django.db.models.expressions import ExpressionNode
 from django.utils.encoding import smart_str
 
-from sentry.utils.cache import Lock
 from sentry.utils.compat import pickle
 from sentry.utils.db import resolve_expression_node
 from sentry.utils.strings import decompress, compress
@@ -22,10 +21,14 @@ from sentry.utils.strings import decompress, compress
 logger = logging.getLogger(__name__)
 
 
+class QueryError(Exception):
+    pass
+
+
 def merge_account(from_user, to_user):
     # TODO: we could discover relations automatically and make this useful
-    from sentry.models import GroupBookmark, Project, ProjectKey, Team, TeamMember, \
-      UserOption
+    from sentry.models import (GroupBookmark, Project, ProjectKey, Team, TeamMember,
+        UserOption)
 
     for obj in ProjectKey.objects.filter(user=from_user):
         obj.update(user=to_user)
@@ -96,33 +99,44 @@ def make_key(model, prefix, kwargs):
     return '%s:%s:%s' % (prefix, model.__name__, hashlib.md5(kwargs_bits).hexdigest())
 
 
-def create_or_update(model, **kwargs):
+def create_or_update(model, using=None, **kwargs):
     """
     Similar to get_or_create, either updates a row or creates it.
 
     The result will be (rows affected, False), if the row was not created,
     or (instance, True) if the object is new.
+
+    >>> create_or_update(MyModel, key='value', defaults={
+    >>>     'value': F('value') + 1,
+    >>> })
     """
     defaults = kwargs.pop('defaults', {})
 
-    objects = model.objects
+    if not using:
+        using = router.db_for_write(model)
 
-    # before locking attempt to fetch the instance
+    objects = model.objects.using(using)
+
     affected = objects.filter(**kwargs).update(**defaults)
     if affected:
         return affected, False
-    lock_key = make_key(model, 'lock', kwargs)
 
-    # instance not found, lets grab a lock and attempt to create it
-    with Lock(lock_key) as lock:
-        if lock.was_locked:
-            affected = objects.filter(**kwargs).update(**defaults)
-            return affected, False
-
-        for k, v in defaults.iteritems():
-            if isinstance(v, ExpressionNode):
-                kwargs[k] = resolve_expression_node(objects.model(), v)
+    inst = objects.model()
+    for k, v in defaults.iteritems():
+        if isinstance(v, ExpressionNode):
+            kwargs[k] = resolve_expression_node(inst, v)
+        else:
+            kwargs[k] = v
+    try:
         return objects.create(**kwargs), True
+    except IntegrityError:
+        transaction.rollback_unless_managed(using=using)
+        affected = objects.filter(**kwargs).update(**defaults)
+
+    if not affected:
+        raise QueryError('No rows updated or created for kwargs: %r' % kwargs)
+
+    return affected, False
 
 
 class Model(models.Model):

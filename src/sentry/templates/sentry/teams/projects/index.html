@@ -1,18 +1,19 @@
 {% extends "sentry/teams/manage.html" %}
 
+{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
 
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider"></li>
-    <li><a href="{% url sentry-manage-team-projects team.slug %}">{% trans "Projects" %}</a></li>
+    <li><a href="{% url 'sentry-manage-team-projects' team.slug %}">{% trans "Projects" %}</a></li>
 {% endblock %}
 
 {% block inner %}
     <div class="page-header">
         {% if can_add_project %}
-            <a href="{% url sentry-new-team-project team.slug %}" class="btn pull-right btn-primary">{% trans "New Project" %}</a>
+            <a href="{% url 'sentry-new-team-project' team.slug %}" class="btn pull-right btn-primary">{% trans "New Project" %}</a>
         {% endif %}
         <h2>{% trans "Projects" %}</h2>
     </div>
@@ -32,7 +33,7 @@
                 {% for project in project_list %}
                     <tr>
                         <td>
-                            <a href="{% url sentry-manage-project project.team.slug project.slug %}">{{ project.name }}</a><br>
+                            <a href="{% url 'sentry-manage-project' project.team.slug project.slug %}">{{ project.name }}</a><br>
                         </td>
                         <td style="text-align:center;">
                             {{ project.date_added|timesince }}

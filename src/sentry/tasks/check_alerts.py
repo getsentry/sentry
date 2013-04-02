@@ -48,14 +48,15 @@ def fsteps(start, stop, steps):
         start += step
 
 
-@periodic_task(ignore_result=True, run_every=crontab(minute='*'))
+@periodic_task(
+    name='sentry.tasks.check_alerts',
+    run_every=crontab(minute='*'), queue='alerts')
 def check_alerts(**kwargs):
     """
     Iterates all current keys and fires additional tasks to check each individual
     project's alert settings.
     """
     from sentry.models import ProjectCountByMinute
-    from sentry.utils.queue import maybe_delay
 
     now = timezone.now()
     # we want at least a 60 second window of events
@@ -63,7 +64,7 @@ def check_alerts(**kwargs):
     min_date = max_date - timedelta(minutes=MINUTE_NORMALIZATION)
 
     # find each project which has data for the last interval
-    # TODO: we could force more work on the db by eliminating onces which dont have the full aggregate we need
+    # TODO: we could force more work on the db by eliminating onces which don't have the full aggregate we need
     qs = ProjectCountByMinute.objects.filter(
         date__lte=max_date,
         date__gt=min_date,
@@ -71,7 +72,7 @@ def check_alerts(**kwargs):
     ).values_list('project_id', 'date', 'times_seen')
     for project_id, date, count in qs:
         normalized_count = int(count / ((now - date).seconds / 60))
-        maybe_delay(check_project_alerts,
+        check_project_alerts.delay(
             project_id=project_id,
             when=max_date,
             count=normalized_count,
@@ -79,7 +80,7 @@ def check_alerts(**kwargs):
         )
 
 
-@task(ignore_result=True)
+@task(name='sentry.tasks.check_alerts.check_project_alerts', queue='alerts')
 def check_project_alerts(project_id, when, count, **kwargs):
     """
     Given 'when' and 'count', which should signify recent times we compare it to historical data for this project
@@ -112,7 +113,7 @@ def check_project_alerts(project_id, when, count, **kwargs):
         date__gt=min_date,
     ).values_list('times_seen', flat=True))
 
-    # Bail if we dont have enough data points
+    # Bail if we don't have enough data points
     if len(data) != intervals:
         return
 

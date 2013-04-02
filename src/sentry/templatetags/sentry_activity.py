@@ -24,6 +24,7 @@ ACTIVITY_ACTION_STRINGS = {
     Activity.SET_PUBLIC: 'made this event public',
     Activity.SET_PRIVATE: 'made this event private',
     Activity.SET_REGRESSION: 'marked this event as a regression',
+    Activity.CREATE_ISSUE: u'created an issue on {provider:s} titled <a href="{location:s}">{title:s}</a>',
 }
 
 
@@ -34,6 +35,9 @@ def render_activity(item):
         return
 
     action_str = ACTIVITY_ACTION_STRINGS[item.type]
+
+    if item.type == Activity.CREATE_ISSUE:
+        action_str = action_str.format(**item.data)
 
     output = ''
 

@@ -8,6 +8,15 @@ sentry.buffer.redis
 
 from __future__ import with_statement
 
+from django.core.exceptions import ImproperlyConfigured
+
+for package in ('nydus', 'redis'):
+    try:
+        __import__(package, {}, {}, [], -1)
+    except ImportError:
+        raise ImproperlyConfigured('Missing %r package, which is required for Redis buffers' %
+            (package,))
+
 from django.db import models
 from django.utils.encoding import smart_str
 from hashlib import md5
@@ -97,7 +106,7 @@ class RedisBuffer(Buffer):
                     continue
                 extra[key] = pickle.loads(str(value))
 
-        # Filter out empty or zero'd results to avoid a potentially unnescesary update
+        # Filter out empty or zero'd results to avoid a potentially unnecessary update
         results = dict((k, int(v)) for k, v in results.iteritems() if int(v or 0) > 0)
         if not results:
             return

@@ -216,7 +216,7 @@ class StoreView(APIView):
     The primary endpoint for storing new events.
 
     This will validate the client's authentication and data, and if
-    successfull pass on the payload to the internal database handler.
+    successful pass on the payload to the internal database handler.
 
     Authentication works in three flavors:
 
@@ -263,13 +263,18 @@ class StoreView(APIView):
         data = safely_load_json_string(data)
 
         try:
+            # mutates data
             validate_data(project, data, auth.client)
         except InvalidData, e:
             raise APIError(u'Invalid data: %s (%s)' % (unicode(e), type(e)))
 
-        insert_data_to_database(data)
+        # mutates data
+        Group.objects.normalize_event_data(data)
 
         logger.debug('New event from project %s/%s (id=%s)', project.team.slug, project.slug, data['event_id'])
+
+        # mutates data (strips a lot of context if not queued)
+        insert_data_to_database(data)
 
 
 @csrf_exempt

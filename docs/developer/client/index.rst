@@ -495,7 +495,7 @@ And then you capture an event::
         'tags': {'foo': 'baz'},
     })
 
-The client should send the following usptream for ``tags``::
+The client should send the following upstream for ``tags``::
 
     {
         "tags": [

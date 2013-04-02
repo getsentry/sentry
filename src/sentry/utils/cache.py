@@ -34,13 +34,14 @@ class Lock(object):
     >>> with Lock('key name'):
     >>>     # do something
     """
-    def __init__(self, lock_key, timeout=10, cache=None):
+    def __init__(self, lock_key, timeout=3, cache=None, allow_failure=True):
         if cache is None:
             self.cache = _cache
         else:
             self.cache = cache
         self.timeout = timeout
         self.lock_key = lock_key
+        self.allow_failure = allow_failure
 
     def __enter__(self):
         start = time.time()
@@ -59,7 +60,7 @@ class Lock(object):
                 time.sleep(delay)
                 attempt += 1
 
-        if not got_lock:
+        if not got_lock and not self.allow_failure:
             raise UnableToGetLock('Unable to fetch lock after %.2fs' % (time.time() - start,))
 
         return self

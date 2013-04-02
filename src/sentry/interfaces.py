@@ -90,7 +90,7 @@ def get_context(lineno, context_line, pre_context=None, post_context=None, filen
 
 class Interface(object):
     """
-    An interface is a structured represntation of data, which may
+    An interface is a structured representation of data, which may
     render differently than the default ``extra`` metadata in an event.
     """
 
@@ -265,7 +265,7 @@ class Frame(object):
         else:
             self.colno = None
 
-        self.in_app = bool(in_app)
+        self.in_app = in_app
         self.context_line = context_line
         self.pre_context = pre_context
         self.post_context = post_context
@@ -282,6 +282,8 @@ class Frame(object):
         return is_url(self.abs_path)
 
     def is_valid(self):
+        if self.in_app not in (False, True, None):
+            return False
         return self.filename or self.function or self.module
 
     def get_hash(self):
@@ -301,7 +303,7 @@ class Frame(object):
 
     def get_context(self, event, is_public=False, **kwargs):
         if (self.context_line and self.lineno is not None
-            and (self.pre_context or self.post_context)):
+                and (self.pre_context or self.post_context)):
             context = get_context(
                 lineno=self.lineno,
                 context_line=self.context_line,
@@ -341,23 +343,23 @@ class Frame(object):
             })
         return frame_data
 
-    def to_string(self):
-        result = []
-        if self.filename:
-            pieces = ['  File "%s"' % (self.filename,)]
-        elif self.module:
-            pieces = ['  Module "%s"' % (self.module,)]
+    def to_string(self, event):
+        if event.platform is not None:
+            choices = [event.platform]
         else:
-            pieces = ['  ?']
-        if self.lineno is not None:
-            pieces.append(', line %d' % (self.lineno,))
-        if self.function:
-            pieces.append(', in %s' % (self.function,))
-
-        result = ''.join(pieces)
-        if self.context_line is not None:
-            result += '\n    %s' % (self.context_line.strip(),)
-        return result
+            choices = []
+        choices.append('default')
+        templates = ['sentry/partial/frames/%s.txt' % choice
+                      for choice in choices]
+        return render_to_string(templates, {
+            'abs_path': self.abs_path,
+            'filename': self.filename,
+            'function': self.function,
+            'module': self.module,
+            'lineno': self.lineno,
+            'colno': self.colno,
+            'context_line': self.context_line,
+        }).strip('\n')
 
 
 class Stacktrace(Interface):
@@ -507,6 +509,11 @@ class Stacktrace(Interface):
         if len(frames) == system_frames:
             system_frames = 0
 
+        # if theres no system frames, pretend they're all part of the app
+        if not system_frames:
+            for frame in frames:
+                frame['in_app'] = True
+
         newest_first = self.is_newest_frame_first(event)
         if newest_first:
             frames = frames[::-1]
@@ -562,7 +569,7 @@ class Stacktrace(Interface):
             result.extend(('(%d additional frame(s) were not displayed)' % (num_frames - visible_frames,), '...'))
 
         for frame in frames[start:stop]:
-            result.append(frame.to_string())
+            result.append(frame.to_string(event))
 
         if newest_first and visible_frames < num_frames:
             result.extend(('...', '(%d additional frame(s) were not displayed)' % (num_frames - visible_frames,)))

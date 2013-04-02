@@ -90,7 +90,7 @@ h3 {
     background: #465262;
     border: 0;
     .box-shadow(none);
-    height: 70px;
+    height: 60px;
 
     .container {
       padding: 9px 10px 0 30px;
@@ -103,9 +103,9 @@ h3 {
     font-weight: bold;
     float: left;
     display: block;
-    width: 73px;
+    width: 63px;
     height: 25px;
-    margin: 15px 0 0;
+    margin: 10px 0 0;
     letter-spacing: -1px;
     text-decoration: none;
     &:hover {
@@ -129,10 +129,10 @@ h3 {
           font-size: 16px;
           font-weight: bold;
           color: #8f97a3;
-          height: 70px;
+          height: 60px;
           width: 120px;
           text-align: center;
-          line-height: 70px;
+          line-height: 60px;
           .box-shadow(inset -1px 0 0 rgba(0,0,0, .15));
 
           &:hover {
@@ -143,7 +143,7 @@ h3 {
         &.active {
           a {
             color: darken(#8f97a3, 10);
-            height: 71px;
+            height: 61px;
             background: #dee3e9;
             .box-shadow(none);
           }
@@ -157,7 +157,7 @@ h3 {
   }
 
   .nav {
-    margin: 12px 0 0 10px;
+    margin: 7px 0 0 10px;
 
     > li {
       margin: 0 0 0 35px;
@@ -261,20 +261,20 @@ h3 {
       position: relative;
       .project-shortcut {
         position: absolute;
-        top: -3px;
+        right: 32px;
         left: 0;
-        width: 188px;
+        height: 100%;
+        z-index: 10001;
+        display: block;
         height: 28px;
-        z-index: 2;
-        &:after {
-          content: "";
-          display: block;
-          position: absolute;
-          width: 2px;
-          top: 2px;
-          right: 0;
-          bottom: 2px;
-          background: lighten(#dee3e9, 7);
+        top: -3px;
+        line-height: 28px;
+        padding-left: 11px;
+        .border-radius(3px 0 0 3px);
+
+        &:hover {
+          color: #000 !important;
+          background: #f9f9f9;
         }
       }
     }
@@ -287,8 +287,48 @@ h3 {
       height: 28px;
       line-height: 28px;
       top: -3px;
-      padding: 0 0 0 11px;
+      padding: 0 0 0 0;
+      z-index: 1000;
       .box-shadow(0 2px 0 rgba(185, 200, 215, .26));
+
+      span {
+        padding: 0 0 0 11px;
+        margin-right: 35px;
+        .border-radius(3px 0 0 3px);
+      }
+
+      div > b:hover {
+        color: #000 !important;
+        background: #f9f9f9;
+      }
+
+      div {
+        width: 32px;
+        right: 0;
+        top: 0;
+        .border-radius(0 3px 3px 0);
+        z-index: 1000;
+        > b {
+          line-height: 28px;
+          display: block;
+          .border-radius(0 3px 3px 0);
+          &:before {
+            .border-radius(0 3px 3px 0);
+            position: absolute;
+            line-height: 26px;
+            text-align: center;
+            display: block;
+            width: 30px;
+            border-left: 2px solid #ccc;
+            /** i have no idea how css works **/
+            left: 0;
+            right: 2px;
+            padding-right: 2px;
+            bottom: 2px;
+            top: 2px;
+          }
+        }
+      }
     }
 
     .select2-dropdown-open .select2-choice {
@@ -665,10 +705,10 @@ footer {
     }
   }
   a {
-    color: darken(#939aa4, 4);
+    color: darken(#939aa4, 10);
     font-weight: bold;
     &:hover {
-      color: #fff;
+      color: #333;
     }
   }
 
@@ -849,10 +889,10 @@ ul.tag-list {
 
   > li {
     position: relative;
-    padding: 15px 30px 15px 120px;
+    padding: 10px 30px 10px 110px;
     position: relative;
     border-bottom: 2px solid #f2f4f7;
-    min-height: 70px; /* count height */
+    min-height: 60px; /* count height */
 
     a {
       .transition(none);
@@ -895,8 +935,9 @@ ul.tag-list {
 
     h3 {
       margin: 0;
-      font-size: 20px;
-      font-weight: normal;
+      font-size: 16px;
+      line-height: 20px;
+      font-weight: bold;
       width: 85%;
       white-space: nowrap;
       overflow: hidden;
@@ -904,6 +945,9 @@ ul.tag-list {
 
       a {
         color: #465262;
+        &:hover {
+          color: #000;
+        }
       }
       span {
         margin-left: 10px;
@@ -915,13 +959,13 @@ ul.tag-list {
     .count {
       color: #fff;
       position: absolute;
-      left: 28px;
-      .square(70px);
+      left: 23px;
+      .square(60px);
+      .border-radius(60px);
+      line-height: 60px;
       background: #cfd3da;
-      .border-radius(70px);
-      line-height: 70px;
       text-align: center;
-      font-size: 19px;
+      font-size: 17px;
       font-weight: bold;
       letter-spacing: -1px;
       overflow: hidden;
@@ -937,9 +981,9 @@ ul.tag-list {
       }
     }
     .message {
-      color: #868f99;
+      color: #777;
       margin-bottom: 0;
-      font-size: 15px;
+      font-size: 14px;
       padding-right: 24px;
       white-space: nowrap;
       overflow: hidden;
@@ -952,7 +996,14 @@ ul.tag-list {
 
     .meta {
       color: #b6bcc2;
-      font-size: 13px;
+      font-size: 12px;
+      a {
+        color: inherit;
+        &:hover {
+          text-decoration: underline;
+          color: #000;
+        }
+      }
     }
 
     .tag {
@@ -964,7 +1015,7 @@ ul.tag-list {
     .sparkline {
       position: absolute;
       right: 50px;
-      top: 25px;
+      top: 18px;
       display: inline-block;
       width: 100px;
       height: 52px;
@@ -978,7 +1029,7 @@ ul.tag-list {
     .actions {
       position: absolute;
       right: 20px;
-      top: 25px;
+      top: 17px;
       list-style-type: none;
       margin: 0;
       padding: 0;
@@ -1201,6 +1252,7 @@ ul.traceback { list-style-type: none; margin-left: 0; }
 
   p {
     font-size: 12px;
+    margin-bottom: 0;
 
     a.annotation {
       &.trigger-popover {

@@ -7,7 +7,7 @@ sentry.coreapi
 """
 # TODO: We should make the API a class, and UDP/HTTP just inherit from it
 #       This will make it so we can more easily control logging with various
-#       metadata (rather than generic log messages which arent useful).
+#       metadata (rather than generic log messages which aren't useful).
 
 from datetime import datetime, timedelta
 import base64
@@ -23,11 +23,10 @@ from sentry.conf import settings
 from sentry.exceptions import InvalidTimestamp
 from sentry.models import Project, ProjectKey, TeamMember, Team
 from sentry.plugins import plugins
-from sentry.tasks.store import store_event
+from sentry.tasks.store import preprocess_event
 from sentry.utils import is_float, json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.imports import import_string
-from sentry.utils.queue import maybe_delay
 from sentry.utils.strings import decompress
 
 
@@ -142,7 +141,7 @@ def project_from_auth_vars(auth_vars):
         except TeamMember.DoesNotExist:
             raise APIUnauthorized('Member does not have access to project')
 
-        # We have to refetch this as it may have been catched
+        # We have to refetch this as it may have been caught
         pk.user = User.objects.get(id=pk.user_id)
         if not pk.user.is_active:
             raise APIUnauthorized('Account is not active')
@@ -177,7 +176,7 @@ def project_from_api_key_and_id(api_key, project_id):
         except TeamMember.DoesNotExist:
             raise APIUnauthorized('Member does not have access to project')
 
-        # We have to refetch this as it may have been catched
+        # We have to refetch this as it may have been caught
         pk.user = User.objects.get(id=pk.user_id)
         if not pk.user.is_active:
             raise APIUnauthorized('Account is not active')
@@ -298,6 +297,8 @@ def validate_data(project, data, client=None):
 
     if not data.get('message'):
         data['message'] = '<no message value>'
+    elif not isinstance(data['message'], basestring):
+        raise APIError('Invalid value for message')
     elif len(data['message']) > MAX_MESSAGE_LENGTH:
         logger.error('Truncated value for message due to length (%d chars)', len(data['message']),
             **client_metadata(client))
@@ -384,4 +385,4 @@ def validate_data(project, data, client=None):
 
 
 def insert_data_to_database(data):
-    maybe_delay(store_event, data=data)
+    preprocess_event.delay(data=data)

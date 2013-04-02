@@ -9,7 +9,7 @@ sentry.tasks.index
 from celery.task import task
 
 
-@task(ignore_result=True)
+@task(name='sentry.tasks.index.index_event', queue='search')
 def index_event(event, **kwargs):
     from sentry.models import SearchDocument
 

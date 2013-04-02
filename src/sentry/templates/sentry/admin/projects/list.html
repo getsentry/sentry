@@ -1,5 +1,6 @@
 {% extends "sentry/admin/base.html" %}
 
+{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
 {% load sentry_admin_helpers %}
@@ -10,7 +11,7 @@
 
 {% block breadcrumb %}
     <li class="divider"></li>
-    <li><a href="{% url sentry-admin-projects %}">{% trans "Projects" %}</a></li>
+    <li><a href="{% url 'sentry-admin-projects' %}">{% trans "Projects" %}</a></li>
 {% endblock %}
 
 {% block main %}
@@ -50,9 +51,10 @@
                     {% for project, avg_events in project_list.paginator.objects|with_event_counts %}
                         <tr>
                             <td>
-                                <strong>{{ project.name }}</strong> <a href="{% url sentry-stream project.team.slug project.slug %}">[view]</a><br/>
+                                <a href="{% url 'sentry-manage-project' project.team.slug project.slug %}"><strong>{{ project.team.slug }}/{{ project.slug }}</strong></a>
+                                <a href="{% url 'sentry-stream' project.team.slug project.slug %}">[stream]</a><br/>
                                 {% if project.owner %}
-                                    <small>Owned by <a href="{% url sentry-admin-edit-user project.owner.pk %}">
+                                    <small>Owned by <a href="{% url 'sentry-admin-edit-user' project.owner.pk %}">
                                         {% if project.owner.email %}
                                             {{ project.owner.email }}
                                         {% else %}

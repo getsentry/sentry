@@ -36,7 +36,7 @@ The first thing you will need to do is install two additional required packages:
 
 ::
 
-    pip install redis nydus
+    pip install redis hiredis nydus
 
 Finally, configure the buffer options:
 

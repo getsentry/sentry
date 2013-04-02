@@ -83,7 +83,7 @@ class RemoveProjectForm(forms.Form):
             self.fields['project'].choices = [(p.pk, p.name) for p in project_list]
             self.fields['project'].widget.choices = self.fields['project'].choices
 
-        # HACK: dont require current password if they dont have one
+        # HACK: don't require current password if they don't have one
         if self.user.password in EMPTY_PASSWORD_VALUES:
             del self.fields['password']
 

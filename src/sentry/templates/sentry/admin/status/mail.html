@@ -2,6 +2,7 @@
 
 {% block admin-nav-queue %} class="active"{% endblock %}
 
+{% load url from future %}
 {% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_helpers %}
@@ -10,7 +11,7 @@
 
 {% block breadcrumb %}
     <li class="divider"></li>
-    <li><a href="{% url sentry-admin-mail-status %}">{% trans "Mail Configuration" %}</a></li>
+    <li><a href="{% url 'sentry-admin-mail-status' %}">{% trans "Mail Configuration" %}</a></li>
 {% endblock %}
 
 {% block inner %}

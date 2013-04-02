@@ -70,7 +70,7 @@ class RangeField(IntegerField):
 
 
 class OriginsField(CharField):
-    _url_validator = URLValidator(verify_exists=False)
+    _url_validator = URLValidator()
     widget = Textarea(
         attrs={'placeholder': mark_safe(_('e.g. example.com or https://example.com')), 'class': 'span8'},
     )

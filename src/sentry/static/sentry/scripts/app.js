@@ -140,8 +140,8 @@
                                 var results = [];
                                 $(data.results).each(function(_, val){
                                     results.push({
-                                        id: val,
-                                        text: val
+                                        id: app.utils.escape(val),
+                                        text: app.utils.escape(val)
                                     });
                                 });
                                 return {results: results};

@@ -66,11 +66,38 @@ the same command you used to grab virtualenv::
 Don't be worried by the amount of dependencies Sentry has. We have a philosophy of using the right tools for
 the job, and not reinventing them if they already exist.
 
+Using MySQL or Postgres
+~~~~~~~~~~~~~~~~~~~~~~~
+
+We **highly** recommend using PostgreSQL for your database, or MySQL if you have no other choice. The default
+is sqlite and will handle very little load.
+
+These databases require additional packages, but Sentry provides a couple of meta packages to make things easier:
+
+::
+
+  # install sentry and its postgresql dependencies
+  easy_install -UZ sentry[postgres]
+
+  # or if you choose, mysql
+  easy_install -UZ sentry[mysql]
+
+
+Installing from Source
+~~~~~~~~~~~~~~~~~~~~~~
+
+If you're installing the Sentry source (e.g. from git), you'll simply need to run the ``make`` command to
+get all of the dependencies::
+
+  # all things should be this easy
+  make
+
 Once everything's installed, you should be able to execute the Sentry CLI, via ``sentry``, and get something
 like the following::
 
   $ sentry
   usage: sentry [--config=/path/to/settings.py] [command] [options]
+
 
 Initializing the Configuration
 ------------------------------

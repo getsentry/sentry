@@ -6,13 +6,13 @@ sentry.tasks.fetch_source
 :license: BSD, see LICENSE for more details.
 """
 
-import zlib
+import logging
 import hashlib
 import urllib2
+import zlib
 from collections import namedtuple
 from urlparse import urljoin
 
-from celery.task import task
 from django.utils.simplejson import JSONDecodeError
 from sentry.utils.cache import cache
 from sentry.utils.sourcemaps import sourcemap_to_index, find_source
@@ -22,8 +22,9 @@ BAD_SOURCE = -1
 # number of surrounding lines (on each side) to fetch
 LINES_OF_CONTEXT = 5
 
-
 UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body'])
+
+logger = logging.getLogger(__name__)
 
 
 def trim_line(line):
@@ -100,10 +101,11 @@ def fetch_url(url, logger=None):
     """
     import sentry
 
-    cache_key = 'fetch_url:%s' % (hashlib.md5(url).hexdigest(),)
+    cache_key = 'fetch_url:v2:%s' % (
+        hashlib.md5(url.encode('utf-8')).hexdigest(),)
     result = cache.get(cache_key)
     if result is not None:
-        return result
+        return UrlResult(*result)
 
     try:
         opener = urllib2.build_opener()
@@ -122,11 +124,11 @@ def fetch_url(url, logger=None):
             logger.error('Unable to fetch remote source for %r', url, exc_info=True)
         return BAD_SOURCE
 
-    result = UrlResult(url, headers, body)
+    result = (url, headers, body)
 
     cache.set(cache_key, result, 60 * 5)
 
-    return result
+    return UrlResult(url, headers, body)
 
 
 def fetch_sourcemap(url, logger=None):
@@ -136,7 +138,7 @@ def fetch_sourcemap(url, logger=None):
 
     body = result.body
     # According to spec (https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.h7yy76c5il9v)
-    # A SouceMap may be prepended with ")]}'" to cause a Javascript error.
+    # A SourceMap may be prepended with ")]}'" to cause a Javascript error.
     # If the file starts with that string, ignore the entire first line.
     if body.startswith(")]}'"):
         body = body.split('\n', 1)[1]
@@ -144,14 +146,12 @@ def fetch_sourcemap(url, logger=None):
         index = sourcemap_to_index(body)
     except JSONDecodeError:
         if logger:
-            logger.warning('Failed parsing sourcemap JSON: %r', body[:15],
-            exc_info=True)
+            logger.warning('Failed parsing sourcemap JSON: %r', body[:15], exc_info=True)
     else:
         return index
 
 
-@task(ignore_result=True)
-def fetch_javascript_source(event, **kwargs):
+def expand_javascript_source(data, **kwargs):
     """
     Attempt to fetch source code for javascript frames.
 
@@ -161,23 +161,27 @@ def fetch_javascript_source(event, **kwargs):
     - colno >= 0
     - abs_path is the HTTP URI to the source
     - context_line is empty
+
+    Mutates the input ``data`` with expanded context if available.
     """
-    logger = fetch_javascript_source.get_logger()
+    from sentry.interfaces import Stacktrace
 
     try:
-        stacktrace = event.interfaces['sentry.interfaces.Stacktrace']
+        stacktrace = Stacktrace(**data['sentry.interfaces.Stacktrace'])
     except KeyError:
-        logger.debug('No stacktrace for event %r', event.id)
+        logger.debug('No stacktrace for event %r', data['event_id'])
         return
 
     # build list of frames that we can actually grab source for
-    frames = [f for f in stacktrace.frames
+    frames = [
+        f for f in stacktrace.frames
         if f.lineno is not None
-            and f.context_line is None
-            and f.is_url()]
+        and f.is_url()
+    ]
+
     if not frames:
-        logger.debug('Event %r has no frames with enough context to fetch remote source', event.id)
-        return
+        logger.debug('Event %r has no frames with enough context to fetch remote source', data['event_id'])
+        return data
 
     file_list = set()
     sourcemap_capable = set()
@@ -266,5 +270,4 @@ def fetch_javascript_source(event, **kwargs):
             source=source, lineno=frame.lineno)
 
     if has_changes:
-        event.data['sentry.interfaces.Stacktrace'] = stacktrace.serialize()
-        event.update(data=event.data)
+        data['sentry.interfaces.Stacktrace'] = stacktrace.serialize()

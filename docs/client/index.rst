@@ -14,7 +14,7 @@ protocol:
 - iOS / Objective-C (`raven-objc <https://github.com/getsentry/raven-objc>`_)
 - C# (`raven-csharp <https://github.com/getsentry/raven-csharp>`_)
 
-Additionally, the following experimental clients are availabe:
+Additionally, the following experimental clients are available:
 
 - Action Script 3 (`raven-as3 <https://github.com/skitoo/raven-as3>`_)
 - CFML (`raven-cfml <https://github.com/jmacul2/raven-cfml>`_)

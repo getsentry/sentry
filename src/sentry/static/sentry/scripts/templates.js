@@ -3,7 +3,9 @@
 
     app.templates = {
         group: '' + 
-            '<div class="count" data-count="<%= app.utils.formatNumber(count) %>"><span title="<%= count %>"><%= app.utils.formatNumber(count) %></span></div>' + 
+            '<div class="count" data-count="<%= app.utils.formatNumber(count) %>">' +
+                '<span title="<%= count %>"><%= app.utils.formatNumber(count) %></span>' +
+            '</div>' + 
             '<div class="details">' + 
                 '<h3><a href="<%= permalink %>"><%= title %></a></h3>' + 
                 '<p class="message">' + 
@@ -15,7 +17,9 @@
                         '<span class="time-spent"><%= Math.round(timeSpent) %>ms</span>' + 
                     '<% } %>' + 
                     '<span class="tag tag-project"><%= project.name %></span>' + 
-                    '<span class="tag tag-logger"><%= logger %></span>' + 
+                    '<span class="tag tag-logger">' + 
+                        '<a href="<%= loggerUrl %>"><%= logger %></a>' +
+                    '</span>' + 
                     '<% _.each(versions, function(version){ %> ' + 
                         '<span class="tag tag-version"><%= version %></span>' + 
                     '<% }) %>' + 

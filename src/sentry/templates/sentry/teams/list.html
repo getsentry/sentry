@@ -1,5 +1,6 @@
 {% extends "sentry/teams/base.html" %}
 
+{% load url from future %}
 {% load i18n %}
 
 {% block title %}{% trans "Team List" %} | {{ block.super }}{% endblock %}
@@ -29,7 +30,7 @@
                 {% for team in TEAM_LIST %}
                     <tr>
                         <td>
-                            <a href="{% url sentry-manage-team team.slug %}">{{ team.name }}</a><br/>
+                            <a href="{% url 'sentry-manage-team' team.slug %}">{{ team.name }}</a><br/>
                         </td>
                         <td style="text-align:center;vertical-align:middle;">
                             {{ team.owner.username }}

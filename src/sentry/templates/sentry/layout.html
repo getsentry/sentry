@@ -1,3 +1,4 @@
+{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
 {% load static_compiler %}
@@ -8,7 +9,7 @@
         <meta http-equiv="content-type" content="text/html; charset=utf-8">
         <meta name="robots" content="NONE,NOARCHIVE">
 
-        <link href="{% url sentry-media "sentry" "images/favicon.png" %}" rel="shortcut icon" type="image/png"/>
+        <link href="{% url 'sentry-media' "sentry" "images/favicon.png" %}" rel="shortcut icon" type="image/png"/>
 
         {% block css %}
             {% staticbundle 'sentry/styles/global.min.css' %}
@@ -17,15 +18,15 @@
         <title>{% block title %}Sentry{% endblock %}</title>
 
         <!--[if lt IE 9]>
-        <script type="text/javascript" src="{% url sentry-media "sentry" "scripts/lib/html5shiv.js" %}"></script>
+        <script type="text/javascript" src="{% url 'sentry-media' "sentry" "scripts/lib/html5shiv.js" %}"></script>
         <![endif]-->
         {% block scripts %}
             {% staticbundle 'sentry/scripts/lib.min.js' %}
             {% staticbundle 'sentry/scripts/global.min.js' %}
             {% staticbundle 'sentry/scripts/legacy.min.js' %}
             <script type="text/javascript">
-            app.config.popupCss = '{% url sentry-media "sentry" 'styles/popup.css' %}';
-            app.config.mediaUrl = '{% url sentry-media "sentry" '' %}';
+            app.config.popupCss = '{% url 'sentry-media' "sentry" 'styles/popup.css' %}';
+            app.config.mediaUrl = '{% url 'sentry-media' "sentry" '' %}';
             app.config.urlPrefix = {{ URL_PREFIX|to_json|safe }};
             app.config.hasRealtime = {{ hasRealtime|to_json|safe  }} || false;
             {% if project %}
@@ -56,20 +57,22 @@
                 <div class="container">
                     {% block page_header %}
                         <ul class="breadcrumb">
-                            <li><a href="{% url sentry %}" class="dashboard-btn" title="{% trans "Dashboard" %}"><i aria-hidden="true" class="icon-list"></i></a></li>
+                            <li><a href="{% url 'sentry' %}" class="dashboard-btn" title="{% trans "Dashboard" %}"><i aria-hidden="true" class="icon-list"></i></a></li>
                             <li class="projects">
                                 {% if project %}
-                                    <a href="{% url sentry-stream project.team.slug project.slug %}" class="project-shortcut"></a>
+                                    <a href="{% url 'sentry-stream' project.team.slug project.slug %}" class="project-shortcut">
+                                        {{ project.name }}
+                                    </a>
                                 {% endif %}
                                 <select class="project-selector" data-placeholder="{% trans "Select a Project" %}">
                                     <option value=""></option>
                                     {% for p in PROJECT_LIST %}
-                                        <option value="{{ p.slug }}"{% if p == project %} selected="selected"{% endif %} data-url="{% url sentry-stream p.team.slug p.slug %}">{{ p.name }}</option>
+                                        <option value="{{ p.slug }}"{% if p == project %} selected="selected"{% endif %} data-url="{% url 'sentry-stream' p.team.slug p.slug %}">{{ p.name }}</option>
                                     {% endfor %}
                                 </select>
                             </li>
                             {% if project and can_admin_team %}
-                                <li class="project-settings"><a href="{% url sentry-manage-project project.team.slug project.slug %}" class="{% trans "Settings" %}"><i aria-hidden="true" class="icon-cog"></i></a></li>
+                                <li class="project-settings"><a href="{% url 'sentry-manage-project' project.team.slug project.slug %}" class="{% trans "Settings" %}"><i aria-hidden="true" class="icon-cog"></i></a></li>
                             {% endif %}
                             {% block breadcrumb %}
                             {% endblock %}
@@ -109,7 +112,8 @@
         <footer>
             <div class="container">
                 {% block footer %}
-                    <div class="contribute">Sentry is open source software <a href="https://github.com/getsentry/sentry" class="btn btn-small">Contribute</a></div>
+                    <div class="contribute">Sentry is <a href="http://en.wikipedia.org/wiki/Open-source_software">Open Source Software</a>
+                        <a href="https://github.com/getsentry/sentry" class="btn btn-small">{% trans "Contribute" %}</a> <a href="https://www.transifex.com/projects/p/sentry/" class="btn btn-small">{% trans "Translate" %}</a></div>
                     <div class="version">Sentry {% sentry_version %}</div>
                     <div class="credits">Created by the <a href="http://code.disqus.com">DISQUS</a> team with <a href="https://github.com/getsentry/sentry/contributors">lots of help</a></div>
                 {% endblock %}
@@ -129,7 +133,7 @@
         <script type="text/javascript">
         $(function(){
             $('.clippy').clippy({
-                clippy_path: '{% url sentry-media "sentry" "clippy.swf" %}',
+                clippy_path: '{% url 'sentry-media' "sentry" "clippy.swf" %}',
                 keep_text: true
             });
             $('input[data-toggle="datepicker"]').datepicker();
