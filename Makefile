@@ -54,7 +54,8 @@ testloop: install-test-requirements
 
 test-cli:
 	@echo "Testing CLI"
-	sentry help | grep start > /dev/null
+	sentry init test.conf
+	sentry --config=test.conf help | grep start > /dev/null
 
 test-js:
 	@echo "Running JavaScript tests"
