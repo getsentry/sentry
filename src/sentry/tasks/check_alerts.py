@@ -2,32 +2,6 @@
 sentry.tasks.check_alerts
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Store a sorted set per project
-- Each sorted set contains the number of events seen in the interval (1 minute)
-  - An additional set contains the number of unique events seen
-- Every minute we iterate this sorted set (we can exploit the queue just like buffers to avoid crons)
-  - We clear the results immediately to no-op any concurrent tasks that might try to run
-  - The task fires off a set of subtasks that individually check each project
-    - Each project's value is compared to the historic value in the last N minutes (15m for redis counters or
-      a period of time using the SQL counters)
-    - We only alert if an alert has not been seen on this condition in the last N minutes
-
-Notes:
-
-- Nydus optimizes out multiple writes/gets, so its not as expensive as it looks
-- If there are not enough data points in history, alerts are never sent (as they could be false positives)
-
-Last Notified will be tracked by using a new Alert model, which has the following properties:
-
-- users alerted
-- datetime
-- type
-- ident
-
-Type and ident would be similar to how Activity works.
-
-Alert expiration threshold MUST be > MINUTE_NORMALIZATION.
-
 :copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
