@@ -295,6 +295,11 @@ class Frame(object):
 
         if self.context_line is not None:
             output.append(self.context_line)
+        elif not output:
+            # If we were unable to achieve any context at this point
+            # (likely due to a bad JavaScript error) we should just
+            # bail on recording this frame
+            return output
         elif self.function:
             output.append(self.function)
         elif self.lineno is not None:
