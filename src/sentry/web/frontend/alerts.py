@@ -7,10 +7,13 @@ sentry.web.frontend.alerts
 """
 from __future__ import division
 
+from datetime import timedelta
+
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
+from django.utils import timezone
 
-from sentry.constants import STATUS_RESOLVED
+from sentry.constants import STATUS_RESOLVED, STATUS_UNRESOLVED
 from sentry.models import Alert
 from sentry.web.decorators import has_access, login_required
 from sentry.web.helpers import render_to_response
@@ -19,7 +22,11 @@ from sentry.web.helpers import render_to_response
 @login_required
 @has_access
 def alert_list(request, team, project=None):
-    alert_list = Alert.objects.filter(group__isnull=True).order_by('-datetime')
+    alert_list = Alert.objects.filter(
+        group__isnull=True,
+        status=STATUS_UNRESOLVED,
+        datetime__gte=timezone.now() - timedelta(days=3),
+    ).order_by('-datetime')
 
     if project:
         alert_list = alert_list.filter(project=project)
@@ -33,7 +40,7 @@ def alert_list(request, team, project=None):
     return render_to_response(template, {
         'team': team,
         'project': project,
-        'alert_list': alert_list,
+        'alert_list': list(alert_list[:20]),
         'SECTION': 'alerts',
     }, request)
 
