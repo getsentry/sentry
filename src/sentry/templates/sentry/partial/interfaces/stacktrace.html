@@ -75,7 +75,7 @@
                              {% if frame.filename or frame.module %}in {% endif %}<code>{{ frame.function }}</code>
                         {% endif %}
                         {% if not frame.context and not frame.lineno|is_none %}
-                             at line <code>{{ frame.lineno }}{% if not frame.colno|is_none %}:{{ frame.colno }}{% endif %}<code>
+                             at line <code>{{ frame.lineno }}{% if not frame.colno|is_none %}:{{ frame.colno }}{% endif %}</code>
                         {% endif %}
                         {% if system_frames and frame.in_app %}
                             <span class="tag-app">(application)</span>
