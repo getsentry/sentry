@@ -7819,6 +7819,7 @@ section.body .page-header:first-child {
   border-radius: 4px;
   background: #ffc01a;
   color: #fff;
+  border: 0;
 }
 .alert a {
   font-weight: bold;
