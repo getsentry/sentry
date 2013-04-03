@@ -45,6 +45,7 @@ from sentry.signals import buffer_incr_complete, regression_signal
 from sentry.utils import MockDjangoRequest
 from sentry.utils.cache import memoize
 from sentry.utils.db import has_trending
+from sentry.utils.http import absolute_uri
 from sentry.utils.models import Model, GzippedDictField, update
 from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute
@@ -1126,6 +1127,10 @@ class Alert(Model):
         return (self.status == STATUS_RESOLVED
                 or self.datetime < timezone.now() - timedelta(minutes=60))
 
+    def get_absolute_url(self):
+        return absolute_uri(reverse('sentry-alert-details', args=[
+            self.team.slug, self.project.slug, self.id]))
+
 
 class AlertRelatedGroup(Model):
     group = models.ForeignKey(Group)
@@ -1326,6 +1331,13 @@ def create_regression_activity(instance, **kwargs):
     )
 
 
+def on_alert_creation(instance, **kwargs):
+    from sentry.plugins import plugins
+
+    for plugin in plugins.for_project(instance.project):
+        safe_execute(plugin.on_alert, alert=instance)
+
+
 # Signal registration
 post_syncdb.connect(
     create_default_project,
@@ -1366,6 +1378,12 @@ user_logged_in.connect(
     set_language_on_logon,
     dispatch_uid="set_language_on_logon",
     weak=False
+)
+post_save.connect(
+    on_alert_creation,
+    sender=Alert,
+    dispatch_uid="on_alert_creation",
+    weak=False,
 )
 
 add_introspection_rules([], ["^social_auth\.fields\.JSONField"])

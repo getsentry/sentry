@@ -449,6 +449,17 @@ class IPlugin(local):
         """
         return None
 
+    def on_alert(self, alert, **kwargs):
+        """
+        Called when a new alert is generated.
+
+        :param alert: an instance of ``Alert``
+
+        >>> def on_alert(self, alert, **kwargs):
+        >>>     print 'New alert!', alert.message
+        >>>     print alert.get_absolute_url()
+        """
+
     def post_process(self, group, event, is_new, is_sample, **kwargs):
         """
         Post processes an event after it has been saved.

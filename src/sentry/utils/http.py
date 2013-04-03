@@ -9,7 +9,6 @@ import urllib
 from urlparse import urlparse, urljoin
 
 from sentry.conf import settings
-from sentry.plugins.helpers import get_option
 
 
 def absolute_uri(url=None):
@@ -56,6 +55,8 @@ def is_same_domain(url1, url2):
 
 
 def get_origins(project=None):
+    from sentry.plugins.helpers import get_option
+
     # TODO: we should cache this
     if settings.ALLOW_ORIGIN == '*':
         return frozenset(['*'])

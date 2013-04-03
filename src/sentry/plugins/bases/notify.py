@@ -68,6 +68,12 @@ class NotificationUserOptionsForm(BaseNotificationUserOptionsForm):
             self.plugin.set_option('alert', int(slug in projects), user=user, project=project)
 
 
+class Message(object):
+    def __init__(self, short, long):
+        self.short = short
+        self.long = long
+
+
 class NotificationPlugin(Plugin):
     description = _('Notify project members when a new event is seen for the first time, or when an '
                     'already resolved event has changed back to unresolved.')
