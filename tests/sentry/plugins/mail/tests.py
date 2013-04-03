@@ -6,25 +6,20 @@ import mock
 from mock import Mock
 from django.utils import timezone
 from sentry.interfaces import Stacktrace
-from sentry.models import Event, Group, Project, Team
+from sentry.models import Alert, Event, Group, Project
 from sentry.plugins.sentry_mail.models import MailProcessor
 from sentry.testutils import TestCase, fixture
 
 
 class MailProcessorTest(TestCase):
     @fixture
-    def team(self):
-        return Team(id=1, slug='foo', name='Team Name')
-
-    @fixture
-    def project(self):
-        return Project(id=1, name='Project Name', slug='foo', team=self.team)
+    def plugin(self):
+        return MailProcessor()
 
     @mock.patch('sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d: d))
     @mock.patch('sentry.plugins.sentry_mail.models.MailProcessor.get_send_to', Mock(return_value=[]))
     def test_should_notify_no_send_to(self):
-        p = MailProcessor()
-        self.assertFalse(p.should_notify(group=Mock(), event=Mock()))
+        assert not self.plugin.should_notify(group=Mock(), event=Mock())
 
     @mock.patch('sentry.models.ProjectOption.objects.get_value', Mock(side_effect=lambda p, k, d: d))
     @mock.patch('sentry.plugins.sentry_mail.models.MailProcessor.get_send_to', Mock(return_value=['foo@example.com']))
@@ -175,7 +170,7 @@ class MailProcessorTest(TestCase):
         args, kwargs = _send_mail.call_args
         self.assertEquals(kwargs.get('fail_silently'), False)
         self.assertEquals(kwargs.get('project'), self.project)
-        self.assertEquals(kwargs.get('subject'), u"[Project Name] ERROR: hello world")
+        assert kwargs.get('subject') == u"[{}] ERROR: hello world".format(self.project.name)
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailProcessor._send_mail')
     def test_multiline_error(self, _send_mail):
@@ -200,7 +195,7 @@ class MailProcessorTest(TestCase):
 
         _send_mail.assert_called_once()
         args, kwargs = _send_mail.call_args
-        self.assertEquals(kwargs.get('subject'), u"[Project Name] ERROR: hello world")
+        assert kwargs.get('subject') == u"[{}] ERROR: hello world".format(self.project.name)
 
     @mock.patch('sentry.utils.cache.cache.get', mock.Mock(return_value=None))
     @mock.patch('sentry.models.ProjectOption.objects.get_value')
@@ -238,14 +233,13 @@ class MailProcessorTest(TestCase):
         user = User.objects.create(username='foo', email='foo@example.com')
         user2 = User.objects.create(username='baz', email='baz@example.com')
 
-        p = MailProcessor()
+        assert (sorted(self.plugin.get_emails_for_users([user.pk, user2.pk])) ==
+                sorted([user.email, user2.email]))
 
-        self.assertEquals(sorted(p.get_emails_for_users([user.pk, user2.pk])),
-                          sorted([user.email, user2.email]))
         UserOption.objects.create(key='alert_email', value='foobaz@example.com', user=user2)
 
-        self.assertEquals(sorted(p.get_emails_for_users([user.pk, user2.pk])),
-                          sorted([user.email, 'foobaz@example.com']))
+        assert (sorted(self.plugin.get_emails_for_users([user.pk, user2.pk])) ==
+                sorted([user.email, 'foobaz@example.com']))
 
     def test_get_sendable_users(self):
         from django.contrib.auth.models import User
@@ -259,13 +253,22 @@ class MailProcessorTest(TestCase):
         project.team.member_set.get_or_create(user=user2)
         project.team.member_set.get_or_create(user=user3)
 
-        p = MailProcessor()
-
         # all members
-        self.assertEqual(sorted(set([user.pk, user2.pk])),
-                         sorted(p.get_sendable_users(project)))
+        assert (sorted(set([user.pk, user2.pk])) ==
+                sorted(self.plugin.get_sendable_users(project)))
 
         # disabled user2
         UserOption.objects.create(key='mail:alert', value=0, project=project, user=user2)
-        self.assertEqual(sorted(set([user.pk])),
-                         sorted(p.get_sendable_users(project)))
+
+        assert sorted(set([user.pk])) == sorted(self.plugin.get_sendable_users(project))
+
+    @mock.patch('sentry.plugins.sentry_mail.models.MailProcessor._send_mail')
+    def test_on_alert(self, _send_mail):
+        alert = Alert.objects.create(message='This is a test alert', project=self.project)
+
+        self.plugin.on_alert(alert=alert)
+
+        _send_mail.assert_called_once()
+        args, kwargs = _send_mail.call_args
+        assert kwargs.get('subject') == u"[{}] ALERT: {}".format(
+            self.project.name, alert.message)

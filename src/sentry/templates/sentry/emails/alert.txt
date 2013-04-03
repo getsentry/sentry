@@ -1,0 +1,15 @@
+{% spaceless %}
+{% autoescape off %}
+A new alert has been reported in Sentry:
+
+    {{ alert.message }}
+
+Details
+-------
+
+{{ link }}
+
+Date: {{ alert.datetime }}
+Project: {{ alert.project.name }}
+{% endautoescape %}
+{% endspaceless %}

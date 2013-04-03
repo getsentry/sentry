@@ -98,6 +98,9 @@ class MailProcessor(NotificationPlugin):
             fail_silently=False,
         )
 
+    def get_notification_settings_url(self):
+        return absolute_uri(reverse('sentry-account-settings-notifications'))
+
     def get_send_to(self, project=None):
         """
         Returns a list of email addresses for the users that should be notified of alerts.
@@ -136,6 +139,45 @@ class MailProcessor(NotificationPlugin):
             cache.set(cache_key, send_to_list, 60)  # 1 minute cache
 
         return send_to_list
+
+    def on_alert(self, alert):
+        project = alert.project
+        member_set = self.get_sendable_users(project)
+        if not member_set:
+            return
+
+        subject = '[{}] ALERT: {}'.format(
+            project.name.encode('utf-8'),
+            alert.message.encode('utf-8'),
+        )
+        body = self.get_alert_plaintext_body(alert)
+        html_body = self.get_alert_html_body(alert)
+
+        headers = {
+            'X-Sentry-Project': project.name,
+        }
+
+        self._send_mail(
+            subject=subject,
+            body=body,
+            html_body=html_body,
+            project=project,
+            fail_silently=False,
+            headers=headers,
+        )
+
+    def get_alert_plaintext_body(self, alert):
+        return render_to_string('sentry/emails/alert.txt', {
+            'alert': alert,
+            'link': alert.get_absolute_url(),
+        })
+
+    def get_alert_html_body(self, alert):
+        return UnicodeSafePynliner().from_string(render_to_string('sentry/emails/alert.html', {
+            'alert': alert,
+            'link': alert.get_absolute_url(),
+            'settings_link': self.get_notification_settings_url(),
+        })).run()
 
     def notify_users(self, group, event, fail_silently=False):
         project = group.project
@@ -188,8 +230,7 @@ class MailProcessor(NotificationPlugin):
             'event': event,
             'link': link,
             'interfaces': interface_list,
-            'settings_link': '%s%s' % (settings.URL_PREFIX,
-                reverse('sentry-account-settings-notifications')),
+            'settings_link': self.get_notification_settings_url(),
         })).run()
 
     def get_option(self, key, *args, **kwargs):
