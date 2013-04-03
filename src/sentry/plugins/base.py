@@ -471,6 +471,7 @@ class IPlugin(local):
 
         >>> def post_process(self, event, **kwargs):
         >>>     print 'New event created:', event.id
+        >>>     print group.get_absolute_url()
         """
 
     def get_filters(self, project=None, **kwargs):

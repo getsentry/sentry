@@ -553,6 +553,10 @@ class Group(EventBase):
             self.message = self.message.splitlines()[0][:255]
         super(Group, self).save(*args, **kwargs)
 
+    def get_absolute_url(self):
+        return absolute_uri(reverse('sentry-group', args=[
+            self.team.slug, self.project.slug, self.id]))
+
     @property
     def avg_time_spent(self):
         if not self.time_spent_count:
