@@ -152,7 +152,7 @@ class MailProcessor(NotificationPlugin):
             unicode(event.get_level_display()).upper().encode('utf-8'),
             event.error().encode('utf-8').splitlines()[0])
 
-        link = absolute_uri(reverse('sentry-group', args=[group.team.slug, group.project.slug, group.id]))
+        link = group.get_absolute_url()
 
         body = self.get_plaintext_body(group, event, link, interface_list)
 
