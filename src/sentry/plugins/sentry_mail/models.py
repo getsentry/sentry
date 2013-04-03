@@ -142,10 +142,6 @@ class MailProcessor(NotificationPlugin):
 
     def on_alert(self, alert):
         project = alert.project
-        member_set = self.get_sendable_users(project)
-        if not member_set:
-            return
-
         subject = '[{}] ALERT: {}'.format(
             project.name.encode('utf-8'),
             alert.message.encode('utf-8'),
