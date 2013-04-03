@@ -54,7 +54,7 @@ testloop: install-test-requirements
 
 test-cli:
 	@echo "Testing CLI"
-	rm test.conf
+	rm -f test.conf
 	sentry init test.conf
 	sentry --config=test.conf help | grep start > /dev/null
 
