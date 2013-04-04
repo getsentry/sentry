@@ -3,4 +3,5 @@
     "http://www.adobe.com/xml/dtds/cross-domain-policy.dtd">
 <cross-domain-policy>
     <site-control permitted-cross-domain-policies="all" />
+    <allow-http-request-headers-from domain="*" headers="*" secure="false" />
 </cross-domain-policy>

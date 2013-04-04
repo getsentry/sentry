@@ -5,5 +5,5 @@
     {% for origin in origin_list %}
         <allow-access-from domain="{{ origin }}" secure="false" />
     {% endfor %}
-    <allow-http-request-headers-from domain="*" headers="X-Sentry-Auth" secure="false" />
+    <allow-http-request-headers-from domain="*" headers="*" secure="false" />
 </cross-domain-policy>
