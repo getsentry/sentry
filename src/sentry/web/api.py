@@ -122,8 +122,7 @@ class APIView(BaseView):
                 request.META['REMOTE_ADDR'], request.META.get('HTTP_USER_AGENT'),
                 response['X-Sentry-Error'], extra={
                     'request': request,
-                }, exc_info=exc_info,
-            )
+                }, exc_info=exc_info)
 
             if origin:
                 # We allow all origins on errors
@@ -243,8 +242,10 @@ class StoreView(APIView):
     @never_cache
     def post(self, request, project, auth, **kwargs):
         data = request.raw_post_data
-        self.process(request, project, auth, data, **kwargs)
-        return HttpResponse()
+        event_id = self.process(request, project, auth, data, **kwargs)
+        return HttpResponse(json.dumps({
+            'id': event_id,
+        }))
 
     @never_cache
     def get(self, request, project, auth, **kwargs):
@@ -271,10 +272,14 @@ class StoreView(APIView):
         # mutates data
         Group.objects.normalize_event_data(data)
 
-        logger.debug('New event from project %s/%s (id=%s)', project.team.slug, project.slug, data['event_id'])
+        event_id = data['event_id']
 
         # mutates data (strips a lot of context if not queued)
         insert_data_to_database(data)
+
+        logger.debug('New event from project %s/%s (id=%s)', project.team.slug, project.slug, event_id)
+
+        return event_id
 
 
 @csrf_exempt

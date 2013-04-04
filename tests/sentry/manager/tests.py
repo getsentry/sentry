@@ -12,7 +12,7 @@ from sentry.constants import MEMBER_OWNER, MEMBER_USER
 from sentry.interfaces import Interface
 from sentry.manager import get_checksum_from_event
 from sentry.models import (Event, Group, Project, GroupCountByMinute, ProjectCountByMinute,
-    SearchDocument, Team)
+    SearchDocument, Team, EventMapping)
 from sentry.utils.db import has_trending  # NOQA
 from sentry.testutils import TestCase
 
@@ -38,6 +38,17 @@ class SentryManagerTest(TestCase):
         event = Group.objects.from_kwargs(1, message='foo')
         self.assertEquals(event.message, 'foo')
         self.assertEquals(event.project_id, 1)
+
+    @mock.patch.object(Group.objects, 'should_sample')
+    def test_saves_event_mapping_when_sampled(self, should_sample):
+        should_sample.return_value = True
+        event_id = 'a' * 32
+
+        event = Group.objects.from_kwargs(1, message='foo', event_id=event_id)
+        group = event.group
+
+        assert EventMapping.objects.filter(
+            group=group, event_id=event_id).exists()
 
     def test_invalid_project(self):
         self.assertRaises(Project.DoesNotExist, Group.objects.from_kwargs, 2, message='foo')

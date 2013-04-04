@@ -728,6 +728,18 @@ class Event(EventBase):
         return data
 
 
+class EventMapping(Model):
+    project = models.ForeignKey(Project)
+    group = models.ForeignKey(Group)
+    event_id = models.CharField(max_length=32)
+    date_added = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = (('project', 'event_id'),)
+
+    __repr__ = sane_repr('project_id', 'group_id', 'event_id')
+
+
 class GroupBookmark(Model):
     """
     Identifies a bookmark relationship between a user and an

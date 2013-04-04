@@ -433,7 +433,7 @@ class GroupManager(BaseManager, ChartMixin):
         # TODO: culprit should default to "most recent" frame in stacktraces when
         # it's not provided.
 
-        from sentry.models import Event, Project
+        from sentry.models import Event, Project, EventMapping
 
         project = Project.objects.get_from_cache(pk=project)
 
@@ -495,7 +495,6 @@ class GroupManager(BaseManager, ChartMixin):
                 logger.exception(u'Unable to process log entry: %s', exc)
             except Exception, exc:
                 warnings.warn(u'Unable to process log entry: %s', exc)
-
             return
 
         event.group = group
@@ -507,6 +506,13 @@ class GroupManager(BaseManager, ChartMixin):
             except IntegrityError:
                 transaction.rollback_unless_managed(using=group._state.db)
                 return event
+
+        try:
+            EventMapping.objects.create(
+                project=project, group=group, event_id=event_id)
+        except IntegrityError:
+            transaction.rollback_unless_managed(using=group._state.db)
+            return event
 
         transaction.commit_unless_managed(using=group._state.db)
 
@@ -527,6 +533,18 @@ class GroupManager(BaseManager, ChartMixin):
         send_group_processors(group=group, event=event, is_new=is_new, is_sample=is_sample)
 
         return event
+
+    def should_sample(self, group, event):
+        if not settings.SAMPLE_DATA:
+            return False
+
+        silence_timedelta = event.datetime - group.last_seen
+        silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
+
+        if group.times_seen % min(count_limit(group.times_seen), time_limit(silence)):
+            return False
+
+        return True
 
     def _create_group(self, event, tags=None, **kwargs):
         from sentry.models import ProjectCountByMinute, GroupCountByMinute
@@ -575,16 +593,12 @@ class GroupManager(BaseManager, ChartMixin):
 
             group.last_seen = extra['last_seen']
 
-            silence_timedelta = date - group.last_seen
-            silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
-
             app.buffer.incr(self.model, update_kwargs, {
                 'id': group.id,
             }, extra)
         else:
             # TODO: this update should actually happen as part of create
             group.update(score=ScoreClause(group))
-            silence = 0
 
             # We need to commit because the queue can run too fast and hit
             # an issue with the group not existing before the buffers run
@@ -593,7 +607,7 @@ class GroupManager(BaseManager, ChartMixin):
         # Determine if we've sampled enough data to store this event
         if is_new:
             is_sample = False
-        elif not settings.SAMPLE_DATA or group.times_seen % min(count_limit(group.times_seen), time_limit(silence)) == 0:
+        elif not self.should_sample(group, event):
             is_sample = False
         else:
             is_sample = True
