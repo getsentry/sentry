@@ -262,7 +262,7 @@ def search(request, team, project):
         try:
             group_id = EventMapping.objects.get(
                 project=project, event_id=query
-            ).values_list('group', flat=True)
+            ).group_id
         except EventMapping.DoesNotExist:
             try:
                 event = Event.objects.get(project=project, event_id=query)
