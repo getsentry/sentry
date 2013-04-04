@@ -115,7 +115,7 @@ class CrossDomainXmlTest(TestCase):
         self.assertEquals(resp.status_code, 200)
         self.assertEquals(resp['Content-Type'], 'application/xml')
         self.assertTemplateUsed(resp, 'sentry/crossdomain.xml')
-        assert '<allow-http-request-headers-from domain="*" headers="X-Sentry-Auth" secure="false" />' in resp.content
+        assert '<allow-http-request-headers-from domain="*" headers="*" secure="false" />' in resp.content
 
 
 class CrossDomainXmlIndexTest(TestCase):
