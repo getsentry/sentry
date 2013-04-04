@@ -6,20 +6,20 @@ BOOTSTRAP_JS_MIN = ${STATIC_DIR}/scripts/lib/bootstrap.min.js
 UGLIFY_JS ?= node_modules/uglify-js/bin/uglifyjs
 
 develop: update-submodules
-	npm install
-	pip install "file://`pwd`#egg=sentry[dev]"
-	pip install "file://`pwd`#egg=sentry[tests]"
-	pip install -e . --use-mirrors
+	npm install -q
+	pip install -q "file://`pwd`#egg=sentry[dev]"
+	pip install -q "file://`pwd`#egg=sentry[tests]"
+	pip install -q -e . --use-mirrors
 
 dev-postgres:
-	pip install "file://`pwd`#egg=sentry[dev]"
-	pip install "file://`pwd`#egg=sentry[postgres]"
-	pip install -e . --use-mirrors
+	pip install -q "file://`pwd`#egg=sentry[dev]"
+	pip install -q "file://`pwd`#egg=sentry[postgres]"
+	pip install -q -e . --use-mirrors
 
 dev-mysql:
-	pip install "file://`pwd`#egg=sentry[dev]"
-	pip install "file://`pwd`#egg=sentry[mysql]"
-	pip install -e . --use-mirrors
+	pip install -q "file://`pwd`#egg=sentry[dev]"
+	pip install -q "file://`pwd`#egg=sentry[mysql]"
+	pip install -q -e . --use-mirrors
 
 build: locale
 
@@ -40,7 +40,7 @@ compile-bootstrap-js:
 	${UGLIFY_JS} -nc ${BOOTSTRAP_JS} > ${BOOTSTRAP_JS_MIN};
 
 install-test-requirements:
-	pip install "file://`pwd`#egg=sentry[tests]"
+	pip install -q "file://`pwd`#egg=sentry[tests]"
 
 update-submodules:
 	git submodule init
