@@ -28,7 +28,8 @@ from sentry.constants import (SORT_OPTIONS, SEARCH_SORT_OPTIONS,
     ORACLE_SORT_CLAUSES, ORACLE_SCORE_CLAUSES,
     MSSQL_SORT_CLAUSES, MSSQL_SCORE_CLAUSES)
 from sentry.filters import get_filters
-from sentry.models import Project, Group, Event, SearchDocument, Activity
+from sentry.models import (Project, Group, Event, SearchDocument, Activity,
+    EventMapping)
 from sentry.permissions import can_admin_group, can_create_projects
 from sentry.plugins import plugins
 from sentry.utils import json
@@ -259,19 +260,30 @@ def search(request, team, project):
     elif uuid_re.match(query):
         # Forward to event if it exists
         try:
-            event = Event.objects.get(project=project, event_id=query)
-        except Event.DoesNotExist:
-            return render_to_response('sentry/invalid_message_id.html', {
-                'team': team,
-                'project': project,
-                'SECTION': 'events',
-            }, request)
+            group_id = EventMapping.objects.get(
+                project=project, event_id=query
+            ).values_list('group', flat=True)
+        except EventMapping.DoesNotExist:
+            try:
+                event = Event.objects.get(project=project, event_id=query)
+            except Event.DoesNotExist:
+                return render_to_response('sentry/invalid_message_id.html', {
+                    'team': team,
+                    'project': project,
+                    'SECTION': 'events',
+                }, request)
+            else:
+                return HttpResponseRedirect(reverse('sentry-group-event', kwargs={
+                    'project_id': project.slug,
+                    'team_slug': team.slug,
+                    'group_id': event.group.id,
+                    'event_id': event.id,
+                }))
         else:
-            return HttpResponseRedirect(reverse('sentry-group-event', kwargs={
-                'project_id': event.project.slug,
-                'team_slug': event.team.slug,
-                'group_id': event.group.id,
-                'event_id': event.id,
+            return HttpResponseRedirect(reverse('sentry-group', kwargs={
+                'project_id': project.slug,
+                'team_slug': team.slug,
+                'group_id': group_id,
             }))
     elif not settings.USE_SEARCH:
         event_list = Group.objects.none()
