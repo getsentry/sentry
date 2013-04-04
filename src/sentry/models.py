@@ -739,6 +739,10 @@ class EventMapping(Model):
 
     __repr__ = sane_repr('project_id', 'group_id', 'event_id')
 
+    @property
+    def team(self):
+        return self.project.team
+
 
 class GroupBookmark(Model):
     """
