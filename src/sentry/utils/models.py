@@ -121,14 +121,15 @@ def create_or_update(model, using=None, **kwargs):
     if affected:
         return affected, False
 
+    create_kwargs = kwargs.copy()
     inst = objects.model()
     for k, v in defaults.iteritems():
         if isinstance(v, ExpressionNode):
-            kwargs[k] = resolve_expression_node(inst, v)
+            create_kwargs[k] = resolve_expression_node(inst, v)
         else:
-            kwargs[k] = v
+            create_kwargs[k] = v
     try:
-        return objects.create(**kwargs), True
+        return objects.create(**create_kwargs), True
     except IntegrityError:
         transaction.rollback_unless_managed(using=using)
         affected = objects.filter(**kwargs).update(**defaults)
