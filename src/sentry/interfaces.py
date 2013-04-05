@@ -607,25 +607,40 @@ class Exception(Interface):
     >>>     "module": "__builtins__"
     >>> }
     """
-    attrs = ('value', 'type', 'module')
+    attrs = ('value', 'type', 'module', 'stacktrace')
 
     score = 900
     display_score = 1200
 
-    def __init__(self, value, type=None, module=None):
+    def __init__(self, value, type=None, module=None, stacktrace=None):
         # A human readable value for the exception
         self.value = value
         # The exception type name (e.g. TypeError)
         self.type = type
         # Optional module of the exception type (e.g. __builtin__)
         self.module = module
+        # Optional bound stacktrace interface
+        self.stacktrace = stacktrace
 
     def serialize(self):
+        if self.stacktrace:
+            stacktrace = self.stacktrace.serialize()
+        else:
+            stacktrace = None
+
         return {
             'type': self.type,
             'value': self.value,
             'module': self.module,
+            'stacktrace': stacktrace,
         }
+
+    def unserialize(self, data):
+        if data.get('stacktrace'):
+            data['stacktrace'] = unserialize(Stacktrace, data['stacktrace'])
+        else:
+            data['stacktrace'] = None
+        return data
 
     def get_hash(self):
         return filter(bool, [self.type, self.value])
@@ -954,3 +969,28 @@ class User(Interface):
         return {
             'text': tokens
         }
+
+
+class ChainedException(Interface):
+    attrs = ('exceptions',)
+    score = 2000
+
+    def __init__(self, exceptions):
+        self.exceptions = [Exception(**e) for e in exceptions]
+
+    def validate(self):
+        for exception in self.exceptions:
+            # ensure we've got the correct required values
+            assert exception.is_valid()
+
+    def serialize(self):
+        return {
+            'exceptions': map(Exception.serialize, self.exceptions),
+        }
+
+    def unserialize(self, data):
+        data['exceptions'] = unserialize(Exception, data['exceptions'])
+        return data
+
+    def get_composite_hash(self, interfaces):
+        return self.exceptions[0].get_composite_hash(interfaces)

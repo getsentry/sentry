@@ -21,6 +21,7 @@ class ExceptionTest(TestCase):
             'type': self.interface.type,
             'value': self.interface.value,
             'module': self.interface.module,
+            'stacktrace': None,
         }
 
     def test_get_hash(self):
