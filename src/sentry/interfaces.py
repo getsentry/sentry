@@ -669,7 +669,10 @@ class Exception(Interface):
 
     def to_html(self, event, is_public=False, **kwargs):
         context = self.get_context(event=event, is_public=is_public, **kwargs)
-        return render_to_string('sentry/partial/interfaces/exception.html', context)
+        html = render_to_string('sentry/partial/interfaces/exception.html', context)
+        if self.stacktrace:
+            html += self.stacktrace.to_html(event=event, is_public=is_public, **kwargs)
+        return html
 
     def get_search_context(self, event):
         return {
