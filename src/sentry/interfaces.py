@@ -88,6 +88,24 @@ def get_context(lineno, context_line, pre_context=None, post_context=None, filen
     return context
 
 
+def is_newest_frame_first(event):
+    newest_first = event.platform not in ('python', None)
+
+    if env.request and env.request.user.is_authenticated():
+        display = UserOption.objects.get_value(
+            user=env.request.user,
+            project=None,
+            key='stacktrace_order',
+            default=None,
+        )
+        if display == '1':
+            newest_first = False
+        elif display == '2':
+            newest_first = True
+
+    return newest_first
+
+
 class Interface(object):
     """
     An interface is a structured representation of data, which may
@@ -482,23 +500,6 @@ class Stacktrace(Interface):
             output.extend(frame.get_hash())
         return output
 
-    def is_newest_frame_first(self, event):
-        newest_first = event.platform not in ('python', None)
-
-        if env.request and env.request.user.is_authenticated():
-            display = UserOption.objects.get_value(
-                user=env.request.user,
-                project=None,
-                key='stacktrace_order',
-                default=None,
-            )
-            if display == '1':
-                newest_first = False
-            elif display == '2':
-                newest_first = True
-
-        return newest_first
-
     def get_context(self, event, is_public=False, **kwargs):
         system_frames = 0
         frames = []
@@ -516,7 +517,7 @@ class Stacktrace(Interface):
             for frame in frames:
                 frame['in_app'] = True
 
-        newest_first = self.is_newest_frame_first(event)
+        newest_first = is_newest_frame_first(event)
         if newest_first:
             frames = frames[::-1]
 
@@ -538,7 +539,7 @@ class Stacktrace(Interface):
 
     def get_stacktrace(self, event, system_frames=True, newest_first=None, max_frames=None):
         if newest_first is None:
-            newest_first = self.is_newest_frame_first(event)
+            newest_first = is_newest_frame_first(event)
 
         result = []
         if newest_first:
@@ -1009,3 +1010,27 @@ class ChainedException(Interface):
 
     def get_composite_hash(self, interfaces):
         return self.exceptions[0].get_composite_hash(interfaces)
+
+    def get_context(self, event, is_public=False, **kwargs):
+        context_kwargs = dict(event=event, is_public=is_public, **kwargs)
+
+        exceptions = []
+        for e in self.exceptions:
+            context = e.get_context(**context_kwargs)
+            if e.stacktrace:
+                context['stacktrace'] = e.stacktrace.get_context(**context_kwargs)
+            else:
+                context['stacktrace'] = {}
+            exceptions.append(context)
+
+        return {
+            'newest_first': is_newest_frame_first(event),
+            'system_frames': any(e['stacktrace'].get('system_frames') for e in exceptions),
+            'exceptions': exceptions,
+        }
+
+    def to_html(self, event, is_public=False, **kwargs):
+        if not self.exceptions:
+            return ''
+        context = self.get_context(event=event, is_public=is_public, **kwargs)
+        return render_to_string('sentry/partial/interfaces/chained_exception.html', context)
