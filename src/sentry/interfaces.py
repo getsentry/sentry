@@ -646,19 +646,24 @@ class Exception(Interface):
     def get_hash(self):
         return filter(bool, [self.type, self.value])
 
-    def to_html(self, event, is_public=False, **kwargs):
+    def get_context(self, event, is_public=False, **kwargs):
         last_frame = None
         interface = event.interfaces.get('sentry.interfaces.Stacktrace')
         if interface is not None and interface.frames:
             last_frame = interface.frames[-1]
-        return render_to_string('sentry/partial/interfaces/exception.html', {
+
+        return {
             'is_public': is_public,
             'event': event,
             'exception_value': self.value,
             'exception_type': self.type,
             'exception_module': self.module,
             'last_frame': last_frame
-        })
+        }
+
+    def to_html(self, event, is_public=False, **kwargs):
+        context = self.get_context(event=event, is_public=is_public, **kwargs)
+        return render_to_string('sentry/partial/interfaces/exception.html', context)
 
     def get_search_context(self, event):
         return {
