@@ -499,10 +499,7 @@ class Stacktrace(Interface):
 
         return newest_first
 
-    def to_html(self, event, is_public=False, **kwargs):
-        if not self.frames:
-            return ''
-
+    def get_context(self, event, is_public=False, **kwargs):
         system_frames = 0
         frames = []
         for frame in self.frames:
@@ -523,14 +520,18 @@ class Stacktrace(Interface):
         if newest_first:
             frames = frames[::-1]
 
-        return render_to_string('sentry/partial/interfaces/stacktrace.html', {
+        return {
             'is_public': is_public,
             'newest_first': newest_first,
             'system_frames': system_frames,
             'event': event,
             'frames': frames,
             'stacktrace': self.get_traceback(event, newest_first=newest_first),
-        })
+        }
+
+    def to_html(self, event, is_public=False, **kwargs):
+        context = self.get_context(event=event, is_public=is_public, **kwargs)
+        return render_to_string('sentry/partial/interfaces/stacktrace.html', context)
 
     def to_string(self, event, is_public=False, **kwargs):
         return self.get_stacktrace(event, system_frames=False, max_frames=5)
