@@ -602,10 +602,16 @@ class Exception(Interface):
     ``type`` and``module`` argument describing the exception class type and
     module namespace.
 
+    You can also optionally bind a stacktrace interface to an exception. The
+    spec is identical to ``sentry.interfaces.Stacktrace``.
+
     >>>  {
     >>>     "type": "ValueError",
     >>>     "value": "My exception value",
     >>>     "module": "__builtins__"
+    >>>     "stacktrace": {
+    >>>         # see sentry.interfaces.Stacktrace
+    >>>     }
     >>> }
     """
     attrs = ('value', 'type', 'module', 'stacktrace')
