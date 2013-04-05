@@ -170,7 +170,7 @@ class MailProcessorTest(TestCase):
         args, kwargs = _send_mail.call_args
         self.assertEquals(kwargs.get('fail_silently'), False)
         self.assertEquals(kwargs.get('project'), self.project)
-        assert kwargs.get('subject') == u"[{}] ERROR: hello world".format(self.project.name)
+        assert kwargs.get('subject') == u"[{0}] ERROR: hello world".format(self.project.name)
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailProcessor._send_mail')
     def test_multiline_error(self, _send_mail):
@@ -195,7 +195,7 @@ class MailProcessorTest(TestCase):
 
         _send_mail.assert_called_once()
         args, kwargs = _send_mail.call_args
-        assert kwargs.get('subject') == u"[{}] ERROR: hello world".format(self.project.name)
+        assert kwargs.get('subject') == u"[{0}] ERROR: hello world".format(self.project.name)
 
     @mock.patch('sentry.utils.cache.cache.get', mock.Mock(return_value=None))
     @mock.patch('sentry.models.ProjectOption.objects.get_value')
