@@ -541,7 +541,10 @@ class GroupManager(BaseManager, ChartMixin):
         silence_timedelta = event.datetime - group.last_seen
         silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
 
-        if group.times_seen % min(count_limit(group.times_seen), time_limit(silence)):
+        if group.times_seen % count_limit(group.times_seen):
+            return False
+
+        if group.times_seen % time_limit(silence):
             return False
 
         return True
