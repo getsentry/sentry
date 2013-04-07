@@ -24,7 +24,8 @@ class Permission(object):
         return unicode(self) == unicode(other)
 
 
-AddProjectPermission = Permission('add_project', 'create new projects')
+class Permissions(object):
+    ADD_PROJECT = Permission('add_project', 'create new projects')
 
 
 def perm_override(perm):

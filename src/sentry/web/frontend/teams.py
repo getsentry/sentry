@@ -17,7 +17,7 @@ from sentry.constants import MEMBER_USER, MEMBER_OWNER
 from sentry.models import PendingTeamMember, TeamMember, AccessGroup
 from sentry.permissions import (can_add_team_member, can_remove_team, can_create_projects,
     can_create_teams, can_edit_team_member, can_remove_team_member,
-    AddProjectPermission)
+    Permissions)
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms.teams import (NewTeamForm, NewTeamAdminForm,
@@ -441,7 +441,7 @@ def create_new_team_project(request, team):
     from sentry.web.forms.projects import NewProjectAdminForm, NewProjectForm
 
     if not can_create_projects(request.user, team):
-        return missing_perm(request, AddProjectPermission, team=team)
+        return missing_perm(request, Permissions.ADD_PROJECT, team=team)
 
     if request.user.has_perm('sentry.can_add_project'):
         form_cls = NewProjectAdminForm
