@@ -13,6 +13,7 @@ from django.utils.translation import ugettext as _
 
 from sentry.models import Team
 from sentry.permissions import can_create_teams
+from sentry.plugins import plugins
 from sentry.web.decorators import login_required
 from sentry.web.helpers import render_to_response
 
@@ -66,3 +67,24 @@ def static_media(request, **kwargs):
         path = '%s/%s' % (module, path)
 
     return serve(request, path, insecure=True)
+
+
+def missing_perm(request, perm, **kwargs):
+    """
+    Returns a generic response if you're missing permission to perform an
+    action.
+
+    Plugins may overwrite this with the ``missing_perm_response`` hook.
+    """
+    resp = plugins.first('missing_perm_response', request, perm, **kwargs)
+
+    if resp:
+        return resp
+
+    if perm.label:
+        return render_to_response('sentry/generic_error.html', {
+            'title': _('Missing Permission'),
+            'message': _('You do not have the required permissions to %s.') % (perm.label,)
+        }, request)
+
+    return HttpResponseRedirect(reverse('sentry'))

@@ -10,9 +10,7 @@
 {% endblock %}
 
 {% block page_header %}
-    {% if can_create_projects %}
-        <a href="{% url 'sentry-new-project' team.slug %}" class="btn pull-right btn-primary">{% trans "Create a new project" %}</a>
-    {% endif %}
+    <a href="{% url 'sentry-new-project' team.slug %}" class="btn pull-right btn-primary">{% trans "Create a new project" %}</a>
 
     <ul class="breadcrumb">
         <li><a href="{% url 'sentry-manage-team-projects' team.slug %}">{% trans "Projects" %}</a></li>
@@ -62,11 +60,7 @@
                 </tbody>
             </table>
         {% else %}
-            {% if can_create_projects %}
-                <div class="alert alert-info">{% trans "You do not have access to any projects." %}</div>
-            {% else %}
-                <div class="alert alert-notice">{% trans "You do not have access to any projects. Ask an administrator to add you as a member." %}</div>
-            {% endif %}
+            <div class="alert alert-info">{% trans "You do not have access to any projects." %}</div>
         {% endif %}
     </section>
 {% endblock %}

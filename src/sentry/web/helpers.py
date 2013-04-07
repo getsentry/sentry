@@ -1,6 +1,6 @@
 """
-sentry.web.views
-~~~~~~~~~~~~~~~~
+sentry.web.helpers
+~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
@@ -19,7 +19,7 @@ from django.utils.safestring import mark_safe
 from sentry.conf import settings
 from sentry.constants import MEMBER_OWNER
 from sentry.models import Project, Team, Option, ProjectOption, ProjectKey
-from sentry.permissions import can_create_projects, can_create_teams
+from sentry.permissions import can_create_teams
 
 logger = logging.getLogger('sentry.errors')
 
@@ -27,7 +27,7 @@ logger = logging.getLogger('sentry.errors')
 def get_project_list(user=None, access=None, hidden=False, key='id', team=None):
     warnings.warn('get_project_list is Deprecated. Use Project.objects.get_for_user instead.', DeprecationWarning)
     return SortedDict((getattr(p, key), p)
-            for p in Project.objects.get_for_user(user, access))
+        for p in Project.objects.get_for_user(user, access))
 
 
 def group_is_public(group, user):
@@ -116,10 +116,7 @@ def get_default_context(request, existing_context=None, team=None):
         if team:
             context.update({
                 'can_admin_team': Team.objects.get_for_user(request.user, MEMBER_OWNER),
-                'can_create_projects': can_create_projects(request.user, team=team),
             })
-        else:
-            context['can_create_projects'] = can_create_projects(request.user)
 
         if not existing_context or 'PROJECT_LIST' not in existing_context:
             project_list = Project.objects.get_for_user(request.user, team=team)
@@ -207,8 +204,8 @@ def plugin_config(plugin, project, request):
 
     from django.template.loader import render_to_string
     return ('display', mark_safe(render_to_string(template, {
-            'form': form,
-            'request': request,
-            'plugin': plugin,
-            'plugin_description': plugin.get_description() or '',
-        }, context_instance=RequestContext(request))))
+        'form': form,
+        'request': request,
+        'plugin': plugin,
+        'plugin_description': plugin.get_description() or '',
+    }, context_instance=RequestContext(request))))
