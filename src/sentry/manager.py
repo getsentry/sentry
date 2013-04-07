@@ -965,7 +965,7 @@ class InstanceMetaManager(BaseManager):
                 })
             )
             self._metadata[instance.pk] = result
-        return self._metadata[instance.pk]
+        return self._metadata.get(instance.pk, {})
 
     def clear_cache(self, **kwargs):
         self._metadata = {}
@@ -1035,7 +1035,7 @@ class UserOptionManager(BaseManager):
                 )
             )
             self._metadata[metakey] = result
-        return self._metadata[metakey]
+        return self._metadata.get(metakey, {})
 
     def clear_cache(self, **kwargs):
         self._metadata = {}
