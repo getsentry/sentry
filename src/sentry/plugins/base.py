@@ -327,7 +327,7 @@ class IPlugin(local):
             return response
 
         if not isinstance(response, Response):
-            raise NotImplementedError('Please use self.render() when returning responses.')
+            raise NotImplementedError('Use self.render() when returning responses.')
 
         event = group.get_latest_event() or Event()
         event.group = group

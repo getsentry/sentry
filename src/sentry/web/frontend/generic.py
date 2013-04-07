@@ -14,6 +14,7 @@ from django.utils.translation import ugettext as _
 from sentry.models import Team
 from sentry.permissions import can_create_teams
 from sentry.plugins import plugins
+from sentry.plugins.base import Response
 from sentry.web.decorators import login_required
 from sentry.web.helpers import render_to_response
 
@@ -76,10 +77,18 @@ def missing_perm(request, perm, **kwargs):
 
     Plugins may overwrite this with the ``missing_perm_response`` hook.
     """
-    resp = plugins.first('missing_perm_response', request, perm, **kwargs)
+    response = plugins.first('missing_perm_response', request, perm, **kwargs)
 
-    if resp:
-        return resp
+    if response:
+        if isinstance(response, HttpResponseRedirect):
+            return response
+
+        if not isinstance(response, Response):
+            raise NotImplementedError('Use self.render() when returning responses.')
+
+        return response.respond(request, {
+            'perm': perm,
+        })
 
     if perm.label:
         return render_to_response('sentry/generic_error.html', {
