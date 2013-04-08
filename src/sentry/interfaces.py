@@ -534,6 +534,7 @@ class Stacktrace(Interface):
             'system_frames': system_frames,
             'event': event,
             'frames': frames,
+            'stack_id': 'stacktrace_1',
         }
         if with_stacktrace:
             context['stacktrace'] = self.get_traceback(event, newest_first=newest_first)
@@ -771,13 +772,14 @@ class Exception(Interface):
         }
 
         exceptions = []
-        for e in self.values:
+        for num, e in enumerate(self.values):
             context = e.get_context(**context_kwargs)
             if e.stacktrace:
                 context['stacktrace'] = e.stacktrace.get_context(
                     with_stacktrace=False, **context_kwargs)
             else:
                 context['stacktrace'] = {}
+            context['stack_id'] = 'exception_%d' % (num,)
             exceptions.append(context)
         return {
             'newest_first': newest_first,

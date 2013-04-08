@@ -7468,20 +7468,35 @@ ul.traceback {
   margin-left: 0;
   margin-bottom: 0;
 }
-.module-traceback h3 {
+.traceback > h3 {
   margin-top: 0;
   font-weight: normal;
 }
-.module-traceback h3 span {
+.traceback > h3 span {
   font-weight: bold;
 }
-.module-traceback p {
+.traceback > p {
   color: #666;
   font-size: 0.9em;
   margin-left: 15px;
 }
-.module-traceback .traceback {
+.traceback > .traceback {
   margin-top: 10px;
+}
+.subtraceback {
+  padding-left: 20px;
+  border-left: 2px solid #dee3e9;
+  position: relative;
+}
+.subtraceback > h3:before {
+  display: block;
+  content: "";
+  width: 15px;
+  height: 0;
+  border-bottom: 2px solid #dee3e9;
+  position: absolute;
+  left: 0;
+  top: 12px;
 }
 .frame {
   overflow: hidden;

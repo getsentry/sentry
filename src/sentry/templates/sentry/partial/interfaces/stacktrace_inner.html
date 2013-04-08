@@ -3,7 +3,7 @@
 
 <ul class="traceback">
     {% for frame in frames %}
-        <li class="frame{% if not frame.in_app %} system-frame{% endif %} frame-{{ forloop.counter0 }}">
+        <li class="frame{% if not frame.in_app %} system-frame{% endif %} frame-{{ stack_id }}-{{ forloop.counter0 }}">
             <p>
                 {% if frame.filename %}
                     {% if frame.is_url %}
@@ -66,14 +66,14 @@
 
             {% if frame.context or frame.vars %}
                 <div class="commands">
-                    <a href="javascript:void(0)" onclick="$('.frame-{{ forloop.counter0 }}').toggleClass('expanded')" title="{% trans "Toggle Context" %}" rel="tooltip" class="tip">{% if frame.vars %}<i class="icon-info-sign"></i> {% endif %}{% if frame.context %}<i class="icon-tasks"></i> {% endif %}</a>
+                    <a href="javascript:void(0)" onclick="$('.frame-{{ stack_id }}-{{ forloop.counter0 }}').toggleClass('expanded')" title="{% trans "Toggle Context" %}" rel="tooltip" class="tip">{% if frame.vars %}<i class="icon-info-sign"></i> {% endif %}{% if frame.context %}<i class="icon-tasks"></i> {% endif %}</a>
                 </div>
             {% endif %}
 
             {% if frame.context %}
                 <ol start="{{ frame.start_lineno }}" class="context">
                 {% for num, line in frame.context %}
-                    <li{% if num == frame.lineno %} class="active"{% else %} class="expandable"{% endif %} onclick="$('.frame-{{ forloop.parentloop.counter0 }}').toggleClass('expanded')">{{ line }}</li>
+                    <li{% if num == frame.lineno %} class="active"{% else %} class="expandable"{% endif %} onclick="$('.frame-{{ stack_id }}-{{ forloop.parentloop.counter0 }}').toggleClass('expanded')">{{ line }}</li>
                 {% endfor %}
                 </ol>
             {% elif not frame.context_line|is_none %}
