@@ -12,6 +12,7 @@ import operator
 from django.conf import settings as django_settings
 from django.db.models.expressions import ExpressionNode, F
 from django.db.models.fields.related import SingleRelatedObjectDescriptor
+from sentry.conf import settings
 
 
 def get_db_engine(alias='default'):
@@ -27,7 +28,7 @@ def get_db_engine(alias='default'):
 def has_trending(alias='default'):
     # we only support trend queries for postgres to db optimization
     # issues in mysql, and lack of anything useful in sqlite
-    return get_db_engine('default').startswith('postgres')
+    return settings.USE_TRENDING and get_db_engine('default').startswith('postgres')
 
 
 def has_charts(db):

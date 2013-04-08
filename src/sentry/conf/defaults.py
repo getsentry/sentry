@@ -118,6 +118,10 @@ USE_QUEUE = False
 # events..
 USE_SEARCH = True
 
+# Enable trend results. These can be expensive and are calculated in real-time.
+# When disabled they will be replaced w/ a default priority sort.
+USE_TRENDING = True
+
 # Default sort option for the group stream
 DEFAULT_SORT_OPTION = 'date'
 
