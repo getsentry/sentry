@@ -178,7 +178,7 @@ class StacktraceTest(TestCase):
         get_stacktrace.assert_called_once_with(event, system_frames=False, max_frames=5)
         self.assertEquals(result, get_stacktrace.return_value)
 
-    @mock.patch('sentry.interfaces.Stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
+    @mock.patch('sentry.interfaces.is_newest_frame_first', mock.Mock(return_value=False))
     @mock.patch('sentry.interfaces.Stacktrace.get_stacktrace')
     def test_get_traceback_response(self, get_stacktrace):
         event = mock.Mock(spec=Event())
@@ -189,7 +189,7 @@ class StacktraceTest(TestCase):
         get_stacktrace.assert_called_once_with(event, newest_first=None)
         self.assertEquals(result, 'foo\n\nbar')
 
-    @mock.patch('sentry.interfaces.Stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
+    @mock.patch('sentry.interfaces.is_newest_frame_first', mock.Mock(return_value=False))
     @mock.patch('sentry.interfaces.Stacktrace.get_traceback')
     @mock.patch('sentry.interfaces.render_to_string')
     @mock.patch('sentry.interfaces.Frame.get_context')
@@ -210,7 +210,7 @@ class StacktraceTest(TestCase):
         })
         self.assertEquals(result, render_to_string.return_value)
 
-    @mock.patch('sentry.interfaces.Stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
+    @mock.patch('sentry.interfaces.is_newest_frame_first', mock.Mock(return_value=False))
     @mock.patch('sentry.interfaces.Stacktrace.get_traceback')
     def test_to_html_response(self, get_traceback):
         event = mock.Mock(spec=Event())
@@ -221,28 +221,28 @@ class StacktraceTest(TestCase):
         get_traceback.assert_called_once_with(event, newest_first=False)
         self.assertTrue('<div class="module">' in result)
 
-    @mock.patch('sentry.interfaces.Stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
+    @mock.patch('sentry.interfaces.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_stacktrace_with_only_filename(self):
         event = mock.Mock(spec=Event())
         interface = Stacktrace(frames=[{'filename': 'foo'}, {'filename': 'bar'}])
         result = interface.get_stacktrace(event)
         self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  File "foo"\n  File "bar"')
 
-    @mock.patch('sentry.interfaces.Stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
+    @mock.patch('sentry.interfaces.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_stacktrace_with_module(self):
         event = mock.Mock(spec=Event())
         interface = Stacktrace(frames=[{'module': 'foo'}, {'module': 'bar'}])
         result = interface.get_stacktrace(event)
         self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  Module "foo"\n  Module "bar"')
 
-    @mock.patch('sentry.interfaces.Stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
+    @mock.patch('sentry.interfaces.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_stacktrace_with_filename_and_function(self):
         event = mock.Mock(spec=Event())
         interface = Stacktrace(frames=[{'filename': 'foo', 'function': 'biz'}, {'filename': 'bar', 'function': 'baz'}])
         result = interface.get_stacktrace(event)
         self.assertEquals(result, 'Stacktrace (most recent call last):\n\n  File "foo", in biz\n  File "bar", in baz')
 
-    @mock.patch('sentry.interfaces.Stacktrace.is_newest_frame_first', mock.Mock(return_value=False))
+    @mock.patch('sentry.interfaces.is_newest_frame_first', mock.Mock(return_value=False))
     def test_get_stacktrace_with_filename_function_lineno_and_context(self):
         event = mock.Mock(spec=Event())
         interface = Stacktrace(frames=[{'filename': 'foo', 'function': 'biz', 'lineno': 3, 'context_line': '  def foo(r):'},
