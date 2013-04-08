@@ -195,6 +195,9 @@ class Message(Interface):
     >>>     "message": "My raw message with interpreted strings like %s",
     >>>     "params": ["this"]
     >>> }
+
+    .. note:: This interface can be passed as the 'message' key in addition
+              to the full interface path.
     """
     attrs = ('message', 'params')
 
@@ -455,6 +458,8 @@ class Stacktrace(Interface):
     >>>     }]
     >>> }
 
+    .. note:: This interface can be passed as the 'stacktrace' key in addition
+              to the full interface path.
     """
     attrs = ('frames',)
     score = 1000
@@ -634,7 +639,10 @@ class SingleException(Interface):
         # Optional module of the exception type (e.g. __builtin__)
         self.module = module
         # Optional bound stacktrace interface
-        self.stacktrace = Stacktrace(**stacktrace)
+        if stacktrace:
+            self.stacktrace = Stacktrace(**stacktrace)
+        else:
+            self.stacktrace = None
 
     def serialize(self):
         if self.stacktrace:
@@ -687,6 +695,30 @@ class SingleException(Interface):
 
 
 class Exception(Interface):
+    """
+    An exception consists of a list of values. In most cases, this list
+    contains a single exception, with an optional stacktrace interface.
+
+    Each exception has a mandatory ``value`` argument and optional ``type`` and
+    ``module`` arguments describing the exception class type and module
+    namespace.
+
+    You can also optionally bind a stacktrace interface to an exception. The
+    spec is identical to ``sentry.interfaces.Stacktrace``.
+
+    >>> [{
+    >>>     "type": "ValueError",
+    >>>     "value": "My exception value",
+    >>>     "module": "__builtins__"
+    >>>     "stacktrace": {
+    >>>         # see sentry.interfaces.Stacktrace
+    >>>     }
+    >>> }]
+
+    .. note:: This interface can be passed as the 'exception' key in addition
+              to the full interface path.
+    """
+
     attrs = ('values',)
     score = 2000
 
@@ -694,7 +726,7 @@ class Exception(Interface):
         if 'values' in kwargs:
             values = kwargs['values']
         elif not kwargs and len(args) == 1 and isinstance(args[0], (list, tuple)):
-            values = args
+            values = args[0]
         else:
             values = [kwargs]
 
@@ -790,6 +822,9 @@ class Http(Interface):
     >>>         "REMOTE_ADDR": "192.168.0.1"
     >>>     }
     >>>  }
+
+    .. note:: This interface can be passed as the 'user' key in addition
+              to the full interface path.
     """
     attrs = ('url', 'method', 'data', 'query_string', 'cookies', 'headers',
              'env')
@@ -932,6 +967,9 @@ class Template(Interface):
     >>>         "line5"
     >>>     ],
     >>> }
+
+    .. note:: This interface can be passed as the 'template' key in addition
+              to the full interface path.
     """
     attrs = ('filename', 'context_line', 'lineno', 'pre_context', 'post_context',
              'abs_path')
