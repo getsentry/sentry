@@ -7470,6 +7470,10 @@ ul.traceback {
 }
 .module-traceback h3 {
   margin-top: 0;
+  font-weight: normal;
+}
+.module-traceback h3 span {
+  font-weight: bold;
 }
 .module-traceback p {
   color: #666;
