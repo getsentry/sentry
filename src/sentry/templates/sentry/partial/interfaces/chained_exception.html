@@ -20,10 +20,15 @@
             {% endif %}</small>
         </h2>
     </div>
-    <div class="module-content">
+    <div class="module-content module-traceback">
         {% for exception in exceptions %}
             {% if not forloop.first %}
-                <h3>Caused by {{ exception.fullname }}</h3>
+                <h3>Caused by <span title="{{ exception.fullname }}">{{ exception.exception_type }}</span></h3>
+            {% else %}
+                <h3><span title="{{ exception.fullname }}">{{ exception.exception_type }}</span></h3>
+            {% endif %}
+            {% if exception.exception_value %}
+                <p>{{ exception.exception_value }}</p>
             {% endif %}
             {% with exception.stacktrace.frames as frames %}
                 {% include "sentry/partial/interfaces/stacktrace_inner.html" %}
@@ -32,12 +37,12 @@
     </div>
 </div>
 
-{% block comment %}
+{% comment %}
 TODO:
 <div id="raw_stacktrace" style="display: none;">
     <pre>{{ stacktrace }}</pre>
 </div>
-{% endblock %}
+{% endcomment %}
 
 {% if system_frames %}
     <script type="text/javascript">

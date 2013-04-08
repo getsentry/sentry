@@ -417,6 +417,14 @@ class GroupManager(BaseManager, ChartMixin):
         data.setdefault('checksum', None)
         data.setdefault('platform', None)
 
+        if 'sentry.interfaces.Exception' in data:
+            if 'values' not in data['sentry.interfaces.Exception']:
+                data['sentry.interfaces.Exception'] = {'values': [data['sentry.interfaces.Exception']]}
+
+            # convert stacktrace + exception into expanded exception
+            if 'sentry.interfaces.Stacktrace' in data:
+                data['sentry.interfaces.Exception']['values'][0]['stacktrace'] = data.pop('sentry.interfaces.Stacktrace')
+
         return data
 
     def from_kwargs(self, project, **kwargs):

@@ -634,7 +634,7 @@ class SingleException(Interface):
         # Optional module of the exception type (e.g. __builtin__)
         self.module = module
         # Optional bound stacktrace interface
-        self.stacktrace = stacktrace
+        self.stacktrace = Stacktrace(**stacktrace)
 
     def serialize(self):
         if self.stacktrace:
@@ -665,12 +665,18 @@ class SingleException(Interface):
         if interface is not None and interface.frames:
             last_frame = interface.frames[-1]
 
+        if self.module:
+            fullname = '%s.%s' % (self.module, self.type)
+        else:
+            fullname = self.type
+
         return {
             'is_public': is_public,
             'event': event,
             'exception_value': self.value,
             'exception_type': self.type,
             'exception_module': self.module,
+            'fullname': fullname,
             'last_frame': last_frame
         }
 
@@ -685,7 +691,9 @@ class Exception(Interface):
     score = 2000
 
     def __init__(self, *args, **kwargs):
-        if not kwargs and len(args) == 1 and isinstance(args[0], (list, tuple)):
+        if 'values' in kwargs:
+            values = kwargs['values']
+        elif not kwargs and len(args) == 1 and isinstance(args[0], (list, tuple)):
             values = args
         else:
             values = [kwargs]

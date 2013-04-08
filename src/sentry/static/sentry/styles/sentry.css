@@ -7468,6 +7468,17 @@ ul.traceback {
   margin-left: 0;
   margin-bottom: 0;
 }
+.module-traceback h3 {
+  margin-top: 0;
+}
+.module-traceback p {
+  color: #666;
+  font-size: 0.9em;
+  margin-left: 15px;
+}
+.module-traceback .traceback {
+  margin-top: 10px;
+}
 .frame {
   overflow: hidden;
   position: relative;

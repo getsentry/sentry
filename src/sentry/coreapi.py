@@ -381,10 +381,6 @@ def validate_data(project, data, client=None):
             data['level'] = settings.LOG_LEVEL_REVERSE_MAP.get(settings.DEFAULT_LOG_LEVEL,
                 settings.DEFAULT_LOG_LEVEL)
 
-    # convert stacktrace + exception into expanded exception
-    if 'sentry.interfaces.Exception' in data and 'sentry.interfaces.Stacktrace' in data:
-        data['sentry.interfaces.Exception'][0]['stacktrace'] = data.pop('sentry.interfaces.Stacktrace')
-
     return data
 
 
