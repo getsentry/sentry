@@ -6,11 +6,9 @@
 {% block title %}{% trans "Dashboard" %} | {{ block.super }}{% endblock %}
 
 {% block page_header %}
-    {% if can_create_projects %}
-        <div class="pull-right">
-            <a href="{% url 'sentry-new-team-project' team.slug %}" class="btn btn-primary">{% trans "Create a New Project" %}</a>
-        </div>
-    {% endif %}
+    <div class="pull-right">
+        <a href="{% url 'sentry-new-team-project' team.slug %}" class="btn btn-primary">{% trans "Create a New Project" %}</a>
+    </div>
     {{ block.super }}
 {% endblock %}
 
@@ -59,12 +57,8 @@
                         </div>
                     </div>
                 {% else %}
-                    {% if can_create_projects %}
-                        {% url 'sentry-new-project' team.slug as link %}
-                        <div class="alert alert-info">{% blocktrans %}You do not have access to any projects. Would you like to <a href="{{ link }}">create a new project</a>?{% endblocktrans %}</div>
-                    {% else %}
-                        <div class="alert alert-notice">{% trans "You do not have access to any projects. Ask an administrator to add you as a member." %}</div>
-                    {% endif %}
+                    {% url 'sentry-new-project' team.slug as link %}
+                    <div class="alert alert-info">{% blocktrans %}You do not have access to any projects. Would you like to <a href="{{ link }}">create a new project</a>?{% endblocktrans %}</div>
                 {% endif %}
             </section>
         {% endblock %}

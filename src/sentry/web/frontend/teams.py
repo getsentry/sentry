@@ -16,7 +16,8 @@ from django.utils.translation import ugettext as _
 from sentry.constants import MEMBER_USER, MEMBER_OWNER
 from sentry.models import PendingTeamMember, TeamMember, AccessGroup
 from sentry.permissions import (can_add_team_member, can_remove_team, can_create_projects,
-    can_create_teams, can_edit_team_member, can_remove_team_member)
+    can_create_teams, can_edit_team_member, can_remove_team_member,
+    Permissions)
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms.teams import (NewTeamForm, NewTeamAdminForm,
@@ -25,6 +26,7 @@ from sentry.web.forms.teams import (NewTeamForm, NewTeamAdminForm,
     EditAccessGroupForm, NewAccessGroupMemberForm, NewAccessGroupProjectForm,
     RemoveAccessGroupForm)
 from sentry.web.helpers import render_to_response
+from sentry.web.frontend.generic import missing_perm
 
 
 def render_with_team_context(team, template, context, request=None):
@@ -439,7 +441,7 @@ def create_new_team_project(request, team):
     from sentry.web.forms.projects import NewProjectAdminForm, NewProjectForm
 
     if not can_create_projects(request.user, team):
-        return HttpResponseRedirect(reverse('sentry'))
+        return missing_perm(request, Permissions.ADD_PROJECT, team=team)
 
     if request.user.has_perm('sentry.can_add_project'):
         form_cls = NewProjectAdminForm

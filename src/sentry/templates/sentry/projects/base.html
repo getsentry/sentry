@@ -53,11 +53,7 @@
                 </tbody>
             </table>
         {% else %}
-            {% if can_create_projects %}
-                <div class="alert alert-info">You do not have access to any projects. Would you like to <a href="{% url 'sentry-new-project' team.slug %}">create a new project</a>?</div>
-            {% else %}
-                <div class="alert alert-notice">{% trans "You do not have access to any projects. Ask an administrator to add you as a member." %}</div>
-            {% endif %}
+            <div class="alert alert-info">You do not have access to any projects. Would you like to <a href="{% url 'sentry-new-project' team.slug %}">create a new project</a>?</div>
         {% endif %}
     </section>
 {% endblock %}

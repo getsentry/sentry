@@ -327,7 +327,7 @@ class IPlugin(local):
             return response
 
         if not isinstance(response, Response):
-            raise NotImplementedError('Please use self.render() when returning responses.')
+            raise NotImplementedError('Use self.render() when returning responses.')
 
         event = group.get_latest_event() or Event()
         event.group = group
@@ -433,7 +433,7 @@ class IPlugin(local):
         :param perm: a string, such as "edit_project"
         :param objects: an optional list of objects
 
-        If your plugin does not modify this permission, simply return None.
+        If your plugin does not modify this permission, simply return ``None``.
 
         For example, has perm might be called like so:
 
@@ -448,6 +448,19 @@ class IPlugin(local):
         >>> has_perm(user, 'configure_project_plugin', project, plugin)
         """
         return None
+
+    def missing_perm_response(self, request, perm, *args, **objects):
+        """
+        Given a user, a permission name, and an optional mapping of objects
+        within a context, returns a custom response.
+
+        :param user: either an instance of ``AnonymousUser`` or ``User``.
+        :param perm: a string, such as "edit_project"
+        :param objects: an optional mapping of objects
+
+        If your plugin does not need to override this response, simply return
+        ``None``.
+        """
 
     def on_alert(self, alert, **kwargs):
         """

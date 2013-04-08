@@ -12,6 +12,22 @@ from sentry.plugins import plugins
 from sentry.utils.cache import cached_for_request
 
 
+class Permission(object):
+    def __init__(self, name, label):
+        self.name = name
+        self.label = label
+
+    def __unicode__(self):
+        return self.name
+
+    def __eq__(self, other):
+        return unicode(self) == unicode(other)
+
+
+class Permissions(object):
+    ADD_PROJECT = Permission('add_project', 'create new projects')
+
+
 def perm_override(perm):
     def inner(func):
         @wraps(func)

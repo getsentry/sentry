@@ -6806,6 +6806,7 @@ h3 {
   display: inline;
   padding: 0;
   margin: 0;
+  word-break: break-all;
 }
 #content .sidebar .nav.nav-tabs.nav-stacked.counted-list li .count,
 #content .sidebar .nav.counted-list.counted-list li .count {

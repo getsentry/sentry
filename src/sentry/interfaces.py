@@ -198,7 +198,7 @@ class Message(Interface):
     """
     attrs = ('message', 'params')
 
-    def __init__(self, message, params=()):
+    def __init__(self, message, params=(), **kwargs):
         self.message = message
         self.params = params
 
@@ -237,7 +237,7 @@ class Query(Interface):
     """
     attrs = ('query', 'engine')
 
-    def __init__(self, query, engine=None):
+    def __init__(self, query, engine=None, **kwargs):
         self.query = query
         self.engine = engine
 
@@ -262,7 +262,7 @@ class Frame(object):
 
     def __init__(self, abs_path=None, filename=None, lineno=None, colno=None, in_app=False,
                  context_line=None, pre_context=(), post_context=(), vars=None,
-                 module=None, function=None, data=None):
+                 module=None, function=None, data=None, **kwargs):
         self.abs_path = abs_path or filename
         self.filename = filename or abs_path
 
@@ -459,7 +459,7 @@ class Stacktrace(Interface):
     attrs = ('frames',)
     score = 1000
 
-    def __init__(self, frames):
+    def __init__(self, frames, **kwargs):
         self.frames = [Frame(**f) for f in frames]
 
     def validate(self):
@@ -620,7 +620,7 @@ class Exception(Interface):
     score = 900
     display_score = 1200
 
-    def __init__(self, value, type=None, module=None, stacktrace=None):
+    def __init__(self, value, type=None, module=None, stacktrace=None, **kwargs):
         # A human readable value for the exception
         self.value = value
         # The exception type name (e.g. TypeError)
@@ -857,7 +857,7 @@ class Template(Interface):
     score = 1100
 
     def __init__(self, filename, context_line, lineno, pre_context=None, post_context=None,
-                 abs_path=None):
+                 abs_path=None, **kwargs):
         self.abs_path = abs_path
         self.filename = filename
         self.context_line = context_line
@@ -991,7 +991,7 @@ class ChainedException(Interface):
     attrs = ('exceptions',)
     score = 2000
 
-    def __init__(self, exceptions):
+    def __init__(self, exceptions, **kwargs):
         self.exceptions = [Exception(**e) for e in exceptions]
 
     def validate(self):

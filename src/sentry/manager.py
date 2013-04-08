@@ -541,7 +541,10 @@ class GroupManager(BaseManager, ChartMixin):
         silence_timedelta = event.datetime - group.last_seen
         silence = silence_timedelta.days * 86400 + silence_timedelta.seconds
 
-        if group.times_seen % min(count_limit(group.times_seen), time_limit(silence)):
+        if group.times_seen % count_limit(group.times_seen):
+            return False
+
+        if group.times_seen % time_limit(silence):
             return False
 
         return True
@@ -962,7 +965,7 @@ class InstanceMetaManager(BaseManager):
                 })
             )
             self._metadata[instance.pk] = result
-        return self._metadata[instance.pk]
+        return self._metadata.get(instance.pk, {})
 
     def clear_cache(self, **kwargs):
         self._metadata = {}
@@ -1032,7 +1035,7 @@ class UserOptionManager(BaseManager):
                 )
             )
             self._metadata[metakey] = result
-        return self._metadata[metakey]
+        return self._metadata.get(metakey, {})
 
     def clear_cache(self, **kwargs):
         self._metadata = {}
