@@ -486,9 +486,8 @@ class Stacktrace(Interface):
 
     def get_composite_hash(self, interfaces):
         output = self.get_hash()
-        # This is actually an instance of ExpandedException
         if 'sentry.interfaces.Exception' in interfaces:
-            exc = interfaces['sentry.interfaces.Exception'].exceptions[0]
+            exc = interfaces['sentry.interfaces.Exception'][0]
             if exc.type:
                 output.append(exc.type)
             elif not output:
@@ -604,17 +603,6 @@ class Stacktrace(Interface):
         }
 
 
-class Exception(Interface):
-    """
-    Compatibility class that accepts both old style and new style exception
-    interfaces.
-    """
-    def __new__(cls, *args, **kwargs):
-        if not kwargs and len(args) == 1 and isinstance(args[0], (list, tuple)):
-            return ExpandedException(*args, **kwargs)
-        return ExpandedException([kwargs])
-
-
 class SingleException(Interface):
     """
     A standard exception with a mandatory ``value`` argument, and optional
@@ -692,32 +680,46 @@ class SingleException(Interface):
         }
 
 
-class ExpandedException(Interface):
-    attrs = ('exceptions',)
+class Exception(Interface):
+    attrs = ('values',)
     score = 2000
 
-    def __init__(self, exceptions, **kwargs):
-        self.exceptions = [SingleException(**e) for e in exceptions]
+    def __init__(self, *args, **kwargs):
+        if not kwargs and len(args) == 1 and isinstance(args[0], (list, tuple)):
+            values = args
+        else:
+            values = [kwargs]
+
+        self.values = [SingleException(**e) for e in values]
+
+    def __getitem__(self, key):
+        return self.values[key]
+
+    def __iter__(self):
+        return iter(self.values)
+
+    def __len__(self):
+        return len(self.values)
 
     def validate(self):
-        for exception in self.exceptions:
+        for exception in self.values:
             # ensure we've got the correct required values
             assert exception.is_valid()
 
     def serialize(self):
         return {
-            'exceptions': map(SingleException.serialize, self.exceptions),
+            'values': map(SingleException.serialize, self.values),
         }
 
     def unserialize(self, data):
-        data['exceptions'] = unserialize(SingleException, data['exceptions'])
+        data['values'] = unserialize(SingleException, data['values'])
         return data
 
     def get_hash(self):
-        return self.exceptions[0].get_hash()
+        return self.values[0].get_hash()
 
     def get_composite_hash(self, interfaces):
-        return self.exceptions[0].get_composite_hash(interfaces)
+        return self.values[0].get_composite_hash(interfaces)
 
     def get_context(self, event, is_public=False, **kwargs):
         newest_first = is_newest_frame_first(event)
@@ -728,7 +730,7 @@ class ExpandedException(Interface):
         }
 
         exceptions = []
-        for e in self.exceptions:
+        for e in self.values:
             context = e.get_context(**context_kwargs)
             if e.stacktrace:
                 context['stacktrace'] = e.stacktrace.get_context(**context_kwargs)
@@ -743,13 +745,13 @@ class ExpandedException(Interface):
         }
 
     def to_html(self, event, is_public=False, **kwargs):
-        if not self.exceptions:
+        if not self.values:
             return ''
         context = self.get_context(event=event, is_public=is_public, **kwargs)
         return render_to_string('sentry/partial/interfaces/chained_exception.html', context)
 
     def get_search_context(self, event):
-        return self.exceptions[0].get_search_context(event)
+        return self.values[0].get_search_context(event)
 
 
 class Http(Interface):
