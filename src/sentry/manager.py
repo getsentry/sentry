@@ -14,6 +14,7 @@ import hashlib
 import itertools
 import logging
 import re
+import threading
 import time
 import warnings
 import weakref
@@ -59,7 +60,7 @@ def get_checksum_from_event(event):
     return hashlib.md5(to_string(event.message)).hexdigest()
 
 
-class BaseManager(models.Manager):
+class BaseManager(models.Manager, threading.local):
     lookup_handlers = {
         'iexact': lambda x: x.upper(),
     }
