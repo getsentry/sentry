@@ -505,7 +505,8 @@ class Stacktrace(Interface):
             output.extend(frame.get_hash())
         return output
 
-    def get_context(self, event, is_public=False, newest_first=None, **kwargs):
+    def get_context(self, event, is_public=False, newest_first=None,
+                    with_stacktrace=True, **kwargs):
         system_frames = 0
         frames = []
         for frame in self.frames:
@@ -527,20 +528,20 @@ class Stacktrace(Interface):
             if newest_first:
                 frames = frames[::-1]
 
-        return {
+        context = {
             'is_public': is_public,
             'newest_first': newest_first,
             'system_frames': system_frames,
             'event': event,
             'frames': frames,
-            'stacktrace': self.get_traceback(event, newest_first=newest_first),
         }
+        if with_stacktrace:
+            context['stacktrace'] = self.get_traceback(event, newest_first=newest_first)
+        return context
 
-    def to_html(self, event, is_public=False, newest_first=None, **kwargs):
+    def to_html(self, event, **kwargs):
         context = self.get_context(
             event=event,
-            is_public=is_public,
-            newest_first=newest_first,
             **kwargs
         )
         return render_to_string('sentry/partial/interfaces/stacktrace.html', context)
@@ -773,25 +774,41 @@ class Exception(Interface):
         for e in self.values:
             context = e.get_context(**context_kwargs)
             if e.stacktrace:
-                context['stacktrace'] = e.stacktrace.get_context(**context_kwargs)
+                context['stacktrace'] = e.stacktrace.get_context(
+                    with_stacktrace=False, **context_kwargs)
             else:
                 context['stacktrace'] = {}
             exceptions.append(context)
-
         return {
             'newest_first': newest_first,
             'system_frames': any(e['stacktrace'].get('system_frames') for e in exceptions),
             'exceptions': exceptions,
+            'stacktrace': self.get_stacktrace(event, newest_first=newest_first)
         }
 
-    def to_html(self, event, is_public=False, **kwargs):
+    def to_html(self, event, **kwargs):
         if not self.values:
             return ''
-        context = self.get_context(event=event, is_public=is_public, **kwargs)
+
+        if len(self.values) == 1 and not self.values[0].stacktrace:
+            exception = self.values[0]
+            context = exception.get_context(event=event, **kwargs)
+            return render_to_string('sentry/partial/interfaces/exception.html', context)
+
+        context = self.get_context(event=event, **kwargs)
         return render_to_string('sentry/partial/interfaces/chained_exception.html', context)
+
+    def to_string(self, event, is_public=False, **kwargs):
+        return self.get_stacktrace(event, system_frames=False, max_frames=5)
 
     def get_search_context(self, event):
         return self.values[0].get_search_context(event)
+
+    def get_stacktrace(self, *args, **kwargs):
+        exc = self.values[0]
+        if exc.stacktrace:
+            return exc.stacktrace.get_stacktrace(*args, **kwargs)
+        return ''
 
 
 class Http(Interface):

@@ -343,7 +343,7 @@ def get_rendered_interfaces(event, request):
     interface_list = []
     is_public = group_is_public(event.group, request.user)
     for interface in event.interfaces.itervalues():
-        html = safe_execute(interface.to_html, event, is_public)
+        html = safe_execute(interface.to_html, event, is_public=is_public)
         if not html:
             continue
         interface_list.append((interface, mark_safe(html)))
