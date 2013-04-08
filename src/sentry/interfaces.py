@@ -486,8 +486,9 @@ class Stacktrace(Interface):
 
     def get_composite_hash(self, interfaces):
         output = self.get_hash()
+        # This is actually an instance of ExpandedException
         if 'sentry.interfaces.Exception' in interfaces:
-            exc = interfaces['sentry.interfaces.Exception']
+            exc = interfaces['sentry.interfaces.Exception'].exceptions[0]
             if exc.type:
                 output.append(exc.type)
             elif not output:
@@ -500,7 +501,7 @@ class Stacktrace(Interface):
             output.extend(frame.get_hash())
         return output
 
-    def get_context(self, event, is_public=False, **kwargs):
+    def get_context(self, event, is_public=False, newest_first=None, **kwargs):
         system_frames = 0
         frames = []
         for frame in self.frames:
@@ -517,9 +518,10 @@ class Stacktrace(Interface):
             for frame in frames:
                 frame['in_app'] = True
 
-        newest_first = is_newest_frame_first(event)
-        if newest_first:
-            frames = frames[::-1]
+        if newest_first is None:
+            newest_first = is_newest_frame_first(event)
+            if newest_first:
+                frames = frames[::-1]
 
         return {
             'is_public': is_public,
@@ -530,8 +532,13 @@ class Stacktrace(Interface):
             'stacktrace': self.get_traceback(event, newest_first=newest_first),
         }
 
-    def to_html(self, event, is_public=False, **kwargs):
-        context = self.get_context(event=event, is_public=is_public, **kwargs)
+    def to_html(self, event, is_public=False, newest_first=None, **kwargs):
+        context = self.get_context(
+            event=event,
+            is_public=is_public,
+            newest_first=newest_first,
+            **kwargs
+        )
         return render_to_string('sentry/partial/interfaces/stacktrace.html', context)
 
     def to_string(self, event, is_public=False, **kwargs):
@@ -599,16 +606,13 @@ class Stacktrace(Interface):
 
 class Exception(Interface):
     """
-    Compatibility class that accepts both SingleException and ChainedException
+    Compatibility class that accepts both old style and new style exception
     interfaces.
-
-    This is purely to make the API more sane from a client developers
-    perspective.
     """
     def __new__(cls, *args, **kwargs):
         if not kwargs and len(args) == 1 and isinstance(args[0], (list, tuple)):
-            return ChainedException(*args, **kwargs)
-        return SingleException(*args, **kwargs)
+            return ExpandedException(*args, **kwargs)
+        return ExpandedException([kwargs])
 
 
 class SingleException(Interface):
@@ -682,17 +686,70 @@ class SingleException(Interface):
             'last_frame': last_frame
         }
 
-    def to_html(self, event, is_public=False, **kwargs):
-        context = self.get_context(event=event, is_public=is_public, **kwargs)
-        html = render_to_string('sentry/partial/interfaces/exception.html', context)
-        if self.stacktrace:
-            html += self.stacktrace.to_html(event=event, is_public=is_public, **kwargs)
-        return html
-
     def get_search_context(self, event):
         return {
             'text': [self.value, self.type, self.module]
         }
+
+
+class ExpandedException(Interface):
+    attrs = ('exceptions',)
+    score = 2000
+
+    def __init__(self, exceptions, **kwargs):
+        self.exceptions = [SingleException(**e) for e in exceptions]
+
+    def validate(self):
+        for exception in self.exceptions:
+            # ensure we've got the correct required values
+            assert exception.is_valid()
+
+    def serialize(self):
+        return {
+            'exceptions': map(SingleException.serialize, self.exceptions),
+        }
+
+    def unserialize(self, data):
+        data['exceptions'] = unserialize(SingleException, data['exceptions'])
+        return data
+
+    def get_hash(self):
+        return self.exceptions[0].get_hash()
+
+    def get_composite_hash(self, interfaces):
+        return self.exceptions[0].get_composite_hash(interfaces)
+
+    def get_context(self, event, is_public=False, **kwargs):
+        newest_first = is_newest_frame_first(event)
+        context_kwargs = {
+            'event': event,
+            'is_public': is_public,
+            'newest_first': newest_first,
+        }
+
+        exceptions = []
+        for e in self.exceptions:
+            context = e.get_context(**context_kwargs)
+            if e.stacktrace:
+                context['stacktrace'] = e.stacktrace.get_context(**context_kwargs)
+            else:
+                context['stacktrace'] = {}
+            exceptions.append(context)
+
+        return {
+            'newest_first': newest_first,
+            'system_frames': any(e['stacktrace'].get('system_frames') for e in exceptions),
+            'exceptions': exceptions,
+        }
+
+    def to_html(self, event, is_public=False, **kwargs):
+        if not self.exceptions:
+            return ''
+        context = self.get_context(event=event, is_public=is_public, **kwargs)
+        return render_to_string('sentry/partial/interfaces/chained_exception.html', context)
+
+    def get_search_context(self, event):
+        return self.exceptions[0].get_search_context(event)
 
 
 class Http(Interface):
@@ -999,52 +1056,3 @@ class User(Interface):
         return {
             'text': tokens
         }
-
-
-class ChainedException(Interface):
-    attrs = ('exceptions',)
-    score = 2000
-
-    def __init__(self, exceptions, **kwargs):
-        self.exceptions = [Exception(**e) for e in exceptions]
-
-    def validate(self):
-        for exception in self.exceptions:
-            # ensure we've got the correct required values
-            assert exception.is_valid()
-
-    def serialize(self):
-        return {
-            'exceptions': map(Exception.serialize, self.exceptions),
-        }
-
-    def unserialize(self, data):
-        data['exceptions'] = unserialize(Exception, data['exceptions'])
-        return data
-
-    def get_composite_hash(self, interfaces):
-        return self.exceptions[0].get_composite_hash(interfaces)
-
-    def get_context(self, event, is_public=False, **kwargs):
-        context_kwargs = dict(event=event, is_public=is_public, **kwargs)
-
-        exceptions = []
-        for e in self.exceptions:
-            context = e.get_context(**context_kwargs)
-            if e.stacktrace:
-                context['stacktrace'] = e.stacktrace.get_context(**context_kwargs)
-            else:
-                context['stacktrace'] = {}
-            exceptions.append(context)
-
-        return {
-            'newest_first': is_newest_frame_first(event),
-            'system_frames': any(e['stacktrace'].get('system_frames') for e in exceptions),
-            'exceptions': exceptions,
-        }
-
-    def to_html(self, event, is_public=False, **kwargs):
-        if not self.exceptions:
-            return ''
-        context = self.get_context(event=event, is_public=is_public, **kwargs)
-        return render_to_string('sentry/partial/interfaces/chained_exception.html', context)

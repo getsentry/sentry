@@ -5,12 +5,12 @@ from __future__ import absolute_import
 from sentry.testutils import TestCase, fixture
 
 
-class ExceptionTest(TestCase):
+class SingleExceptionTest(TestCase):
     @fixture
     def interface(self):
-        from sentry.interfaces import Exception
+        from sentry.interfaces import SingleException
 
-        return Exception(
+        return SingleException(
             type='ValueError',
             value='hello world',
             module='foo.bar',
