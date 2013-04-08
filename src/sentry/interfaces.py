@@ -599,6 +599,20 @@ class Stacktrace(Interface):
 
 class Exception(Interface):
     """
+    Compatibility class that accepts both SingleException and ChainedException
+    interfaces.
+
+    This is purely to make the API more sane from a client developers
+    perspective.
+    """
+    def __new__(cls, *args, **kwargs):
+        if not kwargs and len(args) == 1 and isinstance(args[0], (list, tuple)):
+            return ChainedException(*args, **kwargs)
+        return SingleException(*args, **kwargs)
+
+
+class SingleException(Interface):
+    """
     A standard exception with a mandatory ``value`` argument, and optional
     ``type`` and``module`` argument describing the exception class type and
     module namespace.
