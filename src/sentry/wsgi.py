@@ -11,7 +11,7 @@ import os.path
 import sys
 
 # Add the project to the python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir))
 sys.stdout = sys.stderr
 
 # Configure the application (Logan)
