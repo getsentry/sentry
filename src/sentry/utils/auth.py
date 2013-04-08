@@ -11,29 +11,16 @@ from django.contrib.auth.backends import ModelBackend
 from sentry.conf import settings
 
 
-def get_auth_header(client, api_key=None, secret_key=None):
-    header = [
-        ('sentry_client', client),
-        ('sentry_version', '3'),
-    ]
-
-    if api_key:
-        header.append(('sentry_key', api_key))
-    if secret_key:
-        header.append(('sentry_secret', secret_key))
-
-    return 'Sentry %s' % ', '.join('%s=%s' % (k, v) for k, v in header)
-
-
 def parse_auth_header(header):
     return dict(map(lambda x: x.strip().split('='), header.split(' ', 1)[1].split(',')))
 
 
 def get_auth_providers():
-    return [key
-        for key, cfg_names
+    return [
+        key for key, cfg_names
         in settings.AUTH_PROVIDERS.iteritems()
-        if all(getattr(dj_settings, c, None) for c in cfg_names)]
+        if all(getattr(dj_settings, c, None) for c in cfg_names)
+    ]
 
 
 class EmailAuthBackend(ModelBackend):

@@ -342,7 +342,7 @@ Authentication
 
 An authentication header is expected to be sent along with the message body, which acts as as an ownership identifier::
 
-    X-Sentry-Auth: Sentry sentry_version=2.0,
+    X-Sentry-Auth: Sentry sentry_version=4,
     sentry_client=<client version, arbitrary>,
     sentry_timestamp=<current timestamp>,
     sentry_key=<public api key>,
@@ -399,7 +399,7 @@ The request body should then somewhat resemble the following::
 
     POST /api/project-id/store/
     User-Agent: raven-python/1.0
-    X-Sentry-Auth: Sentry sentry_version=3, sentry_timestamp=1329096377,
+    X-Sentry-Auth: Sentry sentry_version=4, sentry_timestamp=1329096377,
         sentry_key=b70a31b3510c4cf793964a185cfe1fd0, sentry_client=raven-python/1.0,
         sentry_secret=b7d80b520139450f903720eb7991bf3d
 
