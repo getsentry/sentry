@@ -14,6 +14,21 @@ for the ``sentry.interfaces.Message`` class, it would look like this in your JSO
         }
     }
 
+Aliases
+-------
+
+As of protocol version 4, most built-in interface types are aliases for easier
+reference. For example, instead of using the key 'sentry.interfaces.Exception',
+you can send the key 'exception'.
+
+The mapping is as follows::
+
+* 'exception' => 'sentry.interfaces.Exception'
+* 'request' => 'sentry.interfaces.Http'
+* 'user' => 'sentry.interfaces.User'
+* 'stacktrace' => 'sentry.interfaces.Stacktrace'
+* 'template' => 'sentry.interfaces.Template'
+
 Provided Interfaces
 -------------------
 

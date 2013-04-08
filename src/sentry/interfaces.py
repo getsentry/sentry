@@ -823,7 +823,7 @@ class Http(Interface):
     >>>     }
     >>>  }
 
-    .. note:: This interface can be passed as the 'user' key in addition
+    .. note:: This interface can be passed as the 'request' key in addition
               to the full interface path.
     """
     attrs = ('url', 'method', 'data', 'query_string', 'cookies', 'headers',
