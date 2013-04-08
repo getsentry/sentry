@@ -1,6 +1,8 @@
 Writing a Client
 ================
 
+.. note:: This document describes protocol version 4.
+
 A client at its core is simply a set of utilities for capturing various
 logging parameters. Given these parameters, it then builds a JSON payload
 which it will send to a Sentry server using some sort of authentication
@@ -157,11 +159,11 @@ For example, with an included Exception event, a basic JSON body might resemble 
             "tags": {
                 "ios_version": "4.0"
             },
-            "sentry.interfaces.Exception": {
+            "exception": [{
                 "type": "SyntaxError":
                 "value": "Wattttt!",
                 "module": "__builtins__"
-            }
+            }]
         }
 
 The following attributes are required for all events:
@@ -351,19 +353,19 @@ An authentication header is expected to be sent along with the message body, whi
 
 .. data:: sentry_version
 
-    The protocol version. This should be sent as the value '2.0'.
+    The protocol version. This should be sent as the value '4'.
 
 .. data:: sentry_client
 
     An arbitrary string which identifies your client, including its version.
 
-    For example, the Python client might send this as 'raven-python/1.0'
+    The typical pattern for this is '**client_name**/**client_version**'.
 
-    This should be included in your User-Agent header rather than here if you're using the HTTP protocol.
+    For example, the Python client might send this as 'raven-python/1.0'.
 
 .. data:: sentry_timestamp
 
-    The unix timestamp representing the time at which this POST request was generated.
+    The unix timestamp representing the time at which this event was generated.
 
 .. data:: sentry_key
 
@@ -373,8 +375,9 @@ An authentication header is expected to be sent along with the message body, whi
 
     The secret key which should be provided as part of the client configuration.
 
-    .. note:: You should only pass the secret key if you're communicating via the server. Client-side behavior (such
-              as JavaScript) should use CORS.
+    .. note:: You should only pass the secret key if you're communicating via
+              secure communication to the server. Client-side behavior (such
+              as JavaScript) should use CORS, and only pass the public key.
 
 crossdomain.xml
 ~~~~~~~~~~~~~~~
@@ -406,11 +409,11 @@ The request body should then somewhat resemble the following::
         "culprit": "my.module.function_name",
         "timestamp": "2011-05-02T17:41:36",
         "message": "SyntaxError: Wattttt!",
-        "sentry.interfaces.Exception": {
+        "exception": [{
             "type": "SyntaxError",
             "value": "Wattttt!",
             "module": "__builtins__"
-        }
+        }]
     }
 
 Handling Failures
