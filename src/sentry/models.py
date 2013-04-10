@@ -37,7 +37,7 @@ from sentry.conf import settings
 from sentry.constants import (STATUS_LEVELS, MEMBER_TYPES,
     MEMBER_OWNER, MEMBER_USER, PLATFORM_TITLES, PLATFORM_LIST,
     STATUS_UNRESOLVED, STATUS_RESOLVED, STATUS_VISIBLE, STATUS_HIDDEN,
-    MINUTE_NORMALIZATION)
+    MINUTE_NORMALIZATION, STATUS_MUTED)
 from sentry.manager import (GroupManager, ProjectManager,
     MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager,
     UserOptionManager, FilterKeyManager, TeamManager)
@@ -571,6 +571,12 @@ class Group(EventBase):
         if not resolve_age:
             return False
         return self.last_seen < timezone.now() - timedelta(hours=int(resolve_age))
+
+    def is_muted(self):
+        return self.get_status() == STATUS_MUTED
+
+    def is_resolved(self):
+        return self.get_status() == STATUS_RESOLVED
 
     def get_status(self):
         if self.status == STATUS_UNRESOLVED and self.is_over_resolve_age():
