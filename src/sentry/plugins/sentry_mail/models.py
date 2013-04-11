@@ -142,7 +142,7 @@ class MailProcessor(NotificationPlugin):
 
     def on_alert(self, alert):
         project = alert.project
-        subject = '[{0}] ALERT: {0}'.format(
+        subject = '[{0}] ALERT: {1}'.format(
             project.name.encode('utf-8'),
             alert.message.encode('utf-8'),
         )
