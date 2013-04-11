@@ -270,5 +270,5 @@ class MailProcessorTest(TestCase):
 
         _send_mail.assert_called_once()
         args, kwargs = _send_mail.call_args
-        assert kwargs.get('subject') == u"[{}] ALERT: {}".format(
+        assert kwargs.get('subject') == u"[{0}] ALERT: {0}".format(
             self.project.name, alert.message)
