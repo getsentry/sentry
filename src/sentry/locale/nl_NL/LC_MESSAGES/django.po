@@ -1929,7 +1929,7 @@ msgstr ""
 
 #: templates/sentry/teams/groups/remove.html:18
 msgid ""
-"Are you sure you wish to remove this acess group? This change is permanent!"
+"Are you sure you wish to remove this access group? This change is permanent!"
 msgstr ""
 
 #: templates/sentry/teams/members/accept_invite.html:5

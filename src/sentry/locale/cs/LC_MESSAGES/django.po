@@ -1928,7 +1928,7 @@ msgstr "Přidat projekt"
 
 #: templates/sentry/teams/groups/remove.html:18
 msgid ""
-"Are you sure you wish to remove this acess group? This change is permanent!"
+"Are you sure you wish to remove this access group? This change is permanent!"
 msgstr "Jste si jisti, že chcete odstranit tuto skupinu přístupu? Tato změna je trvalá!"
 
 #: templates/sentry/teams/members/accept_invite.html:5
