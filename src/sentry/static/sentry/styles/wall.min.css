@@ -7468,6 +7468,36 @@ ul.traceback {
   margin-left: 0;
   margin-bottom: 0;
 }
+.traceback > h3 {
+  margin-top: 0;
+  font-weight: normal;
+}
+.traceback > h3 span {
+  font-weight: bold;
+}
+.traceback > p {
+  color: #666;
+  font-size: 0.9em;
+  margin-left: 15px;
+}
+.traceback > .traceback {
+  margin-top: 10px;
+}
+.subtraceback {
+  padding-left: 20px;
+  border-left: 2px solid #dee3e9;
+  position: relative;
+}
+.subtraceback > h3:before {
+  display: block;
+  content: "";
+  width: 15px;
+  height: 0;
+  border-bottom: 2px solid #dee3e9;
+  position: absolute;
+  left: 0;
+  top: 12px;
+}
 .frame {
   overflow: hidden;
   position: relative;
