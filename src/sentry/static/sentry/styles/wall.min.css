@@ -7819,6 +7819,7 @@ section.body .page-header:first-child {
   -webkit-border-radius: 4px;
   -moz-border-radius: 4px;
   border-radius: 4px;
+  text-shadow: none;
   background: #ffc01a;
   color: #fff;
   border: 0;
