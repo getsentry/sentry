@@ -39,7 +39,7 @@ def funcs():
             raise exceptions.next()
         except Exception:
             email = emails.next()
-            return client.capture('Exception', data={
+            return client.captureException(data={
                 'logger': loggers.next(),
                 'site': 'web',
                 'sentry.interfaces.User': {
