@@ -754,6 +754,8 @@ class Exception(Interface):
         }
 
     def unserialize(self, data):
+        if 'values' not in data:
+            data = {'values': [data]}
         data['values'] = unserialize(SingleException, data['values'])
         return data
 
