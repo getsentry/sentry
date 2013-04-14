@@ -146,8 +146,6 @@ urlpatterns = patterns('',
     # Generic
     url(r'^$', generic.dashboard,
         name='sentry'),
-    url(r'^wall/$', generic.wall_display,
-        name='sentry-wall'),
 
     # Admin
     url(r'^manage/status/$', admin.status_env,
@@ -233,6 +231,10 @@ urlpatterns = patterns('',
         name='sentry-api-search-users'),
     url(r'^api/(?P<team_slug>[\w_-]+)/projects/search/$', api.search_projects,
         name='sentry-api-search-projects'),
+
+    # TV dashboard
+    url(r'^(?P<team_slug>[\w_-]+)/wall/$', groups.wall_display,
+        name='sentry-wall'),
 
     # Team-wide alerts
     url(r'^(?P<team_slug>[\w_-]+)/show/alerts/$', alerts.alert_list,

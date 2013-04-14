@@ -227,6 +227,21 @@ def dashboard(request, team):
 
 @login_required
 @has_access
+def wall_display(request, team):
+    project_list = list(Project.objects.filter(team=team))
+
+    for project in project_list:
+        project.team = team
+
+    return render_to_response('sentry/wall.html', {
+        'team': team,
+        'project_list': project_list,
+        'SECTION': 'events',
+    }, request)
+
+
+@login_required
+@has_access
 def search(request, team, project):
     query = request.GET.get('q')
 

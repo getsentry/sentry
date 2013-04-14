@@ -51,10 +51,6 @@ def dashboard(request, template='dashboard.html'):
     return HttpResponseRedirect(reverse('sentry', args=[team.slug]))
 
 
-def wall_display(request):
-    return dashboard(request, 'wall.html')
-
-
 def static_media(request, **kwargs):
     """
     Serve static files below a given point in the directory structure.
