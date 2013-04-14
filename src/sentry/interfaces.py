@@ -754,7 +754,7 @@ class Exception(Interface):
 
     def serialize(self):
         return {
-            'values': map(SingleException.serialize, self.values),
+            'values': [e.serialize() for e in self.values]
         }
 
     def unserialize(self, data):
