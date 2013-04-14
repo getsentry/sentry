@@ -241,9 +241,9 @@ urlpatterns = patterns('',
         name='sentry-alerts'),
 
     # Users
-    url(r'^(?P<team_slug>[\w_-]+)/show/users/$', users.user_list,
+    url(r'^(?P<team_slug>[\w_-]+)/explore/users/$', users.user_list,
         name='sentry-users'),
-    url(r'^(?P<team_slug>[\w_-]+)/show/users/(?P<user_id>\d+)/$', users.user_details,
+    url(r'^(?P<team_slug>[\w_-]+)/explore/users/(?P<user_id>\d+)/$', users.user_details,
         name='sentry-user-details'),
 
     # Project specific
