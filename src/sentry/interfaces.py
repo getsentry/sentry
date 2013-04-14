@@ -646,6 +646,10 @@ class SingleException(Interface):
         else:
             self.stacktrace = None
 
+    def validate(self):
+        if self.stacktrace:
+            return self.stacktrace.validate()
+
     def serialize(self):
         if self.stacktrace:
             stacktrace = self.stacktrace.serialize()
@@ -746,7 +750,7 @@ class Exception(Interface):
     def validate(self):
         for exception in self.values:
             # ensure we've got the correct required values
-            assert exception.is_valid()
+            exception.validate()
 
     def serialize(self):
         return {
