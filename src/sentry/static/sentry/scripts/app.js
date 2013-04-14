@@ -190,6 +190,57 @@
 
     });
 
+    app.SelectTeamPage = BasePage.extend({
+
+        initialize: function(){
+            BasePage.prototype.initialize.call(this);
+
+            this.refreshSparklines();
+        },
+
+        refreshSparklines: function(){
+            $('.chart').each(function(n, el){
+                var $el = $(el);
+                $.ajax({
+                    url: $el.attr('data-api-url'),
+                    type: 'get',
+                    dataType: 'json',
+                    data: {
+                        days: 1
+                    },
+                    success: _.bind(function(data){
+                        $.plot($el, [{
+                                data: data,
+                                color: '#56AFE8',
+                                shadowSize: 0,
+                                lines: {
+                                    lineWidth: 2,
+                                    show: true,
+                                    fill: true
+                            }
+                            }], {
+                                yaxis: {
+                                    min: 0
+                                },
+                                grid: {
+                                    show: false
+                                },
+                                hoverable: false,
+                                legend: {
+                                    noColumns: 5
+                                },
+                                lines: {
+                                    show: false
+                                }
+                            }
+                        );
+                    }, this)
+                });
+            });
+        }
+
+    });
+
     app.GroupDetailsPage = BasePage.extend({
 
         initialize: function(data){

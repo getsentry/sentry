@@ -40,15 +40,13 @@ def dashboard(request, template='dashboard.html'):
         }, request)
 
     # This cookie gets automatically set by render_to_response
-    last_team = request.session.get('team')
-    if last_team in team_list:
-        team = team_list[last_team]
-    else:
+    if len(team_list) == 1:
         team = team_list.values()[0]
+        return HttpResponseRedirect(reverse('sentry', args=[team.slug]))
 
-    # Redirect to first team
-    # TODO: maybe store this in a cookie and redirect to last seen team?
-    return HttpResponseRedirect(reverse('sentry', args=[team.slug]))
+    return render_to_response('sentry/select_team.html', {
+        'team_list': team_list.values(),
+    }, request)
 
 
 def static_media(request, **kwargs):

@@ -8364,6 +8364,51 @@ table.vars td table {
   font-size: 12px;
   color: #aaa;
 }
+.team-list {
+  list-style: none;
+  margin-left: 0;
+}
+.team-list > li {
+  display: inline-block;
+  margin: 0 10px 10px 0;
+  padding: 15px;
+  width: 400px;
+  height: 100px;
+  border: 2px solid #ddd;
+  position: relative;
+}
+.team-list > li:hover {
+  border-color: #9cc5ed;
+}
+.team-list > li:hover h2 {
+  color: #000;
+}
+.team-list > li h2 {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.7);
+  font-weight: normal;
+  position: relative;
+  margin-bottom: 0;
+  line-height: 28px;
+  font-size: 22px;
+  color: #666;
+}
+.team-list > li a {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  height: 100px;
+}
+.team-list > li .chart {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  right: 15px;
+  bottom: 15px;
+  height: 100px;
+}
 .toggle-expand {
   padding: 0 !important;
 }

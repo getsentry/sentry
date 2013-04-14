@@ -1,0 +1,62 @@
+{% extends "sentry/layout.html" %}
+
+{% load url from future %}
+{% load i18n %}
+
+{% block bodyclass %}{% endblock %}
+
+{% block heading %}
+    {% trans "Teams" %}
+{% endblock %}
+
+{% block page_header %}
+    <div class="pull-right">
+        <a href="{% url 'sentry-new-team' %}" class="btn btn-primary">{% trans "Create a new team" %}</a>
+    </div>
+
+    <ul class="breadcrumb">
+        <li><a href="{% url 'sentry' %}" class="dashboard-btn" title="{% trans "Dashboard" %}">
+            <i aria-hidden="true" class="icon-list"></i>
+        </a></li>
+        {% block breadcrumb %}
+            <li class="divider"></li>
+            <li><a href="{% url 'sentry-team-list' %}">{% trans "Teams" %}</a></li>
+        {% endblock %}
+    </ul>
+{% endblock %}
+
+
+{% block main %}
+    <section class="body">
+        {% if team_list %}
+            <ul class="team-list">
+                {% for team in team_list %}
+                    <li>
+                        <div class="chart" data-api-url="{% url 'sentry-api-chart' team.slug %}">
+                            <div class="sparkline">
+                                <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
+                                <span class="loading">{% trans "Loading historical data..." %}</span>
+                            </div>
+                        </div>
+                        <h2>{{ team.name }}</h2>
+                        <a href="{% url 'sentry' team.slug %}"></a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            {% if can_create_teams %}
+                <div class="alert alert-info">{% trans "You are not a member of any teams." %}</div>
+            {% else %}
+                <div class="alert alert-notice">{% trans "You are not a member of any teams. Ask an administrator to add you to a team." %}</div>
+            {% endif %}
+        {% endif %}
+    </section>
+{% endblock %}
+
+{% block content_after %}
+    <script type="text/javascript">
+    $(function(){
+        new app.SelectTeamPage();
+    })
+    </script>
+{% endblock %}

@@ -132,8 +132,6 @@ def render_to_string(template, context=None, request=None):
     # HACK: set team session value for dashboard redirect
     if context and 'team' in context and isinstance(context['team'], Team):
         team = context['team']
-        if request and request.session.get('team') != team.slug:
-            request.session['team'] = team.slug
     else:
         team = None
 

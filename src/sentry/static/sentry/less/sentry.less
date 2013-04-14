@@ -2153,6 +2153,58 @@ table.vars {
   }
 }
 
+.team-list {
+  list-style: none;
+  margin-left: 0;
+
+  > li {
+    display: inline-block;
+    margin: 0 10px 10px 0;
+    padding: 15px;
+    width: 400px;
+    height: 100px;
+    border: 2px solid #ddd;
+    position: relative;
+
+    &:hover {
+      border-color: lighten(@linkColor, 20%);
+      h2 {
+        color: #000;
+      }
+    }
+
+    h2 {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.7);
+      font-weight: normal;
+      position: relative;
+      margin-bottom: 0;
+      line-height: 28px;
+      font-size: 22px;
+      color: #666;
+    }
+
+    a {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      top: 0;
+      height: 100px;
+    }
+
+    .chart {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      right: 15px;
+      bottom: 15px;
+      height: 100px;
+    }
+
+  }
+}
+
 .toggle-expand {
   padding: 0 !important;
   a {
