@@ -159,7 +159,7 @@ INSTALLED_APPS = (
     'django_social_auth_trello',
 )
 
-STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
+STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, 'static'))
 STATIC_URL = '/_static/'
 
 STATICFILES_FINDERS = (

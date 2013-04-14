@@ -58,6 +58,10 @@
 
                 {% include "sentry/partial/event_nav.html" %}
             
+                {% if group.is_muted %}
+                    <div class="alert alert-info">This event has been muted. You will not be notified of any changes and it will not show up in the default feed.</div>
+                {% endif %}
+
                 {% if event.has_two_part_message %}
                     <pre id="full-message">{{ event.message }}</pre>
                 {% endif %}
@@ -122,6 +126,12 @@
     {% if can_admin_event %}
         <ul class="nav nav-list">
             <li class="nav-header">{% trans "Actions" %}</li>
+            {% if not group.is_muted %}
+                <li><a href="{% url 'sentry-api-set-group-mute' group.team.slug project.slug group.id %}">{% trans "Mute Event" %}</a></li>
+            {% elif not group.is_resolved %}
+                <li><a href="{% url 'sentry-api-set-group-unresolve' group.team.slug project.slug group.id %}">{% trans "Unmute Event" %}</a></li>
+            {% endif %}
+
             {% for label, link, is_active in group|get_actions:request %}
                 <li><a href="{{ link }}">{{ label }}</a></li>
             {% endfor %}

@@ -15,7 +15,7 @@
 {% block main %}
     <section class="body">
         <form action="" method="post">
-            <p>{% trans "Are you sure you wish to remove this acess group? This change is permanent!" %}</p>
+            <p>{% trans "Are you sure you wish to remove this access group? This change is permanent!" %}</p>
             {% csrf_token %}
             {{ form|as_crispy_errors }}
             {% for field in form %}

@@ -32,7 +32,7 @@ from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.db import has_trending
 from sentry.utils.javascript import to_json
-from sentry.utils.http import is_valid_origin, get_origins
+from sentry.utils.http import is_valid_origin, get_origins, is_same_domain
 from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
 from sentry.web.helpers import render_to_response
@@ -49,8 +49,14 @@ def api(func):
     @wraps(func)
     def wrapped(request, *args, **kwargs):
         data = func(request, *args, **kwargs)
-        response = HttpResponse(data)
-        response['Content-Type'] = 'application/json'
+        if request.is_ajax():
+            response = HttpResponse(data)
+            response['Content-Type'] = 'application/json'
+        else:
+            ref = request.META.get('HTTP_REFERER')
+            if ref is None or not is_same_domain(ref, request.build_absolute_uri()):
+                ref = reverse('sentry')
+            return HttpResponseRedirect(ref)
         return response
     return wrapped
 

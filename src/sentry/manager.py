@@ -14,6 +14,7 @@ import hashlib
 import itertools
 import logging
 import re
+import threading
 import time
 import warnings
 import weakref
@@ -67,18 +68,29 @@ class BaseManager(models.Manager):
     def __init__(self, *args, **kwargs):
         self.cache_fields = kwargs.pop('cache_fields', [])
         self.cache_ttl = kwargs.pop('cache_ttl', 60 * 5)
-        self.__cache = weakref.WeakKeyDictionary()
+        self.__local_cache = threading.local()
         super(BaseManager, self).__init__(*args, **kwargs)
+
+    def _get_cache(self):
+        if not hasattr(self.__local_cache, 'value'):
+            self.__local_cache.value = weakref.WeakKeyDictionary()
+        return self.__local_cache.value
+
+    def _set_cache(self, value):
+        self.__local_cache.value = value
+
+    __cache = property(_get_cache, _set_cache)
 
     def __getstate__(self):
         d = self.__dict__.copy()
         # we cant serialize weakrefs
-        del d['_BaseManager__cache']
+        d.pop('_BaseManager__cache', None)
+        d.pop('_BaseManager__local_cache', None)
         return d
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        self.__cache = weakref.WeakKeyDictionary()
+        self.__local_cache = weakref.WeakKeyDictionary()
 
     def __class_prepared(self, sender, **kwargs):
         """
@@ -880,6 +892,27 @@ class MetaManager(BaseManager):
         super(MetaManager, self).__init__(*args, **kwargs)
         task_postrun.connect(self.clear_cache)
         request_finished.connect(self.clear_cache)
+        self.__local_metadata = threading.local()
+
+    def _get_metadata(self):
+        if not hasattr(self.__local_metadata, 'value'):
+            self.__local_metadata.value = weakref.WeakKeyDictionary()
+        return self.__local_metadata.value
+
+    def _set_metadata(self, value):
+        self.__local_metadata.value = value
+
+    _metadata = property(_get_metadata, _set_metadata)
+
+    def __getstate__(self):
+        d = self.__dict__.copy()
+        # we cant serialize weakrefs
+        d.pop('_MetaManager__local_cache', None)
+        return d
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.__metadata_cache = weakref.WeakKeyDictionary()
 
     def get_value(self, key, default=NOTSET):
         result = self.get_all_values()
