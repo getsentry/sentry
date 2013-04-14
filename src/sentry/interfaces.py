@@ -496,7 +496,7 @@ class Stacktrace(Interface):
             if exc.type:
                 output.append(exc.type)
             elif not output:
-                output.append(exc.value)
+                output = exc.get_hash()
         return output
 
     def get_hash(self):
@@ -671,7 +671,14 @@ class SingleException(Interface):
         return data
 
     def get_hash(self):
-        return filter(bool, [self.type, self.value])
+        output = None
+        if self.stacktrace:
+            output = self.stacktrace.get_hash()
+            if output and self.type:
+                output.append(self.type)
+        if not output:
+            output = filter(bool, [self.type, self.value])
+        return output
 
     def get_context(self, event, is_public=False, **kwargs):
         last_frame = None
