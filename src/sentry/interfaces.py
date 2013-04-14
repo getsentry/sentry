@@ -760,7 +760,7 @@ class Exception(Interface):
     def unserialize(self, data):
         if 'values' not in data:
             data = {'values': [data]}
-        data['values'] = unserialize(SingleException, data['values'])
+        data['values'] = [unserialize(SingleException, v) for v in data['values']]
         return data
 
     def get_hash(self):
