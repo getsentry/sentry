@@ -53,7 +53,7 @@ tests_require = [
 
 
 install_requires = [
-    'cssutils>=0.9.9,<0.10.0',
+    'cssutils>=0.9.9,<0.9.10',
     'BeautifulSoup>=3.2.1,<3.3.0',
     'django-celery>=3.0.11,<3.1.0',
     'celery>=3.0.15,<3.1.0',
