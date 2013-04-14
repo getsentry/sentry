@@ -204,6 +204,7 @@ class StacktraceTest(TestCase):
             'event': event,
             'frames': [get_frame_context.return_value],
             'stacktrace': 'bar',
+            'stack_id': 'stacktrace_1',
             'system_frames': 0,
             'newest_first': False,
             'is_public': False,
