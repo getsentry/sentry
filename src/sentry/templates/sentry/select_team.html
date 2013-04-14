@@ -30,7 +30,7 @@
     <section class="body">
         {% if team_list %}
             <ul class="team-list">
-                {% for team in team_list %}
+                {% for team, project_list in team_list %}
                     <li>
                         <div class="chart" data-api-url="{% url 'sentry-api-chart' team.slug %}">
                             <div class="sparkline">
@@ -40,6 +40,11 @@
                         </div>
                         <h2>{{ team.name }}</h2>
                         <a href="{% url 'sentry' team.slug %}"></a>
+                        <ul>
+                            {% for project in project_list %}
+                                <li><a href="{% url 'sentry-stream' team.slug project.slug %}">{{ project.name }}</a></li>
+                            {% endfor %}
+                        </ul>
                     </li>
                 {% endfor %}
             </ul>

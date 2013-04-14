@@ -211,12 +211,13 @@
                     success: _.bind(function(data){
                         $.plot($el, [{
                                 data: data,
-                                color: '#56AFE8',
+                                color: '#ebeff3',
                                 shadowSize: 0,
                                 lines: {
                                     lineWidth: 2,
                                     show: true,
-                                    fill: true
+                                    fill: true,
+                                    color: '#f6f8fa'
                             }
                             }], {
                                 yaxis: {

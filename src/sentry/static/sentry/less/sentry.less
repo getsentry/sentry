@@ -2175,16 +2175,19 @@ table.vars {
 
     h2 {
       display: inline-block;
-      background: rgba(255, 255, 255, 0.7);
       font-weight: normal;
       position: relative;
       margin-bottom: 0;
       line-height: 28px;
+      height: 28px;
       font-size: 22px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
       color: #666;
     }
 
-    a {
+    > a {
       position: absolute;
       left: 0;
       right: 0;
@@ -2193,6 +2196,8 @@ table.vars {
       height: 100px;
     }
 
+
+    > ul,
     .chart {
       position: absolute;
       top: 15px;
@@ -2200,6 +2205,17 @@ table.vars {
       right: 15px;
       bottom: 15px;
       height: 100px;
+    }
+
+    > ul {
+      top: 48px;
+      margin-left: 0;
+      list-style: circle;
+
+      > li {
+        display: inline-block;
+        width: 175px;
+      }
     }
 
   }

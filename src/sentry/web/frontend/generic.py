@@ -11,6 +11,7 @@ from django.core.urlresolvers import reverse
 from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext as _
 
+from sentry.constants import STATUS_VISIBLE
 from sentry.models import Team
 from sentry.permissions import can_create_teams
 from sentry.plugins import plugins
@@ -44,8 +45,16 @@ def dashboard(request, template='dashboard.html'):
         team = team_list.values()[0]
         return HttpResponseRedirect(reverse('sentry', args=[team.slug]))
 
+    # these kinds of queries make people sad :(
+    results = []
+    for team in team_list.itervalues():
+        project_list = list(team.project_set.filter(
+            status=STATUS_VISIBLE,
+        ).order_by('name')[:6])
+        results.append((team, project_list))
+
     return render_to_response('sentry/select_team.html', {
-        'team_list': team_list.values(),
+        'team_list': results,
     }, request)
 
 
