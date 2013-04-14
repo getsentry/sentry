@@ -29,10 +29,8 @@
                                         {% for t in TEAM_LIST %}
                                             <li><a href="{% url 'sentry' t.slug %}">{{ t.name }}</a></li>
                                         {% endfor %}
-                                        {% if can_create_teams %}
-                                            <li class="divider"></li>
-                                            <li><a href="{% url 'sentry-new-team' %}">{% trans "Create new team" %}</a></li>
-                                        {% endif %}
+                                        <li class="divider"></li>
+                                        <li><a href="{% url 'sentry-new-team' %}">{% trans "Create new team" %}</a></li>
                                     </ul>
                                 </li>
                             {% endif %}

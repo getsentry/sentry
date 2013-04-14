@@ -47,8 +47,8 @@ class NewTeamTest(BaseTeamTest):
     @mock.patch('sentry.web.frontend.teams.can_create_teams', mock.Mock(return_value=False))
     def test_missing_permission(self):
         resp = self.client.post(self.path)
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp['Location'], 'http://testserver' + reverse('sentry'))
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/generic_error.html')
 
     @mock.patch('sentry.web.frontend.teams.can_create_teams', mock.Mock(return_value=True))
     def test_missing_params(self):

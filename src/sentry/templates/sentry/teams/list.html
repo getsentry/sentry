@@ -40,10 +40,6 @@
             </tbody>
         </table>
     {% else %}
-        {% if can_create_teams %}
-            <div class="alert alert-info">{% trans "You are not a member of any teams." %}</div>
-        {% else %}
-            <div class="alert alert-notice">{% trans "You are not a member of any teams. Ask an administrator to add you to a team." %}</div>
-        {% endif %}
+        <div class="alert alert-info">{% trans "You are not a member of any teams." %}</div>
     {% endif %}
 {% endblock %}

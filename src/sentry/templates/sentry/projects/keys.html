@@ -16,7 +16,7 @@
 {% block inner %}
     <div class="page-header">
         {% if can_add_key %}
-            <a href="{% url 'sentry-new-project-key' project.team.slug project.slug %}" class="btn pull-right btn-primary">{% trans "Generate New Key" %}</a>
+            <a href="{% url '-key' project.team.slug project.slug %}" class="btn pull-right btn-primary">{% trans "Generate New Key" %}</a>
         {% endif %}
         <h2>
             {% trans "Manage API Keys" %}

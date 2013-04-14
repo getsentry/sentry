@@ -7,7 +7,7 @@
 
 {% block page_header %}
     <div class="pull-right">
-        <a href="{% url 'sentry-new-team-project' team.slug %}" class="btn btn-primary">{% trans "Create a New Project" %}</a>
+        <a href="{% url 'sentry-new-project' team.slug %}" class="btn btn-primary">{% trans "Create a New Project" %}</a>
     </div>
     {{ block.super }}
 {% endblock %}

@@ -47,7 +47,7 @@ def team_list(request):
 @csrf_protect
 def create_new_team(request):
     if not can_create_teams(request.user):
-        return HttpResponseRedirect(reverse('sentry'))
+        return missing_perm(request, Permissions.ADD_TEAM)
 
     if request.user.has_perm('sentry.can_add_team'):
         form_cls = NewTeamAdminForm
@@ -64,7 +64,7 @@ def create_new_team(request):
         if not team.owner_id:
             team.owner = request.user
         team.save()
-        return HttpResponseRedirect(reverse('sentry-new-team-project', args=[team.slug]))
+        return HttpResponseRedirect(reverse('sentry-new-project', args=[team.slug]))
 
     context = csrf(request)
     context.update({

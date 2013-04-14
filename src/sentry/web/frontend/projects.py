@@ -16,14 +16,13 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
 from sentry.constants import MEMBER_OWNER
 from sentry.models import Project, ProjectKey, Team, FilterKey
-from sentry.permissions import (can_create_projects, can_remove_project, can_create_teams,
-    can_add_project_key, can_remove_project_key)
+from sentry.permissions import (
+    can_remove_project, can_add_project_key, can_remove_project_key)
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_access
-from sentry.web.forms.projects import (NewProjectForm, NewProjectAdminForm,
+from sentry.web.forms.projects import (
     ProjectTagsForm, EditProjectForm, RemoveProjectForm, EditProjectAdminForm,
     NotificationTagValuesForm, AlertSettingsForm)
-from sentry.web.forms.teams import NewTeamForm, SelectTeamForm
 from sentry.web.helpers import render_to_response, plugin_config
 
 
@@ -35,72 +34,6 @@ def get_started(request, team, project):
         'team': project.team,
         'SECTION': 'team',
         'SUBSECTION': 'projects'
-    }, request)
-
-
-# TODO: we need a team specific project creation view, vs the "get started" view
-@login_required
-def new_project(request):
-    from django.contrib.auth.models import User
-
-    if not can_create_projects(request.user):
-        return HttpResponseRedirect(reverse('sentry'))
-
-    allow_create_teams = can_create_teams(request.user)
-    team_list = Team.objects.get_for_user(request.user)
-
-    if request.user.has_perm('sentry.can_add_project') and User.objects.all()[0:2] == 2:
-        project_form_cls = NewProjectAdminForm
-        project_initial = {
-            'owner': request.user.username,
-        }
-    else:
-        project_form_cls = NewProjectForm
-        project_initial = {}
-
-    if len(team_list) > 0:
-        select_team_form = SelectTeamForm(team_list, request.POST or None, prefix='st')
-    elif not allow_create_teams:
-        return render_to_response('sentry/projects/cannot_create_teams.html', {}, request)
-    else:
-        select_team_form = None
-
-    if allow_create_teams:
-        new_team_form = NewTeamForm(request.POST or None, prefix='nt')
-    else:
-        new_team_form = None
-
-    project_form = project_form_cls(request.POST or None, initial=project_initial, prefix='prj')
-
-    is_new_team = new_team_form and new_team_form.is_valid()
-    if is_new_team or not select_team_form:
-        team_form = new_team_form
-    else:
-        team_form = select_team_form
-
-    if project_form.is_valid() and team_form.is_valid():
-        project = project_form.save(commit=False)
-        if not project.owner:
-            project.owner = request.user
-
-        if is_new_team:
-            team = new_team_form.save(commit=False)
-            team.owner = project.owner
-            team.save()
-        else:
-            team = select_team_form.cleaned_data['team']
-
-        project.team = team
-        project.save()
-
-        if project.platform not in (None, 'other'):
-            return HttpResponseRedirect(reverse('sentry-docs-client', args=[project.team.slug, project.slug, project.platform]))
-        return HttpResponseRedirect(reverse('sentry-get-started', args=[project.team.slug, project.slug]))
-
-    return render_to_response('sentry/projects/new.html', {
-        'project_form': project_form,
-        'select_team_form': select_team_form,
-        'new_team_form': new_team_form,
     }, request)
 
 

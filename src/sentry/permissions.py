@@ -26,6 +26,7 @@ class Permission(object):
 
 class Permissions(object):
     ADD_PROJECT = Permission('add_project', 'create new projects')
+    ADD_TEAM = Permission('add_team', 'create new teams')
 
 
 def perm_override(perm):

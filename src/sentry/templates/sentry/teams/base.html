@@ -8,11 +8,9 @@
 {% block bodyclass %}{% endblock %}
 
 {% block page_header %}
-    {% if can_create_teams %}
-        <div class="pull-right">
-            <a href="{% url 'sentry-new-team' %}" class="btn btn-primary">{% trans "Create a new team" %}</a>
-        </div>
-    {% endif %}
+    <div class="pull-right">
+        <a href="{% url 'sentry-new-team' %}" class="btn btn-primary">{% trans "Create a new team" %}</a>
+    </div>
 
     <ul class="breadcrumb">
         <li><a href="{% url 'sentry' %}" class="dashboard-btn" title="{% trans "Dashboard" %}">

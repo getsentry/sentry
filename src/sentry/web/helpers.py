@@ -19,15 +19,16 @@ from django.utils.safestring import mark_safe
 from sentry.conf import settings
 from sentry.constants import MEMBER_OWNER
 from sentry.models import Project, Team, Option, ProjectOption, ProjectKey
-from sentry.permissions import can_create_teams
 
 logger = logging.getLogger('sentry.errors')
 
 
 def get_project_list(user=None, access=None, hidden=False, key='id', team=None):
     warnings.warn('get_project_list is Deprecated. Use Project.objects.get_for_user instead.', DeprecationWarning)
-    return SortedDict((getattr(p, key), p)
-        for p in Project.objects.get_for_user(user, access))
+    return SortedDict(
+        (getattr(p, key), p)
+        for p in Project.objects.get_for_user(user, access)
+    )
 
 
 def group_is_public(group, user):
@@ -111,7 +112,6 @@ def get_default_context(request, existing_context=None, team=None):
 
         context.update({
             'request': request,
-            'can_create_teams': can_create_teams(request.user),
         })
         if team:
             context.update({
