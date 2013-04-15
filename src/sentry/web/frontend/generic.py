@@ -47,7 +47,7 @@ def dashboard(request, template='dashboard.html'):
 
     # these kinds of queries make people sad :(
     results = []
-    for team in team_list.itervalues():
+    for team in sorted(team_list.itervalues(), key=lambda x: x.name):
         project_list = list(team.project_set.filter(
             status=STATUS_VISIBLE,
         ).order_by('name')[:20])
