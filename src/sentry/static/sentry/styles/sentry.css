@@ -8421,6 +8421,9 @@ table.vars td table {
 .team-list > li > ul > li {
   display: inline-block;
   width: 175px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .toggle-expand {
   padding: 0 !important;
