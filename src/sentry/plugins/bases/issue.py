@@ -99,6 +99,12 @@ class IssuePlugin(Plugin):
         """
         return 'Create %s Issue' % self.get_title()
 
+    def get_new_issue_form(self, request, group, event, **kwargs):
+        """
+        Return a Form for the "Create new issue" page.
+        """
+        return self.new_issue_form(request.POST or None, initial=self.get_initial_form_data(request, group, event))
+
     def get_issue_url(self, group, issue_id, **kwargs):
         """
         Given an issue_id (string) return an absolute URL to the issue's details
@@ -159,7 +165,7 @@ class IssuePlugin(Plugin):
         prefix = self.get_conf_key()
         event = group.get_latest_event()
 
-        form = self.new_issue_form(request.POST or None, initial=self.get_initial_form_data(request, group, event))
+        form = self.get_new_issue_form(request, group, event)
         if form.is_valid():
             try:
                 issue_id = self.create_issue(
