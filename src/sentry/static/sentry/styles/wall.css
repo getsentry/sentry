@@ -8369,13 +8369,15 @@ table.vars td table {
   margin-left: 0;
 }
 .team-list > li {
-  display: inline-block;
-  margin: 0 10px 10px 0;
+  display: block;
+  margin: 0 0 10px 0;
   padding: 15px;
-  width: 400px;
-  height: 100px;
+  height: 70px;
   border: 2px solid #ddd;
   position: relative;
+}
+.team-list > li .loading {
+  display: none;
 }
 .team-list > li:hover {
   border-color: #ffffff;
@@ -8388,15 +8390,23 @@ table.vars td table {
   font-weight: normal;
   position: relative;
   margin-bottom: 0;
-  line-height: 28px;
-  height: 28px;
+  line-height: 26px;
+  height: 26px;
   font-size: 22px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   color: #666;
 }
-.team-list > li > a {
+.team-list > li h2 a {
+  color: inherit;
+}
+.team-list > li h2 a:hover {
+  color: #e6e6e6;
+}
+.team-list > li > a,
+.team-list > li .chart {
+  display: block;
   position: absolute;
   left: 0;
   right: 0;
@@ -8404,14 +8414,18 @@ table.vars td table {
   top: 0;
   height: 100px;
 }
-.team-list > li > ul,
 .team-list > li .chart {
+  height: 101px;
+  bottom: -1px;
+}
+.team-list > li > ul {
   position: absolute;
   top: 15px;
   left: 15px;
   right: 15px;
   bottom: 15px;
-  height: 100px;
+  height: 70px;
+  overflow: hidden;
 }
 .team-list > li > ul {
   top: 48px;
@@ -8420,7 +8434,8 @@ table.vars td table {
 }
 .team-list > li > ul > li {
   display: inline-block;
-  width: 175px;
+  width: 142px;
+  margin-right: 5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
