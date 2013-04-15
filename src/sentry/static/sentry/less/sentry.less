@@ -2158,13 +2158,16 @@ table.vars {
   margin-left: 0;
 
   > li {
-    display: inline-block;
-    margin: 0 10px 10px 0;
+    display: block;
+    margin: 0 0 10px 0;
     padding: 15px;
-    width: 400px;
-    height: 100px;
+    height: 70px;
     border: 2px solid #ddd;
     position: relative;
+
+    .loading {
+      display: none;
+    }
 
     &:hover {
       border-color: lighten(@linkColor, 20%);
@@ -2178,16 +2181,24 @@ table.vars {
       font-weight: normal;
       position: relative;
       margin-bottom: 0;
-      line-height: 28px;
-      height: 28px;
+      line-height: 26px;
+      height: 26px;
       font-size: 22px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       color: #666;
+      a {
+        color: inherit;
+        &:hover {
+          color: @linkColorHover;
+        }
+      }
     }
 
-    > a {
+    > a,
+    .chart {
+      display: block;
       position: absolute;
       left: 0;
       right: 0;
@@ -2195,16 +2206,20 @@ table.vars {
       top: 0;
       height: 100px;
     }
-
-
-    > ul,
     .chart {
+      height: 101px;
+      bottom: -1px;
+    }
+
+
+    > ul {
       position: absolute;
       top: 15px;
       left: 15px;
       right: 15px;
       bottom: 15px;
-      height: 100px;
+      height: 70px;
+      overflow: hidden;
     }
 
     > ul {
@@ -2214,7 +2229,7 @@ table.vars {
 
       > li {
         display: inline-block;
-        width: 175px;
+        width: 147px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis

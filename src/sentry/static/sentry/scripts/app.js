@@ -196,6 +196,7 @@
             BasePage.prototype.initialize.call(this);
 
             this.refreshSparklines();
+            $(window).on('resize', this.refreshSparklines);
         },
 
         refreshSparklines: function(){

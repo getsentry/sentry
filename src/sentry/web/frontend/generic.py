@@ -50,7 +50,7 @@ def dashboard(request, template='dashboard.html'):
     for team in team_list.itervalues():
         project_list = list(team.project_set.filter(
             status=STATUS_VISIBLE,
-        ).order_by('name')[:6])
+        ).order_by('name')[:20])
         results.append((team, project_list))
 
     return render_to_response('sentry/select_team.html', {
