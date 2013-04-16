@@ -56,6 +56,16 @@ class ProjectKeyTest(TestCase):
         with self.Settings(SENTRY_URL_PREFIX='http://example.com:81'):
             self.assertEquals(key.get_dsn(), 'http://public:secret@example.com:81/1')
 
+    def test_get_dsn_with_public_endpoint_setting(self):
+        key = ProjectKey(project_id=1, public_key='public', secret_key='secret')
+        with self.Settings(SENTRY_PUBLIC_ENDPOINT='http://public_endpoint.com'):
+            self.assertEquals(key.get_dsn(public=True), 'http://public@public_endpoint.com/1')
+
+    def test_get_dsn_with_endpoint_setting(self):
+        key = ProjectKey(project_id=1, public_key='public', secret_key='secret')
+        with self.Settings(SENTRY_ENDPOINT='http://endpoint.com'):
+            self.assertEquals(key.get_dsn(), 'http://public:secret@endpoint.com/1')
+
     def test_key_is_created_for_project_with_existing_team(self):
         user = User.objects.create(username='admin')
         team = Team.objects.create(name='Test', slug='test', owner=user)
