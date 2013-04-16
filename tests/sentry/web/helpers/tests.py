@@ -6,7 +6,7 @@ import mock
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.urlresolvers import reverse
-from sentry.web.helpers import get_login_url, group_is_public
+from sentry.web.helpers import get_login_url, group_is_public, get_raven_js_url
 from sentry.testutils import TestCase
 
 
@@ -71,3 +71,13 @@ class GroupIsPublicTest(TestCase):
         self.group.is_public = True
         result = group_is_public(self.group, AnonymousUser())
         assert result is True
+
+
+class GetRavenJsUrl(TestCase):
+    def test_with_custom_raven_js_url(self):
+        url = 'my.cdn/1.0/raven.min.js'
+        with self.Settings(SENTRY_RAVEN_JS_URL=url):
+            self.assertEquals(get_raven_js_url(), url)
+
+    def test_with_default_raven_js_url(self):
+        self.assertEquals(get_raven_js_url(), 'd3nslu0hdya83q.cloudfront.net/dist/1.0/raven.min.js')

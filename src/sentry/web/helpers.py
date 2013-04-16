@@ -207,3 +207,7 @@ def plugin_config(plugin, project, request):
         'plugin': plugin,
         'plugin_description': plugin.get_description() or '',
     }, context_instance=RequestContext(request))))
+
+
+def get_raven_js_url():
+    return settings.RAVEN_JS_URL
