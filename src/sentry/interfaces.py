@@ -195,9 +195,6 @@ class Message(Interface):
     >>>     "message": "My raw message with interpreted strings like %s",
     >>>     "params": ["this"]
     >>> }
-
-    .. note:: This interface can be passed as the 'message' key in addition
-              to the full interface path.
     """
     attrs = ('message', 'params')
 
