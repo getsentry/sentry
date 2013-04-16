@@ -525,8 +525,8 @@ class Stacktrace(Interface):
 
         if newest_first is None:
             newest_first = is_newest_frame_first(event)
-            if newest_first:
-                frames = frames[::-1]
+        if newest_first:
+            frames = frames[::-1]
 
         context = {
             'is_public': is_public,
