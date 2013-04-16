@@ -13,7 +13,7 @@ from sentry.constants import (MEMBER_OWNER, PLATFORM_LIST, PLATFORM_TITLES,
     PLATFORM_ROOTS)
 from sentry.models import ProjectKey
 from sentry.web.decorators import has_access
-from sentry.web.helpers import render_to_response, render_to_string
+from sentry.web.helpers import render_to_response, render_to_string, get_raven_js_url
 
 
 def can_see_global_keys(user, project):
@@ -52,6 +52,7 @@ def get_key_context(user, project):
         'key': key,
         'dsn': dsn,
         'dsn_public': dsn_public,
+        'raven_js_url': get_raven_js_url(),
     }
 
 
