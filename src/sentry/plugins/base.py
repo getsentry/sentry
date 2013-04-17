@@ -455,7 +455,7 @@ class IPlugin(local):
 
         :param group: an instance of ``Group``
         :param event: an instance of ``Event``
-        :param is_new: a boolean describing if this event is new, or has changed state
+        :param is_new: a boolean describing if this group is new, or has changed state
         :param is_sample: a boolean describing if this event was stored, or sampled
 
         >>> def post_process(self, event, **kwargs):
