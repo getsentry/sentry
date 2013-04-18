@@ -64,7 +64,7 @@ def api(func):
 class Auth(object):
     def __init__(self, auth_vars):
         self.client = auth_vars.get('sentry_client')
-        self.version = auth_vars.get('sentry_version')
+        self.version = int(float(auth_vars.get('sentry_version')))
         self.secret_key = auth_vars.get('sentry_secret')
         self.public_key = auth_vars.get('sentry_key')
 
@@ -189,7 +189,7 @@ class APIView(BaseView):
 
             auth = Auth(auth_vars)
 
-            if auth.version == '3':
+            if auth.version >= 3:
                 # Version 3 enforces secret key for server side requests
                 if origin is None and not auth.secret_key:
                     return HttpResponse('Missing required attribute in authentication header: sentry_secret', status=400)
