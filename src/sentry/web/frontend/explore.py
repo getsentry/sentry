@@ -2,78 +2,67 @@
 sentry.web.frontend.explore
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
+Contains views for the "Explore" section of Sentry.
+
+:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect
-from sentry.models import TagKey, TagValue, Group
-from sentry.web.decorators import login_required, has_access
-from sentry.web.helpers import render_to_response
+from __future__ import division
 
-DEFAULT_SORT_OPTION = 'recent'
-SORT_OPTIONS = {
-    'recent': 'Last Seen',
-    'newest': 'First Seen',
-    'events': 'Number of Events',
-}
+from sentyr.models import FilterKey, FilterValue, Group
+from sentry.web.decorators import has_access
+from sentry.web.helpers import render_to_response
 
 
 @has_access
-@login_required
-def list_tag(request, team, project, tag_name):
-    try:
-        tag = TagKey.objects.get(project=project, key=tag_name)
-    except TagKey.DoesNotExist:
-        return HttpResponseRedirect(reverse('sentry-stream', args=[team.slug, project.slug]))
+def tag_list(request, team, project):
+    tag_name_qs = FilterKey.objects.filter(
+        project=project).values_list('key', flat=True)
 
-    sort = request.GET.get('sort')
-    if sort not in SORT_OPTIONS:
-        sort = DEFAULT_SORT_OPTION
+    tag_value_qs = FilterValue.objects.filter(
+        project=project).order_by('-times_seen')
 
-    tag_list = TagValue.objects.filter(project=project, key=tag_name)
+    # O(N) db access
+    tag_list = []
+    for tag_name in tag_name_qs:
+        tag_list.append((tag_name, [
+            (value, times_seen)
+            for (value, times_seen)
+            in tag_value_qs.filter(key=tag_name)[:5]
+        ]))
 
-    if sort == 'recent':
-        tag_list = tag_list.order_by('-last_seen')
-    elif sort == 'newest':
-        tag_list = tag_list.order_by('-first_seen')
-    elif sort == 'events':
-        tag_list = tag_list.order_by('-times_seen')
-
-    return render_to_response('sentry/explore/list_tag.html', {
-        'team': team,
-        'project': project,
-        'tag': tag,
+    return render_to_response('sentry/explore/tag_list.html', {
+        'SECTION': 'explore',
         'tag_list': tag_list,
-        'sort_label': SORT_OPTIONS[sort],
-        'SORT_OPTIONS': SORT_OPTIONS,
     }, request)
 
 
 @has_access
-@login_required
-def tag_details(request, team, project, tag_name, tag_id):
-    try:
-        tag = TagKey.objects.get(project=project, key=tag_name)
-    except TagKey.DoesNotExist:
-        return HttpResponseRedirect(reverse('sentry-stream', args=[team.slug, project.slug]))
+def tag_value_list(request, team, project, key):
+    tag_values_qs = FilterValue.objects.filter(
+        project=project).order_by('-times_seen')
 
-    tag_value = TagValue.objects.get(
-        project=project,
-        key=tag_name,
-        id=tag_id,
-    )
+    return render_to_response('sentry/explore/tag_value_list.html', {
+        'title': key.replace('_', ' ').title(),
+        'tag_name': key,
+        'tag_values': tag_values_qs,
+        'SECTION': 'explore',
+    }, request)
+
+
+@has_access
+def tag_details(request, team, project, key, value):
+    tag = FilterValue.objects.get(
+        project=project, key=key, value=value)
 
     event_list = Group.objects.filter(
-        grouptag__project=project,
-        grouptag__key=tag_name,
-        grouptag__value=tag_value.value,
-    )
+        grouptag__key=key,
+        grouptag__value=value,
+    ).order_by('-score')
 
-    return render_to_response('sentry/explore/tag_details.html', {
+    return render_to_response('sentry/explore/tag_value_details.html', {
         'team': team,
-        'project': project,
         'tag': tag,
-        'tag_value': tag_value,
         'event_list': event_list,
+        'SECTION': 'users',
     }, request)
