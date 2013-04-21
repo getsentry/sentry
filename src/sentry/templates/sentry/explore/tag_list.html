@@ -1,0 +1,46 @@
+{% extends "sentry/bases/explore.html" %}
+
+{% load url from future %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block inner %}
+    {% if tag_list %}
+
+        {% for tag_name, tag_values in tag_list %}
+            {% if not forloop.counter|divisibleby:2 %}
+                {% if not forloop.first %}
+                    </div>
+                {% endif %}
+                <div class="row-fluid">
+            {% endif %}
+            <div class="span6">
+                <div class="page-header">
+                    <span class="pull-right"><a href="{% url 'sentry-explore-tag' project.team.slug project.slug tag_name|urlquote %}">More Details</a></span>
+
+                    <h4>{{ tag_name|titlize }}</h4>
+                </div>
+
+                <ul class="tag-list">
+                    {% for tag_value, times_seen in tag_values %}
+                        <li>
+                            <a href="{% url 'sentry-explore-tag-value' project.team.slug project.slug tag_name|urlquote tag_value|urlquote %}">
+                                {{ tag_value }}
+                                <span>{{ times_seen|small_count }}</span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% if forloop.last %}
+                </div>
+            {% endif %}
+        {% endfor %}
+
+    {% else %}
+
+        <p>{% trans "There don't seem to be any tags in the system yet. For more information on how you can tag data, check your client's documentation." %}</p>
+
+    {% endif %}
+
+{% endblock %}

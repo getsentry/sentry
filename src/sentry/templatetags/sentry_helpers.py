@@ -7,6 +7,14 @@ sentry.templatetags.sentry_helpers
 """
 # XXX: Import django-paging's template tags so we don't have to worry about
 #      INSTALLED_APPS
+
+import datetime
+
+from collections import namedtuple
+from paging.helpers import paginate as paginate_func
+from pkg_resources import parse_version as Version
+from urllib import quote
+
 from django import template
 from django.template import RequestContext
 from django.template.defaultfilters import stringfilter
@@ -14,7 +22,7 @@ from django.template.loader import render_to_string
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
-from paging.helpers import paginate as paginate_func
+
 from sentry.conf import settings
 from sentry.constants import STATUS_MUTED
 from sentry.models import Group, Option
@@ -27,9 +35,6 @@ from sentry.utils.safe import safe_execute
 from sentry.utils.strings import truncatechars
 from templatetag_sugar.register import tag
 from templatetag_sugar.parser import Name, Variable, Constant, Optional
-from collections import namedtuple
-import datetime
-from pkg_resources import parse_version as Version
 
 SentryVersion = namedtuple('SentryVersion', ['current', 'latest',
                                              'update_available'])
@@ -444,3 +449,8 @@ def reorder_teams(team_list, team):
         else:
             pending.append((t, p_list))
     return pending
+
+
+@register.filter
+def urlquote(value, safe=''):
+    return quote(value, safe)

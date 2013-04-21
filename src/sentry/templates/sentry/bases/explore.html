@@ -20,3 +20,9 @@
         {% endif %}
     </ul>
 {% endblock %}
+
+{% block main %}
+    <section class="body">
+    	{% block inner %}{% endblock %}
+    </section>
+{% endblock %}
