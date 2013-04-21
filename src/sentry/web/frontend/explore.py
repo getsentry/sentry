@@ -17,7 +17,7 @@ from sentry.web.helpers import render_to_response
 @has_access
 def tag_list(request, team, project):
     tag_name_qs = FilterKey.objects.filter(
-        project=project).values_list('key', flat=True)
+        project=project).values_list('key', flat=True).order_by('key')
 
     tag_value_qs = FilterValue.objects.filter(
         project=project).order_by('-times_seen')
