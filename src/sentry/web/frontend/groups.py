@@ -74,6 +74,7 @@ def _get_group_list(request, project):
     time_from = request.GET.get('tf')
     date_to = request.GET.get('dt')
     time_to = request.GET.get('tt')
+    date_type = request.GET.get('date_type')
 
     today = timezone.now()
 
@@ -84,15 +85,21 @@ def _get_group_list(request, project):
         date_from = today - datetime.timedelta(days=5)
         date_to = None
 
-    if date_from and date_to:
-        event_list = event_list.filter(
-            groupcountbyminute__date__gte=date_from,
-            groupcountbyminute__date__lte=date_to,
-        )
-    elif date_from:
-        event_list = event_list.filter(last_seen__gte=date_from)
-    elif date_to:
-        event_list = event_list.filter(last_seen__lte=date_to)
+    if date_type == 'first_seen':
+        if date_from:
+            event_list = event_list.filter(first_seen__gte=date_from)
+        elif date_to:
+            event_list = event_list.filter(first_seen__lte=date_to)
+    else:
+        if date_from and date_to:
+            event_list = event_list.filter(
+                groupcountbyminute__date__gte=date_from,
+                groupcountbyminute__date__lte=date_to,
+            )
+        elif date_from:
+            event_list = event_list.filter(last_seen__gte=date_from)
+        elif date_to:
+            event_list = event_list.filter(last_seen__lte=date_to)
 
     sort = request.GET.get('sort') or request.session.get('streamsort')
     if sort not in SORT_OPTIONS:
@@ -154,6 +161,7 @@ def _get_group_list(request, project):
         'date_to': date_to,
         'today': today,
         'sort': sort,
+        'date_type': date_type
     }
 
 
@@ -352,6 +360,7 @@ def group_list(request, team, project):
         'project': project,
         'from_date': response['date_from'],
         'to_date': response['date_to'],
+        'date_type': response['date_type'],
         'has_realtime': has_realtime,
         'event_list': response['event_list'],
         'today': response['today'],
