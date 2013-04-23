@@ -38,7 +38,7 @@
 
 {% else %}
     {% if value|is_url %}
-        <a href="{{ value }}" class="icon-share">{{ value }}</a>
+        <a href="{{ value }}">{{ value }} <i class="icon-share"></i></a>
     {% else %}
         <pre>{{ value|pprint }}</pre>
     {% endif %}
