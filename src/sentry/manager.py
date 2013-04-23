@@ -630,6 +630,8 @@ class GroupManager(BaseManager, ChartMixin):
                     active_at__gte=date,
                 ).update(active_at=date, status=STATUS_UNRESOLVED))
 
+                transaction.commit_unless_managed(using=group._state.db)
+
                 group.active_at = date
                 group.status = STATUS_UNRESOLVED
 
