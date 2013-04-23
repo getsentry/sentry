@@ -1,3 +1,41 @@
+Version 5.5.0
+-------------
+
+Incompatible Changes
+====================
+
+- sentry_servers no longer exists, and the behavior is now always present. If
+  you had it manually listed in INSTALLED_APPS, simply remove it.
+
+Protocol Version 4
+==================
+
+- sentry_version should be sent as '4'.
+- Aliases are now recommended instead of full interface names.
+- The exception interface now supports a bound stacktrace, and all events
+  (in all protocols) which contain both an exception and a stacktrace will
+  be rolled up. This should be sent as the ``stacktrace`` attribute.
+- The exception interface now supports of chained exceptions, and should
+  be sent as a list of exception values. Check the updated documentation for
+  ordering details.
+
+Alerts
+======
+
+A basic alert system has been added.
+
+- Configured at the project level.
+- Signaled via Plugin.on_alert.
+
+Other Changes
+=============
+
+- Activity feeds will now attempt to filter out some duplicates.
+- Tags now show on the event details page.
+- Corrected some invalid behavior when storing tags with an individual event.
+- Plugin.get_tag_values was added.
+- A new team select dashboard exists if you are a member of multiple teams.
+
 Version 5.4.0
 -------------
 
