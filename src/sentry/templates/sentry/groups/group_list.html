@@ -80,7 +80,7 @@
             </ul>
         </div>
         <div class="btn-group">
-            <a href="#" class="btn dropdown-toggle" onclick="$('#daterange').toggle();">
+            <a href="#" class="btn dropdown-toggle" onclick="$('#daterange').toggle(); return false;">
                 {% if from_date %}
                     {% if not to_date %}
                         Since: {{ from_date|date:"M jS" }}
@@ -117,21 +117,21 @@
                 <input data-toggle="datepicker" data-date-format="yyyy-mm-dd" name="dt" class="date" type="text" value="{% if to_date %}{{ to_date|date:"Y-m-d" }}{% endif %}" />
                 <input class="time" type="text" name="tt" value="{% if to_date %}{{ to_date|time:"h:i A" }}{% endif %}" />
               </div>
-              <div class="">
-                <label class="radio">
-                  <input type="radio" name="date_type" value="first_seen" {% ifequal date_type 'first_seen' %}checked{% endifequal %}> {% trans "First Seen" %}
-                </label>
-                <label class="radio">
-                  <input type="radio" name="date_type" value="last_seen" {% ifnotequal date_type 'first_seen' %}checked{% endifnotequal %}> {% trans "Last Seen" %}
-                </label>
-              </div>
+              <div class="help-block">{% trans "All events are represented in UTC time." %}</div>
             </div>
             <div class="submit">
                 <div class="pull-right">
                     <input type="button" class="btn btn-small" value="{% trans "Clear" %}" onclick="$('#daterange input[type=text]').val(''); this.form.submit();">
                     <input type="submit" class="btn btn-primary btn-small" value="{% trans "Apply" %}">
                 </div>
-                <div class="help-block">{% trans "All events are represented in UTC time." %}</div>
+                <div class="radio-inputs">
+                    <label class="radio">
+                        <input type="radio" name="date_type" value="last_seen" {% if date_type != 'first_seen' %}checked{% endif %}> {% trans "Last Seen" %}
+                    </label>
+                    <label class="radio">
+                        <input type="radio" name="date_type" value="first_seen" {% if date_type == 'first_seen' %}checked{% endif %}> {% trans "First Seen" %}
+                    </label>
+                </div>
             </div>
         </form>
     </div>

@@ -7841,6 +7841,28 @@ section.body .page-header:first-child {
   -moz-background-clip: padding-box;
   background-clip: padding-box;
 }
+.datepicker-box form {
+  margin-bottom: 15px;
+}
+.datepicker-box .help-block {
+  margin-bottom: 5px;
+}
+.datepicker-box .radio-inputs {
+  position: relative;
+  height: 26px;
+}
+.datepicker-box .radio-inputs .radio {
+  line-height: 26px;
+  margin-right: 10px;
+  margin-bottom: 0;
+  display: inline-block;
+  font-weight: normal;
+}
+.datepicker-box .radio-inputs .radio input {
+  margin-left: -19px;
+  margin-top: 7px;
+  vertical-align: middle;
+}
 .datepicker-box .time {
   width: 60px;
 }
