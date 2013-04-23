@@ -171,14 +171,14 @@ class SentryManagerTest(TestCase):
     def test_tags_as_list(self, add_tags):
         event = Group.objects.from_kwargs(1, message='foo', tags=[('foo', 'bar')])
         group = event.group
-        add_tags.assert_called_once_with(group, [('foo', 'bar'), ('logger', 'root'), ('level', 'error')])
+        add_tags.assert_called_once_with(group, [('foo', 'bar'), ('level', 'error'), ('logger', 'root')])
 
     @mock.patch('sentry.manager.send_group_processors', mock.Mock())
     @mock.patch('sentry.manager.GroupManager.add_tags')
     def test_tags_as_dict(self, add_tags):
         event = Group.objects.from_kwargs(1, message='foo', tags={'foo': 'bar'})
         group = event.group
-        add_tags.assert_called_once_with(group, [('foo', 'bar'), ('logger', 'root'), ('level', 'error')])
+        add_tags.assert_called_once_with(group, [('foo', 'bar'), ('level', 'error'), ('logger', 'root')])
 
     @mock.patch('sentry.manager.send_group_processors', mock.Mock())
     def test_platform_is_saved(self):

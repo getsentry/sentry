@@ -487,6 +487,16 @@ class IPlugin(local):
         >>>     print group.get_absolute_url()
         """
 
+    def get_tags(self, event, **kwargs):
+        """
+        Return additional tags to add to this instance.
+
+        Tags should be a list of tuples.
+
+        >>> def get_tags(self, event, **kwargs):
+        >>>     return [('tag-name', 'tag-value')]
+        """
+
     def get_filters(self, project=None, **kwargs):
         """
         Provides additional filters to the builtins.

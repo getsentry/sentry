@@ -41,11 +41,13 @@ from sentry.utils.cache import cache, memoize, Lock
 from sentry.utils.dates import get_sql_date_trunc, normalize_datetime
 from sentry.utils.db import get_db_engine, has_charts, attach_foreignkey
 from sentry.utils.models import create_or_update, make_key
+from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger('sentry.errors')
 
 UNSAVED = dict()
 MAX_TAG_LENGTH = 200
+LOG_LEVELS_DICT = dict(settings.LOG_LEVELS)
 
 
 def get_checksum_from_event(event):
@@ -390,18 +392,10 @@ class GroupManager(BaseManager, ChartMixin):
 
     def normalize_event_data(self, data):
         # First we pull out our top-level (non-data attr) kwargs
-        if not data.get('level'):
+        if not data.get('level') or data['level'] not in LOG_LEVELS_DICT:
             data['level'] = logging.ERROR
         if not data.get('logger'):
             data['logger'] = settings.DEFAULT_LOGGER_NAME
-
-        tags = data.get('tags')
-        if not tags:
-            tags = []
-        # full support for dict syntax
-        elif isinstance(tags, dict):
-            tags = tags.items()
-        data['tags'] = tags
 
         timestamp = data.get('timestamp')
         if not timestamp:
@@ -429,6 +423,17 @@ class GroupManager(BaseManager, ChartMixin):
         data.setdefault('checksum', None)
         data.setdefault('platform', None)
 
+        tags = data.get('tags')
+        if not tags:
+            tags = []
+        # full support for dict syntax
+        elif isinstance(tags, dict):
+            tags = tags.items()
+        else:
+            tags = list(tags)
+
+        data['tags'] = tags
+
         if 'sentry.interfaces.Exception' in data:
             if 'values' not in data['sentry.interfaces.Exception']:
                 data['sentry.interfaces.Exception'] = {'values': [data['sentry.interfaces.Exception']]}
@@ -452,7 +457,7 @@ class GroupManager(BaseManager, ChartMixin):
 
         # TODO: culprit should default to "most recent" frame in stacktraces when
         # it's not provided.
-
+        from sentry.plugins import plugins
         from sentry.models import Event, Project, EventMapping
 
         project = Project.objects.get_from_cache(pk=project)
@@ -502,6 +507,20 @@ class GroupManager(BaseManager, ChartMixin):
             'time_spent_total': time_spent or 0,
             'time_spent_count': time_spent and 1 or 0,
         })
+
+        tags = data['tags']
+        tags.append(('level', LOG_LEVELS_DICT[level]))
+        if logger:
+            tags.append(('logger', logger_name))
+        if server_name:
+            tags.append(('server_name', server_name))
+        if site:
+            tags.append(('site', site))
+
+        for plugin in plugins.all():
+            added_tags = safe_execute(plugin.get_tags, event)
+            if added_tags:
+                tags.extend(added_tags)
 
         try:
             group, is_new, is_sample = self._create_group(
@@ -648,16 +667,6 @@ class GroupManager(BaseManager, ChartMixin):
             'project': project,
             'date': normalized_datetime,
         })
-
-        if not tags:
-            tags = []
-        else:
-            tags = list(tags)
-
-        tags += [
-            ('logger', event.logger),
-            ('level', event.get_level_display()),
-        ]
 
         user_ident = event.user_ident
         if user_ident:

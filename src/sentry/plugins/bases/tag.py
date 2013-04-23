@@ -14,7 +14,7 @@ class TagPlugin(Plugin):
     tag_label = None
     project_default_enabled = True
 
-    def get_tag_values(self, event):
+    def get_tag_values(self, event, **kwargs):
         """
         Must return a list of values.
 
@@ -23,5 +23,10 @@ class TagPlugin(Plugin):
         """
         raise NotImplementedError
 
+    def get_tags(self, event, **kwargs):
+        return [(self.tag, v) for v in self.get_tag_values(event)]
+
     def post_process(self, group, event, is_new, is_sample, **kwargs):
-        Group.objects.add_tags(group, [(self.tag, v) for v in self.get_tag_values(event)])
+        # legacy compatibility for older plugins
+        if not hasattr(Plugin, 'get_tags'):
+            Group.objects.add_tags(group, self.get_tags(event))
