@@ -7,7 +7,9 @@ sentry.services.http
 """
 
 from django.core.management import call_command
+
 from sentry.services.base import Service
+from sentry.utils.settings import validate_settings
 
 
 class SentryHTTPServer(Service):
@@ -15,6 +17,8 @@ class SentryHTTPServer(Service):
 
     def __init__(self, host=None, port=None, debug=False, workers=None):
         from sentry.conf import settings
+
+        validate_settings(settings)
 
         self.host = host or settings.WEB_HOST
         self.port = port or settings.WEB_PORT

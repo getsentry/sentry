@@ -12,6 +12,8 @@ from django.utils import timezone
 from raven import Client
 from sentry.models import Group, Event, Project
 from sentry.testutils import TestCase
+from sentry.services.http import SentryHTTPServer
+from sentry.utils.settings import ConfigurationError
 
 
 class RavenIntegrationTest(TestCase):
@@ -152,3 +154,96 @@ class SentryRemoteTest(TestCase):
         self.assertEquals(instance.server_name, 'not_dcramer.local')
         self.assertEquals(instance.site, 'not_a_real_site')
         self.assertEquals(instance.level, 40)
+
+TEST_DATA = {
+    "postgresql": ('DATABASES', 'psycopg2.extensions', "database engine", "django.db.backends.postgresql_psycopg2", {
+        'default': {
+            'ENGINE': "django.db.backends.postgresql_psycopg2",
+            'NAME': 'test',
+            'USER': 'root',
+            'PASSWORD': '',
+            'HOST': 'localhost',
+            'PORT': ''
+        }
+    }),
+    "mysql": ('DATABASES', 'MySQLdb', "database engine", "django.db.backends.mysql", {
+        'default': {
+            'ENGINE': "django.db.backends.mysql",
+            'NAME': 'test',
+            'USER': 'root',
+            'PASSWORD': '',
+            'HOST': 'localhost',
+            'PORT': ''
+        }
+    }),
+    "oracle": ('DATABASES', 'cx_Oracle', "database engine", "django.db.backends.oracle", {
+        'default': {
+            'ENGINE': "django.db.backends.oracle",
+            'NAME': 'test',
+            'USER': 'root',
+            'PASSWORD': '',
+            'HOST': 'localhost',
+            'PORT': ''
+        }
+    }),
+    "memcache": ('CACHES', 'memcache', "caching backend", "django.core.cache.backends.memcached.MemcachedCache", {
+        'default': {
+            'BACKEND': "django.core.cache.backends.memcached.MemcachedCache",
+            'LOCATION': '127.0.0.1:11211',
+        }
+    }),
+    "pylibmc": ('CACHES', 'pylibmc', "caching backend", "django.core.cache.backends.memcached.PyLibMCCache", {
+        'default': {
+            'BACKEND': "django.core.cache.backends.memcached.PyLibMCCache",
+            'LOCATION': '127.0.0.1:11211',
+        }
+    }),
+}
+
+
+class HttpServiceTest(TestCase):
+    def raise_import_error(self, package):
+        def callable(package_name):
+            if package_name != package:
+                raise RuntimeError("Package being tested differs from expected in test case")
+            msg = "No module named %s" % package
+            raise ImportError(msg)
+        return callable
+
+    def validate_dependency(self, import_string, settings, key, package, dependency_type, dependency, setting_value):
+        import_string.side_effect = self.raise_import_error(package)
+
+        settings.get = lambda setting, default: setting == key and setting_value or {}
+
+        try:
+            SentryHTTPServer()
+        except ConfigurationError, err:
+            self.assertEquals(str(err), "Python could not find %s in your current environment (required by %s %s). If you have it installed, maybe you are using the wrong python binary to run sentry?" % (package, dependency_type, dependency))
+            return
+
+        assert False, "Should not have gotten this far"
+
+    @mock.patch('sentry.conf.settings')
+    @mock.patch('sentry.utils.imports.import_string')
+    def test_validate_fails_on_postgres(self, import_string, settings):
+        self.validate_dependency(import_string, settings, *TEST_DATA['postgresql'])
+
+    @mock.patch('sentry.conf.settings')
+    @mock.patch('sentry.utils.imports.import_string')
+    def test_validate_fails_on_mysql(self, import_string, settings):
+        self.validate_dependency(import_string, settings, *TEST_DATA['mysql'])
+
+    @mock.patch('sentry.conf.settings')
+    @mock.patch('sentry.utils.imports.import_string')
+    def test_validate_fails_on_oracle(self, import_string, settings):
+        self.validate_dependency(import_string, settings, *TEST_DATA['oracle'])
+
+    @mock.patch('sentry.conf.settings')
+    @mock.patch('sentry.utils.imports.import_string')
+    def test_validate_fails_on_memcache(self, import_string, settings):
+        self.validate_dependency(import_string, settings, *TEST_DATA['memcache'])
+
+    @mock.patch('sentry.conf.settings')
+    @mock.patch('sentry.utils.imports.import_string')
+    def test_validate_fails_on_pylibmc(self, import_string, settings):
+        self.validate_dependency(import_string, settings, *TEST_DATA['pylibmc'])
