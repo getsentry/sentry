@@ -5566,14 +5566,14 @@ a.badge:hover {
   padding-right: 4px;
 }
 .select2-search input {
-  background: #ffffff url('../scripts/lib/select2/select2.png') no-repeat 100% -22px;
-  background: url('../scripts/lib/select2/select2.png') no-repeat 100% -22px, -webkit-gradient(linear, left bottom, left top, color-stop(0.85, #ffffff), color-stop(0.99, #eeeeee));
-  background: url('../scripts/lib/select2/select2.png') no-repeat 100% -22px, -webkit-linear-gradient(center bottom, #ffffff 85%, #eeeeee 99%);
-  background: url('../scripts/lib/select2/select2.png') no-repeat 100% -22px, -moz-linear-gradient(center bottom, #ffffff 85%, #eeeeee 99%);
-  background: url('../scripts/lib/select2/select2.png') no-repeat 100% -22px, -o-linear-gradient(bottom, #ffffff 85%, #eeeeee 99%);
-  background: url('../scripts/lib/select2/select2.png') no-repeat 100% -22px, -ms-linear-gradient(top, #ffffff 85%, #eeeeee 99%);
-  background: url('../scripts/lib/select2/select2.png') no-repeat 100% -22px, linear-gradient(top, #ffffff 85%, #eeeeee 99%);
-  padding: 4px 20px 4px 5px;
+  background: #ffffff url('../scripts/lib/select2/select2.png') no-repeat 99% -22px;
+  background: url('../scripts/lib/select2/select2.png') no-repeat 99% -22px, -webkit-gradient(linear, left bottom, left top, color-stop(0.85, #ffffff), color-stop(0.99, #eeeeee));
+  background: url('../scripts/lib/select2/select2.png') no-repeat 99% -22px, -webkit-linear-gradient(center bottom, #ffffff 85%, #eeeeee 99%);
+  background: url('../scripts/lib/select2/select2.png') no-repeat 99% -22px, -moz-linear-gradient(center bottom, #ffffff 85%, #eeeeee 99%);
+  background: url('../scripts/lib/select2/select2.png') no-repeat 99% -22px, -o-linear-gradient(bottom, #ffffff 85%, #eeeeee 99%);
+  background: url('../scripts/lib/select2/select2.png') no-repeat 99% -22px, -ms-linear-gradient(top, #ffffff 85%, #eeeeee 99%);
+  background: url('../scripts/lib/select2/select2.png') no-repeat 99% -22px, linear-gradient(top, #ffffff 85%, #eeeeee 99%);
+  padding: 4px 26px 4px 6px;
   outline: 0;
   border: 1px solid #aaa;
   font-family: sans-serif;
@@ -5585,9 +5585,9 @@ a.badge:hover {
   -webkit-box-shadow: none;
   -moz-box-shadow: none;
   box-shadow: none;
-  -webkit-border-radius: 0;
-  -moz-border-radius: 0;
-  border-radius: 0;
+  -webkit-border-radius: 2px;
+  -moz-border-radius: 2px;
+  border-radius: 2px;
 }
 .select2-search-hidden {
   display: block;
@@ -5638,7 +5638,7 @@ a.badge:hover {
   max-height: 200px;
 }
 .select2-results ul.select2-result-sub {
-  margin: 0 0 0 0;
+  margin: 0;
 }
 .select2-results ul.select2-result-sub > li .select2-result-label {
   padding-left: 20px;
@@ -5676,6 +5676,9 @@ a.badge:hover {
 .select2-results .select2-highlighted {
   background: #2fb5f8;
   color: #fff;
+  -webkit-border-radius: 2px;
+  -moz-border-radius: 2px;
+  border-radius: 2px;
 }
 .select2-results li em {
   background: #feffde;
@@ -5687,8 +5690,10 @@ a.badge:hover {
 .select2-results .select2-no-results,
 .select2-results .select2-searching,
 .select2-results .select2-selection-limit {
-  background: #f4f4f4;
+  padding: 3px 7px 4px;
   display: list-item;
+  color: #7d858d;
+  text-align: center;
 }
 /*
 disabled look for already selected choices in the results dropdown
@@ -7631,6 +7636,29 @@ ol.context-line > li > span {
 }
 .module-content table pre {
   margin-bottom: 0;
+}
+.tag-list {
+  margin-bottom: 20px;
+}
+.tag-list > li {
+  display: inline-block;
+  min-width: 100px;
+  background: #f9f9f9;
+  -webkit-border-radius: 8px;
+  -moz-border-radius: 8px;
+  border-radius: 8px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+.tag-list > li strong {
+  padding-left: 8px;
+}
+.tag-list > li em {
+  color: #aaa;
+  margin: 0 3px;
+}
+.tag-list > li span {
+  padding-right: 8px;
 }
 #chart {
   margin-bottom: 10px;
