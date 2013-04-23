@@ -141,24 +141,24 @@
   padding-right: 4px;
 
   input {
-    background: #fff url('../scripts/lib/select2/select2.png') no-repeat 100% -22px;
-    background: url('../scripts/lib/select2/select2.png') no-repeat 100% -22px, -webkit-gradient(linear, left bottom, left top, color-stop(0.85, white), color-stop(0.99, #eeeeee));
-    background: url('../scripts/lib/select2/select2.png') no-repeat 100% -22px, -webkit-linear-gradient(center bottom, white 85%, #eeeeee 99%);
-    background: url('../scripts/lib/select2/select2.png') no-repeat 100% -22px, -moz-linear-gradient(center bottom, white 85%, #eeeeee 99%);
-    background: url('../scripts/lib/select2/select2.png') no-repeat 100% -22px, -o-linear-gradient(bottom, white 85%, #eeeeee 99%);
-    background: url('../scripts/lib/select2/select2.png') no-repeat 100% -22px, -ms-linear-gradient(top, #ffffff 85%, #eeeeee 99%);
-    background: url('../scripts/lib/select2/select2.png') no-repeat 100% -22px, linear-gradient(top, #ffffff 85%, #eeeeee 99%);
-    padding: 4px 20px 4px 5px;
+    background: #fff url('../scripts/lib/select2/select2.png') no-repeat 99% -22px;
+    background: url('../scripts/lib/select2/select2.png') no-repeat 99% -22px, -webkit-gradient(linear, left bottom, left top, color-stop(0.85, #fff), color-stop(0.99, #eee));
+    background: url('../scripts/lib/select2/select2.png') no-repeat 99% -22px, -webkit-linear-gradient(center bottom, #fff 85%, #eee 99%);
+    background: url('../scripts/lib/select2/select2.png') no-repeat 99% -22px, -moz-linear-gradient(center bottom, #fff 85%, #eee 99%);
+    background: url('../scripts/lib/select2/select2.png') no-repeat 99% -22px, -o-linear-gradient(bottom, #fff 85%, #eee 99%);
+    background: url('../scripts/lib/select2/select2.png') no-repeat 99% -22px, -ms-linear-gradient(top, #fff 85%, #eee 99%);
+    background: url('../scripts/lib/select2/select2.png') no-repeat 99% -22px, linear-gradient(top, #fff 85%, #eee 99%);
+    padding: 4px 26px 4px 6px;
     outline: 0;
     border: 1px solid #aaa;
     font-family: sans-serif;
     font-size: 1em;
-    width:100%;
-    margin:0;
+    width: 100%;
+    margin: 0;
     height:auto !important;
     min-height: 26px;
     .box-shadow(none);
-    .border-radius(0);
+    .border-radius(2px);
   }
 }
 
@@ -216,7 +216,7 @@
   max-height: 200px;
 
   ul.select2-result-sub {
-    margin: 0 0 0 0;
+    margin: 0;
   }
 }
 
@@ -246,6 +246,7 @@
 .select2-results .select2-highlighted {
   background: #2fb5f8;
   color: #fff;
+  .border-radius(2px);
 }
 .select2-results li em {
   background: #feffde;
@@ -257,8 +258,10 @@
 .select2-results .select2-no-results,
 .select2-results .select2-searching,
 .select2-results .select2-selection-limit {
-  background: #f4f4f4;
+  padding: 3px 7px 4px;
   display: list-item;
+  color: #7d858d;
+  text-align: center;
 }
 
 /*
@@ -449,7 +452,7 @@ disabled look for already selected choices in the results dropdown
 /* Retina-ize icons */
 
 @media only screen and (-webkit-min-device-pixel-ratio: 1.5) {
-	.select2-search input, .select2-search-choice-close, .select2-container .select2-choice abbr {
+  .select2-search input, .select2-search-choice-close, .select2-container .select2-choice abbr {
 		background-image: url(../scripts/lib/select2/select2x2.png) !important;
 		background-repeat: no-repeat !important;
 		background-size: 60px 40px !important;
