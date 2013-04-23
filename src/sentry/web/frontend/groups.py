@@ -363,15 +363,25 @@ def group_list(request, team, project):
 
 
 @has_group_access
-def group(request, team, project, group):
+def group(request, team, project, group, event_id=None):
     # It's possible that a message would not be created under certain
     # circumstances (such as a post_save signal failing)
-    event = group.get_latest_event() or Event()
-    event.group = group
+    activity_qs = Activity.objects.order_by('-datetime').select_related('user')
+    if event_id:
+        event = get_object_or_404(group.event_set, id=event_id)
+        activity_qs = activity_qs.filter(
+            Q(event=event) | Q(event__isnull=True),
+        )
+    else:
+        event = group.get_latest_event() or Event()
 
-    activity = list(Activity.objects.filter(
+    # bind params to group in case they get hit
+    event.group = group
+    event.project = project
+
+    activity = list(activity_qs.filter(
         group=group,
-    ).order_by('-datetime').select_related('user')[:10])
+    )[:10])
 
     context = {
         'page': 'details',
@@ -442,22 +452,6 @@ def group_event_list_json(request, team, project, group_id):
     events = group.event_set.order_by('-id')[:limit]
 
     return HttpResponse(json.dumps([event.as_dict() for event in events]), mimetype='application/json')
-
-
-@has_group_access
-def group_event_details(request, team, project, group, event_id):
-    event = get_object_or_404(group.event_set, id=event_id)
-
-    activity = list(Activity.objects.filter(
-        group=group,
-    ).filter(
-        Q(event=event) | Q(event__isnull=True),
-    ).order_by('-datetime').select_related('user')[:10])
-
-    return render_with_group_context(group, 'sentry/groups/details.html', {
-        'page': 'details',
-        'activity': activity,
-    }, request, event=event)
 
 
 @has_access(MEMBER_USER)
