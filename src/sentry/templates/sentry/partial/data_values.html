@@ -37,5 +37,9 @@
     </table>
 
 {% else %}
-    <pre>{{ value|pprint }}</pre>
+    {% if value|is_url %}
+        <a href="{{ value }}" class="icon-share">{{ value }}</a>
+    {% else %}
+        <pre>{{ value|pprint }}</pre>
+    {% endif %}
 {% endif %}

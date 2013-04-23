@@ -53,6 +53,17 @@ def pprint(value, break_after=10):
     ))
 
 
+@register.filter
+def is_url(value):
+    if not isinstance(value, basestring):
+        return False
+    if not value.startswith(('http://', 'https://')):
+        return False
+    if ' ' in value:
+        return False
+    return True
+
+
 # seriously Django?
 @register.filter
 def subtract(value, amount):

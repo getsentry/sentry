@@ -9,7 +9,10 @@
         </div>
         <ul class="tag-list">
             {% for tag_key, tag_value in tags %}
-                <li><strong>{{ tag_key }}</strong> <em>=</em> <span><a href="{% url 'sentry-stream' group.team.slug group.project.slug %}?{{ tag_key }}={{ tag_value }}">{{ tag_value }}</a></span></li>
+                <li>
+                    <strong>{{ tag_key }}</strong>
+                    <em>=</em>
+                    <span><a href="{% url 'sentry-stream' group.team.slug group.project.slug %}?{{ tag_key }}={{ tag_value }}">{{ tag_value }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}</span></li>
             {% endfor %}
         </ul>
     </div>

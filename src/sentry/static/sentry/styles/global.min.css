@@ -7031,6 +7031,16 @@ ul.tag-list {
 ul.tag-list li {
   margin-bottom: 5px;
 }
+a.icon-share {
+  margin-top: 1px;
+  opacity: 0.3;
+  filter: alpha(opacity=30);
+  zoom: 0.8;
+}
+a.icon-share:hover {
+  opacity: 1;
+  filter: alpha(opacity=100);
+}
 .progressbar {
   position: relative;
   border: 1px solid #c7def5;
@@ -7849,6 +7859,7 @@ section.body .page-header:first-child {
 }
 .datepicker-box .radio-inputs {
   position: relative;
+  display: inline-block;
   height: 26px;
 }
 .datepicker-box .radio-inputs .radio {
@@ -7868,10 +7879,6 @@ section.body .page-header:first-child {
 }
 .datepicker-box .date {
   width: 70px;
-}
-.datepicker-box .submit .help-block {
-  margin-top: 0;
-  padding-top: 5px;
 }
 #daterange {
   display: none;

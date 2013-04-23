@@ -806,6 +806,14 @@ ul.tag-list {
   }
 }
 
+a.icon-share {
+  margin-top: 1px;
+  .opacity(30);
+  zoom: 0.8;
+  &:hover {
+    .opacity(100);
+  }
+}
 .progressbar {
   position: relative;
   border: 1px solid lighten(@linkColor, 30%);
@@ -1624,6 +1632,7 @@ section.body .page-header:first-child {
   }
   .radio-inputs {
     position: relative;
+    display: inline-block;
     height: 26px;
     .radio {
       line-height: 26px;
@@ -1643,12 +1652,6 @@ section.body .page-header:first-child {
   }
   .date {
     width: 70px;
-  }
-  .submit {
-    .help-block {
-      margin-top: 0;
-      padding-top: 5px;
-    }
   }
 }
 
