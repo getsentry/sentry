@@ -96,7 +96,7 @@ setup(
     author_email='dcramer@gmail.com',
     url='http://www.getsentry.com',
     description='A realtime logging and aggregation server.',
-    long_description=__doc__,
+    long_description=open('README.rst').read(),
     package_dir={'': 'src'},
     packages=find_packages('src'),
     zip_safe=False,
