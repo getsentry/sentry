@@ -517,7 +517,7 @@ class GroupManager(BaseManager, ChartMixin):
         if site:
             tags.append(('site', site))
 
-        for plugin in plugins.all():
+        for plugin in plugins.for_project(project):
             added_tags = safe_execute(plugin.get_tags, event)
             if added_tags:
                 tags.extend(added_tags)
