@@ -340,10 +340,12 @@ class ProjectKey(Model):
         # TODO: change the DSN to use project slug once clients are compatible
         if not public:
             key = '%s:%s' % (self.public_key, self.secret_key)
+            url = settings.ENDPOINT
         else:
             key = self.public_key
+            url = settings.PUBLIC_ENDPOINT
 
-        urlparts = urlparse.urlparse(settings.URL_PREFIX)
+        urlparts = urlparse.urlparse(url or settings.URL_PREFIX)
 
         return '%s://%s@%s/%s' % (
             urlparts.scheme,

@@ -163,3 +163,8 @@ DEFAULT_ALERT_PROJECT_THRESHOLD = (500, 100)  # 500%, 100 events
 DEFAULT_ALERT_GROUP_THRESHOLD = (1000, 100)  # 1000%, 100 events
 
 RAVEN_JS_URL = 'd3nslu0hdya83q.cloudfront.net/dist/1.0/raven.min.js'
+
+# URI Prefixes for generating DSN URLs
+# (Defaults to URL_PREFIX by default)
+ENDPOINT = None
+PUBLIC_ENDPOINT = None
