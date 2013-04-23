@@ -7632,6 +7632,29 @@ ol.context-line > li > span {
 .module-content table pre {
   margin-bottom: 0;
 }
+.tag-list {
+  margin-bottom: 20px;
+}
+.tag-list > li {
+  display: inline-block;
+  min-width: 100px;
+  background: #f9f9f9;
+  -webkit-border-radius: 8px;
+  -moz-border-radius: 8px;
+  border-radius: 8px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+.tag-list > li strong {
+  padding-left: 8px;
+}
+.tag-list > li em {
+  color: #aaa;
+  margin: 0 3px;
+}
+.tag-list > li span {
+  padding-right: 8px;
+}
 #chart {
   margin-bottom: 10px;
   overflow: hidden;

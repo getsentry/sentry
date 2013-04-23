@@ -1447,6 +1447,28 @@ ol.context-line {
   margin-bottom: 0;
 }
 
+.tag-list {
+  margin-bottom: 20px;
+  > li {
+    display: inline-block;
+    min-width: 100px;
+    background: #f9f9f9;
+    .border-radius(8px);
+    padding-top: 2px;
+    padding-bottom: 2px;
+    strong {
+      padding-left: 8px;
+    }
+    em {
+      color: #aaa;
+      margin: 0 3px;
+    }
+    span {
+      padding-right: 8px;
+    }
+  }
+}
+
 // Sparkline grid
 
 .innerColumn(@columnSpan: 1) {

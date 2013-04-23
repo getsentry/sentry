@@ -720,6 +720,9 @@ class Event(EventBase):
         module = self.data['__sentry__'].get('module', 'ver')
         return module, self.data['__sentry__']['version']
 
+    def get_tags(self):
+        return self.data.get('tags', ())
+
     def as_dict(self):
         # We use a SortedDict to keep elements ordered for a potential JSON serializer
         data = SortedDict()

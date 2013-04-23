@@ -189,6 +189,7 @@ def render_with_group_context(group, template, context, request=None, event=None
         context.update({
             'event': event,
             'json_data': extra_data,
+            'tags': event.get_tags(),
             'version_data': event.data.get('modules', None),
             'next_event': next_event,
             'prev_event': prev_event,

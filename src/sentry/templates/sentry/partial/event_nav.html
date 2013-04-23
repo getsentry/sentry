@@ -22,6 +22,11 @@
             <li class="top{% if page == 'details' %} active{% endif %}">
                 <a href="#" onclick="javascript:window.location = '#details'; return false">{% trans "Top" %}</a>
             </li>
+            {% if tags %}
+                <li>
+                    <a href="#tags">{% trans "Tags" %}</a>
+                </li>
+            {% endif %}
             {% for interface, _ in interface_list %}
                 <li>
                     <a href="#{{ interface.get_slug }}">

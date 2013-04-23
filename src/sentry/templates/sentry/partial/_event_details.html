@@ -1,5 +1,19 @@
+{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
+
+{% if tags %}
+    <div id="tags">
+        <div class="page-header">
+            <h2>Tags</h2>
+        </div>
+        <ul class="tag-list">
+            {% for tag_key, tag_value in tags %}
+                <li><strong>{{ tag_key }}</strong> <em>=</em> <span><a href="{% url 'sentry-stream' group.team.slug group.project.slug %}?{{ tag_key }}={{ tag_value }}">{{ tag_value }}</a></span></li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endif %}
 
 {% for interface, interface_html in interface_list %}
     <div id="{{ interface.get_slug }}">
@@ -12,19 +26,21 @@
         <div class="page-header">
             <h2>{% trans "Additional Data" %}</h2>
         </div>
-        <table class="table table-striped vars">
-            <colgroup>
-                <col style="width:130px">
-            </colgroup>
-            {% for k, v in json_data.iteritems|as_sorted %}
-                <tr>
-                    <th class="key">{{ k }}</th>
-                    <td class="values">
-                        {% render_values v %}
-                    </td>
-                </tr>
-            {% endfor %}
-        </table>
+        {% if json_data %}
+            <table class="table table-striped vars">
+                <colgroup>
+                    <col style="width:130px">
+                </colgroup>
+                {% for k, v in json_data.iteritems|as_sorted %}
+                    <tr>
+                        <th class="key">{{ k }}</th>
+                        <td class="values">
+                            {% render_values v %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </table>
+        {% endif %}
     </div>
 {% endif %}
 
