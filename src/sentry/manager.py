@@ -625,8 +625,8 @@ class GroupManager(BaseManager, ChartMixin):
                 # Making things atomic
                 is_new = bool(self.filter(
                     id=group.id,
+                    status=STATUS_RESOLVED,
                 ).exclude(
-                    status=STATUS_UNRESOLVED,
                     active_at__gte=date,
                 ).update(active_at=date, status=STATUS_UNRESOLVED))
 
