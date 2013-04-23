@@ -17,6 +17,7 @@ from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
 from sentry.filters.base import TagFilter
 from sentry.plugins import plugins
+from sentry.utils.safe import safe_execute
 
 
 FILTER_CACHE = {}
@@ -53,13 +54,12 @@ def get_filters(model=None, project=None):
             filter_list.append(TAG_FILTER_CACHE[tag])
 
     # Add plugin-provided filters
-    for plugin in plugins.all():
-        if not plugin.is_enabled(project):
-            continue
-
-        for filter_cls in plugin.get_filters(project):
-            if filter_cls not in filter_list:
-                filter_list.append(filter_cls)
+    for plugin in plugins.for_project(project):
+        results = safe_execute(plugin.get_filters, project)
+        if results:
+            for filter_cls in results:
+                if filter_cls not in filter_list:
+                    filter_list.append(filter_cls)
 
     # yield all filters which support ``model``
     for filter_cls in filter_list:

@@ -16,9 +16,8 @@ def post_process_group(group, **kwargs):
     """
     Fires post processing hooks for a group.
     """
-    for plugin in plugins.all():
-        if safe_execute(plugin.is_enabled, group.project):
-            plugin_post_process_group.delay(plugin.slug, group=group, **kwargs)
+    for plugin in plugins.for_project(group.project):
+        plugin_post_process_group.delay(plugin.slug, group=group, **kwargs)
 
 
 @task(

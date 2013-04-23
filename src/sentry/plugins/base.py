@@ -15,6 +15,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponse
 
 from sentry.utils.managers import InstanceManager
+from sentry.utils.safe import safe_execute
 from threading import local
 
 
@@ -55,9 +56,7 @@ class PluginManager(InstanceManager):
 
     def for_project(self, project):
         for plugin in self.all():
-            if not plugin.is_enabled(project):
-                continue
-            if not plugin.has_project_conf():
+            if not safe_execute(plugin.is_enabled, project):
                 continue
             yield plugin
 

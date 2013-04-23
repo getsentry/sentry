@@ -18,10 +18,7 @@ def get_actions(group, request):
     project = group.project
 
     action_list = []
-    for plugin in plugins.all():
-        if not safe_execute(plugin.is_enabled, project):
-            continue
-
+    for plugin in plugins.for_project(project):
         results = safe_execute(plugin.actions, request, group, action_list)
 
         if not results:
@@ -37,10 +34,7 @@ def get_panels(group, request):
     project = group.project
 
     panel_list = []
-    for plugin in plugins.all():
-        if not safe_execute(plugin.is_enabled, project):
-            continue
-
+    for plugin in plugins.for_project(project):
         results = safe_execute(plugin.panels, request, group, panel_list)
 
         if not results:
@@ -55,10 +49,7 @@ def get_panels(group, request):
 def get_widgets(group, request):
     project = group.project
 
-    for plugin in plugins.all():
-        if not safe_execute(plugin.is_enabled, project):
-            continue
-
+    for plugin in plugins.for_project(project):
         resp = safe_execute(plugin.widget, request, group)
 
         if resp:
@@ -70,10 +61,7 @@ def get_tags(group, request):
     project = group.project
 
     tag_list = []
-    for plugin in plugins.all():
-        if not safe_execute(plugin.is_enabled, project):
-            continue
-
+    for plugin in plugins.for_project(project):
         results = safe_execute(plugin.tags, request, group, tag_list)
 
         if not results:
@@ -100,10 +88,7 @@ def handle_before_events(request, event_list):
         else:
             project = None
 
-    for plugin in plugins.all():
-        if not safe_execute(plugin.is_enabled, project):
-            continue
-
+    for plugin in plugins.for_project(project):
         safe_execute(plugin.before_events, request, event_list)
 
     return ''
@@ -111,7 +96,11 @@ def handle_before_events(request, event_list):
 
 @register.filter
 def get_plugins(project):
-    return list(plugins.for_project(project))
+    results = []
+    for plugin in plugins.for_project(project):
+        if plugin.has_project_conf():
+            results.append(plugin)
+    return results
 
 
 @register.filter
