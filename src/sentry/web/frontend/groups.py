@@ -379,9 +379,17 @@ def group(request, team, project, group, event_id=None):
     event.group = group
     event.project = project
 
-    activity = list(activity_qs.filter(
-        group=group,
-    )[:10])
+    # filter out dupes
+    activity_items = set()
+    activity = []
+    for item in activity_qs.filter(group=group)[:10]:
+        sig = (item.event_id, item.type, item.ident, item.user_id)
+        if sig not in activity_items:
+            activity_items.add(sig)
+            activity.append(item)
+
+    # trim to latest 5
+    activity = activity[:5]
 
     context = {
         'page': 'details',
