@@ -23,8 +23,9 @@
     <div class="module-content">
         {% for exception in exceptions %}
             <div class="traceback{% if not forloop.first %} subtraceback{% endif %}">
-                {% if not forloop.first %}
+                {% if not forloop.first and not newest_first %}
                     <h3>Caused by <span title="{{ exception.fullname }}">{{ exception.exception_type }}</span></h3>
+                {% elif not forloop.last and newest_first %}
                 {% else %}
                     <h3><span title="{{ exception.fullname }}">{{ exception.exception_type }}</span></h3>
                 {% endif %}

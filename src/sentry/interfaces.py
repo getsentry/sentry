@@ -388,8 +388,8 @@ class Frame(object):
 class Stacktrace(Interface):
     """
     A stacktrace contains a list of frames, each with various bits (most optional)
-    describing the context of that frame. Frames should be sorted with the most recent
-    caller being the last in the list.
+    describing the context of that frame. Frames should be sorted from oldest
+    to newest.
 
     The stacktrace contains one element, ``frames``, which is a list of hashes. Each
     hash must contain **at least** the ``filename`` attribute. The rest of the values
@@ -725,6 +725,9 @@ class Exception(Interface):
     >>>     }
     >>> }]
 
+    Values should be sent oldest to newest, this includes both the stacktrace
+    and the exception itself.
+
     .. note:: This interface can be passed as the 'exception' key in addition
               to the full interface path.
     """
@@ -791,6 +794,10 @@ class Exception(Interface):
                 context['stacktrace'] = {}
             context['stack_id'] = 'exception_%d' % (num,)
             exceptions.append(context)
+
+        if newest_first:
+            exceptions.reverse()
+
         return {
             'newest_first': newest_first,
             'system_frames': any(e['stacktrace'].get('system_frames') for e in exceptions),
