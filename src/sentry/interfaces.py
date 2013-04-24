@@ -800,7 +800,7 @@ class Exception(Interface):
 
         return {
             'newest_first': newest_first,
-            'system_frames': any(e['stacktrace'].get('system_frames') for e in exceptions),
+            'system_frames': sum(e['stacktrace'].get('system_frames', 0) for e in exceptions),
             'exceptions': exceptions,
             'stacktrace': self.get_stacktrace(event, newest_first=newest_first)
         }
