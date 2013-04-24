@@ -23,11 +23,11 @@ PACKAGES = {
 def reraise_as(new_exception_or_type):
     """
     Obtained from https://github.com/dcramer/reraise/blob/master/src/reraise.py
->>> try:
->>> do_something_crazy()
->>> except Exception:
->>> reraise_as(UnhandledException)
-"""
+    >>> try:
+    >>>     do_something_crazy()
+    >>> except Exception:
+    >>>     reraise_as(UnhandledException)
+    """
     __traceback_hide__ = True  # NOQA
 
     e_type, e_value, e_traceback = sys.exc_info()
