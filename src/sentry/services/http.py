@@ -9,32 +9,21 @@ sentry.services.http
 from django.core.management import call_command
 
 from sentry.services.base import Service
-from sentry.utils.settings import validate_settings
 
 
 class SentryHTTPServer(Service):
     name = 'http'
 
-    def __init__(self, host=None, port=None, debug=False, workers=None):
+    def __init__(self, host=None, port=None, debug=False, workers=None,
+                 validate=True):
         from sentry.conf import settings
 
-        validate_settings(settings)
+        if validate:
+            self.validate_settings()
 
         self.host = host or settings.WEB_HOST
         self.port = port or settings.WEB_PORT
         self.workers = workers
-
-        # import cProfile, os
-
-        # def post_fork(server, worker):
-        #     orig_init_process_ = worker.init_process
-
-        #     def profiling_init_process(self):
-        #         orig_init_process = orig_init_process_
-        #         ofile = '/tmp/.profile%s' % (os.getpid(),)
-        #         print 'Profiling worker %s, output file: %s' % (worker, ofile)
-        #         cProfile.runctx('orig_init_process()', globals(), locals(), ofile)
-        #     worker.init_process = profiling_init_process.__get__(worker)
 
         options = (settings.WEB_OPTIONS or {}).copy()
         options['debug'] = debug
@@ -46,6 +35,12 @@ class SentryHTTPServer(Service):
             options['workers'] = workers
 
         self.options = options
+
+    def validate_settings(self):
+        from django.conf import settings as django_settings
+        from sentry.utils.settings import validate_settings
+
+        validate_settings(django_settings)
 
     def run(self):
         call_command('run_gunicorn', **self.options)

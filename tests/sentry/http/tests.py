@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import datetime
 import mock
 
+from django.conf import settings as django_settings
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.utils import timezone
@@ -12,8 +13,7 @@ from django.utils import timezone
 from raven import Client
 from sentry.models import Group, Event, Project
 from sentry.testutils import TestCase
-from sentry.services.http import SentryHTTPServer
-from sentry.utils.settings import ConfigurationError
+from sentry.utils.settings import validate_settings, ConfigurationError
 
 
 class RavenIntegrationTest(TestCase):
@@ -210,40 +210,28 @@ class HttpServiceTest(TestCase):
             raise ImportError(msg)
         return callable
 
-    def validate_dependency(self, import_string, settings, key, package, dependency_type, dependency, setting_value):
+    @mock.patch('sentry.conf.settings')
+    @mock.patch('sentry.utils.settings.import_string')
+    def validate_dependency(self, key, package, dependency_type, dependency,
+                            setting_value, import_string, settings):
+
         import_string.side_effect = self.raise_import_error(package)
 
-        settings.get = lambda setting, default: setting == key and setting_value or {}
+        with self.Settings(**{key: setting_value}):
+            with self.assertRaises(ConfigurationError):
+                validate_settings(django_settings)
 
-        try:
-            SentryHTTPServer()
-        except ConfigurationError, err:
-            self.assertEquals(str(err), "Python could not find %s in your current environment (required by %s %s). If you have it installed, maybe you are using the wrong python binary to run sentry?" % (package, dependency_type, dependency))
-            return
+    def test_validate_fails_on_postgres(self):
+        self.validate_dependency(*TEST_DATA['postgresql'])
 
-        assert False, "Should not have gotten this far"
+    def test_validate_fails_on_mysql(self):
+        self.validate_dependency(*TEST_DATA['mysql'])
 
-    @mock.patch('sentry.conf.settings')
-    @mock.patch('sentry.utils.imports.import_string')
-    def test_validate_fails_on_postgres(self, import_string, settings):
-        self.validate_dependency(import_string, settings, *TEST_DATA['postgresql'])
+    def test_validate_fails_on_oracle(self):
+        self.validate_dependency(*TEST_DATA['oracle'])
 
-    @mock.patch('sentry.conf.settings')
-    @mock.patch('sentry.utils.imports.import_string')
-    def test_validate_fails_on_mysql(self, import_string, settings):
-        self.validate_dependency(import_string, settings, *TEST_DATA['mysql'])
+    def test_validate_fails_on_memcache(self):
+        self.validate_dependency(*TEST_DATA['memcache'])
 
-    @mock.patch('sentry.conf.settings')
-    @mock.patch('sentry.utils.imports.import_string')
-    def test_validate_fails_on_oracle(self, import_string, settings):
-        self.validate_dependency(import_string, settings, *TEST_DATA['oracle'])
-
-    @mock.patch('sentry.conf.settings')
-    @mock.patch('sentry.utils.imports.import_string')
-    def test_validate_fails_on_memcache(self, import_string, settings):
-        self.validate_dependency(import_string, settings, *TEST_DATA['memcache'])
-
-    @mock.patch('sentry.conf.settings')
-    @mock.patch('sentry.utils.imports.import_string')
-    def test_validate_fails_on_pylibmc(self, import_string, settings):
-        self.validate_dependency(import_string, settings, *TEST_DATA['pylibmc'])
+    def test_validate_fails_on_pylibmc(self):
+        self.validate_dependency(*TEST_DATA['pylibmc'])
