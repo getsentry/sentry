@@ -82,6 +82,7 @@ WEB_HOST = 'localhost'
 WEB_PORT = 9000
 WEB_OPTIONS = {
     'workers': 3,
+    'limit_request_line': 1024*16,
 }
 
 # UDP Service
