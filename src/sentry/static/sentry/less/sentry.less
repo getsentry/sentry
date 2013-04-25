@@ -2200,90 +2200,111 @@ table.vars {
   }
 }
 
-.team-list {
-  list-style: none;
-  margin-left: 0;
+.team-index {
+  #page-header {
+    display: none;
+  }
 
-  > li {
-    display: block;
-    margin: 0 0 10px 0;
-    padding: 15px;
-    height: 70px;
-    border: 2px solid #ddd;
-    position: relative;
-
-    .loading {
-      display: none;
-    }
-
-    &:hover {
-      border-color: lighten(@linkColor, 20%);
-      h2 {
-        color: #000;
-      }
-    }
-
+  .body {
     h2 {
-      display: inline-block;
-      font-weight: normal;
-      position: relative;
-      margin-bottom: 0;
-      line-height: 26px;
-      height: 26px;
-      font-size: 22px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: #666;
-      a {
-        color: inherit;
-        &:hover {
-          color: @linkColorHover;
-        }
-      }
+      font-size: 26px;
+      margin: 0 0 20px;
+      letter-spacing: -1px;
     }
 
-    > a,
-    .chart {
-      display: block;
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      top: 0;
-      height: 100px;
-    }
-    .chart {
-      height: 101px;
-      bottom: -1px;
-    }
-
-
-    > ul {
-      position: absolute;
-      top: 15px;
-      left: 15px;
-      right: 15px;
-      bottom: 15px;
-      height: 70px;
-      overflow: hidden;
-    }
-
-    > ul {
-      top: 48px;
+    .team-list {
+      list-style: none;
       margin-left: 0;
-      list-style: circle;
 
       > li {
-        display: inline-block;
-        width: 142px;
-        margin-right: 5px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis
+        display: block;
+        margin: 0 0 20px 0;
+        padding: 18px 22px;
+        height: 81px;
+        border: 5px solid #DEE3E9;
+        position: relative;
+        .border-radius(7px);
+
+        .loading {
+          display: none;
+        }
+
+        &:hover {
+          border-color: #56AFE8;
+          h2 {
+            color: #000;
+          }
+        }
+
+        h2 {
+          width: 100%;
+          position: relative;
+          margin-bottom: 0;
+          line-height: 26px;
+          height: 26px;
+          font-size: 22px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          color: #465262;
+          font-weight: bold;
+          a {
+            color: inherit;
+            &:hover {
+              color: @linkColorHover;
+            }
+          }
+        }
+
+        > a,
+        .chart {
+          display: block;
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          top: 0;
+          height: 100px;
+          max-height: auto;
+        }
+        .chart {
+          height: 107px;
+          top: 10px;
+        }
+
+
+        > ul {
+          position: absolute;
+          top: 30px;
+          left: 22px;
+          right: 15px;
+          bottom: 15px;
+          height: 69px;
+          overflow: hidden;
+        }
+
+        > ul {
+          top: 48px;
+          margin-left: 0;
+          list-style: circle;
+
+          > li {
+            display: inline-block;
+            width: 142px;
+            margin-right: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 26px;
+
+            a {
+              font-size: 17px;
+            }
+          }
+        }
+
       }
     }
-
   }
 }
 
