@@ -12,12 +12,14 @@ handle actually saving that data.
 Running a Worker
 ----------------
 
-Workers can be run by using the Sentry CLI. Specifically, you call out to celeryd,
-which the worker manager process of the Celery library.
+Workers can be run by using the Sentry CLI. Specifically, you call out to celery,
+which is the worker manager process of the Celery library.
 
 ::
 
-    sentry celeryd -B
+    sentry celery worker -B
+
+.. note:: You will need to run both celery workers and celerybeat.
 
 Enable the Queue
 ----------------
@@ -25,7 +27,7 @@ Enable the Queue
 Once you've brought up a worker, the next step is to enable the queue. This is
 done with a simple settings flag::
 
-    SENTRY_USE_QUEUE = True
+    CELERY_ALWAYS_EAGER = False
 
 It's also **highly** recommended that you switch away from the default queue settings, which
 rely on the database, and move to something more efficient. These are documented in more

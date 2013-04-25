@@ -46,3 +46,6 @@ LANGUAGE_MAP = dict(settings.LANGUAGES)
 LANGUAGES = [(k, LANGUAGE_MAP[k]) for k in get_all_languages() if k in LANGUAGE_MAP]
 
 LOG_LEVEL_REVERSE_MAP = dict((str(v), k) for k, v in LOG_LEVELS)
+
+# XXX: legacy support for Sentry's USE_QUEUE setting
+settings.CELERY_ALWAYS_EAGER = (not locals().get('USE_QUEUE', False))

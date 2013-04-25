@@ -110,10 +110,6 @@ ALLOW_PUBLIC_PROJECTS = True
 # manually.
 ALLOW_REGISTRATION = True
 
-# Instructs Sentry to utilize it's queue for background jobs. You will
-# need to ensure that you have workers running if you enable the queue.
-USE_QUEUE = False
-
 # Instructs Sentry to utilize it's internal search indexer on all incoming
 # events..
 USE_SEARCH = True

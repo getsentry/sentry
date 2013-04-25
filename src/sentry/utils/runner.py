@@ -55,14 +55,24 @@ DATABASES = {
 #     }
 # }
 
+###########
+## Queue ##
+###########
+
+# See http://sentry.readthedocs.org/en/latest/queue/index.html for more
+# information on configuring your queue broker and workers.
+
+# You can enable queueing of jobs by turning off the always eager setting:
+# CELERY_ALWAYS_EAGER = False
+# BROKER_URL = 'redis://localhost:6379'
+
+####################
+## Update Buffers ##
+####################
+
 # Buffers (combined with queueing) act as an intermediate layer between the database and
 # the storage API. They will greatly improve efficiency on large numbers of the same events
 # being sent to the API in a short amount of time.
-
-# SENTRY_USE_QUEUE = True
-# For more information on queue options, see the documentation for Celery:
-# http://celery.readthedocs.org/en/latest/
-# BROKER_URL = 'redis://localhost:6379'
 
 # You'll need to install the required dependencies for Redis buffers:
 #   pip install redis hiredis nydus
