@@ -45,7 +45,7 @@ Reference
 Resources
 ---------
 
-* `Transifex <https://www.transifex.net/projects/p/sentry/>`_ (Translate Sentry!)
+* `Transifex <https://www.transifex.com/projects/p/sentry/>`_ (Translate Sentry!)
 * `Bug Tracker <http://github.com/getsentry/sentry/issues>`_
 * `Code <http://github.com/getsentry/sentry>`_
 * `Mailing List <https://groups.google.com/group/getsentry>`_
