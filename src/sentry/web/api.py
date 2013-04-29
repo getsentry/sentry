@@ -12,7 +12,7 @@ from functools import wraps
 from django.contrib.auth.models import AnonymousUser, User
 from django.core.urlresolvers import reverse
 from django.db.models import Sum, Q
-from django.http import HttpResponse, HttpResponseForbidden, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseForbidden, HttpResponseRedirect, HttpResponseBadRequest
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
@@ -736,17 +736,40 @@ def search_tags(request, team, project):
     return response
 
 
+# from http://stackoverflow.com/questions/354038/how-do-i-check-if-a-string-is-a-number-in-python
+def is_number(s):
+    if s is None:
+        return False
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
+
+
 @never_cache
 @csrf_exempt
 @has_access
 def search_users(request, team):
-    limit = min(100, int(request.GET.get('limit', 10)))
-    query = request.GET['query']
+    limit = request.GET.get('limit', None)
+    query = request.GET.get('query', None)
 
+    # 3 letter or more word, as to not return everything that contains an "a"
+    if query is None or len(query) < 3 or (limit is not None and not is_number(limit)):
+        return HttpResponseBadRequest("A query must be a 3-letter or more word and if a limit is supplied it must be an integer.")
+
+    limit = min(100, limit and int(limit) or 10)
+
+    #results = list(User.objects.filter(
+        #Q(email__istartswith=query) | Q(first_name__istartswith=query) | Q(username__istartswith=query),
+    #).filter(
+        #Q(team_memberships=team) | Q(accessgroup__team=team),
+    #).distinct().order_by('first_name', 'email').values('id', 'username', 'first_name', 'email')[:limit])
+
+    # we should search for users NOT in the current team or access group, otherwise this serves no purpose.
+    # Until we clarify what users should we should get, we'll return any that meets the query
     results = list(User.objects.filter(
         Q(email__istartswith=query) | Q(first_name__istartswith=query) | Q(username__istartswith=query),
-    ).filter(
-        Q(team_memberships=team) | Q(accessgroup__team=team),
     ).distinct().order_by('first_name', 'email').values('id', 'username', 'first_name', 'email')[:limit])
 
     response = HttpResponse(json.dumps({
