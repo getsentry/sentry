@@ -204,12 +204,10 @@ class SentryRemoteTest(TestCase):
 
 
 class DepdendencyTest(TestCase):
-    import_string = import_string
-
     def raise_import_error(self, package):
         def callable(package_name):
             if package_name != package:
-                return self.import_string(package_name)
+                return import_string(package_name)
             raise ImportError("No module named %s" % (package,))
         return callable
 
