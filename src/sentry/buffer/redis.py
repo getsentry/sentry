@@ -96,7 +96,8 @@ class RedisBuffer(Buffer):
         # prevent a stampede due to the way we use celery etas + duplicate
         # tasks
         if not self.conn.setnx(lock_key, '1'):
-            self.conn.expire(lock_key, self.delay)
+            return
+        self.conn.expire(lock_key, self.delay)
 
         results = {}
         with self.conn.map() as conn:
