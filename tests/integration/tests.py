@@ -13,7 +13,54 @@ from django.utils import timezone
 from raven import Client
 from sentry.models import Group, Event, Project
 from sentry.testutils import TestCase
-from sentry.utils.settings import validate_settings, ConfigurationError
+from sentry.utils.settings import (
+    validate_settings, ConfigurationError, import_string)
+
+
+DEPENDENCY_TEST_DATA = {
+    "postgresql": ('DATABASES', 'psycopg2.extensions', "database engine", "django.db.backends.postgresql_psycopg2", {
+        'default': {
+            'ENGINE': "django.db.backends.postgresql_psycopg2",
+            'NAME': 'test',
+            'USER': 'root',
+            'PASSWORD': '',
+            'HOST': 'localhost',
+            'PORT': ''
+        }
+    }),
+    "mysql": ('DATABASES', 'MySQLdb', "database engine", "django.db.backends.mysql", {
+        'default': {
+            'ENGINE': "django.db.backends.mysql",
+            'NAME': 'test',
+            'USER': 'root',
+            'PASSWORD': '',
+            'HOST': 'localhost',
+            'PORT': ''
+        }
+    }),
+    "oracle": ('DATABASES', 'cx_Oracle', "database engine", "django.db.backends.oracle", {
+        'default': {
+            'ENGINE': "django.db.backends.oracle",
+            'NAME': 'test',
+            'USER': 'root',
+            'PASSWORD': '',
+            'HOST': 'localhost',
+            'PORT': ''
+        }
+    }),
+    "memcache": ('CACHES', 'memcache', "caching backend", "django.core.cache.backends.memcached.MemcachedCache", {
+        'default': {
+            'BACKEND': "django.core.cache.backends.memcached.MemcachedCache",
+            'LOCATION': '127.0.0.1:11211',
+        }
+    }),
+    "pylibmc": ('CACHES', 'pylibmc', "caching backend", "django.core.cache.backends.memcached.PyLibMCCache", {
+        'default': {
+            'BACKEND': "django.core.cache.backends.memcached.PyLibMCCache",
+            'LOCATION': '127.0.0.1:11211',
+        }
+    }),
+}
 
 
 class RavenIntegrationTest(TestCase):
@@ -155,59 +202,15 @@ class SentryRemoteTest(TestCase):
         self.assertEquals(instance.site, 'not_a_real_site')
         self.assertEquals(instance.level, 40)
 
-TEST_DATA = {
-    "postgresql": ('DATABASES', 'psycopg2.extensions', "database engine", "django.db.backends.postgresql_psycopg2", {
-        'default': {
-            'ENGINE': "django.db.backends.postgresql_psycopg2",
-            'NAME': 'test',
-            'USER': 'root',
-            'PASSWORD': '',
-            'HOST': 'localhost',
-            'PORT': ''
-        }
-    }),
-    "mysql": ('DATABASES', 'MySQLdb', "database engine", "django.db.backends.mysql", {
-        'default': {
-            'ENGINE': "django.db.backends.mysql",
-            'NAME': 'test',
-            'USER': 'root',
-            'PASSWORD': '',
-            'HOST': 'localhost',
-            'PORT': ''
-        }
-    }),
-    "oracle": ('DATABASES', 'cx_Oracle', "database engine", "django.db.backends.oracle", {
-        'default': {
-            'ENGINE': "django.db.backends.oracle",
-            'NAME': 'test',
-            'USER': 'root',
-            'PASSWORD': '',
-            'HOST': 'localhost',
-            'PORT': ''
-        }
-    }),
-    "memcache": ('CACHES', 'memcache', "caching backend", "django.core.cache.backends.memcached.MemcachedCache", {
-        'default': {
-            'BACKEND': "django.core.cache.backends.memcached.MemcachedCache",
-            'LOCATION': '127.0.0.1:11211',
-        }
-    }),
-    "pylibmc": ('CACHES', 'pylibmc', "caching backend", "django.core.cache.backends.memcached.PyLibMCCache", {
-        'default': {
-            'BACKEND': "django.core.cache.backends.memcached.PyLibMCCache",
-            'LOCATION': '127.0.0.1:11211',
-        }
-    }),
-}
 
+class DepdendencyTest(TestCase):
+    import_string = import_string
 
-class HttpServiceTest(TestCase):
     def raise_import_error(self, package):
         def callable(package_name):
             if package_name != package:
-                raise RuntimeError("Package being tested differs from expected in test case")
-            msg = "No module named %s" % package
-            raise ImportError(msg)
+                return self.import_string(package_name)
+            raise ImportError("No module named %s" % (package,))
         return callable
 
     @mock.patch('sentry.conf.settings')
@@ -222,16 +225,16 @@ class HttpServiceTest(TestCase):
                 validate_settings(django_settings)
 
     def test_validate_fails_on_postgres(self):
-        self.validate_dependency(*TEST_DATA['postgresql'])
+        self.validate_dependency(*DEPENDENCY_TEST_DATA['postgresql'])
 
     def test_validate_fails_on_mysql(self):
-        self.validate_dependency(*TEST_DATA['mysql'])
+        self.validate_dependency(*DEPENDENCY_TEST_DATA['mysql'])
 
     def test_validate_fails_on_oracle(self):
-        self.validate_dependency(*TEST_DATA['oracle'])
+        self.validate_dependency(*DEPENDENCY_TEST_DATA['oracle'])
 
     def test_validate_fails_on_memcache(self):
-        self.validate_dependency(*TEST_DATA['memcache'])
+        self.validate_dependency(*DEPENDENCY_TEST_DATA['memcache'])
 
     def test_validate_fails_on_pylibmc(self):
-        self.validate_dependency(*TEST_DATA['pylibmc'])
+        self.validate_dependency(*DEPENDENCY_TEST_DATA['pylibmc'])
