@@ -110,12 +110,8 @@ def recover(request):
             user=form.cleaned_data['user']
         )
         if not password_hash.is_valid():
-            created = True
             password_hash.date_added = timezone.now()
             password_hash.set_hash()
-
-        if not created:
-            form.errors['__all__'] = ['A password reset was already attempted for this account within the last 24 hours.']
 
     if form.is_valid():
         password_hash.send_recover_mail()
