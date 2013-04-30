@@ -128,6 +128,9 @@ INSTALLED_APPS = (
     # 'django.contrib.admindocs',
     'sentry',
     'raven.contrib.django',
+    'crispy_forms',
+    'static_compiler',
+    'south',
 )
 
 # DSN of your Sentry server
@@ -165,3 +168,5 @@ LOGGING = {
         },
     }
 }
+
+SOCIAL_AUTH_CREATE_USERS = False

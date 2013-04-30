@@ -4,15 +4,17 @@ To run this app you will need raven client installed::
 
     pip install raven
 
-Edit :file:`settings.py` and change `SENTRY_DSN` so that it matches your Sentry server.
+Edit :file:`settings.py` in your project and change `SENTRY_DSN` so that it matches your Sentry server.
 
 Then do::
 
-    python manage.py syncdb
+    python manage.py syncdb --all
+    python manage.py migrate --fake
     python manage.py runserver
 
 And visit these URLS:
 
+- http://localhost:8000/sentry/
 - http://localhost:8000/captureMessage/
 - http://localhost:8000/captureException/
 - http://localhost:8000/loggingError/
