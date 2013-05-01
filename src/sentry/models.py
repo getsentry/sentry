@@ -413,7 +413,7 @@ class PendingTeamMember(Model):
         context = {
             'email': self.email,
             'team': self.team,
-            'url': '%s%s' % (settings.URL_PREFIX, reverse('sentry-accept-invite', kwargs={
+            'url': absolute_uri(reverse('sentry-accept-invite', kwargs={
                 'member_id': self.id,
                 'token': self.token,
             })),
@@ -421,7 +421,8 @@ class PendingTeamMember(Model):
         body = render_to_string('sentry/emails/member_invite.txt', context)
 
         try:
-            send_mail('%sInvite to join team: %s' % (settings.EMAIL_SUBJECT_PREFIX, self.team.name),
+            send_mail(
+                '%sInvite to join team: %s' % (settings.EMAIL_SUBJECT_PREFIX, self.team.name),
                 body, settings.SERVER_EMAIL, [self.email],
                 fail_silently=False)
         except Exception, e:
@@ -955,15 +956,17 @@ class LostPasswordHash(Model):
         context = {
             'user': self.user,
             'domain': urlparse.urlparse(settings.URL_PREFIX).hostname,
-            'url': '%s%s' % (settings.URL_PREFIX,
-                reverse('sentry-account-recover-confirm', args=[self.user.id, self.hash])),
+            'url': absolute_uri(reverse('sentry-account-recover-confirm', args=[
+                self.user.id, self.hash])),
         }
         body = render_to_string('sentry/emails/recover_account.txt', context)
 
         try:
-            send_mail('%sPassword Recovery' % (settings.EMAIL_SUBJECT_PREFIX,),
+            send_mail(
+                '%sPassword Recovery' % (settings.EMAIL_SUBJECT_PREFIX,),
                 body, settings.SERVER_EMAIL, [self.user.email],
-                fail_silently=False)
+                fail_silently=False
+            )
         except Exception, e:
             logger = logging.getLogger('sentry.mail.errors')
             logger.exception(e)
