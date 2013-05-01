@@ -15,7 +15,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
 from sentry.constants import MEMBER_OWNER
-from sentry.models import Project, ProjectKey, Team, FilterKey
+from sentry.models import Project, ProjectKey, Team, TagKey
 from sentry.permissions import (
     can_remove_project, can_add_project_key, can_remove_project_key)
 from sentry.plugins import plugins
@@ -183,7 +183,7 @@ def remove_project_key(request, team, project, key_id):
 
 @has_access(MEMBER_OWNER)
 def manage_project_tags(request, team, project):
-    tag_list = FilterKey.objects.all_keys(project)
+    tag_list = TagKey.objects.all_keys(project)
     if tag_list:
         form = ProjectTagsForm(project, tag_list, request.POST or None)
     else:
@@ -215,7 +215,7 @@ def notification_settings(request, team, project):
     initial = project.get_option('notifcation:tags', {})
 
     tag_forms = []
-    for tag in FilterKey.objects.all_keys(project):
+    for tag in TagKey.objects.all_keys(project):
         tag_forms.append(NotificationTagValuesForm(
             project=project,
             tag=tag,
@@ -226,8 +226,8 @@ def notification_settings(request, team, project):
             },
         ))
 
-    threshold, min_events = project.get_option('alert:threshold',
-        settings.DEFAULT_ALERT_PROJECT_THRESHOLD)
+    threshold, min_events = project.get_option(
+        'alert:threshold', settings.DEFAULT_ALERT_PROJECT_THRESHOLD)
 
     alert_form = AlertSettingsForm(
         data=request.POST or None,

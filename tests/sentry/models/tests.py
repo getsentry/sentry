@@ -10,8 +10,9 @@ from django.core.urlresolvers import reverse
 from django.contrib.auth.models import User
 from django.utils import timezone
 from sentry.constants import MINUTE_NORMALIZATION
-from sentry.models import (Project, ProjectKey, Group, Event, Team,
-    GroupTag, GroupCountByMinute, FilterValue, PendingTeamMember,
+from sentry.models import (
+    Project, ProjectKey, Group, Event, Team,
+    GroupTag, GroupCountByMinute, TagValue, PendingTeamMember,
     LostPasswordHash, Alert)
 from sentry.testutils import TestCase, fixture
 
@@ -31,13 +32,13 @@ class ProjectTest(TestCase):
         self.assertFalse(Event.objects.filter(project__isnull=True).exists())
         self.assertFalse(GroupTag.objects.filter(project__isnull=True).exists())
         self.assertFalse(GroupCountByMinute.objects.filter(project__isnull=True).exists())
-        self.assertFalse(FilterValue.objects.filter(project__isnull=True).exists())
+        self.assertFalse(TagValue.objects.filter(project__isnull=True).exists())
 
         self.assertEquals(project2.group_set.count(), 4)
         self.assertEquals(project2.event_set.count(), 10)
-        self.assertEquals(project2.grouptag_set.count(), 0)
-        self.assertEquals(project2.groupcountbyminute_set.count(), 0)
-        self.assertEquals(project2.filtervalue_set.count(), 0)
+        assert not project2.grouptag_set.exists()
+        assert not project2.groupcountbyminute_set.exists()
+        assert not TagValue.objects.filter(project=project2).exists()
 
 
 class ProjectKeyTest(TestCase):

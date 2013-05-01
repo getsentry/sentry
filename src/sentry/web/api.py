@@ -26,7 +26,7 @@ from sentry.coreapi import (project_from_auth_vars,
     insert_data_to_database, APIError, APIForbidden, extract_auth_vars)
 from sentry.exceptions import InvalidData
 from sentry.models import (Group, GroupBookmark, Project, ProjectCountByMinute,
-    FilterValue, Activity)
+    TagValue, Activity)
 from sentry.plugins import plugins
 from sentry.utils import json
 from sentry.utils.cache import cache
@@ -721,7 +721,7 @@ def search_tags(request, team, project):
     name = request.GET['name']
     query = request.GET['query']
 
-    results = list(FilterValue.objects.filter(
+    results = list(TagValue.objects.filter(
         project=project,
         key=name,
         value__icontains=query,

@@ -23,9 +23,10 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
 
     from django.utils import timezone
 
-    # TODO: FilterKey and GroupTagKey need cleaned up
-    from sentry.models import (Group, Event, GroupCountByMinute,
-        GroupTag, FilterValue, ProjectCountByMinute, Alert,
+    # TODO: TagKey and GroupTagKey need cleaned up
+    from sentry.models import (
+        Group, Event, GroupCountByMinute,
+        GroupTag, TagValue, ProjectCountByMinute, Alert,
         SearchDocument, Activity, AffectedUserByGroup, LostPasswordHash)
 
     GENERIC_DELETES = (
@@ -36,7 +37,7 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
         (Event, 'datetime'),
         (Activity, 'datetime'),
         (AffectedUserByGroup, 'last_seen'),
-        (FilterValue, 'last_seen'),
+        (TagValue, 'last_seen'),
         (Alert, 'datetime'),
 
         # Group should probably be last

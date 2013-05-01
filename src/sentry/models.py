@@ -40,7 +40,7 @@ from sentry.constants import (
 from sentry.manager import (
     GroupManager, ProjectManager,
     MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager,
-    UserOptionManager, FilterKeyManager, TeamManager)
+    UserOptionManager, TagKeyManager, TeamManager)
 from sentry.signals import buffer_incr_complete, regression_signal
 from sentry.utils.cache import memoize
 from sentry.utils.db import has_trending
@@ -229,7 +229,8 @@ class Project(Model):
     def delete(self):
         # This handles cascades properly
         # TODO: this doesn't clean up the index
-        for model in (Event, Group, FilterValue, GroupTag, GroupCountByMinute):
+        for model in (
+                Event, Group, TagKey, TagValue, GroupTag, GroupCountByMinute):
             model.objects.filter(project=self).delete()
         super(Project, self).delete()
 
@@ -281,8 +282,8 @@ class Project(Model):
                             time_spent_count=F('time_spent_count') + obj.time_spent_count,
                         )
 
-        for fv in FilterValue.objects.filter(project=self):
-            FilterValue.objects.get_or_create(project=project, key=fv.key, value=fv.value)
+        for fv in TagValue.objects.filter(project=self):
+            TagValue.objects.get_or_create(project=project, key=fv.key, value=fv.value)
             fv.delete()
         self.delete()
 
@@ -293,7 +294,7 @@ class Project(Model):
         if not hasattr(self, '_tag_cache'):
             tags = ProjectOption.objects.get_value(self, 'tags', None)
             if tags is None:
-                tags = FilterKey.objects.all_keys(self)
+                tags = TagKey.objects.all_keys(self)
             self._tag_cache = tags
         return self._tag_cache
 
@@ -747,7 +748,7 @@ class GroupBookmark(Model):
     __repr__ = sane_repr('project_id', 'group_id', 'user_id')
 
 
-class FilterKey(Model):
+class TagKey(Model):
     """
     Stores references to available filters keys.
     """
@@ -755,15 +756,16 @@ class FilterKey(Model):
     key = models.CharField(max_length=32)
     values_seen = models.PositiveIntegerField(default=0)
 
-    objects = FilterKeyManager()
+    objects = TagKeyManager()
 
     class Meta:
+        db_table = 'sentry_filterkey'
         unique_together = (('project', 'key'),)
 
     __repr__ = sane_repr('project_id', 'key')
 
 
-class FilterValue(Model):
+class TagValue(Model):
     """
     Stores references to available filters.
     """
@@ -777,9 +779,13 @@ class FilterValue(Model):
     objects = BaseManager()
 
     class Meta:
+        db_table = 'sentry_filtervalue'
         unique_together = (('project', 'key', 'value'),)
 
     __repr__ = sane_repr('project_id', 'key', 'value')
+
+FilterKey = TagKey
+FilterValue = TagValue
 
 
 class GroupTagKey(Model):
@@ -1168,7 +1174,7 @@ def create_default_project(created_models, verbosity=2, **kwargs):
             print 'Created internal Sentry project (slug=%s, id=%s)' % (project.slug, project.id)
 
         # Iterate all groups to update their relations
-        for model in (Group, Event, FilterValue, GroupTag,
+        for model in (Group, Event, TagKey, TagValue, GroupTag,
                       GroupCountByMinute):
             if verbosity > 0:
                 print ('Backfilling project ids for %s.. ' % model),
@@ -1259,14 +1265,14 @@ def set_language_on_logon(request, user, **kwargs):
         request.session['django_language'] = language
 
 
-@buffer_incr_complete.connect(sender=FilterValue, weak=False)
+@buffer_incr_complete.connect(sender=TagValue, weak=False)
 def record_project_tag_count(filters, created, **kwargs):
     from sentry import app
 
     if not created:
         return
 
-    app.buffer.incr(FilterKey, {
+    app.buffer.incr(TagKey, {
         'values_seen': 1,
     }, {
         'project': filters['project'],

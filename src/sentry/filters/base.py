@@ -15,7 +15,7 @@ import hashlib
 
 from django.utils.datastructures import SortedDict
 
-from sentry.models import FilterValue
+from sentry.models import TagValue
 from sentry.utils.cache import cache
 from .widgets import ChoiceWidget
 
@@ -64,7 +64,7 @@ class Filter(object):
         key = 'filters:%s:%s' % (self.project.id, hashlib.md5(self.column).hexdigest())
         result = cache.get(key)
         if result is None:
-            result = list(FilterValue.objects.filter(
+            result = list(TagValue.objects.filter(
                 project=self.project,
                 key=self.column,
             ).values_list('value', flat=True).order_by('value')[:self.max_choices])

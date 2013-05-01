@@ -724,7 +724,7 @@ class GroupManager(BaseManager, ChartMixin):
         })
 
     def add_tags(self, group, tags):
-        from sentry.models import FilterValue, GroupTag
+        from sentry.models import TagValue, GroupTag
 
         project = group.project
         date = group.last_seen
@@ -737,7 +737,7 @@ class GroupManager(BaseManager, ChartMixin):
             if len(value) > MAX_TAG_LENGTH:
                 continue
 
-            app.buffer.incr(FilterValue, {
+            app.buffer.incr(TagValue, {
                 'times_seen': 1,
             }, {
                 'project': project,
@@ -1222,7 +1222,7 @@ class SearchDocumentManager(BaseManager):
         return document
 
 
-class FilterKeyManager(BaseManager):
+class TagKeyManager(BaseManager):
     def _get_cache_key(self, project_id):
         return 'filterkey:all:%s' % project_id
 
