@@ -16,7 +16,6 @@ import urlparse
 
 from datetime import timedelta
 from hashlib import md5
-from indexer.models import BaseIndex
 from picklefield.fields import PickledObjectField
 from south.modelsinspector import add_introspection_rules
 
@@ -25,8 +24,7 @@ from django.contrib.auth.signals import user_logged_in
 from django.core.urlresolvers import reverse
 from django.db import models
 from django.db.models import F
-from django.db.models.signals import (post_syncdb, post_save, pre_delete,
-    class_prepared)
+from django.db.models.signals import post_syncdb, post_save, pre_delete
 from django.template.defaultfilters import slugify
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
@@ -34,11 +32,13 @@ from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
-from sentry.constants import (STATUS_LEVELS, MEMBER_TYPES,
+from sentry.constants import (
+    STATUS_LEVELS, MEMBER_TYPES,
     MEMBER_OWNER, MEMBER_USER, PLATFORM_TITLES, PLATFORM_LIST,
     STATUS_UNRESOLVED, STATUS_RESOLVED, STATUS_VISIBLE, STATUS_HIDDEN,
     MINUTE_NORMALIZATION, STATUS_MUTED)
-from sentry.manager import (GroupManager, ProjectManager,
+from sentry.manager import (
+    GroupManager, ProjectManager,
     MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager,
     UserOptionManager, FilterKeyManager, TeamManager)
 from sentry.signals import buffer_incr_complete, regression_signal
@@ -73,7 +73,8 @@ def sane_repr(*attrs):
     def _repr(self):
         cls = type(self).__name__
 
-        pairs = ('%s=%s' % (a, repr(getattr(self, a, None)))
+        pairs = (
+            '%s=%s' % (a, repr(getattr(self, a, None)))
             for a in attrs)
 
         return u'<%s at 0x%x: %s>' % (cls, id(self), ', '.join(pairs))
@@ -1172,26 +1173,6 @@ class AlertRelatedGroup(Model):
         unique_together = (('group', 'alert'),)
 
     __repr__ = sane_repr('group_id', 'alert_id')
-
-
-### django-indexer
-
-class MessageIndex(BaseIndex):
-    model = Event
-
-
-## Register Signals
-
-def register_indexes(**kwargs):
-    """
-    Grabs all required indexes from filters and registers them.
-    """
-    from sentry.filters import get_filters
-    logger = logging.getLogger('sentry.setup')
-    for cls in (f for f in get_filters() if f.column.startswith('data__')):
-        MessageIndex.objects.register_index(cls.column, index_to='group')
-        logger.debug('Registered index for for %r', cls.column)
-class_prepared.connect(register_indexes, sender=MessageIndex)
 
 
 def create_default_project(created_models, verbosity=2, **kwargs):

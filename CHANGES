@@ -27,6 +27,15 @@ A basic alert system has been added.
 - Configured at the project level.
 - Signaled via Plugin.on_alert.
 
+Filters
+=======
+
+The outdated filter system has been mostly removed. You should rely on
+tagged data for filter generation.
+
+If you were previously defining ``SENTRY_FILTERS`` you should remove it
+from your settings as it will be entirely obsolete in a future version.
+
 Other Changes
 =============
 

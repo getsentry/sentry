@@ -9,13 +9,13 @@ sentry.filters.base
 # Widget api is pretty ugly
 from __future__ import absolute_import
 
-__all__ = ('Filter', 'GroupFilter', 'EventFilter')
+__all__ = ('Filter',)
 
 import hashlib
 
 from django.utils.datastructures import SortedDict
 
-from sentry.models import Group, Event, FilterValue, MessageIndex
+from sentry.models import FilterValue
 from sentry.utils.cache import cache
 from .widgets import ChoiceWidget
 
@@ -27,7 +27,6 @@ class Filter(object):
     # This must be a string
     default = ''
     show_label = True
-    types = [Group, Event]
     max_choices = 50
 
     def __init__(self, request, project):
@@ -74,8 +73,6 @@ class Filter(object):
 
     def get_query_set(self, queryset):
         kwargs = {self.column: self.get_value()}
-        if self.column.startswith('data__'):
-            return MessageIndex.objects.get_for_queryset(queryset, **kwargs)
         return queryset.filter(**kwargs)
 
     def process(self, data):
@@ -87,25 +84,11 @@ class Filter(object):
         return widget.render(self.get_value())
 
 
-class EventFilter(Filter):
-    types = [Event]
-
-
-class GroupFilter(Filter):
-    types = [Group]
-
-
 class TagFilter(Filter):
     def get_query_set(self, queryset):
         col, val = self.get_column(), self.get_value()
-        if queryset.model == Event:
-            queryset = queryset.filter(**dict(
-                group__grouptag__key=col,
-                group__grouptag__value=val,
-            ))
-        else:
-            queryset = queryset.filter(**dict(
-                grouptag__key=col,
-                grouptag__value=val,
-            ))
+        queryset = queryset.filter(**dict(
+            grouptag__key=col,
+            grouptag__value=val,
+        ))
         return queryset.distinct()

@@ -63,6 +63,4 @@ def get_filters(model=None, project=None):
 
     # yield all filters which support ``model``
     for filter_cls in filter_list:
-        if model and model not in filter_cls.types:
-            continue
         yield filter_cls

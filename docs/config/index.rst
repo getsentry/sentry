@@ -49,19 +49,6 @@ This document describes additional configuration options available to the Sentry
 
 		SENTRY_SAMPLE_DATA = False
 
-.. data:: sentry.conf.FILTERS
-    :noindex:
-
-    A list of filters for extending the Sentry interface (as well as post-processing of data).
-
-    ::
-
-		SENTRY_FILTERS = (
-		    'sentry.filters.StatusFilter',
-		    'sentry.filters.LoggerFilter',
-		    'sentry.filters.LevelFilter',
-		)
-
 .. data:: sentry.conf.LOG_LEVELS
     :noindex:
 
