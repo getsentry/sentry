@@ -42,7 +42,6 @@ from sentry.manager import (
     MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager,
     UserOptionManager, FilterKeyManager, TeamManager)
 from sentry.signals import buffer_incr_complete, regression_signal
-from sentry.utils import MockDjangoRequest
 from sentry.utils.cache import memoize
 from sentry.utils.db import has_trending
 from sentry.utils.http import absolute_uri
@@ -664,34 +663,6 @@ class Event(EventBase):
         unique_together = ('project', 'event_id')
 
     __repr__ = sane_repr('project_id', 'group_id', 'checksum')
-
-    @memoize
-    def request(self):
-        data = self.data
-        if 'META' in data:
-            kwargs = {
-                'META': data.get('META'),
-                'GET': data.get('GET'),
-                'POST': data.get('POST'),
-                'FILES': data.get('FILES'),
-                'COOKIES': data.get('COOKIES'),
-                'url': data.get('url'),
-            }
-        elif 'sentry.interfaces.Http' in data:
-            http = data['sentry.interfaces.Http']
-            kwargs = {
-                'META': http
-            }
-        else:
-            return MockDjangoRequest()
-
-        fake_request = MockDjangoRequest(**kwargs)
-        if 'url' in kwargs and kwargs['url']:
-            fake_request.path_info = '/' + kwargs['url'].split('/', 3)[-1]
-        else:
-            fake_request.path_info = ''
-        fake_request.path = fake_request.path_info
-        return fake_request
 
     @memoize
     def interfaces(self):
