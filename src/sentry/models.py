@@ -772,6 +772,7 @@ class TagValue(Model):
     project = models.ForeignKey(Project, null=True)
     key = models.CharField(max_length=32)
     value = models.CharField(max_length=200)
+    data = GzippedDictField(blank=True, null=True)
     times_seen = models.PositiveIntegerField(default=0)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
