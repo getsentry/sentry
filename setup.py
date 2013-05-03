@@ -44,6 +44,7 @@ tests_require = [
     'eventlet',
     'pytest',
     'pytest-django',
+    'pytest-timeout',
     'nydus',
     'mock>=0.8.0',
     'mock-django>=0.6.4',
