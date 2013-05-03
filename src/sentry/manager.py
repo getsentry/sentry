@@ -569,7 +569,12 @@ class GroupManager(BaseManager, ChartMixin):
                 transaction.rollback_unless_managed(using=group._state.db)
                 logger.exception(u'Error sending regression signal: %s', e)
 
-        send_group_processors(group=group, event=event, is_new=is_new, is_sample=is_sample)
+        send_group_processors(
+            group=group,
+            event=event,
+            is_new=is_new,
+            is_sample=is_sample
+        )
 
         return event
 
@@ -670,58 +675,12 @@ class GroupManager(BaseManager, ChartMixin):
             'date': normalized_datetime,
         })
 
-        user_ident = event.user_ident
-        if user_ident:
-            self.record_affected_user(group, user_ident, event.data.get('sentry.interfaces.User'))
-
         try:
             self.add_tags(group, tags)
         except Exception, e:
             logger.exception('Unable to record tags: %s' % (e,))
 
         return group, is_new, is_sample
-
-    def record_affected_user(self, group, user_ident, data=None):
-        from sentry.models import TrackedUser, AffectedUserByGroup
-
-        project = group.project
-        date = group.last_seen
-
-        if data:
-            email = data.get('email')
-        else:
-            email = None
-
-        # TODO: we should be able to chain the affected user update so that tracked
-        # user gets updated serially
-        tuser = TrackedUser.objects.get_or_create(
-            project=project,
-            ident=user_ident,
-            defaults={
-                'email': email,
-                'data': data,
-            }
-        )[0]
-
-        app.buffer.incr(TrackedUser, {
-            'num_events': 1,
-        }, {
-            'id': tuser.id,
-        }, {
-            'last_seen': date,
-            'email': email,
-            'data': data,
-        })
-
-        app.buffer.incr(AffectedUserByGroup, {
-            'times_seen': 1,
-        }, {
-            'group': group,
-            'project': project,
-            'tuser': tuser,
-        }, {
-            'last_seen': date,
-        })
 
     def add_tags(self, group, tags):
         from sentry.models import TagValue, GroupTag

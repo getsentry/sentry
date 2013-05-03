@@ -20,7 +20,7 @@ def safe_execute(func, *args, **kwargs):
             cls = func.im_class
         else:
             cls = func.__class__
-        logger = logging.getLogger('sentry.plugins')
+        logger = logging.getLogger('sentry.errors.plugins')
         logger.error('Error processing %r on %r: %s', func.__name__, cls.__name__, e, extra={
             'func_module': cls.__module__,
             'func_args': args,
