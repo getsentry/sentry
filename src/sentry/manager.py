@@ -562,6 +562,7 @@ class GroupManager(BaseManager, ChartMixin):
                 transaction.rollback_unless_managed(using=group._state.db)
                 logger.exception(u'Error indexing document: %s', e)
 
+        # TODO: move this to the queue
         if is_new:
             try:
                 regression_signal.send_robust(sender=self.model, instance=group)
