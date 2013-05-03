@@ -1,4 +1,4 @@
-Throttes and Rate Limiting
+Throttles and Rate Limiting
 ==========================
 
 With the way Sentry works you may find yourself in a situation where you'll see
