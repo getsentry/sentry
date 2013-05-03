@@ -18,6 +18,7 @@ Users Guide
    queue/index
    buffer/index
    udp_server/index
+   throttling/index
    cli/index
    client/index
    plugins/index
