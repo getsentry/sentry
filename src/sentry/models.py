@@ -1194,11 +1194,10 @@ def create_team_and_keys_for_project(instance, created, **kwargs):
         return
 
     if not instance.team:
-        update(instance, team=Team.objects.create(
-            owner=instance.owner,
-            name=instance.name,
-            slug=instance.slug,
-        ))
+        team = Team(owner=instance.owner, name=instance.name)
+        slugify_instance(team, instance.slug)
+        team.save()
+        update(instance, team=team)
 
         ProjectKey.objects.get_or_create(
             project=instance,
