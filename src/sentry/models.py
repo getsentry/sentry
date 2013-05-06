@@ -60,7 +60,7 @@ def slugify_instance(inst, label, **kwargs):
     manager = type(inst).objects
     inst.slug = base_slug
     n = 0
-    while manager.filter(slug=inst.slug, **kwargs).exists():
+    while manager.filter(slug__iexact=inst.slug, **kwargs).exists():
         n += 1
         inst.slug = base_slug + '-' + str(n)
 
