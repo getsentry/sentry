@@ -31,7 +31,7 @@ def user_list(request, team, project):
     elif sort == 'newest':
         tag_list = tag_list.order_by('-first_seen')
     elif sort == 'events':
-        tag_list = tag_list.order_by('-num_events')
+        tag_list = tag_list.order_by('-times_seen')
 
     return render_to_response('sentry/users/list.html', {
         'team': team,
