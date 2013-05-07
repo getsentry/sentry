@@ -100,7 +100,8 @@ def manage_project(request, team, project):
         project = form.save()
         project.update_option('sentry:origins', form.cleaned_data.get('origins') or [])
         project.update_option('sentry:resolve_age', form.cleaned_data.get('resolve_age'))
-        messages.add_message(request, messages.SUCCESS,
+        messages.add_message(
+            request, messages.SUCCESS,
             _('Changes to your project were saved.'))
 
         return HttpResponseRedirect(reverse('sentry-manage-project', args=[team.slug, project.slug]))
@@ -175,7 +176,8 @@ def remove_project_key(request, team, project, key_id):
         return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.team.slug, project.slug]))
 
     key.delete()
-    messages.add_message(request, messages.SUCCESS,
+    messages.add_message(
+        request, messages.SUCCESS,
         _('The API key (%s) was revoked.') % (key.public_key,))
 
     return HttpResponseRedirect(reverse('sentry-manage-project-keys', args=[project.team.slug, project.slug]))
@@ -183,7 +185,10 @@ def remove_project_key(request, team, project, key_id):
 
 @has_access(MEMBER_OWNER)
 def manage_project_tags(request, team, project):
-    tag_list = TagKey.objects.all_keys(project)
+    tag_list = filter(
+        lambda x: not x.startswith('sentry:'),
+        TagKey.objects.all_keys(project))
+
     if tag_list:
         form = ProjectTagsForm(project, tag_list, request.POST or None)
     else:
@@ -192,7 +197,8 @@ def manage_project_tags(request, team, project):
     if form and form.is_valid():
         form.save()
 
-        messages.add_message(request, messages.SUCCESS,
+        messages.add_message(
+            request, messages.SUCCESS,
             _('Your settings were saved successfully.'))
 
         return HttpResponseRedirect(reverse('sentry-manage-project-tags', args=[project.team.slug, project.slug]))
@@ -249,7 +255,8 @@ def notification_settings(request, team, project):
         project.update_option('alert:threshold', (
             alert_form.cleaned_data['pct_threshold'], alert_form.cleaned_data['min_events']))
 
-        messages.add_message(request, messages.SUCCESS,
+        messages.add_message(
+            request, messages.SUCCESS,
             _('Your settings were saved successfully.'))
 
         return HttpResponseRedirect(reverse('sentry-project-notifications', args=[project.team.slug, project.slug]))
@@ -280,7 +287,8 @@ def manage_plugins(request, team, project):
             if plugin.can_enable_for_projects():
                 plugin.set_option('enabled', plugin.slug in enabled, project)
 
-        messages.add_message(request, messages.SUCCESS,
+        messages.add_message(
+            request, messages.SUCCESS,
             _('Your settings were saved successfully.'))
 
         return HttpResponseRedirect(request.path)
@@ -318,7 +326,8 @@ def configure_project_plugin(request, team, project, slug):
 
     action, view = plugin_config(plugin, project, request)
     if action == 'redirect':
-        messages.add_message(request, messages.SUCCESS,
+        messages.add_message(
+            request, messages.SUCCESS,
             _('Your settings were saved successfully.'))
 
         return HttpResponseRedirect(request.path)

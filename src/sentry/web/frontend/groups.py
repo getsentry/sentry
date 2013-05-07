@@ -424,6 +424,10 @@ def group_tag_list(request, team, project, group):
     # O(N) db access
     tag_list = []
     for tag_name in group.get_tags():
+        # sentry:* are reserved
+        if tag_name.startswith('sentry:'):
+            continue
+
         tag_list.append((tag_name, [
             (value, times_seen, percent(group.times_seen, times_seen))
             for (value, times_seen, first_seen, last_seen)

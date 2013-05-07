@@ -40,7 +40,7 @@ def is_url(filename):
 
 
 def get_context(lineno, context_line, pre_context=None, post_context=None, filename=None,
-        format=False):
+                format=False):
     lineno = int(lineno)
     context = []
     start_lineno = lineno - len(pre_context or [])
@@ -260,9 +260,10 @@ class Frame(object):
     attrs = ('abs_path', 'filename', 'lineno', 'colno', 'in_app', 'context_line',
              'pre_context', 'post_context', 'vars', 'module', 'function', 'data')
 
-    def __init__(self, abs_path=None, filename=None, lineno=None, colno=None, in_app=False,
-                 context_line=None, pre_context=(), post_context=(), vars=None,
-                 module=None, function=None, data=None, **kwargs):
+    def __init__(self, abs_path=None, filename=None, lineno=None, colno=None,
+                 in_app=None, context_line=None, pre_context=(),
+                 post_context=(), vars=None, module=None, function=None,
+                 data=None, **kwargs):
         self.abs_path = abs_path or filename
         self.filename = filename or abs_path
 
@@ -372,8 +373,10 @@ class Frame(object):
         else:
             choices = []
         choices.append('default')
-        templates = ['sentry/partial/frames/%s.txt' % choice
-                      for choice in choices]
+        templates = [
+            'sentry/partial/frames/%s.txt' % choice
+            for choice in choices
+        ]
         return render_to_string(templates, {
             'abs_path': self.abs_path,
             'filename': self.filename,
@@ -464,6 +467,9 @@ class Stacktrace(Interface):
     def __init__(self, frames, **kwargs):
         self.frames = [Frame(**f) for f in frames]
 
+    def __iter__(self):
+        return iter(self.frames)
+
     def validate(self):
         for frame in self.frames:
             # ensure we've got the correct required values
@@ -481,6 +487,9 @@ class Stacktrace(Interface):
         return {
             'frames': frames,
         }
+
+    def has_app_frames(self):
+        return any(f.in_app is not None for f in self.frames)
 
     def unserialize(self, data):
         data['frames'] = [Frame(**f) for f in data.pop('frames', [])]

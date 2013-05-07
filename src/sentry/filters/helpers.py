@@ -43,6 +43,10 @@ def get_filters(model=None, project=None):
 
     if project:
         for tag in project.get_tags():
+            # sentry:* are reserved
+            if tag.startswith('sentry:'):
+                continue
+
             if tag not in TAG_FILTER_CACHE:
                 # Generate a new filter class because we are lazy and do
                 # not want to rewrite code

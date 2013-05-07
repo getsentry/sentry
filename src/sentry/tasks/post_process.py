@@ -7,6 +7,8 @@ sentry.tasks.post_process
 """
 
 from celery.task import task
+from hashlib import md5
+
 from sentry.plugins import plugins
 from sentry.utils.safe import safe_execute
 
@@ -20,6 +22,7 @@ def post_process_group(group, event, **kwargs):
         plugin_post_process_group.delay(
             plugin.slug, group=group, event=event, **kwargs)
 
+    record_affected_code.delay(group=group, event=event)
     record_affected_user.delay(group=group, event=event)
 
 
@@ -40,11 +43,13 @@ def plugin_post_process_group(plugin_slug, group, **kwargs):
 def record_affected_user(group, event, **kwargs):
     from sentry.models import Group
 
+    data = event.data.get('sentry.interfaces.User')
+    if not data:
+        return
+
     user_ident = event.user_ident
     if not user_ident:
         return
-
-    data = event.data.get('sentry.interfaces.User')
 
     Group.objects.add_tags(group, [
         ('sentry:user', user_ident, {
@@ -54,3 +59,42 @@ def record_affected_user(group, event, **kwargs):
             'data': data.get('data'),
         })
     ])
+
+
+@task(
+    name='sentry.tasks.post_process.record_affected_code',
+    queue='triggers')
+def record_affected_code(group, event, **kwargs):
+    from sentry.models import Group
+
+    data = event.interfaces.get('sentry.interfaces.Exception')
+    if not data:
+        print "no data"
+        return
+
+    checksum = lambda x: md5(x).hexdigest()
+
+    tags = []
+    for exception in data:
+        if not exception.stacktrace:
+            print "no stack"
+            continue
+        has_app_frames = exception.stacktrace.has_app_frames()
+        for frame in exception.stacktrace:
+            if has_app_frames and not frame.in_app:
+                continue
+            tags.extend((
+                (
+                    'sentry:filename',
+                    checksum(frame.filename),
+                    {'filename': frame.filename},
+                ),
+                (
+                    'sentry:function',
+                    checksum('%s:%s' % (frame.filename, frame.function)),
+                    {'filename': frame.filename, 'function': frame.function}
+                )
+            ))
+
+    if tags:
+        Group.objects.add_tags(group, tags)
