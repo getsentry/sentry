@@ -57,6 +57,10 @@ class Command(BaseCommand):
     def handle(self, **options):
         from raven.contrib.django.models import client
 
+        self.stdout.write('Preparing to send events. Ctrl-C to exit.')
+
+        time.sleep(2)
+
         functions = funcs()
 
         s = time.time()
