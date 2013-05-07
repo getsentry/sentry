@@ -209,6 +209,8 @@ AUTHENTICATION_BACKENDS = (
     'sentry.utils.auth.EmailAuthBackend',
 )
 
+SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
+
 TWITTER_CONSUMER_KEY = ''
 TWITTER_CONSUMER_SECRET = ''
 
