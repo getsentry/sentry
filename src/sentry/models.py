@@ -702,7 +702,7 @@ class Event(EventBase):
 
     def get_tags(self):
         return [
-            t for t in self.data.get('tags', ())
+            (t, v) for t, v in self.data.get('tags', ())
             if not t.startswith('sentry:')
         ]
 
