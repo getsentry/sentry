@@ -16,7 +16,7 @@ except ImportError:
 
 from sentry.web import api
 from sentry.web.frontend import (alerts, accounts, generic, groups, events,
-    projects, admin, docs, teams, users)
+    projects, admin, docs, teams, users, explore_code)
 
 __all__ = ('urlpatterns',)
 
@@ -242,6 +242,16 @@ urlpatterns = patterns('',
         name='sentry-users'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/users/(?P<user_id>\d+)/$', users.user_details,
         name='sentry-user-details'),
+
+    # Explore - Code
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/code/$', explore_code.list_tag,
+        {'selection': 'filenames'}, name='sentry-explore-code'),
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/code/by/function/$', explore_code.list_tag,
+        {'selection': 'functions'}, name='sentry-explore-code-by-function'),
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/code/by/filename/(?P<tag_id>\d+)/$',
+        explore_code.tag_details, {'selection': 'filenames'}, name='sentry-explore-code-details'),
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/code/by/function/(?P<tag_id>\d+)/$',
+        explore_code.tag_details, {'selection': 'functions'}, name='sentry-explore-code-details-by-function'),
 
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/get-started/$', projects.get_started,
         name='sentry-get-started'),
