@@ -295,7 +295,10 @@ class Project(Model):
             tags = ProjectOption.objects.get_value(self, 'tags', None)
             if tags is None:
                 tags = TagKey.objects.all_keys(self)
-            self._tag_cache = tags
+            self._tag_cache = [
+                t for t in tags
+                if not t.startswith('sentry:')
+            ]
         return self._tag_cache
 
     # TODO: Make these a mixin
@@ -618,10 +621,12 @@ class Group(EventBase):
 
     def get_tags(self):
         if not hasattr(self, '_tag_cache'):
-            tags = sorted(self.grouptagkey_set.filter(
-                project=self.project,
-            ).values_list('key', flat=True))
-            self._tag_cache = tags
+            self._tag_cache = sorted([
+                t for t in self.grouptagkey_set.filter(
+                    project=self.project,
+                ).values_list('key', flat=True)
+                if not t.startswith('sentry:')
+            ])
         return self._tag_cache
 
 
@@ -696,7 +701,10 @@ class Event(EventBase):
         return module, self.data['__sentry__']['version']
 
     def get_tags(self):
-        return self.data.get('tags', ())
+        return [
+            t for t in self.data.get('tags', ())
+            if not t.startswith('sentry:')
+        ]
 
     def as_dict(self):
         # We use a SortedDict to keep elements ordered for a potential JSON serializer
