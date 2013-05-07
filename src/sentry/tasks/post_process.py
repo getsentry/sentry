@@ -84,18 +84,23 @@ def record_affected_code(group, event, **kwargs):
             if has_app_frames and not frame.in_app:
                 continue
 
-            tags.extend((
-                (
-                    'sentry:filename',
-                    checksum(frame.filename),
-                    {'filename': frame.filename},
-                ),
-                (
-                    'sentry:function',
-                    checksum('%s:%s' % (frame.filename, frame.function)),
-                    {'filename': frame.filename, 'function': frame.function}
-                )
+            filename = frame.filename or frame.module
+            if not filename:
+                continue
+
+            tags.append((
+                'sentry:filename',
+                checksum(filename),
+                {'filename': filename},
             ))
+
+            function = frame.function
+            if function:
+                tags.append((
+                    'sentry:function',
+                    checksum('%s:%s' % (filename, function)),
+                    {'filename': filename, 'function': function}
+                ))
 
     if tags:
         Group.objects.add_tags(group, tags)
