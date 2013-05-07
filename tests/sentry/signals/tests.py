@@ -2,10 +2,8 @@
 
 from __future__ import absolute_import
 
-from django.contrib.auth.models import User
 from sentry.constants import MEMBER_OWNER
-from sentry.models import Project, Team
-
+from sentry.models import Project, Team, User
 from sentry.testutils import TestCase
 
 

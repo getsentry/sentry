@@ -3,9 +3,8 @@
 from __future__ import absolute_import
 
 import mock
-from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
-from sentry.models import Team, Project, TeamMember, AccessGroup
+from sentry.models import Team, Project, TeamMember, AccessGroup, User
 from sentry.testutils import TestCase, fixture, before
 from sentry.utils import json
 

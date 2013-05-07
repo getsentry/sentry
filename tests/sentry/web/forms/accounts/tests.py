@@ -1,6 +1,6 @@
-from django.contrib.auth.models import User
-from sentry.web.forms.accounts import AccountSettingsForm
+from sentry.models import User
 from sentry.testutils import TestCase
+from sentry.web.forms.accounts import AccountSettingsForm
 
 
 class AccountSettingsFormTest(TestCase):

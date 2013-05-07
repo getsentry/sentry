@@ -6,10 +6,10 @@ sentry.web.forms
 :license: BSD, see LICENSE for more details.
 """
 from django import forms
-from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.interfaces import Http
+from sentry.models import User
 from sentry.web.forms.fields import RadioFieldRenderer
 
 

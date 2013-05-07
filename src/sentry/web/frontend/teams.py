@@ -6,7 +6,6 @@ sentry.web.frontend.teams
 :license: BSD, see LICENSE for more details.
 """
 from django.contrib import messages
-from django.contrib.auth.models import User
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
@@ -14,7 +13,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.utils.translation import ugettext as _
 
 from sentry.constants import MEMBER_USER, MEMBER_OWNER
-from sentry.models import PendingTeamMember, TeamMember, AccessGroup
+from sentry.models import PendingTeamMember, TeamMember, AccessGroup, User
 from sentry.permissions import (can_add_team_member, can_remove_team, can_create_projects,
     can_create_teams, can_edit_team_member, can_remove_team_member,
     Permissions)

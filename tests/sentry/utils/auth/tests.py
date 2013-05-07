@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 
-from sentry.utils.auth import EmailAuthBackend
-from django.contrib.auth.models import User
+from sentry.models import User
 from sentry.testutils import TestCase
+from sentry.utils.auth import EmailAuthBackend
 
 
 class EmailAuthBackendTest(TestCase):

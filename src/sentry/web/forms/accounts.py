@@ -8,12 +8,11 @@ sentry.web.forms.accounts
 
 from django import forms
 from django.contrib.auth import authenticate
-from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
 from sentry.constants import EMPTY_PASSWORD_VALUES
-from sentry.models import UserOption
+from sentry.models import UserOption, User
 
 
 class RegistrationForm(forms.ModelForm):

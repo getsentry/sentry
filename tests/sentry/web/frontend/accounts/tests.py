@@ -4,10 +4,9 @@ from __future__ import absolute_import
 
 import mock
 
-from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.http import HttpRequest
-from sentry.models import UserOption, LostPasswordHash
+from sentry.models import UserOption, LostPasswordHash, User
 from sentry.testutils import TestCase, fixture, before
 from sentry.web.frontend.accounts import login_redirect
 from social_auth.models import UserSocialAuth

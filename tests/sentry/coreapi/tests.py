@@ -5,9 +5,7 @@ from __future__ import absolute_import
 import datetime
 import mock
 
-from django.contrib.auth.models import User
-
-from sentry.models import Project
+from sentry.models import Project, User
 from sentry.exceptions import InvalidTimestamp
 from sentry.coreapi import (project_from_id, project_from_api_key_and_id,
     extract_auth_vars, project_from_auth_vars, APIUnauthorized, APIForbidden,

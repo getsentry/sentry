@@ -9,7 +9,7 @@ import datetime
 import logging
 from functools import wraps
 
-from django.contrib.auth.models import AnonymousUser, User
+from django.contrib.auth.models import AnonymousUser
 from django.core.urlresolvers import reverse
 from django.db.models import Sum, Q
 from django.http import HttpResponse, HttpResponseForbidden, HttpResponseRedirect
@@ -19,14 +19,16 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.vary import vary_on_cookie
 from django.views.generic.base import View as BaseView
 from sentry.conf import settings
-from sentry.constants import (MEMBER_USER, STATUS_MUTED, STATUS_UNRESOLVED,
-    STATUS_RESOLVED)
-from sentry.coreapi import (project_from_auth_vars,
-    decode_and_decompress_data, safely_load_json_string, validate_data,
-    insert_data_to_database, APIError, APIForbidden, extract_auth_vars)
+from sentry.constants import (
+    MEMBER_USER, STATUS_MUTED, STATUS_UNRESOLVED, STATUS_RESOLVED)
+from sentry.coreapi import (
+    project_from_auth_vars, decode_and_decompress_data,
+    safely_load_json_string, validate_data, insert_data_to_database, APIError,
+    APIForbidden, extract_auth_vars)
 from sentry.exceptions import InvalidData
-from sentry.models import (Group, GroupBookmark, Project, ProjectCountByMinute,
-    TagValue, Activity)
+from sentry.models import (
+    Group, GroupBookmark, Project, ProjectCountByMinute, TagValue, Activity,
+    User)
 from sentry.plugins import plugins
 from sentry.utils import json
 from sentry.utils.cache import cache

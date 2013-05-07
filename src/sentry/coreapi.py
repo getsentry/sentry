@@ -15,13 +15,12 @@ import logging
 import uuid
 import zlib
 
-from django.contrib.auth.models import User
 from django.utils.encoding import smart_str
 
 from sentry.app import env
 from sentry.conf import settings
 from sentry.exceptions import InvalidTimestamp
-from sentry.models import Project, ProjectKey, TeamMember, Team
+from sentry.models import Project, ProjectKey, TeamMember, Team, User
 from sentry.plugins import plugins
 from sentry.tasks.store import preprocess_event
 from sentry.utils import is_float, json

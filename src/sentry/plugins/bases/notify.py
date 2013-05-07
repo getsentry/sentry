@@ -6,10 +6,9 @@ sentry.plugins.bases.notify
 :license: BSD, see LICENSE for more details.
 """
 from django import forms
-from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 from sentry.plugins import Plugin
-from sentry.models import UserOption, Project
+from sentry.models import UserOption, Project, User
 from sentry.utils.cache import cache
 from sentry.constants import MEMBER_USER
 

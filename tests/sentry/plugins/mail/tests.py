@@ -227,8 +227,7 @@ class MailProcessorTest(TestCase):
                          sorted(p.get_send_to(project)))
 
     def test_get_emails_for_users(self):
-        from django.contrib.auth.models import User
-        from sentry.models import UserOption
+        from sentry.models import UserOption, User
 
         user = User.objects.create(username='foo', email='foo@example.com')
         user2 = User.objects.create(username='baz', email='baz@example.com')
@@ -242,8 +241,7 @@ class MailProcessorTest(TestCase):
                 sorted([user.email, 'foobaz@example.com']))
 
     def test_get_sendable_users(self):
-        from django.contrib.auth.models import User
-        from sentry.models import Project, UserOption
+        from sentry.models import Project, UserOption, User
 
         user = User.objects.create(username='foo', email='foo@example.com', is_active=True)
         user2 = User.objects.create(username='baz', email='baz@example.com', is_active=True)

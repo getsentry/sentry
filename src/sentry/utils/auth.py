@@ -6,9 +6,9 @@ sentry.utils.auth
 :license: BSD, see LICENSE for more details.
 """
 from django.conf import settings as dj_settings
-from django.contrib.auth.models import User
 from django.contrib.auth.backends import ModelBackend
 from sentry.conf import settings
+from sentry.models import User
 
 
 def parse_auth_header(header):

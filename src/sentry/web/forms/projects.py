@@ -8,13 +8,12 @@ sentry.web.forms.projects
 import itertools
 from django import forms
 from django.contrib.auth import authenticate
-from django.contrib.auth.models import User
 from django.utils.translation import ugettext_lazy as _
 from sentry.constants import EMPTY_PASSWORD_VALUES
-from sentry.models import Project, ProjectOption
+from sentry.models import Project, ProjectOption, User
 from sentry.permissions import can_set_public_projects
-from sentry.web.forms.fields import (RadioFieldRenderer, UserField, OriginsField,
-    RangeField, get_team_choices)
+from sentry.web.forms.fields import (
+    RadioFieldRenderer, UserField, OriginsField, RangeField, get_team_choices)
 
 
 BLANK_CHOICE = [("", "")]

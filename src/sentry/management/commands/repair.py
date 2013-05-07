@@ -17,9 +17,8 @@ class Command(BaseCommand):
     )
 
     def handle(self, **options):
-        from django.contrib.auth.models import User
         from django.template.defaultfilters import slugify
-        from sentry.models import Project, Team, ProjectKey
+        from sentry.models import Project, Team, ProjectKey, User
         from sentry.utils.models import update
 
         if options.get('owner'):

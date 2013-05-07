@@ -4,11 +4,11 @@ from __future__ import absolute_import
 
 import mock
 
-from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
-from sentry.models import Team, TeamMember, PendingTeamMember, AccessGroup, Project
+from sentry.models import (
+    Team, TeamMember, PendingTeamMember, AccessGroup, Project, User)
 from sentry.testutils import TestCase, fixture, before
 
 
@@ -62,6 +62,7 @@ class NewTeamTest(BaseTeamTest):
         resp = self.client.post(self.path, {
             'name': 'Test Team',
             'slug': 'test',
+            'owner': self.user.username,
         })
         self.assertNotEquals(resp.status_code, 200)
 

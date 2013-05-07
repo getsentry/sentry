@@ -6,12 +6,11 @@ import datetime
 import mock
 
 from django.conf import settings as django_settings
-from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
 from raven import Client
-from sentry.models import Group, Event, Project
+from sentry.models import Group, Event, Project, User
 from sentry.testutils import TestCase
 from sentry.utils.settings import (
     validate_settings, ConfigurationError, import_string)

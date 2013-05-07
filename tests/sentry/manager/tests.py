@@ -6,13 +6,12 @@ import datetime
 import mock
 import pytest
 
-from django.contrib.auth.models import User
 from django.utils import timezone
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
 from sentry.interfaces import Interface
 from sentry.manager import get_checksum_from_event
 from sentry.models import (Event, Group, Project, GroupCountByMinute, ProjectCountByMinute,
-    SearchDocument, Team, EventMapping)
+    SearchDocument, Team, EventMapping, User)
 from sentry.utils.db import has_trending  # NOQA
 from sentry.testutils import TestCase
 

@@ -5,12 +5,11 @@ from __future__ import absolute_import
 import logging
 import json
 
-from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 
 from sentry.conf import settings
 from sentry.constants import MEMBER_USER
-from sentry.models import Group, Project, TeamMember, Team
+from sentry.models import Group, Project, TeamMember, Team, User
 from sentry.testutils import TestCase, fixture, before
 
 logger = logging.getLogger(__name__)

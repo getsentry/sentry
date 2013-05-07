@@ -4,8 +4,9 @@ from __future__ import absolute_import
 
 import mock
 
-from django.contrib.auth.models import User
 from social_auth.models import UserSocialAuth
+
+from sentry.models import User
 from sentry.plugins.bases.issue import IssuePlugin
 from sentry.testutils import TestCase
 

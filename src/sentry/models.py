@@ -19,7 +19,7 @@ from hashlib import md5
 from picklefield.fields import PickledObjectField
 from south.modelsinspector import add_introspection_rules
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.signals import user_logged_in
 from django.core.urlresolvers import reverse
 from django.db import models
@@ -79,6 +79,13 @@ def sane_repr(*attrs):
         return u'<%s at 0x%x: %s>' % (cls, id(self), ', '.join(pairs))
 
     return _repr
+
+
+class User(Model, AbstractUser):
+    objects = BaseManager(cache_fields=['pk'])
+
+    class Meta:
+        db_table = 'auth_user'
 
 
 class Option(Model):

@@ -7,13 +7,12 @@ import mock
 from datetime import timedelta
 from django.core import mail
 from django.core.urlresolvers import reverse
-from django.contrib.auth.models import User
 from django.utils import timezone
 from sentry.constants import MINUTE_NORMALIZATION
 from sentry.models import (
     Project, ProjectKey, Group, Event, Team,
     GroupTag, GroupCountByMinute, TagValue, PendingTeamMember,
-    LostPasswordHash, Alert)
+    LostPasswordHash, Alert, User)
 from sentry.testutils import TestCase, fixture
 
 

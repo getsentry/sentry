@@ -2,10 +2,8 @@
 
 from __future__ import absolute_import
 
-from django.contrib.auth.models import User
-from sentry.models import Project
+from sentry.models import Project, User
 from sentry.services.udp import SentryUDPServer
-
 from sentry.testutils import TestCase, get_auth_header
 
 

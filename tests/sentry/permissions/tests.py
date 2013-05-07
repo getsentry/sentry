@@ -2,8 +2,9 @@
 
 from __future__ import absolute_import
 
-from django.contrib.auth.models import User, AnonymousUser
+from django.contrib.auth.models import AnonymousUser
 from sentry.permissions import can_create_projects, can_set_public_projects
+from sentry.models import User
 from sentry.testutils import TestCase
 
 

@@ -5,7 +5,6 @@ sentry.web.forms.teams
 :copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from django.contrib.auth.models import User
 from django.core.validators import URLValidator
 from django.forms.widgets import RadioFieldRenderer, TextInput, Textarea
 from django.forms import CharField, IntegerField, ValidationError
@@ -13,6 +12,7 @@ from django.utils.encoding import force_unicode
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.models import User
 
 # Special case origins that don't fit the normal regex pattern, but are valid
 WHITELIST_ORIGINS = ('*', 'localhost')

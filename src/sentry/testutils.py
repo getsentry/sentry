@@ -17,7 +17,6 @@ from sentry.utils import json
 
 from django.conf import settings as django_settings
 from django.contrib.auth import login
-from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.core.management import call_command
 from django.core.urlresolvers import reverse
@@ -27,8 +26,8 @@ from django.test import TestCase, TransactionTestCase
 from django.test.client import Client
 from django.utils.importlib import import_module
 
-from sentry.models import (Project, ProjectOption, Option, Team, Group,
-    Event)
+from sentry.models import (
+    Project, ProjectOption, Option, Team, Group, Event, User)
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress
 
