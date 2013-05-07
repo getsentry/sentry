@@ -5,7 +5,7 @@
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
-{% block title %}{{ tuser.email }} | {{ block.super }}{% endblock %}
+{% block title %}{{ tag.value }} | {{ block.super }}{% endblock %}
 
 {% block breadcrumb %}
     {{ block.super }}
