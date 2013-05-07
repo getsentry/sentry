@@ -536,39 +536,29 @@ class GroupManager(BaseManager, ChartMixin):
                 warnings.warn(u'Unable to process log entry: %s', exc)
             return
 
+        using = group._state.db
+
         event.group = group
 
         # save the event unless its been sampled
         if not is_sample:
+            sid = transaction.savepoint(using=using)
             try:
                 event.save()
             except IntegrityError:
-                transaction.rollback_unless_managed(using=group._state.db)
+                transaction.savepoint_rollback(sid, using=using)
                 return event
+            transaction.savepoint_commit(sid, using=using)
 
+        sid = transaction.savepoint(using=using)
         try:
             EventMapping.objects.create(
                 project=project, group=group, event_id=event_id)
         except IntegrityError:
-            transaction.rollback_unless_managed(using=group._state.db)
+            transaction.savepoint_rollback(sid, using=using)
             return event
-
-        transaction.commit_unless_managed(using=group._state.db)
-
-        if settings.USE_SEARCH:
-            try:
-                index_event.delay(event)
-            except Exception, e:
-                transaction.rollback_unless_managed(using=group._state.db)
-                logger.exception(u'Error indexing document: %s', e)
-
-        # TODO: move this to the queue
-        if is_new:
-            try:
-                regression_signal.send_robust(sender=self.model, instance=group)
-            except Exception, e:
-                transaction.rollback_unless_managed(using=group._state.db)
-                logger.exception(u'Error sending regression signal: %s', e)
+        transaction.savepoint_commit(sid, using=using)
+        transaction.commit_unless_managed(using=using)
 
         send_group_processors(
             group=group,
@@ -576,6 +566,13 @@ class GroupManager(BaseManager, ChartMixin):
             is_new=is_new,
             is_sample=is_sample
         )
+
+        if settings.USE_SEARCH:
+            index_event.delay(event)
+
+        # TODO: move this to the queue
+        if is_new:
+            regression_signal.send_robust(sender=self.model, instance=group)
 
         return event
 
