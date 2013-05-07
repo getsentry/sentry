@@ -6,8 +6,11 @@ sentry.utils.json
 :license: BSD, see LICENSE for more details.
 """
 
+# Avoid shadowing the standard library json module
+from __future__ import absolute_import
+
 from django.core.serializers.json import DjangoJSONEncoder
-from django.utils import simplejson
+import json
 
 import datetime
 import uuid
@@ -29,8 +32,8 @@ def better_decoder(data):
 
 
 def dumps(value, **kwargs):
-    return simplejson.dumps(value, cls=BetterJSONEncoder, **kwargs)
+    return json.dumps(value, cls=BetterJSONEncoder, **kwargs)
 
 
 def loads(value, **kwargs):
-    return simplejson.loads(value, object_hook=better_decoder)
+    return json.loads(value, object_hook=better_decoder)
