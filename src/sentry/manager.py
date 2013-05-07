@@ -138,7 +138,10 @@ class BaseManager(models.Manager):
         db = instance._state.db
         instance._state.db = None
         # store actual object
-        cache.set(self.__get_lookup_cache_key(**{pk_name: pk_val}), instance, self.cache_ttl)
+        try:
+            cache.set(self.__get_lookup_cache_key(**{pk_name: pk_val}), instance, self.cache_ttl)
+        except Exception as e:
+            logger.error(e, exc_info=True)
         instance._state.db = db
 
         # Kill off any keys which are no longer valid
