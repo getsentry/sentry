@@ -69,7 +69,6 @@ def record_affected_code(group, event, **kwargs):
 
     data = event.interfaces.get('sentry.interfaces.Exception')
     if not data:
-        print "no data"
         return
 
     checksum = lambda x: md5(x).hexdigest()
@@ -77,12 +76,14 @@ def record_affected_code(group, event, **kwargs):
     tags = []
     for exception in data:
         if not exception.stacktrace:
-            print "no stack"
             continue
+
         has_app_frames = exception.stacktrace.has_app_frames()
+
         for frame in exception.stacktrace:
             if has_app_frames and not frame.in_app:
                 continue
+
             tags.extend((
                 (
                     'sentry:filename',
