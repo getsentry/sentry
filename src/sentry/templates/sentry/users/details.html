@@ -19,7 +19,7 @@
     <h6>User Details</h6>
     <dl>
         <dt>Email:</dt>
-        <dd>{{ tag.data.email }}</dd>
+        <dd>{% if tag.data.email %}{{ tag.data.email }}{% else %}&mdash;{% endif %}</dd>
         <dt>First Seen:</dt>
         <dd>{{ tag.first_seen|timesince }}</dd>
         <dt>Last Seen:</dt>
@@ -42,6 +42,9 @@
     {% paginator event_list from request as event_list per_page MESSAGES_PER_PAGE %}
 
     <div class="btn-toolbar">
+        <div class="pull-left">
+            <h2 style="line-height:1;">{{ tag.value }}{% if tag.data.email %} <small>{{ tag.data.email }}</small>{% endif %}</h2>
+        </div>
         <div class="btn-group pull-right">
             <a class="btn prev{% if not event_list.paginator.has_previous %} disabled{% endif %}" href="?p={{ event_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
             <a class="btn next{% if not event_list.paginator.has_next %} disabled{% endif %}" href="?p={{ event_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
