@@ -4,6 +4,8 @@ Version 5.5.0
 Incompatible Changes
 ====================
 
+- Django has been upgraded to 1.5.
+- django.contrib.auth.models.User has been replaced with sentry.models.User.
 - sentry_servers no longer exists, and the behavior is now always present. If
   you had it manually listed in INSTALLED_APPS, simply remove it.
 - Filters have been deprecated, and most functionality removed. See notes below.
