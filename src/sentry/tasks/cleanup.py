@@ -25,7 +25,7 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
 
     # TODO: TagKey and GroupTagKey need cleaned up
     from sentry.models import (
-        Group, Event, GroupCountByMinute,
+        Group, Event, GroupCountByMinute, EventMapping,
         GroupTag, TagValue, ProjectCountByMinute, Alert,
         SearchDocument, Activity, LostPasswordHash)
 
@@ -38,7 +38,7 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
         (Activity, 'datetime'),
         (TagValue, 'last_seen'),
         (Alert, 'datetime'),
-
+        (EventMapping, 'date_added'),
         # Group should probably be last
         (Group, 'last_seen'),
     )
