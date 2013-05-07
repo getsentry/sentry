@@ -42,7 +42,7 @@
         </div>
 
         {% if not tag_list.paginator.objects %}
-            <p>{% blocktrans %}You dont seem to have any user data recorded. For more information on how to send this information consult your client's documentation.{% endblocktrans %}</p>
+            <p>{% blocktrans %}You dont seem to have any data recorded for this tag. For more information on how to send this information consult your client's documentation.{% endblocktrans %}</p>
         {% else %}
             <table class="table table-bordered table-striped">
                 <thead>
