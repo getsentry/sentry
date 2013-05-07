@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.contrib.auth.models.admin import UserAdmin
+from django.contrib.auth.admin import UserAdmin
 from sentry.models import Project, Team, User
 
 
