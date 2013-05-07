@@ -27,7 +27,7 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
     from sentry.models import (
         Group, Event, GroupCountByMinute,
         GroupTag, TagValue, ProjectCountByMinute, Alert,
-        SearchDocument, Activity, AffectedUserByGroup, LostPasswordHash)
+        SearchDocument, Activity, LostPasswordHash)
 
     GENERIC_DELETES = (
         (SearchDocument, 'date_changed'),
@@ -36,7 +36,6 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
         (GroupTag, 'last_seen'),
         (Event, 'datetime'),
         (Activity, 'datetime'),
-        (AffectedUserByGroup, 'last_seen'),
         (TagValue, 'last_seen'),
         (Alert, 'datetime'),
 

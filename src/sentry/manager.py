@@ -689,7 +689,12 @@ class GroupManager(BaseManager, ChartMixin):
         project = group.project
         date = group.last_seen
 
-        for key, value in itertools.ifilter(lambda x: bool(x[1]), tags):
+        for tag_item in tags:
+            if len(tag_item) == 2:
+                (key, value), data = tag_item, None
+            else:
+                key, value, data = tag_item
+
             if not value:
                 continue
 
@@ -705,6 +710,7 @@ class GroupManager(BaseManager, ChartMixin):
                 'value': value,
             }, {
                 'last_seen': date,
+                'data': data,
             })
 
             app.buffer.incr(GroupTag, {

@@ -518,7 +518,6 @@ class Group(EventBase):
     """
     status = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
     times_seen = models.PositiveIntegerField(default=1, db_index=True)
-    users_seen = models.PositiveIntegerField(default=0, db_index=True)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
     resolved_at = models.DateTimeField(null=True, db_index=True)
@@ -979,45 +978,6 @@ class LostPasswordHash(Model):
             logger.exception(e)
 
 
-class TrackedUser(Model):
-    project = models.ForeignKey(Project)
-    ident = models.CharField(max_length=200)
-    email = models.EmailField(null=True)
-    data = GzippedDictField(blank=True, null=True)
-    last_seen = models.DateTimeField(default=timezone.now, db_index=True)
-    first_seen = models.DateTimeField(default=timezone.now, db_index=True)
-    num_events = models.PositiveIntegerField(default=0)
-    groups = models.ManyToManyField(Group, through='sentry.AffectedUserByGroup')
-
-    objects = BaseManager()
-
-    class Meta:
-        unique_together = (('project', 'ident'),)
-
-    __repr__ = sane_repr('project_id', 'ident', 'email')
-
-
-class AffectedUserByGroup(Model):
-    """
-    Stores a count of how many times a ``Group`` has affected
-    a user.
-    """
-    project = models.ForeignKey(Project)
-    tuser = models.ForeignKey(TrackedUser, null=True)
-    group = models.ForeignKey(Group)
-    ident = models.CharField(max_length=200, null=True)
-    times_seen = models.PositiveIntegerField(default=0)
-    last_seen = models.DateTimeField(default=timezone.now, db_index=True)
-    first_seen = models.DateTimeField(default=timezone.now, db_index=True)
-
-    objects = BaseManager()
-
-    class Meta:
-        unique_together = (('project', 'tuser', 'group'),)
-
-    __repr__ = sane_repr('project_id', 'group_id', 'tuser_id')
-
-
 class Activity(Model):
     COMMENT = 0
     SET_RESOLVED = 1
@@ -1293,21 +1253,6 @@ def record_group_tag_count(filters, created, **kwargs):
         'project': filters['project'],
         'group': filters['group'],
         'key': filters['key'],
-    })
-
-
-@buffer_incr_complete.connect(sender=AffectedUserByGroup, weak=False)
-def record_user_count(filters, created, **kwargs):
-    from sentry import app
-
-    if not created:
-        # if it's not a new row, it's not a unique user
-        return
-
-    app.buffer.incr(Group, {
-        'users_seen': 1,
-    }, {
-        'id': filters['group'].id,
     })
 
 

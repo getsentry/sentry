@@ -6,7 +6,7 @@ import logging
 
 from django.core.urlresolvers import reverse
 
-from sentry.models import TrackedUser
+from sentry.models import TagValue
 from sentry.testutils import TestCase, fixture
 
 logger = logging.getLogger(__name__)
@@ -28,10 +28,10 @@ class UserListTest(TestCase):
     def test_does_render(self):
         self.login_as(self.user)
 
-        tuser = TrackedUser.objects.create(
+        tag = TagValue.objects.create(
             project=self.project,
-            ident='foo',
-            email='foo@example.com',
+            key='sentry:user',
+            value='foo',
         )
 
         resp = self.client.get(self.path)
@@ -39,20 +39,20 @@ class UserListTest(TestCase):
         self.assertTemplateUsed('sentry/users/list.html')
         assert resp.context['team'] == self.team
         assert resp.context['SECTION'] == 'users'
-        assert list(resp.context['tuser_list']) == [tuser]
+        assert list(resp.context['tag_list']) == [tag]
 
 
 class UserDetailsTest(TestCase):
     @fixture
     def path(self):
-        return reverse('sentry-user-details', args=[self.team.slug, self.tuser.id])
+        return reverse('sentry-user-details', args=[self.team.slug, self.tag.id])
 
     @fixture
-    def tuser(self):
-        return TrackedUser.objects.create(
+    def tag(self):
+        return TagValue.objects.create(
             project=self.project,
-            ident='foo',
-            email='foo@example.com',
+            key='sentry:user',
+            value='foo',
         )
 
     def test_missing_permission(self):
@@ -60,7 +60,7 @@ class UserDetailsTest(TestCase):
         assert resp.status_code == 302
 
     def test_invalid_team_slug(self):
-        resp = self.client.get(reverse('sentry-user-details', args=['a', self.tuser.id]))
+        resp = self.client.get(reverse('sentry-user-details', args=['a', self.tag.id]))
         assert resp.status_code == 302
 
     def test_invalid_tuser_id(self):
@@ -75,5 +75,5 @@ class UserDetailsTest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed('sentry/users/details.html')
         assert resp.context['team'] == self.team
-        assert resp.context['tuser'] == self.tuser
+        assert resp.context['tag'] == self.tag
         assert resp.context['SECTION'] == 'users'

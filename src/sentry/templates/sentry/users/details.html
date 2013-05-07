@@ -10,7 +10,7 @@
 {% block breadcrumb %}
     {{ block.super }}
     <li class="divider"></li>
-    <li><a href="{% url 'sentry-user-details' team.slug tuser.id %}">{{ tuser.email }}</a></li>
+    <li><a href="{% url 'sentry-user-details' team.slug tag.id %}">{{ tag.data.email }}</a></li>
 {% endblock %}
 
 {% block bodyclass %} with-sidebar{% endblock %}
@@ -19,18 +19,18 @@
     <h6>User Details</h6>
     <dl>
         <dt>Email:</dt>
-        <dd>{{ tuser.email }}</dd>
+        <dd>{{ tag.data.email }}</dd>
         <dt>First Seen:</dt>
-        <dd>{{ tuser.first_seen|timesince }}</dd>
+        <dd>{{ tag.first_seen|timesince }}</dd>
         <dt>Last Seen:</dt>
-        <dd>{{ tuser.last_seen|timesince }}</dd>
+        <dd>{{ tag.last_seen|timesince }}</dd>
         <dt>Number of Events:</dt>
-        <dd>{{ tuser.num_events|small_count }}</dd>
+        <dd>{{ tag.times_seen|small_count }}</dd>
     </dl>
-    {% if tuser.data %}
+    {% if tag.data.data %}
         <h6>Metadata</h6>
         <dl>
-            {% for key, value in tuser.data.iteritems %}
+            {% for key, value in tag.data.data.iteritems %}
                 <dt>{{ key|titlize }}</dt>
                 <dd>{{ value }}</dd>
             {% endfor %}
