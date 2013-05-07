@@ -1,6 +1,7 @@
 {% extends "sentry/teams/base.html" %}
 
 {% load url from future %}
+{% load crispy_forms_tags %}
 {% load i18n %}
 
 {% block title %}{% trans "New Team" %} | {{ block.super }}{% endblock %}
@@ -24,8 +25,9 @@
         <form class="form-stacked" action="" method="post">
             {% csrf_token %}
             <fieldset>
+                {{ form|as_crispy_errors }}
                 {% for field in form %}
-                    {% include "sentry/partial/_form_field.html" %}
+                    {{ field|as_crispy_field }}
                 {% endfor %}
             </fieldset>
             <div class="actions">

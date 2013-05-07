@@ -27,7 +27,7 @@
             <div><legend>{% trans "Events" %}</legend></div>
 
             {% with form.stacktrace_order as field %}
-                {% include "sentry/partial/_form_field.html" %}
+                {{ field|as_crispy_field }}
             {% endwith %}
         </fieldset>
 
@@ -36,7 +36,7 @@
             <div><legend>{% trans "Localization" %}</legend></div>
 
             {% with form.language as field %}
-                {% include "sentry/partial/_form_field.html" %}
+                {{ field|as_crispy_field }}
             {% endwith %}
         </fieldset>
 

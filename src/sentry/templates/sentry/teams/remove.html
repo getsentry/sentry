@@ -19,7 +19,7 @@
             {% csrf_token %}
             {{ form|as_crispy_errors }}
             {% for field in form %}
-                {% include "sentry/partial/_form_field.html" %}
+                {{ field|as_crispy_field }}
             {% endfor %}
             <fieldset class="form-actions">
                 <button type="submit" class="btn btn-danger">{% trans "Confirm" %}</button> <a href="{% url 'sentry-manage-team' team.slug %}" class="btn">{% trans "Cancel" %}</a>

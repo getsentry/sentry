@@ -33,7 +33,7 @@
         <br/>
         <legend>{% trans "Access" %}</legend>
         {% for field in form %}
-            {% include "sentry/partial/_form_field.html" %}
+            {{ field|as_crispy_field }}
         {% endfor %}
         <div class="form-actions">
             <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>

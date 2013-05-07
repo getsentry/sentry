@@ -26,7 +26,7 @@
                     {% csrf_token %}
 
                     {% for field in form %}
-                        {% include "sentry/partial/_form_field.html" %}
+                        {{ field|as_crispy_field }}
                     {% endfor %}
 
                     <fieldset class="form-actions">

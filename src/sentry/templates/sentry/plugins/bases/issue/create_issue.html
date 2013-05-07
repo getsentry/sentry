@@ -15,10 +15,11 @@
 
         <form class="form-stacked" action="" method="post">
             {% csrf_token %}
+            {{ form|as_crispy_errors }}
             <input type="hidden" name="next" value="{{ next }}" />
             <fieldset>
                 {% for field in form %}
-                    {% include "sentry/partial/_form_field.html" %}
+                    {{ field|as_crispy_field }}
                 {% endfor %}
             </fieldset>
             <p class="actions">
