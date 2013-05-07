@@ -151,6 +151,20 @@ class Model(models.Model):
         super(Model, self).__init__(*args, **kwargs)
         self._update_tracked_data()
 
+    def __getstate__(self):
+        d = self.__dict__.copy()
+        # we cant serialize weakrefs
+        d.pop('_Model__data', None)
+        return d
+
+    def __reduce__(self):
+        (model_unpickle, stuff, _) = super(Model, self).__reduce__()
+        return (model_unpickle, stuff, self.__getstate__())
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._update_tracked_data()
+
     def __get_field_value(self, field):
         if isinstance(field, models.ForeignKey):
             return getattr(self, field.column)
