@@ -7,6 +7,8 @@ Incompatible Changes
 - sentry_servers no longer exists, and the behavior is now always present. If
   you had it manually listed in INSTALLED_APPS, simply remove it.
 - Filters have been deprecated, and most functionality removed. See notes below.
+- TrackedUser, AffectedByUser, and Group.users_seen have been removed in favor
+  of reusing the tagging architecture for user tracking.
 
 Protocol Version 4
 ==================
