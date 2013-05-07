@@ -237,13 +237,12 @@ urlpatterns = patterns('',
     url(r'^(?P<team_slug>[\w_-]+)/show/alerts/$', alerts.alert_list,
         name='sentry-alerts'),
 
-    # Users
-    url(r'^(?P<team_slug>[\w_-]+)/explore/users/$', users.user_list,
+    # Explore - Users
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/users/$', users.user_list,
         name='sentry-users'),
-    url(r'^(?P<team_slug>[\w_-]+)/explore/users/(?P<user_id>\d+)/$', users.user_details,
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/users/(?P<user_id>\d+)/$', users.user_details,
         name='sentry-user-details'),
 
-    # Project specific
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/get-started/$', projects.get_started,
         name='sentry-get-started'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/$', groups.group,

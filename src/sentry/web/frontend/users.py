@@ -5,7 +5,7 @@ sentry.web.frontend.users
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from sentry.models import TagValue, GroupTag
+from sentry.models import TagValue, Group
 from sentry.web.decorators import login_required, has_access
 from sentry.web.helpers import render_to_response
 
@@ -19,12 +19,12 @@ SORT_OPTIONS = {
 
 @has_access
 @login_required
-def user_list(request, team):
+def user_list(request, team, project):
     sort = request.GET.get('sort')
     if sort not in SORT_OPTIONS:
         sort = DEFAULT_SORT_OPTION
 
-    tag_list = TagValue.objects.filter(project__team=team, key='sentry:user')
+    tag_list = TagValue.objects.filter(project=project, key='sentry:user')
 
     if sort == 'recent':
         tag_list = tag_list.order_by('-last_seen')
@@ -34,8 +34,9 @@ def user_list(request, team):
         tag_list = tag_list.order_by('-num_events')
 
     return render_to_response('sentry/users/list.html', {
-        'tag_list': tag_list,
         'team': team,
+        'project': project,
+        'tag_list': tag_list,
         'sort_label': SORT_OPTIONS[sort],
         'SECTION': 'users',
         'SORT_OPTIONS': SORT_OPTIONS,
@@ -44,21 +45,22 @@ def user_list(request, team):
 
 @has_access
 @login_required
-def user_details(request, team, user_id):
+def user_details(request, team, project, user_id):
     tag = TagValue.objects.get(
-        project__team=team,
+        project=project,
         key='sentry:user',
         id=user_id,
     )
 
-    event_list = GroupTag.objects.filter(
-        project__team=team,
-        key='sentry:user',
-        value=tag.value,
+    event_list = Group.objects.filter(
+        grouptag__project=project,
+        grouptag__key='sentry:user',
+        grouptag__value=tag.value,
     )
 
     return render_to_response('sentry/users/details.html', {
         'team': team,
+        'project': project,
         'tag': tag,
         'event_list': event_list,
         'SECTION': 'users',
