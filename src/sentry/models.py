@@ -40,7 +40,7 @@ from sentry.constants import (
 from sentry.manager import (
     GroupManager, ProjectManager,
     MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager,
-    UserOptionManager, TagKeyManager, TeamManager)
+    UserOptionManager, TagKeyManager, TeamManager, UserManager)
 from sentry.signals import buffer_incr_complete, regression_signal
 from sentry.utils.cache import memoize
 from sentry.utils.db import has_trending
@@ -82,7 +82,7 @@ def sane_repr(*attrs):
 
 
 class User(Model, AbstractUser):
-    objects = BaseManager(cache_fields=['pk'])
+    objects = UserManager(cache_fields=['pk'])
 
     class Meta:
         db_table = 'auth_user'

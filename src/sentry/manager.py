@@ -22,6 +22,7 @@ import uuid
 
 from celery.signals import task_postrun
 from django.conf import settings as dj_settings
+from django.contrib.auth.models import UserManager
 from django.core.signals import request_finished
 from django.db import models, transaction, IntegrityError
 from django.db.models import Sum
@@ -281,6 +282,10 @@ def time_limit(silence):  # ~ 3600 per hour
         if silence >= amount:
             return sample_rate
     return settings.MAX_SAMPLE_TIME
+
+
+class UserManager(BaseManager, UserManager):
+    pass
 
 
 class ChartMixin(object):
