@@ -67,6 +67,7 @@ class BaseManager(models.Manager):
     lookup_handlers = {
         'iexact': lambda x: x.upper(),
     }
+    use_for_related_fields = True
 
     def __init__(self, *args, **kwargs):
         self.cache_fields = kwargs.pop('cache_fields', [])
