@@ -11,7 +11,7 @@ import itertools
 import random
 import time
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, make_option
 
 
 def funcs():
@@ -54,6 +54,10 @@ def funcs():
 class Command(BaseCommand):
     help = 'Performs any pending database migrations and upgrades'
 
+    option_list = BaseCommand.option_list + (
+        make_option('--num', dest='num_events', type=int),
+    )
+
     def handle(self, **options):
         from raven.contrib.django.models import client
 
@@ -63,10 +67,15 @@ class Command(BaseCommand):
 
         functions = funcs()
 
+        if options['num_events']:
+            max_events = options['num_events']
+
         s = time.time()
         r = 0
         try:
             while True:
+                if r == max_events:
+                    break
                 if options['verbosity'] > 1:
                     self.stdout.write('Sending event..\n')
                 random.choice(functions)(client)
