@@ -37,7 +37,7 @@ if (Sentry === undefined) {
                 }
                 avg = average(inputs);
 
-                for (i = 0; i < data.length; i += 2) {
+                for (i = 0; i < data.length; i++) {
                     data_avg.push([data[i][0], avg.deviation]);
                 }
 
