@@ -385,7 +385,9 @@ class ProjectOption(Model):
     key = models.CharField(max_length=64)
     value = PickledObjectField()
 
-    objects = InstanceMetaManager('project')
+    objects = InstanceMetaManager('project', cache_fields=[
+        'project_id',
+    ])
 
     class Meta:
         db_table = 'sentry_projectoptions'

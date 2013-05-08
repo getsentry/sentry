@@ -116,11 +116,16 @@ def attach_foreignkey(objects, field, related=[], database=None):
     # values specified in select_related
     values = set(filter(None, (getattr(o, column) for o in objects)))
     if values:
-        qs = model.objects.filter(**{'%s__in' % lookup: values})
+        qs = model.objects
         if database:
             qs = qs.using(database)
         if related:
             qs = qs.select_related(*related)
+
+        if len(values) > 1:
+            qs = qs.filter(**{'%s__in' % lookup: values})
+        else:
+            qs = [qs.get(**{lookup: iter(values).next()})]
 
         queryset = dict((getattr(o, key), o) for o in qs)
     else:
