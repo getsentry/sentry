@@ -78,10 +78,9 @@ def record_affected_code(group, event, **kwargs):
         if not exception.stacktrace:
             continue
 
-        has_app_frames = exception.stacktrace.has_app_frames()
-
         for frame in exception.stacktrace:
-            if has_app_frames and not frame.in_app:
+            # we only tag explicit app frames to avoid excess fat
+            if not frame.in_app:
                 continue
 
             filename = frame.filename or frame.module
