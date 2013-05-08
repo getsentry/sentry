@@ -955,15 +955,21 @@ class InstanceMetaManager(BaseManager):
     def get_all_values(self, instance):
         if not hasattr(self, '_metadata'):
             self._metadata = {}
-        if instance.pk not in self._metadata:
+
+        if isinstance(instance, models.Model):
+            instance_id = instance.pk
+        else:
+            instance_id = instance
+
+        if instance_id not in self._metadata:
             result = dict(
                 (i.key, i.value) for i in
                 self.filter(**{
-                    self.field_name: instance,
+                    self.field_name: instance_id,
                 })
             )
-            self._metadata[instance.pk] = result
-        return self._metadata.get(instance.pk, {})
+            self._metadata[instance_id] = result
+        return self._metadata.get(instance_id, {})
 
     def clear_cache(self, **kwargs):
         self._metadata = {}
