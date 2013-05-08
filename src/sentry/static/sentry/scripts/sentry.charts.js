@@ -6,6 +6,14 @@ if (Sentry === undefined) {
 
     var $ = jQuery;
 
+    var average = function(a) {
+        var r = {mean: 0, variance: 0, deviation: 0}, t = a.length;
+        for (var m, s = 0, l = t; l--; s += a[l]);
+        for (m = r.mean = s / t, l = t, s = 0; l--; s += Math.pow(a[l] - m, 2));
+        r.deviation = Math.sqrt(r.variance = s / t);
+        return r;
+    };
+
     Sentry.charts = {};
     Sentry.charts.render = function(el){
         var $sparkline = $(el);
@@ -23,6 +31,16 @@ if (Sentry === undefined) {
                 gid: $sparkline.attr('data-group') || undefined
             },
             success: function(data){
+                var inputs = [], avg, i, data_avg = [];
+                for (i = 0; i < data.length; i++) {
+                    inputs.push(data[i][1]);
+                }
+                avg = average(inputs);
+
+                for (i = 0; i < data.length; i += 2) {
+                    data_avg.push([data[i][0], avg.deviation]);
+                }
+
                 var points = [
                     {
                         data: data,
@@ -32,6 +50,17 @@ if (Sentry === undefined) {
                             lineWidth: 2,
                             show: true,
                             fill: true
+                        }
+                    },
+                    {
+                        data: data_avg,
+                        color: 'rgba(86, 175, 232, .5)',
+                        // color: '#000000',
+                        shadowSize: 0,
+                        dashes: {
+                            lineWidth: 2,
+                            show: true,
+                            fill: false
                         }
                     }
                 ];
