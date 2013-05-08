@@ -65,10 +65,10 @@ def check_project_alerts(project_id, when, count, **kwargs):
 
     # TODO: make this use the cache
     try:
-        threshold, min_events = ProjectOption.objects.get(
+        threshold, min_events = ProjectOption.objects.get_value(
             project=project_id,
             key='alert:threshold',
-        ).value
+        )
     except ProjectOption.DoesNotExist:
         threshold, min_events = settings.DEFAULT_ALERT_PROJECT_THRESHOLD
 
