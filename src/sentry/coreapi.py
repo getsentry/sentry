@@ -176,7 +176,7 @@ def project_from_api_key_and_id(api_key, project_id):
             raise APIUnauthorized('Member does not have access to project')
 
         # We have to refetch this as it may have been caught
-        pk.user = User.objects.get(id=pk.user_id)
+        pk.user = User.objects.get_from_cache(id=pk.user_id)
         if not pk.user.is_active:
             raise APIUnauthorized('Account is not active')
 
