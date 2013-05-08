@@ -70,7 +70,7 @@ class PluginManager(InstanceManager):
         for plugin in self.all():
             if plugin.slug == slug:
                 return plugin
-        raise KeyError
+        raise KeyError(slug)
 
     def first(self, func_name, *args, **kwargs):
         for plugin in self.all():
