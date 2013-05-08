@@ -42,6 +42,7 @@ class RecordAffectedCodeTest(TestCase):
                         'frames': [{
                             'function': 'bar',
                             'filename': 'foo.py',
+                            'in_app': True,
                         }],
                     },
                 }],
