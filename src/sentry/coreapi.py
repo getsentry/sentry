@@ -129,14 +129,14 @@ def project_from_auth_vars(auth_vars):
 
     project = Project.objects.get_from_cache(pk=pk.project_id)
 
-    if pk.user:
+    if pk.user_id:
         try:
             team = Team.objects.get_from_cache(pk=project.team_id)
         except Team.DoesNotExist:
             raise APIUnauthorized('Member does not have access to project')
 
         try:
-            TeamMember.objects.get(team=team, user=pk.user, is_active=True)
+            TeamMember.objects.get(team=team, user=pk.user_id, is_active=True)
         except TeamMember.DoesNotExist:
             raise APIUnauthorized('Member does not have access to project')
 
