@@ -54,7 +54,7 @@ if (Sentry === undefined) {
                     },
                     {
                         data: data_avg,
-                        color: 'rgba(86, 175, 232, .5)',
+                        color: 'rgba(244, 63, 32, .4)',
                         // color: '#000000',
                         shadowSize: 0,
                         dashes: {
