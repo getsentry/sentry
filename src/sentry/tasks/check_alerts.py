@@ -42,9 +42,10 @@ def check_alerts(**kwargs):
     qs = ProjectCountByMinute.objects.filter(
         date__lte=max_date,
         date__gt=min_date,
-        times_seen__gt=0,
     ).values_list('project_id', 'date', 'times_seen')
     for project_id, date, count in qs:
+        if not count:
+            continue  # shouldnt happen
         normalized_count = int(count / ((now - date).seconds / 60))
         check_project_alerts.delay(
             project_id=project_id,
