@@ -48,7 +48,7 @@ class Lock(object):
         lock_key = self.lock_key
         cache = self.cache
 
-        delay = random.random() / 2
+        delay = 0.01 + random.random() / 10
         attempt = 0
         max_attempts = self.timeout / delay
         got_lock = None
