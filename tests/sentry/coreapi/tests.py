@@ -7,7 +7,7 @@ import mock
 
 from sentry.models import Project, User
 from sentry.exceptions import InvalidTimestamp
-from sentry.coreapi import (project_from_id, project_from_api_key_and_id,
+from sentry.coreapi import (
     extract_auth_vars, project_from_auth_vars, APIUnauthorized, APIForbidden,
     process_data_timestamp, validate_data, INTERFACE_ALIASES)
 from sentry.testutils import TestCase
@@ -36,68 +36,6 @@ class InterfaceAliasesTest(BaseAPITest):
 
     def test_template(self):
         assert INTERFACE_ALIASES['template'] == 'sentry.interfaces.Template'
-
-
-class ProjectFromIdTest(BaseAPITest):
-    def test_valid(self):
-        request = mock.Mock()
-        request.user = self.user
-        request.GET = {'project_id': self.project.id}
-
-        project = project_from_id(request)
-
-        self.assertEquals(project, self.project)
-
-    def test_invalid_project_id(self):
-        request = mock.Mock()
-        request.user = self.user
-        request.GET = {'project_id': 10000}
-
-        self.assertRaises(APIUnauthorized, project_from_id, request)
-
-    def test_inactive_user(self):
-        request = mock.Mock()
-        request.user = self.user
-        request.user.is_active = False
-        request.GET = {'project_id': self.project.id}
-
-        self.assertRaises(APIUnauthorized, project_from_id, request)
-
-    def test_inactive_member(self):
-        request = mock.Mock()
-        request.user = self.user
-        request.GET = {'project_id': self.project.id}
-
-        self.pm.is_active = False
-        self.pm.save()
-
-        self.assertRaises(APIUnauthorized, project_from_id, request)
-
-
-class ProjectFromApiKeyAndIdTest(BaseAPITest):
-    def test_valid(self):
-        api_key = self.pk.public_key
-        project = project_from_api_key_and_id(api_key, self.project.id)
-        self.assertEquals(project, self.project)
-
-    def test_invalid_project_id(self):
-        self.assertRaises(APIUnauthorized, project_from_api_key_and_id, self.pk.public_key, 10000)
-
-    def test_invalid_api_key(self):
-        self.assertRaises(APIUnauthorized, project_from_api_key_and_id, 1, self.project.id)
-
-    def test_inactive_user(self):
-        user = self.pm.user
-        user.is_active = False
-        user.save()
-
-        self.assertRaises(APIUnauthorized, project_from_api_key_and_id, self.pk.public_key, self.project.id)
-
-    def test_inactive_member(self):
-        self.pm.is_active = False
-        self.pm.save()
-
-        self.assertRaises(APIUnauthorized, project_from_api_key_and_id, self.pk.public_key, self.project.id)
 
 
 class ExtractAuthVarsTest(BaseAPITest):

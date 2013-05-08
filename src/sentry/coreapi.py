@@ -21,7 +21,6 @@ from sentry.app import env
 from sentry.conf import settings
 from sentry.exceptions import InvalidTimestamp
 from sentry.models import Project, ProjectKey, TeamMember, Team, User
-from sentry.plugins import plugins
 from sentry.tasks.store import preprocess_event
 from sentry.utils import is_float, json
 from sentry.utils.auth import parse_auth_header
@@ -135,92 +134,16 @@ def project_from_auth_vars(auth_vars):
         except Team.DoesNotExist:
             raise APIUnauthorized('Member does not have access to project')
 
-        try:
-            TeamMember.objects.get(team=team, user=pk.user_id, is_active=True)
-        except TeamMember.DoesNotExist:
-            raise APIUnauthorized('Member does not have access to project')
-
-        # We have to refetch this as it may have been caught
-        pk.user = User.objects.get(id=pk.user_id)
-        if not pk.user.is_active:
-            raise APIUnauthorized('Account is not active')
-
-    return project, pk.user
-
-
-def project_from_api_key_and_id(api_key, project_id):
-    """
-    Given a public api key and a project id returns
-    a project instance or throws APIUnauthorized.
-    """
-    try:
-        pk = ProjectKey.objects.get_from_cache(public_key=api_key)
-    except ProjectKey.DoesNotExist:
-        raise APIUnauthorized('Invalid api key')
-
-    if str(project_id).isdigit():
-        if str(pk.project_id) != str(project_id):
-            raise APIUnauthorized('Invalid project id')
-    else:
-        if str(pk.project.slug) != str(project_id):
-            raise APIUnauthorized('Invalid project id')
-
-    project = Project.objects.get_from_cache(pk=pk.project_id)
-
-    if pk.user:
-        team = Team.objects.get_from_cache(pk=project.team_id)
-
-        try:
-            tm = TeamMember.objects.get(team=team, user=pk.user, is_active=True)
-        except TeamMember.DoesNotExist:
-            raise APIUnauthorized('Member does not have access to project')
-
         # We have to refetch this as it may have been caught
         pk.user = User.objects.get_from_cache(id=pk.user_id)
         if not pk.user.is_active:
             raise APIUnauthorized('Account is not active')
 
-        tm.project = project
+        if not TeamMember.objects.filter(
+                team=team, user=pk.user_id, is_active=True).exists():
+            raise APIUnauthorized('Member does not have access to project')
 
-        result = plugins.first('has_perm', tm.user, 'create_event', project)
-        if result is False:
-            raise APIForbidden('Creation of this event was blocked')
-
-    return project
-
-
-def project_from_id(request):
-    """
-    Given a request returns a project instance or throws
-    APIUnauthorized.
-    """
-    if not request.user.is_active:
-        raise APIUnauthorized('Account is not active')
-
-    try:
-        project = Project.objects.get_from_cache(pk=request.GET['project_id'])
-    except Project.DoesNotExist:
-        raise APIUnauthorized('Invalid project')
-
-    try:
-        team = Team.objects.get_from_cache(pk=project.team_id)
-    except Project.DoesNotExist:
-        raise APIUnauthorized('Member does not have access to project')
-
-    try:
-        TeamMember.objects.get(
-            user=request.user,
-            team=team,
-            is_active=True,
-        )
-    except TeamMember.DoesNotExist:
-        raise APIUnauthorized('Member does not have access to project')
-
-    result = plugins.first('has_perm', request.user, 'create_event', project)
-    if result is False:
-        raise APIForbidden('Creation of this event was blocked')
-
-    return project
+    return project, pk.user
 
 
 def decode_and_decompress_data(encoded_data):
