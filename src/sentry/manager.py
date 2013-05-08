@@ -38,7 +38,7 @@ from sentry.constants import STATUS_RESOLVED, STATUS_UNRESOLVED, MINUTE_NORMALIZ
 from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
 from sentry.tasks.index import index_event
-from sentry.utils.cache import cache, memoize, Lock
+from sentry.utils.cache import cache, memoize
 from sentry.utils.dates import get_sql_date_trunc, normalize_datetime
 from sentry.utils.db import get_db_engine, has_charts, attach_foreignkey
 from sentry.utils.models import create_or_update, make_key
@@ -218,32 +218,6 @@ class BaseManager(models.Manager):
             return retval
         else:
             return self.get(**kwargs)
-
-    def get_or_create(self, _cache=False, **kwargs):
-        """
-        A modified version of Django's get_or_create which will create a distributed
-        lock (using the cache backend) whenever it hits the create clause.
-        """
-        defaults = kwargs.pop('defaults', {})
-
-        # before locking attempt to fetch the instance
-        try:
-            if _cache:
-                return self.get_from_cache(**kwargs), False
-            return self.get(**kwargs), False
-        except self.model.DoesNotExist:
-            pass
-        lock_key = make_key(self.model, 'lock', kwargs)
-
-        # instance not found, lets grab a lock and attempt to create it
-        with Lock(lock_key):
-            # its important we get() before create() to ensure that if
-            # someone beat us to creating it from the time we did our very
-            # first .get(), that we get the result back as we cannot
-            # rely on unique constraints existing
-            instance, created = super(BaseManager, self).get_or_create(defaults=defaults, **kwargs)
-
-        return instance, created
 
     def create_or_update(self, **kwargs):
         return create_or_update(self.model, **kwargs)
