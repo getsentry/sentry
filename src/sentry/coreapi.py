@@ -299,19 +299,19 @@ def validate_data(project, data, client=None):
     elif not isinstance(data['message'], basestring):
         raise APIError('Invalid value for message')
     elif len(data['message']) > MAX_MESSAGE_LENGTH:
-        logger.error('Truncated value for message due to length (%d chars)', len(data['message']),
+        logger.info('Truncated value for message due to length (%d chars)', len(data['message']),
             **client_metadata(client))
         data['message'] = data['message'][:MAX_MESSAGE_LENGTH]
 
     if data.get('culprit') and len(data['culprit']) > MAX_CULPRIT_LENGTH:
-        logger.error('Truncated value for culprit due to length (%d chars)', len(data['culprit']),
+        logger.info('Truncated value for culprit due to length (%d chars)', len(data['culprit']),
             **client_metadata(client))
         data['culprit'] = data['culprit'][:MAX_CULPRIT_LENGTH]
 
     if not data.get('event_id'):
         data['event_id'] = uuid.uuid4().hex
     if len(data['event_id']) > 32:
-        logger.error('Discarded value for event_id due to length (%d chars)', len(data['event_id']),
+        logger.info('Discarded value for event_id due to length (%d chars)', len(data['event_id']),
             **client_metadata(client))
         data['event_id'] = uuid.uuid4().hex
 
@@ -325,12 +325,12 @@ def validate_data(project, data, client=None):
             del data['timestamp']
 
     if data.get('modules') and type(data['modules']) != dict:
-        logger.error('Discarded invalid type for modules: %s', type(data['modules']),
+        logger.info('Discarded invalid type for modules: %s', type(data['modules']),
             **client_metadata(client))
         del data['modules']
 
     if data.get('extra') and type(data['extra']) != dict:
-        logger.error('Discarded invalid type for extra: %s', type(data['extra']),
+        logger.info('Discarded invalid type for extra: %s', type(data['extra']),
             **client_metadata(client))
         del data['extra']
 
@@ -346,14 +346,14 @@ def validate_data(project, data, client=None):
         import_path = INTERFACE_ALIASES.get(k, k)
 
         if '.' not in import_path:
-            logger.warning('Ignored unknown attribute: %s', k, **client_metadata(client))
+            logger.info('Ignored unknown attribute: %s', k, **client_metadata(client))
             del data[k]
             continue
 
         try:
             interface = import_string(import_path)
         except (ImportError, AttributeError), e:
-            logger.warning('Invalid unknown attribute: %s', k, **client_metadata(client, exception=e))
+            logger.info('Invalid unknown attribute: %s', k, **client_metadata(client, exception=e))
             del data[k]
             continue
 
@@ -364,7 +364,7 @@ def validate_data(project, data, client=None):
             data[import_path] = inst.serialize()
         except Exception, e:
             if isinstance(e, AssertionError):
-                log = logger.warning
+                log = logger.info
             else:
                 log = logger.error
             log('Discarded invalid value for interface: %s', k,
@@ -376,7 +376,7 @@ def validate_data(project, data, client=None):
         try:
             data['level'] = settings.LOG_LEVEL_REVERSE_MAP[level]
         except KeyError, e:
-            logger.warning('Discarded invalid logger value: %s', level, **client_metadata(client, exception=e))
+            logger.info('Discarded invalid logger value: %s', level, **client_metadata(client, exception=e))
             data['level'] = settings.LOG_LEVEL_REVERSE_MAP.get(settings.DEFAULT_LOG_LEVEL,
                 settings.DEFAULT_LOG_LEVEL)
 
