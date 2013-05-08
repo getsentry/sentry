@@ -1078,14 +1078,12 @@ class Alert(Model):
 
         # TODO: there is a race condition if we're calling this function for the same project
         if manager.filter(
-                project=project_id, datetime__gte=now - timedelta(minutes=60),
-                status=STATUS_UNRESOLVED).exists():
+                project=project_id, datetime__gte=now - timedelta(minutes=60)).exists():
             return
 
         if manager.filter(
                 project=project_id, group=group_id,
-                datetime__gte=now - timedelta(minutes=60),
-                status=STATUS_UNRESOLVED).exists():
+                datetime__gte=now - timedelta(minutes=60)).exists():
             return
 
         alert = manager.create(
