@@ -479,6 +479,8 @@ class EventBase(Model):
     def message_top(self):
         if self.culprit:
             return self.culprit
+        if not self.message:
+            return '<unlabeled message>'
         return truncatechars(self.message.splitlines()[0], 100)
 
     @property
