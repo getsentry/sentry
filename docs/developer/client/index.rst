@@ -416,6 +416,43 @@ The request body should then somewhat resemble the following::
         }]
     }
 
+Reading the Response
+--------------------
+
+If you're using HTTP, you'll receive a response from the server. The response
+looks something like this:
+
+::
+
+    HTTP/1.1 200 OK
+    Content-Type: application/json
+
+    {
+        "id": "fc6d8c0c43fc4630ad850ee518f1b9d0"
+    }
+
+One thing to take note of is the response status code. Sentry uses this in a
+variety of ways. You'll **always** want to check for a 200 response if you want
+to ensure that the message was delivered, as a small level of validation
+happens immediately that may result in a different response code (and message).
+
+For example, you might get something like this:
+
+::
+
+
+    HTTP/1.1 400 Bad Request
+    X-Sentry-Error: Client request error: Missing client version identifier
+
+    Client request error: Missing client version identifier
+
+
+.. note:: The X-Sentry-Error header will always be present with the precise
+          error message and it is the preferred way to identify the root cause.
+
+          If it's not available, it's likely the request was not handled by the
+          API server, or a critical system failure has occurred.
+
 Handling Failures
 -----------------
 
