@@ -151,7 +151,7 @@ def _get_group_list(request, project):
         if cursor:
             event_list = event_list.extra(
                 where=['%s > %%s' % filter_clause],
-                params=[int(cursor)],
+                params=[float(cursor)],
             )
 
     return {
