@@ -253,7 +253,7 @@ class StoreView(APIView):
         event_id = self.process(request, project, auth, data, **kwargs)
         return HttpResponse(json.dumps({
             'id': event_id,
-        }))
+        }), 'application/json')
 
     @never_cache
     def get(self, request, project, auth, **kwargs):
