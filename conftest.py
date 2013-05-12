@@ -63,3 +63,7 @@ def pytest_configure(config):
     settings.PASSWORD_HASHERS = [
         'django.contrib.auth.hashers.MD5PasswordHasher',
     ]
+
+    # enable draft features
+    settings.SENTRY_ENABLE_EXPLORE_CODE = True
+    settings.SENTRY_ENABLE_EXPLORE_USERS = True

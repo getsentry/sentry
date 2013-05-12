@@ -9,6 +9,7 @@ sentry.tasks.post_process
 from celery.task import task
 from hashlib import md5
 
+from sentry.conf import settings
 from sentry.plugins import plugins
 from sentry.utils.safe import safe_execute
 
@@ -43,6 +44,9 @@ def plugin_post_process_group(plugin_slug, group, **kwargs):
 def record_affected_user(group, event, **kwargs):
     from sentry.models import Group
 
+    if not settings.ENABLE_EXPLORE_USERS:
+        return
+
     data = event.data.get('sentry.interfaces.User')
     if not data:
         return
@@ -66,6 +70,9 @@ def record_affected_user(group, event, **kwargs):
     queue='triggers')
 def record_affected_code(group, event, **kwargs):
     from sentry.models import Group
+
+    if not settings.ENABLE_EXPLORE_CODE:
+        return
 
     data = event.interfaces.get('sentry.interfaces.Exception')
     if not data:

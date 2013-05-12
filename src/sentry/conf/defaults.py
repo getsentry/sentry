@@ -164,3 +164,7 @@ RAVEN_JS_URL = 'd3nslu0hdya83q.cloudfront.net/dist/1.0/raven.min.js'
 # (Defaults to URL_PREFIX by default)
 ENDPOINT = None
 PUBLIC_ENDPOINT = None
+
+# Early draft features. Not slated or public release yet.
+ENABLE_EXPLORE_CODE = False
+ENABLE_EXPLORE_USERS = False
