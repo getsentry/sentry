@@ -371,6 +371,10 @@ def github_button(user, repo):
 
 @register.inclusion_tag('sentry/partial/data_values.html')
 def render_values(value, threshold=5, collapse_to=3):
+    
+    if isinstance(value, list):
+        value = { "[%04d]" % (idx+1): val for idx, val in enumerate(value) }
+    
     is_dict = isinstance(value, dict)
     context = {
         'is_dict': is_dict,
