@@ -216,7 +216,7 @@ def skip_initial_migration_if_applied(settings, app_name, table_name):
         return wrapped
 
     initial.forwards = types.MethodType(
-        initial_forwards(initial.forwards), initial.forwards)
+        initial_forwards(initial.forwards), initial)
 
 
 def configure():
