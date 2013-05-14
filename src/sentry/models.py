@@ -83,11 +83,11 @@ def sane_repr(*attrs):
 
 
 class User(Model, AbstractUser):
-    objects = UserManager(cache_fields=['pk'])
-
     class Meta:
         db_table = 'auth_user'
         app_label = 'auth'
+
+User.add_to_class('objects', UserManager(cache_fields=['pk']))
 
 
 class Option(Model):

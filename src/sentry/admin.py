@@ -1,6 +1,5 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
-from sentry.models import Project, Team, User
+from sentry.models import Project, Team
 
 
 class ProjectAdmin(admin.ModelAdmin):
@@ -18,5 +17,3 @@ class TeamAdmin(admin.ModelAdmin):
     raw_id_fields = ('owner',)
 
 admin.site.register(Team, TeamAdmin)
-
-admin.site.register(User, UserAdmin)
