@@ -59,7 +59,7 @@ class NewProjectAdminForm(NewProjectForm):
     owner = UserField(required=False)
 
     class Meta:
-        fields = ('name', 'platform', 'owner')
+        fields = ('name', 'platform')
         model = Project
 
 

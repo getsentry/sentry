@@ -56,7 +56,7 @@ test-cli:
 	@echo "Testing CLI"
 	rm -f test.conf
 	sentry init test.conf
-	sentry upgrade
+	sentry --config=test.conf upgrade
 	sentry --config=test.conf help | grep start > /dev/null
 
 test-js:

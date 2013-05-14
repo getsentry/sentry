@@ -19,6 +19,7 @@ from hashlib import md5
 from picklefield.fields import PickledObjectField
 from south.modelsinspector import add_introspection_rules
 
+from django.conf import settings as django_settings
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.signals import user_logged_in
 from django.core.urlresolvers import reverse
@@ -86,6 +87,7 @@ class User(Model, AbstractUser):
 
     class Meta:
         db_table = 'auth_user'
+        app_label = 'auth'
 
 
 class Option(Model):
@@ -112,9 +114,9 @@ class Team(Model):
     """
     slug = models.SlugField(unique=True)
     name = models.CharField(max_length=64)
-    owner = models.ForeignKey(User)
+    owner = models.ForeignKey(django_settings.AUTH_USER_MODEL)
     date_added = models.DateTimeField(default=timezone.now, null=True)
-    members = models.ManyToManyField(User, through='sentry.TeamMember', related_name='team_memberships')
+    members = models.ManyToManyField(django_settings.AUTH_USER_MODEL, through='sentry.TeamMember', related_name='team_memberships')
 
     objects = TeamManager(cache_fields=(
         'pk',
@@ -158,7 +160,7 @@ class AccessGroup(Model):
     date_added = models.DateTimeField(default=timezone.now)
 
     projects = models.ManyToManyField('sentry.Project')
-    members = models.ManyToManyField(User)
+    members = models.ManyToManyField(django_settings.AUTH_USER_MODEL)
 
     objects = BaseManager()
 
@@ -177,7 +179,7 @@ class TeamMember(Model):
     be set to ownership.
     """
     team = models.ForeignKey(Team, related_name="member_set")
-    user = models.ForeignKey(User, related_name="sentry_teammember_set")
+    user = models.ForeignKey(django_settings.AUTH_USER_MODEL, related_name="sentry_teammember_set")
     is_active = models.BooleanField(default=True)
     type = models.IntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
     date_added = models.DateTimeField(default=timezone.now)
@@ -205,7 +207,7 @@ class Project(Model):
 
     slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)
-    owner = models.ForeignKey(User, related_name="sentry_owned_project_set", null=True)
+    owner = models.ForeignKey(django_settings.AUTH_USER_MODEL, related_name="sentry_owned_project_set", null=True)
     team = models.ForeignKey(Team, null=True)
     public = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now)
@@ -320,10 +322,10 @@ class ProjectKey(Model):
     project = models.ForeignKey(Project, related_name='key_set')
     public_key = models.CharField(max_length=32, unique=True, null=True)
     secret_key = models.CharField(max_length=32, unique=True, null=True)
-    user = models.ForeignKey(User, null=True)
+    user = models.ForeignKey(django_settings.AUTH_USER_MODEL, null=True)
 
     # For audits
-    user_added = models.ForeignKey(User, null=True, related_name='keys_added_set')
+    user_added = models.ForeignKey(django_settings.AUTH_USER_MODEL, null=True, related_name='keys_added_set')
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
     objects = BaseManager(cache_fields=(
@@ -753,7 +755,7 @@ class GroupBookmark(Model):
     project = models.ForeignKey(Project, related_name="bookmark_set")  # denormalized
     group = models.ForeignKey(Group, related_name="bookmark_set")
     # namespace related_name on User since we don't own the model
-    user = models.ForeignKey(User, related_name="sentry_bookmark_set")
+    user = models.ForeignKey(django_settings.AUTH_USER_MODEL, related_name="sentry_bookmark_set")
 
     objects = BaseManager()
 
@@ -938,7 +940,7 @@ class UserOption(Model):
     Options which are specific to a plugin should namespace
     their key. e.g. key='myplugin:optname'
     """
-    user = models.ForeignKey(User)
+    user = models.ForeignKey(django_settings.AUTH_USER_MODEL)
     project = models.ForeignKey(Project, null=True)
     key = models.CharField(max_length=64)
     value = PickledObjectField()
@@ -952,7 +954,7 @@ class UserOption(Model):
 
 
 class LostPasswordHash(Model):
-    user = models.ForeignKey(User, unique=True)
+    user = models.ForeignKey(django_settings.AUTH_USER_MODEL, unique=True)
     hash = models.CharField(max_length=32)
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -1024,7 +1026,7 @@ class Activity(Model):
     type = models.PositiveIntegerField(choices=TYPE)
     ident = models.CharField(max_length=64, null=True)
     # if the user is not set, it's assumed to be the system
-    user = models.ForeignKey(User, null=True)
+    user = models.ForeignKey(django_settings.AUTH_USER_MODEL, null=True)
     datetime = models.DateTimeField(default=timezone.now)
     data = GzippedDictField(null=True)
 

@@ -189,6 +189,37 @@ def initialize_app(config):
 
     install_plugins(config['settings'])
 
+    patch_socal_auth(config['settings'])
+
+
+def table_exists(name):
+    from django.db import connections
+    return name in connections['default'].introspection.table_names()
+
+
+def patch_socal_auth(settings):
+    from south.migration import Migrations
+    import types
+
+    migrations = Migrations('social_auth')
+    # fix the initial migration
+    initial = migrations['0001_initial']
+
+    def initial_forwards(original):
+        def wrapped(self):
+            if table_exists('social_auth_association'):
+                return
+            return original()
+        return wrapped
+
+    initial.forwards = types.MethodType(
+        initial_forwards(initial.forwards), initial.forwards)
+
+    # now fix all of the migrations so they reference sentry.User
+    for migration in migrations:
+        migration = migration.migration_class()
+        migration.models['sentry.user'] = migration.models['auth.user']
+
 
 def configure():
     configure_app(
