@@ -65,7 +65,7 @@ install_requires = [
     'django-static-compiler>=0.3.0,<0.4.0',
     'django-templatetag-sugar>=0.1.0,<0.2.0',
     'gunicorn>=0.17.2,<0.18.0',
-    'logan>=0.5.5,<0.6.0',
+    'logan>=0.5.6,<0.6.0',
     'nydus>=0.10.0,<0.11.0',
     'Pygments>=1.6.0,<1.7.0',
     'pynliner>=0.4.0,<0.5.0',
@@ -75,7 +75,7 @@ install_requires = [
     'simplejson>=3.1.0,<3.2.0',
     'South>=0.7.6,<0.8.0',
     'httpagentparser>=1.2.1,<1.3.0',
-    'django-social-auth>=0.7.1,<0.8.0',
+    'django-social-auth>=0.7.23,<0.8.0',
     'django-social-auth-trello>=1.0.3,<1.1.0',
     'setproctitle>=1.1.7,<1.2.0',
 ]
