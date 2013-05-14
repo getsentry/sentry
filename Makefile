@@ -54,10 +54,12 @@ testloop: install-test-requirements
 
 test-cli:
 	@echo "Testing CLI"
-	rm -f test.conf
-	sentry init test.conf
-	sentry --config=test.conf upgrade
-	sentry --config=test.conf help | grep start > /dev/null
+	rm -rf test_cli
+	mkdir test_cli
+	cd test_cli && sentry init test.conf
+	cd test_cli && sentry --config=test.conf upgrade --noinput
+	cd test_cli && sentry --config=test.conf help | grep start > /dev/null
+	rm -r test_cli
 
 test-js:
 	@echo "Running JavaScript tests"
