@@ -210,9 +210,12 @@ def skip_initial_migration_if_applied(settings, app_name, table_name):
 
     def initial_forwards(original):
         def wrapped(self):
+            # TODO: look into why we're having to return some ridiculous
+            # lambda
             if table_exists(table_name):
-                return
+                return lambda x=None: None
             return original()
+        wrapped.__name__ = original.__name__
         return wrapped
 
     initial.forwards = types.MethodType(
