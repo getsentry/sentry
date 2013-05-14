@@ -32,7 +32,7 @@ class Migration(SchemaMigration):
         # Adding M2M table for field groups on 'User'
         db.create_table('auth_user_groups', (
             ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('user', models.ForeignKey(orm[u'sentry.user'], null=False)),
+            ('user', models.ForeignKey(orm[u'auth.user'], null=False)),
             ('group', models.ForeignKey(orm[u'auth.group'], null=False))
         ))
         db.create_unique('auth_user_groups', ['user_id', 'group_id'])
@@ -40,7 +40,7 @@ class Migration(SchemaMigration):
         # Adding M2M table for field user_permissions on 'User'
         db.create_table('auth_user_user_permissions', (
             ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('user', models.ForeignKey(orm[u'sentry.user'], null=False)),
+            ('user', models.ForeignKey(orm[u'auth.user'], null=False)),
             ('permission', models.ForeignKey(orm[u'auth.permission'], null=False))
         ))
         db.create_unique('auth_user_user_permissions', ['user_id', 'permission_id'])
@@ -317,7 +317,7 @@ class Migration(SchemaMigration):
             'type': ('django.db.models.fields.IntegerField', [], {'default': '50'}),
             'user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'sentry_teammember_set'", 'to': u"orm['sentry.User']"})
         },
-        u'sentry.user': {
+        u'auth.user': {
             'Meta': {'object_name': 'User', 'db_table': "'auth_user'"},
             'date_joined': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'email': ('django.db.models.fields.EmailField', [], {'max_length': '75', 'blank': 'True'}),
@@ -333,7 +333,7 @@ class Migration(SchemaMigration):
             'user_permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['auth.Permission']", 'symmetrical': 'False', 'blank': 'True'}),
             'username': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '30'})
         },
-        u'sentry.useroption': {
+        u'auth.useroption': {
             'Meta': {'unique_together': "(('user', 'project', 'key'),)", 'object_name': 'UserOption'},
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'key': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
