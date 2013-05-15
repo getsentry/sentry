@@ -6290,6 +6290,84 @@ h3 {
 .navbar #logo:hover {
   color: #ffffff;
 }
+.navbar #team-banner {
+  display: block;
+  letter-spacing: -1px;
+  text-decoration: none;
+  position: absolute;
+  font-weight: bold;
+  left: 70px;
+  top: 0px;
+  font-size: 22px;
+  width: auto;
+  z-index: 20000;
+  max-width: 450px;
+}
+.navbar #team-banner > a {
+  color: #eef5fc;
+  height: 60px;
+  line-height: 60px;
+  padding: 0 10px;
+  display: inline-block;
+}
+.navbar #team-banner.open > a.dropdown-toggle {
+  background: #313944;
+}
+.navbar #team-banner .dropdown-menu {
+  top: 0px;
+  position: relative;
+  min-height: 50px;
+  padding: 10px;
+  margin: 0;
+  background: #313944;
+  -webkit-box-shadow: none;
+  -moz-box-shadow: none;
+  box-shadow: none;
+  -webkit-border-radius: 0;
+  -moz-border-radius: 0;
+  border-radius: 0;
+  border-top: none;
+  color: #fff;
+}
+.navbar #team-banner .dropdown-menu h6 {
+  color: #aaa;
+  letter-spacing: 0.1px;
+  font-size: 12px;
+  font-weight: normal;
+  text-transform: uppercase;
+}
+.navbar #team-banner .dropdown-menu .project-list {
+  margin: 0;
+}
+.navbar #team-banner .dropdown-menu .project-list li {
+  margin: 0;
+  display: inline-block;
+  font-size: 15px;
+}
+.navbar #team-banner .dropdown-menu .project-list li a {
+  color: #fff;
+  width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 3px 5px;
+}
+.navbar #team-banner .dropdown-menu .project-list li a:hover {
+  color: #000;
+}
+.navbar #team-banner .dropdown-menu input[type=text] {
+  width: 380px;
+  padding-right: 40px;
+}
+.navbar #team-banner .dropdown-menu .btn {
+  margin: 0;
+  -webkit-border-radius: 0 4px 4px 0;
+  -moz-border-radius: 0 4px 4px 0;
+  border-radius: 0 4px 4px 0;
+  width: 40px;
+  right: 10px;
+  top: 10px;
+  position: absolute;
+}
 .navbar #team-nav {
   position: absolute;
   top: 0;

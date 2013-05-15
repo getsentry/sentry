@@ -112,6 +112,81 @@ h3 {
       color: lighten(#eef5fc, 10);
     }
   }
+  #team-banner {
+    display: block;
+    letter-spacing: -1px;
+    text-decoration: none;
+    position: absolute;
+    font-weight: bold;
+    left: 70px;
+    top: 0px;
+    font-size: 22px;
+    width: auto;
+    z-index: 20000;
+    max-width: 450px;
+    > a {
+      color: #eef5fc;
+      height: 60px;
+      line-height: 60px;
+      padding: 0 10px;
+      display: inline-block;
+    }
+    &.open > a.dropdown-toggle {
+      background: darken(#465262, 10%);
+    }
+    .dropdown-menu {
+      top: 0px;
+      position: relative;
+      min-height: 50px;
+      padding: 10px;
+      margin: 0;
+      background: darken(#465262, 10%);
+      .box-shadow(none);
+      .border-radius(0);
+      border-top: none;
+      color: #fff;
+
+      h6 {
+        color: #aaa;
+        letter-spacing: 0.1px;
+        font-size: 12px;
+        font-weight: normal;
+        text-transform: uppercase;
+      }
+      .project-list {
+        margin: 0;
+        li {
+          margin: 0;
+          display: inline-block;
+          font-size: 15px;
+          a {
+            color: #fff;
+            width: 130px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 3px 5px;
+            &:hover {
+              color: #000;
+            }
+          }
+        }
+      }
+
+      input[type=text] {
+        width: 380px;
+        padding-right: 40px;
+      }
+      .btn {
+        margin: 0;
+        .border-radius(0 4px 4px 0);
+        width: 40px;
+        right: 10px;
+        top: 10px;
+        position: absolute;
+      }
+
+    }
+  }
 
   #team-nav {
     position: absolute;

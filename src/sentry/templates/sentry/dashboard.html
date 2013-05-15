@@ -9,7 +9,20 @@
     <div class="pull-right">
         <a href="{% url 'sentry-new-project' team.slug %}" class="btn btn-primary">{% trans "Create a New Project" %}</a>
     </div>
-    {{ block.super }}
+    <ul class="nav nav-tabs">
+        <li class="active">
+            <a href="#">{% trans "Dashboard" %}</a>
+        </li>
+        <li>
+            <a href="#">{% trans "Stream" %}</a>
+        </li>
+        <li>
+            <a href="#">Explore</a>
+        </li>
+        <li>
+            <a href="#">Stats</a>
+        </li>
+    </ul>
 {% endblock %}
 
 {% block bodyclass %}{% endblock %}
