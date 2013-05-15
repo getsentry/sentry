@@ -57,7 +57,7 @@ test-cli:
 	rm -rf test_cli
 	mkdir test_cli
 	cd test_cli && sentry init test.conf
-	cd test_cli && sentry --config=test.conf upgrade --noinput
+	cd test_cli && sentry --config=test.conf upgrade --verbosity=0 --noinput
 	cd test_cli && sentry --config=test.conf help | grep start > /dev/null
 	rm -r test_cli
 

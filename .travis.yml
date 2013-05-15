@@ -13,7 +13,7 @@ install:
   - make develop dev-postgres dev-mysql
 script:
   - make test-js
-  - py.test tests/ --cov sentry --cov-report term-missin
+  - py.test tests/ --cov sentry --cov-report term-missing
   - make test-cli
 notifications:
   irc:
