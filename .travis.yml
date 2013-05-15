@@ -12,9 +12,13 @@ before_script:
 install:
   - make develop dev-postgres dev-mysql
 script:
-  - make test
+  - make test-js
+  - py.test tests/ --cov sentry --cov-report term-missin
+  - make test-cli
 notifications:
   irc:
     channels: "irc.freenode.org#sentry"
     on_success: change
     on_failure: change
+after_success:
+  - coveralls
