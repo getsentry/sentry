@@ -7,18 +7,18 @@ UGLIFY_JS ?= node_modules/uglify-js/bin/uglifyjs
 
 develop: update-submodules
 	npm install -q
-	pip install -q "file://`pwd`#egg=sentry[dev]"
-	pip install -q "file://`pwd`#egg=sentry[tests]"
+	pip install -q "file://`pwd`#egg=sentry[dev]" --use-mirrors
+	pip install -q "file://`pwd`#egg=sentry[tests]" --use-mirrors
 	pip install -q -e . --use-mirrors
 
 dev-postgres:
-	pip install -q "file://`pwd`#egg=sentry[dev]"
-	pip install -q "file://`pwd`#egg=sentry[postgres]"
+	pip install -q "file://`pwd`#egg=sentry[dev]" --use-mirrors
+	pip install -q "file://`pwd`#egg=sentry[postgres]" --use-mirrors
 	pip install -q -e . --use-mirrors
 
 dev-mysql:
-	pip install -q "file://`pwd`#egg=sentry[dev]"
-	pip install -q "file://`pwd`#egg=sentry[mysql]"
+	pip install -q "file://`pwd`#egg=sentry[dev]" --use-mirrors
+	pip install -q "file://`pwd`#egg=sentry[mysql]" --use-mirrors
 	pip install -q -e . --use-mirrors
 
 build: locale
