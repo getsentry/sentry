@@ -266,7 +266,7 @@ class StoreView(APIView):
     def process(self, request, project, auth, data, **kwargs):
         for plugin in plugins.all():
             if safe_execute(plugin.is_rate_limited, project=project):
-                return HttpResponse('Creation of this event was denied due to rate limiting.', content_type='text/plain', status_code=405)
+                return HttpResponse('Creation of this event was denied due to rate limiting.', content_type='text/plain', status=405)
 
         result = plugins.first('has_perm', request.user, 'create_event', project)
         if result is False:
