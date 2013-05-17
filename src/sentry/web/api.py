@@ -14,7 +14,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Sum, Q
 from django.http import HttpResponse, HttpResponseForbidden, HttpResponseRedirect
 from django.utils import timezone
-from django.views.decorators.cache import never_cache
+from django.views.decorators.cache import never_cache, cache_control
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.vary import vary_on_cookie
 from django.views.generic.base import View as BaseView
@@ -785,12 +785,14 @@ def search_projects(request, team):
     return response
 
 
+@cache_control(max_age=3600, public=True)
 def crossdomain_xml_index(request):
     response = render_to_response('sentry/crossdomain_index.xml')
     response['Content-Type'] = 'application/xml'
     return response
 
 
+@cache_control(max_age=60)
 def crossdomain_xml(request, project_id):
     if project_id.isdigit():
         lookup = {'id': project_id}
