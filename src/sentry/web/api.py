@@ -156,14 +156,14 @@ class APIView(BaseView):
         try:
             project = self._get_project_from_id(project_id)
         except APIError, e:
-            return HttpResponse(str(e), 'text/plain', status=400)
+            return HttpResponse(str(e), content_type='text/plain', status=400)
 
         origin = self.get_request_origin(request)
         if origin is not None:
             if not project:
                 return HttpResponse('Your client must be upgraded for CORS support.')
             elif not is_valid_origin(origin, project):
-                return HttpResponse('Invalid origin: %r' % origin, status=400)
+                return HttpResponse('Invalid origin: %r' % origin, content_type='text/plain', status=400)
 
         # XXX: It seems that the OPTIONS call does not always include custom headers
         if request.method == 'OPTIONS':
@@ -172,7 +172,7 @@ class APIView(BaseView):
             try:
                 auth_vars = self._parse_header(request, project)
             except APIError, e:
-                return HttpResponse(str(e), 'text/plain', status=400)
+                return HttpResponse(str(e), content_type='text/plain', status=400)
 
             try:
                 project_, user = project_from_auth_vars(auth_vars)
@@ -185,10 +185,10 @@ class APIView(BaseView):
             # Legacy API was /api/store/ and the project ID was only available elsewhere
             if not project:
                 if not project_:
-                    return HttpResponse('Unable to identify project', 'text/plain', status=400)
+                    return HttpResponse('Unable to identify project', content_type='text/plain', status=400)
                 project = project_
             elif project_ != project:
-                return HttpResponse('Project ID mismatch', 'text/plain', status=400)
+                return HttpResponse('Project ID mismatch', content_type='text/plain', status=400)
 
             auth = Auth(auth_vars)
 
@@ -201,7 +201,7 @@ class APIView(BaseView):
                 response = super(APIView, self).dispatch(request, project=project, auth=auth, **kwargs)
 
             except APIError, error:
-                response = HttpResponse(unicode(error.msg), 'text/plain', status=error.http_status)
+                response = HttpResponse(unicode(error.msg), content_type='text/plain', status=error.http_status)
 
         if origin:
             response['Access-Control-Allow-Origin'] = origin
@@ -266,7 +266,7 @@ class StoreView(APIView):
     def process(self, request, project, auth, data, **kwargs):
         for plugin in plugins.all():
             if safe_execute(plugin.is_rate_limited, project=project):
-                return HttpResponse('Creation of this event was denied due to rate limiting.', 'text/plain', status_code=405)
+                return HttpResponse('Creation of this event was denied due to rate limiting.', content_type='text/plain', status_code=405)
 
         result = plugins.first('has_perm', request.user, 'create_event', project)
         if result is False:
