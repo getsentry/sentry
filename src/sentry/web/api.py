@@ -172,7 +172,7 @@ class APIView(BaseView):
             try:
                 auth_vars = self._parse_header(request, project)
             except APIError, e:
-                return HttpResponse(str(e), status=400)
+                return HttpResponse(str(e), 'text/plain', status=400)
 
             try:
                 project_, user = project_from_auth_vars(auth_vars)
@@ -188,7 +188,7 @@ class APIView(BaseView):
                     return HttpResponse('Unable to identify project', 'text/plain', status=400)
                 project = project_
             elif project_ != project:
-                return HttpResponse('Project ID mismatch', status=400)
+                return HttpResponse('Project ID mismatch', 'text/plain', status=400)
 
             auth = Auth(auth_vars)
 
@@ -201,7 +201,7 @@ class APIView(BaseView):
                 response = super(APIView, self).dispatch(request, project=project, auth=auth, **kwargs)
 
             except APIError, error:
-                response = HttpResponse(unicode(error.msg), status=error.http_status)
+                response = HttpResponse(unicode(error.msg), 'text/plain', status=error.http_status)
 
         if origin:
             response['Access-Control-Allow-Origin'] = origin
