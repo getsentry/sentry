@@ -35,6 +35,7 @@ from sentry.utils.cache import cache
 from sentry.utils.db import has_trending
 from sentry.utils.javascript import to_json
 from sentry.utils.http import is_valid_origin, get_origins, is_same_domain
+from sentry.utils.safe import safe_execute
 from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
 from sentry.web.helpers import render_to_response
@@ -155,7 +156,7 @@ class APIView(BaseView):
         try:
             project = self._get_project_from_id(project_id)
         except APIError, e:
-            return HttpResponse(str(e), status=400)
+            return HttpResponse(str(e), 'text/plain', status=400)
 
         origin = self.get_request_origin(request)
         if origin is not None:
@@ -184,7 +185,7 @@ class APIView(BaseView):
             # Legacy API was /api/store/ and the project ID was only available elsewhere
             if not project:
                 if not project_:
-                    return HttpResponse('Unable to identify project', status=400)
+                    return HttpResponse('Unable to identify project', 'text/plain', status=400)
                 project = project_
             elif project_ != project:
                 return HttpResponse('Project ID mismatch', status=400)
@@ -260,9 +261,13 @@ class StoreView(APIView):
         data = request.GET.get('sentry_data', '')
         self.process(request, project, auth, data, **kwargs)
         # We should return a simple 1x1 gif for browser so they don't throw a warning
-        return HttpResponse(PIXEL, content_type='image/gif')
+        return HttpResponse(PIXEL, 'image/gif')
 
     def process(self, request, project, auth, data, **kwargs):
+        for plugin in plugins.all():
+            if safe_execute(plugin.is_rate_limited, project=project):
+                return HttpResponse('Creation of this event was denied due to rate limiting.', 'text/plain', status_code=405)
+
         result = plugins.first('has_perm', request.user, 'create_event', project)
         if result is False:
             raise APIForbidden('Creation of this event was blocked')
