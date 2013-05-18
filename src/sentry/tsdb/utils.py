@@ -41,6 +41,13 @@ class Granularity(object):
 
     @classmethod
     def normalize_to_epoch(cls, granularity, timestamp):
+        """
+        Given a ``timestamp`` (datetime object) normalize the datetime object
+        ``timestamp`` to an epoch timestmap (integer).
+
+        i.e. if the granularity is minutes, the resulting timestamp would have
+        the seconds and microseconds rounded down.
+        """
         timestamp = timestamp.replace(microsecond=0)
         if granularity == cls.ALL_TIME:
             return 0
@@ -63,6 +70,15 @@ class Granularity(object):
 
     @classmethod
     def get_min_timestamp(cls, granularity, timestamp):
+        """
+        Return the minimum value (as an epoch timestamp) to keep in storage for
+        a granularity.
+
+        Timestamp should represent the current time.
+
+        i.e. if the granularity is seconds, the timestamp will be normalized to
+        the previous minute so only latest 60 points are stored (one per second)
+        """
         if granularity in (cls.ALL_TIME, cls.YEARS):
             return None
 
