@@ -46,21 +46,30 @@ class Granularity(object):
         timestamp = timestamp.replace(microsecond=0)
         if granularity == cls.ALL_TIME:
             return 0
+
         if granularity == cls.SECONDS:
-            return timestamp
-        timestamp = timestamp.replace(seconds=0)
+            return int(timestamp.strftime('%s'))
+
+        timestamp = timestamp.replace(second=0)
         if granularity == cls.MINUTES:
-            return timestamp
-        timestamp = timestamp.replace(minutes=0)
+            return int(timestamp.strftime('%s'))
+
+        timestamp = timestamp.replace(minute=0)
         if granularity == cls.HOURS:
-            return timestamp
-        timestamp = timestamp.replace(hours=0)
+            return int(timestamp.strftime('%s'))
+
+        timestamp = timestamp.replace(hour=0)
+        if granularity == cls.DAYS:
+            return int(timestamp.strftime('%s'))
+
         if granularity == cls.WEEKS:
             timestamp -= timedelta(days=timestamp.weekday())
-        elif granularity in (cls.MONTHS, cls.YEARS):
+        else:
             timestamp = timestamp.replace(day=1)
-        elif granularity == cls.YEARS:
+
+        if granularity == cls.YEARS:
             timestamp = timestamp.replace(month=1)
+
         return int(timestamp.strftime('%s'))
 
     @classmethod
