@@ -8,11 +8,6 @@ sentry.tsdb.utils
 
 from datetime import timedelta
 
-ONE_MINUTE = 60
-ONE_HOUR = ONE_MINUTE * 60
-ONE_DAY = ONE_HOUR * 24
-ONE_WEEK = ONE_DAY * 7
-
 
 class Granularity(object):
     SECONDS = 0
