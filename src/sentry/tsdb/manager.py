@@ -39,14 +39,15 @@ class PointManager(BaseManager):
                 }
             )
 
-    def trim(self):
+    def trim(self, timestamp=None):
         """
         Called periodically to flush the out of bounds points from the
         database.
         """
-        now = timezone.now()
+        if timestamp is None:
+            timestamp = timezone.now()
         for granularity, _ in Granularity.get_choices():
-            min_value = Granularity.get_min_value(granularity, now)
+            min_value = Granularity.get_min_timestamp(granularity, timestamp)
             if min_value is None:
                 continue
 
