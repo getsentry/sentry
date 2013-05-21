@@ -373,7 +373,7 @@ def group_list(request, team, project):
     }, request)
 
 
-@has_group_access
+@has_group_access(allow_public=True)
 def group(request, team, project, group, event_id=None):
     # It's possible that a message would not be created under certain
     # circumstances (such as a post_save signal failing)

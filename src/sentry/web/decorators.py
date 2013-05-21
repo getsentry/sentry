@@ -112,33 +112,40 @@ def has_access(access_or_func=None, team=None, access=None):
     return wrapped
 
 
-def has_group_access(func):
+def has_group_access(func=None, **kwargs):
     """
     Tests and transforms project_id and group_id for permissions based on
     the requesting user. Passes the actual project and group instances to
     the decorated view.
 
-    >>> @has_group_access
+    >>> @has_group_access(allow_public=True)
     >>> def foo(request, project, group):
     >>>     return
     """
-    prv_func = login_required(has_access(func))
+    if func:
+        return has_group_access(**kwargs)(func)
 
-    @wraps(func)
-    def wrapped(request, team_slug, project_id, group_id, *args, **kwargs):
-        group = get_object_or_404(Group, pk=group_id)
+    allow_public = kwargs.get('allow_public')
 
-        if project_id not in (group.project.slug, str(group.project.id)):
-            return HttpResponse(status=404)
-        if team_slug != group.team.slug:
-            return HttpResponse(status=404)
+    def decorator(func):
+        prv_func = login_required(has_access(func))
 
-        if group.is_public or group.project.public:
-            team = Team.objects.get_from_cache(slug=team_slug)
-            return func(request, team=team, project=group.project, group=group, *args, **kwargs)
+        @wraps(func)
+        def wrapped(request, team_slug, project_id, group_id, *args, **kwargs):
+            group = get_object_or_404(Group, pk=group_id)
 
-        return prv_func(request, team_slug=team_slug, project_id=project_id, group=group, *args, **kwargs)
-    return wrapped
+            if project_id not in (group.project.slug, str(group.project.id)):
+                return HttpResponse(status=404)
+            if team_slug != group.team.slug:
+                return HttpResponse(status=404)
+
+            if allow_public and (group.is_public or group.project.public):
+                team = Team.objects.get_from_cache(slug=team_slug)
+                return func(request, team=team, project=group.project, group=group, *args, **kwargs)
+
+            return prv_func(request, team_slug=team_slug, project_id=project_id, group=group, *args, **kwargs)
+        return wrapped
+    return decorator
 
 
 def login_required(func):
