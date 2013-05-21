@@ -41,3 +41,30 @@ class TrimTest(TestCase):
         Point.objects.trim(timestamp=timestamp)
 
         assert not Point.objects.exists()
+
+
+class FetchTest(TestCase):
+    @fixture
+    def key(self):
+        return Key.objects.create(name='test')
+
+    def test_simple(self):
+        Point.objects.create(
+            key=self.key,
+            granularity=Granularity.SECONDS,
+            value=1,
+            epoch=timestamp.strftime('%s'),
+        )
+        Point.objects.create(
+            key=self.key,
+            granularity=Granularity.SECONDS,
+            value=1,
+            epoch=(timestamp - timedelta(seconds=10)).strftime('%s'),
+        )
+
+        points = Point.objects.fetch(
+            key=self.key,
+            start=timestamp - timedelta(seconds=60),
+            end=timestamp,
+        )
+        assert len(points) == 2

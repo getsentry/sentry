@@ -21,18 +21,16 @@ class Granularity(object):
 
     @classmethod
     def get_choices(cls):
-        if hasattr(cls, '__choice_cache'):
-            return cls.__choice_cache
-
-        results = []
-        for name in dir(cls):
-            if name.startswith('_'):
-                continue
-            if not name.upper() == name:
-                continue
-            results.append((getattr(cls, name), name.replace('_', ' ').title()))
-        cls.__choice_cache = results
-        return results
+        if not hasattr(cls, '__choice_cache'):
+            results = []
+            for name in dir(cls):
+                if name.startswith('_'):
+                    continue
+                if not name.upper() == name:
+                    continue
+                results.append((getattr(cls, name), name.replace('_', ' ').title()))
+            cls.__choice_cache = sorted(results)
+        return cls.__choice_cache
 
     @classmethod
     def normalize_to_epoch(cls, granularity, timestamp):
