@@ -18,6 +18,11 @@ Periodically flush unused data:
 >>> if random.random() > 0.9:
 >>>     Point.objects.trim()
 
+Get some datas:
+
+>>> points = Point.objects.fetch(key, now, now - timedelta(days=1))
+>>> for (timestamp, value) in points:
+>>>     print timestamp, value
 
 :copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
