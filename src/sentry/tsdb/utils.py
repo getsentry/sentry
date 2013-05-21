@@ -93,10 +93,10 @@ class Granularity(object):
         elif granularity == cls.HOURS:
             timestamp -= timedelta(days=1)
         elif granularity == cls.DAYS:
-            # days are stored for a full month
-            timestamp -= timedelta(months=1)
+            # days are stored for ~1 month
+            timestamp -= timedelta(days=30)
         elif granularity == cls.WEEKS:
             # weeks are stored for a full year
-            timestamp -= timedelta(years=1)
+            timestamp -= timedelta(days=1)
 
-        return cls.normalize_to_epoch(timestamp, granularity)
+        return cls.normalize_to_epoch(granularity, timestamp)
