@@ -22,7 +22,6 @@ def get_optimal_granularity(start_timestamp, end_timestamp):
     for idx, c_granularity in enumerate(choices):
         start_norm = Granularity.normalize_to_epoch(c_granularity, start_timestamp)
         end_norm = Granularity.normalize_to_epoch(c_granularity, end_timestamp)
-        print c_granularity, start_norm, end_norm
         if start_norm != end_norm:
             try:
                 return choices[idx + 1]
