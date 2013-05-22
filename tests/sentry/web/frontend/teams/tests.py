@@ -167,39 +167,6 @@ class RemoveTeamTest(BaseTeamTest):
         self.assertFalse(Team.objects.filter(pk=self.team.pk).exists())
 
 
-class SuspendTeamMemberTest(BaseTeamTest):
-    def test_cannot_suspend_owner(self):
-        resp = self.client.post(reverse('sentry-suspend-team-member', args=[self.team.slug, self.tm.id]))
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp['Location'], 'http://testserver' + reverse('sentry-manage-team', args=[self.team.slug]))
-        tm = self.team.member_set.get(pk=self.tm2.id)
-        self.assertTrue(tm.is_active)
-
-    def test_does_suspend(self):
-        resp = self.client.get(reverse('sentry-suspend-team-member', args=[self.team.slug, self.tm2.id]))
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp['Location'], 'http://testserver' + reverse('sentry-manage-team', args=[self.team.slug]))
-        tm = self.team.member_set.get(pk=self.tm2.id)
-        self.assertFalse(tm.is_active)
-
-
-class RestoreTeamMemberTest(BaseTeamTest):
-    def test_cannot_restore_owner(self):
-        resp = self.client.post(reverse('sentry-restore-team-member', args=[self.team.slug, self.tm.id]))
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp['Location'], 'http://testserver' + reverse('sentry-manage-team', args=[self.team.slug]))
-        tm = self.team.member_set.get(pk=self.tm2.id)
-        self.assertTrue(tm.is_active)
-
-    def test_does_restore(self):
-        self.tm2.update(is_active=False)
-        resp = self.client.get(reverse('sentry-restore-team-member', args=[self.team.slug, self.tm2.id]))
-        self.assertEquals(resp.status_code, 302)
-        self.assertEquals(resp['Location'], 'http://testserver' + reverse('sentry-manage-team', args=[self.team.slug]))
-        tm = self.team.member_set.get(pk=self.tm2.id)
-        self.assertTrue(tm.is_active)
-
-
 class NewTeamMemberTest(BaseTeamTest):
     @fixture
     def path(self):

@@ -20,7 +20,7 @@ from django.utils.encoding import smart_str
 from sentry.app import env
 from sentry.conf import settings
 from sentry.exceptions import InvalidTimestamp
-from sentry.models import Project, ProjectKey, TeamMember, Team, User
+from sentry.models import Project, ProjectKey
 from sentry.tasks.store import preprocess_event
 from sentry.utils import is_float, json
 from sentry.utils.auth import parse_auth_header
@@ -127,21 +127,6 @@ def project_from_auth_vars(auth_vars):
         raise APIForbidden('Invalid api key')
 
     project = Project.objects.get_from_cache(pk=pk.project_id)
-
-    if pk.user_id:
-        try:
-            team = Team.objects.get_from_cache(pk=project.team_id)
-        except Team.DoesNotExist:
-            raise APIUnauthorized('Member does not have access to project')
-
-        # We have to refetch this as it may have been caught
-        pk.user = User.objects.get_from_cache(id=pk.user_id)
-        if not pk.user.is_active:
-            raise APIUnauthorized('Account is not active')
-
-        if not TeamMember.objects.filter(
-                team=team, user=pk.user_id, is_active=True).exists():
-            raise APIUnauthorized('Member does not have access to project')
 
     return project, pk.user
 

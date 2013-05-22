@@ -180,7 +180,6 @@ class TeamMember(Model):
     """
     team = models.ForeignKey(Team, related_name="member_set")
     user = models.ForeignKey(django_settings.AUTH_USER_MODEL, related_name="sentry_teammember_set")
-    is_active = models.BooleanField(default=True)
     type = models.IntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
     date_added = models.DateTimeField(default=timezone.now)
 
