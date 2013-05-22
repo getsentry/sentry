@@ -11,6 +11,8 @@ Incompatible Changes
 - Filters have been deprecated, and most functionality removed. See notes below.
 - TrackedUser, AffectedByUser, and Group.users_seen have been removed in favor
   of reusing the tagging architecture for user tracking.
+- Suspension of team members is no longer available. The feature was rarely
+  used, and removing it greatly simplifies the auth logic in the API.
 
 Protocol Version 4
 ==================
