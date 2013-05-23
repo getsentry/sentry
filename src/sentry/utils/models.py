@@ -140,7 +140,85 @@ def create_or_update(model, using=None, **kwargs):
     return affected, False
 
 
+class BoundedAutoField(models.AutoField):
+    MAX_VALUE = 2147483647
+
+    def get_prep_value(self, value):
+        if value:
+            value = int(value)
+            assert value <= self.MAX_VALUE
+        return super(BoundedAutoField, self).get_prep_value(value)
+
+
+class BoundedIntegerField(models.IntegerField):
+    MAX_VALUE = 2147483647
+
+    def get_prep_value(self, value):
+        if value:
+            value = int(value)
+            assert value <= self.MAX_VALUE
+        return super(BoundedIntegerField, self).get_prep_value(value)
+
+
+class BoundedBigIntegerField(models.BigIntegerField):
+    MAX_VALUE = 9223372036854775807
+
+    def get_prep_value(self, value):
+        if value:
+            value = int(value)
+            assert value <= self.MAX_VALUE
+        return super(BoundedBigIntegerField, self).get_prep_value(value)
+
+
+class BoundedPositiveIntegerField(models.PositiveIntegerField):
+    MAX_VALUE = 2147483647
+
+    def get_prep_value(self, value):
+        if value:
+            value = int(value)
+            assert value <= self.MAX_VALUE
+        return super(BoundedPositiveIntegerField, self).get_prep_value(value)
+
+
+class GzippedDictField(models.TextField):
+    """
+    Slightly different from a JSONField in the sense that the default
+    value is a dictionary.
+    """
+    __metaclass__ = models.SubfieldBase
+
+    def to_python(self, value):
+        if isinstance(value, basestring) and value:
+            try:
+                value = pickle.loads(decompress(value))
+            except Exception, e:
+                logger.exception(e)
+                return {}
+        elif not value:
+            return {}
+        return value
+
+    def get_prep_value(self, value):
+        if not value and self.null:
+            # save ourselves some storage
+            return None
+        return compress(pickle.dumps(value))
+
+    def value_to_string(self, obj):
+        value = self._get_val_from_obj(obj)
+        return self.get_prep_value(value)
+
+    def south_field_triple(self):
+        "Returns a suitable description of this field for South."
+        from south.modelsinspector import introspector
+        field_class = "django.db.models.fields.TextField"
+        args, kwargs = introspector(self)
+        return (field_class, args, kwargs)
+
+
 class Model(models.Model):
+    id = BoundedAutoField(primary_key=True)
+
     class Meta:
         abstract = True
 
@@ -198,51 +276,3 @@ def __model_post_save(instance, **kwargs):
     instance._update_tracked_data()
 
 signals.post_save.connect(__model_post_save)
-
-
-class IntegerField(models.IntegerField):
-    MAX_VALUE = 2147483647
-
-    def to_python(self, value):
-        return int(value)
-
-    def get_prep_value(self, value):
-        assert value <= self.MAX_VALUE
-
-        return int(value)
-
-
-class GzippedDictField(models.TextField):
-    """
-    Slightly different from a JSONField in the sense that the default
-    value is a dictionary.
-    """
-    __metaclass__ = models.SubfieldBase
-
-    def to_python(self, value):
-        if isinstance(value, basestring) and value:
-            try:
-                value = pickle.loads(decompress(value))
-            except Exception, e:
-                logger.exception(e)
-                return {}
-        elif not value:
-            return {}
-        return value
-
-    def get_prep_value(self, value):
-        if not value and self.null:
-            # save ourselves some storage
-            return None
-        return compress(pickle.dumps(value))
-
-    def value_to_string(self, obj):
-        value = self._get_val_from_obj(obj)
-        return self.get_prep_value(value)
-
-    def south_field_triple(self):
-        "Returns a suitable description of this field for South."
-        from south.modelsinspector import introspector
-        field_class = "django.db.models.fields.TextField"
-        args, kwargs = introspector(self)
-        return (field_class, args, kwargs)

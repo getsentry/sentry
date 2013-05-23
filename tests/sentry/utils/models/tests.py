@@ -1,7 +1,9 @@
 from __future__ import absolute_import
 
 from django.db import models
-from sentry.utils.models import Model, IntegerField
+from sentry.utils.models import (
+    Model, BoundedIntegerField, BoundedBigIntegerField,
+    BoundedPositiveIntegerField)
 from sentry.testutils import TestCase
 
 
@@ -9,7 +11,9 @@ from sentry.testutils import TestCase
 # assuming it exists in these tests.
 class DummyModel(Model):
     foo = models.CharField(max_length=32)
-    normint = IntegerField(null=True)
+    normint = BoundedIntegerField(null=True)
+    bigint = BoundedBigIntegerField(null=True)
+    posint = BoundedPositiveIntegerField(null=True)
 
 
 class ModelTest(TestCase):
@@ -32,4 +36,14 @@ class ModelTest(TestCase):
         self.assertFalse(inst.has_changed('foo'))
 
     def test_large_int(self):
-        DummyModel.objects.create(normint=9223372036854775807L, foo='bar')
+        with self.assertRaises(AssertionError):
+            DummyModel.objects.create(normint=9223372036854775807L, foo='bar')
+
+        with self.assertRaises(AssertionError):
+            DummyModel.objects.create(id=9223372036854775807L, foo='bar')
+
+        with self.assertRaises(AssertionError):
+            DummyModel.objects.create(bigint=9223372036854775808L, foo='bar')
+
+        with self.assertRaises(AssertionError):
+            DummyModel.objects.create(posint=9223372036854775808L, foo='bar')
