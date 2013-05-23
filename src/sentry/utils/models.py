@@ -149,6 +149,13 @@ class BoundedAutoField(models.AutoField):
             assert value <= self.MAX_VALUE
         return super(BoundedAutoField, self).get_prep_value(value)
 
+    def south_field_triple(self):
+        "Returns a suitable description of this field for South."
+        from south.modelsinspector import introspector
+        field_class = "django.db.models.fields.AutoField"
+        args, kwargs = introspector(self)
+        return (field_class, args, kwargs)
+
 
 class BoundedIntegerField(models.IntegerField):
     MAX_VALUE = 2147483647
@@ -158,6 +165,13 @@ class BoundedIntegerField(models.IntegerField):
             value = int(value)
             assert value <= self.MAX_VALUE
         return super(BoundedIntegerField, self).get_prep_value(value)
+
+    def south_field_triple(self):
+        "Returns a suitable description of this field for South."
+        from south.modelsinspector import introspector
+        field_class = "django.db.models.fields.IntegerField"
+        args, kwargs = introspector(self)
+        return (field_class, args, kwargs)
 
 
 class BoundedBigIntegerField(models.BigIntegerField):
@@ -169,6 +183,13 @@ class BoundedBigIntegerField(models.BigIntegerField):
             assert value <= self.MAX_VALUE
         return super(BoundedBigIntegerField, self).get_prep_value(value)
 
+    def south_field_triple(self):
+        "Returns a suitable description of this field for South."
+        from south.modelsinspector import introspector
+        field_class = "django.db.models.fields.BigIntegerField"
+        args, kwargs = introspector(self)
+        return (field_class, args, kwargs)
+
 
 class BoundedPositiveIntegerField(models.PositiveIntegerField):
     MAX_VALUE = 2147483647
@@ -178,6 +199,13 @@ class BoundedPositiveIntegerField(models.PositiveIntegerField):
             value = int(value)
             assert value <= self.MAX_VALUE
         return super(BoundedPositiveIntegerField, self).get_prep_value(value)
+
+    def south_field_triple(self):
+        "Returns a suitable description of this field for South."
+        from south.modelsinspector import introspector
+        field_class = "django.db.models.fields.PositiveIntegerField"
+        args, kwargs = introspector(self)
+        return (field_class, args, kwargs)
 
 
 class GzippedDictField(models.TextField):
