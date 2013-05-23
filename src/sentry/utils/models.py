@@ -203,6 +203,9 @@ signals.post_save.connect(__model_post_save)
 class IntegerField(models.IntegerField):
     MAX_VALUE = 2147483647
 
+    def to_python(self, value):
+        return int(value)
+
     def get_prep_value(self, value):
         assert value <= self.MAX_VALUE
 

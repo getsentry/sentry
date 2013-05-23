@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from django.db import models
-from sentry.utils.models import Model
+from sentry.utils.models import Model, IntegerField
 from sentry.testutils import TestCase
 
 
@@ -9,6 +9,7 @@ from sentry.testutils import TestCase
 # assuming it exists in these tests.
 class DummyModel(Model):
     foo = models.CharField(max_length=32)
+    normint = IntegerField(null=True)
 
 
 class ModelTest(TestCase):
@@ -29,3 +30,6 @@ class ModelTest(TestCase):
         self.assertEquals(inst.old_value('foo'), 'bar')
         models.signals.post_save.send(instance=inst, sender=type(inst), created=False)
         self.assertFalse(inst.has_changed('foo'))
+
+    def test_large_int(self):
+        DummyModel.objects.create(normint=9223372036854775807L, foo='bar')
