@@ -200,6 +200,15 @@ def __model_post_save(instance, **kwargs):
 signals.post_save.connect(__model_post_save)
 
 
+class IntegerField(models.IntegerField):
+    MAX_VALUE = 2147483647
+
+    def get_prep_value(self, value):
+        assert value <= self.MAX_VALUE
+
+        return int(value)
+
+
 class GzippedDictField(models.TextField):
     """
     Slightly different from a JSONField in the sense that the default

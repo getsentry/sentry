@@ -46,7 +46,7 @@ from sentry.signals import buffer_incr_complete, regression_signal
 from sentry.utils.cache import memoize
 from sentry.utils.db import has_trending
 from sentry.utils.http import absolute_uri
-from sentry.utils.models import Model, GzippedDictField, update
+from sentry.utils.models import Model, GzippedDictField, IntegerField, update
 from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute
 from sentry.utils.strings import truncatechars
@@ -154,7 +154,7 @@ class AccessGroup(Model):
     """
     team = models.ForeignKey(Team)
     name = models.CharField(max_length=64)
-    type = models.IntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
+    type = IntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
     managed = models.BooleanField(default=False)
     data = GzippedDictField(blank=True, null=True)
     date_added = models.DateTimeField(default=timezone.now)
@@ -180,7 +180,7 @@ class TeamMember(Model):
     """
     team = models.ForeignKey(Team, related_name="member_set")
     user = models.ForeignKey(django_settings.AUTH_USER_MODEL, related_name="sentry_teammember_set")
-    type = models.IntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
+    type = IntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager()
@@ -401,7 +401,7 @@ class PendingTeamMember(Model):
     """
     team = models.ForeignKey(Team, related_name="pending_member_set")
     email = models.EmailField()
-    type = models.IntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
+    type = IntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager()
@@ -537,8 +537,8 @@ class Group(EventBase):
     # active_at should be the same as first_seen by default
     active_at = models.DateTimeField(null=True, db_index=True)
     time_spent_total = models.FloatField(default=0)
-    time_spent_count = models.IntegerField(default=0)
-    score = models.IntegerField(default=0)
+    time_spent_count = IntegerField(default=0)
+    score = IntegerField(default=0)
     is_public = models.NullBooleanField(default=False, null=True)
 
     objects = GroupManager()
@@ -867,7 +867,7 @@ class GroupCountByMinute(Model):
     date = models.DateTimeField(db_index=True)  # normalized to HH:MM:00
     times_seen = models.PositiveIntegerField(default=0)
     time_spent_total = models.FloatField(default=0)
-    time_spent_count = models.IntegerField(default=0)
+    time_spent_count = IntegerField(default=0)
 
     objects = BaseManager()
 
@@ -892,7 +892,7 @@ class ProjectCountByMinute(Model):
     date = models.DateTimeField()  # normalized to HH:MM:00
     times_seen = models.PositiveIntegerField(default=0)
     time_spent_total = models.FloatField(default=0)
-    time_spent_count = models.IntegerField(default=0)
+    time_spent_count = IntegerField(default=0)
 
     objects = BaseManager()
 
