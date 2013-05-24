@@ -75,6 +75,9 @@ body {
   .group-list {
     border-top: none;
   }
+  .empty-message {
+    display: none;
+  }
   .group {
     .border-radius(4px);
     .box-shadow(none);
@@ -83,6 +86,7 @@ body {
     padding-top: 12px;
     padding-bottom: 12px;
     padding-right: 10px;
+    padding-left: 100px;
 
     &:hover {
       background: #292b2f;
@@ -90,9 +94,11 @@ body {
     }
 
     h3 {
-      font-size: 17pt;
-      margin: 0;
       font-weight: bold;
+      color: @gray;
+      a {
+        color: inherit;
+      }
     }
 
     .meta {

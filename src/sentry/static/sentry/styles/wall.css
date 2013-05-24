@@ -8637,6 +8637,9 @@ body {
 #events .group-list {
   border-top: none;
 }
+#events .empty-message {
+  display: none;
+}
 #events .group {
   -webkit-border-radius: 4px;
   -moz-border-radius: 4px;
@@ -8649,15 +8652,18 @@ body {
   padding-top: 12px;
   padding-bottom: 12px;
   padding-right: 10px;
+  padding-left: 100px;
 }
 #events .group:hover {
   background: #292b2f;
   border-color: #44454f;
 }
 #events .group h3 {
-  font-size: 17pt;
-  margin: 0;
   font-weight: bold;
+  color: #a6a8b7;
+}
+#events .group h3 a {
+  color: inherit;
 }
 #events .group .meta {
   position: relative;
