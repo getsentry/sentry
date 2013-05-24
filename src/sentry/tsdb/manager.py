@@ -12,22 +12,17 @@ from django.utils import timezone
 from sentry.manager import BaseManager
 from sentry.utils.models import create_or_update
 
-from .utils import Rollup
+from .utils import Rollup, ROLLUPS
 
 
 def get_optimal_rollup(start_timestamp, end_timestamp):
-    choices = [g for g, _ in reversed(Rollup.get_choices())]
+    num_seconds = int(end_timestamp.strftime('%s')) - int(start_timestamp.strftime('%s'))
 
     # calculate the highest rollup within time range
-    for idx, c_rollup in enumerate(choices):
-        start_norm = Rollup.normalize_to_epoch(c_rollup, start_timestamp)
-        end_norm = Rollup.normalize_to_epoch(c_rollup, end_timestamp)
-        if start_norm != end_norm:
-            try:
-                return choices[idx + 1]
-            except IndexError:
-                return c_rollup
-    return None
+    for rollup, samples in ROLLUPS:
+        if rollup * samples >= num_seconds:
+            return rollup
+    return ROLLUPS[-1][0]
 
 
 class PointManager(BaseManager):
@@ -56,8 +51,8 @@ class PointManager(BaseManager):
         """
         if timestamp is None:
             timestamp = timezone.now()
-        for rollup, _ in Rollup.get_choices():
-            epoch = Rollup.normalize_to_epoch(rollup, timestamp)
+        for rollup, _ in ROLLUPS:
+            epoch = Rollup.normalize_to_epoch(timestamp, rollup)
 
             create_or_update(
                 model=self.model,
@@ -76,12 +71,11 @@ class PointManager(BaseManager):
         """
         if timestamp is None:
             timestamp = timezone.now()
-        for rollup, _ in Rollup.get_choices():
-            min_timestamp = Rollup.get_min_timestamp(rollup, timestamp)
-            if min_timestamp is None:
+        for rollup, samples in ROLLUPS:
+            if samples is None:
                 continue
 
             self.filter(
                 rollup=rollup,
-                epoch__lt=min_timestamp,
+                epoch__lt=int(timestamp.strftime('%s')) - (rollup * samples),
             ).delete()

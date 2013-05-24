@@ -6,8 +6,6 @@ sentry.tsdb.utils
 :license: BSD, see LICENSE for more details.
 """
 
-from datetime import timedelta
-
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -28,20 +26,7 @@ ROLLUPS = (
 
 class Rollup(object):
     @classmethod
-    def get_choices(cls):
-        if not hasattr(cls, '__choice_cache'):
-            results = []
-            for name in dir(cls):
-                if name.startswith('_'):
-                    continue
-                if not name.upper() == name:
-                    continue
-                results.append((getattr(cls, name), name.replace('_', ' ').title()))
-            cls.__choice_cache = sorted(results)
-        return cls.__choice_cache
-
-    @classmethod
-    def normalize_to_epoch(cls, rollup, timestamp):
+    def normalize_to_epoch(cls, timestamp, seconds):
         """
         Given a ``timestamp`` (datetime object) normalize the datetime object
         ``timestamp`` to an epoch timestmap (integer).
@@ -49,60 +34,4 @@ class Rollup(object):
         i.e. if the rollup is minutes, the resulting timestamp would have
         the seconds and microseconds rounded down.
         """
-        timestamp = timestamp.replace(microsecond=0)
-        if rollup == cls.ALL_TIME:
-            return 0
-
-        if rollup == cls.SECONDS:
-            return int(timestamp.strftime('%s'))
-
-        timestamp = timestamp.replace(second=0)
-        if rollup == cls.MINUTES:
-            return int(timestamp.strftime('%s'))
-
-        timestamp = timestamp.replace(minute=0)
-        if rollup == cls.HOURS:
-            return int(timestamp.strftime('%s'))
-
-        timestamp = timestamp.replace(hour=0)
-        if rollup == cls.DAYS:
-            return int(timestamp.strftime('%s'))
-
-        if rollup == cls.WEEKS:
-            timestamp -= timedelta(days=timestamp.weekday())
-        else:
-            timestamp = timestamp.replace(day=1)
-
-        if rollup == cls.YEARS:
-            timestamp = timestamp.replace(month=1)
-
-        return int(timestamp.strftime('%s'))
-
-    @classmethod
-    def get_min_timestamp(cls, rollup, timestamp):
-        """
-        Return the minimum value (as an epoch timestamp) to keep in storage for
-        a rollup.
-
-        Timestamp should represent the current time.
-
-        i.e. if the rollup is seconds, the timestamp will be normalized to
-        the previous minute so only latest 60 points are stored (one per second)
-        """
-        if rollup in (cls.ALL_TIME, cls.YEARS):
-            return None
-
-        if rollup == cls.SECONDS:
-            timestamp -= timedelta(minutes=1)
-        elif rollup == cls.MINUTES:
-            timestamp -= timedelta(hours=1)
-        elif rollup == cls.HOURS:
-            timestamp -= timedelta(days=1)
-        elif rollup == cls.DAYS:
-            # days are stored for ~1 month
-            timestamp -= timedelta(days=30)
-        elif rollup == cls.WEEKS:
-            # weeks are stored for a full year
-            timestamp -= timedelta(days=1)
-
-        return cls.normalize_to_epoch(rollup, timestamp)
+        return int(int(timestamp.strftime('%s')) / seconds)
