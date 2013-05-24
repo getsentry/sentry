@@ -39,7 +39,6 @@ from .utils import Rollup
 
 class Key(models.Model):
     name = models.CharField(max_length=1000, unique=True)
-    label = models.CharField(max_length=1000, null=True)
 
     objects = BaseManager(cache_fields=['name'])
 
@@ -53,7 +52,9 @@ class Point(models.Model):
     objects = PointManager()
 
     class Meta:
-        index_together = (
+        unique_together = (
             ('key', 'rollup', 'epoch'),
+        )
+        index_together = (
             ('rollup', 'epoch'),
         )

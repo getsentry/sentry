@@ -12,7 +12,6 @@ class Migration(SchemaMigration):
         db.create_table(u'tsdb_key', (
             (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('name', self.gf('django.db.models.fields.CharField')(unique=True, max_length=1000)),
-            ('label', self.gf('django.db.models.fields.CharField')(max_length=1000, null=True)),
         ))
         db.send_create_signal(u'tsdb', ['Key'])
 
@@ -26,8 +25,14 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal(u'tsdb', ['Point'])
 
+        # Adding unique constraint on 'Point', fields ['key', 'rollup', 'epoch']
+        db.create_unique(u'tsdb_point', ['key_id', 'rollup', 'epoch'])
+
 
     def backwards(self, orm):
+        # Removing unique constraint on 'Point', fields ['key', 'rollup', 'epoch']
+        db.delete_unique(u'tsdb_point', ['key_id', 'rollup', 'epoch'])
+
         # Deleting model 'Key'
         db.delete_table(u'tsdb_key')
 
@@ -39,11 +44,10 @@ class Migration(SchemaMigration):
         u'tsdb.key': {
             'Meta': {'object_name': 'Key'},
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'label': ('django.db.models.fields.CharField', [], {'max_length': '1000', 'null': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '1000'})
         },
         u'tsdb.point': {
-            'Meta': {'object_name': 'Point'},
+            'Meta': {'unique_together': "(('key', 'rollup', 'epoch'),)", 'object_name': 'Point'},
             'epoch': ('django.db.models.fields.PositiveIntegerField', [], {}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'key': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['tsdb.Key']"}),
