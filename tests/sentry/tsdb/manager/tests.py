@@ -5,7 +5,7 @@ from exam import fixture
 
 from sentry.testutils import TestCase
 from sentry.tsdb.models import Point, Key
-from sentry.tsdb.utils import Granularity
+from sentry.tsdb.utils import Rollup
 
 timestamp = datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=pytz.UTC)
 
@@ -20,7 +20,7 @@ class IncrTest(TestCase):
 
         points = list(Point.objects.filter(key=self.key))
 
-        assert len(points) == len(Granularity.get_choices())
+        assert len(points) == len(Rollup.get_choices())
         for point in points:
             assert point.value == 1
 
@@ -33,7 +33,7 @@ class TrimTest(TestCase):
     def test_simple(self):
         Point.objects.create(
             key=self.key,
-            granularity=Granularity.SECONDS,
+            rollup=Rollup.SECONDS,
             value=1,
             epoch=(timestamp - timedelta(seconds=120)).strftime('%s'),
         )
@@ -51,13 +51,13 @@ class FetchTest(TestCase):
     def test_simple(self):
         Point.objects.create(
             key=self.key,
-            granularity=Granularity.SECONDS,
+            rollup=Rollup.SECONDS,
             value=1,
             epoch=timestamp.strftime('%s'),
         )
         Point.objects.create(
             key=self.key,
-            granularity=Granularity.SECONDS,
+            rollup=Rollup.SECONDS,
             value=1,
             epoch=(timestamp - timedelta(seconds=10)).strftime('%s'),
         )

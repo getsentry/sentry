@@ -22,7 +22,7 @@ class Migration(SchemaMigration):
             ('key', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['tsdb.Key'])),
             ('value', self.gf('django.db.models.fields.PositiveIntegerField')(default=0)),
             ('epoch', self.gf('django.db.models.fields.PositiveIntegerField')()),
-            ('granularity', self.gf('django.db.models.fields.PositiveIntegerField')()),
+            ('rollup', self.gf('django.db.models.fields.PositiveIntegerField')()),
         ))
         db.send_create_signal(u'tsdb', ['Point'])
 
@@ -45,9 +45,9 @@ class Migration(SchemaMigration):
         u'tsdb.point': {
             'Meta': {'object_name': 'Point'},
             'epoch': ('django.db.models.fields.PositiveIntegerField', [], {}),
-            'granularity': ('django.db.models.fields.PositiveIntegerField', [], {}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'key': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['tsdb.Key']"}),
+            'rollup': ('django.db.models.fields.PositiveIntegerField', [], {}),
             'value': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'})
         }
     }

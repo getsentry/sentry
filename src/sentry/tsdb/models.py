@@ -34,7 +34,7 @@ from django.db import models
 from sentry.manager import BaseManager
 
 from .manager import PointManager
-from .utils import Granularity
+from .utils import Rollup
 
 
 class Key(models.Model):
@@ -48,12 +48,12 @@ class Point(models.Model):
     key = models.ForeignKey(Key)
     value = models.PositiveIntegerField(default=0)
     epoch = models.PositiveIntegerField()
-    granularity = models.PositiveIntegerField(choices=Granularity.get_choices())
+    rollup = models.PositiveIntegerField(choices=Rollup.get_choices())
 
     objects = PointManager()
 
     class Meta:
         index_together = (
-            ('key', 'granularity', 'value'),
-            ('granularity', 'value'),
+            ('key', 'rollup', 'epoch'),
+            ('rollup', 'epoch'),
         )

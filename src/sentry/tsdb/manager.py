@@ -12,40 +12,40 @@ from django.utils import timezone
 from sentry.manager import BaseManager
 from sentry.utils.models import create_or_update
 
-from .utils import Granularity
+from .utils import Rollup
 
 
-def get_optimal_granularity(start_timestamp, end_timestamp):
-    choices = [g for g, _ in reversed(Granularity.get_choices())]
+def get_optimal_rollup(start_timestamp, end_timestamp):
+    choices = [g for g, _ in reversed(Rollup.get_choices())]
 
-    # calculate the highest granularity within time range
-    for idx, c_granularity in enumerate(choices):
-        start_norm = Granularity.normalize_to_epoch(c_granularity, start_timestamp)
-        end_norm = Granularity.normalize_to_epoch(c_granularity, end_timestamp)
+    # calculate the highest rollup within time range
+    for idx, c_rollup in enumerate(choices):
+        start_norm = Rollup.normalize_to_epoch(c_rollup, start_timestamp)
+        end_norm = Rollup.normalize_to_epoch(c_rollup, end_timestamp)
         if start_norm != end_norm:
             try:
                 return choices[idx + 1]
             except IndexError:
-                return c_granularity
+                return c_rollup
     return None
 
 
 class PointManager(BaseManager):
-    def fetch(self, key, start, end, granularity=None):
+    def fetch(self, key, start, end, rollup=None):
         """
         Return a list of points for ``key`` between ``start`` and ``end``.
 
-        If ``granularity`` is ommitted an optimal granularity is used to
+        If ``rollup`` is ommitted an optimal rollup is used to
         minimize the number of data points returned.
 
         >>> points = Point.objects.fetch(key, now, now - timedelta(days=7))
         >>> for epoch, value in points:
         >>>     print epoch, value
         """
-        granularity = get_optimal_granularity(start, end)
+        rollup = get_optimal_rollup(start, end)
         return sorted(self.filter(
             key=key,
-            granularity=granularity,
+            rollup=rollup,
             epoch__gte=start.strftime('%s'),
             epoch__lte=end.strftime('%s'),
         ).values_list('epoch', 'value'), key=lambda x: x[0])
@@ -56,14 +56,14 @@ class PointManager(BaseManager):
         """
         if timestamp is None:
             timestamp = timezone.now()
-        for granularity, _ in Granularity.get_choices():
-            epoch = Granularity.normalize_to_epoch(granularity, timestamp)
+        for rollup, _ in Rollup.get_choices():
+            epoch = Rollup.normalize_to_epoch(rollup, timestamp)
 
             create_or_update(
                 model=self.model,
                 key=key,
                 epoch=epoch,
-                granularity=granularity,
+                rollup=rollup,
                 defaults={
                     'value': F('value') + amount,
                 }
@@ -76,12 +76,12 @@ class PointManager(BaseManager):
         """
         if timestamp is None:
             timestamp = timezone.now()
-        for granularity, _ in Granularity.get_choices():
-            min_value = Granularity.get_min_timestamp(granularity, timestamp)
-            if min_value is None:
+        for rollup, _ in Rollup.get_choices():
+            min_timestamp = Rollup.get_min_timestamp(rollup, timestamp)
+            if min_timestamp is None:
                 continue
 
             self.filter(
-                granularity=granularity,
-                value__lt=min_value,
+                rollup=rollup,
+                epoch__lt=min_timestamp,
             ).delete()
