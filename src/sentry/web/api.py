@@ -707,7 +707,7 @@ def get_stats(request, team=None, project=None):
     # XXX: This is too slow if large amounts of groups are resolved
     num_resolved = Group.objects.filter(
         project__in=project_list,
-        status=1,
+        status=STATUS_RESOLVED,
         resolved_at__gte=cutoff_dt,
     ).aggregate(t=Sum('times_seen'))['t'] or 0
 
