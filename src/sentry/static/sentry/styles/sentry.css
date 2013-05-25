@@ -6568,44 +6568,6 @@ h3 {
 .toolbar .nav > li.active a {
   color: #6b7781;
 }
-.project-controls {
-  background: #fff;
-  padding: 5px 30px;
-  border-bottom: 2px solid #e4e8ec;
-}
-.project-controls .pull-right {
-  margin-top: 5px;
-}
-.project-controls .dashboard-icon {
-  display: inline-block;
-  width: 32px;
-  height: 23px;
-  line-height: 23px;
-  color: #757f87;
-  margin: 8px 3px 0 0;
-  border-right: 1px solid #e4e8ec;
-}
-.project-controls .dashboard-icon i {
-  background-image: none;
-  position: relative;
-  font-size: 16px;
-  top: 0;
-  left: -1px;
-}
-.project-controls .select2-container {
-  margin-top: 3px;
-  margin-bottom: 0;
-}
-.project-controls .select2-container .select2-choice {
-  -webkit-box-shadow: none;
-  -moz-box-shadow: none;
-  box-shadow: none;
-}
-.project-controls .select2-container.select2-container-active .select2-choice {
-  -webkit-box-shadow: 0 0 0 2px #a7aeb7;
-  -moz-box-shadow: 0 0 0 2px #a7aeb7;
-  box-shadow: 0 0 0 2px #a7aeb7;
-}
 #content {
   background: #fff;
 }
@@ -6624,7 +6586,8 @@ h3 {
   min-width: 0;
 }
 #content.with-left-sidebar {
-  background: #ffffff url(../images/dashboard/sidebar-bg.png) top left repeat-y;
+  background: #ffffff url(../images/dashboard/sidebar-bg.png) 298px 0 repeat-y;
+  background-size: 2px 1px;
   min-width: 1086px;
 }
 #content.with-left-sidebar .content {
