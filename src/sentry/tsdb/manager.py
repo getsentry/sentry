@@ -26,6 +26,13 @@ def get_optimal_rollup(start_timestamp, end_timestamp):
 
 
 class PointManager(BaseManager):
+    def _get_key(self, key):
+        from sentry.tsdb.models import Key
+
+        if isinstance(key, basestring):
+            key = Key.objects.get_or_create(name=key)
+        return key
+
     def fetch(self, key, start, end, rollup=None):
         """
         Return a list of points for ``key`` between ``start`` and ``end``.
@@ -39,7 +46,7 @@ class PointManager(BaseManager):
         """
         rollup = get_optimal_rollup(start, end)
         return sorted(self.filter(
-            key=key,
+            key=self._get_key(key),
             rollup=rollup,
             epoch__gte=start.strftime('%s'),
             epoch__lte=end.strftime('%s'),
@@ -56,7 +63,7 @@ class PointManager(BaseManager):
 
             create_or_update(
                 model=self.model,
-                key=key,
+                key=self._get_key(key),
                 epoch=epoch,
                 rollup=rollup,
                 defaults={
