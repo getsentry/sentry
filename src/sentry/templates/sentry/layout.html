@@ -56,10 +56,12 @@
                 <div class="container">
                     {% block page_header %}
                         {% if project %}
+                            <div class="dashboard-btn">
+                                <a href="{% url 'sentry' project.team.slug %}" title="{% trans "Dashboard" %}">
+                                    <i aria-hidden="true" class="icon-list"></i>
+                                </a>
+                            </div>
                             <ul class="nav nav-tabs">
-                                <li>
-                                    <a href="{% url 'sentry' project.team.slug %}">{% trans "Dashboard" %}</a>
-                                </li>
                                 <li class="active">
                                     <a href="{% url 'sentry-stream' project.team.slug project.slug %}">{% trans "Stream" %}</a>
                                 </li>

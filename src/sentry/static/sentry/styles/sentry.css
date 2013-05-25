@@ -6551,6 +6551,35 @@ h3 {
 .toolbar .navbar-search .search-query::-webkit-input-placeholder {
   color: #bec6cc;
 }
+.toolbar .dashboard-btn {
+  float: left;
+  margin-top: 14px;
+  margin-right: 10px;
+  padding-right: 10px;
+  border-right: 3px solid #cad0d8;
+}
+.toolbar .dashboard-btn > a {
+  display: block;
+  color: #878f99;
+  background: #fff;
+  text-align: center;
+  width: 28px;
+  height: 28px;
+  position: relative;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+  -webkit-box-shadow: 0 2px 0 rgba(185, 200, 215, 0.26);
+  -moz-box-shadow: 0 2px 0 rgba(185, 200, 215, 0.26);
+  box-shadow: 0 2px 0 rgba(185, 200, 215, 0.26);
+}
+.toolbar .dashboard-btn > a i {
+  background-image: none;
+  position: relative;
+  font-size: 16px;
+  top: 4px;
+  left: -1px;
+}
 .toolbar .nav {
   margin: 0 0 0 -14px;
   font-size: 15px;
@@ -6586,8 +6615,6 @@ h3 {
   min-width: 0;
 }
 #content.with-left-sidebar {
-  background: #ffffff url(../images/dashboard/sidebar-bg.png) 298px 0 repeat-y;
-  background-size: 2px 1px;
   min-width: 1086px;
 }
 #content.with-left-sidebar .content {
@@ -6597,8 +6624,10 @@ h3 {
   float: right;
 }
 #content.with-left-sidebar .sidebar {
+  background: #ffffff url(../images/dashboard/sidebar-bg.png) left top repeat-y;
   display: block;
   margin-right: 0;
+  margin-top: 25px;
   margin-left: -300px;
 }
 #content.with-left-sidebar section.body {
@@ -8129,28 +8158,6 @@ table.table td .select2-container {
   background: #ecf0f4;
   opacity: 0.55;
   filter: alpha(opacity=55);
-}
-.dashboard-btn {
-  display: block;
-  background: #fff;
-  text-align: center;
-  width: 30px;
-  height: 28px;
-  position: relative;
-  top: -3px;
-  -webkit-border-radius: 3px;
-  -moz-border-radius: 3px;
-  border-radius: 3px;
-  -webkit-box-shadow: 0 2px 0 rgba(185, 200, 215, 0.26);
-  -moz-box-shadow: 0 2px 0 rgba(185, 200, 215, 0.26);
-  box-shadow: 0 2px 0 rgba(185, 200, 215, 0.26);
-}
-.dashboard-btn i {
-  background-image: none;
-  position: relative;
-  font-size: 16px;
-  top: 5px;
-  left: -1px;
 }
 .navbar-inverse .nav .active > a,
 .navbar-inverse .nav .active > a:hover,
