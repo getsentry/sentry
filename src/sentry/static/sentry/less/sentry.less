@@ -37,7 +37,6 @@ body {
   width: auto;
 }
 
-
 // LINKS
 // -----
 
@@ -78,6 +77,10 @@ h3 {
   .transition(margin-top .1s ease);
 }
 
+#header {
+  height: 56px;
+}
+
 .navbar {
   position: relative;
   margin-bottom: 0;
@@ -90,10 +93,10 @@ h3 {
     background: #465262;
     border: 0;
     .box-shadow(none);
-    height: 60px;
+    height: 56px;
 
     .container {
-      padding: 9px 10px 0 30px;
+      padding: 8px 10px 0 30px;
     }
   }
 
@@ -103,33 +106,42 @@ h3 {
     font-weight: bold;
     float: left;
     display: block;
-    width: 63px;
+    text-indent: -1000em;
+    width: 25px;
     height: 25px;
-    margin: 10px 0 0;
+    margin: 7px 0 0 2px;
     letter-spacing: -1px;
     text-decoration: none;
+    background: url('../images/logomark.png') center center no-repeat;
+    background-size: 25px 25px;
     &:hover {
       color: lighten(#eef5fc, 10);
     }
   }
   #team-banner {
     display: block;
-    letter-spacing: -1px;
     text-decoration: none;
     position: absolute;
-    font-weight: bold;
-    left: 70px;
+    left: 65px;
     top: 0px;
-    font-size: 22px;
     width: auto;
     z-index: 20000;
     max-width: 450px;
     > a {
+      letter-spacing: -1px;
+      font-weight: bold;
+      font-size: 22px;
       color: #eef5fc;
-      height: 60px;
-      line-height: 60px;
+      height: 56px;
+      line-height: 56px;
       padding: 0 10px;
       display: inline-block;
+      small {
+        font-weight: normal;
+        font-size: 18px;
+        margin-left: 5px;
+        color: #dde5ec;
+      }
     }
     &.open > a.dropdown-toggle {
       background: darken(#465262, 10%);
@@ -152,6 +164,10 @@ h3 {
         font-size: 12px;
         font-weight: normal;
         text-transform: uppercase;
+        a {
+          color: inherit;
+          .transition(none);
+        }
       }
       .project-list {
         margin: 0;
@@ -168,6 +184,10 @@ h3 {
             &:hover {
               color: #000;
             }
+          }
+          &.active a {
+            color: #ccc;
+            background: inherit;
           }
         }
       }
@@ -286,157 +306,10 @@ h3 {
   .clearfix();
   background: #dee3e9;
   padding: 0 30px;
-  height: 53px;
-
-  .breadcrumb {
-    margin: 0;
-    padding: 0;
-    background: none;
-    border: none;
-    font-size: 14px;
-    font-weight: normal;
-    line-height: 53px;
-    overflow: hidden;
-    white-space: nowrap;
-
-    > li {
-      position: relative;
-      text-shadow: none;
-      font-weight: bold;
-      margin: 0 3px 0 0;
-
-      a {
-        color: #828991;
-      }
-
-      &:last-child > a {
-      
-      }
-
-      .action {
-        position: relative !important;
-        padding: 3px 7px;
-        margin-left: 5px;
-        top: -1px;
-        line-height: 13px;
-        font-size: 11px;
-      }
-
-    }
-
-    .divider {
-      height: 20px;
-      border-left: 2px solid #c9cfd8;
-      position: relative;
-      top: 6px;
-      margin-left: 10px;
-    }
-
-    .projects {
-      position: relative;
-      .project-shortcut {
-        position: absolute;
-        right: 32px;
-        left: 0;
-        height: 100%;
-        z-index: 10001;
-        display: block;
-        height: 28px;
-        top: -3px;
-        line-height: 28px;
-        padding-left: 11px;
-        .border-radius(3px 0 0 3px);
-
-        &:hover {
-          color: #000 !important;
-          background: #f9f9f9;
-        }
-      }
-    }
-
-    .projects.filter {
-      margin: 0 5px 0;
-    }
-
-    .select2-container .select2-choice { 
-      height: 28px;
-      line-height: 28px;
-      top: -3px;
-      padding: 0 0 0 0;
-      z-index: 1000;
-      .box-shadow(0 2px 0 rgba(185, 200, 215, .26));
-
-      span {
-        padding: 0 0 0 11px;
-        margin-right: 35px;
-        .border-radius(3px 0 0 3px);
-      }
-
-      div > b:hover {
-        color: #000 !important;
-        background: #f9f9f9;
-      }
-
-      div {
-        width: 32px;
-        right: 0;
-        top: 0;
-        .border-radius(0 3px 3px 0);
-        z-index: 1000;
-        > b {
-          line-height: 28px;
-          display: block;
-          .border-radius(0 3px 3px 0);
-          &:before {
-            .border-radius(0 3px 3px 0);
-            position: absolute;
-            line-height: 26px;
-            text-align: center;
-            display: block;
-            width: 30px;
-            border-left: 2px solid #ccc;
-            /** i have no idea how css works **/
-            left: 0;
-            right: 2px;
-            padding-right: 2px;
-            bottom: 2px;
-            top: 2px;
-          }
-        }
-      }
-    }
-
-    .select2-dropdown-open .select2-choice {
-      .box-shadow(0 0 0 2px #a7aeb7);
-    }
-
-    .project-settings {
-      margin: 0 4px;
-      a {
-        .opacity(60);
-        .transition(opacity .3s);
-        &:hover {
-          .opacity(100);
-        }
-      }
-      i {
-        background-image: none;
-        font-size: 16px;
-        position: relative;
-        top: 2px;
-      }
-    }
-  }
-
-  h2 {
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 52px;
-  }
+  height: 52px;
 
   div.pull-right {
     margin: 12px 0 0;
-
   }
 
   .navbar-search {
@@ -466,22 +339,24 @@ h3 {
   }
 
   .nav {
-    margin: 4px 0 0 -14px;
+    margin: 0 0 0 -14px;
+    font-size: 15px;
+    height: 46px;
+    padding-top: 6px;
+
     > li {
       > a {
+        font-weight: 400;
         color: #85909a;
-        height: 29px;
-        line-height: 29px;
-        padding-left: 14px;
-        padding-right: 14px;
+        height: 27px;
+        line-height: 27px;
+        padding-left: 16px;
+        padding-right: 16px;
       }
 
       &.active {
         a {
-          line-height: 27px;
           color: darken(#85909a, 10);
-          padding-left: 14px;
-          padding-right: 14px;
         }
       }
     }

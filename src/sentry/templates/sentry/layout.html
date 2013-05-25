@@ -55,27 +55,19 @@
             <section id="page-header" class="toolbar">
                 <div class="container">
                     {% block page_header %}
-                        <ul class="breadcrumb">
-                            <li><a href="{% if team %}{% url 'sentry' team.slug %}{% else %}{% url 'sentry' %}{% endif %}" class="dashboard-btn" title="{% trans "Dashboard" %}"><i aria-hidden="true" class="icon-list"></i></a></li>
-                            <li class="projects">
-                                {% if project %}
-                                    <a href="{% url 'sentry-stream' project.team.slug project.slug %}" class="project-shortcut">
-                                        {{ project.name }}
-                                    </a>
+                        {% if project %}
+                            <ul class="nav nav-tabs">
+                                <li>
+                                    <a href="{% url 'sentry' project.team.slug %}">{% trans "Dashboard" %}</a>
+                                </li>
+                                <li class="active">
+                                    <a href="{% url 'sentry-stream' project.team.slug project.slug %}">{% trans "Stream" %}</a>
+                                </li>
+                                {% if can_admin_team %}
+                                    <li><a href="{% url 'sentry-manage-project' project.team.slug project.slug %}" class="{% trans "Settings" %}">{% trans "Settings" %}</a></li>
                                 {% endif %}
-                                <select class="project-selector" data-placeholder="{% trans "Select a Project" %}">
-                                    <option value=""></option>
-                                    {% for p in PROJECT_LIST %}
-                                        <option value="{{ p.slug }}"{% if p == project %} selected="selected"{% endif %} data-url="{% url 'sentry-stream' p.team.slug p.slug %}">{{ p.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </li>
-                            {% if project and can_admin_team %}
-                                <li class="project-settings"><a href="{% url 'sentry-manage-project' project.team.slug project.slug %}" class="{% trans "Settings" %}"><i aria-hidden="true" class="icon-cog"></i></a></li>
-                            {% endif %}
-                            {% block breadcrumb %}
-                            {% endblock %}
-                        </ul>
+                            </ul>
+                        {% endif %}
                     {% endblock %}
                 </div>
             </section>

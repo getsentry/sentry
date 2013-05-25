@@ -6,18 +6,25 @@
     <div class="navbar navbar-inverse">
         <div class="navbar-inner">
             <div class="container">
-                <a id="logo" href="{% url 'sentry' %}">/ ! \</a>
+                <a id="logo" href="{% url 'sentry' %}">Sentry</a>
                 {% if team %}
                 <div id="team-banner">
-                    <a class="dropdown-toggle" data-toggle="dropdown">{{ team.name }}</a>
+                    <a class="dropdown-toggle" data-toggle="dropdown">
+                        {{ team.name }}
+                        {% if project %}
+                            <small>{{ project.name }}</small>
+                        {% endif %}
+                    </a>
                     <nav class="dropdown-menu">
                         <input type="text" value="search by project name"> <a href="#" class="btn">New</a>
                         {% for t in TEAM_LIST %}
-                            <h6>{{ t.name }}</h6>
+                            <h6><a href="{% url 'sentry' t.slug %}">{{ t.name }}</a></h6>
                             <ul class="project-list">
-                                <li><a href="#">API</a></li>
-                                <li><a href="#">Mobile</a></li>
-                                <li><a href="#">Frontend</a></li>
+                                {% for p in t.project_set.all %}
+                                    <li{% if p.id == project.id %} class="active"{% endif %}>
+                                        <a href="{% url 'sentry-stream' t.slug p.slug %}">{{ p.name }}</a>
+                                    </li>
+                                {% endfor %}
                             </ul>
                         {% endfor %}
                     </nav>
@@ -35,17 +42,8 @@
                 <ul class="nav pull-right">
                     {% block account_nav %}
                         {% if request.user.is_authenticated %}
-                            {% if TEAM_LIST %}
-                                <li class="dropdown">
-                                    <a href="{% url 'sentry-team-list' %}" class="dropdown-toggle" data-toggle="dropdown">{% if team %}{{ team.name }}{% else %}{% trans "Teams" %}{% endif %} <span class="caret"></span></a>
-                                    <ul class="dropdown-menu">
-                                        {% for t in TEAM_LIST %}
-                                            <li><a href="{% url 'sentry' t.slug %}">{{ t.name }}</a></li>
-                                        {% endfor %}
-                                        <li class="divider"></li>
-                                        <li><a href="{% url 'sentry-new-team' %}">{% trans "Create new team" %}</a></li>
-                                    </ul>
-                                </li>
+                            {% if team %}
+                                <li><a href="{% url 'sentry-manage-team' team.slug %}">Team Settings</a></li>
                             {% endif %}
                             <li class="dropdown">
                                 <a href="#" class="dropdown-toggle" data-toggle="dropdown"><img class="avatar" src="{% gravatar_url user.email size 20 %}"> {{ user.username }} <span class="caret"></span></a>

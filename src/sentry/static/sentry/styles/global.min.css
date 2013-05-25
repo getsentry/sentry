@@ -6244,6 +6244,9 @@ h3 {
   -o-transition: margin-top 0.1s ease;
   transition: margin-top 0.1s ease;
 }
+#header {
+  height: 56px;
+}
 .navbar {
   position: relative;
   margin-bottom: 0;
@@ -6261,7 +6264,7 @@ h3 {
   -webkit-box-shadow: none;
   -moz-box-shadow: none;
   box-shadow: none;
-  height: 60px;
+  height: 56px;
 }
 .navbar .navbar-inner:before,
 .navbar .navbar-inner:after {
@@ -6273,7 +6276,7 @@ h3 {
   clear: both;
 }
 .navbar .navbar-inner .container {
-  padding: 9px 10px 0 30px;
+  padding: 8px 10px 0 30px;
 }
 .navbar #logo {
   font-size: 22px;
@@ -6281,34 +6284,43 @@ h3 {
   font-weight: bold;
   float: left;
   display: block;
-  width: 63px;
+  text-indent: -1000em;
+  width: 25px;
   height: 25px;
-  margin: 10px 0 0;
+  margin: 7px 0 0 2px;
   letter-spacing: -1px;
   text-decoration: none;
+  background: url('../images/logomark.png') center center no-repeat;
+  background-size: 25px 25px;
 }
 .navbar #logo:hover {
   color: #ffffff;
 }
 .navbar #team-banner {
   display: block;
-  letter-spacing: -1px;
   text-decoration: none;
   position: absolute;
-  font-weight: bold;
-  left: 70px;
+  left: 65px;
   top: 0px;
-  font-size: 22px;
   width: auto;
   z-index: 20000;
   max-width: 450px;
 }
 .navbar #team-banner > a {
+  letter-spacing: -1px;
+  font-weight: bold;
+  font-size: 22px;
   color: #eef5fc;
-  height: 60px;
-  line-height: 60px;
+  height: 56px;
+  line-height: 56px;
   padding: 0 10px;
   display: inline-block;
+}
+.navbar #team-banner > a small {
+  font-weight: normal;
+  font-size: 18px;
+  margin-left: 5px;
+  color: #dde5ec;
 }
 .navbar #team-banner.open > a.dropdown-toggle {
   background: #313944;
@@ -6336,6 +6348,13 @@ h3 {
   font-weight: normal;
   text-transform: uppercase;
 }
+.navbar #team-banner .dropdown-menu h6 a {
+  color: inherit;
+  -webkit-transition: none;
+  -moz-transition: none;
+  -o-transition: none;
+  transition: none;
+}
 .navbar #team-banner .dropdown-menu .project-list {
   margin: 0;
 }
@@ -6353,6 +6372,10 @@ h3 {
 }
 .navbar #team-banner .dropdown-menu .project-list li a:hover {
   color: #000;
+}
+.navbar #team-banner .dropdown-menu .project-list li.active a {
+  color: #ccc;
+  background: inherit;
 }
 .navbar #team-banner .dropdown-menu input[type=text] {
   width: 380px;
@@ -6482,7 +6505,7 @@ h3 {
   *zoom: 1;
   background: #dee3e9;
   padding: 0 30px;
-  height: 53px;
+  height: 52px;
 }
 .toolbar:before,
 .toolbar:after {
@@ -6492,152 +6515,6 @@ h3 {
 }
 .toolbar:after {
   clear: both;
-}
-.toolbar .breadcrumb {
-  margin: 0;
-  padding: 0;
-  background: none;
-  border: none;
-  font-size: 14px;
-  font-weight: normal;
-  line-height: 53px;
-  overflow: hidden;
-  white-space: nowrap;
-}
-.toolbar .breadcrumb > li {
-  position: relative;
-  text-shadow: none;
-  font-weight: bold;
-  margin: 0 3px 0 0;
-}
-.toolbar .breadcrumb > li a {
-  color: #828991;
-}
-.toolbar .breadcrumb > li .action {
-  position: relative !important;
-  padding: 3px 7px;
-  margin-left: 5px;
-  top: -1px;
-  line-height: 13px;
-  font-size: 11px;
-}
-.toolbar .breadcrumb .divider {
-  height: 20px;
-  border-left: 2px solid #c9cfd8;
-  position: relative;
-  top: 6px;
-  margin-left: 10px;
-}
-.toolbar .breadcrumb .projects {
-  position: relative;
-}
-.toolbar .breadcrumb .projects .project-shortcut {
-  position: absolute;
-  right: 32px;
-  left: 0;
-  height: 100%;
-  z-index: 10001;
-  display: block;
-  height: 28px;
-  top: -3px;
-  line-height: 28px;
-  padding-left: 11px;
-  -webkit-border-radius: 3px 0 0 3px;
-  -moz-border-radius: 3px 0 0 3px;
-  border-radius: 3px 0 0 3px;
-}
-.toolbar .breadcrumb .projects .project-shortcut:hover {
-  color: #000 !important;
-  background: #f9f9f9;
-}
-.toolbar .breadcrumb .projects.filter {
-  margin: 0 5px 0;
-}
-.toolbar .breadcrumb .select2-container .select2-choice {
-  height: 28px;
-  line-height: 28px;
-  top: -3px;
-  padding: 0 0 0 0;
-  z-index: 1000;
-  -webkit-box-shadow: 0 2px 0 rgba(185, 200, 215, 0.26);
-  -moz-box-shadow: 0 2px 0 rgba(185, 200, 215, 0.26);
-  box-shadow: 0 2px 0 rgba(185, 200, 215, 0.26);
-}
-.toolbar .breadcrumb .select2-container .select2-choice span {
-  padding: 0 0 0 11px;
-  margin-right: 35px;
-  -webkit-border-radius: 3px 0 0 3px;
-  -moz-border-radius: 3px 0 0 3px;
-  border-radius: 3px 0 0 3px;
-}
-.toolbar .breadcrumb .select2-container .select2-choice div > b:hover {
-  color: #000 !important;
-  background: #f9f9f9;
-}
-.toolbar .breadcrumb .select2-container .select2-choice div {
-  width: 32px;
-  right: 0;
-  top: 0;
-  -webkit-border-radius: 0 3px 3px 0;
-  -moz-border-radius: 0 3px 3px 0;
-  border-radius: 0 3px 3px 0;
-  z-index: 1000;
-}
-.toolbar .breadcrumb .select2-container .select2-choice div > b {
-  line-height: 28px;
-  display: block;
-  -webkit-border-radius: 0 3px 3px 0;
-  -moz-border-radius: 0 3px 3px 0;
-  border-radius: 0 3px 3px 0;
-}
-.toolbar .breadcrumb .select2-container .select2-choice div > b:before {
-  -webkit-border-radius: 0 3px 3px 0;
-  -moz-border-radius: 0 3px 3px 0;
-  border-radius: 0 3px 3px 0;
-  position: absolute;
-  line-height: 26px;
-  text-align: center;
-  display: block;
-  width: 30px;
-  border-left: 2px solid #ccc;
-  /** i have no idea how css works **/
-
-  left: 0;
-  right: 2px;
-  padding-right: 2px;
-  bottom: 2px;
-  top: 2px;
-}
-.toolbar .breadcrumb .select2-dropdown-open .select2-choice {
-  -webkit-box-shadow: 0 0 0 2px #a7aeb7;
-  -moz-box-shadow: 0 0 0 2px #a7aeb7;
-  box-shadow: 0 0 0 2px #a7aeb7;
-}
-.toolbar .breadcrumb .project-settings {
-  margin: 0 4px;
-}
-.toolbar .breadcrumb .project-settings a {
-  opacity: 0.6;
-  filter: alpha(opacity=60);
-  -webkit-transition: opacity 0.3s;
-  -moz-transition: opacity 0.3s;
-  -o-transition: opacity 0.3s;
-  transition: opacity 0.3s;
-}
-.toolbar .breadcrumb .project-settings a:hover {
-  opacity: 1;
-  filter: alpha(opacity=100);
-}
-.toolbar .breadcrumb .project-settings i {
-  background-image: none;
-  font-size: 16px;
-  position: relative;
-  top: 2px;
-}
-.toolbar h2 {
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 52px;
 }
 .toolbar div.pull-right {
   margin: 12px 0 0;
@@ -6675,20 +6552,21 @@ h3 {
   color: #bec6cc;
 }
 .toolbar .nav {
-  margin: 4px 0 0 -14px;
+  margin: 0 0 0 -14px;
+  font-size: 15px;
+  height: 46px;
+  padding-top: 6px;
 }
 .toolbar .nav > li > a {
+  font-weight: 400;
   color: #85909a;
-  height: 29px;
-  line-height: 29px;
-  padding-left: 14px;
-  padding-right: 14px;
+  height: 27px;
+  line-height: 27px;
+  padding-left: 16px;
+  padding-right: 16px;
 }
 .toolbar .nav > li.active a {
-  line-height: 27px;
   color: #6b7781;
-  padding-left: 14px;
-  padding-right: 14px;
 }
 .project-controls {
   background: #fff;
