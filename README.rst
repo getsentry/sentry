@@ -4,6 +4,9 @@ Sentry
 .. image:: https://secure.travis-ci.org/getsentry/sentry.png?branch=master
    :target: http://travis-ci.org/getsentry/sentry
 
+.. image:: https://coveralls.io/repos/getsentry/sentry/badge.png?branch=master
+   :target: https://coveralls.io/r/getsentry/sentry?branch=master
+
 
 Sentry is a realtime event logging and aggregation platform. It specializes
 in monitoring errors and extracting all the information needed to do a proper
@@ -37,7 +40,7 @@ Resources
 * `Code <http://github.com/getsentry/sentry>`_
 * `Mailing List <https://groups.google.com/group/getsentry>`_
 * `IRC <irc://irc.freenode.net/sentry>`_  (irc.freenode.net, #sentry)
-* `Transifex <https://www.transifex.net/projects/p/sentry/>`_ (Translate Sentry!)
+* `Transifex <https://www.transifex.com/projects/p/sentry/>`_ (Translate Sentry!)
 
 The `in-development version <http://github.com/getsentry/sentry/tarball/master#egg=sentry-dev>`_
 of Sentry can be installed with ``pip install sentry==dev`` or ``easy_install sentry==dev``.

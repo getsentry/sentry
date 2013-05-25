@@ -357,7 +357,6 @@
     });
 
     app.WallPage = BasePage.extend({
-
         initialize: function(){
             BasePage.prototype.initialize.call(this, {
                 realtime: true,
@@ -370,6 +369,17 @@
 
             this.refreshSparkline();
             this.refreshStats();
+        },
+
+        makeDefaultView: function(id){
+            return new app.GroupListView({
+                className: 'group-list',
+                id: id,
+                maxItems: 5,
+                stream: this.options.stream,
+                realtime: this.options.realtime,
+                model: app.models.Group
+            });
         },
 
         refreshSparkline: function(){

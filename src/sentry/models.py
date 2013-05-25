@@ -46,7 +46,9 @@ from sentry.signals import buffer_incr_complete, regression_signal
 from sentry.utils.cache import memoize
 from sentry.utils.db import has_trending
 from sentry.utils.http import absolute_uri
-from sentry.utils.models import Model, GzippedDictField, update
+from sentry.utils.models import (
+    Model, GzippedDictField, BoundedIntegerField, BoundedPositiveIntegerField,
+    update)
 from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute
 from sentry.utils.strings import truncatechars
@@ -154,7 +156,7 @@ class AccessGroup(Model):
     """
     team = models.ForeignKey(Team)
     name = models.CharField(max_length=64)
-    type = models.IntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
+    type = BoundedIntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
     managed = models.BooleanField(default=False)
     data = GzippedDictField(blank=True, null=True)
     date_added = models.DateTimeField(default=timezone.now)
@@ -180,8 +182,7 @@ class TeamMember(Model):
     """
     team = models.ForeignKey(Team, related_name="member_set")
     user = models.ForeignKey(django_settings.AUTH_USER_MODEL, related_name="sentry_teammember_set")
-    is_active = models.BooleanField(default=True)
-    type = models.IntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
+    type = BoundedIntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager()
@@ -211,7 +212,7 @@ class Project(Model):
     team = models.ForeignKey(Team, null=True)
     public = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now)
-    status = models.PositiveIntegerField(default=0, choices=(
+    status = BoundedPositiveIntegerField(default=0, choices=(
         (STATUS_VISIBLE, _('Visible')),
         (STATUS_HIDDEN, _('Hidden')),
     ), db_index=True)
@@ -402,7 +403,7 @@ class PendingTeamMember(Model):
     """
     team = models.ForeignKey(Team, related_name="pending_member_set")
     email = models.EmailField()
-    type = models.IntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
+    type = BoundedIntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager()
@@ -449,12 +450,12 @@ class EventBase(Model):
     """
     project = models.ForeignKey(Project, null=True)
     logger = models.CharField(max_length=64, blank=True, default='root', db_index=True)
-    level = models.PositiveIntegerField(choices=settings.LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
+    level = BoundedPositiveIntegerField(choices=settings.LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
     message = models.TextField()
     culprit = models.CharField(max_length=200, blank=True, null=True, db_column='view')
     checksum = models.CharField(max_length=32, db_index=True)
     data = GzippedDictField(blank=True, null=True)
-    num_comments = models.PositiveIntegerField(default=0, null=True)
+    num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
 
     class Meta:
@@ -530,16 +531,16 @@ class Group(EventBase):
     """
     Aggregated message which summarizes a set of Events.
     """
-    status = models.PositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
-    times_seen = models.PositiveIntegerField(default=1, db_index=True)
+    status = BoundedPositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
+    times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
     resolved_at = models.DateTimeField(null=True, db_index=True)
     # active_at should be the same as first_seen by default
     active_at = models.DateTimeField(null=True, db_index=True)
     time_spent_total = models.FloatField(default=0)
-    time_spent_count = models.IntegerField(default=0)
-    score = models.IntegerField(default=0)
+    time_spent_count = BoundedIntegerField(default=0)
+    score = BoundedIntegerField(default=0)
     is_public = models.NullBooleanField(default=False, null=True)
 
     objects = GroupManager()
@@ -772,7 +773,7 @@ class TagKey(Model):
     """
     project = models.ForeignKey(Project)
     key = models.CharField(max_length=32)
-    values_seen = models.PositiveIntegerField(default=0)
+    values_seen = BoundedPositiveIntegerField(default=0)
 
     objects = TagKeyManager()
 
@@ -791,7 +792,7 @@ class TagValue(Model):
     key = models.CharField(max_length=32)
     value = models.CharField(max_length=200)
     data = GzippedDictField(blank=True, null=True)
-    times_seen = models.PositiveIntegerField(default=0)
+    times_seen = BoundedPositiveIntegerField(default=0)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
 
@@ -816,7 +817,7 @@ class GroupTagKey(Model):
     project = models.ForeignKey(Project, null=True)
     group = models.ForeignKey(Group)
     key = models.CharField(max_length=32)
-    values_seen = models.PositiveIntegerField(default=0)
+    values_seen = BoundedPositiveIntegerField(default=0)
 
     objects = BaseManager()
 
@@ -833,7 +834,7 @@ class GroupTag(Model):
     """
     project = models.ForeignKey(Project, null=True)
     group = models.ForeignKey(Group)
-    times_seen = models.PositiveIntegerField(default=0)
+    times_seen = BoundedPositiveIntegerField(default=0)
     key = models.CharField(max_length=32)
     value = models.CharField(max_length=200)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
@@ -866,9 +867,9 @@ class GroupCountByMinute(Model):
     project = models.ForeignKey(Project, null=True)
     group = models.ForeignKey(Group)
     date = models.DateTimeField(db_index=True)  # normalized to HH:MM:00
-    times_seen = models.PositiveIntegerField(default=0)
+    times_seen = BoundedPositiveIntegerField(default=0)
     time_spent_total = models.FloatField(default=0)
-    time_spent_count = models.IntegerField(default=0)
+    time_spent_count = BoundedIntegerField(default=0)
 
     objects = BaseManager()
 
@@ -891,9 +892,9 @@ class ProjectCountByMinute(Model):
 
     project = models.ForeignKey(Project, null=True)
     date = models.DateTimeField()  # normalized to HH:MM:00
-    times_seen = models.PositiveIntegerField(default=0)
+    times_seen = BoundedPositiveIntegerField(default=0)
     time_spent_total = models.FloatField(default=0)
-    time_spent_count = models.IntegerField(default=0)
+    time_spent_count = BoundedIntegerField(default=0)
 
     objects = BaseManager()
 
@@ -906,8 +907,8 @@ class ProjectCountByMinute(Model):
 class SearchDocument(Model):
     project = models.ForeignKey(Project)
     group = models.ForeignKey(Group)
-    total_events = models.PositiveIntegerField(default=1)
-    status = models.PositiveIntegerField(default=0)
+    total_events = BoundedPositiveIntegerField(default=1)
+    status = BoundedPositiveIntegerField(default=0)
     date_added = models.DateTimeField(default=timezone.now)
     date_changed = models.DateTimeField(default=timezone.now)
 
@@ -923,7 +924,7 @@ class SearchToken(Model):
     document = models.ForeignKey(SearchDocument, related_name="token_set")
     field = models.CharField(max_length=64, default='text')
     token = models.CharField(max_length=128)
-    times_seen = models.PositiveIntegerField(default=1)
+    times_seen = BoundedPositiveIntegerField(default=1)
 
     objects = BaseManager()
 
@@ -1023,7 +1024,7 @@ class Activity(Model):
     group = models.ForeignKey(Group, null=True)
     event = models.ForeignKey(Event, null=True)
     # index on (type, ident)
-    type = models.PositiveIntegerField(choices=TYPE)
+    type = BoundedPositiveIntegerField(choices=TYPE)
     ident = models.CharField(max_length=64, null=True)
     # if the user is not set, it's assumed to be the system
     user = models.ForeignKey(django_settings.AUTH_USER_MODEL, null=True)
@@ -1055,7 +1056,7 @@ class Alert(Model):
     message = models.TextField()
     data = GzippedDictField(null=True)
     related_groups = models.ManyToManyField(Group, through='sentry.AlertRelatedGroup', related_name='related_alerts')
-    status = models.PositiveIntegerField(default=0, choices=(
+    status = BoundedPositiveIntegerField(default=0, choices=(
         (STATUS_UNRESOLVED, _('Unresolved')),
         (STATUS_RESOLVED, _('Resolved')),
     ), db_index=True)

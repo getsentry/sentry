@@ -109,14 +109,15 @@ class RemoveProjectForm(forms.Form):
 class EditProjectForm(BaseProjectForm):
     public = forms.BooleanField(required=False,
         help_text=_('Imply public access to any event for this project.'))
-    team = forms.TypedChoiceField(choices=(), coerce=int)
+    team = forms.TypedChoiceField(choices=(), coerce=int, required=False)
     origins = OriginsField(label=_('Allowed Domains'), required=False,
         help_text=_('Separate multiple entries with a newline.'))
     resolve_age = RangeField(help_text=_('Treat an event as resolved if it hasn\'t been seen for this amount of time.'),
         required=False, min_value=0, max_value=168, step_value=1)
+    owner = UserField(required=False)
 
     class Meta:
-        fields = ('name', 'platform', 'public', 'team')
+        fields = ('name', 'platform', 'public', 'team', 'owner', 'slug')
         model = Project
 
     def __init__(self, request, team_list, data, instance, *args, **kwargs):
@@ -145,15 +146,6 @@ class EditProjectForm(BaseProjectForm):
             return self.instance.team
 
         return self.team_list[value]
-
-
-class EditProjectAdminForm(EditProjectForm):
-    team = forms.ChoiceField(choices=(), required=False)
-    owner = UserField(required=False)
-
-    class Meta:
-        fields = ('name', 'platform', 'public', 'team', 'owner', 'slug')
-        model = Project
 
 
 class AlertSettingsForm(forms.Form):

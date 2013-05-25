@@ -30,7 +30,7 @@
         <colgroup>
             <col/>
             <col width="100px"/>
-            <col width="180px"/>
+            <col width="90px"/>
         </colgroup>
         <thead>
             <tr>
@@ -60,12 +60,6 @@
                     {% else %}
                         <td style="text-align:center;">
                             <a href="{% url 'sentry-remove-team-member' team.slug member.pk %}" class="btn btn-danger btn-small">{% trans "Remove" %}</a>
-
-                            {% if member.is_active %}
-                                <a href="{% url 'sentry-suspend-team-member' team.slug member.pk %}" class="btn btn-small">{% trans "Suspend" %}</a>
-                            {% else %}
-                                <a href="{% url 'sentry-restore-team-member' team.slug member.pk %}" class="btn btn-small">{% trans "Restore" %}</a>
-                            {% endif %}
                         </td>
                     {% endif %}
                 </tr>

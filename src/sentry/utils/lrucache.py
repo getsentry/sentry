@@ -48,7 +48,7 @@ class LRUCache(object):
     def __init__(self, maxsize=100, typed=False):
         assert maxsize > 0
 
-        self.maxsize = 100
+        self.maxsize = maxsize
         self.typed = typed
 
         self.cache = dict()

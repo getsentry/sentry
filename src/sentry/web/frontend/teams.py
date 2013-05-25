@@ -350,52 +350,6 @@ def remove_team_member(request, team, member_id):
 
 @csrf_protect
 @has_access(MEMBER_OWNER)
-def suspend_team_member(request, team, member_id):
-    try:
-        member = team.member_set.get(pk=member_id)
-    except TeamMember.DoesNotExist:
-        return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
-
-    if member.user == team.owner:
-        return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
-
-    result = plugins.first('has_perm', request.user, 'suspend_team_member', member)
-    if result is False and not request.user.has_perm('sentry.can_change_teammember'):
-        return HttpResponseRedirect(reverse('sentry'))
-
-    member.update(is_active=False)
-
-    messages.add_message(request, messages.SUCCESS,
-        _('The team member was suspended.'))
-
-    return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
-
-
-@csrf_protect
-@has_access(MEMBER_OWNER)
-def restore_team_member(request, team, member_id):
-    try:
-        member = team.member_set.get(pk=member_id)
-    except TeamMember.DoesNotExist:
-        return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
-
-    if member.user == team.owner:
-        return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
-
-    result = plugins.first('has_perm', request.user, 'restore_team_member', member)
-    if result is False and not request.user.has_perm('sentry.can_change_teammember'):
-        return HttpResponseRedirect(reverse('sentry'))
-
-    member.update(is_active=True)
-
-    messages.add_message(request, messages.SUCCESS,
-        _('The team member was made active.'))
-
-    return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
-
-
-@csrf_protect
-@has_access(MEMBER_OWNER)
 def remove_pending_team_member(request, team, member_id):
     try:
         member = team.pending_member_set.get(pk=member_id)

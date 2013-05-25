@@ -7647,10 +7647,10 @@ ol.context-line > li > span {
 .module-content table pre {
   margin-bottom: 0;
 }
-.tag-list {
+.mini-tag-list {
   margin-bottom: 20px;
 }
-.tag-list > li {
+.mini-tag-list > li {
   display: inline-block;
   min-width: 100px;
   background: #f9f9f9;
@@ -7660,14 +7660,14 @@ ol.context-line > li > span {
   padding-top: 2px;
   padding-bottom: 2px;
 }
-.tag-list > li strong {
+.mini-tag-list > li strong {
   padding-left: 8px;
 }
-.tag-list > li em {
+.mini-tag-list > li em {
   color: #aaa;
   margin: 0 3px;
 }
-.tag-list > li span {
+.mini-tag-list > li span {
   padding-right: 8px;
 }
 #chart {
@@ -8637,6 +8637,9 @@ body {
 #events .group-list {
   border-top: none;
 }
+#events .empty-message {
+  display: none;
+}
 #events .group {
   -webkit-border-radius: 4px;
   -moz-border-radius: 4px;
@@ -8649,15 +8652,18 @@ body {
   padding-top: 12px;
   padding-bottom: 12px;
   padding-right: 10px;
+  padding-left: 100px;
 }
 #events .group:hover {
   background: #292b2f;
   border-color: #44454f;
 }
 #events .group h3 {
-  font-size: 17pt;
-  margin: 0;
   font-weight: bold;
+  color: #a6a8b7;
+}
+#events .group h3 a {
+  color: inherit;
 }
 #events .group .meta {
   position: relative;

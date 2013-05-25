@@ -6,7 +6,7 @@ import mock
 from mock import Mock
 from django.utils import timezone
 from sentry.interfaces import Stacktrace
-from sentry.models import Alert, Event, Group, Project
+from sentry.models import Alert, Event, Group, Project, AccessGroup
 from sentry.plugins.sentry_mail.models import MailProcessor
 from sentry.testutils import TestCase, fixture
 
@@ -245,20 +245,29 @@ class MailProcessorTest(TestCase):
 
         user = User.objects.create(username='foo', email='foo@example.com', is_active=True)
         user2 = User.objects.create(username='baz', email='baz@example.com', is_active=True)
-        user3 = User.objects.create(username='bar', email='bar@example.com', is_active=False)
+        user3 = User.objects.create(username='baz2', email='bar@example.com', is_active=True)
+
+        # user with inactive account
+        User.objects.create(username='bar', email='bar@example.com', is_active=False)
+        # user not in any groups
+        User.objects.create(username='bar2', email='bar@example.com', is_active=True)
+
         project = Project.objects.create(name='Test', slug='test', owner=user)
         project.team.member_set.get_or_create(user=user)
         project.team.member_set.get_or_create(user=user2)
-        project.team.member_set.get_or_create(user=user3)
+
+        ag = AccessGroup.objects.create(team=project.team)
+        ag.members.add(user3)
+        ag.projects.add(project)
 
         # all members
-        assert (sorted(set([user.pk, user2.pk])) ==
+        assert (sorted(set([user.pk, user2.pk, user3.pk])) ==
                 sorted(self.plugin.get_sendable_users(project)))
 
         # disabled user2
         UserOption.objects.create(key='mail:alert', value=0, project=project, user=user2)
 
-        assert sorted(set([user.pk])) == sorted(self.plugin.get_sendable_users(project))
+        assert user2.pk not in self.plugin.get_sendable_users(project)
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailProcessor._send_mail')
     def test_on_alert(self, _send_mail):

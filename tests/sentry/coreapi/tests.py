@@ -82,21 +82,6 @@ class ProjectFromAuthVarsTest(BaseAPITest):
         result = project_from_auth_vars(auth_vars)
         self.assertEquals(result, (self.project, self.pk.user))
 
-    def test_inactive_user(self):
-        user = self.pm.user
-        user.is_active = False
-        user.save()
-
-        auth_vars = {'sentry_key': self.pk.public_key}
-        self.assertRaises(APIUnauthorized, project_from_auth_vars, auth_vars)
-
-    def test_inactive_member(self):
-        self.pm.is_active = False
-        self.pm.save()
-
-        auth_vars = {'sentry_key': self.pk.public_key}
-        self.assertRaises(APIUnauthorized, project_from_auth_vars, auth_vars)
-
     def test_invalid_key(self):
         auth_vars = {'sentry_key': 'z'}
         self.assertRaises(APIForbidden, project_from_auth_vars, auth_vars)

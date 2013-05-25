@@ -8,13 +8,14 @@ sentry.plugins.bases.notify
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 from sentry.plugins import Plugin
-from sentry.models import UserOption, Project, User
+from sentry.models import UserOption, Project, User, AccessGroup
 from sentry.utils.cache import cache
 from sentry.constants import MEMBER_USER
 
 
 class NotificationConfigurationForm(forms.Form):
-    send_to_members = forms.BooleanField(label=_('Include project members'), initial=False, required=False,
+    send_to_members = forms.BooleanField(
+        label=_('Include project members'), initial=False, required=False,
         help_text=_('Notify members of this project.'))
 
 
@@ -91,10 +92,16 @@ class NotificationPlugin(Plugin):
             value=0,
         ).values_list('user', flat=True))
 
-        # fetch remaining users
+        # fetch team members
         member_set = set(project.team.member_set.filter(
             user__is_active=True,
         ).exclude(user__in=disabled).values_list('user', flat=True))
+
+        # fetch access group members
+        member_set |= set(AccessGroup.objects.filter(
+            projects=project,
+            members__is_active=True,
+        ).exclude(members__in=disabled).values_list('members', flat=True))
 
         return member_set
 
@@ -113,7 +120,9 @@ class NotificationPlugin(Plugin):
 
         # if any didnt exist, grab their default email
         if user_ids:
-            email_list |= set(User.objects.filter(pk__in=user_ids, is_active=True).values_list('email', flat=True))
+            email_list |= set(User.objects.filter(
+                pk__in=user_ids, is_active=True
+            ).values_list('email', flat=True))
 
         return email_list
 

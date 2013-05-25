@@ -21,7 +21,7 @@ from sentry.permissions import (
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms.projects import (
-    ProjectTagsForm, EditProjectForm, RemoveProjectForm, EditProjectAdminForm,
+    ProjectTagsForm, RemoveProjectForm, EditProjectForm,
     NotificationTagValuesForm, AlertSettingsForm)
 from sentry.web.helpers import render_to_response, plugin_config
 
@@ -80,17 +80,9 @@ def manage_project(request, team, project):
     if result is False and not request.user.has_perm('sentry.can_change_project'):
         return HttpResponseRedirect(reverse('sentry'))
 
-    # XXX: We probably shouldn't allow changing the team unless they're the project owner
     team_list = Team.objects.get_for_user(project.owner or request.user, MEMBER_OWNER)
 
-    can_admin_project = request.user == project.owner or request.user.has_perm('sentry.can_change_project')
-
-    if can_admin_project:
-        form_cls = EditProjectAdminForm
-    else:
-        form_cls = EditProjectForm
-
-    form = form_cls(request, team_list, request.POST or None, instance=project, initial={
+    form = EditProjectForm(request, team_list, request.POST or None, instance=project, initial={
         'origins': '\n'.join(project.get_option('sentry:origins', None) or []),
         'owner': project.owner,
         'resolve_age': int(project.get_option('sentry:resolve_age', 0)),

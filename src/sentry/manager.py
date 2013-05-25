@@ -1209,7 +1209,6 @@ class TeamManager(BaseManager):
         else:
             qs = TeamMember.objects.filter(
                 user=user,
-                is_active=True,
             ).select_related('team')
             if access is not None:
                 qs = qs.filter(type__lte=access)

@@ -36,15 +36,16 @@ for m in ('multiprocessing', 'billiard'):
 
 dev_requires = [
     'flake8>=1.7.0,<2.0',
-    'pytest-cov>=1.4',
 ]
 
 tests_require = [
     'exam>=0.5.1',
     'eventlet',
     'pytest',
+    'pytest-cov>=1.4',
     'pytest-django',
     'pytest-timeout',
+    'python-coveralls',
     'nydus',
     'mock>=0.8.0',
     'mock-django>=0.6.4',

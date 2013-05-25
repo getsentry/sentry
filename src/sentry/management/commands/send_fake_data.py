@@ -52,7 +52,7 @@ def funcs():
 
 
 class Command(BaseCommand):
-    help = 'Performs any pending database migrations and upgrades'
+    help = 'Sends fake data to the internal Sentry project'
 
     option_list = BaseCommand.option_list + (
         make_option('--num', dest='num_events', type=int),
@@ -69,6 +69,8 @@ class Command(BaseCommand):
 
         if options['num_events']:
             max_events = options['num_events']
+        else:
+            max_events = -1
 
         s = time.time()
         r = 0
