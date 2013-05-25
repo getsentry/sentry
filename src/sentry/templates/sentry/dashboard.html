@@ -5,21 +5,9 @@
 
 {% block title %}{% trans "Dashboard" %} | {{ block.super }}{% endblock %}
 
-{% block page_header %}
-    <div class="pull-right">
-        <a href="{% url 'sentry-new-project' team.slug %}" class="btn btn-primary">{% trans "Create a New Project" %}</a>
-    </div>
-    <ul class="nav nav-tabs">
-        <li class="active">
-            <a href="#">{% trans "Dashboard" %}</a>
-        </li>
-        <li>
-            <a href="#">{% trans "Stream" %}</a>
-        </li>
-        <li>
-            <a href="#">{% trans "Settings" %}</a>
-        </li>
-    </ul>
+{% block page_header_block %}
+    <section id="page-header" class="toolbar" style="height:5px;">
+    </section>
 {% endblock %}
 
 {% block bodyclass %}{% endblock %}
