@@ -453,11 +453,6 @@
     });
 
     app.AddTeamMemberPage = BasePage.extend({
-        initialize: function(data){
-            BasePage.prototype.initialize.call(this, data);
-
-            app.utils.makeSearchableUsersInput('form input[name=add-user]');
-        }
     });
 
     app.AccessGroupMembersPage = BasePage.extend({
