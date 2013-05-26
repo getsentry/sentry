@@ -1,0 +1,26 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+
+{% block title %}{{ project.name }} | {{ block.super }}{% endblock %}
+
+{% block page_header %}
+    <form action="{% url 'sentry-search' project.team.slug project.slug %}" class="navbar-search pull-right" id="search">
+        <input type="hidden" name="sort" value="{% if sort %}{{ sort }}{% endif %}"/>
+        <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="{% if HAS_SEARCH %}{% trans "Search query or event ID" %}{% else %}{% trans "Event ID" %}{% endif %}" class="search-query pull-left" />
+    </form>
+    {{ block.super }}
+    <ul class="nav nav-tabs">
+        <li>
+            <a href="{% url 'sentry-stream' project.team.slug project.slug %}">{% trans "Stream" %}</a>
+        </li>
+        <li class="active">
+            <a href="{% url 'sentry-stream' project.team.slug project.slug %}">{% trans "Explore" %}</a>
+        </li>
+        {% if can_admin_team %}
+            <li>
+                <a href="{% url 'sentry-manage-project' project.team.slug project.slug %}">{% trans "Settings" %}</a>
+            </li>
+        {% endif %}
+    </ul>
+{% endblock %}
