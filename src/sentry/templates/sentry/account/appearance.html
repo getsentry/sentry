@@ -6,10 +6,6 @@
 
 {% block title %}{% trans "Appearance" %} | {{ block.super }}{% endblock %}
 
-{% block heading %}
-    {% trans "Account Settings" %}
-{% endblock %}
-
 {% block inner %}
     <form class="form-stacked" action="" method="post" id="appearance_form">
         {% csrf_token %}

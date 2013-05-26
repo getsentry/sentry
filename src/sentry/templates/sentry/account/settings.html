@@ -6,10 +6,6 @@
 
 {% block title %}{% trans "Account Settings" %} | {{ block.super }}{% endblock %}
 
-{% block heading %}
-    {% trans "Account Settings" %}
-{% endblock %}
-
 {% block inner %}
     <form action="" method="post">
         {% csrf_token %}
