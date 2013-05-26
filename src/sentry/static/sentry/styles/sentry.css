@@ -6228,6 +6228,7 @@ h6 {
   margin: 0;
 }
 h2 {
+  font-weight: normal;
   font-size: 24px;
   line-height: 36px;
 }
@@ -6530,6 +6531,27 @@ h3 {
 .toolbar div.pull-right {
   margin: 12px 0 0;
 }
+.toolbar .nav-help {
+  float: right;
+  margin-top: 6px !important;
+}
+.toolbar .nav-help li {
+  float: left;
+  border-right: 3px solid #cad0d8;
+}
+.toolbar .nav-help li:last-child {
+  border-right: 0;
+  margin-right: 0;
+  padding-right: 0;
+  border-left: 0;
+}
+.toolbar .nav-help li a {
+  padding: 0 5px;
+}
+.toolbar .nav-help li a:hover {
+  background: inherit;
+  color: #000;
+}
 .toolbar .navbar-search {
   margin: 13px 0 0 10px;
 }
@@ -6781,6 +6803,31 @@ h3 {
   position: relative;
   margin-left: 0;
   padding-left: 0;
+}
+#content .sidebar #search input[type=text] {
+  width: 226px;
+  border: 0;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+  -webkit-box-shadow: 0 2px 0 rgba(205, 216, 227, 0.32);
+  -moz-box-shadow: 0 2px 0 rgba(205, 216, 227, 0.32);
+  box-shadow: 0 2px 0 rgba(205, 216, 227, 0.32);
+  -webkit-background-clip: padding-box;
+  -moz-background-clip: padding-box;
+  background-clip: padding-box;
+  -moz-background-clip: padding;
+  background-color: #fff;
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+  height: 35px;
+  line-height: 35px;
+  padding: 0 0 0 14px;
+  color: #757f87;
+  text-decoration: none;
+  font-weight: bold;
 }
 #content .sidebar .nav.nav-tabs.nav-stacked li {
   position: relative;

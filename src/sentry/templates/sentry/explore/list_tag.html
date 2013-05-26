@@ -10,6 +10,12 @@
 
 {% block main %}
     <section class="body">
+        <div class="page-header">
+            <h2>
+                Explore by {{ tag.get_label }}
+            </h2>
+        </div>
+
         {% paginator tag_list from request as tag_list %}
         {% querystring from request without sort as sort_querystring %}
 

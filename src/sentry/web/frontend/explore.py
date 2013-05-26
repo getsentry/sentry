@@ -67,7 +67,7 @@ def tag_details(request, team, project, tag_name, tag_id):
     event_list = Group.objects.filter(
         grouptag__project=project,
         grouptag__key=tag_name,
-        grouptag__value=tag.value,
+        grouptag__value=tag_value.value,
     )
 
     return render_to_response('sentry/explore/tag_details.html', {
