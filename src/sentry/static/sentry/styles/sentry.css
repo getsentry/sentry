@@ -6531,27 +6531,6 @@ h3 {
 .toolbar div.pull-right {
   margin: 12px 0 0;
 }
-.toolbar .nav-help {
-  float: right;
-  margin-top: 6px !important;
-}
-.toolbar .nav-help li {
-  float: left;
-  border-right: 3px solid #cad0d8;
-}
-.toolbar .nav-help li:last-child {
-  border-right: 0;
-  margin-right: 0;
-  padding-right: 0;
-  border-left: 0;
-}
-.toolbar .nav-help li a {
-  padding: 0 5px;
-}
-.toolbar .nav-help li a:hover {
-  background: inherit;
-  color: #000;
-}
 .toolbar .navbar-search {
   margin: 13px 0 0 10px;
 }

@@ -1,8 +1,14 @@
-{% extends "sentry/teams/manage.html" %}
+{% extends "sentry/teams/members/index.html" %}
 
 {% load i18n %}
 
 {% block title %}{% trans "New Member" %} | {{ block.super }}{% endblock %}
+
+{% block sidebar %}
+    {{ block.super }}
+    <h6>{% trans "Access Levels" %}</h6>
+    <p>{% blocktrans %}The primary difference between access levels is team management. Any member with admin access is treated almost identical to the team owner.{% endblocktrans %}</p>
+{% endblock %}
 
 {% block inner %}
     <ul class="nav nav-tabs">
