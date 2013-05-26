@@ -603,9 +603,10 @@ class GroupManager(BaseManager, ChartMixin):
                 'last_seen': max(event.datetime, group.last_seen),
                 'score': ScoreClause(group),
             }
-            message = kwargs.get('message')
-            if message:
-                extra['message'] = message
+            if event.message and event.message != group.message:
+                extra['message'] = event.message
+            if group.level != event.level:
+                extra['level'] = event.level
 
             if group.status == STATUS_RESOLVED or group.is_over_resolve_age():
                 # Making things atomic
