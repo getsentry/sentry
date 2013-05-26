@@ -6298,6 +6298,7 @@ h3 {
 }
 .navbar h1,
 .navbar #team-banner > a {
+  position: relative;
   letter-spacing: -1px;
   font-weight: bold;
   font-size: 22px;
@@ -6306,6 +6307,14 @@ h3 {
   line-height: 56px;
   padding: 0 10px;
   display: inline-block;
+  cursor: pointer;
+}
+.navbar h1 .caret,
+.navbar #team-banner > a .caret {
+  margin-top: 29px;
+  margin-left: 4px;
+  border-top-color: #b3b9c1 !important;
+  border-bottom-color: #b3b9c1 !important;
 }
 .navbar h1,
 .navbar #team-banner {
@@ -7834,6 +7843,8 @@ section.body .page-header:first-child {
   display: none;
 }
 .avatar {
+  width: 20px;
+  height: 20px;
   vertical-align: middle;
   border-radius: 3px;
 }

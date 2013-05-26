@@ -60,6 +60,7 @@
                                     {% if project %}
                                         <small>{{ project.name }}</small>
                                     {% endif %}
+                                    <span class="caret"></span>
                                 </a>
                                 <nav class="dropdown-menu">
                                     <input type="text" value="search by project name"> <a href="#" class="btn">New</a>
@@ -85,7 +86,7 @@
                                             <li><a href="{% url 'sentry-manage-team' team.slug %}">Team Settings</a></li>
                                         {% endif %}
                                         <li class="dropdown">
-                                            <a href="#" class="dropdown-toggle" data-toggle="dropdown"><img class="avatar" src="{% gravatar_url user.email size 20 %}"> {{ user.username }} <span class="caret"></span></a>
+                                            <a href="#" class="dropdown-toggle" data-toggle="dropdown"><img class="avatar" src="{% gravatar_url user.email size 20 %}"> <span class="caret"></span></a>
                                             <ul class="dropdown-menu">
                                                 <li><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a></li>
                                                 <li><a href="{% url 'sentry' %}">{% trans "Teams" %}</a></li>
