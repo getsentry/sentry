@@ -1,17 +1,10 @@
-{% extends "sentry/layout.html" %}
+{% extends "sentry/bases/modal.html" %}
 
 {% load i18n %}
 
 {% block title %}{% trans "Team List" %} | {{ block.super }}{% endblock %}
 
 {% block bodyclass %}{% endblock %}
-
-{% block page_header %}
-    <div class="pull-right">
-        <a href="{% url 'sentry-new-team' %}" class="btn btn-primary">{% trans "Create a new team" %}</a>
-    </div>
-    {{ block.super }}
-{% endblock %}
 
 {% block main %}
     <section class="body">

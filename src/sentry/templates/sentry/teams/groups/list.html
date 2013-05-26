@@ -3,6 +3,11 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
+{% block sidebar %}
+    <h6>{% trans "About Access Groups" %}</h6>
+    <p>{% blocktrans %}This page lists access groups within your team. An access group is an alternative to using team-wide membership, which allows you to restrict access to only specific projects.{% endblocktrans %}</p>
+{% endblock %}
+
 {% block bodyclass %} with-sidebar{% endblock %}
 
 {% block inner %}
