@@ -774,6 +774,7 @@ class TagKey(Model):
     project = models.ForeignKey(Project)
     key = models.CharField(max_length=32)
     values_seen = BoundedPositiveIntegerField(default=0)
+    label = models.CharField(max_length=64, null=True)
 
     objects = TagKeyManager()
 
@@ -782,6 +783,9 @@ class TagKey(Model):
         unique_together = (('project', 'key'),)
 
     __repr__ = sane_repr('project_id', 'key')
+
+    def get_label(self):
+        return self.label or self.key.replace('_', ' ').title()
 
 
 class TagValue(Model):
