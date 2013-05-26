@@ -5,8 +5,6 @@
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
-{% block title %}{% blocktrans with project.name as name %}Manage Project: {{ name }}{% endblocktrans %} | {{ block.super }}{% endblock %}
-
 {% block bodyclass %} with-left-sidebar{% endblock %}
 
 {% block main %}
