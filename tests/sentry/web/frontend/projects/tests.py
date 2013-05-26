@@ -142,7 +142,6 @@ class DashboardTest(TestCase):
         self.assertTemplateUsed(resp, 'sentry/dashboard.html')
         assert resp.context['team'] == self.team
         assert resp.context['project_list'] == [self.project]
-        assert resp.context['SECTION'] == 'events'
 
 
 class GetStartedTest(TestCase):
@@ -161,5 +160,3 @@ class GetStartedTest(TestCase):
         self.assertTemplateUsed(resp, 'sentry/get_started.html')
         assert resp.context['project'] == self.project
         assert resp.context['team'] == self.team
-        assert resp.context['SECTION'] == 'team'
-        assert resp.context['SUBSECTION'] == 'projects'

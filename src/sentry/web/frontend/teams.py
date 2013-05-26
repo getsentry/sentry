@@ -125,7 +125,10 @@ def remove_team(request, team):
 
     if form.is_valid():
         team.delete()
-        return HttpResponseRedirect(reverse('sentry-team-list'))
+        messages.add_message(
+            request, messages.SUCCESS,
+            _(u'The team %r was permanently deleted.') % (team.name.encode('utf-8'),))
+        return HttpResponseRedirect(reverse('sentry'))
 
     context = csrf(request)
     context.update({
