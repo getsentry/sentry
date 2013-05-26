@@ -1,12 +1,9 @@
-{% extends "sentry/layout.html" %}
+{% extends "sentry/bases/modal.html" %}
 
 {% load crispy_forms_tags %}
 {% load i18n %}
 
 {% block title %}{% trans "Recover Account" %} | {{ block.super }}{% endblock %}
-
-{% block page_header_block %}{% endblock %}
-{% block bodyclass %}{% endblock %}
 
 {% block main %}
     <section class="body">
