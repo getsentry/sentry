@@ -8,12 +8,6 @@
 
 {% block bodyclass %}{% endblock %}
 
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-alerts' project.team.slug project.slug %}">{% trans "Alerts" %}</a></li>
-{% endblock %}
-
 {% block main %}
     <section class="body">
         <div class="page-header">

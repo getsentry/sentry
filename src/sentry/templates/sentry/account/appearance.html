@@ -1,4 +1,4 @@
-{% extends "sentry/account/base.html" %}
+{% extends "sentry/bases/account.html" %}
 
 {% load url from future %}
 {% load crispy_forms_tags %}
@@ -6,12 +6,6 @@
 {% load sentry_helpers %}
 
 {% block title %}{% trans "Appearance" %} | {{ block.super }}{% endblock %}
-
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a></li>
-{% endblock %}
 
 {% block heading %}
     {% trans "Account Settings" %}

@@ -5,12 +5,6 @@
 
 {% block title %}{% trans "New Member" %} | {{ block.super }}{% endblock %}
 
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-new-team-member' team.slug %}">{% trans "New Member" %}</a></li>
-{% endblock %}
-
 {% block inner %}
     <ul class="nav nav-tabs">
         <li class="active"><a href="#invite" data-toggle="tab">{% trans "Invite a new user" %}</a></li>

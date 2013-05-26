@@ -38,11 +38,6 @@ def render_with_team_context(team, template, context, request=None):
 
 
 @login_required
-def team_list(request):
-    return render_to_response('sentry/teams/list.html', {}, request)
-
-
-@login_required
 @csrf_protect
 def create_new_team(request):
     if not can_create_teams(request.user):

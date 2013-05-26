@@ -6,12 +6,6 @@
 
 {% block title %}{% blocktrans with project.name as name %}{{ name }} events{% endblocktrans %} | {{ block.super }}{% endblock %}
 
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-events' project.team.slug project.id %}">{% trans "Stream" %}</a></li>
-{% endblock %}
-
 {% block sidebar %}
     {% for filter in filters %}
         {% if filter.show_label %}

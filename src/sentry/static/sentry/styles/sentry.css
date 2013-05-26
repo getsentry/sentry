@@ -6296,6 +6296,17 @@ h3 {
 .navbar #logo:hover {
   color: #ffffff;
 }
+.navbar h1,
+.navbar #team-banner > a {
+  letter-spacing: -1px;
+  font-weight: bold;
+  font-size: 22px;
+  color: #eef5fc;
+  height: 56px;
+  line-height: 56px;
+  padding: 0 10px;
+}
+.navbar h1,
 .navbar #team-banner {
   display: block;
   text-decoration: none;
@@ -6305,16 +6316,6 @@ h3 {
   width: auto;
   z-index: 20000;
   max-width: 450px;
-}
-.navbar #team-banner > a {
-  letter-spacing: -1px;
-  font-weight: bold;
-  font-size: 22px;
-  color: #eef5fc;
-  height: 56px;
-  line-height: 56px;
-  padding: 0 10px;
-  display: inline-block;
 }
 .navbar #team-banner > a small {
   font-weight: normal;
@@ -8474,6 +8475,54 @@ table.vars td table {
     -moz-border-radius: 0 0 7px 7px;
     border-radius: 0 0 7px 7px;
   }
+}
+.windowed {
+  background: #c8cbd0;
+}
+.windowed .outer-wrapper {
+  width: 900px;
+  max-width: 900px;
+  margin-top: 30px;
+  margin-bottom: 30px;
+  -webkit-box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.03);
+  -moz-box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.03);
+  -webkit-border-radius: 9px;
+  -moz-border-radius: 9px;
+  border-radius: 9px;
+}
+.windowed .navbar .navbar-inner {
+  -webkit-border-radius: 7px 7px 0 0;
+  -moz-border-radius: 7px 7px 0 0;
+  border-radius: 7px 7px 0 0;
+}
+.windowed footer {
+  -webkit-border-radius: 0 0 7px 7px;
+  -moz-border-radius: 0 0 7px 7px;
+  border-radius: 0 0 7px 7px;
+  padding: 30px 30px;
+}
+.windowed #content.with-left-sidebar {
+  width: 900px;
+  min-width: 900px;
+  background: #ffffff url(../images/dashboard/sidebar-bg.png) -50px top repeat-y;
+}
+.windowed #content.with-left-sidebar .content {
+  padding-left: 250px;
+}
+.windowed #content.with-left-sidebar .main {
+  min-width: 0;
+  float: right;
+}
+.windowed #content.with-left-sidebar .sidebar {
+  width: 190px;
+  display: block;
+  margin-right: 0;
+  margin-top: 0;
+  margin-left: -250px;
+}
+.windowed #content.with-left-sidebar section.body {
+  min-width: 0;
 }
 .popover {
   width: auto;

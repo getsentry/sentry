@@ -12,16 +12,6 @@
     {{ tag.data.filename }} | {{ block.super }}
 {% endblock %}
 
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-explore-code-details' team.slug project.slug tag.id %}">{{ tag.data.filename }}</a></li>
-    {% if selection == 'functions' %}
-        <li class="divider"></li>
-        <li><a href="{% url 'sentry-explore-code-details-by-function' team.slug project.slug tag.id %}">{{ tag.data.function }}</a></li>
-    {% endif %}
-{% endblock %}
-
 {% block bodyclass %} with-sidebar{% endblock %}
 
 {% block sidebar %}

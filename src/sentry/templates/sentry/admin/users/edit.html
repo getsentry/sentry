@@ -8,12 +8,6 @@
 
 {% block title %}{% trans "Change User" %} | {{ block.super }}{% endblock %}
 
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-admin-edit-user' the_user.pk %}">{{ the_user.username }}</a></li>
-{% endblock %}
-
 {% block main %}
     <section class="body">
         <form action="" method="post">

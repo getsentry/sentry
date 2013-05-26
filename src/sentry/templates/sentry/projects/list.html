@@ -9,15 +9,6 @@
     {% trans "Project List" %}
 {% endblock %}
 
-{% block page_header %}
-    <a href="{% url 'sentry-new-project' team.slug %}" class="btn pull-right btn-primary">{% trans "Create a new project" %}</a>
-
-    <ul class="breadcrumb">
-        <li><a href="{% url 'sentry-manage-team-projects' team.slug %}">{% trans "Projects" %}</a></li>
-        {% block breadcrumb %}{% endblock %}
-    </ul>
-{% endblock %}
-
 {% block main %}
     <section class="body">
         {% if PROJECT_LIST %}

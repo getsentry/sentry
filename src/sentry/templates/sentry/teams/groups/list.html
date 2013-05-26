@@ -4,12 +4,6 @@
 {% load i18n %}
 {% load sentry_helpers %}
 
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-manage-access-groups' team.slug %}">{% trans "Access Groups" %}</a></li>
-{% endblock %}
-
 {% block bodyclass %} with-sidebar{% endblock %}
 
 {% block inner %}

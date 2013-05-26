@@ -7,12 +7,6 @@
 
 {% block title %}{% trans "Manage API Keys" %} | {{ block.super }}{% endblock %}
 
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-manage-project-keys' project.team.slug project.slug %}">{% trans "Manage API Keys" %}</a></li>
-{% endblock %}
-
 {% block inner %}
     <div class="page-header">
         {% if can_add_key %}

@@ -7,12 +7,6 @@
 
 {% block title %}{% trans "Manage Plugins" %} | {{ block.super }}{% endblock %}
 
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-manage-project-plugins' project.team.slug project.slug %}">{% trans "Plugins" %}</a></li>
-{% endblock %}
-
 {% block inner %}
     <div class="page-header">
         <h2>{% trans "Manage Plugins" %}</h2>

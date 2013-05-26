@@ -7,12 +7,6 @@
 
 {% block title %}{{ tag.value }} | {{ block.super }}{% endblock %}
 
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-user-details' team.slug project.slug tag.id %}">{{ tag.data.email }}</a></li>
-{% endblock %}
-
 {% block bodyclass %} with-sidebar{% endblock %}
 
 {% block sidebar %}

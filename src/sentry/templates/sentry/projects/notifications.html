@@ -7,12 +7,6 @@
 
 {% block title %}{% trans "Notifications" %} | {{ block.super }}{% endblock %}
 
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-project-notifications' project.team.slug project.slug %}">{% trans "Notifications" %}</a></li>
-{% endblock %}
-
 {% block inner %}
     <div class="page-header">
         <h2>{% trans "Notifications" %}</h2>

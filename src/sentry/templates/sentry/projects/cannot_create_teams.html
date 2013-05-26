@@ -5,12 +5,6 @@
 
 {% block title %}{% trans "New Project" %} | {{ block.super }}{% endblock %}
 
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-new-project' team.slug %}">{% trans "New Project" %}</a></li>
-{% endblock %}
-
 {% block main %}
     <section class="body">
         <p>{% trans "You are not able to create a new project because you are not a member of any teams. Ask an administrator to add you to a team." %}</p>

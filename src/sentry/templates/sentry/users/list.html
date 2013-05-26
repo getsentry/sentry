@@ -1,18 +1,12 @@
-{% extends "sentry/teams/base.html" %}
+{% extends "sentry/bases/project.html" %}
 
-{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
-{% block title %}Users | {{ team.name }} | {{ block.super }}{% endblock %}
+{% block title %}Users | {{ block.super }}{% endblock %}
 
 {% block bodyclass %}{% endblock %}
-
-{% block breadcrumb %}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-users' team.slug project.slug %}">{% trans "Users" %}</a></li>
-{% endblock %}
 
 {% block main %}
     <section class="body">

@@ -7,12 +7,6 @@
 
 {% block bodyclass %}{% endblock %}
 
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{{ request.path }}">{% trans "Replay Request" %}</a></li>
-{% endblock %}
-
 {% block content %}
     <section class="body">
         <ul class="nav nav-tabs" data-tabs="tabs">

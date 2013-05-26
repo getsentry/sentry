@@ -1,16 +1,12 @@
-{% extends "sentry/layout.html" %}
+{% extends "sentry/bases/modal.html" %}
 
-{% load url from future %}
 {% load i18n %}
 
-{% block bodyclass %}team-index{% endblock %}
+{% block bodyclass %}team-index {{ block.super }}{% endblock %}
 
 {% block heading %}
     {% trans "Teams" %}
 {% endblock %}
-
-{% block page_header_block %}{% endblock %}
-
 
 {% block main %}
     <section class="body">
