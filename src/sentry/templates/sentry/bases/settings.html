@@ -1,0 +1,17 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+
+{% block title %}{{ project.name }} Settings | {{ block.super }}{% endblock %}
+
+{% block page_header %}
+    {{ block.super }}
+    <ul class="nav nav-tabs">
+        <li>
+            <a href="{% url 'sentry-stream' project.team.slug project.slug %}">{% trans "Stream" %}</a>
+        </li>
+        <li class="active">
+            <a href="{% url 'sentry-manage-project' project.team.slug project.slug %}">{% trans "Settings" %}</a>
+        </li>
+    </ul>
+{% endblock %}

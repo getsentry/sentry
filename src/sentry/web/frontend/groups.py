@@ -171,7 +171,6 @@ def render_with_group_context(group, template, context, request=None, event=None
         'project': group.project,
         'group': group,
         'can_admin_event': can_admin_group(request.user, group),
-        'SECTION': 'events',
     })
 
     if event:
@@ -231,7 +230,6 @@ def dashboard(request, team):
     return render_to_response('sentry/dashboard.html', {
         'team': team,
         'project_list': project_list,
-        'SECTION': 'events',
     }, request)
 
 
@@ -246,7 +244,6 @@ def wall_display(request, team):
     return render_to_response('sentry/wall.html', {
         'team': team,
         'project_list': project_list,
-        'SECTION': 'events',
     }, request)
 
 
@@ -274,7 +271,6 @@ def search(request, team, project):
             return render_to_response('sentry/invalid_message_id.html', {
                 'team': team,
                 'project': project,
-                'SECTION': 'events',
             }, request)
         else:
             return HttpResponseRedirect(reverse('sentry-group', kwargs={
@@ -295,7 +291,6 @@ def search(request, team, project):
                 return render_to_response('sentry/invalid_message_id.html', {
                     'team': team,
                     'project': project,
-                    'SECTION': 'events',
                 }, request)
             else:
                 return HttpResponseRedirect(reverse('sentry-group-event', kwargs={
@@ -333,7 +328,6 @@ def search(request, team, project):
         'query': query,
         'sort': sort,
         'sort_label': sort_label,
-        'SECTION': 'events',
     }, request)
 
 
@@ -369,7 +363,6 @@ def group_list(request, team, project):
         'filters': response['filters'],
         'SORT_OPTIONS': SORT_OPTIONS,
         'HAS_TRENDING': has_trending(),
-        'SECTION': 'events',
     }, request)
 
 
