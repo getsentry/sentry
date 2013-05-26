@@ -6305,6 +6305,7 @@ h3 {
   height: 56px;
   line-height: 56px;
   padding: 0 10px;
+  display: inline-block;
 }
 .navbar h1,
 .navbar #team-banner {
