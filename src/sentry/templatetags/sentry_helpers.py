@@ -420,3 +420,11 @@ def recent_alerts(context, project, asvar):
     context[asvar] = list(Alert.get_recent_for_project(project.id))
 
     return ''
+
+
+@register.filter
+def reorder_teams(team_list, team):
+    yield team
+    for t in team_list:
+        if t != team:
+            yield t
