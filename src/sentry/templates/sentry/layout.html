@@ -63,7 +63,7 @@
                                     <span class="caret"></span>
                                 </a>
                                 <nav class="dropdown-menu">
-                                    <input type="text" value="search by project name"> <a href="#" class="btn">New</a>
+                                    <!-- <input type="text" value="search by project name"> <a href="#" class="btn">New</a> -->
                                     {% for t in TEAM_LIST|reorder_teams:team %}
                                         <h6><a href="{% url 'sentry' t.slug %}">{{ t.name }}</a></h6>
                                         <ul class="project-list">
