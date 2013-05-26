@@ -7633,7 +7633,8 @@ ol.context-line > li > span {
   margin-bottom: 0;
 }
 .mini-tag-list {
-  margin-bottom: 20px;
+  margin-left: 0;
+  margin-bottom: 10px;
 }
 .mini-tag-list > li {
   display: inline-block;
@@ -7644,6 +7645,7 @@ ol.context-line > li > span {
   border-radius: 8px;
   padding-top: 2px;
   padding-bottom: 2px;
+  margin-bottom: 10px;
 }
 .mini-tag-list > li strong {
   padding-left: 8px;
