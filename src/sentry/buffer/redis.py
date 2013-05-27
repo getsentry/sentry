@@ -107,14 +107,14 @@ class RedisBuffer(Buffer):
         # tasks
         if not self.conn.setnx(lock_key, '1'):
             return
-        self.conn.expire(lock_key, self.delay)
+        self.conn.expire(lock_key, self.countdown)
 
         results = {}
         with self.conn.map() as conn:
             for column, amount in columns.iteritems():
                 key = self._make_key(model, filters, column)
-                results[column] = conn.getset(key, 0)
-                conn.expire(key, 60)  # drop expiration as it was just emptied
+                results[column] = conn.get(key)
+                conn.delete(key)
 
             hash_key = self._make_extra_key(model, filters)
             extra_results = conn.hgetall(hash_key)
@@ -132,7 +132,7 @@ class RedisBuffer(Buffer):
                 extra[key] = pickle.loads(str(value))
 
         # Filter out empty or zero'd results to avoid a potentially unnecessary update
-        results = dict((k, int(v)) for k, v in results.iteritems() if int(v or 0) > 0)
+        results = dict((k, int(v)) for k, v in results.iteritems() if v and int(v) > 0)
         if not results:
             return
         super(RedisBuffer, self).process_delay(model, results, filters, extra)
@@ -144,7 +144,7 @@ class RedisBuffer(Buffer):
         lock_key = 'lock:%s' % (redis_key,)
         if not self.conn.setnx(lock_key, '1'):
             return
-        self.conn.expire(lock_key, self.delay)
+        self.conn.expire(lock_key, self.countdown)
 
         with self.conn.map() as conn:
             amount = conn.get(redis_key)
