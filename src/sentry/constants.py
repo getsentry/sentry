@@ -112,6 +112,7 @@ PLATFORM_LIST = (
     'rails3',
     'sidekiq',
     'sinatra',
+    'tornado',
 )
 
 PLATFORM_ROOTS = {
@@ -120,6 +121,7 @@ PLATFORM_ROOTS = {
     'sidekiq': 'ruby',
     'django': 'python',
     'flask': 'python',
+    'tornado': 'python',
     'express': 'node.js',
     'connect': 'node.js',
 }
