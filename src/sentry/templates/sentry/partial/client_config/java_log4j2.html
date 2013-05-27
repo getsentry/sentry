@@ -1,0 +1,24 @@
+{% extends "sentry/partial/client_config/java_base.html" %}
+
+{% load i18n %}
+
+{% block inner %}
+    <p>{% trans "You'll need to configure the SentryAppender in your logging configuration:" %}</p>
+
+    <pre>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;configuration status="warn" packages="org.apache.logging.log4j.core,net.kencochrane.raven.log4j2"&gt;
+    &lt;appenders&gt;
+        &lt;Raven name="Sentry"&gt;
+            &lt;dsn&gt;
+                {% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}
+            &lt;/dsn&gt;
+        &lt;/Raven&gt;
+    &lt;/appenders&gt;
+
+    &lt;loggers&gt;
+        &lt;root level="error"&gt;
+            &lt;appender-ref ref="Sentry"/&gt;
+        &lt;/root&gt;
+    &lt;/loggers&gt;
+&lt;/configuration&gt;</pre>
+{% endblock %}
