@@ -6654,17 +6654,24 @@ h3 {
   min-width: 1086px;
 }
 #content.with-left-sidebar .content {
-  padding-left: 300px;
+  padding-left: 250px;
 }
 #content.with-left-sidebar .main {
   float: right;
 }
 #content.with-left-sidebar .sidebar {
-  background: #ffffff url(../images/dashboard/sidebar-bg.png) left top repeat-y;
+  width: 190px;
   display: block;
   margin-right: 0;
-  margin-top: 25px;
-  margin-left: -300px;
+  margin-top: 15px;
+  margin-left: -250px;
+}
+#content.with-left-sidebar .sidebar .nav a {
+  padding: 5px 15px;
+  margin: 0;
+  -webkit-border-radius: 4px;
+  -moz-border-radius: 4px;
+  border-radius: 4px;
 }
 #content.with-left-sidebar section.body {
   min-width: 0;

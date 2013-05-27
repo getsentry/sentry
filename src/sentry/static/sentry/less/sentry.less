@@ -446,17 +446,22 @@ h3 {
   &.with-left-sidebar {
     min-width: 1086px;
     .content {
-      padding-left: 300px;
+      padding-left: 250px;
     }
     .main {
       float: right;
     }
     .sidebar {
-      background: #fff url(../images/dashboard/sidebar-bg.png) left top repeat-y;  
+      width: 190px;
       display: block;
       margin-right: 0;
-      margin-top: 25px;
-      margin-left: -300px;
+      margin-top: 15px;
+      margin-left: -250px;
+      .nav a {
+        padding: 5px 15px;
+        margin: 0;
+        .border-radius(4px);
+      }
     }
     section.body {
       min-width: 0;
