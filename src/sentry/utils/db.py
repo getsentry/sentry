@@ -75,6 +75,23 @@ def resolve_expression_node(instance, node):
     return runner
 
 
+def resolve_simple_expression(node, initial=0):
+    def _resolve(node):
+        if isinstance(node, F):
+            return initial
+        elif isinstance(node, ExpressionNode):
+            return resolve_simple_expression(node, initial=initial)
+        return node
+
+    op = EXPRESSION_NODE_CALLBACKS.get(node.connector, None)
+    if not op:
+        raise CannotResolve
+    runner = _resolve(node.children[0])
+    for n in node.children[1:]:
+        runner = op(runner, _resolve(n))
+    return runner
+
+
 def attach_foreignkey(objects, field, related=[], database=None):
     """
     Shortcut method which handles a pythonic LEFT OUTER JOIN.

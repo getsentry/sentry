@@ -18,13 +18,16 @@ for package in ('nydus', 'redis'):
             'Missing %r package, which is required for Redis buffers' % (
                 package,))
 
-from django.db import models
-from django.utils.encoding import smart_str
 from hashlib import md5
 from nydus.db import create_cluster
+
+from django.db import models
+from django.utils.encoding import smart_str
+
 from sentry.buffer import Buffer
 from sentry.conf import settings
 from sentry.utils.compat import pickle
+from sentry.utils.db import resolve_simple_expression
 
 
 class RedisBuffer(Buffer):
@@ -76,81 +79,44 @@ class RedisBuffer(Buffer):
                 for k, v in sorted(filters.iteritems())))).hexdigest(),
         )
 
-    def _make_incr_key(self, key, timestamp):
-        return 'tsdb.point:%s:%s' % (md5(key).hexdigest(), timestamp)
+    def delay(self, callback, args=None, values=None):
+        if values is None:
+            return
 
-    def delay(self, model, columns, filters, extra=None):
         with self.conn.map() as conn:
-            for column, value in columns.iteritems():
-                key = self._make_key(model, filters, column)
-                conn.incr(key, value)
+            key = self._make_key(callback, args)
+            for name, value in values.iteritems():
+                # HACK:
+                if isinstance(value, models.ExpressionNode):
+                    value = resolve_simple_expression(value)
+                    conn.hincrby(key, name, value)
+                else:
+                    conn.hset(key, name, value)
                 conn.expire(key, self.key_expire)
+        super(RedisBuffer, self).delay(callback, args, values)
 
-            # Store extra in a hashmap so it can easily be removed
-            if extra:
-                key = self._make_extra_key(model, filters)
-                for column, value in extra.iteritems():
-                    conn.hset(key, column, pickle.dumps(value))
-                    conn.expire(key, self.key_expire)
-        super(RedisBuffer, self).delay(model, columns, filters, extra)
+    def process(self, callback, args=None, values=None):
+        if values is None:
+            return
 
-    def incr(self, key, amount=1, timestamp=None):
-        with self.conn.map() as conn:
-            redis_key = self._make_incr_key(key, timestamp)
-            conn.incr(redis_key, amount)
-            conn.expire(redis_key, self.key_expire)
-        super(RedisBuffer, self).delay(key, amount, timestamp)
-
-    def process_delay(self, model, columns, filters, extra=None):
-        lock_key = self._make_lock_key(model, filters)
+        lock_key = self._make_lock_key(callback, args)
         # prevent a stampede due to the way we use celery etas + duplicate
         # tasks
         if not self.conn.setnx(lock_key, '1'):
             return
         self.conn.expire(lock_key, self.countdown)
 
-        results = {}
         with self.conn.map() as conn:
-            for column, amount in columns.iteritems():
-                key = self._make_key(model, filters, column)
-                results[column] = conn.get(key)
-                conn.delete(key)
+            key = self._make_key(callback, args)
+            stored_values = conn.hgetall(key)
+            conn.delete(key)
 
-            hash_key = self._make_extra_key(model, filters)
-            extra_results = conn.hgetall(hash_key)
-            conn.delete(hash_key)
-
-        # We combine the stored extra values with whatever was passed.
-        # This ensures that static values get updated to their latest value,
-        # and dynamic values (usually query expressions) are still dynamic.
-        if extra_results:
-            if not extra:
-                extra = {}
-            for key, value in extra_results.iteritems():
-                if not value:
-                    continue
-                extra[key] = pickle.loads(str(value))
-
-        # Filter out empty or zero'd results to avoid a potentially unnecessary update
-        results = dict((k, int(v)) for k, v in results.iteritems() if v and int(v) > 0)
-        if not results:
-            return
-        super(RedisBuffer, self).process_delay(model, results, filters, extra)
-
-    def process_incr(self, key, amount=1, timestamp=None):
-        # prevent a stampede due to the way we use celery etas + duplicate
-        # tasks
-        redis_key = self._make_incr_key(key, timestamp)
-        lock_key = 'lock:%s' % (redis_key,)
-        if not self.conn.setnx(lock_key, '1'):
-            return
-        self.conn.expire(lock_key, self.countdown)
-
-        with self.conn.map() as conn:
-            amount = conn.get(redis_key)
-            conn.delete(redis_key)
-
-        if not amount:
+        if not stored_values:
             return
 
-        super(RedisBuffer, self).process_incr(key, amount, timestamp)
+        for key, value in values.iteritems():
+            if isinstance(value, models.ExpressionNode):
+                values[key] = resolve_simple_expression(
+                    value, intitial=stored_values.get(key, 0))
+
+        super(RedisBuffer, self).process(callback, args, values)
