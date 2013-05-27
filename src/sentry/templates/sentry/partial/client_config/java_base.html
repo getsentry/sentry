@@ -1,0 +1,29 @@
+{% load i18n %}
+{% load sentry_helpers %}
+
+<div class="pull-right">
+    {% github_button 'kencochrane' 'raven-java' %}
+</div>
+
+<ul class="nav nav-tabs">
+    <li{% if platform == 'java' %} class="active"{% endif %}><a href="{% url 'sentry-docs-client' project.team.slug project.slug 'java' %}">Java</a></li>
+    <li{% if platform == 'java_logging' %} class="active"{% endif %}><a href="{% url 'sentry-docs-client' project.team.slug project.slug 'java_logging' %}">java.util.logging</a></li>
+    <li{% if platform == 'java_log4j' %} class="active"{% endif %}><a href="{% url 'sentry-docs-client' project.team.slug project.slug 'java_log4j' %}">log4j</a></li>
+    <li{% if platform == 'java_log4j2' %} class="active"{% endif %}><a href="{% url 'sentry-docs-client' project.team.slug project.slug 'java_log4j2' %}">log4j2</a></li>
+    <li{% if platform == 'java_logback' %} class="active"{% endif %}><a href="{% url 'sentry-docs-client' project.team.slug project.slug 'java_logback' %}">logback</a></li>
+</ul>
+
+<p>{% blocktrans with 'https://github.com/kencochrane/raven-java' as link %}Start by installing <a href="{{ link }}">raven-java</a>.{% endblocktrans %}</p>
+
+<p>{% blocktrans %}The easiest way to add the Raven dependency is with Maven:{% endblocktrans %}</p>
+
+<pre>&lt;dependency&gt;
+  &lt;groupId&gt;net.kencochrane.raven&lt;/groupId&gt;
+  &lt;artifactId&gt;raven&lt;/artifactId&gt;
+  &lt;version&gt;4.0&lt;/version&gt;
+&lt;/dependency&gt;</pre>
+    
+{% block inner %}
+{% endblock %}
+
+<p>{% blocktrans with 'https://github.com/kencochrane/raven-java' as link %}For more information on other uses of Raven with Java, please see the <a href="{{ link }}">official documentation for raven-java</a>.{% endblocktrans %}</p>

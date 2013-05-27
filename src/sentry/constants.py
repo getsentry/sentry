@@ -103,6 +103,10 @@ PLATFORM_LIST = (
     'flask',
     'ios',
     'java',
+    'java_log4j',
+    'java_log4j2',
+    'java_logback',
+    'java_logging',
     'javascript',
     'node.js',
     'php',
@@ -124,6 +128,10 @@ PLATFORM_ROOTS = {
     'tornado': 'python',
     'express': 'node.js',
     'connect': 'node.js',
+    'java_log4j': 'java',
+    'java_log4j2': 'java',
+    'java_logback': 'java',
+    'java_logging': 'java',
 }
 
 PLATFORM_TITLES = {
@@ -135,6 +143,10 @@ PLATFORM_TITLES = {
     'django': 'Django (Python)',
     'flask': 'Flask (Python)',
     'csharp': 'C#',
+    'java_log4j': 'Log4j (Java)',
+    'java_log4j2': 'Log4j 2.x (Java)',
+    'java_logback': 'Logback (Java)',
+    'java_logging': 'java.util.logging',
 }
 
 # Normalize counts to the 15 minute marker. This value MUST be less than 60. A

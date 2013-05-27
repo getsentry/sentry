@@ -3,18 +3,18 @@
 {% load i18n %}
 
 {% block inner %}
-	<p>{% trans "You'll also need blinker if you do not have it already:" %}</p>
+    <p>{% trans "You'll also need blinker if you do not have it already:" %}</p>
 
-	<pre>pip install blinker</pre>
+    <pre>pip install blinker</pre>
 
-	<p><em>{% trans "Blinker is required for signals to work within Flask." %}</em></p>
+    <p><em>{% trans "Blinker is required for signals to work within Flask." %}</em></p>
 
-	<p>{% trans "Add the required configuration in your application setup:" %}</p>
+    <p>{% trans "Add the required configuration in your application setup:" %}</p>
 
-	<pre>from raven.contrib.flask import Sentry
+    <pre>from raven.contrib.flask import Sentry
 
 app.config['SENTRY_DSN'] = '{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}'
 sentry = Sentry(app)</pre>
 
-	<p>{% trans "That's it! Raven automatically installs an error handling hook to pipe all uncaught exceptions to Sentry." %}</p>
+    <p>{% trans "That's it! Raven automatically installs an error handling hook to pipe all uncaught exceptions to Sentry." %}</p>
 {% endblock %}
