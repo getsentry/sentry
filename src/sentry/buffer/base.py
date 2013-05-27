@@ -43,28 +43,11 @@ class Buffer(object):
         if not values:
             return
 
+        callback(*args, values=values)
+
         buffer_delay_complete.send_robust(
             callback=callback,
             args=args,
             values=values,
             sender=type(self),
         )
-
-    # def incr(self, model, columns, filters, extra=None):
-    #     update_kwargs = dict((c, F(c) + v) for c, v in columns.iteritems())
-    #     if extra:
-    #         update_kwargs.update(extra)
-
-    #     _, created = model.objects.create_or_update(
-    #         defaults=update_kwargs,
-    #         **filters
-    #     )
-
-    #     buffer_delay_complete.send_robust(
-    #         model=model,
-    #         columns=columns,
-    #         filters=filters,
-    #         extra=extra,
-    #         created=created,
-    #         sender=model,
-    #     )

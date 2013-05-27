@@ -1283,33 +1283,35 @@ def set_language_on_logon(request, user, **kwargs):
 
 @buffer_delay_complete.connect(sender=TagValue, weak=False)
 def record_project_tag_count(filters, created, **kwargs):
-    from sentry import app
-
     if not created:
         return
 
-    app.buffer.delay(TagKey, {
-        'values_seen': 1,
-    }, {
-        'project': filters['project'],
-        'key': filters['key'],
-    })
+    # TODO
+    TagKey.objects.create_or_update(
+        project=filters['project'],
+        key=filters['key'],
+        defaults={
+            'values_seen': F('values_seen') + 1,
+        },
+        buffer=True,
+    )
 
 
 @buffer_delay_complete.connect(sender=GroupTag, weak=False)
 def record_group_tag_count(filters, created, **kwargs):
-    from sentry import app
-
     if not created:
         return
 
-    app.buffer.delay(GroupTagKey, {
-        'values_seen': 1,
-    }, {
-        'project': filters['project'],
-        'group': filters['group'],
-        'key': filters['key'],
-    })
+    # TODO
+    GroupTagKey.objects.create_or_update(
+        project=filters['project'],
+        group=filters['group'],
+        key=filters['key'],
+        defaults={
+            'values_seen': F('values_seen') + 1,
+        },
+        buffer=True,
+    )
 
 
 @regression_signal.connect(weak=False)

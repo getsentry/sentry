@@ -26,7 +26,6 @@ from django.utils.encoding import smart_str
 
 from sentry.buffer import Buffer
 from sentry.conf import settings
-from sentry.utils.compat import pickle
 from sentry.utils.db import resolve_simple_expression
 
 
