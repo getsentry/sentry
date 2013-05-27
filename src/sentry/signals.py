@@ -21,4 +21,5 @@ class BetterSignal(Signal):
 
 
 regression_signal = BetterSignal(providing_args=["instance"])
-buffer_incr_complete = BetterSignal(providing_args=["model", "columns", "extra", "result"])
+buffer_incr_complete = BetterSignal(providing_args=["key", "amount", "timestamp"])
+buffer_delay_complete = BetterSignal(providing_args=["model", "columns", "extra", "result"])

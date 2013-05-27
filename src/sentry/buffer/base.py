@@ -7,8 +7,9 @@ sentry.buffer.base
 """
 
 from django.db.models import F
-from sentry.signals import buffer_incr_complete
-from sentry.tasks.process_buffer import process_incr
+from sentry.signals import buffer_incr_complete, buffer_delay_complete
+from sentry.tsdb.models import Key, Point
+from sentry.tasks.process_buffer import process_incr, process_delay
 
 
 class Buffer(object):
@@ -25,20 +26,46 @@ class Buffer(object):
     keep up with the updates.
     """
     def __init__(self, delay=5, **options):
-        self.delay = delay
+        self.countdown = delay
 
-    def incr(self, model, columns, filters, extra=None):
+    def incr(self, key, amount=1, timestamp=None):
         """
-        >>> incr(Group, columns={'times_seen': 1}, filters={'pk': group.pk})
+        >>> incr('foo.bar')
         """
         process_incr.apply_async(kwargs={
+            'key': key,
+            'amount': amount,
+            'timestamp': timestamp,
+        }, countdown=self.countdown)
+
+    def delay(self, model, columns, filters, extra=None):
+        """
+        >>> delay(Group, columns={'times_seen': 1}, filters={'pk': group.pk})
+        """
+        process_delay.apply_async(kwargs={
             'model': model,
             'columns': columns,
             'filters': filters,
             'extra': extra,
-        }, countdown=self.delay)
+        }, countdown=self.countdown)
 
-    def process(self, model, columns, filters, extra=None):
+    def process_incr(self, key, amount=1, timestamp=None):
+        key = Key.objects.get_or_create(key=key)[0]
+
+        Point.objects.incr(
+            key=key,
+            amount=amount,
+            timestamp=timestamp,
+        )
+
+        buffer_incr_complete.send_robust(
+            key=key,
+            amount=amount,
+            timestamp=timestamp,
+            sender=type(self),
+        )
+
+    def process_delay(self, model, columns, filters, extra=None):
         update_kwargs = dict((c, F(c) + v) for c, v in columns.iteritems())
         if extra:
             update_kwargs.update(extra)
@@ -48,7 +75,7 @@ class Buffer(object):
             **filters
         )
 
-        buffer_incr_complete.send_robust(
+        buffer_delay_complete.send_robust(
             model=model,
             columns=columns,
             filters=filters,

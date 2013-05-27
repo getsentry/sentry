@@ -43,7 +43,7 @@ from sentry.manager import (
     GroupManager, ProjectManager,
     MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager,
     UserOptionManager, TagKeyManager, TeamManager, UserManager)
-from sentry.signals import buffer_incr_complete, regression_signal
+from sentry.signals import buffer_delay_complete, regression_signal
 from sentry.utils.cache import memoize
 from sentry.utils.db import has_trending
 from sentry.utils.http import absolute_uri
@@ -1281,14 +1281,14 @@ def set_language_on_logon(request, user, **kwargs):
         request.session['django_language'] = language
 
 
-@buffer_incr_complete.connect(sender=TagValue, weak=False)
+@buffer_delay_complete.connect(sender=TagValue, weak=False)
 def record_project_tag_count(filters, created, **kwargs):
     from sentry import app
 
     if not created:
         return
 
-    app.buffer.incr(TagKey, {
+    app.buffer.delay(TagKey, {
         'values_seen': 1,
     }, {
         'project': filters['project'],
@@ -1296,14 +1296,14 @@ def record_project_tag_count(filters, created, **kwargs):
     })
 
 
-@buffer_incr_complete.connect(sender=GroupTag, weak=False)
+@buffer_delay_complete.connect(sender=GroupTag, weak=False)
 def record_group_tag_count(filters, created, **kwargs):
     from sentry import app
 
     if not created:
         return
 
-    app.buffer.incr(GroupTagKey, {
+    app.buffer.delay(GroupTagKey, {
         'values_seen': 1,
     }, {
         'project': filters['project'],

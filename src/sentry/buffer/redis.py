@@ -76,11 +76,14 @@ class RedisBuffer(Buffer):
                 for k, v in sorted(filters.iteritems())))).hexdigest(),
         )
 
-    def incr(self, model, columns, filters, extra=None):
+    def _make_incr_key(self, key, timestamp):
+        return 'tsdb.point:%s:%s' % (md5(key).hexdigest(), timestamp)
+
+    def delay(self, model, columns, filters, extra=None):
         with self.conn.map() as conn:
-            for column, amount in columns.iteritems():
+            for column, value in columns.iteritems():
                 key = self._make_key(model, filters, column)
-                conn.incr(key, amount)
+                conn.incr(key, value)
                 conn.expire(key, self.key_expire)
 
             # Store extra in a hashmap so it can easily be removed
@@ -89,9 +92,16 @@ class RedisBuffer(Buffer):
                 for column, value in extra.iteritems():
                     conn.hset(key, column, pickle.dumps(value))
                     conn.expire(key, self.key_expire)
-        super(RedisBuffer, self).incr(model, columns, filters, extra)
+        super(RedisBuffer, self).delay(model, columns, filters, extra)
 
-    def process(self, model, columns, filters, extra=None):
+    def incr(self, key, amount=1, timestamp=None):
+        with self.conn.map() as conn:
+            redis_key = self._make_incr_key(key, timestamp)
+            conn.incr(redis_key, amount)
+            conn.expire(redis_key, self.key_expire)
+        super(RedisBuffer, self).delay(key, amount, timestamp)
+
+    def process_delay(self, model, columns, filters, extra=None):
         lock_key = self._make_lock_key(model, filters)
         # prevent a stampede due to the way we use celery etas + duplicate
         # tasks
@@ -125,4 +135,22 @@ class RedisBuffer(Buffer):
         results = dict((k, int(v)) for k, v in results.iteritems() if int(v or 0) > 0)
         if not results:
             return
-        super(RedisBuffer, self).process(model, results, filters, extra)
+        super(RedisBuffer, self).process_delay(model, results, filters, extra)
+
+    def process_incr(self, key, amount=1, timestamp=None):
+        # prevent a stampede due to the way we use celery etas + duplicate
+        # tasks
+        redis_key = self._make_incr_key(key, timestamp)
+        lock_key = 'lock:%s' % (redis_key,)
+        if not self.conn.setnx(lock_key, '1'):
+            return
+        self.conn.expire(lock_key, self.delay)
+
+        with self.conn.map() as conn:
+            amount = conn.get(redis_key)
+            conn.delete(redis_key)
+
+        if not amount:
+            return
+
+        super(RedisBuffer, self).process_incr(key, amount, timestamp)

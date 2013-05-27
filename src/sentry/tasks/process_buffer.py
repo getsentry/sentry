@@ -16,4 +16,14 @@ def process_incr(**kwargs):
     """
     from sentry import app
 
-    app.buffer.process(**kwargs)
+    app.buffer.process_incr(**kwargs)
+
+
+@task(name='sentry.tasks.process_buffer.process_delay', queue='counters')
+def process_delay(**kwargs):
+    """
+    Processes a buffer event.
+    """
+    from sentry import app
+
+    app.buffer.process_delay(**kwargs)

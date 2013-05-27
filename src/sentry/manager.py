@@ -32,7 +32,6 @@ from django.utils.datastructures import SortedDict
 from django.utils.encoding import force_unicode
 
 from raven.utils.encoding import to_string
-from sentry import app
 from sentry.conf import settings
 from sentry.constants import (
     STATUS_RESOLVED, STATUS_UNRESOLVED, MINUTE_NORMALIZATION,
@@ -223,6 +222,11 @@ class BaseManager(models.Manager):
 
     def create_or_update(self, **kwargs):
         return create_or_update(self.model, **kwargs)
+
+    @memoize
+    def app(self):
+        from sentry import app
+        return app
 
 
 class ScoreClause(object):
@@ -671,7 +675,7 @@ class GroupManager(BaseManager, ChartMixin):
 
             group.last_seen = extra['last_seen']
 
-            app.buffer.incr(self.model, update_kwargs, {
+            self.app.buffer.delay(self.model, update_kwargs, {
                 'id': group.id,
             }, extra)
         else:
@@ -693,13 +697,13 @@ class GroupManager(BaseManager, ChartMixin):
         # Rounded down to the nearest interval
         normalized_datetime = normalize_datetime(date)
 
-        app.buffer.incr(GroupCountByMinute, update_kwargs, {
+        self.app.buffer.delay(GroupCountByMinute, update_kwargs, {
             'group': group,
             'project': project,
             'date': normalized_datetime,
         })
 
-        app.buffer.incr(ProjectCountByMinute, update_kwargs, {
+        self.app.buffer.delay(ProjectCountByMinute, update_kwargs, {
             'project': project,
             'date': normalized_datetime,
         })
@@ -730,7 +734,7 @@ class GroupManager(BaseManager, ChartMixin):
             if len(value) > MAX_TAG_LENGTH:
                 continue
 
-            app.buffer.incr(TagValue, {
+            self.app.buffer.delay(TagValue, {
                 'times_seen': 1,
             }, {
                 'project': project,
@@ -741,7 +745,7 @@ class GroupManager(BaseManager, ChartMixin):
                 'data': data,
             })
 
-            app.buffer.incr(GroupTag, {
+            self.app.buffer.delay(GroupTag, {
                 'times_seen': 1,
             }, {
                 'group': group,
@@ -1171,7 +1175,7 @@ class SearchDocumentManager(BaseManager):
             }
         )
         if not created:
-            app.buffer.incr(self.model, {
+            self.app.buffer.delay(self.model, {
                 'total_events': 1,
             }, {
                 'id': document.id,
@@ -1211,7 +1215,7 @@ class SearchDocumentManager(BaseManager):
 
         for field, tokens in token_counts.iteritems():
             for token, count in tokens.iteritems():
-                app.buffer.incr(SearchToken, {
+                self.app.buffer.delay(SearchToken, {
                     'times_seen': count,
                 }, {
                     'document': document,

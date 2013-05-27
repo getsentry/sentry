@@ -25,6 +25,8 @@ Incompatible Changes
 - Nearly all data within an event now has a fixed max size. See client
   developer documentation for details.
 - Project keys are no longer created for individuals by default
+- The Buffer API has been completely changed, and extensions will need to be
+  updated to reflect the changes.
 
 Protocol Version 4
 ==================
