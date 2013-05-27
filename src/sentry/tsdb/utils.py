@@ -10,17 +10,14 @@ sentry.tsdb.utils
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
 ONE_DAY = ONE_HOUR * 24
-ONE_MONTH = ONE_DAY * 30
 
 
 ROLLUPS = (
     # time in seconds, samples to keep
-    (10, 24),  # 4 minutes at 10 seconds
-    (ONE_MINUTE, 30),  # 30 minutes at 1 minute
-    (ONE_MINUTE * 10, 20),  # 2 hours at 10 minutes
-    (ONE_HOUR, 24),  # 1 day at 1 hour
-    (ONE_DAY, 30),  # 1 month at 1 day
-    (ONE_MONTH, 24),  # 2 years at 1 month
+    (10, 30),  # 5 minutes at 10 seconds
+    (ONE_MINUTE, 120),  # 2 hours at 1 minute
+    (ONE_HOUR, 48),  # 2 days at 1 hour
+    (ONE_DAY, 365),  # 1 year at 1 day
 )
 
 
@@ -34,4 +31,6 @@ class Rollup(object):
         i.e. if the rollup is minutes, the resulting timestamp would have
         the seconds and microseconds rounded down.
         """
-        return int(int(timestamp.strftime('%s')) / seconds)
+        epoch = int(timestamp.strftime('%s'))
+        print epoch, epoch % seconds
+        return epoch - (epoch % seconds)
