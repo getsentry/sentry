@@ -18,4 +18,7 @@ INSTALLED_APPS = INSTALLED_APPS + (
 
 	<p>{% trans "That's it! Raven automatically installs an error handling hook to pipe all uncaught exceptions to Sentry." %}</p>
 
+	<p>{% trans "If you wish to test your connection to the server, you can use the raven test command:" %}</p>
+
+	<pre>python manage.py raven test</pre>
 {% endblock %}
