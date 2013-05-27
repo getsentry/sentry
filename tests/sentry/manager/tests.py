@@ -6,7 +6,10 @@ import datetime
 import mock
 import pytest
 
+from celery.tests.utils import with_eager_tasks
+
 from django.utils import timezone
+
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
 from sentry.interfaces import Interface
 from sentry.manager import get_checksum_from_event
@@ -68,78 +71,6 @@ class SentryManagerTest(TestCase):
             self.assertEquals(event.project_id, 1)
             self.assertEquals(event.datetime, date.replace(tzinfo=timezone.utc))
 
-    def test_url_filter(self):
-        event = Group.objects.from_kwargs(1, message='foo')
-        group = event.group
-        self.assertEquals(group.grouptag_set.filter(key='url').count(), 0)
-
-        event = Group.objects.from_kwargs(1, message='foo', **{
-            'sentry.interfaces.Http': {
-                'url': 'http://example.com',
-            }
-        })
-        group = event.group
-        self.assertEquals(group.grouptag_set.filter(key='url').count(), 1)
-        res = group.grouptag_set.filter(key='url').get()
-        self.assertEquals(res.value, 'http://example.com')
-        self.assertEquals(res.times_seen, 1)
-
-        event = Group.objects.from_kwargs(1, message='foo', **{
-            'sentry.interfaces.Http': {
-                'url': 'http://example.com',
-            }
-        })
-        group = event.group
-        self.assertEquals(group.grouptag_set.filter(key='url').count(), 1)
-        res = group.grouptag_set.filter(key='url').get()
-        self.assertEquals(res.value, 'http://example.com')
-        self.assertEquals(res.times_seen, 2)
-
-        event = Group.objects.from_kwargs(1, message='foo', **{
-            'sentry.interfaces.Http': {
-                'url': 'http://example.com/2',
-            }
-        })
-        group = event.group
-        self.assertEquals(group.grouptag_set.filter(key='url').count(), 2)
-        results = list(group.grouptag_set.filter(key='url').order_by('id'))
-        res = results[0]
-        self.assertEquals(res.value, 'http://example.com')
-        self.assertEquals(res.times_seen, 2)
-        res = results[1]
-        self.assertEquals(res.value, 'http://example.com/2')
-        self.assertEquals(res.times_seen, 1)
-
-    def test_server_name_filter(self):
-        event = Group.objects.from_kwargs(1, message='foo')
-        group = event.group
-        self.assertEquals(group.grouptag_set.filter(key='server_name').count(), 0)
-
-        event = Group.objects.from_kwargs(1, message='foo', server_name='foo')
-        group = event.group
-        self.assertEquals(group.grouptag_set.filter(key='server_name').count(), 1)
-        res = group.grouptag_set.filter(key='server_name').get()
-        self.assertEquals(res.value, 'foo')
-        self.assertEquals(res.times_seen, 1)
-
-        event = Group.objects.from_kwargs(1, message='foo', server_name='foo')
-        group = event.group
-        self.assertEquals(group.grouptag_set.filter(key='server_name').count(), 1)
-        res = group.grouptag_set.filter(key='server_name').get()
-        self.assertEquals(res.value, 'foo')
-        self.assertEquals(res.times_seen, 2)
-
-        event = Group.objects.from_kwargs(1, message='foo', server_name='bar')
-        group = event.group
-        self.assertEquals(group.grouptag_set.filter(key='server_name').count(), 2)
-        results = list(group.grouptag_set.filter(key='server_name').order_by('id'))
-        res = results[0]
-        self.assertEquals(res.value, 'foo')
-        self.assertEquals(res.times_seen, 2)
-        res = results[1]
-        self.assertEquals(res.value, 'bar')
-        self.assertEquals(res.times_seen, 1)
-
     @mock.patch('sentry.manager.send_group_processors', mock.Mock())
     @mock.patch('sentry.manager.GroupManager.add_tags')
     def test_tags_as_list(self, add_tags):
@@ -171,6 +102,7 @@ class SentryManagerTest(TestCase):
         Group.objects.from_kwargs(1, event_id=1, message='foo')
         self.assertEquals(Event.objects.count(), 1)
 
+    @with_eager_tasks
     def test_does_update_groupcountbyminute(self):
         event = Group.objects.from_kwargs(1, message='foo')
         inst = GroupCountByMinute.objects.filter(group=event.group)
@@ -182,6 +114,7 @@ class SentryManagerTest(TestCase):
         inst = GroupCountByMinute.objects.get(group=event.group)
         self.assertEquals(inst.times_seen, 2)
 
+    @with_eager_tasks
     def test_does_update_projectcountbyminute(self):
         event = Group.objects.from_kwargs(1, message='foo')
         inst = ProjectCountByMinute.objects.filter(project=event.project)
@@ -193,6 +126,7 @@ class SentryManagerTest(TestCase):
         inst = ProjectCountByMinute.objects.get(project=event.project)
         self.assertEquals(inst.times_seen, 2)
 
+    @with_eager_tasks
     def test_updates_group(self):
         Group.objects.from_kwargs(1, message='foo', checksum='a' * 32)
         event = Group.objects.from_kwargs(1, message='foo bar', checksum='a' * 32)
@@ -203,6 +137,7 @@ class SentryManagerTest(TestCase):
         self.assertEquals(group.last_seen.replace(microsecond=0), event.datetime.replace(microsecond=0))
         self.assertEquals(group.message, 'foo bar')
 
+    @with_eager_tasks
     def test_add_tags(self):
         event = Group.objects.from_kwargs(1, message='rrr')
         group = event.group

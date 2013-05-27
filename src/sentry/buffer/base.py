@@ -43,7 +43,7 @@ class Buffer(object):
         if not values:
             return
 
-        callback(*args, values=values)
+        callback(*args or (), values=values)
 
         buffer_delay_complete.send_robust(
             callback=callback,

@@ -5,6 +5,8 @@ from __future__ import absolute_import
 import datetime
 import mock
 
+from celery.tests.utils import with_eager_tasks
+
 from django.conf import settings as django_settings
 from django.core.urlresolvers import reverse
 from django.utils import timezone
@@ -82,12 +84,14 @@ class RavenIntegrationTest(TestCase):
 
         content_type = headers.pop('Content-Type', None)
         headers = dict(('HTTP_' + k.replace('-', '_').upper(), v) for k, v in headers.iteritems())
-        resp = self.client.post(reverse('sentry-api-store', args=[self.pk.project_id]),
+        resp = self.client.post(
+            reverse('sentry-api-store', args=[self.pk.project_id]),
             data=data,
             content_type=content_type,
             **headers)
         self.assertEquals(resp.status_code, 200, resp.content)
 
+    @with_eager_tasks
     @mock.patch('raven.base.Client.send_remote')
     def test_basic(self, send_remote):
         send_remote.side_effect = self.sendRemote
@@ -108,6 +112,7 @@ class RavenIntegrationTest(TestCase):
 
 
 class SentryRemoteTest(TestCase):
+    @with_eager_tasks
     def test_correct_data(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
         resp = self._postWithHeader(kwargs)
@@ -118,6 +123,7 @@ class SentryRemoteTest(TestCase):
         self.assertEquals(instance.level, 40)
         self.assertEquals(instance.site, 'not_a_real_site')
 
+    @with_eager_tasks
     def test_unicode_keys(self):
         kwargs = {u'message': 'hello', u'server_name': 'not_dcramer.local', u'level': 40, u'site': 'not_a_real_site'}
         resp = self._postWithSignature(kwargs)
@@ -128,6 +134,7 @@ class SentryRemoteTest(TestCase):
         self.assertEquals(instance.level, 40)
         self.assertEquals(instance.site, 'not_a_real_site')
 
+    @with_eager_tasks
     def test_timestamp(self):
         timestamp = timezone.now().replace(microsecond=0, tzinfo=timezone.utc) - datetime.timedelta(hours=1)
         kwargs = {u'message': 'hello', 'timestamp': timestamp.strftime('%s.%f')}
@@ -140,6 +147,7 @@ class SentryRemoteTest(TestCase):
         self.assertEquals(group.first_seen, timestamp)
         self.assertEquals(group.last_seen, timestamp)
 
+    @with_eager_tasks
     def test_timestamp_as_iso(self):
         timestamp = timezone.now().replace(microsecond=0, tzinfo=timezone.utc) - datetime.timedelta(hours=1)
         kwargs = {u'message': 'hello', 'timestamp': timestamp.strftime('%Y-%m-%dT%H:%M:%S.%f')}
@@ -152,6 +160,7 @@ class SentryRemoteTest(TestCase):
         self.assertEquals(group.first_seen, timestamp)
         self.assertEquals(group.last_seen, timestamp)
 
+    @with_eager_tasks
     def test_ungzipped_data(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
         resp = self._postWithSignature(kwargs)
@@ -162,31 +171,7 @@ class SentryRemoteTest(TestCase):
         self.assertEquals(instance.site, 'not_a_real_site')
         self.assertEquals(instance.level, 40)
 
-    # def test_byte_sequence(self):
-    #     """
-    #     invalid byte sequence for encoding "UTF8": 0xedb7af
-    #     """
-    #     # TODO:
-    #     # add 'site' to data in fixtures/bad_data.json, then assert it's set correctly below
-
-    #     fname = os.path.join(os.path.dirname(__file__), 'fixtures/bad_data.json')
-    #     data = open(fname).read()
-
-    #     resp = self.client.post(reverse('sentry-api-store'), {
-    #         'data': data,
-    #         'key': settings.KEY,
-    #     })
-
-    #     self.assertEquals(resp.status_code, 200)
-
-    #     self.assertEquals(Event.objects.count(), 1)
-
-    #     instance = Event.objects.get()
-
-    #     self.assertEquals(instance.message, 'DatabaseError: invalid byte sequence for encoding "UTF8": 0xeda4ac\nHINT:  This error can also happen if the byte sequence does not match the encoding expected by the server, which is controlled by "client_encoding".\n')
-    #     self.assertEquals(instance.server_name, 'shilling.disqus.net')
-    #     self.assertEquals(instance.level, 40)
-
+    @with_eager_tasks
     def test_signature(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
 
