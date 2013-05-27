@@ -6513,6 +6513,30 @@ h3 {
   -moz-box-shadow: inset 0 1px 0px rgba(255, 255, 255, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
   box-shadow: inset 0 1px 0px rgba(255, 255, 255, 0.15), 0 1px 2px rgba(0, 0, 0, 0.1);
 }
+#search input[type=text] {
+  width: 212px;
+  border: 0;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+  -webkit-box-shadow: 0 2px 0 rgba(205, 216, 227, 0.32);
+  -moz-box-shadow: 0 2px 0 rgba(205, 216, 227, 0.32);
+  box-shadow: 0 2px 0 rgba(205, 216, 227, 0.32);
+  -webkit-background-clip: padding-box;
+  -moz-background-clip: padding-box;
+  background-clip: padding-box;
+  -moz-background-clip: padding;
+  background-color: #fff;
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+  height: 22px;
+  padding: 3px 14px;
+  color: #757f87;
+  text-decoration: none;
+  font-weight: bold;
+}
 .toolbar {
   *zoom: 1;
   background: #dee3e9;
@@ -6782,31 +6806,6 @@ h3 {
   position: relative;
   margin-left: 0;
   padding-left: 0;
-}
-#content .sidebar #search input[type=text] {
-  width: 226px;
-  border: 0;
-  -webkit-border-radius: 3px;
-  -moz-border-radius: 3px;
-  border-radius: 3px;
-  -webkit-box-shadow: 0 2px 0 rgba(205, 216, 227, 0.32);
-  -moz-box-shadow: 0 2px 0 rgba(205, 216, 227, 0.32);
-  box-shadow: 0 2px 0 rgba(205, 216, 227, 0.32);
-  -webkit-background-clip: padding-box;
-  -moz-background-clip: padding-box;
-  background-clip: padding-box;
-  -moz-background-clip: padding;
-  background-color: #fff;
-  display: block;
-  overflow: hidden;
-  white-space: nowrap;
-  position: relative;
-  height: 35px;
-  line-height: 35px;
-  padding: 0 0 0 14px;
-  color: #757f87;
-  text-decoration: none;
-  font-weight: bold;
 }
 #content .sidebar .nav.nav-tabs.nav-stacked li {
   position: relative;

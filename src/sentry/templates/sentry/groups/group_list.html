@@ -12,10 +12,6 @@
         </div>
     </div>
 
-    <form action="{% url 'sentry-search' project.team.slug project.slug %}" id="search">
-        <input type="text" name="q" value="{% if query %}{{ query }}{% endif %}" placeholder="{% if HAS_SEARCH %}{% trans "Search query or event ID" %}{% else %}{% trans "Event ID" %}{% endif %}" />
-    </form>
-
     <form method="get">
         {% if request.user.is_authenticated %}
             {% querystring from request without bookmarks as bookmark_querystring %}
