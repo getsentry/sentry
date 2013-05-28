@@ -32,8 +32,6 @@ def get_started(request, team, project):
     return render_to_response('sentry/get_started.html', {
         'project': project,
         'team': project.team,
-        'SECTION': 'team',
-        'SUBSECTION': 'projects'
     }, request)
 
 
@@ -66,8 +64,6 @@ def remove_project(request, team, project):
         'team': team,
         'form': form,
         'project': project,
-        'SECTION': 'team',
-        'SUBSECTION': 'projects'
     })
 
     return render_to_response('sentry/projects/remove.html', context, request)
@@ -105,8 +101,6 @@ def manage_project(request, team, project):
         'page': 'details',
         'form': form,
         'project': project,
-        'SECTION': 'team',
-        'SUBSECTION': 'projects'
     })
 
     return render_to_response('sentry/projects/manage.html', context, request)
@@ -134,8 +128,6 @@ def manage_project_keys(request, team, project):
         'project': project,
         'key_list': key_list,
         'can_add_key': can_add_project_key(request.user, project),
-        'SECTION': 'team',
-        'SUBSECTION': 'projects'
     })
 
     return render_to_response('sentry/projects/keys.html', context, request)
@@ -201,8 +193,6 @@ def manage_project_tags(request, team, project):
         'page': 'tags',
         'project': project,
         'form': form,
-        'SECTION': 'team',
-        'SUBSECTION': 'projects'
     }
     return render_to_response('sentry/projects/manage_tags.html', context, request)
 
@@ -260,8 +250,6 @@ def notification_settings(request, team, project):
         'alert_form': alert_form,
         'tag_forms': tag_forms,
         'page': 'notifications',
-        'SECTION': 'team',
-        'SUBSECTION': 'projects',
     })
     return render_to_response('sentry/projects/notifications.html', context, request)
 
@@ -290,8 +278,6 @@ def manage_plugins(request, team, project):
         'team': team,
         'page': 'plugins',
         'project': project,
-        'SECTION': 'team',
-        'SUBSECTION': 'projects'
     })
 
     return render_to_response('sentry/projects/plugins/list.html', context, request)
@@ -333,8 +319,6 @@ def configure_project_plugin(request, team, project, slug):
         'project': project,
         'plugin': plugin,
         'plugin_is_enabled': plugin.is_enabled(project),
-        'SECTION': 'team',
-        'SUBSECTION': 'projects'
     })
 
     return render_to_response('sentry/projects/plugins/configure.html', context, request)

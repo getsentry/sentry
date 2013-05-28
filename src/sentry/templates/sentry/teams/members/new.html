@@ -1,14 +1,13 @@
-{% extends "sentry/teams/manage.html" %}
+{% extends "sentry/teams/members/index.html" %}
 
-{% load url from future %}
 {% load i18n %}
 
 {% block title %}{% trans "New Member" %} | {{ block.super }}{% endblock %}
 
-{% block breadcrumb %}
+{% block sidebar %}
     {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-new-team-member' team.slug %}">{% trans "New Member" %}</a></li>
+    <h6>{% trans "Access Levels" %}</h6>
+    <p>{% blocktrans %}The primary difference between access levels is team management. Any member with admin access is treated almost identical to the team owner.{% endblocktrans %}</p>
 {% endblock %}
 
 {% block inner %}

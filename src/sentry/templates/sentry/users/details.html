@@ -1,17 +1,10 @@
 {% extends "sentry/users/list.html" %}
 
-{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
 {% block title %}{{ tag.value }} | {{ block.super }}{% endblock %}
-
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-user-details' team.slug project.slug tag.id %}">{{ tag.data.email }}</a></li>
-{% endblock %}
 
 {% block bodyclass %} with-sidebar{% endblock %}
 

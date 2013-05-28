@@ -1,16 +1,9 @@
 {% extends "sentry/teams/manage.html" %}
 
-{% load url from future %}
 {% load crispy_forms_tags %}
 {% load i18n %}
 
 {% block title %}{% trans "Remove Team" %} | {{ block.super }}{% endblock %}
-
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-remove-team' team.slug %}">{% trans "Remove Team" %}</a></li>
-{% endblock %}
 
 {% block main %}
     <section class="body">

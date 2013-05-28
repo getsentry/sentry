@@ -1,15 +1,8 @@
 {% extends "sentry/projects/client_help.html" %}
 
-{% load url from future %}
 {% load i18n %}
 
 {% block title %}{% blocktrans %}{{ platform_title }} Client Configuration{% endblocktrans %} | {{ block.super }}{% endblock %}
-
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-docs-client' project.team.slug project.slug platform %}">{{ platform_title }}</a></li>
-{% endblock %}
 
 {% block inner %}
     <div class="page-header">

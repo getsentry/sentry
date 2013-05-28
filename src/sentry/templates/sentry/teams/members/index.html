@@ -1,15 +1,8 @@
 {% extends "sentry/teams/manage.html" %}
 
-{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
 {% load sentry_permissions %}
-
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-manage-team-members' team.slug %}">{% trans "Members" %}</a></li>
-{% endblock %}
 
 {% block bodyclass %} with-sidebar{% endblock %}
 

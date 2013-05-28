@@ -1,16 +1,9 @@
 {% extends "sentry/teams/groups/details.html" %}
 
-{% load url from future %}
 {% load crispy_forms_tags %}
 {% load i18n %}
 
 {% block title %}{% trans "Remove Access Group" %} | {{ block.super }}{% endblock %}
-
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-remove-access-group' group.team.slug group.id %}">{% trans "Remove Access Group" %}</a></li>
-{% endblock %}
 
 {% block main %}
     <section class="body">

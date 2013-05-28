@@ -1,15 +1,8 @@
 {% extends "sentry/teams/groups/list.html" %}
 
-{% load url from future %}
 {% load i18n %}
 
 {% block title %}{% trans "New Access Group" %} | {{ block.super }}{% endblock %}
-
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-new-access-group' team.slug %}">{% trans "New Access Group" %}</a></li>
-{% endblock %}
 
 {% block inner %}
     <div class="page-header">

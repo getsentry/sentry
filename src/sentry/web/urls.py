@@ -15,8 +15,9 @@ except ImportError:
     from django.conf.urls.defaults import include, patterns, url  # NOQA
 
 from sentry.web import api
-from sentry.web.frontend import (alerts, accounts, generic, groups, events,
-    projects, admin, docs, teams, users, explore_code)
+from sentry.web.frontend import (
+    alerts, accounts, generic, groups, events,
+    projects, admin, docs, teams, users, explore, explore_code)
 
 __all__ = ('urlpatterns',)
 
@@ -63,8 +64,6 @@ urlpatterns = patterns('',
     url(r'^account/settings/social/', include('social_auth.urls')),
 
     # Settings - Teams
-    url(r'^account/teams/$', teams.team_list,
-        name='sentry-team-list'),
     url(r'^account/teams/new/$', teams.create_new_team,
         name='sentry-new-team'),
     url(r'^account/teams/(?P<team_slug>[\w_-]+)/settings/$', teams.manage_team,
@@ -248,6 +247,13 @@ urlpatterns = patterns('',
         explore_code.tag_details, {'selection': 'filenames'}, name='sentry-explore-code-details'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/code/by/function/(?P<tag_id>\d+)/$',
         explore_code.tag_details, {'selection': 'functions'}, name='sentry-explore-code-details-by-function'),
+
+    # Explore
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/(?P<tag_name>[\w_-]+)/$',
+        explore.list_tag, name='sentry-explore-tag'),
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/(?P<tag_name>[\w_-]+)/(?P<tag_id>\d+)/$',
+        explore.tag_details, name='sentry-explore-tag-details'),
+
 
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/get-started/$', projects.get_started,
         name='sentry-get-started'),

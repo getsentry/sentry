@@ -1,14 +1,7 @@
 {% extends "sentry/teams/manage.html" %}
 
-{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
-
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-manage-team-projects' team.slug %}">{% trans "Projects" %}</a></li>
-{% endblock %}
 
 {% block inner %}
     <div class="page-header">

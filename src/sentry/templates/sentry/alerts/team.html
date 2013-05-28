@@ -1,17 +1,11 @@
 {% extends "sentry/teams/base.html" %}
 
-{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
 
 {% block title %}{% trans "Alerts" %} | {{ team.name }} | {{ block.super }}{% endblock %}
 
 {% block bodyclass %}{% endblock %}
-
-{% block breadcrumb %}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-alerts' team.slug %}">{% trans "Alerts" %}</a></li>
-{% endblock %}
 
 {% block main %}
     <section class="body">

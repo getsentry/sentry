@@ -1,17 +1,11 @@
-{% extends "sentry/admin/base.html" %}
+{% extends "sentry/bases/admin.html" %}
 
-{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
 
 {% block title %}{% trans "Manage Users" %} | {{ block.super }}{% endblock %}
 
 {% block admin-nav-users %} class="active"{% endblock %}
-
-{% block breadcrumb %}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-admin-users' %}">{% trans "Users" %}</a></li>
-{% endblock %}
 
 {% block page_header %}
     <a href="{% url 'sentry-admin-new-user' %}" class="btn pull-right btn-primary">{% trans "Create a new user" %}</a>

@@ -1,32 +1,11 @@
-{% extends "sentry/projects/base.html" %}
+{% extends "sentry/bases/settings.html" %}
 
-{% load url from future %}
 {% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
-{% block title %}{% blocktrans with project.name as name %}Manage Project: {{ name }}{% endblocktrans %} | {{ block.super }}{% endblock %}
-
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-manage-project' project.team.slug project.slug %}">{{ project.name }}</a></li>
-{% endblock %}
-
 {% block bodyclass %} with-left-sidebar{% endblock %}
-
-{% block above_content %}
-    <div class="project-controls">
-        <a href="{% url 'sentry-manage-team-projects' team.slug %}" class="dashboard-icon"><i aria-hidden="true" class="icon-list"></i></a>
-        <select class="project-selector" data-placeholder="{% trans "Select a Project" %}">
-            <option value=""></option>
-            {% for p in PROJECT_LIST %}
-                <option {% if p == project %} selected="selected"{% endif %} data-url="{% url 'sentry-manage-project' p.team.slug p.slug %}">{{ p.name }}</option>
-            {% endfor %}
-        </select>
-    </div>
-{% endblock %}
 
 {% block main %}
     <section class="body">

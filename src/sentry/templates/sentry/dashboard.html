@@ -1,15 +1,12 @@
 {% extends "sentry/layout.html" %}
 
-{% load url from future %}
 {% load i18n %}
 
 {% block title %}{% trans "Dashboard" %} | {{ block.super }}{% endblock %}
 
-{% block page_header %}
-    <div class="pull-right">
-        <a href="{% url 'sentry-new-project' team.slug %}" class="btn btn-primary">{% trans "Create a New Project" %}</a>
-    </div>
-    {{ block.super }}
+{% block page_header_block %}
+    <section id="page-header" class="toolbar" style="height:5px;">
+    </section>
 {% endblock %}
 
 {% block bodyclass %}{% endblock %}

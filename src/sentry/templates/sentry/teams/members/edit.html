@@ -1,16 +1,15 @@
-{% extends "sentry/teams/manage.html" %}
+{% extends "sentry/teams/members/index.html" %}
 
-{% load url from future %}
 {% load crispy_forms_tags %}
 {% load i18n %}
 {% load sentry_helpers %}
 
 {% block title %}{% trans "Edit Member" %} | {{ block.super }}{% endblock %}
 
-{% block breadcrumb %}
+{% block sidebar %}
     {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-edit-team-member' team.slug member.pk %}">Member: {{ member.user.username }}</a></li>
+    <h6>{% trans "Access Levels" %}</h6>
+    <p>{% blocktrans %}The primary difference between access levels is team management. Any member with admin access is treated almost identical to the team owner.{% endblocktrans %}</p>
 {% endblock %}
 
 {% block inner %}

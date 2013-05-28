@@ -1,18 +1,11 @@
 {% extends "sentry/groups/group_list.html" %}
 
-{% load url from future %}
 {% load i18n %}
 {% load sentry_activity %}
 {% load sentry_helpers %}
 {% load sentry_plugins %}
 
 {% block title %}{% if event %}{{ event.error }}{% else %}{{ group.message }}{% endif %} | {{ block.super }}{% endblock %}
-
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-group' group.team.slug group.project.slug group.id %}">{{ group.message }}</a></li>
-{% endblock %}
 
 {% block main %}
     {% handle_before_events request group %}

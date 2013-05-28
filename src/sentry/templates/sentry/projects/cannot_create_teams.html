@@ -1,15 +1,8 @@
 {% extends "sentry/projects/base.html" %}
 
-{% load url from future %}
 {% load i18n %}
 
 {% block title %}{% trans "New Project" %} | {{ block.super }}{% endblock %}
-
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-new-project' team.slug %}">{% trans "New Project" %}</a></li>
-{% endblock %}
 
 {% block main %}
     <section class="body">

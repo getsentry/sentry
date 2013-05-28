@@ -1,16 +1,9 @@
 {% extends "sentry/admin/users/edit.html" %}
 
-{% load url from future %}
 {% load crispy_forms_tags %}
 {% load i18n %}
 
 {% block title %}{% trans "Remove User" %} | {{ block.super }}{% endblock %}
-
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-admin-remove-user' the_user.pk %}">{% trans "Remove User" %}</a></li>
-{% endblock %}
 
 {% block main %}
     <section class="body">

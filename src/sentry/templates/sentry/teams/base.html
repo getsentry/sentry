@@ -1,31 +1,10 @@
-{% extends "sentry/layout.html" %}
+{% extends "sentry/bases/modal.html" %}
 
-{% load url from future %}
 {% load i18n %}
 
 {% block title %}{% trans "Team List" %} | {{ block.super }}{% endblock %}
 
 {% block bodyclass %}{% endblock %}
-
-{% block page_header %}
-    <div class="pull-right">
-        <a href="{% url 'sentry-new-team' %}" class="btn btn-primary">{% trans "Create a new team" %}</a>
-    </div>
-
-    <ul class="breadcrumb">
-        <li><a href="{% url 'sentry' %}" class="dashboard-btn" title="{% trans "Dashboard" %}">
-            <i aria-hidden="true" class="icon-list"></i>
-        </a></li>
-        {% block breadcrumb %}
-            <li class="divider"></li>
-            <li><a href="{% url 'sentry-team-list' %}">{% trans "Teams" %}</a></li>
-        {% endblock %}
-    </ul>
-{% endblock %}
-
-{% block heading %}
-    {% trans "Team List" %}
-{% endblock %}
 
 {% block main %}
     <section class="body">

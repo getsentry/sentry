@@ -1,17 +1,9 @@
 {% extends "sentry/alerts/list.html" %}
 
-{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
 
 {% block title %}{{ alert.datetime }} | {{ block.super }}{% endblock %}
-
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-alert-details' project.team.slug project.slug alert.id %}">
-        {% blocktrans with alert.datetime as datetime %}Alert at {{ datetime }}{% endblocktrans %}</a></li>
-{% endblock %}
 
 {% block bodyclass %} with-sidebar{% endblock %}
 

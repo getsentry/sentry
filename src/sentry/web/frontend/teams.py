@@ -38,11 +38,6 @@ def render_with_team_context(team, template, context, request=None):
 
 
 @login_required
-def team_list(request):
-    return render_to_response('sentry/teams/list.html', {}, request)
-
-
-@login_required
 @csrf_protect
 def create_new_team(request):
     if not can_create_teams(request.user):
@@ -130,7 +125,10 @@ def remove_team(request, team):
 
     if form.is_valid():
         team.delete()
-        return HttpResponseRedirect(reverse('sentry-team-list'))
+        messages.add_message(
+            request, messages.SUCCESS,
+            _(u'The team %r was permanently deleted.') % (team.name.encode('utf-8'),))
+        return HttpResponseRedirect(reverse('sentry'))
 
     context = csrf(request)
     context.update({

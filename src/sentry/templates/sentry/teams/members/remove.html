@@ -1,17 +1,10 @@
 {% extends "sentry/teams/manage.html" %}
 
-{% load url from future %}
 {% load i18n %}
 
 {% block title %}{% trans "Remove Member" %} | {{ block.super }}{% endblock %}
 
 {% block heading %}{% trans "Remove Member" %}{% endblock %}
-
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-remove-team-member' team.slug member.pk %}">{% trans "Remove Member" %}</a></li>
-{% endblock %}
 
 {% block main %}
     <form class="form-stacked" action="" method="post">

@@ -1,15 +1,9 @@
 {% extends "sentry/teams/base.html" %}
 
-{% load url from future %}
 {% load crispy_forms_tags %}
 {% load i18n %}
 
 {% block title %}{% trans "New Team" %} | {{ block.super }}{% endblock %}
-
-{% block breadcrumb %}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-new-team' %}">{% trans "New Team" %}</a></li>
-{% endblock %}
 
 {% block main %}
     <section class="body">

@@ -32,13 +32,6 @@ class BaseTeamTest(TestCase):
         self.login_as(self.user)
 
 
-class TeamListTest(BaseTeamTest):
-    def test_loads(self):
-        resp = self.client.post(reverse('sentry-team-list'))
-        self.assertEquals(resp.status_code, 200)
-        self.assertTemplateUsed(resp, 'sentry/teams/list.html')
-
-
 class NewTeamTest(BaseTeamTest):
     @fixture
     def path(self):
@@ -162,9 +155,9 @@ class RemoveTeamTest(BaseTeamTest):
     @mock.patch('sentry.web.frontend.teams.can_remove_team', mock.Mock(return_value=True))
     def test_valid_params(self):
         resp = self.client.post(self.path)
-        self.assertNotEquals(resp.status_code, 200)
-        self.assertEquals(resp['Location'], 'http://testserver' + reverse('sentry-team-list'))
-        self.assertFalse(Team.objects.filter(pk=self.team.pk).exists())
+        assert resp.status_code == 302
+        assert resp['Location'] == 'http://testserver' + reverse('sentry')
+        assert not Team.objects.filter(pk=self.team.pk).exists()
 
 
 class NewTeamMemberTest(BaseTeamTest):

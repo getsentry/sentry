@@ -1,16 +1,9 @@
 {% extends "sentry/projects/manage.html" %}
 
-{% load url from future %}
 {% load i18n %}
 {% load sentry_helpers %}
 
 {% block title %}{% trans "Client Configuration" %} | {{ block.super }}{% endblock %}
-
-{% block breadcrumb %}
-    {{ block.super }}
-    <li class="divider"></li>
-    <li><a href="{% url 'sentry-project-client-help' project.team.slug project.slug %}">{% trans "Client Configuration" %}</a></li>
-{% endblock %}
 
 {% block inner %}
     <div class="page-header">
