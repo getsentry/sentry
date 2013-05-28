@@ -133,7 +133,7 @@ h3 {
     display: inline-block;
     cursor: pointer;
     .caret {
-      margin-top: 29px;
+      margin-top: 27px;
       margin-left: 4px;
       border-top-color: #b3b9c1 !important;
       border-bottom-color: #b3b9c1 !important;
@@ -173,12 +173,13 @@ h3 {
       .border-radius(0);
       border-top: none;
       color: #fff;
+      .border-radius(0 0 6px 6px);
 
       h6 {
-        color: #aaa;
+        color: darken(#e4e8ed, 22);
         letter-spacing: 0.1px;
         font-size: 12px;
-        font-weight: normal;
+        font-weight: 600;
         text-transform: uppercase;
         a {
           color: inherit;
@@ -192,17 +193,18 @@ h3 {
           display: inline-block;
           font-size: 15px;
           a {
-            color: #fff;
+            color: darken(#e4e8ed, 6);
             width: 130px;
             overflow: hidden;
             text-overflow: ellipsis;
-            padding: 3px 5px;
+            padding: 3px 0;
             &:hover {
-              color: #000;
+            color: #fff !important;
+            background: transparent;
             }
           }
           &.active a {
-            color: #ccc;
+            color: #fff;
             background: inherit;
           }
         }
@@ -405,20 +407,24 @@ h3 {
     margin: 0 0 0 -14px;
     font-size: 15px;
     height: 46px;
-    padding-top: 6px;
+    padding-top: 5px;
 
     > li {
       > a {
-        font-weight: 400;
+        font-size: 15px;
+        font-weight: 500;
         color: #85909a;
         height: 27px;
         line-height: 27px;
-        padding-left: 16px;
-        padding-right: 16px;
+        padding-left: 15px;
+        padding-right: 15px;
       }
       &.active {
         a {
+          padding-top: 7px;
+          padding-bottom: 9px;
           color: darken(#85909a, 10);
+          .border-radius(6px 6px 0 0);
         }
       }
     }
@@ -689,8 +695,8 @@ footer {
   .btn {
     .transition(all .2s);
     color: #ecf0f5;
-    padding-top: 4px;
-    padding-bottom: 4px;
+    padding-top: 6px;
+    padding-bottom: 6px;
     background: #b6bbc2;
     position: relative;
     top: -2px;
@@ -714,7 +720,7 @@ footer {
     text-indent: -1000em;
   }
   &.prev, &.next {
-    padding: 8px;
+    padding: 11px;
   }
   &.prev span {
     position: relative;
@@ -1906,6 +1912,7 @@ section.body .page-header:first-child {
   font-size: 13px;
   border-bottom: 2px solid #dee6ed;
   -webkit-font-smoothing: antialiased;
+  padding: 6px 12px;
 
   i {
     background-image: none;
