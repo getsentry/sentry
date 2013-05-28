@@ -12,7 +12,7 @@
         {% endif %}
 
         <div class="row">
-            <div class="span6">
+            <div class="span5">
                 <form class="form-stacked" action="" method="post">
                     {{ form|as_crispy_errors }}
 
@@ -36,7 +36,7 @@
                 </form>
             </div>
             {% if AUTH_PROVIDERS %}
-                <div class="span6">
+                <div class="span5">
                     <fieldset>
                         <legend>
                             {% if SOCIAL_AUTH_CREATE_USERS %}

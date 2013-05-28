@@ -10,7 +10,7 @@
         {{ form|as_crispy_errors }}
 
         <div class="row">
-            <div class="span6">
+            <div class="span5">
                 <form class="form-stacked" action="" method="post">
                     <fieldset>
                         <legend>{% trans "Create a new account" %}</legend>
@@ -30,7 +30,7 @@
                 </form>
             </div>
             {% if AUTH_PROVIDERS and SOCIAL_AUTH_CREATE_USERS %}
-                <div class="span6">
+                <div class="span5">
                     <fieldset>
                         <legend>{% trans "Register using another service" %}</legend>
                     </fieldset>
