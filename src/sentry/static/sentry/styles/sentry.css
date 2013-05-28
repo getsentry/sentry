@@ -6357,9 +6357,10 @@ h3 {
   border-radius: 0 0 6px 6px;
 }
 .navbar #team-banner .dropdown-menu h6 {
-  color: #a1afc0;
+  color: #889ab0;
   letter-spacing: 0.1px;
   font-size: 12px;
+  line-height: 26px;
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -6384,6 +6385,7 @@ h3 {
   overflow: hidden;
   text-overflow: ellipsis;
   padding: 3px 0;
+  font-weight: 400;
 }
 .navbar #team-banner .dropdown-menu .project-list li a:hover {
   color: #fff !important;
