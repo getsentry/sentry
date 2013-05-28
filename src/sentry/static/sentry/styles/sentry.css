@@ -8559,6 +8559,9 @@ table.vars td table {
   border-radius: 0 0 7px 7px;
   padding: 30px 30px;
 }
+.windowed .container {
+  min-width: auto;
+}
 .windowed #content.with-left-sidebar {
   width: 900px;
   min-width: 900px;
