@@ -69,7 +69,7 @@
                                         <ul class="project-list">
                                             {% for p in t.project_set.all %}
                                                 <li{% if p.id == project.id %} class="active"{% endif %}>
-                                                    <a href="{% url 'sentry-stream' t.slug p.slug %}">{{ p.name }}</a>
+                                                    <a href="{% url 'sentry-stream' t.slug p.slug %}" title="{{ p.name }}">{{ p.name }}</a>
                                                 </li>
                                             {% endfor %}
                                         </ul>
