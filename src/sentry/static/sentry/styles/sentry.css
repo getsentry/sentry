@@ -6338,6 +6338,8 @@ h3 {
   background: #313944;
 }
 .navbar #team-banner .dropdown-menu {
+  max-height: 400px;
+  overflow: auto;
   top: 0px;
   position: relative;
   min-height: 50px;
