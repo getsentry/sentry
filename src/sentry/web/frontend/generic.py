@@ -40,11 +40,6 @@ def dashboard(request, template='dashboard.html'):
             'message': _('You are not a member of any teams in Sentry and you do not have access to create a new team.'),
         }, request)
 
-    # This cookie gets automatically set by render_to_response
-    if len(team_list) == 1:
-        team = team_list.values()[0]
-        return HttpResponseRedirect(reverse('sentry', args=[team.slug]))
-
     # these kinds of queries make people sad :(
     results = []
     for team in sorted(team_list.itervalues(), key=lambda x: x.name):
