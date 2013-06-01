@@ -60,6 +60,7 @@ The following extensions are available and maintained by members of the Sentry c
 * `sentry-pushover <https://github.com/dz0ny/sentry-pushover>`_
 * `sentry-searchbutton <https://github.com/timmyomahony/sentry-searchbutton>`_
 * `sentry-sprintly <https://github.com/mattrobenolt/sentry-sprintly>`_
+* `sentry-statsd <https://github.com/dreadatour/sentry-statsd>`_
 * `sentry-trello <https://github.com/DamianZaremba/sentry-trello>`_
 * `sentry-webhooks <https://github.com/getsentry/sentry-webhooks>`_
 * `sentry-whatsapp <https://github.com/ecarreras/sentry-whatsapp>`_
