@@ -586,8 +586,8 @@ def access_group_projects(request, team, group_id):
         return HttpResponseRedirect(reverse('sentry-access-group-projects', args=[team.slug, group.id]))
 
     group_list = list(AccessGroup.objects.filter(team=team))
-    for group in group_list:
-        group.team = team
+    for g_ in group_list:
+        g_.team = team
 
     context = csrf(request)
     context.update({
