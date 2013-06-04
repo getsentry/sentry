@@ -11,8 +11,7 @@ from django.core.urlresolvers import reverse
 from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext as _
 
-from sentry.constants import STATUS_VISIBLE
-from sentry.models import Team
+from sentry.models import Team, Project
 from sentry.permissions import can_create_teams
 from sentry.plugins import plugins
 from sentry.plugins.base import Response
@@ -42,10 +41,9 @@ def dashboard(request, template='dashboard.html'):
 
     # these kinds of queries make people sad :(
     results = []
-    for team in sorted(team_list.itervalues(), key=lambda x: x.name):
-        project_list = list(team.project_set.filter(
-            status=STATUS_VISIBLE,
-        ).order_by('name')[:20])
+    for team in team_list.itervalues():
+        project_list = Project.objects.get_for_user(
+            request.user, team=team)[:20]
         results.append((team, project_list))
 
     return render_to_response('sentry/select_team.html', {
