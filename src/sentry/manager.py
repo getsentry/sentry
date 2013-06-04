@@ -828,13 +828,13 @@ class ProjectManager(BaseManager, ChartMixin):
                 teams = Team.objects.get_for_user(
                     user, access, access_groups=False).values()
                 if not teams:
-                    return []
+                    projects_qs = self.none()
                 if team and team not in teams:
-                    return []
+                    projects_qs = self.none()
                 elif not team:
-                    base_qs = base_qs.filter(team__in=teams)
+                    projects_qs = base_qs.filter(team__in=teams)
 
-            projects = set(base_qs)
+            projects = set(projects_qs)
 
             if is_authenticated:
                 projects |= set(base_qs.filter(accessgroup__members=user))
