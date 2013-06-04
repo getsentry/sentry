@@ -825,7 +825,8 @@ class ProjectManager(BaseManager, ChartMixin):
         else:
             if not settings.PUBLIC:
                 # If the user is authenticated, include their memberships
-                teams = Team.objects.get_for_user(user, access).values()
+                teams = Team.objects.get_for_user(
+                    user, access, access_groups=False).values()
                 if not teams:
                     return []
                 if team and team not in teams:
@@ -1190,7 +1191,7 @@ class TagKeyManager(BaseManager):
 
 
 class TeamManager(BaseManager):
-    def get_for_user(self, user, access=None):
+    def get_for_user(self, user, access=None, access_groups=True):
         """
         Returns a SortedDict of all teams a user has some level of access to.
 
@@ -1219,14 +1220,15 @@ class TeamManager(BaseManager):
             for tm in qs:
                 all_teams.add(tm.team)
 
-            qs = AccessGroup.objects.filter(
-                members=user,
-            ).select_related('team')
-            if access is not None:
-                qs = qs.filter(type__lte=access)
+            if access_groups:
+                qs = AccessGroup.objects.filter(
+                    members=user,
+                ).select_related('team')
+                if access is not None:
+                    qs = qs.filter(type__lte=access)
 
-            for group in qs:
-                all_teams.add(group.team)
+                for group in qs:
+                    all_teams.add(group.team)
 
             for team in sorted(all_teams, key=lambda x: x.name):
                 results[team.slug] = team
