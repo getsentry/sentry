@@ -26,14 +26,13 @@ class DashboardTest(TestCase):
         assert resp['Location'] == 'http://testserver' + reverse('sentry-new-team')
 
     @mock.patch('sentry.web.frontend.generic.can_create_teams', mock.Mock(return_value=True))
-    def test_redirects_to_first_team_when_possible(self):
-        # HACK: force team creation
-        team = self.team
+    def test_shows_team_selector_with_single(self):
+        Team.objects.create(name='test', owner=self.user)
 
         resp = self.client.get(self.path)
 
-        assert resp.status_code == 302
-        assert resp['Location'] == 'http://testserver' + reverse('sentry', args=[team.slug])
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, 'sentry/select_team.html')
 
     @mock.patch('sentry.web.frontend.generic.can_create_teams', mock.Mock(return_value=True))
     def test_renders_team_selector_with_multiple(self):
