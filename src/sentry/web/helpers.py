@@ -114,15 +114,21 @@ def get_default_context(request, existing_context=None, team=None):
             'request': request,
         })
         if team:
+            # TODO: remove this extra query
             context.update({
-                'can_admin_team': Team.objects.get_for_user(request.user, MEMBER_OWNER),
+                'can_admin_team': [team in Team.objects.get_for_user(request.user, MEMBER_OWNER)],
             })
 
-        if not existing_context or 'PROJECT_LIST' not in existing_context:
-            project_list = Project.objects.get_for_user(request.user, team=team)
-            context['PROJECT_LIST'] = project_list
         if not existing_context or 'TEAM_LIST' not in existing_context:
-            context['TEAM_LIST'] = Team.objects.get_for_user(request.user).values()
+            context['TEAM_LIST'] = Team.objects.get_for_user(
+                request.user, with_projects=True).values()
+
+        if not existing_context or 'PROJECT_LIST' not in existing_context:
+            # HACK:
+            for t, p_list in context['TEAM_LIST']:
+                if t == team:
+                    context['PROJECT_LIST'] = p_list
+                    break
 
     return context
 

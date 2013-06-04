@@ -64,10 +64,10 @@
                                 </a>
                                 <nav class="dropdown-menu">
                                     <!-- <input type="text" value="search by project name"> <a href="#" class="btn">New</a> -->
-                                    {% for t in TEAM_LIST|reorder_teams:team %}
+                                    {% for t, p_list in TEAM_LIST|reorder_teams:team %}
                                         <h6><a href="{% url 'sentry' t.slug %}">{{ t.name }}</a></h6>
                                         <ul class="project-list">
-                                            {% for p in t.project_set.all %}
+                                            {% for p in p_list %}
                                                 <li{% if p.id == project.id %} class="active"{% endif %}>
                                                     <a href="{% url 'sentry-stream' t.slug p.slug %}" title="{{ p.name }}">{{ p.name }}</a>
                                                 </li>

@@ -424,7 +424,10 @@ def recent_alerts(context, project, asvar):
 
 @register.filter
 def reorder_teams(team_list, team):
-    yield team
-    for t in team_list:
-        if t != team:
-            yield t
+    pending = []
+    for t, p_list in team_list:
+        if t == team:
+            pending.insert(0, (t, p_list))
+        else:
+            pending.append((t, p_list))
+    return pending

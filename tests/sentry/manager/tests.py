@@ -311,12 +311,12 @@ class ProjectManagerTest(TestCase):
         self.user.is_superuser = False
         get_for_user.return_value = {self.project2.team.id: self.project2.team}
         project_list = Project.objects.get_for_user(self.user)
-        get_for_user.assert_called_once_with(self.user, None)
+        get_for_user.assert_called_once_with(self.user, None, access_groups=False)
         assert project_list == [self.project2]
 
         get_for_user.reset_mock()
         project_list = Project.objects.get_for_user(self.user, MEMBER_USER)
-        get_for_user.assert_called_once_with(self.user, MEMBER_USER)
+        get_for_user.assert_called_once_with(self.user, MEMBER_USER, access_groups=False)
         assert project_list == [self.project2]
 
 

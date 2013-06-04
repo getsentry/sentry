@@ -823,6 +823,7 @@ class ProjectManager(BaseManager, ChartMixin):
         if team and user.is_superuser:
             projects = set(base_qs)
         else:
+            projects_qs = base_qs
             if not settings.PUBLIC:
                 # If the user is authenticated, include their memberships
                 teams = Team.objects.get_for_user(
@@ -832,7 +833,7 @@ class ProjectManager(BaseManager, ChartMixin):
                 if team and team not in teams:
                     projects_qs = self.none()
                 elif not team:
-                    projects_qs = base_qs.filter(team__in=teams)
+                    projects_qs = projects_qs.filter(team__in=teams)
 
             projects = set(projects_qs)
 
@@ -1191,14 +1192,14 @@ class TagKeyManager(BaseManager):
 
 
 class TeamManager(BaseManager):
-    def get_for_user(self, user, access=None, access_groups=True):
+    def get_for_user(self, user, access=None, access_groups=True, with_projects=False):
         """
         Returns a SortedDict of all teams a user has some level of access to.
 
         Each <Team> returned has a ``membership`` attribute which holds the
         <TeamMember> instance.
         """
-        from sentry.models import TeamMember, AccessGroup
+        from sentry.models import TeamMember, AccessGroup, Project
 
         results = SortedDict()
 
@@ -1232,5 +1233,14 @@ class TeamManager(BaseManager):
 
             for team in sorted(all_teams, key=lambda x: x.name):
                 results[team.slug] = team
+
+        if with_projects:
+            # these kinds of queries make people sad :(
+            new_results = SortedDict()
+            for team in results.itervalues():
+                project_list = Project.objects.get_for_user(
+                    user, team=team)[:20]
+                new_results[team.slug] = (team, project_list)
+            results = new_results
 
         return results

@@ -11,7 +11,7 @@ from django.core.urlresolvers import reverse
 from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext as _
 
-from sentry.models import Team, Project
+from sentry.models import Team
 from sentry.permissions import can_create_teams
 from sentry.plugins import plugins
 from sentry.plugins.base import Response
@@ -29,7 +29,7 @@ def find_static_files(ignore_patterns=()):
 
 @login_required
 def dashboard(request, template='dashboard.html'):
-    team_list = Team.objects.get_for_user(request.user)
+    team_list = Team.objects.get_for_user(request.user, with_projects=True)
     if not team_list:
         if can_create_teams(request.user):
             return HttpResponseRedirect(reverse('sentry-new-team'))
@@ -39,15 +39,8 @@ def dashboard(request, template='dashboard.html'):
             'message': _('You are not a member of any teams in Sentry and you do not have access to create a new team.'),
         }, request)
 
-    # these kinds of queries make people sad :(
-    results = []
-    for team in team_list.itervalues():
-        project_list = Project.objects.get_for_user(
-            request.user, team=team)[:20]
-        results.append((team, project_list))
-
     return render_to_response('sentry/select_team.html', {
-        'team_list': results,
+        'team_list': team_list.values(),
     }, request)
 
 
