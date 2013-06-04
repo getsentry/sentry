@@ -10,8 +10,9 @@ from django.utils import timezone
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
 from sentry.interfaces import Interface
 from sentry.manager import get_checksum_from_event
-from sentry.models import (Event, Group, Project, GroupCountByMinute, ProjectCountByMinute,
-    SearchDocument, Team, EventMapping, User)
+from sentry.models import (
+    Event, Group, Project, GroupCountByMinute, ProjectCountByMinute,
+    SearchDocument, Team, EventMapping, User, AccessGroup)
 from sentry.utils.db import has_trending  # NOQA
 from sentry.testutils import TestCase
 
@@ -320,31 +321,22 @@ class ProjectManagerTest(TestCase):
 
 
 class TeamManagerTest(TestCase):
-    def test_public_install_returns_all_teams_without_access(self):
-        teams = {self.team.slug: self.team}
-        user = User.objects.create()
-
-        with self.Settings(SENTRY_PUBLIC=True):
-            result = Team.objects.get_for_user(user)
-
-        assert result == teams
-
-    def test_public_install_returns_accessible_teams_with_access(self):
-        user = User.objects.create()
+    def test_simple(self):
+        user = User.objects.create(username='foo')
+        user2 = User.objects.create(username='bar')
+        user3 = User.objects.create(username='baz')
         team = Team.objects.create(name='Test', owner=user)
-        teams = {team.slug: team}
+        group = AccessGroup.objects.create(name='Test', type=MEMBER_USER, team=team)
+        group.members.add(user2)
 
-        with self.Settings(SENTRY_PUBLIC=True):
-            result = Team.objects.get_for_user(user, access=MEMBER_OWNER)
+        result = Team.objects.get_for_user(user, access=MEMBER_OWNER)
+        assert result == {team.slug: team}
 
-        assert result == teams
+        result = Team.objects.get_for_user(user2, access=MEMBER_OWNER)
+        assert result == {}
 
-    def test_private_install_returns_accessible_teams(self):
-        user = User.objects.create()
-        team = Team.objects.create(name='Test', owner=user)
-        teams = {team.slug: team}
+        result = Team.objects.get_for_user(user2, access=MEMBER_USER)
+        assert result == {team.slug: team}
 
-        with self.Settings(SENTRY_PUBLIC=False):
-            result = Team.objects.get_for_user(user, access=MEMBER_OWNER)
-
-        assert result == teams
+        result = Team.objects.get_for_user(user3, access=MEMBER_OWNER)
+        assert result == {}

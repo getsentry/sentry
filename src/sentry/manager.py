@@ -1197,7 +1197,7 @@ class TeamManager(BaseManager):
         Each <Team> returned has a ``membership`` attribute which holds the
         <TeamMember> instance.
         """
-        from sentry.models import TeamMember
+        from sentry.models import TeamMember, AccessGroup
 
         results = SortedDict()
 
@@ -1208,15 +1208,27 @@ class TeamManager(BaseManager):
             for team in self.order_by('name').iterator():
                 results[team.slug] = team
         else:
+            all_teams = set()
+
             qs = TeamMember.objects.filter(
                 user=user,
             ).select_related('team')
             if access is not None:
                 qs = qs.filter(type__lte=access)
 
-            for tm in sorted(qs, key=lambda x: x.team.name):
-                team = tm.team
-                team.membership = tm
+            for tm in qs:
+                all_teams.add(tm.team)
+
+            qs = AccessGroup.objects.filter(
+                members=user,
+            ).select_related('team')
+            if access is not None:
+                qs = qs.filter(type__lte=access)
+
+            for group in qs:
+                all_teams.add(group.team)
+
+            for team in sorted(all_teams, key=lambda x: x.name):
                 results[team.slug] = team
 
         return results
