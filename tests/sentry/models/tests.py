@@ -110,14 +110,15 @@ class LostPasswordTest(TestCase):
         )
 
     def test_send_recover_mail(self):
-        self.password_hash.send_recover_mail()
-        assert len(mail.outbox) == 1
-        msg = mail.outbox[0]
-        assert msg.to == [self.user.email]
-        assert msg.subject == '[Sentry] Password Recovery'
-        url = 'http://testserver' + reverse('sentry-account-recover-confirm',
-            args=[self.password_hash.user_id, self.password_hash.hash])
-        assert url in msg.body
+        with self.Settings(SENTRY_URL_PREFIX='http://testserver'):
+            self.password_hash.send_recover_mail()
+            assert len(mail.outbox) == 1
+            msg = mail.outbox[0]
+            assert msg.to == [self.user.email]
+            assert msg.subject == '[Sentry] Password Recovery'
+            url = 'http://testserver' + reverse('sentry-account-recover-confirm',
+                args=[self.password_hash.user_id, self.password_hash.hash])
+            assert url in msg.body
 
 
 class AlertTest(TestCase):

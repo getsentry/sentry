@@ -34,5 +34,6 @@ class SearchIndexTest(TestCase):
         doc = SearchDocument.objects.index(event)
 
         results = list(SearchDocument.objects.search(event.project, event.message.upper()))
+        assert len(results) == 1
         [res] = results
         assert res.id == doc.id
