@@ -15,7 +15,9 @@ from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
 from sentry.plugins import register
-from sentry.plugins.bases.notify import NotificationPlugin, NotificationConfigurationForm
+from sentry.plugins.bases.notify import (
+    NotificationPlugin, NotificationConfigurationForm,
+    NotificationUserOptionsForm)
 from sentry.utils.cache import cache
 from sentry.utils.http import absolute_uri
 
@@ -236,5 +238,8 @@ class MailProcessor(NotificationPlugin):
                                      'subject_prefix'):
             value = getattr(self, key)
         return value
+
+    def get_notification_forms(self, **kwargs):
+        return [NotificationUserOptionsForm]
 
 register(MailProcessor)

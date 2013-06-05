@@ -190,9 +190,6 @@ class NotificationPlugin(Plugin):
     def get_form_initial(self, project=None):
         return {'send_to_members': True}
 
-    def get_notification_forms(self, **kwargs):
-        return [NotificationUserOptionsForm]
-
     def post_process(self, group, event, is_new, is_sample, **kwargs):
         if not is_new:
             return
