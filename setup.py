@@ -24,16 +24,6 @@ any application.
 
 from setuptools import setup, find_packages
 
-# Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
-# in multiprocessing/util.py _exit_function when running `python
-# setup.py test` (see
-# http://www.eby-sarna.com/pipermail/peak/2010-May/003357.html)
-for m in ('multiprocessing', 'billiard'):
-    try:
-        __import__(m)
-    except ImportError:
-        pass
-
 dev_requires = [
     'flake8>=1.7.0,<2.0',
 ]
