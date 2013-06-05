@@ -222,7 +222,7 @@ def notification_settings(request):
     forms = []
     for plugin in plugins.all():
         for form in safe_execute(plugin.get_notification_forms) or ():
-            form = safe_execute(form, plugin, request.user, request.POST or None)
+            form = safe_execute(form, plugin, request.user, request.POST or None, prefix=plugin.slug)
             if not form:
                 continue
             forms.append(form)
