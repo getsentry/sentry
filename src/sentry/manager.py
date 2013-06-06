@@ -422,30 +422,6 @@ class GroupManager(BaseManager, ChartMixin):
             # throw it away
             data['extra'] = {}
 
-        if 'sentry.interfaces.Exception' in data:
-            if 'values' not in data['sentry.interfaces.Exception']:
-                data['sentry.interfaces.Exception'] = {'values': [data['sentry.interfaces.Exception']]}
-
-            # convert stacktrace + exception into expanded exception
-            if 'sentry.interfaces.Stacktrace' in data:
-                data['sentry.interfaces.Exception']['values'][0]['stacktrace'] = data.pop('sentry.interfaces.Stacktrace')
-
-        for key, value in data['extra'].iteritems():
-            data['extra'][key] = trim(value)
-
-        # HACK: move this to interfaces code
-        if 'sentry.interfaces.Stacktrace' in data:
-            stack_vars = data['sentry.interfaces.Stacktrace'].get('vars', {})
-            for key, value in stack_vars.iteritems():
-                stack_vars[key] = trim(value)
-
-        if 'sentry.interfaces.Exception' in data:
-            exc_data = data['sentry.interfaces.Exception']
-            for key in ('type', 'module', 'value'):
-                value = exc_data.get(key)
-                if value:
-                    exc_data[key] = trim(value)
-
         return data
 
     def from_kwargs(self, project, **kwargs):
@@ -478,6 +454,30 @@ class GroupManager(BaseManager, ChartMixin):
         date = data.pop('timestamp')
         checksum = data.pop('checksum')
         platform = data.pop('platform')
+
+        if 'sentry.interfaces.Exception' in data:
+            if 'values' not in data['sentry.interfaces.Exception']:
+                data['sentry.interfaces.Exception'] = {'values': [data['sentry.interfaces.Exception']]}
+
+            # convert stacktrace + exception into expanded exception
+            if 'sentry.interfaces.Stacktrace' in data:
+                data['sentry.interfaces.Exception']['values'][0]['stacktrace'] = data.pop('sentry.interfaces.Stacktrace')
+
+        for key, value in data.get('extra', {}).iteritems():
+            data['extra'][key] = trim(value)
+
+        # HACK: move this to interfaces code
+        if 'sentry.interfaces.Stacktrace' in data:
+            stack_vars = data['sentry.interfaces.Stacktrace'].get('vars', {})
+            for key, value in stack_vars.iteritems():
+                stack_vars[key] = trim(value)
+
+        if 'sentry.interfaces.Exception' in data:
+            exc_data = data['sentry.interfaces.Exception']
+            for key in ('type', 'module', 'value'):
+                value = exc_data.get(key)
+                if value:
+                    exc_data[key] = trim(value)
 
         kwargs = {
             'level': level,
