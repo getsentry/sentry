@@ -46,7 +46,7 @@ def trim(value, max_size=MAX_VARIABLE_SIZE, max_depth=3, _depth=0, _size=0, **kw
     }
 
     if _depth > max_depth:
-        return trim(repr(value), _size=_size, **options)
+        return trim(repr(value), _size=_size, max_size=max_size)
 
     elif isinstance(value, dict):
         result = {}
