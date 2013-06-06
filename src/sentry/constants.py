@@ -153,3 +153,7 @@ PLATFORM_TITLES = {
 # value of 0 would store counts for every minute, and is the lowest level of
 # accuracy provided.
 MINUTE_NORMALIZATION = 15
+
+# Prevent variables (e.g. context locals, extra data) from exceeding this size
+# in bytesish
+MAX_VARIABLE_SIZE = 256

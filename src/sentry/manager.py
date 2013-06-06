@@ -42,7 +42,7 @@ from sentry.utils.cache import cache, memoize
 from sentry.utils.dates import get_sql_date_trunc, normalize_datetime
 from sentry.utils.db import get_db_engine, has_charts, attach_foreignkey
 from sentry.utils.models import create_or_update, make_key
-from sentry.utils.safe import safe_execute
+from sentry.utils.safe import safe_execute, trim
 
 logger = logging.getLogger('sentry.errors')
 
@@ -424,6 +424,22 @@ class GroupManager(BaseManager, ChartMixin):
             # convert stacktrace + exception into expanded exception
             if 'sentry.interfaces.Stacktrace' in data:
                 data['sentry.interfaces.Exception']['values'][0]['stacktrace'] = data.pop('sentry.interfaces.Stacktrace')
+
+        for key, value in data.get('extra', {}).iteritems():
+            data['extra'][key] = trim(value)
+
+        # HACK: move this to interfaces code
+        if 'sentry.interfaces.Stacktrace' in data:
+            stack_vars = data['sentry.interfaces.Stacktrace'].get('vars', {})
+            for key, value in stack_vars.iteritems():
+                stack_vars[key] = trim(value)
+
+        if 'sentry.interfaces.Exception' in data:
+            exc_data = data['sentry.interfaces.Exception']
+            for key in ('type', 'module', 'value'):
+                value = exc_data.get(key)
+                if value:
+                    exc_data[key] = trim(value)
 
         return data
 

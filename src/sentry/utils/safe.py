@@ -10,6 +10,9 @@ import logging
 
 from django.db import transaction
 
+from sentry.constants import MAX_VARIABLE_SIZE
+from sentry.utils.strings import truncatechars
+
 
 def safe_execute(func, *args, **kwargs):
     try:
@@ -28,3 +31,45 @@ def safe_execute(func, *args, **kwargs):
         }, exc_info=True)
     else:
         return result
+
+
+def trim(value, max_size=MAX_VARIABLE_SIZE, max_depth=3, _depth=0, _size=0, **kwargs):
+    """
+    Truncates a value to ```MAX_VARIABLE_SIZE```.
+
+    The method of truncation depends on the type of value.
+    """
+    options = {
+        'max_depth': max_depth,
+        'max_size': max_size,
+        '_depth': _depth + 1,
+    }
+
+    if _depth > max_depth:
+        return trim(repr(value, _size=_size, **options))
+
+    elif isinstance(value, dict):
+        result = {}
+        for k, v in value.iteritems():
+            trim_v = trim(v, _size=_size, **options)
+            result[k] = trim_v
+            _size += len(unicode(trim_v))
+            if _size >= max_size:
+                break
+
+    elif isinstance(value, (list, tuple)):
+        result = []
+        for v in value:
+            trim_v = trim(v, _size=_size, **options)
+            result.append(trim_v)
+            _size += len(unicode(trim_v))
+            if _size >= max_size:
+                break
+
+    elif isinstance(value, basestring):
+        result = truncatechars(value, max_size - _size)
+
+    else:
+        raise ValueError(value)
+
+    return result
