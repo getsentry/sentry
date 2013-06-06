@@ -25,7 +25,7 @@ from sentry.tasks.store import preprocess_event
 from sentry.utils import is_float, json
 from sentry.utils.auth import parse_auth_header
 from sentry.utils.imports import import_string
-from sentry.utils.strings import decompress
+from sentry.utils.strings import decompress, truncatechars
 
 
 logger = logging.getLogger('sentry.coreapi.errors')
@@ -209,12 +209,12 @@ def validate_data(project, data, client=None):
     elif len(data['message']) > MAX_MESSAGE_LENGTH:
         logger.info('Truncated value for message due to length (%d chars)', len(data['message']),
             **client_metadata(client))
-        data['message'] = data['message'][:MAX_MESSAGE_LENGTH]
+        data['message'] = truncatechars(data['message'], MAX_MESSAGE_LENGTH)
 
     if data.get('culprit') and len(data['culprit']) > MAX_CULPRIT_LENGTH:
         logger.info('Truncated value for culprit due to length (%d chars)', len(data['culprit']),
             **client_metadata(client))
-        data['culprit'] = data['culprit'][:MAX_CULPRIT_LENGTH]
+        data['culprit'] = truncatechars(data['culprit'], MAX_CULPRIT_LENGTH)
 
     if not data.get('event_id'):
         data['event_id'] = uuid.uuid4().hex
