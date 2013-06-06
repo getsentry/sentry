@@ -405,6 +405,7 @@ class GroupManager(BaseManager, ChartMixin):
         data.setdefault('site', None)
         data.setdefault('checksum', None)
         data.setdefault('platform', None)
+        data.setdefault('extra', {})
 
         tags = data.get('tags')
         if not tags:
@@ -417,6 +418,10 @@ class GroupManager(BaseManager, ChartMixin):
 
         data['tags'] = tags
 
+        if not isinstance(data['extra'], dict):
+            # throw it away
+            data['extra'] = {}
+
         if 'sentry.interfaces.Exception' in data:
             if 'values' not in data['sentry.interfaces.Exception']:
                 data['sentry.interfaces.Exception'] = {'values': [data['sentry.interfaces.Exception']]}
@@ -425,7 +430,7 @@ class GroupManager(BaseManager, ChartMixin):
             if 'sentry.interfaces.Stacktrace' in data:
                 data['sentry.interfaces.Exception']['values'][0]['stacktrace'] = data.pop('sentry.interfaces.Stacktrace')
 
-        for key, value in data.get('extra', {}).iteritems():
+        for key, value in data['extra'].iteritems():
             data['extra'][key] = trim(value)
 
         # HACK: move this to interfaces code
