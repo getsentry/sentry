@@ -70,6 +70,6 @@ def trim(value, max_size=MAX_VARIABLE_SIZE, max_depth=3, _depth=0, _size=0, **kw
         result = truncatechars(value, max_size - _size)
 
     else:
-        raise ValueError(value)
+        result = value
 
     return result
