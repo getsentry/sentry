@@ -548,3 +548,17 @@ If your platform supports it, block level context should also be available::
 
     with client.context({'tags': {'foo': 'bar'}}):
         # ...
+
+Variable Size
+-------------
+
+Most arbitrary values in Sentry have their size restricted. This means any
+values that are sent as metadata (such as variables in a stacktrace) as well
+as things like extra data, or tags.
+
+- Unstructured data is limited to 256 characters.
+- Event IDs are limited to 32 characters.
+- Tag keys are limited to 32 characters.
+- Tag values are limited to 200 characters.
+- Culprits are limited to 200 characters.
+- Messages are limited to 1000 characters.
