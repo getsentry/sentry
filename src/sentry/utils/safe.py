@@ -50,15 +50,17 @@ def trim(value, max_size=MAX_VARIABLE_SIZE, max_depth=3, _depth=0, _size=0, **kw
 
     elif isinstance(value, dict):
         result = {}
+        _size += 2
         for k, v in value.iteritems():
             trim_v = trim(v, _size=_size, **options)
             result[k] = trim_v
-            _size += len(unicode(trim_v))
+            _size += len(unicode(trim_v)) + 1
             if _size >= max_size:
                 break
 
     elif isinstance(value, (list, tuple)):
         result = []
+        _size += 2
         for v in value:
             trim_v = trim(v, _size=_size, **options)
             result.append(trim_v)
