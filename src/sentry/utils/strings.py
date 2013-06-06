@@ -20,7 +20,7 @@ def truncatechars(value, arg):
     except ValueError:  # Invalid literal for int().
         return value  # Fail silently.
     if len(value) > length:
-        return value[:length] + '...'
+        return value[:length - 3] + '...'
     return value
 
 
