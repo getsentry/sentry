@@ -482,10 +482,13 @@ class GroupManager(BaseManager, ChartMixin):
 
         if 'sentry.interfaces.Http' in data:
             http_data = data['sentry.interfaces.Http']
-            for key in ('data', 'cookies', 'querystring', 'headers', 'env'):
+            for key in ('cookies', 'querystring', 'headers', 'env', 'url'):
                 value = http_data.get(key)
                 if value:
                     http_data[key] = trim(value)
+            value = http_data.get('data')
+            if value:
+                http_data['data'] = trim(value, 1024)
 
         kwargs = {
             'level': level,
