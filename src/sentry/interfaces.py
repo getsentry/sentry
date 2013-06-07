@@ -961,7 +961,8 @@ class Http(Interface):
         data = self.data
         headers_is_dict, headers = self._to_dict(self.headers)
 
-        if headers_is_dict and headers.get('Content-Type') == 'application/x-www-form-urlencoded':
+        # educated guess as to whether the body is normal POST data
+        if headers_is_dict and headers.get('Content-Type') == 'application/x-www-form-urlencoded' and '=' in data:
             _, data = self._to_dict(data)
 
         context = {
