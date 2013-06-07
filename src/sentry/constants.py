@@ -157,3 +157,8 @@ MINUTE_NORMALIZATION = 15
 # Prevent variables (e.g. context locals, extra data) from exceeding this size
 # in bytesish
 MAX_VARIABLE_SIZE = 512
+
+# For various attributes we dont limit the entire attribute on size, but the
+# individual item. In those cases we also want to limit the maximum number of
+# keys
+MAX_DICTIONARY_ITEMS = 100

@@ -10,7 +10,7 @@ import logging
 
 from django.db import transaction
 
-from sentry.constants import MAX_VARIABLE_SIZE
+from sentry.constants import MAX_VARIABLE_SIZE, MAX_DICTIONARY_ITEMS
 from sentry.utils.strings import truncatechars
 
 
@@ -75,3 +75,10 @@ def trim(value, max_size=MAX_VARIABLE_SIZE, max_depth=3, _depth=0, _size=0, **kw
         result = value
 
     return result
+
+
+def trim_dict(value, max_items=MAX_DICTIONARY_ITEMS, **kwargs):
+    for idx, (k, v) in enumerate(value.iteritems()):
+        value[k] = trim(v)
+        if idx > max_items:
+            del value[k]

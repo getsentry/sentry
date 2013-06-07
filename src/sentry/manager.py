@@ -42,7 +42,7 @@ from sentry.utils.cache import cache, memoize
 from sentry.utils.dates import get_sql_date_trunc, normalize_datetime
 from sentry.utils.db import get_db_engine, has_charts, attach_foreignkey
 from sentry.utils.models import create_or_update, make_key
-from sentry.utils.safe import safe_execute, trim
+from sentry.utils.safe import safe_execute, trim, trim_dict
 
 logger = logging.getLogger('sentry.errors')
 
@@ -422,6 +422,37 @@ class GroupManager(BaseManager, ChartMixin):
             # throw it away
             data['extra'] = {}
 
+        trim_dict(data['extra'])
+
+        # HACK: move this to interfaces code
+        if 'sentry.interfaces.Stacktrace' in data:
+            for frame in data['sentry.interfaces.Stacktrace']['frames']:
+                stack_vars = frame.get('vars', {})
+                trim_dict(stack_vars)
+
+        if 'sentry.interfaces.Exception' in data:
+            exc_data = data['sentry.interfaces.Exception']
+            for key in ('type', 'module', 'value'):
+                value = exc_data.get(key)
+                if value:
+                    exc_data[key] = trim(value)
+
+        if 'sentry.interfaces.Http' in data:
+            http_data = data['sentry.interfaces.Http']
+            for key in ('cookies', 'querystring', 'headers', 'env', 'url'):
+                value = http_data.get(key)
+                if not value:
+                    continue
+
+                if type(value) == dict:
+                    trim_dict(value)
+                else:
+                    http_data[key] = trim(value)
+
+            value = http_data.get('data')
+            if value:
+                http_data['data'] = trim(value, 1024)
+
         return data
 
     def from_kwargs(self, project, **kwargs):
@@ -462,40 +493,6 @@ class GroupManager(BaseManager, ChartMixin):
             # convert stacktrace + exception into expanded exception
             if 'sentry.interfaces.Stacktrace' in data:
                 data['sentry.interfaces.Exception']['values'][0]['stacktrace'] = data.pop('sentry.interfaces.Stacktrace')
-
-        for key, value in data.get('extra', {}).iteritems():
-            data['extra'][key] = trim(value)
-
-        # HACK: move this to interfaces code
-        if 'sentry.interfaces.Stacktrace' in data:
-            for frame in data['sentry.interfaces.Stacktrace']['frames']:
-                stack_vars = frame.get('vars', {})
-                for key, value in stack_vars.iteritems():
-                    stack_vars[key] = trim(value)
-
-        if 'sentry.interfaces.Exception' in data:
-            exc_data = data['sentry.interfaces.Exception']
-            for key in ('type', 'module', 'value'):
-                value = exc_data.get(key)
-                if value:
-                    exc_data[key] = trim(value)
-
-        if 'sentry.interfaces.Http' in data:
-            http_data = data['sentry.interfaces.Http']
-            for key in ('cookies', 'querystring', 'headers', 'env', 'url'):
-                value = http_data.get(key)
-                if not value:
-                    continue
-
-                if type(value) == dict:
-                    for k, v in value.iteritems():
-                        value[k] = trim(v)
-                else:
-                    http_data[key] = trim(value)
-
-            value = http_data.get('data')
-            if value:
-                http_data['data'] = trim(value, 1024)
 
         kwargs = {
             'level': level,
