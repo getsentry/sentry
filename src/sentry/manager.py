@@ -468,9 +468,10 @@ class GroupManager(BaseManager, ChartMixin):
 
         # HACK: move this to interfaces code
         if 'sentry.interfaces.Stacktrace' in data:
-            stack_vars = data['sentry.interfaces.Stacktrace'].get('vars', {})
-            for key, value in stack_vars.iteritems():
-                stack_vars[key] = trim(value)
+            for frame in data['sentry.interfaces.Stacktrace']['frames']:
+                stack_vars = frame.get('vars', {})
+                for key, value in stack_vars.iteritems():
+                    stack_vars[key] = trim(value)
 
         if 'sentry.interfaces.Exception' in data:
             exc_data = data['sentry.interfaces.Exception']
