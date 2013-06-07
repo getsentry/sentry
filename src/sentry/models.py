@@ -733,7 +733,7 @@ class Event(EventBase):
 
     @property
     def size(self):
-        return len(repr(self))
+        return len(unicode(vars(self)))
 
 
 class EventMapping(Model):
