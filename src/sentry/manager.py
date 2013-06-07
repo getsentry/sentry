@@ -437,6 +437,12 @@ class GroupManager(BaseManager, ChartMixin):
                 if value:
                     exc_data[key] = trim(value)
 
+        if 'sentry.interfaces.Message' in data:
+            msg_data = data['sentry.interfaces.Message']
+            trim(msg_data['message'], 1024)
+            if msg_data.get('params'):
+                msg_data['params'] = trim(msg_data['params'])
+
         if 'sentry.interfaces.Http' in data:
             http_data = data['sentry.interfaces.Http']
             for key in ('cookies', 'querystring', 'headers', 'env', 'url'):
