@@ -731,6 +731,10 @@ class Event(EventBase):
             data[k] = v
         return data
 
+    @property
+    def size(self):
+        return len(repr(self))
+
 
 class EventMapping(Model):
     project = models.ForeignKey(Project)
