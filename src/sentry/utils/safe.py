@@ -78,7 +78,7 @@ def trim(value, max_size=MAX_VARIABLE_SIZE, max_depth=3, _depth=0, _size=0, **kw
 
 
 def trim_dict(value, max_items=MAX_DICTIONARY_ITEMS, **kwargs):
-    for idx, (k, v) in enumerate(value.iteritems()):
+    for idx, (k, v) in enumerate(value.items()):
         value[k] = trim(v)
         if idx > max_items:
             del value[k]
