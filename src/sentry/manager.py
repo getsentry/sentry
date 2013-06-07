@@ -484,8 +484,15 @@ class GroupManager(BaseManager, ChartMixin):
             http_data = data['sentry.interfaces.Http']
             for key in ('cookies', 'querystring', 'headers', 'env', 'url'):
                 value = http_data.get(key)
-                if value:
+                if not value:
+                    continue
+
+                if type(value) == dict:
+                    for k, v in value.iteritems():
+                        value[k] = trim(v)
+                else:
                     http_data[key] = trim(value)
+
             value = http_data.get('data')
             if value:
                 http_data['data'] = trim(value, 1024)
