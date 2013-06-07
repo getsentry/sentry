@@ -303,6 +303,10 @@ class Frame(object):
     def is_valid(self):
         if self.in_app not in (False, True, None):
             return False
+        if type(self.vars) != dict:
+            return False
+        if type(self.data) != dict:
+            return False
         return self.filename or self.function or self.module
 
     def get_hash(self):
