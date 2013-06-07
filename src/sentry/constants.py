@@ -156,4 +156,4 @@ MINUTE_NORMALIZATION = 15
 
 # Prevent variables (e.g. context locals, extra data) from exceeding this size
 # in bytesish
-MAX_VARIABLE_SIZE = 256
+MAX_VARIABLE_SIZE = 512

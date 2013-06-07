@@ -480,6 +480,13 @@ class GroupManager(BaseManager, ChartMixin):
                 if value:
                     exc_data[key] = trim(value)
 
+        if 'sentry.interfaces.Http' in data:
+            http_data = data['sentry.interfaces.Http']
+            for key in ('data', 'cookies', 'querystring', 'headers', 'env'):
+                value = http_data.get(key)
+                if value:
+                    http_data[key] = trim(value)
+
         kwargs = {
             'level': level,
             'message': message,
