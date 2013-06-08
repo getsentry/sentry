@@ -4,10 +4,7 @@ from __future__ import absolute_import
 
 import mock
 
-from datetime import timedelta
-from django.utils import timezone
 from sentry.buffer.base import Buffer
-from sentry.models import Group, Project
 from sentry.testutils import TestCase
 
 
@@ -16,29 +13,18 @@ class BufferTest(TestCase):
         self.buf = Buffer()
 
     @mock.patch('sentry.buffer.base.process_delay')
-    def test_delay_delays_task(self, process_delay):
-        model = mock.Mock()
-        columns = {'times_seen': 1}
-        filters = {'pk': 1}
-        self.buf.delay(model, columns, filters)
-        kwargs = dict(model=model, columns=columns, filters=filters, extra=None)
+    def test_delay_sends_to_queue(self, process_delay):
+        callback = mock.Mock()
+        args = ('foo')
+        values = {'biz': 'baz'}
+        kwargs = dict(callback=callback, args=args, values=values)
+        self.buf.delay(**kwargs)
         process_delay.apply_async.assert_called_once_with(
             kwargs=kwargs, countdown=5)
 
-    def test_process_delay_saves_data(self):
-        group = Group.objects.create(project=Project(id=1))
-        columns = {'times_seen': 1}
-        filters = {'pk': group.pk}
-        self.buf.process_delay(Group, columns, filters)
-        assert Group.objects.get(pk=group.pk).times_seen == group.times_seen + 1
-
-    def test_process_delay_saves_extra(self):
-        group = Group.objects.create(project=Project(id=1))
-        columns = {'times_seen': 1}
-        filters = {'pk': group.pk}
-        # strip micrseconds because MySQL doesnt seem to handle them correctly
-        the_date = (timezone.now() + timedelta(days=5)).replace(microsecond=0)
-        self.buf.process_delay(Group, columns, filters, {'last_seen': the_date})
-        group_ = Group.objects.get(pk=group.pk)
-        assert group_.times_seen == group.times_seen + 1
-        assert group_.last_seen.replace(microsecond=0) == the_date
+    def test_process_calls_callback(self):
+        callback = mock.Mock()
+        args = ('foo')
+        values = {'biz': 'baz'}
+        self.buf.process(callback, args, values)
+        callback.assert_callced_once_with('foo', values=values)
