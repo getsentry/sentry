@@ -10,13 +10,11 @@ from sentry.testutils import TestCase
 
 
 class ProcessDelayTest(TestCase):
-    def test_is_task(self):
+    def test_task_properties(self):
         assert isinstance(process_delay, Task)
+        assert process_delay.name == 'sentry.tasks.process_buffer.process_delay'
 
-    @mock.patch('sentry.app.buffer.process_delay')
-    def test_calls_process_delay(self, process_delay):
-        model = mock.Mock()
-        columns = {'times_seen': 1}
-        filters = {'pk': 1}
-        process_delay(model=model, columns=columns, filters=filters)
-        process_delay.assert_called_once_with(model=model, columns=columns, filters=filters)
+    @mock.patch('sentry.app.buffer.process')
+    def test_calls_process(self, process):
+        process_delay(foo='bar', biz='baz')
+        process.assert_called_once_with(foo='bar', biz='baz')

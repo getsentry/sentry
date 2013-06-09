@@ -66,7 +66,7 @@ class PointManager(BaseManager):
                 key=self._get_key(key),
                 epoch=epoch,
                 rollup=rollup,
-                defaults={
+                values={
                     'value': F('value') + amount,
                 }
             )

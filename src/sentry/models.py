@@ -1286,11 +1286,10 @@ def record_project_tag_count(filters, created, **kwargs):
     if not created:
         return
 
-    # TODO
     TagKey.objects.create_or_update(
         project=filters['project'],
         key=filters['key'],
-        defaults={
+        values={
             'values_seen': F('values_seen') + 1,
         },
         buffer=True,
@@ -1302,12 +1301,11 @@ def record_group_tag_count(filters, created, **kwargs):
     if not created:
         return
 
-    # TODO
     GroupTagKey.objects.create_or_update(
         project=filters['project'],
         group=filters['group'],
         key=filters['key'],
-        defaults={
+        values={
             'values_seen': F('values_seen') + 1,
         },
         buffer=True,

@@ -12,10 +12,10 @@ from django.utils import timezone
 
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
 from sentry.interfaces import Interface
-from sentry.manager import get_checksum_from_event
+from sentry.manager import get_checksum_from_event, buffered_update
 from sentry.models import (
     Event, Group, Project, GroupCountByMinute, ProjectCountByMinute,
-    SearchDocument, Team, EventMapping, User, AccessGroup)
+    SearchDocument, Team, EventMapping, User, AccessGroup, Option)
 from sentry.utils.db import has_trending  # NOQA
 from sentry.testutils import TestCase
 
@@ -275,3 +275,36 @@ class TeamManagerTest(TestCase):
 
         result = Team.objects.get_for_user(user3, access=MEMBER_OWNER)
         assert result == {}
+
+
+class CreateOrUpdateTest(TestCase):
+    @mock.patch('sentry.manager.create_or_update', mock.Mock(side_effect=Exception()))
+    @mock.patch.object(Option.objects.app, 'buffer')
+    def test_buffered_flow(self, buffer):
+        Option.objects.create_or_update(
+            key='foo',
+            values={
+                'value': 'bar',
+            },
+            buffer=True,
+        )
+
+        buffer.delay.assert_called_once_with(
+            callback=buffered_update,
+            args=[Option, {'key': 'foo'}],
+            values={'value': 'bar'},
+        )
+
+    @mock.patch.object(Option.objects.app, 'buffer', mock.Mock(side_effect=Exception()))
+    @mock.patch('sentry.manager.create_or_update')
+    def test_default_flow(self, create_or_update):
+        Option.objects.create_or_update(
+            key='foo',
+            values={
+                'value': 'bar',
+            }
+        )
+
+        create_or_update.assert_called_once_with(
+            Option, key='foo', values={'value': 'bar'},
+        )
