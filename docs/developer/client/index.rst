@@ -563,5 +563,5 @@ as things like extra data, or tags.
 - Tag keys are limited to 32 characters.
 - Tag values are limited to 200 characters.
 - Culprits are limited to 200 characters.
-- Messages are limited to 1000 characters.
+- Messages are limited to 1024 characters.
 - Http data (the body) is limited to 1024 characters.
