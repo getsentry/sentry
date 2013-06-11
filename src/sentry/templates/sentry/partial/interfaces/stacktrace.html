@@ -1,0 +1,41 @@
+{% load i18n %}
+{% load sentry_helpers %}
+
+<div class="module">
+    <div class="page-header">
+        <a href="javascript:void(0)" data-container="#raw_stacktrace" data-title="Stacktrace" class="popup btn small pull-right">{% trans "Raw" %}</a>
+        {% if system_frames %}
+            <form class="pull-right" style="margin:8px 20px 0 0; white-space: nowrap">
+                <label class="checkbox"><input type="checkbox" id="show_hidden_frames"> Show {{ system_frames }} hidden frames</label>
+            </form>
+        {% endif %}
+        <h2>
+            {% trans "Stacktrace" %}
+            <small>{% if newest_first %}
+                ({% trans "most recent call first" %})
+            {% else %}
+                ({% trans "most recent call last" %})
+            {% endif %}</small>
+        </h2>
+    </div>
+    <div class="module-content">
+        {% include "sentry/partial/interfaces/stacktrace_inner.html" %}
+    </div>
+</div>
+
+<div id="raw_stacktrace" style="display: none;">
+    <pre>{{ stacktrace }}</pre>
+</div>
+
+{% if system_frames %}
+    <script type="text/javascript">
+    $('#show_hidden_frames').change(function(e){
+        var $el = $(e.target);
+        if ($el.is(':checked')) {
+            $('.traceback li.system-frame').show();
+        } else {
+            $('.traceback li.system-frame').hide();
+        }
+    }).change();
+    </script>
+{% endif %}

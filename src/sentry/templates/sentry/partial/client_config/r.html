@@ -1,0 +1,25 @@
+{% load i18n %}
+
+<p>{% blocktrans with 'https://r-forge.r-project.org/projects/logging/' as link %}Start by installing <a href="{{ link }}">r-logging</a>:{% endblocktrans %}</p>
+
+<p>{% trans "Load the logging package:" %}</p>
+
+<pre>library(logging)
+library(logging.handlers)</pre>
+
+<p>{% trans "Create a Sentry handler and add it to a logger:" %}</p>
+
+<pre>rl &lt;- getLogger() # for example the root logger
+rl$addHandler(sentryHandler, dsn='{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}'')
+</pre>
+
+<p>{% trans "Send events via the standard logging interface:" %}</p>
+
+<pre>sol &lt;- getLogger('some.other.logger')
+sol$error(MESSAGE)
+sol$warn(MESSAGE)
+sol$info(MESSAGE)
+sol$debug(MESSAGE)
+</pre>
+
+<p>{% blocktrans with 'http://logging.r-forge.r-project.org/' as link %}For more information on other uses of the logging package, see the <a href="{{ link }}">documentation for r-logging</a>.{% endblocktrans %}</p>

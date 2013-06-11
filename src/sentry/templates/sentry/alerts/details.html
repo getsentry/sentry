@@ -1,0 +1,54 @@
+{% extends "sentry/alerts/list.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{{ alert.datetime }} | {{ block.super }}{% endblock %}
+
+{% block bodyclass %} with-sidebar{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <div class="page-header">
+            <h2>
+                {% blocktrans with alert.datetime as datetime %}Alert at {{ datetime }}{% endblocktrans %}
+                <small style="color: {% if alert.is_resolved %}green{% else %}red{% endif %};">{{ alert.get_status_display }}</small>
+            </h2>
+        </div>
+        {{ alert.message|linebreaks }}
+
+        <div class="page-header">
+            <h3>{% trans "Related Events" %} <small>{% trans "Trending at time of alert" %}</small></h3>
+        </div>
+        {% if related_group_list %}
+            <div id="event_list"></div>
+
+            <p><small>{% trans "Note: All events represent their current state, not their value at the time of this alert." %}</small></p>
+
+            <script>
+            $(function(){
+                new app.GroupListView({
+                    className: 'group-list small',
+                    members: {{ related_group_list|to_json:request|safe }},
+                    id: "event_list"
+                });
+            });
+            </script>
+        {% else %}
+            <p>{% trans "No trends are available for this report." %}</p>
+        {% endif %}
+    </section>
+{% endblock %}
+
+{% block sidebar %}
+    {% if not alert.is_resolved %}
+        <a href="{% url 'sentry-resolve-alert' project.team.slug project.slug alert.id %}" class="btn btn-primary" style="display: block">Resolve Alert</a>
+        <br>
+    {% endif %}
+    <h6>{% trans "Meta" %}</h6>
+    <dl>
+        <dt>{% trans "When:" %}</dt>
+        <dd><span class="pretty-date" title="{{ alert.datetime|date:"c" }}Z">{{ alert.datetime|timesince }}</span><br>
+            <small>{{ alert.datetime }} {{ alert.datetime.tzinfo }}</small></dd>
+    </dl>
+{% endblock %}

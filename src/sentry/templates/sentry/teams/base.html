@@ -1,0 +1,13 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Team List" %} | {{ block.super }}{% endblock %}
+
+{% block bodyclass %}{% endblock %}
+
+{% block main %}
+    <section class="body">
+        {% block inner %}{% endblock %}
+    </section>
+{% endblock %}

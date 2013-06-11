@@ -1,0 +1,58 @@
+{% extends "sentry/bases/team.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_plugins %}
+
+{% block title %}{% trans "Settings" %} | {{ block.super }}{% endblock %}
+
+{% block bodyclass %}{% endblock %}
+
+{% block main %}
+    <section class="body">
+        {% block inner %}
+            <div class="page-header">
+                <h2>{% trans "Team Details" %}</h2>
+            </div>
+            <form class="form-stacked" action="" method="post">
+                {% csrf_token %}
+
+                {% if form.errors %}
+                    <div class="alert alert-error">{% trans "Please correct the errors below." %}</div>
+                {% endif %}
+
+                {{ form|as_crispy_errors }}
+
+                <fieldset>
+                    {% for field in form %}
+                        {% if field.name != 'owner' %}
+                            {{ field|as_crispy_field }}
+                        {% endif %}
+                    {% endfor %}
+                </fieldset>
+
+                {% if form.owner %}
+                    <fieldset>
+                        <p>If you wish to transfer ownership of this project, enter the new owner's username:</p>
+                        {{ form.owner|as_crispy_field }}
+                    </fieldset>
+                {% endif %}
+
+                <fieldset class="form-actions">
+                    <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+                    {% if can_remove_team %}
+                        <a href="{% url 'sentry-remove-team' team.slug %}" class="btn btn-danger">{% trans "Remove Team" %}</a>
+                    {% else %}
+                        <div class="pull-right note">{% trans "You cannot remove this team because it has projects assigned to it" %}</div>
+                    {% endif %}
+                </fieldset>
+            </form>
+        {% endblock %}
+    </section>
+
+    <script type="text/javascript">
+    new app.TeamDetailsPage();
+    </script>
+
+{% endblock %}

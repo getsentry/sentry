@@ -1,3 +1,633 @@
+Version 5.5.0
+-------------
+
+Incompatible Changes
+====================
+
+- Django has been upgraded to 1.5.
+- django.contrib.auth.models.User has been replaced with sentry.models.User.
+- sentry_servers no longer exists, and the behavior is now always present. If
+  you had it manually listed in INSTALLED_APPS, simply remove it.
+- Filters have been deprecated, and most functionality removed. See notes below.
+- TrackedUser, AffectedByUser, and Group.users_seen have been removed in favor
+  of reusing the tagging architecture for user tracking.
+- Suspension of team members is no longer available. The feature was rarely
+  used, and removing it greatly simplifies the auth logic in the API.
+
+Protocol Version 4
+==================
+
+- sentry_version should be sent as '4'.
+- Aliases are now recommended instead of full interface names.
+- The exception interface now supports a bound stacktrace, and all events
+  (in all protocols) which contain both an exception and a stacktrace will
+  be rolled up. This should be sent as the ``stacktrace`` attribute.
+- The exception interface now supports of chained exceptions, and should
+  be sent as a list of exception values. Check the updated documentation for
+  ordering details.
+
+Alerts
+======
+
+A basic alert system has been added.
+
+- Configured at the project level.
+- Signaled via Plugin.on_alert.
+
+Filters
+=======
+
+The outdated filter system has been mostly removed. You should rely on
+tagged data for filter generation.
+
+If you were previously defining ``SENTRY_FILTERS`` you should remove it
+from your settings as it will be entirely obsolete in a future version.
+
+Other Changes
+=============
+
+- Activity feeds will now attempt to filter out some duplicates.
+- Tags now show on the event details page.
+- Corrected some invalid behavior when storing tags with an individual event.
+- Plugin.get_tag_values was added.
+- A new team select dashboard exists if you are a member of multiple teams.
+
+Version 5.4.0
+-------------
+
+SENTRY_PUBLIC now dictates whether or not a Sentry install should be considered
+accessible by all users or not. This should better solve the use-case of companies
+hosting a Sentry instance internally and not necessarily needing the permissions
+that teams give you.
+
+If enabled, all teams and all projects will be accessible all members (for any endpoint
+which does not require a certain level of access). Project.is_public now dictates the
+implied state of all events, but will not allow a non-member to browse events.
+
+Additionally, this includes the following other items:
+
+- [Important!] The URLS for social authentication have been moved.
+- Improved rendering of data values in all interfaces.
+- django-compressor was replaced with django-static-compiler.
+- A better defined public view of events (which removes several items from being visible).
+- Improved SourceMap discovery.
+- Most events will no longer cause a hard error when validation fails. Instead we attempt
+  to drop any non-required data so that at least a partial event is stored.
+- MessageCountByMinute was renamed to GroupCountByMinute.
+- MessageFilterValue was renamed to GroupTag.
+- Syntax highlighting was disabled (pending performance solutions).
+- Added Team.date_added column.
+
+
+Version 5.3.0
+-------------
+
+A brand new Sentry design has landed.
+
+Some things of note:
+
+- An improved dashboard.
+- Improved activity feeds on aggregate details.
+- Similar event navigation links on aggregate details.
+- Redesigned team management flow.
+
+Additionally:
+
+- Aggregates now happen on (project, checksum), which means events that have different
+  levels or culprits can now be grouped together.
+- Sentry now requires authentication for all pages.
+- SENTRY_PUBLIC behavior has changed to signify the default state of projects.
+- Project slug's are now only unique within a team.
+
+Version 5.2.2
+-------------
+
+- [New] The dashboard will now stream updates to the new and trending event components.
+
+Version 5.2.1
+-------------
+
+- [Fix] Trends sorting options on the Stream page work correctly again.
+
+Version 5.2.0
+-------------
+
+- [New] A new activity stream exists on event pages.
+- [New] Syntax highlighting now exists on all context frames.
+- [New] Support for JavaScript Sourcemaps now exists.
+- [New] The server will now fetch remote source files for JavaScript events.
+- [New] Sentry will now ask for your project's platform.
+- [Fix] Resolved -> Regressed state change is now atomic.
+- [Fix] ``cleanup`` now runs with lower resource overhead.
+- [Fix] Cookies will now be coerced to dicts if possible.
+- More (storage only still) work on user tracking.
+- Several indexes were added to speed up various queries.
+- Removed savepoint use in plugin hooks (99% of the time there were no queries).
+
+Additional, the following client protocol changes are part of this release:
+
+- Cookies should be not be sent by default.
+- POST data should not be sent by default.
+- Recommended values regexp for sanitizing credit cards was updated.
+- ``colno`` was added to the Stacktrace spec.
+- Timestamps that are more than one minute in the future are now discarded.
+- (Undocumented) Client-side support now exists for GET + Referrer store requests.
+
+We've also reduced the test suite time down to 25% of what it originally was (thanks, Alex!)
+
+Version 5.1.3
+-------------
+
+A new user's affected-tracking mechanism is present (storage only). This will
+become available in the UX in a future version, and relies on the existing HTTP
+and User interface datas.
+
+- [Fix] Correct a bug with search queries.
+- [New] Group.users_seen will now track unique users when possible.
+- [New] Team and project owners can now change ownership (non-superuser).
+- [Fix] Counts are now formatted correctly when number of visible digits > 3.
+
+Version 5.1.2
+-------------
+
+- [Fix] Option schema (key length = 64).
+- [Fix] Template interface now renders correctly.
+- [Fix] Update design on admin status pages.
+- [New] iOS client documentation.
+- Improved client documentation visuals.
+
+Version 5.1.1
+-------------
+
+Several schema changes are made in this upgrade:
+
+- A new model: LostPasswordHash
+- Two new fields on ProjectKey: date_added and user_added
+- A new field on Event: platform
+- A new field on Group: platform
+
+The following changes are also part of this release:
+
+- [New] A new plugin, sentry-interface-types will now automatically tag the available interface
+  types in an event.
+- [New] The platform value sent with an event is now recorded in the database.
+- [New] A recover account flow has been added.
+- [New] There is now a sticky nav on the event details pages.
+- [New] getting started page now shows if there's no data for a project.
+- [New] An API key management page now exists (under project settings).
+- [New] A tag overview page now exists for group details pages.
+- [Fix] Line numbers now show correctly in collapsed source context.
+- [Fix] Pending members now show correctly on the team management page (under project settings).
+- [Fix] The time since value now updates correctly when events change.
+- Various changes to how event details components render.
+- Various fixes for breadcrumbs and header styles.
+- Most plugins will no longer default to enabled on new projects.
+
+Version 5.1.0
+-------------
+
+Minor point releases now signify major changes (5.1.0 is a major release). Bugfix and smaller
+releases will continue as normal.
+
+This release includes a very large set of changes from 5.0.0, including a new client protocol
+and an overhaul to the frontend code (specifically the JavaScript).
+
+If you're a contributor, take note that there is now a JavaScript test suite. You can run all
+test suites with the ``make test`` command.
+
+Protocol Version 3
+==================
+
+Sentry 5.1 removes support for version 1.0 of the protocol, and maintains a compatibility layer
+for version 2.0.
+
+Additionally, the following changes apply to the new protocol:
+
+- sentry_version should be sent as '3' (not 3.0).
+- Signed messages are no longer supported (signatures are not calculated).
+  - sentry_signature is no longer used.
+  - sentry_timestamp is no longer used.
+- Clients must pass sentry_secret for server-side requests as part of the auth
+  header. This check runs in the event that there is no Origin header sent.
+  - version 2.0 supports validation of this, version 3 requires it.
+- The ``project`` attribute in the JSON packet is no longer required.
+- The ``platform`` attribute is now recommended.
+- The ``tags`` attribute is now recommended.
+
+Other Changes
+=============
+
+- Aggregation 'Views' have been removed.
+- All streaming components are now powered by Backbone.js.
+- Frontend has been updated to Bootstrap 2.1.
+- The event stream now includes sparklines representing the last 24 hours of data for each event.
+- Trends have greatly improved.
+- Grouping events that have identical stacktraces other than the function name (e.g. dynamically generated
+  functions) is not possible.
+- SiteFilter has been removed, as has the sites plugin.
+- If frames are included in a stacktrace that have the attribute ``in_app: false``, they will be hidden by default in
+  the details view.
+- crossdomain.xml support is now available (see documentation).
+- The search feature now uses buffers to better handle write concurrency.
+- Early support for WSGI (should be functional) exists as ``sentry.wsgi``.
+- Many fixes around cache usage.
+
+Version 5.0.0
+-------------
+
+- Variable versions of Django are no longer supported. Django 1.4.x must now be used.
+- Public projects are restricted to viewing without being authenticated.
+- The default behavior of Sentry is to now use timezone-aware datetimes everywhere.
+- Permissions have been refactored to be more precise.
+
+
+Version 4.10.0
+--------------
+
+- A new IssuePlugin base is available.
+- Charts have been refactored to show 7 days worth of data.
+- django.contrib.staticfiles is now supported.
+- django.contrib.messages is now supported.
+
+Version 4.9.0
+-------------
+
+Social authentication is now supported!
+
+By configuring several options (documented on the quickstart guide), you can allow users to signup and login
+with accounts from several social services. Additionally users can associate their existing accounts (via a
+new identities panel in their account settings) with any number of these services.
+
+Currently, the following services are supported:
+
+* GitHub
+* Twitter
+* Facebook
+* Google
+
+Version 4.8.0
+-------------
+
+Tags are now able to be created dynamically! See the documentation for more details on implementing it inside
+of your client.
+
+You can also configure which tags will show up as filters in the sidebar via your project's settings page. By
+default all tags will show up.
+
+Version 4.7.0
+-------------
+
+User options are now available to plugins. The builtin mail plugin also now takes advantage of them.
+
+- sentry_mail will now use the alert_email option over your account email if specified.
+- sentry_mail now allows you to choose which projects to receive alerts for.
+- Numeric slugs will no longer return 404s.
+- Corrected the repair command with the --owner argument.
+
+Version 4.6.0
+-------------
+
+Improvements to the dashboard are trickling in, with this update including:
+
+- Changing "Top Events" to "Trends" (if supported by your RDBMS)
+- Time interval selections for both widgets
+
+Plugins now have a new interface for registering themselves. Please see the developer documentation
+for notes on how to use ``entry_points``.
+
+Additionally:
+
+- Signed messages are now deprecated. Save yourself some CPU cycles, and rely on SSL.
+- A new plugin which tags user's email addresses.
+- Several UI cleanups in various areas, such as improvements to the account dropdown and lists of projects/teams.
+- Long awaited cleanup/fixes for applying the initial database migrations (sorry MySQL users).
+- Initial support for arbitrary event tagging (coming soon to a client near you).
+
+Version 4.5.0
+-------------
+
+Builtin plugins have been refactored to be more concise. This includes changes to the
+servers, urls, and sites plugins. There is also a new builtin plugin::
+
+  sentry.plugins.sentry_useragents
+
+With these changes, it now makes it even easier to create a basic plugin that just handles extra
+"tag"-like data. Take a look at one of the aforementioned plugins for an example.
+
+Additionally:
+
+- The mail plugin now sends additional Sentry-specific headers.
+- Signatures are deprecated, and no longer required.
+- Several fixes regarding CORS support.
+
+Version 4.4.0
+-------------
+
+Two new columns were added to the ``Group`` model:
+
+- ``resolved_at``: The datetime at which this event was marked as resolved.
+- ``active_at``:  The datetime at which this event was marked as open.
+
+The dashboard's "New Events" will now use the active_at date rather than the original
+first seen date on an event.
+
+Version 4.3.0
+-------------
+
+A new global dashboard now exists. The dashboard contains an event graph for all projects which
+you have access to, as well as a list of the top events, and new events.
+
+Additionally:
+
+- API endpoints now properly send no-cache headers.
+- Added a countdown to update buffers.
+
+Version 4.2.0
+-------------
+
+Sentry now has support for buffering a majority of its counters via Redis. For more information, check
+the buffer section of the configuration documentation.
+
+- Nearly all race conditions are now handled correctly using distributed cache locks.
+
+Version 4.1.0
+-------------
+
+Sentry now maintains full support for CORS requests from external hosts. This means that clients like
+raven-js will now able to securely send messages to Sentry, without compromising their secret key.
+
+In addition:
+
+- Trusted domains were removed. These were not fully implemented.
+- A new datepicker for selecting ranges of events.
+- raven-javascript and raven-ruby are now officially supported clients.
+- Added ``sentry repair``.
+
+Version 4.0.0
+-------------
+
+Introducing Teams!
+
+Projects are now assigned to a single team, and that team may consist of many members. Additionally
+each team may own multiple projects. This makes it much easier to handle permissions across a single
+organization that has many projects.
+
+This update also includes initial changes to how filters work. ServerName Filter and SiteFilter are
+no longer specified in the ``FILTERS`` setting, but instead are included automatically if you
+load the respective ``sentry_servers`` and ``sentry_sites`` plugins.
+
+Additional changes:
+
+- Legacy data format is no longer supported (pre-Raven 1.x)
+- API will now validate data before sending it into the queue, enabling better debugging for clients.
+
+Version 3.8.0
+-------------
+
+Plugins are now configurable per-project. This makes it easy to install a plugin globally
+and allow it to run only on selective projects.
+
+Version 3.7.0
+-------------
+
+Several minor fixes, as well as a backwards incompatible change with filters.
+
+All filters must now accept the project argument in the initializer. The signature is
+now __init__(request, project).
+
+Version 3.6.0
+-------------
+
+This version focuses on improving membership control. It includes the ability to revoke
+project members access temporarily (by suspending them), as well as revoking users
+(outside of Sentry) via the user.is_active flag.
+
+Additionally, it brings the beginnings of an "invite user" flow, allowing you to
+invite users who may or may not already have accounts in the system. We plan to improve
+this flow in an upcoming release to allow invitees easy registration within the system
+if they don't already have an account.
+
+Version 3.5.0
+-------------
+
+Several improvements and additions have been made around the administration, including
+performance improvements.
+
+If you're utilizing the queue, the installation guide now recommends you switch off the
+database backend, and move to something more efficient (such as Redis).
+
+Version 3.4.0
+-------------
+
+Eventlet is no longer used as the default worker for gunicorn, and thus is no longer
+installed by default. If you're using the udp worker, or ``send_fake_data`` you MUST
+install eventlet yourself. The recommended worker class for gunicorn is now ``gevent``
+as it corrects some issues with async queries in psycopg2.
+
+Version 3.3.0
+-------------
+
+The queue has been changed from direct Kombu, to utilizing Celery entirely. If you were
+already using the queue, the upgrade simply requires you to change "sentry start worker"
+to "sentry celeryd".
+
+Version 3.0.0
+-------------
+
+Version 3 of Sentry is centered around a restructure of the internal services and
+the architecture for running those. It also includes improvements to the plugin architecture.
+
+The upgrade process should be trivial, just be aware that if you were using --config before
+you must change the way you pass it so that it's before the subcommand. For example
+if you were doing ``sentry start --config...`` the command would now be changed to
+``sentry --config... start``.
+
+* Sentry no longer provides the ability to daemonize processes. This should now be
+  done at the system level.
+* All of Sentry's CLI is now handled through Logan (https://github.com/dcramer/logan),
+  which simply pipes commands to Django's internal system utilizing custom configuration.
+* Plugins now have a hook for managing some level of permissions (beyond the required defaults).
+* The plugin interface (IPlugin) is now documented.
+* It is now recommended that clients allow the Sentry server to compute checksums.
+
+Version 2.9.0
+-------------
+
+* Plugins must now behave as singletons and be registered with a newly provided
+  sentry.plugins.@register decorator.
+* The Bugzilla and Redmine extensions are no longer part of Sentry core.
+* Added a global overview of projects to the administration.
+
+Version 2.8.0
+-------------
+
+* Added an Account Settings panel which allows users to change their name,
+  email, and password.
+* The default Sentry server now correctly wraps itself in its own middleware.
+* Improved Real-time JavaScript.
+
+Version 2.7.0
+-------------
+
+* Added first_seen and last_seen to all message filter values.
+* Added a new "since" option to the dashboard with a default value of 3 days.
+
+Version 2.6.0
+-------------
+
+* The built-in webserver is now powered by gunicorn.
+* Cleaned up several admin pages and split them into sub-pages.
+
+Version 2.5.0
+-------------
+
+* Corrected some queue behavior.
+* Resolve Feed now only resolves items active within current filters.
+* Handle unicode characters in POST body for replay request.
+* Ensure client side requests run checks on HTTP_REFERER
+* Adjust documentation for service settings.
+
+Version 2.4.5
+-------------
+
+* Corrected indexing behavior to handle non strings.
+* If queuing is enabled the indexer will now queue it's jobs.
+* Moved group creation into a transaction.
+
+Version 2.4.4
+-------------
+
+* Mail configuration value of send_to now correctly uses ',' as a separator
+  (rather than ';').
+* Changed rendering of sidebar widgets for all builtin extensions.
+* Added an event details slot to the sidebar pane for individual events.
+
+Version 2.4.3
+-------------
+
+* Correct some behavior with MySQL on the groups pane.
+* Correct generated configuration behavior to use absolute
+  paths for run and log folders.
+
+Version 2.4.2
+-------------
+
+* Include DSN and member type on projects list grid.
+
+Version 2.4.1
+-------------
+
+* Change appearance of resolve states.
+* Adjust user management to link username (which is required) and not
+  optional fields.
+
+Version 2.4.0
+-------------
+
+* Added user management for admins.
+* Resolved events should now appear differently.
+* Default membership access is now configurable.
+
+Version 2.3.2
+-------------
+
+* Maintaining *some* level of support for SQLite.
+
+Version 2.3.1
+-------------
+
+* Correct rendering of sites, urls, and servers on details panes.
+
+Version 2.3.0
+-------------
+
+* The polling API and JavaScript have been refactored.
+
+  Events now stream in (they generally do not update if they already
+  exist), and will maintain correct ordering in the feed.
+
+  This API is available for most sort options, excluding trends.
+* The builtin plugin's widgets have been fixed.
+* Sampling rates are now configurable.
+* Some minor design tweaks.
+
+Version 2.2.5
+-------------
+
+* The |date filter now forces things to UTC (it assumes local time).
+* Event templates have been updated to resemble groups.
+
+Version 2.2.4
+-------------
+
+* Improve error logging in API.
+* Update Celery client code to use new send_encoded interfaces.
+* Change JS datetimes to use UTC.
+* Force clients which specify version 2.0 or newer to pass identification.
+* Better default logging configuration.
+* Adjust eventlet to monkey patch the world before any imports happen.
+* Adjust default configuration to specify LOG and RUN directories.
+* upgrade now correctly handles the delete ghosts argument.
+
+Version 2.2.3
+-------------
+
+* Lower font size of counts on event list.
+* Align actions to right side (vertical).
+* Fix issue with long filters not transforming to selects.
+
+Version 2.2.2
+-------------
+
+* Corrected event_id key to contain (project_id, event_id).
+* Adjusted project form to default the user to the current user
+  when accessed by an admin.
+* Change sentry admin to be /manage/ to avoid any unintentional
+  conflict with the Django admin.
+
+Version 2.2.1
+-------------
+
+* Cleaned up several pages.
+
+Version 2.2.0
+-------------
+
+* Sentry has a brand new design utilizing Bootstrap 2.
+* Superusers can now create projects for users.
+
+Version 2.1.3
+-------------
+
+* Ensure we truncate tokens to 128 characters for SearchDocument.
+* Gracefully handle errors with indexing.
+* Gracefully handle errors with post_process.
+* Gracefully handle errors with regression_signal.
+* Fixed priority sort option not activating.
+
+Version 2.1.2
+-------------
+
+* Fixed an issue that was causing signals to not be registered.
+* Made date the default sort order for aggregate stream.
+
+Version 2.1.1
+-------------
+
+* Fixed an issue with indexing pre and post context on templates.
+
+Version 2.1.0
+-------------
+
+* ``pytz`` is now a requirement.
+* Changed default TIME_ZONE to be "UTC".
+* Corrected some issues around how dates were localized.
+* Initial implementation of full-text search.
+* Fixed sending of regression_signal so it only happens if event
+  has been marked as new.
+* Changed ProjectMember.get_dsn() to use request.get_host() which
+  corrects a bug in some webservers.
+
 Version 2.0.2
 -------------
 

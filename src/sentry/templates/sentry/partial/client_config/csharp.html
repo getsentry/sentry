@@ -1,0 +1,21 @@
+{% load i18n %}
+
+<p>{% blocktrans with 'https://github.com/getsentry/raven-csharp' as link %}Start by installing <a href="{{ link }}">raven-csharp</a>:{% endblocktrans %}</p>
+
+<p>{% blocktrans %}Initialize the client:{% endblocktrans %}</p>
+
+<pre>ravenClient = new RavenClient("{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}");</pre>
+
+<p>{% blocktrans %}To capture errors, you'll need to wrap your code in a simple try/catch block:{% endblocktrans %}</p>
+
+<pre>try
+{
+    int i2 = 0;
+    int i = 10 / i2;
+}
+catch (Exception e)
+{
+    ravenClient.CaptureException(e);
+}</pre>
+
+<p>{% blocktrans with 'https://github.com/getsentry/raven-csharp' as link %}For more information on other uses of Raven with C#, please see the <a href="{{ link }}">official documentation for raven-csharp</a>.{% endblocktrans %}</p>

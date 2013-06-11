@@ -1,0 +1,26 @@
+{% load i18n %}
+
+<div id="template" class="module">
+    <div class="page-header">
+        <a href="javascript:void(0)" data-container="#raw_template" data-title="Template" class="popup btn small pull-right">{% trans "Raw" %}</a>
+        <h2>{% trans "Template Error" %}</h2>
+    </div>
+    <div class="module-content expanded frame">
+        <p><code>{{ filename }}</code> at line <code>{{ lineno }}</code></p>
+        {% if context %}
+            <div class="commands">
+                <a href="javascript:void(0)" onclick="$('#template .module-content').toggleClass('expanded')" title="{% trans "Toggle Context" %}" rel="tooltip" class="tip"><i class="icon-th-list"></i></a>
+            </div>
+
+            <ol start="{{ start_lineno }}" class="context">
+                {% for num, line in context %}
+                    <li class="{% if num == lineno %} active{% else %} expandable{% endif %}" onclick="$('#template .module-content').toggleClass('expanded')">{{ line }}</li>
+                {% endfor %}
+            </ol>
+        {% endif %}
+    </div>
+</div>
+
+<div id="raw_template" style="display: none;">
+    <pre>{{ template }}</pre>
+</div>

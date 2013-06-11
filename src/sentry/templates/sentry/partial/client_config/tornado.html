@@ -1,0 +1,30 @@
+{% extends "sentry/partial/client_config/python_base.html" %}
+
+{% load i18n %}
+
+{% block inner %}
+    <p>{% trans "Add the required configuration in your application setup:" %}</p>
+
+    <pre>import tornado.web
+from raven.contrib.tornado import AsyncSentryClient
+
+class MainHandler(tornado.web.RequestHandler):
+    def get(self):
+        self.write("Hello, world")
+
+application = tornado.web.Application([
+    (r"/", MainHandler),
+])
+application.sentry_client = AsyncSentryClient(
+    '{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}'
+)</pre>
+
+    <p>{% blocktrans %}Once the sentry client is attached to the application, request handlers can automatically capture uncaught exceptions by inheriting the SentryMixin class.{% endblocktrans %}</p>
+
+    <pre>import tornado.web
+from raven.contrib.tornado import SentryMixin
+
+class UncaughtExceptionExampleHandler(SentryMixin, tornado.web.RequestHandler):
+    def get(self):
+        1 / 0</pre>
+{% endblock %}

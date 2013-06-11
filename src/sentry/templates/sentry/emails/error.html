@@ -1,0 +1,52 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block bodyclass %} level-{{ event.get_level_display }}{% endblock %}
+
+{% block header %}
+    <h1>Sentry <small>
+        {% if group.times_seen == 1 %}
+            {% trans "New Event" %}
+        {% else %}
+            {% trans "Regression" %}
+        {% endif %}
+    </small></h1>
+{% endblock %}
+
+{% block inner %}
+    <pre>{{ event.message }}</pre>
+
+    <p><a href="{{ link }}">{{ link }}</a></p>
+
+    <table class="metadata">
+        <colgroup>
+            <col style="width:25%;">
+            <col style="width:25%;">
+            <col style="width:25%;">
+            <col style="width:25%;">
+        </colgroup>
+        <tr>
+            <th>{% trans "Logger:" %}</th>
+            <td>{{ event.logger }}</td>
+            <th>{% trans "Level:" %}</th>
+            <td>{{ event.get_level_display }}</td>
+        </tr>
+        <tr>
+            <th>{% trans "Server:" %}</th>
+            <td>{{ event.server_name }}</td>
+            <th>{% trans "First Seen:" %}</th>
+            <td>{{ group.first_seen|date }}</td>
+        </tr>
+    </table>
+
+    {% for label, text in interfaces %}
+    <div class="interface">
+        <div class="title">{{ label }}</div>
+
+        <pre>{{ text }}</pre>
+    </div>
+    {% endfor %}
+
+    <p><a href="{{ settings_link }}">Notification Settings</a></p>
+{% endblock %}

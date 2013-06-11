@@ -1,0 +1,36 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Settings" %} | {{ block.super }}{% endblock %}
+
+{% block heading %}Account{% endblock %}
+
+{% block bodyclass %} with-left-sidebar{% endblock %}
+
+{% block alerts %}
+{% endblock %}
+
+{% block page_header_block %}
+    <section id="page-header" class="toolbar" style="height:5px;">
+    </section>
+{% endblock %}
+
+{% block main %}
+    <section class="body">
+        {% include "sentry/partial/alerts.html" %}
+        {% block inner %}
+        {% endblock %}
+    </section>
+{% endblock %}
+
+{% block sidebar %}
+    <ul class="nav nav-list">
+        <li class="nav-header">{% trans "Settings" %}</li>
+        <li{% if page == 'settings' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings' %}">{% trans "Account" %}</a></li>
+        <li{% if page == 'appearance' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings-appearance' %}">{% trans "Appearance" %}</a></li>
+        <li{% if page == 'notifications' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings-notifications' %}">{% trans "Notifications" %}</a></li>
+        <li{% if page == 'identities' %} class="active"{% endif %}><a href="{% url 'sentry-account-settings-identities' %}">{% trans "Identities" %}</a></li>
+    </ul>
+{% endblock %}

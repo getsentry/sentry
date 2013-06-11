@@ -1,0 +1,18 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{{ project.name }} | {{ block.super }}{% endblock %}
+
+{% block bodyclass %}{% endblock %}
+
+{% block main %}
+    <section class="body">
+    	<div class="page-header">
+    		<h2>{% trans "Getting Started" %}</h2>
+    	</div>
+
+		{% client_help request.user project %}
+	</section>
+{% endblock %}

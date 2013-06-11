@@ -1,0 +1,21 @@
+{% extends "sentry/admin/users/edit.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Remove User" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <form action="" method="post">
+            {% csrf_token %}
+            {{ form|as_crispy_errors }}
+            {% for field in form %}
+                {{ field|as_crispy_field }}
+            {% endfor %}
+            <fieldset class="form-actions">
+                <button type="submit" class="btn btn-danger">{% trans "Confirm" %}</button> <a href="{% url 'sentry-admin-edit-user' the_user.pk %}" class="btn">{% trans "Cancel" %}</a>
+            </fieldset>
+        </form>
+    </section>
+{% endblock %}

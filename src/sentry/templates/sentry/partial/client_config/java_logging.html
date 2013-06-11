@@ -1,0 +1,11 @@
+{% extends "sentry/partial/client_config/java_base.html" %}
+
+{% load i18n %}
+
+{% block inner %}
+    <p>{% trans "You'll need to configure the SentryHandler in your logging.properties:" %}</p>
+
+    <pre>level=ERROR
+handlers=net.kencochrane.raven.jul.SentryHandler
+net.kencochrane.raven.jul.SentryHandler.dsn={% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}</pre>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "sentry/bases/account.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Identities" %} | {{ block.super }}{% endblock %}
+
+{% block inner %}
+    <fieldset>
+        <legend>{% trans "Current Identities" %}</legend>
+    </fieldset>
+    {% if not identity_list %}
+        <p>{% trans "There are no identities associated with this account." %}</p>
+    {% else %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>{% trans "Identity" %}</th>
+                    <th style="width: 100px">&nbsp;</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for identity in identity_list %}
+                    <tr>
+                        <td>{{ identity.provider|title }}</td>
+                        <td style="text-align: center;">
+                            <a href="{% url 'socialauth_disconnect_individual' identity.provider identity.id %}?next={% filter urlencode %}{% absolute_uri %}{% endfilter %}">Disconnect</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+    {% if AUTH_PROVIDERS %}
+        <fieldset>
+            <legend>Associate a New Account</legend>
+        </fieldset>
+        <ul class="auth-options">
+            {% for engine in AUTH_PROVIDERS %}
+                <li><a href="{% url 'socialauth_associate_begin' engine %}?next={% filter urlencode %}{% absolute_uri %}{% endfilter %}" class="auth-{{ engine }}">Identify with {{ engine|title }}</a></li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+{% endblock %}

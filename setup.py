@@ -11,57 +11,114 @@ Sentry is a Server
 ------------------
 
 The Sentry package, at its core, is just a simple server and web UI. It will
-handle authentication clients (such as `Raven <https://github.com/dcramer/raven>`_)
+handle authentication clients (such as `Raven <https://github.com/getsentry/raven-python>`_)
 and all of the logic behind storage and aggregation.
 
 That said, Sentry is not limited to Python. The primary implementation is in
 Python, but it contains a full API for sending events from any language, in
 any application.
 
-:copyright: (c) 2011 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2011-2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+
 from setuptools import setup, find_packages
 
+# Hack to prevent stupid "TypeError: 'NoneType' object is not callable" error
+# in multiprocessing/util.py _exit_function when running `python
+# setup.py test` (see
+# http://www.eby-sarna.com/pipermail/peak/2010-May/003357.html)
+for m in ('multiprocessing', 'billiard'):
+    try:
+        __import__(m)
+    except ImportError:
+        pass
+
+dev_requires = [
+    'flake8>=1.7.0,<2.0',
+]
 
 tests_require = [
-    'nose==1.1.2',
-    'django-nose==0.1.3',
-    'pytz==2011n',
+    'exam>=0.5.1',
+    'eventlet',
+    'pytest',
+    'pytest-cov>=1.4',
+    'pytest-django',
+    'pytest-timeout',
+    'python-coveralls',
+    'nydus',
+    'mock>=0.8.0',
+    'mock-django>=0.6.4',
+    'redis',
+    'unittest2',
 ]
 
+
 install_requires = [
-    'Django>=1.2,<1.4',
-    'django-paging>=0.2.4',
-    'django-indexer>=0.3.0',
-    'django-templatetag-sugar>=0.1.0',
-    'raven>=1.1.6',
-    'python-daemon>=1.6',
-    'eventlet>=0.9.15',
-    'South>=0.7',
-    'kombu>=1.5.1',
-    'django-kombu==0.9.4',
+    'cssutils>=0.9.9,<0.9.10',
+    'BeautifulSoup>=3.2.1,<3.3.0',
+    'django-celery>=3.0.11,<3.1.0',
+    'celery>=3.0.15,<3.1.0',
+    'django-crispy-forms>=1.2.3,<1.3.0',
+    'Django>=1.5.1,<1.6',
+    'django-paging>=0.2.5,<0.3.0',
+    'django-picklefield>=0.3.0,<0.4.0',
+    'django-static-compiler>=0.3.0,<0.4.0',
+    'django-templatetag-sugar>=0.1.0,<0.2.0',
+    'gunicorn>=0.17.2,<0.18.0',
+    'logan>=0.5.6,<0.6.0',
+    'nydus>=0.10.0,<0.11.0',
+    'Pygments>=1.6.0,<1.7.0',
+    'pynliner>=0.4.0,<0.5.0',
+    'python-dateutil>=1.5.0,<2.0.0',
+    'raven>=3.1.17',
+    'redis>2.7.0,<2.8.0',
+    'simplejson>=3.1.0,<3.2.0',
+    'South>=0.7.6,<0.8.0',
+    'httpagentparser>=1.2.1,<1.3.0',
+    'django-social-auth>=0.7.23,<0.8.0',
+    'django-social-auth-trello>=1.0.3,<1.1.0',
+    'setproctitle>=1.1.7,<1.2.0',
 ]
+
+postgres_requires = [
+    'psycopg2>=2.4.0,<2.5.0',
+]
+
+postgres_pypy_requires = [
+    'psycopg2cffi',
+]
+
+mysql_requires = [
+    'MySQL-python>=1.2.0,<1.3.0',
+]
+
 
 setup(
     name='sentry',
-    version='2.0.2',
+    version='5.5.0-DEV',
     author='David Cramer',
     author_email='dcramer@gmail.com',
-    url='http://github.com/dcramer/sentry',
-    description='A realtime logging an aggregation server.',
-    long_description=__doc__,
-    packages=find_packages(exclude=['tests']),
+    url='http://www.getsentry.com',
+    description='A realtime logging and aggregation server.',
+    long_description=open('README.rst').read(),
+    package_dir={'': 'src'},
+    packages=find_packages('src'),
     zip_safe=False,
     install_requires=install_requires,
-    tests_require=tests_require,
-    extras_require={'test': tests_require},
+    extras_require={
+        'tests': tests_require,
+        'dev': dev_requires,
+        'postgres': install_requires + postgres_requires,
+        'postgres_pypy': install_requires + postgres_pypy_requires,
+        'mysql': install_requires + mysql_requires,
+    },
     test_suite='runtests.runtests',
     license='BSD',
     include_package_data=True,
     entry_points={
         'console_scripts': [
-            'sentry = sentry.scripts.runner:main',
+            'sentry = sentry.utils.runner:main',
         ],
     },
     classifiers=[

@@ -1,0 +1,12 @@
+{% extends "sentry/partial/client_config/java_base.html" %}
+
+{% load i18n %}
+
+{% block inner %}
+    <p>{% trans "You'll need to configure the SentryAppender in your logging configuration:" %}</p>
+
+    <pre>log4j.rootLogger=DEBUG, SentryAppender
+log4j.appender.SentryAppender=net.kencochrane.raven.log4j.SentryAppender
+log4j.appender.SentryAppender.dsn={% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}
+level=ERROR</pre>
+{% endblock %}

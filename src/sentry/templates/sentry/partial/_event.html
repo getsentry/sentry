@@ -1,0 +1,37 @@
+{% load sentry_helpers %}
+{% load sentry_plugins %}
+
+<li class="event">
+    <div class="details">
+        <h3>
+            <a href="{% url 'sentry-group-event' event.team.slug event.project.slug event.group_id event.pk %}">
+                {% if event.view %}
+                    {{ event.view }}
+                {% else %}
+                    {{ event.message_top }}
+                {% endif %}
+            </a>
+        </h3>
+        <div class="meta">
+            <span class="last-seen pretty-date" title="{{ event.datetime|date:"c" }}Z">{{ event.datetime|timesince }}</span>
+            {% if event.time_spent %}
+                <span class="time-spent">{{ event.time_spent|duration }}</span>
+            {% endif %}
+        </div>
+        <p class="message" title="{{ event.message }}">
+            <span class="tag tag-logger">{{ event.logger }}</span>
+            {% if event.server_name %}
+                <span class="tag">{{ event.server_name }}</span>
+            {% endif %}
+            {% with event.get_version as version %}
+                {% if version %}
+                    <span class="tag tag-version">{{ version.0 }} {{ version.1 }}</span>
+                {% endif %}
+            {% endwith %}
+            {% for tag in event|get_tags:request %}<span class="tag">{{ tag }}</span> {% endfor %}
+            {{ event.error }}
+        </p>
+        <a href="{% url 'sentry-group-event' event.team.slug event.project.slug event.group_id event.pk %}" class="row_link"></a>
+    </div>
+</li>
+

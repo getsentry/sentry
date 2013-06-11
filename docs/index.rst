@@ -1,10 +1,15 @@
 Sentry
 ======
 
-Sentry is a realtime event logging and aggregation platform. At it's core it
+Sentry is a realtime event logging and aggregation platform. At its core it
 specializes in monitoring errors and extracting all the information needed
-to do a proper post-mortum without any of the hassle of the standard user
+to do a proper post-mortem without any of the hassle of the standard user
 feedback loop.
+
+It's important to note that Sentry should not be thought of as a log stream,
+but as an event aggregator. It fits somewhere in-between a simple metrics
+solution (such as `Graphite <http://graphite.wikidot.com/>`_) and a full-on
+log stream aggregator (like `Logstash <http://logstash.net/>`_).
 
 Users Guide
 -----------
@@ -12,13 +17,28 @@ Users Guide
 .. toctree::
    :maxdepth: 2
 
-   install/index
+   quickstart/index
+   upgrading/index
    config/index
    queue/index
+   buffer/index
+   udp_server/index
+   throttling/index
    cli/index
    client/index
-   interfaces/index
    plugins/index
+   faq/index
+
+Developers
+----------
+
+.. toctree::
+   :maxdepth: 2
+
+   contributing/index
+   developer/client/index
+   developer/plugins/index
+   developer/interfaces/index
 
 Reference
 ---------
@@ -26,16 +46,16 @@ Reference
 .. toctree::
    :maxdepth: 1
 
-   contributing/index
    changelog/index
    license/index
 
 Resources
 ---------
 
-* `Bug Tracker <http://github.com/dcramer/sentry/issues>`_
-* `Code <http://github.com/dcramer/sentry>`_
-* `Mailing List <https://groups.google.com/group/disqus-opensource>`_
+* `Transifex <https://www.transifex.com/projects/p/sentry/>`_ (Translate Sentry!)
+* `Bug Tracker <http://github.com/getsentry/sentry/issues>`_
+* `Code <http://github.com/getsentry/sentry>`_
+* `Mailing List <https://groups.google.com/group/getsentry>`_
 * `IRC <irc://irc.freenode.net/sentry>`_  (irc.freenode.net, #sentry)
 
 Screenshots

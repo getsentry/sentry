@@ -1,0 +1,32 @@
+{% extends "sentry/teams/base.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Alerts" %} | {{ team.name }} | {{ block.super }}{% endblock %}
+
+{% block bodyclass %}{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <div class="page-header">
+            <h2>{% trans "Recent Alerts" %}
+                <small>{{ team.name }}</small>
+            </h2>
+        </div>
+
+        <ul>
+            {% for alert in alert_list %}
+                <li>
+                    <h4><a href="{% url 'sentry-alert-details' team.slug alert.project.slug alert.id %}">{{ alert.datetime }}</a>
+                        <small>
+                            &mdash; <a href="{% url 'sentry-alerts' team.slug alert.project.slug %}">{{ alert.project.name }}</a>
+                            &mdash; <span class="pretty-date" title="{{ alert.datetime|date:"c" }}Z">{{ alert.datetime|timesince }}</span>
+                        </small></h4>
+                    {{ alert.message|linebreaks }}
+                </li>
+            {% endfor %}
+        </ul>
+        <p>You can change your alert settings by visiting an individual project's notification settings page.</p>
+    </section>
+{% endblock %}

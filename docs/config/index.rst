@@ -1,9 +1,9 @@
 Configuration
 =============
 
-This document describes additional configuration options available to the Sentry server. If you are looking for documentation for the client, it is maintained in the `Raven <http://github.com/dcramer/raven>`_ project.
+This document describes additional configuration options available to the Sentry server. If you are looking for documentation for the client, it is maintained in the `Raven <http://github.com/getsentry/raven-python>`_ project.
 
-.. note:: While the options below are labeled without the ``SENTRY_`` prefix, when you are configuring them via your ``settings.py`` you **must* specify the prefix.
+.. note:: While the options below are labeled without the ``SENTRY_`` prefix, when you are configuring them via your ``settings.py`` you **must** specify the prefix.
 
 .. data:: sentry.conf.KEY
     :noindex:
@@ -49,34 +49,6 @@ This document describes additional configuration options available to the Sentry
 
 		SENTRY_SAMPLE_DATA = False
 
-.. data:: sentry.conf.FILTERS
-    :noindex:
-
-    A list of filters for extending the Sentry interface (as well as post-processing of data).
-
-    ::
-
-		SENTRY_FILTERS = (
-		    'sentry.filters.StatusFilter',
-		    'sentry.filters.LoggerFilter',
-		    'sentry.filters.LevelFilter',
-		    'sentry.filters.ServerNameFilter',
-		    'sentry.filters.SiteFilter',
-		)
-
-.. data:: sentry.conf.VIEWS
-    :noindex:
-
-    A list of views for enhancing the event aggregation dashboard.
-
-    ::
-
-        SENTRY_VIEWS = (
-            'sentry.views.Exception',
-            'sentry.views.Message',
-            'sentry.views.Query',
-        )
-
 .. data:: sentry.conf.LOG_LEVELS
     :noindex:
 
@@ -95,12 +67,27 @@ This document describes additional configuration options available to the Sentry
 Authentication
 --------------
 
+
+.. data:: sentry.conf.ALLOW_REGISTRATION
+    :noindex:
+
+    Should Sentry allow users to create new accounts?
+
+    Defaults to ``True`` (can register).
+
+    ::
+
+        SENTRY_ALLOW_REGISTRATION = False
+
 .. data:: sentry.conf.PUBLIC
     :noindex:
 
-    Should Sentry be protected by a username and password (using @login_required) or be publicly accessible.
+    Should Sentry make all data publicly accessible? This should **only** be
+    used if you're installing Sentry behind your company's firewall.
 
-    Defaults to ``False`` (password protection).
+    Users will still need to have an account to view any data.
+
+    Defaults to ``False``.
 
     ::
 
@@ -109,7 +96,7 @@ Authentication
 .. data:: sentry.conf.ALLOW_PROJECT_CREATION
     :noindex:
 
-    Should sentry allow users without the 'sentry.add_project' permission to
+    Should Sentry allow users without the 'sentry.add_project' permission to
     create new projects?
 
     Defaults to ``False`` (require permission).
@@ -118,70 +105,59 @@ Authentication
 
         SENTRY_ALLOW_PROJECT_CREATION = True
 
+.. data:: sentry.conf.ALLOW_TEAM_CREATION
+    :noindex:
+
+    Should Sentry allow users without the 'sentry.add_team' permission to
+    create new teams?
+
+    Defaults to ``True`` (require permission).
+
+    ::
+
+        SENTRY_ALLOW_TEAM_CREATION = False
+
+.. data:: sentry.conf.ALLOW_PUBLIC_PROJECTS
+    :noindex:
+
+    Should Sentry allow users without the 'sentry.change_project' permission to
+    make projects globally public?
+
+    Defaults to ``True`` (can set public status).
+
+    ::
+
+        SENTRY_ALLOW_PUBLIC_PROJECTS = False
+
+
+.. data:: sentry.conf.ALLOW_ORIGIN
+    :noindex:
+
+    If provided, Sentry will set the Access-Control-Allow-Origin header to this
+    value on /api/store/ responses. In addition, the
+    Access-Control-Allow-Headers header will be set to 'X-Sentry-Auth'. This
+    allows JavaScript clients to submit cross-domain error reports.
+
+    You can read more about these headers in the `Mozilla developer docs`_.
+
+    Defaults to ``None`` (don't add the Access-Control headers)
+
+    ::
+
+        SENTRY_ALLOW_ORIGIN = "http://foo.example"
+
+.. _Mozilla developer docs: https://developer.mozilla.org/En/HTTP_access_control#Simple_requests
+
+
 Notifications
 -------------
 
+As of the current release, Sentry now designates its notification processing to plugins. Specifically, the email
+notifications have been moved to the ``sentry.plugins.sentry_mail``. You'll need to add this plugin to your
+``INSTALLED_APPS`` if you wish to continue using email notifications.
 
-.. data:: sentry.conf.ADMINS
-    :noindex:
-
-    A list of email address to send notification emails to.
-
-    Defaults to ``[]``.
-
-	On smaller sites you may wish to enable throttled emails, we recommend doing this by first
-	removing the ``ADMINS`` setting in Django, and adding in ``SENTRY_ADMINS``::
-
-		# Disable the default admins (for email)
-		ADMINS = ()
-		# Set Sentry's ADMINS to a raw list of email addresses
-		SENTRY_ADMINS = ('root@localhost',)
-
-	This will send out a notification the first time an error is seen, and the first time an error is
-	seen after it has been resolved.
-
-.. data:: sentry.conf.MAIL_LEVEL
-    :noindex:
-
-	.. versionadded:: 1.10.0
-
-	The threshold level to restrict emails to.
-
-	Defaults to ``logging.DEBUG``.
-
-	::
-
-		SENTRY_MAIL_LEVEL = logging.DEBUG
-
-.. data:: sentry.conf.MAIL_INCLUDE_LOGGERS
-    :noindex:
-
-	.. versionadded:: 1.10.0
-
-	An explicit list of all logger names to restrict emails to.
-
-	Defaults to ``None``, which means to "all loggers".
-
-	::
-
-		SENTRY_MAIL_INCLUDE_LOGGERS = (
-		  'my.custom.logger.name',
-		)
-
-.. data:: sentry.conf.MAIL_EXCLUDE_LOGGERS
-    :noindex:
-
-	.. versionadded:: 1.10.0
-
-	An explicit list of all logger names to exclude from emails.
-
-	Defaults to ``[]``.
-
-	::
-
-		SENTRY_MAIL_EXCLUDE_LOGGERS = (
-		  'some.annoying.logger',
-		)
+The following settings now act as default values for the ``sentry_mail`` plugin, and can be overwritten per-project
+by visiting the plugin configuration page for that project.
 
 .. data:: sentry.conf.EMAIL_SUBJECT_PREFIX
     :noindex:
@@ -206,8 +182,11 @@ Notifications
 
 		SENTRY_SERVER_EMAIL = 'sentry@example.com'
 
+Services
+--------
+
 Web Server
-----------
+~~~~~~~~~~
 
 The following settings are available for the built-in webserver:
 
@@ -233,25 +212,47 @@ The following settings are available for the built-in webserver:
 
         SENTRY_WEB_PORT = 9000
 
-.. data:: sentry.conf.RUN_DIR
+
+.. data:: sentry.conf.WEB_OPTIONS
     :noindex:
 
-    The location to store PID files for services.
+    A dictionary of additional configuration options to pass to gunicorn.
 
-    Defaults to ``%SENTRY%/run/``.
+    Defaults to ``{}``.
 
     ::
 
-        SENTRY_WEB_RUN_DIR = '/var/run/'
+        SENTRY_WEB_OPTIONS = {
+            'workers': 10,
+            'worker_class': 'gevent',
+        }
 
-.. data:: sentry.conf.WEB_LOG_FILE
+
+.. _config-udp-server:
+
+UDP Server
+~~~~~~~~~~
+
+The following settings are available for the built-in UDP API server:
+
+.. data:: sentry.conf.UDP_HOST
     :noindex:
 
+    The hostname which the udp server should bind to.
 
-    The location to store log files for services.
-
-    Defaults to ``%SENTRY%/log/``.
+    Defaults to ``localhost``.
 
     ::
 
-        SENTRY_WEB_LOG_DIR = '/var/log/'
+        SENTRY_UDP_HOST = '0.0.0.0'  # bind to all addresses
+
+.. data:: sentry.conf.UDP_PORT
+    :noindex:
+
+    The port which the udp server should listen on.
+
+    Defaults to ``9001``.
+
+    ::
+
+        SENTRY_UDP_PORT = 9001

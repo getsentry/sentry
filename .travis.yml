@@ -1,0 +1,25 @@
+language: python
+python:
+  - "2.6"
+  - "2.7"
+env:
+  - DB=sqlite
+  - DB=mysql
+  - DB=postgres
+before_script:
+  - mysql -e 'create database sentry;'
+  - psql -c 'create database sentry;' -U postgres
+install:
+  - make develop dev-postgres dev-mysql
+script:
+  - make lint
+  - make test-js
+  - py.test tests/ --cov sentry --cov-report term-missing
+  - make test-cli
+notifications:
+  irc:
+    channels: "irc.freenode.org#sentry"
+    on_success: change
+    on_failure: change
+after_success:
+  - coveralls

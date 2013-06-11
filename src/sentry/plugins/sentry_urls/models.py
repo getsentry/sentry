@@ -1,0 +1,38 @@
+"""
+sentry.plugins.sentry_urls.models
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:license: BSD, see LICENSE for more details.
+"""
+import sentry
+
+from django.utils.translation import ugettext_lazy as _
+
+from sentry.plugins import register
+from sentry.plugins.bases.tag import TagPlugin
+
+
+class UrlsPlugin(TagPlugin):
+    """
+    Automatically adds the 'url' tag from events containing interface data
+    from ``sentry.interfaces.Http``.
+    """
+    slug = 'urls'
+    title = _('Auto Tag: URLs')
+    version = sentry.VERSION
+    author = "Sentry Team"
+    author_url = "https://github.com/getsentry/sentry"
+    tag = 'url'
+    tag_label = _('URL')
+    project_default_enabled = True
+
+    def get_tag_values(self, event):
+        http = event.interfaces.get('sentry.interfaces.Http')
+        if not http:
+            return []
+        if not http.url:
+            return []
+        return [http.url]
+
+register(UrlsPlugin)

@@ -1,0 +1,33 @@
+{% extends "sentry/partial/client_config/python_base.html" %}
+
+{% load i18n %}
+
+{% block inner %}
+	<p>{% trans "Create an instance of the client:" %}</p>
+
+	<pre>from raven import Client
+
+client = Client('{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}')</pre>
+
+	<p>{% trans "Now call out to the raven client to capture events:" %}</p>
+
+	<pre># {% trans "record a simple message" %}
+client.captureMessage('hello world!')
+
+# {% trans "capture an exception" %}
+try:
+    1 / 0
+except ZeroDivisionError:
+    client.captureException()</pre>
+
+	<p>{% trans "If you want to wrap a WSGI app to record uncaught exceptions, Raven provides a middleware for that:" %}</p>
+
+	<pre>from raven.middleware import Sentry
+
+application = Sentry(application, client=client)</pre>
+
+	<p>{% trans "If you wish to test your connection to the server, you can use the raven test command:" %}</p>
+
+	<pre>raven test {% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}</pre>
+
+{% endblock %}

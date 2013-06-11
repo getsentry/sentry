@@ -1,0 +1,156 @@
+{% extends "sentry/groups/group_list.html" %}
+
+{% load i18n %}
+{% load sentry_activity %}
+{% load sentry_helpers %}
+{% load sentry_plugins %}
+
+{% block title %}{% if event %}{{ event.error }}{% else %}{{ group.message }}{% endif %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+    {% handle_before_events request group %}
+
+    <div id="details">
+        <div id="event_list" class="inactive"></div>
+    </div>
+
+    <section class="body">
+        {% block inner %}
+            {% with event|get_rendered_interfaces:request as interface_list %}
+
+                {% if group|has_charts %}
+                    <div class="module">
+                        <div id="chart" class="chart" data-api-url="{% url 'sentry-api-chart' project.team.slug project.slug %}" data-group="{{ group.id|safe }}">
+                            <div class="sparkline">
+                                <span class="loading">{% trans "Loading historical data..." %}</span>
+                                <noscript>{% trans "Get yourself some JavaScripts dood" %}</noscript>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if activity %}
+                    <ul class="activity">
+                        {% for item in activity %}
+                            {% with item|render_activity as out %}
+                                {% if out %}
+                                    <li class="item item-{{ item.get_type_display }}">{{ out }}</li>
+                                {% endif %}
+                            {% endwith %}
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+
+                <div class="btn-toolbar event-toolbar">
+                    <!-- We switch the ordering of events here as it makes more sense visually -->
+                    <a class="btn pull-left prev {% if not next_event %} disabled{% endif %}"{% if next_event %} href="{% url 'sentry-group-event' group.team.slug group.project.slug group.id next_event.id %}"{% endif %}><span></span> {% trans "Newer Event" %}</a>
+                    <a class="btn pull-right next {% if not prev_event %} disabled{% endif %}"{% if prev_event %} href="{% url 'sentry-group-event' group.team.slug group.project.slug group.id prev_event.id %}"{% endif %}>{% trans "Older Event" %} <span></span></a>
+                    <h4>Event at {{ event.datetime }} {{ event.datetime.tzinfo }} [{{ event.size|filesizeformat }}]</h4>
+                </div>
+
+                {% include "sentry/partial/event_nav.html" %}
+            
+                {% if group.is_muted %}
+                    <div class="alert alert-info">This event has been muted. You will not be notified of any changes and it will not show up in the default feed.</div>
+                {% endif %}
+
+                {% if event.has_two_part_message %}
+                    <pre id="full-message">{{ event.message }}</pre>
+                {% endif %}
+
+                {% include "sentry/partial/_event_details.html" %}
+            {% endwith %}
+        {% endblock %}
+    </section>
+{% endblock %}
+
+{% block sidebar %}
+    <ul class="nav nav-list">
+        <li{% if page == 'details' %} class="active"{% endif %}><a href="{% url 'sentry-group' group.team.slug group.project.slug group.id %}">Aggregate</a></li>
+        <li{% if page == 'tag_list' %} class="active"{% endif %}>
+            <a href="{% url 'sentry-group-tags' group.team.slug group.project.slug group.id %}">{% trans "Tags" %}</a>
+        </li>
+        <li{% if page == 'event_list' or page == 'event' %} class="active"{% endif %}>
+            <a href="{% url 'sentry-group-events' group.team.slug group.project.slug group.id %}">{% trans "Similar Events" %}</a>
+        </li>
+    </ul>
+
+    <h6>{% trans "Aggregate Details" %}</h6>
+
+    <dl class="flat">
+        <dt>{% trans "Status:" %}</dt>
+        <dd>{{ group.get_status_display|title }}</dd>
+        <dt>{% trans "First Seen:" %}</dt>
+        <dd class="pretty-date" title="{{ group.first_seen|date:"c" }}Z">{{ group.first_seen|timesince }}</dd>
+        {% if group.active_at and group.active_at != group.first_seen %}
+            <dt>{% trans "Reopened At:" %}</dt>
+            <dd class="pretty-date" title="{{ group.active_at|date:"c" }}Z">{{ group.active_at|timesince }}</dd>
+        {% endif %}
+        <dt>{% trans "Last Seen:" %}</dt>
+        <dd class="pretty-date" title="{{ group.last_seen|date:"c" }}Z">{{ group.last_seen|timesince }}</dd>
+        {% if group.avg_time_spent %}
+            <dt>{% trans "Avg Duration:" %}</dt>
+            <dd>{% if group.avg_time_spent %}{{ group.avg_time_spent|duration }}{% else %}<em>{% trans "n/a" %}</em>{% endif %}</dd>
+        {% endif %}
+    </dl>
+
+    <!--- there is probably a less terrible way to do things like this -->
+    <p id="public-status"><small>
+        <span data-public="true"{% if not group.project.public and not group.is_public %} style="display: none;"{% endif %}>
+            {% trans "This event is <strong>publicly visible</strong>." %}
+        </span>
+        <span data-public="false"{% if group.project.public or group.is_public %} style="display: none;"{% endif %}>
+            {% trans "This event is <strong>not publicly visible</strong>." %}
+        </span>
+        <span data-public="true"{% if not group.project.public and not group.is_public %} style="display: none;"{% endif %}>
+            <a href="{% url 'sentry-group' group.team.slug group.project.slug group.id %}">{% trans "Link" %}</a>{% if can_admin_event and not group.project.public %} | {% endif %}
+        </span>
+        {% if can_admin_event and not group.project.public %}
+            <span data-public="true"{% if not group.is_public %} style="display: none;"{% endif %}>
+                <a href="javascript:void(0)" data-api-url="{% url 'sentry-api-set-group-private' group.team.slug group.project.slug group.id %}" class="action">{% trans "Change" %}</a>
+            </span>
+            <span data-public="false"{% if group.is_public %} style="display: none;"{% endif %}>
+                <a href="javascript:void(0)" data-api-url="{% url 'sentry-api-set-group-public' group.team.slug group.project.slug group.id %}" class="action">{% trans "Change" %}</a>
+            </span>
+        {% endif %}
+    </small></p>
+
+    {% if can_admin_event %}
+        <ul class="nav nav-list">
+            <li class="nav-header">{% trans "Actions" %}</li>
+            {% if not group.is_muted %}
+                <li><a href="{% url 'sentry-api-set-group-mute' group.team.slug project.slug group.id %}">{% trans "Mute Event" %}</a></li>
+            {% elif not group.is_resolved %}
+                <li><a href="{% url 'sentry-api-set-group-unresolve' group.team.slug project.slug group.id %}">{% trans "Unmute Event" %}</a></li>
+            {% endif %}
+
+            {% for label, link, is_active in group|get_actions:request %}
+                <li><a href="{{ link }}">{{ label }}</a></li>
+            {% endfor %}
+            {% comment %}<li><a {% ifequal page 'event_list' %}{% if event %}
+            href="{% url 'sentry-group-event-json' group.team.slug project.slug group.id event.id %}"{% else %}
+            href="{% url 'sentry-group-event-json' group.team.slug project.slug group.id "latest" %}"{% endif %}{% else %}
+            href="{% url 'sentry-group-events-json' group.team.slug project.slug group.id %}"{% endifequal %}
+            >{% trans "Raw JSON Data" %}</a></li>{% endcomment %}
+            <li><a href="{% url 'sentry-api-remove-group' group.team.slug project.slug group.id %}">{% trans "Remove Event Data" %}</a></li>
+        </ul>
+    {% endif %}
+
+    {% for tag in group.get_tags %}
+        {% render_tag_widget group tag %}
+    {% endfor %}
+
+    {% for html in group|get_widgets:request %}
+        {{ html|safe }}
+    {% endfor %}
+{% endblock %}
+
+{% block content_after %}
+    <script type="text/javascript">
+    $(document).ready(function() {
+        new app.GroupDetailsPage({
+            group: {{ group|to_json:request|safe }},
+        });
+    });
+    </script>
+{% endblock %}

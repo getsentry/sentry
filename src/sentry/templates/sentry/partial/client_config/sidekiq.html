@@ -1,0 +1,15 @@
+{% extends "sentry/partial/client_config/ruby_base.html" %}
+
+{% load i18n %}
+
+{% block inner %}
+    <p>{% trans "Configure the client within your application:" %}</p>
+
+    <pre>require 'raven'
+
+Raven.configure do |config|
+  config.dsn = '{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}'
+end</pre>
+
+    <p>{% trans "That's it! Raven automatically appends middleware to pipe all uncaught exceptions to Sentry." %}</p>
+{% endblock %}

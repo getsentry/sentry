@@ -1,0 +1,7 @@
+You have been invited to join the {{ team.name }} team on Sentry.
+
+{{ team.name }} is using Sentry to capture exceptions in real-time.
+
+To accept this invitation, proceed to the following url:
+
+    {{ url }}

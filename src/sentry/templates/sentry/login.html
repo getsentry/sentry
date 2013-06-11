@@ -1,0 +1,61 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{% trans "Login" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+    <section class="body">
+       {% if next %}
+            <p class="alert alert-info">{% trans "Please login to continue." %}</p>
+        {% endif %}
+
+        <div class="row">
+            <div class="span5">
+                <form class="form-stacked" action="" method="post">
+                    {{ form|as_crispy_errors }}
+
+                    <fieldset>
+                        <legend>{% trans "Login with your Sentry account" %}</legend>
+                    </fieldset>
+                    {% csrf_token %}
+
+                    {% for field in form %}
+                        {{ field|as_crispy_field }}
+                    {% endfor %}
+
+                    <fieldset class="form-actions">
+                        {% if CAN_REGISTER %}
+                            <div class="pull-right" style="margin-top: 5px;">
+                                <a href="{% url 'sentry-register' %}">{% trans "Create a new account" %}</a>
+                            </div>
+                        {% endif %}
+                        <button type="submit" class="btn btn-primary">{% trans "Login" %}</button> <a href="{% url 'sentry-account-recover' %}">{% trans "Lose your password?" %}</a>
+                    </fieldset>
+                </form>
+            </div>
+            {% if AUTH_PROVIDERS %}
+                <div class="span5">
+                    <fieldset>
+                        <legend>
+                            {% if SOCIAL_AUTH_CREATE_USERS %}
+                                {% trans "Login or Register using another service" %}
+                            {% else %}
+                                {% trans "Login using another service" %}
+                            {% endif %}
+                    </fieldset>
+                    {% url 'sentry-account-settings-identities' as identities_link %}
+                    <p>{% blocktrans with identities_link as link %}If you already have an account, you can associate a social identity in the
+                        <a href="{{ link }}">identities</a> page in your account settings (after you login).{% endblocktrans %}</p>
+                    <br>
+                    <ul class="auth-options">
+                        {% for engine in AUTH_PROVIDERS %}
+                            <li><a href="{% url 'socialauth_begin' engine %}" class="auth-{{ engine }}">Sign in with {{ engine|title }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+{% endblock %}

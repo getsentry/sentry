@@ -1,0 +1,17 @@
+{% extends "sentry/layout.html" %}
+
+{% load i18n %}
+
+{% block bodyclass %}{% endblock %}
+{% block wrapperclass %}windowed{% endblock %}
+
+{% block page_header_block %}
+    <section id="page-header" class="toolbar" style="height:5px;">
+    </section>
+{% endblock %}
+
+{% block main %}
+    <section class="body">
+        {% block inner %}{% endblock %}
+    </section>
+{% endblock %}

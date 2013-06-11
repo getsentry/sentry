@@ -1,0 +1,22 @@
+{% extends "sentry/partial/client_config/java_base.html" %}
+
+{% load i18n %}
+
+{% block inner %}
+    <p>{% trans "You can manually send events using the EventBuilder:" %}</p>
+
+    <pre>import net.kencochrane.raven.Raven;
+import net.kencochrane.raven.event.EventBuilder;
+
+public class Example {
+    public static void main(String[] args) {
+        String rawDsn = "{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}";
+        Raven client = new Raven(rawDsn);
+
+        // {% trans "record a simple message" %}
+        EventBuilder eventBuilder = new EventBuilder()
+                        .setMessage("Hello from Raven!");
+        client.sendEvent(eventBuilder.build());
+    }
+}</pre>
+{% endblock %}

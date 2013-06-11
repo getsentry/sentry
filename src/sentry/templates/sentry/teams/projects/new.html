@@ -1,0 +1,19 @@
+{% extends "sentry/teams/manage.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "New Project" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+    <section class="body">
+        <div class="page-header">
+            <h2>{% trans "Create a New Project" %}</h2>
+        </div>
+
+        <p>{% blocktrans %}Projects allow you to scope events to a specific application in your organization. For example, you might have seperate projects for production vs development instances, or separate projects for your web app and mobile app.{% endblocktrans %}</p>
+
+        <br>
+
+        {% include "sentry/partial/_form.html" %}
+    </section>
+{% endblock %}

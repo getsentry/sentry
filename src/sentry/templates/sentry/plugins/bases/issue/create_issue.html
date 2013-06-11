@@ -1,0 +1,30 @@
+{% extends "sentry/groups/details.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+
+{% block title %}{{ title }} | {{ block.super }}{% endblock %}
+
+{% block inner %}
+    <div class="span12">
+        <div class="page-header">
+            <h3>{{ title }}</h3>
+        </div>
+
+        {{ form|as_crispy_errors }}
+
+        <form class="form-stacked" action="" method="post">
+            {% csrf_token %}
+            {{ form|as_crispy_errors }}
+            <input type="hidden" name="next" value="{{ next }}" />
+            <fieldset>
+                {% for field in form %}
+                    {{ field|as_crispy_field }}
+                {% endfor %}
+            </fieldset>
+            <p class="actions">
+                <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+            </p>
+        </form>
+    </div>
+{% endblock %}

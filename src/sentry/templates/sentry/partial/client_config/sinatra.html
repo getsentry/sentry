@@ -1,0 +1,21 @@
+{% extends "sentry/partial/client_config/ruby_base.html" %}
+
+{% load i18n %}
+
+{% block inner %}
+    <p>{% trans "Configure the client as and install the Rack middleware:" %}</p>
+
+    <pre>require 'sinatra'
+require 'raven'
+
+Raven.configure do |config|
+  config.dsn = '{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}'
+end
+
+use Raven::Rack
+
+get '/' do
+  1 / 0
+end</pre>
+    <p>{% trans "That's it! Raven automatically installs an error handling hook to pipe all uncaught exceptions to Sentry." %}</p>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "sentry/admin/users/list.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "New User" %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+    <section class="body">
+        {% include "sentry/partial/_form.html" %}
+    </section>
+{% endblock %}

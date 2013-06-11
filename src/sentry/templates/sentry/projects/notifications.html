@@ -1,0 +1,58 @@
+{% extends "sentry/projects/manage.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Notifications" %} | {{ block.super }}{% endblock %}
+
+{% block inner %}
+    <div class="page-header">
+        <h2>{% trans "Notifications" %}</h2>
+    </div>
+    <form action="" method="post" class="form-stacked">
+        {% csrf_token %}
+
+        <div class="page-header">
+            <h3>{% trans "Alerts" %}</h3>
+        </div>
+        <p>{% trans "Alerts are calculated based on the acceleration of an event. Values represent a 60-second interval." %}
+        {{ alert_form|as_crispy_errors }}
+
+        {% for field in alert_form %}
+            {{ field|as_crispy_field }}
+        {% endfor %}
+
+        <div class="page-header">
+            <h3>{% trans "Tags" %}</h3>
+        </div>
+        {% if tag_forms %}
+            <p>{% trans "Tag restrictions are based on your global notification rules. If tags are specified, notifications will be sent when they match any of the restrictions." %}</p>
+
+            <table class="table table-striped" id="tag_list">
+                <colgroup>
+                    <col style="width:130px">
+                </colgroup>
+                <tbody>
+                    {% for tag_form in tag_forms %}
+                        <tr>
+                            <th style="vertical-align:middle">{{ tag_form.values.label|titlize }}</th>
+                            <td style="vertical-align:middle">{{ tag_form.values }}
+                                {{ tag_form|as_crispy_errors }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>{% trans "We have not yet recorded any tags for this project." %}</p>
+        {% endif %}
+
+        <fieldset class="form-actions">
+            <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+        </fieldset>
+    </form>
+    <script type="text/javascript">
+    new app.ProjectNotificationsPage();
+    </script>
+{% endblock %}
+

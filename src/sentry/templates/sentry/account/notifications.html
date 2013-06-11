@@ -1,0 +1,31 @@
+{% extends "sentry/bases/account.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Notification Settings" %} | {{ block.super }}{% endblock %}
+
+{% block inner %}
+    <form action="" method="post">
+        {% csrf_token %}
+        {% for form in forms %}
+            {{ form|as_crispy_errors }}
+
+            <fieldset>
+                <div><legend>{{ form.get_title }}</legend></div>
+                {% with form.get_description as description %}
+                    {% if description %}
+                        {{ description|linebreaks }}
+                    {% endif %}
+                {% endwith %}
+                {% for field in form %}
+                    {{ field|as_crispy_field }}
+                {% endfor %}
+            </fieldset>
+        {% endfor %}
+        <fieldset class="form-actions">
+            <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+        </fieldset>
+    </form>
+{% endblock %}

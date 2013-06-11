@@ -1,0 +1,36 @@
+{% extends "sentry/bases/account.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Appearance" %} | {{ block.super }}{% endblock %}
+
+{% block inner %}
+    <form class="form-stacked" action="" method="post" id="appearance_form">
+        {% csrf_token %}
+
+        {{ form|as_crispy_errors }}
+
+        <fieldset>
+            <div><legend>{% trans "Events" %}</legend></div>
+
+            {% with form.stacktrace_order as field %}
+                {{ field|as_crispy_field }}
+            {% endwith %}
+        </fieldset>
+
+
+        <fieldset>
+            <div><legend>{% trans "Localization" %}</legend></div>
+
+            {% with form.language as field %}
+                {{ field|as_crispy_field }}
+            {% endwith %}
+        </fieldset>
+
+        <fieldset class="form-actions">
+            <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+        </fieldset>
+    </form>
+{% endblock %}

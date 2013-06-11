@@ -1,0 +1,10 @@
+{% extends "sentry/bases/admin.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}Configure {{ title }} | {{ block.super }}{% endblock %}
+
+{% block inner %}
+    {{ view }}
+{% endblock %}

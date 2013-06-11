@@ -1,0 +1,92 @@
+{% load i18n %}
+{% load sentry_helpers %}
+
+<ul class="traceback">
+    {% for frame in frames %}
+        <li class="frame{% if not frame.in_app %} system-frame{% endif %} frame-{{ stack_id }}-{{ forloop.counter0 }}">
+            <p>
+                {% if frame.filename %}
+                    {% if frame.is_url %}
+                        <a href="{{ frame.abs_path }}">
+                    {% endif %}
+                    <code>{{ frame.filename }}</code>
+                    {% if frame.sourcemap %}
+                        <a class="annotation trigger-popover"
+                            data-placement="right"
+                            data-title="{% trans "Original Location" %}"
+                            data-content="<dl>
+                                <dt>{% trans "Filename" %}</dt>
+                                <dd>{{ frame.orig_filename }}</dd>
+                                <dt>{% trans "Line Number" %}</dt>
+                                <dd>{{ frame.orig_lineno|default_if_none:"n/a" }}</dd>
+                                <dt>{% trans "Column Number" %}</dt>
+                                <dd>{{ frame.orig_colno|default_if_none:"n/a" }}</dd>
+                                <dt>{% trans "Function" %}</dt>
+                                <dd>{{ frame.orig_function|default_if_none:"n/a" }}</dd>
+                                <dt>{% trans "Sourcemap" %}</dt>
+                                <dd><a href='{{ frame.sourcemap_url }}'>{{ frame.sourcemap }}</a></dd>
+                            </dl>">?</a>
+                    {% elif frame.abs_path and frame.abs_path != filename %}
+                        <a class="annotation trigger-popover"
+                            data-placement="right"
+                            data-title="{% trans "Original Location" %}"
+                            data-content="<dl>
+                                <dt>{% trans "Filename" %}</dt>
+                                <dd>{{ frame.abs_path }}</dd>
+                                {% if not frame.lineno|is_none %}
+                                    <dt>{% trans "Line Number" %}</dt>
+                                    <dd>{{ frame.lineno }}</dd>
+                                {% endif %}
+                                {% if not frame.colno|is_none %}
+                                    <dt>{% trans "Column Number" %}</dt>
+                                    <dd>{{ frame.colno }}</dd>
+                                {% endif %}
+                                {% if frame.function %}
+                                    <dt>{% trans "Function" %}</dt>
+                                    <dd>{{ frame.function }}</dd>
+                                {% endif %}
+                            </dl>">?</a>
+                    {% endif %}
+                    {% if frame.is_url %}
+                        </a>
+                    {% endif %}
+                {% elif frame.module %}
+                    <code>{{ frame.module }}</code>
+                {% endif %}
+                {% if frame.function %}
+                     {% if frame.filename or frame.module %}in {% endif %}<code>{{ frame.function }}</code>
+                {% endif %}
+                {% if not frame.context and not frame.lineno|is_none %}
+                     at line <code>{{ frame.lineno }}{% if not frame.colno|is_none %}:{{ frame.colno }}{% endif %}</code>
+                {% endif %}
+                {% if system_frames and frame.in_app %}
+                    <span class="tag-app">(application)</span>
+                {% endif %}
+            </p>
+
+            {% if frame.context or frame.vars %}
+                <div class="commands">
+                    <a href="javascript:void(0)" onclick="$('.frame-{{ stack_id }}-{{ forloop.counter0 }}').toggleClass('expanded')" title="{% trans "Toggle Context" %}" rel="tooltip" class="tip">{% if frame.vars %}<i class="icon-info-sign"></i> {% endif %}{% if frame.context %}<i class="icon-tasks"></i> {% endif %}</a>
+                </div>
+            {% endif %}
+
+            {% if frame.context %}
+                <ol start="{{ frame.start_lineno }}" class="context">
+                {% for num, line in frame.context %}
+                    <li{% if num == frame.lineno %} class="active"{% else %} class="expandable"{% endif %} onclick="$('.frame-{{ stack_id }}-{{ forloop.parentloop.counter0 }}').toggleClass('expanded')">{{ line }}</li>
+                {% endfor %}
+                </ol>
+            {% elif not frame.context_line|is_none %}
+                <ol start="{{ frame.lineno }}" class="context">
+                    <li class="active">{{ frame.context_line }}</li>
+                </ol>
+            {% endif %}
+
+            {% if frame.vars %}
+                <div class="stack{{ forloop.counter0 }} expandable">
+                    {% render_values frame.vars %}
+                </div>
+            {% endif %}
+        </li>
+    {% endfor %}
+</ul>
