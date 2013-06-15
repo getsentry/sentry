@@ -6665,7 +6665,9 @@ h3 {
   width: 130px;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
   padding: 3px 0;
+  display: inline-block;
   font-weight: 400;
 }
 .navbar #team-banner .dropdown-menu .project-list li a:hover {

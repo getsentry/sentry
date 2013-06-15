@@ -355,7 +355,24 @@ if os.path.exists(NPM_ROOT):
                     "sentry/scripts/lib/underscore.js",
                     "sentry/scripts/lib/backbone.js",
                     "sentry/scripts/lib/select2/select2.js",
-                    "sentry/scripts/lib/bootstrap.js",
+                ],
+            },
+            "sentry/scripts/bootstrap.min.js": {
+                "src": [
+                    "sentry/bootstrap/js/bootstrap-transition.js",
+                    "sentry/bootstrap/js/bootstrap-alert.js",
+                    "sentry/bootstrap/js/bootstrap-button.js",
+                    "sentry/bootstrap/js/bootstrap-carousel.js",
+                    "sentry/bootstrap/js/bootstrap-collapse.js",
+                    "sentry/bootstrap/js/bootstrap-dropdown.js",
+                    "sentry/bootstrap/js/bootstrap-modal.js",
+                    "sentry/bootstrap/js/bootstrap-tooltip.js",
+                    "sentry/bootstrap/js/bootstrap-popover.js",
+                    "sentry/bootstrap/js/bootstrap-scrollspy.js",
+                    "sentry/bootstrap/js/bootstrap-tab.js",
+                    "sentry/bootstrap/js/bootstrap-typeahead.js",
+                    "sentry/bootstrap/js/bootstrap-affix.js",
+                    "sentry/scripts/lib/bootstrap-datepicker.js"
                 ],
             },
             "sentry/styles/global.min.css": {
