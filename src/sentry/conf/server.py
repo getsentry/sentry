@@ -285,7 +285,7 @@ LOGGING = {
             'class': 'logging.StreamHandler'
         },
         'sentry': {
-            'class': 'raven.contrib.django.handlers.SentryHandler',
+            'class': 'raven.contrib.django_compat.handlers.SentryHandler',
         }
     },
     'loggers': {
