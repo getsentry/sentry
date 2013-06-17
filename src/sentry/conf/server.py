@@ -262,6 +262,7 @@ CELERY_QUEUES = (
     Queue('counters', routing_key='counters'),
     Queue('events', routing_key='events'),
     Queue('triggers', routing_key='triggers'),
+    Queue('update', routing_key='update'),
 )
 
 

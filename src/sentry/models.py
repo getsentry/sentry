@@ -13,6 +13,7 @@ import math
 import time
 import uuid
 import urlparse
+from pkg_resources import parse_version as Version
 
 from datetime import timedelta
 from hashlib import md5
@@ -1177,6 +1178,22 @@ def create_default_project(created_models, verbosity=2, **kwargs):
                 print 'done!'
 
 
+def set_sentry_version(latest=None, **kwargs):
+    import sentry
+    current = sentry.get_version()
+    version, _ = Option.objects.get_or_create(key='sentry:latest_version')
+
+    if not latest and version.value:
+        return
+
+    if (latest and (Version(current) >= Version(latest)) and
+                   (Version(version.value) >= Version(latest))):
+        return
+
+    version.value = latest or current
+    version.save()
+
+
 def create_team_and_keys_for_project(instance, created, **kwargs):
     if not created or kwargs.get('raw'):
         return
@@ -1310,6 +1327,11 @@ def on_alert_creation(instance, **kwargs):
 post_syncdb.connect(
     create_default_project,
     dispatch_uid="create_default_project",
+    weak=False,
+)
+post_syncdb.connect(
+    set_sentry_version,
+    dispatch_uid="set_sentry_version",
     weak=False,
 )
 post_save.connect(

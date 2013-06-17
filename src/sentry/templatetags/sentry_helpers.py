@@ -17,7 +17,7 @@ from django.utils.translation import ugettext as _
 from paging.helpers import paginate as paginate_func
 from sentry.conf import settings
 from sentry.constants import STATUS_MUTED
-from sentry.models import Group
+from sentry.models import Group, Option
 from sentry.web.helpers import group_is_public
 from sentry.utils import to_unicode
 from sentry.utils.avatar import get_gravatar_url
@@ -27,8 +27,13 @@ from sentry.utils.safe import safe_execute
 from sentry.utils.strings import truncatechars
 from templatetag_sugar.register import tag
 from templatetag_sugar.parser import Name, Variable, Constant, Optional
-
+from collections import namedtuple
 import datetime
+from pkg_resources import parse_version as Version
+
+SentryVersion = namedtuple('SentryVersion', ['current', 'latest',
+                                             'update_available'])
+
 
 register = template.Library()
 
@@ -117,10 +122,18 @@ def is_none(value):
     return value is None
 
 
-@register.simple_tag
-def sentry_version():
+@register.simple_tag(takes_context=True)
+def get_sentry_version(context):
     import sentry
-    return sentry.get_version()
+    current = sentry.get_version()
+
+    latest = Option.objects.get_value('sentry:latest_version', current)
+    update_available = Version(latest) > Version(current)
+
+    context['sentry_version'] = SentryVersion(
+        current, latest, update_available
+    )
+    return ''
 
 
 @register.filter
