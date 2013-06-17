@@ -413,6 +413,9 @@ class GroupManager(BaseManager, ChartMixin):
         # full support for dict syntax
         elif isinstance(tags, dict):
             tags = tags.items()
+        # prevent [tag, tag, tag] (invalid) syntax
+        elif not all(len(t) == 2 for t in tags):
+            tags = []
         else:
             tags = list(tags)
 
