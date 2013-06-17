@@ -290,7 +290,7 @@ LOGGING = {
     },
     'formatters': {
         'client_info': {
-            'format': '%(name)s %(levelname)s %(asctime)s %(project_slug)s/%(team_slug)s %(message)s'
+            'format': '%(name)s %(levelname)s %(project_slug)s/%(team_slug)s %(message)s'
         }
     },
     'loggers': {
