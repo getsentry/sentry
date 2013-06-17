@@ -288,6 +288,11 @@ LOGGING = {
             'class': 'raven.contrib.django.handlers.SentryHandler',
         }
     },
+    'formatters': {
+        'client_info': {
+            'format': '%(levelname)s %(project_slug)s/%(team_slug)s %(message)s'
+        }
+    },
     'loggers': {
         '()': {
             'handlers': ['console', 'sentry'],
@@ -299,6 +304,9 @@ LOGGING = {
             'level': 'ERROR',
             'handlers': ['console', 'sentry'],
             'propagate': False,
+        },
+        'sentry.coreapi': {
+            'formatter': 'client_info',
         },
         'sentry.errors': {
             'level': 'ERROR',
