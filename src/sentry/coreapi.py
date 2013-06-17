@@ -85,7 +85,7 @@ class APITimestampExpired(APIError):
     http_status = 410
 
 
-def client_metadata(client=None, exception=None, tags=None, extra=None):
+def client_metadata(client=None, project=None, exception=None, tags=None, extra=None):
     if not extra:
         extra = {}
     if not tags:
@@ -94,10 +94,18 @@ def client_metadata(client=None, exception=None, tags=None, extra=None):
     extra['client'] = client
     extra['request'] = env.request
     extra['tags'] = tags
+    if project:
+        extra['project_slug'] = project.slug
+        extra['project_id'] = project.id
+        if project.team:
+            extra['team_slug'] = project.team.slug
+            extra['team_id'] = project.team.id
 
     tags['client'] = client
     if exception:
         tags['exc_type'] = type(exception).__name__
+    if project and project.team:
+        tags['project'] = '%s/%s' % (project.team.slug, project.slug)
 
     result = {'extra': extra}
     if exception:
@@ -164,7 +172,8 @@ def ensure_valid_project_id(desired_project, data, client=None):
     # matches with the signed project.
     if desired_project and data.get('project'):
         if str(data.get('project')) not in [str(desired_project.id), desired_project.slug]:
-            logger.info('Project ID mismatch: %s != %s', desired_project.id, desired_project.slug,
+            logger.info(
+                'Project ID mismatch: %s != %s', desired_project.id, desired_project.slug,
                 **client_metadata(client))
             raise APIForbidden('Invalid credentials')
         data['project'] = desired_project.id
@@ -207,20 +216,23 @@ def validate_data(project, data, client=None):
     elif not isinstance(data['message'], basestring):
         raise APIError('Invalid value for message')
     elif len(data['message']) > MAX_MESSAGE_LENGTH:
-        logger.info('Truncated value for message due to length (%d chars)', len(data['message']),
-            **client_metadata(client))
+        logger.info(
+            'Truncated value for message due to length (%d chars)',
+            len(data['message']), **client_metadata(client, project))
         data['message'] = truncatechars(data['message'], MAX_MESSAGE_LENGTH)
 
     if data.get('culprit') and len(data['culprit']) > MAX_CULPRIT_LENGTH:
-        logger.info('Truncated value for culprit due to length (%d chars)', len(data['culprit']),
-            **client_metadata(client))
+        logger.info(
+            'Truncated value for culprit due to length (%d chars)',
+            len(data['culprit']), **client_metadata(client, project))
         data['culprit'] = truncatechars(data['culprit'], MAX_CULPRIT_LENGTH)
 
     if not data.get('event_id'):
         data['event_id'] = uuid.uuid4().hex
     if len(data['event_id']) > 32:
-        logger.info('Discarded value for event_id due to length (%d chars)', len(data['event_id']),
-            **client_metadata(client))
+        logger.info(
+            'Discarded value for event_id due to length (%d chars)',
+            len(data['event_id']), **client_metadata(client, project))
         data['event_id'] = uuid.uuid4().hex
 
     if 'timestamp' in data:
@@ -228,18 +240,21 @@ def validate_data(project, data, client=None):
             process_data_timestamp(data)
         except InvalidTimestamp, e:
             # Log the error, remove the timestamp, and continue
-            logger.info('Discarded invalid value for timestamp: %r', data['timestamp'],
-                **client_metadata(client, exception=e))
+            logger.info(
+                'Discarded invalid value for timestamp: %r', data['timestamp'],
+                **client_metadata(client, project, exception=e))
             del data['timestamp']
 
     if data.get('modules') and type(data['modules']) != dict:
-        logger.info('Discarded invalid type for modules: %s', type(data['modules']),
-            **client_metadata(client))
+        logger.info(
+            'Discarded invalid type for modules: %s',
+            type(data['modules']), **client_metadata(client, project))
         del data['modules']
 
     if data.get('extra') and type(data['extra']) != dict:
-        logger.info('Discarded invalid type for extra: %s', type(data['extra']),
-            **client_metadata(client))
+        logger.info(
+            'Discarded invalid type for extra: %s',
+            type(data['extra']), **client_metadata(client, project))
         del data['extra']
 
     for k in data.keys():
@@ -247,21 +262,27 @@ def validate_data(project, data, client=None):
             continue
 
         if not data[k]:
-            logger.info('Ignored empty interface value: %s', k, **client_metadata(client))
+            logger.info(
+                'Ignored empty interface value: %s', k,
+                **client_metadata(client, project))
             del data[k]
             continue
 
         import_path = INTERFACE_ALIASES.get(k, k)
 
         if '.' not in import_path:
-            logger.info('Ignored unknown attribute: %s', k, **client_metadata(client))
+            logger.info(
+                'Ignored unknown attribute: %s', k,
+                **client_metadata(client, project))
             del data[k]
             continue
 
         try:
             interface = import_string(import_path)
-        except (ImportError, AttributeError), e:
-            logger.info('Invalid unknown attribute: %s', k, **client_metadata(client, exception=e))
+        except (ImportError, AttributeError) as e:
+            logger.info(
+                'Invalid unknown attribute: %s', k,
+                **client_metadata(client, project, exception=e))
             del data[k]
             continue
 
@@ -276,7 +297,7 @@ def validate_data(project, data, client=None):
             else:
                 log = logger.error
             log('Discarded invalid value for interface: %s', k,
-                **client_metadata(client, exception=e, extra={'value': value}))
+                **client_metadata(client, project, exception=e, extra={'value': value}))
 
     level = data.get('level') or settings.DEFAULT_LOG_LEVEL
     if isinstance(level, basestring) and not level.isdigit():
@@ -284,9 +305,11 @@ def validate_data(project, data, client=None):
         try:
             data['level'] = settings.LOG_LEVEL_REVERSE_MAP[level]
         except KeyError, e:
-            logger.info('Discarded invalid logger value: %s', level, **client_metadata(client, exception=e))
-            data['level'] = settings.LOG_LEVEL_REVERSE_MAP.get(settings.DEFAULT_LOG_LEVEL,
-                settings.DEFAULT_LOG_LEVEL)
+            logger.info(
+                'Discarded invalid logger value: %s', level,
+                **client_metadata(client, project, exception=e))
+            data['level'] = settings.LOG_LEVEL_REVERSE_MAP.get(
+                settings.DEFAULT_LOG_LEVEL, settings.DEFAULT_LOG_LEVEL)
 
     return data
 
