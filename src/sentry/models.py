@@ -713,10 +713,15 @@ class Event(EventBase):
         return module, self.data['__sentry__']['version']
 
     def get_tags(self):
-        return [
-            (t, v) for t, v in self.data.get('tags') or ()
-            if not t.startswith('sentry:')
-        ]
+        try:
+            return [
+                (t, v) for t, v in self.data.get('tags') or ()
+                if not t.startswith('sentry:')
+            ]
+        except ValueError:
+            # at one point Sentry allowed invalid tag sets such as (foo, bar)
+            # vs ((tag, foo), (tag, bar))
+            return []
 
     def as_dict(self):
         # We use a SortedDict to keep elements ordered for a potential JSON serializer
