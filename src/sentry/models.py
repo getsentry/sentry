@@ -89,6 +89,7 @@ class User(Model, AbstractUser):
         db_table = 'auth_user'
         app_label = 'auth'
 
+
 User.add_to_class('objects', UserManager(cache_fields=['pk']))
 
 
