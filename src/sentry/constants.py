@@ -165,4 +165,4 @@ MAX_EXTRA_VARIABLE_SIZE = 2048
 # For various attributes we dont limit the entire attribute on size, but the
 # individual item. In those cases we also want to limit the maximum number of
 # keys
-MAX_DICTIONARY_ITEMS = 100
+MAX_DICTIONARY_ITEMS = 50
