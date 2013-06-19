@@ -20,4 +20,4 @@ class TrimDictTest(TestCase):
     def test_large_dict(self):
         value = dict((k, k) for k in xrange(500))
         trim_dict(value)
-        assert len(value) == 100
+        assert len(value) == 50
