@@ -154,9 +154,13 @@ PLATFORM_TITLES = {
 # accuracy provided.
 MINUTE_NORMALIZATION = 15
 
-# Prevent variables (e.g. context locals, extra data) from exceeding this size
-# in bytesish
+# Prevent variables (e.g. context locals, http data, etc) from exceeding this
+# size in characters
 MAX_VARIABLE_SIZE = 512
+
+# Prevent varabiesl within extra context from exceeding this size in
+# characters
+MAX_EXTRA_VARIABLE_SIZE = 2048
 
 # For various attributes we dont limit the entire attribute on size, but the
 # individual item. In those cases we also want to limit the maximum number of

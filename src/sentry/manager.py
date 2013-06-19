@@ -34,7 +34,9 @@ from django.utils.encoding import force_unicode
 from raven.utils.encoding import to_string
 from sentry import app
 from sentry.conf import settings
-from sentry.constants import STATUS_RESOLVED, STATUS_UNRESOLVED, MINUTE_NORMALIZATION
+from sentry.constants import (
+    STATUS_RESOLVED, STATUS_UNRESOLVED, MINUTE_NORMALIZATION,
+    MAX_EXTRA_VARIABLE_SIZE)
 from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
 from sentry.tasks.index import index_event
@@ -425,7 +427,7 @@ class GroupManager(BaseManager, ChartMixin):
             # throw it away
             data['extra'] = {}
 
-        trim_dict(data['extra'])
+        trim_dict(data['extra'], max_size=MAX_EXTRA_VARIABLE_SIZE)
 
         # HACK: move this to interfaces code
         if 'sentry.interfaces.Stacktrace' in data:
