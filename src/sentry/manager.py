@@ -946,7 +946,7 @@ class MetaManager(BaseManager):
         self._metadata[key] = value
 
     def get_all_values(self):
-        if not hasattr(self, '_metadata') or not self._metadata:
+        if not hasattr(self, '_metadata'):
             self._metadata = dict((i.key, i.value) for i in self.all())
         return self._metadata
 

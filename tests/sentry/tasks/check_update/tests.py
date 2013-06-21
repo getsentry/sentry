@@ -17,32 +17,26 @@ class CheckUpdateTest(TestCase):
     KEY = 'sentry:latest_version'
 
     def test_run_check_update_task(self):
-
         with mock.patch('sentry.tasks.check_update.fetch_url_content') as fetch:
             fetch.return_value = (
                 None, None, json.dumps({'info': {'version': self.NEW}})
             )
-            check_update()
+            check_update()  # latest_version > current_version
             fetch.assert_called_once_with(PYPI_URL)
 
         self.assertEqual(get_option(key=self.KEY), self.NEW)
 
     def test_run_check_update_task_with_bad_response(self):
-        import sentry
-
         with mock.patch('sentry.tasks.check_update.fetch_url_content') as fetch:
             fetch.return_value = (None, None, '')
-            check_update()
+            check_update()  # latest_version == current_version
             fetch.assert_called_once_with(PYPI_URL)
 
-        self.assertEqual(get_option(key=self.KEY), sentry.get_version())
+        self.assertEqual(get_option(key=self.KEY), None)
 
     def test_set_sentry_version_empty_latest(self):
-        import sentry
-
-        set_sentry_version()
-
-        self.assertEqual(get_option(key=self.KEY), sentry.get_version())
+        set_sentry_version(latest=self.NEW)
+        self.assertEqual(get_option(key=self.KEY), self.NEW)
 
     def test_set_sentry_version_new(self):
         set_option(self.KEY, self.OLD)
@@ -52,7 +46,6 @@ class CheckUpdateTest(TestCase):
 
             set_sentry_version(latest=self.NEW)
 
-        Option.objects.clear_cache()
         self.assertEqual(Option.objects.get_value(key=self.KEY), self.NEW)
 
     def test_set_sentry_version_old(self):
@@ -63,5 +56,4 @@ class CheckUpdateTest(TestCase):
 
             set_sentry_version(latest=self.OLD)
 
-        Option.objects.clear_cache()
         self.assertEqual(Option.objects.get_value(key=self.KEY), self.NEW)

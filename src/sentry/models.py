@@ -1181,17 +1181,20 @@ def create_default_project(created_models, verbosity=2, **kwargs):
 def set_sentry_version(latest=None, **kwargs):
     import sentry
     current = sentry.get_version()
-    version, _ = Option.objects.get_or_create(key='sentry:latest_version')
 
-    if not latest and version.value:
-        return
+    version = Option.objects.get_value(
+        key='sentry:latest_version',
+        default=''
+    )
 
-    if (latest and (Version(current) >= Version(latest)) and
-                   (Version(version.value) >= Version(latest))):
-        return
+    for ver in (current, version):
+        if Version(ver) >= Version(latest):
+            return
 
-    version.value = latest or current
-    version.save()
+    Option.objects.set_value(
+        key='sentry:latest_version',
+        value=(latest or current)
+    )
 
 
 def create_team_and_keys_for_project(instance, created, **kwargs):
@@ -1327,11 +1330,6 @@ def on_alert_creation(instance, **kwargs):
 post_syncdb.connect(
     create_default_project,
     dispatch_uid="create_default_project",
-    weak=False,
-)
-post_syncdb.connect(
-    set_sentry_version,
-    dispatch_uid="set_sentry_version",
     weak=False,
 )
 post_save.connect(
