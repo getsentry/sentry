@@ -12,7 +12,7 @@ class CheckUpdateTest(TestCase):
 
     OLD = '5.0.0'
     CURRENT = '5.5.0-DEV'
-    NEW = '5.5.1'
+    NEW = '1000000000.5.1'
 
     KEY = 'sentry:latest_version'
 
