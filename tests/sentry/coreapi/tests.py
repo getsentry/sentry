@@ -209,6 +209,17 @@ class ValidateDataTest(BaseAPITest):
         assert full_path in result
         assert result[full_path] == interface.return_value.serialize.return_value
 
+    def test_doesnt_expand_list(self):
+        data = validate_data(self.project, {
+            'message': 'foo',
+            'exception': [{
+                'type': 'ValueError',
+                'value': 'hello world',
+                'module': 'foo.bar',
+            }]
+        })
+        assert 'sentry.interfaces.Exception' in data
+
     def test_log_level_as_string(self):
         data = validate_data(self.project, {
             'message': 'foo',

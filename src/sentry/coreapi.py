@@ -288,7 +288,12 @@ def validate_data(project, data, client=None):
 
         value = data.pop(k)
         try:
-            inst = interface(**value)
+            # HACK: exception allows you to pass the value as a list
+            # so let's try to actually support that
+            if isinstance(value, dict):
+                inst = interface(**value)
+            else:
+                inst = interface(value)
             inst.validate()
             data[import_path] = inst.serialize()
         except Exception, e:
