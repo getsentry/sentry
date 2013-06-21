@@ -899,27 +899,17 @@ class MetaManager(BaseManager):
         super(MetaManager, self).__init__(*args, **kwargs)
         task_postrun.connect(self.clear_cache)
         request_finished.connect(self.clear_cache)
-        self.__local_metadata = threading.local()
-
-    def _get_metadata(self):
-        if not hasattr(self.__local_metadata, 'value'):
-            self.__local_metadata.value = weakref.WeakKeyDictionary()
-        return self.__local_metadata.value
-
-    def _set_metadata(self, value):
-        self.__local_metadata.value = value
-
-    _metadata = property(_get_metadata, _set_metadata)
+        self.__metadata = {}
 
     def __getstate__(self):
         d = self.__dict__.copy()
         # we cant serialize weakrefs
-        d.pop('_MetaManager__local_cache', None)
+        d.pop('_MetaManager__metadata', None)
         return d
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        self.__metadata_cache = weakref.WeakKeyDictionary()
+        self.__metadata = {}
 
     def get_value(self, key, default=NOTSET):
         result = self.get_all_values()
@@ -929,31 +919,28 @@ class MetaManager(BaseManager):
 
     def unset_value(self, key):
         self.filter(key=key).delete()
-        if not hasattr(self, '_metadata'):
-            return
-        self._metadata.pop(key, None)
+        self.__metadata.pop(key, None)
 
     def set_value(self, key, value):
-        inst, created = self.get_or_create(
+        print key, value
+        inst, _ = self.get_or_create(
             key=key,
             defaults={
                 'value': value,
             }
         )
-        if not created and inst.value != value:
+        if inst.value != value:
             inst.update(value=value)
 
-        if not hasattr(self, '_metadata'):
-            return
-        self._metadata[key] = value
+        self.__metadata[key] = value
 
     def get_all_values(self):
-        if not hasattr(self, '_metadata'):
-            self._metadata = dict((i.key, i.value) for i in self.all())
-        return self._metadata
+        if not hasattr(self, '_MetaManager__metadata'):
+            self.__metadata = dict(self.values_list('key', 'value'))
+        return self.__metadata
 
     def clear_cache(self, **kwargs):
-        self._metadata = {}
+        self.__metadata = {}
 
 
 class InstanceMetaManager(BaseManager):
@@ -964,6 +951,17 @@ class InstanceMetaManager(BaseManager):
         self.field_name = field_name
         task_postrun.connect(self.clear_cache)
         request_finished.connect(self.clear_cache)
+        self.__metadata = {}
+
+    def __getstate__(self):
+        d = self.__dict__.copy()
+        # we cant serialize weakrefs
+        d.pop('_InstanceMetaManager__metadata', None)
+        return d
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.__metadata = {}
 
     def get_value_bulk(self, instances, key):
         return dict(self.filter(**{
@@ -979,11 +977,9 @@ class InstanceMetaManager(BaseManager):
 
     def unset_value(self, instance, key):
         self.filter(**{self.field_name: instance, 'key': key}).delete()
-        if not hasattr(self, '_metadata'):
+        if instance.pk not in self.__metadata:
             return
-        if instance.pk not in self._metadata:
-            return
-        self._metadata[instance.pk].pop(key, None)
+        self.__metadata[instance.pk].pop(key, None)
 
     def set_value(self, instance, key, value):
         inst, created = self.get_or_create(**{
@@ -996,33 +992,28 @@ class InstanceMetaManager(BaseManager):
         if not created and inst.value != value:
             inst.update(value=value)
 
-        if not hasattr(self, '_metadata'):
+        if instance.pk not in self.__metadata:
             return
-        if instance.pk not in self._metadata:
-            return
-        self._metadata[instance.pk][key] = value
+        self.__metadata[instance.pk][key] = value
 
     def get_all_values(self, instance):
-        if not hasattr(self, '_metadata'):
-            self._metadata = {}
-
         if isinstance(instance, models.Model):
             instance_id = instance.pk
         else:
             instance_id = instance
 
-        if instance_id not in self._metadata:
+        if instance_id not in self.__metadata:
             result = dict(
                 (i.key, i.value) for i in
                 self.filter(**{
                     self.field_name: instance_id,
                 })
             )
-            self._metadata[instance_id] = result
-        return self._metadata.get(instance_id, {})
+            self.__metadata[instance_id] = result
+        return self.__metadata.get(instance_id, {})
 
     def clear_cache(self, **kwargs):
-        self._metadata = {}
+        self.__metadata = {}
 
 
 class UserOptionManager(BaseManager):
@@ -1032,6 +1023,17 @@ class UserOptionManager(BaseManager):
         super(UserOptionManager, self).__init__(*args, **kwargs)
         task_postrun.connect(self.clear_cache)
         request_finished.connect(self.clear_cache)
+        self.__metadata = {}
+
+    def __getstate__(self):
+        d = self.__dict__.copy()
+        # we cant serialize weakrefs
+        d.pop('_UserOptionManager__metadata', None)
+        return d
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.__metadata = {}
 
     def get_value(self, user, project, key, default=NOTSET):
         result = self.get_all_values(user, project)
@@ -1047,9 +1049,9 @@ class UserOptionManager(BaseManager):
             metakey = (user.pk, project.pk)
         else:
             metakey = (user.pk, None)
-        if metakey not in self._metadata:
+        if metakey not in self.__metadata:
             return
-        self._metadata[metakey].pop(key, None)
+        self.__metadata[metakey].pop(key, None)
 
     def set_value(self, user, project, key, value):
         inst, created = self.get_or_create(
@@ -1063,24 +1065,20 @@ class UserOptionManager(BaseManager):
         if not created and inst.value != value:
             inst.update(value=value)
 
-        if not hasattr(self, '_metadata'):
-            return
         if project:
             metakey = (user.pk, project.pk)
         else:
             metakey = (user.pk, None)
-        if metakey not in self._metadata:
+        if metakey not in self.__metadata:
             return
-        self._metadata[metakey][key] = value
+        self.__metadata[metakey][key] = value
 
     def get_all_values(self, user, project):
-        if not hasattr(self, '_metadata'):
-            self._metadata = {}
         if project:
             metakey = (user.pk, project.pk)
         else:
             metakey = (user.pk, None)
-        if metakey not in self._metadata:
+        if metakey not in self.__metadata:
             result = dict(
                 (i.key, i.value) for i in
                 self.filter(
@@ -1088,11 +1086,11 @@ class UserOptionManager(BaseManager):
                     project=project,
                 )
             )
-            self._metadata[metakey] = result
-        return self._metadata.get(metakey, {})
+            self.__metadata[metakey] = result
+        return self.__metadata.get(metakey, {})
 
     def clear_cache(self, **kwargs):
-        self._metadata = {}
+        self.__metadata = {}
 
 
 class SearchDocumentManager(BaseManager):
