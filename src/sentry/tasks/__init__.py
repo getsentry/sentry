@@ -7,6 +7,7 @@ sentry.tasks
 """
 
 import sentry.tasks.check_alerts  # NOQA
+import sentry.tasks.check_update  # NOQA
 import sentry.tasks.cleanup  # NOQA
 import sentry.tasks.fetch_source  # NOQA
 import sentry.tasks.index  # NOQA
