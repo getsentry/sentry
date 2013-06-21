@@ -93,19 +93,11 @@ def discover_sourcemap(result, logger=None):
     return sourcemap
 
 
-def fetch_url(url, logger=None):
+def fetch_url_content(url, logger=None):
     """
-    Pull down a URL, returning a UrlResult object.
-
-    Attempts to fetch from the cache.
+    Pull down a URL, returning a tuple (url, headers, body).
     """
     import sentry
-
-    cache_key = 'fetch_url:v2:%s' % (
-        hashlib.md5(url.encode('utf-8')).hexdigest(),)
-    result = cache.get(cache_key)
-    if result is not None:
-        return UrlResult(*result)
 
     try:
         opener = urllib2.build_opener()
@@ -124,11 +116,30 @@ def fetch_url(url, logger=None):
             logger.error('Unable to fetch remote source for %r', url, exc_info=True)
         return BAD_SOURCE
 
-    result = (url, headers, body)
+    return (url, headers, body)
+
+
+def fetch_url(url, logger=None):
+    """
+    Pull down a URL, returning a UrlResult object.
+
+    Attempts to fetch from the cache.
+    """
+
+    cache_key = 'fetch_url:v2:%s' % (
+        hashlib.md5(url.encode('utf-8')).hexdigest(),)
+    result = cache.get(cache_key)
+    if result is not None:
+        return UrlResult(*result)
+
+    result = fetch_url_content(url, logger)
+
+    if result == BAD_SOURCE:
+        return result
 
     cache.set(cache_key, result, 60 * 5)
 
-    return UrlResult(url, headers, body)
+    return UrlResult(*result)
 
 
 def fetch_sourcemap(url, logger=None):

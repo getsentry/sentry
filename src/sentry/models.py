@@ -13,6 +13,7 @@ import math
 import time
 import uuid
 import urlparse
+from pkg_resources import parse_version as Version
 
 from datetime import timedelta
 from hashlib import md5
@@ -1176,6 +1177,25 @@ def create_default_project(created_models, verbosity=2, **kwargs):
             )
             if verbosity > 0:
                 print 'done!'
+
+
+def set_sentry_version(latest=None, **kwargs):
+    import sentry
+    current = sentry.get_version()
+
+    version = Option.objects.get_value(
+        key='sentry:latest_version',
+        default=''
+    )
+
+    for ver in (current, version):
+        if Version(ver) >= Version(latest):
+            return
+
+    Option.objects.set_value(
+        key='sentry:latest_version',
+        value=(latest or current)
+    )
 
 
 def create_team_and_keys_for_project(instance, created, **kwargs):
