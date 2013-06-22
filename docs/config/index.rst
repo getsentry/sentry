@@ -5,7 +5,7 @@ This document describes additional configuration options available to the Sentry
 
 .. note:: While the options below are labeled without the ``SENTRY_`` prefix, when you are configuring them via your ``settings.py`` you **must** specify the prefix.
 
-.. data:: sentry.conf.KEY
+.. data:: SENTRY_KEY
     :noindex:
 
     The shared secret for global administration privileges via the API.
@@ -16,7 +16,7 @@ This document describes additional configuration options available to the Sentry
 
     	SENTRY_KEY = '0123456789abcde'
 
-.. data:: sentry.conf.URL_PREFIX
+.. data:: SENTRY_URL_PREFIX
     :noindex:
 
 	Absolute URL to the sentry root directory. Should not include a trailing slash.
@@ -27,7 +27,7 @@ This document describes additional configuration options available to the Sentry
 
 		SENTRY_URL_PREFIX = '/sentry'
 
-.. data:: sentry.conf.SAMPLE_DATA
+.. data:: SENTRY_SAMPLE_DATA
     :noindex:
 
 	.. versionadded:: 1.10.0
@@ -49,7 +49,7 @@ This document describes additional configuration options available to the Sentry
 
 		SENTRY_SAMPLE_DATA = False
 
-.. data:: sentry.conf.LOG_LEVELS
+.. data:: SENTRY_LOG_LEVELS
     :noindex:
 
     A list of log levels, with their numeric value, as well as their short name.
@@ -68,7 +68,7 @@ Authentication
 --------------
 
 
-.. data:: sentry.conf.ALLOW_REGISTRATION
+.. data:: SENTRY_ALLOW_REGISTRATION
     :noindex:
 
     Should Sentry allow users to create new accounts?
@@ -79,7 +79,7 @@ Authentication
 
         SENTRY_ALLOW_REGISTRATION = False
 
-.. data:: sentry.conf.PUBLIC
+.. data:: SENTRY_PUBLIC
     :noindex:
 
     Should Sentry make all data publicly accessible? This should **only** be
@@ -93,7 +93,7 @@ Authentication
 
         SENTRY_PUBLIC = True
 
-.. data:: sentry.conf.ALLOW_PROJECT_CREATION
+.. data:: SENTRY_ALLOW_PROJECT_CREATION
     :noindex:
 
     Should Sentry allow users without the 'sentry.add_project' permission to
@@ -105,7 +105,7 @@ Authentication
 
         SENTRY_ALLOW_PROJECT_CREATION = True
 
-.. data:: sentry.conf.ALLOW_TEAM_CREATION
+.. data:: SENTRY_ALLOW_TEAM_CREATION
     :noindex:
 
     Should Sentry allow users without the 'sentry.add_team' permission to
@@ -117,7 +117,7 @@ Authentication
 
         SENTRY_ALLOW_TEAM_CREATION = False
 
-.. data:: sentry.conf.ALLOW_PUBLIC_PROJECTS
+.. data:: SENTRY_ALLOW_PUBLIC_PROJECTS
     :noindex:
 
     Should Sentry allow users without the 'sentry.change_project' permission to
@@ -130,7 +130,7 @@ Authentication
         SENTRY_ALLOW_PUBLIC_PROJECTS = False
 
 
-.. data:: sentry.conf.ALLOW_ORIGIN
+.. data:: SENTRY_ALLOW_ORIGIN
     :noindex:
 
     If provided, Sentry will set the Access-Control-Allow-Origin header to this
@@ -159,7 +159,7 @@ notifications have been moved to the ``sentry.plugins.sentry_mail``. You'll need
 The following settings now act as default values for the ``sentry_mail`` plugin, and can be overwritten per-project
 by visiting the plugin configuration page for that project.
 
-.. data:: sentry.conf.EMAIL_SUBJECT_PREFIX
+.. data:: SENTRY_EMAIL_SUBJECT_PREFIX
     :noindex:
 
 	The prefix to apply to outgoing emails.
@@ -171,7 +171,7 @@ by visiting the plugin configuration page for that project.
 		SENTRY_EMAIL_SUBJECT_PREFIX = '[Sentry] '
 
 
-.. data:: sentry.conf.SERVER_EMAIL
+.. data:: SENTRY_SERVER_EMAIL
     :noindex:
 
 	The reply-to email address for outgoing mail.
@@ -190,7 +190,7 @@ Web Server
 
 The following settings are available for the built-in webserver:
 
-.. data:: sentry.conf.WEB_HOST
+.. data:: SENTRY_WEB_HOST
     :noindex:
 
     The hostname which the webserver should bind to.
@@ -201,7 +201,7 @@ The following settings are available for the built-in webserver:
 
         SENTRY_WEB_HOST = '0.0.0.0'  # bind to all addresses
 
-.. data:: sentry.conf.WEB_PORT
+.. data:: SENTRY_WEB_PORT
     :noindex:
 
     The port which the webserver should listen on.
@@ -213,7 +213,7 @@ The following settings are available for the built-in webserver:
         SENTRY_WEB_PORT = 9000
 
 
-.. data:: sentry.conf.WEB_OPTIONS
+.. data:: SENTRY_WEB_OPTIONS
     :noindex:
 
     A dictionary of additional configuration options to pass to gunicorn.
@@ -235,7 +235,7 @@ UDP Server
 
 The following settings are available for the built-in UDP API server:
 
-.. data:: sentry.conf.UDP_HOST
+.. data:: SENTRY_UDP_HOST
     :noindex:
 
     The hostname which the udp server should bind to.
@@ -246,7 +246,7 @@ The following settings are available for the built-in UDP API server:
 
         SENTRY_UDP_HOST = '0.0.0.0'  # bind to all addresses
 
-.. data:: sentry.conf.UDP_PORT
+.. data:: SENTRY_UDP_PORT
     :noindex:
 
     The port which the udp server should listen on.
