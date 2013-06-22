@@ -350,10 +350,12 @@ def enable_project_plugin(request, team, project, slug):
     try:
         plugin = plugins.get(slug)
     except KeyError:
-        return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.team.slug, project.slug, slug]))
+        return HttpResponseRedirect(reverse('sentry-manage-project-plugins', args=[project.team.slug, project.slug]))
+
+    redirect_to = reverse('sentry-configure-project-plugin', args=[project.team.slug, project.slug, slug])
 
     if plugin.is_enabled(project) or not plugin.can_enable_for_projects():
-        return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.team.slug, project.slug, slug]))
+        return HttpResponseRedirect(redirect_to)
 
     result = plugins.first('has_perm', request.user, 'configure_project_plugin', project, plugin)
     if result is False and not request.user.is_superuser:
@@ -361,7 +363,7 @@ def enable_project_plugin(request, team, project, slug):
 
     plugin.set_option('enabled', True, project)
 
-    return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.team.slug, project.slug, slug]))
+    return HttpResponseRedirect(redirect_to)
 
 
 @has_access(MEMBER_OWNER)
@@ -370,10 +372,12 @@ def disable_project_plugin(request, team, project, slug):
     try:
         plugin = plugins.get(slug)
     except KeyError:
-        return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.team.slug, project.slug, slug]))
+        return HttpResponseRedirect(reverse('sentry-manage-project-plugins', args=[project.team.slug, project.slug]))
 
-    if not plugin.is_enabled(project) or not plugin.can_enable_for_projects():
-        return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.team.slug, project.slug, slug]))
+    redirect_to = reverse('sentry-configure-project-plugin', args=[project.team.slug, project.slug, slug])
+
+    if not (plugin.can_disable and plugin.is_enabled(project) and plugin.can_enable_for_projects()):
+        return HttpResponseRedirect(redirect_to)
 
     result = plugins.first('has_perm', request.user, 'configure_project_plugin', project, plugin)
     if result is False and not request.user.is_superuser:
@@ -381,4 +385,4 @@ def disable_project_plugin(request, team, project, slug):
 
     plugin.set_option('enabled', False, project)
 
-    return HttpResponseRedirect(reverse('sentry-configure-project-plugin', args=[project.team.slug, project.slug, slug]))
+    return HttpResponseRedirect(redirect_to)

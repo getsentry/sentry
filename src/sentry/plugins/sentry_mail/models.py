@@ -7,26 +7,18 @@ sentry.plugins.sentry_mail.models
 """
 import sentry
 
-from django import forms
 from django.core.mail import EmailMultiAlternatives
-from django.core.validators import email_re, ValidationError
 from django.core.urlresolvers import reverse
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
 from sentry.plugins import register
-from sentry.plugins.bases.notify import (
-    NotificationPlugin, NotificationConfigurationForm,
-    NotificationUserOptionsForm)
-from sentry.utils.cache import cache
+from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.utils.http import absolute_uri
-
-import re
 
 from pynliner import Pynliner
 
 NOTSET = object()
-split_re = re.compile(r'\s*,\s*|\s+')
 
 
 class UnicodeSafePynliner(Pynliner):
@@ -40,22 +32,7 @@ class UnicodeSafePynliner(Pynliner):
         return self.output
 
 
-class MailConfigurationForm(NotificationConfigurationForm):
-    send_to = forms.CharField(label=_('Send to'), required=False,
-        help_text=_('Enter one or more emails separated by commas or lines.'),
-        widget=forms.Textarea(attrs={
-            'placeholder': 'you@example.com'}))
-
-    def clean_send_to(self):
-        value = self.cleaned_data['send_to']
-        emails = filter(bool, split_re.split(value))
-        for email in emails:
-            if not email_re.match(email):
-                raise ValidationError('%s is not a valid e-mail address.' % (email,))
-        return ','.join(emails)
-
-
-class MailProcessor(NotificationPlugin):
+class MailPlugin(NotificationPlugin):
     title = _('Mail')
     conf_key = 'mail'
     slug = 'mail'
@@ -63,17 +40,9 @@ class MailProcessor(NotificationPlugin):
     author = "Sentry Team"
     author_url = "https://github.com/getsentry/sentry"
     project_default_enabled = True
-    project_conf_form = MailConfigurationForm
-
-    def __init__(self, min_level=0, include_loggers=None, exclude_loggers=None,
-                 send_to=None, send_to_members=True, *args, **kwargs):
-        super(MailProcessor, self).__init__(*args, **kwargs)
-        self.min_level = min_level
-        self.include_loggers = include_loggers
-        self.exclude_loggers = exclude_loggers
-        self.send_to = send_to
-        self.send_to_members = send_to_members
-        self.subject_prefix = settings.EMAIL_SUBJECT_PREFIX
+    project_conf_form = None
+    can_disable = False
+    subject_prefix = settings.EMAIL_SUBJECT_PREFIX
 
     def _send_mail(self, subject, body, html_body=None, project=None, fail_silently=False, headers=None):
         send_to = self.get_send_to(project)
@@ -102,45 +71,6 @@ class MailProcessor(NotificationPlugin):
 
     def get_notification_settings_url(self):
         return absolute_uri(reverse('sentry-account-settings-notifications'))
-
-    def get_send_to(self, project=None):
-        """
-        Returns a list of email addresses for the users that should be notified of alerts.
-
-        The logic for this is a bit complicated, but it does the following:
-
-        - Includes members if ``send_to_members`` is enabled **and** the user has not disabled alerts
-          for this project
-
-        The results of this call can be fairly expensive to calculate, so the send_to list gets cached
-        for 60 seconds.
-        """
-        if project:
-            project_id = project.pk
-        else:
-            project_id = ''
-        conf_key = self.get_conf_key()
-        cache_key = '%s:send_to:%s' % (conf_key, project_id)
-
-        send_to_list = cache.get(cache_key)
-        if send_to_list is None:
-            send_to_list = self.get_option('send_to', project) or []
-
-            if isinstance(send_to_list, basestring):
-                send_to_list = [s.strip() for s in send_to_list.split(',')]
-
-            send_to_list = set(send_to_list)
-
-            send_to_members = self.get_option('send_to_members', project)
-            if send_to_members and project and project.team:
-                member_set = self.get_sendable_users(project)
-                send_to_list |= set(self.get_emails_for_users(member_set))
-
-            send_to_list = set(s for s in send_to_list if s)
-
-            cache.set(cache_key, send_to_list, 60)  # 1 minute cache
-
-        return send_to_list
 
     def on_alert(self, alert):
         project = alert.project
@@ -231,15 +161,8 @@ class MailProcessor(NotificationPlugin):
             'settings_link': self.get_notification_settings_url(),
         })).run()
 
-    def get_option(self, key, *args, **kwargs):
-        value = super(MailProcessor, self).get_option(key, *args, **kwargs)
-        if value is None and key in ('min_level', 'include_loggers', 'exclude_loggers',
-                                     'send_to_members', 'send_to',
-                                     'subject_prefix'):
-            value = getattr(self, key)
-        return value
 
-    def get_notification_forms(self, **kwargs):
-        return [NotificationUserOptionsForm]
+# Legacy compatibility
+MailProcessor = MailPlugin
 
-register(MailProcessor)
+register(MailPlugin)

@@ -149,10 +149,12 @@ class EditProjectForm(BaseProjectForm):
 
 
 class AlertSettingsForm(forms.Form):
-    pct_threshold = RangeField(label=_('Threshold'), help_text=_('Notify when an event increases by this percentage.'),
-        required=False, min_value=0, max_value=1000, step_value=100)
-    min_events = forms.IntegerField(label=_('Minimum Events'), help_text=_('Generate an alert only when an event is seen more than this many times during the interval.'),
-        required=False, min_value=0)
+    pct_threshold = RangeField(
+        label=_('Threshold'), required=False, min_value=0, max_value=1000, step_value=100,
+        help_text=_('Notify when the rate of events increases by this percentage.'))
+    min_events = forms.IntegerField(
+        label=_('Minimum Events'), required=False, min_value=0,
+        help_text=_('Generate an alert only when an event is seen more than this many times during the interval.'),)
 
 
 class NotificationTagValuesForm(forms.Form):

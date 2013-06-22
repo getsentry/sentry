@@ -14,9 +14,7 @@ from sentry.constants import MEMBER_USER
 
 
 class NotificationConfigurationForm(forms.Form):
-    send_to_members = forms.BooleanField(
-        label=_('Include project members'), initial=False, required=False,
-        help_text=_('Notify members of this project.'))
+    pass
 
 
 class BaseNotificationUserOptionsForm(forms.Form):
@@ -132,9 +130,6 @@ class NotificationPlugin(Plugin):
 
         The logic for this is a bit complicated, but it does the following:
 
-        - Includes members if ``send_to_members`` is enabled **and** the user has not disabled alerts
-          for this project
-
         The results of this call can be fairly expensive to calculate, so the send_to list gets cached
         for 60 seconds.
         """
@@ -149,8 +144,7 @@ class NotificationPlugin(Plugin):
         if send_to_list is None:
             send_to_list = set()
 
-            send_to_members = self.get_option('send_to_members', project)
-            if send_to_members and project and project.team:
+            if project and project.team:
                 member_set = self.get_sendable_users(project)
                 send_to_list |= set(self.get_emails_for_users(member_set))
 
@@ -186,9 +180,6 @@ class NotificationPlugin(Plugin):
         return True
 
     ## plugin hooks
-
-    def get_form_initial(self, project=None):
-        return {'send_to_members': True}
 
     def post_process(self, group, event, is_new, is_sample, **kwargs):
         if not is_new:

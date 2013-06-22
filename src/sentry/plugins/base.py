@@ -150,6 +150,7 @@ class IPlugin(local):
 
     # Global enabled state
     enabled = True
+    can_disable = True
 
     # Should this plugin be enabled by default for projects?
     project_default_enabled = False
@@ -167,6 +168,8 @@ class IPlugin(local):
         """
         if not self.enabled:
             return False
+        if not self.can_disable:
+            return True
         if not self.can_enable_for_projects():
             return True
 

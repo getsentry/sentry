@@ -101,9 +101,9 @@
     </ul>
     {% with project|get_plugins as plugins %}
         <ul class="nav nav-list">
-            <li class="nav-header">{% trans "Plugins" %}</li>
+            <li class="nav-header">{% trans "Integrations" %}</li>
             <li class="{% if page == 'plugins' %} active{% endif %}">
-                <a href="{% url 'sentry-manage-project-plugins' project.team.slug project.slug %}">{% trans "Manage Plugins" %} ({{ PLUGINS|length }})</a>
+                <a href="{% url 'sentry-manage-project-plugins' project.team.slug project.slug %}">{% trans "Manage Integrations" %} ({{ PLUGINS|length }})</a>
             </li>
             {% for p in plugins %}
                 <li{% if page == 'plugin' and plugin.slug == p.slug %} class="active"{% endif %}>
