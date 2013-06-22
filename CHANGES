@@ -1,6 +1,13 @@
 Version 6.0.0
 -------------
 
+Say hello to our new logomark! Version 6 of Sentry includes many changes within
+the core designed to improve future compatibility for various platforms.
+
+It also includes quite a number of incompatible changes, so it's recommended
+that plugin authors read through the notes carefully, and run some simply
+sanity checks. It also introduces version 4 of the protocol.
+
 Incompatible Changes
 ====================
 
@@ -13,6 +20,10 @@ Incompatible Changes
   of reusing the tagging architecture for user tracking.
 - Suspension of team members is no longer available. The feature was rarely
   used, and removing it greatly simplifies the auth logic in the API.
+- **The mail plugin can no longer be disabled, and all mail-specific options
+  have been removed.**
+- Nearly all data within an event now has a fixed max size. See client
+  developer documentation for details.
 
 Protocol Version 4
 ==================
@@ -22,7 +33,7 @@ Protocol Version 4
 - The exception interface now supports a bound stacktrace, and all events
   (in all protocols) which contain both an exception and a stacktrace will
   be rolled up. This should be sent as the ``stacktrace`` attribute.
-- The exception interface now supports of chained exceptions, and should
+- The exception interface now supports chained exceptions, and should
   be sent as a list of exception values. Check the updated documentation for
   ordering details.
 
@@ -51,6 +62,8 @@ Other Changes
 - Corrected some invalid behavior when storing tags with an individual event.
 - Plugin.get_tag_values was added.
 - A new team select dashboard exists if you are a member of multiple teams.
+- A new Sentry logo mark has replaced the simple text header.
+- C# has been added to experimental clients.
 
 Version 5.4.0
 -------------
@@ -77,6 +90,9 @@ Additionally, this includes the following other items:
 - MessageFilterValue was renamed to GroupTag.
 - Syntax highlighting was disabled (pending performance solutions).
 - Added Team.date_added column.
+- Lots of various design changes.
+- Trending SQL queries can now be disabled by setting
+  ``SENTRY_USE_TRENDING = False``
 
 
 Version 5.3.0
