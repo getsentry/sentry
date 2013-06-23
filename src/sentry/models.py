@@ -1211,16 +1211,10 @@ def create_team_and_keys_for_project(instance, created, **kwargs):
         team.save()
         update(instance, team=team)
 
-        ProjectKey.objects.get_or_create(
+    if not ProjectKey.objects.filter(project=instance, user__isnull=True).exists():
+        ProjectKey.objects.create(
             project=instance,
-            user=instance.owner,
         )
-    else:
-        for member in instance.team.member_set.all():
-            ProjectKey.objects.get_or_create(
-                project=instance,
-                user=member.user,
-            )
 
 
 def create_team_member_for_owner(instance, created, **kwargs):
@@ -1244,17 +1238,6 @@ def update_document(instance, created, **kwargs):
         project=instance.project,
         group=instance,
     ).update(status=instance.status)
-
-
-def create_key_for_team_member(instance, created, **kwargs):
-    if not created or kwargs.get('raw'):
-        return
-
-    for project in instance.team.project_set.all():
-        ProjectKey.objects.get_or_create(
-            project=project,
-            user=instance.user,
-        )
 
 
 def remove_key_for_team_member(instance, **kwargs):
@@ -1349,12 +1332,6 @@ post_save.connect(
     update_document,
     sender=Group,
     dispatch_uid="update_document",
-    weak=False,
-)
-post_save.connect(
-    create_key_for_team_member,
-    sender=TeamMember,
-    dispatch_uid="create_key_for_team_member",
     weak=False,
 )
 pre_delete.connect(

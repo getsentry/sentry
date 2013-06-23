@@ -35,7 +35,7 @@ class ManageProjectKeysTest(TestCase):
 class NewProjectKeyTest(TestCase):
     @fixture
     def path(self):
-        return reverse('-key', args=[self.team.slug, self.project.id])
+        return reverse('sentry-new-project-key', args=[self.team.slug, self.project.id])
 
     def test_requires_authentication(self):
         self.assertRequiresAuthentication(self.path)
@@ -46,7 +46,7 @@ class NewProjectKeyTest(TestCase):
 
         resp = self.client.get(self.path)
         assert resp.status_code == 302
-        create.assert_called_once_with(
+        create.assert_any_call(
             project=self.project, user_added=self.user
         )
 

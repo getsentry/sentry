@@ -256,3 +256,17 @@ def merge_into(self, other, callback=lambda x: x, using='default'):
 
             if send_signals:
                 post_save.send(created=True, **signal_kwargs)
+
+
+class Savepoint(object):
+    def __init__(self, using='default'):
+        self.using = using
+
+    def __enter__(self):
+        self.sid = transaction.savepoint(using=self.using)
+
+    def __exit__(self, *exc_info):
+        if exc_info:
+            transaction.savepoint_rollback(self.sid, using=self.using)
+        else:
+            transaction.savepoint_commit(self.sid, using=self.using)

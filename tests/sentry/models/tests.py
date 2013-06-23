@@ -70,12 +70,12 @@ class ProjectKeyTest(TestCase):
         user = User.objects.create(username='admin')
         team = Team.objects.create(name='Test', slug='test', owner=user)
         project = Project.objects.create(name='Test', slug='test', owner=user, team=team)
-        self.assertTrue(project.key_set.filter(user=user).exists())
+        assert project.key_set.filter(user__isnull=True).exists() is True
 
     def test_key_is_created_for_project_with_new_team(self):
         user = User.objects.create(username='admin')
         project = Project.objects.create(name='Test', slug='test', owner=user)
-        self.assertTrue(project.key_set.filter(user=user).exists())
+        assert project.key_set.filter(user__isnull=True).exists() is True
 
 
 class PendingTeamMemberTest(TestCase):
