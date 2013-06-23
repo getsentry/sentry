@@ -89,8 +89,13 @@ DATABASES = {
 
 SENTRY_KEY = %(default_key)r
 
+
 # You MUST configure the absolute URI root for Sentry:
 SENTRY_URL_PREFIX = 'http://sentry.example.com'  # No trailing slash!
+
+# If you're using a reverse proxy, you should enable the X-Forwarded-Proto
+# header, and uncomment the following setting
+# SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 SENTRY_WEB_HOST = '0.0.0.0'
 SENTRY_WEB_PORT = 9000

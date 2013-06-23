@@ -243,6 +243,17 @@ You'll use the builtin HttpProxyModule within Nginx to handle proxying::
       proxy_set_header   X-Forwarded-Proto $scheme;
     }
 
+Enabling SSL
+~~~~~~~~~~~~~
+
+If you are planning to use SSL, you will also need to ensure that you've
+enabled detection within the reverse proxy (see the instructions above), as
+well as within the Sentry configuration:
+
+::
+
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 Running Sentry as a Service
 ---------------------------
 
