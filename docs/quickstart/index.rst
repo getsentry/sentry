@@ -214,23 +214,14 @@ Sentry can use any WSGI server using ``sentry.wsgi`` module. To setup Sentry wit
 And use the following configuration file::
 
         [uwsgi]
-        ; choose the socket and protocol you need
-        ; here we use the http protocol, but you can proxy it via uwsgi protocol as well
-        http-socket = :9000
-        ; map the sentry config to a virtual module
-        pymodule-alias = my_sentry_conf=/foo/bar/sentry.conf
-        ; use the virtual module as the django settings module
-        env = DJANGO_SETTINGS_MODULE=my_sentry_conf
-        ; load sentry
+        env = SENTRY_CONF=/etc/sentry.conf
         module = sentry.wsgi
 
         ; spawn the master and 4 processes
+        http-socket = :9000
         master = true
         processes = 4
 
-pay attention to the ``pymodule-alias`` directive, it will allows you (via module aliasing) to map a raw file to a python module.
-
-Always use absolute path names for the sentry config files (it is not strictly required, but will avoid mess with system files)
 
 Proxying uWSGI with Nginx
 ~~~~~~~~~~~~~~~~~~~~~~~~~
