@@ -161,7 +161,8 @@ thing you'll want to run when upgrading to future versions of Sentry.
 Starting the Web Service
 ------------------------
 
-Sentry provides a built-in webserver (powered by gunicorn and eventlet) to get you off the ground quickly.
+Sentry provides a built-in webserver (powered by gunicorn and eventlet) to get you off the ground quickly, 
+also you can setup Sentry as WSGI application, in that case skip to section `Running Sentry as WSGI application`. 
 
 To start the webserver, you simply use ``sentry start``. If you opted to use an alternative configuration path
 you can pass that via the --config option.
@@ -202,6 +203,52 @@ You'll use the builtin HttpProxyModule within Nginx to handle proxying::
       proxy_set_header   X-Real-IP        $remote_addr;
       proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
     }
+
+Running Sentry as WSGI application
+----------------------------------
+
+Sentry can use any WSGI server using ``sentry.wsgi`` module. To setup Sentry with `uWSGI <http://projects.unbit.it/uwsgi/>`_, add at the top of ``sentry.conf`` file::
+
+        from sentry.conf.server import *
+
+And use the following configuration file::
+
+        [uwsgi]
+        ; choose the socket and protocol you need
+        ; here we use the http protocol, but you can proxy it via uwsgi protocol as well
+        http-socket = :9000
+        ; map the sentry config to a virtual module
+        pymodule-alias = my_sentry_conf=/foo/bar/sentry.conf
+        ; use the virtual module as the django settings module
+        env = DJANGO_SETTINGS_MODULE=my_sentry_conf
+        ; load sentry
+        module = sentry.wsgi
+
+        ; spawn the master and 4 processes
+        master = true
+        processes = 4
+
+pay attention to the ``pymodule-alias`` directive, it will allows you (via module aliasing) to map a raw file to a python module.
+
+Always use absolute path names for the sentry config files (it is not strictly required, but will avoid mess with system files)
+
+Proxying uWSGI with Nginx
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You'll use the uWSGI module within Nginx to handle proxying::
+
+   location / {
+        include uwsgi_params;
+        uwsgi_pass 127.0.0.1:9000;
+
+        uwsgi_connect_timeout 180;
+        uwsgi_send_timeout 300;
+        uwsgi_read_timeout 600;
+
+        uwsgi_param UWSGI_SCHEME $scheme;
+    }
+
+.. todo:: Create Proxying uWSGI with Apache section
 
 Running Sentry as a Service
 ---------------------------
