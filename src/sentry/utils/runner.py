@@ -42,8 +42,13 @@ DATABASES = {
     }
 }
 
-# If you're expecting any kind of real traffic on Sentry, we highly recommend configuring
-# the CACHES and Redis settings
+
+# If you're expecting any kind of real traffic on Sentry, we highly recommend
+# configuring the CACHES and Redis settings
+
+###########
+## CACHE ##
+###########
 
 # You'll need to install the required dependencies for Memcached:
 #   pip install python-memcached
@@ -70,9 +75,9 @@ DATABASES = {
 ## Update Buffers ##
 ####################
 
-# Buffers (combined with queueing) act as an intermediate layer between the database and
-# the storage API. They will greatly improve efficiency on large numbers of the same events
-# being sent to the API in a short amount of time.
+# Buffers (combined with queueing) act as an intermediate layer between the
+# database and the storage API. They will greatly improve efficiency on large
+# numbers of the same events being sent to the API in a short amount of time.
 
 # You'll need to install the required dependencies for Redis buffers:
 #   pip install redis hiredis nydus
@@ -87,8 +92,9 @@ DATABASES = {
 #     }
 # }
 
-SENTRY_KEY = %(default_key)r
-
+################
+## Web Server ##
+################
 
 # You MUST configure the absolute URI root for Sentry:
 SENTRY_URL_PREFIX = 'http://sentry.example.com'  # No trailing slash!
@@ -104,7 +110,9 @@ SENTRY_WEB_OPTIONS = {
     'secure_scheme_headers': {'X-FORWARDED-PROTO': 'https'},
 }
 
-# Mail server configuration
+#################
+## Mail Server ##
+#################
 
 # For more information check Django's documentation:
 #  https://docs.djangoproject.com/en/1.3/topics/email/?from=olddocs#e-mail-backends
@@ -116,6 +124,13 @@ EMAIL_HOST_PASSWORD = ''
 EMAIL_HOST_USER = ''
 EMAIL_PORT = 25
 EMAIL_USE_TLS = False
+
+###########
+## etc. ##
+###########
+
+SECRET_KEY = %(default_key)r
+SENTRY_KEY = SECRET_KEY
 
 # http://twitter.com/apps/new
 # It's important that input a callback URL, even if its useless. We have no idea why, consult Twitter.
