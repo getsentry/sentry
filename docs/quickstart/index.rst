@@ -198,7 +198,8 @@ thing you'll want to run when upgrading to future versions of Sentry.
 Starting the Web Service
 ------------------------
 
-Sentry provides a built-in webserver (powered by gunicorn and eventlet) to get you off the ground quickly.
+Sentry provides a built-in webserver (powered by gunicorn and eventlet) to get you off the ground quickly, 
+also you can setup Sentry as WSGI application, in that case skip to section `Running Sentry as WSGI application`. 
 
 To start the webserver, you simply use ``sentry start``. If you opted to use an alternative configuration path
 you can pass that via the --config option.
@@ -253,6 +254,41 @@ well as within the Sentry configuration:
 ::
 
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+Running Sentry as WSGI application
+----------------------------------
+
+Sentry can use any WSGI server using ``sentry.wsgi`` module and setting ``SENTRY_CONF`` environment variable. 
+
+To setup Sentry with `uWSGI <http://projects.unbit.it/uwsgi/>`_, use the following uWSGI configuration file::
+
+        [uwsgi]
+        env = SENTRY_CONF=/etc/sentry.conf
+        module = sentry.wsgi
+
+        ; spawn the master and 4 processes
+        http-socket = :9000
+        master = true
+        processes = 4
+
+
+Proxying uWSGI with Nginx
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You'll use the uWSGI module within Nginx to handle proxying::
+
+   location / {
+        include uwsgi_params;
+        uwsgi_pass 127.0.0.1:9000;
+
+        uwsgi_connect_timeout 180;
+        uwsgi_send_timeout 300;
+        uwsgi_read_timeout 600;
+
+        uwsgi_param UWSGI_SCHEME $scheme;
+    }
+
+.. todo:: Create Proxying uWSGI with Apache section
 
 Running Sentry as a Service
 ---------------------------
