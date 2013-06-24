@@ -207,11 +207,9 @@ You'll use the builtin HttpProxyModule within Nginx to handle proxying::
 Running Sentry as WSGI application
 ----------------------------------
 
-Sentry can use any WSGI server using ``sentry.wsgi`` module. To setup Sentry with `uWSGI <http://projects.unbit.it/uwsgi/>`_, add at the top of ``sentry.conf`` file::
+Sentry can use any WSGI server using ``sentry.wsgi`` module and setting ``SENTRY_CONF`` environment variable. 
 
-        from sentry.conf.server import *
-
-And use the following configuration file::
+To setup Sentry with `uWSGI <http://projects.unbit.it/uwsgi/>`_, use the following uWSGI configuration file::
 
         [uwsgi]
         env = SENTRY_CONF=/etc/sentry.conf
