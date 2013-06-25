@@ -436,7 +436,7 @@ own internal purposes:
   # You'll need to install django-pyblibmc for this example to work
   CACHES = {
       'default': {
-          'BACKEND': 'django_pylibmc.memcached.PyLibMCCache',
+          'BACKEND': 'django.core.cache.backends.memcached.PyLibMCCache',
           'LOCATION': 'localhost:11211',
       }
   }
