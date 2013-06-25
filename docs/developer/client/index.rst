@@ -556,7 +556,7 @@ Most arbitrary values in Sentry have their size restricted. This means any
 values that are sent as metadata (such as variables in a stacktrace) as well
 as things like extra data, or tags.
 
-- Mappings of values (such as HTTP data, extra data, etc) are limitrd to 50
+- Mappings of values (such as HTTP data, extra data, etc) are limited to 50
   item pairs.
 - Event IDs are limited to 32 characters.
 - Tag keys are limited to 32 characters.
