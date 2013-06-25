@@ -209,9 +209,9 @@ def initialize_app(config):
 
     install_plugins(config['settings'])
 
-    skip_initial_migration_if_applied(
+    skip_migration_if_applied(
         config['settings'], 'kombu.contrib.django', 'djkombu_queue')
-    skip_initial_migration_if_applied(
+    skip_migration_if_applied(
         config['settings'], 'social_auth', 'social_auth_association')
 
 
@@ -220,15 +220,14 @@ def table_exists(name):
     return name in connections['default'].introspection.table_names()
 
 
-def skip_initial_migration_if_applied(settings, app_name, table_name):
+def skip_migration_if_applied(settings, app_name, table_name,
+                              name='0001_initial'):
     from south.migration import Migrations
     import types
 
-    migrations = Migrations(app_name)
-    # fix the initial migration
-    initial = migrations['0001_initial']
+    migration = Migrations(app_name)[name]
 
-    def initial_forwards(original):
+    def skip_if_table_exists(original):
         def wrapped(self):
             # TODO: look into why we're having to return some ridiculous
             # lambda
@@ -238,8 +237,8 @@ def skip_initial_migration_if_applied(settings, app_name, table_name):
         wrapped.__name__ = original.__name__
         return wrapped
 
-    initial.forwards = types.MethodType(
-        initial_forwards(initial.forwards), initial)
+    migration.forwards = types.MethodType(
+        skip_if_table_exists(migration.forwards), migration)
 
 
 def configure():
