@@ -232,19 +232,10 @@ urlpatterns = patterns('',
     url(r'^(?P<team_slug>[\w_-]+)/show/alerts/$', alerts.alert_list,
         name='sentry-alerts'),
 
-    # Explore
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/$', explore.tag_list,
-        name='sentry-explore'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/(?P<key>[^\/]+)/$', explore.tag_value_list,
-        name='sentry-explore-tag'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/(?P<key>[^\/]+)/(?P<value>[^\/]+)/$', explore.tag_value_details,
-        name='sentry-explore-tag-value'),
-
     # Explore - Users
-    url(r'^(?P<team_slug>[\w_-]+)/explore/users/$', users.user_list,
-        name='sentry-users'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/users/(?P<user_id>\d+)/$', users.user_details,
-        name='sentry-user-details'),
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/users/$',
+        users.user_list, name='sentry-users'),
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/users/(?P<user_id>\d+)/$', users.user_details, name='sentry-user-details'),
 
     # Explore - Code
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/code/$', explore_code.list_tag,
@@ -255,6 +246,14 @@ urlpatterns = patterns('',
         explore_code.tag_details, {'selection': 'filenames'}, name='sentry-explore-code-details'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/code/by/function/(?P<tag_id>\d+)/$',
         explore_code.tag_details, {'selection': 'functions'}, name='sentry-explore-code-details-by-function'),
+
+    # Explore
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/$', explore.tag_list,
+        name='sentry-explore'),
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/(?P<key>[^\/]+)/$', explore.tag_value_list,
+        name='sentry-explore-tag'),
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/(?P<key>[^\/]+)/(?P<value>[^\/]+)/$', explore.tag_value_details,
+        name='sentry-explore-tag-value'),
 
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/get-started/$', projects.get_started,
         name='sentry-get-started'),
