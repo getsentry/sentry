@@ -22,9 +22,9 @@
                 </div>
 
                 <ul class="tag-list">
-                    {% for tag_value, times_seen in tag_values %}
+                    {% for value_id, tag_value, times_seen in tag_values %}
                         <li>
-                            <a href="{% url 'sentry-explore-tag-value' project.team.slug project.slug tag_name|urlquote tag_value|urlquote %}">
+                            <a href="{% url 'sentry-explore-tag-value' project.team.slug project.slug tag_name|urlquote value_id %}">
                                 {{ tag_value }}
                                 <span>{{ times_seen|small_count }}</span>
                             </a>

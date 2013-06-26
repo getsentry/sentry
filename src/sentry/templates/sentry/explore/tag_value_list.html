@@ -1,0 +1,68 @@
+{% extends "sentry/bases/explore.html" %}
+
+{% load i18n %}
+{% load sentry_helpers %}
+{% load sentry_plugins %}
+
+{% block title %}{{ tag_key.get_label }} | {{ block.super }}{% endblock %}
+
+{% block inner %}
+    <div class="page-header">
+        <h2>
+            Explore by {{ tag_key.get_label }}
+        </h2>
+    </div>
+
+    {% paginator tag_values from request as tag_values %}
+    {% querystring from request without sort as sort_querystring %}
+
+    <div class="btn-toolbar">
+        <div class="btn-group">
+            <a href="#" class="btn dropdown-toggle" data-toggle="dropdown">{% blocktrans with sort_label as label %}Sort by: {{ label }}{% endblocktrans %} <span class="caret"></span></a>
+            <ul class="dropdown-menu">
+                <li{% ifequal sort 'recent' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=recent">{{ SORT_OPTIONS.recent }}</a></li>
+                <li{% ifequal sort 'newest' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=newest">{{ SORT_OPTIONS.newest }}</a></li>
+                <li{% ifequal sort 'events' %} class="active"{% endifequal %}><a href="?{{ sort_querystring }}&amp;sort=events">{{ SORT_OPTIONS.events }}</a></li>
+            </ul>
+        </div>
+        <div class="btn-group pull-right">
+            <a class="btn prev{% if not tag_values.paginator.has_previous %} disabled{% endif %}" href="?{{ tag_values.query_string|escape }}&amp;p={{ tag_values.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
+            <a class="btn next{% if not tag_values.paginator.has_next %} disabled{% endif %}" href="?{{ tag_values.query_string|escape }}&amp;p={{ tag_values.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+        </div>
+    </div>
+
+    {% if not tag_values.paginator.objects %}
+        <p>{% blocktrans %}You dont seem to have any data recorded for this tag. For more information on how to send this information consult your client's documentation.{% endblocktrans %}</p>
+    {% else %}
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>{{ tag_key.get_label }}</th>
+                    <th style="width:150px;text-align:center">{% trans "Last Seen" %}</th>
+                    <th style="width:100px;text-align:center">{% trans "Events Seen" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tag_value in tag_values.paginator.objects %}
+                    <tr>
+                        <td>
+                            
+                            <a href="{% url 'sentry-explore-tag-value' team.slug project.slug tag_value.key tag_value.id %}">
+                                {{ tag_value.value }}
+                            </a>
+                        </td>
+                        <td style="text-align:center">{{ tag_value.last_seen|timesince }}</td>
+                        <td style="text-align:center">{{ tag_value.times_seen|small_count }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="btn-toolbar">
+            <div class="btn-group pull-right">
+                <a class="btn prev{% if not tag_values.paginator.has_previous %} disabled{% endif %}" href="?{{ tag_values.query_string|escape }}&amp;p={{ tag_values.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
+                <a class="btn next{% if not tag_values.paginator.has_next %} disabled{% endif %}" href="?{{ tag_values.query_string|escape }}&amp;p={{ tag_values.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

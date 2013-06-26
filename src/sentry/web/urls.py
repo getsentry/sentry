@@ -252,7 +252,7 @@ urlpatterns = patterns('',
         name='sentry-explore'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/(?P<key>[^\/]+)/$', explore.tag_value_list,
         name='sentry-explore-tag'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/(?P<key>[^\/]+)/(?P<value>[^\/]+)/$', explore.tag_value_details,
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/(?P<key>[^\/]+)/(?P<value_id>\d+)/$', explore.tag_value_details,
         name='sentry-explore-tag-value'),
 
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/get-started/$', projects.get_started,

@@ -13,6 +13,13 @@ from sentry.models import TagKey, TagValue, Group
 from sentry.web.decorators import has_access
 from sentry.web.helpers import render_to_response
 
+DEFAULT_SORT_OPTION = 'recent'
+SORT_OPTIONS = {
+    'recent': 'Last Seen',
+    'newest': 'First Seen',
+    'events': 'Number of Events',
+}
+
 
 @has_access
 def tag_list(request, team, project):
@@ -27,10 +34,10 @@ def tag_list(request, team, project):
     tag_list = []
     for tag_name in tag_name_qs:
         tag_list.append((tag_name, [
-            (value, times_seen)
-            for (value, times_seen)
+            (id, value, times_seen)
+            for (id, value, times_seen)
             in tag_value_qs.filter(
-                key=tag_name).values_list('value', 'times_seen')[:5]
+                key=tag_name).values_list('id', 'value', 'times_seen')[:5]
         ]))
 
     return render_to_response('sentry/explore/tag_list.html', {
@@ -43,33 +50,50 @@ def tag_list(request, team, project):
 
 @has_access
 def tag_value_list(request, team, project, key):
+    tag_key = TagKey.objects.get(
+        project=project, key=key)
     tag_values_qs = TagValue.objects.filter(
-        project=project).order_by('-times_seen')
+        project=project, key=key)
+
+    sort = request.GET.get('sort')
+    if sort not in SORT_OPTIONS:
+        sort = DEFAULT_SORT_OPTION
+
+    if sort == 'recent':
+        tag_values_qs = tag_values_qs.order_by('-last_seen')
+    elif sort == 'newest':
+        tag_values_qs = tag_values_qs.order_by('-first_seen')
+    elif sort == 'events':
+        tag_values_qs = tag_values_qs.order_by('-times_seen')
 
     return render_to_response('sentry/explore/tag_value_list.html', {
         'SECTION': 'explore',
         'project': project,
         'team': team,
-        'title': key.replace('_', ' ').title(),
-        'tag_name': key,
+        'SORT_OPTIONS': SORT_OPTIONS,
+        'sort_label': SORT_OPTIONS[sort],
+        'tag_key': tag_key,
         'tag_values': tag_values_qs,
     }, request)
 
 
 @has_access
-def tag_value_details(request, team, project, key, value):
-    tag = TagValue.objects.get(
-        project=project, key=key, value=value)
+def tag_value_details(request, team, project, key, value_id):
+    tag_key = TagKey.objects.get(
+        project=project, key=key)
+    tag_value = TagValue.objects.get(
+        project=project, key=key, id=value_id)
 
     event_list = Group.objects.filter(
         grouptag__key=key,
-        grouptag__value=value,
+        grouptag__value=tag_value.value,
     ).order_by('-score')
 
     return render_to_response('sentry/explore/tag_value_details.html', {
         'SECTION': 'explore',
         'project': project,
         'team': team,
-        'tag': tag,
+        'tag_key': tag_key,
+        'tag_value': tag_value,
         'event_list': event_list,
     }, request)
