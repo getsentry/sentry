@@ -25,7 +25,7 @@ SORT_OPTIONS = {
 def tag_list(request, team, project):
     tag_key_qs = sorted(TagKey.objects.filter(
         project=project
-    ), key=lambda x: x.get_label())
+    ).exclude(key__startswith='sentry:'), key=lambda x: x.get_label())
 
     tag_value_qs = TagValue.objects.filter(
         project=project).order_by('-times_seen')
