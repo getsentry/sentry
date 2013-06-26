@@ -204,18 +204,18 @@
             this.$parent.empty();
             this.setEmpty();
 
-            var _members = [];
-            _.each(members, _.bind(function(m){
-                _members.push(new this.model(m));
-            }, this));
-            members = _members;
-
             if (members === undefined) {
                 this.$empty.html(this.loadingMessage);
                 this.collection.reset();
                 this.setEmpty();
                 this.loaded = false;
             } else {
+                var _members = [];
+                _.each(members, _.bind(function(m){
+                    _members.push(new this.model(m));
+                }, this));
+                members = _members;
+
                 this.$empty.html(this.emptyMessage);
                 this.collection.reset(members);
                 this.loaded = true;
