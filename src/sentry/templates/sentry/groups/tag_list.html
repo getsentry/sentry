@@ -6,7 +6,7 @@
 {% block inner %}
     {% if tag_list %}
 
-        {% for tag_key, tag_values in tag_list %}
+        {% for tag_key, tag_values, values_seen in tag_list %}
             {% if not forloop.counter|divisibleby:2 %}
                 {% if not forloop.first %}
                     </div>
@@ -17,7 +17,7 @@
                 <div class="page-header">
                     <span class="pull-right"><a href="{% url 'sentry-group-tag-details' group.team.slug group.project.slug group.id tag_key.key|urlquote %}">More Details</a></span>
 
-                    <h4>{{ tag_key.get_label }} <small>({{ tag_key.values_seen|small_count }})</small></h4>
+                    <h4>{{ tag_key.get_label }} <small>({{ values_seen|small_count }})</small></h4>
                 </div>
 
                 <ul class="tag-list">

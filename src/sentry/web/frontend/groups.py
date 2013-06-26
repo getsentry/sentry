@@ -421,7 +421,7 @@ def group_tag_list(request, team, project, group):
             (value, times_seen, percent(group.times_seen, times_seen))
             for (value, times_seen, first_seen, last_seen)
             in group.get_unique_tags(tag_key.key)[:5]
-        ]))
+        ], group.get_unique_tags(tag_key.key).count()))
 
     return render_with_group_context(group, 'sentry/groups/tag_list.html', {
         'page': 'tag_list',
