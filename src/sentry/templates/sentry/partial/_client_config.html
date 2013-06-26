@@ -109,6 +109,12 @@
         </a>
     </li>
     <li>
+        <a href="{% url 'sentry-docs-client' project.team.slug project.slug 'rails4' %}">
+            <span><img src="{% url 'sentry-media' "sentry" "images/platforms/rails48x48.png" %}"></span>
+            <strong>Rails 4</strong>
+        </a>
+    </li>
+    <li>
         <a href="{% url 'sentry-docs-client' project.team.slug project.slug 'django' %}">
             <span><img src="{% url 'sentry-media' "sentry" "images/platforms/django48x48.png" %}"></span>
             <strong>Django</strong>

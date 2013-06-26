@@ -114,6 +114,7 @@ PLATFORM_LIST = (
     'r',
     'ruby',
     'rails3',
+    'rails4',
     'sidekiq',
     'sinatra',
     'tornado',
@@ -121,6 +122,7 @@ PLATFORM_LIST = (
 
 PLATFORM_ROOTS = {
     'rails3': 'ruby',
+    'rails4': 'ruby',
     'sinatra': 'ruby',
     'sidekiq': 'ruby',
     'django': 'python',
@@ -136,6 +138,7 @@ PLATFORM_ROOTS = {
 
 PLATFORM_TITLES = {
     'rails3': 'Rails 3 (Ruby)',
+    'rails4': 'Rails 4 (Ruby)',
     'php': 'PHP',
     'ios': 'iOS',
     'express': 'Express (Node.js)',
