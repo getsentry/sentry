@@ -256,13 +256,6 @@ urlpatterns = patterns('',
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/code/by/function/(?P<tag_id>\d+)/$',
         explore_code.tag_details, {'selection': 'functions'}, name='sentry-explore-code-details-by-function'),
 
-    # Explore
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/(?P<tag_name>[\w_-]+)/$',
-        explore.list_tag, name='sentry-explore-tag'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/(?P<tag_name>[\w_-]+)/(?P<tag_id>\d+)/$',
-        explore.tag_details, name='sentry-explore-tag-details'),
-
-
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/get-started/$', projects.get_started,
         name='sentry-get-started'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/$', groups.group,
