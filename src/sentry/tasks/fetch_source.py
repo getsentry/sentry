@@ -129,15 +129,13 @@ def fetch_url(url, logger=None):
     cache_key = 'fetch_url:v2:%s' % (
         hashlib.md5(url.encode('utf-8')).hexdigest(),)
     result = cache.get(cache_key)
-    if result is not None:
-        return UrlResult(*result)
+    if result is None:
+        result = fetch_url_content(url, logger)
 
-    result = fetch_url_content(url, logger)
+        cache.set(cache_key, result, 60 * 5)
 
     if result == BAD_SOURCE:
         return result
-
-    cache.set(cache_key, result, 60 * 5)
 
     return UrlResult(*result)
 
