@@ -83,7 +83,7 @@ lint-python:
 
 lint-js:
 	@echo "Linting JavaScript files"
-	@{NPM_ROOT}/.bin/jshint src/sentry/ || exit 1
+	@${NPM_ROOT}/.bin/jshint src/sentry/ || exit 1
 	@echo ""
 
 coverage: install-test-requirements
