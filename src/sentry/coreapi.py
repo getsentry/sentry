@@ -31,7 +31,7 @@ from sentry.utils.strings import decompress, truncatechars
 logger = logging.getLogger('sentry.coreapi.errors')
 
 MAX_CULPRIT_LENGTH = 200
-MAX_MESSAGE_LENGTH = 1024
+MAX_MESSAGE_LENGTH = 2048
 
 INTERFACE_ALIASES = {
     'exception': 'sentry.interfaces.Exception',

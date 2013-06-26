@@ -462,7 +462,7 @@ class GroupManager(BaseManager, ChartMixin):
 
             value = http_data.get('data')
             if value:
-                http_data['data'] = trim(value, 1024)
+                http_data['data'] = trim(value, 2048)
 
         return data
 
