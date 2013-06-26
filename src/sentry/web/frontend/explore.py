@@ -23,21 +23,21 @@ SORT_OPTIONS = {
 
 @has_access
 def tag_list(request, team, project):
-    tag_name_qs = sorted(TagKey.objects.filter(
+    tag_key_qs = sorted(TagKey.objects.filter(
         project=project
-    ).values_list('key', flat=True))
+    ), key=lambda x: x.get_label())
 
     tag_value_qs = TagValue.objects.filter(
         project=project).order_by('-times_seen')
 
     # O(N) db access
     tag_list = []
-    for tag_name in tag_name_qs:
-        tag_list.append((tag_name, [
+    for tag_key in tag_key_qs:
+        tag_list.append((tag_key, [
             (id, value, times_seen)
             for (id, value, times_seen)
             in tag_value_qs.filter(
-                key=tag_name).values_list('id', 'value', 'times_seen')[:5]
+                key=tag_key.key).values_list('id', 'value', 'times_seen')[:5]
         ]))
 
     return render_to_response('sentry/explore/tag_list.html', {
