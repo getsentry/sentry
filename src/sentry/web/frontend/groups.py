@@ -30,7 +30,7 @@ from sentry.constants import (
     MSSQL_SORT_CLAUSES, MSSQL_SCORE_CLAUSES)
 from sentry.filters import get_filters
 from sentry.models import (
-    Project, Group, Event, SearchDocument, Activity, EventMapping)
+    Project, Group, Event, SearchDocument, Activity, EventMapping, TagKey)
 from sentry.permissions import can_admin_group, can_create_projects
 from sentry.plugins import plugins
 from sentry.utils import json
@@ -416,11 +416,11 @@ def group_tag_list(request, team, project, group):
 
     # O(N) db access
     tag_list = []
-    for tag_name in group.get_tags():
-        tag_list.append((tag_name, [
+    for tag_key in TagKey.objects.filter(project=project, key__in=group.get_tags()):
+        tag_list.append((tag_key, [
             (value, times_seen, percent(group.times_seen, times_seen))
             for (value, times_seen, first_seen, last_seen)
-            in group.get_unique_tags(tag_name)[:5]
+            in group.get_unique_tags(tag_key.key)[:5]
         ]))
 
     return render_with_group_context(group, 'sentry/groups/tag_list.html', {
