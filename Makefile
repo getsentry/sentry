@@ -1,9 +1,12 @@
 VERSION = 2.0.0
-NPM_ROOT = node_modules
+NPM_ROOT = ./node_modules
 STATIC_DIR = src/sentry/static/sentry
 BOOTSTRAP_JS = ${STATIC_DIR}/scripts/lib/bootstrap.js
 BOOTSTRAP_JS_MIN = ${STATIC_DIR}/scripts/lib/bootstrap.min.js
 UGLIFY_JS ?= node_modules/uglify-js/bin/uglifyjs
+
+JS_TESTS = tests/js/index.html
+JS_REPORTER = dot
 
 develop: update-submodules
 	npm install -q
@@ -63,7 +66,7 @@ test-cli:
 
 test-js:
 	@echo "Running JavaScript tests"
-	${NPM_ROOT}/phantomjs/bin/phantomjs runtests.js tests/js/index.html
+	${NPM_ROOT}/.bin/mocha-phantomjs -p ${NPM_ROOT}/phantomjs/bin/phantomjs -R ${JS_REPORTER} ${JS_TESTS}
 	@echo ""
 
 test-python:
@@ -80,7 +83,7 @@ lint-python:
 
 lint-js:
 	@echo "Linting JavaScript files"
-	@${NPM_ROOT}/jshint/bin/hint src/sentry/ || exit 1
+	@{NPM_ROOT}/.bin/jshint src/sentry/ || exit 1
 	@echo ""
 
 coverage: install-test-requirements

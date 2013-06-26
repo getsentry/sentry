@@ -1,9 +1,9 @@
 describe("floatFormat", function() {
   it("does format two decimal places", function() {
-    expect(app.utils.floatFormat(1.134, 2)).toBe(1.13);
+    assert.strictEqual(app.utils.floatFormat(1.134, 2), 1.13);
   });
 
   it("does format one decimal places", function() {
-    expect(app.utils.floatFormat(1.134, 1)).toBe(1.1);
+    assert.strictEqual(app.utils.floatFormat(1.134, 1), 1.1);
   });
 });

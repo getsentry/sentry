@@ -1,58 +1,67 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
-  "http://www.w3.org/TR/html4/loose.dtd">
+<!doctype html>
 <html>
-<head>
-  <title>Jasmine Spec Runner</title>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="lib/mocha/mocha.css" />
+  </head>
+  <body>
+    <div id="dummy" style="display:none"></div>
+    <div id="mocha"></div>
 
-  <link rel="shortcut icon" type="image/png" href="lib/jasmine-1.2.0/jasmine_favicon.png">
-  <link rel="stylesheet" type="text/css" href="lib/jasmine-1.2.0/jasmine.css">
-  <script type="text/javascript" src="lib/jasmine-1.2.0/jasmine.js"></script>
-  <script type="text/javascript" src="lib/jasmine-1.2.0/jasmine-html.js"></script>
-  <script type="text/javascript" src="lib/sinon-1.5.0.js"></script>
-  <script type="text/javascript" src="lib/console-runner.js"></script>
+    <!-- Mocha -->
+    <script src="lib/mocha/mocha.js"></script>
+    <script src="lib/chai/chai.js"></script>
+    <script>
+      mocha.ui('bdd');
+      mocha.reporter('html');
+      var expect = chai.expect;
+      var assert = chai.assert;
+    </script>
 
-  <!-- include source files here... -->
-  <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/lib/jquery.js"></script>
-  <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/lib/jquery.animate-colors-min.js"></script>
-  <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/lib/jquery.clippy.min.js"></script>
-  <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/lib/jquery.flot.min.js"></script>
-  <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/lib/jquery.sparkline.min.js"></script>
-  <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/lib/json2.js"></script>
-  <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/lib/underscore.js"></script>
-  <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/lib/backbone.js"></script>
-  <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/lib/select2/select2.js"></script>
-  <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/lib/bootstrap.js"></script>
+    <!-- Mocking -->
+    <script src="lib/sinon-1.7.3.js"></script>
+    <script>
+    beforeEach(function() {
+        this.sinon = sinon.sandbox.create();
+    });
 
-  <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/core.js"></script>
-  <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/models.js"></script>
-  <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/templates.js"></script>
-  <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/utils.js"></script>
-  <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/collections.js"></script>
-  <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/charts.js"></script>
-  <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/views.js"></script>
-  <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/app.js"></script>
+    afterEach(function() {
+        this.sinon.restore();
+    });
+    </script>
 
-  <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/sentry.core.js"></script>
-  <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/sentry.charts.js"></script>
-  <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/sentry.stream.js"></script>
+    <!-- Sentry Source -->
+    <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/lib/jquery.js"></script>
+    <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/lib/jquery.animate-colors.js"></script>
+    <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/lib/jquery.clippy.min.js"></script>
+    <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/lib/jquery.flot.js"></script>
+    <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/lib/json2.js"></script>
+    <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/lib/underscore.js"></script>
+    <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/lib/backbone.js"></script>
+    <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/lib/select2/select2.js"></script>
+    <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/lib/bootstrap.js"></script>
 
-  <!-- include spec files here... -->
-  <script type="text/javascript" src="spec/OrderedElementsViewSpec.js"></script>
-  <script type="text/javascript" src="spec/floatFormat.js"></script>
-  <script type="text/javascript" src="spec/formatNumber.js"></script>
+    <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/core.js"></script>
+    <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/models.js"></script>
+    <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/templates.js"></script>
+    <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/utils.js"></script>
+    <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/collections.js"></script>
+    <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/charts.js"></script>
+    <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/views.js"></script>
+    <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/app.js"></script>
 
-</head>
+    <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/sentry.core.js"></script>
+    <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/sentry.charts.js"></script>
+    <script type="text/javascript" src="../../src/sentry/static/sentry/scripts/sentry.stream.js"></script>
 
-<body>
-  <div id="dummy" style="display:none"></div>
+    <!-- Test Specs -->
+    <script type="text/javascript" src="spec/OrderedElementsViewSpec.js"></script>
+    <script type="text/javascript" src="spec/floatFormat.js"></script>
+    <script type="text/javascript" src="spec/formatNumber.js"></script>
 
-  <script type="text/javascript">
-  var console_reporter = new jasmine.ConsoleReporter()
-  $(function(){
-    jasmine.getEnv().addReporter(new jasmine.TrivialReporter());
-    jasmine.getEnv().addReporter(console_reporter);
-    jasmine.getEnv().execute();
-  });
-  </script>
-</body>
+    <script>
+      if (window.mochaPhantomJS) { mochaPhantomJS.run(); }
+      else { mocha.run(); }
+    </script>
+  </body>
 </html>
