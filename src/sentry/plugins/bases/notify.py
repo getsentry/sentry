@@ -190,8 +190,8 @@ class NotificationPlugin(Plugin):
 
         self.notify_users(group, event)
 
-    def get_notification_forms(self, **kwargs):
-        return [NotificationUserOptionsForm]
+    def get_notification_forms(self, **kwargs):
+        return [NotificationUserOptionsForm]
 
 # Backwards-compatibility
 NotifyConfigurationForm = NotificationConfigurationForm
