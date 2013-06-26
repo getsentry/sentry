@@ -55,7 +55,6 @@ tests_require = [
     'python-coveralls',
     'nydus',
     'mock>=0.8.0',
-    'mock-django>=0.6.4',
     'redis',
     'unittest2',
 ]

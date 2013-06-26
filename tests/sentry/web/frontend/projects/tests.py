@@ -4,7 +4,6 @@ from __future__ import absolute_import
 
 import mock
 import logging
-from mock_django.managers import ManagerMock
 
 from django.core.urlresolvers import reverse
 
@@ -89,16 +88,9 @@ class DashboardTest(TestCase):
 
         can_create_projects.return_value = True
 
-        manager = ManagerMock(Project.objects)
-
-        with mock.patch('sentry.models.Project.objects', manager):
-            resp = self.client.get(self.path)
+        resp = self.client.get(self.path)
 
         can_create_projects.assert_called_once_with(self.user, team=self.team)
-
-        manager.assert_chain_calls(
-            mock.call.filter(team=self.team),
-        )
 
         assert resp.status_code == 302
         assert resp['Location'] == 'http://testserver' + reverse('sentry-new-project', args=[self.team.slug])
@@ -109,16 +101,9 @@ class DashboardTest(TestCase):
 
         can_create_projects.return_value = False
 
-        manager = ManagerMock(Project.objects)
-
-        with mock.patch('sentry.models.Project.objects', manager):
-            resp = self.client.get(self.path)
+        resp = self.client.get(self.path)
 
         can_create_projects.assert_called_once_with(self.user, team=self.team)
-
-        manager.assert_chain_calls(
-            mock.call.filter(team=self.team),
-        )
 
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/dashboard.html')
@@ -127,16 +112,12 @@ class DashboardTest(TestCase):
     def test_does_not_redirect_if_has_projects(self, can_create_projects):
         self.login_as(self.user)
 
-        manager = ManagerMock(Project.objects, self.project)
+        # HACK: force creation
+        self.project
 
-        with mock.patch('sentry.models.Project.objects', manager):
-            resp = self.client.get(self.path)
+        resp = self.client.get(self.path)
 
         assert not can_create_projects.called
-
-        manager.assert_chain_calls(
-            mock.call.filter(team=self.team),
-        )
 
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, 'sentry/dashboard.html')
