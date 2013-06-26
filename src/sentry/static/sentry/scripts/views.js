@@ -65,6 +65,7 @@
                 type: 'post',
                 dataType: 'json',
                 success: _.bind(function(response) {
+                    this.model.set('version', response.version);
                     this.model.set('isResolved', true);
                 }, this)
             });
@@ -76,6 +77,7 @@
                 type: 'post',
                 dataType: 'json',
                 success: _.bind(function(response) {
+                    this.model.set('version', response.version);
                     this.model.set('isResolved', false);
                 }, this)
             });
@@ -106,6 +108,7 @@
                     gid: this.model.get('id')
                 },
                 success: _.bind(function(response){
+                    this.model.set('version', response.version);
                     this.model.set('isBookmarked', response.isBookmarked);
                 }, this)
             });
@@ -201,6 +204,12 @@
             this.$parent.empty();
             this.setEmpty();
 
+            var _members = [];
+            _.each(members, _.bind(function(m){
+                _members.push(new this.model(m));
+            }, this));
+            members = _members;
+
             if (members === undefined) {
                 this.$empty.html(this.loadingMessage);
                 this.collection.reset();
@@ -253,11 +262,7 @@
                 options = {};
 
             var existing = this.collection.get(member.id);
-            for (var key in member.attributes) {
-                if (existing.get(key) != member.get(key)) {
-                    existing.set(key, member.get(key));
-                }
-            }
+            existing.updateFrom(member);
 
             if (options.sort !== false) {
                 // score changed, resort
