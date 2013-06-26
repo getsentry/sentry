@@ -37,6 +37,10 @@ for m in ('multiprocessing', 'billiard'):
     except ImportError:
         pass
 
+setup_requires = [
+    'pytest',
+]
+
 dev_requires = [
     'flake8>=1.7.0,<2.0',
 ]
@@ -129,6 +133,7 @@ setup(
         'postgres_pypy': install_requires + postgres_pypy_requires,
         'mysql': install_requires + mysql_requires,
     },
+    tests_require=tests_require,
     cmdclass={'test': PyTest},
     license='BSD',
     include_package_data=True,
