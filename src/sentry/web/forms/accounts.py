@@ -42,7 +42,7 @@ class RegistrationForm(forms.ModelForm):
 
 
 class NotificationSettingsForm(forms.Form):
-    alert_email = forms.EmailField(help_text=_('Designate an alternative email address to send email notifications to.'))
+    alert_email = forms.EmailField(help_text=_('Designate an alternative email address to send email notifications to.'), required=False)
 
     def __init__(self, user, *args, **kwargs):
         self.user = user
