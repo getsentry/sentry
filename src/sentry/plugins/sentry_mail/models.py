@@ -12,8 +12,10 @@ from django.core.urlresolvers import reverse
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
 from sentry.conf import settings
+from sentry.models import User, UserOption
 from sentry.plugins import register
 from sentry.plugins.bases.notify import NotificationPlugin
+from sentry.utils.cache import cache
 from sentry.utils.http import absolute_uri
 
 from pynliner import Pynliner
@@ -106,6 +108,65 @@ class MailPlugin(NotificationPlugin):
             'link': alert.get_absolute_url(),
             'settings_link': self.get_notification_settings_url(),
         })).run()
+
+    def get_emails_for_users(self, user_ids, project=None):
+        email_list = set()
+        user_ids = set(user_ids)
+
+        if project:
+            alert_queryset = UserOption.objects.filter(
+                project=project,
+                user__in=user_ids,
+                key='mail:email',
+            )
+            for option in alert_queryset:
+                user_ids.remove(option.user_id)
+                email_list.add(option.value)
+
+        if user_ids:
+            alert_queryset = UserOption.objects.filter(
+                user__in=user_ids,
+                key='alert_email',
+            )
+            for option in alert_queryset:
+                user_ids.remove(option.user_id)
+                email_list.add(option.value)
+
+        if user_ids:
+            email_list |= set(User.objects.filter(
+                pk__in=user_ids, is_active=True
+            ).values_list('email', flat=True))
+
+        return email_list
+
+    def get_send_to(self, project=None):
+        """
+        Returns a list of email addresses for the users that should be notified of alerts.
+
+        The logic for this is a bit complicated, but it does the following:
+
+        The results of this call can be fairly expensive to calculate, so the send_to list gets cached
+        for 60 seconds.
+        """
+        if project:
+            project_id = project.pk
+        else:
+            project_id = ''
+        conf_key = self.get_conf_key()
+        cache_key = '%s:send_to:%s' % (conf_key, project_id)
+
+        send_to_list = cache.get(cache_key)
+        if send_to_list is None:
+            send_to_list = set()
+
+            if project and project.team:
+                member_set = self.get_sendable_users(project)
+                send_to_list |= set(self.get_emails_for_users(
+                    member_set, project=project))
+
+            send_to_list = filter(bool, send_to_list)
+            cache.set(cache_key, send_to_list, 60)  # 1 minute cache
+        return send_to_list
 
     def notify_users(self, group, event, fail_silently=False):
         project = group.project
