@@ -74,18 +74,6 @@ class NotificationPlugin(Plugin):
         if not send_to:
             return False
 
-        min_level = self.get_option('min_level', project)
-        if min_level is not None and int(group.level) < min_level:
-            return False
-
-        include_loggers = self.get_option('include_loggers', project)
-        if include_loggers is not None and group.logger not in include_loggers:
-            return False
-
-        exclude_loggers = self.get_option('exclude_loggers', project)
-        if exclude_loggers and group.logger in exclude_loggers:
-            return False
-
         allowed_tags = project.get_option('notifcation:tags', {})
         if allowed_tags:
             tags = event.data.get('tags', ())
