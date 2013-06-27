@@ -24,6 +24,9 @@ dev-mysql:
 	pip install -q "file://`pwd`#egg=sentry[mysql]" --use-mirrors
 	pip install -q -e . --use-mirrors
 
+dev-docs:
+	pip install -q -r docs/requirements.txt --use-mirrors
+
 build: locale
 
 clean:
