@@ -69,20 +69,29 @@ class NotificationPlugin(Plugin):
 
         return member_set
 
-    def get_emails_for_users(self, user_ids):
+    def get_emails_for_users(self, user_ids, project=None):
         email_list = set()
         user_ids = set(user_ids)
 
-        # we cant use values on alert_queryset as the value field gets encoded
-        alert_queryset = UserOption.objects.filter(
-            user__in=user_ids,
-            key='alert_email',
-        )
-        for option in alert_queryset:
-            user_ids.remove(option.user_id)
-            email_list.add(option.value)
+        if project:
+            alert_queryset = UserOption.objects.filter(
+                project=project,
+                user__in=user_ids,
+                key='mail:email',
+            )
+            for option in alert_queryset:
+                user_ids.remove(option.user_id)
+                email_list.add(option.value)
 
-        # if any didnt exist, grab their default email
+        if user_ids:
+            alert_queryset = UserOption.objects.filter(
+                user__in=user_ids,
+                key='alert_email',
+            )
+            for option in alert_queryset:
+                user_ids.remove(option.user_id)
+                email_list.add(option.value)
+
         if user_ids:
             email_list |= set(User.objects.filter(
                 pk__in=user_ids, is_active=True
@@ -112,7 +121,8 @@ class NotificationPlugin(Plugin):
 
             if project and project.team:
                 member_set = self.get_sendable_users(project)
-                send_to_list |= set(self.get_emails_for_users(member_set))
+                send_to_list |= set(self.get_emails_for_users(
+                    member_set, project=project))
 
             send_to_list = filter(bool, send_to_list)
             cache.set(cache_key, send_to_list, 60)  # 1 minute cache

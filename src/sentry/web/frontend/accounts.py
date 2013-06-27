@@ -7,8 +7,6 @@ sentry.web.frontend.accounts
 """
 import itertools
 
-from collections import defaultdict
-
 from django.conf import settings as dj_settings
 from django.contrib import messages
 from django.contrib.auth import login as login_user, authenticate

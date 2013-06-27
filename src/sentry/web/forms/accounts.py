@@ -158,7 +158,7 @@ class ChangePasswordRecoverForm(forms.Form):
 
 class ProjectEmailOptionsForm(forms.Form):
     alert = forms.BooleanField(required=False)
-    email = forms.EmailField(required=False)
+    email = forms.EmailField(required=False, widget=forms.HiddenInput())
 
     def __init__(self, project, user, *args, **kwargs):
         self.project = project
@@ -174,9 +174,15 @@ class ProjectEmailOptionsForm(forms.Form):
             is_enabled = bool(is_enabled)
 
         self.fields['alert'].initial = is_enabled
+        self.fields['email'].initial = UserOption.objects.get_value(
+            user, project, 'mail:email', None)
 
     def save(self):
         UserOption.objects.set_value(
             self.user, self.project, 'mail:alert',
             int(self.cleaned_data['alert']),
+        )
+        UserOption.objects.set_value(
+            self.user, self.project, 'mail:email',
+            self.cleaned_data['email'],
         )
