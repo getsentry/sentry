@@ -8,9 +8,8 @@ sentry.plugins.bases.notify
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 from sentry.plugins import Plugin
-from sentry.models import UserOption, Project, User, AccessGroup
+from sentry.models import UserOption, User, AccessGroup
 from sentry.utils.cache import cache
-from sentry.constants import MEMBER_USER
 
 
 class NotificationConfigurationForm(forms.Form):
@@ -31,39 +30,6 @@ class BaseNotificationUserOptionsForm(forms.Form):
 
     def save(self):
         raise NotImplementedError
-
-
-class NotificationUserOptionsForm(BaseNotificationUserOptionsForm):
-    projects = forms.MultipleChoiceField(choices=(), widget=forms.CheckboxSelectMultiple(), required=False)
-
-    def __init__(self, *args, **kwargs):
-        super(NotificationUserOptionsForm, self).__init__(*args, **kwargs)
-        user = self.user
-        self.project_list = dict(
-            (p.slug, p) for p in
-            Project.objects.get_for_user(user, access=MEMBER_USER)
-        )
-        project_choices = sorted((p.slug, p.name) for p in self.project_list.values())
-        self.fields['projects'].choices = project_choices
-        self.fields['projects'].widget.choices = self.fields['projects'].choices
-
-        enabled_projects = []
-        for slug, project in self.project_list.iteritems():
-            is_enabled = self.plugin.get_option('alert', project=project, user=user)
-            if is_enabled == 1 or is_enabled is None:
-                enabled_projects.append(slug)
-        self.fields['projects'].initial = enabled_projects
-
-    def get_description(self):
-        return _('Send notifications when a new event is seen, or when an '
-                 'already resolved event has changed back to unresolved.')
-
-    def save(self):
-        user = self.user
-        projects = self.cleaned_data.get('projects')
-
-        for slug, project in self.project_list.iteritems():
-            self.plugin.set_option('alert', int(slug in projects), user=user, project=project)
 
 
 class Message(object):
@@ -189,9 +155,6 @@ class NotificationPlugin(Plugin):
             return
 
         self.notify_users(group, event)
-
-    def get_notification_forms(self, **kwargs):
-        return [NotificationUserOptionsForm]
 
 # Backwards-compatibility
 NotifyConfigurationForm = NotificationConfigurationForm

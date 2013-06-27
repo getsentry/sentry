@@ -5,6 +5,10 @@ sentry.web.frontend.accounts
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+import itertools
+
+from collections import defaultdict
+
 from django.conf import settings as dj_settings
 from django.contrib import messages
 from django.contrib.auth import login as login_user, authenticate
@@ -16,11 +20,14 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone
 
-from sentry.models import UserOption, LostPasswordHash
+from sentry.constants import MEMBER_USER
+from sentry.models import Project, UserOption, LostPasswordHash
 from sentry.plugins import plugins
 from sentry.web.decorators import login_required
-from sentry.web.forms.accounts import AccountSettingsForm, NotificationSettingsForm, \
-  AppearanceSettingsForm, RegistrationForm, RecoverPasswordForm, ChangePasswordRecoverForm
+from sentry.web.forms.accounts import (
+    AccountSettingsForm, NotificationSettingsForm, AppearanceSettingsForm,
+    RegistrationForm, RecoverPasswordForm, ChangePasswordRecoverForm,
+    ProjectEmailOptionsForm)
 from sentry.web.helpers import render_to_response
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.safe import safe_execute
@@ -219,29 +226,41 @@ def appearance_settings(request):
 @login_required
 @transaction.commit_on_success
 def notification_settings(request):
-    forms = []
+    settings_form = NotificationSettingsForm(request.user, request.POST or None)
+
+    project_list = Project.objects.get_for_user(request.user, access=MEMBER_USER)
+    project_forms = [
+        (project, ProjectEmailOptionsForm(
+            project, request.user,
+            request.POST or None,
+            prefix='project-%s' % (project.id,)
+        ))
+        for project in sorted(project_list, key=lambda x: (x.team.name, x.name))
+    ]
+
+    ext_forms = []
     for plugin in plugins.all():
         for form in safe_execute(plugin.get_notification_forms) or ():
             form = safe_execute(form, plugin, request.user, request.POST or None, prefix=plugin.slug)
             if not form:
                 continue
-            forms.append(form)
-
-    # Ensure our form comes first
-    forms = [
-        NotificationSettingsForm(request.user, request.POST or None),
-    ] + forms
+            ext_forms.append(form)
 
     if request.POST:
-        if all(f.is_valid() for f in forms):
-            for form in forms:
+        all_forms = list(itertools.chain(
+            [settings_form], ext_forms, (f for _, f in project_forms)
+        ))
+        if all(f.is_valid() for f in all_forms):
+            for form in all_forms:
                 form.save()
             messages.add_message(request, messages.SUCCESS, 'Your settings were saved.')
             return HttpResponseRedirect(request.path)
 
     context = csrf(request)
     context.update({
-        'forms': forms,
+        'settings_form': settings_form,
+        'project_forms': project_forms,
+        'ext_forms': ext_forms,
         'page': 'notifications',
     })
     return render_to_response('sentry/account/notifications.html', context, request)

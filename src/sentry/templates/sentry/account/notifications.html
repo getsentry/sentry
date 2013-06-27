@@ -7,11 +7,70 @@
 {% block title %}{% trans "Notification Settings" %} | {{ block.super }}{% endblock %}
 
 {% block inner %}
+    <style type="text/css">
+    table label,
+    table input[type=checkbox] {
+        margin: 0;
+    }
+    table caption {
+        font-weight: normal;
+        text-align: left;
+        font-size: 16px;
+        padding-bottom: 10px;
+    }
+    </style>
+
     <form action="" method="post">
         {% csrf_token %}
-        {% for form in forms %}
-            {{ form|as_crispy_errors }}
 
+        <p>{% blocktrans %}Notifications are generally sent when a new event is
+            seen, an already resolved event has changed to unresolved, or a
+            system-wide spike in events is detected.{% endblocktrans %}</p>
+
+        {% with settings_form as form %}
+            <fieldset>
+                <div><legend>{% trans "General" %}</legend></div>
+                {% include "sentry/partial/form_base.html" %}
+            </fieldset>
+        {% endwith %}
+
+        {% if project_forms %}
+            <fieldset>
+                <div><legend>{% trans "Mail" %}</legend></div>
+                <p>{% blocktrans %}Choose which projects you wish to receive email notifications for, as well as an alternative email address to send to.{% endblocktrans %}</p>
+
+                {% for project, form in project_forms %}
+                    {{ form|as_crispy_errors }}
+                {% endfor %}
+                {% for project, form in project_forms %}
+                    {% ifchanged project.team %}
+                        {% if not forloop.first %}
+                            </table>
+                        {% endif %}
+                        <table class="table table-bordered table-striped">
+                            <caption>{{ project.team.name }}</caption>
+
+                            <thead>
+                                <tr>
+                                    <th style="width:5px"><input type="checkbox" onclick="$('tbody input[type=checkbox]', $(this).parents('table')).attr('checked', this.checked)"></th>
+                                    <th>{% trans "Project Name" %}</th>
+                                    <th style="width:100px;overflow:hidden;text-align:right">
+                                        {% trans "Email Address" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    {% endifchanged %}
+                    <tr>
+                        <td>{{ form.alert }}</td>
+                        <td><label for="{{ form.alert.auto_id }}">{{ project.name }}</label></td>
+                        <td style="text-align:right"><a href="#"><em>default</em></a></td>
+                    </tr>
+                {% endfor %}
+                </tbody></table>
+            </fieldset>
+        {% endif %}
+
+        {% for form in ext_forms %}
             <fieldset>
                 <div><legend>{{ form.get_title }}</legend></div>
                 {% with form.get_description as description %}
@@ -19,11 +78,10 @@
                         {{ description|linebreaks }}
                     {% endif %}
                 {% endwith %}
-                {% for field in form %}
-                    {{ field|as_crispy_field }}
-                {% endfor %}
+                {% include "sentry/partial/form_base.html" %}
             </fieldset>
         {% endfor %}
+
         <fieldset class="form-actions">
             <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
         </fieldset>
