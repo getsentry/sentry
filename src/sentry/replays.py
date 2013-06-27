@@ -24,9 +24,14 @@ class Replayer(object):
         if isinstance(data, dict):
             data = urlencode(data)
 
+        if urlparts.query:
+            full_url = urlparts.path + '?' + urlparts.query
+        else:
+            full_url = urlparts.path
+
         conn = conn_cls(urlparts.netloc)
         try:
-            conn.request(self.method, urlparts.path, data, self.headers or {})
+            conn.request(self.method, full_url, data, self.headers or {})
 
             response = conn.getresponse()
         except socket.error, e:
