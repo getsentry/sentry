@@ -119,7 +119,11 @@ def extract_auth_vars(request):
     elif request.META.get('HTTP_AUTHORIZATION', '').startswith('Sentry'):
         return parse_auth_header(request.META['HTTP_AUTHORIZATION'])
     else:
-        return request.GET
+        return dict(
+            (k, request.GET[k])
+            for k in request.GET.iterkeys()
+            if k.startswith('sentry_')
+        )
 
 
 def project_from_auth_vars(auth_vars):
