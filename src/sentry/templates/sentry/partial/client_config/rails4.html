@@ -1,0 +1,19 @@
+{% extends "sentry/partial/client_config/ruby_base.html" %}
+
+{% load i18n %}
+
+{% block inner %}
+  <p>{% trans "Add a <code>config/initializers/raven.rb</code> containing:" %}</p>
+
+  <pre>require 'raven'
+
+Raven.configure do |config|
+  config.dsn = '{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}'
+end</pre>
+
+  <p>{% trans "That's it! Raven automatically installs an error handling hook to pipe all uncaught exceptions to Sentry." %}</p>
+
+  <p>{% trans "If you wish to test your connection to the server, you can use the raven test command:" %}</p>
+
+  <pre>rake raven:test</pre>
+{% endblock %}
