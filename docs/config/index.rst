@@ -25,7 +25,7 @@ This document describes additional configuration options available to the Sentry
 
 	::
 
-		SENTRY_URL_PREFIX = '/sentry'
+		SENTRY_URL_PREFIX = 'http://sentry.example.com'
 
 .. data:: SENTRY_SAMPLE_DATA
     :noindex:
