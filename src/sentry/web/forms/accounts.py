@@ -182,7 +182,11 @@ class ProjectEmailOptionsForm(forms.Form):
             self.user, self.project, 'mail:alert',
             int(self.cleaned_data['alert']),
         )
-        UserOption.objects.set_value(
-            self.user, self.project, 'mail:email',
-            self.cleaned_data['email'],
-        )
+        if self.cleaned_data['email']:
+            UserOption.objects.set_value(
+                self.user, self.project, 'mail:email',
+                self.cleaned_data['email'],
+            )
+        else:
+            UserOption.objects.unset_value(
+                self.user, self.project, 'mail:email')

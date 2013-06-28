@@ -113,13 +113,14 @@ class MailPlugin(NotificationPlugin):
         email_list = set()
         user_ids = set(user_ids)
 
+        # XXX: It's possible that options have been set to an empty value
         if project:
             alert_queryset = UserOption.objects.filter(
                 project=project,
                 user__in=user_ids,
                 key='mail:email',
             )
-            for option in alert_queryset:
+            for option in (o for o in alert_queryset if o.value):
                 user_ids.remove(option.user_id)
                 email_list.add(option.value)
 
@@ -128,7 +129,7 @@ class MailPlugin(NotificationPlugin):
                 user__in=user_ids,
                 key='alert_email',
             )
-            for option in alert_queryset:
+            for option in (o for o in alert_queryset if o.value):
                 user_ids.remove(option.user_id)
                 email_list.add(option.value)
 
