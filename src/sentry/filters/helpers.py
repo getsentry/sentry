@@ -49,7 +49,7 @@ def get_filters(model=None, project=None):
                 class new(TagFilter):
                     label = _(tag.replace('_', ' ').title())
                     column = tag
-                new.__name__ = '__%sGeneratedFilter' % str(tag)
+                new.__name__ = '__%sGeneratedFilter' % tag.encode('utf8')
                 TAG_FILTER_CACHE[tag] = new
             filter_list.append(TAG_FILTER_CACHE[tag])
 
