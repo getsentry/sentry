@@ -154,7 +154,7 @@ h3 {
     top: 0px;
     width: auto;
     z-index: 20000;
-    max-width: 450px;
+    max-width: 550px;
   }
   #team-banner {
     > a small {
@@ -201,11 +201,11 @@ h3 {
           font-size: 15px;
           a {
             color: darken(#e4e8ed, 6);
-            width: 130px;
+            width: 160px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            padding: 3px 0;
+            padding: 3px 3px 3px 0;
             display: inline-block;
             font-weight: 400;
 
@@ -2195,7 +2195,7 @@ table.vars {
         display: block;
         margin: 0 0 20px 0;
         padding: 18px 22px;
-        height: 81px;
+        min-height: 81px;
         border: 5px solid #DEE3E9;
         position: relative;
         .border-radius(7px);
@@ -2231,35 +2231,19 @@ table.vars {
           }
         }
 
-        > a,
         .chart {
           display: block;
           position: absolute;
           left: 0;
           right: 0;
           bottom: 0;
-          top: 0;
-          height: 100px;
-          max-height: auto;
-        }
-        .chart {
-          height: 107px;
           top: 10px;
         }
 
-
         > ul {
-          position: absolute;
-          top: 30px;
-          left: 22px;
-          right: 15px;
-          bottom: 15px;
-          height: 69px;
+          position: relative;
+          min-height: 63px;
           overflow: hidden;
-        }
-
-        > ul {
-          top: 48px;
           margin-left: 0;
           list-style: circle;
 
