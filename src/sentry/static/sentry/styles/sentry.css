@@ -8752,7 +8752,7 @@ table.vars td table {
 }
 .team-index .body .team-list > li > ul {
   position: relative;
-  min-height: 63px;
+  min-height: 56px;
   overflow: hidden;
   margin-left: 0;
   list-style: circle;

@@ -6605,7 +6605,7 @@ h3 {
   top: 0px;
   width: auto;
   z-index: 20000;
-  max-width: 450px;
+  max-width: 550px;
 }
 .navbar #team-banner > a small {
   font-weight: normal;
@@ -6662,11 +6662,11 @@ h3 {
 }
 .navbar #team-banner .dropdown-menu .project-list li a {
   color: #d2d8e1;
-  width: 130px;
+  width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 3px 0;
+  padding: 3px 3px 3px 0;
   display: inline-block;
   font-weight: 400;
 }
@@ -8707,7 +8707,7 @@ table.vars td table {
   display: block;
   margin: 0 0 20px 0;
   padding: 18px 22px;
-  height: 81px;
+  min-height: 81px;
   border: 5px solid #DEE3E9;
   position: relative;
   -webkit-border-radius: 7px;
@@ -8742,32 +8742,18 @@ table.vars td table {
 .team-index .body .team-list > li h2 a:hover {
   color: #e6e6e6;
 }
-.team-index .body .team-list > li > a,
 .team-index .body .team-list > li .chart {
   display: block;
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  top: 0;
-  height: 100px;
-  max-height: auto;
-}
-.team-index .body .team-list > li .chart {
-  height: 107px;
   top: 10px;
 }
 .team-index .body .team-list > li > ul {
-  position: absolute;
-  top: 30px;
-  left: 22px;
-  right: 15px;
-  bottom: 15px;
-  height: 69px;
+  position: relative;
+  min-height: 56px;
   overflow: hidden;
-}
-.team-index .body .team-list > li > ul {
-  top: 48px;
   margin-left: 0;
   list-style: circle;
 }
