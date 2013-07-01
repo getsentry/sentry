@@ -453,4 +453,4 @@ def reorder_teams(team_list, team):
 
 @register.filter
 def urlquote(value, safe=''):
-    return quote(value, safe)
+    return quote(value.encode('utf8'), safe)
