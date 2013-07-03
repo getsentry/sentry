@@ -20,6 +20,7 @@ Additionally, the following experimental clients are available:
 - CFML (`raven-cfml <https://github.com/jmacul2/raven-cfml>`_)
 - Erlang (`raven-erlang <https://github.com/soundrop/raven-erlang>`_)
 - R (`logging <http://logging.r-forge.r-project.org/>`_)
+- Server-Side ActionScript (`raven-ssas <https://github.com/seegno/raven-ssas>`_)
 
 Client Criteria
 ---------------
