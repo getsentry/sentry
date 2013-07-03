@@ -18,6 +18,7 @@ Users Guide
    :maxdepth: 2
 
    quickstart/index
+   quickstart/nginx
    upgrading/index
    config/index
    queue/index
