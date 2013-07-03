@@ -244,6 +244,8 @@ You'll use the builtin HttpProxyModule within Nginx to handle proxying::
       proxy_set_header   X-Forwarded-Proto $scheme;
     }
 
+See :doc:`nginx` for more details on using Nginx.
+
 Enabling SSL
 ~~~~~~~~~~~~~
 
@@ -254,41 +256,6 @@ well as within the Sentry configuration:
 ::
 
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-Running Sentry as WSGI application
-----------------------------------
-
-Sentry can use any WSGI server using ``sentry.wsgi`` module and setting ``SENTRY_CONF`` environment variable. 
-
-To setup Sentry with `uWSGI <http://projects.unbit.it/uwsgi/>`_, use the following uWSGI configuration file::
-
-        [uwsgi]
-        env = SENTRY_CONF=/etc/sentry.conf
-        module = sentry.wsgi
-
-        ; spawn the master and 4 processes
-        http-socket = :9000
-        master = true
-        processes = 4
-
-
-Proxying uWSGI with Nginx
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-You'll use the uWSGI module within Nginx to handle proxying::
-
-   location / {
-        include uwsgi_params;
-        uwsgi_pass 127.0.0.1:9000;
-
-        uwsgi_connect_timeout 180;
-        uwsgi_send_timeout 300;
-        uwsgi_read_timeout 600;
-
-        uwsgi_param UWSGI_SCHEME $scheme;
-    }
-
-.. todo:: Create Proxying uWSGI with Apache section
 
 Running Sentry as a Service
 ---------------------------
