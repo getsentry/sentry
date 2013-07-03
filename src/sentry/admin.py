@@ -5,8 +5,9 @@ from sentry.models import Project, Team
 class ProjectAdmin(admin.ModelAdmin):
     list_display = ('name', 'owner', 'slug', 'public', 'date_added', 'status')
     list_filter = ('public', 'status')
-    search_fields = ('name', 'owner__username', 'owner__email', 'slug')
-    raw_id_fields = ('owner',)
+    search_fields = ('name', 'owner__username', 'owner__email', 'team__slug',
+                     'team__name', 'slug')
+    raw_id_fields = ('owner', 'team')
 
 admin.site.register(Project, ProjectAdmin)
 
