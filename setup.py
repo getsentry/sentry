@@ -72,6 +72,7 @@ install_requires = [
     'django-picklefield>=0.3.0,<0.4.0',
     'django-static-compiler>=0.3.0,<0.4.0',
     'django-templatetag-sugar>=0.1.0,<0.2.0',
+    'djangorestframework>=2.3.6,<2.4.0',
     'gunicorn>=0.17.2,<0.18.0',
     'logan>=0.5.8.2,<0.6.0',
     'nydus>=0.10.0,<0.11.0',
