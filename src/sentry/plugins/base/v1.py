@@ -1,103 +1,20 @@
 """
-sentry.plugins.base
-~~~~~~~~~~~~~~~~~~~
+sentry.plugins.base.v1
+~~~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 
-__all__ = ('Plugin', 'plugins', 'register', 'unregister')
+__all__ = ('Plugin',)
 
-import logging
 
-from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect
 
-from sentry.utils.managers import InstanceManager
-from sentry.utils.safe import safe_execute
 from threading import local
 
-
-class Response(object):
-    def __init__(self, template, context=None):
-        self.template = template
-        self.context = context
-
-    def respond(self, request, context=None):
-        return HttpResponse(self.render(request, context))
-
-    def render(self, request, context=None):
-        from sentry.web.helpers import render_to_string
-
-        if not context:
-            context = {}
-
-        if self.context:
-            context.update(self.context)
-
-        context.update(csrf(request))
-
-        return render_to_string(self.template, context, request)
-
-
-class PluginManager(InstanceManager):
-    def __iter__(self):
-        return iter(self.all())
-
-    def __len__(self):
-        return sum(1 for i in self.all())
-
-    def all(self):
-        for plugin in sorted(super(PluginManager, self).all(), key=lambda x: x.get_title()):
-            if not plugin.is_enabled():
-                continue
-            yield plugin
-
-    def for_project(self, project):
-        for plugin in self.all():
-            if not safe_execute(plugin.is_enabled, project):
-                continue
-            yield plugin
-
-    def for_site(self):
-        for plugin in self.all():
-            if not plugin.has_site_conf():
-                continue
-            yield plugin
-
-    def get(self, slug):
-        for plugin in self.all():
-            if plugin.slug == slug:
-                return plugin
-        raise KeyError(slug)
-
-    def first(self, func_name, *args, **kwargs):
-        for plugin in self.all():
-            try:
-                result = getattr(plugin, func_name)(*args, **kwargs)
-            except Exception, e:
-                logger = logging.getLogger('sentry.plugins')
-                logger.error('Error processing %s() on %r: %s', func_name, plugin.__class__, e, extra={
-                    'func_arg': args,
-                    'func_kwargs': kwargs,
-                }, exc_info=True)
-                continue
-
-            if result is not None:
-                return result
-
-    def register(self, cls):
-        self.add('%s.%s' % (cls.__module__, cls.__name__))
-        return cls
-
-    def unregister(self, cls):
-        self.remove('%s.%s' % (cls.__module__, cls.__name__))
-        return cls
-
-plugins = PluginManager()
-register = plugins.register
-unregister = plugins.unregister
+from sentry.plugins.base.response import Response
 
 
 class PluginMount(type):
@@ -183,7 +100,7 @@ class IPlugin(local):
         return True
 
     def reset_options(self, project=None, user=None):
-        from .helpers import reset_options
+        from sentry.plugins.helpers import reset_options
         return reset_options(self.get_conf_key(), project, user)
 
     def get_option(self, key, project=None, user=None):
@@ -195,7 +112,7 @@ class IPlugin(local):
 
         >>> value = plugin.get_option('my_option')
         """
-        from .helpers import get_option
+        from sentry.plugins.helpers import get_option
         return get_option(self._get_option_key(key), project, user)
 
     def set_option(self, key, value, project=None, user=None):
@@ -206,7 +123,7 @@ class IPlugin(local):
 
         >>> plugin.set_option('my_option', 'http://example.com')
         """
-        from .helpers import set_option
+        from sentry.plugins.helpers import set_option
         return set_option(self._get_option_key(key), value, project, user)
 
     def unset_option(self, key, project=None, user=None):
@@ -217,7 +134,7 @@ class IPlugin(local):
 
         >>> plugin.unset_option('my_option')
         """
-        from .helpers import unset_option
+        from sentry.plugins.helpers import unset_option
         return unset_option(self._get_option_key(key), project, user)
 
     def get_url(self, group):
