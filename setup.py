@@ -37,9 +37,10 @@ for m in ('multiprocessing', 'billiard'):
     except ImportError:
         pass
 
-setup_requires = [
-    'pytest',
-]
+setup_requires = []
+
+if 'test' in sys.argv:
+    setup_requires.append('pytest')
 
 dev_requires = [
     'flake8>=1.7.0,<2.0',
