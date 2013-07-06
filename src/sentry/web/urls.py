@@ -226,6 +226,8 @@ urlpatterns = patterns('',
     url(r'^api/(?P<team_slug>[\w_-]+)/projects/search/$', api.search_projects,
         name='sentry-api-search-projects'),
 
+    url(r'^api/1/', include('sentry.web.restapi.urls')),
+
     # TV dashboard
     url(r'^(?P<team_slug>[\w_-]+)/wall/$', groups.wall_display,
         name='sentry-wall'),
