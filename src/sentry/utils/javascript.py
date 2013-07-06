@@ -15,6 +15,7 @@ from sentry.models import Group, GroupBookmark
 from sentry.templatetags.sentry_plugins import get_tags
 from sentry.utils import json
 from sentry.utils.db import attach_foreignkey
+from sentry.utils.http import absolute_uri
 
 
 transformers = {}
@@ -100,7 +101,7 @@ class GroupTransformer(Transformer):
             'level': obj.level,
             'levelName': escape(obj.get_level_display()),
             'logger': escape(obj.logger),
-            'permalink': reverse('sentry-group', args=[obj.team.slug, obj.project.slug, obj.id]),
+            'permalink': absolute_uri(reverse('sentry-group', args=[obj.team.slug, obj.project.slug, obj.id])),
             'versions': list(obj.get_version() or []),
             'lastSeen': obj.last_seen.isoformat(),
             'timeSpent': obj.avg_time_spent,
