@@ -149,6 +149,7 @@ INSTALLED_APPS = (
     'gunicorn',
     'kombu.transport.django',
     'raven.contrib.django.raven_compat',
+    'rest_framework',
     'sentry',
     'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail',
