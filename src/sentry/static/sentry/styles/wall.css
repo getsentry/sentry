@@ -8890,12 +8890,37 @@ body {
   color: #464752;
   font-size: 12pt;
 }
+#stats > div > div {
+  position: relative;
+  height: 95px;
+}
 #stats big {
   text-shadow: 0px 0px 3px #fff;
   color: #ffffff;
   font-size: 50pt;
   line-height: 56pt;
   font-weight: 200;
+  position: absolute;
+  height: 79px;
+  left: 0;
+  right: 0;
+  top: 0;
+  display: block;
+  overflow: hidden;
+}
+#stats big span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 100%;
+  line-height: inherit;
+  display: block;
+}
+#stats label {
+  position: absolute;
+  top: 79px;
+  left: 0;
+  font-weight: normal;
 }
 #stats strong {
   color: #a6a8b7;

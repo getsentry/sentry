@@ -429,7 +429,43 @@
                 success: _.bind(function(data){
                     this.stats.find('[data-stat]').each(function(){
                         var $this = $(this);
-                        $this.find('big').text(data[$this.attr('data-stat')]);
+                        var new_count = data[$this.attr('data-stat')];
+                        var counter = $this.find('big');
+                        var digit = counter.find('span');
+
+                        if (digit.is(':animated'))
+                            return false;
+
+                        if (counter.data('count') == new_count) {
+                            // We are already showing this number
+                            return false;
+                        }
+
+                        counter.data('count', new_count);
+
+                        var replacement = $('<span></span>', {
+                            css: {
+                                top: '-2.1em',
+                                opacity: 0
+                            },
+                            text: new_count
+                        });
+
+                        // The .static class is added when the animation
+                        // completes. This makes it run smoother.
+
+                        digit.before(replacement).animate({
+                            top: '2.5em',
+                            opacity: 0
+                        }, 'fast', function(){
+                            digit.remove();
+                        });
+
+                        replacement.delay(100).animate({
+                            top: 0,
+                            opacity: 1
+                        }, 'fast');
+
                     });
                     window.setTimeout(this.refreshStats, 1000);
                 }, this)

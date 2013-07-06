@@ -24,13 +24,41 @@ body {
   color: @grayDark;
   font-size: 12pt;
 
+  > div > div {
+    position: relative;
+    height: 95px;
+  }
+
   big {
     text-shadow: 0px 0px 3px #fff;
     color: @white;
     font-size: 50pt;
     line-height: 56pt;
     font-weight: 200;
+    position: absolute;
+    height: 79px;
+    left: 0;
+    right: 0;
+    top: 0;
+    display: block;
+    overflow: hidden;
+
+    span {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 100%;
+      line-height: inherit;
+      display: block;
+    }
   }
+  label {
+    position: absolute;
+    top: 79px;
+    left: 0;
+    font-weight: normal;
+  }
+
   strong {
     color: @gray;
     font-weight: normal;
