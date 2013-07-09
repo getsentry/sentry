@@ -43,8 +43,11 @@
     {% for label, text in interfaces %}
     <div class="interface">
         <div class="title">{{ label }}</div>
-
-        <pre>{{ text }}</pre>
+					{% ifequal label "Exception" %}
+						<pre>{{ text|linebreaksbr }}</pre>
+					{% else %}
+						{{ text }}
+					{% endifequal %}
     </div>
     {% endfor %}
 
