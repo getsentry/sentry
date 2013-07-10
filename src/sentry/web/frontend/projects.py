@@ -14,7 +14,7 @@ from django.views.decorators.http import require_http_methods
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
-from sentry.constants import MEMBER_OWNER
+from sentry.constants import MEMBER_OWNER, STATUS_HIDDEN
 from sentry.models import Project, ProjectKey, Team, TagKey
 from sentry.permissions import (
     can_remove_project, can_add_project_key, can_remove_project_key)
@@ -48,12 +48,18 @@ def remove_project(request, team, project):
     if form.is_valid():
         removal_type = form.cleaned_data['removal_type']
         if removal_type == '1':
-            project.delete()
+            from sentry.tasks.deletion import delete_project
+
+            delete_project.delay(object_id=project.id)
+            project.update(status=STATUS_HIDDEN)
+
+            messages.add_message(request, messages.SUCCESS,
+                _('Deletion has been queued and should occur shortly.'))
         elif removal_type == '2':
             new_project = form.cleaned_data['project']
             project.merge_to(new_project)
         elif removal_type == '3':
-            project.update(status=1)
+            project.update(status=STATUS_HIDDEN)
         else:
             raise ValueError(removal_type)
 

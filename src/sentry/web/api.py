@@ -9,15 +9,18 @@ import datetime
 import logging
 from functools import wraps
 
+from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
 from django.core.urlresolvers import reverse
 from django.db.models import Sum, Q
 from django.http import HttpResponse, HttpResponseForbidden, HttpResponseRedirect
 from django.utils import timezone
+from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache, cache_control
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.vary import vary_on_cookie
 from django.views.generic.base import View as BaseView
+
 from sentry.conf import settings
 from sentry.constants import (
     MEMBER_USER, STATUS_MUTED, STATUS_UNRESOLVED, STATUS_RESOLVED)
@@ -468,17 +471,21 @@ def unresolve_group(request, team, project, group_id):
 @has_access(MEMBER_USER)
 @never_cache
 def remove_group(request, team, project, group_id):
+    from sentry.tasks.deletion import delete_group
+
     try:
         group = Group.objects.get(pk=group_id)
     except Group.DoesNotExist:
         return HttpResponseForbidden()
 
-    group.delete()
+    delete_group.delay(object_id=group.id)
 
     if request.is_ajax():
         response = HttpResponse('{}')
         response['Content-Type'] = 'application/json'
     else:
+        messages.add_message(request, messages.SUCCESS,
+            _('Deletion has been queued and should occur shortly.'))
         response = HttpResponseRedirect(reverse('sentry-stream', args=[team.slug, project.slug]))
     return response
 
