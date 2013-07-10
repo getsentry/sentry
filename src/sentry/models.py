@@ -242,8 +242,9 @@ class Project(Model):
         # This handles cascades properly
         # TODO: this doesn't clean up the index
         for model in (
-                TagKey, TagValue, GroupTag, GroupCountByMinute,
-                ProjectCountByMinute, EventMapping, Event, Group):
+                TagKey, TagValue, GroupTagKey, GroupTag, GroupCountByMinute,
+                ProjectCountByMinute, Activity, EventMapping, Event, Group):
+            logging.info('Removing %r objects where project=%s', model, self.id)
             has_results = True
             while has_results:
                 has_results = False
