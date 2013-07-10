@@ -242,8 +242,8 @@ class Project(Model):
         # This handles cascades properly
         # TODO: this doesn't clean up the index
         for model in (
-                Event, Group, TagKey, TagValue, GroupTag, GroupCountByMinute,
-                ProjectCountByMinute, EventMapping):
+                TagKey, TagValue, GroupTag, GroupCountByMinute,
+                ProjectCountByMinute, EventMapping, Event, Group):
             has_results = True
             while has_results:
                 has_results = False
