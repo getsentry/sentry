@@ -77,7 +77,8 @@
                 if (existing.get(i) === undefined) {
                     $('<a style="width:' + point_width + ';" rel="tooltip" title="' + title + '"><span style="height:' + pct + '">' + point.y + '</span></a>').tooltip({
                         placement: options.placement || 'bottom',
-                        html: true
+                        html: true,
+                        container: 'body'
                     }).appendTo($el);
                 } else {
                     $(existing[i]).find('span').css('height', pct).text(point.y).attr('title', (point.label || point.y));
