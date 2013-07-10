@@ -242,8 +242,14 @@ class Project(Model):
         # This handles cascades properly
         # TODO: this doesn't clean up the index
         for model in (
-                Event, Group, TagKey, TagValue, GroupTag, GroupCountByMinute):
-            model.objects.filter(project=self).delete()
+                Event, Group, TagKey, TagValue, GroupTag, GroupCountByMinute,
+                ProjectCountByMinute, EventMapping):
+            has_results = True
+            while has_results:
+                has_results = False
+                for obj in model.objects.filter(project=self)[:1000]:
+                    obj.delete()
+                    has_results = True
         super(Project, self).delete()
 
     def merge_to(self, project):
