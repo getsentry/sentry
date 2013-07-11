@@ -38,6 +38,5 @@ def handler500(request):
     return HttpResponseServerError(t.render(Context(context)))
 
 urlpatterns = patterns('',
-    url(r'^i18n/', include('django.conf.urls.i18n')),
     url(r'^admin/', include(admin.site.urls)),
 ) + web_urlpatterns
