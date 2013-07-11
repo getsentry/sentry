@@ -38,7 +38,7 @@ from sentry.constants import (
     STATUS_LEVELS, MEMBER_TYPES,
     MEMBER_OWNER, MEMBER_USER, PLATFORM_TITLES, PLATFORM_LIST,
     STATUS_UNRESOLVED, STATUS_RESOLVED, STATUS_VISIBLE, STATUS_HIDDEN,
-    MINUTE_NORMALIZATION, STATUS_MUTED)
+    MINUTE_NORMALIZATION, STATUS_MUTED, RESERVED_TEAM_SLUGS)
 from sentry.manager import (
     GroupManager, ProjectManager,
     MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager,
@@ -57,10 +57,12 @@ from sentry.utils.strings import truncatechars
 __all__ = ('Event', 'Group', 'Project', 'SearchDocument')
 
 
-def slugify_instance(inst, label, **kwargs):
+def slugify_instance(inst, label, reserved=(), **kwargs):
     base_slug = slugify(label)
+    if base_slug in reserved:
+        base_slug = None
     if not base_slug:
-        base_slug = 'default_%s' % (uuid.uuid4())
+        base_slug = uuid.uuid4().hex[:12]
     manager = type(inst).objects
     inst.slug = base_slug
     n = 0
@@ -134,7 +136,7 @@ class Team(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            slugify_instance(self, self.name)
+            slugify_instance(self, self.name, reserved=RESERVED_TEAM_SLUGS)
         super(Team, self).save(*args, **kwargs)
 
     def get_owner_name(self):

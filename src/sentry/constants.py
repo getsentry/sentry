@@ -169,3 +169,9 @@ MAX_EXTRA_VARIABLE_SIZE = 2048
 # individual item. In those cases we also want to limit the maximum number of
 # keys
 MAX_DICTIONARY_ITEMS = 50
+
+# Team slugs which may not be used. Generally these are top level URL patterns
+# which we don't want to worry about conflicts on.
+RESERVED_TEAM_SLUGS = (
+    'admin', 'manage', 'login', 'account', 'register', 'api',
+)
