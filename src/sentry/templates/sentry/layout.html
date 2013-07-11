@@ -179,8 +179,14 @@
                 keep_text: true
             });
             $('input[data-toggle="datepicker"]').datepicker();
-            $('.tip').tooltip();
-            $('.trigger-popover').popover();
+            $('.tip').tooltip({
+                html: true,
+                container: 'body'
+            });
+            $('.trigger-popover').popover({
+                html: true,
+                container: 'body'
+            });
             $('.nav-tabs .active a').tab('show')
             $('.project-selector').on('change', function(e){
                 var $el = $(e.target).get(0);
