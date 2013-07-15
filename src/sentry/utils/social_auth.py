@@ -24,8 +24,8 @@ def create_user_if_enabled(*args, **kwargs):
     """
     if not settings.SOCIAL_AUTH_CREATE_USERS:
         user = kwargs.get('user')
-        if not user:
-            raise AuthNotAllowed('You must create an account before associating an identity.')
-        return user
+        if user:
+            return {'user': user}
+        raise AuthNotAllowed('You must create an account before associating an identity.')
 
     return create_user(*args, **kwargs)
