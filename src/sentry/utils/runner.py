@@ -227,6 +227,12 @@ def apply_legacy_settings(config):
                       'See http://sentry.readthedocs.org/en/latest/queue/index.html for more information.')
         settings.CELERY_ALWAYS_EAGER = (not settings.SENTRY_USE_QUEUE)
 
+    # Set ALLOWED_HOSTS if it's not already available
+    if not settings.ALLOWED_HOSTS and settings.SENTRY_URL_PREFIX:
+        from urlparse import urlparse
+        urlbits = urlparse(settings.SENTRY_URL_PREFIX)
+        if urlbits.hostname:
+            settings.ALLOWED_HOSTS = (urlbits.hostname,)
 
 def table_exists(name):
     from django.db import connections
