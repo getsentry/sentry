@@ -22,10 +22,7 @@ def create_user_if_enabled(*args, **kwargs):
     A pipeline step for django-social-auth
     Create user. Depends on get_username pipeline.
     """
-    if not settings.SOCIAL_AUTH_CREATE_USERS:
-        user = kwargs.get('user')
-        if user:
-            return {'user': user}
+    if not settings.SOCIAL_AUTH_CREATE_USERS and not kwargs.get('user'):
         raise AuthNotAllowed('You must create an account before associating an identity.')
 
     return create_user(*args, **kwargs)
