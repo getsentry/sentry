@@ -274,6 +274,20 @@ def validate_data(project, data, client=None):
         # remove any values which are over 32 characters
         tags = []
         for k, v in data['tags']:
+            if not isinstance(k, basestring):
+                try:
+                    k = unicode(k)
+                except Exception:
+                    logger.info('Discarded invalid tag key: %r',
+                                type(k), **client_metadata(client, project))
+                    continue
+            if not isinstance(v, basestring):
+                try:
+                    v = unicode(v)
+                except Exception:
+                    logger.info('Discarded invalid tag value: %s=%r',
+                                k, type(v), **client_metadata(client, project))
+                    continue
             if len(k) > 32 or len(v) > 32:
                 logger.info('Discarded invalid tag: %s=%s',
                             k, v, **client_metadata(client, project))

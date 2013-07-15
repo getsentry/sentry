@@ -11,6 +11,7 @@ from logan.runner import run_app, configure_app
 import base64
 import os
 import pkg_resources
+import warnings
 
 KEY_LENGTH = 40
 
@@ -213,6 +214,18 @@ def initialize_app(config):
         config['settings'], 'kombu.contrib.django', 'djkombu_queue')
     skip_migration_if_applied(
         config['settings'], 'social_auth', 'social_auth_association')
+
+    apply_legacy_settings(config)
+
+
+def apply_legacy_settings(config):
+    settings = config['settings']
+
+    # SENTRY_USE_QUEUE used to determine if Celery was eager or not
+    if hasattr(settings, 'SENTRY_USE_QUEUE'):
+        warnings.warn('SENTRY_USE_QUEUE is deprecated. Please use CELERY_ALWAYS_EAGER instead. '
+                      'See http://sentry.readthedocs.org/en/latest/queue/index.html for more information.')
+        settings.CELERY_ALWAYS_EAGER = (not settings.SENTRY_USE_QUEUE)
 
 
 def table_exists(name):
