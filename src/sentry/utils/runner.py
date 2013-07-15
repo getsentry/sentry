@@ -234,6 +234,7 @@ def apply_legacy_settings(config):
         if urlbits.hostname:
             settings.ALLOWED_HOSTS = (urlbits.hostname,)
 
+
 def table_exists(name):
     from django.db import connections
     return name in connections['default'].introspection.table_names()

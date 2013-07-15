@@ -3,6 +3,7 @@ from sentry.conf import settings
 from sentry.models import UserOption
 from sentry.utils.http import absolute_uri
 from django.core.urlresolvers import reverse
+from social_auth.middleware import SocialAuthExceptionMiddleware
 
 
 class SentryMiddleware(object):
@@ -24,9 +25,6 @@ class SentryMiddleware(object):
         if language:
             request.session['django_language'] = language
 
-
-
-from social_auth.middleware import SocialAuthExceptionMiddleware
 
 class SentrySocialAuthExceptionMiddleware(SocialAuthExceptionMiddleware):
     def get_redirect_uri(self, request, exception):
