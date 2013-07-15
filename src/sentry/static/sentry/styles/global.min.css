@@ -8611,16 +8611,30 @@ table.vars td.code > pre {
 }
 table.vars td,
 table.vars th {
+  padding: 10px;
   border: 0;
   vertical-align: top;
 }
 table.vars td table {
   border-top: 0;
   margin-top: -5px;
-  margin-bottom: 5px;
+  margin-bottom: -5px;
 }
-.table-striped {
-  border-top: 2px solid #F4F6F9;
+table.vars thead th,
+table.vars thead td {
+  background-color: #fff !important;
+}
+table.vars tbody > tr:nth-child(odd) > td,
+table.vars tbody > tr:nth-child(odd) > th {
+  background-color: #F4F6F9;
+}
+table.vars tbody > tr:nth-child(even) > td,
+table.vars tbody > tr:nth-child(even) > th {
+  background-color: #fff;
+}
+table.vars table.vars td,
+table.vars table.vars th {
+  padding: 5px 10px;
 }
 .table-striped tbody tr:nth-child(odd) td,
 .table-striped tbody tr:nth-child(odd) th {
@@ -8631,7 +8645,7 @@ table.vars td table {
   background-color: #fff;
 }
 .nav-tabs {
-  border-bottom: 2px solid #dee3e9;
+  border-bottom: 1px solid #dee3e9;
 }
 .nav-tabs > li {
   margin-bottom: -2px;

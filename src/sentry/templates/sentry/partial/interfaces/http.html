@@ -27,7 +27,7 @@
                 <tr>
                     <th>{% trans "Query:" %}</th>
                     <td class="values">
-                        {% render_values query_string %}
+                        <pre>{{ query_string }}</pre>
                     </td>
                 </tr>
                 {% if data %}

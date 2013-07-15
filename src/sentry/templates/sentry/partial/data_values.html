@@ -6,22 +6,20 @@
         <colgroup>
             <col style="width:100px;">
         </colgroup>
-        <thead>
-            <tr>
-                <th>
-                    {% if is_list %}
+        {% if is_list %}
+            <thead>
+                <tr>
+                    <th>
                         {% trans "Index" %}
-                    {% else %}
-                        {% trans "Key" %}
-                    {% endif %}
-                </th>
-                <th>{% trans "Value" %}</th>
-            </tr>
-        </thead>
+                    </th>
+                    <th>{% trans "Value" %}</th>
+                </tr>
+            </thead>
+        {% endif %}
         <tbody>
             {% for k, v in value_before_expand %}
                 <tr>
-                    <td>{{ k }}</td>
+                    <th>{{ k }}</th>
                     <td class="values">
                         {% render_values v %}
                     </td>
@@ -29,7 +27,7 @@
             {% endfor %}
             {% for k, v in value_after_expand %}
                 <tr class="js-expand" style="display:none">
-                    <td>{{ k }}</td>
+                    <th>{{ k }}</th>
                     <td class="values">
                         {% render_values v %}
                     </td>

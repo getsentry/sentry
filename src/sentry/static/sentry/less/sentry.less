@@ -2086,19 +2086,36 @@ table.table, table.vars {
 
 table.vars {
   td, th {
+    padding: 10px;
     border: 0;
     vertical-align: top;
   }
   td table {
     border-top: 0;
     margin-top: -5px;
-    margin-bottom: 5px;
+    margin-bottom: -5px;
+  }
+  thead th,
+  thead td {
+    background-color: #fff !important;
+  }
+  tbody > tr:nth-child(odd) > td,
+  tbody > tr:nth-child(odd) > th {
+    background-color: #F4F6F9;
+  }
+  tbody > tr:nth-child(even) > td,
+  tbody > tr:nth-child(even) > th {
+    background-color: #fff;
+  }  
+  table.vars {
+    td, th {
+      padding: 5px 10px;
+    }
+
   }
 }
 
 .table-striped {
-  border-top: 2px solid #F4F6F9;
-
   tbody tr:nth-child(odd) td,
   tbody tr:nth-child(odd) th {
     background-color: #F4F6F9;
@@ -2110,7 +2127,7 @@ table.vars {
 }
 
 .nav-tabs {
-  border-bottom: 2px solid #dee3e9;
+  border-bottom: 1px solid #dee3e9;
   > li {
     margin-bottom: -2px;
   }
