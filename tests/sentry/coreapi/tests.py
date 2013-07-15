@@ -256,3 +256,10 @@ class ValidateDataTest(BaseAPITest):
             'tags': {'f' * 33: 'value', 'foo': 'v' * 33, 'bar': 'value'},
         })
         assert data['tags'] == [('bar', 'value')]
+
+    def test_extra_as_string(self):
+        data = validate_data(self.project, {
+            'message': 'foo',
+            'extra': 'bar',
+        })
+        assert 'extra' not in data
