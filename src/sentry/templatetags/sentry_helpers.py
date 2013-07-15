@@ -390,13 +390,14 @@ def github_button(user, repo):
 @register.inclusion_tag('sentry/partial/data_values.html')
 def render_values(value, threshold=5, collapse_to=3):
     if isinstance(value, (list, tuple)):
-        value = dict(("[%04d]" % (idx,), val) for idx, val in enumerate(value))
-        is_dict = True
+        value = dict(enumerate(value))
+        is_list, is_dict = True, True
     else:
-        is_dict = isinstance(value, dict)
+        is_list, is_dict = False, isinstance(value, dict)
 
     context = {
         'is_dict': is_dict,
+        'is_list': is_list,
         'threshold': threshold,
         'collapse_to': collapse_to,
     }
