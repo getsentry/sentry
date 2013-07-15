@@ -110,6 +110,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'sentry.middleware.SentryMiddleware',
+    'sentry.middleware.SentrySocialAuthExceptionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
 )
@@ -228,6 +229,15 @@ GITHUB_API_SECRET = ''
 
 TRELLO_API_KEY = ''
 TRELLO_API_SECRET = ''
+
+SOCIAL_AUTH_PIPELINE = (
+    'social_auth.backends.pipeline.social.social_auth_user',
+    'social_auth.backends.pipeline.user.get_username',
+    'sentry.utils.social_auth.create_user_if_enabled',
+    'social_auth.backends.pipeline.social.associate_user',
+    'social_auth.backends.pipeline.social.load_extra_data',
+    'social_auth.backends.pipeline.user.update_user_details'
+)
 
 SOCIAL_AUTH_CREATE_USERS = True
 
