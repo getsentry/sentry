@@ -61,7 +61,7 @@ class Filter(object):
         return '?' + query_dict.urlencode()
 
     def get_choices(self):
-        key = 'filters:%s:%s' % (self.project.id, hashlib.md5(self.column).hexdigest())
+        key = 'filters:%s:%s' % (self.project.id, hashlib.md5(self.column.encode('utf8')).hexdigest())
         result = cache.get(key)
         if result is None:
             result = list(TagValue.objects.filter(
