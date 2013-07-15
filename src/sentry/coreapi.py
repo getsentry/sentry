@@ -255,11 +255,31 @@ def validate_data(project, data, client=None):
             type(data['modules']), **client_metadata(client, project))
         del data['modules']
 
-    if data.get('extra') and type(data['extra']) != dict:
+    if data.get('extra') is not None and type(data['extra']) != dict:
         logger.info(
             'Discarded invalid type for extra: %s',
             type(data['extra']), **client_metadata(client, project))
         del data['extra']
+
+    if data.get('tags') is not None:
+        if type(data['tags']) == dict:
+            data['tags'] = data['tags'].items()
+        elif not isinstance(data['tags'], (list, tuple)):
+            logger.info(
+                'Discarded invalid type for tags: %s',
+                type(data['tags']), **client_metadata(client, project))
+            del data['tags']
+
+    if data.get('tags'):
+        # remove any values which are over 32 characters
+        tags = []
+        for k, v in data['tags']:
+            if len(k) > 32 or len(v) > 32:
+                logger.info('Discarded invalid tag: %s=%s',
+                            k, v, **client_metadata(client, project))
+                continue
+            tags.append((k, v))
+        data['tags'] = tags
 
     for k in data.keys():
         if k in RESERVED_FIELDS:

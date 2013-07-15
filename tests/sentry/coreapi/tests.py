@@ -242,3 +242,17 @@ class ValidateDataTest(BaseAPITest):
             'message': 'foo',
         })
         assert data['project'] == self.project.id
+
+    def test_tags_as_string(self):
+        data = validate_data(self.project, {
+            'message': 'foo',
+            'tags': 'bar',
+        })
+        assert 'tags' not in data
+
+    def test_tags_out_of_bounds(self):
+        data = validate_data(self.project, {
+            'message': 'foo',
+            'tags': {'f' * 33: 'value', 'foo': 'v' * 33, 'bar': 'value'},
+        })
+        assert data['tags'] == [('bar', 'value')]
