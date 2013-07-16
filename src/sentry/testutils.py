@@ -267,3 +267,19 @@ class TransactionTestCase(BaseTestCase, TransactionTestCase):
     def _fixture_teardown(self):
         for db in self._get_databases():
             call_command('flush', verbosity=0, interactive=False, database=db)
+
+
+def with_eager_tasks(func):
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        from celery.app import app_or_default
+
+        app = app_or_default()
+        prev = app.conf.CELERY_ALWAYS_EAGER
+        app.conf.CELERY_ALWAYS_EAGER = True
+
+        try:
+            return func(*args, **kwargs)
+        finally:
+            app.conf.CELERY_ALWAYS_EAGER = prev
+    return func
