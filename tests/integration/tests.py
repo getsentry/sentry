@@ -5,17 +5,16 @@ from __future__ import absolute_import
 import datetime
 import mock
 
-from celery.tests.utils import with_eager_tasks
-
 from django.conf import settings as django_settings
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 
 from raven import Client
 from sentry.models import Group, Event, Project, User
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, with_eager_tasks
 from sentry.utils.settings import (
     validate_settings, ConfigurationError, import_string)
+
 
 
 DEPENDENCY_TEST_DATA = {

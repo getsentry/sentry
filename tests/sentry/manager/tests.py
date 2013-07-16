@@ -6,8 +6,6 @@ import datetime
 import mock
 import pytest
 
-from celery.tests.utils import with_eager_tasks
-
 from django.utils import timezone
 
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
@@ -17,7 +15,7 @@ from sentry.models import (
     Event, Group, Project, GroupCountByMinute, ProjectCountByMinute,
     SearchDocument, Team, EventMapping, User, AccessGroup, Option)
 from sentry.utils.db import has_trending  # NOQA
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, with_eager_tasks
 
 
 class DummyInterface(Interface):

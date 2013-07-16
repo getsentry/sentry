@@ -3,11 +3,26 @@ import pytz
 from datetime import datetime, timedelta
 from exam import fixture
 
+from django.db import models
+
 from sentry.testutils import TestCase
-from sentry.tsdb.models import Point, Key
+from sentry.tsdb.models import PointBase
 from sentry.tsdb.utils import ROLLUPS
 
 timestamp = datetime(2013, 5, 18, 15, 13, 58, 132928, tzinfo=pytz.UTC)
+
+
+class Key(models.Model):
+    name = models.CharField(max_length=1000, unique=True)
+
+
+class Point(PointBase):
+    key = models.ForeignKey(Key)
+
+    class Meta:
+        unique_together = (
+            ('key', 'rollup', 'epoch'),
+        )
 
 
 class IncrTest(TestCase):

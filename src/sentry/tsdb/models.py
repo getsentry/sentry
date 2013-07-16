@@ -49,11 +49,12 @@ Get some datas:
 from django.db import models
 
 from sentry.models import Project, Group, TagValue
+from sentry.utils.models import Model
 
 from .manager import PointManager
 
 
-class PointBase(models.Model):
+class PointBase(Model):
     value = models.PositiveIntegerField(default=0)
     epoch = models.PositiveIntegerField()
     rollup = models.PositiveIntegerField()
@@ -67,7 +68,7 @@ class PointBase(models.Model):
         )
 
 
-class ProjectPoint(models.Model):
+class ProjectPoint(PointBase):
     project = models.ForeignKey(Project)
 
     class Meta:
@@ -76,7 +77,7 @@ class ProjectPoint(models.Model):
         )
 
 
-class TagPoint(models.Model):
+class TagPoint(PointBase):
     project = models.ForeignKey(Project)
     tag = models.ForeignKey(TagValue)
 
@@ -86,7 +87,7 @@ class TagPoint(models.Model):
         )
 
 
-class GroupPoint(models.Model):
+class GroupPoint(PointBase):
     project = models.ForeignKey(Project)
     group = models.ForeignKey(Group)
 
@@ -96,7 +97,7 @@ class GroupPoint(models.Model):
         )
 
 
-class GroupTagPoint(models.Model):
+class GroupTagPoint(PointBase):
     project = models.ForeignKey(Project)
     group = models.ForeignKey(Group)
     tag = models.ForeignKey(TagValue)
