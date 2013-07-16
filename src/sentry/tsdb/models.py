@@ -2,7 +2,24 @@
 sentry.tsdb.models
 ~~~~~~~~~~~~~~~~~~
 
-Get a key:
+In a generic time-series storage, you might implement
+points with a simple key + point storage:
+
+>>> class Key(models.Model):
+>>>     name = models.CharField(max_length=1000, unique=True)
+>>>
+>>>     objects = BaseManager(cache_fields=['name'])
+>>>
+>>>
+>>> class Point(PointBase):
+>>>     key = models.ForeignKey(Key)
+>>>
+>>>     class Meta:
+>>>         unique_together = (
+>>>             ('key', 'rollup', 'epoch'),
+>>>         )
+
+Then you could simple create a key:
 
 >>> key = Key.objects.get_or_create(
 >>>     name='events.group.{}'.format(group_id)
@@ -31,19 +48,12 @@ Get some datas:
 
 from django.db import models
 
-from sentry.manager import BaseManager
+from sentry.models import Project, Group, TagValue
 
 from .manager import PointManager
 
 
-class Key(models.Model):
-    name = models.CharField(max_length=1000, unique=True)
-
-    objects = BaseManager(cache_fields=['name'])
-
-
-class Point(models.Model):
-    key = models.ForeignKey(Key)
+class PointBase(models.Model):
     value = models.PositiveIntegerField(default=0)
     epoch = models.PositiveIntegerField()
     rollup = models.PositiveIntegerField()
@@ -51,9 +61,47 @@ class Point(models.Model):
     objects = PointManager()
 
     class Meta:
-        unique_together = (
-            ('key', 'rollup', 'epoch'),
-        )
+        abstract = True
         index_together = (
             ('rollup', 'epoch'),
+        )
+
+
+class ProjectPoint(models.Model):
+    project = models.ForeignKey(Project)
+
+    class Meta:
+        unique_together = (
+            ('project', 'rollup', 'epoch'),
+        )
+
+
+class TagPoint(models.Model):
+    project = models.ForeignKey(Project)
+    tag = models.ForeignKey(TagValue)
+
+    class Meta:
+        unique_together = (
+            ('tag', 'rollup', 'epoch'),
+        )
+
+
+class GroupPoint(models.Model):
+    project = models.ForeignKey(Project)
+    group = models.ForeignKey(Group)
+
+    class Meta:
+        unique_together = (
+            ('group', 'rollup', 'epoch'),
+        )
+
+
+class GroupTagPoint(models.Model):
+    project = models.ForeignKey(Project)
+    group = models.ForeignKey(Group)
+    tag = models.ForeignKey(TagValue)
+
+    class Meta:
+        unique_together = (
+            ('group', 'tag', 'rollup', 'epoch'),
         )
