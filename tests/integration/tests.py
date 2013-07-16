@@ -3,7 +3,10 @@
 from __future__ import absolute_import
 
 import datetime
+import logging
 import mock
+
+from exam import before, after
 
 from django.conf import settings as django_settings
 from django.core.urlresolvers import reverse
@@ -68,19 +71,35 @@ class RavenIntegrationTest(TestCase):
     This mocks the test server and specifically tests behavior that would
     happen between Raven <--> Sentry over HTTP communication.
     """
-    def setUp(self):
+    @before
+    def setup_fixtures(self):
         self.user = User.objects.create(username='coreapi')
         self.project = Project.objects.create(owner=self.user, name='Foo', slug='bar')
         self.pm = self.project.team.member_set.get_or_create(user=self.user)[0]
         self.pk = self.project.key_set.get_or_create(user=self.user)[0]
 
-    def sendRemote(self, url, data, headers={}):
-        # TODO: make this install a temporary handler which raises an assertion error
-        import logging
-        sentry_errors = logging.getLogger('sentry.errors')
-        sentry_errors.addHandler(logging.StreamHandler())
-        sentry_errors.setLevel(logging.DEBUG)
+    @before
+    def wire_logging(self):
+        class AssertHandler(logging.Handler):
+            def emit(self, record):
+                print record
+                self.format(record)
+                raise AssertionError(record.msg)
 
+        self.handler = AssertHandler()
+        for logger_name in ('root', 'sentry.errors'):
+            logger = logging.getLogger(logger_name)
+            logger.addHandler(self.handler)
+            logger.setLevel(logging.DEBUG)
+
+    @after
+    def unwire_logging(self):
+        for logger_name in ('root', 'sentry.errors'):
+            logger = logging.getLogger(logger_name)
+            logger.handlers.remove(self.handler)
+
+    @with_eager_tasks
+    def sendRemote(self, url, data, headers={}):
         content_type = headers.pop('Content-Type', None)
         headers = dict(('HTTP_' + k.replace('-', '_').upper(), v) for k, v in headers.iteritems())
         resp = self.client.post(
@@ -90,7 +109,6 @@ class RavenIntegrationTest(TestCase):
             **headers)
         self.assertEquals(resp.status_code, 200, resp.content)
 
-    @with_eager_tasks
     @mock.patch('raven.base.Client.send_remote')
     def test_basic(self, send_remote):
         send_remote.side_effect = self.sendRemote
