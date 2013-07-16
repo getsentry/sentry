@@ -1,10 +1,12 @@
 from __future__ import absolute_import
 
 from django.db import models
+
+from sentry.models import Option
+from sentry.testutils import TestCase
 from sentry.utils.models import (
     Model, BoundedIntegerField, BoundedBigIntegerField,
-    BoundedPositiveIntegerField)
-from sentry.testutils import TestCase
+    BoundedPositiveIntegerField, create_or_update)
 
 
 # There's a good chance this model wont get created in the db, so avoid
@@ -47,3 +49,27 @@ class ModelTest(TestCase):
 
         with self.assertRaises(AssertionError):
             DummyModel.objects.create(posint=9223372036854775808L, foo='bar')
+
+
+class CreateOrUpdateTest(TestCase):
+    def test_basic_flow(self):
+        assert not Option.objects.filter(key='foo').exists()
+
+        result, created = create_or_update(Option, key='foo', values={
+            'value': 'bar',
+        })
+
+        assert created is True
+        assert type(result) is Option
+        assert result.key == 'foo'
+        assert result.value == 'bar'
+
+        result, created = create_or_update(Option, key='foo', values={
+            'value': 'baz',
+        })
+
+        assert created is False
+        assert result == 1
+
+        row = Option.objects.get(key='foo')
+        assert row.value == 'baz'

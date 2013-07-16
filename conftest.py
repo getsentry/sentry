@@ -64,6 +64,9 @@ def pytest_configure(config):
         'django.contrib.auth.hashers.MD5PasswordHasher',
     ]
 
+    settings.SENTRY_USE_QUEUE = True
+    settings.CELERY_ALWAYS_EAGER = False
+
     # enable draft features
     settings.SENTRY_ENABLE_EXPLORE_CODE = True
     settings.SENTRY_ENABLE_EXPLORE_USERS = True

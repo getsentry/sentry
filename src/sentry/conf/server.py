@@ -147,12 +147,15 @@ INSTALLED_APPS = (
     'djcelery',
     'gunicorn',
     'kombu.transport.django',
+
     'raven.contrib.django.raven_compat',
     'sentry',
     'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail',
     'sentry.plugins.sentry_urls',
     'sentry.plugins.sentry_useragents',
+    'sentry.tsdb',
+
     'social_auth',
     'south',
     'static_compiler',

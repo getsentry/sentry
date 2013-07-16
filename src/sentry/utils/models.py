@@ -110,20 +110,21 @@ def create_or_update(model, using=None, **kwargs):
     >>>     'value': F('value') + 1,
     >>> })
     """
-    defaults = kwargs.pop('defaults', {})
+    # legacy handle for values
+    values = kwargs.pop('defaults', kwargs.pop('values', {}))
 
     if not using:
         using = router.db_for_write(model)
 
     objects = model.objects.using(using)
 
-    affected = objects.filter(**kwargs).update(**defaults)
+    affected = objects.filter(**kwargs).update(**values)
     if affected:
         return affected, False
 
     create_kwargs = kwargs.copy()
     inst = objects.model()
-    for k, v in defaults.iteritems():
+    for k, v in values.iteritems():
         if isinstance(v, ExpressionNode):
             create_kwargs[k] = resolve_expression_node(inst, v)
         else:
@@ -132,7 +133,7 @@ def create_or_update(model, using=None, **kwargs):
         return objects.create(**create_kwargs), True
     except IntegrityError:
         transaction.rollback_unless_managed(using=using)
-        affected = objects.filter(**kwargs).update(**defaults)
+        affected = objects.filter(**kwargs).update(**values)
 
     if not affected:
         raise QueryError('No rows updated or created for kwargs: %r' % kwargs)

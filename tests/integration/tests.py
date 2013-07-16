@@ -3,7 +3,10 @@
 from __future__ import absolute_import
 
 import datetime
+import logging
 import mock
+
+from exam import before, after
 
 from django.conf import settings as django_settings
 from django.core.urlresolvers import reverse
@@ -11,9 +14,10 @@ from django.utils import timezone
 
 from raven import Client
 from sentry.models import Group, Event, Project, User
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, with_eager_tasks
 from sentry.utils.settings import (
     validate_settings, ConfigurationError, import_string)
+
 
 
 DEPENDENCY_TEST_DATA = {
@@ -67,22 +71,39 @@ class RavenIntegrationTest(TestCase):
     This mocks the test server and specifically tests behavior that would
     happen between Raven <--> Sentry over HTTP communication.
     """
-    def setUp(self):
+    @before
+    def setup_fixtures(self):
         self.user = User.objects.create(username='coreapi')
         self.project = Project.objects.create(owner=self.user, name='Foo', slug='bar')
         self.pm = self.project.team.member_set.get_or_create(user=self.user)[0]
         self.pk = self.project.key_set.get_or_create(user=self.user)[0]
 
-    def sendRemote(self, url, data, headers={}):
-        # TODO: make this install a temporary handler which raises an assertion error
-        import logging
-        sentry_errors = logging.getLogger('sentry.errors')
-        sentry_errors.addHandler(logging.StreamHandler())
-        sentry_errors.setLevel(logging.DEBUG)
+    @before
+    def wire_logging(self):
+        class AssertHandler(logging.Handler):
+            def emit(self, record):
+                print record
+                self.format(record)
+                raise AssertionError(record.msg)
 
+        self.handler = AssertHandler()
+        for logger_name in ('root', 'sentry.errors'):
+            logger = logging.getLogger(logger_name)
+            logger.addHandler(self.handler)
+            logger.setLevel(logging.DEBUG)
+
+    @after
+    def unwire_logging(self):
+        for logger_name in ('root', 'sentry.errors'):
+            logger = logging.getLogger(logger_name)
+            logger.handlers.remove(self.handler)
+
+    @with_eager_tasks
+    def sendRemote(self, url, data, headers={}):
         content_type = headers.pop('Content-Type', None)
         headers = dict(('HTTP_' + k.replace('-', '_').upper(), v) for k, v in headers.iteritems())
-        resp = self.client.post(reverse('sentry-api-store', args=[self.pk.project_id]),
+        resp = self.client.post(
+            reverse('sentry-api-store', args=[self.pk.project_id]),
             data=data,
             content_type=content_type,
             **headers)
@@ -108,6 +129,7 @@ class RavenIntegrationTest(TestCase):
 
 
 class SentryRemoteTest(TestCase):
+    @with_eager_tasks
     def test_correct_data(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
         resp = self._postWithHeader(kwargs)
@@ -118,6 +140,7 @@ class SentryRemoteTest(TestCase):
         self.assertEquals(instance.level, 40)
         self.assertEquals(instance.site, 'not_a_real_site')
 
+    @with_eager_tasks
     def test_unicode_keys(self):
         kwargs = {u'message': 'hello', u'server_name': 'not_dcramer.local', u'level': 40, u'site': 'not_a_real_site'}
         resp = self._postWithSignature(kwargs)
@@ -128,6 +151,7 @@ class SentryRemoteTest(TestCase):
         self.assertEquals(instance.level, 40)
         self.assertEquals(instance.site, 'not_a_real_site')
 
+    @with_eager_tasks
     def test_timestamp(self):
         timestamp = timezone.now().replace(microsecond=0, tzinfo=timezone.utc) - datetime.timedelta(hours=1)
         kwargs = {u'message': 'hello', 'timestamp': timestamp.strftime('%s.%f')}
@@ -140,6 +164,7 @@ class SentryRemoteTest(TestCase):
         self.assertEquals(group.first_seen, timestamp)
         self.assertEquals(group.last_seen, timestamp)
 
+    @with_eager_tasks
     def test_timestamp_as_iso(self):
         timestamp = timezone.now().replace(microsecond=0, tzinfo=timezone.utc) - datetime.timedelta(hours=1)
         kwargs = {u'message': 'hello', 'timestamp': timestamp.strftime('%Y-%m-%dT%H:%M:%S.%f')}
@@ -152,6 +177,7 @@ class SentryRemoteTest(TestCase):
         self.assertEquals(group.first_seen, timestamp)
         self.assertEquals(group.last_seen, timestamp)
 
+    @with_eager_tasks
     def test_ungzipped_data(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
         resp = self._postWithSignature(kwargs)
@@ -162,31 +188,7 @@ class SentryRemoteTest(TestCase):
         self.assertEquals(instance.site, 'not_a_real_site')
         self.assertEquals(instance.level, 40)
 
-    # def test_byte_sequence(self):
-    #     """
-    #     invalid byte sequence for encoding "UTF8": 0xedb7af
-    #     """
-    #     # TODO:
-    #     # add 'site' to data in fixtures/bad_data.json, then assert it's set correctly below
-
-    #     fname = os.path.join(os.path.dirname(__file__), 'fixtures/bad_data.json')
-    #     data = open(fname).read()
-
-    #     resp = self.client.post(reverse('sentry-api-store'), {
-    #         'data': data,
-    #         'key': settings.KEY,
-    #     })
-
-    #     self.assertEquals(resp.status_code, 200)
-
-    #     self.assertEquals(Event.objects.count(), 1)
-
-    #     instance = Event.objects.get()
-
-    #     self.assertEquals(instance.message, 'DatabaseError: invalid byte sequence for encoding "UTF8": 0xeda4ac\nHINT:  This error can also happen if the byte sequence does not match the encoding expected by the server, which is controlled by "client_encoding".\n')
-    #     self.assertEquals(instance.server_name, 'shilling.disqus.net')
-    #     self.assertEquals(instance.level, 40)
-
+    @with_eager_tasks
     def test_signature(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
 

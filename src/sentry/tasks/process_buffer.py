@@ -9,8 +9,8 @@ sentry.tasks.process_buffer
 from celery.task import task
 
 
-@task(name='sentry.tasks.process_buffer.process_incr', queue='counters')
-def process_incr(**kwargs):
+@task(name='sentry.tasks.process_buffer.process_delay', queue='counters')
+def process_delay(**kwargs):
     """
     Processes a buffer event.
     """

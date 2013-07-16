@@ -30,10 +30,11 @@ class SearchIndexTest(TestCase):
         assert norm_date(doc.date_changed) == norm_date(event.group.last_seen)
 
     def test_search(self):
-        event = self.event
-        doc = SearchDocument.objects.index(event)
+        with self.Settings(CELERY_ALWAYS_EAGER=True):
+            event = self.event
+            doc = SearchDocument.objects.index(event)
 
-        results = list(SearchDocument.objects.search(event.project, event.message.upper()))
-        assert len(results) == 1
-        [res] = results
-        assert res.id == doc.id
+            results = list(SearchDocument.objects.search(event.project, event.message.upper()))
+            assert len(results) == 1
+            [res] = results
+            assert res.id == doc.id

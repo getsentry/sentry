@@ -25,14 +25,13 @@ from django.conf import settings as dj_settings
 from django.contrib.auth.models import UserManager
 from django.core.signals import request_finished
 from django.db import models, transaction, IntegrityError
-from django.db.models import Sum
+from django.db.models import Sum, F
 from django.db.models.signals import post_save, post_delete, post_init, class_prepared
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
 from django.utils.encoding import force_unicode
 
 from raven.utils.encoding import to_string
-from sentry import app
 from sentry.conf import settings
 from sentry.constants import (
     STATUS_RESOLVED, STATUS_UNRESOLVED, MINUTE_NORMALIZATION,
@@ -63,6 +62,10 @@ def get_checksum_from_event(event):
                 hash.update(to_string(r))
             return hash.hexdigest()
     return hashlib.md5(to_string(event.message)).hexdigest()
+
+
+def buffered_update(model, kwargs, values):
+    create_or_update(model, values=values, **kwargs)
 
 
 class BaseManager(models.Manager):
@@ -221,8 +224,22 @@ class BaseManager(models.Manager):
         else:
             return self.get(**kwargs)
 
-    def create_or_update(self, **kwargs):
-        return create_or_update(self.model, **kwargs)
+    def create_or_update(self, buffer=False, **kwargs):
+        values = kwargs.pop('defaults', kwargs.pop('values', {}))
+
+        if not buffer:
+            return create_or_update(self.model, values=values, **kwargs)
+
+        self.app.buffer.delay(
+            callback=buffered_update,
+            args=[self.model, kwargs],
+            values=values,
+        )
+
+    @memoize
+    def app(self):
+        from sentry import app
+        return app
 
 
 class ScoreClause(object):
@@ -671,9 +688,12 @@ class GroupManager(BaseManager, ChartMixin):
 
             group.last_seen = extra['last_seen']
 
-            app.buffer.incr(self.model, update_kwargs, {
-                'id': group.id,
-            }, extra)
+            self.create_or_update(
+                id=group.id,
+                defaults=update_kwargs,
+                buffer=True,
+                **extra
+            )
         else:
             # TODO: this update should actually happen as part of create
             group.update(score=ScoreClause(group))
@@ -693,16 +713,20 @@ class GroupManager(BaseManager, ChartMixin):
         # Rounded down to the nearest interval
         normalized_datetime = normalize_datetime(date)
 
-        app.buffer.incr(GroupCountByMinute, update_kwargs, {
-            'group': group,
-            'project': project,
-            'date': normalized_datetime,
-        })
+        GroupCountByMinute.objects.create_or_update(
+            group=group,
+            project=project,
+            date=normalized_datetime,
+            defaults=update_kwargs,
+            buffer=True,
+        )
 
-        app.buffer.incr(ProjectCountByMinute, update_kwargs, {
-            'project': project,
-            'date': normalized_datetime,
-        })
+        ProjectCountByMinute.objects.create_or_update(
+            project=project,
+            date=normalized_datetime,
+            defaults=update_kwargs,
+            buffer=True,
+        )
 
         try:
             self.add_tags(group, tags)
@@ -730,27 +754,29 @@ class GroupManager(BaseManager, ChartMixin):
             if len(value) > MAX_TAG_LENGTH:
                 continue
 
-            app.buffer.incr(TagValue, {
-                'times_seen': 1,
-            }, {
-                'project': project,
-                'key': key,
-                'value': value,
-            }, {
-                'last_seen': date,
-                'data': data,
-            })
+            TagValue.objects.create_or_update(
+                project=project,
+                key=key,
+                value=value,
+                values={
+                    'times_seen': F('times_seen') + 1,
+                    'last_seen': date,
+                    'data': data,
+                },
+                buffer=True,
+            )
 
-            app.buffer.incr(GroupTag, {
-                'times_seen': 1,
-            }, {
-                'group': group,
-                'project': project,
-                'key': key,
-                'value': value,
-            }, {
-                'last_seen': date,
-            })
+            GroupTag.objects.create_or_update(
+                group=group,
+                project=project,
+                key=key,
+                value=value,
+                values={
+                    'times_seen': F('times_seen') + 1,
+                    'last_seen': date,
+                },
+                buffer=True,
+            )
 
     def get_by_natural_key(self, project, logger, culprit, checksum):
         return self.get(project=project, logger=logger, view=culprit, checksum=checksum)
@@ -1171,15 +1197,15 @@ class SearchDocumentManager(BaseManager):
             }
         )
         if not created:
-            app.buffer.incr(self.model, {
-                'total_events': 1,
-            }, {
-                'id': document.id,
-            }, {
-                'date_changed': group.last_seen,
-                'status': group.status,
-            })
-
+            self.create_or_update(
+                id=document.id,
+                values={
+                    'total_events': F('total_events') + 1,
+                    'date_changed': group.last_seen,
+                    'status': group.status,
+                },
+                buffer=True
+            )
             document.total_events += 1
             document.date_changed = group.last_seen
             document.status = group.status
@@ -1211,13 +1237,15 @@ class SearchDocumentManager(BaseManager):
 
         for field, tokens in token_counts.iteritems():
             for token, count in tokens.iteritems():
-                app.buffer.incr(SearchToken, {
-                    'times_seen': count,
-                }, {
-                    'document': document,
-                    'token': token,
-                    'field': field,
-                })
+                SearchToken.objects.create_or_update(
+                    document=document,
+                    token=token,
+                    field=field,
+                    values={
+                        'times_seen': F('times_seen') + count,
+                    },
+                    buffer=True,
+                )
 
         return document
 
