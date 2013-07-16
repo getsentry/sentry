@@ -7,8 +7,8 @@ progress and the API is not frozen.
 Bundled Plugins
 ---------------
 
-Sentry includes several plugins by default. To enable a plugin, it's as simple as adding it to
-your ``INSTALLED_APPS``::
+Sentry includes several plugins by default. Builtin plugins are controlled via the
+``INSTALLED_APPS`` Django setting::
 
     INSTALLED_APPS = [
       ...
