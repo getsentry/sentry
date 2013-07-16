@@ -282,4 +282,4 @@ def with_eager_tasks(func):
             return func(*args, **kwargs)
         finally:
             app.conf.CELERY_ALWAYS_EAGER = prev
-    return func
+    return wrapped
