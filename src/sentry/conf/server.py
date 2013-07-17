@@ -199,7 +199,6 @@ AUTHENTICATION_BACKENDS = (
     'social_auth.backends.contrib.dropbox.DropboxBackend',
     'social_auth.backends.contrib.flickr.FlickrBackend',
     'social_auth.backends.contrib.instagram.InstagramBackend',
-    'social_auth.backends.contrib.vkontakte.VKontakteBackend',
     'social_auth.backends.contrib.skyrock.SkyrockBackend',
     'social_auth.backends.contrib.yahoo.YahooOAuthBackend',
     'social_auth.backends.OpenIDBackend',
