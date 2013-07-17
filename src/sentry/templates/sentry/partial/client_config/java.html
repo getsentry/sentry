@@ -13,7 +13,7 @@ import net.kencochrane.raven.event.interfaces.ExceptionInterface;
 public class Example {
     public static void main(String[] args) {
         String rawDsn = "{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN</strong>{% endif %}";
-        Raven client = new RavenFactory.ravenInstance(rawDsn);
+        Raven raven = RavenFactory.ravenInstance(new Dsn(rawDsn));
 
         // {% trans "record a simple message" %}
         EventBuilder eventBuilder = new EventBuilder()
@@ -21,6 +21,7 @@ public class Example {
                         .setLevel(Event.Level.ERROR)
                         .setLogger(MyClass.class.getName())
                         .addSentryInterface(new ExceptionInterface(e));
+                        
         raven.runBuilderHelpers(eventBuilder); // Optional
         raven.sendEvent(eventBuilder.build());
     }
