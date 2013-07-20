@@ -43,6 +43,10 @@ class RegistrationForm(forms.ModelForm):
 
 class NotificationSettingsForm(forms.Form):
     alert_email = forms.EmailField(help_text=_('Designate an alternative email address to send email notifications to.'), required=False)
+    subscribe_by_default = forms.ChoiceField(choices=(
+        (1, _('Automatically subscribe to notifications for new projects')),
+        (0, _('Do not subscribe to notifications for new projects')),
+    ), required=False)
 
     def __init__(self, user, *args, **kwargs):
         self.user = user
@@ -52,6 +56,12 @@ class NotificationSettingsForm(forms.Form):
             project=None,
             key='alert_email',
             default=user.email,
+        )
+        self.fields['subscribe_by_default'].initial = UserOption.objects.get_value(
+            user=self.user,
+            project=None,
+            key='subscribe_by_default',
+            default=1,
         )
 
     def get_title(self):
@@ -63,6 +73,12 @@ class NotificationSettingsForm(forms.Form):
             project=None,
             key='alert_email',
             value=self.cleaned_data['alert_email'],
+        )
+        UserOption.objects.set_value(
+            user=self.user,
+            project=None,
+            key='subscribe_by_default',
+            value=self.cleaned_data['subscribe_by_default'],
         )
 
 
@@ -169,7 +185,8 @@ class ProjectEmailOptionsForm(forms.Form):
         is_enabled = UserOption.objects.get_value(
             user, project, 'mail:alert', None)
         if is_enabled is None:
-            is_enabled = True
+            is_enabled = UserOption.objects.get_value(
+                user, None, 'subscribe_by_default', 1) == 1
         else:
             is_enabled = bool(is_enabled)
 

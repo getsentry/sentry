@@ -49,11 +49,15 @@ class NotificationPlugin(Plugin):
     def get_sendable_users(self, project):
         conf_key = self.get_conf_key()
 
-        disabled = set(UserOption.objects.filter(
-            project=project,
-            key='%s:alert' % conf_key,
-            value=0,
-        ).values_list('user', flat=True))
+        alert_settings = dict(
+            (o.user_id, o.value)
+            for o in UserOption.objects.filter(
+                project=project,
+                key='%s:alert' % conf_key,
+            )
+        )
+
+        disabled = set(u for u, v in alert_settings.iteritems() if v == 0)
 
         # fetch team members
         member_set = set(project.team.member_set.filter(
@@ -65,6 +69,16 @@ class NotificationPlugin(Plugin):
             projects=project,
             members__is_active=True,
         ).exclude(members__in=disabled).values_list('members', flat=True))
+
+        # determine members default settings
+        members_to_check = set(u for u in member_set if u not in alert_settings)
+        if members_to_check:
+            disabled = set(UserOption.objects.filter(
+                key='subscribe_by_default',
+                value=0,
+                user__in=members_to_check,
+            ).values_list('user', flat=True))
+            member_set = filter(lambda x: x not in disabled, member_set)
 
         return member_set
 
