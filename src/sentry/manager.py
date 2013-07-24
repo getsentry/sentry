@@ -53,15 +53,14 @@ MAX_TAG_LENGTH = 200
 
 
 def get_checksum_from_event(event):
-    interfaces = event.interfaces
-    for interface in interfaces.itervalues():
+    hash = hashlib.md5()
+    for interface in event.interfaces.itervalues():
         result = interface.get_composite_hash(interfaces=event.interfaces)
         if result:
-            hash = hashlib.md5()
             for r in result:
                 hash.update(to_string(r))
-            return hash.hexdigest()
-    return hashlib.md5(to_string(event.message)).hexdigest()
+    hash.update(to_string(event.message))
+    return hash.hexdigest()
 
 
 class BaseManager(models.Manager):
