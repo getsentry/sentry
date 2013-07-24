@@ -8,6 +8,8 @@ sentry.utils.strings
 import base64
 import zlib
 
+from django.utils.encoding import smart_unicode
+
 
 def truncatechars(value, arg):
     """
@@ -40,5 +42,5 @@ def strip(value):
     if not value:
         return ''
     if not isinstance(value, basestring):
-        return unicode(value)  # fuck it
-    return value.strip()
+        return smart_unicode(value)  # fuck it
+    return smart_unicode(value).strip()

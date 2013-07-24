@@ -30,7 +30,6 @@ from django.db.models.signals import post_syncdb, post_save, pre_delete
 from django.template.defaultfilters import slugify
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
-from django.utils.encoding import smart_unicode
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.conf import settings
@@ -478,8 +477,8 @@ class EventBase(Model):
         super(EventBase, self).save(*args, **kwargs)
 
     def error(self):
-        if strip(self.message):
-            message = smart_unicode(self.message)
+        message = strip(self.message)
+        if message:
             if len(message) > 100:
                 message = message[:97] + '...'
         else:
@@ -493,7 +492,7 @@ class EventBase(Model):
 
     def message_top(self):
         culprit = strip(self.culprit)
-        if strip(culprit):
+        if culprit:
             return culprit
         message = strip(self.message)
         if not strip(message):
