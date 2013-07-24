@@ -465,6 +465,10 @@ class GroupManager(BaseManager, ChartMixin):
             if value:
                 http_data['data'] = trim(value, 2048)
 
+            # default the culprit to the url
+            if not data['culprit']:
+                data['culprit'] = strip(http_data.get('url'))
+
         return data
 
     def from_kwargs(self, project, **kwargs):
