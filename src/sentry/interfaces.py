@@ -812,10 +812,7 @@ class Exception(Interface):
             else:
                 context['stacktrace'] = {}
             context['stack_id'] = 'exception_%d' % (num,)
-            if newest_first:
-                context['is_root'] = num == 0
-            else:
-                context['is_root'] = num == last
+            context['is_root'] = num == last
             exceptions.append(context)
 
         if newest_first:
