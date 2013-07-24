@@ -26,7 +26,7 @@
                 {% if not exception.is_root %}
                     <h3>Caused by <span title="{{ exception.fullname }}">{{ exception.exception_type }}</span></h3>
                 {% else %}
-                    <h3><span title="{{ exception.fullname }}">{{ exception.exception_type }}</span>{% if not newest_first %} <small>Root Cause</small></h3>
+                    <h3><span title="{{ exception.fullname }}">{{ exception.exception_type }}</span>{% if not newest_first %} <small>Root Cause</small>{% endif %}</h3>
                 {% endif %}
                 {% if exception.exception_value %}
                     <p>{{ exception.exception_value }}</p>
