@@ -479,7 +479,7 @@ class EventBase(Model):
     def error(self):
         message = strip(self.message)
         if message:
-            message = truncatechars(message)
+            message = truncatechars(message, 100)
         else:
             message = '<unlabeled message>'
         return message
