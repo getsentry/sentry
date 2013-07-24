@@ -73,10 +73,10 @@ class BaseUDPServer(Service):
 
     def __init__(self, host=None, port=None, debug=False, workers=None):
         super(BaseUDPServer, self).__init__(debug=debug)
-        from sentry.conf import settings
+        from django.conf import settings
 
-        self.host = host or settings.UDP_HOST
-        self.port = port or settings.UDP_PORT
+        self.host = host or settings.SENTRY_UDP_HOST
+        self.port = port or settings.SENTRY_UDP_PORT
         self.workers = workers or self.POOL_SIZE
 
     def setup(self):
@@ -133,11 +133,11 @@ default_servers = {
 
 
 def get_server_class(worker=None):
-    from sentry.conf import settings
+    from django.conf import settings
 
     if worker is None:
         # Use eventlet as default worker type
-        worker = getattr(settings, 'UDP_WORKER', None) or 'eventlet'
+        worker = getattr(settings, 'SENTRY_UDP_WORKER', None) or 'eventlet'
     if worker not in default_servers:
         raise CommandError(
             'Unsupported udp server type; expected one of %s, but got "%s".'

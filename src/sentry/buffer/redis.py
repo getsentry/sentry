@@ -18,12 +18,12 @@ for package in ('nydus', 'redis'):
             'Missing %r package, which is required for Redis buffers' % (
                 package,))
 
+from django.conf import settings
 from django.db import models
 from django.utils.encoding import smart_str
 from hashlib import md5
 from nydus.db import create_cluster
 from sentry.buffer import Buffer
-from sentry.conf import settings
 from sentry.utils.compat import pickle
 
 
@@ -33,7 +33,7 @@ class RedisBuffer(Buffer):
     def __init__(self, **options):
         if not options:
             # inherit default options from REDIS_OPTIONS
-            options = settings.REDIS_OPTIONS
+            options = settings.SENTRY_REDIS_OPTIONS
 
         super(RedisBuffer, self).__init__(**options)
         options.setdefault('hosts', {

@@ -25,6 +25,15 @@ Incompatible Changes
 - Nearly all data within an event now has a fixed max size. See client
   developer documentation for details.
 - Project keys are no longer created for individuals by default
+- LOG_LEVELS, DEFAULT_LOG_LEVEL, and DEFAULT_LOGGER_NAME are no longer configurable.
+- DEFAULT_ALERT_PROJECT_THRESHOLD and DEFAULT_ALERT_GROUP_THRESHOLD are no longer
+  configurable.
+- SENTRY_EMAIL_SUBJECT_PREFIX and SENTRY_SERVER_EMAIL are no longer used, and default to
+  the appropriate Django options.
+- SENTRY_CACHE_BACKEND is no longer configurable.
+- SENTRY_AUTH_PROVIDERS is now AUTH_PROVIDERS.
+- Existing account recovery tokens are no longer valid.
+- sentry.utils.router has been removed.
 
 Protocol Version 4
 ==================

@@ -7,7 +7,6 @@ sentry.web.frontend.accounts
 """
 import itertools
 
-from django.conf import settings as dj_settings
 from django.contrib import messages
 from django.contrib.auth import login as login_user, authenticate
 from django.core.context_processors import csrf
@@ -34,8 +33,8 @@ from sentry.utils.safe import safe_execute
 @csrf_protect
 @never_cache
 def login(request):
+    from django.conf import settings
     from django.contrib.auth.forms import AuthenticationForm
-    from sentry.conf import settings
 
     if request.user.is_authenticated():
         return login_redirect(request)
@@ -51,9 +50,9 @@ def login(request):
     context.update({
         'form': form,
         'next': request.session.get('_next'),
-        'CAN_REGISTER': settings.ALLOW_REGISTRATION or request.session.get('can_register'),
+        'CAN_REGISTER': settings.SENTRY_ALLOW_REGISTRATION or request.session.get('can_register'),
         'AUTH_PROVIDERS': get_auth_providers(),
-        'SOCIAL_AUTH_CREATE_USERS': dj_settings.SOCIAL_AUTH_CREATE_USERS,
+        'SOCIAL_AUTH_CREATE_USERS': settings.SOCIAL_AUTH_CREATE_USERS,
     })
     return render_to_response('sentry/login.html', context, request)
 
@@ -62,9 +61,9 @@ def login(request):
 @never_cache
 @transaction.commit_on_success
 def register(request):
-    from sentry.conf import settings
+    from django.conf import settings
 
-    if not (settings.ALLOW_REGISTRATION or request.session.get('can_register')):
+    if not (settings.SENTRY_ALLOW_REGISTRATION or request.session.get('can_register')):
         return HttpResponseRedirect(reverse('sentry'))
 
     form = RegistrationForm(request.POST or None)
@@ -75,7 +74,7 @@ def register(request):
         request.session.pop('can_register', None)
 
         # HACK: grab whatever the first backend is and assume it works
-        user.backend = dj_settings.AUTHENTICATION_BACKENDS[0]
+        user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         login_user(request, user)
 
@@ -84,7 +83,7 @@ def register(request):
     return render_to_response('sentry/register.html', {
         'form': form,
         'AUTH_PROVIDERS': get_auth_providers(),
-        'SOCIAL_AUTH_CREATE_USERS': dj_settings.SOCIAL_AUTH_CREATE_USERS,
+        'SOCIAL_AUTH_CREATE_USERS': settings.SOCIAL_AUTH_CREATE_USERS,
     }, request)
 
 

@@ -9,26 +9,25 @@ sentry.utils.db
 import django
 import operator
 
-from django.conf import settings as django_settings
+from django.conf import settings
 from django.db.models.expressions import ExpressionNode, F
 from django.db.models.fields.related import SingleRelatedObjectDescriptor
-from sentry.conf import settings
 
 
 def get_db_engine(alias='default'):
     has_multidb = django.VERSION >= (1, 2)
     if has_multidb:
-        value = django_settings.DATABASES[alias]['ENGINE']
+        value = settings.DATABASES[alias]['ENGINE']
     else:
         assert alias == 'default', 'You cannot fetch a database engine other than the default on Django < 1.2'
-        value = django_settings.DATABASE_ENGINE
+        value = settings.DATABASE_ENGINE
     return value.rsplit('.', 1)[-1]
 
 
 def has_trending(alias='default'):
     # we only support trend queries for postgres to db optimization
     # issues in mysql, and lack of anything useful in sqlite
-    return settings.USE_TRENDING and get_db_engine('default').startswith('postgres')
+    return settings.SENTRY_USE_TRENDING and get_db_engine('default').startswith('postgres')
 
 
 def has_charts(db):

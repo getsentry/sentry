@@ -20,7 +20,7 @@ from hashlib import md5
 from picklefield.fields import PickledObjectField
 from south.modelsinspector import add_introspection_rules
 
-from django.conf import settings as django_settings
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.signals import user_logged_in
 from django.core.urlresolvers import reverse
@@ -32,12 +32,12 @@ from django.utils import timezone
 from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.conf import settings
 from sentry.constants import (
     STATUS_LEVELS, MEMBER_TYPES,
     MEMBER_OWNER, MEMBER_USER, PLATFORM_TITLES, PLATFORM_LIST,
     STATUS_UNRESOLVED, STATUS_RESOLVED, STATUS_VISIBLE, STATUS_HIDDEN,
-    MINUTE_NORMALIZATION, STATUS_MUTED, RESERVED_TEAM_SLUGS)
+    MINUTE_NORMALIZATION, STATUS_MUTED, RESERVED_TEAM_SLUGS,
+    LOG_LEVELS)
 from sentry.manager import (
     GroupManager, ProjectManager,
     MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager,
@@ -119,9 +119,9 @@ class Team(Model):
     """
     slug = models.SlugField(unique=True)
     name = models.CharField(max_length=64)
-    owner = models.ForeignKey(django_settings.AUTH_USER_MODEL)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL)
     date_added = models.DateTimeField(default=timezone.now, null=True)
-    members = models.ManyToManyField(django_settings.AUTH_USER_MODEL, through='sentry.TeamMember', related_name='team_memberships')
+    members = models.ManyToManyField(settings.AUTH_USER_MODEL, through='sentry.TeamMember', related_name='team_memberships')
 
     objects = TeamManager(cache_fields=(
         'pk',
@@ -165,7 +165,7 @@ class AccessGroup(Model):
     date_added = models.DateTimeField(default=timezone.now)
 
     projects = models.ManyToManyField('sentry.Project')
-    members = models.ManyToManyField(django_settings.AUTH_USER_MODEL)
+    members = models.ManyToManyField(settings.AUTH_USER_MODEL)
 
     objects = BaseManager()
 
@@ -184,7 +184,7 @@ class TeamMember(Model):
     be set to ownership.
     """
     team = models.ForeignKey(Team, related_name="member_set")
-    user = models.ForeignKey(django_settings.AUTH_USER_MODEL, related_name="sentry_teammember_set")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="sentry_teammember_set")
     type = BoundedIntegerField(choices=MEMBER_TYPES, default=MEMBER_USER)
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -211,7 +211,7 @@ class Project(Model):
 
     slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)
-    owner = models.ForeignKey(django_settings.AUTH_USER_MODEL, related_name="sentry_owned_project_set", null=True)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="sentry_owned_project_set", null=True)
     team = models.ForeignKey(Team, null=True)
     public = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now)
@@ -308,7 +308,7 @@ class Project(Model):
         self.delete()
 
     def is_default_project(self):
-        return str(self.id) == str(settings.PROJECT) or str(self.slug) == str(settings.PROJECT)
+        return str(self.id) == str(settings.SENTRY_PROJECT) or str(self.slug) == str(settings.SENTRY_PROJECT)
 
     def get_tags(self):
         if not hasattr(self, '_tag_cache'):
@@ -333,10 +333,10 @@ class ProjectKey(Model):
     project = models.ForeignKey(Project, related_name='key_set')
     public_key = models.CharField(max_length=32, unique=True, null=True)
     secret_key = models.CharField(max_length=32, unique=True, null=True)
-    user = models.ForeignKey(django_settings.AUTH_USER_MODEL, null=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
 
     # For audits
-    user_added = models.ForeignKey(django_settings.AUTH_USER_MODEL, null=True, related_name='keys_added_set')
+    user_added = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, related_name='keys_added_set')
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
     objects = BaseManager(cache_fields=(
@@ -364,12 +364,12 @@ class ProjectKey(Model):
         # TODO: change the DSN to use project slug once clients are compatible
         if not public:
             key = '%s:%s' % (self.public_key, self.secret_key)
-            url = settings.ENDPOINT
+            url = settings.SENTRY_ENDPOINT
         else:
             key = self.public_key
-            url = settings.PUBLIC_ENDPOINT
+            url = settings.SENTRY_PUBLIC_ENDPOINT
 
-        urlparts = urlparse.urlparse(url or settings.URL_PREFIX)
+        urlparts = urlparse.urlparse(url or settings.SENTRY_URL_PREFIX)
 
         return '%s://%s@%s/%s' % (
             urlparts.scheme,
@@ -426,7 +426,7 @@ class PendingTeamMember(Model):
     @property
     def token(self):
         checksum = md5()
-        for x in (str(self.team_id), self.email, settings.KEY):
+        for x in (str(self.team_id), self.email, settings.SECRET_KEY):
             checksum.update(x)
         return checksum.hexdigest()
 
@@ -460,7 +460,7 @@ class EventBase(Model):
     """
     project = models.ForeignKey(Project, null=True)
     logger = models.CharField(max_length=64, blank=True, default='root', db_index=True)
-    level = BoundedPositiveIntegerField(choices=settings.LOG_LEVELS, default=logging.ERROR, blank=True, db_index=True)
+    level = BoundedPositiveIntegerField(choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True, db_index=True)
     message = models.TextField()
     culprit = models.CharField(max_length=200, blank=True, null=True, db_column='view')
     checksum = models.CharField(max_length=32, db_index=True)
@@ -789,7 +789,7 @@ class GroupBookmark(Model):
     project = models.ForeignKey(Project, related_name="bookmark_set")  # denormalized
     group = models.ForeignKey(Group, related_name="bookmark_set")
     # namespace related_name on User since we don't own the model
-    user = models.ForeignKey(django_settings.AUTH_USER_MODEL, related_name="sentry_bookmark_set")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="sentry_bookmark_set")
 
     objects = BaseManager()
 
@@ -978,7 +978,7 @@ class UserOption(Model):
     Options which are specific to a plugin should namespace
     their key. e.g. key='myplugin:optname'
     """
-    user = models.ForeignKey(django_settings.AUTH_USER_MODEL)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL)
     project = models.ForeignKey(Project, null=True)
     key = models.CharField(max_length=64)
     value = PickledObjectField()
@@ -992,7 +992,7 @@ class UserOption(Model):
 
 
 class LostPasswordHash(Model):
-    user = models.ForeignKey(django_settings.AUTH_USER_MODEL, unique=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, unique=True)
     hash = models.CharField(max_length=32)
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -1018,7 +1018,7 @@ class LostPasswordHash(Model):
 
         context = {
             'user': self.user,
-            'domain': urlparse.urlparse(settings.URL_PREFIX).hostname,
+            'domain': urlparse.urlparse(settings.SENTRY_URL_PREFIX).hostname,
             'url': absolute_uri(reverse('sentry-account-recover-confirm', args=[
                 self.user.id, self.hash])),
         }
@@ -1064,7 +1064,7 @@ class Activity(Model):
     type = BoundedPositiveIntegerField(choices=TYPE)
     ident = models.CharField(max_length=64, null=True)
     # if the user is not set, it's assumed to be the system
-    user = models.ForeignKey(django_settings.AUTH_USER_MODEL, null=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
     datetime = models.DateTimeField(default=timezone.now)
     data = GzippedDictField(null=True)
 
@@ -1173,7 +1173,7 @@ class AlertRelatedGroup(Model):
 
 def create_default_project(created_models, verbosity=2, **kwargs):
     if Project in created_models:
-        if Project.objects.filter(pk=settings.PROJECT).exists():
+        if Project.objects.filter(pk=settings.SENTRY_PROJECT).exists():
             return
 
         project = Project.objects.create(

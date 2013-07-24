@@ -9,15 +9,14 @@ sentry.web.helpers
 import logging
 import warnings
 
-from django.conf import settings as dj_settings
+from django.conf import settings
 from django.core.urlresolvers import reverse, resolve
 from django.http import HttpResponse
 from django.template import loader, RequestContext, Context
 from django.utils.datastructures import SortedDict
 from django.utils.safestring import mark_safe
 
-from sentry.conf import settings
-from sentry.constants import MEMBER_OWNER
+from sentry.constants import MEMBER_OWNER, EVENTS_PER_PAGE
 from sentry.models import Project, Team, Option, ProjectOption, ProjectKey
 
 logger = logging.getLogger('sentry.errors')
@@ -69,11 +68,11 @@ def get_login_url(reset=False):
         # if LOGIN_URL resolves force login_required to it instead of our own
         # XXX: this must be done as late as possible to avoid idempotent requirements
         try:
-            resolve(dj_settings.LOGIN_URL)
+            resolve(settings.LOGIN_URL)
         except Exception:
-            _LOGIN_URL = settings.LOGIN_URL
+            _LOGIN_URL = settings.SENTRY_LOGIN_URL
         else:
-            _LOGIN_URL = dj_settings.LOGIN_URL
+            _LOGIN_URL = settings.LOGIN_URL
 
         if _LOGIN_URL is None:
             _LOGIN_URL = reverse('sentry-login')
@@ -82,7 +81,7 @@ def get_login_url(reset=False):
 
 def get_internal_project():
     try:
-        project = Project.objects.get(id=settings.PROJECT)
+        project = Project.objects.get(id=settings.SENTRY_PROJECT)
     except Project.DoesNotExist:
         return {}
     try:
@@ -100,9 +99,9 @@ def get_default_context(request, existing_context=None, team=None):
     from sentry.plugins import plugins
 
     context = {
-        'HAS_SEARCH': settings.USE_SEARCH,
-        'MESSAGES_PER_PAGE': settings.MESSAGES_PER_PAGE,
-        'URL_PREFIX': settings.URL_PREFIX,
+        'HAS_SEARCH': settings.SENTRY_USE_SEARCH,
+        'EVENTS_PER_PAGE': EVENTS_PER_PAGE,
+        'URL_PREFIX': settings.SENTRY_URL_PREFIX,
         'PLUGINS': plugins,
     }
 
@@ -216,4 +215,4 @@ def plugin_config(plugin, project, request):
 
 
 def get_raven_js_url():
-    return settings.RAVEN_JS_URL
+    return settings.SENTRY_RAVEN_JS_URL

@@ -13,8 +13,8 @@ __all__ = ('get_filters',)
 
 import logging
 
+from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
-from sentry.conf import settings
 from sentry.filters.base import TagFilter
 from sentry.plugins import plugins
 from sentry.utils.safe import safe_execute
@@ -28,7 +28,7 @@ def get_filters(model=None, project=None):
     filter_list = []
 
     # Add builtins (specified with the FILTERS setting)
-    for class_path in settings.FILTERS:
+    for class_path in settings.SENTRY_FILTERS:
         if class_path not in FILTER_CACHE:
             module_name, class_name = class_path.rsplit('.', 1)
             try:

@@ -7,7 +7,7 @@ sentry.tasks.store
 """
 
 from celery.task import task
-from sentry.conf import settings
+from django.conf import settings
 
 
 @task(name='sentry.tasks.store.preprocess_event', queue='events')
@@ -17,7 +17,7 @@ def preprocess_event(data, **kwargs):
     logger = preprocess_event.get_logger()
 
     try:
-        if settings.SCRAPE_JAVASCRIPT_CONTEXT and data['platform'] == 'javascript':
+        if settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT and data['platform'] == 'javascript':
             try:
                 expand_javascript_source(data)
             except Exception, e:

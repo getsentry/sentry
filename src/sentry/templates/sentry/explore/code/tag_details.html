@@ -32,7 +32,7 @@
 {% endblock %}
 
 {% block main %}
-    {% paginator event_list from request as event_list per_page MESSAGES_PER_PAGE %}
+    {% paginator event_list from request as event_list per_page EVENTS_PER_PAGE %}
 
     <div class="btn-toolbar">
         <div class="pull-left">

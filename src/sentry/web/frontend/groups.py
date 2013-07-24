@@ -15,19 +15,20 @@ import datetime
 import logging
 import re
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
-from sentry.conf import settings
 from sentry.constants import (
     SORT_OPTIONS, SEARCH_SORT_OPTIONS, SORT_CLAUSES,
     MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES, MEMBER_USER,
     SCORE_CLAUSES, MYSQL_SCORE_CLAUSES, SQLITE_SCORE_CLAUSES,
     ORACLE_SORT_CLAUSES, ORACLE_SCORE_CLAUSES,
-    MSSQL_SORT_CLAUSES, MSSQL_SCORE_CLAUSES)
+    MSSQL_SORT_CLAUSES, MSSQL_SCORE_CLAUSES, DEFAULT_SORT_OPTION,
+    SEARCH_DEFAULT_SORT_OPTION, MAX_JSON_RESULTS)
 from sentry.filters import get_filters
 from sentry.models import (
     Project, Group, Event, SearchDocument, Activity, EventMapping, TagKey)
@@ -103,14 +104,14 @@ def _get_group_list(request, project):
 
     sort = request.GET.get('sort') or request.session.get('streamsort')
     if sort not in SORT_OPTIONS:
-        sort = settings.DEFAULT_SORT_OPTION
+        sort = DEFAULT_SORT_OPTION
 
     # Save last sort in session
     if sort != request.session.get('streamsort'):
         request.session['streamsort'] = sort
 
     if sort.startswith('accel_') and not has_trending():
-        sort = settings.DEFAULT_SORT_OPTION
+        sort = DEFAULT_SORT_OPTION
 
     engine = get_db_engine('default')
     if engine.startswith('sqlite'):
@@ -257,7 +258,7 @@ def search(request, team, project):
 
     sort = request.GET.get('sort')
     if sort not in SEARCH_SORT_OPTIONS:
-        sort = settings.SEARCH_DEFAULT_SORT_OPTION
+        sort = SEARCH_DEFAULT_SORT_OPTION
     sort_label = SEARCH_SORT_OPTIONS[sort]
 
     result = event_re.match(query)
@@ -305,7 +306,7 @@ def search(request, team, project):
                 'team_slug': team.slug,
                 'group_id': group_id,
             }))
-    elif not settings.USE_SEARCH:
+    elif not settings.SENTRY_USE_SEARCH:
         event_list = Group.objects.none()
         # return render_to_response('sentry/invalid_message_id.html', {
         #         'project': project,
@@ -453,12 +454,12 @@ def group_event_list(request, team, project, group):
 def group_event_list_json(request, team, project, group_id):
     group = get_object_or_404(Group, id=group_id, project=project)
 
-    limit = request.GET.get('limit', settings.MAX_JSON_RESULTS)
+    limit = request.GET.get('limit', MAX_JSON_RESULTS)
     try:
         limit = int(limit)
     except ValueError:
         return HttpResponse('non numeric limit', status=400, mimetype='text/plain')
-    if limit > settings.MAX_JSON_RESULTS:
+    if limit > MAX_JSON_RESULTS:
         return HttpResponse("too many objects requested", mimetype='text/plain', status=400)
 
     events = group.event_set.order_by('-id')[:limit]

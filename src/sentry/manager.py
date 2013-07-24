@@ -21,7 +21,7 @@ import weakref
 import uuid
 
 from celery.signals import task_postrun
-from django.conf import settings as dj_settings
+from django.conf import settings
 from django.contrib.auth.models import UserManager
 from django.core.signals import request_finished
 from django.db import models, transaction, IntegrityError
@@ -33,10 +33,9 @@ from django.utils.encoding import force_unicode
 
 from raven.utils.encoding import to_string
 from sentry import app
-from sentry.conf import settings
 from sentry.constants import (
     STATUS_RESOLVED, STATUS_UNRESOLVED, MINUTE_NORMALIZATION,
-    MAX_EXTRA_VARIABLE_SIZE)
+    MAX_EXTRA_VARIABLE_SIZE, LOG_LEVELS, DEFAULT_LOGGER_NAME)
 from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
 from sentry.tasks.index import index_event
@@ -51,7 +50,6 @@ logger = logging.getLogger('sentry.errors')
 
 UNSAVED = dict()
 MAX_TAG_LENGTH = 200
-LOG_LEVELS_DICT = dict(settings.LOG_LEVELS)
 
 
 def get_checksum_from_event(event):
@@ -252,17 +250,17 @@ class ScoreClause(object):
 def count_limit(count):
     # TODO: could we do something like num_to_store = max(math.sqrt(100*count)+59, 200) ?
     # ~ 150 * ((log(n) - 1.5) ^ 2 - 0.25)
-    for amount, sample_rate in settings.SAMPLE_RATES:
+    for amount, sample_rate in settings.SENTRY_SAMPLE_RATES:
         if count <= amount:
             return sample_rate
-    return settings.MAX_SAMPLE_RATE
+    return settings.SENTRY_MAX_SAMPLE_RATE
 
 
 def time_limit(silence):  # ~ 3600 per hour
-    for amount, sample_rate in settings.SAMPLE_TIMES:
+    for amount, sample_rate in settings.SENTRY_SAMPLE_TIMES:
         if silence >= amount:
             return sample_rate
-    return settings.MAX_SAMPLE_TIME
+    return settings.SENTRY_MAX_SAMPLE_TIME
 
 
 class UserManager(BaseManager, UserManager):
@@ -378,10 +376,10 @@ class GroupManager(BaseManager, ChartMixin):
 
     def normalize_event_data(self, data):
         # First we pull out our top-level (non-data attr) kwargs
-        if not data.get('level') or data['level'] not in LOG_LEVELS_DICT:
+        if not data.get('level') or data['level'] not in LOG_LEVELS:
             data['level'] = logging.ERROR
         if not data.get('logger'):
-            data['logger'] = settings.DEFAULT_LOGGER_NAME
+            data['logger'] = DEFAULT_LOGGER_NAME
 
         timestamp = data.get('timestamp')
         if not timestamp:
@@ -389,7 +387,7 @@ class GroupManager(BaseManager, ChartMixin):
 
         # We must convert date to local time so Django doesn't mess it up
         # based on TIME_ZONE
-        if dj_settings.TIME_ZONE:
+        if settings.TIME_ZONE:
             if not timezone.is_aware(timestamp):
                 timestamp = timestamp.replace(tzinfo=timezone.utc)
         elif timezone.is_aware(timestamp):
@@ -544,7 +542,7 @@ class GroupManager(BaseManager, ChartMixin):
         })
 
         tags = data['tags']
-        tags.append(('level', LOG_LEVELS_DICT[level]))
+        tags.append(('level', LOG_LEVELS[level]))
         if logger:
             tags.append(('logger', logger_name))
         if server_name:
@@ -602,7 +600,7 @@ class GroupManager(BaseManager, ChartMixin):
             is_sample=is_sample
         )
 
-        if settings.USE_SEARCH:
+        if settings.SENTRY_USE_SEARCH:
             index_event.delay(event)
 
         # TODO: move this to the queue
@@ -612,7 +610,7 @@ class GroupManager(BaseManager, ChartMixin):
         return event
 
     def should_sample(self, group, event):
-        if not settings.SAMPLE_DATA:
+        if not settings.SENTRY_SAMPLE_DATA:
             return False
 
         silence_timedelta = event.datetime - group.last_seen
@@ -876,7 +874,7 @@ class ProjectManager(BaseManager, ChartMixin):
             projects = set(base_qs)
         else:
             projects_qs = base_qs
-            if not settings.PUBLIC:
+            if not settings.SENTRY_PUBLIC:
                 # If the user is authenticated, include their memberships
                 teams = Team.objects.get_for_user(
                     user, access, access_groups=False).values()
@@ -1256,7 +1254,7 @@ class TeamManager(BaseManager):
         if not user.is_authenticated():
             return results
 
-        if settings.PUBLIC and access is None:
+        if settings.SENTRY_PUBLIC and access is None:
             for team in self.order_by('name').iterator():
                 results[team.slug] = team
         else:

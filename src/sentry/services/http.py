@@ -16,16 +16,16 @@ class SentryHTTPServer(Service):
 
     def __init__(self, host=None, port=None, debug=False, workers=None,
                  validate=True):
-        from sentry.conf import settings
+        from django.conf import settings
 
         if validate:
             self.validate_settings()
 
-        self.host = host or settings.WEB_HOST
-        self.port = port or settings.WEB_PORT
+        self.host = host or settings.SENTRY_WEB_HOST
+        self.port = port or settings.SENTRY_WEB_PORT
         self.workers = workers
 
-        options = (settings.WEB_OPTIONS or {}).copy()
+        options = (settings.SENTRY_WEB_OPTIONS or {}).copy()
         options['debug'] = debug
         options.setdefault('bind', '%s:%s' % (self.host, self.port))
         options.setdefault('daemon', False)

@@ -36,7 +36,7 @@
 {% endblock %}
 
 {% block main %}
-    {% paginator event_list from request as event_list per_page MESSAGES_PER_PAGE %}
+    {% paginator event_list from request as event_list per_page EVENTS_PER_PAGE %}
     {% querystring from request without sort as sort_querystring %}
     {% querystring from request without since as since_querystring %}
 
@@ -134,7 +134,7 @@
                 </li>
             {% endfor %}
         </ul>
-    {% endif %}      
+    {% endif %}
 
     <div id="event_list"></div>
 

@@ -13,8 +13,8 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.conf import settings
-from sentry.constants import MEMBER_OWNER, STATUS_HIDDEN
+from sentry.constants import (
+    MEMBER_OWNER, STATUS_HIDDEN, DEFAULT_ALERT_PROJECT_THRESHOLD)
 from sentry.models import Project, ProjectKey, Team, TagKey
 from sentry.permissions import (
     can_remove_project, can_add_project_key, can_remove_project_key)
@@ -221,7 +221,7 @@ def notification_settings(request, team, project):
         ))
 
     threshold, min_events = project.get_option(
-        'alert:threshold', settings.DEFAULT_ALERT_PROJECT_THRESHOLD)
+        'alert:threshold', DEFAULT_ALERT_PROJECT_THRESHOLD)
 
     alert_form = AlertSettingsForm(
         data=request.POST or None,

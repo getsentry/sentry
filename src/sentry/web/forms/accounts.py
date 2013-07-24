@@ -10,8 +10,7 @@ from django import forms
 from django.contrib.auth import authenticate
 from django.utils.translation import ugettext_lazy as _
 
-from sentry.conf import settings
-from sentry.constants import EMPTY_PASSWORD_VALUES
+from sentry.constants import EMPTY_PASSWORD_VALUES, LANGUAGES
 from sentry.models import UserOption, User
 
 
@@ -117,7 +116,7 @@ class AccountSettingsForm(forms.Form):
 
 
 class AppearanceSettingsForm(forms.Form):
-    language = forms.ChoiceField(label=_('Language'), choices=settings.LANGUAGES, required=False)
+    language = forms.ChoiceField(label=_('Language'), choices=LANGUAGES, required=False)
     stacktrace_order = forms.ChoiceField(label=_('Stacktrace order'), choices=(
         ('-1', _('Default (let Sentry decide)')),
         ('1', _('Most recent call last')),

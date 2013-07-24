@@ -7,11 +7,11 @@ sentry.plugins.sentry_mail.models
 """
 import sentry
 
+from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.core.urlresolvers import reverse
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy as _
-from sentry.conf import settings
 from sentry.models import User, UserOption
 from sentry.plugins import register
 from sentry.plugins.bases.notify import NotificationPlugin

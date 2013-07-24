@@ -131,7 +131,6 @@ EMAIL_USE_TLS = False
 ###########
 
 SECRET_KEY = %(default_key)r
-SENTRY_KEY = SECRET_KEY
 
 # http://twitter.com/apps/new
 # It's important that input a callback URL, even if its useless. We have no idea why, consult Twitter.

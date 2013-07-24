@@ -5,10 +5,10 @@ sentry.plugins.bases.issue
 :copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from sentry.conf import settings
 from sentry.models import GroupMeta
 from sentry.plugins import Plugin
 from django import forms
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils.html import escape
 from django.utils.safestring import mark_safe

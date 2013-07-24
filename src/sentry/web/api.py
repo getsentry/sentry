@@ -21,9 +21,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.vary import vary_on_cookie
 from django.views.generic.base import View as BaseView
 
-from sentry.conf import settings
 from sentry.constants import (
-    MEMBER_USER, STATUS_MUTED, STATUS_UNRESOLVED, STATUS_RESOLVED)
+    MEMBER_USER, STATUS_MUTED, STATUS_UNRESOLVED, STATUS_RESOLVED,
+    EVENTS_PER_PAGE)
 from sentry.coreapi import (
     project_from_auth_vars, decode_and_decompress_data,
     safely_load_json_string, validate_data, insert_data_to_database, APIError,
@@ -306,7 +306,7 @@ class StoreView(APIView):
 @api
 def poll(request, team, project):
     offset = 0
-    limit = settings.MESSAGES_PER_PAGE
+    limit = EVENTS_PER_PAGE
 
     response = _get_group_list(
         request=request,

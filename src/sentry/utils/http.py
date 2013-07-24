@@ -8,13 +8,13 @@ sentry.utils.http
 import urllib
 from urlparse import urlparse, urljoin
 
-from sentry.conf import settings
+from django.conf import settings
 
 
 def absolute_uri(url=None):
     if not url:
-        return settings.URL_PREFIX
-    return urljoin(settings.URL_PREFIX, url)
+        return settings.SENTRY_URL_PREFIX
+    return urljoin(settings.SENTRY_URL_PREFIX, url)
 
 
 def safe_urlencode(params, doseq=0):
@@ -58,10 +58,10 @@ def get_origins(project=None):
     from sentry.plugins.helpers import get_option
 
     # TODO: we should cache this
-    if settings.ALLOW_ORIGIN == '*':
+    if settings.SENTRY_ALLOW_ORIGIN == '*':
         return frozenset(['*'])
-    elif settings.ALLOW_ORIGIN:
-        result = settings.ALLOW_ORIGIN.split(' ')
+    elif settings.SENTRY_ALLOW_ORIGIN:
+        result = settings.SENTRY_ALLOW_ORIGIN.split(' ')
     else:
         result = []
 

@@ -11,7 +11,7 @@ import pkg_resources
 import sys
 import uuid
 
-from django.conf import settings as dj_settings
+from django.conf import settings
 from django.core.context_processors import csrf
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
@@ -22,7 +22,6 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
 
 from sentry.app import env
-from sentry.conf import settings
 from sentry.models import Team, Project, GroupCountByMinute, User
 from sentry.plugins import plugins
 from sentry.utils.http import absolute_uri
@@ -337,11 +336,11 @@ def status_mail(request):
 
     return render_to_response('sentry/admin/status/mail.html', {
         'form': form,
-        'EMAIL_HOST': dj_settings.EMAIL_HOST,
-        'EMAIL_HOST_PASSWORD': bool(dj_settings.EMAIL_HOST_PASSWORD),
-        'EMAIL_HOST_USER': dj_settings.EMAIL_HOST_USER,
-        'EMAIL_PORT': dj_settings.EMAIL_PORT,
-        'EMAIL_USE_TLS': dj_settings.EMAIL_USE_TLS,
+        'EMAIL_HOST': settings.EMAIL_HOST,
+        'EMAIL_HOST_PASSWORD': bool(settings.EMAIL_HOST_PASSWORD),
+        'EMAIL_HOST_USER': settings.EMAIL_HOST_USER,
+        'EMAIL_PORT': settings.EMAIL_PORT,
+        'EMAIL_USE_TLS': settings.EMAIL_USE_TLS,
     }, request)
 
 

@@ -210,7 +210,7 @@ class DepdendencyTest(TestCase):
             raise ImportError("No module named %s" % (package,))
         return callable
 
-    @mock.patch('sentry.conf.settings')
+    @mock.patch('django.conf.settings')
     @mock.patch('sentry.utils.settings.import_string')
     def validate_dependency(self, key, package, dependency_type, dependency,
                             setting_value, import_string, settings):

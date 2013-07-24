@@ -7,9 +7,23 @@ These settings act as the default (base) settings for the Sentry-provided web-se
 :copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+import logging
+import os.path
 
+from django.conf import settings
 from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext_lazy as _
+
+
+def get_all_languages():
+    results = []
+    for path in os.listdir(os.path.join(MODULE_ROOT, 'locale')):
+        if path.startswith('.'):
+            continue
+        results.append(path)
+    return results
+
+MODULE_ROOT = os.path.dirname(__import__('sentry').__file__)
 
 SORT_OPTIONS = SortedDict((
     ('priority', _('Priority')),
@@ -175,3 +189,33 @@ MAX_DICTIONARY_ITEMS = 50
 RESERVED_TEAM_SLUGS = (
     'admin', 'manage', 'login', 'account', 'register', 'api',
 )
+
+LOG_LEVELS = {
+    logging.DEBUG: 'debug',
+    logging.INFO: 'info',
+    logging.WARNING: 'warning',
+    logging.ERROR: 'error',
+    logging.FATAL: 'fatal',
+}
+DEFAULT_LOG_LEVEL = 'error'
+DEFAULT_LOGGER_NAME = 'root'
+
+# Default alerting threshold values
+DEFAULT_ALERT_PROJECT_THRESHOLD = (500, 100)  # 500%, 100 events
+DEFAULT_ALERT_GROUP_THRESHOLD = (1000, 100)  # 1000%, 100 events
+
+# The maximum number of events which can be requested as JSON
+MAX_JSON_RESULTS = 1000
+
+# Default paginator value
+EVENTS_PER_PAGE = 15
+
+# Default sort option for the group stream
+DEFAULT_SORT_OPTION = 'date'
+
+# Default sort option for the search results
+SEARCH_DEFAULT_SORT_OPTION = 'date'
+
+# Setup languages for only available locales
+LANGUAGE_MAP = dict(settings.LANGUAGES)
+LANGUAGES = [(k, LANGUAGE_MAP[k]) for k in get_all_languages() if k in LANGUAGE_MAP]

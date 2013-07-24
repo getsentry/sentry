@@ -23,8 +23,7 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 
-from sentry.conf import settings
-from sentry.constants import STATUS_MUTED
+from sentry.constants import STATUS_MUTED, EVENTS_PER_PAGE
 from sentry.models import Group, Option
 from sentry.web.helpers import group_is_public
 from sentry.utils import to_unicode
@@ -189,7 +188,7 @@ def duration(value):
                 Constant('from'), Variable('request'),
                 Optional([Constant('as'), Name('asvar')]),
                 Optional([Constant('per_page'), Variable('per_page')])])
-def paginate(context, queryset_or_list, request, asvar=None, per_page=settings.MESSAGES_PER_PAGE):
+def paginate(context, queryset_or_list, request, asvar=None, per_page=EVENTS_PER_PAGE):
     """{% paginate queryset_or_list from request as foo[ per_page 25] %}"""
     result = paginate_func(request, queryset_or_list, per_page, endless=True)
 
@@ -208,7 +207,7 @@ def paginate(context, queryset_or_list, request, asvar=None, per_page=settings.M
                 Constant('from'), Variable('request'),
                 Optional([Constant('as'), Name('asvar')]),
                 Optional([Constant('per_page'), Variable('per_page')])])
-def paginator(context, queryset_or_list, request, asvar=None, per_page=settings.MESSAGES_PER_PAGE):
+def paginator(context, queryset_or_list, request, asvar=None, per_page=EVENTS_PER_PAGE):
     """{% paginator queryset_or_list from request as foo[ per_page 25] %}"""
     result = paginate_func(request, queryset_or_list, per_page, endless=True)
 

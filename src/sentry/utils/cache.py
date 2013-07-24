@@ -10,16 +10,9 @@ import logging
 import random
 import time
 
-from django.core.cache import get_cache, cache as default_cache
+from django.core.cache import cache
 
-from sentry.conf import settings
-
-if settings.CACHE_BACKEND != 'default':
-    _cache = get_cache(settings.CACHE_BACKEND)  # NOQA
-else:
-    _cache = default_cache
-
-cache = _cache
+default_cache = cache
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +30,7 @@ class Lock(object):
     """
     def __init__(self, lock_key, timeout=3, cache=None, nowait=False):
         if cache is None:
-            self.cache = _cache
+            self.cache = default_cache
         else:
             self.cache = cache
         self.timeout = timeout

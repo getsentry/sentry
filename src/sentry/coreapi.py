@@ -18,7 +18,7 @@ import zlib
 from django.utils.encoding import smart_str
 
 from sentry.app import env
-from sentry.conf import settings
+from sentry.constants import DEFAULT_LOG_LEVEL, LOG_LEVELS
 from sentry.exceptions import InvalidTimestamp
 from sentry.models import Project, ProjectKey
 from sentry.tasks.store import preprocess_event
@@ -29,6 +29,8 @@ from sentry.utils.strings import decompress, truncatechars
 
 
 logger = logging.getLogger('sentry.coreapi.errors')
+
+LOG_LEVEL_REVERSE_MAP = dict((v, k) for k, v in LOG_LEVELS.iteritems())
 
 MAX_CULPRIT_LENGTH = 200
 MAX_MESSAGE_LENGTH = 2048
@@ -342,17 +344,17 @@ def validate_data(project, data, client=None):
             log('Discarded invalid value for interface: %s', k,
                 **client_metadata(client, project, exception=e, extra={'value': value}))
 
-    level = data.get('level') or settings.DEFAULT_LOG_LEVEL
+    level = data.get('level') or DEFAULT_LOG_LEVEL
     if isinstance(level, basestring) and not level.isdigit():
         # assume it's something like 'warning'
         try:
-            data['level'] = settings.LOG_LEVEL_REVERSE_MAP[level]
+            data['level'] = LOG_LEVEL_REVERSE_MAP[level]
         except KeyError, e:
             logger.info(
                 'Discarded invalid logger value: %s', level,
                 **client_metadata(client, project, exception=e))
-            data['level'] = settings.LOG_LEVEL_REVERSE_MAP.get(
-                settings.DEFAULT_LOG_LEVEL, settings.DEFAULT_LOG_LEVEL)
+            data['level'] = LOG_LEVEL_REVERSE_MAP.get(
+                DEFAULT_LOG_LEVEL, DEFAULT_LOG_LEVEL)
 
     return data
 

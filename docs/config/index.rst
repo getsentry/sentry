@@ -3,19 +3,6 @@ Configuration
 
 This document describes additional configuration options available to the Sentry server. If you are looking for documentation for the client, it is maintained in the `Raven <http://github.com/getsentry/raven-python>`_ project.
 
-.. note:: While the options below are labeled without the ``SENTRY_`` prefix, when you are configuring them via your ``settings.py`` you **must** specify the prefix.
-
-.. data:: SENTRY_KEY
-    :noindex:
-
-    The shared secret for global administration privileges via the API.
-
-    We recommend using Project API keys to maintain access, as using a shared key provides a potential security risk.
-
-    ::
-
-    	SENTRY_KEY = '0123456789abcde'
-
 .. data:: SENTRY_URL_PREFIX
     :noindex:
 
@@ -27,42 +14,6 @@ This document describes additional configuration options available to the Sentry
 
 		SENTRY_URL_PREFIX = 'http://sentry.example.com'
 
-.. data:: SENTRY_SAMPLE_DATA
-    :noindex:
-
-	.. versionadded:: 1.10.0
-
-	Controls sampling of data.
-
-	Defaults to ``True``.
-
-	If this is enabled, data will be sampled in a manner similar to the following:
-
-	* 50 messages stores ~50 results
-	* 1000 messages stores ~400 results
-	* 10000 messages stores ~900 results
-	* 100000 messages stores ~1800 results
-	* 1000000 messages stores ~3600 results
-	* 10000000 messages stores ~4500 results
-
-	::
-
-		SENTRY_SAMPLE_DATA = False
-
-.. data:: SENTRY_LOG_LEVELS
-    :noindex:
-
-    A list of log levels, with their numeric value, as well as their short name.
-
-    ::
-
-        LOG_LEVELS = (
-            (logging.DEBUG, 'debug'),
-            (logging.INFO, 'info'),
-            (logging.WARNING, 'warning'),
-            (logging.ERROR, 'error'),
-            (logging.FATAL, 'fatal'),
-        )
 
 Authentication
 --------------
@@ -149,39 +100,6 @@ Authentication
 .. _Mozilla developer docs: https://developer.mozilla.org/En/HTTP_access_control#Simple_requests
 
 
-Notifications
--------------
-
-As of the current release, Sentry now designates its notification processing to plugins. Specifically, the email
-notifications have been moved to the ``sentry.plugins.sentry_mail``. You'll need to add this plugin to your
-``INSTALLED_APPS`` if you wish to continue using email notifications.
-
-The following settings now act as default values for the ``sentry_mail`` plugin, and can be overwritten per-project
-by visiting the plugin configuration page for that project.
-
-.. data:: SENTRY_EMAIL_SUBJECT_PREFIX
-    :noindex:
-
-	The prefix to apply to outgoing emails.
-
-	Defaults to ``""``.
-
-	::
-
-		SENTRY_EMAIL_SUBJECT_PREFIX = '[Sentry] '
-
-
-.. data:: SENTRY_SERVER_EMAIL
-    :noindex:
-
-	The reply-to email address for outgoing mail.
-
-	Defaults to ``root@localhost``.
-
-	::
-
-		SENTRY_SERVER_EMAIL = 'sentry@example.com'
-
 Services
 --------
 
@@ -256,3 +174,29 @@ The following settings are available for the built-in UDP API server:
     ::
 
         SENTRY_UDP_PORT = 9001
+
+
+Data Sampling
+-------------
+
+.. data:: SENTRY_SAMPLE_DATA
+    :noindex:
+
+    .. versionadded:: 1.10.0
+
+    Controls sampling of data.
+
+    Defaults to ``True``.
+
+    If this is enabled, data will be sampled in a manner similar to the following:
+
+    * 50 messages stores ~50 results
+    * 1000 messages stores ~400 results
+    * 10000 messages stores ~900 results
+    * 100000 messages stores ~1800 results
+    * 1000000 messages stores ~3600 results
+    * 10000000 messages stores ~4500 results
+
+    ::
+
+        SENTRY_SAMPLE_DATA = False

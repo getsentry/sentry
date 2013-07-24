@@ -7,8 +7,7 @@ import json
 
 from django.core.urlresolvers import reverse
 
-from sentry.conf import settings
-from sentry.constants import MEMBER_USER
+from sentry.constants import MEMBER_USER, MAX_JSON_RESULTS
 from sentry.models import Group, Project, TeamMember, Team, User
 from sentry.testutils import TestCase, fixture, before
 
@@ -222,7 +221,7 @@ class GroupEventListJsonTest(BaseViewTest):
 
     def test_does_not_allow_beyond_limit(self):
         self.login()
-        resp = self.client.get(self.path, {'limit': settings.MAX_JSON_RESULTS + 1})
+        resp = self.client.get(self.path, {'limit': MAX_JSON_RESULTS + 1})
         assert resp.status_code == 400
 
 
