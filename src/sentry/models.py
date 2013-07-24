@@ -479,8 +479,7 @@ class EventBase(Model):
     def error(self):
         message = strip(self.message)
         if message:
-            if len(message) > 100:
-                message = message[:97] + '...'
+            message = truncatechars(message)
         else:
             message = '<unlabeled message>'
         return message

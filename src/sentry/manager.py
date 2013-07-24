@@ -387,9 +387,6 @@ class GroupManager(BaseManager, ChartMixin):
         if not timestamp:
             timestamp = timezone.now()
 
-        if not data.get('culprit'):
-            data['culprit'] = ''
-
         # We must convert date to local time so Django doesn't mess it up
         # based on TIME_ZONE
         if dj_settings.TIME_ZONE:
@@ -403,6 +400,7 @@ class GroupManager(BaseManager, ChartMixin):
             data['event_id'] = uuid.uuid4().hex
 
         data.setdefault('message', None)
+        data.setdefault('culprit', None)
         data.setdefault('time_spent', None)
         data.setdefault('server_name', None)
         data.setdefault('site', None)
