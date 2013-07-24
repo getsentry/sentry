@@ -34,3 +34,9 @@ def decompress(value):
 
 def gunzip(value):
     return zlib.decompress(value, 16 + zlib.MAX_WBITS)
+
+
+def strip(value):
+    if not value:
+        return ''
+    return value.strip()

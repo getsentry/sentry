@@ -24,6 +24,7 @@ from django.utils.translation import ugettext as _
 
 from sentry.app import env
 from sentry.models import UserOption
+from sentry.utils.strings import strip
 from sentry.web.helpers import render_to_string
 
 _Exception = Exception
@@ -704,7 +705,7 @@ class SingleException(Interface):
         return {
             'is_public': is_public,
             'event': event,
-            'exception_value': self.value,
+            'exception_value': strip(self.value) or strip(self.type) or '<empty value>',
             'exception_type': self.type,
             'exception_module': self.module,
             'fullname': fullname,

@@ -52,7 +52,7 @@ from sentry.utils.models import (
     update)
 from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute
-from sentry.utils.strings import truncatechars
+from sentry.utils.strings import truncatechars, strip
 
 __all__ = ('Event', 'Group', 'Project', 'SearchDocument')
 
@@ -478,7 +478,7 @@ class EventBase(Model):
         super(EventBase, self).save(*args, **kwargs)
 
     def error(self):
-        if self.message:
+        if strip(self.message):
             message = smart_unicode(self.message)
             if len(message) > 100:
                 message = message[:97] + '...'
@@ -491,9 +491,9 @@ class EventBase(Model):
         return '\n' in self.message.strip('\n') or len(self.message) > 100
 
     def message_top(self):
-        if self.culprit:
+        if strip(self.culprit):
             return self.culprit
-        if not self.message:
+        if not strip(self.message):
             return '<unlabeled message>'
         return truncatechars(self.message.splitlines()[0], 100)
 
