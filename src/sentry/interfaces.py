@@ -803,6 +803,7 @@ class Exception(Interface):
         }
 
         exceptions = []
+        last = len(self.values) - 1
         for num, e in enumerate(self.values):
             context = e.get_context(**context_kwargs)
             if e.stacktrace:
@@ -811,6 +812,10 @@ class Exception(Interface):
             else:
                 context['stacktrace'] = {}
             context['stack_id'] = 'exception_%d' % (num,)
+            if newest_first:
+                context['is_root'] = num == 0
+            else:
+                context['is_root'] = num == last
             exceptions.append(context)
 
         if newest_first:
