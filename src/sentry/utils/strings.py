@@ -39,4 +39,6 @@ def gunzip(value):
 def strip(value):
     if not value:
         return ''
+    if not isinstance(value, basestring):
+        return unicode(value)  # fuck it
     return value.strip()

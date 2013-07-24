@@ -488,14 +488,17 @@ class EventBase(Model):
     error.short_description = _('error')
 
     def has_two_part_message(self):
-        return '\n' in self.message.strip('\n') or len(self.message) > 100
+        message = strip(self.message)
+        return '\n' in message or len(message) > 100
 
     def message_top(self):
-        if strip(self.culprit):
-            return self.culprit
-        if not strip(self.message):
+        culprit = strip(self.culprit)
+        if strip(culprit):
+            return culprit
+        message = strip(self.message)
+        if not strip(message):
             return '<unlabeled message>'
-        return truncatechars(self.message.splitlines()[0], 100)
+        return truncatechars(message.splitlines()[0], 100)
 
     @property
     def team(self):

@@ -45,6 +45,7 @@ from sentry.utils.dates import get_sql_date_trunc, normalize_datetime
 from sentry.utils.db import get_db_engine, has_charts, attach_foreignkey
 from sentry.utils.models import create_or_update, make_key
 from sentry.utils.safe import safe_execute, trim, trim_dict
+from sentry.utils.strings import strip
 
 logger = logging.getLogger('sentry.errors')
 
@@ -422,6 +423,8 @@ class GroupManager(BaseManager, ChartMixin):
             tags = list(tags)
 
         data['tags'] = tags
+        data['message'] = strip(data['message'])
+        data['culprit'] = strip(data['culprit'])
 
         if not isinstance(data['extra'], dict):
             # throw it away
