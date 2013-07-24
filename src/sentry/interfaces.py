@@ -668,9 +668,9 @@ class SingleException(Interface):
             stacktrace = None
 
         return {
-            'type': self.type,
-            'value': self.value,
-            'module': self.module,
+            'type': strip(self.type) or None,
+            'value': strip(self.value) or None,
+            'module': strip(self.module) or None,
             'stacktrace': stacktrace,
         }
 
@@ -697,17 +697,21 @@ class SingleException(Interface):
         if interface is not None and interface.frames:
             last_frame = interface.frames[-1]
 
+        e_module = strip(self.module)
+        e_type = strip(self.type) or 'Exception'
+        e_value = strip(self.value)
+
         if self.module:
-            fullname = '%s.%s' % (self.module, self.type)
+            fullname = '%s.%s' % (e_module, e_type)
         else:
-            fullname = self.type
+            fullname = e_type
 
         return {
             'is_public': is_public,
             'event': event,
-            'exception_value': strip(self.value) or strip(self.type) or '<empty value>',
-            'exception_type': self.type,
-            'exception_module': self.module,
+            'exception_value': e_value or e_type or '<empty value>',
+            'exception_type': e_type,
+            'exception_module': e_module,
             'fullname': fullname,
             'last_frame': last_frame
         }
