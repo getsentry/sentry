@@ -25,6 +25,7 @@ Incompatible Changes
 - Nearly all data within an event now has a fixed max size. See client
   developer documentation for details.
 - Project keys are no longer created for individuals by default
+- sentry.conf.settings has been removed
 - LOG_LEVELS, DEFAULT_LOG_LEVEL, and DEFAULT_LOGGER_NAME are no longer configurable.
 - DEFAULT_ALERT_PROJECT_THRESHOLD and DEFAULT_ALERT_GROUP_THRESHOLD are no longer
   configurable.

@@ -46,6 +46,7 @@ compile-bootstrap-js:
 	${UGLIFY_JS} -nc ${BOOTSTRAP_JS} > ${BOOTSTRAP_JS_MIN};
 
 install-test-requirements:
+	npm install -q
 	pip install -q "file://`pwd`#egg=sentry[tests]"
 
 update-submodules:
