@@ -53,6 +53,11 @@ class MailPlugin(NotificationPlugin):
 
         subject_prefix = self.get_option('subject_prefix', project) or self.subject_prefix
 
+        if headers is None:
+            headers = {}
+
+        headers.setdefault('Reply-To', ', '.join(send_to))
+
         msg = EmailMultiAlternatives(
             '%s%s' % (subject_prefix, subject),
             body,
