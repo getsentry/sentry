@@ -115,7 +115,7 @@ class PyTest(TestCommand):
 
 setup(
     name='sentry',
-    version='6.0.0-DEV',
+    version='6.0.0',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='http://www.getsentry.com',
