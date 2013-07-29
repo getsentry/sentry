@@ -138,6 +138,10 @@ class Team(Model):
             slugify_instance(self, self.name, reserved=RESERVED_TEAM_SLUGS)
         super(Team, self).save(*args, **kwargs)
 
+    def get_absolute_url(self):
+        return absolute_uri(reverse('sentry', args=[
+            self.team.slug]))
+
     def get_owner_name(self):
         if not self.owner:
             return None
@@ -253,6 +257,10 @@ class Project(Model):
                     obj.delete()
                     has_results = True
         super(Project, self).delete()
+
+    def get_absolute_url(self):
+        return absolute_uri(reverse('sentry-stream', args=[
+            self.team.slug, self.project.slug]))
 
     def merge_to(self, project):
         if not isinstance(project, Project):
