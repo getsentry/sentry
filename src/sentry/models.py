@@ -140,7 +140,7 @@ class Team(Model):
 
     def get_absolute_url(self):
         return absolute_uri(reverse('sentry', args=[
-            self.team.slug]))
+            self.slug]))
 
     def get_owner_name(self):
         if not self.owner:
@@ -260,7 +260,7 @@ class Project(Model):
 
     def get_absolute_url(self):
         return absolute_uri(reverse('sentry-stream', args=[
-            self.team.slug, self.project.slug]))
+            self.team.slug, self.slug]))
 
     def merge_to(self, project):
         if not isinstance(project, Project):
