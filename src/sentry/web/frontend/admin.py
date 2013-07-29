@@ -71,7 +71,7 @@ def manage_projects(request):
     elif sort == 'events':
         project_list = project_list.annotate(
             events=Sum('projectcountbyminute__times_seen'),
-        ).filter(projectcountbyminute__date__gte=timezone.now() - datetime.timedelta(days=30))
+        ).filter(projectcountbyminute__date__gte=timezone.now() - datetime.timedelta(days=1))
         order_by = '-events'
 
     project_list = project_list.order_by(order_by)
