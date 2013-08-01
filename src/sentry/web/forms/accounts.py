@@ -32,6 +32,14 @@ class RegistrationForm(forms.ModelForm):
             raise forms.ValidationError(_('An account is already registered with that email address.'))
         return value
 
+    def clean_username(self):
+        value = self.cleaned_data.get('username')
+        if not value:
+            return
+        if User.objects.filter(username__iexact=value).exists():
+            raise forms.ValidationError(_('An account is already registered with that username.'))
+        return value
+
     def save(self, commit=True):
         user = super(RegistrationForm, self).save(commit=False)
         user.set_password(self.cleaned_data['password'])
