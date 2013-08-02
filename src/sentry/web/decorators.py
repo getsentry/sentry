@@ -67,9 +67,6 @@ def has_access(access_or_func=None, team=None, access=None):
                 else:
                     lookup_kwargs = {'slug': project_id}
 
-                if team:
-                    lookup_kwargs['team'] = team
-
                 if request.user.is_superuser:
                     try:
                         project = Project.objects.get_from_cache(**lookup_kwargs)
@@ -94,6 +91,9 @@ def has_access(access_or_func=None, team=None, access=None):
                         return HttpResponseRedirect(reverse('sentry'))
             else:
                 project = None
+
+            if team and project.team != team:
+                return HttpResponseRedirect(reverse('sentry'))
 
             if has_project:
                 # ensure we're accessing this url correctly
