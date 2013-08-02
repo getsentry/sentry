@@ -167,12 +167,15 @@ def expand_javascript_source(data, **kwargs):
     if legacy_style:
         stacktraces = [Stacktrace(**data['sentry.interfaces.Stacktrace'])]
     else:
-        stacktraces = [
-            Stacktrace(**e['stacktrace'])
-            for e in data['sentry.interfaces.Exception']['values']
-        ]
-    if not stacktraces:
+        try:
+            stacktraces = [
+                Stacktrace(**e['stacktrace'])
+                for e in data['sentry.interfaces.Exception']['values']
+            ]
+        except KeyError:
+            stacktraces = []
 
+    if not stacktraces:
         logger.debug('No stacktrace for event %r', data['event_id'])
         return
 
