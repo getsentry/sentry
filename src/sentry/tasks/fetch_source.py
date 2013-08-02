@@ -6,6 +6,7 @@ sentry.tasks.fetch_source
 :license: BSD, see LICENSE for more details.
 """
 
+import itertools
 import logging
 import hashlib
 import sourcemap
@@ -160,9 +161,11 @@ def expand_javascript_source(data, **kwargs):
     """
     from sentry.interfaces import Stacktrace
 
-    try:
-        stacktrace = Stacktrace(**data['sentry.interfaces.Stacktrace'])
-    except KeyError:
+    stacktraces = [
+        Stacktrace(**e['stacktrace'])
+        for e in data['sentry.interfaces.Exception']['values']
+    ]
+    if not stacktraces:
         logger.debug('No stacktrace for event %r', data['event_id'])
         return
 
@@ -264,4 +267,5 @@ def expand_javascript_source(data, **kwargs):
             source=source, lineno=frame.lineno)
 
     if has_changes:
-        data['sentry.interfaces.Stacktrace'] = stacktrace.serialize()
+        for exception, stacktrace in itertools.izip(data['sentry.interfaces.Exception']['values'], stacktraces):
+            exception['stacktrace'] = stacktrace.serialize()
