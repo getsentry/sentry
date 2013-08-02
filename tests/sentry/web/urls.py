@@ -1,5 +1,5 @@
 try:
-    from django.conf.urls import *
+    from django.conf.urls import *  # NOQA
 except ImportError:
     # django < 1.5 compat
     from django.conf.urls.defaults import *  # NOQA

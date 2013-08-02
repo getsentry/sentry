@@ -8,11 +8,12 @@ UGLIFY_JS ?= node_modules/uglify-js/bin/uglifyjs
 JS_TESTS = tests/js/index.html
 JS_REPORTER = dot
 
-develop: update-submodules setup-git
+develop: update-submodules
 	npm install -q
 	pip install -q "file://`pwd`#egg=sentry[dev]" --use-mirrors
 	pip install -q "file://`pwd`#egg=sentry[tests]" --use-mirrors
 	pip install -q -e . --use-mirrors
+	make setup-git
 
 dev-postgres:
 	pip install -q "file://`pwd`#egg=sentry[dev]" --use-mirrors
@@ -29,6 +30,7 @@ dev-docs:
 
 setup-git:
 	git config branch.autosetuprebase always
+	cd .git/hooks && ln -sf ../../hooks/* ./
 
 build: locale
 
@@ -85,7 +87,7 @@ lint: lint-python lint-js
 
 lint-python:
 	@echo "Linting Python files"
-	flake8 --exclude=migrations,src/sentry/static/CACHE/* --ignore=E501,E225,E121,E123,E124,E125,E127,E128 src/sentry
+	flake8 src/sentry
 	@echo ""
 
 lint-js:

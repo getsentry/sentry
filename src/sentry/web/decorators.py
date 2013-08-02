@@ -4,8 +4,8 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import get_object_or_404
 
 from sentry.models import Project, Team, Group
-from sentry.web.helpers import render_to_response, \
-  get_login_url
+from sentry.web.helpers import (
+    render_to_response, get_login_url)
 
 
 def has_access(access_or_func=None, team=None, access=None):

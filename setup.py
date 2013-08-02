@@ -43,7 +43,7 @@ if 'test' in sys.argv:
     setup_requires.append('pytest')
 
 dev_requires = [
-    'flake8>=1.7.0,<2.0',
+    'flake8>=2.0,<2.1',
 ]
 
 tests_require = [

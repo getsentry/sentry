@@ -8,7 +8,7 @@ import mock
 from sentry.models import Project, User
 from sentry.exceptions import InvalidTimestamp
 from sentry.coreapi import (
-    extract_auth_vars, project_from_auth_vars, APIUnauthorized, APIForbidden,
+    extract_auth_vars, project_from_auth_vars, APIForbidden,
     process_data_timestamp, validate_data, INTERFACE_ALIASES)
 from sentry.testutils import TestCase
 

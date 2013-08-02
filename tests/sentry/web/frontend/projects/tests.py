@@ -144,7 +144,6 @@ class GetStartedTest(TestCase):
         assert resp.context['team'] == self.team
 
 
-
 class RemoveProjectTest(TestCase):
     @fixture
     def path(self):

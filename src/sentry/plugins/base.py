@@ -120,7 +120,7 @@ class IPlugin(local):
     control when or how the plugin gets instantiated, nor is it guaranteed that
     it will happen, or happen more than once.
 
-    >>> from sentry.plugins import Plugin
+    >>> from sentry.plugins import Plugin  # NOQA
     >>> class MyPlugin(Plugin):
     >>>     title = 'My Plugin'
     >>>

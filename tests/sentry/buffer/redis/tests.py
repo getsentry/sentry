@@ -8,7 +8,6 @@ from datetime import timedelta
 from django.utils import timezone
 from sentry.buffer.redis import RedisBuffer
 from sentry.models import Group, Project
-from sentry.tasks.process_buffer import process_incr
 from sentry.utils.compat import pickle
 from sentry.testutils import TestCase
 
