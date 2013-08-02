@@ -32,7 +32,7 @@ The Redis Backend
 Configuring the Redis backend **requires the queue** or you won't see any gains (in fact you'll just negatively
 impact your performance).
 
-The first thing you will need to do is install two additional required packages:
+The first thing you will need to do is install a few additional required packages:
 
 ::
 
