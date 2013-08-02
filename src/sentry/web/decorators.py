@@ -92,9 +92,6 @@ def has_access(access_or_func=None, team=None, access=None):
             else:
                 project = None
 
-            if team and project.team != team:
-                return HttpResponseRedirect(reverse('sentry'))
-
             if has_project:
                 # ensure we're accessing this url correctly
                 if project and team:
