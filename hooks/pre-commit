@@ -11,18 +11,6 @@ site_packages = glob.glob('%s/lib/*/site-packages' % os.environ['VIRTUAL_ENV'])[
 sys.path.insert(0, site_packages)
 
 def main():
-    """This is the function used by the git hook.
-
-    :param int complexity: (optional), any value > 0 enables complexity
-        checking with mccabe
-    :param bool strict: (optional), if True, this returns the total number of
-        errors which will cause the hook to fail
-    :param str ignore: (optional), a comma-separated list of errors and
-        warnings to ignore
-    :param bool lazy: (optional), allows for the instances where you don't add
-        the files to the index before running a commit, e.g., git commit -a
-    :returns: total number of errors if strict is True, otherwise 0
-    """
     from flake8.main import DEFAULT_CONFIG
     from flake8.engine import get_style_guide
     from flake8.hooks import run
