@@ -19,7 +19,11 @@ def main():
     gitcmd = "git diff-index --cached --name-only HEAD"
 
     _, files_modified, _ = run(gitcmd)
-    files_modified = filter(lambda x: x.endswith('.py'), files_modified)
+
+    # remove non-py files and files which no longer exist
+    files_modified = filter(
+        lambda x: x.endswith('.py') and os.path.exists(x),
+        files_modified)
 
     flake8_style = get_style_guide(parse_argv=True, config_file=DEFAULT_CONFIG)
     report = flake8_style.check_files(files_modified)
