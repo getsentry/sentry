@@ -8,7 +8,7 @@ UGLIFY_JS ?= node_modules/uglify-js/bin/uglifyjs
 JS_TESTS = tests/js/index.html
 JS_REPORTER = dot
 
-develop: update-submodules
+develop: update-submodules setup-git
 	npm install -q
 	pip install -q "file://`pwd`#egg=sentry[dev]" --use-mirrors
 	pip install -q "file://`pwd`#egg=sentry[tests]" --use-mirrors
@@ -26,6 +26,9 @@ dev-mysql:
 
 dev-docs:
 	pip install -q -r docs/requirements.txt --use-mirrors
+
+setup-git:
+	git config branch.autosetuprebase always
 
 build: locale
 
