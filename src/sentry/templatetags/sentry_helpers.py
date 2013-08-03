@@ -9,6 +9,7 @@ sentry.templatetags.sentry_helpers
 #      INSTALLED_APPS
 
 import datetime
+import os.path
 
 from collections import namedtuple
 from paging.helpers import paginate as paginate_func
@@ -459,3 +460,8 @@ def reorder_teams(team_list, team):
 @register.filter
 def urlquote(value, safe=''):
     return quote(value.encode('utf8'), safe)
+
+
+@register.filter
+def basename(value):
+    return os.path.basename(value)
