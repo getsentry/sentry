@@ -18,6 +18,7 @@ from sentry.permissions import (can_add_team_member, can_remove_team, can_create
     can_create_teams, can_edit_team_member, can_remove_team_member,
     Permissions)
 from sentry.plugins import plugins
+from sentry.utils.samples import create_sample_event
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms.teams import (NewTeamForm, NewTeamAdminForm,
     EditTeamForm, EditTeamAdminForm, EditTeamMemberForm, NewTeamMemberForm,
@@ -410,6 +411,8 @@ def create_new_team_project(request, team):
         if not project.owner:
             project.owner = request.user
         project.save()
+
+        create_sample_event(project)
 
         if project.platform not in (None, 'other'):
             return HttpResponseRedirect(reverse('sentry-docs-client', args=[project.team.slug, project.slug, project.platform]))
