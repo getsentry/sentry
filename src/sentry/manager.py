@@ -475,7 +475,7 @@ class GroupManager(BaseManager, ChartMixin):
         return self.save_data(project, data)
 
     @transaction.commit_on_success
-    def save_data(self, project, data):
+    def save_data(self, project, data, raw=False):
         # TODO: this function is way too damn long and needs refactored
         # the inner imports also suck so let's try to move it away from
         # the objects manager
@@ -485,7 +485,7 @@ class GroupManager(BaseManager, ChartMixin):
         from sentry.plugins import plugins
         from sentry.models import Event, Project, EventMapping
 
-        project = Project.objects.get_from_cache(pk=project)
+        project = Project.objects.get_from_cache(id=project)
 
         # First we pull out our top-level (non-data attr) kwargs
         event_id = data.pop('event_id')
@@ -593,18 +593,19 @@ class GroupManager(BaseManager, ChartMixin):
         transaction.savepoint_commit(sid, using=using)
         transaction.commit_unless_managed(using=using)
 
-        send_group_processors(
-            group=group,
-            event=event,
-            is_new=is_new,
-            is_sample=is_sample
-        )
+        if not raw:
+            send_group_processors(
+                group=group,
+                event=event,
+                is_new=is_new,
+                is_sample=is_sample
+            )
 
         if settings.SENTRY_USE_SEARCH:
             index_event.delay(event)
 
         # TODO: move this to the queue
-        if is_new:
+        if is_new and not raw:
             regression_signal.send_robust(sender=self.model, instance=group)
 
         return event

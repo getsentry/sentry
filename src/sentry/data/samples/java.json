@@ -1,0 +1,208 @@
+{
+    "message": "[Example] java.sql.SQLException: Violation of unique constraint MY_ENTITY_UK_1: duplicate value(s) for column(s) MY_COLUMN in statement [...]",
+    "culprit": "javax.servlet.ServletException",
+    "sentry.interfaces.Exception": {
+        "values": [
+            {
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "run",
+                            "lineno": 582,
+                            "module": "org.mortbay.thread.QueuedThreadPool$PoolThread",
+                            "filename": "QueuedThreadPool.java"
+                        },
+                        {
+                            "function": "run",
+                            "lineno": 228,
+                            "module": "org.mortbay.jetty.bio.SocketConnector$Connection",
+                            "filename": "SocketConnector.java"
+                        },
+                        {
+                            "function": "handle",
+                            "lineno": 404,
+                            "module": "org.mortbay.jetty.HttpConnection",
+                            "filename": "HttpConnection.java"
+                        },
+                        {
+                            "function": "parseAvailable",
+                            "lineno": 218,
+                            "module": "org.mortbay.jetty.HttpParser",
+                            "filename": "HttpParser.java"
+                        },
+                        {
+                            "function": "parseNext",
+                            "lineno": 756,
+                            "module": "org.mortbay.jetty.HttpParser",
+                            "filename": "HttpParser.java"
+                        },
+                        {
+                            "function": "content",
+                            "lineno": 943,
+                            "module": "org.mortbay.jetty.HttpConnection$RequestHandler",
+                            "filename": "HttpConnection.java"
+                        },
+                        {
+                            "function": "handleRequest",
+                            "lineno": 542,
+                            "module": "org.mortbay.jetty.HttpConnection",
+                            "filename": "HttpConnection.java"
+                        },
+                        {
+                            "function": "handle",
+                            "lineno": 326,
+                            "module": "org.mortbay.jetty.Server",
+                            "filename": "Server.java"
+                        },
+                        {
+                            "function": "handle",
+                            "lineno": 152,
+                            "module": "org.mortbay.jetty.handler.HandlerWrapper",
+                            "filename": "HandlerWrapper.java"
+                        },
+                        {
+                            "function": "handle",
+                            "lineno": 418,
+                            "module": "org.mortbay.jetty.webapp.WebAppContext",
+                            "filename": "WebAppContext.java"
+                        },
+                        {
+                            "function": "handle",
+                            "lineno": 765,
+                            "module": "org.mortbay.jetty.handler.ContextHandler",
+                            "filename": "ContextHandler.java"
+                        },
+                        {
+                            "function": "handle",
+                            "lineno": 182,
+                            "module": "org.mortbay.jetty.servlet.SessionHandler",
+                            "filename": "SessionHandler.java"
+                        },
+                        {
+                            "function": "handle",
+                            "lineno": 216,
+                            "module": "org.mortbay.jetty.security.SecurityHandler",
+                            "filename": "SecurityHandler.java"
+                        },
+                        {
+                            "function": "handle",
+                            "lineno": 388,
+                            "module": "org.mortbay.jetty.servlet.ServletHandler",
+                            "filename": "ServletHandler.java"
+                        },
+                        {
+                            "function": "doFilter",
+                            "lineno": 1157,
+                            "module": "org.mortbay.jetty.servlet.ServletHandler$CachedChain",
+                            "filename": "ServletHandler.java"
+                        },
+                        {
+                            "function": "doFilter",
+                            "lineno": 33,
+                            "module": "com.example.myproject.OutputBufferFilter",
+                            "filename": "OutputBufferFilter.java"
+                        },
+                        {
+                            "function": "doFilter",
+                            "lineno": 1157,
+                            "module": "org.mortbay.jetty.servlet.ServletHandler$CachedChain",
+                            "filename": "ServletHandler.java"
+                        },
+                        {
+                            "function": "doFilter",
+                            "lineno": 28,
+                            "module": "com.example.myproject.ExceptionHandlerFilter",
+                            "filename": "ExceptionHandlerFilter.java"
+                        },
+                        {
+                            "function": "doFilter",
+                            "lineno": 1157,
+                            "module": "org.mortbay.jetty.servlet.ServletHandler$CachedChain",
+                            "filename": "ServletHandler.java"
+                        },
+                        {
+                            "function": "doFilter",
+                            "lineno": 60,
+                            "module": "com.example.myproject.OpenSessionInViewFilter",
+                            "filename": "OpenSessionInViewFilter.java"
+                        }
+                    ]
+                },
+                "type": "javax.servlet.ServletException",
+                "value": "Something bad happened"
+            },
+            {
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "doFilter",
+                            "lineno": 30,
+                            "module": "com.example.myproject.OpenSessionInViewFilter",
+                            "filename": "OpenSessionInViewFilter.java"
+                        },
+                        {
+                            "function": "doFilter",
+                            "lineno": 1166,
+                            "module": "org.mortbay.jetty.servlet.ServletHandler$CachedChain",
+                            "filename": "ServletHandler.java"
+                        },
+                        {
+                            "function": "handle",
+                            "lineno": 511,
+                            "module": "org.mortbay.jetty.servlet.ServletHolder",
+                            "filename": "ServletHolder.java"
+                        },
+                        {
+                            "function": "service",
+                            "lineno": 820,
+                            "module": "javax.servlet.http.HttpServlet",
+                            "filename": "HttpServlet.java"
+                        },
+                        {
+                            "function": "service",
+                            "lineno": 727,
+                            "module": "javax.servlet.http.HttpServlet",
+                            "filename": "HttpServlet.java"
+                        },
+                        {
+                            "function": "doPost",
+                            "lineno": 169,
+                            "module": "com.example.myproject.MyServlet",
+                            "filename": "MyServlet.java"
+                        }
+                    ]
+                },
+                "type": "com.example.myproject.MyProjectServletException",
+                "value": ""
+            },
+            {
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "performInsert",
+                            "lineno": 57,
+                            "module": "org.hibernate.id.insert.AbstractSelectingDelegate",
+                            "filename": "AbstractSelectingDelegate.java"
+                        },
+                        {
+                            "function": "executeUpdate",
+                            "lineno": 105,
+                            "module": "com.mchange.v2.c3p0.impl.NewProxyPreparedStatement",
+                            "filename": "NewProxyPreparedStatement.java"
+                        },
+                        {
+                            "function": "executeUpdate",
+                            "module": "org.hsqldb.jdbc.jdbcPreparedStatement"
+                        },
+                        {
+                            "function": "throwError",
+                            "module": "org.hsqldb.jdbc.Util"
+                        }
+                    ]
+                },
+                "type": "java.sql.SQLException",
+                "value": "Violation of unique constraint MY_ENTITY_UK_1: duplicate value(s) for column(s) MY_COLUMN in statement [...]"
+            }
+        ]
+    }
+}
