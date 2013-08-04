@@ -221,12 +221,15 @@ def expand_javascript_source(data, **kwargs):
         source_code[filename] = (result.body.splitlines(), map_path)
         if map_path:
             logger.debug('Found sourcemap %r for minified script %r', map_path, result.url)
-
-        if not map_path or map_path not in sourcemap_idxs:
+        # If we've already fetched this sourcemap, move along
+        elif map_path in sourcemap_idxs:
+            continue
+        else:
             continue
 
         index = fetch_sourcemap(map_path, logger=logger)
         if not index:
+            sourcemap_idxs[sourcemap] = None
             continue
 
         sourcemap_idxs[sourcemap] = sourcemap.load(index)
@@ -245,7 +248,7 @@ def expand_javascript_source(data, **kwargs):
             continue
 
         # may have had a failure pulling down the sourcemap previously
-        if map_path in sourcemap_idxs and frame.colno is not None:
+        if sourcemap_idxs.get(map_path) and frame.colno is not None:
             token = sourcemap_idxs[map_path].lookup(frame.lineno, frame.colno)
             # TODO: is this urljoin right? (is it relative to the sourcemap or the originating file)
             abs_path = urljoin(map_path, token.src)
