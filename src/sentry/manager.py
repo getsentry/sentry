@@ -24,7 +24,7 @@ from celery.signals import task_postrun
 from django.conf import settings
 from django.contrib.auth.models import UserManager
 from django.core.signals import request_finished
-from django.db import models, transaction, IntegrityError
+from django.db import models, router, transaction, IntegrityError
 from django.db.models import Sum
 from django.db.models.signals import post_save, post_delete, post_init, class_prepared
 from django.utils import timezone
@@ -215,6 +215,8 @@ class BaseManager(models.Manager):
                     raise ValueError('Unexpected value type returned from cache')
                 logger.error('Cache response returned invalid value %r', retval)
                 return self.get(**kwargs)
+
+            retval._state.db = router.db_for_read(self.model, **kwargs)
 
             return retval
         else:
