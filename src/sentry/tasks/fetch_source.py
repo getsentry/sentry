@@ -9,7 +9,6 @@ sentry.tasks.fetch_source
 import itertools
 import logging
 import hashlib
-import sourcemap
 import urllib2
 import zlib
 from collections import namedtuple
@@ -17,6 +16,7 @@ from urlparse import urljoin
 
 from django.utils.simplejson import JSONDecodeError
 from sentry.utils.cache import cache
+from sentry.utils.sourcemaps import sourcemap_to_index, find_source
 
 BAD_SOURCE = -1
 
@@ -62,21 +62,36 @@ def get_source_context(source, lineno, context=LINES_OF_CONTEXT):
     return pre_context, context_line, post_context
 
 
-def discover_sourcemap(result):
+def discover_sourcemap(result, logger=None):
     """
     Given a UrlResult object, attempt to discover a sourcemap.
     """
     # When coercing the headers returned by urllib to a dict
     # all keys become lowercase so they're normalized
-    map_path = result.headers.get('sourcemap', result.headers.get('x-sourcemap'))
-    if not map_path:
-        map_path = sourcemap.discover(result)
+    sourcemap = result.headers.get('sourcemap', result.headers.get('x-sourcemap'))
 
-    if map_path:
-        # ensure url is absolute
-        map_path = urljoin(result.url, map_path)
+    if not sourcemap:
+        parsed_body = result.body.splitlines()
+        # Source maps are only going to exist at either the top or bottom of the document.
+        # Technically, there isn't anything indicating *where* it should exist, so we
+        # are generous and assume it's somewhere either in the first or last 5 lines.
+        # If it's somewhere else in the document, you're probably doing it wrong.
+        if len(parsed_body) > 10:
+            possibilities = set(parsed_body[:5] + parsed_body[-5:])
+        else:
+            possibilities = set(parsed_body)
 
-    return map_path
+        for line in possibilities:
+            if line.startswith('//@ sourceMappingURL='):
+                # We want everything AFTER the indicator, which is 21 chars long
+                sourcemap = line[21:].rstrip()
+                break
+
+    if sourcemap:
+        # fix url so its absolute
+        sourcemap = urljoin(result.url, sourcemap)
+
+    return sourcemap
 
 
 def fetch_url_content(url, logger=None):
@@ -193,7 +208,7 @@ def expand_javascript_source(data, **kwargs):
     file_list = set()
     sourcemap_capable = set()
     source_code = {}
-    sourcemap_idxs = {}
+    sourcemaps = {}
 
     for f in frames:
         file_list.add(f.abs_path)
@@ -215,38 +230,38 @@ def expand_javascript_source(data, **kwargs):
             source_code[filename] = (result.body.splitlines(), None)
             continue
 
-        map_path = discover_sourcemap(result)
-        source_code[filename] = (result.body.splitlines(), map_path)
-        if map_path:
-            logger.debug('Found sourcemap %r for minified script %r', map_path, result.url)
+        # TODO: we're currently running splitlines twice
+        sourcemap = discover_sourcemap(result, logger=logger)
+        source_code[filename] = (result.body.splitlines(), sourcemap)
+        if sourcemap:
+            logger.debug('Found sourcemap %r for minified script %r', sourcemap, result.url)
 
-        if not map_path or map_path not in sourcemap_idxs:
-            continue
+        # pull down sourcemap
+        if sourcemap and sourcemap not in sourcemaps:
+            index = fetch_sourcemap(sourcemap, logger=logger)
+            if not index:
+                continue
 
-        index = fetch_sourcemap(map_path, logger=logger)
-        if not index:
-            continue
+            sourcemaps[sourcemap] = index
 
-        sourcemap_idxs[sourcemap] = sourcemap.load(index)
-
-        # queue up additional source files for download
-        for source in index.sources:
-            if source not in source_code:
-                file_list.add(urljoin(result.url, source))
+            # queue up additional source files for download
+            for source in index.sources:
+                if source not in source_code:
+                    file_list.add(urljoin(result.url, source))
 
     has_changes = False
     for frame in frames:
         try:
-            source, map_path = source_code[frame.abs_path]
+            source, sourcemap = source_code[frame.abs_path]
         except KeyError:
             # we must've failed pulling down the source
             continue
 
         # may have had a failure pulling down the sourcemap previously
-        if map_path in sourcemap_idxs and frame.colno is not None:
-            token = sourcemap_idxs[map_path].lookup(frame.lineno, frame.colno)
+        if sourcemap in sourcemaps and frame.colno is not None:
+            state = find_source(sourcemaps[sourcemap], frame.lineno, frame.colno)
             # TODO: is this urljoin right? (is it relative to the sourcemap or the originating file)
-            abs_path = urljoin(map_path, token.src)
+            abs_path = urljoin(sourcemap, state.src)
             logger.debug('Mapping compressed source %r to mapping in %r', frame.abs_path, abs_path)
             try:
                 source, _ = source_code[abs_path]
@@ -260,15 +275,15 @@ def expand_javascript_source(data, **kwargs):
                     'orig_function': frame['function'],
                     'orig_abs_path': frame['abs_path'],
                     'orig_filename': frame['filename'],
-                    'sourcemap': map_path,
+                    'sourcemap': sourcemap,
                 }
 
                 # SourceMap's return zero-indexed lineno's
-                frame.lineno = token.src_line + 1
-                frame.colno = token.src_col
-                frame.function = token.name
+                frame.lineno = state.src_line + 1
+                frame.colno = state.src_col
+                frame.function = state.name
                 frame.abs_path = abs_path
-                frame.filename = token.src
+                frame.filename = state.src
 
         has_changes = True
 

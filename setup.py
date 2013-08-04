@@ -80,7 +80,6 @@ install_requires = [
     'python-dateutil>=1.5.0,<2.0.0',
     'raven>=3.3.8',
     'redis>2.7.0,<2.8.0',
-    'sourcemap>=0.1.7,<0.2.0',
     'simplejson>=3.1.0,<3.2.0',
     'South>=0.7.6,<0.8.0',
     'httpagentparser>=1.2.1,<1.3.0',
