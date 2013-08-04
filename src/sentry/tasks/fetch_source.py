@@ -79,7 +79,7 @@ def discover_sourcemap(result):
     return map_path
 
 
-def fetch_url_content(url, logger=None):
+def fetch_url_content(url):
     """
     Pull down a URL, returning a tuple (url, headers, body).
     """
@@ -98,14 +98,12 @@ def fetch_url_content(url, logger=None):
             body = zlib.decompress(body, 16 + zlib.MAX_WBITS)
         body = body.rstrip('\n')
     except Exception:
-        if logger:
-            logger.error('Unable to fetch remote source for %r', url, exc_info=True)
         return BAD_SOURCE
 
     return (url, headers, body)
 
 
-def fetch_url(url, logger=None):
+def fetch_url(url):
     """
     Pull down a URL, returning a UrlResult object.
 
@@ -116,7 +114,7 @@ def fetch_url(url, logger=None):
         hashlib.md5(url.encode('utf-8')).hexdigest(),)
     result = cache.get(cache_key)
     if result is None:
-        result = fetch_url_content(url, logger)
+        result = fetch_url_content(url)
 
         cache.set(cache_key, result, 60 * 5)
 
@@ -126,8 +124,8 @@ def fetch_url(url, logger=None):
     return UrlResult(*result)
 
 
-def fetch_sourcemap(url, logger=None):
-    result = fetch_url(url, logger=logger)
+def fetch_sourcemap(url):
+    result = fetch_url(url)
     if result == BAD_SOURCE:
         return
 
@@ -229,7 +227,7 @@ def expand_javascript_source(data, **kwargs):
             logger.debug('No sourcemap found for %r', filename)
             continue
 
-        index = fetch_sourcemap(map_path, logger=logger)
+        index = fetch_sourcemap(map_path)
         if not index:
             sourcemap_idxs[sourcemap] = None
             continue
