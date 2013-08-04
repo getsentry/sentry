@@ -1,10 +1,10 @@
 {% load i18n %}
 
-{% url 'sentry-manage-project' project.pk as project_link %}
-
 <p>{% blocktrans with 'https://github.com/getsentry/raven-js' as link %}Start by installing <a href="{{ link }}">raven-js</a>.{% endblocktrans %}</p>
 
 <pre>&lt;script src="//{{ raven_js_url }}"&gt;&lt;/script&gt;</pre>
+
+{% url 'sentry-manage-project' project.team.slug project.slug as project_link %}
 
 <p>{% blocktrans %}Add the any URLs which will be logging errors in your project's settings under <a href="{{ project_link }}#client-security">Client Security</a>:{% endblocktrans %}</p>
 
