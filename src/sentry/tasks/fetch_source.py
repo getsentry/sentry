@@ -82,7 +82,7 @@ def discover_sourcemap(result, logger=None):
             possibilities = set(parsed_body)
 
         for line in possibilities:
-            if line.startswith('//@ sourceMappingURL='):
+            if line.startswith('//@ sourceMappingURL=') or line.startswith('//# sourceMappingURL='):
                 # We want everything AFTER the indicator, which is 21 chars long
                 sourcemap = line[21:].rstrip()
                 break
