@@ -210,6 +210,7 @@ def expand_javascript_source(data, **kwargs):
         result = fetch_url(filename)
 
         if result == BAD_SOURCE:
+            logger.debug('Unable to fetch remote source for %r', filename)
             continue
 
         # If we didn't have a colno, a sourcemap wont do us any good
@@ -225,6 +226,7 @@ def expand_javascript_source(data, **kwargs):
         elif map_path in sourcemap_idxs:
             continue
         else:
+            logger.debug('No sourcemap found for %r', filename)
             continue
 
         index = fetch_sourcemap(map_path, logger=logger)
