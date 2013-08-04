@@ -138,7 +138,7 @@ def fetch_sourcemap(url, logger=None):
     if body.startswith(")]}'"):
         body = body.split('\n', 1)[1]
     try:
-        index = sourcemap.load(body)
+        index = sourcemap_to_index(body)
     except (JSONDecodeError, ValueError):
         if logger:
             logger.warning('Failed parsing sourcemap JSON: %r', body[:15], exc_info=True)
@@ -234,7 +234,7 @@ def expand_javascript_source(data, **kwargs):
             sourcemap_idxs[sourcemap] = None
             continue
 
-        sourcemap_idxs[sourcemap] = index
+        sourcemap_idxs[sourcemap] = sourcemap.load(index)
 
         # queue up additional source files for download
         for source in index.sources:
