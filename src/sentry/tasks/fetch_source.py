@@ -136,9 +136,10 @@ def fetch_sourcemap(url):
     if body.startswith(")]}'"):
         body = body.split('\n', 1)[1]
     try:
-        index = sourcemap.loads(body)
+        index = sourcemap.load(body)
     except (JSONDecodeError, ValueError):
-        pass
+        if logger:
+            logger.warning('Failed parsing sourcemap JSON: %r', body[:15], exc_info=True)
     else:
         return index
 
