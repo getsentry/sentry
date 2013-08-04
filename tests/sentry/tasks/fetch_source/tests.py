@@ -54,22 +54,26 @@ class ExpandJavascriptSourceTest(TestCase):
     @mock.patch('sentry.tasks.fetch_source.fetch_sourcemap')
     def test_new_style(self, fetch_sourcemap, fetch_url, update):
         data = {
-            'sentry.interfaces.Stacktrace': {
-                'frames': [
-                    {
-                        'abs_path': 'http://example.com/foo.js',
-                        'filename': 'foo.js',
-                        'lineno': 4,
-                        'colno': 0,
+            'sentry.interfaces.Exception': {
+                'values': [{
+                    'stacktrace': {
+                        'frames': [
+                            {
+                                'abs_path': 'http://example.com/foo.js',
+                                'filename': 'foo.js',
+                                'lineno': 4,
+                                'colno': 0,
+                            },
+                            {
+                                'abs_path': 'http://example.com/foo.js',
+                                'filename': 'foo.js',
+                                'lineno': 1,
+                                'colno': 0,
+                            },
+                        ],
                     },
-                    {
-                        'abs_path': 'http://example.com/foo.js',
-                        'filename': 'foo.js',
-                        'lineno': 1,
-                        'colno': 0,
-                    },
-                ],
-            },
+                }],
+            }
         }
         fetch_sourcemap.return_value = None
         fetch_url.return_value.body = '\n'.join('hello world')
@@ -78,7 +82,7 @@ class ExpandJavascriptSourceTest(TestCase):
 
         fetch_url.assert_called_once_with('http://example.com/foo.js')
 
-        frame_list = data['sentry.interfaces.Stacktrace']['frames']
+        frame_list = data['sentry.interfaces.Exception']['values'][0]['stacktrace']['frames']
         frame = frame_list[0]
         assert frame['pre_context'] == ['h', 'e', 'l']
         assert frame['context_line'] == 'l'

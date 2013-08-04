@@ -195,11 +195,13 @@ def expand_javascript_source(data, **kwargs):
         return
 
     # build list of frames that we can actually grab source for
-    frames = [
-        f for f in stacktrace.frames
-        if f.lineno is not None
-        and f.is_url()
-    ]
+    frames = []
+    for stacktrace in stacktraces:
+        frames.extend([
+            f for f in stacktrace.frames
+            if f.lineno is not None
+            and f.is_url()
+        ])
 
     if not frames:
         logger.debug('Event %r has no frames with enough context to fetch remote source', data['event_id'])
