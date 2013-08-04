@@ -70,7 +70,7 @@ def discover_sourcemap(result):
     # all keys become lowercase so they're normalized
     map_path = result.headers.get('sourcemap', result.headers.get('x-sourcemap'))
     if not map_path:
-        map_path = sourcemap.discover(result.body)
+        map_path = sourcemap.discover(result)
 
     if map_path:
         # ensure url is absolute
