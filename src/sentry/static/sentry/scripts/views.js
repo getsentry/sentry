@@ -392,17 +392,7 @@
 
                     this.cursor = groups[groups.length - 1].score || undefined;
 
-                    for (i=0; (data = groups[i]); i+=1) {
-                        obj = this.queue.get(data.id);
-                        if (!_.isUndefined(obj)) {
-                            // TODO: this code is shared in updateMember above
-                            obj.set('count', data.count);
-                            obj.set('score', data.score);
-                            this.queue.sort();
-                        } else {
-                            this.queue.add(data);
-                        }
-                    }
+                    this.queue.add(groups, {merge: true});
 
                     window.setTimeout(this.poll, this.options.pollTime);
                 }, this),
