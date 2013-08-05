@@ -204,18 +204,20 @@ def expand_javascript_source(data, **kwargs):
         logger.debug('Event %r has no frames with enough context to fetch remote source', data['event_id'])
         return data
 
-    file_list = set()
+    pending_file_list = set()
+    done_file_list = set()
     sourcemap_capable = set()
     source_code = {}
     sourmap_idxs = {}
 
     for f in frames:
-        file_list.add(f.abs_path)
+        pending_file_list.add(f.abs_path)
         if f.colno is not None:
             sourcemap_capable.add(f.abs_path)
 
-    while file_list:
-        filename = file_list.pop()
+    while pending_file_list:
+        filename = pending_file_list.pop()
+        done_file_list.add(filename)
 
         # TODO: respect cache-contro/max-age headers to some extent
         logger.debug('Fetching remote source %r', filename)
@@ -250,8 +252,9 @@ def expand_javascript_source(data, **kwargs):
 
         # queue up additional source files for download
         for source in index.sources:
-            if source not in source_code:
-                file_list.add(urljoin(result.url, source))
+            next_filename = urljoin(result.url, source)
+            if next_filename not in done_file_list:
+                pending_file_list.add(next_filename)
 
     has_changes = False
     for frame in frames:
@@ -270,7 +273,7 @@ def expand_javascript_source(data, **kwargs):
             try:
                 source, _ = source_code[abs_path]
             except KeyError:
-                pass
+                logger.debug('Failed mapping path %r', abs_path)
             else:
                 # Store original data in annotation
                 frame.data = {
