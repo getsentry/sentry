@@ -190,7 +190,9 @@
             if (this.options.className)
                 this.$parent.addClass(this.options.className);
 
-            this.collection = new app.ScoredList();
+            this.collection = new app.ScoredList({
+                model: this.model
+            });
             this.collection.on('add', this.renderMemberInContainer);
             this.collection.on('remove', this.unrenderMember);
             this.collection.on('reset', this.reSortMembers);
