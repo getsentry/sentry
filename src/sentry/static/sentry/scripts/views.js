@@ -172,7 +172,8 @@
         model: app.models.Group,
 
         defaults: {
-            maxItems: 50
+            maxItems: 50,
+            view: Backbone.View
         },
 
         initialize: function(data){
@@ -190,8 +191,8 @@
             if (this.options.className)
                 this.$parent.addClass(this.options.className);
 
-            this.collection = new app.ScoredList({
-                model: this.model
+            this.collection = new app.ScoredList([], {
+                model: data.model
             });
             this.collection.on('add', this.renderMemberInContainer);
             this.collection.on('remove', this.unrenderMember);
@@ -230,13 +231,13 @@
 
         addMember: function(member){
             if (!this.hasMember(member)) {
-                if (this.collection.models.length >= (this.options.maxItems - 1)) {
+                if (this.collection.length >= this.options.maxItems) {
                     // bail early if the score is too low
                     if (member.score < this.collection.last().get('score'))
                         return;
 
                     // make sure we limit the number shown
-                    while (this.collection.models.length >= this.options.maxItems)
+                    while (this.collection.length >= this.options.maxItems)
                         this.collection.pop();
                 }
             }
@@ -308,7 +309,7 @@
         },
 
         renderMember: function(member){
-            var view = new app.GroupView({
+            var view = new this.options.view({
                 model: member,
                 id: this.id + member.id
             });
@@ -317,7 +318,7 @@
         },
 
         unrenderMember: function(member){
-            $('#' + this.id + member.id).remove();
+            this.$parent.find('#' + this.id + member.id).remove();
             if (!this.$parent.find('li').length)
                 this.setEmpty();
         }
@@ -340,12 +341,13 @@
                 data = {};
 
             data.model = app.models.Group;
+            data.view = app.GroupView;
 
             app.OrderedElementsView.prototype.initialize.call(this, data);
 
             this.options = $.extend({}, this.defaults, this.options, data);
 
-            this.queue = new app.ScoredList({
+            this.queue = new app.ScoredList([], {
                 model: data.model
             });
 

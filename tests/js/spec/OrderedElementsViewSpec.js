@@ -25,6 +25,29 @@ describe("OrderedElementsView", function() {
   var group2;
   var group3;
   var group4;
+  var member;
+  var TestModel;
+
+  it("maintains correct models", function() {
+      TestModel = Backbone.Model.extend({
+          defaults: {foo: "bar"}
+      });
+
+      view = new app.OrderedElementsView({
+          id: 'foo',
+          model: TestModel
+      });
+      view.$parent = $('<ul></ul>');
+
+      view.addMember({
+        id: 1,
+        biz: "baz"
+      });
+
+      member = view.collection.get(1)
+      assert.equal(member.get("biz"), "baz");
+      assert.equal(member.get("foo"), "bar");
+  });
 
   describe("without initial members", function() {
     beforeEach(function() {
@@ -239,11 +262,21 @@ describe("OrderedElementsView", function() {
   });
 
   describe(".renderMemberInContainer", function() {
+    var TestView = Backbone.View.extend({
+      render: function(){
+        var node = $('<li></li>');
+        node.attr('id', 'test-' + this.model.get('id'));
+        this.$el.html(node);
+      }
+    });
+
     beforeEach(function(){
       view = new app.OrderedElementsView({
-          id: 'dummy',
-          maxItems: 3
+          id: 'test-',
+          maxItems: 3,
+          view: TestView
       });
+      view.$parent = $('<ul></ul>');
 
       group1 = make_group({id: 1, score: 3});
       group2 = make_group({id: 2, score: 5});
@@ -259,17 +292,17 @@ describe("OrderedElementsView", function() {
       view.addMember(group3);
       group4 = make_group({id: 4, score: 500});
       view.addMember(group4);
-      assert.strictEqual(view.$parent.find('li').length, view.collection.models.length);
+      assert.strictEqual(view.$parent.find('li').length, view.collection.length);
     });
 
 
     it("has the correct number of elements", function(){
-      assert.strictEqual(view.$parent.find('li').length, view.collection.models.length);
+      assert.strictEqual(view.$parent.find('li').length, view.collection.length);
     });
 
     it("has list elements sorted correctly", function(){
       view.$parent.find('li').each(function(_, el){
-        assert.strictEqual(this.id, 'dummy' + view.collection.models[_].id);
+        assert.strictEqual(this.id, 'test-' + view.collection.models[_].id);
       });
     });
   });
