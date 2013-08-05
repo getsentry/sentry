@@ -395,8 +395,6 @@
                 dataType: 'json',
                 data: data,
                 success: _.bind(function(groups){
-                    var i, data, obj;
-
                     if (!groups.length)
                         return window.setTimeout(this.poll, this.options.pollTime * 5);
 
