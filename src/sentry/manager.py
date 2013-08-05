@@ -430,18 +430,30 @@ class GroupManager(BaseManager, ChartMixin):
 
         trim_dict(data['extra'], max_size=MAX_EXTRA_VARIABLE_SIZE)
 
-        # HACK: move this to interfaces code
+        if 'sentry.interfaces.Exception' in data:
+            if 'values' not in data['sentry.interfaces.Exception']:
+                data['sentry.interfaces.Exception'] = {
+                    'values': [data['sentry.interfaces.Exception']]
+                }
+
+            # convert stacktrace + exception into expanded exception
+            if 'sentry.interfaces.Stacktrace' in data:
+                data['sentry.interfaces.Exception']['values'][0]['stacktrace'] = data.pop('sentry.interfaces.Stacktrace')
+
+            for exc_data in data['sentry.interfaces.Exception']['values']:
+                for key in ('type', 'module', 'value'):
+                    value = exc_data.get(key)
+                    if value:
+                        exc_data[key] = trim(value)
+                if exc_data.get('stacktrace'):
+                    for frame in exc_data['stacktrace']['frames']:
+                        stack_vars = frame.get('vars', {})
+                        trim_dict(stack_vars)
+
         if 'sentry.interfaces.Stacktrace' in data:
             for frame in data['sentry.interfaces.Stacktrace']['frames']:
                 stack_vars = frame.get('vars', {})
                 trim_dict(stack_vars)
-
-        if 'sentry.interfaces.Exception' in data:
-            exc_data = data['sentry.interfaces.Exception']
-            for key in ('type', 'module', 'value'):
-                value = exc_data.get(key)
-                if value:
-                    exc_data[key] = trim(value)
 
         if 'sentry.interfaces.Message' in data:
             msg_data = data['sentry.interfaces.Message']

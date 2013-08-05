@@ -173,19 +173,13 @@ def expand_javascript_source(data, **kwargs):
     """
     from sentry.interfaces import Stacktrace
 
-    # TODO: clean this up
-    legacy_style = ('sentry.interfaces.Stacktrace' in data)
-
-    if legacy_style:
-        stacktraces = [Stacktrace(**data['sentry.interfaces.Stacktrace'])]
-    else:
-        try:
-            stacktraces = [
-                Stacktrace(**e['stacktrace'])
-                for e in data['sentry.interfaces.Exception']['values']
-            ]
-        except KeyError:
-            stacktraces = []
+    try:
+        stacktraces = [
+            Stacktrace(**e['stacktrace'])
+            for e in data['sentry.interfaces.Exception']['values']
+        ]
+    except KeyError:
+        stacktraces = []
 
     if not stacktraces:
         logger.debug('No stacktrace for event %r', data['event_id'])
@@ -300,8 +294,5 @@ def expand_javascript_source(data, **kwargs):
 
     if has_changes:
         logger.debug('Updating stacktraces with expanded source context')
-        if legacy_style:
-            data['sentry.interfaces.Stacktrace'] = stacktraces[0].serialize()
-        else:
-            for exception, stacktrace in itertools.izip(data['sentry.interfaces.Exception']['values'], stacktraces):
-                exception['stacktrace'] = stacktrace.serialize()
+        for exception, stacktrace in itertools.izip(data['sentry.interfaces.Exception']['values'], stacktraces):
+            exception['stacktrace'] = stacktrace.serialize()
