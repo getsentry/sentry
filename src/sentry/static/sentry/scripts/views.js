@@ -8,10 +8,8 @@
         className: 'group',
         template: _.template(app.templates.group),
 
-        constructor: function(){
-            Backbone.View.apply(this, arguments);
-
-            _.bindAll(this, 'model', '$el');
+        intitialize: function(){
+            Backbone.View.prototype.initialize.apply(this, arguments);
 
             this.model.on('change:count', this.updateCount, this);
             this.model.on('change:lastSeen', this.updateLastSeen, this);
@@ -179,10 +177,13 @@
             view: Backbone.View
         },
 
-        constructor: function(data){
+        initialize: function(data){
+            if (_.isUndefined(data))
+                data = {};
+
             var members = data.members;
 
-            Backbone.View.apply(this, arguments);
+            Backbone.View.prototype.initialize.apply(this, arguments);
 
             this.options = $.extend({}, this.defaults, this.options, data);
 
@@ -341,14 +342,14 @@
             tickTime: 100
         },
 
-        constructor: function(data){
+        initialize: function(data){
             if (_.isUndefined(data))
                 data = {};
 
-            app.OrderedElementsView.apply(this, arguments);
-
             data.model = app.models.Group;
             data.view = app.GroupView;
+
+            app.OrderedElementsView.prototype.initialize.call(this, data);
 
             this.options = $.extend({}, this.defaults, this.options, data);
 
@@ -358,9 +359,11 @@
 
             this.cursor = null;
 
+            _.bindAll(this, 'poll', 'tick');
+
             this.poll();
 
-            window.setInterval(this.tick, this.options.tickTime);
+            window.setInterval(_.bind(this.tick, this), this.options.tickTime);
         },
 
         tick: function(){
