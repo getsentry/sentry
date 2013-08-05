@@ -4,6 +4,8 @@ import glob
 import os
 import sys
 
+os.environ['PYFLAKES_NODOCTEST'] = '1'
+
 # pep8.py uses sys.argv to find setup.cfg
 sys.argv = [os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)]
 

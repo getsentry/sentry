@@ -87,7 +87,7 @@ lint: lint-python lint-js
 
 lint-python:
 	@echo "Linting Python files"
-	flake8 src/sentry
+	PYFLAKES_NODOCTEST=1 flake8 src/sentry
 	@echo ""
 
 lint-js:
