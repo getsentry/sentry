@@ -207,7 +207,7 @@ def expand_javascript_source(data, **kwargs):
     file_list = set()
     sourcemap_capable = set()
     source_code = {}
-    sourcemaps = {}
+    sourmap_idxs = {}
 
     for f in frames:
         file_list.add(f.abs_path)
@@ -237,7 +237,7 @@ def expand_javascript_source(data, **kwargs):
         # TODO: we're currently running splitlines twice
         if sourcemap:
             logger.debug('Found sourcemap %r for minified script %r', sourcemap, result.url)
-        elif sourcemap in sourcemaps:
+        elif sourcemap in sourmap_idxs:
             continue
 
         # pull down sourcemap
@@ -246,7 +246,7 @@ def expand_javascript_source(data, **kwargs):
             logger.debug('Failed parsing sourcemap index: %r', sourcemap[:15])
             continue
 
-        sourcemaps[sourcemap] = index
+        sourmap_idxs[sourcemap] = index
 
         # queue up additional source files for download
         for source in index.sources:
@@ -262,8 +262,8 @@ def expand_javascript_source(data, **kwargs):
             continue
 
         # may have had a failure pulling down the sourcemap previously
-        if sourcemap in sourcemaps and frame.colno is not None:
-            state = find_source(sourcemaps[sourcemap], frame.lineno, frame.colno)
+        if sourcemap in sourmap_idxs and frame.colno is not None:
+            state = find_source(sourmap_idxs[sourcemap], frame.lineno, frame.colno)
             # TODO: is this urljoin right? (is it relative to the sourcemap or the originating file)
             abs_path = urljoin(sourcemap, state.src)
             logger.debug('Mapping compressed source %r to mapping in %r', frame.abs_path, abs_path)
