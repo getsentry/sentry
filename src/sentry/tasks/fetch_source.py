@@ -131,7 +131,7 @@ def fetch_url(url):
     if result is None:
         result = fetch_url_content(url)
 
-        cache.set(cache_key, result, 60 * 5)
+        cache.set(cache_key, result, 30)
 
     if result == BAD_SOURCE:
         return result
