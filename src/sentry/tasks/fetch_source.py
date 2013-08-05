@@ -62,7 +62,7 @@ def get_source_context(source, lineno, context=LINES_OF_CONTEXT):
     return pre_context, context_line, post_context
 
 
-def discover_sourcemap(result, logger=None):
+def discover_sourcemap(result):
     """
     Given a UrlResult object, attempt to discover a sourcemap.
     """
@@ -94,7 +94,7 @@ def discover_sourcemap(result, logger=None):
     return sourcemap
 
 
-def fetch_url_content(url, logger=None):
+def fetch_url_content(url):
     """
     Pull down a URL, returning a tuple (url, headers, body).
     """
@@ -113,14 +113,12 @@ def fetch_url_content(url, logger=None):
             body = zlib.decompress(body, 16 + zlib.MAX_WBITS)
         body = body.rstrip('\n')
     except Exception:
-        if logger:
-            logger.error('Unable to fetch remote source for %r', url, exc_info=True)
         return BAD_SOURCE
 
     return (url, headers, body)
 
 
-def fetch_url(url, logger=None):
+def fetch_url(url):
     """
     Pull down a URL, returning a UrlResult object.
 
@@ -141,8 +139,8 @@ def fetch_url(url, logger=None):
     return UrlResult(*result)
 
 
-def fetch_sourcemap(url, logger=None):
-    result = fetch_url(url, logger=logger)
+def fetch_sourcemap(url):
+    result = fetch_url(url)
     if result == BAD_SOURCE:
         return
 
@@ -155,8 +153,7 @@ def fetch_sourcemap(url, logger=None):
     try:
         index = sourcemap_to_index(body)
     except (JSONDecodeError, ValueError):
-        if logger:
-            logger.warning('Failed parsing sourcemap JSON: %r', body[:15], exc_info=True)
+        return
     else:
         return index
 
@@ -233,23 +230,26 @@ def expand_javascript_source(data, **kwargs):
             continue
 
         # TODO: we're currently running splitlines twice
-        sourcemap = discover_sourcemap(result, logger=logger)
+        sourcemap = discover_sourcemap(result)
+        if not sourcemap or sourcemap in sourcemaps:
+            continue
+
         source_code[filename] = (result.body.splitlines(), sourcemap)
         if sourcemap:
             logger.debug('Found sourcemap %r for minified script %r', sourcemap, result.url)
 
         # pull down sourcemap
-        if sourcemap and sourcemap not in sourcemaps:
-            index = fetch_sourcemap(sourcemap, logger=logger)
-            if not index:
-                continue
+        index = fetch_sourcemap(sourcemap)
+        if not index:
+            logger.debug('Failed parsing sourcemap index: %r', sourcemap[:15])
+            continue
 
-            sourcemaps[sourcemap] = index
+        sourcemaps[sourcemap] = index
 
-            # queue up additional source files for download
-            for source in index.sources:
-                if source not in source_code:
-                    file_list.add(urljoin(result.url, source))
+        # queue up additional source files for download
+        for source in index.sources:
+            if source not in source_code:
+                file_list.add(urljoin(result.url, source))
 
     has_changes = False
     for frame in frames:
