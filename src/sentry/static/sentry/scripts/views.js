@@ -90,7 +90,7 @@
         },
 
         getUnresolveUrl: function(){
-            return app.config.urlPrefix + '/api/' + app.config.teamId + '/' + 
+            return app.config.urlPrefix + '/api/' + app.config.teamId + '/' +
                     app.config.projectId + '/group/' + this.model.get('id') +
                     '/set/unresolved/';
         },
@@ -200,6 +200,13 @@
             this.reset(members);
         },
 
+        ensureMember: function(member) {
+            if (member.get === undefined) {
+                member = new this.model(member);
+            }
+            return member;
+        },
+
         reset: function(members){
             this.$parent.empty();
             this.setEmpty();
@@ -212,7 +219,7 @@
             } else {
                 var _members = [];
                 _.each(members, _.bind(function(m){
-                    _members.push(new this.model(m));
+                    _members.push(this.ensureMember(m));
                 }, this));
                 members = _members;
 
@@ -233,9 +240,7 @@
         },
 
         addMember: function(member){
-            if (member.get === undefined) {
-                member = new this.model(member);
-            }
+            member = this.ensureMember(member);
             if (!this.hasMember(member)) {
                 if (this.collection.models.length >= (this.options.maxItems - 1))
                     // bail early if the score is too low
@@ -348,7 +353,7 @@
                 data = {};
 
             data.model = app.models.Group;
-            
+
             app.OrderedElementsView.prototype.initialize.call(this, data);
 
             this.options = $.extend({}, this.defaults, this.options, data);
@@ -431,7 +436,7 @@
                 data = {};
 
             data.model = app.User;
-            
+
             app.OrderedElementsView.prototype.initialize.call(this, data);
 
             this.options = $.extend({}, this.defaults, this.options, data);
