@@ -166,7 +166,7 @@ def _get_group_list(request, project):
     }
 
 
-def render_with_group_context(group, template, context, request=None, event=None):
+def render_with_group_context(group, template, context, request=None, event=None, is_public=False):
     context.update({
         'team': group.project.team,
         'project': group.project,
@@ -190,14 +190,18 @@ def render_with_group_context(group, template, context, request=None, event=None
             next_event = None
             prev_event = None
 
-        extra_data = event.data.get('extra', {})
-        if not isinstance(extra_data, dict):
-            extra_data = {}
+        if not is_public:
+            extra_data = event.data.get('extra', {})
+            if not isinstance(extra_data, dict):
+                extra_data = {}
+
+            context.update({
+                'tags': event.get_tags(),
+                'json_data': extra_data,
+            })
 
         context.update({
             'event': event,
-            'json_data': extra_data,
-            'tags': event.get_tags(),
             'version_data': event.data.get('modules', None),
             'next_event': next_event,
             'prev_event': prev_event,
@@ -401,13 +405,17 @@ def group(request, team, project, group, event_id=None):
         'activity': activity,
     }
 
-    if group_is_public(group, request.user):
+    is_public = group_is_public(group, request.user)
+
+    if is_public:
         template = 'sentry/groups/public_details.html'
         context['PROJECT_LIST'] = [project]
     else:
         template = 'sentry/groups/details.html'
 
-    return render_with_group_context(group, template, context, request, event=event)
+    return render_with_group_context(
+        group, template, context, request,
+        event=event, is_public=is_public)
 
 
 @has_group_access

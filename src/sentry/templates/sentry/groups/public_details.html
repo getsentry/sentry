@@ -43,30 +43,7 @@
                     <pre id="full-message">{{ event.message }}</pre>
                 {% endif %}
 
-                {% for interface, interface_html in interface_list %}
-                    <div id="{{ interface.get_slug }}">
-                        {{ interface_html }}
-                    </div>
-                {% endfor %}
-
-                {% if version_data %}
-                    <div id="versions">
-                        <div class="page-header">
-                            <h2>{% trans "Package Versions" %}</h2>
-                        </div>
-                        <table class="table table-striped">
-                            <colgroup>
-                                <col style="width:130px">
-                            </colgroup>
-                            {% for k, v in version_data.iteritems|as_sorted %}
-                                <tr>
-                                    <th class="key">{{ k }}</th>
-                                    <td class="values"><code>{{ v }}</code></td>
-                                </tr>
-                            {% endfor %}
-                        </table>
-                    </div>
-                {% endif %}
+                {% include "sentry/partial/_event_details.html" %}
             {% endwith %}
         {% endblock %}
     </section>
