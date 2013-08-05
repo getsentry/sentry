@@ -9,7 +9,10 @@ Originally based on https://github.com/martine/python-sourcemap
 """
 
 import bisect
+
 from collections import namedtuple
+from urlparse import urljoin
+
 from sentry.utils import json
 
 
@@ -70,7 +73,7 @@ def parse_sourcemap(sourcemap):
 
     if sourceRoot:
         sources = [
-            '%s/%s' % (sourceRoot, src)
+            urljoin(sourceRoot, src)
             for src in sources
         ]
 
