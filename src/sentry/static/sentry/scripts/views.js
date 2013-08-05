@@ -200,13 +200,6 @@
             this.reset(members);
         },
 
-        ensureMember: function(member) {
-            if (member.get === undefined) {
-                member = new this.model(member);
-            }
-            return member;
-        },
-
         reset: function(members){
             this.$parent.empty();
             this.setEmpty();
@@ -217,12 +210,6 @@
                 this.setEmpty();
                 this.loaded = false;
             } else {
-                var _members = [];
-                _.each(members, _.bind(function(m){
-                    _members.push(this.ensureMember(m));
-                }, this));
-                members = _members;
-
                 this.$empty.html(this.emptyMessage);
                 this.collection.reset(members);
                 this.loaded = true;
@@ -240,20 +227,18 @@
         },
 
         addMember: function(member){
-            member = this.ensureMember(member);
             if (!this.hasMember(member)) {
-                if (this.collection.models.length >= (this.options.maxItems - 1))
+                if (this.collection.models.length >= (this.options.maxItems - 1)) {
                     // bail early if the score is too low
-                    if (member.get('score') < this.collection.last().get('score'))
+                    if (member.score < this.collection.last().get('score'))
                         return;
 
                     // make sure we limit the number shown
                     while (this.collection.models.length >= this.options.maxItems)
                         this.collection.pop();
-                this.collection.add(member);
-            } else {
-                this.updateMember(member);
+                }
             }
+            this.collection.add(member, {merge: true});
         },
 
         reSortMembers: function(){
@@ -358,7 +343,9 @@
 
             this.options = $.extend({}, this.defaults, this.options, data);
 
-            this.queue = new app.ScoredList();
+            this.queue = new app.ScoredList({
+                model: data.model
+            });
 
             this.cursor = null;
 

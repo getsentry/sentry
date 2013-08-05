@@ -20,8 +20,8 @@
                     continue;
                 }
 
-                if (this.get(key) != member.get(key)) {
-                    this.set(key, member.get(key));
+                if (this.get(key) != member[key]) {
+                    this.set(key, member[key]);
                 }
             }
         }
