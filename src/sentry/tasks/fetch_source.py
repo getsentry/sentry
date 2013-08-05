@@ -222,6 +222,7 @@ def expand_javascript_source(data, **kwargs):
         result = fetch_url(filename)
 
         if result == BAD_SOURCE:
+            logger.debug('Bad source file %r', filename)
             continue
 
         # If we didn't have a colno, a sourcemap wont do us any good
