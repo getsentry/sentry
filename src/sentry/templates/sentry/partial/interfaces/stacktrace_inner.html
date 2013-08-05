@@ -6,9 +6,6 @@
         <li class="frame{% if not frame.in_app %} system-frame{% endif %} frame-{{ stack_id }}-{{ forloop.counter0 }}">
             <p>
                 {% if frame.filename %}
-                    {% if frame.is_url %}
-                        <a href="{{ frame.abs_path }}">
-                    {% endif %}
                     <code>{{ frame.filename }}</code>
                     {% if frame.sourcemap %}
                         <a class="annotation trigger-popover"
@@ -48,7 +45,7 @@
                             </dl>">?</a>
                     {% endif %}
                     {% if frame.is_url %}
-                        </a>
+                        <a href="{{ frame.abs_path }}" class="icon-share"></a>>
                     {% endif %}
                 {% elif frame.module %}
                     <code>{{ frame.module }}</code>
