@@ -12,18 +12,6 @@
             versions: [],
             isBookmarked: false,
             historicalData: []
-        },
-
-        updateFrom: function(member) {
-            for (var key in member.attributes) {
-                if (key == 'isResolved' && this.get('version') > member.get('version')) {
-                    continue;
-                }
-
-                if (this.get(key) != member[key]) {
-                    this.set(key, member[key]);
-                }
-            }
         }
 
     });

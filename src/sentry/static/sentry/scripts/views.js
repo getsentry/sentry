@@ -255,12 +255,14 @@
                 options = {};
 
             var existing = this.collection.get(member.id);
-            existing.updateFrom(member);
+            if (existing.get('version') > member.get('version'))
+                return;
 
-            if (options.sort !== false) {
-                // score changed, resort
-                this.collection.sort();
-            }
+            this.collection.add(member, {
+                merge: true,
+                sort: options.sort !== false ? true : false
+            });
+
         },
 
         hasMember: function(member){
