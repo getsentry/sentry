@@ -1144,6 +1144,8 @@ class User(Interface):
         return []
 
     def to_html(self, event, is_public=False, **kwargs):
+        if is_public:
+            return ''
         return render_to_string('sentry/partial/interfaces/user.html', {
             'is_public': is_public,
             'event': event,
