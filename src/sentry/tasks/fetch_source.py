@@ -227,17 +227,18 @@ def expand_javascript_source(data, **kwargs):
 
         # If we didn't have a colno, a sourcemap wont do us any good
         if filename not in sourcemap_capable:
+            logger.debug('Not capable of sourcemap: %r', filename)
             source_code[filename] = (result.body.splitlines(), None)
             continue
 
-        # TODO: we're currently running splitlines twice
         sourcemap = discover_sourcemap(result)
-        if not sourcemap or sourcemap in sourcemaps:
-            continue
-
         source_code[filename] = (result.body.splitlines(), sourcemap)
+
+        # TODO: we're currently running splitlines twice
         if sourcemap:
             logger.debug('Found sourcemap %r for minified script %r', sourcemap, result.url)
+        elif sourcemap in sourcemaps:
+            continue
 
         # pull down sourcemap
         index = fetch_sourcemap(sourcemap)
