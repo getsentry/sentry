@@ -245,7 +245,7 @@
 
     app.GroupDetailsPage = BasePage.extend({
 
-        initialize: function(){
+        initialize: function(data){
             BasePage.prototype.initialize.apply(this, arguments);
 
             this.group_list = new app.GroupListView({
@@ -367,7 +367,7 @@
             this.sparkline.height(this.sparkline.parent().height());
             this.stats = $('#stats');
 
-            _.bindAll(this, 'refreshStats')
+            _.bindAll(this, 'refreshStats');
 
             this.refreshSparkline();
             this.refreshStats();
@@ -599,7 +599,7 @@
 
     app.NewProjectPage = BasePage.extend({
 
-        initialize: function(){
+        initialize: function(data){
             this.el = $(data.el);
 
             BasePage.prototype.initialize.apply(this, arguments);
