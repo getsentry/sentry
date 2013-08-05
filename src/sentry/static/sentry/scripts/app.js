@@ -474,20 +474,6 @@
 
     });
 
-    app.UserListPage = BasePage.extend({
-
-        initialize: function(data){
-            BasePage.prototype.initialize.call(this, data);
-
-            this.list = new app.UserListView({
-                className: 'user-list',
-                id: 'user_list',
-                members: data.users
-            });
-        }
-
-    });
-
     app.AddTeamMemberPage = BasePage.extend({
     });
 
