@@ -1,4 +1,4 @@
-(function(app, Backbone, jQuery, _){
+(function(window, app, Backbone, jQuery, _){
     "use strict";
 
     var $ = jQuery;
@@ -8,13 +8,16 @@
         className: 'group',
         template: _.template(app.templates.group),
 
-        initialize: function(){
-            _.bindAll(this);
-            this.model.on('change:count', this.updateCount);
-            this.model.on('change:lastSeen', this.updateLastSeen);
-            this.model.on('change:isBookmarked', this.render);
-            this.model.on('change:isResolved', this.updateResolved);
-            this.model.on('change:historicalData', this.renderSparkline);
+        constructor: function(){
+            Backbone.View.apply(this, arguments);
+
+            _.bindAll(this, 'model', '$el');
+
+            this.model.on('change:count', this.updateCount, this);
+            this.model.on('change:lastSeen', this.updateLastSeen, this);
+            this.model.on('change:isBookmarked', this.render, this);
+            this.model.on('change:isResolved', this.updateResolved, this);
+            this.model.on('change:historicalData', this.renderSparkline, this);
         },
 
         render: function(){
@@ -176,10 +179,10 @@
             view: Backbone.View
         },
 
-        initialize: function(data){
+        constructor: function(data){
             var members = data.members;
 
-            _.bindAll(this);
+            Backbone.View.apply(this, arguments);
 
             this.options = $.extend({}, this.defaults, this.options, data);
 
@@ -194,9 +197,9 @@
             this.collection = new app.ScoredList([], {
                 model: data.model
             });
-            this.collection.on('add', this.renderMemberInContainer);
-            this.collection.on('remove', this.unrenderMember);
-            this.collection.on('reset', this.reSortMembers);
+            this.collection.on('add', this.renderMemberInContainer, this);
+            this.collection.on('remove', this.unrenderMember, this);
+            this.collection.on('reset', this.reSortMembers, this);
 
             delete data.members;
 
@@ -338,14 +341,14 @@
             tickTime: 100
         },
 
-        initialize: function(data){
+        constructor: function(data){
             if (_.isUndefined(data))
                 data = {};
 
+            app.OrderedElementsView.apply(this, arguments);
+
             data.model = app.models.Group;
             data.view = app.GroupView;
-
-            app.OrderedElementsView.prototype.initialize.call(this, data);
 
             this.options = $.extend({}, this.defaults, this.options, data);
 
@@ -392,7 +395,7 @@
                     var i, data, obj;
 
                     if (!groups.length)
-                        return setTimeout(this.poll, this.options.pollTime * 5);
+                        return window.setTimeout(this.poll, this.options.pollTime * 5);
 
                     this.cursor = groups[groups.length - 1].score || undefined;
 
@@ -409,4 +412,4 @@
 
     });
 
-}(app, Backbone, jQuery, _));
+}(window, app, Backbone, jQuery, _));

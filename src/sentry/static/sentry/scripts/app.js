@@ -13,8 +13,8 @@
             realtime: false
         },
 
-        initialize: function(data){
-            _.bindAll(this);
+        constructor: function(data){
+            Backbone.View.apply(this, arguments);
 
             if (_.isUndefined(data))
                 data = {};
@@ -83,8 +83,8 @@
 
     app.StreamPage = BasePage.extend({
 
-        initialize: function(data){
-            BasePage.prototype.initialize.call(this, data);
+        constructor: function(data){
+            BasePage.apply(this, arguments);
 
             this.group_list = new app.GroupListView({
                 className: 'group-list',
@@ -181,8 +181,8 @@
 
     app.DashboardPage = BasePage.extend({
 
-        initialize: function(data){
-            BasePage.prototype.initialize.call(this, data);
+        constructor: function(data){
+            BasePage.apply(this, arguments);
 
             $('#chart').height('150px');
             Sentry.charts.render('#chart');
@@ -192,8 +192,8 @@
 
     app.SelectTeamPage = BasePage.extend({
 
-        initialize: function(){
-            BasePage.prototype.initialize.call(this);
+        constructor: function(){
+            BasePage.apply(this, arguments);
 
             this.refreshSparklines();
             $(window).on('resize', this.refreshSparklines);
@@ -245,8 +245,8 @@
 
     app.GroupDetailsPage = BasePage.extend({
 
-        initialize: function(data){
-            BasePage.prototype.initialize.call(this, data);
+        constructor: function(data){
+            BasePage.apply(this, arguments);
 
             this.group_list = new app.GroupListView({
                 className: 'group-list',
@@ -357,8 +357,8 @@
     });
 
     app.WallPage = BasePage.extend({
-        initialize: function(){
-            BasePage.prototype.initialize.call(this, {
+        constructor: function(){
+            BasePage.apply(this, {
                 realtime: true,
                 pollTime: 3000
             });
@@ -478,32 +478,32 @@
     });
 
     app.AccessGroupMembersPage = BasePage.extend({
-        initialize: function(data){
-            BasePage.prototype.initialize.call(this, data);
+        constructor: function(){
+            BasePage.apply(this, arguments);
 
             app.utils.makeSearchableUsersInput('form input[name=user]');
         }
     });
 
     app.AccessGroupProjectsPage = BasePage.extend({
-        initialize: function(data){
-            BasePage.prototype.initialize.call(this, data);
+        constructor: function(){
+            BasePage.apply(this, arguments);
 
             app.utils.makeSearchableProjectsInput('form input[name=project]');
         }
     });
 
     app.TeamDetailsPage = BasePage.extend({
-        initialize: function(data){
-            BasePage.prototype.initialize.call(this, data);
+        constructor: function(){
+            BasePage.apply(this, arguments);
 
             app.utils.makeSearchableUsersInput('form input[name=owner]');
         }
     });
 
     app.ProjectDetailsPage = BasePage.extend({
-        initialize: function initialize(data){
-            BasePage.prototype.initialize.call(this, data);
+        constructor: function initialize(){
+            BasePage.apply(this, arguments);
 
             app.utils.makeSearchableUsersInput('form input[name=owner]');
 
@@ -558,8 +558,8 @@
     });
 
     app.ProjectNotificationsPage = BasePage.extend({
-        initialize: function initialize(data){
-            BasePage.prototype.initialize.call(this, data);
+        constructor: function initialize(){
+            BasePage.apply(this, arguments);
 
             $("input[type=range]").each(_.bind(function loop(n, el){
                 var $el = $(el),
@@ -597,10 +597,10 @@
 
     app.NewProjectPage = BasePage.extend({
 
-        initialize: function(data){
+        constructor: function(data){
             this.el = $(data.el);
 
-            BasePage.prototype.initialize.call(this, data);
+            BasePage.apply(this, arguments);
 
             if (this.options.canSelectTeam && this.options.canCreateTeam) {
                 $('#new_team').hide();
