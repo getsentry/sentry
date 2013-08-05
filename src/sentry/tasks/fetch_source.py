@@ -299,6 +299,7 @@ def expand_javascript_source(data, **kwargs):
             source=source, lineno=frame.lineno)
 
     if has_changes:
+        logger.debug('Updating stacktraces with expanded source context')
         if legacy_style:
             data['sentry.interfaces.Stacktrace'] = stacktraces[0].serialize()
         else:
