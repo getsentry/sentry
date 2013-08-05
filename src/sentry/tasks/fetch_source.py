@@ -129,7 +129,7 @@ def fetch_url(url):
         hashlib.md5(url.encode('utf-8')).hexdigest(),)
     result = cache.get(cache_key)
     if result is None:
-        result = fetch_url_content(url, logger)
+        result = fetch_url_content(url)
 
         cache.set(cache_key, result, 60 * 5)
 
