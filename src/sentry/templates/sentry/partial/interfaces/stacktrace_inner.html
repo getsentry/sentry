@@ -7,6 +7,9 @@
             <p>
                 {% if frame.filename %}
                     <code>{{ frame.filename }}</code>
+                    {% if frame.is_url %}
+                        <a href="{{ frame.abs_path }}" class="icon-share"></a>
+                    {% endif %}
                     {% if frame.sourcemap %}
                         <a class="annotation trigger-popover"
                             data-placement="right"
@@ -43,9 +46,6 @@
                                     <dd>{{ frame.function }}</dd>
                                 {% endif %}
                             </dl>">?</a>
-                    {% endif %}
-                    {% if frame.is_url %}
-                        <a href="{{ frame.abs_path }}" class="icon-share"></a>>
                     {% endif %}
                 {% elif frame.module %}
                     <code>{{ frame.module }}</code>
