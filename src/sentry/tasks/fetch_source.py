@@ -233,7 +233,7 @@ def expand_javascript_source(data, **kwargs):
         # TODO: we're currently running splitlines twice
         if sourcemap:
             logger.debug('Found sourcemap %r for minified script %r', sourcemap, result.url)
-        elif sourcemap in sourmap_idxs:
+        elif sourcemap in sourmap_idxs or not sourcemap:
             continue
 
         # pull down sourcemap
