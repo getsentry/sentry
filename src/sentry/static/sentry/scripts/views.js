@@ -8,14 +8,16 @@
         className: 'group',
         template: _.template(app.templates.group),
 
-        intitialize: function(){
+        initialize: function(){
             Backbone.View.prototype.initialize.apply(this, arguments);
 
-            this.model.on('change:count', this.updateCount, this);
-            this.model.on('change:lastSeen', this.updateLastSeen, this);
-            this.model.on('change:isBookmarked', this.render, this);
-            this.model.on('change:isResolved', this.updateResolved, this);
-            this.model.on('change:historicalData', this.renderSparkline, this);
+            this.model.on({
+                'change:count': this.updateCount,
+                'change:lastSeen': this.updateLastSeen,
+                'change:isBookmarked': this.render,
+                'change:isResolved': this.updateResolved,
+                'change:historicalData': this.renderSparkline
+            }, this);
         },
 
         render: function(){
