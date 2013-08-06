@@ -365,7 +365,7 @@
 
             this.poll();
 
-            window.setInterval(_.bind(this.tick, this), this.options.tickTime);
+            window.setInterval(this.tick, this.options.tickTime);
         },
 
         tick: function(){
