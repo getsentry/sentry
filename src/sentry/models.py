@@ -1181,13 +1181,19 @@ class AlertRelatedGroup(Model):
 
 def create_default_project(created_models, verbosity=2, **kwargs):
     if Project in created_models:
-        if Project.objects.filter(pk=settings.SENTRY_PROJECT).exists():
+        if Project.objects.filter(id=settings.SENTRY_PROJECT).exists():
             return
+
+        try:
+            user = User.objects.filter(is_superuser=True)[0]
+        except IndexError:
+            user = None
 
         project = Project.objects.create(
             public=False,
             name='Sentry (Internal)',
             slug='sentry',
+            owner=user,
         )
         # default key (used by sentry-js client, etc)
         ProjectKey.objects.create(
