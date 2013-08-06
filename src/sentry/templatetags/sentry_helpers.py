@@ -285,10 +285,10 @@ def get_project_dsn(context, user, project, asvar):
         return ''
 
     try:
-        key = ProjectKey.objects.get(user=user, project=project)
+        key = ProjectKey.objects.filter(user=None, project=project)[0]
     except ProjectKey.DoesNotExist:
         try:
-            key = ProjectKey.objects.filter(user=None, project=project)[0]
+            key = ProjectKey.objects.get(user=user, project=project)
         except IndexError:
             context[asvar] = None
         else:
