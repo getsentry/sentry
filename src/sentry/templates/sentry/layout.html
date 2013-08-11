@@ -92,7 +92,7 @@
                             <ul class="nav pull-right">
                                 {% block account_nav %}
                                     {% if request.user.is_authenticated %}
-                                        {% if team %}
+                                        {% if team and request.user|can_admin_team:team %}
                                             <li><a href="{% url 'sentry-manage-team' team.slug %}">Team Settings</a></li>
                                         {% endif %}
                                         <li class="dropdown">
