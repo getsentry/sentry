@@ -290,7 +290,7 @@ def validate_data(project, data, client=None):
                     logger.info('Discarded invalid tag value: %s=%r',
                                 k, type(v), **client_metadata(client, project))
                     continue
-            if len(k) > 32 or len(v) > 32:
+            if len(k) > 32 or len(v) > 200:
                 logger.info('Discarded invalid tag: %s=%s',
                             k, v, **client_metadata(client, project))
                 continue
