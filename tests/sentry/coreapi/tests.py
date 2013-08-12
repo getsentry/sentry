@@ -253,7 +253,7 @@ class ValidateDataTest(BaseAPITest):
     def test_tags_out_of_bounds(self):
         data = validate_data(self.project, {
             'message': 'foo',
-            'tags': {'f' * 33: 'value', 'foo': 'v' * 33, 'bar': 'value'},
+            'tags': {'f' * 33: 'value', 'foo': 'v' * 201, 'bar': 'value'},
         })
         assert data['tags'] == [('bar', 'value')]
 
