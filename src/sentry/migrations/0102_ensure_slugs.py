@@ -9,22 +9,10 @@ class Migration(DataMigration):
     def forwards(self, orm):
         from sentry.constants import RESERVED_TEAM_SLUGS
         from sentry.models import slugify_instance
-        try:
-            superuser = orm['auth.User'].objects.filter(is_superuser=True)[0]
-        except IndexError:
-            return
 
-        for project in orm['sentry.Project'].objects.filter(team__isnull=True):
-            if not project.owner:
-                project.owner = superuser
-            project.team = orm['sentry.Team'](
-                name=project.name,
-                owner=project.owner,
-            )
-            slugify_instance(project.team, project.team.name, reserved=RESERVED_TEAM_SLUGS)
-            project.team.save()
-            project.save()
-
+        for team in orm['sentry.Team'].objects.filter(slug__isnull=True):
+            slugify_instance(team, team.name, reserved=RESERVED_TEAM_SLUGS)
+            team.save()
 
     def backwards(self, orm):
         pass
