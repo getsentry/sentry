@@ -560,7 +560,7 @@ as things like extra data, or tags.
   item pairs.
 - Event IDs are limited to 32 characters.
 - Tag keys are limited to 32 characters.
-- Tag values are limited to 200 characters.
+- Tag values are limited to 32 characters.
 - Culprits are limited to 200 characters.
 - Most contextual variables are limited to 512 characters.
 - Extra contextual data is limited to 2048 characters.
