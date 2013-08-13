@@ -1,5 +1,4 @@
 {
-    "message": "This is an example Python exception",
     "culprit": "raven.scripts.runner in main",
     "sentry.interfaces.Stacktrace": {
         "frames": [

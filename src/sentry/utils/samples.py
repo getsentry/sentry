@@ -7,7 +7,7 @@ sentry.utils.samples
 """
 import os.path
 
-from sentry.constants import DATA_ROOT, PLATFORM_ROOTS
+from sentry.constants import DATA_ROOT, PLATFORM_ROOTS, PLATFORM_TITLES
 from sentry.models import Group
 from sentry.utils import json
 
@@ -30,6 +30,8 @@ def create_sample_event(project, platform=None):
         data = json.loads(fp.read())
 
     data['platform'] = platform
+    data['message'] = 'This is an example %s exception' % (
+        PLATFORM_TITLES.get(platform, platform.title()),)
     data['sentry.interfaces.User'] = {
         "username": "getsentry",
         "id": "1671",

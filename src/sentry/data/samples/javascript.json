@@ -1,5 +1,4 @@
 {
-    "message": "This is an example JavaScript exception",
     "culprit": "views.js in updateMember",
     "sentry.interfaces.Exception": {
         "values": [

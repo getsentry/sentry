@@ -1,5 +1,4 @@
 {
-    "message": "This is an example Java exception",
     "culprit": "javax.servlet.ServletException",
     "sentry.interfaces.Exception": {
         "values": [
