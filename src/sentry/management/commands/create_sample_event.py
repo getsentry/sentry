@@ -24,7 +24,7 @@ class Command(BaseCommand):
         from sentry.utils.samples import create_sample_event
 
         if not options['project']:
-            project = Project.objects.get(settings.SENTRY_DEFAULT_PROJECT)
+            project = Project.objects.get(id=settings.SENTRY_PROJECT)
         else:
             if options['project'].isdigit():
                 project = Project.objects.get(id=options['project'])
