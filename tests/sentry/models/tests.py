@@ -151,16 +151,16 @@ class GroupIsOverResolveAgeTest(TestCase):
 
 class CreateDefaultProjectTest(TestCase):
     def test_simple(self):
-        Team.objects.filter(project__id=settings.SENTRY_PROJECT).delete()
-        Project.objects.filter(id=settings.SENTRY_PROJECT).delete()
         user, _ = User.objects.get_or_create(is_superuser=True, defaults={
             'username': 'test'
         })
+        Team.objects.filter(project__id=settings.SENTRY_PROJECT).delete()
+        Project.objects.filter(id=settings.SENTRY_PROJECT).delete()
 
         create_default_project(created_models=[Project])
 
         project = Project.objects.filter(id=settings.SENTRY_PROJECT)
-        assert project.exists()
+        assert project.exists() is True
         project = project.get()
         assert project.owner == user
         assert project.public is False

@@ -1180,39 +1180,34 @@ class AlertRelatedGroup(Model):
 
 
 def create_default_project(created_models, verbosity=2, **kwargs):
-    if Project in created_models:
-        if Project.objects.filter(id=settings.SENTRY_PROJECT).exists():
-            return
+    if Project not in created_models:
+        return
+    if Project.objects.filter(id=settings.SENTRY_PROJECT).exists():
+        return
 
-        try:
-            user = User.objects.filter(is_superuser=True)[0]
-        except IndexError:
-            user = None
+    try:
+        user = User.objects.filter(is_superuser=True)[0]
+    except IndexError:
+        user = None
 
-        project = Project.objects.create(
-            public=False,
-            name='Sentry (Internal)',
-            slug='sentry',
-            owner=user,
-        )
-        # default key (used by sentry-js client, etc)
-        ProjectKey.objects.create(
-            project=project,
-        )
+    project = Project.objects.create(
+        public=False,
+        name='Sentry (Internal)',
+        slug='sentry',
+        owner=user,
+    )
+    if project.id != settings.SENTRY_PROJECT:
+        # HACK: the database is not correctly advancing our auto incr ID
+        # so lets do a wasteful query to update instead of doing it on insert
+        update(project, id=settings.SENTRY_PROJECT)
 
-        if verbosity > 0:
-            print 'Created internal Sentry project (slug=%s, id=%s)' % (project.slug, project.id)
+    # default key (used by sentry-js client, etc)
+    ProjectKey.objects.create(
+        project=project,
+    )
 
-        # Iterate all groups to update their relations
-        for model in (Group, Event, TagKey, TagValue, GroupTag,
-                      GroupCountByMinute):
-            if verbosity > 0:
-                print ('Backfilling project ids for %s.. ' % model),
-            model.objects.filter(project__isnull=True).update(
-                project=project,
-            )
-            if verbosity > 0:
-                print 'done!'
+    if verbosity > 0:
+        print 'Created internal Sentry project (slug=%s, id=%s)' % (project.slug, project.id)
 
 
 def set_sentry_version(latest=None, **kwargs):
