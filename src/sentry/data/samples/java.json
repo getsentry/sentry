@@ -1,5 +1,5 @@
 {
-    "message": "[Example] java.sql.SQLException: Violation of unique constraint MY_ENTITY_UK_1: duplicate value(s) for column(s) MY_COLUMN in statement [...]",
+    "message": "This is an example Java exception",
     "culprit": "javax.servlet.ServletException",
     "sentry.interfaces.Exception": {
         "values": [
