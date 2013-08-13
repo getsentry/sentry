@@ -1191,19 +1191,11 @@ def create_default_project(created_models, verbosity=2, **kwargs):
         user = None
 
     project = Project.objects.create(
+        id=settings.SENTRY_PROJECT,
         public=False,
         name='Sentry (Internal)',
         slug='sentry',
         owner=user,
-    )
-    if project.id != settings.SENTRY_PROJECT:
-        # HACK: the database is not correctly advancing our auto incr ID
-        # so lets do a wasteful query to update instead of doing it on insert
-        update(project, id=settings.SENTRY_PROJECT)
-
-    # default key (used by sentry-js client, etc)
-    ProjectKey.objects.create(
-        project=project,
     )
 
     if verbosity > 0:

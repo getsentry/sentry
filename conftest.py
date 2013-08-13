@@ -67,3 +67,36 @@ def pytest_configure(config):
     # enable draft features
     settings.SENTRY_ENABLE_EXPLORE_CODE = True
     settings.SENTRY_ENABLE_EXPLORE_USERS = True
+
+
+_HAS_FIXED_SEQUENCES = False
+
+
+def pytest_runtest_call(item):
+    # HACK: sequences arent reset for postgres
+    global _HAS_FIXED_SEQUENCES
+
+    if not _HAS_FIXED_SEQUENCES:
+        import os
+
+        os.environ['DJANGO_COLORS'] = 'nocolor'
+
+        from django.core.management import call_command
+        from django.conf import settings
+        from django.db import connection
+        from django.db.models.loading import get_app
+        from StringIO import StringIO
+
+        commands = StringIO()
+        cursor = connection.cursor()
+
+        for app in settings.INSTALLED_APPS:
+            label = app.split('.')[-1]
+            if get_app(label, emptyOK=True):
+                call_command('sqlsequencereset', label, stdout=commands)
+
+        value = commands.getvalue()
+        if value:
+            cursor.execute(value)
+
+        _HAS_FIXED_SEQUENCES = True
