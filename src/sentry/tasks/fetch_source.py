@@ -102,7 +102,10 @@ def fetch_url_content(url):
 
     try:
         opener = urllib2.build_opener()
-        opener.addheaders = [('User-Agent', 'Sentry/%s' % sentry.VERSION)]
+        opener.addheaders = [
+            ('Accept-Encoding', 'gzip'),
+            ('User-Agent', 'Sentry/%s' % sentry.VERSION),
+        ]
         req = opener.open(url)
         headers = dict(req.headers)
         body = req.read()
@@ -113,6 +116,7 @@ def fetch_url_content(url):
             body = zlib.decompress(body, 16 + zlib.MAX_WBITS)
         body = body.rstrip('\n')
     except Exception:
+        logging.info('Failed fetching %r', url, exc_info=True)
         return BAD_SOURCE
 
     return (url, headers, body)
