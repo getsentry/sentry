@@ -9,6 +9,7 @@ sentry.tasks.fetch_source
 import itertools
 import logging
 import hashlib
+import re
 import urllib2
 import zlib
 from collections import namedtuple
@@ -18,10 +19,12 @@ from django.utils.simplejson import JSONDecodeError
 from sentry.utils.cache import cache
 from sentry.utils.sourcemaps import sourcemap_to_index, find_source
 
-BAD_SOURCE = -1
 
+BAD_SOURCE = -1
 # number of surrounding lines (on each side) to fetch
 LINES_OF_CONTEXT = 5
+CHARSET_RE = re.compile(r'charset=(\S+)')
+DEFAULT_ENCODING = 'utf-8'
 
 UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body'])
 
@@ -114,7 +117,19 @@ def fetch_url_content(url):
             # and may send gzipped data regardless.
             # See: http://stackoverflow.com/questions/2423866/python-decompressing-gzip-chunk-by-chunk/2424549#2424549
             body = zlib.decompress(body, 16 + zlib.MAX_WBITS)
-        body = body.rstrip('\n')
+
+        try:
+            content_type = headers['content-type']
+        except KeyError:
+            # If there is no content_type header at all, quickly assume default utf-8 encoding
+            encoding = DEFAULT_ENCODING
+        else:
+            try:
+                encoding = CHARSET_RE.search(content_type).group(1)
+            except AttributeError:
+                encoding = DEFAULT_ENCODING
+
+        body = body.decode(encoding).rstrip('\n')
     except Exception:
         logging.info('Failed fetching %r', url, exc_info=True)
         return BAD_SOURCE
