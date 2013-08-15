@@ -473,6 +473,6 @@ def can_admin_team(user, team):
         return True
     if team.owner == user:
         return True
-    if team in Team.objects.get_for_user(user, access=MEMBER_OWNER):
+    if team.slug in Team.objects.get_for_user(user, access=MEMBER_OWNER):
         return True
     return False
