@@ -31,7 +31,7 @@ class MailPluginTest(TestCase):
         )
 
         stacktrace = Mock(spec=Stacktrace)
-        stacktrace.to_string.return_value = 'foo bar'
+        stacktrace.to_email_html.return_value = 'foo bar'
         stacktrace.get_title.return_value = 'Stacktrace'
 
         event = Event()
@@ -45,7 +45,7 @@ class MailPluginTest(TestCase):
             self.plugin.notify_users(group, event)
 
         stacktrace.get_title.assert_called_once_with()
-        stacktrace.to_string.assert_called_once_with(event)
+        stacktrace.to_email_html.assert_called_once_with(event)
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
     def test_notify_users_renders_interfaces_with_utf8(self, _send_mail):
@@ -57,7 +57,7 @@ class MailPluginTest(TestCase):
         )
 
         stacktrace = Mock(spec=Stacktrace)
-        stacktrace.to_string.return_value = u'רונית מגן'
+        stacktrace.to_email_html.return_value = u'רונית מגן'
         stacktrace.get_title.return_value = 'Stacktrace'
 
         event = Event()
@@ -71,7 +71,7 @@ class MailPluginTest(TestCase):
             self.plugin.notify_users(group, event)
 
         stacktrace.get_title.assert_called_once_with()
-        stacktrace.to_string.assert_called_once_with(event)
+        stacktrace.to_email_html.assert_called_once_with(event)
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
     def test_notify_users_renders_interfaces_with_utf8_fix_issue_422(self, _send_mail):
@@ -83,7 +83,7 @@ class MailPluginTest(TestCase):
         )
 
         stacktrace = Mock(spec=Stacktrace)
-        stacktrace.to_string.return_value = u'רונית מגן'
+        stacktrace.to_email_html.return_value = u'רונית מגן'
         stacktrace.get_title.return_value = 'Stacktrace'
 
         event = Event()
@@ -97,7 +97,7 @@ class MailPluginTest(TestCase):
             self.plugin.notify_users(group, event)
 
         stacktrace.get_title.assert_called_once_with()
-        stacktrace.to_string.assert_called_once_with(event)
+        stacktrace.to_email_html.assert_called_once_with(event)
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
     def test_notify_users_does_email(self, _send_mail):

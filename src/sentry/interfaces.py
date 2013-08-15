@@ -19,6 +19,7 @@ from pygments.lexers import TextLexer
 from pygments.formatters import HtmlFormatter
 
 from django.http import QueryDict
+from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
 
@@ -153,6 +154,12 @@ class Interface(object):
 
     def to_string(self, event, is_public=False, **kwargs):
         return ''
+
+    def to_email_html(self, event, **kwargs):
+        body = self.to_string(event)
+        if not body:
+            return ''
+        return '<pre>%s</pre>' % (escape(body).replace('\n', '<br>'),)
 
     def get_slug(self):
         return type(self).__name__.lower()
@@ -943,8 +950,8 @@ class Http(Interface):
             'env': self.env,
         }
 
-    def to_string(self, event, is_public=False, **kwargs):
-        return render_to_string('sentry/partial/interfaces/http.txt', {
+    def to_email_html(self, event, **kwargs):
+        return render_to_string('sentry/partial/interfaces/http_email.html', {
             'event': event,
             'full_url': '?'.join(filter(bool, [self.url, self.query_string])),
             'url': self.url,

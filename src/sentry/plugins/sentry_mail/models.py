@@ -179,7 +179,7 @@ class MailPlugin(NotificationPlugin):
 
         interface_list = []
         for interface in event.interfaces.itervalues():
-            body = interface.to_string(event)
+            body = interface.to_email_html(event)
             if not body:
                 continue
             interface_list.append((interface.get_title(), body))
