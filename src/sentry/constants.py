@@ -56,14 +56,10 @@ SQLITE_SCORE_CLAUSES = SQLITE_SORT_CLAUSES.copy()
 
 MYSQL_SORT_CLAUSES = SORT_CLAUSES.copy()
 MYSQL_SORT_CLAUSES.update({
-    'date': 'sentry_groupedmessage.last_seen',
-    'new': 'sentry_groupedmessage.first_seen',
-})
-MYSQL_SCORE_CLAUSES = SCORE_CLAUSES.copy()
-MYSQL_SCORE_CLAUSES.update({
     'date': 'UNIX_TIMESTAMP(sentry_groupedmessage.last_seen)',
     'new': 'UNIX_TIMESTAMP(sentry_groupedmessage.first_seen)',
 })
+MYSQL_SCORE_CLAUSES = MYSQL_SORT_CLAUSES.copy()
 
 ORACLE_SORT_CLAUSES = SCORE_CLAUSES.copy()
 ORACLE_SORT_CLAUSES.update({
