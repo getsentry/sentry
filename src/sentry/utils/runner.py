@@ -16,6 +16,10 @@ import warnings
 KEY_LENGTH = 40
 
 CONFIG_TEMPLATE = """
+# This file is just Python, with a touch of Django which means you
+# you can inherit and tweak settings to your hearts content.
+from sentry.conf.server import *
+
 import os.path
 
 CONF_ROOT = os.path.dirname(__file__)
@@ -66,7 +70,8 @@ DATABASES = {
 ###########
 
 # See http://sentry.readthedocs.org/en/latest/queue/index.html for more
-# information on configuring your queue broker and workers.
+# information on configuring your queue broker and workers. Sentry relies
+# on a Python framework called Celery to manage queues.
 
 # You can enable queueing of jobs by turning off the always eager setting:
 # CELERY_ALWAYS_EAGER = False
@@ -79,6 +84,7 @@ DATABASES = {
 # Buffers (combined with queueing) act as an intermediate layer between the
 # database and the storage API. They will greatly improve efficiency on large
 # numbers of the same events being sent to the API in a short amount of time.
+# (read: if you send any kind of real data to Sentry, you should enable buffers)
 
 # You'll need to install the required dependencies for Redis buffers:
 #   pip install redis hiredis nydus
