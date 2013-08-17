@@ -136,6 +136,8 @@ EMAIL_USE_TLS = False
 ## etc. ##
 ###########
 
+# If this file ever becomes compromised, it's important to regenerate your SECRET_KEY
+# Changing this value will result in all current sessions being invalidated
 SECRET_KEY = %(default_key)r
 
 # http://twitter.com/apps/new
