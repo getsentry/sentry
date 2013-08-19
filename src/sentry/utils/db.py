@@ -10,8 +10,30 @@ import django
 import operator
 
 from django.conf import settings
+from django.db import connections, DEFAULT_DB_ALIAS
 from django.db.models.expressions import ExpressionNode, F
 from django.db.models.fields.related import SingleRelatedObjectDescriptor
+
+
+EXPRESSION_NODE_CALLBACKS = {
+    ExpressionNode.ADD: operator.add,
+    ExpressionNode.SUB: operator.sub,
+    ExpressionNode.MUL: operator.mul,
+    ExpressionNode.DIV: operator.div,
+    ExpressionNode.MOD: operator.mod,
+}
+try:
+    EXPRESSION_NODE_CALLBACKS[ExpressionNode.AND] = operator.and_
+except AttributeError:
+    EXPRESSION_NODE_CALLBACKS[ExpressionNode.BITAND] = operator.and_
+try:
+    EXPRESSION_NODE_CALLBACKS[ExpressionNode.OR] = operator.or_
+except AttributeError:
+    EXPRESSION_NODE_CALLBACKS[ExpressionNode.BITOR] = operator.or_
+
+
+class CannotResolve(Exception):
+    pass
 
 
 def get_db_engine(alias='default'):
@@ -35,26 +57,6 @@ def has_charts(db):
     if engine.startswith('sqlite'):
         return False
     return True
-
-EXPRESSION_NODE_CALLBACKS = {
-    ExpressionNode.ADD: operator.add,
-    ExpressionNode.SUB: operator.sub,
-    ExpressionNode.MUL: operator.mul,
-    ExpressionNode.DIV: operator.div,
-    ExpressionNode.MOD: operator.mod,
-}
-try:
-    EXPRESSION_NODE_CALLBACKS[ExpressionNode.AND] = operator.and_
-except AttributeError:
-    EXPRESSION_NODE_CALLBACKS[ExpressionNode.BITAND] = operator.and_
-try:
-    EXPRESSION_NODE_CALLBACKS[ExpressionNode.OR] = operator.or_
-except AttributeError:
-    EXPRESSION_NODE_CALLBACKS[ExpressionNode.BITOR] = operator.or_
-
-
-class CannotResolve(Exception):
-    pass
 
 
 def resolve_expression_node(instance, node):
@@ -132,3 +134,7 @@ def attach_foreignkey(objects, field, related=[], database=None):
 
     for o in objects:
         setattr(o, accessor, queryset.get(getattr(o, column)))
+
+
+def table_exists(name, using=DEFAULT_DB_ALIAS):
+    return name in connections[using].introspection.table_names()

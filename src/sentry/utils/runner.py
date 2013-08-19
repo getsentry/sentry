@@ -246,14 +246,10 @@ def apply_legacy_settings(config):
             settings.ALLOWED_HOSTS = (urlbits.hostname,)
 
 
-def table_exists(name):
-    from django.db import connections
-    return name in connections['default'].introspection.table_names()
-
-
 def skip_migration_if_applied(settings, app_name, table_name,
                               name='0001_initial'):
     from south.migration import Migrations
+    from sentry.utils.db import table_exists
     import types
 
     migration = Migrations(app_name)[name]
