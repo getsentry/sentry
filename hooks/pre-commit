@@ -10,8 +10,11 @@ os.environ['PYFLAKES_NODOCTEST'] = '1'
 sys.argv = [os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)]
 
 # git usurbs your bin path for hooks and will always run system python
-site_packages = glob.glob('%s/lib/*/site-packages' % os.environ['VIRTUAL_ENV'])[0]
-sys.path.insert(0, site_packages)
+if 'VIRTUAL_ENV' in os.environ:
+    site_packages = glob.glob(
+        '%s/lib/*/site-packages' % os.environ['VIRTUAL_ENV'])[0]
+    sys.path.insert(0, site_packages)
+
 
 def main():
     from flake8.main import DEFAULT_CONFIG
