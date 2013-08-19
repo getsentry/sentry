@@ -37,7 +37,7 @@ from sentry.constants import (
     MEMBER_OWNER, MEMBER_USER, PLATFORM_TITLES, PLATFORM_LIST,
     STATUS_UNRESOLVED, STATUS_RESOLVED, STATUS_VISIBLE, STATUS_HIDDEN,
     MINUTE_NORMALIZATION, STATUS_MUTED, RESERVED_TEAM_SLUGS,
-    LOG_LEVELS)
+    LOG_LEVELS, MAX_CULPRIT_LENGTH, MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH)
 from sentry.manager import (
     GroupManager, ProjectManager,
     MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager,
@@ -454,9 +454,12 @@ class PendingTeamMember(Model):
 
         try:
             send_mail(
-                '%sInvite to join team: %s' % (settings.EMAIL_SUBJECT_PREFIX, self.team.name),
+                '%sInvite to join team: %s' % (
+                    settings.EMAIL_SUBJECT_PREFIX, self.team.name
+                ),
                 body, settings.SERVER_EMAIL, [self.email],
-                fail_silently=False)
+                fail_silently=False
+            )
         except Exception, e:
             logger = logging.getLogger('sentry.mail.errors')
             logger.exception(e)
@@ -467,10 +470,15 @@ class EventBase(Model):
     Abstract base class for both Event and Group.
     """
     project = models.ForeignKey(Project, null=True)
-    logger = models.CharField(max_length=64, blank=True, default='root', db_index=True)
-    level = BoundedPositiveIntegerField(choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True, db_index=True)
+    logger = models.CharField(
+        max_length=64, blank=True, default='root', db_index=True)
+    level = BoundedPositiveIntegerField(
+        choices=LOG_LEVELS.items(), default=logging.ERROR, blank=True,
+        db_index=True)
     message = models.TextField()
-    culprit = models.CharField(max_length=200, blank=True, null=True, db_column='view')
+    culprit = models.CharField(
+        max_length=MAX_CULPRIT_LENGTH, blank=True, null=True,
+        db_column='view')
     checksum = models.CharField(max_length=32, db_index=True)
     data = GzippedDictField(blank=True, null=True)
     num_comments = BoundedPositiveIntegerField(default=0, null=True)
@@ -551,7 +559,8 @@ class Group(EventBase):
     """
     Aggregated message which summarizes a set of Events.
     """
-    status = BoundedPositiveIntegerField(default=0, choices=STATUS_LEVELS, db_index=True)
+    status = BoundedPositiveIntegerField(
+        default=0, choices=STATUS_LEVELS, db_index=True)
     times_seen = BoundedPositiveIntegerField(default=1, db_index=True)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     first_seen = models.DateTimeField(default=timezone.now, db_index=True)
@@ -592,8 +601,10 @@ class Group(EventBase):
         super(Group, self).save(*args, **kwargs)
 
     def delete(self):
-        for model in (
-                GroupTagKey, GroupTag, GroupCountByMinute, EventMapping, Event):
+        model_list = (
+            GroupTagKey, GroupTag, GroupCountByMinute, EventMapping, Event
+        )
+        for model in model_list:
             logging.info('Removing %r objects where group=%s', model, self.id)
             has_results = True
             while has_results:
@@ -813,7 +824,7 @@ class TagKey(Model):
     Stores references to available filters keys.
     """
     project = models.ForeignKey(Project)
-    key = models.CharField(max_length=32)
+    key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     values_seen = BoundedPositiveIntegerField(default=0)
     label = models.CharField(max_length=64, null=True)
 
@@ -834,12 +845,14 @@ class TagValue(Model):
     Stores references to available filters.
     """
     project = models.ForeignKey(Project, null=True)
-    key = models.CharField(max_length=32)
-    value = models.CharField(max_length=200)
+    key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
+    value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)
     data = GzippedDictField(blank=True, null=True)
     times_seen = BoundedPositiveIntegerField(default=0)
-    last_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
-    first_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
+    last_seen = models.DateTimeField(
+        default=timezone.now, db_index=True, null=True)
+    first_seen = models.DateTimeField(
+        default=timezone.now, db_index=True, null=True)
 
     objects = BaseManager()
 
@@ -861,7 +874,7 @@ class GroupTagKey(Model):
     """
     project = models.ForeignKey(Project, null=True)
     group = models.ForeignKey(Group)
-    key = models.CharField(max_length=32)
+    key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     values_seen = BoundedPositiveIntegerField(default=0)
 
     objects = BaseManager()
@@ -880,10 +893,12 @@ class GroupTag(Model):
     project = models.ForeignKey(Project, null=True)
     group = models.ForeignKey(Group)
     times_seen = BoundedPositiveIntegerField(default=0)
-    key = models.CharField(max_length=32)
-    value = models.CharField(max_length=200)
-    last_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
-    first_seen = models.DateTimeField(default=timezone.now, db_index=True, null=True)
+    key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
+    value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)
+    last_seen = models.DateTimeField(
+        default=timezone.now, db_index=True, null=True)
+    first_seen = models.DateTimeField(
+        default=timezone.now, db_index=True, null=True)
 
     objects = BaseManager()
 
@@ -930,7 +945,8 @@ MessageCountByMinute = GroupCountByMinute
 
 class ProjectCountByMinute(Model):
     """
-    Stores the total number of messages seen by a project at N minute intervals.
+    Stores the total number of messages seen by a project at N minute
+    intervals.
 
     e.g. if it happened at 08:34:55 the time would be normalized to 08:30:00
     """
@@ -1027,8 +1043,10 @@ class LostPasswordHash(Model):
         context = {
             'user': self.user,
             'domain': urlparse.urlparse(settings.SENTRY_URL_PREFIX).hostname,
-            'url': absolute_uri(reverse('sentry-account-recover-confirm', args=[
-                self.user.id, self.hash])),
+            'url': absolute_uri(reverse(
+                'sentry-account-recover-confirm',
+                args=[self.user.id, self.hash]
+            )),
         }
         body = render_to_string('sentry/emails/recover_account.txt', context)
 
@@ -1076,7 +1094,8 @@ class Activity(Model):
     datetime = models.DateTimeField(default=timezone.now)
     data = GzippedDictField(null=True)
 
-    __repr__ = sane_repr('project_id', 'group_id', 'event_id', 'user_id', 'type', 'ident')
+    __repr__ = sane_repr('project_id', 'group_id', 'event_id', 'user_id',
+                         'type', 'ident')
 
     def save(self, *args, **kwargs):
         created = bool(not self.id)
