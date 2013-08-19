@@ -216,6 +216,10 @@ def initialize_app(config):
     from django.utils import timezone
     from sentry.app import env
 
+    if os.environ.get('USE_GEVENT'):
+        from django.db import connections
+        connections['default'].allow_thread_sharing = True
+
     env.data['config'] = config.get('config_path')
     env.data['start_date'] = timezone.now()
 
@@ -284,6 +288,18 @@ def configure():
 
 
 def main():
+    if os.environ.get('USE_GEVENT'):
+        print "Configuring Sentry with gevent bindings"
+        import gevent.monkey
+        gevent.monkey.patch_all()
+
+        try:
+            import psycogreen.gevent
+        except ImportError:  # assume postgres isnt our engine
+            pass
+        else:
+            psycogreen.gevent.patch_psycopg()
+
     run_app(
         project='sentry',
         default_config_path='~/.sentry/sentry.conf.py',
