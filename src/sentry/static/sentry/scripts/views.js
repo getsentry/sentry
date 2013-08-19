@@ -409,7 +409,6 @@
                     window.setTimeout(this.poll, this.options.pollTime);
                 }, this),
                 error: _.bind(function(jqXHR, textStatus, errorThrown){
-                    console.log('Poll error: ' + errorThrown);
                     // if an error happened lets give the server a bit of time before we poll again
                     window.setTimeout(this.poll, this.options.pollTime * 10);
                 }, this)
