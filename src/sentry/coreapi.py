@@ -18,7 +18,9 @@ import zlib
 from django.utils.encoding import smart_str
 
 from sentry.app import env
-from sentry.constants import DEFAULT_LOG_LEVEL, LOG_LEVELS
+from sentry.constants import (
+    DEFAULT_LOG_LEVEL, LOG_LEVELS, MAX_MESSAGE_LENGTH, MAX_CULPRIT_LENGTH,
+    MAX_TAG_VALUE_LENGTH, MAX_TAG_KEY_LENGTH)
 from sentry.exceptions import InvalidTimestamp
 from sentry.models import Project, ProjectKey
 from sentry.tasks.store import preprocess_event
@@ -31,9 +33,6 @@ from sentry.utils.strings import decompress, truncatechars
 logger = logging.getLogger('sentry.coreapi.errors')
 
 LOG_LEVEL_REVERSE_MAP = dict((v, k) for k, v in LOG_LEVELS.iteritems())
-
-MAX_CULPRIT_LENGTH = 200
-MAX_MESSAGE_LENGTH = 2048
 
 INTERFACE_ALIASES = {
     'exception': 'sentry.interfaces.Exception',
@@ -290,7 +289,7 @@ def validate_data(project, data, client=None):
                     logger.info('Discarded invalid tag value: %s=%r',
                                 k, type(v), **client_metadata(client, project))
                     continue
-            if len(k) > 32 or len(v) > 200:
+            if len(k) > MAX_TAG_KEY_LENGTH or len(v) > MAX_TAG_VALUE_LENGTH:
                 logger.info('Discarded invalid tag: %s=%s',
                             k, v, **client_metadata(client, project))
                 continue
