@@ -196,6 +196,7 @@ def expand_javascript_source(data, **kwargs):
         stacktraces = [
             Stacktrace(**e['stacktrace'])
             for e in data['sentry.interfaces.Exception']['values']
+            if e.get('stacktrace')
         ]
     except KeyError:
         stacktraces = []
