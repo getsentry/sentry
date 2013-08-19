@@ -137,8 +137,7 @@ def _get_group_list(request, project):
     elif sort == 'avgtime':
         event_list = event_list.filter(time_spent_count__gt=0)
     elif sort.startswith('accel_'):
-        event_list = Group.objects.get_accelerated(
-            [project.id], event_list, minutes=int(sort.split('_', 1)[1]))
+        event_list = Group.objects.get_accelerated([project.id], event_list, minutes=int(sort.split('_', 1)[1]))
 
     if score_clause:
         event_list = event_list.extra(
@@ -149,7 +148,7 @@ def _get_group_list(request, project):
             event_list = event_list.order_by('-last_seen')
         else:
             event_list = event_list.order_by('-sort_value', '-last_seen')
-        cursor = request.GET.get('c')
+        cursor = request.GET.get('cursor')
         if cursor:
             event_list = event_list.extra(
                 where=['%s > %%s' % filter_clause],
@@ -167,8 +166,7 @@ def _get_group_list(request, project):
     }
 
 
-def render_with_group_context(group, template, context, request=None,
-                              event=None, is_public=False):
+def render_with_group_context(group, template, context, request=None, event=None, is_public=False):
     context.update({
         'team': group.project.team,
         'project': group.project,

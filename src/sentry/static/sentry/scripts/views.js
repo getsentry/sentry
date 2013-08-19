@@ -389,27 +389,24 @@
                 return window.setTimeout(this.poll, this.options.pollTime);
 
             data = app.utils.getQueryParams();
-            // For some reason jQuery is erroring (without sending a request)
-            // if we name this key cursor
-            data.c = this.cursor || undefined;
+            data.cursor = this.cursor || undefined;
 
             $.ajax({
                 url: this.options.pollUrl,
-                type: 'GET',
+                type: 'get',
                 dataType: 'json',
                 data: data,
                 success: _.bind(function(groups){
                     if (!groups.length)
                         return window.setTimeout(this.poll, this.options.pollTime * 5);
 
-                    this.cursor = groups[groups.length - 1].score;
+                    this.cursor = groups[groups.length - 1].score || undefined;
 
                     this.queue.add(groups, {merge: true});
 
                     window.setTimeout(this.poll, this.options.pollTime);
                 }, this),
-                error: _.bind(function(jqXHR, textStatus, errorThrown){
-                    console.log('Poll error: ' + errorThrown);
+                error: _.bind(function(){
                     // if an error happened lets give the server a bit of time before we poll again
                     window.setTimeout(this.poll, this.options.pollTime * 10);
                 }, this)
