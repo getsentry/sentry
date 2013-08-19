@@ -35,7 +35,8 @@ from raven.utils.encoding import to_string
 from sentry import app
 from sentry.constants import (
     STATUS_RESOLVED, STATUS_UNRESOLVED, MINUTE_NORMALIZATION,
-    MAX_EXTRA_VARIABLE_SIZE, LOG_LEVELS, DEFAULT_LOGGER_NAME)
+    MAX_EXTRA_VARIABLE_SIZE, LOG_LEVELS, DEFAULT_LOGGER_NAME,
+    MAX_CULPRIT_LENGTH)
 from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
 from sentry.tasks.index import index_event
@@ -479,7 +480,7 @@ class GroupManager(BaseManager, ChartMixin):
 
             # default the culprit to the url
             if not data['culprit']:
-                data['culprit'] = strip(http_data.get('url'))
+                data['culprit'] = trim(strip(http_data.get('url')), MAX_CULPRIT_LENGTH)
 
         return data
 
