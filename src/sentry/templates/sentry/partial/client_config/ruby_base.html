@@ -25,11 +25,11 @@
 {% block inner %}
 {% endblock %}
 
-<p>You may want to give things a try, you might want to use the included Rake task to test your configuration:</p>
+<p>{% trans "You may want to give things a try, you might want to use the included Rake task to test your configuration:" %}</p>
 
 <pre>rake raven:test</pre>
 
-<p>Note: If you're not bootstrapping the Raven gem somewhere that's included in your Rakefile, you'll have to manually pass the DSN value:</p>
+<p>{% trans "Note: If you're not bootstrapping the Raven gem somewhere that's included in your Rakefile, you'll have to manually pass the DSN value:" %}</p>
 
 <pre>rake raven:test[DSN]</pre>
 
