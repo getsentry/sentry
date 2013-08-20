@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-08-11 18:49+0000\n"
+"POT-Creation-Date: 2013-08-20 05:15+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,11 +17,11 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: constants.py:30
+#: constants.py:31
 msgid "Priority"
 msgstr ""
 
-#: constants.py:31 constants.py:84 templates/sentry/search.html:16
+#: constants.py:32 constants.py:81 templates/sentry/search.html:16
 #: templates/sentry/explore/tag_value_list.html:41
 #: templates/sentry/explore/code/list_tag.html:42
 #: templates/sentry/groups/group_list.html:116
@@ -30,51 +30,51 @@ msgstr ""
 msgid "Last Seen"
 msgstr ""
 
-#: constants.py:32 constants.py:85 templates/sentry/search.html:18
+#: constants.py:33 constants.py:82 templates/sentry/search.html:18
 #: templates/sentry/groups/group_list.html:119
 #: templates/sentry/plugins/bases/tag/index.html:23
 msgid "First Seen"
 msgstr ""
 
-#: constants.py:33
+#: constants.py:34
 msgid "Frequency"
 msgstr ""
 
-#: constants.py:34
+#: constants.py:35
 msgid "Total Time Spent"
 msgstr ""
 
-#: constants.py:35
+#: constants.py:36
 msgid "Average Time Spent"
 msgstr ""
 
-#: constants.py:36 constants.py:37
+#: constants.py:37 constants.py:38
 #, python-format
 msgid "Trending: %(minutes)d minutes"
 msgstr ""
 
-#: constants.py:83 templates/sentry/search.html:17
+#: constants.py:80 templates/sentry/search.html:17
 msgid "Score"
 msgstr ""
 
-#: constants.py:95 models.py:1105
+#: constants.py:92 models.py:1124
 msgid "Unresolved"
 msgstr ""
 
-#: constants.py:96 models.py:1106
+#: constants.py:93 models.py:1125
 msgid "Resolved"
 msgstr ""
 
-#: constants.py:97
+#: constants.py:94
 msgid "Muted"
 msgstr ""
 
-#: constants.py:104 templates/sentry/layout.html:104
+#: constants.py:101 templates/sentry/layout.html:104
 #: templates/sentry/bases/admin.html:5 web/forms/__init__.py:47
 msgid "Admin"
 msgstr ""
 
-#: constants.py:105 templates/sentry/partial/interfaces/user.html:6
+#: constants.py:102 templates/sentry/partial/interfaces/user.html:6
 #: templates/sentry/teams/groups/members.html:25
 #: templates/sentry/teams/members/edit.html:27
 #: templates/sentry/teams/members/index.html:30
@@ -83,19 +83,19 @@ msgstr ""
 msgid "User"
 msgstr ""
 
-#: constants.py:106
+#: constants.py:103
 msgid "System Agent"
 msgstr ""
 
-#: interfaces.py:570
+#: interfaces.py:577
 msgid "Stacktrace (most recent call first):"
 msgstr ""
 
-#: interfaces.py:572
+#: interfaces.py:579
 msgid "Stacktrace (most recent call last):"
 msgstr ""
 
-#: interfaces.py:997 templates/sentry/partial/interfaces/http.html:9
+#: interfaces.py:1004 templates/sentry/partial/interfaces/http.html:9
 msgid "Request"
 msgstr ""
 
@@ -107,23 +107,23 @@ msgstr ""
 msgid "Hidden"
 msgstr ""
 
-#: models.py:494
+#: models.py:502
 msgid "error"
 msgstr ""
 
-#: models.py:570
+#: models.py:579
 msgid "grouped messages"
 msgstr ""
 
-#: models.py:571
+#: models.py:580
 msgid "grouped message"
 msgstr ""
 
-#: models.py:710
+#: models.py:721
 msgid "message"
 msgstr ""
 
-#: models.py:711
+#: models.py:722
 msgid "messages"
 msgstr ""
 
@@ -142,7 +142,7 @@ msgstr ""
 msgid "Auto Tag: Interface Types"
 msgstr ""
 
-#: plugins/sentry_mail/models.py:38
+#: plugins/sentry_mail/models.py:39
 #: templates/sentry/account/notifications.html:54
 #: templates/sentry/bases/admin.html:39
 msgid "Mail"
@@ -461,7 +461,7 @@ msgid "Localization"
 msgstr ""
 
 #: templates/sentry/account/appearance.html:33
-#: templates/sentry/account/notifications.html:104
+#: templates/sentry/account/notifications.html:105
 #: templates/sentry/account/settings.html:46
 #: templates/sentry/admin/users/edit.html:19
 #: templates/sentry/partial/_form.html:9
@@ -513,11 +513,17 @@ msgid ""
 "as an alternative email address to send to."
 msgstr ""
 
-#: templates/sentry/account/notifications.html:71 web/forms/projects.py:44
+#: templates/sentry/account/notifications.html:56
+msgid ""
+"Note: You will never receive if a project has disabled notifications (via "
+"the Project settings)"
+msgstr ""
+
+#: templates/sentry/account/notifications.html:72 web/forms/projects.py:44
 msgid "Project Name"
 msgstr ""
 
-#: templates/sentry/account/notifications.html:73
+#: templates/sentry/account/notifications.html:74
 msgid "Email Address"
 msgstr ""
 
@@ -801,7 +807,7 @@ msgstr ""
 #: templates/sentry/projects/remove.html:17
 #: templates/sentry/teams/remove.html:18
 #: templates/sentry/teams/groups/remove.html:18
-#: templates/sentry/teams/members/remove.html:16
+#: templates/sentry/teams/members/remove.html:17
 msgid "Confirm"
 msgstr ""
 
@@ -809,7 +815,7 @@ msgstr ""
 #: templates/sentry/projects/remove.html:17
 #: templates/sentry/teams/remove.html:18
 #: templates/sentry/teams/groups/remove.html:18
-#: templates/sentry/teams/members/remove.html:16
+#: templates/sentry/teams/members/remove.html:17
 msgid "Cancel"
 msgstr ""
 
@@ -1623,17 +1629,17 @@ msgid "Replay this request"
 msgstr ""
 
 #: templates/sentry/partial/interfaces/http.html:18
-#: templates/sentry/partial/interfaces/http.txt:8
+#: templates/sentry/partial/interfaces/http_email.html:8
 msgid "URL:"
 msgstr ""
 
 #: templates/sentry/partial/interfaces/http.html:23
-#: templates/sentry/partial/interfaces/http.txt:13
+#: templates/sentry/partial/interfaces/http_email.html:13
 msgid "Method:"
 msgstr ""
 
 #: templates/sentry/partial/interfaces/http.html:28
-#: templates/sentry/partial/interfaces/http.txt:18
+#: templates/sentry/partial/interfaces/http_email.html:18
 msgid "Query:"
 msgstr ""
 
@@ -2193,7 +2199,7 @@ msgstr ""
 msgid "Remove Member"
 msgstr ""
 
-#: templates/sentry/teams/members/remove.html:13
+#: templates/sentry/teams/members/remove.html:14
 msgid ""
 "Are you sure you wish to revoke this user's access? <strong>This change is "
 "permanent and will revoke their API keys immediately.</strong>"
