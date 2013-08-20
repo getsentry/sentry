@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: https://github.com/dcramer/sentry/issues\n"
-"POT-Creation-Date: 2013-08-20 05:15+0000\n"
-"PO-Revision-Date: 2013-08-20 05:16+0000\n"
+"POT-Creation-Date: 2013-08-20 17:16+0000\n"
+"PO-Revision-Date: 2013-08-20 17:18+0000\n"
 "Last-Translator: David Cramer <dcramer@gmail.com>\n"
 "Language-Team: Chinese (China) (http://www.transifex.com/projects/p/sentry/language/zh_CN/)\n"
 "MIME-Version: 1.0\n"
@@ -1564,6 +1564,18 @@ msgstr ""
 msgid "Or add it to your <code>Gemfile</code>:"
 msgstr ""
 
+#: templates/sentry/partial/client_config/ruby_base.html:28
+msgid ""
+"You may want to give things a try, you might want to use the included Rake "
+"task to test your configuration:"
+msgstr ""
+
+#: templates/sentry/partial/client_config/ruby_base.html:32
+msgid ""
+"Note: If you're not bootstrapping the Raven gem somewhere that's included in"
+" your Rakefile, you'll have to manually pass the DSN value:"
+msgstr ""
+
 #: templates/sentry/partial/client_config/ruby_base.html:36
 #, python-format
 msgid ""
@@ -1582,7 +1594,7 @@ msgid ""
 msgstr ""
 
 #: templates/sentry/partial/client_config/sinatra.html:6
-msgid "Configure the client as and install the Rack middleware:"
+msgid "Configure the client and install the Rack middleware:"
 msgstr ""
 
 #: templates/sentry/partial/client_config/tornado.html:22
