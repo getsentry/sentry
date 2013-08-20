@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sentry\n"
 "Report-Msgid-Bugs-To: https://github.com/dcramer/sentry/issues\n"
-"POT-Creation-Date: 2013-08-20 17:16+0000\n"
-"PO-Revision-Date: 2013-08-20 17:18+0000\n"
+"POT-Creation-Date: 2013-08-20 20:31+0000\n"
+"PO-Revision-Date: 2013-08-20 20:31+0000\n"
 "Last-Translator: David Cramer <dcramer@gmail.com>\n"
 "Language-Team: Italian (http://www.transifex.com/projects/p/sentry/language/it/)\n"
 "MIME-Version: 1.0\n"
@@ -432,7 +432,7 @@ msgstr "Crea un Nuovo Team"
 
 #: templates/sentry/select_team.html:13
 msgid "Your teams"
-msgstr ""
+msgstr "I tuoi team"
 
 #: templates/sentry/select_team.html:33
 msgid "You are not a member of any teams."
@@ -501,7 +501,7 @@ msgid ""
 "Notifications are generally sent when a new event is\n"
 "            seen, an already resolved event has changed to unresolved, or a\n"
 "            system-wide spike in events is detected."
-msgstr ""
+msgstr "Le notifiche vengono generalmente inviate quando viene rilevato un nuovo evento, un evento già risolto cambia di stato in non risolto, oppure quando viene rilevato negli eventi un picco a livello di sistema."
 
 #: templates/sentry/account/notifications.html:47
 msgid "General"
@@ -515,9 +515,9 @@ msgstr "Scegli per quali progetti desideri ricevere le notifiche via e-mail, non
 
 #: templates/sentry/account/notifications.html:56
 msgid ""
-"Note: You will never receive if a project has disabled notifications (via "
-"the Project settings)"
-msgstr "Nota: Non le riceverai mai se un progetto ha le notifiche disabilitate (tramite le Impostazioni del progetto)"
+"Note: You will never receive notifications if a project has them disabled "
+"(via the Project settings)"
+msgstr ""
 
 #: templates/sentry/account/notifications.html:72 web/forms/projects.py:44
 msgid "Project Name"
@@ -901,7 +901,7 @@ msgstr "Esplora"
 
 #: templates/sentry/bases/stream.html:10
 msgid "Search query or event ID"
-msgstr ""
+msgstr "Query di ricerca o ID evento"
 
 #: templates/sentry/bases/stream.html:10
 msgid "Event ID"
@@ -926,7 +926,7 @@ msgstr "Membri"
 #: templates/sentry/bases/team.html:23
 #: templates/sentry/teams/groups/list.html:18
 msgid "Access Groups"
-msgstr ""
+msgstr "Gruppi di accesso"
 
 #: templates/sentry/emails/alert.html:22
 msgid "Datetime:"
@@ -984,13 +984,13 @@ msgstr "Conferma"
 
 #: templates/sentry/explore/tag_details.html:12
 msgid "Tag Details"
-msgstr ""
+msgstr "Dettagli tag"
 
 #: templates/sentry/explore/tag_list.html:42
 msgid ""
 "There don't seem to be any tags in the system yet. For more information on "
 "how you can tag data, check your client's documentation."
-msgstr ""
+msgstr "Sembra non esserci ancora alcun tag all'interno del sistema. Per maggiori informazioni su come applicare dei tag ai dati, controlla la documentazione del tuo client."
 
 #: templates/sentry/explore/tag_value_details.html:10
 #: templates/sentry/projects/manage.html:66
@@ -1007,7 +1007,7 @@ msgstr "Chiave:"
 msgid ""
 "You dont seem to have any data recorded for this tag. For more information "
 "on how to send this information consult your client's documentation."
-msgstr ""
+msgstr "Sembra che non ci sia alcun dato memorizzato con questo tag. Per maggiori informazioni su come inviare queste informazioni, consulta la documentazione del tuo client."
 
 #: templates/sentry/explore/tag_value_list.html:42
 #: templates/sentry/explore/code/list_tag.html:43
@@ -1107,11 +1107,11 @@ msgstr "Azioni"
 
 #: templates/sentry/groups/details.html:122
 msgid "Mute Event"
-msgstr ""
+msgstr "Disattiva evento"
 
 #: templates/sentry/groups/details.html:124
 msgid "Unmute Event"
-msgstr ""
+msgstr "Riattiva evento"
 
 #: templates/sentry/groups/details.html:136
 msgid "Remove Event Data"
@@ -1171,7 +1171,7 @@ msgstr "Applica"
 msgid ""
 "You are viewing a publicly available version of this event's data. Some "
 "information may not be available."
-msgstr ""
+msgstr "Stai visualizzando una versione pubblicamente disponibile dei dati di questo evento. Alcune informazioni potrebbero non essere disponibili."
 
 #: templates/sentry/groups/tag_list.html:44
 msgid ""
@@ -1215,7 +1215,7 @@ msgstr "Altri Client"
 msgid ""
 "For more information on developing clients and the Sentry API, see the <a "
 "href=\"%(link)s\">documentation</a>."
-msgstr ""
+msgstr "Per maggiori informazioni sullo sviluppo dei client e l'API di Sentry, vedi la <a href=\"%(link)s\">documentazione</a>."
 
 #: templates/sentry/partial/_event_details.html:29
 #: templates/sentry/partial/event_nav.html:39
@@ -1345,7 +1345,7 @@ msgstr "Aggiungi raven alla lista delle INSTALLED APPS"
 msgid ""
 "If you wish to test your connection to the server, you can use the raven "
 "test command:"
-msgstr ""
+msgstr "Se desideri testare la connessione al server, puoi utilizzare il comando di test raven:"
 
 #: templates/sentry/partial/client_config/express.html:11
 msgid "Register an instance of the Express middleware:"
@@ -1353,7 +1353,7 @@ msgstr "Registra un'istanza dell'Express middleware:"
 
 #: templates/sentry/partial/client_config/flask.html:6
 msgid "You'll also need blinker if you do not have it already:"
-msgstr ""
+msgstr "Avrai bisogno anche di blinker, se non l'hai già:"
 
 #: templates/sentry/partial/client_config/flask.html:10
 msgid "Blinker is required for signals to work within Flask."
@@ -1378,7 +1378,7 @@ msgstr "(Installare il client come submodule git renderà più semplici gli aggi
 msgid ""
 "Initialize the client. This is usually done in your app delegate's "
 "<code>application:didFinishLaunchingWithOptions</code>:"
-msgstr ""
+msgstr "Inizializza il client. Questo è solitamente svolto dal codice dell'app delegate <code>application:didFinishLaunchingWithOptions</code>:"
 
 #: templates/sentry/partial/client_config/ios.html:25
 #, python-format
@@ -1389,7 +1389,7 @@ msgstr "Per ulteriori informazioni su altri usi di Raven con iOS, si prega di co
 
 #: templates/sentry/partial/client_config/java.html:6
 msgid "You can manually send events using the EventBuilder:"
-msgstr ""
+msgstr "È possibile inviare eventi manualmente utilizzando il EventBuilder:"
 
 #: templates/sentry/partial/client_config/java.html:18
 #: templates/sentry/partial/client_config/javascript.html:32
@@ -1406,7 +1406,7 @@ msgstr "Inizia installando <a href=\"%(link)s\">raven-java</a>."
 
 #: templates/sentry/partial/client_config/java_base.html:18
 msgid "The easiest way to add the Raven dependency is with Maven:"
-msgstr ""
+msgstr "Il modo più semplice per aggiungere la dipendenza Raven è con Maven:"
 
 #: templates/sentry/partial/client_config/java_base.html:29
 #, python-format
@@ -1420,11 +1420,11 @@ msgstr "Per ulteriori informazioni su altri usi di Raven con Java, si prega di c
 #: templates/sentry/partial/client_config/java_logback.html:6
 msgid ""
 "You'll need to configure the SentryAppender in your logging configuration:"
-msgstr ""
+msgstr "Avrai bisogno di configurare il SentryAppender nella configurazione di log:"
 
 #: templates/sentry/partial/client_config/java_logging.html:6
 msgid "You'll need to configure the SentryHandler in your logging.properties:"
-msgstr ""
+msgstr "Avrai bisogno di configurare il SentryAppender nelle tue logging.properties:"
 
 #: templates/sentry/partial/client_config/javascript.html:3
 #, python-format
@@ -1494,7 +1494,7 @@ msgstr "Registra l'autoloader:"
 msgid ""
 "<strong>Note:</strong> We dont recommend registering the generic error "
 "handler as it can be quite noisey."
-msgstr ""
+msgstr "<strong>Nota:</strong> Non è consigliata la registrazione del gestore generico di errore in quanto può essere molto rumoroso."
 
 #: templates/sentry/partial/client_config/php.html:38
 #, python-format
@@ -1601,7 +1601,7 @@ msgid ""
 "Once the sentry client is attached to the application, request handlers can "
 "automatically capture uncaught exceptions by inheriting the SentryMixin "
 "class."
-msgstr ""
+msgstr "Una volta che il client sentry è stato associato all'applicazione, i gestori di richieste possono catturare automaticamente le eccezioni non gestite ereditando la classe SentryMixin."
 
 #: templates/sentry/partial/interfaces/chained_exception.html:7
 #: templates/sentry/partial/interfaces/stacktrace.html:6
@@ -1702,7 +1702,7 @@ msgstr "Funzione"
 
 #: templates/sentry/partial/interfaces/stacktrace_inner.html:26
 msgid "Sourcemap"
-msgstr ""
+msgstr "Sourcemap"
 
 #: templates/sentry/partial/interfaces/stacktrace_inner.html:66
 #: templates/sentry/partial/interfaces/template.html:12
@@ -1734,7 +1734,7 @@ msgstr "Le modifiche alla tua configurazione sono state salvate con successo."
 msgid ""
 "You still need to <a href=\"%(link)s\">associate an identity</a> with %(title)s before you can\n"
 "            create issues with this service."
-msgstr ""
+msgstr "Hai ancora bisogno di <a href=\"%(link)s\">associare un'identità</a> a %(title)s prima di poter creare distribuzioni con questo servizio."
 
 #: templates/sentry/plugins/bases/issue/not_configured.html:14
 #, python-format
@@ -1841,13 +1841,13 @@ msgstr "Sicurezza del Client"
 msgid ""
 "Configure origin URLs which Sentry should accept events from. This is used "
 "for communication with clients like <a href=\"%(link)s\">raven-js</a>."
-msgstr ""
+msgstr "Configura gli URL di origine da cui Sentry può accettare eventi. Questo è utilizzato per comunicare con client come <a href=\"%(link)s\">raven-js</a>."
 
 #: templates/sentry/projects/manage.html:43
 msgid ""
 "This will restrict requests based on the <code>Origin</code> and "
 "<code>Referer</code> headers."
-msgstr ""
+msgstr "Questo limiterà le istanze basate sugli header <code>Origin</code> e <code>Referer</code>."
 
 #: templates/sentry/projects/manage.html:50
 #: templates/sentry/projects/remove.html:6
@@ -1857,7 +1857,7 @@ msgstr "Rimuovi il progetto"
 #: templates/sentry/projects/manage.html:52
 msgid ""
 "This project cannot be removed. It is used internally by the Sentry server."
-msgstr ""
+msgstr "Questo progetto non può essere rimosso. Viene utilizzato internamente dal server Sentry."
 
 #: templates/sentry/projects/manage.html:77
 msgid "API Keys"
@@ -1889,7 +1889,7 @@ msgstr "Node.js"
 
 #: templates/sentry/projects/manage.html:101
 msgid "Java"
-msgstr ""
+msgstr "Java"
 
 #: templates/sentry/projects/manage.html:106
 msgid "Integrations"
@@ -1923,7 +1923,7 @@ msgstr "Non abbiamo ancora registrato etichette per questo progetto."
 msgid ""
 "Sentry will automatically notify you whenever an event is first seen, or its"
 " state changes from resolved to unresolved."
-msgstr ""
+msgstr "Sentry ti avviserà automaticamente non appena un evento viene rilevato per la prima volta, oppure il suo stato cambia da risolto a non risolto."
 
 #: templates/sentry/projects/notifications.html:26
 msgid ""
@@ -1936,7 +1936,7 @@ msgid ""
 "Tag restrictions are based on your global notification rules. If tags are "
 "specified, notifications will be sent when they match any of the "
 "restrictions."
-msgstr ""
+msgstr "Le restrizioni dei tag sono basate sulle tue regole di notifica globali. Se i tag vengono specificati, le notifiche verranno inviate quando corrispondono ad una qualunque delle restrizioni."
 
 #: templates/sentry/projects/docs/client_config.html:5
 #, python-format
@@ -2010,7 +2010,7 @@ msgstr "Nuovo Team"
 msgid ""
 "Teams in Sentry represent a collection of users and projects. They're the top level component\n"
 "           of your organization allowing you to control access and scope of events."
-msgstr ""
+msgstr "I team in Sentry rappresentano un insieme di utenti e progetti. Sono la componente di livello principale della vostra organizzazione e consentono di controllare l'accesso e l'ambito degli eventi."
 
 #: templates/sentry/teams/new.html:28
 msgid "Create Team"
@@ -2022,7 +2022,7 @@ msgstr "Sei sicuro di voler rimuovere questo team? Le modifiche saranno permanen
 
 #: templates/sentry/teams/groups/details.html:20
 msgid "Access Group"
-msgstr ""
+msgstr "Gruppo di accesso"
 
 #: templates/sentry/teams/groups/details.html:35
 msgid "Group Settings"
@@ -2031,24 +2031,24 @@ msgstr "Impostazioni Gruppo"
 #: templates/sentry/teams/groups/details.html:48
 #: templates/sentry/teams/groups/remove.html:6
 msgid "Remove Access Group"
-msgstr ""
+msgstr "Rimuovi gruppo di accesso"
 
 #: templates/sentry/teams/groups/list.html:7
 msgid "About Access Groups"
-msgstr ""
+msgstr "A proposito dei gruppi di accesso"
 
 #: templates/sentry/teams/groups/list.html:8
 msgid ""
 "This page lists access groups within your team. An access group is an "
 "alternative to using team-wide membership, which allows you to restrict "
 "access to only specific projects."
-msgstr ""
+msgstr "Questa pagina elenca i gruppi di accesso all'interno del tuo team. Un gruppo di accesso è l'alternativa alla membership a livello di gruppo, e permette di restringere l'accesso solo a specifici progetti."
 
 #: templates/sentry/teams/groups/list.html:16
 #: templates/sentry/teams/groups/new.html:5
 #: templates/sentry/teams/groups/new.html:9
 msgid "New Access Group"
-msgstr ""
+msgstr "Nuovo gruppo di accesso"
 
 #: templates/sentry/teams/groups/list.html:30 web/forms/teams.py:130
 msgid "Access Type"
@@ -2068,7 +2068,7 @@ msgstr "Rimuovi"
 
 #: templates/sentry/teams/groups/list.html:45
 msgid "You have not created any access groups yet."
-msgstr ""
+msgstr "Non hai ancora creato nessun gruppo di accesso."
 
 #: templates/sentry/teams/groups/members.html:13
 msgid "Group Members"
@@ -2097,14 +2097,14 @@ msgstr "Aggiungi Progetto"
 #: templates/sentry/teams/groups/remove.html:11
 msgid ""
 "Are you sure you wish to remove this access group? This change is permanent!"
-msgstr ""
+msgstr "Sei sicuro di voler rimuovere questo gruppo di accesso? Questo cambiamento è permanente!"
 
 #: templates/sentry/teams/members/accept_invite.html:5
 #: templates/sentry/teams/members/accept_invite.html:15
 #: templates/sentry/teams/members/accept_invite_unauthenticated.html:5
 #: templates/sentry/teams/members/accept_invite_unauthenticated.html:15
 msgid "Team Invite"
-msgstr ""
+msgstr "Invito di team"
 
 #: templates/sentry/teams/members/accept_invite.html:18
 #: templates/sentry/teams/members/accept_invite_unauthenticated.html:18
@@ -2147,7 +2147,7 @@ msgstr "Livelli di accesso"
 msgid ""
 "The primary difference between access levels is team management. Any member "
 "with admin access is treated almost identical to the team owner."
-msgstr ""
+msgstr "La principale differenza tra i livelli di accesso è la gestione del team. Ogni membro con privilegi di amministratore è trattato in modo quasi identico al proprietario del team."
 
 #: templates/sentry/teams/members/edit.html:33
 #: templates/sentry/teams/members/index.html:31
@@ -2157,7 +2157,7 @@ msgstr "Accessi"
 
 #: templates/sentry/teams/members/index.html:10
 msgid "About Memberships"
-msgstr ""
+msgstr "A proposito delle membership"
 
 #: templates/sentry/teams/members/index.html:12
 #, python-format
@@ -2165,7 +2165,7 @@ msgid ""
 "This page lists team-wide memberships whom have access to all projects owned"
 " by this team. If you wish to add memberships bound to individual projects, "
 "you can do so with <a href=\"%(link)s\">Access Groups</a>."
-msgstr ""
+msgstr "Questa pagina elenca le membership a livello di team che hanno accesso a tutti i progetti di proprietà di questo team. Se si desidera aggiungere membership legate a singoli progetti, è possibile farlo con <a href=\"%(link)s\"> Gruppi di accesso</a>."
 
 #: templates/sentry/teams/members/index.html:18
 #: templates/sentry/teams/members/new.html:5
@@ -2196,7 +2196,7 @@ msgstr "Aggiungi un utente esistente"
 msgid ""
 "Invite a member to join this team via their email address. If they do not "
 "already have an account they will first be asked to create one."
-msgstr ""
+msgstr "Invita un membro ad unirsi a questo team via indirizzo email. Se non dispone già di un account, sarà invitato a crearne prima uno."
 
 #: templates/sentry/teams/members/new.html:26
 msgid "You may add a user by their username if they already have an account."
@@ -2223,13 +2223,13 @@ msgid ""
 "organization. For example, you might have seperate projects for production "
 "vs development instances, or separate projects for your web app and mobile "
 "app."
-msgstr ""
+msgstr "I progetti consentono di limitare l'ambito degli eventi a specifiche applicazioni all'interno dell'organizzazione. Ad esempio, potresti disporre di progetti separati per le istanze di produzione e quelle per lo sviluppo, oppure progetti separati per l'app web e l'app mobile."
 
 #: templates/sentry/users/list.html:29
 msgid ""
 "You dont seem to have any user data recorded. For more information on how to"
 " send this information consult your client's documentation."
-msgstr ""
+msgstr "Sembra che tu non abbia nessun dato utente registrato. Per maggiori informazioni su come mandare queste informazioni consulta la documentazione del tuo client."
 
 #: templatetags/sentry_helpers.py:101
 msgid "b"
@@ -2334,7 +2334,7 @@ msgstr "Lingua"
 
 #: web/forms/accounts.py:128
 msgid "Stacktrace order"
-msgstr ""
+msgstr "Ordine stacktrace"
 
 #: web/forms/accounts.py:129
 msgid "Default (let Sentry decide)"
@@ -2509,7 +2509,7 @@ msgstr "Le modifiche al tuo team sono state salvate."
 #: web/frontend/teams.py:131
 #, python-format
 msgid "The team %r was permanently deleted."
-msgstr ""
+msgstr "Il team %r è stato eliminato in modo permanente."
 
 #: web/frontend/teams.py:207
 msgid "The team member was added."
@@ -2545,4 +2545,4 @@ msgstr "%s è rimosso permanentemente."
 #: web/frontend/teams.py:538 web/frontend/teams.py:587
 #, python-format
 msgid "%s was added to this access group."
-msgstr ""
+msgstr "%s è stato aggiunto a questo gruppo di accesso."
