@@ -105,4 +105,8 @@ def get_plugins(project):
 
 @register.filter
 def get_plugins_with_status(project):
-    return [(plugin, safe_execute(plugin.is_enabled, project)) for plugin in plugins.all()]
+    return [
+        (plugin, safe_execute(plugin.is_enabled, project))
+        for plugin in plugins.all()
+        if plugin.can_enable_for_projects()
+    ]
