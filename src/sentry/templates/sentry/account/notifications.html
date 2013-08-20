@@ -53,7 +53,7 @@
             <fieldset>
                 <div><legend>{% trans "Mail" %}</legend></div>
                 <p>{% blocktrans %}Choose which projects you wish to receive email notifications for, as well as an alternative email address to send to.{% endblocktrans %}</p>
-                <p><small>{% blocktrans %}Note: You will never receive if a project has disabled notifications (via the Project settings){% endblocktrans %}</small></p>
+                <p><small>{% blocktrans %}Note: You will never receive notifications if a project has them disabled (via the Project settings){% endblocktrans %}</small></p>
 
                 {% for project, form in project_forms %}
                     {{ form|as_crispy_errors }}
