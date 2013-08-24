@@ -132,6 +132,8 @@ urlpatterns = patterns('',
         name='sentry-remove-project'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/tags/$', projects.manage_project_tags,
         name='sentry-manage-project-tags'),
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/quotas/$', projects.manage_project_quotas,
+        name='sentry-manage-project-quotas'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/notifications/$', projects.notification_settings,
         name='sentry-project-notifications'),
 

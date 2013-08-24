@@ -500,6 +500,13 @@ SENTRY_REDIS_OPTIONS = {}
 SENTRY_BUFFER = 'sentry.buffer.Buffer'
 SENTRY_BUFFER_OPTIONS = {}
 
+SENTRY_QUOTAS = 'sentry.quotas.Quota'
+SENTRY_QUOTA_OPTIONS = {}
+# The default value for project-level quotas
+SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = '90%'
+# The maximum number of events per minute the system should accept.
+SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE = 100
+
 SENTRY_RAVEN_JS_URL = 'd3nslu0hdya83q.cloudfront.net/dist/1.0/raven.min.js'
 
 # URI Prefixes for generating DSN URLs

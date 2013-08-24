@@ -1,0 +1,39 @@
+{% extends "sentry/projects/manage.html" %}
+
+{% load crispy_forms_tags %}
+{% load i18n %}
+{% load sentry_helpers %}
+
+{% block title %}{% trans "Quotas" %} | {{ block.super }}{% endblock %}
+
+{% block inner %}
+    <div class="page-header">
+        <h2>{% trans "Quotas" %}</h2>
+    </div>
+    <form action="" method="post" class="form-stacked">
+        <p>{% blocktrans %}With the nature of Sentry, sometimes the amount data collected can be overwhelming. You can set quotas per-project to ensure that a single flood of errors won't affect other any other projects utilizing Sentry.{% endblocktrans %}</p>
+
+        <p>{% blocktrans %}Quotas limit on a per-minute basis, which means that they rollover at the start of a new minute. When you attempt to send an event and the project is over it's quota, the client will receive an HTTP 429 (Too Many Requests) response.{% endblocktrans %}</p>
+
+        {% if team_quota %}
+            <p>{% blocktrans %}Your team has <strong>500 events per minute</strong> allocated collectively among projects.{% endblocktrans %}</p>
+        {% elif system_quota %}
+            <p>{% blocktrans %}The Sentry system has <strong>500 events per minute</strong> allocated collectively among projects.{% endblocktrans %}</p>
+        {% endif %}
+
+        {% csrf_token %}
+
+        {{ form|as_crispy_errors }}
+
+        <fieldset>
+            {% for field in form %}
+                {{ field|as_crispy_field }}
+            {% endfor %}
+        </fieldset>
+
+        <fieldset class="form-actions">
+            <button type="submit" class="btn btn-primary">{% trans "Save Changes" %}</button>
+        </fieldset>
+    </form>
+{% endblock %}
+

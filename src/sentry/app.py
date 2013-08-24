@@ -21,4 +21,5 @@ def get_instance(path, options):
     return cls(**options)
 
 buffer = get_instance(settings.SENTRY_BUFFER, settings.SENTRY_BUFFER_OPTIONS)
+quotas = get_instance(settings.SENTRY_QUOTAS, settings.SENTRY_QUOTA_OPTIONS)
 env = State()

@@ -21,6 +21,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.vary import vary_on_cookie
 from django.views.generic.base import View as BaseView
 
+from sentry import app
 from sentry.constants import (
     MEMBER_USER, STATUS_MUTED, STATUS_UNRESOLVED, STATUS_RESOLVED,
     EVENTS_PER_PAGE)
@@ -38,7 +39,6 @@ from sentry.utils.cache import cache
 from sentry.utils.db import has_trending
 from sentry.utils.javascript import to_json
 from sentry.utils.http import is_valid_origin, get_origins, is_same_domain
-from sentry.utils.safe import safe_execute
 from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
 from sentry.web.helpers import render_to_response
@@ -264,14 +264,24 @@ class StoreView(APIView):
     @never_cache
     def get(self, request, project, auth, **kwargs):
         data = request.GET.get('sentry_data', '')
-        self.process(request, project, auth, data, **kwargs)
+        response = self.process(request, project, auth, data, **kwargs)
         # We should return a simple 1x1 gif for browser so they don't throw a warning
-        return HttpResponse(PIXEL, 'image/gif')
+        js_response = HttpResponse(PIXEL, 'image/gif')
+        js_response.status_code = response.status_code
+        try:
+            js_response['X-Sentry-Error'] = response['X-Sentry-Error']
+        except KeyError:
+            pass
+        return js_response
 
     def process(self, request, project, auth, data, **kwargs):
-        for plugin in plugins.all():
-            if safe_execute(plugin.is_rate_limited, project=project):
-                return HttpResponse('Creation of this event was denied due to rate limiting.', content_type='text/plain', status=429)
+        if app.quotas.is_rate_limited(project=project):
+            response = HttpResponse(
+                'Creation of this event was denied due to rate limiting.',
+                content_type='text/plain', status=429
+            )
+            response['X-Sentry-Error'] = response.content
+            return response
 
         result = plugins.first('has_perm', request.user, 'create_event', project)
         if result is False:
