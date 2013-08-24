@@ -4,8 +4,38 @@ from __future__ import absolute_import
 
 import mock
 
-from sentry.tasks.fetch_source import expand_javascript_source
+from sentry.tasks.fetch_source import (
+    UrlResult, expand_javascript_source, discover_sourcemap)
 from sentry.testutils import TestCase
+
+
+class DiscoverSourcemapTest(TestCase):
+    # discover_sourcemap(result)
+    def test_simple(self):
+        result = UrlResult('http://example.com', {}, '')
+        assert discover_sourcemap(result) is None
+
+        result = UrlResult('http://example.com', {
+            'x-sourcemap': 'http://example.com/source.map.js'
+        }, '')
+        assert discover_sourcemap(result) == 'http://example.com/source.map.js'
+
+        result = UrlResult('http://example.com', {
+            'sourcemap': 'http://example.com/source.map.js'
+        }, '')
+        assert discover_sourcemap(result) == 'http://example.com/source.map.js'
+
+        result = UrlResult('http://example.com', {}, '//@ sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)')
+        assert discover_sourcemap(result) == 'http://example.com/source.map.js'
+
+        result = UrlResult('http://example.com', {}, '//# sourceMappingURL=http://example.com/source.map.js\nconsole.log(true)')
+        assert discover_sourcemap(result) == 'http://example.com/source.map.js'
+
+        result = UrlResult('http://example.com', {}, 'console.log(true)\n//@ sourceMappingURL=http://example.com/source.map.js')
+        assert discover_sourcemap(result) == 'http://example.com/source.map.js'
+
+        result = UrlResult('http://example.com', {}, 'console.log(true)\n//# sourceMappingURL=http://example.com/source.map.js')
+        assert discover_sourcemap(result) == 'http://example.com/source.map.js'
 
 
 class ExpandJavascriptSourceTest(TestCase):
