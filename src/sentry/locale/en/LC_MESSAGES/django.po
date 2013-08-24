@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-08-21 05:40+0000\n"
+"POT-Creation-Date: 2013-08-24 19:45+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -87,15 +87,15 @@ msgstr ""
 msgid "System Agent"
 msgstr ""
 
-#: interfaces.py:577
+#: interfaces.py:579
 msgid "Stacktrace (most recent call first):"
 msgstr ""
 
-#: interfaces.py:579
+#: interfaces.py:581
 msgid "Stacktrace (most recent call last):"
 msgstr ""
 
-#: interfaces.py:1004 templates/sentry/partial/interfaces/http.html:9
+#: interfaces.py:1006 templates/sentry/partial/interfaces/http.html:9
 msgid "Request"
 msgstr ""
 
@@ -1676,35 +1676,35 @@ msgid "Stacktrace"
 msgstr ""
 
 #: templates/sentry/partial/interfaces/stacktrace_inner.html:16
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:32
+#: templates/sentry/partial/interfaces/stacktrace_inner.html:38
 msgid "Original Location"
 msgstr ""
 
 #: templates/sentry/partial/interfaces/stacktrace_inner.html:18
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:34
+#: templates/sentry/partial/interfaces/stacktrace_inner.html:40
 msgid "Filename"
 msgstr ""
 
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:20
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:37
+#: templates/sentry/partial/interfaces/stacktrace_inner.html:26
+#: templates/sentry/partial/interfaces/stacktrace_inner.html:49
 msgid "Line Number"
 msgstr ""
 
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:22
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:41
+#: templates/sentry/partial/interfaces/stacktrace_inner.html:28
+#: templates/sentry/partial/interfaces/stacktrace_inner.html:53
 msgid "Column Number"
 msgstr ""
 
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:24
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:45
+#: templates/sentry/partial/interfaces/stacktrace_inner.html:30
+#: templates/sentry/partial/interfaces/stacktrace_inner.html:57
 msgid "Function"
 msgstr ""
 
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:26
+#: templates/sentry/partial/interfaces/stacktrace_inner.html:32
 msgid "Sourcemap"
 msgstr ""
 
-#: templates/sentry/partial/interfaces/stacktrace_inner.html:66
+#: templates/sentry/partial/interfaces/stacktrace_inner.html:78
 #: templates/sentry/partial/interfaces/template.html:12
 msgid "Toggle Context"
 msgstr ""
