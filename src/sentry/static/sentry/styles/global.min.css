@@ -7837,10 +7837,10 @@ ul.traceback {
   font-size: 0.9em;
   margin-left: 10px;
 }
-.frame table.vars {
+.frame > div > table.vars {
   margin-bottom: 5px;
 }
-.frame table.vars th {
+.frame > div > table.vars > tbody > tr > th {
   color: #465262;
   text-align: right;
 }
