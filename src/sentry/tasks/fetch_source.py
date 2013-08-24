@@ -287,6 +287,9 @@ def expand_javascript_source(data, **kwargs):
             try:
                 source, _ = source_code[abs_path]
             except KeyError:
+                frame.data = {
+                    'sourcemap': sourcemap,
+                }
                 logger.debug('Failed mapping path %r', abs_path)
             else:
                 # Store original data in annotation
