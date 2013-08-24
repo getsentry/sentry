@@ -7939,7 +7939,6 @@ ol.context-line > li > span {
 }
 .mini-tag-list > li {
   display: inline-block;
-  min-width: 100px;
   background: #f9f9f9;
   -webkit-border-radius: 8px;
   -moz-border-radius: 8px;
