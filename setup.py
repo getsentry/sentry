@@ -78,6 +78,7 @@ install_requires = [
     'Pygments>=1.6.0,<1.7.0',
     'pynliner>=0.4.0,<0.5.0',
     'python-dateutil>=1.5.0,<2.0.0',
+    'python-memcached>=1.53,<2.0.0',
     'raven>=3.3.8',
     'redis>=2.8.0,<2.9.0',
     'simplejson>=3.3.0,<3.4.0',

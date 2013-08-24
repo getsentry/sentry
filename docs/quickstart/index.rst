@@ -198,8 +198,8 @@ thing you'll want to run when upgrading to future versions of Sentry.
 Starting the Web Service
 ------------------------
 
-Sentry provides a built-in webserver (powered by gunicorn and eventlet) to get you off the ground quickly, 
-also you can setup Sentry as WSGI application, in that case skip to section `Running Sentry as WSGI application`. 
+Sentry provides a built-in webserver (powered by gunicorn and eventlet) to get you off the ground quickly,
+also you can setup Sentry as WSGI application, in that case skip to section `Running Sentry as WSGI application`.
 
 To start the webserver, you simply use ``sentry start``. If you opted to use an alternative configuration path
 you can pass that via the --config option.
@@ -304,7 +304,7 @@ Enabling Social Auth
 
 Most of the time it doesnt really matter **how** someone authenticates to the service, so much as it that they do. In
 these cases, Sentry provides tight integrated with several large social services, including: Twitter, Facebook, Google,
-and GitHub. Enabling this is as simple as setting up an application with the respective services, and configuring a 
+and GitHub. Enabling this is as simple as setting up an application with the respective services, and configuring a
 couple values in your ``sentry.conf.py`` file.
 
 By default, users will be able to both signup (create a new account) as well as associate an existing account. If you
@@ -389,13 +389,7 @@ Configuring Memcache
 ~~~~~~~~~~~~~~~~~~~~
 
 You'll also want to consider configuring cache and buffer settings, which respectively require a cache server and a Redis
-server. You'll need to do two things, starting with installing the memcache dependencies:
-
-::
-
-  pip install python-memcached
-
-While the Django configuration covers caching in great detail, Sentry allows you to specify a backend for its
+server. While the Django configuration covers caching in great detail, Sentry allows you to specify a backend for its
 own internal purposes:
 
 ::
