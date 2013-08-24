@@ -79,16 +79,16 @@ install_requires = [
     'pynliner>=0.4.0,<0.5.0',
     'python-dateutil>=1.5.0,<2.0.0',
     'raven>=3.3.8',
-    'redis>2.7.0,<2.8.0',
-    'simplejson>=3.1.0,<3.2.0',
-    'South>=0.7.6,<0.8.0',
+    'redis>=2.8.0,<2.9.0',
+    'simplejson>=3.3.0,<3.4.0',
+    'South>=0.8.0,<0.9.0',
     'httpagentparser>=1.2.1,<1.3.0',
     'django-social-auth>=0.7.24,<0.8.0',
     'setproctitle>=1.1.7,<1.2.0',
 ]
 
 postgres_requires = [
-    'psycopg2>=2.4.0,<2.5.0',
+    'psycopg2>=2.5.0,<2.6.0',
 ]
 
 postgres_pypy_requires = [
