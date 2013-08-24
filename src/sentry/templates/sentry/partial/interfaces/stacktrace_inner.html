@@ -16,7 +16,13 @@
                             data-title="{% trans "Original Location" %}"
                             data-content="<dl>
                                 <dt>{% trans "Filename" %}</dt>
-                                <dd>{{ frame.orig_filename }}</dd>
+                                <dd>
+                                    {% if frame.orig_abs_path|is_url %}
+                                        <a href='{{ frame.orig_abs_path }}'>{{ frame.orig_filename }}</a>
+                                    {% else %}
+                                        {{ frame.orig_filename }}
+                                    {% endif %}
+                                </dd>
                                 <dt>{% trans "Line Number" %}</dt>
                                 <dd>{{ frame.orig_lineno|default_if_none:"n/a" }}</dd>
                                 <dt>{% trans "Column Number" %}</dt>
@@ -32,7 +38,13 @@
                             data-title="{% trans "Original Location" %}"
                             data-content="<dl>
                                 <dt>{% trans "Filename" %}</dt>
-                                <dd>{{ frame.abs_path }}</dd>
+                                <dd>
+                                    {% if frame.abs_path|is_url %}
+                                        <a href='{{ frame.abs_path }}'>{{ frame.abs_path }}</a>
+                                    {% else %}
+                                        {{ frame.abs_path }}
+                                    {% endif %}
+                                </dd>
                                 {% if not frame.lineno|is_none %}
                                     <dt>{% trans "Line Number" %}</dt>
                                     <dd>{{ frame.lineno }}</dd>

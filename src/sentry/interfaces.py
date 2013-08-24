@@ -360,6 +360,7 @@ class Frame(object):
             'function': self.function,
             'start_lineno': start_lineno,
             'lineno': self.lineno,
+            'colno': self.colno,
             'context': context,
             'context_line': self.context_line,
             'in_app': self.in_app,
@@ -372,10 +373,11 @@ class Frame(object):
             frame_data.update({
                 'sourcemap': self.data['sourcemap'].rsplit('/', 1)[-1],
                 'sourcemap_url': urlparse.urljoin(self.abs_path, self.data['sourcemap']),
-                'orig_function': self.data['orig_function'],
-                'orig_filename': self.data['orig_filename'],
-                'orig_lineno': self.data['orig_lineno'],
-                'orig_colno': self.data['orig_colno'],
+                'orig_function': self.data.get('orig_function', '?'),
+                'orig_abs_path': self.data.get('orig_abs_path', '?'),
+                'orig_filename': self.data.get('orig_filename', '?'),
+                'orig_lineno': self.data.get('orig_lineno', '?'),
+                'orig_colno': self.data.get('orig_colno', '?'),
             })
         return frame_data
 

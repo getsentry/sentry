@@ -13,7 +13,7 @@ class Command(BaseCommand):
     help = 'Creates a sample event in Sentry (if applicable)'
 
     option_list = BaseCommand.option_list + (
-        make_option('--project', dest='project'),
+        make_option('--project', dest='project', help="project ID or team-slug/project-slug"),
         make_option('--platform', dest='platform'),
     )
 
