@@ -30,7 +30,7 @@ class RedisQuota(Quota):
         })
 
     def is_rate_limited(self, project):
-        quota = self.get_project_quota(project)
+        quota = self.get_active_quota(project)
         if not quota:
             return False
 

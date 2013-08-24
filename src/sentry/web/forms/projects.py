@@ -183,9 +183,12 @@ class ProjectQuotasForm(forms.Form):
     def __init__(self, project, *args, **kwargs):
         self.project = project
         super(ProjectQuotasForm, self).__init__(*args, **kwargs)
-        self.fields['per_minute'].initial = ProjectOption.objects.get_value(
-            self.project, 'quotas:per_minute', settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE
+        per_minute = ProjectOption.objects.get_value(
+            self.project, 'quotas:per_minute', ''
         )
+        if per_minute == '':
+            per_minute = settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE
+        self.fields['per_minute'].initial = per_minute
 
     def clean_per_minute(self):
         value = self.cleaned_data.get('per_minute')

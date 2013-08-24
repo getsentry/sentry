@@ -13,6 +13,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 from django.utils.translation import ugettext_lazy as _
 
+from sentry import app
 from sentry.constants import (
     MEMBER_OWNER, STATUS_HIDDEN, DEFAULT_ALERT_PROJECT_THRESHOLD)
 from sentry.models import Project, ProjectKey, Team, TagKey
@@ -276,6 +277,8 @@ def manage_project_quotas(request, team, project):
     context = {
         'team': team,
         'page': 'quotas',
+        'system_quota': app.quotas.get_system_quota(),
+        'team_quota': app.quotas.get_team_quota(team),
         'project': project,
         'form': form,
     }

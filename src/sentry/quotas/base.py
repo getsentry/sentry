@@ -22,19 +22,35 @@ class Quota(object):
     def is_rate_limited(self, project):
         return False
 
+    def get_active_quota(self, project):
+        quotas = filter(bool, [
+            self.get_project_quota(project),
+            self.get_team_quota(project.team),
+            self.get_system_quota(),
+        ])
+        return min(quotas)
+
+    def translate_quota(self, quota, parent_quota):
+        if quota.endswith('%'):
+            pct = int(quota[:-1])
+            quota = parent_quota * pct / 100
+        return int(quota)
+
     def get_project_quota(self, project):
-        proj_setting = self.get_option('per_minute', project, '')
-        if proj_setting is None:
-            proj_setting = settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE
-        else:
-            proj_setting = int(proj_setting)
-        if proj_setting.endswith('%'):
-            pct = int(proj_setting[:-1])
-            proj_setting = self.get_team_quota(project.team) * pct / 100
-        return proj_setting
+        project_quota = self.get_option('per_minute', project, '')
+        if project_quota is None:
+            project_quota = settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE
+
+        return self.translate_quota(
+            project_quota,
+            self.get_team_quota(project.team),
+        )
 
     def get_team_quota(self, team):
-        return settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE
+        return self.translate_quota(
+            settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE,
+            self.get_system_quota()
+        )
 
-    def get_system_quota(self, team):
+    def get_system_quota(self):
         return settings.SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE
