@@ -91,7 +91,7 @@ lint-js:
 	@${NPM_ROOT}/.bin/jshint src/sentry/ || exit 1
 	@echo ""
 
-coverage: install-test-requirements
+coverage: develop
 	py.test --cov=src/sentry --cov-report=html
 
 run-uwsgi:
