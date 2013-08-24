@@ -39,6 +39,7 @@ from sentry.utils.cache import cache
 from sentry.utils.db import has_trending
 from sentry.utils.javascript import to_json
 from sentry.utils.http import is_valid_origin, get_origins, is_same_domain
+from sentry.utils.safe import safe_execute
 from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
 from sentry.web.helpers import render_to_response
@@ -274,14 +275,20 @@ class StoreView(APIView):
             pass
         return js_response
 
+    def rate_limited_response(self, request, project):
+        response = HttpResponse(
+            'Creation of this event was denied due to rate limiting.',
+            content_type='text/plain', status=429
+        )
+        response['X-Sentry-Error'] = response.content
+        return response
+
     def process(self, request, project, auth, data, **kwargs):
         if app.quotas.is_rate_limited(project=project):
-            response = HttpResponse(
-                'Creation of this event was denied due to rate limiting.',
-                content_type='text/plain', status=429
-            )
-            response['X-Sentry-Error'] = response.content
-            return response
+            return self.rate_limited_response(request, project)
+        for plugin in plugins.all():
+            if safe_execute(plugin.is_rate_limited, project=project):
+                return self.rate_limited_response(request, project)
 
         result = plugins.first('has_perm', request.user, 'create_event', project)
         if result is False:

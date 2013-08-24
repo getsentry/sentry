@@ -426,6 +426,13 @@ class IPlugin(local):
 
     # Server side signals which do not have request context
 
+    def is_rate_limited(self, project, **kwargs):
+        """
+        Return True if this project (or the system) is over any defined
+        quotas.
+        """
+        return False
+
     def has_perm(self, user, perm, *objects, **kwargs):
         """
         Given a user, a permission name, and an optional list of objects
