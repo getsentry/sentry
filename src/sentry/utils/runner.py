@@ -245,6 +245,10 @@ def apply_legacy_settings(config):
         if urlbits.hostname:
             settings.ALLOWED_HOSTS = (urlbits.hostname,)
 
+    if not settings.SERVER_EMAIL and hasattr(settings, 'SENTRY_SERVER_EMAIL'):
+        warnings.warn('SENTRY_SERVER_URL is deprecated. Please use SERVER_URL instead.')
+        settings.SERVER_EMAIL = settings.SENTRY_SERVER_EMAIL
+
 
 def skip_migration_if_applied(settings, app_name, table_name,
                               name='0001_initial'):
