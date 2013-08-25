@@ -26,7 +26,7 @@ class Quota(object):
         if quota.endswith('%'):
             pct = int(quota[:-1])
             quota = parent_quota * pct / 100
-        return int(quota)
+        return int(quota or 0)
 
     def get_project_quota(self, project):
         from sentry.models import ProjectOption
