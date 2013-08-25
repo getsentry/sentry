@@ -268,11 +268,14 @@ class StoreView(APIView):
         response = self.process(request, project, auth, data, **kwargs)
         # We should return a simple 1x1 gif for browser so they don't throw a warning
         js_response = HttpResponse(PIXEL, 'image/gif')
-        js_response.status_code = response.status_code
-        try:
-            js_response['X-Sentry-Error'] = response['X-Sentry-Error']
-        except KeyError:
-            pass
+        if isinstance(response, HttpResponse):
+            js_response.status_code = response.status_code
+            try:
+                js_response['X-Sentry-Error'] = response['X-Sentry-Error']
+            except KeyError:
+                pass
+        else:
+            js_response['X-Sentry-ID'] = response
         return js_response
 
     def rate_limited_response(self, request, project):
