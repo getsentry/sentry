@@ -62,11 +62,11 @@ tests_require = [
 
 
 install_requires = [
-    'cssutils>=0.9.9,<0.9.10',
+    'cssutils>=0.9.10,<0.9.11',
     'BeautifulSoup>=3.2.1,<3.3.0',
     'django-celery>=3.0.11,<3.1.0',
     'celery>=3.0.15,<3.1.0',
-    'django-crispy-forms>=1.2.3,<1.3.0',
+    'django-crispy-forms>=1.3.0,<1.4.0',
     'Django>=1.5.2,<1.6',
     'django-paging>=0.2.5,<0.3.0',
     'django-picklefield>=0.3.0,<0.4.0',
@@ -76,7 +76,7 @@ install_requires = [
     'logan>=0.5.7,<0.6.0',
     'nydus>=0.10.0,<0.11.0',
     'Pygments>=1.6.0,<1.7.0',
-    'pynliner>=0.4.0,<0.5.0',
+    'pynliner>=0.5.0,<0.6.0',
     'python-dateutil>=1.5.0,<2.0.0',
     'python-memcached>=1.53,<2.0.0',
     'raven>=3.3.8',
