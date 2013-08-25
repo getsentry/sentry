@@ -62,7 +62,7 @@ tests_require = [
 
 
 install_requires = [
-    'cssutils>=0.9.10,<0.9.11',
+    'cssutils>0.9.9,<0.9.11',
     'BeautifulSoup>=3.2.1,<3.3.0',
     'django-celery>=3.0.11,<3.1.0',
     'celery>=3.0.15,<3.1.0',
@@ -80,8 +80,8 @@ install_requires = [
     'python-dateutil>=1.5.0,<2.0.0',
     'python-memcached>=1.53,<2.0.0',
     'raven>=3.3.8',
-    'redis>=2.8.0,<2.9.0',
-    'simplejson>=3.3.0,<3.4.0',
+    'redis>=2.7.0,<2.9.0',
+    'simplejson>=3.1.0,<3.4.0',
     'South>=0.8.0,<0.9.0',
     'httpagentparser>=1.2.1,<1.3.0',
     'django-social-auth>=0.7.24,<0.8.0',
