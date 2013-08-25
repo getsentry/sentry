@@ -22,15 +22,6 @@ class Quota(object):
     def is_rate_limited(self, project):
         return False
 
-    def get_active_quota(self, project):
-        quotas = filter(bool, [
-            self.get_project_quota(project),
-            self.get_team_quota(project.team),
-        ])
-        if not quotas:
-            return 0
-        return min(quotas)
-
     def translate_quota(self, quota, parent_quota):
         if quota.endswith('%'):
             pct = int(quota[:-1])

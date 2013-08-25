@@ -4,58 +4,96 @@ from __future__ import absolute_import
 
 import mock
 
+from exam import fixture, patcher
+
 from sentry.quotas.redis import RedisQuota
 from sentry.testutils import TestCase
 
 
 class RedisQuotaTest(TestCase):
-    def setUp(self):
-        self.quota = RedisQuota(hosts={
+    @fixture
+    def quota(self):
+        inst = RedisQuota(hosts={
             0: {'db': 9}
         })
-        self.quota.conn.flushdb()
+        inst.conn.flushdb()
+        return inst
+
+    @patcher.object(RedisQuota, 'get_system_quota')
+    def get_system_quota(self):
+        inst = mock.MagicMock()
+        inst.return_value = 0
+        return inst
+
+    @patcher.object(RedisQuota, 'get_team_quota')
+    def get_team_quota(self):
+        inst = mock.MagicMock()
+        inst.return_value = 0
+        return inst
+
+    @patcher.object(RedisQuota, 'get_project_quota')
+    def get_project_quota(self):
+        inst = mock.MagicMock()
+        inst.return_value = 0
+        return inst
+
+    @patcher.object(RedisQuota, '_incr_project')
+    def _incr_project(self):
+        inst = mock.MagicMock()
+        inst.return_value = (0, 0, 0)
+        return inst
 
     def test_default_host_is_local(self):
         quota = RedisQuota()
         self.assertEquals(len(quota.conn.hosts), 1)
         self.assertEquals(quota.conn.hosts[0].host, 'localhost')
 
-    @mock.patch.object(RedisQuota, 'get_system_quota')
-    @mock.patch.object(RedisQuota, 'get_project_quota')
-    @mock.patch.object(RedisQuota, '_incr_project')
-    def test_bails_immediately_without_quota(self, incr, get_project_quota, get_system_quota):
-        get_system_quota.return_value = 0
-        get_project_quota.return_value = 0
-        incr.return_value = (0, 0)
+    def test_bails_immediately_without_any_quota(self):
+        self._incr_project.return_value = (0, 0, 0)
 
         result = self.quota.is_rate_limited(self.project)
 
-        get_project_quota.assert_called_once_with(self.project)
-        assert not incr.called
+        assert not self._incr_project.called
         assert result is False
 
-    @mock.patch.object(RedisQuota, 'get_system_quota')
-    @mock.patch.object(RedisQuota, 'get_project_quota')
-    @mock.patch.object(RedisQuota, '_incr_project')
-    def test_over_quota(self, incr, get_project_quota, get_system_quota):
-        get_project_quota.return_value = 100
-        get_system_quota.return_value = 0
-        incr.return_value = (0, 101)
+    def test_enforces_project_quota(self):
+        self.get_project_quota.return_value = 100
+        self._incr_project.return_value = (0, 0, 101)
 
         result = self.quota.is_rate_limited(self.project)
 
-        incr.assert_called_once_with(self.project)
         assert result is True
 
-    @mock.patch.object(RedisQuota, 'get_system_quota')
-    @mock.patch.object(RedisQuota, 'get_project_quota')
-    @mock.patch.object(RedisQuota, '_incr_project')
-    def test_under_quota(self, incr, get_project_quota, get_system_quota):
-        get_project_quota.return_value = 100
-        get_system_quota.return_value = 0
-        incr.return_value = (0, 99)
+        self._incr_project.return_value = (0, 0, 99)
 
         result = self.quota.is_rate_limited(self.project)
 
-        incr.assert_called_once_with(self.project)
+        assert result is False
+
+    def test_enforces_team_quota(self):
+        self.get_team_quota.return_value = 100
+        self._incr_project.return_value = (0, 101, 0)
+
+        result = self.quota.is_rate_limited(self.project)
+
+        assert result is True
+
+        self._incr_project.return_value = (0, 99, 0)
+
+        result = self.quota.is_rate_limited(self.project)
+
+        assert result is False
+
+    def test_enforces_system_quota(self):
+        self.get_system_quota.return_value = 100
+        self._incr_project.return_value = (101, 0, 0)
+
+        result = self.quota.is_rate_limited(self.project)
+
+        assert result is True
+
+        self._incr_project.return_value = (99, 0, 0)
+
+        result = self.quota.is_rate_limited(self.project)
+
         assert result is False
