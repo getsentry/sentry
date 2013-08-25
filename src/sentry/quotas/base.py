@@ -29,7 +29,9 @@ class Quota(object):
         return int(quota)
 
     def get_project_quota(self, project):
-        project_quota = self.get_option('per_minute', project, '')
+        from sentry.models import ProjectOption
+
+        project_quota = ProjectOption.objects.get_value(project, 'per_minute', '')
         if project_quota is None:
             project_quota = settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE
 
