@@ -184,14 +184,16 @@ class ProjectQuotasForm(forms.Form):
         self.project = project
         super(ProjectQuotasForm, self).__init__(*args, **kwargs)
         per_minute = ProjectOption.objects.get_value(
-            self.project, 'quotas:per_minute', ''
+            self.project, 'quotas:per_minute', None
         )
-        if per_minute == '':
+        if per_minute is None:
             per_minute = settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE
         self.fields['per_minute'].initial = per_minute
 
     def clean_per_minute(self):
         value = self.cleaned_data.get('per_minute')
+        if not value:
+            return value
         if value.endswith('%'):
             try:
                 pct = int(value[:-1])
@@ -200,7 +202,7 @@ class ProjectQuotasForm(forms.Form):
             if pct > 100:
                 raise forms.ValidationError('Invalid percentage')
             if pct == 0:
-                value = 0
+                value = '0'
         return value
 
     def save(self):
