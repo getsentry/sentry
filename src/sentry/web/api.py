@@ -21,6 +21,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.vary import vary_on_cookie
 from django.views.generic.base import View as BaseView
 
+from sentry import app
 from sentry.constants import (
     MEMBER_USER, STATUS_MUTED, STATUS_UNRESOLVED, STATUS_RESOLVED,
     EVENTS_PER_PAGE)
@@ -264,14 +265,30 @@ class StoreView(APIView):
     @never_cache
     def get(self, request, project, auth, **kwargs):
         data = request.GET.get('sentry_data', '')
-        self.process(request, project, auth, data, **kwargs)
+        response = self.process(request, project, auth, data, **kwargs)
         # We should return a simple 1x1 gif for browser so they don't throw a warning
-        return HttpResponse(PIXEL, 'image/gif')
+        js_response = HttpResponse(PIXEL, 'image/gif')
+        js_response.status_code = response.status_code
+        try:
+            js_response['X-Sentry-Error'] = response['X-Sentry-Error']
+        except KeyError:
+            pass
+        return js_response
+
+    def rate_limited_response(self, request, project):
+        response = HttpResponse(
+            'Creation of this event was denied due to rate limiting.',
+            content_type='text/plain', status=429
+        )
+        response['X-Sentry-Error'] = response.content
+        return response
 
     def process(self, request, project, auth, data, **kwargs):
+        if app.quotas.is_rate_limited(project=project):
+            return self.rate_limited_response(request, project)
         for plugin in plugins.all():
             if safe_execute(plugin.is_rate_limited, project=project):
-                return HttpResponse('Creation of this event was denied due to rate limiting.', content_type='text/plain', status=429)
+                return self.rate_limited_response(request, project)
 
         result = plugins.first('has_perm', request.user, 'create_event', project)
         if result is False:

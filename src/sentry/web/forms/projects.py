@@ -7,6 +7,7 @@ sentry.web.forms.projects
 """
 import itertools
 from django import forms
+from django.conf import settings
 from django.contrib.auth import authenticate
 from django.utils.translation import ugettext_lazy as _
 from sentry.constants import EMPTY_PASSWORD_VALUES
@@ -169,3 +170,42 @@ class NotificationTagValuesForm(forms.Form):
 
     def clean_values(self):
         return set(filter(bool, self.cleaned_data.get('values').split(',')))
+
+
+class ProjectQuotasForm(forms.Form):
+    per_minute = forms.CharField(
+        label=_('Maximum events per minute'),
+        widget=forms.TextInput(attrs={'placeholder': 'e.g. 90% or 100'}),
+        help_text=_('This cannot be higher than the team (or system) allotted maximum. The value can be either a fixed number, or a percentage that is relative to the team\'s overall quota.'),
+        required=False
+    )
+
+    def __init__(self, project, *args, **kwargs):
+        self.project = project
+        super(ProjectQuotasForm, self).__init__(*args, **kwargs)
+        per_minute = ProjectOption.objects.get_value(
+            self.project, 'quotas:per_minute', None
+        )
+        if per_minute is None:
+            per_minute = settings.SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE
+        self.fields['per_minute'].initial = per_minute
+
+    def clean_per_minute(self):
+        value = self.cleaned_data.get('per_minute')
+        if not value:
+            return value
+        if value.endswith('%'):
+            try:
+                pct = int(value[:-1])
+            except (TypeError, ValueError):
+                raise forms.ValidationError('Invalid percentage')
+            if pct > 100:
+                raise forms.ValidationError('Invalid percentage')
+            if pct == 0:
+                value = '0'
+        return value
+
+    def save(self):
+        ProjectOption.objects.set_value(
+            self.project, 'quotas:per_minute', self.cleaned_data['per_minute'] or ''
+        )

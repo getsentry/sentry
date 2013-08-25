@@ -5,18 +5,7 @@ sentry.buffer.redis
 :copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-
-from __future__ import with_statement
-
-from django.core.exceptions import ImproperlyConfigured
-
-for package in ('nydus', 'redis'):
-    try:
-        __import__(package, {}, {}, [], -1)
-    except ImportError:
-        raise ImproperlyConfigured(
-            'Missing %r package, which is required for Redis buffers' % (
-                package,))
+from __future__ import absolute_import
 
 from django.conf import settings
 from django.db import models

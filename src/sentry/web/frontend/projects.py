@@ -13,6 +13,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 from django.utils.translation import ugettext_lazy as _
 
+from sentry import app
 from sentry.constants import (
     MEMBER_OWNER, STATUS_HIDDEN, DEFAULT_ALERT_PROJECT_THRESHOLD)
 from sentry.models import Project, ProjectKey, Team, TagKey
@@ -22,7 +23,7 @@ from sentry.plugins import plugins
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms.projects import (
     ProjectTagsForm, RemoveProjectForm, EditProjectForm,
-    NotificationTagValuesForm, AlertSettingsForm)
+    NotificationTagValuesForm, AlertSettingsForm, ProjectQuotasForm)
 from sentry.web.helpers import render_to_response, plugin_config
 
 
@@ -258,6 +259,34 @@ def notification_settings(request, team, project):
         'page': 'notifications',
     })
     return render_to_response('sentry/projects/notifications.html', context, request)
+
+
+@has_access(MEMBER_OWNER)
+def manage_project_quotas(request, team, project):
+    from sentry.quotas.base import Quota
+
+    form = ProjectQuotasForm(project, request.POST or None)
+
+    if form and form.is_valid():
+        form.save()
+
+        messages.add_message(
+            request, messages.SUCCESS,
+            _('Your settings were saved successfully.'))
+
+        return HttpResponseRedirect(reverse('sentry-manage-project-quotas', args=[project.team.slug, project.slug]))
+
+    context = {
+        'team': team,
+        'page': 'quotas',
+        # TODO(dcramer): has_quotas is an awful hack
+        'has_quotas': type(app.quotas) != Quota,
+        'system_quota': app.quotas.get_system_quota(),
+        'team_quota': app.quotas.get_team_quota(team),
+        'project': project,
+        'form': form,
+    }
+    return render_to_response('sentry/projects/quotas.html', context, request)
 
 
 @has_access(MEMBER_OWNER)
