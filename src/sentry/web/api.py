@@ -28,7 +28,7 @@ from sentry.constants import (
 from sentry.coreapi import (
     project_from_auth_vars, decode_and_decompress_data,
     safely_load_json_string, validate_data, insert_data_to_database, APIError,
-    APIForbidden, extract_auth_vars)
+    APIForbidden, APIRateLimited, extract_auth_vars)
 from sentry.exceptions import InvalidData
 from sentry.models import (
     Group, GroupBookmark, Project, ProjectCountByMinute, TagValue, Activity,
@@ -265,33 +265,16 @@ class StoreView(APIView):
     @never_cache
     def get(self, request, project, auth, **kwargs):
         data = request.GET.get('sentry_data', '')
-        response = self.process(request, project, auth, data, **kwargs)
+        self.process(request, project, auth, data, **kwargs)
         # We should return a simple 1x1 gif for browser so they don't throw a warning
-        js_response = HttpResponse(PIXEL, 'image/gif')
-        if isinstance(response, HttpResponse):
-            js_response.status_code = response.status_code
-            try:
-                js_response['X-Sentry-Error'] = response['X-Sentry-Error']
-            except KeyError:
-                pass
-        else:
-            js_response['X-Sentry-ID'] = response
-        return js_response
-
-    def rate_limited_response(self, request, project):
-        response = HttpResponse(
-            'Creation of this event was denied due to rate limiting.',
-            content_type='text/plain', status=429
-        )
-        response['X-Sentry-Error'] = response.content
-        return response
+        return HttpResponse(PIXEL, 'image/gif')
 
     def process(self, request, project, auth, data, **kwargs):
-        if app.quotas.is_rate_limited(project=project):
-            return self.rate_limited_response(request, project)
+        if safe_execute(app.quotas.is_rate_limited, project=project):
+            raise APIRateLimited
         for plugin in plugins.all():
             if safe_execute(plugin.is_rate_limited, project=project):
-                return self.rate_limited_response(request, project)
+                raise APIRateLimited
 
         result = plugins.first('has_perm', request.user, 'create_event', project)
         if result is False:

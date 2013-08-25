@@ -86,6 +86,11 @@ class APITimestampExpired(APIError):
     http_status = 410
 
 
+class APIRateLimited(APIError):
+    http_status = 429
+    msg = 'Creation of this event was denied due to rate limiting.'
+
+
 def client_metadata(client=None, project=None, exception=None, tags=None, extra=None):
     if not extra:
         extra = {}
