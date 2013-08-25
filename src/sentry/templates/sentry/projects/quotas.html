@@ -15,8 +15,8 @@
 
         <p>{% blocktrans %}Quotas limit on a per-minute basis, which means that they rollover at the start of a new minute. When you attempt to send an event and the project is over it's quota, the client will receive an HTTP 429 (Too Many Requests) response.{% endblocktrans %}</p>
 
-        {% if no_quotas %}
-            <p>{% blocktrans %}The system is not configured to manage quotas.{% endblocktrans %}</p>
+        {% if not has_quotas %}
+            <p><strong>{% blocktrans %}Note: The Sentry application is not configured to manage quotas.{% endblocktrans %}</strong></p>
         {% elif team_quota %}
             <p>{% blocktrans %}Your team has <strong>{{ team_quota }} events per minute</strong> allocated collectively among projects.{% endblocktrans %}</p>
         {% elif system_quota %}
