@@ -263,6 +263,8 @@ def notification_settings(request, team, project):
 
 @has_access(MEMBER_OWNER)
 def manage_project_quotas(request, team, project):
+    from sentry.quotas.base import Quota
+
     form = ProjectQuotasForm(project, request.POST or None)
 
     if form and form.is_valid():
@@ -277,6 +279,8 @@ def manage_project_quotas(request, team, project):
     context = {
         'team': team,
         'page': 'quotas',
+        # TODO(dcramer): has_quotas is an awful hack
+        'has_quotas': type(app.quotas) != Quota,
         'system_quota': app.quotas.get_system_quota(),
         'team_quota': app.quotas.get_team_quota(team),
         'project': project,

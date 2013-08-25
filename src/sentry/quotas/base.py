@@ -26,8 +26,9 @@ class Quota(object):
         quotas = filter(bool, [
             self.get_project_quota(project),
             self.get_team_quota(project.team),
-            self.get_system_quota(),
         ])
+        if not quotas:
+            return 0
         return min(quotas)
 
     def translate_quota(self, quota, parent_quota):

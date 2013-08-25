@@ -31,11 +31,20 @@ class RedisQuota(Quota):
 
     def is_rate_limited(self, project):
         quota = self.get_active_quota(project)
-        if not quota:
+        system_quota = self.get_system_quota()
+
+        if not (quota or system_quota):
             return False
 
         sys_result, proj_result = self._incr_project(project)
-        return sys_result > quota or proj_result > quota
+
+        if quota and proj_result > quota:
+            return True
+
+        if system_quota and sys_result > system_quota:
+            return True
+
+        return False
 
     def _get_system_key(self, project):
         return 'sentry_quotas:system:%s' % (int(time.time() / 60),)
