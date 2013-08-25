@@ -25,12 +25,12 @@ By default, quotas are not enabled. To enable them, you'll need to configure a R
        }
    }
 
-You can now additional configure system-wide maximums, and a default value for all projects:
+You can additionally configure system-wide maximums, and a default value for all projects:
 
- .. code-block:: python
+.. code-block:: python
 
-    SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = '90%'
-    SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE = 500
+   SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = '90%'
+   SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE = 500
 
 If you have additional needs, you're freely available to extend the base Quota class just as the
 Redis implementation does.
