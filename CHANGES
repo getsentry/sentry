@@ -1,3 +1,19 @@
+Version 6.1.1 (Security Release)
+--------------------------------
+
+Sentry 6.1.1 is a security release which patches a remote code execution exploit.
+
+This only affects servers hosted public clients (e.g. raven.js).
+
+The following commit demonstrates the exploit, as well as the patch:
+
+https://github.com/getsentry/sentry/commit/5793c6cac19aeb7d2e19f9a09f4421b771af4306
+
+Version 6.1.0
+-------------
+
+- Added Rate Limit controls.
+
 Version 6.0.0
 -------------
 
