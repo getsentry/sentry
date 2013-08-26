@@ -9,7 +9,7 @@ from sentry.models import Project, User
 from sentry.exceptions import InvalidTimestamp
 from sentry.coreapi import (
     extract_auth_vars, project_from_auth_vars, APIForbidden,
-    process_data_timestamp, validate_data, INTERFACE_ALIASES)
+    process_data_timestamp, validate_data, INTERFACE_ALIASES, get_interface)
 from sentry.testutils import TestCase
 
 
@@ -263,3 +263,14 @@ class ValidateDataTest(BaseAPITest):
             'extra': 'bar',
         })
         assert 'extra' not in data
+
+
+class GetInterfaceTest(TestCase):
+    def test_does_not_let_through_disallowed_name(self):
+        with self.assertRaises(ValueError):
+            get_interface('subprocess')
+
+    def test_allows_http(self):
+        from sentry.interfaces import Http
+        result = get_interface('sentry.interfaces.Http')
+        assert result is Http

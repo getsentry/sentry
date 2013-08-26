@@ -15,6 +15,7 @@ import logging
 import uuid
 import zlib
 
+from django.conf import settings
 from django.utils.encoding import smart_str
 
 from sentry.app import env
@@ -89,6 +90,18 @@ class APITimestampExpired(APIError):
 class APIRateLimited(APIError):
     http_status = 429
     msg = 'Creation of this event was denied due to rate limiting.'
+
+
+def get_interface(name):
+    if name not in settings.SENTRY_ALLOWED_INTERFACES:
+        raise ValueError
+
+    try:
+        interface = import_string(name)
+    except Exception:
+        raise ValueError('Unable to load interface: %s' % (name,))
+
+    return interface
 
 
 def client_metadata(client=None, project=None, exception=None, tags=None, extra=None):
@@ -322,11 +335,11 @@ def validate_data(project, data, client=None):
             continue
 
         try:
-            interface = import_string(import_path)
-        except (ImportError, AttributeError) as e:
+            interface = get_interface(import_path)
+        except ValueError:
             logger.info(
                 'Invalid unknown attribute: %s', k,
-                **client_metadata(client, project, exception=e))
+                **client_metadata(client, project))
             del data[k]
             continue
 
