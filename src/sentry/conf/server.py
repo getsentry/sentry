@@ -462,7 +462,7 @@ SENTRY_QUEUE = {
     'transport': 'kombu.transport.django.Transport',
 }
 
-SENTRY_ALLOWED_INTERFACES = {
+SENTRY_ALLOWED_INTERFACES = set([
     'sentry.interfaces.Exception',
     'sentry.interfaces.Message',
     'sentry.interfaces.Stacktrace',
@@ -470,7 +470,7 @@ SENTRY_ALLOWED_INTERFACES = {
     'sentry.interfaces.Query',
     'sentry.interfaces.Http',
     'sentry.interfaces.User',
-}
+])
 
 # Should users without 'sentry.add_project' permissions be allowed
 # to create new projects
