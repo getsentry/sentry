@@ -150,8 +150,10 @@ def reset_sequences(app='sentry'):
     from StringIO import StringIO
 
     commands = StringIO()
-    cursor = connection.cursor()
-
     call_command('sqlsequencereset', app, stdout=commands)
 
-    cursor.execute(commands.getvalue())
+    output = commands.getvalue()
+    if not output:
+        return
+    cursor = connection.cursor()
+    cursor.execute(output)
