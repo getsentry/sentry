@@ -44,7 +44,7 @@ from sentry.manager import (
     UserOptionManager, TagKeyManager, TeamManager, UserManager)
 from sentry.signals import buffer_incr_complete, regression_signal
 from sentry.utils.cache import memoize
-from sentry.utils.db import has_trending, reset_sequences
+from sentry.utils.db import has_trending
 from sentry.utils.http import absolute_uri
 from sentry.utils.models import (
     Model, GzippedDictField, BoundedIntegerField, BoundedPositiveIntegerField,
@@ -1210,14 +1210,15 @@ def create_default_project(created_models, verbosity=2, **kwargs):
         user = None
 
     project = Project.objects.create(
-        id=settings.SENTRY_PROJECT,
         public=False,
         name='Sentry (Internal)',
         slug='sentry',
         owner=user,
     )
-
-    reset_sequences('sentry')
+    # HACK: manually update the ID after insert due to Postgres
+    # sequence issues
+    if project.id != settings.SENTRY_PROJECT:
+        project.update(id=settings.SENTRY_PROJECT)
 
     if verbosity > 0:
         print 'Created internal Sentry project (slug=%s, id=%s)' % (project.slug, project.id)
