@@ -132,6 +132,9 @@ EMAIL_HOST_USER = ''
 EMAIL_PORT = 25
 EMAIL_USE_TLS = False
 
+# The email address to send on behalf of
+SERVER_EMAIL = 'root@localhost'
+
 ###########
 ## etc. ##
 ###########
