@@ -138,3 +138,20 @@ def attach_foreignkey(objects, field, related=[], database=None):
 
 def table_exists(name, using=DEFAULT_DB_ALIAS):
     return name in connections[using].introspection.table_names()
+
+
+def reset_sequences(app='sentry'):
+    import os
+
+    os.environ['DJANGO_COLORS'] = 'nocolor'
+
+    from django.core.management import call_command
+    from django.db import connection
+    from StringIO import StringIO
+
+    commands = StringIO()
+    cursor = connection.cursor()
+
+    call_command('sqlsequencereset', app, stdout=commands)
+
+    cursor.execute(commands.getvalue())
