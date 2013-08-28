@@ -392,7 +392,8 @@ def group(request, team, project, group, event_id=None):
     event.group = group
     event.project = project
 
-    if project in Project.objects.get_for_user(request.user, team=team):
+    if project in Project.objects.get_for_user(
+            request.user, team=team, superuser=False):
         # update that the user has seen this group
         create_or_update(
             GroupSeen,

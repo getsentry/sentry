@@ -868,7 +868,8 @@ class RawQuerySet(object):
 
 
 class ProjectManager(BaseManager, ChartMixin):
-    def get_for_user(self, user=None, access=None, hidden=False, team=None):
+    def get_for_user(self, user=None, access=None, hidden=False, team=None,
+                     superuser=True):
         """
         Returns a SortedDict of all projects a user has some level of access to.
         """
@@ -886,7 +887,7 @@ class ProjectManager(BaseManager, ChartMixin):
         if team:
             base_qs = base_qs.filter(team=team)
 
-        if team and user.is_superuser:
+        if team and user.is_superuser and superuser:
             projects = set(base_qs)
         else:
             projects_qs = base_qs
