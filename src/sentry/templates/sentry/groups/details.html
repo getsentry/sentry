@@ -49,7 +49,7 @@
                 </div>
 
                 {% include "sentry/partial/event_nav.html" %}
-            
+
                 {% if group.is_muted %}
                     <div class="alert alert-info">This event has been muted. You will not be notified of any changes and it will not show up in the default feed.</div>
                 {% endif %}
@@ -93,6 +93,23 @@
             <dd>{% if group.avg_time_spent %}{{ group.avg_time_spent|duration }}{% else %}<em>{% trans "n/a" %}</em>{% endif %}</dd>
         {% endif %}
     </dl>
+
+    {% if seen_by_faces %}
+        <h6>{% trans "Seen By" %}</h6>
+        <ul class="seen-by">
+            {% for s_user, s_last_seen in seen_by_faces %}
+                <li>
+                    <img src="{% gravatar_url s_user.email size 32 %}" class="tip" rel="tooltip" title="<strong>{{ s_user|user_display_name|force_escape }}</strong><br>{{ s_last_seen|timesince }}">
+                </li>
+            {% endfor %}
+            {% if seen_by_extra %}
+                <li class="tip" rel="tooltip" title="{% for s_user, _ in seen_by %}- {{ s_user|user_display_name|force_escape }}<br>{% endfor %}">
+                    &middot;&middot;&middot;
+                </li>
+            {% endif %}
+        </ul>
+    {% endif %}
+
 
     <!--- there is probably a less terrible way to do things like this -->
     <p id="public-status"><small>

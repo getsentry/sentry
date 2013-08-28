@@ -1113,6 +1113,21 @@ class Activity(Model):
                 self.event.update(num_comments=F('num_comments') + 1)
 
 
+class GroupSeen(Model):
+    """
+    Track when a group is last seen by a user.
+    """
+    project = models.ForeignKey(Project)
+    group = models.ForeignKey(Group, db_index=False)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    last_seen = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = (('group', 'user'),)
+
+    __repr__ = sane_repr('project_id', 'group_id', 'user_id', 'last_seen')
+
+
 class Alert(Model):
     project = models.ForeignKey(Project)
     group = models.ForeignKey(Group, null=True)

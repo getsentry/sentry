@@ -476,3 +476,14 @@ def can_admin_team(user, team):
     if team.slug in Team.objects.get_for_user(user, access=MEMBER_OWNER):
         return True
     return False
+
+
+@register.filter
+def user_display_name(user):
+    if user.first_name and user.last_name:
+        value = user.first_name + ' ' + user.last_name
+    elif user.first_name:
+        value = user.first_name
+    else:
+        value = user.username
+    return escape(value)

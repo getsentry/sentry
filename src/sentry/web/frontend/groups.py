@@ -31,12 +31,14 @@ from sentry.constants import (
     SEARCH_DEFAULT_SORT_OPTION, MAX_JSON_RESULTS)
 from sentry.filters import get_filters
 from sentry.models import (
-    Project, Group, Event, SearchDocument, Activity, EventMapping, TagKey)
+    Project, Group, Event, SearchDocument, Activity, EventMapping, TagKey,
+    GroupSeen)
 from sentry.permissions import can_admin_group, can_create_projects
 from sentry.plugins import plugins
 from sentry.utils import json
 from sentry.utils.dates import parse_date
 from sentry.utils.db import has_trending, get_db_engine
+from sentry.utils.models import create_or_update
 from sentry.web.decorators import has_access, has_group_access, login_required
 from sentry.web.helpers import render_to_response, group_is_public
 
@@ -390,7 +392,18 @@ def group(request, team, project, group, event_id=None):
     event.group = group
     event.project = project
 
-    # filter out dupes
+    # update that the user has seen this group
+    create_or_update(
+        GroupSeen,
+        group=group,
+        user=request.user,
+        project=project,
+        defaults={
+            'last_seen': timezone.now(),
+        }
+    )
+
+    # filter out dupe activity items
     activity_items = set()
     activity = []
     for item in activity_qs.filter(group=group)[:10]:
@@ -402,9 +415,23 @@ def group(request, team, project, group, event_id=None):
     # trim to latest 5
     activity = activity[:5]
 
+    seen_by = sorted(filter(lambda ls: ls[0] == request.user and ls[0].email, [
+        (gs.user, gs.last_seen)
+        for gs in GroupSeen.objects.filter(
+            group=group
+        ).select_related('user')
+    ]), key=lambda ls: ls[1])
+    seen_by_extra = len(seen_by) - 5
+    if seen_by_extra < 0:
+        seen_by_extra = 0
+    seen_by_faces = seen_by[:5]
+
     context = {
         'page': 'details',
         'activity': activity,
+        'seen_by': seen_by,
+        'seen_by_faces': seen_by_faces,
+        'seen_by_extra': seen_by_extra,
     }
 
     is_public = group_is_public(group, request.user)
