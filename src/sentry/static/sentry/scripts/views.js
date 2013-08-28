@@ -171,7 +171,7 @@
         },
 
         updateUsersSeen: function(){
-            var value = this.model.get('usersSeen')
+            var value = this.model.get('usersSeen');
             if (value === null)
                 return;
             var new_count = app.utils.formatNumber(value);
