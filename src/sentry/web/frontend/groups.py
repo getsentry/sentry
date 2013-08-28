@@ -421,7 +421,7 @@ def group(request, team, project, group, event_id=None):
         for gs in GroupSeen.objects.filter(
             group=group
         ).select_related('user')
-    ]), key=lambda ls: ls[1])
+    ]), key=lambda ls: ls[1], reverse=True)
     seen_by_extra = len(seen_by) - 5
     if seen_by_extra < 0:
         seen_by_extra = 0
