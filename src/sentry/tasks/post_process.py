@@ -51,7 +51,7 @@ def record_affected_user(group, event, **kwargs):
     if not user_ident:
         return
 
-    user_data = event.data.get('sentry.interfaces.User')
+    user_data = event.data.get('sentry.interfaces.User', {})
 
     Group.objects.add_tags(group, [
         ('sentry:user', user_ident, {
