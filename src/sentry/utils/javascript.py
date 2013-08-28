@@ -95,7 +95,8 @@ class GroupTransformer(Transformer):
         for g in objects:
             g.is_bookmarked = g.pk in bookmarks
             g.historical_data = [x[1] for x in historical_data.get(g.id, [])]
-            g.users_seen = user_counts.get(g.id, 0)
+            if user_counts:
+                g.users_seen = user_counts.get(g.id, 0)
 
     def transform(self, obj, request=None):
         d = {

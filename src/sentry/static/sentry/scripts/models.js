@@ -8,6 +8,7 @@
         defaults: {
             count: 0,
             version: 0,
+            usersSeen: null,
             tags: [],
             versions: [],
             isBookmarked: false,
