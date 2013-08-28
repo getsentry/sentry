@@ -1,3 +1,4 @@
 {% autoescape off %}
-  {{ filename }}{% if lineno %}:{{ lineno }}{% endif %}:in `{{ function }}'
+  {{ filename }}{% if lineno %}:{{ lineno }}{% endif %}:in `{{ function }}'{% if context_line %}
+    {{ context_line.strip }}{% endif %}
 {% endautoescape %}
