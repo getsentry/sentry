@@ -13,9 +13,9 @@
                 '</p>' +
                 '<div class="meta">' +
                     '<% if (usersSeen !== null) { %>' +
-                    '<span class="tag tag-users">' +
+                    '<span class="tag tag-users" data-count="<%= app.utils.formatNumber(usersSeen) %>">' +
                         '<i>users</i>' +
-                        '<%= app.utils.formatNumber(usersSeen) %>' +
+                        '<span title="<%= usersSeen %>"><%= app.utils.formatNumber(usersSeen) %></span>' +
                     '</span>' +
                     '<% } %>' +
                     '<span class="last-seen pretty-date" title="<%= lastSeen %>"><%= app.utils.prettyDate(lastSeen) %></span>' +

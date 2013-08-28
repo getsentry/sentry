@@ -7537,10 +7537,26 @@ a.icon-share:hover {
   position: relative;
   background: #f9f9f9;
   padding: 0 5px 0 45px;
+  line-height: 20px;
+  height: 20px;
   width: 20px;
   text-align: right;
-  display: inline-block;
+  float: left;
+  display: block;
   color: #666;
+  overflow: hidden;
+}
+.group-list > li .tag-users span,
+.events > li .tag-users span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 45px;
+  right: 5px;
+  height: 100%;
+  text-align: center;
+  line-height: inherit;
+  display: block;
 }
 .group-list > li .tag-users i,
 .events > li .tag-users i {

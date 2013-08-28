@@ -11,8 +11,12 @@
         initialize: function(){
             Backbone.View.prototype.initialize.apply(this, arguments);
 
+            _.bindAll(this, 'updateCount', 'updateUsersSeen', 'updateLastSeen',
+                'updateResolved', 'renderSparkline', 'render');
+
             this.model.on({
                 'change:count': this.updateCount,
+                'change:usersSeen': this.updateUsersSeen,
                 'change:lastSeen': this.updateLastSeen,
                 'change:isBookmarked': this.render,
                 'change:isResolved': this.updateResolved,
@@ -164,6 +168,48 @@
                 top: 0,
                 opacity: 1
             }, 'fast');
+        },
+
+        updateUsersSeen: function(){
+            var value = this.model.get('usersSeen')
+            if (value === null)
+                return;
+            var new_count = app.utils.formatNumber(value);
+            var counter = this.$el.find('.tag-users');
+            var digit = counter.find('span');
+
+            if (digit.is(':animated'))
+                return false;
+
+            if (counter.data('count') == new_count) {
+                // We are already showing this number
+                return false;
+            }
+
+            counter.data('count', new_count);
+
+            var replacement = $('<span></span>', {
+                css: {
+                    top: '-2.1em',
+                    opacity: 0
+                },
+                text: new_count
+            });
+
+            // The .static class is added when the animation
+            // completes. This makes it run smoother.
+
+            digit.before(replacement).animate({
+                top: '2.5em',
+                opacity: 0
+            }, 'fast', function(){
+                digit.remove();
+            });
+
+            replacement.delay(100).animate({
+                top: 0,
+                opacity: 1
+            }, 'fast');
         }
 
     });
@@ -196,6 +242,8 @@
 
             if (this.options.className)
                 this.$parent.addClass(this.options.className);
+
+            _.bindAll(this, 'renderMemberInContainer', 'unrenderMember', 'reSortMembers');
 
             this.collection = new app.ScoredList([], {
                 model: data.model
@@ -361,7 +409,7 @@
 
             this.cursor = null;
 
-            _.bindAll(this, 'poll', 'tick');
+            _.bindAll(this, 'poll', 'pollSuccess', 'pollFailure', 'tick');
 
             this.poll();
 
@@ -382,6 +430,22 @@
             }
         },
 
+        pollSuccess: function(groups){
+            if (!groups.length)
+                return window.setTimeout(this.poll, this.options.pollTime * 5);
+
+            this.cursor = groups[groups.length - 1].score;
+
+            this.queue.add(groups, {merge: true});
+
+            window.setTimeout(this.poll, this.options.pollTime);
+        },
+
+        pollFailure: function(jqXHR, textStatus, errorThrown){
+            // if an error happened lets give the server a bit of time before we poll again
+            window.setTimeout(this.poll, this.options.pollTime * 10);
+        },
+
         poll: function(){
             var data;
 
@@ -389,29 +453,15 @@
                 return window.setTimeout(this.poll, this.options.pollTime);
 
             data = app.utils.getQueryParams();
-            // For some reason jQuery is erroring (without sending a request)
-            // if we name this key cursor
-            data.c = this.cursor || undefined;
+            data.cursor = this.cursor || undefined;
 
             $.ajax({
                 url: this.options.pollUrl,
                 type: 'GET',
                 dataType: 'json',
                 data: data,
-                success: _.bind(function(groups){
-                    if (!groups.length)
-                        return window.setTimeout(this.poll, this.options.pollTime * 5);
-
-                    this.cursor = groups[groups.length - 1].score;
-
-                    this.queue.add(groups, {merge: true});
-
-                    window.setTimeout(this.poll, this.options.pollTime);
-                }, this),
-                error: _.bind(function(jqXHR, textStatus, errorThrown){
-                    // if an error happened lets give the server a bit of time before we poll again
-                    window.setTimeout(this.poll, this.options.pollTime * 10);
-                }, this)
+                success: this.pollSuccess,
+                error: this.pollFailure
             });
         }
 

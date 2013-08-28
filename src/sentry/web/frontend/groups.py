@@ -151,7 +151,7 @@ def _get_group_list(request, project):
             event_list = event_list.order_by('-last_seen')
         else:
             event_list = event_list.order_by('-sort_value', '-last_seen')
-        cursor = request.GET.get('c')
+        cursor = request.GET.get('cursor', request.GET.get('c'))
         if cursor:
             event_list = event_list.extra(
                 where=['%s > %%s' % filter_clause],
