@@ -526,7 +526,7 @@ SENTRY_PUBLIC_ENDPOINT = None
 
 # Early draft features. Not slated or public release yet.
 SENTRY_ENABLE_EXPLORE_CODE = False
-SENTRY_ENABLE_EXPLORE_USERS = False
+SENTRY_ENABLE_EXPLORE_USERS = True
 
 # Configure celery
 import djcelery

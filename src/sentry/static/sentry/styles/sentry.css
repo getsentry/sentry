@@ -7530,6 +7530,25 @@ a.icon-share:hover {
 .events > li .tag {
   margin-left: 10px;
 }
+.group-list > li .tag-users,
+.events > li .tag-users {
+  margin-right: 10px;
+  margin-left: 0;
+  position: relative;
+  background: #f9f9f9;
+  padding: 0 5px 0 45px;
+  width: 20px;
+  text-align: right;
+  display: inline-block;
+  color: #666;
+}
+.group-list > li .tag-users i,
+.events > li .tag-users i {
+  font-style: normal;
+  position: absolute;
+  left: 5px;
+  color: #aaa;
+}
 .group-list > li .tag-project,
 .events > li .tag-project {
   display: none;

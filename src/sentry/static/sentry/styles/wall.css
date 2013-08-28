@@ -7530,6 +7530,25 @@ a.icon-share:hover {
 .events > li .tag {
   margin-left: 10px;
 }
+.group-list > li .tag-users,
+.events > li .tag-users {
+  margin-right: 10px;
+  margin-left: 0;
+  position: relative;
+  background: #f9f9f9;
+  padding: 0 5px 0 45px;
+  width: 20px;
+  text-align: right;
+  display: inline-block;
+  color: #666;
+}
+.group-list > li .tag-users i,
+.events > li .tag-users i {
+  font-style: normal;
+  position: absolute;
+  left: 5px;
+  color: #aaa;
+}
 .group-list > li .tag-project,
 .events > li .tag-project {
   display: none;
@@ -7837,10 +7856,10 @@ ul.traceback {
   font-size: 0.9em;
   margin-left: 10px;
 }
-.frame table.vars {
+.frame > div > table.vars {
   margin-bottom: 5px;
 }
-.frame table.vars th {
+.frame > div > table.vars > tbody > tr > th {
   color: #a6a8b7;
   text-align: right;
 }
@@ -7939,7 +7958,6 @@ ol.context-line > li > span {
 }
 .mini-tag-list > li {
   display: inline-block;
-  min-width: 100px;
   background: #f9f9f9;
   -webkit-border-radius: 8px;
   -moz-border-radius: 8px;
@@ -8704,6 +8722,33 @@ table.vars table.vars th {
 .activity > li .time {
   font-size: 12px;
   color: #aaa;
+}
+.seen-by {
+  position: relative;
+  margin-left: 0;
+}
+.seen-by > li {
+  list-style: none;
+  display: inline-block;
+  height: 32px;
+  width: 32px;
+  line-height: 32px;
+  text-align: center;
+  -webkit-border-radius: 32px;
+  -moz-border-radius: 32px;
+  border-radius: 32px;
+  border: 1px solid #ddd;
+  font-size: 15px;
+  color: #aaa;
+}
+.seen-by > li img {
+  height: 100%;
+  width: 100%;
+  height: 32px;
+  width: 32px;
+  -webkit-border-radius: 32px;
+  -moz-border-radius: 32px;
+  border-radius: 32px;
 }
 .team-index #page-header {
   display: none;
