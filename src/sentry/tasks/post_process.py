@@ -47,20 +47,19 @@ def record_affected_user(group, event, **kwargs):
     if not settings.SENTRY_ENABLE_EXPLORE_USERS:
         return
 
-    data = event.data.get('sentry.interfaces.User')
-    if not data:
-        return
-
     user_ident = event.user_ident
     if not user_ident:
         return
 
+    user_data = event.data.get('sentry.interfaces.User')
+
     Group.objects.add_tags(group, [
         ('sentry:user', user_ident, {
-            'id': data.get('id'),
-            'email': data.get('email'),
-            'username': data.get('username'),
-            'data': data.get('data'),
+            'id': user_data.get('id'),
+            'email': user_data.get('email'),
+            'username': user_data.get('username'),
+            'data': user_data.get('data'),
+            'ip': event.ip_address,
         })
     ])
 

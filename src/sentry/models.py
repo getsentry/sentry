@@ -519,6 +519,12 @@ class EventBase(Model):
         return self.project.team
 
     @property
+    def ip_address(self):
+        http_data = self.data.get('sentry.interfaces.Http')
+        if http_data and 'env' in http_data:
+            return http_data['env'].get('REMOTE_ADDR')
+
+    @property
     def user_ident(self):
         """
         The identifier from a user is considered from several interfaces.
@@ -545,12 +551,9 @@ class EventBase(Model):
             if ident:
                 return 'username:%s' % (ident,)
 
-        http_data = self.data.get('sentry.interfaces.Http')
-        if http_data:
-            if 'env' in http_data:
-                ident = http_data['env'].get('REMOTE_ADDR')
-                if ident:
-                    return 'ip:%s' % (ident,)
+        ident = self.ip_address
+        if ident:
+            return 'ip:%s' % (ident,)
 
         return None
 
