@@ -46,7 +46,7 @@ def static_media(request, **kwargs):
     if module:
         path = '%s/%s' % (module, path)
 
-    return serve(request, path, insecure=True)
+    return serve(request, path)
 
 
 def missing_perm(request, perm, **kwargs):
