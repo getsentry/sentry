@@ -22,7 +22,9 @@
                     '<% if (timeSpent) { %>' +
                         '<span class="time-spent"><%= Math.round(timeSpent) %>ms</span>' +
                     '<% } %>' +
-                    '<span class="tag tag-project"><%= project.name %></span>' +
+                    '<span class="tag tag-project">' +
+                        '<a href="<%= projectUrl %>"><%= project.name %></a>' +
+                    '</span>' +
                     '<span class="tag tag-logger">' +
                         '<a href="<%= loggerUrl %>"><%= logger %></a>' +
                     '</span>' +
