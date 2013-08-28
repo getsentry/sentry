@@ -376,5 +376,15 @@ def validate_data(project, data, client=None):
     return data
 
 
+def ensure_has_ip(data, ip_address):
+    if data.get('sentry.interfaces.Http', {}).get('env', {}).get('REMOTE_ADDR'):
+        return
+
+    if data.get('sentry.interfaces.User', {}).get('ip_address'):
+        return
+
+    data.setdefault('sentry.interfaces.User', {})['ip_address'] = ip_address
+
+
 def insert_data_to_database(data):
     preprocess_event.delay(data=data)

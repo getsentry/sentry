@@ -8,7 +8,7 @@ import mock
 from sentry.models import Project, User
 from sentry.exceptions import InvalidTimestamp
 from sentry.coreapi import (
-    extract_auth_vars, project_from_auth_vars, APIForbidden,
+    extract_auth_vars, project_from_auth_vars, APIForbidden, ensure_has_ip,
     process_data_timestamp, validate_data, INTERFACE_ALIASES, get_interface)
 from sentry.testutils import TestCase
 
@@ -274,3 +274,43 @@ class GetInterfaceTest(TestCase):
         from sentry.interfaces import Http
         result = get_interface('sentry.interfaces.Http')
         assert result is Http
+
+
+class EnsureHasIpTest(TestCase):
+    def test_with_remote_addr(self):
+        inp = {
+            'sentry.interfaces.Http': {
+                'env': {
+                    'REMOTE_ADDR': '192.168.0.1',
+                },
+            },
+        }
+        out = inp.copy()
+        ensure_has_ip(out, '127.0.0.1')
+        assert inp == out
+
+    def test_with_user_ip(self):
+        inp = {
+            'sentry.interfaces.User': {
+                'ip_address': '192.168.0.1',
+            },
+        }
+        out = inp.copy()
+        ensure_has_ip(out, '127.0.0.1')
+        assert inp == out
+
+    def test_without_ip_values(self):
+        out = {
+            'sentry.interfaces.User': {
+            },
+            'sentry.interfaces.Http': {
+                'env': {},
+            },
+        }
+        ensure_has_ip(out, '127.0.0.1')
+        assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'
+
+    def test_without_any_values(self):
+        out = {}
+        ensure_has_ip(out, '127.0.0.1')
+        assert out['sentry.interfaces.User']['ip_address'] == '127.0.0.1'

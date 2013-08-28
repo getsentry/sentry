@@ -28,7 +28,7 @@ from sentry.constants import (
 from sentry.coreapi import (
     project_from_auth_vars, decode_and_decompress_data,
     safely_load_json_string, validate_data, insert_data_to_database, APIError,
-    APIForbidden, APIRateLimited, extract_auth_vars)
+    APIForbidden, APIRateLimited, extract_auth_vars, ensure_has_ip)
 from sentry.exceptions import InvalidData
 from sentry.models import (
     Group, GroupBookmark, Project, ProjectCountByMinute, TagValue, Activity,
@@ -69,11 +69,12 @@ def api(func):
 
 
 class Auth(object):
-    def __init__(self, auth_vars):
+    def __init__(self, auth_vars, is_public=False):
         self.client = auth_vars.get('sentry_client')
         self.version = int(float(auth_vars.get('sentry_version')))
         self.secret_key = auth_vars.get('sentry_secret')
         self.public_key = auth_vars.get('sentry_key')
+        self.is_public = is_public
 
 
 class APIView(BaseView):
@@ -194,7 +195,7 @@ class APIView(BaseView):
             elif project_ != project:
                 return HttpResponse('Project ID mismatch', content_type='text/plain', status=400)
 
-            auth = Auth(auth_vars)
+            auth = Auth(auth_vars, is_public=bool(origin))
 
             if auth.version >= 3:
                 # Version 3 enforces secret key for server side requests
@@ -292,6 +293,10 @@ class StoreView(APIView):
 
         # mutates data
         Group.objects.normalize_event_data(data)
+
+        # insert IP address if not available
+        if auth.is_public:
+            ensure_has_ip(data, request.META['REMOTE_ADDR'])
 
         event_id = data['event_id']
 
