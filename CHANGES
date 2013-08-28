@@ -1,3 +1,13 @@
+Version 6.2.0
+-------------
+
+- Added tracking to which users have seen which groups
+- The stream now reflects if you've viewed an event since it was created or regressed.
+- The group details page shows other users who have glanced at an event.
+- Streams which have recorded user data will now show the number of unique users
+  an event has happened to.
+- Various stream polling fixes and improvements.
+
 Version 6.1.1 (Security Release)
 --------------------------------
 
