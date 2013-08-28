@@ -522,7 +522,17 @@ class EventBase(Model):
     def ip_address(self):
         http_data = self.data.get('sentry.interfaces.Http')
         if http_data and 'env' in http_data:
-            return http_data['env'].get('REMOTE_ADDR')
+            value = http_data['env'].get('REMOTE_ADDR')
+            if value:
+                return value
+
+        user_data = self.data.get('sentry.interfaces.User')
+        if user_data:
+            value = user_data.get('ip_address')
+            if value:
+                return value
+
+        return None
 
     @property
     def user_ident(self):

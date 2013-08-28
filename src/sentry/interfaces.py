@@ -1120,21 +1120,25 @@ class User(Interface):
     """
     An interface which describes the authenticated User for a request.
 
-    All data is arbitrary and optional other than the ``id``
-    field which should be a string representing the user's unique identifier.
+    You should provide **at least** either an `id` (a unique identifier for
+    an authenticated user) or `ip_address` (their IP address).
+
+    All other data is.
 
     >>> {
     >>>     "id": "unique_id",
     >>>     "username": "my_user",
     >>>     "email": "foo@example.com"
+    >>>     "ip_address": "127.0.0.1"
     >>> }
     """
     attrs = ('id', 'email', 'username', 'data')
 
-    def __init__(self, id=None, email=None, username=None, **kwargs):
+    def __init__(self, id=None, email=None, username=None, ip_address=None, **kwargs):
         self.id = id
         self.email = email
         self.username = username
+        self.ip_address = ip_address
         self.data = kwargs
 
     def serialize(self):
@@ -1146,6 +1150,7 @@ class User(Interface):
             'id': self.id,
             'username': self.username,
             'email': self.email,
+            'ip_address': self.ip_address,
             'data': self.data,
         }
 
@@ -1158,6 +1163,7 @@ class User(Interface):
         return render_to_string('sentry/partial/interfaces/user.html', {
             'is_public': is_public,
             'event': event,
+            'user_ip_address': self.ip_address,
             'user_id': self.id,
             'user_username': self.username,
             'user_email': self.email,
