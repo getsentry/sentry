@@ -44,7 +44,7 @@
                             '</a>' +
                         '</li>' +
                         '<li>' +
-                            '<a href="#" data-action="bookmark" class="bookmark<% if (isBookmarked) { %> checked<% } %>" title="Bookmark">' +
+                            '<a href="#" data-action="bookmark" class="bookmark" title="Bookmark">' +
                                 '<i aria-hidden="true" class="icon-star"></i>' +
                             '</a>' +
                         '</li>' +

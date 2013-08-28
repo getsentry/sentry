@@ -11,6 +11,7 @@
             usersSeen: null,
             tags: [],
             versions: [],
+            hasSeen: false,
             isBookmarked: false,
             historicalData: []
         }

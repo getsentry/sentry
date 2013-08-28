@@ -12,14 +12,16 @@
             Backbone.View.prototype.initialize.apply(this, arguments);
 
             _.bindAll(this, 'updateCount', 'updateUsersSeen', 'updateLastSeen',
-                'updateResolved', 'renderSparkline', 'render');
+                'updateResolved', 'updateHasSeen', 'renderSparkline', 'updateBookmarked',
+                'render');
 
             this.model.on({
                 'change:count': this.updateCount,
                 'change:usersSeen': this.updateUsersSeen,
                 'change:lastSeen': this.updateLastSeen,
-                'change:isBookmarked': this.render,
+                'change:isBookmarked': this.updateBookmarked,
                 'change:isResolved': this.updateResolved,
+                'change:hasSeen': this.updateHasSeen,
                 'change:historicalData': this.renderSparkline
             }, this);
         },
@@ -47,6 +49,16 @@
             }, this));
             this.renderSparkline();
             this.updateResolved();
+            this.updateHasSeen();
+            this.updateBookmarked();
+        },
+
+        updateBookmarked: function(){
+            if (this.model.get('isBookmarked')) {
+                this.$el.find('a[data-action=bookmark]').addClass('checked');
+            } else {
+                this.$el.find('a[data-action=bookmark]').removeClass('checked');
+            }
         },
 
         updateResolved: function(){
@@ -54,6 +66,14 @@
                 this.$el.addClass('resolved');
             } else {
                 this.$el.removeClass('resolved');
+            }
+        },
+
+        updateHasSeen: function(){
+            if (this.model.get('hasSeen')) {
+                this.$el.addClass('seen');
+            } else {
+                this.$el.removeClass('seen');
             }
         },
 
