@@ -910,7 +910,7 @@ class ProjectManager(BaseManager, ChartMixin):
 
         attach_foreignkey(projects, self.model.team)
 
-        return sorted(projects, key=lambda x: x.name)
+        return sorted(projects, key=lambda x: x.name.lower())
 
 
 class MetaManager(BaseManager):
@@ -1273,7 +1273,7 @@ class TeamManager(BaseManager):
             return results
 
         if settings.SENTRY_PUBLIC and access is None:
-            for team in self.order_by('name').iterator():
+            for team in sorted(self.iterator(), key=lambda x: x.name.lower()):
                 results[team.slug] = team
         else:
             all_teams = set()
@@ -1297,7 +1297,7 @@ class TeamManager(BaseManager):
                 for group in qs:
                     all_teams.add(group.team)
 
-            for team in sorted(all_teams, key=lambda x: x.name):
+            for team in sorted(all_teams, key=lambda x: x.name.lower()):
                 results[team.slug] = team
 
         if with_projects:
