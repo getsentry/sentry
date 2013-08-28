@@ -480,10 +480,4 @@ def can_admin_team(user, team):
 
 @register.filter
 def user_display_name(user):
-    if user.first_name and user.last_name:
-        value = user.first_name + ' ' + user.last_name
-    elif user.first_name:
-        value = user.first_name
-    else:
-        value = user.username
-    return escape(value)
+    return user.first_name or user.username
