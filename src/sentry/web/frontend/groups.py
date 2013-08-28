@@ -392,16 +392,17 @@ def group(request, team, project, group, event_id=None):
     event.group = group
     event.project = project
 
-    # update that the user has seen this group
-    create_or_update(
-        GroupSeen,
-        group=group,
-        user=request.user,
-        project=project,
-        defaults={
-            'last_seen': timezone.now(),
-        }
-    )
+    if project in Project.objects.get_for_user(request.user, team=team):
+        # update that the user has seen this group
+        create_or_update(
+            GroupSeen,
+            group=group,
+            user=request.user,
+            project=project,
+            defaults={
+                'last_seen': timezone.now(),
+            }
+        )
 
     # filter out dupe activity items
     activity_items = set()
