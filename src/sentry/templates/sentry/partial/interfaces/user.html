@@ -11,10 +11,18 @@
                 <col style="width:130px;">
             </colgroup>
             <tbody>
+                {% if user_id %}
                 <tr>
                     <th>{% trans "ID:" %}</th>
                     <td class="code">{{ user_id }}</td>
                 </tr>
+                {% endif %}
+                {% if user_ip_address %}
+                <tr>
+                    <th>{% trans "IP Address:" %}</th>
+                    <td class="code">{{ user_ip_address }}</td>
+                </tr>
+                {% endif %}
                 {% if user_username %}
                     <tr>
                         <th>{% trans "Username:" %}</th>
