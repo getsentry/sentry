@@ -1118,12 +1118,12 @@ class GroupSeen(Model):
     Track when a group is last seen by a user.
     """
     project = models.ForeignKey(Project)
-    group = models.ForeignKey(Group, db_index=False)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    group = models.ForeignKey(Group)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, db_index=False)
     last_seen = models.DateTimeField(default=timezone.now)
 
     class Meta:
-        unique_together = (('group', 'user'),)
+        unique_together = (('user', 'group'),)
 
     __repr__ = sane_repr('project_id', 'group_id', 'user_id', 'last_seen')
 

@@ -12,19 +12,19 @@ class Migration(SchemaMigration):
         db.create_table(u'sentry_groupseen', (
             ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('project', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.Project'])),
-            ('group', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.Group'], db_index=False)),
-            ('user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'])),
+            ('group', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['sentry.Group'])),
+            ('user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'], db_index=False)),
             ('last_seen', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
         db.send_create_signal(u'sentry', ['GroupSeen'])
 
         # Adding unique constraint on 'GroupSeen', fields ['group', 'user']
-        db.create_unique(u'sentry_groupseen', ['group_id', 'user_id'])
+        db.create_unique(u'sentry_groupseen', ['user_id', 'group_id'])
 
 
     def backwards(self, orm):
         # Removing unique constraint on 'GroupSeen', fields ['group', 'user']
-        db.delete_unique(u'sentry_groupseen', ['group_id', 'user_id'])
+        db.delete_unique(u'sentry_groupseen', ['user_id', 'group_id'])
 
         # Deleting model 'GroupSeen'
         db.delete_table(u'sentry_groupseen')
@@ -184,12 +184,12 @@ class Migration(SchemaMigration):
             'value': ('django.db.models.fields.TextField', [], {})
         },
         u'sentry.groupseen': {
-            'Meta': {'unique_together': "(('group', 'user'),)", 'object_name': 'GroupSeen'},
-            'group': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['sentry.Group']", 'db_index': 'False'}),
+            'Meta': {'unique_together': "(('user', 'group'),)", 'object_name': 'GroupSeen'},
+            'group': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['sentry.Group']"}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'last_seen': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'project': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['sentry.Project']"}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']"})
+            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']", 'db_index': 'False'})
         },
         u'sentry.grouptag': {
             'Meta': {'unique_together': "(('project', 'key', 'value', 'group'),)", 'object_name': 'GroupTag', 'db_table': "'sentry_messagefiltervalue'"},
