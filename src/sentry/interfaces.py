@@ -17,6 +17,7 @@ from pygments import highlight
 # from pygments.lexers import get_lexer_for_filename, TextLexer, ClassNotFound
 from pygments.lexers import TextLexer
 from pygments.formatters import HtmlFormatter
+from urllib import urlencode
 
 from django.http import QueryDict
 from django.utils.html import escape
@@ -920,6 +921,9 @@ class Http(Interface):
         self.url = '%s://%s%s' % (urlparts.scheme, urlparts.netloc, urlparts.path)
         self.method = method
         self.data = data
+        # if querystring was a dict, convert it to a string
+        if isinstance(query_string, dict):
+            query_string = urlencode(query_string.items())
         self.query_string = query_string
         if cookies:
             self.cookies = cookies
