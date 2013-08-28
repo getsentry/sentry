@@ -1304,8 +1304,8 @@ class TeamManager(BaseManager):
             # these kinds of queries make people sad :(
             new_results = SortedDict()
             for team in results.itervalues():
-                project_list = Project.objects.get_for_user(
-                    user, team=team)[:20]
+                project_list = list(Project.objects.get_for_user(
+                    user, team=team))
                 new_results[team.slug] = (team, project_list)
             results = new_results
 
