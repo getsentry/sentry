@@ -11,7 +11,7 @@ from django.core.urlresolvers import reverse
 from django.utils.html import escape
 from sentry.app import env
 from sentry.constants import STATUS_RESOLVED
-from sentry.models import Group, GroupBookmark, GroupTagKey
+from sentry.models import Group, GroupBookmark, GroupTagKey, GroupSeen
 from sentry.templatetags.sentry_plugins import get_tags
 from sentry.utils import json
 from sentry.utils.db import attach_foreignkey
@@ -75,8 +75,13 @@ class GroupTransformer(Transformer):
                 user=request.user,
                 group__in=objects,
             ).values_list('group_id', flat=True))
+            seen_groups = dict(GroupSeen.objects.filter(
+                user=request.user,
+                group__in=objects,
+            ).values_list('group_id', 'last_seen'))
         else:
             bookmarks = set()
+            seen_groups = {}
 
         if objects:
             historical_data = Group.objects.get_chart_data_for_group(
@@ -97,6 +102,8 @@ class GroupTransformer(Transformer):
             g.historical_data = [x[1] for x in historical_data.get(g.id, [])]
             if user_counts:
                 g.users_seen = user_counts.get(g.id, 0)
+            active_date = g.active_at or g.last_seen
+            g.has_seen = seen_groups.get(g.id, active_date) > active_date
 
     def transform(self, obj, request=None):
         d = {
@@ -125,6 +132,8 @@ class GroupTransformer(Transformer):
             d['usersSeen'] = obj.users_seen
         if hasattr(obj, 'is_bookmarked'):
             d['isBookmarked'] = obj.is_bookmarked
+        if hasattr(obj, 'has_seen'):
+            d['hasSeen'] = obj.has_seen
         if hasattr(obj, 'historical_data'):
             d['historicalData'] = obj.historical_data
         if request:
