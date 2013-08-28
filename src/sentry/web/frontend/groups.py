@@ -415,7 +415,7 @@ def group(request, team, project, group, event_id=None):
     # trim to latest 5
     activity = activity[:5]
 
-    seen_by = sorted(filter(lambda ls: ls[0] == request.user and ls[0].email, [
+    seen_by = sorted(filter(lambda ls: ls[0] != request.user and ls[0].email, [
         (gs.user, gs.last_seen)
         for gs in GroupSeen.objects.filter(
             group=group
