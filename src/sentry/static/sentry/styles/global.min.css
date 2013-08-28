@@ -7440,9 +7440,13 @@ a.icon-share:hover {
 .events > li.with-sparkline .meta {
   right: 155px;
 }
-.group-list > li.unseen h3,
-.events > li.unseen h3 {
-  font-weight: bold;
+.group-list > li.seen h3,
+.events > li.seen h3 {
+  font-weight: normal;
+}
+.group-list > li.seen h3 a,
+.events > li.seen h3 a {
+  color: #898f98;
 }
 .group-list > li h3,
 .events > li h3 {
@@ -7500,7 +7504,7 @@ a.icon-share:hover {
 }
 .group-list > li .message,
 .events > li .message {
-  color: #777;
+  color: #898f98;
   margin-bottom: 0;
   font-size: 14px;
   padding-right: 24px;
