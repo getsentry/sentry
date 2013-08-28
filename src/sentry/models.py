@@ -1231,9 +1231,12 @@ def create_default_project(created_models, verbosity=2, **kwargs):
         owner=user,
     )
     # HACK: manually update the ID after insert due to Postgres
-    # sequence issues
+    # sequence issues. Seriously, fuck everything about this.
+    # TODO(dcramer): find a better solution
     if project.id != settings.SENTRY_PROJECT:
+        project.key_set.all().delete()
         project.update(id=settings.SENTRY_PROJECT)
+        create_team_and_keys_for_project(project, created=True)
 
     if verbosity > 0:
         print 'Created internal Sentry project (slug=%s, id=%s)' % (project.slug, project.id)
