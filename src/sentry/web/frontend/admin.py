@@ -156,9 +156,11 @@ def create_new_user(request):
             body = render_to_string('sentry/emails/welcome_mail.txt', context, request)
 
             try:
-                send_mail('%s Welcome to Sentry' % (settings.EMAIL_SUBJECT_PREFIX,),
+                send_mail(
+                    '%s Welcome to Sentry' % (settings.EMAIL_SUBJECT_PREFIX,),
                     body, settings.SERVER_EMAIL, [user.email],
-                    fail_silently=False)
+                    fail_silently=False
+                )
             except Exception, e:
                 logger = logging.getLogger('sentry.mail.errors')
                 logger.exception(e)
@@ -285,15 +287,19 @@ def manage_teams(request):
 
 @requires_admin
 def status_env(request):
+    reserved = ('PASSWORD', 'SECRET')
     config = []
     for k in sorted(dir(settings)):
-        if k == 'KEY':
-            continue
+        v_repr = repr(getattr(settings, k))
+        if any(r.lower() in v_repr.lower() for r in reserved):
+            v_repr = '*' * 16
+        if any(r in k for r in reserved):
+            v_repr = '*' * 16
         if k.startswith('_'):
             continue
         if k.upper() != k:
             continue
-        config.append((k, getattr(settings, k)))
+        config.append((k, v_repr))
 
     return render_to_response('sentry/admin/status/env.html', {
         'python_version': sys.version,
@@ -328,9 +334,11 @@ def status_mail(request):
     if form.is_valid():
         body = """This email was sent as a request to test the Sentry outbound email configuration."""
         try:
-            send_mail('%s Test Email' % (settings.EMAIL_SUBJECT_PREFIX,),
+            send_mail(
+                '%s Test Email' % (settings.EMAIL_SUBJECT_PREFIX,),
                 body, settings.SERVER_EMAIL, [request.user.email],
-                fail_silently=False)
+                fail_silently=False
+            )
         except Exception, e:
             form.errors['__all__'] = [unicode(e)]
 
@@ -341,6 +349,7 @@ def status_mail(request):
         'EMAIL_HOST_USER': settings.EMAIL_HOST_USER,
         'EMAIL_PORT': settings.EMAIL_PORT,
         'EMAIL_USE_TLS': settings.EMAIL_USE_TLS,
+        'SERVER_EMAIL': settings.SERVER_EMAIL,
     }, request)
 
 
