@@ -7543,7 +7543,7 @@ a.icon-share:hover {
   padding: 0 5px 0 45px;
   line-height: 20px;
   height: 20px;
-  width: 20px;
+  min-width: 20px;
   text-align: right;
   float: left;
   display: block;
@@ -7552,7 +7552,6 @@ a.icon-share:hover {
 }
 .group-list > li .tag-users span,
 .events > li .tag-users span {
-  position: absolute;
   top: 0;
   bottom: 0;
   left: 45px;
