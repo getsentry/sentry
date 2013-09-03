@@ -51,8 +51,8 @@ class RegistrationForm(forms.ModelForm):
 class NotificationSettingsForm(forms.Form):
     alert_email = forms.EmailField(help_text=_('Designate an alternative email address to send email notifications to.'), required=False)
     subscribe_by_default = forms.ChoiceField(choices=(
-        (1, _('Automatically subscribe to notifications for new projects')),
-        (0, _('Do not subscribe to notifications for new projects')),
+        ('1', _('Automatically subscribe to notifications for new projects')),
+        ('0', _('Do not subscribe to notifications for new projects')),
     ), required=False)
 
     def __init__(self, user, *args, **kwargs):
@@ -68,7 +68,7 @@ class NotificationSettingsForm(forms.Form):
             user=self.user,
             project=None,
             key='subscribe_by_default',
-            default=1,
+            default='1',
         )
 
     def get_title(self):

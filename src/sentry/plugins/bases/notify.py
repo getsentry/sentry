@@ -75,7 +75,7 @@ class NotificationPlugin(Plugin):
         if members_to_check:
             disabled = set(UserOption.objects.filter(
                 key='subscribe_by_default',
-                value=0,
+                value='0',
                 user__in=members_to_check,
             ).values_list('user', flat=True))
             member_set = filter(lambda x: x not in disabled, member_set)
