@@ -297,6 +297,10 @@ class Frame(object):
         self.context_line = context_line
         self.pre_context = pre_context
         self.post_context = post_context
+        if isinstance(vars, (list, tuple)):
+            vars = dict(itertools.izip(vars))
+        if isinstance(data, (list, tuple)):
+            data = dict(itertools.izip(data))
         self.vars = vars or {}
         self.data = data or {}
 
@@ -917,6 +921,9 @@ class Http(Interface):
         elif query_string.startswith('?'):
             # remove '?' prefix
             query_string = query_string[1:]
+
+        if isinstance(data, (list, tuple)):
+            data = dict(itertools.izip(data))
 
         self.url = '%s://%s%s' % (urlparts.scheme, urlparts.netloc, urlparts.path)
         self.method = method
