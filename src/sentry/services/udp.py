@@ -93,9 +93,15 @@ class BaseUDPServer(Service):
             raise CommandError(
                 'It seems that you don\'t have the ``%s`` package installed, '
                 'which is required to run the udp service.' % (self.name,))
-        sock = self._socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind((self.host, self.port))
+        try:
+            sock = self._socket(socket.AF_INET6, socket.SOCK_DGRAM)
+            sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.bind((self.host.strip('[]'), self.port))
+        except (socket.gaierror, socket.error):
+            sock = self._socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.bind((self.host, self.port))
         while True:
             try:
                 self._spawn(self.handle, *sock.recvfrom(self.BUF_SIZE))
