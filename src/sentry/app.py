@@ -22,4 +22,6 @@ def get_instance(path, options):
 
 buffer = get_instance(settings.SENTRY_BUFFER, settings.SENTRY_BUFFER_OPTIONS)
 quotas = get_instance(settings.SENTRY_QUOTAS, settings.SENTRY_QUOTA_OPTIONS)
+nodestore = get_instance(
+    settings.SENTRY_NODESTORE, settings.SENTRY_NODESTORE_OPTIONS)
 env = State()

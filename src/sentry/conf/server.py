@@ -150,6 +150,7 @@ INSTALLED_APPS = (
     'kombu.transport.django',
     'raven.contrib.django.raven_compat',
     'sentry',
+    'sentry.nodestore',
     'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail',
     'sentry.plugins.sentry_urls',
@@ -506,12 +507,18 @@ SENTRY_SCRAPE_JAVASCRIPT_CONTEXT = True
 # Redis connection information (see Nydus documentation)
 SENTRY_REDIS_OPTIONS = {}
 
-# Buffer backend to use
+# Buffer backend
 SENTRY_BUFFER = 'sentry.buffer.Buffer'
 SENTRY_BUFFER_OPTIONS = {}
 
+# Quota backend
 SENTRY_QUOTAS = 'sentry.quotas.Quota'
 SENTRY_QUOTA_OPTIONS = {}
+
+# Node storage backend
+SENTRY_NODESTORE = 'sentry.nodestore.django.DjangoNodeStorage'
+SENTRY_NODESTORE_OPTIONS = {}
+
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = '90%'
 # The maximum number of events per minute the system should accept.
