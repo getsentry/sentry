@@ -29,6 +29,7 @@ from sentry.constants import (
     ORACLE_SORT_CLAUSES, ORACLE_SCORE_CLAUSES,
     MSSQL_SORT_CLAUSES, MSSQL_SCORE_CLAUSES, DEFAULT_SORT_OPTION,
     SEARCH_DEFAULT_SORT_OPTION, MAX_JSON_RESULTS)
+from sentry.db.models import create_or_update
 from sentry.filters import get_filters
 from sentry.models import (
     Project, Group, Event, SearchDocument, Activity, EventMapping, TagKey,
@@ -38,7 +39,6 @@ from sentry.plugins import plugins
 from sentry.utils import json
 from sentry.utils.dates import parse_date
 from sentry.utils.db import has_trending, get_db_engine
-from sentry.utils.models import create_or_update
 from sentry.web.decorators import has_access, has_group_access, login_required
 from sentry.web.helpers import render_to_response, group_is_public
 

@@ -38,6 +38,9 @@ from sentry.constants import (
     STATUS_UNRESOLVED, STATUS_RESOLVED, STATUS_VISIBLE, STATUS_HIDDEN,
     MINUTE_NORMALIZATION, STATUS_MUTED, RESERVED_TEAM_SLUGS,
     LOG_LEVELS, MAX_CULPRIT_LENGTH, MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH)
+from sentry.db.models import (
+    Model, GzippedDictField, BoundedIntegerField, BoundedPositiveIntegerField,
+    update, sane_repr)
 from sentry.manager import (
     GroupManager, ProjectManager,
     MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager,
@@ -46,9 +49,6 @@ from sentry.signals import buffer_incr_complete, regression_signal
 from sentry.utils.cache import memoize
 from sentry.utils.db import has_trending
 from sentry.utils.http import absolute_uri
-from sentry.utils.models import (
-    Model, GzippedDictField, BoundedIntegerField, BoundedPositiveIntegerField,
-    update)
 from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute
 from sentry.utils.strings import truncatechars, strip
@@ -70,26 +70,28 @@ def slugify_instance(inst, label, reserved=(), **kwargs):
         inst.slug = base_slug + '-' + str(n)
 
 
-def sane_repr(*attrs):
-    if 'id' not in attrs and 'pk' not in attrs:
-        attrs = ('id',) + attrs
-
-    def _repr(self):
-        cls = type(self).__name__
-
-        pairs = (
-            '%s=%s' % (a, repr(getattr(self, a, None)))
-            for a in attrs)
-
-        return u'<%s at 0x%x: %s>' % (cls, id(self), ', '.join(pairs))
-
-    return _repr
-
-
 class User(Model, AbstractUser):
     class Meta:
         db_table = 'auth_user'
         app_label = 'auth'
+
+    def merge_to(from_user, to_user):
+        # TODO: we could discover relations automatically and make this useful
+        from sentry.models import (
+            GroupBookmark, Project, ProjectKey, Team, TeamMember, UserOption)
+
+        for obj in ProjectKey.objects.filter(user=from_user):
+            obj.update(user=to_user)
+        for obj in TeamMember.objects.filter(user=from_user):
+            obj.update(user=to_user)
+        for obj in Project.objects.filter(owner=from_user):
+            obj.update(owner=to_user)
+        for obj in Team.objects.filter(owner=from_user):
+            obj.update(owner=to_user)
+        for obj in GroupBookmark.objects.filter(user=from_user):
+            obj.update(user=to_user)
+        for obj in UserOption.objects.filter(user=from_user):
+            obj.update(user=to_user)
 
 
 User.add_to_class('objects', UserManager(cache_fields=['pk']))
