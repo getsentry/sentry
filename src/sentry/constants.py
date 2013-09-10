@@ -222,3 +222,6 @@ SEARCH_DEFAULT_SORT_OPTION = 'date'
 # Setup languages for only available locales
 LANGUAGE_MAP = dict(settings.LANGUAGES)
 LANGUAGES = [(k, LANGUAGE_MAP[k]) for k in get_all_languages() if k in LANGUAGE_MAP]
+
+# Timeout (in seconds) for fetching remote source files (e.g. JS)
+SOURCE_FETCH_TIMEOUT = 5

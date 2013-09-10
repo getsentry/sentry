@@ -16,6 +16,8 @@ from collections import namedtuple
 from urlparse import urljoin
 
 from django.utils.simplejson import JSONDecodeError
+
+from sentry.constants import SOURCE_FETCH_TIMEOUT
 from sentry.utils.cache import cache
 from sentry.utils.sourcemaps import sourcemap_to_index, find_source
 
@@ -109,7 +111,7 @@ def fetch_url_content(url):
             ('Accept-Encoding', 'gzip'),
             ('User-Agent', 'Sentry/%s' % sentry.VERSION),
         ]
-        req = opener.open(url)
+        req = opener.open(url, timeout=SOURCE_FETCH_TIMEOUT)
         headers = dict(req.headers)
         body = req.read()
         if headers.get('content-encoding') == 'gzip':
