@@ -25,7 +25,7 @@
                     <tr>
                         <td>{{ identity.provider|title }}</td>
                         <td style="text-align: center;">
-                            <a href="{% url 'socialauth_disconnect_individual' identity.provider identity.id %}?next={% filter urlencode %}{% absolute_uri %}{% endfilter %}">Disconnect</a>
+                            <a href="{% url 'socialauth_disconnect_individual' identity.provider identity.id %}?next={% filter urlencode %}{% absolute_uri request.path %}{% endfilter %}">Disconnect</a>
                         </td>
                     </tr>
                 {% endfor %}
@@ -38,7 +38,7 @@
         </fieldset>
         <ul class="auth-options">
             {% for engine in AUTH_PROVIDERS %}
-                <li><a href="{% url 'socialauth_associate_begin' engine %}?next={% filter urlencode %}{% absolute_uri %}{% endfilter %}" class="auth-{{ engine }}">Identify with {{ engine|title }}</a></li>
+                <li><a href="{% url 'socialauth_associate_begin' engine %}?next={% filter urlencode %}{% absolute_uri request.path %}{% endfilter %}" class="auth-{{ engine }}">Identify with {{ engine|title }}</a></li>
             {% endfor %}
         </ul>
     {% endif %}
