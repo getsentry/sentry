@@ -1161,7 +1161,7 @@ class User(Interface):
             'id': self.id,
             'username': self.username,
             'email': self.email,
-            'ip_address': self.ip_address,
+            'ip_address': getattr(self, 'ip_address', None),
             'data': self.data,
         }
 
