@@ -10,6 +10,7 @@ from __future__ import absolute_import
 
 import collections
 import logging
+import warnings
 
 from django.db import models
 
@@ -53,9 +54,16 @@ class NodeData(collections.MutableMapping):
 
     @memoize
     def data(self):
-        if self._node_data is None:
-            raise Exception('Must populate node data first')
-        return self._node_data
+        from sentry import app
+
+        if self._node_data is not None:
+            return self._node_data
+
+        elif self.id:
+            warnings.warn('You should populate node data before accessing it.')
+            return app.nodestore.get(self.id) or {}
+
+        return {}
 
     def bind_node_data(self, data):
         self._node_data = data
