@@ -17,16 +17,22 @@ from .models import Node
 
 
 class DjangoNodeStorage(NodeStorage):
-    def get(self, src):
-        return Node.objects.get(src=src)
+    def get(self, id):
+        try:
+            return Node.objects.get(id=id).data
+        except Node.DoesNotExist:
+            return None
 
-    def get_multi(self, src_list):
-        return Node.objects.get(src__in=src_list)
+    def get_multi(self, id_list):
+        return dict(
+            (n.id, n.data)
+            for n in Node.objects.filter(id__in=id_list)
+        )
 
-    def set(self, src, data, timestamp=None):
+    def set(self, id, data, timestamp=None):
         create_or_update(
             Node,
-            src=src,
+            id=id,
             data=data,
             timestamp=timestamp or timezone.now()
         )
