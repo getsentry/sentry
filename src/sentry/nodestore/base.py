@@ -8,8 +8,14 @@ sentry.nodestore.base
 
 from __future__ import absolute_import
 
+import uuid
+
 
 class NodeStorage(object):
+    def create(self, data, timestamp=None):
+        node_id = uuid.uuid4().hex
+        return self.set(node_id, data, timestamp)
+
     def get(self, id):
         raise NotImplementedError
 
