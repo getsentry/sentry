@@ -8,11 +8,12 @@ env:
     - DB=mysql
     - DB=postgres
   global:
-    - PYTHONUSERBASE=".python_user_base"
     - PIP_DOWNLOAD_CACHE=".pip_download_cache"
+    - PIP_TARGET=".python-site-packages"
+    - PYTHONPATH="$PIP_TARGET"
     - WAD_FILES="package.json,Makefile,setup.py"
     - WAD_ENVIRONMENT_VARIABLES="TRAVIS_PYTHON_VERSION,TRAVIS_NODE_VERSION"
-    - WAD_CACHE_PATH="node_modules,.pip_download_cache,.python_user_base"
+    - WAD_CACHE_PATH="node_modules,$PIP_DOWNLOAD_CACHE,$PIP_TARGET"
     - WAD_INSTALL_COMMAND="make develop dev-postgres dev-mysql"
 
     # This should be specified with:
@@ -21,9 +22,9 @@ env:
     # - S3_CREDENTIALS=
     - secure: pZ7DtkEu2q/pGINfVT9S+iPRE5ck6mBQmuHTQz3PVXF/UJmpM1LCbC7aqrw4GXWuUhYc50QCnMZJL1yoBORVEfY4nfXHLRc3HMoWE6Srqf0IBDywi6T+UUdLeOYe13EDb4p8WIpnRGlV4WI1WaPXuFlMEdj5tAjlC9ZotLxyVaI=
 before_install:
-  - mkdir $PYTHONUSERBASE
+  - mkdir $PIP_TARGET
 before_script:
-  - find $PYTHONUSERBASE
+  - find $PIP_TARGET
   - find $PIP_DOWNLOAD_CACHE
   - mysql -e 'create database sentry;'
   - psql -c 'create database sentry;' -U postgres
