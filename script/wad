@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-# Generated on: 14-09-2013 at 21:23
+# Generated on: 14-09-2013 at 22:13
 
 require 'time'
 require 'net/http'
@@ -61,6 +61,18 @@ class Presss
       end
     end
 
+    def bucket_in_hostname?
+      config[:bucket_in_hostname]
+    end
+
+    def url_prefix
+      if bucket_in_hostname?
+        "https://#{bucket_name}.#{domain}"
+      else
+        "https://#{domain}/#{bucket_name}"
+      end
+    end
+
     # Returns the absolute path based on the key for the object.
     def absolute_path(path)
       path.start_with?('/') ? path : '/' + path
@@ -86,10 +98,11 @@ class Presss
     end
 
     def signed_url(verb, expires, headers, path)
-      path = canonicalized_resource(path)
-      signature = [ verb.to_s.upcase, nil, nil, expires, [ headers, path ].flatten.compact ].flatten.join("\n")
-      signed = authorization.sign(signature)
-      "https://#{domain}#{path}?Signature=#{signed}&Expires=#{expires}&AWSAccessKeyId=#{authorization.access_key_id}"
+      path           = absolute_path(path)
+      canonical_path = canonicalized_resource(path)
+      signature      = [ verb.to_s.upcase, nil, nil, expires, [ headers, canonical_path ].flatten.compact ].flatten.join("\n")
+      signed         = authorization.sign(signature)
+      "#{url_prefix}#{path}?Signature=#{signed}&Expires=#{expires}&AWSAccessKeyId=#{authorization.access_key_id}"
     end
 
     def download(path, destination)
@@ -204,18 +217,18 @@ class Wad
   end
 
   def s3_bucket_name
-    if ENV['S3_BUCKET_NAME']
-      ENV['S3_BUCKET_NAME']
+    if bucket = ENV['WAD_S3_BUCKET_NAME'] || ENV['S3_BUCKET_NAME']
+      bucket
     else
-      abort "Must provide S3_BUCKET_NAME="
+      abort "Must provide WAD_S3_BUCKET_NAME="
     end
   end
 
   def s3_credentials
-    if ENV['S3_CREDENTIALS']
-      ENV['S3_CREDENTIALS'].split(':')
+    if creds = ENV['WAD_S3_CREDENTIALS'] || ENV['S3_CREDENTIALS']
+      creds.split(':')
     else
-      abort "Must provide S3_CREDENTIALS="
+      abort "Must provide WAD_S3_CREDENTIALS="
     end
   end
 
@@ -235,7 +248,9 @@ class Wad
     Presss.config = {
       :bucket_name => s3_bucket_name,
       :access_key_id => s3_access_key_id,
-      :secret_access_key => s3_secret_access_key
+      :secret_access_key => s3_secret_access_key,
+      :region => ENV['WAD_AWS_REGION'],
+      :bucket_in_hostname => (ENV['WAD_BUCKET_IN_HOSTNAME'] == 'true')
     }
   end
 
@@ -318,4 +333,3 @@ end
 
 Wad.new.setup
 __END__
-
