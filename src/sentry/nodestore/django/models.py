@@ -8,6 +8,8 @@ sentry.nodestore.django.models
 
 from __future__ import absolute_import
 
+from uuidfield import UUIDField
+
 from django.db import models
 from django.utils import timezone
 
@@ -16,8 +18,7 @@ from sentry.db.models import (
 
 
 class Node(BaseModel):
-    # TODO: should we just UUID this and use claims?
-    src = models.AutoField(primary_key=True)
+    id = UUIDField(auto=True, primary_key=True)
     data = GzippedDictField()
     timestamp = models.DateTimeField(default=timezone.now)
 
