@@ -743,7 +743,7 @@ class Event(EventBase):
     @memoize
     def interfaces(self):
         result = []
-        for key, data in self.data.iteritems():
+        for key, data in self.node_data.iteritems():
             if '.' not in key:
                 continue
 
@@ -759,6 +759,20 @@ class Event(EventBase):
             result.append((key, value))
 
         return SortedDict((k, v) for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True))
+
+    @property
+    def node_data(self):
+        assert hasattr(self, '_node_data_cache'), 'missing node data cache'
+
+    def bind_node_data(self):
+        from sentry import app
+
+        node_id = self._data.get('data_nid')
+
+        if not node_id:
+            return self._data
+
+        self._node_data_cache = app.nodestore.get(node_id)
 
     def get_version(self):
         if not self.data:
