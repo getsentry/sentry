@@ -16,8 +16,8 @@ env:
 
     # This should be specified with:
     # travis encrypt S3_BUCKET_NAME=secretvalue S3_CREDENTIALS=accesskey:secretkey
-    - S3_BUCKET_NAME=
-    - S3_CREDENTIALS=
+    # - S3_BUCKET_NAME=
+    # - S3_CREDENTIALS=
 before_script:
   - mysql -e 'create database sentry;'
   - psql -c 'create database sentry;' -U postgres
