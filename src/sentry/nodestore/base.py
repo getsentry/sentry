@@ -14,7 +14,8 @@ import uuid
 class NodeStorage(object):
     def create(self, data, timestamp=None):
         node_id = uuid.uuid4().hex
-        return self.set(node_id, data, timestamp)
+        self.set(node_id, data, timestamp)
+        return node_id
 
     def get(self, id):
         raise NotImplementedError
