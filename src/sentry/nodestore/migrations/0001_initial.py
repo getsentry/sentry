@@ -10,7 +10,7 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding model 'Node'
         db.create_table(u'nodestore_node', (
-            ('src', self.gf('django.db.models.fields.IntegerField')(primary_key=True)),
+            ('id', self.gf('uuidfield.fields.UUIDField')(unique=True, max_length=32, primary_key=True)),
             ('data', self.gf('django.db.models.fields.TextField')()),
             ('timestamp', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
         ))
@@ -26,7 +26,7 @@ class Migration(SchemaMigration):
         'nodestore.node': {
             'Meta': {'object_name': 'Node'},
             'data': ('django.db.models.fields.TextField', [], {}),
-            'src': ('django.db.models.fields.IntegerField', [], {'primary_key': 'True'}),
+            'id': ('uuidfield.fields.UUIDField', [], {'unique': 'True', 'max_length': '32', 'primary_key': 'True'}),
             'timestamp': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'})
         }
     }
