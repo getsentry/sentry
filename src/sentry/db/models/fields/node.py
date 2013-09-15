@@ -29,15 +29,6 @@ class NodeData(collections.MutableMapping):
         self.id = id
         self._node_data = data
 
-    @memoize
-    def data(self):
-        if self._node_data is None:
-            raise Exception('Must populate node data first')
-        return self._node_data
-
-    def bind_node_data(self, data):
-        self.data = data
-
     def __getitem__(self, key):
         return self.data[key]
 
@@ -52,6 +43,22 @@ class NodeData(collections.MutableMapping):
 
     def __len__(self):
         return len(self.data)
+
+    def __repr__(self):
+        cls_name = type(self).__name__
+        if self._node_data:
+            return '<%s: id=%s data=%r>' % (
+                cls_name, self.id, repr(self._node_data))
+        return '<%s: id=%s>' % (self.id,)
+
+    @memoize
+    def data(self):
+        if self._node_data is None:
+            raise Exception('Must populate node data first')
+        return self._node_data
+
+    def bind_node_data(self, data):
+        self.data = data
 
 
 class NodeField(GzippedDictField):
@@ -91,14 +98,3 @@ class NodeField(GzippedDictField):
         else:
             result = value.data
         return compress(pickle.dumps(result))
-
-    def value_to_string(self, obj):
-        value = self._get_val_from_obj(obj)
-        return self.get_prep_value(value)
-
-    def south_field_triple(self):
-        "Returns a suitable description of this field for South."
-        from south.modelsinspector import introspector
-        field_class = "django.db.models.fields.TextField"
-        args, kwargs = introspector(self)
-        return (field_class, args, kwargs)
