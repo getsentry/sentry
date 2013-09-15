@@ -23,7 +23,7 @@ before_script:
   - mysql -e 'create database sentry;'
   - psql -c 'create database sentry;' -U postgres
 install:
-  - script/wad
+  - time script/wad
 script:
   - make lint
   - make test-js
