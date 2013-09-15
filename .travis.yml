@@ -9,9 +9,9 @@ env:
     - DB=postgres
   global:
     - PIP_DOWNLOAD_CACHE=.pip_download_cache
-    - WAD_FILES=package.json,Makefile
-    - WAD_ENVIRONMENT_VARIABLES=TRAVIS_PYTHON_VERSION,TRAVIS_NODE_VERSION
-    - WAD_CACHE_PATH=node_modules,.pip_download_cache
+    - WAD_FILES="package.json,Makefile"
+    - WAD_ENVIRONMENT_VARIABLES="TRAVIS_PYTHON_VERSION,TRAVIS_NODE_VERSION"
+    - WAD_CACHE_PATH="node_modules,.pip_download_cache"
     - WAD_INSTALL_COMMAND="make develop dev-postgres dev-mysql"
 
     # This should be specified with:
