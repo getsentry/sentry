@@ -8,10 +8,11 @@ env:
     - DB=mysql
     - DB=postgres
   global:
+    - SENTRY_VIRTUALENV_ROOT=".python_virtualenv"
     - PIP_DOWNLOAD_CACHE=".pip_download_cache"
     - WAD_FILES="package.json,Makefile,setup.py"
     - WAD_ENVIRONMENT_VARIABLES="TRAVIS_PYTHON_VERSION,TRAVIS_NODE_VERSION"
-    - WAD_CACHE_PATH="node_modules,$PIP_DOWNLOAD_CACHE"
+    - WAD_CACHE_PATH="node_modules,$PIP_DOWNLOAD_CACHE,$SENTRY_VIRTUALENV_ROOT"
     - WAD_INSTALL_COMMAND="make develop dev-postgres dev-mysql"
 
     # This should be specified with:
@@ -19,11 +20,17 @@ env:
     # - S3_BUCKET_NAME=
     # - S3_CREDENTIALS=
     - secure: pZ7DtkEu2q/pGINfVT9S+iPRE5ck6mBQmuHTQz3PVXF/UJmpM1LCbC7aqrw4GXWuUhYc50QCnMZJL1yoBORVEfY4nfXHLRc3HMoWE6Srqf0IBDywi6T+UUdLeOYe13EDb4p8WIpnRGlV4WI1WaPXuFlMEdj5tAjlC9ZotLxyVaI=
-before_script:
-  - mysql -e 'create database sentry;'
-  - psql -c 'create database sentry;' -U postgres
+
+before_install:
+  - pip install virtualenv
+  - virtualenv $SENTRY_VIRTUALENV_ROOT
+  - source $SENTRY_VIRTUALENV_ROOT/bin/activate
 install:
   - time script/wad
+before_script:
+  - find $SENTRY_VIRTUALENV_ROOT
+  - mysql -e 'create database sentry;'
+  - psql -c 'create database sentry;' -U postgres
 script:
   - make lint
   - make test-js
