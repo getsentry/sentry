@@ -42,3 +42,19 @@ class DjangoNodeStorageTest(TestCase):
             'd2502ebbd7df41ceba8d3275595cac33', '5394aa025b8e401ca6bc3ddee3130edc'
         ])
         assert result == dict((n.id, n.data) for n in nodes)
+
+    def test_set(self):
+        self.ns.set('d2502ebbd7df41ceba8d3275595cac33', {
+            'foo': 'bar',
+        })
+        assert Node.objects.get(id='d2502ebbd7df41ceba8d3275595cac33').data == {
+            'foo': 'bar',
+        }
+
+    def test_create(self):
+        node_id = self.ns.create({
+            'foo': 'bar',
+        })
+        assert Node.objects.get(id=node_id).data == {
+            'foo': 'bar',
+        }
