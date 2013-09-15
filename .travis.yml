@@ -8,10 +8,11 @@ env:
     - DB=mysql
     - DB=postgres
   global:
-    - PIP_DOWNLOAD_CACHE=.pip_download_cache
-    - WAD_FILES="package.json,Makefile"
+    - PYTHONUSERBASE=".python_user_base"
+    - PIP_DOWNLOAD_CACHE=".pip_download_cache"
+    - WAD_FILES="package.json,Makefile,setup.py"
     - WAD_ENVIRONMENT_VARIABLES="TRAVIS_PYTHON_VERSION,TRAVIS_NODE_VERSION"
-    - WAD_CACHE_PATH="node_modules,.pip_download_cache"
+    - WAD_CACHE_PATH="node_modules,.pip_download_cache,.python_user_base"
     - WAD_INSTALL_COMMAND="make develop dev-postgres dev-mysql"
 
     # This should be specified with:
