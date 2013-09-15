@@ -22,7 +22,7 @@ class Node(BaseModel):
     data = GzippedDictField()
     timestamp = models.DateTimeField(default=timezone.now)
 
-    __repr__ = sane_repr('src', 'timestamp')
+    __repr__ = sane_repr('timestamp')
 
     class Meta:
         app_label = 'nodestore'
