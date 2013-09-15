@@ -8,8 +8,6 @@ sentry.nodestore.django.models
 
 from __future__ import absolute_import
 
-from uuidfield import UUIDField
-
 from django.db import models
 from django.utils import timezone
 
@@ -18,7 +16,7 @@ from sentry.db.models import (
 
 
 class Node(BaseModel):
-    id = UUIDField(auto=True, primary_key=True)
+    id = models.CharField(max_length=40, primary_key=True)
     data = GzippedDictField()
     timestamp = models.DateTimeField(default=timezone.now)
 

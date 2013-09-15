@@ -13,7 +13,7 @@ import uuid
 
 class NodeStorage(object):
     def create(self, data, timestamp=None):
-        node_id = uuid.uuid4().hex
+        node_id = self.generate_id()
         self.set(node_id, data, timestamp)
         return node_id
 
@@ -32,3 +32,6 @@ class NodeStorage(object):
     def set_multi(self, values):
         for v in values:
             self.set(**v)
+
+    def generate_id(self):
+        return uuid.uuid4().hex

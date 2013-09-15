@@ -65,7 +65,7 @@ class NodeData(collections.MutableMapping):
 
         return {}
 
-    def bind_node_data(self, data):
+    def bind_data(self, data):
         self._node_data = data
 
 

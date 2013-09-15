@@ -25,6 +25,8 @@ def replay_event(request, team, project, group, event_id):
     except Event.DoesNotExist:
         return HttpResponseRedirect(reverse('sentry'))
 
+    Event.objects.bind_nodes([event], 'data')
+
     interfaces = event.interfaces
     if 'sentry.interfaces.Http' not in interfaces:
         # TODO: show a proper error
