@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-# Generated on: 14-09-2013 at 23:40
+# Generated on: 14-09-2013 at 23:47
 
 require 'time'
 require 'net/http'
@@ -219,8 +219,6 @@ class Wad
   def s3_bucket_name
     if bucket = ENV['WAD_S3_BUCKET_NAME'] || ENV['S3_BUCKET_NAME']
       bucket
-    else
-      abort "Must provide WAD_S3_BUCKET_NAME="
     end
   end
 
