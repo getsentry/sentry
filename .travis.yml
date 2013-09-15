@@ -23,8 +23,6 @@ env:
 install:
   - time script/wad
 before_script:
-  - echo $VIRTUAL_ENV
-  - find $VIRTUAL_ENV
   - mysql -e 'create database sentry;'
   - psql -c 'create database sentry;' -U postgres
 script:
