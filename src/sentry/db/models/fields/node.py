@@ -49,7 +49,7 @@ class NodeData(collections.MutableMapping):
         if self._node_data:
             return '<%s: id=%s data=%r>' % (
                 cls_name, self.id, repr(self._node_data))
-        return '<%s: id=%s>' % (self.id,)
+        return '<%s: id=%s>' % (cls_name, self.id,)
 
     @memoize
     def data(self):
@@ -58,7 +58,7 @@ class NodeData(collections.MutableMapping):
         return self._node_data
 
     def bind_node_data(self, data):
-        self.data = data
+        self._node_data = data
 
 
 class NodeField(GzippedDictField):
@@ -88,13 +88,19 @@ class NodeField(GzippedDictField):
         return NodeData(node_id, data)
 
     def get_prep_value(self, value):
+        from sentry import app
+
         if not value and self.null:
             # save ourselves some storage
             return None
-        if value.id:
-            result = {
-                'node_id': value.id
-            }
+
+        # TODO(dcramer): we should probably do this more intelligently
+        # and manually
+        if not value.id:
+            value.id = app.nodestore.create(value.data)
         else:
-            result = value.data
-        return compress(pickle.dumps(result))
+            app.nodestore.set(value.id, value.data)
+
+        return compress(pickle.dumps({
+            'node_id': value.id
+        }))
