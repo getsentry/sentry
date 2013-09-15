@@ -10,7 +10,6 @@ env:
   global:
     - PIP_DOWNLOAD_CACHE=".pip_download_cache"
     - PIP_TARGET=".python-site-packages"
-    - PYTHONPATH="$PIP_TARGET"
     - WAD_FILES="package.json,Makefile,setup.py"
     - WAD_ENVIRONMENT_VARIABLES="TRAVIS_PYTHON_VERSION,TRAVIS_NODE_VERSION"
     - WAD_CACHE_PATH="node_modules,$PIP_DOWNLOAD_CACHE,$PIP_TARGET"
@@ -24,8 +23,6 @@ env:
 before_install:
   - mkdir $PIP_TARGET
 before_script:
-  - find $PIP_TARGET
-  - find $PIP_DOWNLOAD_CACHE
   - mysql -e 'create database sentry;'
   - psql -c 'create database sentry;' -U postgres
 install:
