@@ -18,7 +18,7 @@ env:
     # travis encrypt S3_BUCKET_NAME=secretvalue S3_CREDENTIALS=accesskey:secretkey
     # - S3_BUCKET_NAME=
     # - S3_CREDENTIALS=
-    - secret: "i0bMZg4KalLr+dIfRfuX7bTAEgFln/ETcttk4zF9zqbSqvOePGYUtKrSJGCHaUWmzKcSh5KcUMijZVjOnMFzCr8dD3Ym7xcoeHRDsGTjuaN1KDLikhw37UqYlaryTluFjXKrGWJr9Z8LNYzyzSwCe6PH2gMtw8cKiuflAWwJLJM="
+    - secure: "i0bMZg4KalLr+dIfRfuX7bTAEgFln/ETcttk4zF9zqbSqvOePGYUtKrSJGCHaUWmzKcSh5KcUMijZVjOnMFzCr8dD3Ym7xcoeHRDsGTjuaN1KDLikhw37UqYlaryTluFjXKrGWJr9Z8LNYzyzSwCe6PH2gMtw8cKiuflAWwJLJM="
 before_script:
   - mysql -e 'create database sentry;'
   - psql -c 'create database sentry;' -U postgres
