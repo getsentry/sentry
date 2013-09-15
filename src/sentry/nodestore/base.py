@@ -10,16 +10,16 @@ from __future__ import absolute_import
 
 
 class NodeStorage(object):
-    def get(self, src):
+    def get(self, id):
         raise NotImplementedError
 
-    def get_multi(self, src_list):
+    def get_multi(self, id_list):
         return dict(
-            (src, self.get(src))
-            for src in src_list
+            (id, self.get(id))
+            for id in id_list
         )
 
-    def set(self, src, data, timestamp=None):
+    def set(self, id, data, timestamp=None):
         raise NotImplementedError
 
     def set_multi(self, values):
