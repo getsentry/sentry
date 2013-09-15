@@ -10,3 +10,4 @@ from __future__ import absolute_import
 
 from .bounded import *  # NOQA
 from .gzippeddict import *  # NOQA
+from .node import *  # NOQA
