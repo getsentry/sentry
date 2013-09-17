@@ -41,6 +41,7 @@ If you're using supervisord, you can easily implement emporer mode and uWSGI you
 Once you're running multiple processes, you'll of course need to also configure something like Nginx to load balance to them:
 
 ::
+
 	upstream internal {
 	  least_conn;
 	  server 127.0.0.1:9000;
