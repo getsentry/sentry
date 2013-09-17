@@ -26,8 +26,6 @@ command=newrelic-admin run-program /srv/www/getsentry.com/env/bin/uwsgi -s 127.0
 process_name=%(program_name)s_%(process_num)02d
 numprocs=20
 numprocs_start=0
-autostart=true
-autorestart=true
 startsecs=5
 startretries=3
 stopsignal=QUIT
@@ -84,3 +82,41 @@ server {
 ```
 
 See uWSGI's official documentation for emporer mode details.
+
+
+Celery Tuning
+-------------
+
+Celery can be difficult to tune. Your goal is to maximize the CPU usage without running out of memory. If you have JavaScript clients this becomes more difficult, as currently the sourcemap and context scraping can buffer large amounts of memory depending on your configurations and the size of your source files.
+
+On a completely anecdotal note, you can take the same approach that you might take with improving the webserver: spam more processes. We again look to supervisord for managing this for us:
+
+```
+[program:celeryd]
+command=/srv/www/getsentry.com/env/bin/sentry celery worker -c 6 -P processes -l WARNING -n worker-%(process_num)02d.worker-3
+process_name=%(program_name)s_%(process_num)02d
+numprocs=16
+numprocs_start=0
+startsecs=1
+startretries=3
+stopsignal=TERM
+stopwaitsecs=10
+stopasgroup=false
+killasgroup=true
+environment=SENTRY_CONF="/srv/www/getsentry.com/current/getsentry/settings.py"
+directory=/srv/www/getsentry.com/current/
+```
+
+
+Watching Memory
+---------------
+
+There are cases where Sentry currently buffers large amounts of memory. This may depend on the client (javascript vs python) as well as the size of your events. If you repeatedly run into issues where workers or web nodes are using a lot of memory, you'll want to ensure you have some mechanisms for monitoring and resolving this.
+
+If you're using supervisord, we recommend taking a look at `superlance <http://superlance.readthedocs.org>`_ which aids in this situation:
+
+```
+[eventlistener:memmon]
+command=memmon -a 400MB -m ops@example.com
+events=TICK_60
+```
