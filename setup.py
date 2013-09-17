@@ -84,7 +84,7 @@ install_requires = [
     'simplejson>=3.1.0,<3.4.0',
     'South>=0.8.0,<0.9.0',
     'httpagentparser>=1.2.1,<1.3.0',
-    'django-social-auth>=0.7.24,<0.8.0',
+    'django-social-auth>=0.7.28,<0.8.0',
     'setproctitle>=1.1.7,<1.2.0',
 ]
 
