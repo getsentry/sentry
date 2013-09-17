@@ -38,4 +38,49 @@ environment=SENTRY_CONF="/srv/www/getsentry.com/current/getsentry/settings.py"
 directory=/srv/www/getsentry.com/current/
 ```
 
+Once you're running multiple processes, you'll of course need to also configure something like Nginx to load balance to them:
+
+```
+upstream internal {
+  least_conn;
+  server 127.0.0.1:9000;
+  server 127.0.0.1:9001;
+  server 127.0.0.1:9002;
+  server 127.0.0.1:9003;
+  server 127.0.0.1:9004;
+  server 127.0.0.1:9005;
+  server 127.0.0.1:9006;
+  server 127.0.0.1:9007;
+  server 127.0.0.1:9008;
+  server 127.0.0.1:9009;
+  server 127.0.0.1:9010;
+  server 127.0.0.1:9011;
+  server 127.0.0.1:9012;
+  server 127.0.0.1:9013;
+  server 127.0.0.1:9014;
+  server 127.0.0.1:9015;
+  server 127.0.0.1:9016;
+  server 127.0.0.1:9017;
+  server 127.0.0.1:9018;
+  server 127.0.0.1:9019;
+}
+
+server {
+  listen   80;
+
+  server_name     sentry.example.com;
+
+  location / {
+    uwsgi_pass    internal;
+
+    uwsgi_param   Host                 $host;
+    uwsgi_param   X-Real-IP            $remote_addr;
+    uwsgi_param   X-Forwarded-For      $proxy_add_x_forwarded_for;
+    uwsgi_param   X-Forwarded-Proto    $http_x_forwarded_proto;
+
+    include uwsgi_params;
+  }
+}
+```
+
 See uWSGI's official documentation for emporer mode details.
