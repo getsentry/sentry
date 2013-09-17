@@ -4,8 +4,8 @@ Performance Tuning
 This document describes a set of best practices which may help you squeeze more performance out of various Sentry configurations.
 
 
-Redis Configuration
--------------------
+Redis
+-----
 
 All Redis usage in Sentry is temporal, which means the append-log/fsync models in Redis do not need to apply.
 
@@ -15,8 +15,8 @@ With that in mind, we recommend the following changes to (some) default configur
 - Set ``maxclients 0`` to remove connection limitations.
 
 
-Web Server Tuning via uWSGI
----------------------------
+Web Server
+----------
 
 Switching off of the default Sentry worker model and to uWSGI + emporer mode can yield very good results.
 
@@ -86,8 +86,8 @@ Once you're running multiple processes, you'll of course need to also configure 
 See uWSGI's official documentation for emporer mode details.
 
 
-Celery Tuning
--------------
+Celery
+------
 
 Celery can be difficult to tune. Your goal is to maximize the CPU usage without running out of memory. If you have JavaScript clients this becomes more difficult, as currently the sourcemap and context scraping can buffer large amounts of memory depending on your configurations and the size of your source files.
 
@@ -111,8 +111,8 @@ On a completely anecdotal note, you can take the same approach that you might ta
 
 
 
-Watching Memory
----------------
+Monitoring Memory
+-----------------
 
 There are cases where Sentry currently buffers large amounts of memory. This may depend on the client (javascript vs python) as well as the size of your events. If you repeatedly run into issues where workers or web nodes are using a lot of memory, you'll want to ensure you have some mechanisms for monitoring and resolving this.
 
