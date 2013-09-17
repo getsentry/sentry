@@ -9,7 +9,7 @@ from __future__ import absolute_import
 
 from django.conf import settings
 
-from social_auth.backends.pipeline.user import create_user
+from social_auth.pipeline.user import create_user
 from social_auth.exceptions import SocialAuthBaseException
 
 
