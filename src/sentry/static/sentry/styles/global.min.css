@@ -6994,6 +6994,9 @@ h3 {
   padding: 25px 30px 10px;
   min-width: 786px;
 }
+#content section.body a {
+  word-break: break-all;
+}
 #content section.body .select2-drop {
   -webkit-box-shadow: 0 0 0 2px #c3c8ce;
   -moz-box-shadow: 0 0 0 2px #c3c8ce;
@@ -7330,7 +7333,7 @@ a.icon-share:hover {
 .progressbar {
   position: relative;
   border: 1px solid #c7def5;
-  height: 1.5em;
+  min-height: 1.5em;
   line-height: 1.5em;
 }
 .progressbar > a,
@@ -7344,6 +7347,10 @@ a.icon-share:hover {
 }
 .progressbar > a {
   left: 5px;
+  position: relative;
+  z-index: 1;
+  padding-right: 60px;
+  display: block;
 }
 .progressbar > a span {
   position: absolute;
@@ -7352,6 +7359,7 @@ a.icon-share:hover {
 .progressbar > div {
   background-color: #f2f8fd;
   text-indent: -100000em;
+  z-index: 0;
 }
 .sparkline {
   position: relative;
