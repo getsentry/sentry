@@ -6994,6 +6994,9 @@ h3 {
   padding: 25px 30px 10px;
   min-width: 786px;
 }
+#content section.body a {
+  word-break: break-all;
+}
 #content section.body .select2-drop {
   -webkit-box-shadow: 0 0 0 2px #c3c8ce;
   -moz-box-shadow: 0 0 0 2px #c3c8ce;
