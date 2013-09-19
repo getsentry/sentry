@@ -475,6 +475,8 @@
 
             data = app.utils.getQueryParams();
             data.cursor = this.cursor || undefined;
+            // Fix sqlite bug where cursor comes down as a date string.
+            if (typeof data.cursor === "string") data.cursor = new Date(data.cursor).valueOf();
 
             $.ajax({
                 url: this.options.pollUrl,
