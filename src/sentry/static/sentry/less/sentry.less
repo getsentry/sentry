@@ -500,10 +500,12 @@ h3 {
     padding: 25px 30px 10px;
     min-width: 786px;
 
+    a {
+      word-break: break-all;
+    }
     .select2-drop {
       .box-shadow(0 0 0 2px #c3c8ce);
     }
-
     .select2-container {
       margin-left: 2px;
     }
@@ -807,7 +809,7 @@ a.icon-share {
 .progressbar {
   position: relative;
   border: 1px solid lighten(@linkColor, 30%);
-  height: 1.5em;
+  min-height: 1.5em;
   line-height: 1.5em;
 
   > a,
@@ -822,6 +824,10 @@ a.icon-share {
 
   > a {
     left: 5px;
+    position: relative;
+    z-index: 1;
+    padding-right: 60px;
+    display: block;
 
     span {
       position: absolute;
@@ -832,6 +838,7 @@ a.icon-share {
   > div {
     background-color: lighten(@linkColor, 40%);
     text-indent: -100000em;
+    z-index: 0;
   }
 }
 
