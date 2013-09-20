@@ -7440,9 +7440,13 @@ a.icon-share:hover {
 .events > li.with-sparkline .meta {
   right: 155px;
 }
-.group-list > li.unseen h3,
-.events > li.unseen h3 {
-  font-weight: bold;
+.group-list > li.seen h3,
+.events > li.seen h3 {
+  font-weight: normal;
+}
+.group-list > li.seen h3 a,
+.events > li.seen h3 a {
+  color: #898f98;
 }
 .group-list > li h3,
 .events > li h3 {
@@ -7500,7 +7504,7 @@ a.icon-share:hover {
 }
 .group-list > li .message,
 .events > li .message {
-  color: #777;
+  color: #898f98;
   margin-bottom: 0;
   font-size: 14px;
   padding-right: 24px;
@@ -7537,10 +7541,26 @@ a.icon-share:hover {
   position: relative;
   background: #f9f9f9;
   padding: 0 5px 0 45px;
-  width: 20px;
+  line-height: 20px;
+  height: 20px;
+  min-width: 20px;
   text-align: right;
-  display: inline-block;
+  float: left;
+  display: block;
   color: #666;
+  overflow: hidden;
+}
+.group-list > li .tag-users span,
+.events > li .tag-users span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 45px;
+  right: 5px;
+  height: 100%;
+  text-align: center;
+  line-height: inherit;
+  display: block;
 }
 .group-list > li .tag-users i,
 .events > li .tag-users i {
