@@ -7560,6 +7560,7 @@ a.icon-share:hover {
 }
 .group-list > li .tag-users span,
 .events > li .tag-users span {
+  position: absolute;
   top: 0;
   bottom: 0;
   left: 45px;
