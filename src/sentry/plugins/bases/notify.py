@@ -59,16 +59,17 @@ class NotificationPlugin(Plugin):
 
         disabled = set(u for u, v in alert_settings.iteritems() if v == 0)
 
-        # fetch team members
-        member_set = set(project.team.member_set.filter(
-            user__is_active=True,
-        ).exclude(user__in=disabled).values_list('user', flat=True))
-
         # fetch access group members
-        member_set |= set(AccessGroup.objects.filter(
+        member_set = set(AccessGroup.objects.filter(
             projects=project,
             members__is_active=True,
         ).exclude(members__in=disabled).values_list('members', flat=True))
+
+        if project.team:
+            # fetch team members
+            member_set |= set(project.team.member_set.filter(
+                user__is_active=True,
+            ).exclude(user__in=disabled).values_list('user', flat=True))
 
         # determine members default settings
         members_to_check = set(u for u in member_set if u not in alert_settings)
