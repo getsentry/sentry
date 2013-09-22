@@ -1077,7 +1077,6 @@ class LostPasswordHash(Model):
 
 
 class Activity(Model):
-    COMMENT = 0
     SET_RESOLVED = 1
     SET_UNRESOLVED = 2
     SET_MUTED = 3
@@ -1085,10 +1084,10 @@ class Activity(Model):
     SET_PRIVATE = 5
     SET_REGRESSION = 6
     CREATE_ISSUE = 7
+    NOTE = 8
 
     TYPE = (
         # (TYPE, verb-slug)
-        (COMMENT, 'comment'),
         (SET_RESOLVED, 'set_resolved'),
         (SET_UNRESOLVED, 'set_unresolved'),
         (SET_MUTED, 'set_muted'),
@@ -1096,6 +1095,7 @@ class Activity(Model):
         (SET_PRIVATE, 'set_private'),
         (SET_REGRESSION, 'set_regression'),
         (CREATE_ISSUE, 'create_issue'),
+        (NOTE, 'note'),
     )
 
     project = models.ForeignKey(Project)
@@ -1121,7 +1121,7 @@ class Activity(Model):
             return
 
         # HACK: support Group.num_comments
-        if self.type == Activity.COMMENT:
+        if self.type == Activity.NOTE:
             self.group.update(num_comments=F('num_comments') + 1)
 
             if self.event:
