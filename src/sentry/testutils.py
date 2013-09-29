@@ -120,10 +120,7 @@ class BaseTestCase(Exam):
 
     @fixture
     def group(self):
-        return Group.objects.create(
-            message='Foo bar',
-            project=self.project,
-        )
+        return self.create_group()
 
     @fixture
     def event(self):
@@ -132,6 +129,22 @@ class BaseTestCase(Exam):
             group=self.group,
             message='Foo bar',
             project=self.project,
+            data=LEGACY_DATA,
+        )
+
+    def create_group(self, project=None, **kwargs):
+        Group.objects.create(
+            message='Foo bar',
+            project=project or self.project,
+            **kwargs
+        )
+
+    def create_event(self, project=None, group=None):
+        return Event.objects.create(
+            event_id='a' * 32,
+            group=group or self.group,
+            message='Foo bar',
+            project=project or self.project,
             data=LEGACY_DATA,
         )
 

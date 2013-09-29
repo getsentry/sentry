@@ -12,6 +12,6 @@ class KeyAuthentication(BasicAuthentication):
             raise AuthenticationFailed('Invalid api key')
 
         if pk.secret_key != password:
-            raise AuthenticationFailed('Invalid api key')            
+            raise AuthenticationFailed('Invalid api key')
 
         return (pk.user, pk)
