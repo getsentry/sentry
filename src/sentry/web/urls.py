@@ -17,7 +17,16 @@ except ImportError:
 from sentry.web import api
 from sentry.web.frontend import (
     alerts, accounts, generic, groups, events,
-    projects, admin, docs, teams, users, explore, explore_code)
+    admin, docs, teams, users, explore, explore_code)
+
+import sentry.web.frontend.projects.general
+import sentry.web.frontend.projects.keys
+import sentry.web.frontend.projects.notifications
+import sentry.web.frontend.projects.plugins
+import sentry.web.frontend.projects.quotas
+import sentry.web.frontend.projects.remove
+import sentry.web.frontend.projects.settings
+import sentry.web.frontend.projects.tags
 
 __all__ = ('urlpatterns',)
 
@@ -106,35 +115,60 @@ urlpatterns = patterns('',
         name='sentry-accept-invite'),
 
     # Settings - Projects
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/$', projects.manage_project,
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/get-started/$',
+        sentry.web.frontend.projects.general.get_started,
+        name='sentry-get-started'),
+
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/settings/$',
+        sentry.web.frontend.projects.settings.manage_project,
         name='sentry-manage-project'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/docs/$', docs.client_help,
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/docs/$',
+        docs.client_help,
         name='sentry-project-client-help'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/docs/(?P<platform>%s)/$' % ('|'.join(re.escape(r) for r in docs.PLATFORM_LIST),),
-        docs.client_guide, name='sentry-docs-client'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/keys/$', projects.manage_project_keys,
+        docs.client_guide,
+        name='sentry-docs-client'),
+
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/keys/$',
+        sentry.web.frontend.projects.keys.manage_project_keys,
         name='sentry-manage-project-keys'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/keys/new/$', projects.new_project_key,
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/keys/new/$',
+        sentry.web.frontend.projects.keys.new_project_key,
         name='sentry-new-project-key'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/keys/(?P<key_id>\d+)/remove/$', projects.remove_project_key,
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/keys/(?P<key_id>\d+)/remove/$',
+        sentry.web.frontend.projects.keys.remove_project_key,
         name='sentry-remove-project-key'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/plugins/$', projects.manage_plugins,
+
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/plugins/$',
+        sentry.web.frontend.projects.plugins.manage_plugins,
         name='sentry-manage-project-plugins'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/plugins/(?P<slug>[\w_-]+)/$', projects.configure_project_plugin,
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/plugins/(?P<slug>[\w_-]+)/$',
+        sentry.web.frontend.projects.plugins.configure_project_plugin,
         name='sentry-configure-project-plugin'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/plugins/(?P<slug>[\w_-]+)/reset/$', projects.reset_project_plugin,
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/plugins/(?P<slug>[\w_-]+)/reset/$',
+        sentry.web.frontend.projects.plugins.reset_project_plugin,
         name='sentry-reset-project-plugin'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/plugins/(?P<slug>[\w_-]+)/disable/$', projects.disable_project_plugin,
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/plugins/(?P<slug>[\w_-]+)/disable/$',
+        sentry.web.frontend.projects.plugins.disable_project_plugin,
         name='sentry-disable-project-plugin'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/plugins/(?P<slug>[\w_-]+)/enable/$', projects.enable_project_plugin,
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/plugins/(?P<slug>[\w_-]+)/enable/$',
+        sentry.web.frontend.projects.plugins.enable_project_plugin,
         name='sentry-enable-project-plugin'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/remove/$', projects.remove_project,
+
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/remove/$',
+        sentry.web.frontend.projects.remove.remove_project,
         name='sentry-remove-project'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/tags/$', projects.manage_project_tags,
+
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/tags/$',
+        sentry.web.frontend.projects.tags.manage_project_tags,
         name='sentry-manage-project-tags'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/quotas/$', projects.manage_project_quotas,
+
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/quotas/$',
+        sentry.web.frontend.projects.quotas.manage_project_quotas,
         name='sentry-manage-project-quotas'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/notifications/$', projects.notification_settings,
+
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/notifications/$',
+        sentry.web.frontend.projects.notifications.notification_settings,
         name='sentry-project-notifications'),
 
     # Generic
@@ -259,8 +293,6 @@ urlpatterns = patterns('',
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/(?P<key>[^\/]+)/(?P<value_id>\d+)/$', explore.tag_value_details,
         name='sentry-explore-tag-value'),
 
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/get-started/$', projects.get_started,
-        name='sentry-get-started'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/$', groups.group,
         name='sentry-group'),
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/group/(?P<group_id>\d+)/events/$', groups.group_event_list,

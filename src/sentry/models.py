@@ -582,7 +582,7 @@ class Group(EventBase):
     resolved_at = models.DateTimeField(null=True, db_index=True)
     # active_at should be the same as first_seen by default
     active_at = models.DateTimeField(null=True, db_index=True)
-    time_spent_total = models.FloatField(default=0)
+    time_spent_total = BoundedIntegerField(default=0)
     time_spent_count = BoundedIntegerField(default=0)
     score = BoundedIntegerField(default=0)
     is_public = models.NullBooleanField(default=False, null=True)
@@ -726,7 +726,7 @@ class Event(EventBase):
     group = models.ForeignKey(Group, blank=True, null=True, related_name="event_set")
     event_id = models.CharField(max_length=32, null=True, db_column="message_id")
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
-    time_spent = models.FloatField(null=True)
+    time_spent = BoundedIntegerField(null=True)
     server_name = models.CharField(max_length=128, db_index=True, null=True)
     site = models.CharField(max_length=128, db_index=True, null=True)
 
@@ -943,7 +943,7 @@ class GroupCountByMinute(Model):
     group = models.ForeignKey(Group)
     date = models.DateTimeField(db_index=True)  # normalized to HH:MM:00
     times_seen = BoundedPositiveIntegerField(default=0)
-    time_spent_total = models.FloatField(default=0)
+    time_spent_total = BoundedIntegerField(default=0)
     time_spent_count = BoundedIntegerField(default=0)
 
     objects = BaseManager()
@@ -969,7 +969,7 @@ class ProjectCountByMinute(Model):
     project = models.ForeignKey(Project, null=True)
     date = models.DateTimeField()  # normalized to HH:MM:00
     times_seen = BoundedPositiveIntegerField(default=0)
-    time_spent_total = models.FloatField(default=0)
+    time_spent_total = BoundedIntegerField(default=0)
     time_spent_count = BoundedIntegerField(default=0)
 
     objects = BaseManager()
@@ -1077,7 +1077,6 @@ class LostPasswordHash(Model):
 
 
 class Activity(Model):
-    COMMENT = 0
     SET_RESOLVED = 1
     SET_UNRESOLVED = 2
     SET_MUTED = 3
@@ -1085,10 +1084,10 @@ class Activity(Model):
     SET_PRIVATE = 5
     SET_REGRESSION = 6
     CREATE_ISSUE = 7
+    NOTE = 8
 
     TYPE = (
         # (TYPE, verb-slug)
-        (COMMENT, 'comment'),
         (SET_RESOLVED, 'set_resolved'),
         (SET_UNRESOLVED, 'set_unresolved'),
         (SET_MUTED, 'set_muted'),
@@ -1096,6 +1095,7 @@ class Activity(Model):
         (SET_PRIVATE, 'set_private'),
         (SET_REGRESSION, 'set_regression'),
         (CREATE_ISSUE, 'create_issue'),
+        (NOTE, 'note'),
     )
 
     project = models.ForeignKey(Project)
@@ -1121,7 +1121,7 @@ class Activity(Model):
             return
 
         # HACK: support Group.num_comments
-        if self.type == Activity.COMMENT:
+        if self.type == Activity.NOTE:
             self.group.update(num_comments=F('num_comments') + 1)
 
             if self.event:
@@ -1244,6 +1244,7 @@ def create_default_project(created_models, verbosity=2, **kwargs):
         name='Sentry (Internal)',
         slug='sentry',
         owner=user,
+        platform='django',
     )
     # HACK: manually update the ID after insert due to Postgres
     # sequence issues. Seriously, fuck everything about this.
