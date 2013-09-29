@@ -404,6 +404,13 @@ if os.path.exists(NPM_ROOT):
         },
     }
 
+# django-rest-framework
+
+REST_FRAMEWORK = {
+    'TEST_REQUEST_DEFAULT_FORMAT': 'json',
+}
+
+
 # Sentry and Raven configuration
 
 SENTRY_PUBLIC = False
