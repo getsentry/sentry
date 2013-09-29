@@ -12,8 +12,6 @@ from django.db import router, transaction, IntegrityError
 from django.db.models.expressions import ExpressionNode
 from django.db.models.signals import post_save
 
-from sentry.db.exceptions import QueryError
-
 from .utils import resolve_expression_node
 
 __all__ = ('update', 'create_or_update')
@@ -83,8 +81,5 @@ def create_or_update(model, using=None, **kwargs):
     except IntegrityError:
         transaction.rollback_unless_managed(using=using)
         affected = objects.filter(**kwargs).update(**defaults)
-
-    if not affected:
-        raise QueryError('No rows updated or created for kwargs: %r' % kwargs)
 
     return affected, False
