@@ -5715,7 +5715,7 @@ a.badge:focus {
 
   zoom: 1;
   *display: inline;
-  vertical-align: top;
+  vertical-align: middle;
 }
 .select2-container .select2-choice {
   -webkit-border-radius: 3px;
@@ -5733,8 +5733,8 @@ a.badge:focus {
   overflow: hidden;
   white-space: nowrap;
   position: relative;
-  height: 35px;
-  line-height: 35px;
+  height: 32px;
+  line-height: 32px;
   padding: 0 0 0 14px;
   color: #757f87;
   text-decoration: none;
@@ -6994,6 +6994,9 @@ h3 {
   padding: 25px 30px 10px;
   min-width: 786px;
 }
+#content section.body a {
+  word-break: break-all;
+}
 #content section.body .select2-drop {
   -webkit-box-shadow: 0 0 0 2px #c3c8ce;
   -moz-box-shadow: 0 0 0 2px #c3c8ce;
@@ -7330,7 +7333,7 @@ a.icon-share:hover {
 .progressbar {
   position: relative;
   border: 1px solid #ffffff;
-  height: 1.5em;
+  min-height: 1.5em;
   line-height: 1.5em;
 }
 .progressbar > a,
@@ -7344,6 +7347,10 @@ a.icon-share:hover {
 }
 .progressbar > a {
   left: 5px;
+  position: relative;
+  z-index: 1;
+  padding-right: 60px;
+  display: block;
 }
 .progressbar > a span {
   position: absolute;
@@ -7352,6 +7359,7 @@ a.icon-share:hover {
 .progressbar > div {
   background-color: #ffffff;
   text-indent: -100000em;
+  z-index: 0;
 }
 .sparkline {
   position: relative;
