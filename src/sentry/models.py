@@ -1244,6 +1244,7 @@ def create_default_project(created_models, verbosity=2, **kwargs):
         name='Sentry (Internal)',
         slug='sentry',
         owner=user,
+        platform='django',
     )
     # HACK: manually update the ID after insert due to Postgres
     # sequence issues. Seriously, fuck everything about this.
