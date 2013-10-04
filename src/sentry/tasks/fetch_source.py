@@ -12,6 +12,7 @@ import hashlib
 import re
 import urllib2
 import zlib
+import base64
 from collections import namedtuple
 from urlparse import urljoin
 
@@ -161,11 +162,15 @@ def fetch_url(url):
 
 
 def fetch_sourcemap(url):
-    result = fetch_url(url)
-    if result == BAD_SOURCE:
-        return
+    if url.startswith('data:application/json;base64,'):
+        body = base64.b64decode(url[29:])
+    else:
+        result = fetch_url(url)
+        if result == BAD_SOURCE:
+            return
 
-    body = result.body
+        body = result.body
+
     # According to spec (https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.h7yy76c5il9v)
     # A SourceMap may be prepended with ")]}'" to cause a Javascript error.
     # If the file starts with that string, ignore the entire first line.
@@ -255,7 +260,8 @@ def expand_javascript_source(data, **kwargs):
         # TODO: we're currently running splitlines twice
         if sourcemap:
             logger.debug('Found sourcemap %r for minified script %r', sourcemap, result.url)
-        elif sourcemap in sourmap_idxs or not sourcemap:
+
+        if sourcemap in sourmap_idxs or not sourcemap:
             continue
 
         # pull down sourcemap
@@ -270,7 +276,11 @@ def expand_javascript_source(data, **kwargs):
         for source in index.sources:
             next_filename = urljoin(result.url, source)
             if next_filename not in done_file_list:
-                pending_file_list.add(next_filename)
+                if index.content:
+                    source_code[next_filename] = (index.content[source], None)
+                    done_file_list.add(next_filename)
+                else:
+                    pending_file_list.add(next_filename)
 
     has_changes = False
     for frame in frames:
@@ -283,8 +293,7 @@ def expand_javascript_source(data, **kwargs):
         # may have had a failure pulling down the sourcemap previously
         if sourcemap in sourmap_idxs and frame.colno is not None:
             state = find_source(sourmap_idxs[sourcemap], frame.lineno, frame.colno)
-            # TODO: is this urljoin right? (is it relative to the sourcemap or the originating file)
-            abs_path = urljoin(sourcemap, state.src)
+            abs_path = urljoin(result.url, state.src)
             logger.debug('Mapping compressed source %r to mapping in %r', frame.abs_path, abs_path)
             try:
                 source, _ = source_code[abs_path]
