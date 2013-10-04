@@ -28,6 +28,7 @@ BAD_SOURCE = -1
 LINES_OF_CONTEXT = 5
 CHARSET_RE = re.compile(r'charset=(\S+)')
 DEFAULT_ENCODING = 'utf-8'
+BASE64_SOURCEMAP_PREAMBLE = 'data:application/json;base64,'
 
 UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body'])
 
@@ -162,8 +163,8 @@ def fetch_url(url):
 
 
 def fetch_sourcemap(url):
-    if url.startswith('data:application/json;base64,'):
-        body = base64.b64decode(url[29:])
+    if url.startswith(BASE64_SOURCEMAP_PREAMBLE):
+        body = base64.b64decode(url[len(BASE64_SOURCEMAP_PREAMBLE):])
     else:
         result = fetch_url(url)
         if result == BAD_SOURCE:

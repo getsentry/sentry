@@ -61,9 +61,8 @@ def parse_vlq(segment):
 
 def parse_sourcemap(smap):
     """
-    Given a file-like object, yield SourceMap objects as they are read from it.
+    Given a sourcemap json object, yield SourceMap objects as they are read from it.
     """
-
     sources = smap['sources']
     sourceRoot = smap.get('sourceRoot')
     names = smap['names']
@@ -114,7 +113,7 @@ def sourcemap_to_index(sourcemap):
     src_list = set()
     content = None
 
-    if(smap['sourcesContent']):
+    if 'sourcesContent' in smap:
         content = {}
         for idx, source in enumerate(smap['sources']):
             if smap['sourcesContent'][idx]:
