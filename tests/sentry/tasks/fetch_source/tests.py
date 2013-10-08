@@ -3,9 +3,10 @@
 from __future__ import absolute_import
 
 import mock
+import base64
 
 from sentry.tasks.fetch_source import (
-    UrlResult, expand_javascript_source, discover_sourcemap)
+    UrlResult, expand_javascript_source, discover_sourcemap, fetch_sourcemap)
 from sentry.testutils import TestCase
 
 
@@ -82,3 +83,12 @@ class ExpandJavascriptSourceTest(TestCase):
         assert frame['pre_context'] == []
         assert frame['context_line'] == 'h'
         assert frame['post_context'] == ['e', 'l', 'l', 'o', ' ']
+
+
+class FetchBase64SourcemapTest(TestCase):
+    @mock.patch('sentry.utils.sourcemaps.sourcemap_to_index')
+    def test_simple(self, sourcemap_to_index):
+        sourcemap_to_index.return_value = None
+        url = 'data:application/json;base64,' + base64.b64encode('hello, World!')
+        fetch_sourcemap(url)
+        sourcemap_to_index.assert_called_once_with('hello, World!')

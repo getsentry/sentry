@@ -29,6 +29,7 @@ LINES_OF_CONTEXT = 5
 CHARSET_RE = re.compile(r'charset=(\S+)')
 DEFAULT_ENCODING = 'utf-8'
 BASE64_SOURCEMAP_PREAMBLE = 'data:application/json;base64,'
+BASE64_PREAMBLE_LENGTH = len(BASE64_SOURCEMAP_PREAMBLE)
 
 UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body'])
 
@@ -163,8 +164,8 @@ def fetch_url(url):
 
 
 def fetch_sourcemap(url):
-    if url.startswith(BASE64_SOURCEMAP_PREAMBLE):
-        body = base64.b64decode(url[len(BASE64_SOURCEMAP_PREAMBLE):])
+    if is_data_uri(url):
+        body = base64.b64decode(url[BASE64_PREAMBLE_LENGTH:])
     else:
         result = fetch_url(url)
         if result == BAD_SOURCE:
@@ -183,6 +184,10 @@ def fetch_sourcemap(url):
         return
     else:
         return index
+
+
+def is_data_uri(url):
+    return url[:BASE64_PREAMBLE_LENGTH] == BASE64_SOURCEMAP_PREAMBLE
 
 
 def expand_javascript_source(data, **kwargs):
@@ -256,7 +261,8 @@ def expand_javascript_source(data, **kwargs):
             continue
 
         sourcemap = discover_sourcemap(result)
-        source_code[filename] = (result.body.splitlines(), sourcemap)
+        sourcemap_key = hashlib.md5(sourcemap).hexdigest()
+        source_code[filename] = (result.body.splitlines(), sourcemap_key)
 
         # TODO: we're currently running splitlines twice
         if sourcemap:
@@ -271,7 +277,10 @@ def expand_javascript_source(data, **kwargs):
             logger.debug('Failed parsing sourcemap index: %r', sourcemap[:15])
             continue
 
-        sourmap_idxs[sourcemap] = index
+        if is_data_uri(sourcemap):
+            sourmap_idxs[sourcemap_key] = (index, result.url)
+        else:
+            sourmap_idxs[sourcemap_key] = (index, sourcemap)
 
         # queue up additional source files for download
         for source in index.sources:
@@ -293,8 +302,9 @@ def expand_javascript_source(data, **kwargs):
 
         # may have had a failure pulling down the sourcemap previously
         if sourcemap in sourmap_idxs and frame.colno is not None:
-            state = find_source(sourmap_idxs[sourcemap], frame.lineno, frame.colno)
-            abs_path = urljoin(result.url, state.src)
+            index, relative_to = sourmap_idxs[sourcemap]
+            state = find_source(index, frame.lineno, frame.colno)
+            abs_path = urljoin(relative_to, state.src)
             logger.debug('Mapping compressed source %r to mapping in %r', frame.abs_path, abs_path)
             try:
                 source, _ = source_code[abs_path]
