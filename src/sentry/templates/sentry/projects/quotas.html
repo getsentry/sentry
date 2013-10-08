@@ -11,7 +11,7 @@
         <h2>{% trans "Rate Limits" %}</h2>
     </div>
     <form action="" method="post" class="form-stacked">
-        <p>{% blocktrans %}With the nature of Sentry, sometimes the amount data collected can be overwhelming. You can set rate limits per-project to ensure that a single flood of errors won't affect other any other projects utilizing Sentry.{% endblocktrans %}</p>
+        <p>{% blocktrans %}With the nature of Sentry, sometimes the amount of data collected can be overwhelming. You can set rate limits per-project to ensure that a single flood of errors won't affect any other projects utilizing Sentry.{% endblocktrans %}</p>
 
         <p>{% blocktrans %}Rate limits apply on a per-minute basis, which means that they rollover at the start of a new minute. When you attempt to send an event and the project is over it's quota, the client will receive an HTTP 429 (Too Many Requests) response.{% endblocktrans %}</p>
 
