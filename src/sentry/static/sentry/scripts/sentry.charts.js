@@ -85,7 +85,7 @@ if (Sentry === undefined) {
                 var points = [
                     {
                         data: data,
-                        color: 'rgba(86, 175, 232, .4)',
+                        color: 'rgba(86, 175, 232, 1)',
                         shadowSize: 0,
                         lines: {
                             lineWidth: 2,
