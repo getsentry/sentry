@@ -3,11 +3,13 @@
 from __future__ import absolute_import
 
 import mock
-import base64
 
 from sentry.tasks.fetch_source import (
     UrlResult, expand_javascript_source, discover_sourcemap, fetch_sourcemap)
+from sentry.utils.sourcemaps import (SourceMap, SourceMapIndex)
 from sentry.testutils import TestCase
+
+base64_sourcemap = 'data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiZ2VuZXJhdGVkLmpzIiwic291cmNlcyI6WyIvdGVzdC5qcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiO0FBQUEiLCJzb3VyY2VzQ29udGVudCI6WyJjb25zb2xlLmxvZyhcImhlbGxvLCBXb3JsZCFcIikiXX0='
 
 
 class DiscoverSourcemapTest(TestCase):
@@ -86,9 +88,11 @@ class ExpandJavascriptSourceTest(TestCase):
 
 
 class FetchBase64SourcemapTest(TestCase):
-    @mock.patch('sentry.utils.sourcemaps.sourcemap_to_index')
-    def test_simple(self, sourcemap_to_index):
-        sourcemap_to_index.return_value = None
-        url = 'data:application/json;base64,' + base64.b64encode('hello, World!')
-        fetch_sourcemap(url)
-        sourcemap_to_index.assert_called_once_with('hello, World!')
+    def test_simple(self):
+        index = fetch_sourcemap(base64_sourcemap)
+        states = [SourceMap(1, 0, '/test.js', 0, 0, None)]
+        sources = set(['/test.js'])
+        keys = [(1, 0)]
+        content = {'/test.js': ['console.log("hello, World!")']}
+
+        assert index == SourceMapIndex(states, keys, sources, content)
