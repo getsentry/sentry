@@ -320,11 +320,11 @@ def expand_javascript_source(data, **kwargs):
             else:
                 # Store original data in annotation
                 frame.data = {
-                    'orig_lineno': frame['lineno'],
-                    'orig_colno': frame['colno'],
-                    'orig_function': frame['function'],
-                    'orig_abs_path': frame['abs_path'],
-                    'orig_filename': frame['filename'],
+                    'orig_lineno': frame.lineno,
+                    'orig_colno': frame.colno,
+                    'orig_function': frame.function,
+                    'orig_abs_path': frame.abs_path,
+                    'orig_filename': frame.filename,
                     'sourcemap': sourcemap,
                 }
 
