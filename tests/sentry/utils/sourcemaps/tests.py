@@ -6,6 +6,8 @@ from sentry.utils.sourcemaps import (SourceMap, parse_vlq, parse_sourcemap, sour
     find_source)
 from sentry.testutils import TestCase
 
+from sentry.utils import json
+
 
 sourcemap = """{"version":3,"file":"file.min.js","sources":["file1.js","file2.js"],"names":["add","a","b","multiply","divide","c","e","Raven","captureException"],"mappings":"AAAA,QAASA,KAAIC,EAAGC,GACf,YACA,OAAOD,GAAIC,ECFZ,QAASC,UAASF,EAAGC,GACpB,YACA,OAAOD,GAAIC,EAEZ,QAASE,QAAOH,EAAGC,GAClB,YACA,KACC,MAAOC,UAASH,IAAIC,EAAGC,GAAID,EAAGC,GAAKG,EAClC,MAAOC,GACRC,MAAMC,iBAAiBF"}"""
 
@@ -30,7 +32,8 @@ class FindSourceTest(TestCase):
 
 class ParseSourcemapTest(TestCase):
     def test_basic(self):
-        states = list(parse_sourcemap(sourcemap))
+        smap = json.loads(sourcemap)
+        states = list(parse_sourcemap(smap))
 
         assert states == [
             SourceMap(dst_line=0, dst_col=0, src='file1.js', src_line=0, src_col=0, name=None),
