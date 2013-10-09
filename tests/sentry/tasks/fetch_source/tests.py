@@ -88,6 +88,38 @@ class ExpandJavascriptSourceTest(TestCase):
         assert frame['context_line'] == 'h'
         assert frame['post_context'] == ['e', 'l', 'l', 'o', ' ']
 
+    @mock.patch('sentry.models.Event.update')
+    @mock.patch('sentry.tasks.fetch_source.fetch_url')
+    @mock.patch('sentry.tasks.fetch_source.discover_sourcemap')
+    def test_inlined_sources(self, discover_sourcemap, fetch_url, update):
+        data = {
+            'sentry.interfaces.Exception': {
+                'values': [{
+                    'stacktrace': {
+                        'frames': [
+                            {
+                                'abs_path': 'http://example.com/test.js',
+                                'filename': 'test.js',
+                                'lineno': 1,
+                                'colno': 0,
+                            },
+                        ],
+                    },
+                }],
+            }
+        }
+        discover_sourcemap.return_value = base64_sourcemap
+        fetch_url.return_value.body = '\n'.join('<generated source>')
+
+        expand_javascript_source(data)
+        fetch_url.assert_called_once_with('http://example.com/test.js')
+
+        frame_list = data['sentry.interfaces.Exception']['values'][0]['stacktrace']['frames']
+        frame = frame_list[0]
+        assert frame['pre_context'] == []
+        assert frame['context_line'] == 'console.log("hello, World!")'
+        assert frame['post_context'] == []
+
 
 class FetchBase64SourcemapTest(TestCase):
     def test_simple(self):
