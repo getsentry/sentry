@@ -45,7 +45,8 @@ class ExpandJavascriptSourceTest(TestCase):
     @mock.patch('sentry.models.Event.update')
     @mock.patch('sentry.tasks.fetch_source.fetch_url')
     @mock.patch('sentry.tasks.fetch_source.fetch_sourcemap')
-    def test_simple(self, fetch_sourcemap, fetch_url, update):
+    @mock.patch('sentry.tasks.fetch_source.discover_sourcemap')
+    def test_simple(self, discover_sourcemap, fetch_sourcemap, fetch_url, update):
         data = {
             'sentry.interfaces.Exception': {
                 'values': [{
@@ -68,6 +69,7 @@ class ExpandJavascriptSourceTest(TestCase):
                 }],
             }
         }
+        discover_sourcemap.return_value = None
         fetch_sourcemap.return_value = None
         fetch_url.return_value.body = '\n'.join('hello world')
 
