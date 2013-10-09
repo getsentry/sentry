@@ -1,4 +1,4 @@
-(function(window, app, Backbone, jQuery, _){
+(function(window, app, Backbone, jQuery, _, moment){
     "use strict";
 
     var $ = jQuery;
@@ -491,4 +491,4 @@
 
     });
 
-}(window, app, Backbone, jQuery, _));
+}(window, app, Backbone, jQuery, _, moment));

@@ -1,6 +1,6 @@
 /*global Sentry:true*/
 
-(function(app, Backbone, jQuery, _){
+(function(app, Backbone, jQuery, moment){
     "use strict";
 
     var $ = jQuery;
@@ -87,4 +87,4 @@
         }
 
     };
-}(app, Backbone, jQuery));
+}(app, Backbone, jQuery, moment));
