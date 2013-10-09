@@ -10,6 +10,7 @@ sentry.templatetags.sentry_helpers
 
 import datetime
 import os.path
+import pytz
 
 from collections import namedtuple
 from paging.helpers import paginate as paginate_func
@@ -17,9 +18,11 @@ from pkg_resources import parse_version as Version
 from urllib import quote
 
 from django import template
+from django.conf import settings
 from django.template import RequestContext
 from django.template.defaultfilters import stringfilter
 from django.template.loader import render_to_string
+from django.utils import timezone
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
@@ -144,7 +147,6 @@ def get_sentry_version(context):
 @register.filter
 def timesince(value, now=None):
     from django.template.defaultfilters import timesince
-    from django.utils import timezone
     if now is None:
         now = timezone.now()
     if not value:
@@ -266,12 +268,11 @@ def is_bookmarked(group, user):
 
 
 @register.filter
-def date(datetime, arg=None):
+def date(dt, arg=None):
     from django.template.defaultfilters import date
-    from django.utils import timezone
-    if not timezone.is_aware(datetime):
-        datetime = datetime.replace(tzinfo=timezone.utc)
-    return date(datetime, arg)
+    if not timezone.is_aware(dt):
+        dt = dt.replace(tzinfo=timezone.utc)
+    return date(dt, arg)
 
 
 @tag(register, [Constant('for'), Variable('user'),
@@ -481,3 +482,25 @@ def can_admin_team(user, team):
 @register.filter
 def user_display_name(user):
     return user.first_name or user.username
+
+
+@register.simple_tag(takes_context=True)
+def localized_datetime(context, dt, format='DATETIME_FORMAT'):
+    request = context['request']
+    timezone = getattr(request, 'timezone', None)
+    if not timezone:
+        timezone = pytz.timezone(settings.TIME_ZONE)
+
+    dt = dt.astimezone(timezone)
+
+    return date(dt, format)
+
+
+@register.simple_tag(takes_context=True)
+def get_timezone(context):
+    request = context['request']
+    timezone = getattr(request, 'timezone', None)
+    if not timezone:
+        timezone = pytz.timezone(settings.TIME_ZONE)
+    now = datetime.datetime.now(timezone)
+    return now.strftime('%z')

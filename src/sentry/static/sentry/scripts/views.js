@@ -47,6 +47,7 @@
                 e.preventDefault();
                 this.bookmark();
             }, this));
+            this.updateLastSeen();
             this.renderSparkline();
             this.updateResolved();
             this.updateHasSeen();
@@ -147,9 +148,11 @@
         },
 
         updateLastSeen: function(){
+            var dt = moment(this.model.get('lastSeen'));
             this.$el.find('.last-seen')
-                .text(app.utils.prettyDate(this.model.get('lastSeen')))
-                .attr('title', this.model.get('lastSeen'));
+                .text(dt.fromNow())
+                .data('datetime', this.model.get('lastSeen'))
+                .attr('title', dt.format('llll'));
         },
 
         updateCount: function(){
