@@ -1,3 +1,5 @@
+import pytz
+
 from sentry.app import env
 from sentry.models import UserOption
 from sentry.utils.http import absolute_uri
@@ -21,9 +23,15 @@ class SentryMiddleware(object):
         if not request.user.is_authenticated():
             return
 
-        language = UserOption.objects.get_value(user=request.user, project=None, key='language', default=None)
+        language = UserOption.objects.get_value(
+            user=request.user, project=None, key='language', default=None)
         if language:
             request.session['django_language'] = language
+
+        timezone = UserOption.objects.get_value(
+            user=request.user, project=None, key='timezone', default=None)
+        if timezone:
+            request.timezone = pytz.timezone(timezone)
 
 
 class SentrySocialAuthExceptionMiddleware(SocialAuthExceptionMiddleware):

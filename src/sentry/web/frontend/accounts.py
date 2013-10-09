@@ -199,11 +199,14 @@ def settings(request):
 @login_required
 @transaction.commit_on_success
 def appearance_settings(request):
+    from django.conf import settings
+
     options = UserOption.objects.get_all_values(user=request.user, project=None)
 
     form = AppearanceSettingsForm(request.user, request.POST or None, initial={
         'language': options.get('language') or request.LANGUAGE_CODE,
         'stacktrace_order': int(options.get('stacktrace_order', -1) or -1),
+        'timezone': options.get('timezone') or settings.TIME_ZONE,
     })
     if form.is_valid():
         form.save()

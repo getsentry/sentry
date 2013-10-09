@@ -30,7 +30,7 @@
                         var date = new Date(val[0]);
                         data.push({
                             y: val[1],
-                            label: app.utils.prettyDate(date)
+                            label: moment(date).fromNow()
                         });
                         if (val[1] > maxval) {
                             maxval = val[1];
