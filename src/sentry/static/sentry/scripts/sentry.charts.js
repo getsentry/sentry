@@ -1,7 +1,7 @@
 if (Sentry === undefined) {
     var Sentry = {};
 }
-(function(jQuery){
+(function(jQuery, moment){
     "use strict";
 
     var $ = jQuery;
@@ -148,4 +148,4 @@ if (Sentry === undefined) {
 
         });
     };
-}(jQuery));
+}(jQuery, moment));

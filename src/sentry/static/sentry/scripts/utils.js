@@ -1,4 +1,4 @@
-(function(app, jQuery, _){
+(function(app, jQuery, _, moment){
     "use strict";
 
     var $ = jQuery;
@@ -255,4 +255,4 @@
     });
 
     $.fn.select2.defaults.escapeMarkup = function(s) { return s; };
-}(app, jQuery, _));
+}(app, jQuery, _, moment));
