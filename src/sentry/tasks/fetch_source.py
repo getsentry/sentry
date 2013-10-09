@@ -261,14 +261,18 @@ def expand_javascript_source(data, **kwargs):
             continue
 
         sourcemap = discover_sourcemap(result)
+
+        # TODO: we're currently running splitlines twice
+        if not sourcemap:
+            source_code[filename] = (result.body.splitlines(), None)
+            continue
+        else:
+            logger.debug('Found sourcemap %r for minified script %r', sourcemap[:256], result.url)
+
         sourcemap_key = hashlib.md5(sourcemap).hexdigest()
         source_code[filename] = (result.body.splitlines(), sourcemap_key)
 
-        # TODO: we're currently running splitlines twice
-        if sourcemap:
-            logger.debug('Found sourcemap %r for minified script %r', sourcemap, result.url)
-
-        if sourcemap in sourmap_idxs or not sourcemap:
+        if sourcemap in sourmap_idxs:
             continue
 
         # pull down sourcemap
