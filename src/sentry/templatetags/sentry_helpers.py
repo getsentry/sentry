@@ -494,13 +494,3 @@ def localized_datetime(context, dt, format='DATETIME_FORMAT'):
     dt = dt.astimezone(timezone)
 
     return date(dt, format)
-
-
-@register.simple_tag(takes_context=True)
-def get_timezone(context):
-    request = context['request']
-    timezone = getattr(request, 'timezone', None)
-    if not timezone:
-        timezone = pytz.timezone(settings.TIME_ZONE)
-    now = datetime.datetime.now(timezone)
-    return now.strftime('%z')
