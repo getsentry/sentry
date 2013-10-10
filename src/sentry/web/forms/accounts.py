@@ -219,7 +219,7 @@ class ProjectEmailOptionsForm(forms.Form):
             user, project, 'mail:alert', None)
         if is_enabled is None:
             is_enabled = UserOption.objects.get_value(
-                user, None, 'subscribe_by_default', 1) == 1
+                user, None, 'subscribe_by_default', '1') == '1'
         else:
             is_enabled = bool(is_enabled)
 
