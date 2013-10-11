@@ -123,6 +123,12 @@ if (Sentry === undefined) {
                        }
                     },
                     tooltip: true,
+                    tooltipOpts: {
+                        content: function(label, xval, yval, flotItem) {
+                            return yval + ' events<br>' + moment(xval).format('llll');
+                        },
+                        defaultTheme: false
+                    },
                     grid: {
                         show: true,
                         hoverable: true,
