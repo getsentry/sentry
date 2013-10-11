@@ -20,7 +20,7 @@
                     '<% } %>' +
                     '<span class="last-seen pretty-date"></span>' +
                     '<% if (timeSpent) { %>' +
-                        '<span class="time-spent"><%= Math.round(timeSpent) %>ms</span>' +
+                        '<span class="tag time-spent"><%= Math.round(timeSpent) %>ms</span>' +
                     '<% } %>' +
                     '<span class="tag tag-project">' +
                         '<a href="<%= projectUrl %>"><%= project.name %></a>' +
