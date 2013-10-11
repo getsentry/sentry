@@ -8963,3 +8963,12 @@ table.vars table.vars th {
 .popover-content {
   padding: 4px 10px;
 }
+#flotTip {
+  background-color: #000000;
+  -webkit-border-radius: 4px;
+  -moz-border-radius: 4px;
+  border-radius: 4px;
+  max-width: 200px;
+  padding: 8px;
+  color: #ffffff;
+}
