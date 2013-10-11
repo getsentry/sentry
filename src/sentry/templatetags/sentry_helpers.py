@@ -165,6 +165,8 @@ def timesince(value, now=None):
 def duration(value):
     if not value:
         return '0s'
+    # value is assumed to be in ms
+    value = value / 1000.0
     hours, minutes, seconds = 0, 0, 0
     if value > 3600:
         hours = value / 3600
