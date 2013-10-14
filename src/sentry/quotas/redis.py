@@ -16,6 +16,8 @@ import time
 
 
 class RedisQuota(Quota):
+    ttl = 60
+
     def __init__(self, **options):
         if not options:
             # inherit default options from REDIS_OPTIONS
@@ -73,11 +75,11 @@ class RedisQuota(Quota):
         sys_key = self._get_system_key()
         with self.conn.map() as conn:
             proj_result = conn.incr(proj_key)
-            conn.expire(proj_key, 60)
+            conn.expire(proj_key, self.ttl)
             sys_result = conn.incr(sys_key)
-            conn.expire(sys_key, 60)
+            conn.expire(sys_key, self.ttl)
             if team_key:
                 team_result = conn.incr(team_key)
-                conn.expire(team_key, 60)
+                conn.expire(team_key, self.ttl)
 
         return int(sys_result), int(team_result), int(proj_result)

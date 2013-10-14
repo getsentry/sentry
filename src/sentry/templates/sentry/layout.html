@@ -25,6 +25,9 @@
             {% staticbundle 'sentry/scripts/global.min.js' %}
             {% staticbundle 'sentry/scripts/legacy.min.js' %}
             <script type="text/javascript">
+            {% if request.LANGUAGE_CODE %}
+                moment.lang('{{ request.LANGUAGE_CODE }}');
+            {% endif %}
             app.config.popupCss = '{% url 'sentry-media' "sentry" 'styles/popup.css' %}';
             app.config.mediaUrl = '{% url 'sentry-media' "sentry" '' %}';
             app.config.urlPrefix = {{ URL_PREFIX|to_json|safe }};

@@ -105,7 +105,7 @@ mysql_requires = [
 class PyTest(TestCommand):
     def finalize_options(self):
         TestCommand.finalize_options(self)
-        self.test_args = []
+        self.test_args = ['tests']
         self.test_suite = True
 
     def run_tests(self):
@@ -117,10 +117,10 @@ class PyTest(TestCommand):
 
 setup(
     name='sentry',
-    version='6.3.0',
+    version='6.3.2',
     author='David Cramer',
     author_email='dcramer@gmail.com',
-    url='http://www.getsentry.com',
+    url='https://www.getsentry.com',
     description='A realtime logging and aggregation server.',
     long_description=open('README.rst').read(),
     package_dir={'': 'src'},

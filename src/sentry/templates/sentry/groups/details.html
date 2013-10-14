@@ -46,7 +46,7 @@
                     <a class="btn pull-left prev {% if not next_event %} disabled{% endif %}"{% if next_event %} href="{% url 'sentry-group-event' group.team.slug group.project.slug group.id next_event.id %}"{% endif %}><span></span> {% trans "Newer Event" %}</a>
                     <a class="btn pull-right next {% if not prev_event %} disabled{% endif %}"{% if prev_event %} href="{% url 'sentry-group-event' group.team.slug group.project.slug group.id prev_event.id %}"{% endif %}>{% trans "Older Event" %} <span></span></a>
                     <h4>
-                    Event at {{ event.datetime }} {{ event.datetime.tzinfo }} [{{ event.size|filesizeformat }}]<br><small>ID: {{ event.event_id }}</small></h4>
+                    Event at {% localized_datetime event.datetime %} [{{ event.size|filesizeformat }}]<br><small>ID: {{ event.event_id }}</small></h4>
                 </div>
 
                 {% include "sentry/partial/event_nav.html" %}
@@ -82,13 +82,13 @@
         <dt>{% trans "Status:" %}</dt>
         <dd>{{ group.get_status_display|title }}</dd>
         <dt>{% trans "First Seen:" %}</dt>
-        <dd class="pretty-date" title="{{ group.first_seen|date:"c" }}Z">{{ group.first_seen|timesince }}</dd>
+        <dd class="pretty-date" data-datetime="{% localized_datetime group.first_seen "c" %}">{{ group.first_seen|timesince }}</dd>
         {% if group.active_at and group.active_at != group.first_seen %}
             <dt>{% trans "Reopened At:" %}</dt>
-            <dd class="pretty-date" title="{{ group.active_at|date:"c" }}Z">{{ group.active_at|timesince }}</dd>
+            <dd class="pretty-date" data-datetime="{% localized_datetime group.active_at "c" %}">{{ group.active_at|timesince }}</dd>
         {% endif %}
         <dt>{% trans "Last Seen:" %}</dt>
-        <dd class="pretty-date" title="{{ group.last_seen|date:"c" }}Z">{{ group.last_seen|timesince }}</dd>
+        <dd class="pretty-date" data-datetime="{% localized_datetime group.last_seen "c" %}">{{ group.last_seen|timesince }}</dd>
         {% if group.avg_time_spent %}
             <dt>{% trans "Avg Duration:" %}</dt>
             <dd>{% if group.avg_time_spent %}{{ group.avg_time_spent|duration }}{% else %}<em>{% trans "n/a" %}</em>{% endif %}</dd>
