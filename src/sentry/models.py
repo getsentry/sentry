@@ -1050,8 +1050,7 @@ class LostPasswordHash(Model):
         return self.date_added > timezone.now() - timedelta(days=1)
 
     def send_recover_mail(self):
-        from django.core.mail import send_mail
-        from sentry.web.helpers import render_to_string
+        from sentry.utils.email import MessageBuilder
 
         context = {
             'user': self.user,
@@ -1061,14 +1060,14 @@ class LostPasswordHash(Model):
                 args=[self.user.id, self.hash]
             )),
         }
-        body = render_to_string('sentry/emails/recover_account.txt', context)
+        msg = MessageBuilder(
+            subject='%sPassword Recovery' % (settings.EMAIL_SUBJECT_PREFIX,),
+            template='sentry/emails/recover_account.txt',
+            context=context,
+        )
 
         try:
-            send_mail(
-                '%sPassword Recovery' % (settings.EMAIL_SUBJECT_PREFIX,),
-                body, settings.SERVER_EMAIL, [self.user.email],
-                fail_silently=False
-            )
+            msg.send([self.user.email])
         except Exception, e:
             logger = logging.getLogger('sentry.mail.errors')
             logger.exception(e)
