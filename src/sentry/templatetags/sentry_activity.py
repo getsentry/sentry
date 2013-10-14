@@ -6,7 +6,7 @@ sentry.templatetags.sentry_activity
 :license: BSD, see LICENSE for more details.
 """
 from django import template
-from django.utils.html import escape, linebreaks
+from django.utils.html import escape, urlize, linebreaks
 from django.utils.safestring import mark_safe
 
 from sentry.models import Activity
@@ -54,6 +54,6 @@ def render_activity(item):
     output += ' <span class="sep">&mdash;</span> <span class="time">%s</span>' % (timesince(item.datetime),)
 
     if item.type == Activity.NOTE:
-        output += linebreaks(item.data['text'])
+        output += linebreaks(urlize(escape(item.data['text'])))
 
     return mark_safe(output)
