@@ -392,11 +392,12 @@ def group(request, team, project, group, event_id=None):
     if request.POST.get('o') == 'note' and request.user.is_authenticated():
         add_note_form = NewNoteForm(request.POST)
         if add_note_form.is_valid():
-            Activity.objects.create(
+            activity = Activity.objects.create(
                 group=group, event=event, project=project,
                 type=Activity.NOTE, user=request.user,
                 data=add_note_form.cleaned_data
             )
+            activity.send_notification()
             return HttpResponseRedirect(request.path)
     else:
         add_note_form = NewNoteForm()
@@ -423,9 +424,13 @@ def group(request, team, project, group, event_id=None):
     # filter out dupe activity items
     activity_items = set()
     activity = []
-    for item in activity_qs.filter(group=group)[:10]:
+    for item in activity_qs.filter(group=group)[:20]:
         sig = (item.event_id, item.type, item.ident, item.user_id)
-        if sig not in activity_items:
+        # TODO: we could just generate a signature (hash(text)) for notes
+        # so theres no special casing
+        if item.type == Activity.NOTE:
+            activity.append(item)
+        elif sig not in activity_items:
             activity_items.add(sig)
             activity.append(item)
 
@@ -434,7 +439,7 @@ def group(request, team, project, group, event_id=None):
         datetime=group.first_seen))
 
     # trim to latest 5
-    activity = activity[:5]
+    activity = activity[:7]
 
     seen_by = sorted(filter(lambda ls: ls[0] != request.user and ls[0].email, [
         (gs.user, gs.last_seen)

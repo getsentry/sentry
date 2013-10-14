@@ -2024,7 +2024,7 @@ table.table td .select2-container {
 
 .btn.disabled, .btn[disabled] {
   background: #ecf0f4;
-  .opacity(55);
+  .opacity(35);
 }
 
 .navbar-inverse .nav .active > a, .navbar-inverse .nav .active > a:hover, .navbar-inverse .nav .active > a:focus {
@@ -2204,7 +2204,7 @@ table.vars {
 
     > li {
       margin-bottom: 5px;
-      line-height: 26px;
+      line-height: 30px;
       position: relative;
       padding-left: 20px;
 
@@ -2245,58 +2245,59 @@ table.vars {
 
   .add-note-btn {
     font-size: 12px;
+    font-weight: 300;
+    letter-spacing: -0.1px;
     position: absolute;
     right: 0;
     top: 0;
-    padding: 5px;
-    color: @gray;
-    border: 1px solid #fff;
+    padding: 2px 5px;
+    background: #eff3f7;
+    color: #666d73;
+    border: 1px solid #eff3f7;
+    .border-radius(4px);
+
     .icon-comment {
-      .opacity(70);
-    }
-    &.selected,
-    &:hover {
-      z-index: 1001;
-      background: #eee;
-      border-color: #ddd;
+      .opacity(50);
     }
     &:hover.selected,
     &.selected {
-      border-bottom-color: #eee;
+      z-index: 1001;
+      border-color: darken(#eff3f7, 10%);
+      .border-radius(4px 4px 0 0);
+      border-bottom-color: #eff3f7;
     }
 
   }
 
-}
-
-form.add-note-form {
-  z-index: 1000;
-  position: absolute;
-  right: 0;
-  top: 30px;
-  background: #eee;
-  border: 1px solid #ddd;
-  padding: 10px;
-
-  > textarea {
-    font-size: 13px;
-    max-width: 600px;
-    background: #fff;
-    border: 1px solid #eee;
-    font-weight: 300;
-    height: 80px;
-    margin: 0;
+  form.add-note-form {
+    z-index: 1000;
+    position: absolute;
     right: 0;
-    left: 0;
-    margin-bottom: 10px;
-    .box-shadow(none);
-    .placeholder(#ddd);
-  }
+    top: 25px;
+    background: #eff3f7;
+    padding: 10px;
+    border: 1px solid darken(#eff3f7, 10%);
 
-  .form-actions {
-    text-align: right;
-    padding: 0;
-    margin: 0;
+    > textarea {
+      font-size: 13px;
+      max-width: 600px;
+      background: #fff;
+      border: 1px solid darken(#eff3f7, 10%);
+      font-weight: 300;
+      height: 80px;
+      margin: 0;
+      right: 0;
+      left: 0;
+      margin-bottom: 10px;
+      .box-shadow(none);
+      .placeholder(#ddd);
+    }
+
+    .form-actions {
+      text-align: right;
+      padding: 0;
+      margin: 0;
+    }
   }
 }
 

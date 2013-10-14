@@ -1129,6 +1129,48 @@ class Activity(Model):
             if self.event:
                 self.event.update(num_comments=F('num_comments') + 1)
 
+    def send_notification(self):
+        from sentry.utils.email import MessageBuilder
+
+        if self.type != Activity.NOTE or not self.group:
+            return
+
+        user_list = list(User.objects.filter(groupseen__group=self.group))
+        disabled = set(UserOption.objects.filter(
+            user__in=user_list, key='subscribe_comments', value='0'))
+
+        send_to = [
+            u.email for u in user_list
+            if u.id not in disabled
+            and u.email
+        ]
+
+        author = self.user.first_name or self.user.username
+
+        subject = '%s: %s' % (
+            author,
+            self.data['text'].splitlines()[0][:64])
+
+        context = {
+            'text': self.data['text'],
+            'author': author,
+            'group': self.group,
+            'link': self.group.get_absolute_url(),
+        }
+
+        msg = MessageBuilder(
+            subject=subject,
+            context=context,
+            template='sentry/emails/new_note.txt',
+            html_template='sentry/emails/new_note.html',
+        )
+
+        try:
+            msg.send(to=send_to)
+        except Exception, e:
+            logger = logging.getLogger('sentry.mail.errors')
+            logger.exception(e)
+
 
 class GroupSeen(Model):
     """
