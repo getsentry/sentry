@@ -275,6 +275,20 @@
                 });
             });
 
+            $('.add-note-btn').click(function(e){
+                var $el = $(this);
+
+                e.preventDefault();
+
+                if ($el.hasClass('selected')) {
+                    $el.removeClass('selected');
+                    $('.add-note-form', $el.parent()).addClass('hide');
+                } else {
+                    $el.addClass('selected');
+                    $('.add-note-form', $el.parent()).removeClass('hide');
+                }
+            });
+
             var $event_nav = $('#event_nav');
             if ($event_nav.length > 0) {
                 var $window = $(window);

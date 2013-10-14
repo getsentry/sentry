@@ -40,6 +40,7 @@ from sentry.utils import json
 from sentry.utils.dates import parse_date
 from sentry.utils.db import has_trending, get_db_engine
 from sentry.web.decorators import has_access, has_group_access, login_required
+from sentry.web.forms import NewNoteForm
 from sentry.web.helpers import render_to_response, group_is_public
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$', re.I)
@@ -379,18 +380,32 @@ def group_list(request, team, project):
 def group(request, team, project, group, event_id=None):
     # It's possible that a message would not be created under certain
     # circumstances (such as a post_save signal failing)
-    activity_qs = Activity.objects.order_by('-datetime').select_related('user')
     if event_id:
         event = get_object_or_404(group.event_set, id=event_id)
-        activity_qs = activity_qs.filter(
-            Q(event=event) | Q(event__isnull=True),
-        )
     else:
         event = group.get_latest_event() or Event()
 
     # bind params to group in case they get hit
     event.group = group
     event.project = project
+
+    if request.POST.get('o') == 'note' and request.user.is_authenticated():
+        add_note_form = NewNoteForm(request.POST)
+        if add_note_form.is_valid():
+            Activity.objects.create(
+                group=group, event=event, project=project,
+                type=Activity.NOTE, user=request.user,
+                data=add_note_form.cleaned_data
+            )
+            return HttpResponseRedirect(request.path + '#activity')
+    else:
+        add_note_form = NewNoteForm()
+
+    activity_qs = Activity.objects.order_by('-datetime').select_related('user')
+    if event:
+        activity_qs = activity_qs.filter(
+            Q(event=event) | Q(event__isnull=True),
+        )
 
     if project in Project.objects.get_for_user(
             request.user, team=team, superuser=False):
@@ -429,6 +444,7 @@ def group(request, team, project, group, event_id=None):
     seen_by_faces = seen_by[:5]
 
     context = {
+        'add_note_form': add_note_form,
         'page': 'details',
         'activity': activity,
         'seen_by': seen_by,

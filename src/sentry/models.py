@@ -1085,6 +1085,7 @@ class Activity(Model):
     SET_REGRESSION = 6
     CREATE_ISSUE = 7
     NOTE = 8
+    FIRST_SEEN = 9
 
     TYPE = (
         # (TYPE, verb-slug)
@@ -1096,6 +1097,7 @@ class Activity(Model):
         (SET_REGRESSION, 'set_regression'),
         (CREATE_ISSUE, 'create_issue'),
         (NOTE, 'note'),
+        (FIRST_SEEN, 'first_seen'),
     )
 
     project = models.ForeignKey(Project)
