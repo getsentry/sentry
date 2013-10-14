@@ -8773,13 +8773,11 @@ table.vars table.vars th {
 .activity .add-note-btn.selected,
 .activity .add-note-btn:hover {
   z-index: 1001;
-  border-color: #ddd;
   background: #eee;
+  border-color: #ddd;
 }
-.activity .add-note-btn:hover {
-  border-bottom-color: #ddd;
-}
-.activity .add-note-btn:hover.selected {
+.activity .add-note-btn:hover.selected,
+.activity .add-note-btn.selected {
   border-bottom-color: #eee;
 }
 form.add-note-form {
