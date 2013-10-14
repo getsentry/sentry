@@ -1,6 +1,7 @@
 from django.core.urlresolvers import reverse
+from django.utils.decorators import method_decorator
 
-from sentry.models import Project, Team
+from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
 from sentry.web.restapi.base import BaseView
 from sentry.utils.http import absolute_uri
@@ -9,13 +10,9 @@ from sentry.utils.javascript import transform
 from rest_framework.response import Response
 
 
-class EventListView(BaseView):
-    def get(self, request, team_slug, project_id):
-        team = Team.objects.get_from_cache(slug=team_slug)
-        project = Project.objects.get_from_cache(id=project_id)
-        assert project.team_id == team.id
-        project.team_cache = team
-
+class GroupListView(BaseView):
+    @method_decorator(has_access)
+    def get(self, request, team, project):
         offset = 0
         limit = 100
 

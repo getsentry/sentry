@@ -10,7 +10,7 @@ import time
 from django.core.urlresolvers import reverse
 from django.utils.html import escape
 from sentry.app import env
-from sentry.constants import STATUS_RESOLVED
+from sentry.constants import STATUS_RESOLVED, STATUS_MUTED
 from sentry.models import Group, GroupBookmark, GroupTagKey, GroupSeen
 from sentry.templatetags.sentry_plugins import get_tags
 from sentry.utils import json
@@ -114,6 +114,14 @@ class GroupTransformer(Transformer):
         return dt.isoformat()
 
     def transform(self, obj, request=None):
+        status = obj.get_status()
+        if status == STATUS_RESOLVED:
+            status_label = 'resolved'
+        elif status == STATUS_MUTED:
+            status_label = 'muted'
+        else:
+            status_label = 'unresolved'
+
         d = {
             'id': str(obj.id),
             'count': str(obj.times_seen),
@@ -128,6 +136,7 @@ class GroupTransformer(Transformer):
             'lastSeen': self.localize_datetime(obj.last_seen, request=request),
             'timeSpent': obj.avg_time_spent,
             'canResolve': request and request.user.is_authenticated(),
+            'status': status_label,
             'isResolved': obj.get_status() == STATUS_RESOLVED,
             'isPublic': obj.is_public,
             'score': getattr(obj, 'sort_value', 0),
