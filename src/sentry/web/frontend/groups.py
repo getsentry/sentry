@@ -397,7 +397,7 @@ def group(request, team, project, group, event_id=None):
                 type=Activity.NOTE, user=request.user,
                 data=add_note_form.cleaned_data
             )
-            return HttpResponseRedirect(request.path + '#activity')
+            return HttpResponseRedirect(request.path)
     else:
         add_note_form = NewNoteForm()
 
