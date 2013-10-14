@@ -43,7 +43,7 @@ class MailPlugin(NotificationPlugin):
 
         msg = MessageBuilder(
             subject='%s%s' % (subject_prefix, subject),
-            txt_body=body,
+            body=body,
             html_body=html_body,
         )
         msg.send(send_to, fail_silently=fail_silently)
