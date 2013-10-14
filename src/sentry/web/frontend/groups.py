@@ -429,6 +429,10 @@ def group(request, team, project, group, event_id=None):
             activity_items.add(sig)
             activity.append(item)
 
+    activity.append(Activity(
+        project=project, group=group, type=Activity.FIRST_SEEN,
+        datetime=group.first_seen))
+
     # trim to latest 5
     activity = activity[:5]
 
