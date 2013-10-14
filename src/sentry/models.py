@@ -441,8 +441,7 @@ class PendingTeamMember(Model):
         return checksum.hexdigest()
 
     def send_invite_email(self):
-        from django.core.mail import send_mail
-        from sentry.web.helpers import render_to_string
+        from sentry.utils.email import MessageBuilder
 
         context = {
             'email': self.email,
@@ -452,16 +451,15 @@ class PendingTeamMember(Model):
                 'token': self.token,
             })),
         }
-        body = render_to_string('sentry/emails/member_invite.txt', context)
+
+        msg = MessageBuilder(
+            subject='Invite to join team: %s' % (self.team.name,),
+            template='sentry/emails/member_invite.txt',
+            context=context,
+        )
 
         try:
-            send_mail(
-                '%sInvite to join team: %s' % (
-                    settings.EMAIL_SUBJECT_PREFIX, self.team.name
-                ),
-                body, settings.SERVER_EMAIL, [self.email],
-                fail_silently=False
-            )
+            msg.send([self.email])
         except Exception, e:
             logger = logging.getLogger('sentry.mail.errors')
             logger.exception(e)
