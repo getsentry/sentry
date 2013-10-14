@@ -12,6 +12,7 @@ import hashlib
 import re
 import urllib2
 import zlib
+import base64
 from collections import namedtuple
 from urlparse import urljoin
 
@@ -27,6 +28,8 @@ BAD_SOURCE = -1
 LINES_OF_CONTEXT = 5
 CHARSET_RE = re.compile(r'charset=(\S+)')
 DEFAULT_ENCODING = 'utf-8'
+BASE64_SOURCEMAP_PREAMBLE = 'data:application/json;base64,'
+BASE64_PREAMBLE_LENGTH = len(BASE64_SOURCEMAP_PREAMBLE)
 
 UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body'])
 
@@ -161,11 +164,15 @@ def fetch_url(url):
 
 
 def fetch_sourcemap(url):
-    result = fetch_url(url)
-    if result == BAD_SOURCE:
-        return
+    if is_data_uri(url):
+        body = base64.b64decode(url[BASE64_PREAMBLE_LENGTH:])
+    else:
+        result = fetch_url(url)
+        if result == BAD_SOURCE:
+            return
 
-    body = result.body
+        body = result.body
+
     # According to spec (https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.h7yy76c5il9v)
     # A SourceMap may be prepended with ")]}'" to cause a Javascript error.
     # If the file starts with that string, ignore the entire first line.
@@ -177,6 +184,10 @@ def fetch_sourcemap(url):
         return
     else:
         return index
+
+
+def is_data_uri(url):
+    return url[:BASE64_PREAMBLE_LENGTH] == BASE64_SOURCEMAP_PREAMBLE
 
 
 def expand_javascript_source(data, **kwargs):
@@ -250,12 +261,18 @@ def expand_javascript_source(data, **kwargs):
             continue
 
         sourcemap = discover_sourcemap(result)
-        source_code[filename] = (result.body.splitlines(), sourcemap)
 
         # TODO: we're currently running splitlines twice
-        if sourcemap:
-            logger.debug('Found sourcemap %r for minified script %r', sourcemap, result.url)
-        elif sourcemap in sourmap_idxs or not sourcemap:
+        if not sourcemap:
+            source_code[filename] = (result.body.splitlines(), None)
+            continue
+        else:
+            logger.debug('Found sourcemap %r for minified script %r', sourcemap[:256], result.url)
+
+        sourcemap_key = hashlib.md5(sourcemap).hexdigest()
+        source_code[filename] = (result.body.splitlines(), sourcemap_key)
+
+        if sourcemap in sourmap_idxs:
             continue
 
         # pull down sourcemap
@@ -264,13 +281,20 @@ def expand_javascript_source(data, **kwargs):
             logger.debug('Failed parsing sourcemap index: %r', sourcemap[:15])
             continue
 
-        sourmap_idxs[sourcemap] = index
+        if is_data_uri(sourcemap):
+            sourmap_idxs[sourcemap_key] = (index, result.url)
+        else:
+            sourmap_idxs[sourcemap_key] = (index, sourcemap)
 
         # queue up additional source files for download
         for source in index.sources:
             next_filename = urljoin(result.url, source)
             if next_filename not in done_file_list:
-                pending_file_list.add(next_filename)
+                if index.content:
+                    source_code[next_filename] = (index.content[source], None)
+                    done_file_list.add(next_filename)
+                else:
+                    pending_file_list.add(next_filename)
 
     has_changes = False
     for frame in frames:
@@ -282,9 +306,9 @@ def expand_javascript_source(data, **kwargs):
 
         # may have had a failure pulling down the sourcemap previously
         if sourcemap in sourmap_idxs and frame.colno is not None:
-            state = find_source(sourmap_idxs[sourcemap], frame.lineno, frame.colno)
-            # TODO: is this urljoin right? (is it relative to the sourcemap or the originating file)
-            abs_path = urljoin(sourcemap, state.src)
+            index, relative_to = sourmap_idxs[sourcemap]
+            state = find_source(index, frame.lineno, frame.colno)
+            abs_path = urljoin(relative_to, state.src)
             logger.debug('Mapping compressed source %r to mapping in %r', frame.abs_path, abs_path)
             try:
                 source, _ = source_code[abs_path]
@@ -296,11 +320,11 @@ def expand_javascript_source(data, **kwargs):
             else:
                 # Store original data in annotation
                 frame.data = {
-                    'orig_lineno': frame['lineno'],
-                    'orig_colno': frame['colno'],
-                    'orig_function': frame['function'],
-                    'orig_abs_path': frame['abs_path'],
-                    'orig_filename': frame['filename'],
+                    'orig_lineno': frame.lineno,
+                    'orig_colno': frame.colno,
+                    'orig_function': frame.function,
+                    'orig_abs_path': frame.abs_path,
+                    'orig_filename': frame.filename,
                     'sourcemap': sourcemap,
                 }
 

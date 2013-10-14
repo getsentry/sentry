@@ -13,15 +13,9 @@ Sentry includes several plugins by default. Builtin plugins are controlled via t
     INSTALLED_APPS = [
       ...
       'sentry.plugins.sentry_mail',
-      'sentry.plugins.sentry_servers',
       'sentry.plugins.sentry_urls',
       'sentry.plugins.sentry_useragents',
     ]
-
-.. data:: sentry.plugins.sentry_server
-    :noindex:
-
-    Enables auto tagging of servers.
 
 .. data:: sentry.plugins.sentry_urls
     :noindex:

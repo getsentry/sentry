@@ -1,6 +1,6 @@
 /*global Sentry:true*/
 
-(function(app, Backbone, jQuery, _){
+(function(app, Backbone, jQuery, moment){
     "use strict";
 
     var $ = jQuery;
@@ -30,7 +30,7 @@
                         var date = new Date(val[0]);
                         data.push({
                             y: val[1],
-                            label: app.utils.prettyDate(date)
+                            label: moment(date).fromNow()
                         });
                         if (val[1] > maxval) {
                             maxval = val[1];
@@ -87,4 +87,4 @@
         }
 
     };
-}(app, Backbone, jQuery));
+}(app, Backbone, jQuery, moment));

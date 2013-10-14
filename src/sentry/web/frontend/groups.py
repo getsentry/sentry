@@ -259,7 +259,7 @@ def wall_display(request, team):
 @login_required
 @has_access
 def search(request, team, project):
-    query = request.GET.get('q')
+    query = request.GET.get('q', '').strip()
 
     if not query:
         return HttpResponseRedirect(reverse('sentry-stream', args=[team.slug, project.slug]))
