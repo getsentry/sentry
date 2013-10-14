@@ -1135,7 +1135,9 @@ class Activity(Model):
         if self.type != Activity.NOTE or not self.group:
             return
 
-        user_list = list(User.objects.filter(groupseen__group=self.group))
+        user_list = list(User.objects.filter(
+            groupseen__group=self.group,
+        ).exclude(user=self.user))
         disabled = set(UserOption.objects.filter(
             user__in=user_list, key='subscribe_comments', value='0'))
 
