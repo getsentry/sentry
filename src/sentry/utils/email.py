@@ -51,9 +51,9 @@ class MessageBuilder(object):
             headers=headers
         )
         if html_body:
-            msg.attach_alternative(
+            msg.attach_alternative(unicode(
                 UnicodeSafePynliner().from_string(html_body),
-                "text/html")
+                "text/html"))
 
         return msg
 
