@@ -8546,8 +8546,8 @@ table.table td .select2-container {
 .btn.disabled,
 .btn[disabled] {
   background: #ecf0f4;
-  opacity: 0.55;
-  filter: alpha(opacity=55);
+  opacity: 0.35;
+  filter: alpha(opacity=35);
 }
 .navbar-inverse .nav .active > a,
 .navbar-inverse .nav .active > a:hover,
@@ -8720,7 +8720,7 @@ table.vars table.vars th {
 }
 .activity > ul > li {
   margin-bottom: 5px;
-  line-height: 26px;
+  line-height: 30px;
   position: relative;
   padding-left: 20px;
 }
@@ -8759,41 +8759,46 @@ table.vars table.vars th {
 }
 .activity .add-note-btn {
   font-size: 12px;
+  font-weight: 300;
+  letter-spacing: -0.1px;
   position: absolute;
   right: 0;
   top: 0;
-  padding: 5px;
-  color: #465262;
-  border: 1px solid #fff;
+  padding: 2px 5px;
+  background: #eff3f7;
+  color: #666d73;
+  border: 1px solid #eff3f7;
+  -webkit-border-radius: 4px;
+  -moz-border-radius: 4px;
+  border-radius: 4px;
 }
 .activity .add-note-btn .icon-comment {
-  opacity: 0.7;
-  filter: alpha(opacity=70);
-}
-.activity .add-note-btn.selected,
-.activity .add-note-btn:hover {
-  z-index: 1001;
-  background: #eee;
-  border-color: #ddd;
+  opacity: 0.5;
+  filter: alpha(opacity=50);
 }
 .activity .add-note-btn:hover.selected,
 .activity .add-note-btn.selected {
-  border-bottom-color: #eee;
+  z-index: 1001;
+  border-color: #cdd9e6;
+  -webkit-border-radius: 4px 4px 0 0;
+  -moz-border-radius: 4px 4px 0 0;
+  border-radius: 4px 4px 0 0;
+  border-bottom-color: #eff3f7;
 }
-form.add-note-form {
+.activity form.add-note-form {
   z-index: 1000;
   position: absolute;
   right: 0;
-  top: 30px;
-  background: #eee;
-  border: 1px solid #ddd;
+  top: 25px;
+  background: #eff3f7;
   padding: 10px;
+  border: 1px solid #cdd9e6;
 }
-form.add-note-form > textarea {
+.activity form.add-note-form > textarea {
   font-size: 13px;
   max-width: 600px;
   background: #fff;
-  border: 1px solid #eee;
+  border: 1px solid #cdd9e6;
   font-weight: 300;
   height: 80px;
   margin: 0;
@@ -8804,16 +8809,16 @@ form.add-note-form > textarea {
   -moz-box-shadow: none;
   box-shadow: none;
 }
-form.add-note-form > textarea:-moz-placeholder {
+.activity form.add-note-form > textarea:-moz-placeholder {
   color: #dddddd;
 }
-form.add-note-form > textarea:-ms-input-placeholder {
+.activity form.add-note-form > textarea:-ms-input-placeholder {
   color: #dddddd;
 }
-form.add-note-form > textarea::-webkit-input-placeholder {
+.activity form.add-note-form > textarea::-webkit-input-placeholder {
   color: #dddddd;
 }
-form.add-note-form .form-actions {
+.activity form.add-note-form .form-actions {
   text-align: right;
   padding: 0;
   margin: 0;

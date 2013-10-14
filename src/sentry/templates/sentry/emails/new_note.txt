@@ -1,0 +1,16 @@
+{% spaceless %}
+{% autoescape off %}
+A new note was posted on an event in Sentry:
+
+{{ text }}
+
+
+Details
+-------
+
+{{ group.message_top }}
+
+{{ link }}
+
+{% endautoescape %}
+{% endspaceless %}

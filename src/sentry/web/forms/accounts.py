@@ -69,10 +69,18 @@ class RegistrationForm(forms.ModelForm):
 
 class NotificationSettingsForm(forms.Form):
     alert_email = forms.EmailField(help_text=_('Designate an alternative email address to send email notifications to.'), required=False)
-    subscribe_by_default = forms.ChoiceField(choices=(
-        ('1', _('Automatically subscribe to notifications for new projects')),
-        ('0', _('Do not subscribe to notifications for new projects')),
-    ), required=False)
+    subscribe_by_default = forms.ChoiceField(
+        choices=(
+            ('1', _('Automatically subscribe to notifications for new projects')),
+            ('0', _('Do not subscribe to notifications for new projects')),
+        ), required=False,
+        widget=forms.Select(attrs={'class': 'input-xxlarge'}))
+    subscribe_notes = forms.ChoiceField(
+        choices=(
+            ('1', _('Get notified about new notes on events I\'ve seen')),
+            ('0', _('Do not subscribe to note notifications')),
+        ), required=False,
+        widget=forms.Select(attrs={'class': 'input-xxlarge'}))
 
     def __init__(self, user, *args, **kwargs):
         self.user = user
@@ -87,6 +95,12 @@ class NotificationSettingsForm(forms.Form):
             user=self.user,
             project=None,
             key='subscribe_by_default',
+            default='1',
+        )
+        self.fields['subscribe_notes'].initial = UserOption.objects.get_value(
+            user=self.user,
+            project=None,
+            key='subscribe_notes',
             default='1',
         )
 
@@ -105,6 +119,12 @@ class NotificationSettingsForm(forms.Form):
             project=None,
             key='subscribe_by_default',
             value=self.cleaned_data['subscribe_by_default'],
+        )
+        UserOption.objects.set_value(
+            user=self.user,
+            project=None,
+            key='subscribe_notes',
+            value=self.cleaned_data['subscribe_notes'],
         )
 
 
@@ -144,17 +164,19 @@ class AccountSettingsForm(forms.Form):
 
 class AppearanceSettingsForm(forms.Form):
     language = forms.ChoiceField(
-        label=_('Language'), choices=LANGUAGES, required=False)
+        label=_('Language'), choices=LANGUAGES, required=False,
+        widget=forms.Select(attrs={'class': 'input-xlarge'}))
     stacktrace_order = forms.ChoiceField(
         label=_('Stacktrace order'), choices=(
             ('-1', _('Default (let Sentry decide)')),
             ('1', _('Most recent call last')),
             ('2', _('Most recent call first')),
         ), help_text=_('Choose the default ordering of frames in stacktraces.'),
-        required=False)
+        required=False,
+        widget=forms.Select(attrs={'class': 'input-xlarge'}))
     timezone = forms.ChoiceField(
         label=_('Time zone'), choices=TIMEZONE_CHOICES, required=False,
-        widget=forms.Select(attrs={'class': 'span4'}))
+        widget=forms.Select(attrs={'class': 'input-xxlarge'}))
 
     def __init__(self, user, *args, **kwargs):
         self.user = user
