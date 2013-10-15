@@ -107,8 +107,9 @@ DATABASES = {
 SENTRY_URL_PREFIX = 'http://sentry.example.com'  # No trailing slash!
 
 # If you're using a reverse proxy, you should enable the X-Forwarded-Proto
-# header, and uncomment the following setting
+# and X-Forwarded-Host headers, and uncomment the following settings
 # SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# USE_X_FORWARDED_HOST = True
 
 SENTRY_WEB_HOST = '0.0.0.0'
 SENTRY_WEB_PORT = 9000
