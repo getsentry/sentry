@@ -34,7 +34,7 @@ class MailPlugin(NotificationPlugin):
     subject_prefix = settings.EMAIL_SUBJECT_PREFIX
 
     def _send_mail(self, subject, body, html_body=None, project=None,
-                   fail_silently=False):
+                   headers=None, fail_silently=False):
         send_to = self.get_send_to(project)
         if not send_to:
             return
@@ -45,6 +45,7 @@ class MailPlugin(NotificationPlugin):
             subject='%s%s' % (subject_prefix, subject),
             body=body,
             html_body=html_body,
+            headers=headers,
         )
         msg.send(send_to, fail_silently=fail_silently)
 
