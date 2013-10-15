@@ -1134,7 +1134,7 @@ class Activity(Model):
 
         user_list = list(User.objects.filter(
             groupseen__group=self.group,
-        ).exclude(user=self.user))
+        ).exclude(id=self.user.id))
         disabled = set(UserOption.objects.filter(
             user__in=user_list, key='subscribe_comments', value='0'))
 
