@@ -493,11 +493,11 @@ class EventBase(Model):
         super(EventBase, self).save(*args, **kwargs)
 
     def error(self):
-        message = strip(self.message.splitlines()[0])
-        if message:
-            message = truncatechars(message, 100)
-        else:
+        message = strip(self.message)
+        if not message:
             message = '<unlabeled message>'
+        else:
+            message = truncatechars(message.splitlines()[0], 100)
         return message
     error.short_description = _('error')
 
