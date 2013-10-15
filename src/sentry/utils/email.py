@@ -35,9 +35,7 @@ class MessageBuilder(object):
         else:
             headers = self.headers.copy()
 
-        headers = {
-            'Reply-To': ', '.join(to),
-        }
+        headers.setdefault('Reply-To', ', '.join(to))
 
         if self.template:
             txt_body = render_to_string(self.template, self.context)
