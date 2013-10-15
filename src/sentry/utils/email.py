@@ -16,7 +16,7 @@ from sentry.web.helpers import render_to_string
 
 class MessageBuilder(object):
     def __init__(self, subject, context=None, template=None, html_template=None,
-                 body=None, html_body=None):
+                 body=None, html_body=None, headers=None):
         assert not (body and template)
         assert not (html_body and html_template)
         assert context or not (template or html_template)
@@ -27,8 +27,14 @@ class MessageBuilder(object):
         self.html_template = html_template
         self.body = body
         self.html_body = html_body
+        self.headers = headers
 
     def build(self, to):
+        if self.headers is None:
+            headers = {}
+        else:
+            headers = self.headers.copy()
+
         headers = {
             'Reply-To': ', '.join(to),
         }
