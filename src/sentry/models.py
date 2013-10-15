@@ -493,7 +493,7 @@ class EventBase(Model):
         super(EventBase, self).save(*args, **kwargs)
 
     def error(self):
-        message = strip(self.message)
+        message = strip(self.message.splitlines()[0])
         if message:
             message = truncatechars(message, 100)
         else:
@@ -509,10 +509,7 @@ class EventBase(Model):
         culprit = strip(self.culprit)
         if culprit:
             return culprit
-        message = strip(self.message)
-        if not strip(message):
-            return '<unlabeled message>'
-        return truncatechars(message.splitlines()[0], 100)
+        return self.error()
 
     @property
     def team(self):
