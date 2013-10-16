@@ -35,7 +35,7 @@ def delete_project(object_id, **kwargs):
             has_results = True
 
         if has_results:
-            delete_project.delay(object_id=object_id)
+            delete_project.delay(object_id=object_id, queue='cleanup')
     p.delete()
 
 
