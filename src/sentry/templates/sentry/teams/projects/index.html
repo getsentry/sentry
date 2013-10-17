@@ -26,7 +26,11 @@
                 {% for project in project_list %}
                     <tr>
                         <td>
-                            <a href="{% url 'sentry-manage-project' project.team.slug project.slug %}">{{ project.name }}</a> &mdash; {{ project.slug }}<br>
+                            <a href="{% url 'sentry-manage-project' project.team.slug project.slug %}">{{ project.name }}</a>
+                            {% if project.status == STATUS_HIDDEN %}
+                                (pending deletion)
+                            {% endif %}<br>
+                             {{ team.slug }}/{{ project.slug }}
                         </td>
                         <td style="text-align:center;">
                             {{ project.date_added|timesince }}

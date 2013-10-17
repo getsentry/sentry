@@ -11,9 +11,11 @@ from celery.task import task
 
 @task(name='sentry.tasks.deletion.delete_project', queue='cleanup')
 def delete_project(object_id, **kwargs):
+    from sentry.constants import STATUS_HIDDEN
     from sentry.models import (
-        Project, TagKey, TagValue, GroupTagKey, GroupTag, GroupCountByMinute,
-        ProjectCountByMinute, Activity, EventMapping, Event, Group
+        Project, ProjectKey, TagKey, TagValue, GroupTagKey, GroupTag,
+        GroupCountByMinute, ProjectCountByMinute, Activity, EventMapping,
+        Event, Group
     )
 
     try:
@@ -21,13 +23,17 @@ def delete_project(object_id, **kwargs):
     except Project.DoesNotExist:
         return
 
+    if p.status != STATUS_HIDDEN:
+        p.update(status=STATUS_HIDDEN)
+
     logger = delete_project.get_logger()
 
     # This handles cascades properly
     # TODO: this doesn't clean up the index
     for model in (
-            TagKey, TagValue, GroupTagKey, GroupTag, GroupCountByMinute,
-            ProjectCountByMinute, Activity, EventMapping, Event, Group):
+            ProjectKey, TagKey, TagValue, GroupTagKey, GroupTag,
+            GroupCountByMinute, ProjectCountByMinute, Activity, EventMapping,
+            Event, Group):
         logger.info('Removing %r objects where project=%s', model, p.id)
         has_results = False
         for obj in model.objects.filter(project=p)[:1000]:
@@ -35,7 +41,7 @@ def delete_project(object_id, **kwargs):
             has_results = True
 
         if has_results:
-            delete_project.delay(object_id=object_id, queue='cleanup')
+            delete_project.delay(object_id=object_id)
     p.delete()
 
 
