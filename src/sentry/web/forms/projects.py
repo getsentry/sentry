@@ -69,7 +69,7 @@ class RemoveProjectForm(forms.Form):
         label=_("Password"), widget=forms.PasswordInput,
         help_text=_("Confirm your identity by entering your password."))
 
-    def __init__(self, user, project_list, *args, **kwargs):
+    def __init__(self, user, *args, **kwargs):
         super(RemoveProjectForm, self).__init__(*args, **kwargs)
         self.user = user
         # HACK: don't require current password if they don't have one

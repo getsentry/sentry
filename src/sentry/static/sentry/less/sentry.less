@@ -1609,13 +1609,6 @@ legend {
   font-size: 0.65em;
 }
 
-.btn-primary {
-  .buttonBackground(#61C1EF, #4593DE);
-  font-weight: bold;
-}
-// #5e6a77
-// #505962
-
 section.body .page-header:first-child {
   margin-top: 0;
 }
@@ -2004,6 +1997,17 @@ section.body .page-header:first-child {
       border-color: darken(#589ac3, 5);
     }
   }
+
+  &.btn-danger {
+    background: #da4f49;
+    color: #fff;
+    border-color: #bd362f;
+    &:hover {
+      background: darken(#da4f49, 3);
+      border-color: darken(#bd362f, 5);
+    }
+  }
+
 }
 
 section.body {
