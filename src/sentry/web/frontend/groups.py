@@ -403,10 +403,10 @@ def group(request, team, project, group, event_id=None):
         add_note_form = NewNoteForm()
 
     activity_qs = Activity.objects.order_by('-datetime').select_related('user')
-    if event:
-        activity_qs = activity_qs.filter(
-            Q(event=event) | Q(event__isnull=True),
-        )
+    # if event_id:
+    #     activity_qs = activity_qs.filter(
+    #         Q(event=event) | Q(event__isnull=True),
+    #     )
 
     if project in Project.objects.get_for_user(
             request.user, team=team, superuser=False):
