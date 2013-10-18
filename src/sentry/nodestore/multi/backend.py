@@ -10,8 +10,6 @@ from __future__ import absolute_import
 
 import random
 
-from django.utils import timezone
-
 from sentry.nodestore.base import NodeStorage
 from sentry.utils.imports import import_string
 
@@ -47,14 +45,11 @@ class MultiNodeStorage(NodeStorage):
         backend = random.choice(self.backends)
         return backend.get_multi(id_list=id_list)
 
-    def set(self, id, data, timestamp=None):
-        if timestamp is None:
-            timestamp = timezone.now()
-
+    def set(self, id, data):
         should_raise = False
         for backend in self.backends:
             try:
-                backend.set(id=id, data=data, timestamp=timestamp)
+                backend.set(id=id, data=data)
             except Exception:
                 should_raise = True
 

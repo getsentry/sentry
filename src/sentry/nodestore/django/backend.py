@@ -29,14 +29,12 @@ class DjangoNodeStorage(NodeStorage):
             for n in Node.objects.filter(id__in=id_list)
         )
 
-    def set(self, id, data, timestamp=None):
+    def set(self, id, data):
         create_or_update(
             Node,
             id=id,
-            data=data,
-            timestamp=timestamp or timezone.now()
+            defaults={
+                'data': data,
+                'timestamp': timezone.now(),
+            },
         )
-
-    def set_multi(self, values):
-        for v in values:
-            self.set(**v)

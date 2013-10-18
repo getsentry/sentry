@@ -51,6 +51,22 @@ class DjangoNodeStorageTest(TestCase):
             'foo': 'bar',
         }
 
+    def test_set_multi(self):
+        self.ns.set_multi({
+            'd2502ebbd7df41ceba8d3275595cac33': {
+                'foo': 'bar',
+            },
+            '5394aa025b8e401ca6bc3ddee3130edc': {
+                'foo': 'baz',
+            },
+        })
+        assert Node.objects.get(id='d2502ebbd7df41ceba8d3275595cac33').data == {
+            'foo': 'bar',
+        }
+        assert Node.objects.get(id='5394aa025b8e401ca6bc3ddee3130edc').data == {
+            'foo': 'baz',
+        }
+
     def test_create(self):
         node_id = self.ns.create({
             'foo': 'bar',

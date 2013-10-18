@@ -12,26 +12,47 @@ import uuid
 
 
 class NodeStorage(object):
-    def create(self, data, timestamp=None):
+    def create(self, data):
+        """
+        >>> key = nodestore.create({'foo': 'bar'})
+        """
         node_id = self.generate_id()
-        self.set(node_id, data, timestamp)
+        self.set(node_id, data)
         return node_id
 
     def get(self, id):
+        """
+        >>> data = nodestore.get('key1')
+        >>> print data
+        """
         raise NotImplementedError
 
     def get_multi(self, id_list):
+        """
+        >>> data_map = nodestore.get_multi(['key1', 'key2')
+        >>> print 'key1', data_map['key1']
+        >>> print 'key2', data_map['key2']
+        """
         return dict(
             (id, self.get(id))
             for id in id_list
         )
 
-    def set(self, id, data, timestamp=None):
+    def set(self, id, data):
+        """
+        >>> nodestore.set('key1', {'foo': 'bar'})
+        """
         raise NotImplementedError
 
     def set_multi(self, values):
-        for v in values:
-            self.set(**v)
+        """
+        >>> nodestore.set_multi({
+        >>>     'key1': {'foo': 'bar'},
+        >>>     'key2': {'foo': 'baz'},
+        >>> })
+        """
+        for id, data in values.iteritems():
+            self.set(id=id, data=data)
 
     def generate_id(self):
         return uuid.uuid4().hex
