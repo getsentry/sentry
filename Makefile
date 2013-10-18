@@ -10,20 +10,21 @@ JS_REPORTER = dot
 
 develop: update-submodules
 	npm install -q
+	# order matters here, base package must install first
+	pip install -q -e . --use-mirrors
 	pip install -q "file://`pwd`#egg=sentry[dev]" --use-mirrors
 	pip install -q "file://`pwd`#egg=sentry[tests]" --use-mirrors
-	pip install -q -e . --use-mirrors
 	make setup-git
 
 dev-postgres:
+	pip install -q -e . --use-mirrors
 	pip install -q "file://`pwd`#egg=sentry[dev]" --use-mirrors
 	pip install -q "file://`pwd`#egg=sentry[postgres]" --use-mirrors
-	pip install -q -e . --use-mirrors
 
 dev-mysql:
+	pip install -q -e . --use-mirrors
 	pip install -q "file://`pwd`#egg=sentry[dev]" --use-mirrors
 	pip install -q "file://`pwd`#egg=sentry[mysql]" --use-mirrors
-	pip install -q -e . --use-mirrors
 
 dev-docs:
 	pip install -q -r docs/requirements.txt --use-mirrors

@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-# Generated on: 14-09-2013 at 22:13
+# Generated on: 20-09-2013 at 12:38
 
 require 'time'
 require 'net/http'
@@ -10,7 +10,7 @@ require 'digest/sha1'
 require 'fileutils'
 require 'openssl'
 require 'base64'
-
+require 'cgi'
 class Presss
   # Computes the Authorization header for a AWS request based on a message,
   # the access key ID and secret access key.
@@ -102,13 +102,13 @@ class Presss
       canonical_path = canonicalized_resource(path)
       signature      = [ verb.to_s.upcase, nil, nil, expires, [ headers, canonical_path ].flatten.compact ].flatten.join("\n")
       signed         = authorization.sign(signature)
-      "#{url_prefix}#{path}?Signature=#{signed}&Expires=#{expires}&AWSAccessKeyId=#{authorization.access_key_id}"
+      "#{url_prefix}#{path}?Signature=#{CGI.escape(signed)}&Expires=#{expires}&AWSAccessKeyId=#{CGI.escape(authorization.access_key_id)}"
     end
 
     def download(path, destination)
       url = signed_url(:get, Time.now.to_i + 600, nil, path)
       Presss.log "signed_url=#{url}"
-      system 'curl', '-f', '-o', destination, url
+      system 'curl', '-f', '-S', '-o', destination, url
       $?.success?
     end
 
@@ -118,7 +118,7 @@ class Presss
       header = 'x-amz-storage-class:REDUCED_REDUNDANCY'
       url = signed_url(:put, Time.now.to_i + 600, header, path)
       Presss.log "signed_url=#{url}"
-      system 'curl', '-f', '-H', header, '-T', file, url
+      system 'curl', '-f', '-S', '-H', header, '-T', file, url
       $?.success?
     end
   end
@@ -219,25 +219,21 @@ class Wad
   def s3_bucket_name
     if bucket = ENV['WAD_S3_BUCKET_NAME'] || ENV['S3_BUCKET_NAME']
       bucket
-    else
-      abort "Must provide WAD_S3_BUCKET_NAME="
     end
   end
 
   def s3_credentials
     if creds = ENV['WAD_S3_CREDENTIALS'] || ENV['S3_CREDENTIALS']
       creds.split(':')
-    else
-      abort "Must provide WAD_S3_CREDENTIALS="
     end
   end
 
   def s3_access_key_id
-    s3_credentials[0]
+    s3_credentials && s3_credentials[0]
   end
 
   def s3_secret_access_key
-    s3_credentials[1]
+    s3_credentials && s3_credentials[1]
   end
 
   def s3_path
@@ -276,14 +272,14 @@ class Wad
 
   def zip
     log "Creating artifact with tar (#{File.basename(bzip_filename)})"
-    system("cd #{project_root} && tar -cjf #{bzip_filename} #{cache_path.join(' ')}")
+    system("cd #{project_root} && tar -cPjf #{bzip_filename} #{cache_path.join(' ')}")
     $?.success?
   end
 
 
   def unzip
     log "Unpacking artifact with tar (#{File.basename(bzip_filename)})"
-    system("cd #{project_root} && tar -xjf #{bzip_filename}")
+    system("cd #{project_root} && tar -xPjf #{bzip_filename}")
     $?.success?
   end
 
@@ -312,7 +308,10 @@ class Wad
   end
 
   def setup
-    if get
+    if !s3_credentials || !s3_bucket_name
+      log "No S3 credentials defined. Set WAD_S3_CREDENTIALS= and WAD_S3_BUCKET_NAME= for caching."
+      install
+    elsif get
       install
     elsif install
       put
