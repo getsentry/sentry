@@ -42,6 +42,7 @@ def delete_project(object_id, **kwargs):
 
         if has_results:
             delete_project.delay(object_id=object_id)
+            return
     p.delete()
 
 
