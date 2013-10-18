@@ -6,12 +6,31 @@ sentry.web.forms.accounts
 :license: BSD, see LICENSE for more details.
 """
 
+import pytz
+
+from datetime import datetime
+
 from django import forms
 from django.contrib.auth import authenticate
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import EMPTY_PASSWORD_VALUES, LANGUAGES
 from sentry.models import UserOption, User
+
+
+def _get_timezone_choices():
+    results = []
+    for tz in pytz.common_timezones:
+        now = datetime.now(pytz.timezone(tz))
+        offset = now.strftime('%z')
+        results.append((int(offset), tz, '(GMT%s) %s' % (offset, tz)))
+    results.sort()
+
+    for i in xrange(len(results)):
+        results[i] = results[i][1:]
+    return results
+
+TIMEZONE_CHOICES = _get_timezone_choices()
 
 
 class RegistrationForm(forms.ModelForm):
@@ -50,10 +69,18 @@ class RegistrationForm(forms.ModelForm):
 
 class NotificationSettingsForm(forms.Form):
     alert_email = forms.EmailField(help_text=_('Designate an alternative email address to send email notifications to.'), required=False)
-    subscribe_by_default = forms.ChoiceField(choices=(
-        ('1', _('Automatically subscribe to notifications for new projects')),
-        ('0', _('Do not subscribe to notifications for new projects')),
-    ), required=False)
+    subscribe_by_default = forms.ChoiceField(
+        choices=(
+            ('1', _('Automatically subscribe to notifications for new projects')),
+            ('0', _('Do not subscribe to notifications for new projects')),
+        ), required=False,
+        widget=forms.Select(attrs={'class': 'input-xxlarge'}))
+    subscribe_notes = forms.ChoiceField(
+        choices=(
+            ('1', _('Get notified about new notes on events I\'ve seen')),
+            ('0', _('Do not subscribe to note notifications')),
+        ), required=False,
+        widget=forms.Select(attrs={'class': 'input-xxlarge'}))
 
     def __init__(self, user, *args, **kwargs):
         self.user = user
@@ -68,6 +95,12 @@ class NotificationSettingsForm(forms.Form):
             user=self.user,
             project=None,
             key='subscribe_by_default',
+            default='1',
+        )
+        self.fields['subscribe_notes'].initial = UserOption.objects.get_value(
+            user=self.user,
+            project=None,
+            key='subscribe_notes',
             default='1',
         )
 
@@ -86,6 +119,12 @@ class NotificationSettingsForm(forms.Form):
             project=None,
             key='subscribe_by_default',
             value=self.cleaned_data['subscribe_by_default'],
+        )
+        UserOption.objects.set_value(
+            user=self.user,
+            project=None,
+            key='subscribe_notes',
+            value=self.cleaned_data['subscribe_notes'],
         )
 
 
@@ -124,25 +163,26 @@ class AccountSettingsForm(forms.Form):
 
 
 class AppearanceSettingsForm(forms.Form):
-    language = forms.ChoiceField(label=_('Language'), choices=LANGUAGES, required=False)
-    stacktrace_order = forms.ChoiceField(label=_('Stacktrace order'), choices=(
-        ('-1', _('Default (let Sentry decide)')),
-        ('1', _('Most recent call last')),
-        ('2', _('Most recent call first')),
-    ), help_text=_('Choose the default ordering of frames in stacktraces.'), required=False)
+    language = forms.ChoiceField(
+        label=_('Language'), choices=LANGUAGES, required=False,
+        widget=forms.Select(attrs={'class': 'input-xlarge'}))
+    stacktrace_order = forms.ChoiceField(
+        label=_('Stacktrace order'), choices=(
+            ('-1', _('Default (let Sentry decide)')),
+            ('1', _('Most recent call last')),
+            ('2', _('Most recent call first')),
+        ), help_text=_('Choose the default ordering of frames in stacktraces.'),
+        required=False,
+        widget=forms.Select(attrs={'class': 'input-xlarge'}))
+    timezone = forms.ChoiceField(
+        label=_('Time zone'), choices=TIMEZONE_CHOICES, required=False,
+        widget=forms.Select(attrs={'class': 'input-xxlarge'}))
 
     def __init__(self, user, *args, **kwargs):
         self.user = user
         super(AppearanceSettingsForm, self).__init__(*args, **kwargs)
 
     def save(self):
-        # if self.cleaned_data['new_password2']:
-        #     self.user.set_password(self.cleaned_data['new_password1'])
-        # self.user.first_name = self.cleaned_data['first_name']
-        # self.user.email = self.cleaned_data['email']
-        # if commit:
-        #     self.user.save()
-
         # Save user language
         UserOption.objects.set_value(
             user=self.user,
@@ -157,6 +197,14 @@ class AppearanceSettingsForm(forms.Form):
             project=None,
             key='stacktrace_order',
             value=self.cleaned_data['stacktrace_order'],
+        )
+
+        # Save time zone options
+        UserOption.objects.set_value(
+            user=self.user,
+            project=None,
+            key='timezone',
+            value=self.cleaned_data['timezone'],
         )
 
         return self.user
@@ -193,7 +241,7 @@ class ProjectEmailOptionsForm(forms.Form):
             user, project, 'mail:alert', None)
         if is_enabled is None:
             is_enabled = UserOption.objects.get_value(
-                user, None, 'subscribe_by_default', 1) == 1
+                user, None, 'subscribe_by_default', '1') == '1'
         else:
             is_enabled = bool(is_enabled)
 

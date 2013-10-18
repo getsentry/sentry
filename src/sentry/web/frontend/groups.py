@@ -17,7 +17,6 @@ import re
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.db.models import Q
 from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -40,6 +39,7 @@ from sentry.utils import json
 from sentry.utils.dates import parse_date
 from sentry.utils.db import has_trending, get_db_engine
 from sentry.web.decorators import has_access, has_group_access, login_required
+from sentry.web.forms import NewNoteForm
 from sentry.web.helpers import render_to_response, group_is_public
 
 uuid_re = re.compile(r'^[a-z0-9]{32}$', re.I)
@@ -259,7 +259,7 @@ def wall_display(request, team):
 @login_required
 @has_access
 def search(request, team, project):
-    query = request.GET.get('q')
+    query = request.GET.get('q', '').strip()
 
     if not query:
         return HttpResponseRedirect(reverse('sentry-stream', args=[team.slug, project.slug]))
@@ -379,12 +379,8 @@ def group_list(request, team, project):
 def group(request, team, project, group, event_id=None):
     # It's possible that a message would not be created under certain
     # circumstances (such as a post_save signal failing)
-    activity_qs = Activity.objects.order_by('-datetime').select_related('user')
     if event_id:
         event = get_object_or_404(group.event_set, id=event_id)
-        activity_qs = activity_qs.filter(
-            Q(event=event) | Q(event__isnull=True),
-        )
     else:
         event = group.get_latest_event() or Event()
 
@@ -393,6 +389,25 @@ def group(request, team, project, group, event_id=None):
     # bind params to group in case they get hit
     event.group = group
     event.project = project
+
+    if request.POST.get('o') == 'note' and request.user.is_authenticated():
+        add_note_form = NewNoteForm(request.POST)
+        if add_note_form.is_valid():
+            activity = Activity.objects.create(
+                group=group, event=event, project=project,
+                type=Activity.NOTE, user=request.user,
+                data=add_note_form.cleaned_data
+            )
+            activity.send_notification()
+            return HttpResponseRedirect(request.path)
+    else:
+        add_note_form = NewNoteForm()
+
+    activity_qs = Activity.objects.order_by('-datetime').select_related('user')
+    # if event_id:
+    #     activity_qs = activity_qs.filter(
+    #         Q(event=event) | Q(event__isnull=True),
+    #     )
 
     if project in Project.objects.get_for_user(
             request.user, team=team, superuser=False):
@@ -410,14 +425,22 @@ def group(request, team, project, group, event_id=None):
     # filter out dupe activity items
     activity_items = set()
     activity = []
-    for item in activity_qs.filter(group=group)[:10]:
+    for item in activity_qs.filter(group=group)[:20]:
         sig = (item.event_id, item.type, item.ident, item.user_id)
-        if sig not in activity_items:
+        # TODO: we could just generate a signature (hash(text)) for notes
+        # so theres no special casing
+        if item.type == Activity.NOTE:
+            activity.append(item)
+        elif sig not in activity_items:
             activity_items.add(sig)
             activity.append(item)
 
+    activity.append(Activity(
+        project=project, group=group, type=Activity.FIRST_SEEN,
+        datetime=group.first_seen))
+
     # trim to latest 5
-    activity = activity[:5]
+    activity = activity[:7]
 
     seen_by = sorted(filter(lambda ls: ls[0] != request.user and ls[0].email, [
         (gs.user, gs.last_seen)
@@ -431,6 +454,7 @@ def group(request, team, project, group, event_id=None):
     seen_by_faces = seen_by[:5]
 
     context = {
+        'add_note_form': add_note_form,
         'page': 'details',
         'activity': activity,
         'seen_by': seen_by,

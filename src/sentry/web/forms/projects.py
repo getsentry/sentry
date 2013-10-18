@@ -14,7 +14,7 @@ from sentry.constants import EMPTY_PASSWORD_VALUES
 from sentry.models import Project, ProjectOption, User
 from sentry.permissions import can_set_public_projects
 from sentry.web.forms.fields import (
-    RadioFieldRenderer, UserField, OriginsField, RangeField, get_team_choices)
+    UserField, OriginsField, RangeField, get_team_choices)
 
 
 BLANK_CHOICE = [("", "")]
@@ -65,37 +65,16 @@ class NewProjectAdminForm(NewProjectForm):
 
 
 class RemoveProjectForm(forms.Form):
-    removal_type = forms.ChoiceField(choices=(
-        ('1', _('Remove all attached events.')),
-        ('2', _('Migrate events to another project.')),
-        # ('3', _('Hide this project.')),
-    ), widget=forms.RadioSelect(renderer=RadioFieldRenderer))
-    project = forms.ChoiceField(choices=(), required=False)
-    password = forms.CharField(label=_("Password"), widget=forms.PasswordInput, help_text=_("Confirm your identity by entering your password."))
+    password = forms.CharField(
+        label=_("Password"), widget=forms.PasswordInput,
+        help_text=_("Confirm your identity by entering your password."))
 
-    def __init__(self, user, project_list, *args, **kwargs):
+    def __init__(self, user, *args, **kwargs):
         super(RemoveProjectForm, self).__init__(*args, **kwargs)
         self.user = user
-        if not project_list:
-            del self.fields['project']
-            self.fields['removal_type'].choices = filter(lambda x: x[0] != '2', self.fields['removal_type'].choices)
-        else:
-            self.fields['project'].choices = [(p.pk, p.name) for p in project_list]
-            self.fields['project'].widget.choices = self.fields['project'].choices
-
         # HACK: don't require current password if they don't have one
         if self.user.password in EMPTY_PASSWORD_VALUES:
             del self.fields['password']
-
-    def clean(self):
-        data = self.cleaned_data
-        if data.get('removal_type') == 2 and not data.get('project'):
-            raise forms.ValidationError(_('You must select a project to migrate data'))
-        return data
-
-    def clean_project(self):
-        project_id = self.cleaned_data['project']
-        return Project.objects.get_from_cache(id=project_id)
 
     def clean_password(self):
         """

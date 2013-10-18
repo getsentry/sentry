@@ -105,6 +105,13 @@ class GroupTransformer(Transformer):
             active_date = g.active_at or g.last_seen
             g.has_seen = seen_groups.get(g.id, active_date) > active_date
 
+    def localize_datetime(self, dt, request=None):
+        if not request:
+            return dt.isoformat()
+        elif getattr(request, 'timezone', None):
+            return dt.astimezone(request.timezone).isoformat()
+        return dt.isoformat()
+
     def transform(self, obj, request=None):
         d = {
             'id': str(obj.id),
@@ -116,7 +123,8 @@ class GroupTransformer(Transformer):
             'logger': escape(obj.logger),
             'permalink': reverse('sentry-group', args=[obj.team.slug, obj.project.slug, obj.id]),
             'versions': list(obj.get_version() or []),
-            'lastSeen': obj.last_seen.isoformat(),
+            'firstSeen': self.localize_datetime(obj.first_seen, request=request),
+            'lastSeen': self.localize_datetime(obj.last_seen, request=request),
             'timeSpent': obj.avg_time_spent,
             'canResolve': request and request.user.is_authenticated(),
             'isResolved': obj.get_status() == STATUS_RESOLVED,

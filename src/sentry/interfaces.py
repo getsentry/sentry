@@ -998,7 +998,6 @@ class Http(Interface):
             'full_url': '?'.join(filter(bool, [self.url, self.query_string])),
             'url': self.url,
             'method': self.method,
-            'data': data,
             'query_string': self.query_string,
             'headers': self.headers,
         }
@@ -1009,6 +1008,7 @@ class Http(Interface):
             context.update({
                 'cookies': cookies,
                 'env': self.env,
+                'data': data,
             })
 
         return render_to_string('sentry/partial/interfaces/http.html', context)

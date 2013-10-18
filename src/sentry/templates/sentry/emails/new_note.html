@@ -1,0 +1,17 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load i18n %}
+
+{% block header %}
+    <h1>Sentry <small>New Note</small></h1>
+{% endblock %}
+
+{% block inner %}
+    <pre>{{ group.message_top }}</pre>
+
+    <p>A note was added by {{ author }}:</p>
+
+    <blockquote>{{ text|urlize|linebreaks }}</blockquote>
+
+    <p><a href="{{ link }}">{{ link }}</a></p>
+{% endblock %}

@@ -441,8 +441,7 @@ class PendingTeamMember(Model):
         return checksum.hexdigest()
 
     def send_invite_email(self):
-        from django.core.mail import send_mail
-        from sentry.web.helpers import render_to_string
+        from sentry.utils.email import MessageBuilder
 
         context = {
             'email': self.email,
@@ -452,16 +451,15 @@ class PendingTeamMember(Model):
                 'token': self.token,
             })),
         }
-        body = render_to_string('sentry/emails/member_invite.txt', context)
+
+        msg = MessageBuilder(
+            subject='Invite to join team: %s' % (self.team.name,),
+            template='sentry/emails/member_invite.txt',
+            context=context,
+        )
 
         try:
-            send_mail(
-                '%sInvite to join team: %s' % (
-                    settings.EMAIL_SUBJECT_PREFIX, self.team.name
-                ),
-                body, settings.SERVER_EMAIL, [self.email],
-                fail_silently=False
-            )
+            msg.send([self.email])
         except Exception, e:
             logger = logging.getLogger('sentry.mail.errors')
             logger.exception(e)
@@ -495,10 +493,10 @@ class EventBase(Model):
 
     def error(self):
         message = strip(self.message)
-        if message:
-            message = truncatechars(message, 100)
-        else:
+        if not message:
             message = '<unlabeled message>'
+        else:
+            message = truncatechars(message.splitlines()[0], 100)
         return message
     error.short_description = _('error')
 
@@ -510,10 +508,7 @@ class EventBase(Model):
         culprit = strip(self.culprit)
         if culprit:
             return culprit
-        message = strip(self.message)
-        if not strip(message):
-            return '<unlabeled message>'
-        return truncatechars(message.splitlines()[0], 100)
+        return self.error()
 
     @property
     def team(self):
@@ -581,7 +576,7 @@ class Group(EventBase):
     resolved_at = models.DateTimeField(null=True, db_index=True)
     # active_at should be the same as first_seen by default
     active_at = models.DateTimeField(null=True, db_index=True)
-    time_spent_total = models.FloatField(default=0)
+    time_spent_total = BoundedIntegerField(default=0)
     time_spent_count = BoundedIntegerField(default=0)
     score = BoundedIntegerField(default=0)
     is_public = models.NullBooleanField(default=False, null=True)
@@ -726,7 +721,7 @@ class Event(EventBase):
     group = models.ForeignKey(Group, blank=True, null=True, related_name="event_set")
     event_id = models.CharField(max_length=32, null=True, db_column="message_id")
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
-    time_spent = models.FloatField(null=True)
+    time_spent = BoundedIntegerField(null=True)
     server_name = models.CharField(max_length=128, db_index=True, null=True)
     site = models.CharField(max_length=128, db_index=True, null=True)
     data = NodeField(blank=True, null=True)
@@ -954,7 +949,7 @@ class GroupCountByMinute(Model):
     group = models.ForeignKey(Group)
     date = models.DateTimeField(db_index=True)  # normalized to HH:MM:00
     times_seen = BoundedPositiveIntegerField(default=0)
-    time_spent_total = models.FloatField(default=0)
+    time_spent_total = BoundedIntegerField(default=0)
     time_spent_count = BoundedIntegerField(default=0)
 
     objects = BaseManager()
@@ -980,7 +975,7 @@ class ProjectCountByMinute(Model):
     project = models.ForeignKey(Project, null=True)
     date = models.DateTimeField()  # normalized to HH:MM:00
     times_seen = BoundedPositiveIntegerField(default=0)
-    time_spent_total = models.FloatField(default=0)
+    time_spent_total = BoundedIntegerField(default=0)
     time_spent_count = BoundedIntegerField(default=0)
 
     objects = BaseManager()
@@ -1063,8 +1058,7 @@ class LostPasswordHash(Model):
         return self.date_added > timezone.now() - timedelta(days=1)
 
     def send_recover_mail(self):
-        from django.core.mail import send_mail
-        from sentry.web.helpers import render_to_string
+        from sentry.utils.email import MessageBuilder
 
         context = {
             'user': self.user,
@@ -1074,21 +1068,20 @@ class LostPasswordHash(Model):
                 args=[self.user.id, self.hash]
             )),
         }
-        body = render_to_string('sentry/emails/recover_account.txt', context)
+        msg = MessageBuilder(
+            subject='%sPassword Recovery' % (settings.EMAIL_SUBJECT_PREFIX,),
+            template='sentry/emails/recover_account.txt',
+            context=context,
+        )
 
         try:
-            send_mail(
-                '%sPassword Recovery' % (settings.EMAIL_SUBJECT_PREFIX,),
-                body, settings.SERVER_EMAIL, [self.user.email],
-                fail_silently=False
-            )
+            msg.send([self.user.email])
         except Exception, e:
             logger = logging.getLogger('sentry.mail.errors')
             logger.exception(e)
 
 
 class Activity(Model):
-    COMMENT = 0
     SET_RESOLVED = 1
     SET_UNRESOLVED = 2
     SET_MUTED = 3
@@ -1096,10 +1089,11 @@ class Activity(Model):
     SET_PRIVATE = 5
     SET_REGRESSION = 6
     CREATE_ISSUE = 7
+    NOTE = 8
+    FIRST_SEEN = 9
 
     TYPE = (
         # (TYPE, verb-slug)
-        (COMMENT, 'comment'),
         (SET_RESOLVED, 'set_resolved'),
         (SET_UNRESOLVED, 'set_unresolved'),
         (SET_MUTED, 'set_muted'),
@@ -1107,6 +1101,8 @@ class Activity(Model):
         (SET_PRIVATE, 'set_private'),
         (SET_REGRESSION, 'set_regression'),
         (CREATE_ISSUE, 'create_issue'),
+        (NOTE, 'note'),
+        (FIRST_SEEN, 'first_seen'),
     )
 
     project = models.ForeignKey(Project)
@@ -1132,11 +1128,55 @@ class Activity(Model):
             return
 
         # HACK: support Group.num_comments
-        if self.type == Activity.COMMENT:
+        if self.type == Activity.NOTE:
             self.group.update(num_comments=F('num_comments') + 1)
 
             if self.event:
                 self.event.update(num_comments=F('num_comments') + 1)
+
+    def send_notification(self):
+        from sentry.utils.email import MessageBuilder
+
+        if self.type != Activity.NOTE or not self.group:
+            return
+
+        user_list = list(User.objects.filter(
+            groupseen__group=self.group,
+        ).exclude(id=self.user.id))
+        disabled = set(UserOption.objects.filter(
+            user__in=user_list, key='subscribe_comments', value='0'))
+
+        send_to = [
+            u.email for u in user_list
+            if u.id not in disabled
+            and u.email
+        ]
+
+        author = self.user.first_name or self.user.username
+
+        subject = '%s: %s' % (
+            author,
+            self.data['text'].splitlines()[0][:64])
+
+        context = {
+            'text': self.data['text'],
+            'author': author,
+            'group': self.group,
+            'link': self.group.get_absolute_url(),
+        }
+
+        msg = MessageBuilder(
+            subject=subject,
+            context=context,
+            template='sentry/emails/new_note.txt',
+            html_template='sentry/emails/new_note.html',
+        )
+
+        try:
+            msg.send(to=send_to)
+        except Exception, e:
+            logger = logging.getLogger('sentry.mail.errors')
+            logger.exception(e)
 
 
 class GroupSeen(Model):
@@ -1255,6 +1295,7 @@ def create_default_project(created_models, verbosity=2, **kwargs):
         name='Sentry (Internal)',
         slug='sentry',
         owner=user,
+        platform='django',
     )
     # HACK: manually update the ID after insert due to Postgres
     # sequence issues. Seriously, fuck everything about this.

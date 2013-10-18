@@ -50,8 +50,8 @@ SCORE_CLAUSES = SORT_CLAUSES.copy()
 
 SQLITE_SORT_CLAUSES = SORT_CLAUSES.copy()
 SQLITE_SORT_CLAUSES.update({
-    'date': 'sentry_groupedmessage.last_seen',
-    'new': 'sentry_groupedmessage.first_seen',
+    'date': "(julianday(sentry_groupedmessage.last_seen) - 2440587.5) * 86400.0",
+    'new': "(julianday(sentry_groupedmessage.first_seen) - 2440587.5) * 86400.0",
 })
 SQLITE_SCORE_CLAUSES = SQLITE_SORT_CLAUSES.copy()
 
