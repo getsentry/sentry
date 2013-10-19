@@ -2,27 +2,11 @@
 
 from __future__ import absolute_import
 
-import pytest
-
 from sentry.nodestore.riak.backend import RiakNodeStorage
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, requires_riak
 
 
-def riak_is_available():
-    import socket
-    try:
-        socket.create_connection(('127.0.0.1', 8098), 1.0)
-    except socket.error:
-        return False
-    else:
-        return True
-
-require_riak = pytest.mark.skipif(
-    'not riak_is_available()',
-    reason="requires riak server running")
-
-
-@require_riak
+@requires_riak
 class RiakNodeStorageTest(TestCase):
     def setUp(self):
         self.ns = RiakNodeStorage(nodes=[{

@@ -9,6 +9,8 @@ sentry.testutils
 from __future__ import absolute_import
 
 import base64
+import pytest
+
 from exam import Exam, fixture, before  # NOQA
 from functools import wraps
 
@@ -272,3 +274,18 @@ def with_eager_tasks(func):
         finally:
             app.conf.CELERY_ALWAYS_EAGER = prev
     return wrapped
+
+
+def riak_is_available():
+    import socket
+    try:
+        socket.create_connection(('127.0.0.1', 8098), 1.0)
+    except socket.error:
+        return False
+    else:
+        return True
+
+
+requires_riak = pytest.mark.skipif(
+    'not riak_is_available()',
+    reason="requires riak server running")
