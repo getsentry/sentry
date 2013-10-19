@@ -32,14 +32,15 @@ class MultiNodeStorage(NodeStorage):
 
         self.backends = []
         for backend, backend_options in backends:
-            cls = import_string(backend)
-            self.backends.append(cls(**backend_options))
+            if isinstance(backend, basestring):
+                backend = import_string(backend)
+            self.backends.append(backend(**backend_options))
         super(MultiNodeStorage, self).__init__(**kwargs)
 
     def get(self, id):
         # just fetch it from a random backend, we're not aiming for consistency
         backend = random.choice(self.backends)
-        return backend.get(id=id)
+        return backend.get(id)
 
     def get_multi(self, id_list):
         backend = random.choice(self.backends)
@@ -49,7 +50,7 @@ class MultiNodeStorage(NodeStorage):
         should_raise = False
         for backend in self.backends:
             try:
-                backend.set(id=id, data=data)
+                backend.set(id, data)
             except Exception:
                 should_raise = True
 
