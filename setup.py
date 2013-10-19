@@ -57,6 +57,7 @@ tests_require = [
     'nydus',
     'mock>=0.8.0',
     'redis',
+    'riak',
     'unittest2',
 ]
 
