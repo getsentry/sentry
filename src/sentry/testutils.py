@@ -287,5 +287,5 @@ def riak_is_available():
 
 
 requires_riak = pytest.mark.skipif(
-    'not riak_is_available()',
+    lambda x: not riak_is_available(),
     reason="requires riak server running")
