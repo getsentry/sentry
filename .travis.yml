@@ -1,4 +1,10 @@
 language: python
+services:
+  - memcached
+  - riak
+  - mysql
+  - postgresql
+  - redis-server
 python:
   - "2.6"
   - "2.7"
