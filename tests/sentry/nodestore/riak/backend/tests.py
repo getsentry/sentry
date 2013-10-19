@@ -25,10 +25,10 @@ require_riak = pytest.mark.skipif(
 @require_riak
 class RiakNodeStorageTest(TestCase):
     def setUp(self):
-        self.ns = RiakNodeStorage(nodes=({
+        self.ns = RiakNodeStorage(nodes=[{
             'host': '127.0.0.1',
             'http_port': 8098,
-        }))
+        }])
 
     def test_integration(self):
         node_id = self.ns.create({
