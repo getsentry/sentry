@@ -20,10 +20,11 @@ class RiakNodeStorage(NodeStorage):
 
     >>> RiakNodeStorage(nodes=[{'host':'127.0.0.1','http_port':8098}])
     """
-    def __init__(self, nodes, bucket='nodes', **kwargs):
-        self.conn = riak.RiakClient(nodes=nodes, **kwargs)
-        self.bucket = self.conn.bucket(
-            bucket, resolver=riak.resolver.last_written_resolver)
+    def __init__(self, nodes, bucket='nodes',
+                 resolver=riak.resolver.last_written_resolver, **kwargs):
+        self.conn = riak.RiakClient(
+            nodes=nodes, resolver=resolver, **kwargs)
+        self.bucket = self.conn.bucket(bucket)
         super(RiakNodeStorage, self).__init__(**kwargs)
 
     def create(self, data):
