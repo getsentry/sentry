@@ -17,9 +17,12 @@ def riak_is_available():
     else:
         return True
 
+require_riak = pytest.mark.skipif(
+    'not riak_is_available()',
+    reason="requires riak server running")
 
-@pytest.mark.skipif('not riak_is_available()',
-                    reason="requires riak server running")
+
+@require_riak
 class RiakNodeStorageTest(TestCase):
     def setUp(self):
         self.ns = RiakNodeStorage(nodes=({
