@@ -120,11 +120,9 @@
     <field name="project" type="int" indexed="true" stored="false" multiValued="false" />
     <field name="team" type="int" indexed="true" stored="false" multiValued="false" />
 
-    <field name="status" type="int" indexed="true" stored="false" multiValued="false" />
     <field name="tags" type="string" indexed="true" stored="false" multiValued="true" />
 
-    <field name="last_seen" type="tdate" indexed="true" stored="false" multiValued="false" docValues="true" />
-    <field name="first_seen" type="tdate" indexed="true" stored="false" multiValued="false" docValues="true" />
+    <field name="datetime" type="tdate" indexed="true" stored="false" multiValued="false" docValues="true" />
   </fields>
 
 
