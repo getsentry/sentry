@@ -15,11 +15,14 @@ class State(local):
     request = None
     data = {}
 
+env = State()
+
 
 def get_instance(path, options):
     cls = import_string(path)
     return cls(**options)
 
+
 buffer = get_instance(settings.SENTRY_BUFFER, settings.SENTRY_BUFFER_OPTIONS)
 quotas = get_instance(settings.SENTRY_QUOTAS, settings.SENTRY_QUOTA_OPTIONS)
-env = State()
+search = get_instance(settings.SENTRY_SEARCH, settings.SENTRY_SEARCH_OPTIONS)
