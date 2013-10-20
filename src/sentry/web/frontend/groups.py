@@ -509,6 +509,8 @@ def group_tag_details(request, team, project, group, tag_name):
 def group_event_list(request, team, project, group):
     event_list = group.event_set.all().order_by('-datetime')
 
+    Event.objects.bind_nodes(event_list, 'data')
+
     return render_with_group_context(group, 'sentry/groups/event_list.html', {
         'event_list': event_list,
         'page': 'event_list',
