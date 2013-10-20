@@ -190,13 +190,18 @@ class EventNodeStoreTest(TestCase):
         if connection.features.can_return_id_from_insert:
             r_fmt, r_params = connection.ops.return_insert_id()
             if r_fmt:
-                query_bits.append(r_fmt % 'id')
+                query_bits.append(r_fmt % Event._meta.pk.column)
                 params += r_params
 
         cursor = connection.cursor()
         cursor.execute(' '.join(query_bits), params)
 
-        event_id = cursor.lastrowid
+        if connection.features.can_return_id_from_insert:
+            event_id = connection.ops.fetch_returned_insert_id(cursor)
+        else:
+            event_id = connection.ops.last_insert_id(
+                cursor, Event._meta.db_table, Event._meta.pk.column)
+
         event = Event.objects.get(id=event_id)
         assert type(event.data) == NodeData
         assert event.data == data
