@@ -180,11 +180,22 @@ class EventNodeStoreTest(TestCase):
         group = self.group
         data = {'key': 'value'}
 
+        query_bits = [
+            "INSERT INTO sentry_message (group_id, project_id, data, logger, level, message, checksum, datetime)",
+            "VALUES(%s, %s, %s, '', 0, %s, %s, %s)",
+        ]
+        params = [group.id, group.project_id, compress(pickle.dumps(data)), 'test', 'a' * 32, timezone.now()]
+
+        # This is pulled from SQLInsertCompiler
+        if connection.features.can_return_id_from_insert:
+            r_fmt, r_params = connection.ops.return_insert_id()
+            if r_fmt:
+                query_bits.append(r_fmt % 'id')
+                params += r_params
+
         cursor = connection.cursor()
-        cursor.execute(
-            "INSERT INTO sentry_message (group_id, project_id, data, logger, level, message, checksum, datetime) VALUES(%s, %s, %s, '', 0, %s, %s, %s)",
-            [group.id, group.project_id, compress(pickle.dumps(data)), 'test', 'a' * 32, timezone.now()]
-        )
+        cursor.execute(' '.join(query_bits), params)
+
         event_id = cursor.lastrowid
         event = Event.objects.get(id=event_id)
         assert type(event.data) == NodeData
