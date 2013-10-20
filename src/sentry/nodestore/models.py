@@ -1,5 +1,5 @@
 """
-sentry.db.models.fields
+sentry.nodestore.models
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 :copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
@@ -8,6 +8,6 @@ sentry.db.models.fields
 
 from __future__ import absolute_import
 
-from .bounded import *  # NOQA
-from .gzippeddict import *  # NOQA
-from .node import *  # NOQA
+# HACK(dcramer): Django doesn't play well with our naming schemes, and we prefer
+# our methods ways over Django's limited scoping
+from .django.models import *  # NOQA

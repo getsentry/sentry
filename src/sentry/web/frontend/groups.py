@@ -384,6 +384,8 @@ def group(request, team, project, group, event_id=None):
     else:
         event = group.get_latest_event() or Event()
 
+    Event.objects.bind_nodes([event], 'data')
+
     # bind params to group in case they get hit
     event.group = group
     event.project = project
@@ -507,6 +509,8 @@ def group_tag_details(request, team, project, group, tag_name):
 def group_event_list(request, team, project, group):
     event_list = group.event_set.all().order_by('-datetime')
 
+    Event.objects.bind_nodes(event_list, 'data')
+
     return render_with_group_context(group, 'sentry/groups/event_list.html', {
         'event_list': event_list,
         'page': 'event_list',
@@ -527,6 +531,8 @@ def group_event_list_json(request, team, project, group_id):
 
     events = group.event_set.order_by('-id')[:limit]
 
+    Event.objects.bind_nodes(events, 'data')
+
     return HttpResponse(json.dumps([event.as_dict() for event in events]), mimetype='application/json')
 
 
@@ -540,6 +546,8 @@ def group_event_details_json(request, team, project, group_id, event_id_or_lates
         event = group.get_latest_event() or Event()
     else:
         event = get_object_or_404(group.event_set, pk=event_id_or_latest)
+
+    Event.objects.bind_nodes([event], 'data')
 
     return HttpResponse(json.dumps(event.as_dict()), mimetype='application/json')
 

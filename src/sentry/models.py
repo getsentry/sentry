@@ -40,7 +40,7 @@ from sentry.constants import (
     LOG_LEVELS, MAX_CULPRIT_LENGTH, MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH)
 from sentry.db.models import (
     Model, GzippedDictField, BoundedIntegerField, BoundedPositiveIntegerField,
-    update, sane_repr)
+    NodeField, update, sane_repr)
 from sentry.manager import (
     GroupManager, ProjectManager,
     MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager,
@@ -480,7 +480,6 @@ class EventBase(Model):
         max_length=MAX_CULPRIT_LENGTH, blank=True, null=True,
         db_column='view')
     checksum = models.CharField(max_length=32, db_index=True)
-    data = GzippedDictField(blank=True, null=True)
     num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
 
@@ -581,6 +580,7 @@ class Group(EventBase):
     time_spent_count = BoundedIntegerField(default=0)
     score = BoundedIntegerField(default=0)
     is_public = models.NullBooleanField(default=False, null=True)
+    data = GzippedDictField(blank=True, null=True)
 
     objects = GroupManager()
 
@@ -724,6 +724,7 @@ class Event(EventBase):
     time_spent = BoundedIntegerField(null=True)
     server_name = models.CharField(max_length=128, db_index=True, null=True)
     site = models.CharField(max_length=128, db_index=True, null=True)
+    data = NodeField(blank=True, null=True)
 
     objects = BaseManager()
 
