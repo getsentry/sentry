@@ -58,7 +58,10 @@ class SolrClient(object):
         resp = self.http.urlopen(
             method, url, body=body, headers=headers, timeout=self.timeout)
 
-        if resp.status != 200:
+        if resp.status == 404:
+            raise SolrError('Request handler not found at %s' % (
+                url,))
+        elif resp.status != 200:
             raise SolrError(resp.data)
 
         return resp
