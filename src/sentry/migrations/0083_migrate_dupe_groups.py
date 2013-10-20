@@ -9,7 +9,7 @@ class Migration(DataMigration):
     def forwards(self, orm):
         from django.db.models import F
         from collections import defaultdict
-        from sentry.utils.models import create_or_update
+        from sentry.db.models import create_or_update
         from sentry.utils.query import RangeQuerySetWrapper
 
         # We don't fully merge results because it's simply not worth it

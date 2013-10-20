@@ -1,4 +1,4 @@
-/* Javascript plotting library for jQuery, version 0.8.0.
+/* Javascript plotting library for jQuery, version 0.8.1.
 
 Copyright (c) 2007-2013 IOLA and Ole Laursen.
 Licensed under the MIT license.
@@ -184,17 +184,25 @@ Licensed under the MIT license.
 						var styleCache = layerCache[styleKey];
 						for (var key in styleCache) {
 							if (hasOwnProperty.call(styleCache, key)) {
-								var info = styleCache[key];
-								if (info.active) {
-									if (!info.rendered) {
-										layer.append(info.element);
-										info.rendered = true;
+
+								var positions = styleCache[key].positions;
+
+								for (var i = 0, position; position = positions[i]; i++) {
+									if (position.active) {
+										if (!position.rendered) {
+											layer.append(position.element);
+											position.rendered = true;
+										}
+									} else {
+										positions.splice(i--, 1);
+										if (position.rendered) {
+											position.element.detach();
+										}
 									}
-								} else {
+								}
+
+								if (positions.length == 0) {
 									delete styleCache[key];
-									if (info.rendered) {
-										info.element.detach();
-									}
 								}
 							}
 						}
@@ -258,10 +266,25 @@ Licensed under the MIT license.
 	// {
 	//     width: Width of the text's wrapper div.
 	//     height: Height of the text's wrapper div.
+	//     element: The jQuery-wrapped HTML div containing the text.
+	//     positions: Array of positions at which this text is drawn.
+	// }
+	//
+	// The positions array contains objects that look like this:
+	//
+	// {
 	//     active: Flag indicating whether the text should be visible.
 	//     rendered: Flag indicating whether the text is currently visible.
 	//     element: The jQuery-wrapped HTML div containing the text.
+	//     x: X coordinate at which to draw the text.
+	//     y: Y coordinate at which to draw the text.
 	// }
+	//
+	// Each position after the first receives a clone of the original element.
+	//
+	// The idea is that that the width, height, and general 'identity' of the
+	// text is constant no matter where it is placed; the placements are a
+	// secondary property.
 	//
 	// Canvas maintains a cache of recently-used text info objects; getTextInfo
 	// either returns the cached element or creates a new entry.
@@ -273,9 +296,10 @@ Licensed under the MIT license.
 	//     classes or a font-spec object, defining the text's font and style.
 	// @param {number=} angle Angle at which to rotate the text, in degrees.
 	//     Angle is currently unused, it will be implemented in the future.
+	// @param {number=} width Maximum width of the text before it wraps.
 	// @return {object} a text info object.
 
-	Canvas.prototype.getTextInfo = function(layer, text, font, angle) {
+	Canvas.prototype.getTextInfo = function(layer, text, font, angle, width) {
 
 		var textStyle, layerCache, styleCache, info;
 
@@ -314,6 +338,7 @@ Licensed under the MIT license.
 			var element = $("<div></div>").html(text)
 				.css({
 					position: "absolute",
+					'max-width': width,
 					top: -9999
 				})
 				.appendTo(this.getTextLayer(layer));
@@ -328,11 +353,10 @@ Licensed under the MIT license.
 			}
 
 			info = styleCache[text] = {
-				active: false,
-				rendered: false,
-				element: element,
 				width: element.outerWidth(true),
-				height: element.outerHeight(true)
+				height: element.outerHeight(true),
+				element: element,
+				positions: []
 			};
 
 			element.detach();
@@ -355,18 +379,16 @@ Licensed under the MIT license.
 	//     classes or a font-spec object, defining the text's font and style.
 	// @param {number=} angle Angle at which to rotate the text, in degrees.
 	//     Angle is currently unused, it will be implemented in the future.
+	// @param {number=} width Maximum width of the text before it wraps.
 	// @param {string=} halign Horizontal alignment of the text; either "left",
 	//     "center" or "right".
 	// @param {string=} valign Vertical alignment of the text; either "top",
 	//     "middle" or "bottom".
 
-	Canvas.prototype.addText = function(layer, x, y, text, font, angle, halign, valign) {
+	Canvas.prototype.addText = function(layer, x, y, text, font, angle, width, halign, valign) {
 
-		var info = this.getTextInfo(layer, text, font, angle);
-
-		// Mark the div for inclusion in the next render pass
-
-		info.active = true;
+		var info = this.getTextInfo(layer, text, font, angle, width),
+			positions = info.positions;
 
 		// Tweak the div's position to match the text's alignment
 
@@ -382,45 +404,85 @@ Licensed under the MIT license.
 			y -= info.height;
 		}
 
+		// Determine whether this text already exists at this position.
+		// If so, mark it for inclusion in the next render pass.
+
+		for (var i = 0, position; position = positions[i]; i++) {
+			if (position.x == x && position.y == y) {
+				position.active = true;
+				return;
+			}
+		}
+
+		// If the text doesn't exist at this position, create a new entry
+
+		// For the very first position we'll re-use the original element,
+		// while for subsequent ones we'll clone it.
+
+		position = {
+			active: true,
+			rendered: false,
+			element: positions.length ? info.element.clone() : info.element,
+			x: x,
+			y: y
+		}
+
+		positions.push(position);
+
 		// Move the element to its final position within the container
 
-		info.element.css({
+		position.element.css({
 			top: Math.round(y),
-			left: Math.round(x)
+			left: Math.round(x),
+			'text-align': halign	// In case the text wraps
 		});
 	};
 
 	// Removes one or more text strings from the canvas text overlay.
 	//
 	// If no parameters are given, all text within the layer is removed.
-	// The text is not actually removed; it is simply marked as inactive, which
-	// will result in its removal on the next render pass.
+	//
+	// Note that the text is not immediately removed; it is simply marked as
+	// inactive, which will result in its removal on the next render pass.
+	// This avoids the performance penalty for 'clear and redraw' behavior,
+	// where we potentially get rid of all text on a layer, but will likely
+	// add back most or all of it later, as when redrawing axes, for example.
 	//
 	// @param {string} layer A string of space-separated CSS classes uniquely
 	//     identifying the layer containing this text.
-	// @param {string} text Text string to remove.
+	// @param {number=} x X coordinate of the text.
+	// @param {number=} y Y coordinate of the text.
+	// @param {string=} text Text string to remove.
 	// @param {(string|object)=} font Either a string of space-separated CSS
 	//     classes or a font-spec object, defining the text's font and style.
 	// @param {number=} angle Angle at which the text is rotated, in degrees.
 	//     Angle is currently unused, it will be implemented in the future.
 
-	Canvas.prototype.removeText = function(layer, text, font, angle) {
+	Canvas.prototype.removeText = function(layer, x, y, text, font, angle) {
 		if (text == null) {
 			var layerCache = this._textCache[layer];
 			if (layerCache != null) {
 				for (var styleKey in layerCache) {
 					if (hasOwnProperty.call(layerCache, styleKey)) {
-						var styleCache = layerCache[styleKey]
+						var styleCache = layerCache[styleKey];
 						for (var key in styleCache) {
 							if (hasOwnProperty.call(styleCache, key)) {
-								styleCache[key].active = false;
+								var positions = styleCache[key].positions;
+								for (var i = 0, position; position = positions[i]; i++) {
+									position.active = false;
+								}
 							}
 						}
 					}
 				}
 			}
 		} else {
-			this.getTextInfo(layer, text, font, angle).active = false;
+			var positions = this.getTextInfo(layer, text, font, angle).positions;
+			for (var i = 0, position; position = positions[i]; i++) {
+				if (position.x == x && position.y == y) {
+					position.active = false;
+				}
+			}
 		}
 	};
 
@@ -641,6 +703,15 @@ Licensed under the MIT license.
         function parseOptions(opts) {
 
             $.extend(true, options, opts);
+
+            // $.extend merges arrays, rather than replacing them.  When less
+            // colors are provided than the size of the default palette, we
+            // end up with those colors plus the remaining defaults, which is
+            // not expected behavior; avoid it by replacing them here.
+
+            if (opts && opts.colors) {
+            	options.colors = opts.colors;
+            }
 
             if (options.xaxis.color == null)
                 options.xaxis.color = $.color.parse(options.grid.color).scale('a', 0.22).toString();
@@ -1060,10 +1131,14 @@ Licensed under the MIT license.
                             if (val != null) {
                                 f = format[m];
                                 // extract min/max info
-                                if (f.x)
-                                    updateAxis(s.xaxis, val, val);
-                                if (f.y)
-                                    updateAxis(s.yaxis, val, val);
+                                if (f.autoscale) {
+                                    if (f.x) {
+                                        updateAxis(s.xaxis, val, val);
+                                    }
+                                    if (f.y) {
+                                        updateAxis(s.yaxis, val, val);
+                                    }
+                                }
                             }
                             points[k + m] = null;
                         }
@@ -1100,7 +1175,7 @@ Licensed under the MIT license.
             // second pass: find datamax/datamin for auto-scaling
             for (i = 0; i < series.length; ++i) {
                 s = series[i];
-                points = s.datapoints.points,
+                points = s.datapoints.points;
                 ps = s.datapoints.pointsize;
                 format = s.datapoints.format;
 
@@ -1271,8 +1346,11 @@ Licensed under the MIT license.
 
         function measureTickLabels(axis) {
 
-            var opts = axis.options, ticks = axis.ticks || [],
-                axisw = opts.labelWidth || 0, axish = opts.labelHeight || 0,
+            var opts = axis.options,
+                ticks = axis.ticks || [],
+                labelWidth = opts.labelWidth || 0,
+                labelHeight = opts.labelHeight || 0,
+                maxWidth = labelWidth || axis.direction == "x" ? Math.floor(surface.width / (ticks.length || 1)) : null;
                 legacyStyles = axis.direction + "Axis " + axis.direction + axis.n + "Axis",
                 layer = "flot-" + axis.direction + "-axis flot-" + axis.direction + axis.n + "-axis " + legacyStyles,
                 font = opts.font || "flot-tick-label tickLabel";
@@ -1284,16 +1362,14 @@ Licensed under the MIT license.
                 if (!t.label)
                     continue;
 
-                var info = surface.getTextInfo(layer, t.label, font);
+                var info = surface.getTextInfo(layer, t.label, font, null, maxWidth);
 
-                if (opts.labelWidth == null)
-                    axisw = Math.max(axisw, info.width);
-                if (opts.labelHeight == null)
-                    axish = Math.max(axish, info.height);
+                labelWidth = Math.max(labelWidth, info.width);
+                labelHeight = Math.max(labelHeight, info.height);
             }
 
-            axis.labelWidth = Math.ceil(axisw);
-            axis.labelHeight = Math.ceil(axish);
+            axis.labelWidth = opts.labelWidth || labelWidth;
+            axis.labelHeight = opts.labelHeight || labelHeight;
         }
 
         function allocateAxisBoxFirstPhase(axis) {
@@ -1740,6 +1816,11 @@ Licensed under the MIT license.
             }
 
             surface.render();
+
+            // A draw implies that either the axes or data have changed, so we
+            // should probably update the overlay highlights as well.
+
+            triggerRedrawOverlay();
         }
 
         function extractRange(ranges, coord) {
@@ -2056,7 +2137,7 @@ Licensed under the MIT license.
                         }
                     }
 
-                    surface.addText(layer, x, y, tick.label, font, null, halign, valign);
+                    surface.addText(layer, x, y, tick.label, font, null, null, halign, valign);
                 }
             });
         }
@@ -2358,9 +2439,9 @@ Licensed under the MIT license.
                 radius = series.points.radius,
                 symbol = series.points.symbol;
 
-            // If the user sets the line width to 0, we change it to a very 
+            // If the user sets the line width to 0, we change it to a very
             // small value. A line width of 0 seems to force the default of 1.
-            // Doing the conditional here allows the shadow setting to still be 
+            // Doing the conditional here allows the shadow setting to still be
             // optional even with a lineWidth of 0.
 
             if( lw == 0 )
@@ -2960,7 +3041,7 @@ Licensed under the MIT license.
         return plot;
     };
 
-    $.plot.version = "0.8.0";
+    $.plot.version = "0.8.1";
 
     $.plot.plugins = [];
 
@@ -2970,7 +3051,7 @@ Licensed under the MIT license.
         return this.each(function() {
             $.plot(this, data, options);
         });
-    }
+    };
 
     // round to nearby lower multiple of base
     function floorInBase(n, base) {

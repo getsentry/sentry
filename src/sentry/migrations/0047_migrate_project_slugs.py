@@ -9,7 +9,7 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         from django.template.defaultfilters import slugify
-        from sentry.utils.models import update
+        from sentry.db.models import update
 
         for project in orm['sentry.Project'].objects.all():
             if project.slug:

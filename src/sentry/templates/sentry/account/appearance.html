@@ -27,6 +27,10 @@
             {% with form.language as field %}
                 {{ field|as_crispy_field }}
             {% endwith %}
+
+            {% with form.timezone as field %}
+                {{ field|as_crispy_field }}
+            {% endwith %}
         </fieldset>
 
         <fieldset class="form-actions">

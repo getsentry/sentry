@@ -12,15 +12,17 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 from django.utils.translation import ugettext as _
 
-from sentry.constants import MEMBER_USER, MEMBER_OWNER
+from sentry.constants import MEMBER_USER, MEMBER_OWNER, STATUS_VISIBLE
 from sentry.models import PendingTeamMember, TeamMember, AccessGroup, User
-from sentry.permissions import (can_add_team_member, can_remove_team, can_create_projects,
+from sentry.permissions import (
+    can_add_team_member, can_remove_team, can_create_projects,
     can_create_teams, can_edit_team_member, can_remove_team_member,
     Permissions)
 from sentry.plugins import plugins
 from sentry.utils.samples import create_sample_event
 from sentry.web.decorators import login_required, has_access
-from sentry.web.forms.teams import (NewTeamForm, NewTeamAdminForm,
+from sentry.web.forms.teams import (
+    NewTeamForm, NewTeamAdminForm,
     EditTeamForm, EditTeamAdminForm, EditTeamMemberForm, NewTeamMemberForm,
     InviteTeamMemberForm, RemoveTeamForm, AcceptInviteForm, NewAccessGroupForm,
     EditAccessGroupForm, NewAccessGroupMemberForm, NewAccessGroupProjectForm,
@@ -95,7 +97,13 @@ def manage_team(request, team):
         if team.owner != original_owner:
             # Update access for new membership if it's changed
             # (e.g. member used to be USER, but is now OWNER)
-            team.member_set.filter(user=team.owner).update(type=MEMBER_OWNER)
+            TeamMember.objects.create_or_update(
+                user=team.owner,
+                team=team,
+                defaults={
+                    'type': MEMBER_OWNER,
+                }
+            )
 
         messages.add_message(request, messages.SUCCESS,
             _('Changes to your team were saved.'))
@@ -148,8 +156,10 @@ def manage_team_projects(request, team):
     if result is False and not request.user.has_perm('sentry.can_change_team'):
         return HttpResponseRedirect(reverse('sentry'))
 
-    project_list = list(team.project_set.all())
-    project_list.sort(key=lambda o: o.slug)
+    project_list = team.project_set.all()
+    if not request.user.is_superuser:
+        project_list = project_list.filter(status=STATUS_VISIBLE)
+    project_list = sorted(project_list, key=lambda o: o.slug)
     for project in project_list:
         project.team = team
 

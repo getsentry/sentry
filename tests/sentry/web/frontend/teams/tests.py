@@ -54,10 +54,12 @@ class NewTeamTest(BaseTeamTest):
     def test_valid_params(self):
         resp = self.client.post(self.path, {
             'name': 'Test Team',
-            'slug': 'test',
+            'slug': 'test-team',
             'owner': self.user.username,
         })
-        self.assertNotEquals(resp.status_code, 200)
+        self.assertEquals(resp.status_code, 302)
+        path = reverse('sentry-new-project', args=['test-team'])
+        self.assertEquals(resp['Location'], 'http://testserver%s' % (path,))
 
         team = Team.objects.filter(name='Test Team')
         self.assertTrue(team.exists())
