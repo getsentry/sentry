@@ -2,7 +2,9 @@
 
 from __future__ import absolute_import
 
-from sentry.models import SearchDocument
+from exam import fixture
+
+from sentry.search.django.backend import DjangoSearchBackend
 from sentry.testutils import TestCase
 
 
@@ -12,17 +14,21 @@ def norm_date(dt):
 
 
 class SearchIndexTest(TestCase):
+    @fixture
+    def backend(self):
+        return DjangoSearchBackend()
+
     def test_index_behavior(self):
         event = self.event
 
-        doc = SearchDocument.objects.index(event)
+        doc = self.backend.index(event.group, event)
         assert doc.project == event.project
         assert doc.group == event.group
         assert doc.total_events == 1
         assert norm_date(doc.date_added) == norm_date(event.group.first_seen)
         assert norm_date(doc.date_changed) == norm_date(event.group.last_seen)
 
-        doc = SearchDocument.objects.index(event)
+        doc = self.backend.index(event.group, event)
         assert doc.project == event.project
         assert doc.group == event.group
         assert doc.total_events == 2
@@ -31,9 +37,9 @@ class SearchIndexTest(TestCase):
 
     def test_search(self):
         event = self.event
-        doc = SearchDocument.objects.index(event)
+        doc = self.backend.index(event.group, event)
 
-        results = list(SearchDocument.objects.search(event.project, event.message.upper()))
+        results = self.backend.query(event.project, event.message.upper())
         assert len(results) == 1
         [res] = results
         assert res.id == doc.id

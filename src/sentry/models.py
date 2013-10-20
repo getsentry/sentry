@@ -37,14 +37,16 @@ from sentry.constants import (
     MEMBER_OWNER, MEMBER_USER, PLATFORM_TITLES, PLATFORM_LIST,
     STATUS_UNRESOLVED, STATUS_RESOLVED, STATUS_VISIBLE, STATUS_HIDDEN,
     MINUTE_NORMALIZATION, STATUS_MUTED, RESERVED_TEAM_SLUGS,
-    LOG_LEVELS, MAX_CULPRIT_LENGTH, MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH)
+    LOG_LEVELS, MAX_CULPRIT_LENGTH, MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH
+)
 from sentry.db.models import (
     Model, GzippedDictField, BoundedIntegerField, BoundedPositiveIntegerField,
-    update, sane_repr)
+    update, sane_repr
+)
 from sentry.manager import (
-    GroupManager, ProjectManager,
-    MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager,
-    UserOptionManager, TagKeyManager, TeamManager, UserManager)
+    GroupManager, ProjectManager, MetaManager, InstanceMetaManager, BaseManager,
+    UserOptionManager, TagKeyManager, TeamManager, UserManager
+)
 from sentry.signals import buffer_incr_complete, regression_signal
 from sentry.utils.cache import memoize
 from sentry.utils.db import has_trending
@@ -53,7 +55,7 @@ from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute
 from sentry.utils.strings import truncatechars, strip
 
-__all__ = ('Event', 'Group', 'Project', 'SearchDocument')
+__all__ = ('Event', 'Group', 'Project')
 
 
 def slugify_instance(inst, label, reserved=(), **kwargs):
@@ -975,36 +977,6 @@ class ProjectCountByMinute(Model):
     __repr__ = sane_repr('project_id', 'date')
 
 
-class SearchDocument(Model):
-    project = models.ForeignKey(Project)
-    group = models.ForeignKey(Group)
-    total_events = BoundedPositiveIntegerField(default=1)
-    status = BoundedPositiveIntegerField(default=0)
-    date_added = models.DateTimeField(default=timezone.now)
-    date_changed = models.DateTimeField(default=timezone.now)
-
-    objects = SearchDocumentManager()
-
-    class Meta:
-        unique_together = (('project', 'group'),)
-
-    __repr__ = sane_repr('project_id', 'group_id')
-
-
-class SearchToken(Model):
-    document = models.ForeignKey(SearchDocument, related_name="token_set")
-    field = models.CharField(max_length=64, default='text')
-    token = models.CharField(max_length=128)
-    times_seen = BoundedPositiveIntegerField(default=1)
-
-    objects = BaseManager()
-
-    class Meta:
-        unique_together = (('document', 'field', 'token'),)
-
-    __repr__ = sane_repr('document_id', 'field', 'token')
-
-
 class UserOption(Model):
     """
     User options apply only to a user, and optionally a project.
@@ -1349,16 +1321,6 @@ def create_team_member_for_owner(instance, created, **kwargs):
     )
 
 
-def update_document(instance, created, **kwargs):
-    if created:
-        return
-
-    SearchDocument.objects.filter(
-        project=instance.project,
-        group=instance,
-    ).update(status=instance.status)
-
-
 def remove_key_for_team_member(instance, **kwargs):
     for project in instance.team.project_set.all():
         ProjectKey.objects.filter(
@@ -1445,12 +1407,6 @@ post_save.connect(
     create_team_member_for_owner,
     sender=Team,
     dispatch_uid="create_team_member_for_owner",
-    weak=False,
-)
-post_save.connect(
-    update_document,
-    sender=Group,
-    dispatch_uid="update_document",
     weak=False,
 )
 pre_delete.connect(

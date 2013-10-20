@@ -27,7 +27,8 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
     from sentry.models import (
         Group, Event, GroupCountByMinute, EventMapping,
         GroupTag, TagValue, ProjectCountByMinute, Alert,
-        SearchDocument, Activity, LostPasswordHash)
+        Activity, LostPasswordHash)
+    from sentry.search.django.models import SearchDocument
 
     GENERIC_DELETES = (
         (SearchDocument, 'date_changed'),
