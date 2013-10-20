@@ -41,3 +41,6 @@ class DjangoNodeStorage(NodeStorage):
                 'timestamp': timezone.now(),
             },
         )
+
+    def cleanup(self, cutoff_timestamp):
+        Node.objects.filter(timestamp__lte=cutoff_timestamp).delete()

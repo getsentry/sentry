@@ -53,3 +53,8 @@ class RiakNodeStorage(NodeStorage):
     def set(self, id, data):
         obj = self.bucket.new(key=id, data=data)
         obj.store()
+
+    def cleanup(self, cutoff_timestamp):
+        # TODO(dcramer): we should either index timestamps or have this run
+        # a map/reduce (probably the latter)
+        raise NotImplementedError

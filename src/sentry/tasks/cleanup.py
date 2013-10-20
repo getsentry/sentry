@@ -23,12 +23,12 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
 
     from django.utils import timezone
 
+    from sentry import app
     # TODO: TagKey and GroupTagKey need cleaned up
     from sentry.models import (
         Group, Event, GroupCountByMinute, EventMapping,
         GroupTag, TagValue, ProjectCountByMinute, Alert,
         SearchDocument, Activity, LostPasswordHash)
-    from sentry.nodestore.django.models import Node
 
     GENERIC_DELETES = (
         (SearchDocument, 'date_changed'),
@@ -53,8 +53,12 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
         date_added__lte=timezone.now() - datetime.timedelta(days=1)
     ).delete()
 
+    # TODO: we should move this into individual backends
     log.info("Removing old Node values")
-    Node.objects.filter(timestamp__lte=ts)
+    try:
+        app.nodestore.cleanup(ts)
+    except NotImplementedError:
+        log.warning("Node backend does not support cleanup operation")
 
     # Remove types which can easily be bound to project + date
     for model, date_col in GENERIC_DELETES:

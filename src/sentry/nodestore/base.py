@@ -62,3 +62,6 @@ class NodeStorage(object):
 
     def generate_id(self):
         return uuid.uuid4().hex
+
+    def cleanup(self, cutoff_timestamp):
+        raise NotImplementedError
