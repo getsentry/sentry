@@ -7,33 +7,10 @@ sentry.utils.db
 """
 
 import django
-import operator
 
 from django.conf import settings
 from django.db import connections, DEFAULT_DB_ALIAS
-from django.db.models.expressions import ExpressionNode, F
 from django.db.models.fields.related import SingleRelatedObjectDescriptor
-
-
-EXPRESSION_NODE_CALLBACKS = {
-    ExpressionNode.ADD: operator.add,
-    ExpressionNode.SUB: operator.sub,
-    ExpressionNode.MUL: operator.mul,
-    ExpressionNode.DIV: operator.div,
-    ExpressionNode.MOD: operator.mod,
-}
-try:
-    EXPRESSION_NODE_CALLBACKS[ExpressionNode.AND] = operator.and_
-except AttributeError:
-    EXPRESSION_NODE_CALLBACKS[ExpressionNode.BITAND] = operator.and_
-try:
-    EXPRESSION_NODE_CALLBACKS[ExpressionNode.OR] = operator.or_
-except AttributeError:
-    EXPRESSION_NODE_CALLBACKS[ExpressionNode.BITOR] = operator.or_
-
-
-class CannotResolve(Exception):
-    pass
 
 
 def get_db_engine(alias='default'):
@@ -57,23 +34,6 @@ def has_charts(db):
     if engine.startswith('sqlite'):
         return False
     return True
-
-
-def resolve_expression_node(instance, node):
-    def _resolve(instance, node):
-        if isinstance(node, F):
-            return getattr(instance, node.name)
-        elif isinstance(node, ExpressionNode):
-            return resolve_expression_node(instance, node)
-        return node
-
-    op = EXPRESSION_NODE_CALLBACKS.get(node.connector, None)
-    if not op:
-        raise CannotResolve
-    runner = _resolve(instance, node.children[0])
-    for n in node.children[1:]:
-        runner = op(runner, _resolve(instance, n))
-    return runner
 
 
 def attach_foreignkey(objects, field, related=[], database=None):

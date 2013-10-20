@@ -26,7 +26,7 @@
             {{ group.error }}
         </p>
         <div class="meta">
-            <span class="last-seen pretty-date" title="{{ group.last_seen|date:"c" }}Z">{{ group.last_seen|timesince }}</span>
+            <span class="last-seen pretty-date" title="{% localized_datetime group.last_seen "c" %}">{{ group.last_seen|timesince }}</span>
             {% if group.avg_time_spent %}
                 <span class="time-spent">{{ group.avg_time_spent|duration }}</span>
             {% endif %}

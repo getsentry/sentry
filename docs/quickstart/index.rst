@@ -229,6 +229,8 @@ Apache requires the use of mod_proxy for forwarding requests::
     ProxyPreserveHost On
     RequestHeader set X-Forwarded-Proto "https" env=HTTPS
 
+You will need to enable ``headers``, ``proxy``, and ``proxy_http`` apache modules to use these settings.
+
 Proxying with Nginx
 ~~~~~~~~~~~~~~~~~~~
 

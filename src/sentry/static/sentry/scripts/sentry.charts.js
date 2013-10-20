@@ -1,7 +1,7 @@
 if (Sentry === undefined) {
     var Sentry = {};
 }
-(function(jQuery){
+(function(jQuery, moment){
     "use strict";
 
     var $ = jQuery;
@@ -12,6 +12,47 @@ if (Sentry === undefined) {
         for (m = r.mean = s / t, l = t, s = 0; l--; s += Math.pow(a[l] - m, 2));
         r.deviation = Math.sqrt(r.variance = s / t);
         return r;
+    };
+
+    var timeUnitSize = {
+        "second": 1000,
+        "minute": 60 * 1000,
+        "hour": 60 * 60 * 1000,
+        "day": 24 * 60 * 60 * 1000,
+        "month": 30 * 24 * 60 * 60 * 1000,
+        "quarter": 3 * 30 * 24 * 60 * 60 * 1000,
+        "year": 365.2425 * 24 * 60 * 60 * 1000
+    };
+
+    var tickFormatter = function (value, axis) {
+        var d = moment(value);
+
+        var t = axis.tickSize[0] * timeUnitSize[axis.tickSize[1]];
+        var span = axis.max - axis.min;
+        var fmt;
+
+        if (t < timeUnitSize.minute) {
+            fmt = 'LT';
+        } else if (t < timeUnitSize.day) {
+            fmt = 'LT';
+            if (span < 2 * timeUnitSize.day) {
+                fmt = 'LT';
+            } else {
+                fmt = 'MMM D LT';
+            }
+        } else if (t < timeUnitSize.month) {
+            fmt = 'MMM D';
+        } else if (t < timeUnitSize.year) {
+            if (span < timeUnitSize.year) {
+                fmt = 'MMM';
+            } else {
+                fmt = 'MMM YY';
+            }
+        } else {
+            fmt = 'YY';
+        }
+
+        return d.format(fmt);
     };
 
     Sentry.charts = {};
@@ -44,12 +85,12 @@ if (Sentry === undefined) {
                 var points = [
                     {
                         data: data,
-                        color: '#56AFE8',
+                        color: 'rgba(86, 175, 232, 1)',
                         shadowSize: 0,
                         lines: {
                             lineWidth: 2,
                             show: true,
-                            fill: true
+                            fill: false
                         }
                     },
                     {
@@ -66,7 +107,8 @@ if (Sentry === undefined) {
                 ];
                 var options = {
                     xaxis: {
-                       mode: "time"
+                       mode: "time",
+                       tickFormatter: tickFormatter
                     },
                     yaxis: {
                        min: 0,
@@ -80,8 +122,16 @@ if (Sentry === undefined) {
                             return value;
                        }
                     },
+                    tooltip: true,
+                    tooltipOpts: {
+                        content: function(label, xval, yval, flotItem) {
+                            return yval + ' events<br>' + moment(xval).format('llll');
+                        },
+                        defaultTheme: false
+                    },
                     grid: {
                         show: true,
+                        hoverable: true,
                         backgroundColor: '#ffffff',
                         borderColor: '#DEE3E9',
                         borderWidth: 2,
@@ -97,11 +147,11 @@ if (Sentry === undefined) {
                 $.plot($sparkline, points, options);
 
                 $(window).resize(function(){
-                    $.plot($sparkline, points, options);                    
+                    $.plot($sparkline, points, options);
                 });
 
             }
 
         });
     };
-}(jQuery));
+}(jQuery, moment));

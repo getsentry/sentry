@@ -7,7 +7,7 @@ from django.db import models
 class Migration(DataMigration):
 
     def forwards(self, orm):
-        from sentry.utils.models import update
+        from sentry.db.models import update
 
         for pm in orm['sentry.ProjectMember'].objects.all():
             orm['sentry.ProjectKey'].objects.get_or_create(
