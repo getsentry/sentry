@@ -28,6 +28,7 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
         Group, Event, GroupCountByMinute, EventMapping,
         GroupTag, TagValue, ProjectCountByMinute, Alert,
         SearchDocument, Activity, LostPasswordHash)
+    from sentry.nodestore.django.models import Node
 
     GENERIC_DELETES = (
         (SearchDocument, 'date_changed'),
@@ -41,6 +42,7 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
         (EventMapping, 'date_added'),
         # Group should probably be last
         (Group, 'last_seen'),
+        (Node, 'timestamp'),
     )
 
     log = cleanup.get_logger()
