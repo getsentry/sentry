@@ -78,3 +78,14 @@ class MultiNodeStorage(NodeStorage):
 
         if should_raise:
             raise
+
+    def cleanup(self, cutoff_timestamp):
+        should_raise = False
+        for backend in self.backends:
+            try:
+                backend.cleanup(cutoff_timestamp)
+            except Exception:
+                should_raise = True
+
+        if should_raise:
+            raise
