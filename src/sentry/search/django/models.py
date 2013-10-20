@@ -25,6 +25,7 @@ class SearchDocument(Model):
     date_changed = models.DateTimeField(default=timezone.now)
 
     class Meta:
+        app_label = 'search'
         db_table = 'sentry_searchdocument'
         unique_together = (('project', 'group'),)
 
@@ -38,6 +39,7 @@ class SearchToken(Model):
     times_seen = BoundedPositiveIntegerField(default=1)
 
     class Meta:
+        app_label = 'search'
         db_table = 'sentry_searchtoken'
         unique_together = (('document', 'field', 'token'),)
 
