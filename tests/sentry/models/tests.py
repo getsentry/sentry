@@ -8,13 +8,17 @@ from datetime import timedelta
 from django.conf import settings
 from django.core import mail
 from django.core.urlresolvers import reverse
+from django.db import connection
 from django.utils import timezone
 from sentry.constants import MINUTE_NORMALIZATION
+from sentry.db.models.fields.node import NodeData
 from sentry.models import (
     Project, ProjectKey, Group, Event, Team,
     GroupTag, GroupCountByMinute, TagValue, PendingTeamMember,
     LostPasswordHash, Alert, User, create_default_project)
 from sentry.testutils import TestCase, fixture
+from sentry.utils.compat import pickle
+from sentry.utils.strings import compress
 
 
 class ProjectTest(TestCase):
@@ -169,3 +173,33 @@ class CreateDefaultProjectTest(TestCase):
         team = project.team
         assert team.owner == user
         assert team.slug == 'sentry'
+
+
+class EventNodeStoreTest(TestCase):
+    def test_does_transition_data_to_node(self):
+        group = self.group
+        data = {'key': 'value'}
+
+        cursor = connection.cursor()
+        cursor.execute(
+            "INSERT INTO sentry_message (group_id, project_id, data, logger, level, message, checksum, datetime) VALUES(%s, %s, %s, '', 0, %s, %s, %s)",
+            [group.id, group.project_id, compress(pickle.dumps(data)), 'test', 'a' * 32, timezone.now()]
+        )
+        event_id = cursor.lastrowid
+        event = Event.objects.get(id=event_id)
+        assert type(event.data) == NodeData
+        assert event.data == data
+        assert event.data.id is None
+
+        event.save()
+
+        assert event.data == data
+        assert event.data.id is not None
+
+        node_id = event.data.id
+        event = Event.objects.get(id=event_id)
+
+        Event.objects.bind_nodes([event], 'data')
+
+        assert event.data == data
+        assert event.data.id == node_id

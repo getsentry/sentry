@@ -756,16 +756,6 @@ class Event(EventBase):
 
         return SortedDict((k, v) for k, v in sorted(result, key=lambda x: x[1].get_score(), reverse=True))
 
-    def bind_node_data(self):
-        from sentry import app
-
-        node_id = self._data.get('data_nid')
-
-        if not node_id:
-            return self._data
-
-        self._node_data_cache = app.nodestore.get(node_id)
-
     def get_version(self):
         if not self.data:
             return
