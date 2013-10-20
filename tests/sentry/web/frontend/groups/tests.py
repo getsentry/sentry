@@ -113,8 +113,10 @@ class GroupEventListTest(TestCase):
         })
 
     def test_does_render(self):
-        event = self.create_event(event_id='a' * 32)
-        event2 = self.create_event(event_id='b' * 32)
+        event = self.create_event(
+            event_id='a' * 32, datetime=timezone.now() - timedelta(minutes=1))
+        event2 = self.create_event(
+            event_id='b' * 32, datetime=timezone.now())
 
         self.login()
         resp = self.client.get(self.path)
@@ -193,8 +195,10 @@ class GroupEventListJsonTest(TestCase):
     def test_does_render(self):
         self.login()
 
-        event = self.create_event(event_id='a' * 32)
-        event2 = self.create_event(event_id='b' * 32)
+        event = self.create_event(
+            event_id='a' * 32, datetime=timezone.now() - timedelta(minutes=1))
+        event2 = self.create_event(
+            event_id='b' * 32, datetime=timezone.now())
 
         resp = self.client.get(self.path)
         assert resp.status_code == 200
