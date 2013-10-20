@@ -19,7 +19,7 @@ class DjangoNodeStorageTest(TestCase):
             }
         )
 
-        result = self.ns.get('d2502ebbd7df41ceba8d3275595cac33')
+        result = self.ns.get(node.id)
         assert result == node.data
 
     def test_get_multi(self):
@@ -74,3 +74,14 @@ class DjangoNodeStorageTest(TestCase):
         assert Node.objects.get(id=node_id).data == {
             'foo': 'bar',
         }
+
+    def test_delete(self):
+        node = Node.objects.create(
+            id='d2502ebbd7df41ceba8d3275595cac33',
+            data={
+                'foo': 'bar',
+            }
+        )
+
+        self.ns.delete(node.id)
+        assert not Node.objects.filter(id=node.id).exists()

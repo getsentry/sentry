@@ -32,6 +32,10 @@ class RiakNodeStorage(NodeStorage):
         obj.store()
         return obj.key
 
+    def delete(self, id):
+        obj = self.bucket.new(key=id)
+        obj.delete()
+
     def get(self, id):
         # just fetch it from a random backend, we're not aiming for consistency
         obj = self.bucket.get(key=id)

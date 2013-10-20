@@ -13,6 +13,7 @@ import logging
 import warnings
 
 from django.db import models
+from django.db.models.signals import post_delete
 
 from sentry.utils.cache import memoize
 from sentry.utils.compat import pickle
@@ -75,6 +76,22 @@ class NodeField(GzippedDictField):
     to an external node.
     """
     __metaclass__ = models.SubfieldBase
+
+    def contribute_to_class(self, cls, name):
+        super(NodeField, self).contribute_to_class(cls, name)
+        post_delete.connect(
+            self.on_delete,
+            sender=self.model,
+            weak=False)
+
+    def on_delete(self, instance, **kwargs):
+        from sentry import app
+
+        value = getattr(instance, self.name)
+        if not value.id:
+            return
+
+        app.nodestore.delete(value.id)
 
     def to_python(self, value):
         if isinstance(value, basestring) and value:

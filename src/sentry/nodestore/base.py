@@ -20,6 +20,12 @@ class NodeStorage(object):
         self.set(node_id, data)
         return node_id
 
+    def delete(self, id):
+        """
+        >>> nodestore.delete('key1')
+        """
+        raise NotImplementedError
+
     def get(self, id):
         """
         >>> data = nodestore.get('key1')
