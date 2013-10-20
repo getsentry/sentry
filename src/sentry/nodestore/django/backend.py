@@ -17,6 +17,9 @@ from .models import Node
 
 
 class DjangoNodeStorage(NodeStorage):
+    def delete(self, id):
+        Node.objects.filter(id=id).delete()
+
     def get(self, id):
         try:
             return Node.objects.get(id=id).data

@@ -67,3 +67,14 @@ class MultiNodeStorage(NodeStorage):
 
         if should_raise:
             raise
+
+    def delete(self, id):
+        should_raise = False
+        for backend in self.backends:
+            try:
+                backend.delete(id)
+            except Exception:
+                should_raise = True
+
+        if should_raise:
+            raise
