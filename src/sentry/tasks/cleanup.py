@@ -42,12 +42,19 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
         (EventMapping, 'date_added'),
         # Group should probably be last
         (Group, 'last_seen'),
-        (Node, 'timestamp'),
     )
 
     log = cleanup.get_logger()
 
     ts = timezone.now() - datetime.timedelta(days=days)
+
+    log.info("Removing expired values for %r", LostPasswordHash)
+    LostPasswordHash.objects.filter(
+        date_added__lte=timezone.now() - datetime.timedelta(days=1)
+    ).delete()
+
+    log.info("Removing old Node values")
+    Node.objects.filter(timestamp__lte=ts)
 
     # Remove types which can easily be bound to project + date
     for model, date_col in GENERIC_DELETES:
@@ -60,8 +67,3 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
             for obj in list(qs[:chunk_size]):
                 log.info("Removing %r", obj)
                 obj.delete()
-
-    log.info("Removing expired values for %r", LostPasswordHash)
-    LostPasswordHash.objects.filter(
-        date_added__lte=timezone.now() - datetime.timedelta(days=1)
-    ).delete()
