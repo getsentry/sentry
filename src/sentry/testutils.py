@@ -129,12 +129,18 @@ class BaseTestCase(Exam):
 
     @fixture
     def event(self):
+        return self.create_event(event_id='a' * 32)
+
+    def create_event(self, event_id, **kwargs):
+        if 'group' not in kwargs:
+            kwargs['group'] = self.group
+        kwargs.setdefault('project', kwargs['group'].project)
+        kwargs.setdefault('message', 'Foo bar')
+        kwargs.setdefault('data', LEGACY_DATA)
+
         return Event.objects.create(
-            event_id='a' * 32,
-            group=self.group,
-            message='Foo bar',
-            project=self.project,
-            data=LEGACY_DATA,
+            event_id=event_id,
+            **kwargs
         )
 
     def assertRequiresAuthentication(self, path, method='GET'):
