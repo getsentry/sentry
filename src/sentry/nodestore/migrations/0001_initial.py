@@ -12,7 +12,7 @@ class Migration(SchemaMigration):
         db.create_table(u'nodestore_node', (
             ('id', self.gf('django.db.models.fields.CharField')(unique=True, max_length=40, primary_key=True)),
             ('data', self.gf('django.db.models.fields.TextField')()),
-            ('timestamp', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now)),
+            ('timestamp', self.gf('django.db.models.fields.DateTimeField')(default=datetime.datetime.now, db_index=True)),
         ))
         db.send_create_signal('nodestore', ['Node'])
 
@@ -27,7 +27,7 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'Node'},
             'data': ('django.db.models.fields.TextField', [], {}),
             'id': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '40', 'primary_key': 'True'}),
-            'timestamp': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'})
+            'timestamp': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'db_index': 'True'})
         }
     }
 
