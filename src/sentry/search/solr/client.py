@@ -128,7 +128,7 @@ class SolrClient(object):
         elif not isinstance(log_body, str):
             log_body = repr(body)
 
-        if any(key.lower() == 'content-type' for key in headers.iterkesys()):
+        if any(key.lower() == 'content-type' for key in headers.iterkeys()):
             headers['Content-Type'] = 'application/xml; charset=UTF-8'
 
         resp = self.http.urlopen(
