@@ -59,7 +59,7 @@ class SolrClient(object):
             method, url, body=body, headers=headers, timeout=self.timeout)
 
         if resp.status != 200:
-            raise SolrError(self._extract_error(resp.data))
+            raise SolrError(self._extract_error(resp))
 
         return resp
 
