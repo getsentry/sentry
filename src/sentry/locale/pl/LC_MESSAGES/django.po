@@ -297,7 +297,7 @@ msgstr ""
 
 #: templates/sentry/layout.html:167
 msgid "Translate"
-msgstr ""
+msgstr "Tłumacz"
 
 #: templates/sentry/login.html:11
 msgid "Please login to continue."
@@ -450,7 +450,7 @@ msgstr ""
 #: templates/sentry/account/appearance.html:7
 #: templates/sentry/bases/account.html:32
 msgid "Appearance"
-msgstr ""
+msgstr "Wygląd"
 
 #: templates/sentry/account/appearance.html:16
 #: templates/sentry/projects/notifications.html:17
@@ -459,7 +459,7 @@ msgstr "Zdarzenia"
 
 #: templates/sentry/account/appearance.html:25
 msgid "Localization"
-msgstr ""
+msgstr "Lokalizacja"
 
 #: templates/sentry/account/appearance.html:33
 #: templates/sentry/account/notifications.html:105
@@ -2335,19 +2335,19 @@ msgstr "Język"
 
 #: web/forms/accounts.py:128
 msgid "Stacktrace order"
-msgstr ""
+msgstr "Kolejność stacktrace"
 
 #: web/forms/accounts.py:129
 msgid "Default (let Sentry decide)"
-msgstr ""
+msgstr "Domyślna (niech Sentry zdecyduje)"
 
 #: web/forms/accounts.py:130
 msgid "Most recent call last"
-msgstr ""
+msgstr "Najnowsze wywołanie na końcu"
 
 #: web/forms/accounts.py:131
 msgid "Most recent call first"
-msgstr ""
+msgstr "Najnowsze wywołanie na początku"
 
 #: web/forms/accounts.py:132
 msgid "Choose the default ordering of frames in stacktraces."
