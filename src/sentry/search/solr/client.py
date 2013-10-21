@@ -58,13 +58,20 @@ class SolrClient(object):
         resp = self.http.urlopen(
             method, url, body=body, headers=headers, timeout=self.timeout)
 
-        if resp.status == 404:
-            raise SolrError('Request handler not found at %s' % (
-                url,))
-        elif resp.status != 200:
-            raise SolrError(resp.data)
+        if resp.status != 200:
+            raise SolrError(self._extract_error(resp.data))
 
         return resp
+
+    def _extract_error(self, response):
+        if not response.getheader('Content-Type').startswith('application/xml'):
+            return unicode(response.status)
+
+        dom_tree = ET.fromstring(response.data)
+        reason_node = dom_tree.find('response/lst/str')
+        if reason_node is None:
+            return response.data
+        return reason_node.text
 
     def _is_null_value(self, value):
         if value is None:
