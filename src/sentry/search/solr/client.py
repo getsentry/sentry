@@ -140,7 +140,7 @@ class SolrClient(object):
 
         return doc_elem
 
-    def _update(self, message, commit=True, waitFlush=None, waitSearcher=None,
+    def _update(self, message, commit=None, waitFlush=None, waitSearcher=None,
                 softCommit=None):
         """
         Posts the given xml message to http://<self.url>/update and
@@ -174,7 +174,7 @@ class SolrClient(object):
             'Content-type': 'text/xml; charset=utf-8'
         })
 
-    def add(self, docs, commit=True, commitWithin=None, waitFlush=None,
+    def add(self, docs, commit=None, commitWithin=None, waitFlush=None,
             waitSearcher=None):
         """
         >>> solr.add([
