@@ -49,6 +49,7 @@ dev_requires = [
 tests_require = [
     'exam>=0.5.1',
     'eventlet',
+    'httpretty',
     'pytest',
     'pytest-cov>=1.4',
     'pytest-django',

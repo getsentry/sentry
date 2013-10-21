@@ -9,10 +9,10 @@ sentry.testutils
 from __future__ import absolute_import
 
 import base64
+import os.path
+
 from exam import Exam, fixture, before  # NOQA
 from functools import wraps
-
-from sentry.utils import json
 
 from django.conf import settings
 from django.contrib.auth import login
@@ -25,8 +25,10 @@ from django.test import TestCase, TransactionTestCase
 from django.test.client import Client
 from django.utils.importlib import import_module
 
+from sentry.constants import MODULE_ROOT
 from sentry.models import (
     Project, ProjectOption, Option, Team, Group, Event, User)
+from sentry.utils import json
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress
 
@@ -170,6 +172,16 @@ class BaseTestCase(Exam):
 
     def login(self):
         self.login_as(self.user)
+
+    def load_fixture(self, filepath):
+        filepath = os.path.join(
+            MODULE_ROOT,
+            'tests',
+            'fixtures',
+            filepath,
+        )
+        with open(filepath, 'rb') as fp:
+            return fp.read()
 
     def _pre_setup(self):
         cache.clear()
