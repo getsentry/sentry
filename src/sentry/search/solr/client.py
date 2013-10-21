@@ -118,18 +118,15 @@ class SolrClient(object):
     def _send_request(self, method, path='', body=None, headers=None):
         url = urljoin(self.url, path.lstrip('/'))
         method = method.lower()
-        log_body = body
 
         if headers is None:
             headers = {}
 
-        if log_body is None:
-            log_body = ''
-        elif not isinstance(log_body, str):
-            log_body = repr(body)
-
         if not any(key.lower() == 'content-type' for key in headers.iterkeys()):
             headers['Content-Type'] = 'application/xml; charset=UTF-8'
+
+        if isinstance(body, unicode):
+            body = body.encode('utf-8')
 
         resp = self.http.urlopen(
             method, url, body=body, headers=headers, timeout=self.timeout)
