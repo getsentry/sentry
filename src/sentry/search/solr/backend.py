@@ -13,13 +13,6 @@ from nydus.db import create_cluster
 
 from sentry.search.base import SearchBackend
 
-# TODO: ensure upgrade creates search schemas
-# TODO: optimize group indexing so it only happens when a group is updated
-# TODO: only index an event after a group is indexed??
-# TODO: confirm replication=async is a good idea
-# TODO: determine TTL
-# TODO: index.routing.allocation.include.tag = project_id?
-
 
 class SolrBackend(SearchBackend):
     def __init__(self, servers, **options):
