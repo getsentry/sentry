@@ -64,7 +64,7 @@ class SolrClient(object):
         return resp
 
     def _extract_error(self, response):
-        if not response.getheader('Content-Type').startswith('application/xml'):
+        if not response.headers.get('content-type', '').startswith('application/xml'):
             return unicode(response.status)
 
         dom_tree = ET.fromstring(response.data)
