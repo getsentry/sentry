@@ -1,6 +1,13 @@
+# -*- coding: utf-8 -*-
 """
 sentry.search.solr.client
 ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A majority of the Solr client is heavily inspired by Pysolr:
+https://github.com/toastdriven/pysolr
+
+The main differences are we focus on Python 2, and we must remove the
+dependency on the ``requests`` library.
 
 :copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
@@ -21,6 +28,78 @@ from urlparse import urljoin
 
 from nydus.db.backends import BaseConnection
 
+# Using two-tuples to preserve order.
+REPLACEMENTS = (
+    # Nuke nasty control characters.
+    ('\x00', ''),  # Start of heading
+    ('\x01', ''),  # Start of heading
+    ('\x02', ''),  # Start of text
+    ('\x03', ''),  # End of text
+    ('\x04', ''),  # End of transmission
+    ('\x05', ''),  # Enquiry
+    ('\x06', ''),  # Acknowledge
+    ('\x07', ''),  # Ring terminal bell
+    ('\x08', ''),  # Backspace
+    ('\x0b', ''),  # Vertical tab
+    ('\x0c', ''),  # Form feed
+    ('\x0e', ''),  # Shift out
+    ('\x0f', ''),  # Shift in
+    ('\x10', ''),  # Data link escape
+    ('\x11', ''),  # Device control 1
+    ('\x12', ''),  # Device control 2
+    ('\x13', ''),  # Device control 3
+    ('\x14', ''),  # Device control 4
+    ('\x15', ''),  # Negative acknowledge
+    ('\x16', ''),  # Synchronous idle
+    ('\x17', ''),  # End of transmission block
+    ('\x18', ''),  # Cancel
+    ('\x19', ''),  # End of medium
+    ('\x1a', ''),  # Substitute character
+    ('\x1b', ''),  # Escape
+    ('\x1c', ''),  # File separator
+    ('\x1d', ''),  # Group separator
+    ('\x1e', ''),  # Record separator
+    ('\x1f', ''),  # Unit separator
+)
+
+
+def sanitize(data):
+    if isinstance(data, unicode):
+        data = data.encode('utf-8')
+
+    for bad, good in REPLACEMENTS:
+        data = data.replace(bad, good)
+
+    return data.decode('utf-8')
+
+
+def is_valid_xml_char_ordinal(i):
+    """
+    Defines whether char is valid to use in xml document
+
+    XML standard defines a valid char as::
+
+    Char ::= #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]
+    """
+    return (
+        # conditions ordered by presumed frequency
+        0x20 <= i <= 0xD7FF
+        or i in (0x9, 0xA, 0xD)
+        or 0xE000 <= i <= 0xFFFD
+        or 0x10000 <= i <= 0x10FFFF
+    )
+
+
+def clean_xml_string(s):
+    """
+    Cleans string from invalid xml chars
+
+    Solution was found there::
+
+    http://stackoverflow.com/questions/8733233/filtering-out-certain-bytes-in-python
+    """
+    return ''.join(c for c in s if is_valid_xml_char_ordinal(ord(c)))
+
 
 class SolrError(Exception):
     pass
@@ -30,9 +109,6 @@ class SolrClient(object):
     """
     Inspired by Pysolr, but retrofitted to support a limited scope of features
     and remove the ``requests`` dependency.
-
-    See also:
-    https://github.com/toastdriven/pysolr
     """
     def __init__(self, url, timeout=60):
         self.url = url
@@ -52,8 +128,8 @@ class SolrClient(object):
         elif not isinstance(log_body, str):
             log_body = repr(body)
 
-        if not 'content-type' in [key.lower() for key in headers.keys()]:
-            headers['Content-type'] = 'application/xml; charset=UTF-8'
+        if any(key.lower() == 'content-type' for key in headers.iterkesys()):
+            headers['Content-Type'] = 'application/xml; charset=UTF-8'
 
         resp = self.http.urlopen(
             method, url, body=body, headers=headers, timeout=self.timeout)
@@ -130,7 +206,7 @@ class SolrClient(object):
 
             value = "{0}".format(value)
 
-        return value
+        return clean_xml_string(value)
 
     def _build_doc(self, doc):
         doc_elem = ET.Element('doc')
@@ -169,6 +245,9 @@ class SolrClient(object):
 
         if query_vars:
             path = '%s?%s' % (path, '&'.join(query_vars))
+
+        # remove ctrl characters
+        message = sanitize(message)
 
         return self._send_request('post', path, message, {
             'Content-type': 'text/xml; charset=utf-8'
