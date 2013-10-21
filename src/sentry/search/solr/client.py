@@ -192,19 +192,19 @@ class SolrClient(object):
         """
         if hasattr(value, 'strftime'):
             if hasattr(value, 'hour'):
-                value = "%sZ" % value.isoformat()
+                value = u"%sZ" % value.isoformat()
             else:
-                value = "%sT00:00:00Z" % value.isoformat()
+                value = u"%sT00:00:00Z" % value.isoformat()
         elif isinstance(value, bool):
             if value:
-                value = 'true'
+                value = u'true'
             else:
-                value = 'false'
+                value = u'false'
         else:
             if isinstance(value, str):
                 value = unicode(value, errors='replace')
 
-            value = "{0}".format(value)
+            value = u"{0}".format(value)
 
         return clean_xml_string(value)
 
