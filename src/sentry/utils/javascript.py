@@ -120,7 +120,7 @@ class GroupTransformer(Transformer):
             active_date = g.active_at or g.last_seen
             g.has_seen = seen_groups.get(g.id, active_date) > active_date
             g.annotations = []
-            for key in tag_keys:
+            for key in sorted(tag_keys):
                 if key in project_annotations[project]:
                     label = TAG_LABELS.get(key, key.replace('_', ' ')).lower() + 's'
                     try:
