@@ -7539,16 +7539,20 @@ a.icon-share:hover {
   color: #000;
 }
 .group-list > li .tag,
-.events > li .tag {
+.events > li .tag,
+.group-list > li .annotation,
+.events > li .annotation {
   margin-left: 10px;
 }
 .group-list > li .tag-users,
-.events > li .tag-users {
+.events > li .tag-users,
+.group-list > li .annotation,
+.events > li .annotation {
   margin-right: 10px;
   margin-left: 0;
   position: relative;
   background: #f9f9f9;
-  padding: 0 5px 0 45px;
+  padding: 0 5px;
   line-height: 20px;
   height: 20px;
   min-width: 20px;
@@ -7559,11 +7563,12 @@ a.icon-share:hover {
   overflow: hidden;
 }
 .group-list > li .tag-users span,
-.events > li .tag-users span {
+.events > li .tag-users span,
+.group-list > li .annotation span,
+.events > li .annotation span {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 45px;
   right: 5px;
   height: 100%;
   text-align: center;
@@ -7571,10 +7576,11 @@ a.icon-share:hover {
   display: block;
 }
 .group-list > li .tag-users i,
-.events > li .tag-users i {
+.events > li .tag-users i,
+.group-list > li .annotation i,
+.events > li .annotation i {
+  padding-right: 25px;
   font-style: normal;
-  position: absolute;
-  left: 5px;
   color: #aaa;
 }
 .group-list > li .tag-project,
