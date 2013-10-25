@@ -8,7 +8,7 @@ import logging
 from django.core.urlresolvers import reverse
 
 from sentry.constants import STATUS_HIDDEN
-from sentry.models import Project, ProjectKey
+from sentry.models import Project, ProjectKey, ProjectOption, TagKey
 from sentry.testutils import TestCase, fixture, before
 
 logger = logging.getLogger(__name__)
@@ -179,3 +179,41 @@ class RemoveProjectTest(TestCase):
         delete_project.delay.assert_called_once_with(
             object_id=self.project.id)
         assert Project.objects.get(id=self.project.id).status == STATUS_HIDDEN
+
+
+class ManageProjectTagsTest(TestCase):
+    @fixture
+    def path(self):
+        return reverse('sentry-manage-project-tags', args=[self.team.slug, self.project.id])
+
+    def test_requires_authentication(self):
+        self.assertRequiresAuthentication(self.path)
+
+    def test_simple(self):
+        TagKey.objects.create(project=self.project, key='site')
+        TagKey.objects.create(project=self.project, key='url')
+        TagKey.objects.create(project=self.project, key='os')
+
+        self.login_as(self.user)
+
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/projects/manage_tags.html')
+        assert resp.context['team'] == self.team
+        assert resp.context['project'] == self.project
+        tag_list = resp.context['tag_list']
+        assert 'site' in tag_list
+        assert 'url' in tag_list
+        assert 'os' in tag_list
+
+        resp = self.client.post(self.path, {
+            'filters': ['site', 'url'],
+            'annotations': ['os'],
+        })
+        assert resp.status_code == 302
+        enabled_filters = ProjectOption.objects.get_value(
+            self.project, 'tags')
+        assert sorted(enabled_filters) == ['site', 'url']
+        enabled_annotations = ProjectOption.objects.get_value(
+            self.project, 'annotations')
+        assert enabled_annotations == ['os']
