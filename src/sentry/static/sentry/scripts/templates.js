@@ -12,12 +12,12 @@
                     '<%= message %>' +
                 '</p>' +
                 '<div class="meta">' +
-                    '<% if (usersSeen !== null) { %>' +
-                    '<span class="tag tag-users" data-count="<%= app.utils.formatNumber(usersSeen) %>">' +
-                        '<i>users</i>' +
-                        '<span title="<%= usersSeen %>"><%= app.utils.formatNumber(usersSeen) %></span>' +
+                    '<% $.each(annotations, function(_, tag) { %>' +
+                    '<span class="tag annotation" data-tag="<%= tag.label %>" data-count="<%= app.utils.formatNumber(tag.count) %>">' +
+                        '<i><%= tag.label %></i>' +
+                        '<span title="<%= count %>"><%= app.utils.formatNumber(tag.count) %></span>' +
                     '</span>' +
-                    '<% } %>' +
+                    '<% }) %>' +
                     '<span class="last-seen pretty-date"></span>' +
                     '<% if (timeSpent) { %>' +
                         '<span class="tag time-spent"><%= Math.round(timeSpent) %>ms</span>' +

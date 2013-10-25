@@ -19,9 +19,7 @@ from sentry.web.helpers import render_to_response
 
 @has_access(MEMBER_OWNER)
 def manage_project_tags(request, team, project):
-    tag_list = filter(
-        lambda x: not x.startswith('sentry:'),
-        TagKey.objects.all_keys(project))
+    tag_list = TagKey.objects.all_keys(project)
 
     if tag_list:
         form = ProjectTagsForm(project, tag_list, request.POST or None)
