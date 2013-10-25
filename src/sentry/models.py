@@ -326,11 +326,11 @@ class Project(Model):
         if not hasattr(self, '_tag_cache'):
             tags = ProjectOption.objects.get_value(self, 'tags', None)
             if tags is None:
-                tags = TagKey.objects.all_keys(self)
-            self._tag_cache = [
-                t for t in tags
-                if not t.startswith('sentry:')
-            ]
+                tags = [
+                    t for t in TagKey.objects.all_keys(self)
+                    if not t.startswith('sentry:')
+                ]
+            self._tag_cache = tags
         return self._tag_cache
 
     # TODO: Make these a mixin
