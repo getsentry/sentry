@@ -266,9 +266,13 @@ class StoreView(APIView):
     @never_cache
     def get(self, request, project, auth, **kwargs):
         data = request.GET.get('sentry_data', '')
-        self.process(request, project, auth, data, **kwargs)
-        # We should return a simple 1x1 gif for browser so they don't throw a warning
-        return HttpResponse(PIXEL, 'image/gif')
+        response_or_event_id = self.process(request, project, auth, data, **kwargs)
+
+        # Return a simple 1x1 gif for browser so they don't throw a warning
+        response = HttpResponse(PIXEL, 'image/gif')
+        if not isinstance(response_or_event_id, HttpResponse):
+            response['X-Sentry-ID'] = response_or_event_id
+        return response
 
     def process(self, request, project, auth, data, **kwargs):
         if safe_execute(app.quotas.is_rate_limited, project=project):

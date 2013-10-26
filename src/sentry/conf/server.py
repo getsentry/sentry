@@ -151,6 +151,7 @@ INSTALLED_APPS = (
     'raven.contrib.django.raven_compat',
     'sentry',
     'sentry.nodestore',
+    'sentry.search',
     'sentry.plugins.sentry_interface_types',
     'sentry.plugins.sentry_mail',
     'sentry.plugins.sentry_urls',
@@ -495,10 +496,6 @@ SENTRY_ALLOW_PUBLIC_PROJECTS = True
 # manually.
 SENTRY_ALLOW_REGISTRATION = True
 
-# Instructs Sentry to utilize it's internal search indexer on all incoming
-# events..
-SENTRY_USE_SEARCH = True
-
 # Enable trend results. These can be expensive and are calculated in real-time.
 # When disabled they will be replaced w/ a default priority sort.
 SENTRY_USE_TRENDING = True
@@ -520,14 +517,26 @@ SENTRY_BUFFER_OPTIONS = {}
 SENTRY_QUOTAS = 'sentry.quotas.Quota'
 SENTRY_QUOTA_OPTIONS = {}
 
+# The default value for project-level quotas
+SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = '90%'
+
+# The maximum number of events per minute the system should accept.
+SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE = 0
+
 # Node storage backend
 SENTRY_NODESTORE = 'sentry.nodestore.django.DjangoNodeStorage'
 SENTRY_NODESTORE_OPTIONS = {}
 
-# The default value for project-level quotas
-SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = '90%'
-# The maximum number of events per minute the system should accept.
-SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE = 0
+# Search backend
+SENTRY_SEARCH = 'sentry.search.django.DjangoSearchBackend'
+SENTRY_SEARCH_OPTIONS = {}
+# SENTRY_SEARCH_OPTIONS = {
+#     'urls': ['http://localhost:9200/'],
+#     'timeout': 5,
+# }
+
+# Enable search within the frontend
+SENTRY_USE_SEARCH = True
 
 SENTRY_RAVEN_JS_URL = 'd3nslu0hdya83q.cloudfront.net/dist/1.0/raven.min.js'
 

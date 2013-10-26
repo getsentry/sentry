@@ -21,18 +21,20 @@ from django.http import HttpResponse, HttpResponseRedirect, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
+from sentry import app
 from sentry.constants import (
     SORT_OPTIONS, SEARCH_SORT_OPTIONS, SORT_CLAUSES,
     MYSQL_SORT_CLAUSES, SQLITE_SORT_CLAUSES, MEMBER_USER,
     SCORE_CLAUSES, MYSQL_SCORE_CLAUSES, SQLITE_SCORE_CLAUSES,
     ORACLE_SORT_CLAUSES, ORACLE_SCORE_CLAUSES,
     MSSQL_SORT_CLAUSES, MSSQL_SCORE_CLAUSES, DEFAULT_SORT_OPTION,
-    SEARCH_DEFAULT_SORT_OPTION, MAX_JSON_RESULTS)
+    SEARCH_DEFAULT_SORT_OPTION, MAX_JSON_RESULTS
+)
 from sentry.db.models import create_or_update
 from sentry.filters import get_filters
 from sentry.models import (
-    Project, Group, Event, SearchDocument, Activity, EventMapping, TagKey,
-    GroupSeen)
+    Project, Group, Event, Activity, EventMapping, TagKey, GroupSeen
+)
 from sentry.permissions import can_admin_group, can_create_projects
 from sentry.plugins import plugins
 from sentry.utils import json
@@ -320,7 +322,7 @@ def search(request, team, project):
         #         'project': project,
         #     }, request)
     else:
-        documents = list(SearchDocument.objects.search(project, query, sort_by=sort))
+        documents = list(app.search.query(project, query, sort_by=sort))
         groups = Group.objects.in_bulk([d.group_id for d in documents])
 
         event_list = []

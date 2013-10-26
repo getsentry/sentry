@@ -11,13 +11,13 @@
         initialize: function(){
             Backbone.View.prototype.initialize.apply(this, arguments);
 
-            _.bindAll(this, 'updateCount', 'updateUsersSeen', 'updateLastSeen',
+            _.bindAll(this, 'updateCount', 'updateAllAnnotations', 'updateAnnotation', 'updateLastSeen',
                 'updateResolved', 'updateHasSeen', 'renderSparkline', 'updateBookmarked',
                 'render');
 
             this.model.on({
                 'change:count': this.updateCount,
-                'change:usersSeen': this.updateUsersSeen,
+                'change:annotations': this.updateAllAnnotations,
                 'change:lastSeen': this.updateLastSeen,
                 'change:isBookmarked': this.updateBookmarked,
                 'change:isResolved': this.updateResolved,
@@ -194,12 +194,12 @@
             }, 'fast');
         },
 
-        updateUsersSeen: function(){
-            var value = this.model.get('usersSeen');
+        updateAnnotation: function(annotation){
+            var value = annotation.count;
             if (value === null)
                 return;
             var new_count = app.utils.formatNumber(value);
-            var counter = this.$el.find('.tag-users');
+            var counter = this.$el.find('.annotation[data-tag="' + annotation.label + '"]');
             var digit = counter.find('span');
 
             if (digit.is(':animated'))
@@ -234,6 +234,13 @@
                 top: 0,
                 opacity: 1
             }, 'fast');
+        },
+
+        updateAllAnnotations: function(){
+            var self = this;
+            $.each(this.model.get('annotations'), function(index, annotation){
+                self.updateAnnotation(annotation);
+            });
         }
 
     });

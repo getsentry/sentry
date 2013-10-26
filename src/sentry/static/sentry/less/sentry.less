@@ -131,7 +131,7 @@ h3 {
     height: 56px;
     line-height: 56px;
     padding: 0 25px 0 10px;
-    display: inline-block;
+    display: block;
     cursor: pointer;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1016,15 +1016,17 @@ a.icon-share {
       }
     }
 
-    .tag {
+    .tag,
+    .annotation {
       margin-left: 10px;
     }
-    .tag-users {
+    .tag-users,
+    .annotation {
       margin-right: 10px;
       margin-left: 0;
       position: relative;
       background: #f9f9f9;
-      padding: 0 5px 0 45px;
+      padding: 0 5px;
       line-height: 20px;
       height: 20px;
       min-width: 20px;
@@ -1038,7 +1040,6 @@ a.icon-share {
         position: absolute;
         top: 0;
         bottom: 0;
-        left: 45px;
         right: 5px;
         height: 100%;
         text-align: center;
@@ -1047,9 +1048,8 @@ a.icon-share {
       }
 
       i {
+        padding-right: 25px;
         font-style: normal;
-        position: absolute;
-        left: 5px;
         color: #aaa;
       }
     }

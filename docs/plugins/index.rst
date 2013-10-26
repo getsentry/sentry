@@ -59,6 +59,7 @@ The following extensions are available and maintained by members of the Sentry c
 * `sentry-trello <https://github.com/DamianZaremba/sentry-trello>`_
 * `sentry-webhooks <https://github.com/getsentry/sentry-webhooks>`_
 * `sentry-whatsapp <https://github.com/ecarreras/sentry-whatsapp>`_
+* `sentry-xmpp <https://github.com/chroto/sentry-xmpp>`_
 * `sentry-youtrack <https://github.com/bogdal/sentry-youtrack>`_
 
 Have an extension that should be listed here? Submit a `pull request <https://github.com/getsentry/sentry>`_ and we'll
