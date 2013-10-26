@@ -6,11 +6,13 @@ sentry.tasks.index
 :license: BSD, see LICENSE for more details.
 """
 
+from __future__ import absolute_import
+
 from celery.task import task
 
 
 @task(name='sentry.tasks.index.index_event', queue='search')
 def index_event(event, **kwargs):
-    from sentry.models import SearchDocument
+    from sentry import app
 
-    SearchDocument.objects.index(event)
+    app.search.index(event.group, event)
