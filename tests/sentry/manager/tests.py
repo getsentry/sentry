@@ -12,7 +12,8 @@ from sentry.interfaces import Interface
 from sentry.manager import get_checksum_from_event
 from sentry.models import (
     Event, Group, Project, GroupCountByMinute, ProjectCountByMinute,
-    SearchDocument, Team, EventMapping, User, AccessGroup)
+    Team, EventMapping, User, AccessGroup
+)
 from sentry.utils.db import has_trending  # NOQA
 from sentry.testutils import TestCase
 
@@ -23,14 +24,6 @@ class DummyInterface(Interface):
 
 
 class SentryManagerTest(TestCase):
-    @mock.patch('sentry.models.SearchDocument.objects.index')
-    def test_broken_search_index(self, index):
-        index.side_effect = Exception()
-
-        event = Group.objects.from_kwargs(1, message='foo')
-        self.assertEquals(event.message, 'foo')
-        self.assertEquals(event.project_id, 1)
-
     @mock.patch('sentry.signals.regression_signal.send')
     def test_broken_regression_signal(self, send):
         send.side_effect = Exception()
@@ -222,29 +215,6 @@ class SentryManagerTest(TestCase):
         res = results[0]
         self.assertEquals(res.value, 'boz')
         self.assertEquals(res.times_seen, 1)
-
-
-class SearchManagerTest(TestCase):
-    def test_search(self):
-        project = Project.objects.all()[0]
-        group = Group.objects.create(project=project, message='foo', checksum='a' * 32)
-        doc = SearchDocument.objects.create(
-            project=project,
-            group=group,
-            status=group.status,
-            total_events=1,
-            date_added=group.first_seen,
-            date_changed=group.last_seen,
-        )
-        doc.token_set.create(
-            field='text',
-            token='foo',
-        )
-
-        results = list(SearchDocument.objects.search(project, query='foo'))
-        self.assertEquals(len(results), 1)
-        # This uses a raw query set so we have to check the id
-        self.assertEquals(results[0].id, doc.id)
 
 
 @pytest.mark.skipif('not has_trending()')

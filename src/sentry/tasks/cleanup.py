@@ -23,11 +23,13 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
 
     from django.utils import timezone
 
+    from sentry import app
     # TODO: TagKey and GroupTagKey need cleaned up
     from sentry.models import (
         Group, Event, GroupCountByMinute, EventMapping,
         GroupTag, TagValue, ProjectCountByMinute, Alert,
-        SearchDocument, Activity, LostPasswordHash)
+        Activity, LostPasswordHash)
+    from sentry.search.django.models import SearchDocument
 
     GENERIC_DELETES = (
         (SearchDocument, 'date_changed'),
@@ -47,6 +49,18 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
 
     ts = timezone.now() - datetime.timedelta(days=days)
 
+    log.info("Removing expired values for %r", LostPasswordHash)
+    LostPasswordHash.objects.filter(
+        date_added__lte=timezone.now() - datetime.timedelta(days=1)
+    ).delete()
+
+    # TODO: we should move this into individual backends
+    log.info("Removing old Node values")
+    try:
+        app.nodestore.cleanup(ts)
+    except NotImplementedError:
+        log.warning("Node backend does not support cleanup operation")
+
     # Remove types which can easily be bound to project + date
     for model, date_col in GENERIC_DELETES:
         log.info("Removing %r for days=%s project=%r", model, days, project or '*')
@@ -58,8 +72,3 @@ def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
             for obj in list(qs[:chunk_size]):
                 log.info("Removing %r", obj)
                 obj.delete()
-
-    log.info("Removing expired values for %r", LostPasswordHash)
-    LostPasswordHash.objects.filter(
-        date_added__lte=timezone.now() - datetime.timedelta(days=1)
-    ).delete()

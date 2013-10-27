@@ -8,7 +8,6 @@ sentry.plugins.sentry_mail.models
 import sentry
 
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
 from django.core.urlresolvers import reverse
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
@@ -17,22 +16,10 @@ from sentry.models import User, UserOption
 from sentry.plugins import register
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.utils.cache import cache
+from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
-from pynliner import Pynliner
-
 NOTSET = object()
-
-
-class UnicodeSafePynliner(Pynliner):
-    def _get_output(self):
-        """
-        Generate Unicode string of `self.soup` and set it to `self.output`
-
-        Returns self.output
-        """
-        self.output = unicode(self.soup)
-        return self.output
 
 
 class MailPlugin(NotificationPlugin):
@@ -46,27 +33,21 @@ class MailPlugin(NotificationPlugin):
     project_conf_form = None
     subject_prefix = settings.EMAIL_SUBJECT_PREFIX
 
-    def _send_mail(self, subject, body, html_body=None, project=None, fail_silently=False, headers=None):
+    def _send_mail(self, subject, body, html_body=None, project=None,
+                   headers=None, fail_silently=False):
         send_to = self.get_send_to(project)
         if not send_to:
             return
 
         subject_prefix = self.get_option('subject_prefix', project) or self.subject_prefix
 
-        if headers is None:
-            headers = {}
-
-        headers.setdefault('Reply-To', ', '.join(send_to))
-
-        msg = EmailMultiAlternatives(
-            '%s%s' % (subject_prefix, subject),
-            body,
-            settings.SERVER_EMAIL,
-            send_to,
-            headers=headers)
-        if html_body:
-            msg.attach_alternative(html_body, "text/html")
-        msg.send(fail_silently=fail_silently)
+        msg = MessageBuilder(
+            subject='%s%s' % (subject_prefix, subject),
+            body=body,
+            html_body=html_body,
+            headers=headers,
+        )
+        msg.send(send_to, fail_silently=fail_silently)
 
     def send_test_mail(self, project=None):
         self._send_mail(
@@ -108,11 +89,11 @@ class MailPlugin(NotificationPlugin):
         })
 
     def get_alert_html_body(self, alert):
-        return UnicodeSafePynliner().from_string(render_to_string('sentry/emails/alert.html', {
+        return render_to_string('sentry/emails/alert.html', {
             'alert': alert,
             'link': alert.get_absolute_url(),
             'settings_link': self.get_notification_settings_url(),
-        })).run()
+        })
 
     def get_emails_for_users(self, user_ids, project=None):
         email_list = set()
@@ -220,13 +201,13 @@ class MailPlugin(NotificationPlugin):
         })
 
     def get_html_body(self, group, event, link, interface_list):
-        return UnicodeSafePynliner().from_string(render_to_string('sentry/emails/error.html', {
+        return render_to_string('sentry/emails/error.html', {
             'group': group,
             'event': event,
             'link': link,
             'interfaces': interface_list,
             'settings_link': self.get_notification_settings_url(),
-        })).run()
+        })
 
 
 # Legacy compatibility

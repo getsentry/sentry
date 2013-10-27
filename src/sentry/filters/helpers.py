@@ -14,7 +14,7 @@ __all__ = ('get_filters',)
 import logging
 
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
+from sentry.constants import TAG_LABELS
 from sentry.filters.base import TagFilter
 from sentry.plugins import plugins
 from sentry.utils.safe import safe_execute
@@ -47,7 +47,7 @@ def get_filters(model=None, project=None):
                 # Generate a new filter class because we are lazy and do
                 # not want to rewrite code
                 class new(TagFilter):
-                    label = _(tag.replace('_', ' ').title())
+                    label = TAG_LABELS.get(tag) or tag.replace('_', ' ').title()
                     column = tag
                 new.__name__ = '__%sGeneratedFilter' % tag.encode('utf8')
                 TAG_FILTER_CACHE[tag] = new

@@ -8,7 +8,7 @@ import logging
 from django.core.urlresolvers import reverse
 
 from sentry.constants import STATUS_HIDDEN
-from sentry.models import Project, ProjectKey
+from sentry.models import Project, ProjectKey, ProjectOption, TagKey
 from sentry.testutils import TestCase, fixture, before
 
 logger = logging.getLogger(__name__)
@@ -161,12 +161,12 @@ class RemoveProjectTest(TestCase):
         assert resp.context['team'] == self.team
         assert resp.context['project'] == self.project
 
-    @mock.patch('sentry.tasks.deletion.delete_project')
+    @mock.patch('sentry.web.frontend.projects.remove.delete_project')
     def test_deletion_flow(self, delete_project):
         self.login_as(self.user)
 
         # missing password
-        resp = self.client.post(self.path, {'removal_type': '1', 'project': self.project.id})
+        resp = self.client.post(self.path, {'project': self.project.id})
         assert resp.status_code == 200
         assert 'password' in resp.context['form'].errors
 
@@ -174,7 +174,46 @@ class RemoveProjectTest(TestCase):
         self.user.password = ''
         self.user.save()
 
-        resp = self.client.post(self.path, {'removal_type': '1', 'project': self.project.id})
+        resp = self.client.post(self.path, {'project': self.project.id})
         assert resp.status_code == 302
-        delete_project.delay.assert_called_once_with(object_id=self.project.id)
+        delete_project.delay.assert_called_once_with(
+            object_id=self.project.id)
         assert Project.objects.get(id=self.project.id).status == STATUS_HIDDEN
+
+
+class ManageProjectTagsTest(TestCase):
+    @fixture
+    def path(self):
+        return reverse('sentry-manage-project-tags', args=[self.team.slug, self.project.id])
+
+    def test_requires_authentication(self):
+        self.assertRequiresAuthentication(self.path)
+
+    def test_simple(self):
+        TagKey.objects.create(project=self.project, key='site')
+        TagKey.objects.create(project=self.project, key='url')
+        TagKey.objects.create(project=self.project, key='os')
+
+        self.login_as(self.user)
+
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed('sentry/projects/manage_tags.html')
+        assert resp.context['team'] == self.team
+        assert resp.context['project'] == self.project
+        tag_list = resp.context['tag_list']
+        assert 'site' in tag_list
+        assert 'url' in tag_list
+        assert 'os' in tag_list
+
+        resp = self.client.post(self.path, {
+            'filters': ['site', 'url'],
+            'annotations': ['os'],
+        })
+        assert resp.status_code == 302
+        enabled_filters = ProjectOption.objects.get_value(
+            self.project, 'tags')
+        assert sorted(enabled_filters) == ['site', 'url']
+        enabled_annotations = ProjectOption.objects.get_value(
+            self.project, 'annotations')
+        assert enabled_annotations == ['os']

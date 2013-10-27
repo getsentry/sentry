@@ -224,3 +224,19 @@ class BaseManager(Manager):
 
     def create_or_update(self, **kwargs):
         return create_or_update(self.model, **kwargs)
+
+    def bind_nodes(self, object_list, *node_names):
+        from sentry import app
+
+        object_node_list = []
+        for name in node_names:
+            object_node_list.extend((getattr(i, name) for i in object_list if getattr(i, name).id))
+
+        node_ids = [n.id for n in object_node_list]
+        if not node_ids:
+            return
+
+        node_results = app.nodestore.get_multi(node_ids)
+
+        for node in object_node_list:
+            node.bind_data(node_results.get(node.id) or {})
