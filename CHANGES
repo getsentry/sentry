@@ -1,3 +1,41 @@
+Version 6.4.0
+-------------
+
+Some major backend changes are introduced in Sentry 6.3.0.
+
+Search
+======
+
+Search has been abstracted from the simple search manager, and now lives within
+``sentry.search``. Currently only the Django backend is supported, but some sample
+code for Solr Cloud integration is also available.
+
+Event Storage
+=============
+
+A new application called ``nodestore`` now manages the event blob data. By default it
+uses a Django-based backend (storing each node as a row in a table), however a Riak
+backend is included and fully supported.
+
+Additional Changes
+==================
+
+- Some initial support for time zones (user setting).
+- You can now choose which tag annotations are applied to the event stream via Project Settings -> Tags.
+- A new subsystem for handling email is available in ``sentry.utils.email``.
+- You can now receive email notifications for notes.
+- Charts now show tooltips describing the datapoint.
+- JavaScript sourcemaps now support embedded sources.
+
+Version 6.3.0
+-------------
+
+- Most of the db utilities were refactored into ``sentry.db``.
+- The user interface now accepts an ``ip_address`` attribute.
+- User tracking will now use the ip_address attribute if available.
+- ``time_spent`` is now expected to be sent as an integer in milliseconds.
+- A new Notes feature is available for leaving comments on an event.
+
 Version 6.2.0
 -------------
 
