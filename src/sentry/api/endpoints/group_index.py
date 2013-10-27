@@ -1,9 +1,9 @@
 from django.core.urlresolvers import reverse
 from django.utils.decorators import method_decorator
 
+from sentry.api.base import BaseView
 from sentry.web.decorators import has_access
 from sentry.web.frontend.groups import _get_group_list
-from sentry.web.restapi.base import BaseView
 from sentry.utils.http import absolute_uri
 from sentry.utils.javascript import transform
 
@@ -27,6 +27,6 @@ class GroupListView(BaseView):
         # TODO: need to make a custom serializer
         results = transform(group_list, request)
         for group in results:
-            group['uri'] = absolute_uri(reverse('sentry-api-1-event-details', args=(team.slug, project.slug, group['id'])))
+            group['uri'] = absolute_uri(reverse('sentry-api-0-group-details', args=(team.slug, project.slug, group['id'])))
 
         return Response(results)
