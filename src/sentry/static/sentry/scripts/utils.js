@@ -24,7 +24,7 @@
                 if (!hash[0] && !hash[1])
                     return;
 
-                vars[hash[0]] = (hash[1] ? decodeURIComponent(hash[1]).replace(/\+/, ' ') : '');
+                vars[decodeURIComponent(hash[0])] = (hash[1] ? decodeURIComponent(hash[1]).replace(/\+/, ' ') : '');
             });
 
             return vars;

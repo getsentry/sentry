@@ -29,8 +29,8 @@
                     </div>
                 {% endif %}
 
-                {% if activity %}
-                    <ul class="activity">
+                <div class="activity" id="activity">
+                    <ul>
                         {% for item in activity %}
                             {% with item|render_activity as out %}
                                 {% if out %}
@@ -39,7 +39,16 @@
                             {% endwith %}
                         {% endfor %}
                     </ul>
-                {% endif %}
+                    <a href="#add-note" class="add-note-btn"><i class="icon-comment"></i> Add Note</a>
+                    <form class="add-note-form hide" method="POST" action="">
+                        {% csrf_token %}
+                        <input type="hidden" name="o" value="note">
+                        {{ add_note_form.text }}
+                        <fieldset class="form-actions">
+                            <button type="submit" class="btn btn-small btn-primary">{% trans "Add Note" %}</button>
+                        </fieldset>
+                    </form>
+                </div>
 
                 <div class="btn-toolbar event-toolbar">
                     <!-- We switch the ordering of events here as it makes more sense visually -->

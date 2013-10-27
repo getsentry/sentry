@@ -6,7 +6,7 @@ sentry.templatetags.sentry_activity
 :license: BSD, see LICENSE for more details.
 """
 from django import template
-from django.utils.html import escape, linebreaks
+from django.utils.html import escape, urlize, linebreaks
 from django.utils.safestring import mark_safe
 
 from sentry.models import Activity
@@ -17,7 +17,7 @@ register = template.Library()
 
 
 ACTIVITY_ACTION_STRINGS = {
-    Activity.NOTE: 'left a comment',
+    Activity.NOTE: 'left a note',
     Activity.SET_RESOLVED: 'marked this event as resolved',
     Activity.SET_UNRESOLVED: 'marked this event as unresolved',
     Activity.SET_MUTED: 'marked this event as muted',
@@ -25,6 +25,7 @@ ACTIVITY_ACTION_STRINGS = {
     Activity.SET_PRIVATE: 'made this event private',
     Activity.SET_REGRESSION: 'marked this event as a regression',
     Activity.CREATE_ISSUE: u'created an issue on {provider:s} titled <a href="{location:s}">{title:s}</a>',
+    Activity.FIRST_SEEN: 'first saw this event',
 }
 
 
@@ -53,6 +54,6 @@ def render_activity(item):
     output += ' <span class="sep">&mdash;</span> <span class="time">%s</span>' % (timesince(item.datetime),)
 
     if item.type == Activity.NOTE:
-        output += linebreaks(item.data['body'])
+        output += linebreaks(urlize(escape(item.data['text'])))
 
     return mark_safe(output)

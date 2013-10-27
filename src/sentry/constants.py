@@ -225,3 +225,13 @@ LANGUAGES = [(k, LANGUAGE_MAP[k]) for k in get_all_languages() if k in LANGUAGE_
 
 # Timeout (in seconds) for fetching remote source files (e.g. JS)
 SOURCE_FETCH_TIMEOUT = 5
+
+# TODO(dcramer): We eventually want to make this user-editable
+TAG_LABELS = {
+    'sentry:user': _('User'),
+    'sentry:filename': _('File'),
+    'sentry:function': _('Function'),
+    'os': _('OS'),
+    'url': _('URL'),
+    'server_name': _('Server'),
+}

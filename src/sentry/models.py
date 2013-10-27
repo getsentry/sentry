@@ -37,14 +37,16 @@ from sentry.constants import (
     MEMBER_OWNER, MEMBER_USER, PLATFORM_TITLES, PLATFORM_LIST,
     STATUS_UNRESOLVED, STATUS_RESOLVED, STATUS_VISIBLE, STATUS_HIDDEN,
     MINUTE_NORMALIZATION, STATUS_MUTED, RESERVED_TEAM_SLUGS,
-    LOG_LEVELS, MAX_CULPRIT_LENGTH, MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH)
+    LOG_LEVELS, MAX_CULPRIT_LENGTH, MAX_TAG_KEY_LENGTH, MAX_TAG_VALUE_LENGTH
+)
 from sentry.db.models import (
     Model, GzippedDictField, BoundedIntegerField, BoundedPositiveIntegerField,
-    update, sane_repr)
+    NodeField, update, sane_repr
+)
 from sentry.manager import (
-    GroupManager, ProjectManager,
-    MetaManager, InstanceMetaManager, SearchDocumentManager, BaseManager,
-    UserOptionManager, TagKeyManager, TeamManager, UserManager)
+    GroupManager, ProjectManager, MetaManager, InstanceMetaManager, BaseManager,
+    UserOptionManager, TagKeyManager, TeamManager, UserManager
+)
 from sentry.signals import buffer_incr_complete, regression_signal
 from sentry.utils.cache import memoize
 from sentry.utils.db import has_trending
@@ -53,7 +55,7 @@ from sentry.utils.imports import import_string
 from sentry.utils.safe import safe_execute
 from sentry.utils.strings import truncatechars, strip
 
-__all__ = ('Event', 'Group', 'Project', 'SearchDocument')
+__all__ = ('Event', 'Group', 'Project')
 
 
 def slugify_instance(inst, label, reserved=(), **kwargs):
@@ -324,11 +326,11 @@ class Project(Model):
         if not hasattr(self, '_tag_cache'):
             tags = ProjectOption.objects.get_value(self, 'tags', None)
             if tags is None:
-                tags = TagKey.objects.all_keys(self)
-            self._tag_cache = [
-                t for t in tags
-                if not t.startswith('sentry:')
-            ]
+                tags = [
+                    t for t in TagKey.objects.all_keys(self)
+                    if not t.startswith('sentry:')
+                ]
+            self._tag_cache = tags
         return self._tag_cache
 
     # TODO: Make these a mixin
@@ -441,8 +443,7 @@ class PendingTeamMember(Model):
         return checksum.hexdigest()
 
     def send_invite_email(self):
-        from django.core.mail import send_mail
-        from sentry.web.helpers import render_to_string
+        from sentry.utils.email import MessageBuilder
 
         context = {
             'email': self.email,
@@ -452,16 +453,15 @@ class PendingTeamMember(Model):
                 'token': self.token,
             })),
         }
-        body = render_to_string('sentry/emails/member_invite.txt', context)
+
+        msg = MessageBuilder(
+            subject='Invite to join team: %s' % (self.team.name,),
+            template='sentry/emails/member_invite.txt',
+            context=context,
+        )
 
         try:
-            send_mail(
-                '%sInvite to join team: %s' % (
-                    settings.EMAIL_SUBJECT_PREFIX, self.team.name
-                ),
-                body, settings.SERVER_EMAIL, [self.email],
-                fail_silently=False
-            )
+            msg.send([self.email])
         except Exception, e:
             logger = logging.getLogger('sentry.mail.errors')
             logger.exception(e)
@@ -482,7 +482,6 @@ class EventBase(Model):
         max_length=MAX_CULPRIT_LENGTH, blank=True, null=True,
         db_column='view')
     checksum = models.CharField(max_length=32, db_index=True)
-    data = GzippedDictField(blank=True, null=True)
     num_comments = BoundedPositiveIntegerField(default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
 
@@ -496,10 +495,10 @@ class EventBase(Model):
 
     def error(self):
         message = strip(self.message)
-        if message:
-            message = truncatechars(message, 100)
-        else:
+        if not message:
             message = '<unlabeled message>'
+        else:
+            message = truncatechars(message.splitlines()[0], 100)
         return message
     error.short_description = _('error')
 
@@ -511,10 +510,7 @@ class EventBase(Model):
         culprit = strip(self.culprit)
         if culprit:
             return culprit
-        message = strip(self.message)
-        if not strip(message):
-            return '<unlabeled message>'
-        return truncatechars(message.splitlines()[0], 100)
+        return self.error()
 
     @property
     def team(self):
@@ -586,6 +582,7 @@ class Group(EventBase):
     time_spent_count = BoundedIntegerField(default=0)
     score = BoundedIntegerField(default=0)
     is_public = models.NullBooleanField(default=False, null=True)
+    data = GzippedDictField(blank=True, null=True)
 
     objects = GroupManager()
 
@@ -729,6 +726,7 @@ class Event(EventBase):
     time_spent = BoundedIntegerField(null=True)
     server_name = models.CharField(max_length=128, db_index=True, null=True)
     site = models.CharField(max_length=128, db_index=True, null=True)
+    data = NodeField(blank=True, null=True)
 
     objects = BaseManager()
 
@@ -980,36 +978,6 @@ class ProjectCountByMinute(Model):
     __repr__ = sane_repr('project_id', 'date')
 
 
-class SearchDocument(Model):
-    project = models.ForeignKey(Project)
-    group = models.ForeignKey(Group)
-    total_events = BoundedPositiveIntegerField(default=1)
-    status = BoundedPositiveIntegerField(default=0)
-    date_added = models.DateTimeField(default=timezone.now)
-    date_changed = models.DateTimeField(default=timezone.now)
-
-    objects = SearchDocumentManager()
-
-    class Meta:
-        unique_together = (('project', 'group'),)
-
-    __repr__ = sane_repr('project_id', 'group_id')
-
-
-class SearchToken(Model):
-    document = models.ForeignKey(SearchDocument, related_name="token_set")
-    field = models.CharField(max_length=64, default='text')
-    token = models.CharField(max_length=128)
-    times_seen = BoundedPositiveIntegerField(default=1)
-
-    objects = BaseManager()
-
-    class Meta:
-        unique_together = (('document', 'field', 'token'),)
-
-    __repr__ = sane_repr('document_id', 'field', 'token')
-
-
 class UserOption(Model):
     """
     User options apply only to a user, and optionally a project.
@@ -1052,8 +1020,7 @@ class LostPasswordHash(Model):
         return self.date_added > timezone.now() - timedelta(days=1)
 
     def send_recover_mail(self):
-        from django.core.mail import send_mail
-        from sentry.web.helpers import render_to_string
+        from sentry.utils.email import MessageBuilder
 
         context = {
             'user': self.user,
@@ -1063,14 +1030,14 @@ class LostPasswordHash(Model):
                 args=[self.user.id, self.hash]
             )),
         }
-        body = render_to_string('sentry/emails/recover_account.txt', context)
+        msg = MessageBuilder(
+            subject='%sPassword Recovery' % (settings.EMAIL_SUBJECT_PREFIX,),
+            template='sentry/emails/recover_account.txt',
+            context=context,
+        )
 
         try:
-            send_mail(
-                '%sPassword Recovery' % (settings.EMAIL_SUBJECT_PREFIX,),
-                body, settings.SERVER_EMAIL, [self.user.email],
-                fail_silently=False
-            )
+            msg.send([self.user.email])
         except Exception, e:
             logger = logging.getLogger('sentry.mail.errors')
             logger.exception(e)
@@ -1085,6 +1052,7 @@ class Activity(Model):
     SET_REGRESSION = 6
     CREATE_ISSUE = 7
     NOTE = 8
+    FIRST_SEEN = 9
 
     TYPE = (
         # (TYPE, verb-slug)
@@ -1096,6 +1064,7 @@ class Activity(Model):
         (SET_REGRESSION, 'set_regression'),
         (CREATE_ISSUE, 'create_issue'),
         (NOTE, 'note'),
+        (FIRST_SEEN, 'first_seen'),
     )
 
     project = models.ForeignKey(Project)
@@ -1126,6 +1095,50 @@ class Activity(Model):
 
             if self.event:
                 self.event.update(num_comments=F('num_comments') + 1)
+
+    def send_notification(self):
+        from sentry.utils.email import MessageBuilder
+
+        if self.type != Activity.NOTE or not self.group:
+            return
+
+        user_list = list(User.objects.filter(
+            groupseen__group=self.group,
+        ).exclude(id=self.user.id))
+        disabled = set(UserOption.objects.filter(
+            user__in=user_list, key='subscribe_comments', value='0'))
+
+        send_to = [
+            u.email for u in user_list
+            if u.id not in disabled
+            and u.email
+        ]
+
+        author = self.user.first_name or self.user.username
+
+        subject = '%s: %s' % (
+            author,
+            self.data['text'].splitlines()[0][:64])
+
+        context = {
+            'text': self.data['text'],
+            'author': author,
+            'group': self.group,
+            'link': self.group.get_absolute_url(),
+        }
+
+        msg = MessageBuilder(
+            subject=subject,
+            context=context,
+            template='sentry/emails/new_note.txt',
+            html_template='sentry/emails/new_note.html',
+        )
+
+        try:
+            msg.send(to=send_to)
+        except Exception, e:
+            logger = logging.getLogger('sentry.mail.errors')
+            logger.exception(e)
 
 
 class GroupSeen(Model):
@@ -1309,16 +1322,6 @@ def create_team_member_for_owner(instance, created, **kwargs):
     )
 
 
-def update_document(instance, created, **kwargs):
-    if created:
-        return
-
-    SearchDocument.objects.filter(
-        project=instance.project,
-        group=instance,
-    ).update(status=instance.status)
-
-
 def remove_key_for_team_member(instance, **kwargs):
     for project in instance.team.project_set.all():
         ProjectKey.objects.filter(
@@ -1405,12 +1408,6 @@ post_save.connect(
     create_team_member_for_owner,
     sender=Team,
     dispatch_uid="create_team_member_for_owner",
-    weak=False,
-)
-post_save.connect(
-    update_document,
-    sender=Group,
-    dispatch_uid="update_document",
     weak=False,
 )
 pre_delete.connect(

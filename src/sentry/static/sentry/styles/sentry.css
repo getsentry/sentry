@@ -6582,7 +6582,7 @@ h3 {
   height: 56px;
   line-height: 56px;
   padding: 0 25px 0 10px;
-  display: inline-block;
+  display: block;
   cursor: pointer;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -7539,16 +7539,20 @@ a.icon-share:hover {
   color: #000;
 }
 .group-list > li .tag,
-.events > li .tag {
+.events > li .tag,
+.group-list > li .annotation,
+.events > li .annotation {
   margin-left: 10px;
 }
 .group-list > li .tag-users,
-.events > li .tag-users {
+.events > li .tag-users,
+.group-list > li .annotation,
+.events > li .annotation {
   margin-right: 10px;
   margin-left: 0;
   position: relative;
   background: #f9f9f9;
-  padding: 0 5px 0 45px;
+  padding: 0 5px;
   line-height: 20px;
   height: 20px;
   min-width: 20px;
@@ -7559,11 +7563,12 @@ a.icon-share:hover {
   overflow: hidden;
 }
 .group-list > li .tag-users span,
-.events > li .tag-users span {
+.events > li .tag-users span,
+.group-list > li .annotation span,
+.events > li .annotation span {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 45px;
   right: 5px;
   height: 100%;
   text-align: center;
@@ -7571,10 +7576,11 @@ a.icon-share:hover {
   display: block;
 }
 .group-list > li .tag-users i,
-.events > li .tag-users i {
+.events > li .tag-users i,
+.group-list > li .annotation i,
+.events > li .annotation i {
+  padding-right: 25px;
   font-style: normal;
-  position: absolute;
-  left: 5px;
   color: #aaa;
 }
 .group-list > li .tag-project,
@@ -8102,39 +8108,6 @@ legend {
 .modal-header small {
   font-size: 0.65em;
 }
-.btn-primary {
-  color: #ffffff;
-  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
-  background-color: #56afe8;
-  background-image: -moz-linear-gradient(top, #61c1ef, #4593de);
-  background-image: -webkit-gradient(linear, 0 0, 0 100%, from(#61c1ef), to(#4593de));
-  background-image: -webkit-linear-gradient(top, #61c1ef, #4593de);
-  background-image: -o-linear-gradient(top, #61c1ef, #4593de);
-  background-image: linear-gradient(to bottom, #61c1ef, #4593de);
-  background-repeat: repeat-x;
-  filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ff61c1ef', endColorstr='#ff4593de', GradientType=0);
-  border-color: #4593de #4593de #206db6;
-  border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
-  *background-color: #4593de;
-  /* Darken IE7 buttons by default so they stand out more given they won't have borders */
-
-  filter: progid:DXImageTransform.Microsoft.gradient(enabled = false);
-  font-weight: bold;
-}
-.btn-primary:hover,
-.btn-primary:focus,
-.btn-primary:active,
-.btn-primary.active,
-.btn-primary.disabled,
-.btn-primary[disabled] {
-  color: #ffffff;
-  background-color: #4593de;
-  *background-color: #2f86da;
-}
-.btn-primary:active,
-.btn-primary.active {
-  background-color: #247acc \9;
-}
 section.body .page-header:first-child {
   margin-top: 0;
 }
@@ -8511,6 +8484,15 @@ section.body .page-header:first-child {
   background: #49a9e6;
   border-color: #458fbc;
 }
+.btn.btn-danger {
+  background: #da4f49;
+  color: #fff;
+  border-color: #bd362f;
+}
+.btn.btn-danger:hover {
+  background: #d7433c;
+  border-color: #a9302a;
+}
 section.body textarea,
 section.body input[type="text"],
 section.body input[type="password"],
@@ -8546,8 +8528,8 @@ table.table td .select2-container {
 .btn.disabled,
 .btn[disabled] {
   background: #ecf0f4;
-  opacity: 0.55;
-  filter: alpha(opacity=55);
+  opacity: 0.35;
+  filter: alpha(opacity=35);
 }
 .navbar-inverse .nav .active > a,
 .navbar-inverse .nav .active > a:hover,
@@ -8712,16 +8694,19 @@ table.vars table.vars th {
   border-color: transparent;
 }
 .activity {
+  position: relative;
+}
+.activity > ul {
   list-style: none;
   margin: 0 0 20px;
 }
-.activity > li {
+.activity > ul > li {
   margin-bottom: 5px;
-  line-height: 26px;
+  line-height: 30px;
   position: relative;
   padding-left: 20px;
 }
-.activity > li .avatar {
+.activity > ul > li .avatar {
   position: absolute;
   left: 0;
   top: 4px;
@@ -8735,7 +8720,7 @@ table.vars table.vars th {
   -moz-border-radius: 16px;
   border-radius: 16px;
 }
-.activity > li .avatar img {
+.activity > ul > li .avatar img {
   width: 16px;
   height: 16px;
   display: block;
@@ -8743,13 +8728,82 @@ table.vars table.vars th {
   -moz-border-radius: 16px;
   border-radius: 16px;
 }
-.activity > li .avatar.sentry {
-  background-image: url('../images/favicon.png');
+.activity > ul > li .avatar.sentry {
+  background-image: url('../images/favicon.ico');
 }
-.activity > li .sep,
-.activity > li .time {
+.activity > ul > li .avatar p {
+  font-size: 12px;
+}
+.activity > ul > li .sep,
+.activity > ul > li .time {
   font-size: 12px;
   color: #aaa;
+}
+.activity .add-note-btn {
+  font-size: 12px;
+  font-weight: 300;
+  letter-spacing: -0.1px;
+  position: absolute;
+  right: 0;
+  top: 0;
+  padding: 2px 5px;
+  background: #eff3f7;
+  color: #666d73;
+  border: 1px solid #eff3f7;
+  -webkit-border-radius: 4px;
+  -moz-border-radius: 4px;
+  border-radius: 4px;
+}
+.activity .add-note-btn .icon-comment {
+  opacity: 0.5;
+  filter: alpha(opacity=50);
+}
+.activity .add-note-btn:hover.selected,
+.activity .add-note-btn.selected {
+  z-index: 1001;
+  border-color: #cdd9e6;
+  -webkit-border-radius: 4px 4px 0 0;
+  -moz-border-radius: 4px 4px 0 0;
+  border-radius: 4px 4px 0 0;
+  border-bottom-color: #eff3f7;
+}
+.activity form.add-note-form {
+  z-index: 1000;
+  position: absolute;
+  right: 0;
+  top: 25px;
+  background: #eff3f7;
+  padding: 10px;
+  border: 1px solid #cdd9e6;
+}
+.activity form.add-note-form > textarea {
+  font-size: 13px;
+  max-width: 600px;
+  background: #fff;
+  border: 1px solid #cdd9e6;
+  font-weight: 300;
+  height: 80px;
+  margin: 0;
+  right: 0;
+  left: 0;
+  margin-bottom: 10px;
+  -webkit-box-shadow: none;
+  -moz-box-shadow: none;
+  box-shadow: none;
+}
+.activity form.add-note-form > textarea:-moz-placeholder {
+  color: #dddddd;
+}
+.activity form.add-note-form > textarea:-ms-input-placeholder {
+  color: #dddddd;
+}
+.activity form.add-note-form > textarea::-webkit-input-placeholder {
+  color: #dddddd;
+}
+.activity form.add-note-form .form-actions {
+  text-align: right;
+  padding: 0;
+  margin: 0;
 }
 .seen-by {
   position: relative;
