@@ -7,9 +7,9 @@ urlpatterns = patterns(
     '',
     url(r'^(?P<team_slug>[^\/]+)/(?P<project_id>[^\/]+)/groups/$',
         GroupListView.as_view(),
-        name='sentry-api-1-event-list'),
+        name='sentry-api-0-group-list'),
     url(r'^(?P<team_slug>[^\/]+)/(?P<project_id>[^\/]+)/groups/(?P<group_id>\d+)/$',
         GroupDetailsView.as_view(),
-        name='sentry-api-1-event-details'),
+        name='sentry-api-0-group-details'),
     # url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework'))
 )

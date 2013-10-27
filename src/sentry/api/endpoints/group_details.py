@@ -2,10 +2,10 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.api.base import BaseView
 from sentry.constants import STATUS_RESOLVED, STATUS_MUTED, STATUS_UNRESOLVED
 from sentry.models import Group, Activity
 from sentry.web.decorators import has_access
-from sentry.web.restapi.base import BaseView
 from sentry.utils.javascript import transform
 
 from rest_framework import serializers, status
