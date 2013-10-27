@@ -38,12 +38,12 @@ class RiakNodeStorage(NodeStorage):
 
     def get(self, id):
         # just fetch it from a random backend, we're not aiming for consistency
-        obj = self.bucket.get(key=id)
+        obj = self.bucket.get(key=id, r=1)
         if not obj:
             return None
         return obj.data
 
-    def get_multi(self, id_list):
+    def get_multi(self, id_list, r=1):
         result = self.bucket.multiget(id_list)
         return dict(
             (obj.key, obj.data)
