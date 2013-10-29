@@ -448,7 +448,7 @@ class GroupManager(BaseManager, ChartMixin):
                 is_sample=is_sample
             )
 
-        if settings.SENTRY_USE_SEARCH:
+        if getattr(settings, 'SENTRY_INDEX_SEARCH', settings.SENTRY_USE_SEARCH):
             index_event.delay(event)
 
         # TODO: move this to the queue

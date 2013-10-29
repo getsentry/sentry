@@ -537,6 +537,7 @@ SENTRY_SEARCH_OPTIONS = {}
 
 # Enable search within the frontend
 SENTRY_USE_SEARCH = True
+# SENTRY_INDEX_SEARCH = SENTRY_USE_SEARCH
 
 SENTRY_RAVEN_JS_URL = 'd3nslu0hdya83q.cloudfront.net/dist/1.0/raven.min.js'
 
