@@ -46,7 +46,8 @@ class GroupSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Group
-        fields = ('status',)
+        fields = ('id', 'status', 'times_seen', 'last_seen', 'first_seen', 'resolved_at', 'active_at')
+        read_only_fields = ('id', 'times_seen', 'last_seen', 'first_seen', 'resolved_at', 'active_at')
 
 
 class GroupDetailsView(BaseView):
@@ -56,8 +57,9 @@ class GroupDetailsView(BaseView):
             id=group_id,
             project=project,
         )
+        serializer = GroupSerializer(group)
 
-        return Response(transform(group, request))
+        return Response(serializer.data)
 
     @method_decorator(has_access)
     def put(self, request, team, project, group_id):
