@@ -509,7 +509,8 @@ def group_tag_details(request, team, project, group, tag_name):
 
 @has_group_access
 def group_event_list(request, team, project, group):
-    event_list = group.event_set.all().order_by('-datetime')
+    # TODO: we need the event data to bind after we limit
+    event_list = group.event_set.all().order_by('-datetime')[:100]
 
     Event.objects.bind_nodes(event_list, 'data')
 
