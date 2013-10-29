@@ -142,7 +142,7 @@ class BaseTestCase(Exam):
         )
 
     def create_group(self, project=None, **kwargs):
-        Group.objects.create(
+        return Group.objects.create(
             message='Foo bar',
             project=project or self.project,
             **kwargs
