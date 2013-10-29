@@ -46,11 +46,7 @@ class GroupSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Group
-        fields = ('id', 'status')
-
-    def save(self):
-        print self.data
-        return super(GroupSerializer, self).save()
+        fields = ('status',)
 
 
 class GroupDetailsView(BaseView):
