@@ -788,6 +788,8 @@ class Event(EventBase):
         data['logger'] = self.logger
         data['level'] = self.get_level_display()
         data['culprit'] = self.culprit
+        data['datetime'] = self.datetime
+        data['time_spent'] = self.time_spent
         for k, v in sorted(self.data.iteritems()):
             data[k] = v
         return data
