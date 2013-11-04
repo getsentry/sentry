@@ -13,6 +13,10 @@
 
 /* -- page layout ----------------------------------------------------------- */
 
+img {
+    max-width: 100%;
+}
+
 body {
     font-family: 'goudy old style', 'minion pro', 'bell mt', Georgia, 'Hiragino Mincho Pro';
     font-size: 17px;
