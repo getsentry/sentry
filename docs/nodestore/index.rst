@@ -47,3 +47,14 @@ Some notes on your Riak installation:
         # 'resolver': riak.resolver.last_written_resolver
     }
 
+
+Custom Backends
+---------------
+
+If you have a favorite data storage solution, it only has to operate under a few rules for it to work w/ Sentry's blob storage:
+
+- set key to value
+- get key
+- delete key
+
+For more information on implementation your own backend, take a look at ``sentry.nodestore.base.NodeStorage``.
