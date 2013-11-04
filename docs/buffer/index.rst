@@ -9,15 +9,10 @@ issue to the database (where they'd get grouped together), enabling a buffer bac
 so that each count update is actually put into a queue, and all updates are performed at the rate of how
 fast the queue can keep up.
 
-Available Backends
+Choosing a Backend
 ------------------
 
-Currently only a single bundled backend is available, built for Redis. 
-
-
-.. date:: sentry.buffer.redis.RedisBuffer
-
-To specify a backend, simply modify the ``BUFFER`` and ``BUFFER_OPTIONS`` values in your configuration:
+To specify a backend, simply modify the ``SENTRY_BUFFER`` and ``SENTRY_BUFFER_OPTIONS`` values in your configuration:
 
 ::
 
