@@ -1,5 +1,5 @@
 Throttles and Rate Limiting
-==========================
+===========================
 
 With the way Sentry works you may find yourself in a situation where you'll see
 too much inbound traffic without a good way to drop excess messages. There's a
