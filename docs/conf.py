@@ -11,7 +11,10 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys, os
+import sys
+import os
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, 'src'))
 
 if 'DJANGO_SETTINGS_MODULE' not in os.environ:
     os.environ['DJANGO_SETTINGS_MODULE'] = 'sentry.conf.server'
@@ -29,7 +32,13 @@ if 'DJANGO_SETTINGS_MODULE' not in os.environ:
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 #extensions = ['sphinxtogithub']
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'sphinx.ext.coverage', 'sphinx.ext.viewcode']
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.todo',
+    'sphinx.ext.coverage',
+    'sphinx.ext.viewcode',
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -183,8 +192,10 @@ htmlhelp_basename = 'Sentrydoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'Sentry.tex', u'Sentry Documentation',
-   u'David Cramer', 'manual'),
+    (
+        'index', 'Sentry.tex', u'Sentry Documentation',
+        u'David Cramer', 'manual'
+    ),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
