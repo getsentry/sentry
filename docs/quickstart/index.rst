@@ -287,7 +287,7 @@ If you're familiar with Python you'll quickly find yourself at home, and even mo
 ``sentry`` command is just a simple wrapper around Django's ``django-admin.py``, which means you get all of the
 power and flexibility that goes with it.
 
-Some of those which you'll likely find useful are::
+Some of those which you'll likely find useful are:
 
 createsuperuser
 ~~~~~~~~~~~~~~~
