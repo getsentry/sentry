@@ -36,9 +36,13 @@ Some notes on your Riak installation:
     SENTRY_NODESTORE = 'sentry.nodestore.riak.RiakNodeStorage'
     SENTRY_NODESTORE_OPTIONS = {
         # specify each of your Riak nodes, or the address of your load balancer
-        'nodes': [{'host':'127.0.0.1','http_port':8098}],
+        'nodes': [
+            {'host':'127.0.0.1','http_port':8098},
+        ],
+
         # (optional) specify an alternative bucket name
         # 'bucket': 'nodes',
+
         # (optional) change the default resolver
         # 'resolver': riak.resolver.last_written_resolver
     }
