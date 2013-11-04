@@ -46,21 +46,7 @@ Proxying uWSGI
 ~~~~~~~~~~~~~~
 
 You may optionally want to setup `uWSGI <http://projects.unbit.it/uwsgi/>`_ to
-run Sentry (rather than relying on the built-in gunicorn webserver). This can
-be done with the included nginx support:
-
-::
-
-   location / {
-      include uwsgi_params;
-      uwsgi_pass 127.0.0.1:9000;
-
-      uwsgi_connect_timeout 180;
-      uwsgi_send_timeout 300;
-      uwsgi_read_timeout 600;
-
-      uwsgi_param UWSGI_SCHEME $scheme;
-    }
+run Sentry (rather than relying on the built-in gunicorn webserver).
 
 Within your uWSGI configuration, you'll need to export your configuration path
 as well the ``sentry.wsgi`` module:
