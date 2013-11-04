@@ -23,6 +23,7 @@ Users Guide
    config/index
    queue/index
    buffer/index
+   nodestore/index
    udp_server/index
    throttling/index
    performance/index
