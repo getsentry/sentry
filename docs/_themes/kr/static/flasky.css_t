@@ -13,10 +13,6 @@
 
 /* -- page layout ----------------------------------------------------------- */
 
-a {
-    color: #4593DE;
-}
-
 body {
     font-family: 'goudy old style', 'minion pro', 'bell mt', Georgia, 'Hiragino Mincho Pro';
     font-size: 17px;
