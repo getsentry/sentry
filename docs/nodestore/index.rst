@@ -1,7 +1,7 @@
 Node Storage
 ============
 
-Sentry provides an abstraction called 'nodestore' which is to storing key/value blobs.
+Sentry provides an abstraction called 'nodestore' which is used for storing key/value blobs.
 
 The default backend simply stores them as gzipped blobs in in the 'nodestore_node' table
 of your default database.
