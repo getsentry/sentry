@@ -29,7 +29,7 @@ Some notes on your Riak installation:
 
 - You will want to the ``eleveldb`` backend as blobs are larger, and compression helps greatly.
 - Reads explicitly use ``r=1``.
-- We recommend ``w=2`` for writes, but if the data isn't extremely important, ``w=1`` is fine.
+- We recommend ``n=2`` for replicas, but if the data isn't extremely important, ``n=1`` is fine.
 
 ::
 
