@@ -57,4 +57,4 @@ If you have a favorite data storage solution, it only has to operate under a few
 - get key
 - delete key
 
-For more information on implementation your own backend, take a look at ``sentry.nodestore.base.NodeStorage``.
+For more information on implementating your own backend, take a look at ``sentry.nodestore.base.NodeStorage``.
