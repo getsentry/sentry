@@ -257,6 +257,13 @@ class ValidateDataTest(BaseAPITest):
         })
         assert data['tags'] == [('bar', 'value')]
 
+    def test_tags_as_invalid_pair(self):
+        data = validate_data(self.project, {
+            'message': 'foo',
+            'tags': [('foo', 'bar'), ('biz', 'baz', 'boz')],
+        })
+        assert data['tags'] == [('foo', 'bar')]
+
     def test_extra_as_string(self):
         data = validate_data(self.project, {
             'message': 'foo',
