@@ -61,3 +61,7 @@ as well the ``sentry.wsgi`` module:
     http-socket = :9000
     master = true
     processes = 4
+
+    ; allow longer headers for raven.js if applicable
+    ; default: 4096
+    buffer-size = 32768
