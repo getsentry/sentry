@@ -1104,17 +1104,44 @@ class Activity(Model):
         if self.type != Activity.NOTE or not self.group:
             return
 
-        user_list = list(User.objects.filter(
-            groupseen__group=self.group,
-        ).exclude(id=self.user.id))
+        # TODO(dcramer): some of this logic is duplicated in NotificationPlugin
+        # fetch access group members
+        user_list = set(
+            m.user for m in AccessGroup.objects.filter(
+                projects=self.project,
+                members__is_active=True,
+            ).exclude(
+                members__id=self.user_id,
+            )
+        )
+
+        if self.project.team:
+            # fetch team members
+            user_list |= set(
+                m.user for m in self.project.team.member_set.filter(
+                    user__is_active=True,
+                ).exclude(
+                    user__id=self.user_id,
+                )
+            )
+
+        if not user_list:
+            return
+
         disabled = set(UserOption.objects.filter(
-            user__in=user_list, key='subscribe_comments', value='0'))
+            user__in=user_list,
+            key='subscribe_comments',
+            value='0',
+        ).values_list('user', flat=True))
 
         send_to = [
-            u.email for u in user_list
-            if u.id not in disabled
-            and u.email
+            u.email
+            for u in user_list
+            if u.email and u.id not in disabled
         ]
+
+        if not send_to:
+            return
 
         author = self.user.first_name or self.user.username
 
