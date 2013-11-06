@@ -26,7 +26,7 @@ We don't have any real numbers to tell you what kind of hardware you're going to
 your decision based on existing usage from real customers.
 
 If you're looking for an HA, and high throughput setup, you're going to need to setup a fairly complex cluster
-of machines, an dutilize all of Sentry's advanced configuration options. This means you'll need Postgres, Riak,
+of machines, and utilize all of Sentry's advanced configuration options. This means you'll need Postgres, Riak,
 Redis, Memcached, and RabbitMQ. It's very rare you'd need this complex of a cluster, and the primary usecase for
 this is `getsentry.com <https://getsentry.com/>`_.
 
