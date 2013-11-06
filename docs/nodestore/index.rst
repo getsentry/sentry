@@ -27,7 +27,7 @@ scale out, rather than scale up a single SQL node.
 
 Some notes on your Riak installation:
 
-- You will want to the ``eleveldb`` backend as blobs are larger, and compression helps greatly.
+- You will want to the ``leveldb`` backend as blobs are larger, and compression helps greatly.
 - Reads explicitly use ``r=1``.
 - We recommend ``n=2`` for replicas, but if the data isn't extremely important, ``n=1`` is fine.
 
@@ -45,6 +45,51 @@ Some notes on your Riak installation:
 
         # (optional) change the default resolver
         # 'resolver': riak.resolver.last_written_resolver
+    }
+
+
+Cassandra Backend
+-----------------
+
+Cassandra is a horizontally scalable datastore in many of the same ways as Riak.
+
+The Sentry Cassandra backend only operates over the native CQL interface, so requires Cassandra 1.2+.
+
+Schema:
+
+::
+
+    CREATE KEYSPACE sentry WITH replication = {
+      'class': 'SimpleStrategy',
+      'replication_factor': '2'
+    };
+
+    USE sentry;
+
+    CREATE TABLE nodestore (
+      key text PRIMARY KEY,
+      flags int,
+      value blob
+    ) WITH
+      compaction={'sstable_size_in_mb': '160', 'class': 'LeveledCompactionStrategy'} AND
+      compression={'sstable_compression': 'SnappyCompressor'};
+
+
+Configuration:
+
+::
+
+    SENTRY_NODESTORE = 'sentry.nodestore.cassandra.CassandraNodeStorage'
+    SENTRY_NODESTORE_OPTIONS = {
+        'servers': [
+            '127.0.0.1:9042',
+        ],
+
+        # (optional) specify an alternative keyspace
+        # 'keyspace': 'sentry',
+
+        # (optional) specify an alternative columnfamily
+        # 'columnfamily': 'nodestore',
     }
 
 
