@@ -80,7 +80,7 @@ Using MySQL or Postgres
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 We **highly** recommend using PostgreSQL for your database, or MySQL if you have no other choice. The default
-is sqlite and will handle very little load.
+is sqlite and will handle very little load. If you're using MySQL, you should use InnoDB as your storage engine.
 
 These databases require additional packages, but Sentry provides a couple of meta packages to make things easier:
 
