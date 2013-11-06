@@ -21,6 +21,19 @@ which is the worker manager process of the Celery library.
 
 .. note:: You will need to run both celery workers and celerybeat. In our example, the -B flag runs a beat instance.
 
+We again recommend running this as a service. Below is an example configuration with supervisor:
+
+::
+
+  [program:sentry-worker]
+  directory=/www/sentry/
+  command=/www/sentry/bin/sentry celery worker -B -l WARNING
+  autostart=true
+  autorestart=true
+  redirect_stderr=true
+  killasgroup=true
+
+
 Enable the Queue
 ----------------
 
