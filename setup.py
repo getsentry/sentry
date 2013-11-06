@@ -47,6 +47,8 @@ dev_requires = [
 ]
 
 tests_require = [
+    'casscache',
+    'cqlsh',
     'exam>=0.5.1',
     'eventlet',
     'httpretty',
