@@ -464,11 +464,6 @@ SENTRY_WEB_OPTIONS = {
 SENTRY_UDP_HOST = 'localhost'
 SENTRY_UDP_PORT = 9001
 
-# Queue (Kombu)
-SENTRY_QUEUE = {
-    'transport': 'kombu.transport.django.Transport',
-}
-
 SENTRY_ALLOWED_INTERFACES = set([
     'sentry.interfaces.Exception',
     'sentry.interfaces.Message',
