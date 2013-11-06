@@ -5,8 +5,8 @@ Some basic prerequisites which you'll need in order to run Sentry:
 
 * Python 2.5, 2.6, or 2.7
 * python-setuptools, python-dev
-* Ideally a real database (like PostgreSQL or MySQL)
-* Likely a UNIX-based operating system
+* A real database (PostgreSQL is preferred, MySQL also works)
+* A UNIX-based operating system
 
 The recommended configuration of Sentry involves setting up a separate web server to handle your error
 logging. This means that any number of Sentry clients simply pass on this information to your primary Sentry
@@ -18,22 +18,32 @@ and configuring the basic web service.
 Hardware
 --------
 
-Sentry is designed to scale up (to some extent) as you need it. The primary bottleneck will be your database
-and the level of concurrency you can handle. That said, it's very unlikey you'll ever reach a point where Sentry
-cannot scale on commodity hardware.
+Sentry provides a number of mechanisms to scale its capacity out horizontally, however there is still a primary
+SPOF at the database level. In an HA setup, the database is only utilized for event indexing and basic data
+storage, and becomes much less of a capacity concern (see also :doc:`../nodestore/index`).
 
 We don't have any real numbers to tell you what kind of hardware you're going to need, but we'll help you make
 your decision based on existing usage from real customers.
 
-Our primary point of view for Sentry's requirements is going to be Disqus. As of time of writing, Disqus handles
-almost 2 million events a day on a single physical server, which hosts both the database and the Sentry web
-components. The server runs two quad-core processors and has 16GB physical memory. It also runs standard 10k
-RPM drives. Given the amount of resources available, Sentry barely uses any of it. It's likely that without
-any tweaks to the configuration, the hardware Disqus is on could handle 10 million events/day before it hit
-any real limitations.
+If you're looking for an HA, and high throughput setup, you're going to need to setup a fairly complex cluster
+of machines, an dutilize all of Sentry's advanced configuration options. This means you'll need Postgres, Riak,
+Redis, Memcached, and RabbitMQ. It's very rare you'd need this complex of a cluster, and the primary usecase for
+this is `getsentry.com <https://getsentry.com/>`_.
 
-That said, Disqus is also not configured in an optimal high-concurrency setup. There are many optimizations
-within Sentry that can help with concurrency, one such optimization is the update buffers (described elsewhere).
+For more typical, but still fairly high throughput setups, you can run off of a single machine as long as it has
+reasonable IO (ideally SSDS), and a good amount of memory.
+
+The main things you need to consider are:
+
+- TTL on events (how long do you need to keep historical data around)
+- Average event throughput
+- How many events get grouped together (which means they get sampled)
+
+At a point, getsentry.com was processing approximately 4 million events a day. A majority of this data is stored
+for 90 days, which accounted for around 1.5TB of SSDs. Web and worker nodes were commodity (8GB-12GB RAM, cheap
+SATA drives, 8 cores), the only two additional nodes were a dedicated RabbitMQ and Postgres instance (both on SSDs,
+12GB-24GB of memory). In theory, given a single high-memory machine, with 16+ cores, and SSDs, you could handle
+the entirety of the given data set.
 
 Setting up an Environment
 -------------------------
