@@ -55,9 +55,6 @@ Cassandra is a horizontally scalable datastore in many of the same ways as Riak.
 
 The Sentry Cassandra backend only operates over the native CQL interface, so requires Cassandra 1.2+.
 
-Schema
-~~~~~~
-
 ::
 
     CREATE KEYSPACE sentry WITH replication = {
@@ -75,9 +72,6 @@ Schema
       compaction={'sstable_size_in_mb': '160', 'class': 'LeveledCompactionStrategy'} AND
       compression={'sstable_compression': 'SnappyCompressor'};
 
-
-Configuration
-~~~~~~~~~~~~~
 
 ::
 
