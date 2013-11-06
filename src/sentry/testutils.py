@@ -212,7 +212,8 @@ class BaseTestCase(Exam):
             secret = self.projectkey.secret_key
 
         message = self._makeMessage(data)
-        resp = self.client.post(reverse('sentry-api-store'), message,
+        resp = self.client.post(
+            reverse('sentry-api-store'), message,
             content_type='application/octet-stream',
             HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
         )
@@ -306,3 +307,18 @@ def riak_is_available():
 requires_riak = pytest.mark.skipif(
     lambda x: not riak_is_available(),
     reason="requires riak server running")
+
+
+def cassandra_is_available():
+    import socket
+    try:
+        socket.create_connection(('127.0.0.1', 9042), 1.0)
+    except socket.error:
+        return False
+    else:
+        return True
+
+
+requires_cassandra = pytest.mark.skipif(
+    lambda x: not cassandra_is_available(),
+    reason="requires cassandra server running")
