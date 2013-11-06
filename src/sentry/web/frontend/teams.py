@@ -305,8 +305,11 @@ def edit_team_member(request, team, member_id):
     except TeamMember.DoesNotExist:
         return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
 
+    if member.user == team.owner:
+        return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
+
     if not can_edit_team_member(request.user, member):
-        return HttpResponseRedirect(reverse('sentry'))
+        return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
 
     form = EditTeamMemberForm(team, request.POST or None, instance=member)
     if form.is_valid():
