@@ -49,7 +49,9 @@ Finally, configure the buffer options:
 
 Because the Redis buffer relies on the Nydus package, this gives you the ability to specify multiple nodes and
 have keys automatically distributed. It's unlikely that you'll need this functionality, but if you do, a simple
-configuration might look like this::
+configuration might look like this:
+
+::
 
     SENTRY_BUFFER_OPTIONS = {
         'hosts': {
