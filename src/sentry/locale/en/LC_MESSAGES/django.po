@@ -1953,7 +1953,7 @@ msgstr ""
 msgid ""
 "Rate limits apply on a per-minute basis, which means that they rollover at "
 "the start of a new minute. When you attempt to send an event and the project "
-"is over it's quota, the client will receive an HTTP 429 (Too Many Requests) "
+"is over its quota, the client will receive an HTTP 429 (Too Many Requests) "
 "response."
 msgstr ""
 
