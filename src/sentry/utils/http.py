@@ -14,7 +14,7 @@ from django.conf import settings
 def absolute_uri(url=None):
     if not url:
         return settings.SENTRY_URL_PREFIX
-    return urljoin(settings.SENTRY_URL_PREFIX, url)
+    return urljoin(settings.SENTRY_URL_PREFIX, url.lstrip('/'))
 
 
 def safe_urlencode(params, doseq=0):
