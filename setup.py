@@ -82,7 +82,7 @@ install_requires = [
     'raven>=3.3.8',
     'redis>=2.7.0,<2.9.0',
     'simplejson>=3.1.0,<3.4.0',
-    'South>=0.8.0,<0.9.0',
+    'South==0.8.2',
     'httpagentparser>=1.2.1,<1.3.0',
     'django-social-auth>=0.7.28,<0.8.0',
     'setproctitle>=1.1.7,<1.2.0',
