@@ -34,8 +34,11 @@ TIMEZONE_CHOICES = _get_timezone_choices()
 
 
 class RegistrationForm(forms.ModelForm):
-    username = forms.EmailField(label=_('Email'), max_length=128)
-    password = forms.CharField(widget=forms.PasswordInput)
+    username = forms.EmailField(
+        label=_('Email'), max_length=128,
+        widget=forms.TextInput(attrs={'placeholder': 'you@example.com'}))
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'placeholder': 'something super secret'}))
 
     class Meta:
         fields = ('username',)
