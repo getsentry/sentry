@@ -395,12 +395,7 @@ def group(request, team, project, group, event_id=None):
     if request.POST.get('o') == 'note' and request.user.is_authenticated():
         add_note_form = NewNoteForm(request.POST)
         if add_note_form.is_valid():
-            activity = Activity.objects.create(
-                group=group, event=event, project=project,
-                type=Activity.NOTE, user=request.user,
-                data=add_note_form.cleaned_data
-            )
-            activity.send_notification()
+            add_note_form.save(event, request.user)
             return HttpResponseRedirect(request.path)
     else:
         add_note_form = NewNoteForm()
