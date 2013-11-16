@@ -27,3 +27,25 @@ class MessageBuilderTest(TestCase):
             '<b>hello world</b>',
             'text/html',
         )
+
+    def test_explicit_reply_to(self):
+        msg = MessageBuilder(
+            subject='Test',
+            body='hello world',
+            html_body='<b>hello world</b>',
+            headers={'X-Sentry-Reply-To': 'bar@example.com'},
+        )
+        msg.send(['foo@example.com'])
+
+        assert len(mail.outbox) == 1
+
+        out = mail.outbox[0]
+        assert out.to == ['foo@example.com']
+        assert out.subject == 'Test'
+        assert out.extra_headers['Reply-To'] == 'bar@example.com'
+        assert out.body == 'hello world'
+        assert len(out.alternatives) == 1
+        assert out.alternatives[0] == (
+            '<b>hello world</b>',
+            'text/html',
+        )
