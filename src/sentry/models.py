@@ -21,7 +21,7 @@ from picklefield.fields import PickledObjectField
 from south.modelsinspector import add_introspection_rules
 
 from django.conf import settings
-from django.contrib.auth.models import AbstractBaseUser
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.contrib.auth.signals import user_logged_in
 from django.core.urlresolvers import reverse
 from django.db import models
@@ -72,7 +72,7 @@ def slugify_instance(inst, label, reserved=(), **kwargs):
         inst.slug = base_slug + '-' + str(n)
 
 
-class User(Model, AbstractBaseUser):
+class User(Model, AbstractBaseUser, PermissionsMixin):
     username = models.CharField(_('username'), max_length=128, unique=True)
     first_name = models.CharField(_('first name'), max_length=30, blank=True)
     last_name = models.CharField(_('last name'), max_length=30, blank=True)
@@ -96,7 +96,7 @@ class User(Model, AbstractBaseUser):
         verbose_name = _('user')
         verbose_name_plural = _('users')
         db_table = 'auth_user'
-        app_label = 'auth'
+        # app_label = 'auth'
 
     def merge_to(from_user, to_user):
         # TODO: we could discover relations automatically and make this useful
