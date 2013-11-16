@@ -464,6 +464,12 @@ SENTRY_WEB_OPTIONS = {
 SENTRY_UDP_HOST = 'localhost'
 SENTRY_UDP_PORT = 9001
 
+# SMTP Service
+SENTRY_ENABLE_EMAIL_REPLIES = False
+SENTRY_SMTP_HOSTNAME = 'localhost'
+SENTRY_SMTP_HOST = 'localhost'
+SENTRT_SMTP_PORT = 25
+
 SENTRY_ALLOWED_INTERFACES = set([
     'sentry.interfaces.Exception',
     'sentry.interfaces.Message',
