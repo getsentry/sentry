@@ -65,13 +65,12 @@ class RegisterTest(TestCase):
     def test_with_required_params(self):
         with self.Settings(SENTRY_ALLOW_REGISTRATION=True):
             resp = self.client.post(self.path, {
-                'username': 'test',
-                'email': 'test@example.com',
+                'username': 'test-a-really-long-email-address@example.com',
                 'password': 'foobar',
             })
             assert resp.status_code == 302
-            user = User.objects.get(username='test')
-            assert user.email == 'test@example.com'
+            user = User.objects.get(username='test-a-really-long-email-address@example.com')
+            assert user.email == 'test-a-really-long-email-address@example.com'
             assert user.check_password('foobar')
 
 

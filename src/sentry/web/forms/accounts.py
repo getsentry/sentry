@@ -34,33 +34,26 @@ TIMEZONE_CHOICES = _get_timezone_choices()
 
 
 class RegistrationForm(forms.ModelForm):
-    email = forms.EmailField()
+    username = forms.EmailField(label=_('Email'))
     password = forms.CharField(widget=forms.PasswordInput)
 
     class Meta:
-        fields = ('username', 'email')
+        fields = ('username',)
         model = User
-
-    def clean_email(self):
-        value = self.cleaned_data.get('email')
-        if not value:
-            return
-        # We don't really care about why people think they need multiple User accounts with the same
-        # email address -- dealwithit.jpg
-        if User.objects.filter(email__iexact=value).exists():
-            raise forms.ValidationError(_('An account is already registered with that email address.'))
-        return value
 
     def clean_username(self):
         value = self.cleaned_data.get('username')
         if not value:
             return
+        # We don't really care about why people think they need multiple User accounts with the same
+        # email address -- dealwithit.jpg
         if User.objects.filter(username__iexact=value).exists():
-            raise forms.ValidationError(_('An account is already registered with that username.'))
+            raise forms.ValidationError(_('An account is already registered with that email address.'))
         return value
 
     def save(self, commit=True):
         user = super(RegistrationForm, self).save(commit=False)
+        user.email = self.cleaned_data['username']
         user.set_password(self.cleaned_data['password'])
         if commit:
             user.save()
