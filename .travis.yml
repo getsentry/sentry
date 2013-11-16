@@ -5,6 +5,7 @@ services:
   - mysql
   - postgresql
   - redis-server
+  - cassandra
 python:
   - "2.6"
   - "2.7"
@@ -39,6 +40,8 @@ install:
 before_script:
   - mysql -e 'create database sentry;'
   - psql -c 'create database sentry;' -U postgres
+  - "echo \"create keyspace sentry with replication = {'class' : 'SimpleStrategy', 'replication_factor': 1};\" | cqlsh --cqlversion=3.0.3"
+  - echo 'create table nodestore (key text primary key, value blob, flags int);' | cqlsh -k sentry --cqlversion=3.0.3
 script:
   - make lint
   - make test-js

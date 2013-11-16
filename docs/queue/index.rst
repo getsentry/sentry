@@ -1,5 +1,5 @@
-Utilizing the Queue
-===================
+Queuing Work
+============
 
 Sentry comes with a built-in queue to process tasks in a more asynchronous
 fashion. For example, with workers enabled, when an event comes in instead
@@ -19,13 +19,28 @@ which is the worker manager process of the Celery library.
 
     sentry celery worker -B
 
-.. note:: You will need to run both celery workers and celerybeat.
+.. note:: You will need to run both celery workers and celerybeat. In our example, the -B flag runs a beat instance (in addition to the worker), but in production you may want to run them seperately.
+
+We again recommend running this as a service. Below is an example configuration with supervisor:
+
+::
+
+  [program:sentry-worker]
+  directory=/www/sentry/
+  command=/www/sentry/bin/sentry celery worker -B -l WARNING
+  autostart=true
+  autorestart=true
+  redirect_stderr=true
+  killasgroup=true
+
 
 Enable the Queue
 ----------------
 
 Once you've brought up a worker, the next step is to enable the queue. This is
-done with a simple settings flag::
+done with a simple settings flag:
+
+::
 
     CELERY_ALWAYS_EAGER = False
 
@@ -34,6 +49,8 @@ rely on the database, and move to something more efficient. These are documented
 details as part of the `Celery documentation <http://celeryproject.org/>`_, but something simple
 like Redis will do just fine.
 
-An example configuration using a local Redis server might look like this::
+An example configuration using a local Redis server might look like this:
+
+::
 
     BROKER_URL = "redis://localhost:6379/0"

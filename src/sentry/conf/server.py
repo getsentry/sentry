@@ -197,7 +197,7 @@ AUTHENTICATION_BACKENDS = (
     'sentry.utils.auth.EmailAuthBackend',
 )
 
-SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = 'auth.User'
+SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = 'sentry.User'
 
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 
@@ -472,11 +472,6 @@ SENTRY_WEB_OPTIONS = {
 SENTRY_UDP_HOST = 'localhost'
 SENTRY_UDP_PORT = 9001
 
-# Queue (Kombu)
-SENTRY_QUEUE = {
-    'transport': 'kombu.transport.django.Transport',
-}
-
 SENTRY_ALLOWED_INTERFACES = set([
     'sentry.interfaces.Exception',
     'sentry.interfaces.Message',
@@ -545,6 +540,7 @@ SENTRY_SEARCH_OPTIONS = {}
 
 # Enable search within the frontend
 SENTRY_USE_SEARCH = True
+# SENTRY_INDEX_SEARCH = SENTRY_USE_SEARCH
 
 SENTRY_RAVEN_JS_URL = 'd3nslu0hdya83q.cloudfront.net/dist/1.0/raven.min.js'
 

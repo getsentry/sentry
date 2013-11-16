@@ -98,4 +98,7 @@ coverage: develop
 run-uwsgi:
 	uwsgi --http 127.0.0.1:8000 --need-app --disable-logging --wsgi-file src/sentry/wsgi.py --processes 1 --threads 5
 
-.PHONY: build
+publish:
+	python setup.py sdist bdist_wheel upload
+
+.PHONY: build publish
