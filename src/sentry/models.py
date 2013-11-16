@@ -21,7 +21,7 @@ from picklefield.fields import PickledObjectField
 from south.modelsinspector import add_introspection_rules
 
 from django.conf import settings
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.contrib.auth.signals import user_logged_in
 from django.core.urlresolvers import reverse
 from django.db import models
@@ -72,10 +72,31 @@ def slugify_instance(inst, label, reserved=(), **kwargs):
         inst.slug = base_slug + '-' + str(n)
 
 
-class User(Model, AbstractUser):
+class User(Model, AbstractBaseUser, PermissionsMixin):
+    username = models.CharField(_('username'), max_length=128, unique=True)
+    first_name = models.CharField(_('first name'), max_length=30, blank=True)
+    last_name = models.CharField(_('last name'), max_length=30, blank=True)
+    email = models.EmailField(_('email address'), blank=True)
+    is_staff = models.BooleanField(
+        _('staff status'), default=False,
+        help_text=_('Designates whether the user can log into this admin '
+                    'site.'))
+    is_active = models.BooleanField(
+        _('active'), default=True,
+        help_text=_('Designates whether this user should be treated as '
+                    'active. Unselect this instead of deleting accounts.'))
+    date_joined = models.DateTimeField(_('date joined'), default=timezone.now)
+
+    objects = UserManager(cache_fields=['pk'])
+
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['email']
+
     class Meta:
+        verbose_name = _('user')
+        verbose_name_plural = _('users')
         db_table = 'auth_user'
-        app_label = 'auth'
+        # app_label = 'auth'
 
     def merge_to(from_user, to_user):
         # TODO: we could discover relations automatically and make this useful
@@ -94,9 +115,6 @@ class User(Model, AbstractUser):
             obj.update(user=to_user)
         for obj in UserOption.objects.filter(user=from_user):
             obj.update(user=to_user)
-
-
-User.add_to_class('objects', UserManager(cache_fields=['pk']))
 
 
 class Option(Model):
@@ -788,6 +806,8 @@ class Event(EventBase):
         data['logger'] = self.logger
         data['level'] = self.get_level_display()
         data['culprit'] = self.culprit
+        data['datetime'] = self.datetime
+        data['time_spent'] = self.time_spent
         for k, v in sorted(self.data.iteritems()):
             data[k] = v
         return data
@@ -1102,17 +1122,44 @@ class Activity(Model):
         if self.type != Activity.NOTE or not self.group:
             return
 
-        user_list = list(User.objects.filter(
-            groupseen__group=self.group,
-        ).exclude(id=self.user.id))
+        # TODO(dcramer): some of this logic is duplicated in NotificationPlugin
+        # fetch access group members
+        user_list = set(
+            m.user for m in AccessGroup.objects.filter(
+                projects=self.project,
+                members__is_active=True,
+            ).exclude(
+                members__id=self.user_id,
+            )
+        )
+
+        if self.project.team:
+            # fetch team members
+            user_list |= set(
+                m.user for m in self.project.team.member_set.filter(
+                    user__is_active=True,
+                ).exclude(
+                    user__id=self.user_id,
+                )
+            )
+
+        if not user_list:
+            return
+
         disabled = set(UserOption.objects.filter(
-            user__in=user_list, key='subscribe_comments', value='0'))
+            user__in=user_list,
+            key='subscribe_comments',
+            value='0',
+        ).values_list('user', flat=True))
 
         send_to = [
-            u.email for u in user_list
-            if u.id not in disabled
-            and u.email
+            u.email
+            for u in user_list
+            if u.email and u.id not in disabled
         ]
+
+        if not send_to:
+            return
 
         author = self.user.first_name or self.user.username
 

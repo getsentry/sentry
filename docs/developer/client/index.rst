@@ -564,5 +564,5 @@ as things like extra data, or tags.
 - Culprits are limited to 200 characters.
 - Most contextual variables are limited to 512 characters.
 - Extra contextual data is limited to 2048 characters.
-- Messages are limited to 2048 characters.
+- Messages are limited to 1024 * 10 characters.
 - Http data (the body) is limited to 2048 characters.

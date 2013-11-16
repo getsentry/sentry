@@ -6582,9 +6582,8 @@ h3 {
   height: 56px;
   line-height: 56px;
   padding: 0 25px 0 10px;
-  display: block;
+  display: inline-block;
   cursor: pointer;
-  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

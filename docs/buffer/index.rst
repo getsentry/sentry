@@ -1,5 +1,5 @@
-Utilizing Update Buffers
-========================
+Update Buffers
+==============
 
 Sentry provides the ability to buffer certain updates to events, such as counts and timestamps. This is
 extremely helpful if you have high concurrency, especially if they're frequently the same event.
@@ -9,15 +9,10 @@ issue to the database (where they'd get grouped together), enabling a buffer bac
 so that each count update is actually put into a queue, and all updates are performed at the rate of how
 fast the queue can keep up.
 
-Available Backends
+Choosing a Backend
 ------------------
 
-Currently only a single bundled backend is available, built for Redis. 
-
-
-.. date:: sentry.buffer.redis.RedisBuffer
-
-To specify a backend, simply modify the ``BUFFER`` and ``BUFFER_OPTIONS`` values in your configuration:
+To specify a backend, simply modify the ``SENTRY_BUFFER`` and ``SENTRY_BUFFER_OPTIONS`` values in your configuration:
 
 ::
 
@@ -54,7 +49,9 @@ Finally, configure the buffer options:
 
 Because the Redis buffer relies on the Nydus package, this gives you the ability to specify multiple nodes and
 have keys automatically distributed. It's unlikely that you'll need this functionality, but if you do, a simple
-configuration might look like this::
+configuration might look like this:
+
+::
 
     SENTRY_BUFFER_OPTIONS = {
         'hosts': {

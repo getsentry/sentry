@@ -26,6 +26,7 @@ Additional Changes
 - You can now receive email notifications for notes.
 - Charts now show tooltips describing the datapoint.
 - JavaScript sourcemaps now support embedded sources.
+- Stream annotations can now be customized to show any tags (not just number of users).
 
 Version 6.3.0
 -------------

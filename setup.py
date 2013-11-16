@@ -47,6 +47,8 @@ dev_requires = [
 ]
 
 tests_require = [
+    'casscache',
+    'cqlsh',
     'exam>=0.5.1',
     'eventlet',
     'httpretty',
@@ -88,7 +90,7 @@ install_requires = [
     'redis>=2.7.0,<2.9.0',
     'simplejson>=3.1.0,<3.4.0',
     'setproctitle>=1.1.7,<1.2.0',
-    'South>=0.8.0,<0.9.0',
+    'South==0.8.2',
     'urllib3>=1.7.1,<1.8.0',
 ]
 
