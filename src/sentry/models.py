@@ -1117,7 +1117,7 @@ class Activity(Model):
                 self.event.update(num_comments=F('num_comments') + 1)
 
     def send_notification(self):
-        from sentry.utils.email import MessageBuilder
+        from sentry.utils.email import MessageBuilder, group_id_to_email
 
         if self.type != Activity.NOTE or not self.group:
             return
@@ -1174,11 +1174,16 @@ class Activity(Model):
             'link': self.group.get_absolute_url(),
         }
 
+        headers = {
+            'X-Sentry-Reply-To': group_id_to_email(self.group.pk),
+        }
+
         msg = MessageBuilder(
             subject=subject,
             context=context,
             template='sentry/emails/new_note.txt',
             html_template='sentry/emails/new_note.html',
+            headers=headers,
         )
 
         try:

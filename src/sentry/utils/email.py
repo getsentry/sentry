@@ -8,10 +8,32 @@ sentry.utils.email
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
+from django.core.signing import Signer
+from django.utils.encoding import force_bytes
 
 from pynliner import Pynliner
 
 from sentry.web.helpers import render_to_string
+
+signer = Signer()
+
+SMTP_HOSTNAME = getattr(settings, 'SENTRY_SMTP_HOSTNAME', 'localhost')
+ENABLE_EMAIL_REPLIES = getattr(settings, 'SENTRY_ENABLE_EMAIL_REPLIES', False)
+
+
+def email_to_group_id(address):
+    """
+    Email address should be in the form of:
+        {group_id}+{signature}@example.com
+    """
+    address = address.split('@', 1)[0]
+    signed_data = address.replace('+', ':')
+    return int(force_bytes(signer.unsign(signed_data)))
+
+
+def group_id_to_email(group_id):
+    signed_data = signer.sign(str(group_id))
+    return '@'.join((signed_data.replace(':', '+'), SMTP_HOSTNAME))
 
 
 class MessageBuilder(object):
@@ -22,7 +44,7 @@ class MessageBuilder(object):
         assert context or not (template or html_template)
 
         self.subject = subject
-        self.context = context
+        self.context = context or {}
         self.template = template
         self.html_template = html_template
         self.body = body
@@ -35,7 +57,12 @@ class MessageBuilder(object):
         else:
             headers = self.headers.copy()
 
-        headers.setdefault('Reply-To', ', '.join(to))
+        if ENABLE_EMAIL_REPLIES and 'X-Sentry-Reply-To' in headers:
+            reply_to = headers['X-Sentry-Reply-To']
+        else:
+            reply_to = ', '.join(to)
+
+        headers.setdefault('Reply-To', reply_to)
 
         if self.template:
             txt_body = render_to_string(self.template, self.context)

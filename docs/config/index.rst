@@ -176,6 +176,47 @@ The following settings are available for the built-in UDP API server:
         SENTRY_UDP_PORT = 9001
 
 
+.. _config-smtp-server:
+
+SMTP Server
+~~~~~~~~~~~
+
+The following settings are available for the built-in SMTP mail server:
+
+.. data:: SENTRY_SMTP_HOST
+    :noindex:
+
+    The hostname which the smtp server should bind to.
+
+    Defaults to ``localhost``.
+
+    ::
+
+        SENTRY_SMTP_HOST = '0.0.0.0'  # bind to all addresses
+
+.. data:: SENTRY_SMTP_PORT
+    :noindex:
+
+    The port which the smtp server should listen on.
+
+    Defaults to ``1025``.
+
+    ::
+
+        SENTRY_SMTP_PORT = 1025
+
+.. data:: SENTRY_SMTP_HOSTNAME
+    :noindex:
+
+    The hostname which matches the server's MX record.
+
+    Defaults to ``localhost``.
+
+    ::
+
+        SENTRY_SMTP_HOSTNAME = 'reply.getsentry.com'
+
+
 Data Sampling
 -------------
 
