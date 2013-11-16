@@ -196,7 +196,7 @@ AUTHENTICATION_BACKENDS = (
     'sentry.utils.auth.EmailAuthBackend',
 )
 
-SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = 'auth.User'
+SOCIAL_AUTH_USER_MODEL = AUTH_USER_MODEL = 'sentry.User'
 
 SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
 
