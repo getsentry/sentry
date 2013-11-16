@@ -75,6 +75,7 @@ Nginx is recommended for handling incoming emails in front of the Sentry smtp se
 Below is a sample configuration for Nginx:
 
 ::
+
     http {
       # Bind an http server to localhost only just for the smtp auth
       server {
