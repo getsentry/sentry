@@ -274,6 +274,7 @@ CELERY_QUEUES = (
     Queue('events', routing_key='events'),
     Queue('triggers', routing_key='triggers'),
     Queue('update', routing_key='update'),
+    Queue('email', routing_key='email'),
 )
 
 # Disable South in tests as it is sending incorrect create signals
