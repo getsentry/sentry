@@ -98,6 +98,12 @@ class User(Model, AbstractBaseUser, PermissionsMixin):
         db_table = 'auth_user'
         # app_label = 'auth'
 
+    def get_full_name(self):
+        return self.first_name
+
+    def get_short_name(self):
+        return self.username
+
     def merge_to(from_user, to_user):
         # TODO: we could discover relations automatically and make this useful
         from sentry.models import (
