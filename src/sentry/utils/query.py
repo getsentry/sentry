@@ -202,7 +202,6 @@ def merge_into(self, other, callback=lambda x: x, using='default'):
             and f.rel.to == s_model
             if f.rel.to
         )
-        print model, objects, fields
         if not fields:
             # the collector pulls in the self reference, so if it's our model
             # we actually assume it's probably not related to itself, and its
