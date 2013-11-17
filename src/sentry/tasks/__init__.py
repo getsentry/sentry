@@ -10,6 +10,7 @@ import sentry.tasks.check_alerts  # NOQA
 import sentry.tasks.check_update  # NOQA
 import sentry.tasks.cleanup  # NOQA
 import sentry.tasks.deletion  # NOQA
+import sentry.tasks.email  # NOQA
 import sentry.tasks.fetch_source  # NOQA
 import sentry.tasks.index  # NOQA
 import sentry.tasks.store  # NOQA
