@@ -99,7 +99,6 @@ install_requires = [
     'django-jsonfield>=0.9.13,<0.9.14',
     'django-picklefield>=0.3.0,<0.4.0',
     'django-recaptcha>=1.0.4,<1.1.0',
-    'django-social-auth>=0.7.28,<0.8.0',
     'django-sudo>=2.1.0,<3.0.0',
     'django-templatetag-sugar>=0.1.0',
     'djangorestframework>=2.3.8,<2.4.0',
