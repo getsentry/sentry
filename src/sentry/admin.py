@@ -1,7 +1,8 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
 from django.utils.safestring import mark_safe
 from django.utils.html import escape
-from sentry.models import Project, Team
+from sentry.models import Project, Team, User
 
 
 class ProjectAdmin(admin.ModelAdmin):
@@ -28,3 +29,5 @@ class TeamAdmin(admin.ModelAdmin):
     raw_id_fields = ('owner',)
 
 admin.site.register(Team, TeamAdmin)
+
+admin.site.register(User, UserAdmin)
