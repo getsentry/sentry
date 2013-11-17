@@ -232,6 +232,8 @@ SOCIAL_AUTH_PIPELINE = (
 
 SOCIAL_AUTH_CREATE_USERS = True
 
+INITIAL_CUSTOM_USER_MIGRATION = '0108_fix_user'
+
 # Auth engines and the settings required for them to be listed
 AUTH_PROVIDERS = {
     'twitter': ('TWITTER_CONSUMER_KEY', 'TWITTER_CONSUMER_SECRET'),
