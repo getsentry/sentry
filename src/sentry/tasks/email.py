@@ -15,8 +15,7 @@ logger = logging.getLogger(__name__)
 def process_inbound_email(mailfrom, group_id, payload):
     """
     """
-    from django.contrib.auth.models import User
-    from sentry.models import Event, Group, Project
+    from sentry.models import Event, Group, Project, User
     from sentry.web.forms import NewNoteForm
 
     try:
