@@ -54,6 +54,7 @@ class SentrySMTPServer(Service, SMTPServer):
         self.port = port or getattr(settings, 'SENTRY_SMTP_PORT', 1025)
 
     def process_message(self, peer, mailfrom, rcpttos, raw_message):
+        logger.info('Incoming message received from %s', mailfrom)
         if not len(rcpttos):
             logger.info('Incoming email had no recipients. Ignoring.')
             return STATUS[550]
