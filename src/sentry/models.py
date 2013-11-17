@@ -96,7 +96,6 @@ class User(Model, AbstractBaseUser, PermissionsMixin):
         verbose_name = _('user')
         verbose_name_plural = _('users')
         db_table = 'auth_user'
-        # app_label = 'auth'
 
     def get_full_name(self):
         return self.first_name
