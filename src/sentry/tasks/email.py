@@ -11,21 +11,26 @@ from celery.task import task
 logger = logging.getLogger(__name__)
 
 
+def _get_user_from_email(group, email):
+    from sentry.models import Project, User
+    # TODO(dcramer): we should encode the userid in emails so we can avoid this
+
+    for user in User.objects.filter(email__iexact=email):
+        # Make sure that the user actually has access to this project
+        if group.project not in Project.objects.get_for_user(
+                user, team=group.team, superuser=False):
+            logger.warning('User %r does not have access to group %r', (user, group))
+            continue
+
+        return user
+
+
 @task(name='sentry.tasks.email.process_inbound_email', queue='email')
 def process_inbound_email(mailfrom, group_id, payload):
     """
     """
-    from sentry.models import Event, Group, Project, User
+    from sentry.models import Event, Group
     from sentry.web.forms import NewNoteForm
-
-    try:
-        user = User.objects.get(email__iexact=mailfrom)
-    except User.DoesNotExist:
-        logger.warning('Inbound email from unknown address: %s', mailfrom)
-        return
-    except User.MultipleObjectsReturned:
-        logger.warning('Inbound email address matches multiple accounts: %s', mailfrom)
-        return
 
     try:
         group = Group.objects.select_related('project', 'team').get(pk=group_id)
@@ -33,10 +38,9 @@ def process_inbound_email(mailfrom, group_id, payload):
         logger.warning('Group does not exist: %d', group_id)
         return
 
-    # Make sure that the user actually has access to this project
-    if group.project not in Project.objects.get_for_user(
-            user, team=group.team, superuser=False):
-        logger.warning('User %r does not have access to group %r', (user, group))
+    user = _get_user_from_email(group, mailfrom)
+    if user is None:
+        logger.warning('Inbound email from unknown address: %s', mailfrom)
         return
 
     event = group.get_latest_event() or Event()
