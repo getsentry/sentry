@@ -27,7 +27,7 @@ How do I
      configure()
 
      # Do something crazy
-     from sentry.models import Team, Project, User
+     from sentry.models import Team, Project, ProjectKey, User
 
      user = User()
      user.username = 'admin'
