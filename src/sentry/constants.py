@@ -186,6 +186,7 @@ MAX_TAG_KEY_LENGTH = 32
 MAX_TAG_VALUE_LENGTH = 200
 MAX_CULPRIT_LENGTH = 200
 MAX_MESSAGE_LENGTH = 1024 * 10
+MAX_STACKTRACE_FRAMES = 50
 
 # Team slugs which may not be used. Generally these are top level URL patterns
 # which we don't want to worry about conflicts on.

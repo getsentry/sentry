@@ -97,5 +97,10 @@
                 </div>
             {% endif %}
         </li>
+        {% if forloop.counter == first_frame_omitted %}
+        <li class="frames-omitted">
+            <p><em>(Frames {{ first_frame_omitted }} to {{ last_frame_omitted }} were not stored)</em></p>
+        </li>
+        {% endif %}
     {% endfor %}
 </ul>
