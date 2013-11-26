@@ -485,7 +485,7 @@ class Stacktrace(Interface):
     .. note:: This interface can be passed as the 'stacktrace' key in addition
               to the full interface path.
     """
-    attrs = ('frames',)
+    attrs = ('frames', 'frames_omitted')
     score = 1000
 
     def __init__(self, frames, **kwargs):
@@ -520,6 +520,7 @@ class Stacktrace(Interface):
 
     def unserialize(self, data):
         data['frames'] = [Frame(**f) for f in data.pop('frames', [])]
+        data['frames_omitted'] = data.pop('frames_omitted', None)
         return data
 
     def get_composite_hash(self, interfaces):
