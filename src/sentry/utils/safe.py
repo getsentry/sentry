@@ -101,4 +101,4 @@ def trim_frames(stacktrace, max_frames=MAX_STACKTRACE_FRAMES):
     stacktrace['frames_omitted'] = (half_max, frames_len - half_max)
 
     for n in xrange(half_max, frames_len - half_max):
-        del frames[n]
+        del frames[half_max]
