@@ -37,7 +37,7 @@ from sentry.tasks.index import index_event
 from sentry.utils.cache import cache, memoize
 from sentry.utils.dates import get_sql_date_trunc, normalize_datetime
 from sentry.utils.db import get_db_engine, has_charts, attach_foreignkey
-from sentry.utils.safe import safe_execute, trim, trim_dict
+from sentry.utils.safe import safe_execute, trim, trim_dict, trim_frames
 from sentry.utils.strings import strip
 
 logger = logging.getLogger('sentry.errors')
@@ -279,11 +279,13 @@ class GroupManager(BaseManager, ChartMixin):
                     if value:
                         exc_data[key] = trim(value)
                 if exc_data.get('stacktrace'):
+                    trim_frames(exc_data['stacktrace'])
                     for frame in exc_data['stacktrace']['frames']:
                         stack_vars = frame.get('vars', {})
                         trim_dict(stack_vars)
 
         if 'sentry.interfaces.Stacktrace' in data:
+            trim_frames(data['sentry.interfaces.Stacktrace'])
             for frame in data['sentry.interfaces.Stacktrace']['frames']:
                 stack_vars = frame.get('vars', {})
                 trim_dict(stack_vars)

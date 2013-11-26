@@ -208,6 +208,8 @@ class StacktraceTest(TestCase):
             'system_frames': 0,
             'newest_first': False,
             'is_public': False,
+            'first_frame_omitted': None,
+            'last_frame_omitted': None,
         })
         self.assertEquals(result, render_to_string.return_value)
 
