@@ -562,7 +562,7 @@ class Stacktrace(Interface):
             frames = frames[::-1]
 
         if self.frames_omitted:
-            first_frame_omitted, last_frame_omitted = self.frames_omitted[0]
+            first_frame_omitted, last_frame_omitted = self.frames_omitted
         else:
             first_frame_omitted, last_frame_omitted = None, None
 

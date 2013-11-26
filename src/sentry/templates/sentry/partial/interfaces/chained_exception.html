@@ -32,7 +32,7 @@
                     <p>{{ exception.exception_value }}</p>
                 {% endif %}
                 {% with exception.stacktrace.frames as frames %}
-                    {% with exception.stack_id as stack_id %}
+                    {% with stack_id=exception.stack_id first_frame_omitted=exception.stacktrace.first_frame_omitted last_frame_omitted=exception.stacktrace.last_frame_omitted %}
                         {% include "sentry/partial/interfaces/stacktrace_inner.html" %}
                     {% endwith %}
                 {% endwith %}
