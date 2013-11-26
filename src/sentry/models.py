@@ -1130,11 +1130,11 @@ class Activity(Model):
         # TODO(dcramer): some of this logic is duplicated in NotificationPlugin
         # fetch access group members
         user_list = set(
-            m.user for m in AccessGroup.objects.filter(
-                projects=self.project,
-                members__is_active=True,
+            User.objects.filter(
+                accessgroup__projects=self.project,
+                is_active=True
             ).exclude(
-                members__id=self.user_id,
+                id=self.user_id,
             )
         )
 
