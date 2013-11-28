@@ -817,6 +817,14 @@ class InstanceMetaManager(BaseManager):
         self.__dict__.update(state)
         self.__metadata = {}
 
+    def _make_key(self, instance):
+        if isinstance(instance, models.Model):
+            instance_id = instance.pk
+        else:
+            instance_id = instance
+
+        return '%s:%s' % (self.model._meta.db_table, instance_id)
+
     def get_value_bulk(self, instances, key):
         return dict(self.filter(**{
             '%s__in' % self.field_name: instances,
@@ -849,6 +857,7 @@ class InstanceMetaManager(BaseManager):
         if instance.pk not in self.__metadata:
             return
         self.__metadata[instance.pk][key] = value
+        cache.set(self._make_key(instance), self.__metadata[instance.pk])
 
     def get_all_values(self, instance):
         if isinstance(instance, models.Model):
@@ -857,12 +866,14 @@ class InstanceMetaManager(BaseManager):
             instance_id = instance
 
         if instance_id not in self.__metadata:
-            result = dict(
-                (i.key, i.value) for i in
-                self.filter(**{
-                    self.field_name: instance_id,
-                })
-            )
+            result = cache.get(self._make_key(instance))
+            if result is None:
+                result = dict(
+                    (i.key, i.value) for i in
+                    self.filter(**{
+                        self.field_name: instance_id,
+                    })
+                )
             self.__metadata[instance_id] = result
         return self.__metadata.get(instance_id, {})
 
