@@ -842,6 +842,7 @@ class InstanceMetaManager(BaseManager):
         if instance.pk not in self.__metadata:
             return
         self.__metadata[instance.pk].pop(key, None)
+        cache.set(self._make_key(instance), self.__metadata[instance.pk])
 
     def set_value(self, instance, key, value):
         inst, created = self.get_or_create(**{
@@ -866,7 +867,8 @@ class InstanceMetaManager(BaseManager):
             instance_id = instance
 
         if instance_id not in self.__metadata:
-            result = cache.get(self._make_key(instance))
+            cache_key = self._make_key(instance)
+            result = cache.get(cache_key)
             if result is None:
                 result = dict(
                     (i.key, i.value) for i in
@@ -874,6 +876,7 @@ class InstanceMetaManager(BaseManager):
                         self.field_name: instance_id,
                     })
                 )
+                cache.add(cache_key, result)
             self.__metadata[instance_id] = result
         return self.__metadata.get(instance_id, {})
 
