@@ -20,8 +20,8 @@ class GroupTagValue(Model):
     Stores the total number of messages seen by a group matching
     the given filter.
     """
-    project = models.ForeignKey('sentry.Project', null=True, related_name='grouptag_set')
-    group = models.ForeignKey('sentry.Group', related_name='grouptag_set')
+    project = models.ForeignKey('sentry.Project', null=True, related_name='grouptag')
+    group = models.ForeignKey('sentry.Group', related_name='grouptag')
     times_seen = BoundedPositiveIntegerField(default=0)
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     value = models.CharField(max_length=MAX_TAG_VALUE_LENGTH)
