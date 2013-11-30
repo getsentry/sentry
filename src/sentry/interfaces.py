@@ -419,7 +419,10 @@ class Stacktrace(Interface):
 
     Additionally, if the list of frames is large, you can explicitly tell the
     system that you've omitted a range of frames. The ``frames_omitted`` must
-    be a single tuple two values: start and end.
+    be a single tuple two values: start and end. For example, if you only
+    removed the 8th frame, the value would be (8, 9), meaning it started at the
+    8th frame, and went until the 9th (the number of frames omitted is
+    end-start). The values should be based on a one-index.
 
     The list of frames should be ordered by the oldest call first.
 
