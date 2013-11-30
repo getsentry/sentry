@@ -51,6 +51,8 @@ logger = logging.getLogger('sentry.api.http')
 # See http://probablyprogramming.com/2009/03/15/the-tiniest-gif-ever
 PIXEL = 'R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='.decode('base64')
 
+PROTOCOL_VERSIONS = frozenset(('2.0', '3', '4', '5'))
+
 
 def api(func):
     @wraps(func)
@@ -103,7 +105,7 @@ class APIView(BaseView):
         server_version = auth_vars.get('sentry_version', '1.0')
         client = auth_vars.get('sentry_client', request.META.get('HTTP_USER_AGENT'))
 
-        if server_version not in ('2.0', '3', '4', '5'):
+        if server_version not in PROTOCOL_VERSIONS:
             raise APIError('Client/server version mismatch: Unsupported protocol version (%s)' % server_version)
 
         if not client:
