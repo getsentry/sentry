@@ -40,7 +40,7 @@ LEGACY_DATA = pickle.loads(decompress("""eJy9WW1v20YS/q5fwfqLpECluMvXFSzjgKK9Bri
 def get_auth_header(client, api_key=None, secret_key=None):
     header = [
         ('sentry_client', client),
-        ('sentry_version', '4'),
+        ('sentry_version', '5'),
     ]
 
     if api_key:

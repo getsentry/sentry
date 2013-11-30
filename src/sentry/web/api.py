@@ -103,7 +103,7 @@ class APIView(BaseView):
         server_version = auth_vars.get('sentry_version', '1.0')
         client = auth_vars.get('sentry_client', request.META.get('HTTP_USER_AGENT'))
 
-        if server_version not in ('2.0', '3', '4'):
+        if server_version not in ('2.0', '3', '4', '5'):
             raise APIError('Client/server version mismatch: Unsupported protocol version (%s)' % server_version)
 
         if not client:

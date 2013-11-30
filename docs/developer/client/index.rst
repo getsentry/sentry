@@ -353,7 +353,7 @@ An authentication header is expected to be sent along with the message body, whi
 
 .. data:: sentry_version
 
-    The protocol version. This should be sent as the value '4'.
+    The protocol version. This should be sent as the value '5'.
 
 .. data:: sentry_client
 
