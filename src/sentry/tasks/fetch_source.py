@@ -14,9 +14,8 @@ import urllib2
 import zlib
 import base64
 from collections import namedtuple
+from simplejson import JSONDecodeError
 from urlparse import urljoin
-
-from django.utils.simplejson import JSONDecodeError
 
 from sentry.constants import SOURCE_FETCH_TIMEOUT
 from sentry.utils.cache import cache

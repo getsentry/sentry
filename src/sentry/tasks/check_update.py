@@ -8,12 +8,11 @@ sentry.tasks.check_version
 import json
 import logging
 
-from django.utils.simplejson import JSONDecodeError
-
-from sentry.tasks.fetch_source import fetch_url_content, BAD_SOURCE
-
 from celery.task import periodic_task
 from celery.task.schedules import crontab
+from simplejson import JSONDecodeError
+
+from sentry.tasks.fetch_source import fetch_url_content, BAD_SOURCE
 
 PYPI_URL = 'https://pypi.python.org/pypi/sentry/json'
 SENTRY_CHECKUPDATE_TIME = {
