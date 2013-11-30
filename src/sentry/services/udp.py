@@ -76,7 +76,7 @@ class BaseUDPServer(Service):
         super(BaseUDPServer, self).__init__(debug=debug)
         from django.conf import settings
 
-        self.use_ipv6 = use_ipv6 or settings.USE_IPV6_UDP
+        self.use_ipv6 = use_ipv6 or settings.SENTRY_USE_IPV6_UDP
         self.host = host or settings.SENTRY_UDP_HOST
         self.port = port or settings.SENTRY_UDP_PORT
         self.workers = workers or self.POOL_SIZE
