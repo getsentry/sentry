@@ -169,8 +169,6 @@ TRELLO_API_SECRET = ''
 # https://confluence.atlassian.com/display/BITBUCKET/OAuth+Consumers
 BITBUCKET_CONSUMER_KEY = ''
 BITBUCKET_CONSUMER_SECRET = ''
-
-USE_IPV6_UDP = False
 """
 
 
