@@ -10,8 +10,11 @@ from __future__ import absolute_import
 
 import operator
 
+from uuid import uuid4
+
 from django.db.models import F
 from django.db.models.expressions import ExpressionNode
+from django.template.defaultfilters import slugify
 
 from sentry.db.exceptions import CannotResolveExpression
 
@@ -48,3 +51,17 @@ def resolve_expression_node(instance, node):
     for n in node.children[1:]:
         runner = op(runner, _resolve(instance, n))
     return runner
+
+
+def slugify_instance(inst, label, reserved=(), **kwargs):
+    base_slug = slugify(label)
+    if base_slug in reserved:
+        base_slug = None
+    if not base_slug:
+        base_slug = uuid4().hex[:12]
+    manager = type(inst).objects
+    inst.slug = base_slug
+    n = 0
+    while manager.filter(slug__iexact=inst.slug, **kwargs).exists():
+        n += 1
+        inst.slug = base_slug + '-' + str(n)

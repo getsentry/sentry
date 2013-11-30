@@ -14,7 +14,7 @@ from sentry.constants import MINUTE_NORMALIZATION
 from sentry.db.models.fields.node import NodeData
 from sentry.models import (
     Project, ProjectKey, Group, Event, Team,
-    GroupTag, GroupCountByMinute, TagValue, PendingTeamMember,
+    GroupTagValue, GroupCountByMinute, TagValue, PendingTeamMember,
     LostPasswordHash, Alert, User, create_default_project)
 from sentry.testutils import TestCase, fixture
 from sentry.utils.compat import pickle
@@ -34,13 +34,13 @@ class ProjectTest(TestCase):
         self.assertFalse(Project.objects.filter(pk=1).exists())
         self.assertFalse(Group.objects.filter(project__isnull=True).exists())
         self.assertFalse(Event.objects.filter(project__isnull=True).exists())
-        self.assertFalse(GroupTag.objects.filter(project__isnull=True).exists())
+        self.assertFalse(GroupTagValue.objects.filter(project__isnull=True).exists())
         self.assertFalse(GroupCountByMinute.objects.filter(project__isnull=True).exists())
         self.assertFalse(TagValue.objects.filter(project__isnull=True).exists())
 
         self.assertEquals(project2.group_set.count(), 4)
         self.assertEquals(project2.event_set.count(), 10)
-        assert not project2.grouptag_set.exists()
+        assert not GroupTagValue.objects.filter(project=project2).exists()
         assert not project2.groupcountbyminute_set.exists()
         assert not TagValue.objects.filter(project=project2).exists()
 
@@ -134,11 +134,12 @@ class AlertTest(TestCase):
             'message': 'This is a test message',
         }
 
-    @mock.patch('sentry.models.has_trending', mock.Mock(return_value=True))
+    @mock.patch('sentry.models.alert.has_trending', mock.Mock(return_value=True))
     @mock.patch('sentry.models.Group.objects.get_accelerated')
     def test_does_add_trending_events(self, get_accelerated):
         get_accelerated.return_value = [self.group]
         alert = Alert.maybe_alert(**self.params)
+        assert alert is not None
         get_accelerated.assert_called_once_with([self.project.id], minutes=MINUTE_NORMALIZATION)
         assert list(alert.related_groups.all()) == [self.group]
 
