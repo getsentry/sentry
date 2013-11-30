@@ -175,6 +175,12 @@ The following settings are available for the built-in UDP API server:
 
         SENTRY_UDP_PORT = 9001
 
+.. data:: SENTRY_USE_IPV6_UDP
+    :noindex:
+
+    Instruct the UDP server to bind to an ipv6 address.
+
+    Defaults to ``False``.
 
 .. _config-smtp-server:
 
