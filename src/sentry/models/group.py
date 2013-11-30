@@ -91,10 +91,10 @@ class Group(Model):
 
     def delete(self):
         from sentry.models import (
-            GroupTagKey, GroupTag, GroupCountByMinute, EventMapping, Event
+            GroupTagKey, GroupTagValue, GroupCountByMinute, EventMapping, Event
         )
         model_list = (
-            GroupTagKey, GroupTag, GroupCountByMinute, EventMapping, Event
+            GroupTagKey, GroupTagValue, GroupCountByMinute, EventMapping, Event
         )
         for model in model_list:
             logging.info('Removing %r objects where group=%s', model, self.id)
@@ -140,9 +140,13 @@ class Group(Model):
         return int(math.log(self.times_seen) * 600 + float(time.mktime(self.last_seen.timetuple())))
 
     def get_latest_event(self):
+        from sentry.models import Event
+
         if not hasattr(self, '_latest_event'):
             try:
-                self._latest_event = self.event_set.order_by('-datetime')[0]
+                self._latest_event = Event.objects.filter(
+                    group=self,
+                ).order_by('-datetime')[0]
             except IndexError:
                 self._latest_event = None
         return self._latest_event
@@ -156,7 +160,10 @@ class Group(Model):
         return module, self.data['version']
 
     def get_unique_tags(self, tag):
-        return self.grouptag_set.filter(
+        from sentry.models import GroupTagValue
+
+        return GroupTagValue.objects.filter(
+            group=self,
             project=self.project,
             key=tag,
         ).values_list(
@@ -167,9 +174,12 @@ class Group(Model):
         ).order_by('-times_seen')
 
     def get_tags(self):
+        from sentry.models import GroupTagKey
+
         if not hasattr(self, '_tag_cache'):
             self._tag_cache = sorted([
-                t for t in self.grouptagkey_set.filter(
+                t for t in GroupTagKey.objects.filter(
+                    group=self,
                     project=self.project,
                 ).values_list('key', flat=True)
                 if not t.startswith('sentry:')
