@@ -213,8 +213,11 @@ class GroupManager(BaseManager, ChartMixin):
         # First we pull out our top-level (non-data attr) kwargs
         if not data.get('level') or data['level'] not in LOG_LEVELS:
             data['level'] = logging.ERROR
+
         if not data.get('logger'):
             data['logger'] = DEFAULT_LOGGER_NAME
+        else:
+            data['logger'] = trim(data['logger'], 64)
 
         timestamp = data.get('timestamp')
         if not timestamp:
