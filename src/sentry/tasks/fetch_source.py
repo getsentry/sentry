@@ -287,7 +287,7 @@ def expand_javascript_source(data, **kwargs):
 
         # queue up additional source files for download
         for source in index.sources:
-            next_filename = urljoin(result.url, source)
+            next_filename = urljoin(sourcemap, source)
             if next_filename not in done_file_list:
                 if index.content:
                     source_code[next_filename] = (index.content[source], None)
