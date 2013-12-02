@@ -29,10 +29,11 @@ def find_users(username):
     """
     qs = User.objects.exclude(password='!')
     try:
-        # Assume username is a login and attempt to login.
+        # First, assume username is an iexact match for username
         user = qs.get(username__iexact=username)
         return [user]
     except User.DoesNotExist:
+        # If not, we can take a stab at guessing it's an email address
         if '@' in username:
             # email isn't guaranteed unique
             return list(qs.filter(email__iexact=username))
