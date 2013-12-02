@@ -243,8 +243,20 @@ def apply_legacy_settings(config):
                       'See http://sentry.readthedocs.org/en/latest/queue/index.html for more information.')
         settings.CELERY_ALWAYS_EAGER = (not settings.SENTRY_USE_QUEUE)
 
+    if settings.SENTRY_URL_PREFIX in ('', 'http://sentry.example.com'):
+        # Maybe also point to a piece of documentation for more information?
+        # This directly coincides with users getting the awkward
+        # `ALLOWED_HOSTS` exception.
+        print('')
+        print('\033[91m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\033[0m')
+        print('\033[91m!! SENTRY_URL_PREFIX is not configured !!\033[0m')
+        print('\033[91m!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\033[0m')
+        print('')
+        # Set `ALLOWED_HOSTS` to the catch-all so it works
+        settings.ALLOWED_HOSTS = ['*']
+
     # Set ALLOWED_HOSTS if it's not already available
-    if not settings.ALLOWED_HOSTS and settings.SENTRY_URL_PREFIX:
+    if not settings.ALLOWED_HOSTS:
         from urlparse import urlparse
         urlbits = urlparse(settings.SENTRY_URL_PREFIX)
         if urlbits.hostname:
