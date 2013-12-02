@@ -17,6 +17,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import EMPTY_PASSWORD_VALUES, LANGUAGES
 from sentry.models import UserOption, User
+from sentry.utils.auth import find_users
 
 
 def _get_timezone_choices():
@@ -216,10 +217,12 @@ class RecoverPasswordForm(forms.Form):
     def clean_user(self):
         value = self.cleaned_data.get('user')
         if value:
-            try:
-                return User.objects.get(username__iexact=value)
-            except User.DoesNotExist:
+            users = find_users(value)
+            if not users:
                 raise forms.ValidationError(_("We were unable to find a matching user."))
+            if len(users) > 1:
+                raise forms.ValidationError(_("Multiple accounts were found matching this email address."))
+            return users[0]
         return None
 
 
