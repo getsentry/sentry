@@ -12,6 +12,7 @@ from datetime import datetime
 
 from django import forms
 from django.contrib.auth import authenticate
+from django.contrib.auth.forms import AuthenticationForm as AuthenticationForm_
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import EMPTY_PASSWORD_VALUES, LANGUAGES
@@ -31,6 +32,11 @@ def _get_timezone_choices():
     return results
 
 TIMEZONE_CHOICES = _get_timezone_choices()
+
+
+class AuthenticationForm(AuthenticationForm_):
+    username = forms.CharField(
+        label=_('Username or email'), max_length=128)
 
 
 class RegistrationForm(forms.ModelForm):
