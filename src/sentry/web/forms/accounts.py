@@ -211,7 +211,7 @@ class AppearanceSettingsForm(forms.Form):
 
 
 class RecoverPasswordForm(forms.Form):
-    user = forms.CharField(label=_('Username'))
+    user = forms.CharField(label=_('Username or email'))
 
     def clean_user(self):
         value = self.cleaned_data.get('user')
