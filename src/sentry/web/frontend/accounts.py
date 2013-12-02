@@ -24,7 +24,7 @@ from sentry.web.decorators import login_required
 from sentry.web.forms.accounts import (
     AccountSettingsForm, NotificationSettingsForm, AppearanceSettingsForm,
     RegistrationForm, RecoverPasswordForm, ChangePasswordRecoverForm,
-    ProjectEmailOptionsForm)
+    ProjectEmailOptionsForm, AuthenticationForm)
 from sentry.web.helpers import render_to_response
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.safe import safe_execute
@@ -34,7 +34,6 @@ from sentry.utils.safe import safe_execute
 @never_cache
 def login(request):
     from django.conf import settings
-    from django.contrib.auth.forms import AuthenticationForm
 
     if request.user.is_authenticated():
         return login_redirect(request)
