@@ -27,7 +27,7 @@ class GroupMeta(Model):
 
     class Meta:
         app_label = 'sentry'
-        db_table = 'sentry.group_meta'
+        db_table = 'sentry_groupmeta'
         unique_together = (('group', 'key'),)
 
     __repr__ = sane_repr('group_id', 'key', 'value')
