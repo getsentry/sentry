@@ -132,7 +132,7 @@ class NotificationSettingsForm(forms.Form):
 class AccountSettingsForm(forms.Form):
     old_password = forms.CharField(label=_('Current password'), widget=forms.PasswordInput)
     email = forms.EmailField(label=_('Email'))
-    first_name = forms.CharField(required=True, label=_('Name'))
+    first_name = forms.CharField(required=True, label=_('Name'), max_length=30)
     new_password = forms.CharField(label=_('New password'), widget=forms.PasswordInput, required=False)
 
     def __init__(self, user, *args, **kwargs):
