@@ -51,6 +51,10 @@ class User(Model, AbstractBaseUser):
         warnings.warn('User.has_perm is deprecated', DeprecationWarning)
         return self.is_superuser
 
+    def has_module_perms(self, app_label):
+        # the admin requires this method
+        return self.is_superuser
+
     def get_full_name(self):
         return self.first_name
 
