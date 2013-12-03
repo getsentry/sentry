@@ -63,34 +63,6 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal('sentry', ['User'])
 
-        # Adding model 'Permission'
-        db.create_table(u'auth_permission', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=50)),
-            ('content_type', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['contenttypes.ContentType'])),
-            ('codename', self.gf('django.db.models.fields.CharField')(max_length=100)),
-        ))
-        db.send_create_signal(u'auth', ['Permission'])
-
-        # Adding unique constraint on 'Permission', fields ['content_type', 'codename']
-        db.create_unique(u'auth_permission', ['content_type_id', 'codename'])
-
-        # Adding model 'Group'
-        db.create_table(u'auth_group', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(unique=True, max_length=80)),
-        ))
-        db.send_create_signal(u'auth', ['Group'])
-
-        # Adding M2M table for field permissions on 'Group'
-        m2m_table_name = db.shorten_name(u'auth_group_permissions')
-        db.create_table(m2m_table_name, (
-            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('group', models.ForeignKey(orm[u'auth.group'], null=False)),
-            ('permission', models.ForeignKey(orm[u'auth.permission'], null=False))
-        ))
-        db.create_unique(m2m_table_name, ['group_id', 'permission_id'])
-
     def backwards(self, orm):
 
         # Deleting model 'GroupedMessage'
@@ -104,12 +76,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'User'
         db.delete_table('sentry_user')
-
-        # Deleting model 'Permission'
-        db.delete_table(u'auth_permission')
-
-        # Deleting model 'Group'
-        db.delete_table(u'auth_group')
 
     models = {
         u'auth.group': {
@@ -180,4 +146,4 @@ class Migration(SchemaMigration):
         },
     }
 
-    complete_apps = ['sentry', 'auth', 'contenttypes']
+    complete_apps = ['sentry']
