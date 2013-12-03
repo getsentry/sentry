@@ -3,6 +3,12 @@ Version 6.4.0
 
 Some major backend changes are introduced in Sentry 6.4.0.
 
+django.contrib.auth
+===================
+
+The builtin Django authentication module is no more. The Group and Permission models are no
+longer used, and the User model has been replaced with sentry.User.
+
 Search
 ======
 
