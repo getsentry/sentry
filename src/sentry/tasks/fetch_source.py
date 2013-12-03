@@ -333,6 +333,10 @@ def expand_javascript_source(data, **kwargs):
                 frame.function = state.name
                 frame.abs_path = abs_path
                 frame.filename = state.src
+        elif sourcemap in sourmap_idxs:
+            frame.data = {
+                'sourcemap': sourcemap,
+            }
 
         has_changes = True
 
