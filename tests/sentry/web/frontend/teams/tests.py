@@ -50,7 +50,6 @@ class NewTeamTest(BaseTeamTest):
         self.assertTemplateUsed(resp, 'sentry/teams/new.html')
 
     @mock.patch('sentry.web.frontend.teams.can_create_teams', mock.Mock(return_value=True))
-    @mock.patch('django.contrib.auth.models.User.has_perm', mock.Mock(return_value=False))
     def test_valid_params(self):
         resp = self.client.post(self.path, {
             'name': 'Test Team',
@@ -75,7 +74,6 @@ class NewTeamTest(BaseTeamTest):
         self.assertEquals(member.type, MEMBER_OWNER)
 
     @mock.patch('sentry.web.frontend.teams.can_create_teams', mock.Mock(return_value=True))
-    @mock.patch('django.contrib.auth.models.User.has_perm', mock.Mock(return_value=True))
     def test_superuser_can_set_owner(self):
         resp = self.client.post(self.path, {
             'name': 'Test Team',
@@ -106,7 +104,6 @@ class ManageTeamTest(BaseTeamTest):
         self.assertTemplateUsed(resp, 'sentry/teams/manage.html')
         assert resp.context['team'] == self.team
 
-    @mock.patch('django.contrib.auth.models.User.has_perm', mock.Mock(return_value=False))
     def test_valid_params(self):
         resp = self.client.post(self.path, {
             'name': 'bar',
@@ -118,7 +115,6 @@ class ManageTeamTest(BaseTeamTest):
         team = Team.objects.get(pk=self.team.pk)
         self.assertEquals(team.name, 'bar')
 
-    @mock.patch('django.contrib.auth.models.User.has_perm', mock.Mock(return_value=True))
     def test_superuser_can_set_owner(self):
         resp = self.client.post(self.path, {
             'name': self.team.name,

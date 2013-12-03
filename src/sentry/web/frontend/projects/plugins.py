@@ -22,7 +22,7 @@ from sentry.web.helpers import render_to_response, plugin_config
 @csrf_protect
 def manage_plugins(request, team, project):
     result = plugins.first('has_perm', request.user, 'configure_project_plugin', project)
-    if result is False and not request.user.has_perm('sentry.can_change_project'):
+    if result is False and not request.user.is_superuser:
         return HttpResponseRedirect(reverse('sentry'))
 
     if request.POST:

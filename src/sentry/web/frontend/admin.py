@@ -117,7 +117,7 @@ def manage_users(request):
 @transaction.commit_on_success
 @csrf_protect
 def create_new_user(request):
-    if not request.user.has_perm('auth.can_add_user'):
+    if not request.user.is_superuser:
         return HttpResponseRedirect(reverse('sentry'))
 
     form = NewUserForm(request.POST or None, initial={
@@ -178,7 +178,7 @@ def create_new_user(request):
 @requires_admin
 @csrf_protect
 def edit_user(request, user_id):
-    if not request.user.has_perm('auth.can_change_user'):
+    if not request.user.is_superuser:
         return HttpResponseRedirect(reverse('sentry'))
 
     try:
