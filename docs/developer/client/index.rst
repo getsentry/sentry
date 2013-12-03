@@ -544,10 +544,35 @@ The client should send the following upstream for ``tags``::
         ],
     }
 
-If your platform supports it, block level context should also be available::
+You should also provide relevant contextual interfaces. These should last for the lifecycle of a request, and the general interface is "bind some kind of context", and then at the end of a request lifecycle, clear any present context.
 
-    with client.context({'tags': {'foo': 'bar'}}):
-        # ...
+This interface consists of *_context methods, as well as a "clear context" method. The following is an example API which is implemented in most clients:
+
+::
+
+    # Bind sentry.interfaces.User
+    client.user_context({
+        'email': 'foo@example.com',
+    })
+
+    # Merge in additional tag context
+    client.tags_context({
+        'key': 'value',
+    })
+
+    # Merge in additional extra context
+    client.extra_context({
+        'key': 'value',
+    })
+
+    # Clear context
+    client.context.clear()
+
+Some additional examples of context helpers which might be relevant:
+
+- http_context(data) -- bind sentry.interfaces.Http
+- wsgi_context(env) -- bind http_context based on a wsgi environment
+
 
 Variable Size
 -------------
