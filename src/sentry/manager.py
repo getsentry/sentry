@@ -843,6 +843,7 @@ class InstanceMetaManager(BaseManager):
     def unset_value(self, instance, key):
         self.filter(**{self.field_name: instance, 'key': key}).delete()
         if instance.pk not in self.__metadata:
+            cache.delete(self._make_key(instance))
             return
         self.__metadata[instance.pk].pop(key, None)
         cache.set(self._make_key(instance), self.__metadata[instance.pk])
@@ -859,6 +860,7 @@ class InstanceMetaManager(BaseManager):
             inst.update(value=value)
 
         if instance.pk not in self.__metadata:
+            cache.delete(self._make_key(instance))
             return
         self.__metadata[instance.pk][key] = value
         cache.set(self._make_key(instance), self.__metadata[instance.pk])
@@ -879,7 +881,7 @@ class InstanceMetaManager(BaseManager):
                         self.field_name: instance_id,
                     })
                 )
-                cache.add(cache_key, result)
+                cache.set(cache_key, result)
             self.__metadata[instance_id] = result
         return self.__metadata.get(instance_id, {})
 
