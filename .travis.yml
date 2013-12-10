@@ -52,5 +52,3 @@ notifications:
     channels: "irc.freenode.org#sentry"
     on_success: change
     on_failure: change
-after_success:
-  - coveralls
