@@ -111,10 +111,11 @@ class EditProjectForm(BaseProjectForm):
         help_text=_('Separate multiple entries with a newline.'))
     resolve_age = RangeField(help_text=_('Treat an event as resolved if it hasn\'t been seen for this amount of time.'),
         required=False, min_value=0, max_value=168, step_value=1)
+    mail_subject_prefix = forms.CharField(label=_('Mail Subject Prefix'), required=False)
     owner = UserField(required=False)
 
     class Meta:
-        fields = ('name', 'platform', 'public', 'team', 'owner', 'slug')
+        fields = ('name', 'platform', 'public', 'team', 'owner', 'slug', 'mail_subject_prefix')
         model = Project
 
     def __init__(self, request, team_list, data, instance, *args, **kwargs):
