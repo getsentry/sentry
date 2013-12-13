@@ -34,12 +34,14 @@ def manage_project(request, team, project):
         'origins': '\n'.join(project.get_option('sentry:origins', None) or []),
         'owner': project.owner,
         'resolve_age': int(project.get_option('sentry:resolve_age', 0)),
+        'mail_subject_prefix': project.get_option('mail:subject_prefix', ''),
     })
 
     if form.is_valid():
         project = form.save()
         project.update_option('sentry:origins', form.cleaned_data.get('origins') or [])
         project.update_option('sentry:resolve_age', form.cleaned_data.get('resolve_age'))
+        project.update_option('mail:subject_prefix', form.cleaned_data.get('mail_subject_prefix'))
         messages.add_message(
             request, messages.SUCCESS,
             _('Changes to your project were saved.'))
