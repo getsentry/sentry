@@ -22,9 +22,11 @@ class MailPreview(object):
 def new_event(request):
     team = Team(
         slug='example',
+        name='Example',
     )
     project = Project(
         slug='example',
+        name='Example',
         team=team,
     )
     group = Group(
@@ -52,9 +54,9 @@ def new_event(request):
         context={
             'group': group,
             'event': event,
-            'link': '#link',
+            'link': 'http://example.com/link',
             'interfaces': interface_list,
-            'settings_link': '#settings-link',
+            'tags': event.get_tags(),
         },
     )
 

@@ -61,6 +61,12 @@ class MailPlugin(NotificationPlugin):
     def get_notification_settings_url(self):
         return absolute_uri(reverse('sentry-account-settings-notifications'))
 
+    def get_project_url(self, project):
+        return absolute_uri(reverse('sentry-stream', args=[
+            project.team.slug,
+            project.slug,
+        ]))
+
     def on_alert(self, alert):
         project = alert.project
         subject = '[{0}] ALERT: {1}'.format(
@@ -73,7 +79,6 @@ class MailPlugin(NotificationPlugin):
         context = {
             'alert': alert,
             'link': alert.get_absolute_url(),
-            'settings_link': self.get_notification_settings_url(),
         }
 
         headers = {
@@ -173,9 +178,9 @@ class MailPlugin(NotificationPlugin):
         context = {
             'group': group,
             'event': event,
+            'tags': event.get_tags(),
             'link': link,
             'interfaces': interface_list,
-            'settings_link': self.get_notification_settings_url(),
         }
 
         headers = {
