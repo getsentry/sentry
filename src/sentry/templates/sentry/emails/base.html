@@ -46,6 +46,16 @@
         td {
             text-align: center;
         }
+        blockquote {
+            color: #000;
+            border: 0;
+            padding: 0;
+            margin-left: 0;
+        }
+        blockquote cite {
+            font-weight: 500;
+            font-style: normal;
+        }
         .body {
             max-width: 600px;
             margin: 0 auto;
@@ -158,7 +168,7 @@
 
         .event h3 {
             padding: 0;
-            margin: 0;
+            margin: 0 0 4px;
             font-size: 16px;
             line-height: 20px;
             font-weight: bold;
@@ -203,15 +213,13 @@
         }
         .event .message {
             color: #898f98;
-            margin: 3px 0;
+            margin: 0 0 4px;
+            padding: 0;
             font-size: 14px;
             padding-right: 24px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-        }
-        .event .message .tag {
-            float: right;
         }
         .event .meta {
             color: #b6bcc2;

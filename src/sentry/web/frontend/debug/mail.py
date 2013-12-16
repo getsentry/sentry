@@ -112,6 +112,7 @@ def new_note(request):
         context={
             'text': note.data['text'],
             'author': note.user,
+            'date': note.datetime,
             'group': group,
             'link': group.get_absolute_url(),
         },
