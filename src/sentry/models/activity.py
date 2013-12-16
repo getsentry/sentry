@@ -90,13 +90,13 @@ class Activity(Model):
                 is_active=True
             ).exclude(
                 id=self.user_id,
-            ).values('id')
+            ).values_list('id', flat=True)
         )
 
         if self.project.team:
             # fetch team members
             user_id_list |= set(
-                m.user for m in self.project.team.member_set.filter(
+                u_id for u_id in self.project.team.member_set.filter(
                     user__is_active=True,
                 ).exclude(
                     user__id=self.user_id,
