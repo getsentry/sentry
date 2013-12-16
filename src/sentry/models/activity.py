@@ -100,8 +100,8 @@ class Activity(Model):
                     user__is_active=True,
                 ).exclude(
                     user__id=self.user_id,
-                )
-            ).values('user')
+                ).values('user')
+            )
 
         if not user_id_list:
             return
