@@ -14,6 +14,8 @@ except ImportError:
     # django < 1.5 compat
     from django.conf.urls.defaults import include, patterns, url  # NOQA
 
+from django.conf import settings
+
 from sentry.web import api
 from sentry.web.frontend import (
     alerts, accounts, generic, groups, events,
@@ -45,7 +47,17 @@ def init_all_applications():
 
 init_all_applications()
 
-urlpatterns = patterns('',
+urlpatterns = patterns('')
+
+if settings.DEBUG:
+    import sentry.web.frontend.debug.mail
+
+    urlpatterns += patterns('',
+        url(r'^debug/mail/new-event/$',
+            sentry.web.frontend.debug.mail.new_event),
+    )
+
+urlpatterns += patterns('',
     url(r'^_static/(?P<module>[^/]+)/(?P<path>.*)$', generic.static_media,
         name='sentry-media'),
 
