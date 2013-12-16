@@ -1,6 +1,7 @@
 from django.utils.safestring import mark_safe
 
 from sentry.models import Event, Group, Project, Team
+from sentry.utils.samples import load_data
 from sentry.web.helpers import render_to_response, render_to_string
 
 
@@ -35,6 +36,7 @@ def new_event(request):
         project=project,
         group=group,
         message=group.message,
+        data=load_data('python'),
     )
 
     interface_list = []

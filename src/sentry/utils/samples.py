@@ -12,15 +12,7 @@ from sentry.models import Group
 from sentry.utils import json
 
 
-def create_sample_event(project, platform=None):
-    if not platform:
-        platform = project.platform
-
-    if not platform:
-        return
-
-    platform = PLATFORM_ROOTS.get(platform, platform)
-
+def load_data(platform):
     json_path = os.path.join(DATA_ROOT, 'samples', '%s.json' % (platform.encode('utf-8'),))
 
     if not os.path.exists(json_path):
@@ -49,5 +41,23 @@ def create_sample_event(project, platform=None):
         "data": {},
         "method": "GET"
     }
+
+    return data
+
+
+def create_sample_event(project, platform=None):
+    if not platform:
+        platform = project.platform
+
+    if not platform:
+        return
+
+    platform = PLATFORM_ROOTS.get(platform, platform)
+
+    data = load_data(platform)
+
+    if not data:
+        return
+
     data = Group.objects.normalize_event_data(data)
     return Group.objects.save_data(project.id, data, raw=True)
