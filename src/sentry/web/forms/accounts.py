@@ -78,7 +78,7 @@ class NotificationSettingsForm(forms.Form):
         widget=forms.Select(attrs={'class': 'input-xxlarge'}))
     subscribe_notes = forms.ChoiceField(
         choices=(
-            ('1', _('Get notified about new notes on events I\'ve seen')),
+            ('1', _('Get notified about new notes')),
             ('0', _('Do not subscribe to note notifications')),
         ), required=False,
         widget=forms.Select(attrs={'class': 'input-xxlarge'}))
