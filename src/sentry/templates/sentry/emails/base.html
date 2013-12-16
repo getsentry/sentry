@@ -33,6 +33,9 @@
             font-weight: normal;
             font-family: Menlo, Monaco, "Courier New", monospace;
         }
+        pre, blockquote {
+            margin-bottom: 30px;
+        }
         table {
             width: 100%;
         }
@@ -121,9 +124,6 @@
             min-width: 60px;
             color: #666;
         }
-        pre.message {
-            margin-bottom: 30px;
-        }
         .interface {
             margin-bottom: 30px;
         }
@@ -146,6 +146,82 @@
         }
         .tag-list li strong {
             font-weight: 200;
+        }
+
+        .event {
+            position: relative;
+            padding: 0 0 0 80px;
+            margin: 0 0 30px;
+            position: relative;
+            min-height: 60px; /* count height */
+        }
+
+        .event h3 {
+            padding: 0;
+            margin: 0;
+            font-size: 16px;
+            line-height: 20px;
+            font-weight: bold;
+            width: 85%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .event h3 a {
+            color: #465262;
+        }
+        .event .count {
+            color: #fff;
+            position: absolute;
+            left: 0px;
+            width: 60px;
+            height: 60px;
+            border-radius: 60px;
+            -webkit-border-radius: 60px;
+            -moz-border-radius: 60px;
+            line-height: 60px;
+            background: #cfd3da;
+            text-align: center;
+            font-size: 17px;
+            font-weight: bold;
+            letter-spacing: -1px;
+            overflow: hidden;
+        }
+        .level-info .count { background: #2788ce; }
+        .level-warning .count { background: #f18500; }
+        .level-error .count { background: #f43f20; }
+        .level-fatal .count { background: #d20f2a; }
+        .event .count .span {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 100%;
+            text-align: center;
+            line-height: inherit;
+            display: block;
+        }
+        .event .message {
+            color: #898f98;
+            margin: 3px 0;
+            font-size: 14px;
+            padding-right: 24px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .event .message .tag {
+            float: right;
+        }
+        .event .meta {
+            color: #b6bcc2;
+            font-size: 12px;
+        }
+        .event .meta a {
+            color: inherit;
+        }
+        .event .tag {
+            margin-left: 10px;
         }
         </style>
     </head>
