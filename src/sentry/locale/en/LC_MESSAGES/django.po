@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-12-03 11:26+0000\n"
+"POT-Creation-Date: 2013-12-16 04:23+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -124,6 +124,7 @@ msgid "OS"
 msgstr ""
 
 #: constants.py:236 plugins/sentry_urls/models.py:27
+#: templates/sentry/partial/interfaces/http_email.html:5
 msgid "URL"
 msgstr ""
 
@@ -156,7 +157,7 @@ msgstr ""
 msgid "messages"
 msgstr ""
 
-#: models/event.py:69 models/group.py:196
+#: models/event.py:69 models/group.py:191
 msgid "error"
 msgstr ""
 
@@ -1037,31 +1038,6 @@ msgstr ""
 msgid "Project:"
 msgstr ""
 
-#: templates/sentry/emails/error.html:10
-msgid "New Event"
-msgstr ""
-
-#: templates/sentry/emails/error.html:12
-msgid "Regression"
-msgstr ""
-
-#: templates/sentry/emails/error.html:30
-msgid "Logger:"
-msgstr ""
-
-#: templates/sentry/emails/error.html:32
-msgid "Level:"
-msgstr ""
-
-#: templates/sentry/emails/error.html:36
-msgid "Server:"
-msgstr ""
-
-#: templates/sentry/emails/error.html:38
-#: templates/sentry/groups/details.html:93
-msgid "First Seen:"
-msgstr ""
-
 #: templates/sentry/events/event_list.html:6
 #, python-format
 msgid "%(name)s events"
@@ -1163,6 +1139,10 @@ msgstr ""
 
 #: templates/sentry/groups/details.html:91
 msgid "Status:"
+msgstr ""
+
+#: templates/sentry/groups/details.html:93
+msgid "First Seen:"
 msgstr ""
 
 #: templates/sentry/groups/details.html:96
@@ -1326,12 +1306,12 @@ msgid ""
 "href=\"%(link)s\">documentation</a>."
 msgstr ""
 
-#: templates/sentry/partial/_event_details.html:29
+#: templates/sentry/partial/_event_details.html:30
 #: templates/sentry/partial/event_nav.html:39
 msgid "Additional Data"
 msgstr ""
 
-#: templates/sentry/partial/_event_details.html:40
+#: templates/sentry/partial/_event_details.html:41
 msgid "Package Versions"
 msgstr ""
 
@@ -1749,17 +1729,14 @@ msgid "Replay this request"
 msgstr ""
 
 #: templates/sentry/partial/interfaces/http.html:18
-#: templates/sentry/partial/interfaces/http_email.html:8
 msgid "URL:"
 msgstr ""
 
 #: templates/sentry/partial/interfaces/http.html:23
-#: templates/sentry/partial/interfaces/http_email.html:13
 msgid "Method:"
 msgstr ""
 
 #: templates/sentry/partial/interfaces/http.html:28
-#: templates/sentry/partial/interfaces/http_email.html:18
 msgid "Query:"
 msgstr ""
 
@@ -1777,6 +1754,14 @@ msgstr ""
 
 #: templates/sentry/partial/interfaces/http.html:59
 msgid "Environment:"
+msgstr ""
+
+#: templates/sentry/partial/interfaces/http_email.html:10
+msgid "Method"
+msgstr ""
+
+#: templates/sentry/partial/interfaces/http_email.html:15
+msgid "Query"
 msgstr ""
 
 #: templates/sentry/partial/interfaces/stacktrace.html:13
@@ -2490,7 +2475,7 @@ msgid "Do not subscribe to notifications for new projects"
 msgstr ""
 
 #: web/forms/accounts.py:81
-msgid "Get notified about new notes on events I've seen"
+msgid "Get notified about new notes"
 msgstr ""
 
 #: web/forms/accounts.py:82
