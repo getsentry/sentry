@@ -121,7 +121,8 @@ class Activity(Model):
 
         author = self.user.first_name or self.user.username
 
-        subject = '%s: %s' % (
+        subject = '[%s] %s: %s' % (
+            self.project.name,
             author,
             self.data['text'].splitlines()[0][:64])
 
