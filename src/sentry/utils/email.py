@@ -51,16 +51,54 @@ class MessageBuilder(object):
         self.html_body = html_body
         self.headers = headers
 
-    def build(self, to):
+        self._send_to = set()
+
+    def add_users(self, user_ids, project=None):
+        from sentry.models import User, UserOption
+
+        email_list = set()
+        user_ids = set(user_ids)
+
+        # XXX: It's possible that options have been set to an empty value
+        if project:
+            queryset = UserOption.objects.filter(
+                project=project,
+                user__in=user_ids,
+                key='mail:email',
+            )
+            for option in (o for o in queryset if o.value):
+                user_ids.remove(option.user_id)
+                email_list.add(option.value)
+
+        if user_ids:
+            queryset = UserOption.objects.filter(
+                user__in=user_ids,
+                key='alert_email',
+            )
+            for option in (o for o in queryset if o.value):
+                user_ids.remove(option.user_id)
+                email_list.add(option.value)
+
+        if user_ids:
+            email_list |= set(User.objects.filter(
+                pk__in=user_ids, is_active=True
+            ).values_list('email', flat=True))
+
+        self._send_to.update(email_list)
+
+    def build(self, to=None):
         if self.headers is None:
             headers = {}
         else:
             headers = self.headers.copy()
 
+        send_to = set(to or ())
+        send_to.update(self._send_to)
+
         if ENABLE_EMAIL_REPLIES and 'X-Sentry-Reply-To' in headers:
             reply_to = headers['X-Sentry-Reply-To']
         else:
-            reply_to = ', '.join(to)
+            reply_to = ', '.join(send_to)
 
         headers.setdefault('Reply-To', reply_to)
 
@@ -78,7 +116,7 @@ class MessageBuilder(object):
             self.subject,
             txt_body,
             settings.SERVER_EMAIL,
-            to,
+            send_to,
             headers=headers
         )
         if html_body:
@@ -88,8 +126,8 @@ class MessageBuilder(object):
 
         return msg
 
-    def send(self, to, fail_silently=False):
-        msg = self.build(to)
+    def send(self, to=None, fail_silently=False):
+        msg = self.build(to=to)
         msg.send(fail_silently=fail_silently)
 
 

@@ -84,38 +84,36 @@ class Activity(Model):
 
         # TODO(dcramer): some of this logic is duplicated in NotificationPlugin
         # fetch access group members
-        user_list = set(
+        user_id_list = set(
             User.objects.filter(
                 accessgroup__projects=self.project,
                 is_active=True
             ).exclude(
                 id=self.user_id,
-            )
+            ).values('id')
         )
 
         if self.project.team:
             # fetch team members
-            user_list |= set(
+            user_id_list |= set(
                 m.user for m in self.project.team.member_set.filter(
                     user__is_active=True,
                 ).exclude(
                     user__id=self.user_id,
                 )
-            )
+            ).values('user')
 
-        if not user_list:
+        if not user_id_list:
             return
 
         disabled = set(UserOption.objects.filter(
-            user__in=user_list,
+            user__in=user_id_list,
             key='subscribe_comments',
             value='0',
         ).values_list('user', flat=True))
 
         send_to = [
-            u.email
-            for u in user_list
-            if u.email and u.id not in disabled
+            u_id for u_id in user_id_list if u_id not in disabled
         ]
 
         if not send_to:
@@ -145,9 +143,10 @@ class Activity(Model):
             html_template='sentry/emails/new_note.html',
             headers=headers,
         )
+        msg.add_users(send_to, project=self.project)
 
         try:
-            msg.send(to=send_to)
+            msg.send()
         except Exception, e:
             logger = logging.getLogger('sentry.mail.errors')
             logger.exception(e)
