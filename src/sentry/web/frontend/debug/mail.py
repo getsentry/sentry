@@ -1,7 +1,10 @@
+import logging
+
 from django.utils.safestring import mark_safe
 
-from sentry.models import Event, Group, Project, Team
+from sentry.models import Activity, Event, Group, Project, Team
 from sentry.utils.samples import load_data
+from sentry.web.decorators import login_required
 from sentry.web.helpers import render_to_response, render_to_string
 
 
@@ -19,26 +22,33 @@ class MailPreview(object):
         return render_to_string(self.html_template, self.context)
 
 
+@login_required
 def new_event(request):
     team = Team(
+        id=1,
         slug='example',
         name='Example',
     )
     project = Project(
+        id=1,
         slug='example',
         name='Example',
         team=team,
     )
     group = Group(
+        id=1,
         project=project,
         message='This is an example event.',
+        level=logging.ERROR,
     )
 
     event = Event(
+        id=1,
         project=project,
         group=group,
         message=group.message,
         data=load_data('python'),
+        level=logging.ERROR,
     )
 
     interface_list = []
@@ -57,6 +67,53 @@ def new_event(request):
             'link': 'http://example.com/link',
             'interfaces': interface_list,
             'tags': event.get_tags(),
+        },
+    )
+
+    return render_to_response('sentry/debug/mail/preview.html', {
+        'preview': preview,
+    })
+
+
+@login_required
+def new_note(request):
+    team = Team(
+        id=1,
+        slug='example',
+        name='Example',
+    )
+    project = Project(
+        id=1,
+        slug='example',
+        name='Example',
+        team=team,
+    )
+    group = Group(
+        id=1,
+        project=project,
+        message='This is an example event.',
+    )
+    event = Event(
+        id=1,
+        project=project,
+        group=group,
+        message=group.message,
+        data=load_data('python'),
+    )
+    note = Activity(
+        group=event.group, event=event, project=event.project,
+        type=Activity.NOTE, user=request.user,
+        data={'text': 'This is an example note!'},
+    )
+
+    preview = MailPreview(
+        html_template='sentry/emails/new_note.html',
+        text_template='sentry/emails/new_note.txt',
+        context={
+            'text': note.data['text'],
+            'author': note.user,
+            'group': group,
+            'link': group.get_absolute_url(),
         },
     )
 

@@ -55,6 +55,8 @@ if settings.DEBUG:
     urlpatterns += patterns('',
         url(r'^debug/mail/new-event/$',
             sentry.web.frontend.debug.mail.new_event),
+        url(r'^debug/mail/new-note/$',
+            sentry.web.frontend.debug.mail.new_note),
     )
 
 urlpatterns += patterns('',

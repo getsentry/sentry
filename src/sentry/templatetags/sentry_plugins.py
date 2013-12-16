@@ -57,7 +57,7 @@ def get_widgets(group, request):
 
 
 @register.filter
-def get_tags(group, request):
+def get_tags(group, request=None):
     project = group.project
 
     tag_list = []
