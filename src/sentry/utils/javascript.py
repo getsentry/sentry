@@ -143,8 +143,8 @@ class GroupTransformer(Transformer):
         d = {
             'id': str(obj.id),
             'count': str(obj.times_seen),
-            'title': escape(obj.message_top()),
-            'message': escape(obj.error()),
+            'title': escape(obj.title),
+            'message': escape(obj.message_short),
             'level': obj.level,
             'levelName': escape(obj.get_level_display()),
             'logger': escape(obj.logger),

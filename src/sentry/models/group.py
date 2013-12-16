@@ -187,12 +187,7 @@ class Group(Model):
         return self._tag_cache
 
     def error(self):
-        message = strip(self.message)
-        if not message:
-            message = '<unlabeled message>'
-        else:
-            message = truncatechars(message.splitlines()[0], 100)
-        return message
+        return self.message
     error.short_description = _('error')
 
     def has_two_part_message(self):
@@ -200,10 +195,23 @@ class Group(Model):
         return '\n' in message or len(message) > 100
 
     def message_top(self):
+        return self.title
+
+    @property
+    def title(self):
         culprit = strip(self.culprit)
         if culprit:
             return culprit
-        return self.error()
+        return self.message
+
+    @property
+    def message_short(self):
+        message = strip(self.message)
+        if not message:
+            message = '<unlabeled message>'
+        else:
+            message = truncatechars(message.splitlines()[0], 100)
+        return message
 
     @property
     def team(self):
