@@ -29,6 +29,10 @@ def load_data(platform):
         "id": "1671",
         "email": "foo@example.com"
     }
+    data['tags'] = [
+        ('foo', 'bar'),
+        ('version', '1.0'),
+    ]
     data['sentry.interfaces.Http'] = {
         "cookies": {},
         "url": "http://example.com/foo",
