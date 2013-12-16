@@ -47,6 +47,11 @@ class User(Model, AbstractBaseUser):
         verbose_name = _('user')
         verbose_name_plural = _('users')
 
+    def save(self, *args, **kwargs):
+        if not self.username:
+            self.username = self.email
+        return super(User, self).save(*args, **kwargs)
+
     def has_perm(self, perm_name):
         warnings.warn('User.has_perm is deprecated', DeprecationWarning)
         return self.is_superuser

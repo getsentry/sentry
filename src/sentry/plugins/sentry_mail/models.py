@@ -11,7 +11,6 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext_lazy as _
-from sentry.models import User, UserOption
 from sentry.plugins import register
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.utils.cache import cache
@@ -48,7 +47,8 @@ class MailPlugin(NotificationPlugin):
             headers=headers,
             context=context,
         )
-        msg.send(send_to, fail_silently=fail_silently)
+        msg.add_users(send_to, project=project)
+        return msg.send(fail_silently=fail_silently)
 
     def send_test_mail(self, project=None):
         self._send_mail(
@@ -95,37 +95,6 @@ class MailPlugin(NotificationPlugin):
             context=context,
         )
 
-    def get_emails_for_users(self, user_ids, project=None):
-        email_list = set()
-        user_ids = set(user_ids)
-
-        # XXX: It's possible that options have been set to an empty value
-        if project:
-            alert_queryset = UserOption.objects.filter(
-                project=project,
-                user__in=user_ids,
-                key='mail:email',
-            )
-            for option in (o for o in alert_queryset if o.value):
-                user_ids.remove(option.user_id)
-                email_list.add(option.value)
-
-        if user_ids:
-            alert_queryset = UserOption.objects.filter(
-                user__in=user_ids,
-                key='alert_email',
-            )
-            for option in (o for o in alert_queryset if o.value):
-                user_ids.remove(option.user_id)
-                email_list.add(option.value)
-
-        if user_ids:
-            email_list |= set(User.objects.filter(
-                pk__in=user_ids, is_active=True
-            ).values_list('email', flat=True))
-
-        return email_list
-
     def get_send_to(self, project=None):
         """
         Returns a list of email addresses for the users that should be notified of alerts.
@@ -139,20 +108,20 @@ class MailPlugin(NotificationPlugin):
             project_id = project.pk
         else:
             project_id = ''
+
+        if not (project and project.team):
+            return []
+
         conf_key = self.get_conf_key()
         cache_key = '%s:send_to:%s' % (conf_key, project_id)
 
         send_to_list = cache.get(cache_key)
         if send_to_list is None:
-            send_to_list = set()
-
-            if project and project.team:
-                member_set = self.get_sendable_users(project)
-                send_to_list |= set(self.get_emails_for_users(
-                    member_set, project=project))
+            send_to_list = self.get_sendable_users(project)
 
             send_to_list = filter(bool, send_to_list)
             cache.set(cache_key, send_to_list, 60)  # 1 minute cache
+
         return send_to_list
 
     def notify_users(self, group, event, fail_silently=False):

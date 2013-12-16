@@ -149,27 +149,6 @@ class MailPluginTest(TestCase):
         args, kwargs = _send_mail.call_args
         assert kwargs.get('subject') == u"[{0}] ERROR: hello world".format(self.project.name)
 
-    def test_get_emails_for_users(self):
-        from sentry.models import UserOption, User
-
-        project = self.project
-
-        user = User.objects.create(username='foo', email='foo@example.com')
-        user2 = User.objects.create(username='baz', email='baz@example.com')
-        user3 = User.objects.create(username='bar', email='bar@example.com')
-
-        result = sorted(self.plugin.get_emails_for_users([user.pk, user2.pk, user3.pk]))
-        assert result == sorted([user.email, user2.email, user3.email])
-
-        UserOption.objects.create(
-            key='alert_email', value='foobaz@example.com', user=user2)
-        UserOption.objects.create(
-            key='mail:email', value='foobar@example.com', user=user3, project=project)
-
-        result = sorted(self.plugin.get_emails_for_users(
-            [user.pk, user2.pk, user3.pk], project=project))
-        assert result == sorted([user.email, 'foobar@example.com', 'foobaz@example.com'])
-
     def test_get_sendable_users(self):
         from sentry.models import Project, UserOption, User
 
