@@ -360,7 +360,7 @@ def expand_javascript_source(data, **kwargs):
             exception['stacktrace'] = stacktrace.serialize()
 
         # Attempt to fix the culrpit now that we have useful information
-        culprit_frame = stacktraces[0].frames[0]
+        culprit_frame = stacktraces[0].frames[-1]
         if culprit_frame.module and culprit_frame.function:
             data['culprit'] = truncatechars(generate_culprit(culprit_frame), MAX_CULPRIT_LENGTH)
 
