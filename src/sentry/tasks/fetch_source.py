@@ -13,13 +13,15 @@ import re
 import urllib2
 import zlib
 import base64
+from os.path import splitext
 from collections import namedtuple
 from simplejson import JSONDecodeError
-from urlparse import urljoin
+from urlparse import urljoin, urlsplit
 
-from sentry.constants import SOURCE_FETCH_TIMEOUT
+from sentry.constants import SOURCE_FETCH_TIMEOUT, MAX_CULPRIT_LENGTH
 from sentry.utils.cache import cache
 from sentry.utils.sourcemaps import sourcemap_to_index, find_source
+from sentry.utils.strings import truncatechars
 
 
 BAD_SOURCE = -1
@@ -29,6 +31,13 @@ CHARSET_RE = re.compile(r'charset=(\S+)')
 DEFAULT_ENCODING = 'utf-8'
 BASE64_SOURCEMAP_PREAMBLE = 'data:application/json;base64,'
 BASE64_PREAMBLE_LENGTH = len(BASE64_SOURCEMAP_PREAMBLE)
+CLEAN_MODULE_RE = re.compile(r"""^(?:(?:
+    (?:java)?scripts?|js|build|static|_\w*|  # common folder prefixes
+    v?(?:\d+\.)*\d+|   # version numbers, v1, 1.0.0
+    [a-f0-9]{7,8}|     # short sha
+    [a-f0-9]{32}|      # md5
+    [a-f0-9]{40}       # sha1
+)/)+""", re.X | re.I)
 
 UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body'])
 
@@ -333,6 +342,7 @@ def expand_javascript_source(data, **kwargs):
                 frame.function = state.name
                 frame.abs_path = abs_path
                 frame.filename = state.src
+                frame.module = generate_module(state.src) or '<unknown module>'
         elif sourcemap in sourmap_idxs:
             frame.data = {
                 'sourcemap': sourcemap,
@@ -348,3 +358,25 @@ def expand_javascript_source(data, **kwargs):
         logger.debug('Updating stacktraces with expanded source context')
         for exception, stacktrace in itertools.izip(data['sentry.interfaces.Exception']['values'], stacktraces):
             exception['stacktrace'] = stacktrace.serialize()
+
+        # Attempt to fix the culrpit now that we have useful information
+        culprit_frame = stacktraces[0].frames[0]
+        if culprit_frame.module and culprit_frame.function:
+            data['culprit'] = truncatechars(generate_culprit(culprit_frame), MAX_CULPRIT_LENGTH)
+
+
+def generate_module(src):
+    """
+    Converts a url into a made-up module name by doing the following:
+     * Extract just the path name
+     * Trimming off the initial /
+     * Trimming off the file extension
+     * Removes off useless folder prefixes
+
+    e.g. http://google.com/js/v1.0/foo/bar/baz.js -> foo/bar/baz
+    """
+    return CLEAN_MODULE_RE.sub('', splitext(urlsplit(src).path[1:])[0])
+
+
+def generate_culprit(frame):
+    return '%s in %s' % (frame.module, frame.function)
