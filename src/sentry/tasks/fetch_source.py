@@ -32,7 +32,7 @@ DEFAULT_ENCODING = 'utf-8'
 BASE64_SOURCEMAP_PREAMBLE = 'data:application/json;base64,'
 BASE64_PREAMBLE_LENGTH = len(BASE64_SOURCEMAP_PREAMBLE)
 CLEAN_MODULE_RE = re.compile(r"""^(?:(?:
-    (?:java)?scripts?|js|build|static|_\w*|  # common folder prefixes
+    (?:java)?scripts?|js|build|static|[_\.].*?|  # common folder prefixes
     v?(?:\d+\.)*\d+|   # version numbers, v1, 1.0.0
     [a-f0-9]{7,8}|     # short sha
     [a-f0-9]{32}|      # md5
