@@ -304,6 +304,8 @@ def expand_javascript_source(data, **kwargs):
                 else:
                     pending_file_list.add(next_filename)
 
+    last_state = None
+    state = None
     has_changes = False
     for frame in frames:
         try:
@@ -315,6 +317,7 @@ def expand_javascript_source(data, **kwargs):
         # may have had a failure pulling down the sourcemap previously
         if sourcemap in sourmap_idxs and frame.colno is not None:
             index, relative_to = sourmap_idxs[sourcemap]
+            last_state = state
             state = find_source(index, frame.lineno, frame.colno)
             abs_path = urljoin(relative_to, state.src)
             logger.debug('Mapping compressed source %r to mapping in %r', frame.abs_path, abs_path)
@@ -339,7 +342,9 @@ def expand_javascript_source(data, **kwargs):
                 # SourceMap's return zero-indexed lineno's
                 frame.lineno = state.src_line + 1
                 frame.colno = state.src_col
-                frame.function = state.name
+                # The offending function is always the previous function in the stack
+                # Honestly, no idea what the bottom most frame is, so we're ignoring that atm
+                frame.function = last_state.name if last_state else state.name
                 frame.abs_path = abs_path
                 frame.filename = state.src
                 frame.module = generate_module(state.src) or '<unknown module>'
