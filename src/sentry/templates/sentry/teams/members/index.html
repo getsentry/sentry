@@ -8,7 +8,7 @@
 
 {% block sidebar %}
     <h6>{% trans "About Memberships" %}</h6>
-    {% url 'sentry-manage-team-access-groups' team.slug as link %}
+    {% url 'sentry-manage-access-groups' team.slug as link %}
     <p>{% blocktrans %}This page lists team-wide memberships whom have access to all projects owned by this team. If you wish to add memberships bound to individual projects, you can do so with <a href="{{ link }}">Access Groups</a>.{% endblocktrans %}</p>
 {% endblock %}
 
