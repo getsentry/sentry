@@ -571,6 +571,9 @@ SENTRY_MAX_DICTIONARY_ITEMS = 50
 SENTRY_MAX_MESSAGE_LENGTH = 1024 * 10
 SENTRY_MAX_STACKTRACE_FRAMES = 50
 
+# Gravatar service base url
+SENTRY_GRAVATAR_BASE_URL = 'https://secure.gravatar.com'
+
 # Configure celery
 import djcelery
 djcelery.setup_loader()
