@@ -121,7 +121,13 @@ class Activity(Model):
 
         author = self.user.first_name or self.user.username
 
-        subject = '[%s] %s: %s' % (
+        subject_prefix = self.get_option('subject_prefix', self.project) or \
+            settings.EMAIL_SUBJECT_PREFIX
+        if subject_prefix:
+            subject_prefix = subject_prefix + ' '
+
+        subject = '%s[%s] %s: %s' % (
+            subject_prefix,
             self.project.name,
             author,
             self.data['text'].splitlines()[0][:64])
