@@ -28,8 +28,7 @@ from raven.utils.encoding import to_string
 from sentry import app
 from sentry.constants import (
     STATUS_RESOLVED, STATUS_UNRESOLVED, MINUTE_NORMALIZATION,
-    MAX_EXTRA_VARIABLE_SIZE, LOG_LEVELS, DEFAULT_LOGGER_NAME,
-    MAX_CULPRIT_LENGTH)
+    LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH)
 from sentry.db.models import BaseManager
 from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
@@ -264,7 +263,8 @@ class GroupManager(BaseManager, ChartMixin):
             # throw it away
             data['extra'] = {}
 
-        trim_dict(data['extra'], max_size=MAX_EXTRA_VARIABLE_SIZE)
+        trim_dict(
+            data['extra'], max_size=settings.SENTRY_MAX_EXTRA_VARIABLE_SIZE)
 
         if 'sentry.interfaces.Exception' in data:
             if 'values' not in data['sentry.interfaces.Exception']:
