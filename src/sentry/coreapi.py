@@ -20,8 +20,8 @@ from django.utils.encoding import smart_str
 
 from sentry.app import env
 from sentry.constants import (
-    DEFAULT_LOG_LEVEL, LOG_LEVELS, MAX_MESSAGE_LENGTH, MAX_CULPRIT_LENGTH,
-    MAX_TAG_VALUE_LENGTH, MAX_TAG_KEY_LENGTH)
+    DEFAULT_LOG_LEVEL, LOG_LEVELS, MAX_CULPRIT_LENGTH, MAX_TAG_VALUE_LENGTH,
+    MAX_TAG_KEY_LENGTH)
 from sentry.exceptions import InvalidTimestamp
 from sentry.models import Project, ProjectKey
 from sentry.tasks.store import preprocess_event
@@ -238,11 +238,12 @@ def validate_data(project, data, client=None):
         data['message'] = '<no message value>'
     elif not isinstance(data['message'], basestring):
         raise APIError('Invalid value for message')
-    elif len(data['message']) > MAX_MESSAGE_LENGTH:
+    elif len(data['message']) > settings.SENTRY_MAX_MESSAGE_LENGTH:
         logger.info(
             'Truncated value for message due to length (%d chars)',
             len(data['message']), **client_metadata(client, project))
-        data['message'] = truncatechars(data['message'], MAX_MESSAGE_LENGTH)
+        data['message'] = truncatechars(
+            data['message'], settings.SENTRY_MAX_MESSAGE_LENGTH)
 
     if data.get('culprit') and len(data['culprit']) > MAX_CULPRIT_LENGTH:
         logger.info(

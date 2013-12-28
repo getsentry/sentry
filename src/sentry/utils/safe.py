@@ -8,11 +8,9 @@ sentry.utils.safe
 
 import logging
 
+from django.conf import settings
 from django.db import transaction
 
-from sentry.constants import (
-    MAX_VARIABLE_SIZE, MAX_DICTIONARY_ITEMS, MAX_STACKTRACE_FRAMES
-)
 from sentry.utils.strings import truncatechars
 
 
@@ -35,7 +33,8 @@ def safe_execute(func, *args, **kwargs):
         return result
 
 
-def trim(value, max_size=MAX_VARIABLE_SIZE, max_depth=3, _depth=0, _size=0, **kwargs):
+def trim(value, max_size=settings.SENTRY_MAX_VARIABLE_SIZE, max_depth=3,
+         _depth=0, _size=0, **kwargs):
     """
     Truncates a value to ```MAX_VARIABLE_SIZE```.
 
@@ -79,7 +78,7 @@ def trim(value, max_size=MAX_VARIABLE_SIZE, max_depth=3, _depth=0, _size=0, **kw
     return result
 
 
-def trim_dict(value, max_items=MAX_DICTIONARY_ITEMS, **kwargs):
+def trim_dict(value, max_items=settings.SENTRY_MAX_DICTIONARY_ITEMS, **kwargs):
     max_items -= 1
     for idx, key in enumerate(value.keys()):
         value[key] = trim(value[key], **kwargs)
@@ -87,7 +86,7 @@ def trim_dict(value, max_items=MAX_DICTIONARY_ITEMS, **kwargs):
             del value[key]
 
 
-def trim_frames(stacktrace, max_frames=MAX_STACKTRACE_FRAMES):
+def trim_frames(stacktrace, max_frames=settings.SENTRY_MAX_STACKTRACE_FRAMES):
     # TODO: this doesnt account for cases where the client has already omitted
     # frames
     frames = stacktrace['frames']

@@ -588,7 +588,7 @@ as things like extra data, or tags.
 - Tag values are limited to 200 characters.
 - Culprits are limited to 200 characters.
 - Most contextual variables are limited to 512 characters.
-- Extra contextual data is limited to 2048 characters.
-- Messages are limited to 1024 * 10 characters.
+- Extra contextual data is limited to 4096 characters.
+- Messages are limited to ~10kb.
 - Http data (the body) is limited to 2048 characters.
 - Stacktrace's are limited to 50 frames. If more are sent, data will be removed from the middle of the stack.

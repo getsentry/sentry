@@ -555,6 +555,22 @@ SENTRY_PUBLIC_ENDPOINT = None
 SENTRY_ENABLE_EXPLORE_CODE = False
 SENTRY_ENABLE_EXPLORE_USERS = True
 
+# Prevent variables (e.g. context locals, http data, etc) from exceeding this
+# size in characters
+SENTRY_MAX_VARIABLE_SIZE = 512
+
+# Prevent varabiesl within extra context from exceeding this size in
+# characters
+SENTRY_MAX_EXTRA_VARIABLE_SIZE = 4096
+
+# For various attributes we dont limit the entire attribute on size, but the
+# individual item. In those cases we also want to limit the maximum number of
+# keys
+SENTRY_MAX_DICTIONARY_ITEMS = 50
+
+SENTRY_MAX_MESSAGE_LENGTH = 1024 * 10
+SENTRY_MAX_STACKTRACE_FRAMES = 50
+
 # Configure celery
 import djcelery
 djcelery.setup_loader()
