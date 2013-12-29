@@ -76,7 +76,7 @@ class Activity(Model):
                 self.event.update(num_comments=F('num_comments') + 1)
 
     def send_notification(self):
-        from sentry.models import User, UserOption
+        from sentry.models import User, UserOption, ProjectOption
         from sentry.utils.email import MessageBuilder, group_id_to_email
 
         if self.type != Activity.NOTE or not self.group:
@@ -121,10 +121,10 @@ class Activity(Model):
 
         author = self.user.first_name or self.user.username
 
-        subject_prefix = self.get_option('subject_prefix', self.project) or \
-            settings.EMAIL_SUBJECT_PREFIX
+        subject_prefix = ProjectOption.objects.get_value(
+            self.project, 'subject_prefix', settings.EMAIL_SUBJECT_PREFIX)
         if subject_prefix:
-            subject_prefix = subject_prefix + ' '
+            subject_prefix = subject_prefix.rstrip() + ' '
 
         subject = '%s[%s] %s: %s' % (
             subject_prefix,
