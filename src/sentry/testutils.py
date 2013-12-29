@@ -99,10 +99,7 @@ class BaseTestCase(Exam):
 
     @fixture
     def user(self):
-        user = User(username="admin", email="admin@localhost", is_staff=True, is_superuser=True)
-        user.set_password('admin')
-        user.save()
-        return user
+        return self.create_user('admin@localhost', username='admin')
 
     @fixture
     def team(self):
@@ -131,6 +128,17 @@ class BaseTestCase(Exam):
     @fixture
     def event(self):
         return self.create_event(event_id='a' * 32)
+
+    def create_user(self, email, **kwargs):
+        kwargs.setdefault('username', email)
+        kwargs.setdefault('is_staff', True)
+        kwargs.setdefault('is_superuser', True)
+
+        user = User(email=email, **kwargs)
+        user.set_password('admin')
+        user.save()
+
+        return user
 
     def create_event(self, event_id, **kwargs):
         if 'group' not in kwargs:
