@@ -21,6 +21,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.vary import vary_on_cookie
 from django.views.generic.base import View as BaseView
 
+from raven.base import Raven
+
 from sentry import app
 from sentry.constants import (
     MEMBER_USER, STATUS_MUTED, STATUS_UNRESOLVED, STATUS_RESOLVED,
@@ -105,6 +107,9 @@ class APIView(BaseView):
         server_version = auth_vars.get('sentry_version', '1.0')
         client = auth_vars.get('sentry_client', request.META.get('HTTP_USER_AGENT'))
 
+        Raven.tags_context({'client': client})
+        Raven.tags_context({'protocol': server_version})
+
         if server_version not in PROTOCOL_VERSIONS:
             raise APIError('Client/server version mismatch: Unsupported protocol version (%s)' % server_version)
 
@@ -165,6 +170,9 @@ class APIView(BaseView):
         except APIError, e:
             return HttpResponse(str(e), content_type='text/plain', status=400)
 
+        if project:
+            Raven.tags_context({'project': project.id})
+
         origin = self.get_request_origin(request)
         if origin is not None:
             if not project:
@@ -196,6 +204,8 @@ class APIView(BaseView):
                 project = project_
             elif project_ != project:
                 return HttpResponse('Project ID mismatch', content_type='text/plain', status=400)
+            else:
+                Raven.tags_context({'project': project.id})
 
             auth = Auth(auth_vars, is_public=bool(origin))
 
