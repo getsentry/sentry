@@ -6,7 +6,7 @@
 
 {% url 'sentry-manage-project' project.team.slug project.slug as project_link %}
 
-<p>{% blocktrans %}Add the any URLs which will be logging errors in your project's settings under <a href="{{ project_link }}#client-security">Client Security</a>:{% endblocktrans %}</p>
+<p>{% blocktrans %}Add any URLs which will be logging errors in your project's settings under <a href="{{ project_link }}#client-security">Client Security</a>:{% endblocktrans %}</p>
 
 <div class="image"><img src="{% url 'sentry-media' "sentry" "images/client_security.png" %}"></div>
 
