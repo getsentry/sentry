@@ -24,7 +24,7 @@ from django.db.models import Sum
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
 
-from raven.base import Raven
+from raven.contrib.django.models import client as Raven
 from raven.utils.encoding import to_string
 
 from sentry import app
