@@ -544,7 +544,7 @@ SENTRY_SEARCH_OPTIONS = {}
 SENTRY_USE_SEARCH = True
 # SENTRY_INDEX_SEARCH = SENTRY_USE_SEARCH
 
-SENTRY_RAVEN_JS_URL = 'cdn.ravenjs.com/1.1.2/jquery,native/raven.min.js'
+SENTRY_RAVEN_JS_URL = 'cdn.ravenjs.com/1.1.7/jquery,native/raven.min.js'
 
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
