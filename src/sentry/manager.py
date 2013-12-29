@@ -319,6 +319,8 @@ class GroupManager(BaseManager, ChartMixin):
             if not data['culprit']:
                 data['culprit'] = trim(strip(http_data.get('url')), MAX_CULPRIT_LENGTH)
 
+        data['culprit'] = trim(data['culprit'], MAX_CULPRIT_LENGTH)
+
         return data
 
     def from_kwargs(self, project, **kwargs):
