@@ -21,7 +21,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.vary import vary_on_cookie
 from django.views.generic.base import View as BaseView
 
-from raven.base import Raven
+from raven.contrib.django.models import client as Raven
 
 from sentry import app
 from sentry.constants import (
