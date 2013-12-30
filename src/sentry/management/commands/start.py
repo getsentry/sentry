@@ -29,6 +29,12 @@ class Command(BaseCommand):
             dest='workers',
             type=int,
             default=None),
+        make_option('--noinput',
+            action='store_true',
+            dest='noinput',
+            default=False,
+            help='Tells Django to NOT prompt the user for input of any kind.',
+        ),
     )
 
     def handle(self, service_name='http', address=None, upgrade=True, **options):
@@ -56,7 +62,7 @@ class Command(BaseCommand):
         if upgrade:
             # Ensure we perform an upgrade before starting any service
             print "Performing upgrade before service startup..."
-            call_command('upgrade', verbosity=0)
+            call_command('upgrade', verbosity=0, noinput=options.get('noinput'))
 
         try:
             service_class = services[service_name]
