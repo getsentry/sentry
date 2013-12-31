@@ -258,8 +258,6 @@ class GroupManager(BaseManager, ChartMixin):
             tags = list(tags)
 
         data['tags'] = tags
-        data['message'] = strip(data['message'])
-        data['culprit'] = strip(data['culprit'])
 
         if not isinstance(data['extra'], dict):
             # throw it away
@@ -319,9 +317,13 @@ class GroupManager(BaseManager, ChartMixin):
 
             # default the culprit to the url
             if not data['culprit']:
-                data['culprit'] = trim(strip(http_data.get('url')), MAX_CULPRIT_LENGTH)
+                data['culprit'] = strip(http_data.get('url'))
 
-        data['culprit'] = trim(data['culprit'], MAX_CULPRIT_LENGTH)
+        if data['culprit']:
+            data['culprit'] = trim(strip(data['culprit']), MAX_CULPRIT_LENGTH)
+
+        if data['message']:
+            data['message'] = strip(data['message'])
 
         return data
 
