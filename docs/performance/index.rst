@@ -7,12 +7,16 @@ This document describes a set of best practices which may help you squeeze more 
 Redis
 -----
 
+**Ensure you're using at least Redis 2.4**
+
 All Redis usage in Sentry is temporal, which means the append-log/fsync models in Redis do not need to apply.
 
 With that in mind, we recommend the following changes to (some) default configurations:
 
 - Disable saving by removing all ``save XXXX`` lines.
 - Set ``maxclients 0`` to remove connection limitations.
+- Set ``maxmemory-policy allkeys-lru`` to aggressively prune all keys.
+- Set ``maxmemory 1gb`` to a reasonable allowance.
 
 
 Web Server
