@@ -76,8 +76,12 @@ class MessageBuilder(object):
                 key='alert_email',
             )
             for option in (o for o in queryset if o.value):
-                user_ids.remove(option.user_id)
-                email_list.add(option.value)
+                try:
+                    user_ids.remove(option.user_id)
+                    email_list.add(option.value)
+                except KeyError:
+                    # options.user_id might not exist in user_ids set
+                    pass
 
         if user_ids:
             email_list |= set(User.objects.filter(
