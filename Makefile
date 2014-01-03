@@ -11,23 +11,23 @@ JS_REPORTER = dot
 develop: update-submodules
 	npm install -q
 	# order matters here, base package must install first
-	pip install -q -e . --use-mirrors
-	pip install -q "file://`pwd`#egg=sentry[dev]" --use-mirrors
-	pip install -q "file://`pwd`#egg=sentry[tests]" --use-mirrors
+	pip install -q -e .
+	pip install -q "file://`pwd`#egg=sentry[dev]"
+	pip install -q "file://`pwd`#egg=sentry[tests]"
 	make setup-git
 
 dev-postgres:
-	pip install -q -e . --use-mirrors
-	pip install -q "file://`pwd`#egg=sentry[dev]" --use-mirrors
-	pip install -q "file://`pwd`#egg=sentry[postgres]" --use-mirrors
+	pip install -q -e .
+	pip install -q "file://`pwd`#egg=sentry[dev]"
+	pip install -q "file://`pwd`#egg=sentry[postgres]"
 
 dev-mysql:
-	pip install -q -e . --use-mirrors
-	pip install -q "file://`pwd`#egg=sentry[dev]" --use-mirrors
-	pip install -q "file://`pwd`#egg=sentry[mysql]" --use-mirrors
+	pip install -q -e .
+	pip install -q "file://`pwd`#egg=sentry[dev]"
+	pip install -q "file://`pwd`#egg=sentry[mysql]"
 
 dev-docs:
-	pip install -q -r docs/requirements.txt --use-mirrors
+	pip install -q -r docs/requirements.txt
 
 setup-git:
 	git config branch.autosetuprebase always
@@ -58,7 +58,7 @@ update-submodules:
 test: develop lint test-js test-python test-cli
 
 testloop: develop
-	pip install pytest-xdist --use-mirrors
+	pip install pytest-xdist
 	py.test tests -f
 
 test-cli:
