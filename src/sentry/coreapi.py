@@ -229,7 +229,7 @@ def process_data_timestamp(data):
     if data['timestamp'] > now + timedelta(minutes=1):
         raise InvalidTimestamp('Invalid value for timestamp (in future): %r' % data['timestamp'])
 
-    if data['timestamp'] < datetime.now() - timedelta(months=1):
+    if data['timestamp'] < now - timedelta(months=1):
         raise InvalidTimestamp('Invalid value for timestamp (too old): %r' % data['timestamp'])
 
     return data
