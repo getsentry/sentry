@@ -206,7 +206,7 @@ def ensure_valid_project_id(desired_project, data, client=None):
         data['project'] = desired_project.id
 
 
-def process_data_timestamp(data):
+def process_data_timestamp(data, current_datetime=None):
     if is_float(data['timestamp']):
         try:
             data['timestamp'] = datetime.fromtimestamp(float(data['timestamp']))
@@ -225,11 +225,13 @@ def process_data_timestamp(data):
         except Exception:
             raise InvalidTimestamp('Invalid value for timestamp: %r' % data['timestamp'])
 
-    now = datetime.now()
-    if data['timestamp'] > now + timedelta(minutes=1):
+    if current_datetime is None:
+        current_datetime = datetime.now()
+
+    if data['timestamp'] > current_datetime + timedelta(minutes=1):
         raise InvalidTimestamp('Invalid value for timestamp (in future): %r' % data['timestamp'])
 
-    if data['timestamp'] < now - timedelta(days=30):
+    if data['timestamp'] < current_datetime - timedelta(days=30):
         raise InvalidTimestamp('Invalid value for timestamp (too old): %r' % data['timestamp'])
 
     return data
