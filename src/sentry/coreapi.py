@@ -225,8 +225,12 @@ def process_data_timestamp(data):
         except Exception:
             raise InvalidTimestamp('Invalid value for timestamp: %r' % data['timestamp'])
 
-    if data['timestamp'] > datetime.now() + timedelta(minutes=1):
+    now = datetime.now()
+    if data['timestamp'] > now + timedelta(minutes=1):
         raise InvalidTimestamp('Invalid value for timestamp (in future): %r' % data['timestamp'])
+
+    if data['timestamp'] < datetime.now() - timedelta(months=1):
+        raise InvalidTimestamp('Invalid value for timestamp (too old): %r' % data['timestamp'])
 
     return data
 
