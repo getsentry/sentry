@@ -119,6 +119,7 @@ class APIView(BaseView):
         return auth_vars
 
     @csrf_exempt
+    @never_cache
     def dispatch(self, request, project_id=None, *args, **kwargs):
         try:
             origin = self.get_request_origin(request)
@@ -265,7 +266,6 @@ class StoreView(APIView):
        the user be authenticated, and a project_id be sent in the GET variables.
 
     """
-    @never_cache
     def post(self, request, project, auth, **kwargs):
         data = request.raw_post_data
         response_or_event_id = self.process(request, project, auth, data, **kwargs)
@@ -275,7 +275,6 @@ class StoreView(APIView):
             'id': response_or_event_id,
         }), content_type='application/json')
 
-    @never_cache
     def get(self, request, project, auth, **kwargs):
         data = request.GET.get('sentry_data', '')
         response_or_event_id = self.process(request, project, auth, data, **kwargs)
