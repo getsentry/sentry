@@ -1,7 +1,7 @@
 Writing a Client
 ================
 
-.. note:: This document describes protocol version 4.
+.. note:: This document describes protocol version 5.
 
 A client at its core is simply a set of utilities for capturing various
 logging parameters. Given these parameters, it then builds a JSON payload
