@@ -404,7 +404,6 @@ The request body should then somewhat resemble the following::
         sentry_secret=b7d80b520139450f903720eb7991bf3d
 
     {
-        "project": "project-id",
         "event_id": "fc6d8c0c43fc4630ad850ee518f1b9d0",
         "culprit": "my.module.function_name",
         "timestamp": "2011-05-02T17:41:36",
