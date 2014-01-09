@@ -31,7 +31,7 @@ CHARSET_RE = re.compile(r'charset=(\S+)')
 DEFAULT_ENCODING = 'utf-8'
 BASE64_SOURCEMAP_PREAMBLE = 'data:application/json;base64,'
 BASE64_PREAMBLE_LENGTH = len(BASE64_SOURCEMAP_PREAMBLE)
-CLEAN_MODULE_RE = re.compile(r"""^(?:(?:
+CLEAN_MODULE_RE = re.compile(r"""^(?:/|(?:
     (?:java)?scripts?|js|build|static|[_\.].*?|  # common folder prefixes
     v?(?:\d+\.)*\d+|   # version numbers, v1, 1.0.0
     [a-f0-9]{7,8}|     # short sha
@@ -380,7 +380,7 @@ def generate_module(src):
 
     e.g. http://google.com/js/v1.0/foo/bar/baz.js -> foo/bar/baz
     """
-    return CLEAN_MODULE_RE.sub('', splitext(urlsplit(src).path[1:])[0])
+    return CLEAN_MODULE_RE.sub('', splitext(urlsplit(src).path)[0])
 
 
 def generate_culprit(frame):
