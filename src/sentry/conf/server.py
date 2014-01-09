@@ -220,6 +220,7 @@ BITBUCKET_CONSUMER_KEY = ''
 BITBUCKET_CONSUMER_SECRET = ''
 
 SOCIAL_AUTH_PIPELINE = (
+    'social_auth.backends.pipeline.user.get_username',
     'social_auth.backends.pipeline.social.social_auth_user',
     'social_auth.backends.pipeline.associate.associate_by_email',
     'social_auth.backends.pipeline.misc.save_status_to_session',
