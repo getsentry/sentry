@@ -5,12 +5,14 @@ sentry.utils.email
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.core.signing import Signer
 from django.utils.encoding import force_bytes
 
+from email.utils import parseaddr
 from pynliner import Pynliner
 
 from sentry.web.helpers import render_to_string
@@ -36,9 +38,26 @@ def group_id_to_email(group_id):
     return '@'.join((signed_data.replace(':', '+'), SMTP_HOSTNAME))
 
 
+def email_id_for_model(model):
+    return '%s/%s@%s' % (type(model).__name__.lower(), model.pk, FROM_EMAIL_DOMAIN)
+
+
+def domain_from_email(email):
+    email = parseaddr(email)[1]
+    try:
+        return email.split('@', 1)[1]
+    except IndexError:
+        # The email address is likely malformed or something
+        return email
+
+
+FROM_EMAIL_DOMAIN = domain_from_email(settings.DEFAULT_FROM_EMAIL)
+
+
 class MessageBuilder(object):
     def __init__(self, subject, context=None, template=None, html_template=None,
-                 body=None, html_body=None, headers=None):
+                 body=None, html_body=None, headers=None, reference=None,
+                 reply_reference=None):
         assert not (body and template)
         assert not (html_body and html_template)
         assert context or not (template or html_template)
@@ -50,6 +69,8 @@ class MessageBuilder(object):
         self.body = body
         self.html_body = html_body
         self.headers = headers
+        self.reference = reference  # The object that generated this message
+        self.reply_reference = reply_reference  # The object this message is replying about
 
         self._send_to = set()
 
@@ -105,6 +126,15 @@ class MessageBuilder(object):
             reply_to = ', '.join(send_to)
 
         headers.setdefault('Reply-To', reply_to)
+
+        if self.reference is not None:
+            headers.setdefault('Message-Id', email_id_for_model(self.reference))
+
+        if self.reply_reference is not None:
+            in_reply_to = email_id_for_model(self.reply_reference)
+            headers.setdefault('In-Reply-To', in_reply_to)
+            headers.setdefault('References', in_reply_to)
+            self.subject = 'Re: %s' % self.subject
 
         if self.template:
             txt_body = render_to_string(self.template, self.context)

@@ -28,7 +28,7 @@ from django.utils.importlib import import_module
 
 from sentry.constants import MODULE_ROOT
 from sentry.models import (
-    Project, ProjectOption, Option, Team, Group, Event, User)
+    Activity, Project, ProjectOption, Option, Team, Group, Event, User)
 from sentry.utils import json
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress
@@ -128,6 +128,14 @@ class BaseTestCase(Exam):
     @fixture
     def event(self):
         return self.create_event(event_id='a' * 32)
+
+    @fixture
+    def activity(self):
+        return Activity.objects.create(
+            group=self.group, event=self.event, project=self.project,
+            type=Activity.NOTE, user=self.user,
+            data={}
+        )
 
     def create_user(self, email, **kwargs):
         kwargs.setdefault('username', email)
