@@ -21,7 +21,6 @@ class MessageBuilderTest(TestCase):
         assert out.to == ['foo@example.com']
         assert out.subject == 'Test'
         assert out.extra_headers['X-Test'] == 'foo'
-        assert out.extra_headers['Reply-To'] == 'foo@example.com'
         assert out.body == 'hello world'
         assert len(out.alternatives) == 1
         assert out.alternatives[0] == (
@@ -78,11 +77,9 @@ class MessageBuilderTest(TestCase):
         msg.add_users([user_a.id, user_b.id, user_c.id], project=project)
         msg.send()
 
-        assert len(mail.outbox) == 1
+        assert len(mail.outbox) == 3
 
-        out = mail.outbox[0]
-
-        assert sorted(out.to) == [
+        assert sorted([out.to[0] for out in mail.outbox]) == [
             'bazzer@example.com',
             'fizzle@example.com',
             'foo@example.com',
@@ -102,7 +99,6 @@ class MessageBuilderTest(TestCase):
         out = mail.outbox[0]
         assert out.to == ['foo@example.com']
         assert out.subject == 'Test'
-        assert out.extra_headers['Reply-To'] == 'foo@example.com'
         assert out.extra_headers['Message-Id'] == '<activity/%s@localhost>' % self.activity.pk
         assert out.body == 'hello world'
         assert len(out.alternatives) == 1
@@ -126,7 +122,6 @@ class MessageBuilderTest(TestCase):
         out = mail.outbox[0]
         assert out.to == ['foo@example.com']
         assert out.subject == 'Re: Test'
-        assert out.extra_headers['Reply-To'] == 'foo@example.com'
         assert out.extra_headers['Message-Id'] == '<activity/%s@localhost>' % self.activity.pk
         assert out.extra_headers['In-Reply-To'] == '<group/%s@localhost>' % self.group.pk
         assert out.extra_headers['References'] == '<group/%s@localhost>' % self.group.pk
