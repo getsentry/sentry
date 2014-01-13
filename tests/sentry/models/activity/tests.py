@@ -29,6 +29,6 @@ class SendNotificationTest(TestCase):
 
         assert msg.subject == 'Re: [Sentry] [Bar] foo@example.com: sup guise'
         assert msg.to == [self.user.email]
-        assert msg.extra_headers['Message-Id'] == 'activity/%s@localhost' % activity.pk
-        assert msg.extra_headers['In-Reply-To'] == 'group/%s@localhost' % self.group.pk
-        assert msg.extra_headers['References'] == 'group/%s@localhost' % self.group.pk
+        assert msg.extra_headers['Message-Id'] == '<activity/%s@localhost>' % activity.pk
+        assert msg.extra_headers['In-Reply-To'] == '<group/%s@localhost>' % self.group.pk
+        assert msg.extra_headers['References'] == '<group/%s@localhost>' % self.group.pk
