@@ -87,3 +87,52 @@ class MessageBuilderTest(TestCase):
             'fizzle@example.com',
             'foo@example.com',
         ]
+
+    def test_message_id(self):
+        msg = MessageBuilder(
+            subject='Test',
+            body='hello world',
+            html_body='<b>hello world</b>',
+            reference=self.activity,
+        )
+        msg.send(['foo@example.com'])
+
+        assert len(mail.outbox) == 1
+
+        out = mail.outbox[0]
+        assert out.to == ['foo@example.com']
+        assert out.subject == 'Test'
+        assert out.extra_headers['Reply-To'] == 'foo@example.com'
+        assert out.extra_headers['Message-Id'] == 'activity/%s@localhost' % self.activity.pk
+        assert out.body == 'hello world'
+        assert len(out.alternatives) == 1
+        assert out.alternatives[0] == (
+            '<b>hello world</b>',
+            'text/html',
+        )
+
+    def test_in_reply_to(self):
+        msg = MessageBuilder(
+            subject='Test',
+            body='hello world',
+            html_body='<b>hello world</b>',
+            reference=self.activity,
+            reply_reference=self.group,
+        )
+        msg.send(['foo@example.com'])
+
+        assert len(mail.outbox) == 1
+
+        out = mail.outbox[0]
+        assert out.to == ['foo@example.com']
+        assert out.subject == 'Re: Test'
+        assert out.extra_headers['Reply-To'] == 'foo@example.com'
+        assert out.extra_headers['Message-Id'] == 'activity/%s@localhost' % self.activity.pk
+        assert out.extra_headers['In-Reply-To'] == 'group/%s@localhost' % self.group.pk
+        assert out.extra_headers['References'] == 'group/%s@localhost' % self.group.pk
+        assert out.body == 'hello world'
+        assert len(out.alternatives) == 1
+        assert out.alternatives[0] == (
+            '<b>hello world</b>',
+            'text/html',
+        )

@@ -112,9 +112,7 @@ class Activity(Model):
             value='0',
         ).values_list('user', flat=True))
 
-        send_to = [
-            u_id for u_id in user_id_list if u_id not in disabled
-        ]
+        send_to = filter(lambda u_id: u_id not in disabled, user_id_list)
 
         if not send_to:
             return
@@ -149,6 +147,8 @@ class Activity(Model):
             template='sentry/emails/new_note.txt',
             html_template='sentry/emails/new_note.html',
             headers=headers,
+            reference=self,
+            reply_reference=self.group,
         )
         msg.add_users(send_to, project=self.project)
 
