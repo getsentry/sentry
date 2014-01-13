@@ -103,7 +103,7 @@ class MessageBuilderTest(TestCase):
         assert out.to == ['foo@example.com']
         assert out.subject == 'Test'
         assert out.extra_headers['Reply-To'] == 'foo@example.com'
-        assert out.extra_headers['Message-Id'] == 'activity/%s@localhost' % self.activity.pk
+        assert out.extra_headers['Message-Id'] == '<activity/%s@localhost>' % self.activity.pk
         assert out.body == 'hello world'
         assert len(out.alternatives) == 1
         assert out.alternatives[0] == (
@@ -127,9 +127,9 @@ class MessageBuilderTest(TestCase):
         assert out.to == ['foo@example.com']
         assert out.subject == 'Re: Test'
         assert out.extra_headers['Reply-To'] == 'foo@example.com'
-        assert out.extra_headers['Message-Id'] == 'activity/%s@localhost' % self.activity.pk
-        assert out.extra_headers['In-Reply-To'] == 'group/%s@localhost' % self.group.pk
-        assert out.extra_headers['References'] == 'group/%s@localhost' % self.group.pk
+        assert out.extra_headers['Message-Id'] == '<activity/%s@localhost>' % self.activity.pk
+        assert out.extra_headers['In-Reply-To'] == '<group/%s@localhost>' % self.group.pk
+        assert out.extra_headers['References'] == '<group/%s@localhost>' % self.group.pk
         assert out.body == 'hello world'
         assert len(out.alternatives) == 1
         assert out.alternatives[0] == (
