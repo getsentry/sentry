@@ -136,10 +136,7 @@ class MailPlugin(NotificationPlugin):
                 continue
             interface_list.append((interface.get_title(), mark_safe(body)))
 
-        subject = '[%s] %s: %s' % (
-            project.name.encode('utf-8'),
-            unicode(event.get_level_display()).upper().encode('utf-8'),
-            event.error().encode('utf-8').splitlines()[0])
+        subject = event.get_email_subject()
 
         link = group.get_absolute_url()
 
