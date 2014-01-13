@@ -15,12 +15,20 @@ class ExceptionTest(TestCase):
             'type': 'ValueError',
             'value': 'hello world',
             'module': 'foo.bar',
-            'stacktrace': {'frames': []},
+            'stacktrace': {'frames': [{
+                'filename': 'foo/baz.py',
+                'lineno': 1,
+                'in_app': True,
+            }]},
         }, {
             'type': 'ValueError',
             'value': 'hello world',
             'module': 'foo.bar',
-            'stacktrace': {'frames': []},
+            'stacktrace': {'frames': [{
+                'filename': 'foo/baz.py',
+                'lineno': 1,
+                'in_app': True,
+            }]},
         }])
 
     def test_args_as_list(self):
@@ -65,6 +73,15 @@ class ExceptionTest(TestCase):
     def test_serialize_unserialize_behavior(self):
         result = unserialize(type(self.interface), self.interface.serialize())
         assert self.interface.serialize() == result.serialize()
+
+    def test_to_string(self):
+        result = self.interface.to_string(self.event)
+        print result
+        assert result == """ValueError: hello world
+  File "foo/baz.py", line 1
+
+ValueError: hello world
+  File "foo/baz.py", line 1"""
 
 
 class SingleExceptionTest(TestCase):

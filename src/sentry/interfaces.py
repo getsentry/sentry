@@ -499,6 +499,7 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     def validate(self):
+        assert self.frames
         for frame in self.frames:
             # ensure we've got the correct required values
             assert frame.is_valid()
@@ -594,17 +595,19 @@ class Stacktrace(Interface):
     def to_string(self, event, is_public=False, **kwargs):
         return self.get_stacktrace(event, system_frames=False, max_frames=5)
 
-    def get_stacktrace(self, event, system_frames=True, newest_first=None, max_frames=None):
+    def get_stacktrace(self, event, system_frames=True, newest_first=None,
+                       max_frames=None, header=True):
         if newest_first is None:
             newest_first = is_newest_frame_first(event)
 
         result = []
-        if newest_first:
-            result.append(_('Stacktrace (most recent call first):'))
-        else:
-            result.append(_('Stacktrace (most recent call last):'))
+        if header:
+            if newest_first:
+                result.append(_('Stacktrace (most recent call first):'))
+            else:
+                result.append(_('Stacktrace (most recent call last):'))
 
-        result.append('')
+            result.append('')
 
         frames = self.frames
 
@@ -806,6 +809,7 @@ class Exception(Interface):
         return len(self.values)
 
     def validate(self):
+        assert self.values
         for exception in self.values:
             # ensure we've got the correct required values
             exception.validate()
@@ -871,7 +875,17 @@ class Exception(Interface):
         return render_to_string('sentry/partial/interfaces/chained_exception.html', context)
 
     def to_string(self, event, is_public=False, **kwargs):
-        return self.get_stacktrace(event, system_frames=False, max_frames=5)
+        if not self.values:
+            return ''
+
+        output = []
+        for exc in self.values:
+            output.append('{0}: {1}\n'.format(exc.type, exc.value))
+            if exc.stacktrace:
+                output.append(exc.stacktrace.get_stacktrace(
+                    event, system_frames=False, max_frames=5,
+                    header=False) + '\n\n')
+        return (''.join(output)).strip()
 
     def get_search_context(self, event):
         return self.values[0].get_search_context(event)
