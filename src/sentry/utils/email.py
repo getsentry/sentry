@@ -8,9 +8,10 @@ sentry.utils.email
 from __future__ import absolute_import
 
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
+from django.core.mail import get_connection, EmailMultiAlternatives
 from django.core.signing import Signer
 from django.utils.encoding import force_bytes
+from django.utils.functional import cached_property
 
 from email.utils import parseaddr
 from pynliner import Pynliner
@@ -66,13 +67,40 @@ class MessageBuilder(object):
         self.context = context or {}
         self.template = template
         self.html_template = html_template
-        self.body = body
-        self.html_body = html_body
+        self._txt_body = body
+        self._html_body = html_body
         self.headers = headers
         self.reference = reference  # The object that generated this message
         self.reply_reference = reply_reference  # The object this message is replying about
 
         self._send_to = set()
+
+    @cached_property
+    def html_body(self):
+        html_body = None
+        if self.html_template:
+            html_body = render_to_string(self.html_template, self.context)
+        else:
+            html_body = self._html_body
+
+        if html_body is not None:
+            return UnicodeSafePynliner().from_string(html_body).run()
+
+    @cached_property
+    def txt_body(self):
+        if self.template:
+            return render_to_string(self.template, self.context)
+        return self._txt_body
+
+    @cached_property
+    def message_id(self):
+        if self.reference is not None:
+            return email_id_for_model(self.reference)
+
+    @cached_property
+    def reply_to_id(self):
+        if self.reply_reference is not None:
+            return email_id_for_model(self.reply_reference)
 
     def add_users(self, user_ids, project=None):
         from sentry.models import User, UserOption
@@ -111,58 +139,52 @@ class MessageBuilder(object):
 
         self._send_to.update(email_list)
 
-    def build(self, to=None):
+    def build(self, to, reply_to=()):
         if self.headers is None:
             headers = {}
         else:
             headers = self.headers.copy()
 
-        send_to = set(to or ())
-        send_to.update(self._send_to)
-
         if ENABLE_EMAIL_REPLIES and 'X-Sentry-Reply-To' in headers:
             reply_to = headers['X-Sentry-Reply-To']
         else:
-            reply_to = ', '.join(send_to)
+            reply_to = set(reply_to)
+            reply_to.remove(to)
+            reply_to = ', '.join(reply_to)
 
-        headers.setdefault('Reply-To', reply_to)
+        if reply_to:
+            headers.setdefault('Reply-To', reply_to)
 
-        if self.reference is not None:
-            headers.setdefault('Message-Id', email_id_for_model(self.reference))
+        if self.message_id is not None:
+            headers.setdefault('Message-Id', self.message_id)
 
-        if self.reply_reference is not None:
-            in_reply_to = email_id_for_model(self.reply_reference)
-            headers.setdefault('In-Reply-To', in_reply_to)
-            headers.setdefault('References', in_reply_to)
+        if self.reply_to_id is not None:
+            headers.setdefault('In-Reply-To', self.reply_to_id)
+            headers.setdefault('References', self.reply_to_id)
             self.subject = 'Re: %s' % self.subject
-
-        if self.template:
-            txt_body = render_to_string(self.template, self.context)
-        else:
-            txt_body = self.body
-
-        if self.html_template:
-            html_body = render_to_string(self.html_template, self.context)
-        else:
-            html_body = self.html_body
 
         msg = EmailMultiAlternatives(
             self.subject,
-            txt_body,
+            self.txt_body,
             settings.SERVER_EMAIL,
-            send_to,
+            (to,),
             headers=headers
         )
-        if html_body:
-            msg.attach_alternative(
-                UnicodeSafePynliner().from_string(html_body).run(),
-                "text/html")
+        if self.html_body:
+            msg.attach_alternative(self.html_body, 'text/html')
 
         return msg
 
     def send(self, to=None, fail_silently=False):
-        msg = self.build(to=to)
-        msg.send(fail_silently=fail_silently)
+        send_to = set(to or ())
+        send_to.update(self._send_to)
+        self.send_all(
+            [self.build(to=email, reply_to=send_to) for email in send_to],
+            fail_silently=fail_silently)
+
+    def send_all(self, messages, fail_silently=False):
+        connection = get_connection(fail_silently=fail_silently)
+        return connection.send_messages(messages)
 
 
 class UnicodeSafePynliner(Pynliner):
