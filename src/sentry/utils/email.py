@@ -39,7 +39,7 @@ def group_id_to_email(group_id):
 
 
 def email_id_for_model(model):
-    return '%s/%s@%s' % (type(model).__name__.lower(), model.pk, FROM_EMAIL_DOMAIN)
+    return '<%s/%s@%s>' % (type(model).__name__.lower(), model.pk, FROM_EMAIL_DOMAIN)
 
 
 def domain_from_email(email):
