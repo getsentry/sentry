@@ -32,7 +32,8 @@ class MailPlugin(NotificationPlugin):
     subject_prefix = settings.EMAIL_SUBJECT_PREFIX
 
     def _send_mail(self, subject, template=None, html_template=None, body=None,
-                   project=None, headers=None, context=None, fail_silently=False):
+                   project=None, group=None, headers=None, context=None,
+                   fail_silently=False):
         send_to = self.get_send_to(project)
         if not send_to:
             return
@@ -46,6 +47,7 @@ class MailPlugin(NotificationPlugin):
             body=body,
             headers=headers,
             context=context,
+            reference=group,
         )
         msg.add_users(send_to, project=project)
         return msg.send(fail_silently=fail_silently)
@@ -165,6 +167,7 @@ class MailPlugin(NotificationPlugin):
             template=template,
             html_template=html_template,
             project=project,
+            group=group,
             fail_silently=fail_silently,
             headers=headers,
             context=context,
