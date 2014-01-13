@@ -273,6 +273,9 @@ def expand_javascript_source(data, **kwargs):
         # TODO: we're currently running splitlines twice
         if not sourcemap:
             source_code[filename] = (result.body.splitlines(), None)
+            for f in frames:
+                if f.abs_path == filename:
+                    f.module = generate_module(filename)
             continue
         else:
             logger.debug('Found sourcemap %r for minified script %r', sourcemap[:256], result.url)
