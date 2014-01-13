@@ -123,6 +123,7 @@ class MailPluginTest(TestCase):
         args, kwargs = _send_mail.call_args
         self.assertEquals(kwargs.get('fail_silently'), False)
         self.assertEquals(kwargs.get('project'), self.project)
+        self.assertEquals(kwargs.get('group'), group)
         assert kwargs.get('subject') == u"[{0}] ERROR: hello world".format(self.project.name)
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
