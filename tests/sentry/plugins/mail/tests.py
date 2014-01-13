@@ -36,6 +36,7 @@ class MailPluginTest(TestCase):
 
         event = Event()
         event.group = group
+        event.project = self.project
         event.message = 'hello world'
         event.logger = 'root'
         event.site = None
@@ -62,6 +63,7 @@ class MailPluginTest(TestCase):
 
         event = Event()
         event.group = group
+        event.project = self.project
         event.message = 'hello world'
         event.logger = 'root'
         event.site = None
@@ -88,6 +90,7 @@ class MailPluginTest(TestCase):
 
         event = Event()
         event.group = group
+        event.project = self.project
         event.message = 'Soubor ji\xc5\xbe existuje'
         event.logger = 'root'
         event.site = None
