@@ -4,9 +4,11 @@ from __future__ import absolute_import
 
 import mock
 
+from exam import fixture
+
 from sentry.interfaces import Stacktrace, Exception
 from sentry.models import Event
-from sentry.testutils import TestCase, fixture
+from sentry.testutils import TestCase
 
 
 class StacktraceTest(TestCase):

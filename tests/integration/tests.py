@@ -216,7 +216,7 @@ class DepdendencyTest(TestCase):
 
         import_string.side_effect = self.raise_import_error(package)
 
-        with self.Settings(**{key: setting_value}):
+        with self.settings(**{key: setting_value}):
             with self.assertRaises(ConfigurationError):
                 validate_settings(django_settings)
 

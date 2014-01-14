@@ -1,9 +1,10 @@
 import mock
 
 from django.core.urlresolvers import reverse
+from exam import before, fixture
 
 from sentry.models import Team
-from sentry.testutils import TestCase, fixture, before
+from sentry.testutils import TestCase
 from sentry.plugins.helpers import set_option
 
 

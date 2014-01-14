@@ -5,11 +5,12 @@ from __future__ import absolute_import
 import mock
 
 from django.core.urlresolvers import reverse
+from exam import before, fixture
 
 from sentry.constants import MEMBER_OWNER, MEMBER_USER
 from sentry.models import (
     Team, TeamMember, PendingTeamMember, AccessGroup, Project, User)
-from sentry.testutils import TestCase, fixture, before
+from sentry.testutils import TestCase
 
 
 class BaseTeamTest(TestCase):

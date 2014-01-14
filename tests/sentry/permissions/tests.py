@@ -18,12 +18,12 @@ class CanCreateProjectTest(TestCase):
         self.assertFalse(can_create_projects(user))
 
     def test_allow_creation_is_true(self):
-        with self.Settings(SENTRY_ALLOW_PROJECT_CREATION=True):
+        with self.settings(SENTRY_ALLOW_PROJECT_CREATION=True):
             user = User(id=100000)
             self.assertTrue(can_create_projects(user))
 
     def test_dont_allow_creation_is_false(self):
-        with self.Settings(SENTRY_ALLOW_PROJECT_CREATION=False):
+        with self.settings(SENTRY_ALLOW_PROJECT_CREATION=False):
             user = User(id=100000)
             self.assertFalse(can_create_projects(user))
 
@@ -38,11 +38,11 @@ class CanSetProjectPublicTest(TestCase):
         self.assertFalse(can_set_public_projects(user))
 
     def test_allow_creation_is_true(self):
-        with self.Settings(SENTRY_ALLOW_PUBLIC_PROJECTS=True):
+        with self.settings(SENTRY_ALLOW_PUBLIC_PROJECTS=True):
             user = User(id=100000)
             self.assertTrue(can_set_public_projects(user))
 
     def test_dont_allow_creation_is_false(self):
-        with self.Settings(SENTRY_ALLOW_PUBLIC_PROJECTS=False):
+        with self.settings(SENTRY_ALLOW_PUBLIC_PROJECTS=False):
             user = User(id=100000)
             self.assertFalse(can_set_public_projects(user))

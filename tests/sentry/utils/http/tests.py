@@ -5,11 +5,12 @@ from __future__ import absolute_import
 import mock
 
 from django.conf import settings
+from exam import fixture
 
 from sentry.models import Project, ProjectOption
-from sentry.testutils import TestCase, fixture
-from sentry.utils.http import (is_same_domain, is_valid_origin, get_origins,
-    absolute_uri)
+from sentry.testutils import TestCase
+from sentry.utils.http import (
+    is_same_domain, is_valid_origin, get_origins, absolute_uri)
 
 
 class AbsoluteUriTest(TestCase):
@@ -46,7 +47,7 @@ class GetOriginsTestCase(TestCase):
         project = Project.objects.get()
         ProjectOption.objects.create(project=project, key='sentry:origins', value=['http://foo.example'])
 
-        with self.Settings(SENTRY_ALLOW_ORIGIN=None):
+        with self.settings(SENTRY_ALLOW_ORIGIN=None):
             result = get_origins(project)
             self.assertEquals(result, frozenset(['http://foo.example']))
 
@@ -55,22 +56,22 @@ class GetOriginsTestCase(TestCase):
         project = Project.objects.get()
         ProjectOption.objects.create(project=project, key='sentry:origins', value=['http://foo.example'])
 
-        with self.Settings(SENTRY_ALLOW_ORIGIN='http://example.com'):
+        with self.settings(SENTRY_ALLOW_ORIGIN='http://example.com'):
             result = get_origins(project)
             self.assertEquals(result, frozenset(['http://foo.example', 'http://example.com']))
 
     def test_setting_empty(self):
-        with self.Settings(SENTRY_ALLOW_ORIGIN=None):
+        with self.settings(SENTRY_ALLOW_ORIGIN=None):
             result = get_origins(None)
             self.assertEquals(result, frozenset([]))
 
     def test_setting_all(self):
-        with self.Settings(SENTRY_ALLOW_ORIGIN='*'):
+        with self.settings(SENTRY_ALLOW_ORIGIN='*'):
             result = get_origins(None)
             self.assertEquals(result, frozenset(['*']))
 
     def test_setting_uri(self):
-        with self.Settings(SENTRY_ALLOW_ORIGIN='http://example.com'):
+        with self.settings(SENTRY_ALLOW_ORIGIN='http://example.com'):
             result = get_origins(None)
             self.assertEquals(result, frozenset(['http://example.com']))
 

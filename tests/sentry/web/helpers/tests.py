@@ -12,23 +12,23 @@ from sentry.testutils import TestCase
 
 class GetLoginUrlTest(TestCase):
     def test_as_path(self):
-        with self.Settings(LOGIN_URL='/really-a-404'):
+        with self.settings(LOGIN_URL='/really-a-404'):
             url = get_login_url(True)
             self.assertEquals(url, reverse('sentry-login'))
 
     def test_as_lazy_url(self):
-        with self.Settings(LOGIN_URL=reverse('sentry-fake-login')):
+        with self.settings(LOGIN_URL=reverse('sentry-fake-login')):
             url = get_login_url(True)
             self.assertEquals(url, reverse('sentry-fake-login'))
 
     def test_cached(self):
         # should still be cached
-        with self.Settings(LOGIN_URL='/really-a-404'):
+        with self.settings(LOGIN_URL='/really-a-404'):
             url = get_login_url(False)
             self.assertNotEquals(url, '/really-a-404')
 
     def test_no_value(self):
-        with self.Settings(SENTRY_LOGIN_URL=None):
+        with self.settings(SENTRY_LOGIN_URL=None):
             url = get_login_url(True)
             self.assertEquals(url, reverse('sentry-login'))
 
@@ -76,7 +76,7 @@ class GroupIsPublicTest(TestCase):
 class GetRavenJsUrl(TestCase):
     def test_with_custom_raven_js_url(self):
         url = 'my.cdn/1.0/raven.min.js'
-        with self.Settings(SENTRY_RAVEN_JS_URL=url):
+        with self.settings(SENTRY_RAVEN_JS_URL=url):
             self.assertEquals(get_raven_js_url(), url)
 
     def test_with_default_raven_js_url(self):

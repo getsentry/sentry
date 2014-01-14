@@ -3,10 +3,11 @@
 from __future__ import absolute_import
 
 from django.core.urlresolvers import reverse
+from exam import before, fixture
 
 from sentry.constants import MEMBER_USER
 from sentry.models import Group, Project, TeamMember, Team, User
-from sentry.testutils import TestCase, fixture, before
+from sentry.testutils import TestCase
 
 
 class EnvStatusTest(TestCase):
@@ -188,23 +189,23 @@ class NewTeamProjectTest(PermissionBase):
         return reverse('sentry-new-project', args=[self.team.slug])
 
     def test_admin_can_load(self):
-        with self.Settings(SENTRY_ALLOW_PROJECT_CREATION=False, SENTRY_ALLOW_TEAM_CREATION=False):
+        with self.settings(SENTRY_ALLOW_PROJECT_CREATION=False, SENTRY_ALLOW_TEAM_CREATION=False):
             self._assertPerm(self.path, self.template, self.admin.username)
 
     def test_user_cannot_load(self):
-        with self.Settings(SENTRY_ALLOW_PROJECT_CREATION=False, SENTRY_ALLOW_TEAM_CREATION=False):
+        with self.settings(SENTRY_ALLOW_PROJECT_CREATION=False, SENTRY_ALLOW_TEAM_CREATION=False):
             self._assertPerm(self.path, self.template, self.nobody.username, False)
 
     def test_anonymous_cannot_load(self):
-        with self.Settings(SENTRY_ALLOW_PROJECT_CREATION=False, SENTRY_ALLOW_TEAM_CREATION=False):
+        with self.settings(SENTRY_ALLOW_PROJECT_CREATION=False, SENTRY_ALLOW_TEAM_CREATION=False):
             self._assertPerm(self.path, self.template, None, False)
 
     def test_public_creation_admin_can_load(self):
-        with self.Settings(SENTRY_ALLOW_PROJECT_CREATION=True, SENTRY_ALLOW_TEAM_CREATION=True):
+        with self.settings(SENTRY_ALLOW_PROJECT_CREATION=True, SENTRY_ALLOW_TEAM_CREATION=True):
             self._assertPerm(self.path, self.template, self.admin.username)
 
     def test_public_anonymous_cannot_load(self):
-        with self.Settings(SENTRY_ALLOW_PROJECT_CREATION=True, SENTRY_ALLOW_TEAM_CREATION=True):
+        with self.settings(SENTRY_ALLOW_PROJECT_CREATION=True, SENTRY_ALLOW_TEAM_CREATION=True):
             self._assertPerm(self.path, self.template, None, False)
 
 
@@ -239,43 +240,43 @@ class RemoveProjectTest(PermissionBase):
         return reverse('sentry-remove-project', kwargs={'team_slug': self.team.slug, 'project_id': self.project.id})
 
     def test_admin_cannot_remove_default(self):
-        with self.Settings(SENTRY_PROJECT=1):
+        with self.settings(SENTRY_PROJECT=1):
             self._assertPerm(self.path, self.template, self.admin.username, False)
 
     def test_owner_cannot_remove_default(self):
-        with self.Settings(SENTRY_PROJECT=1):
+        with self.settings(SENTRY_PROJECT=1):
             self._assertPerm(self.path, self.template, self.owner.username, False)
 
     def test_anonymous_cannot_remove_default(self):
-        with self.Settings(SENTRY_PROJECT=1):
+        with self.settings(SENTRY_PROJECT=1):
             self._assertPerm(self.path, self.template, None, False)
 
     def test_user_cannot_remove_default(self):
-        with self.Settings(SENTRY_PROJECT=1):
+        with self.settings(SENTRY_PROJECT=1):
             self._assertPerm(self.path, self.template, self.nobody.username, False)
 
     def test_member_cannot_remove_default(self):
-        with self.Settings(SENTRY_PROJECT=1):
+        with self.settings(SENTRY_PROJECT=1):
             self._assertPerm(self.path, self.template, self.member.username, False)
 
     def test_admin_can_load(self):
-        with self.Settings(SENTRY_PROJECT=2):
+        with self.settings(SENTRY_PROJECT=2):
             self._assertPerm(self.path, self.template, self.admin.username)
 
     def test_owner_can_load(self):
-        with self.Settings(SENTRY_PROJECT=2):
+        with self.settings(SENTRY_PROJECT=2):
             self._assertPerm(self.path, self.template, self.owner.username)
 
     def test_anonymous_cannot_load(self):
-        with self.Settings(SENTRY_PROJECT=2):
+        with self.settings(SENTRY_PROJECT=2):
             self._assertPerm(self.path, self.template, None, False)
 
     def test_user_cannot_load(self):
-        with self.Settings(SENTRY_PROJECT=2):
+        with self.settings(SENTRY_PROJECT=2):
             self._assertPerm(self.path, self.template, self.nobody.username, False)
 
     def test_member_cannot_load(self):
-        with self.Settings(SENTRY_PROJECT=2):
+        with self.settings(SENTRY_PROJECT=2):
             self._assertPerm(self.path, self.template, self.member.username, False)
 
 

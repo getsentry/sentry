@@ -5,9 +5,11 @@ from __future__ import absolute_import
 import mock
 import pickle
 
+from exam import fixture
+
 from sentry.interfaces import Interface, get_context
 from sentry.models import Event
-from sentry.testutils import TestCase, fixture
+from sentry.testutils import TestCase
 
 
 class InterfaceBase(TestCase):

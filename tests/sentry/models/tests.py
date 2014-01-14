@@ -2,21 +2,23 @@
 
 from __future__ import absolute_import
 
-
 import mock
+
 from datetime import timedelta
 from django.conf import settings
 from django.core import mail
 from django.core.urlresolvers import reverse
 from django.db import connection
 from django.utils import timezone
+from exam import fixture
+
 from sentry.constants import MINUTE_NORMALIZATION
 from sentry.db.models.fields.node import NodeData
 from sentry.models import (
     Project, ProjectKey, Group, Event, Team,
     GroupTagValue, GroupCountByMinute, TagValue, PendingTeamMember,
     LostPasswordHash, Alert, User, create_default_project)
-from sentry.testutils import TestCase, fixture
+from sentry.testutils import TestCase
 from sentry.utils.compat import pickle
 from sentry.utils.strings import compress
 
@@ -48,27 +50,27 @@ class ProjectTest(TestCase):
 class ProjectKeyTest(TestCase):
     def test_get_dsn(self):
         key = ProjectKey(project_id=1, public_key='public', secret_key='secret')
-        with self.Settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
             self.assertEquals(key.get_dsn(), 'http://public:secret@example.com/1')
 
     def test_get_dsn_with_ssl(self):
         key = ProjectKey(project_id=1, public_key='public', secret_key='secret')
-        with self.Settings(SENTRY_URL_PREFIX='https://example.com'):
+        with self.settings(SENTRY_URL_PREFIX='https://example.com'):
             self.assertEquals(key.get_dsn(), 'https://public:secret@example.com/1')
 
     def test_get_dsn_with_port(self):
         key = ProjectKey(project_id=1, public_key='public', secret_key='secret')
-        with self.Settings(SENTRY_URL_PREFIX='http://example.com:81'):
+        with self.settings(SENTRY_URL_PREFIX='http://example.com:81'):
             self.assertEquals(key.get_dsn(), 'http://public:secret@example.com:81/1')
 
     def test_get_dsn_with_public_endpoint_setting(self):
         key = ProjectKey(project_id=1, public_key='public', secret_key='secret')
-        with self.Settings(SENTRY_PUBLIC_ENDPOINT='http://public_endpoint.com'):
+        with self.settings(SENTRY_PUBLIC_ENDPOINT='http://public_endpoint.com'):
             self.assertEquals(key.get_dsn(public=True), 'http://public@public_endpoint.com/1')
 
     def test_get_dsn_with_endpoint_setting(self):
         key = ProjectKey(project_id=1, public_key='public', secret_key='secret')
-        with self.Settings(SENTRY_ENDPOINT='http://endpoint.com'):
+        with self.settings(SENTRY_ENDPOINT='http://endpoint.com'):
             self.assertEquals(key.get_dsn(), 'http://public:secret@endpoint.com/1')
 
     def test_key_is_created_for_project_with_existing_team(self):
@@ -86,18 +88,18 @@ class ProjectKeyTest(TestCase):
 class PendingTeamMemberTest(TestCase):
     def test_token_generation(self):
         member = PendingTeamMember(id=1, team_id=1, email='foo@example.com')
-        with self.Settings(SECRET_KEY='a'):
+        with self.settings(SECRET_KEY='a'):
             self.assertEquals(member.token, 'f3f2aa3e57f4b936dfd4f42c38db003e')
 
     def test_token_generation_unicode_key(self):
         member = PendingTeamMember(id=1, team_id=1, email='foo@example.com')
-        with self.Settings(SECRET_KEY="\xfc]C\x8a\xd2\x93\x04\x00\x81\xeak\x94\x02H\x1d\xcc&P'q\x12\xa2\xc0\xf2v\x7f\xbb*lX"):
+        with self.settings(SECRET_KEY="\xfc]C\x8a\xd2\x93\x04\x00\x81\xeak\x94\x02H\x1d\xcc&P'q\x12\xa2\xc0\xf2v\x7f\xbb*lX"):
             self.assertEquals(member.token, 'df41d9dfd4ba25d745321e654e15b5d0')
 
     def test_send_invite_email(self):
         team = Team(name='test', slug='test', id=1)
         member = PendingTeamMember(id=1, team=team, email='foo@example.com')
-        with self.Settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
             member.send_invite_email()
 
             self.assertEquals(len(mail.outbox), 1)
@@ -115,7 +117,7 @@ class LostPasswordTest(TestCase):
         )
 
     def test_send_recover_mail(self):
-        with self.Settings(SENTRY_URL_PREFIX='http://testserver'):
+        with self.settings(SENTRY_URL_PREFIX='http://testserver'):
             self.password_hash.send_recover_mail()
             assert len(mail.outbox) == 1
             msg = mail.outbox[0]

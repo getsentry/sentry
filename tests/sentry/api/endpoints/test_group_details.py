@@ -1,11 +1,10 @@
 from django.core.urlresolvers import reverse
-from rest_framework.test import APITestCase
 from sentry.constants import STATUS_RESOLVED
 from sentry.models import Group
-from sentry.testutils import BaseTestCase
+from sentry.testutils import APITestCase
 
 
-class GroupDetailsTest(BaseTestCase, APITestCase):
+class GroupDetailsTest(APITestCase):
     def test_simple(self):
         self.client.force_authenticate(user=self.user)
 
@@ -32,7 +31,7 @@ class GroupDetailsTest(BaseTestCase, APITestCase):
         }
 
 
-class GroupUpdateTest(BaseTestCase, APITestCase):
+class GroupUpdateTest(APITestCase):
     def test_simple(self):
         self.client.force_authenticate(user=self.user)
 

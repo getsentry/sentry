@@ -3,12 +3,15 @@
 from __future__ import absolute_import
 
 import mock
-from mock import Mock
+
 from django.utils import timezone
+from exam import fixture
+from mock import Mock
+
 from sentry.interfaces import Stacktrace
 from sentry.models import Alert, Event, Group, AccessGroup
 from sentry.plugins.sentry_mail.models import MailPlugin
-from sentry.testutils import TestCase, fixture
+from sentry.testutils import TestCase
 
 
 class MailPluginTest(TestCase):
@@ -42,7 +45,7 @@ class MailPluginTest(TestCase):
         event.site = None
         event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
 
-        with self.Settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
             self.plugin.notify_users(group, event)
 
         stacktrace.get_title.assert_called_once_with()
@@ -69,7 +72,7 @@ class MailPluginTest(TestCase):
         event.site = None
         event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
 
-        with self.Settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
             self.plugin.notify_users(group, event)
 
         stacktrace.get_title.assert_called_once_with()
@@ -96,7 +99,7 @@ class MailPluginTest(TestCase):
         event.site = None
         event.interfaces = {'sentry.interfaces.Stacktrace': stacktrace}
 
-        with self.Settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
             self.plugin.notify_users(group, event)
 
         stacktrace.get_title.assert_called_once_with()
@@ -119,7 +122,7 @@ class MailPluginTest(TestCase):
             datetime=group.last_seen,
         )
 
-        with self.Settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
             self.plugin.notify_users(group, event)
 
         _send_mail.assert_called_once()
@@ -146,7 +149,7 @@ class MailPluginTest(TestCase):
             datetime=group.last_seen,
         )
 
-        with self.Settings(SENTRY_URL_PREFIX='http://example.com'):
+        with self.settings(SENTRY_URL_PREFIX='http://example.com'):
             self.plugin.notify_users(group, event)
 
         _send_mail.assert_called_once()
