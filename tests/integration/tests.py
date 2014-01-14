@@ -82,7 +82,8 @@ class RavenIntegrationTest(TestCase):
 
         content_type = headers.pop('Content-Type', None)
         headers = dict(('HTTP_' + k.replace('-', '_').upper(), v) for k, v in headers.iteritems())
-        resp = self.client.post(reverse('sentry-api-store', args=[self.pk.project_id]),
+        resp = self.client.post(
+            reverse('sentry-api-store', args=[self.pk.project_id]),
             data=data,
             content_type=content_type,
             **headers)
@@ -92,10 +93,8 @@ class RavenIntegrationTest(TestCase):
     def test_basic(self, send_remote):
         send_remote.side_effect = self.sendRemote
         client = Client(
-            project=self.pk.project_id,
-            servers=['http://localhost:8000%s' % reverse('sentry-api-store', args=[self.pk.project_id])],
-            public_key=self.pk.public_key,
-            secret_key=self.pk.secret_key,
+            dsn='http://%s:%s@localhost:8000/%s' % (
+                self.pk.public_key, self.pk.secret_key, self.pk.project_id)
         )
         client.capture('Message', message='foo')
 

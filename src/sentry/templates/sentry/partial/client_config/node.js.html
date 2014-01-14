@@ -18,10 +18,6 @@ var client = new raven.Client('{% if dsn %}{{ dsn }}{% else %}<strong>SENTRY_DSN
 
 	<pre>client.patchGlobal();</pre>
 
-	<p>{% trans "Ensure Node is run with <code>NODE_ENV=production</code>:" %}</p>
-
-	<pre>NODE_ENV=production node script.js</pre>
-
 	<p>{% trans "Now call out to the raven client to capture events:" %}</p>
 
 	<pre>// {% trans "record a simple message" %}

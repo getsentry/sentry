@@ -2,7 +2,7 @@
 sentry.coreapi
 ~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 # TODO: We should make the API a class, and UDP/HTTP just inherit from it
@@ -20,8 +20,8 @@ from django.utils.encoding import smart_str
 
 from sentry.app import env
 from sentry.constants import (
-    DEFAULT_LOG_LEVEL, LOG_LEVELS, MAX_MESSAGE_LENGTH, MAX_CULPRIT_LENGTH,
-    MAX_TAG_VALUE_LENGTH, MAX_TAG_KEY_LENGTH)
+    DEFAULT_LOG_LEVEL, LOG_LEVELS, MAX_CULPRIT_LENGTH, MAX_TAG_VALUE_LENGTH,
+    MAX_TAG_KEY_LENGTH)
 from sentry.exceptions import InvalidTimestamp
 from sentry.models import Project, ProjectKey
 from sentry.tasks.store import preprocess_event
@@ -206,7 +206,7 @@ def ensure_valid_project_id(desired_project, data, client=None):
         data['project'] = desired_project.id
 
 
-def process_data_timestamp(data):
+def process_data_timestamp(data, current_datetime=None):
     if is_float(data['timestamp']):
         try:
             data['timestamp'] = datetime.fromtimestamp(float(data['timestamp']))
@@ -225,8 +225,14 @@ def process_data_timestamp(data):
         except Exception:
             raise InvalidTimestamp('Invalid value for timestamp: %r' % data['timestamp'])
 
-    if data['timestamp'] > datetime.now() + timedelta(minutes=1):
+    if current_datetime is None:
+        current_datetime = datetime.now()
+
+    if data['timestamp'] > current_datetime + timedelta(minutes=1):
         raise InvalidTimestamp('Invalid value for timestamp (in future): %r' % data['timestamp'])
+
+    if data['timestamp'] < current_datetime - timedelta(days=30):
+        raise InvalidTimestamp('Invalid value for timestamp (too old): %r' % data['timestamp'])
 
     return data
 
@@ -238,11 +244,12 @@ def validate_data(project, data, client=None):
         data['message'] = '<no message value>'
     elif not isinstance(data['message'], basestring):
         raise APIError('Invalid value for message')
-    elif len(data['message']) > MAX_MESSAGE_LENGTH:
+    elif len(data['message']) > settings.SENTRY_MAX_MESSAGE_LENGTH:
         logger.info(
             'Truncated value for message due to length (%d chars)',
             len(data['message']), **client_metadata(client, project))
-        data['message'] = truncatechars(data['message'], MAX_MESSAGE_LENGTH)
+        data['message'] = truncatechars(
+            data['message'], settings.SENTRY_MAX_MESSAGE_LENGTH)
 
     if data.get('culprit') and len(data['culprit']) > MAX_CULPRIT_LENGTH:
         logger.info(

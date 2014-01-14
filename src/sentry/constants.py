@@ -5,7 +5,7 @@ sentry.constants
 These settings act as the default (base) settings for the Sentry-provided
 web-server
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 import logging
@@ -169,23 +169,9 @@ PLATFORM_TITLES = {
 # accuracy provided.
 MINUTE_NORMALIZATION = 15
 
-# Prevent variables (e.g. context locals, http data, etc) from exceeding this
-# size in characters
-MAX_VARIABLE_SIZE = 512
-
-# Prevent varabiesl within extra context from exceeding this size in
-# characters
-MAX_EXTRA_VARIABLE_SIZE = 2048
-
-# For various attributes we dont limit the entire attribute on size, but the
-# individual item. In those cases we also want to limit the maximum number of
-# keys
-MAX_DICTIONARY_ITEMS = 50
-
 MAX_TAG_KEY_LENGTH = 32
 MAX_TAG_VALUE_LENGTH = 200
 MAX_CULPRIT_LENGTH = 200
-MAX_MESSAGE_LENGTH = 1024 * 10
 
 # Team slugs which may not be used. Generally these are top level URL patterns
 # which we don't want to worry about conflicts on.

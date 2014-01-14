@@ -1,7 +1,13 @@
 Version 6.4.0
 -------------
 
-Some major backend changes are introduced in Sentry 6.3.0.
+Some major backend changes are introduced in Sentry 6.4.0.
+
+django.contrib.auth
+===================
+
+The builtin Django authentication module is no more. The Group and Permission models are no
+longer used, and the User model has been replaced with sentry.User.
 
 Search
 ======
@@ -27,6 +33,13 @@ Additional Changes
 - Charts now show tooltips describing the datapoint.
 - JavaScript sourcemaps now support embedded sources.
 - Stream annotations can now be customized to show any tags (not just number of users).
+- Stacktrace frames now get truncated down to a maximum length of 50.
+
+Protocol Version 5
+==================
+
+- sentry_version should be sent as '5'.
+- The stacktrace interface now accepts a 'frames_omitted' tuple.
 
 Version 6.3.0
 -------------

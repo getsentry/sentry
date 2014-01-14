@@ -2,7 +2,7 @@
 sentry.web.urls
 ~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 
@@ -13,6 +13,8 @@ try:
 except ImportError:
     # django < 1.5 compat
     from django.conf.urls.defaults import include, patterns, url  # NOQA
+
+from django.conf import settings
 
 from sentry.web import api
 from sentry.web.frontend import (
@@ -45,7 +47,19 @@ def init_all_applications():
 
 init_all_applications()
 
-urlpatterns = patterns('',
+urlpatterns = patterns('')
+
+if settings.DEBUG:
+    import sentry.web.frontend.debug.mail
+
+    urlpatterns += patterns('',
+        url(r'^debug/mail/new-event/$',
+            sentry.web.frontend.debug.mail.new_event),
+        url(r'^debug/mail/new-note/$',
+            sentry.web.frontend.debug.mail.new_note),
+    )
+
+urlpatterns += patterns('',
     url(r'^_static/(?P<module>[^/]+)/(?P<path>.*)$', generic.static_media,
         name='sentry-media'),
 

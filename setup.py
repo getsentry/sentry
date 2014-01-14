@@ -18,7 +18,7 @@ That said, Sentry is not limited to Python. The primary implementation is in
 Python, but it contains a full API for sending events from any language, in
 any application.
 
-:copyright: (c) 2011-2012 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2011-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 
@@ -69,15 +69,16 @@ install_requires = [
     'BeautifulSoup>=3.2.1,<3.3.0',
     'celery>=3.0.15,<3.1.0',
     'cssutils>=0.9.9,<0.10.0',
-    'Django>=1.5.4,<1.6',
+    'Django>=1.5.5,<1.6',
     'django-celery>=3.0.11,<3.1.0',
     'django-crispy-forms>=1.2.3,<1.3.0',
-    'django-paging>=0.2.4,<0.3.0',
+    'django-paging>=0.2.5,<0.3.0',
     'django-picklefield>=0.3.0,<0.4.0',
     'django-social-auth>=0.7.28,<0.8.0',
     'django-static-compiler>=0.3.0,<0.4.0',
     'django-templatetag-sugar>=0.1.0,<0.2.0',
     'djangorestframework>=2.3.8,<2.4.0',
+    'email-reply-parser>=0.2.0,<0.3.0',
     'gunicorn>=0.17.2,<0.18.0',
     'httpagentparser>=1.2.1,<1.3.0',
     'logan>=0.5.8.2,<0.6.0',
@@ -86,7 +87,7 @@ install_requires = [
     'pynliner>=0.4.0,<0.6.0',
     'python-dateutil>=1.5.0,<2.0.0',
     'python-memcached>=1.53,<2.0.0',
-    'raven>=3.3.8',
+    'raven>=4.0.2',
     'redis>=2.7.0,<2.9.0',
     'simplejson>=3.1.0,<3.4.0',
     'setproctitle>=1.1.7,<1.2.0',
@@ -122,7 +123,7 @@ class PyTest(TestCommand):
 
 setup(
     name='sentry',
-    version='6.4.0',
+    version='6.4.4',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='https://www.getsentry.com',

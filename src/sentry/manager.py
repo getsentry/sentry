@@ -2,7 +2,7 @@
 sentry.manager
 ~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 
@@ -24,12 +24,13 @@ from django.db.models import Sum
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
 
+from raven.contrib.django.models import client as Raven
 from raven.utils.encoding import to_string
+
 from sentry import app
 from sentry.constants import (
     STATUS_RESOLVED, STATUS_UNRESOLVED, MINUTE_NORMALIZATION,
-    MAX_EXTRA_VARIABLE_SIZE, LOG_LEVELS, DEFAULT_LOGGER_NAME,
-    MAX_CULPRIT_LENGTH)
+    LOG_LEVELS, DEFAULT_LOGGER_NAME, MAX_CULPRIT_LENGTH)
 from sentry.db.models import BaseManager
 from sentry.processors.base import send_group_processors
 from sentry.signals import regression_signal
@@ -37,7 +38,7 @@ from sentry.tasks.index import index_event
 from sentry.utils.cache import cache, memoize
 from sentry.utils.dates import get_sql_date_trunc, normalize_datetime
 from sentry.utils.db import get_db_engine, has_charts, attach_foreignkey
-from sentry.utils.safe import safe_execute, trim, trim_dict
+from sentry.utils.safe import safe_execute, trim, trim_dict, trim_frames
 from sentry.utils.strings import strip
 
 logger = logging.getLogger('sentry.errors')
@@ -213,8 +214,11 @@ class GroupManager(BaseManager, ChartMixin):
         # First we pull out our top-level (non-data attr) kwargs
         if not data.get('level') or data['level'] not in LOG_LEVELS:
             data['level'] = logging.ERROR
+
         if not data.get('logger'):
             data['logger'] = DEFAULT_LOGGER_NAME
+        else:
+            data['logger'] = trim(data['logger'], 64)
 
         timestamp = data.get('timestamp')
         if not timestamp:
@@ -254,14 +258,13 @@ class GroupManager(BaseManager, ChartMixin):
             tags = list(tags)
 
         data['tags'] = tags
-        data['message'] = strip(data['message'])
-        data['culprit'] = strip(data['culprit'])
 
         if not isinstance(data['extra'], dict):
             # throw it away
             data['extra'] = {}
 
-        trim_dict(data['extra'], max_size=MAX_EXTRA_VARIABLE_SIZE)
+        trim_dict(
+            data['extra'], max_size=settings.SENTRY_MAX_EXTRA_VARIABLE_SIZE)
 
         if 'sentry.interfaces.Exception' in data:
             if 'values' not in data['sentry.interfaces.Exception']:
@@ -279,11 +282,13 @@ class GroupManager(BaseManager, ChartMixin):
                     if value:
                         exc_data[key] = trim(value)
                 if exc_data.get('stacktrace'):
+                    trim_frames(exc_data['stacktrace'])
                     for frame in exc_data['stacktrace']['frames']:
                         stack_vars = frame.get('vars', {})
                         trim_dict(stack_vars)
 
         if 'sentry.interfaces.Stacktrace' in data:
+            trim_frames(data['sentry.interfaces.Stacktrace'])
             for frame in data['sentry.interfaces.Stacktrace']['frames']:
                 stack_vars = frame.get('vars', {})
                 trim_dict(stack_vars)
@@ -312,7 +317,13 @@ class GroupManager(BaseManager, ChartMixin):
 
             # default the culprit to the url
             if not data['culprit']:
-                data['culprit'] = trim(strip(http_data.get('url')), MAX_CULPRIT_LENGTH)
+                data['culprit'] = strip(http_data.get('url'))
+
+        if data['culprit']:
+            data['culprit'] = trim(strip(data['culprit']), MAX_CULPRIT_LENGTH)
+
+        if data['message']:
+            data['message'] = strip(data['message'])
 
         return data
 
@@ -333,6 +344,8 @@ class GroupManager(BaseManager, ChartMixin):
         from sentry.models import Event, Project, EventMapping
 
         project = Project.objects.get_from_cache(id=project)
+
+        Raven.tags_context({'project': project.id})
 
         # First we pull out our top-level (non-data attr) kwargs
         event_id = data.pop('event_id')
@@ -815,6 +828,14 @@ class InstanceMetaManager(BaseManager):
         self.__dict__.update(state)
         self.__metadata = {}
 
+    def _make_key(self, instance):
+        if isinstance(instance, models.Model):
+            instance_id = instance.pk
+        else:
+            instance_id = instance
+
+        return '%s:%s' % (self.model._meta.db_table, instance_id)
+
     def get_value_bulk(self, instances, key):
         return dict(self.filter(**{
             '%s__in' % self.field_name: instances,
@@ -830,8 +851,10 @@ class InstanceMetaManager(BaseManager):
     def unset_value(self, instance, key):
         self.filter(**{self.field_name: instance, 'key': key}).delete()
         if instance.pk not in self.__metadata:
+            cache.delete(self._make_key(instance))
             return
         self.__metadata[instance.pk].pop(key, None)
+        cache.set(self._make_key(instance), self.__metadata[instance.pk])
 
     def set_value(self, instance, key, value):
         inst, created = self.get_or_create(**{
@@ -845,8 +868,10 @@ class InstanceMetaManager(BaseManager):
             inst.update(value=value)
 
         if instance.pk not in self.__metadata:
+            cache.delete(self._make_key(instance))
             return
         self.__metadata[instance.pk][key] = value
+        cache.set(self._make_key(instance), self.__metadata[instance.pk])
 
     def get_all_values(self, instance):
         if isinstance(instance, models.Model):
@@ -855,12 +880,16 @@ class InstanceMetaManager(BaseManager):
             instance_id = instance
 
         if instance_id not in self.__metadata:
-            result = dict(
-                (i.key, i.value) for i in
-                self.filter(**{
-                    self.field_name: instance_id,
-                })
-            )
+            cache_key = self._make_key(instance)
+            result = cache.get(cache_key)
+            if result is None:
+                result = dict(
+                    (i.key, i.value) for i in
+                    self.filter(**{
+                        self.field_name: instance_id,
+                    })
+                )
+                cache.set(cache_key, result)
             self.__metadata[instance_id] = result
         return self.__metadata.get(instance_id, {})
 

@@ -5,7 +5,8 @@ from __future__ import absolute_import
 import mock
 
 from sentry.tasks.fetch_source import (
-    UrlResult, expand_javascript_source, discover_sourcemap, fetch_sourcemap)
+    UrlResult, expand_javascript_source, discover_sourcemap,
+    fetch_sourcemap, generate_module)
 from sentry.utils.sourcemaps import (SourceMap, SourceMapIndex)
 from sentry.testutils import TestCase
 
@@ -119,6 +120,24 @@ class ExpandJavascriptSourceTest(TestCase):
         assert frame['pre_context'] == []
         assert frame['context_line'] == 'console.log("hello, World!")'
         assert frame['post_context'] == []
+
+
+class GenerateModuleTest(TestCase):
+    def test_simple(self):
+        assert generate_module('http://example.com/foo.js') == 'foo'
+        assert generate_module('http://example.com/foo/bar.js') == 'foo/bar'
+        assert generate_module('http://example.com/js/foo/bar.js') == 'foo/bar'
+        assert generate_module('http://example.com/javascript/foo/bar.js') == 'foo/bar'
+        assert generate_module('http://example.com/1.0/foo/bar.js') == 'foo/bar'
+        assert generate_module('http://example.com/v1/foo/bar.js') == 'foo/bar'
+        assert generate_module('http://example.com/v1.0.0/foo/bar.js') == 'foo/bar'
+        assert generate_module('http://example.com/_baz/foo/bar.js') == 'foo/bar'
+        assert generate_module('http://example.com/1/2/3/foo/bar.js') == 'foo/bar'
+        assert generate_module('http://example.com/abcdef0/foo/bar.js') == 'foo/bar'
+        assert generate_module('http://example.com/92cd589eca8235e7b373bf5ae94ebf898e3b949c/foo/bar.js') == 'foo/bar'
+        assert generate_module('http://example.com/7d6d00eae0ceccdc7ee689659585d95f/foo/bar.js') == 'foo/bar'
+        assert generate_module('/foo/bar.js') == 'foo/bar'
+        assert generate_module('../../foo/bar.js') == 'foo/bar'
 
 
 class FetchBase64SourcemapTest(TestCase):
