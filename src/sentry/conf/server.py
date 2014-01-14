@@ -4,7 +4,7 @@ sentry.conf.server
 
 These settings act as the default (base) settings for the Sentry-provided web-server
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 
@@ -136,8 +136,8 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 )
 
 INSTALLED_APPS = (
-    'django.contrib.auth',
     'django.contrib.admin',
+    'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.messages',
     'django.contrib.sessions',
@@ -233,6 +233,8 @@ SOCIAL_AUTH_PIPELINE = (
 
 SOCIAL_AUTH_CREATE_USERS = True
 
+INITIAL_CUSTOM_USER_MIGRATION = '0108_fix_user'
+
 # Auth engines and the settings required for them to be listed
 AUTH_PROVIDERS = {
     'twitter': ('TWITTER_CONSUMER_KEY', 'TWITTER_CONSUMER_SECRET'),
@@ -275,6 +277,7 @@ CELERY_QUEUES = (
     Queue('events', routing_key='events'),
     Queue('triggers', routing_key='triggers'),
     Queue('update', routing_key='update'),
+    Queue('email', routing_key='email'),
 )
 
 # Disable South in tests as it is sending incorrect create signals
@@ -471,6 +474,13 @@ SENTRY_WEB_OPTIONS = {
 # UDP Service
 SENTRY_UDP_HOST = 'localhost'
 SENTRY_UDP_PORT = 9001
+SENTRY_USE_IPV6_UDP = False
+
+# SMTP Service
+SENTRY_ENABLE_EMAIL_REPLIES = False
+SENTRY_SMTP_HOSTNAME = 'localhost'
+SENTRY_SMTP_HOST = 'localhost'
+SENTRY_SMTP_PORT = 1025
 
 SENTRY_ALLOWED_INTERFACES = set([
     'sentry.interfaces.Exception',
@@ -542,7 +552,7 @@ SENTRY_SEARCH_OPTIONS = {}
 SENTRY_USE_SEARCH = True
 # SENTRY_INDEX_SEARCH = SENTRY_USE_SEARCH
 
-SENTRY_RAVEN_JS_URL = 'd3nslu0hdya83q.cloudfront.net/dist/1.0/raven.min.js'
+SENTRY_RAVEN_JS_URL = 'cdn.ravenjs.com/1.1.7/jquery,native/raven.min.js'
 
 # URI Prefixes for generating DSN URLs
 # (Defaults to URL_PREFIX by default)
@@ -552,6 +562,25 @@ SENTRY_PUBLIC_ENDPOINT = None
 # Early draft features. Not slated or public release yet.
 SENTRY_ENABLE_EXPLORE_CODE = False
 SENTRY_ENABLE_EXPLORE_USERS = True
+
+# Prevent variables (e.g. context locals, http data, etc) from exceeding this
+# size in characters
+SENTRY_MAX_VARIABLE_SIZE = 512
+
+# Prevent varabiesl within extra context from exceeding this size in
+# characters
+SENTRY_MAX_EXTRA_VARIABLE_SIZE = 4096
+
+# For various attributes we dont limit the entire attribute on size, but the
+# individual item. In those cases we also want to limit the maximum number of
+# keys
+SENTRY_MAX_DICTIONARY_ITEMS = 50
+
+SENTRY_MAX_MESSAGE_LENGTH = 1024 * 10
+SENTRY_MAX_STACKTRACE_FRAMES = 50
+
+# Gravatar service base url
+SENTRY_GRAVATAR_BASE_URL = 'https://secure.gravatar.com'
 
 # Configure celery
 import djcelery

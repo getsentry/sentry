@@ -2,8 +2,9 @@
 
 from __future__ import absolute_import
 
-import datetime
 import mock
+
+from datetime import datetime
 
 from sentry.models import Project, User
 from sentry.exceptions import InvalidTimestamp
@@ -95,26 +96,26 @@ class ProjectFromAuthVarsTest(BaseAPITest):
 
 class ProcessDataTimestampTest(BaseAPITest):
     def test_iso_timestamp(self):
+        d = datetime(2012, 01, 01, 10, 30, 45)
         data = process_data_timestamp({
             'timestamp': '2012-01-01T10:30:45'
-        })
-        d = datetime.datetime(2012, 01, 01, 10, 30, 45)
+        }, current_datetime=d)
         self.assertTrue('timestamp' in data)
         self.assertEquals(data['timestamp'], d)
 
     def test_iso_timestamp_with_ms(self):
+        d = datetime(2012, 01, 01, 10, 30, 45, 434000)
         data = process_data_timestamp({
             'timestamp': '2012-01-01T10:30:45.434'
-        })
-        d = datetime.datetime(2012, 01, 01, 10, 30, 45, 434000)
+        }, current_datetime=d)
         self.assertTrue('timestamp' in data)
         self.assertEquals(data['timestamp'], d)
 
     def test_timestamp_iso_timestamp_with_Z(self):
+        d = datetime(2012, 01, 01, 10, 30, 45)
         data = process_data_timestamp({
             'timestamp': '2012-01-01T10:30:45Z'
-        })
-        d = datetime.datetime(2012, 01, 01, 10, 30, 45)
+        }, current_datetime=d)
         self.assertTrue('timestamp' in data)
         self.assertEquals(data['timestamp'], d)
 

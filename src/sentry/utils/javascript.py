@@ -2,7 +2,7 @@
 sentry.utils.javascript
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 import time
@@ -152,8 +152,8 @@ class GroupTransformer(Transformer):
         d = {
             'id': str(obj.id),
             'count': str(obj.times_seen),
-            'title': escape(obj.message_top()),
-            'message': escape(obj.error()),
+            'title': escape(obj.title),
+            'message': escape(obj.message_short),
             'level': obj.level,
             'levelName': escape(obj.get_level_display()),
             'logger': escape(obj.logger),

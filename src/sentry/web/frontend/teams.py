@@ -46,7 +46,7 @@ def create_new_team(request):
     if not can_create_teams(request.user):
         return missing_perm(request, Permissions.ADD_TEAM)
 
-    if request.user.has_perm('sentry.can_add_team'):
+    if request.user.is_superuser:
         form_cls = NewTeamAdminForm
         initial = {
             'owner': request.user.username,
@@ -75,10 +75,10 @@ def create_new_team(request):
 @csrf_protect
 def manage_team(request, team):
     result = plugins.first('has_perm', request.user, 'edit_team', team)
-    if result is False and not request.user.has_perm('sentry.can_change_team'):
+    if result is False and not request.user.is_superuser:
         return HttpResponseRedirect(reverse('sentry'))
 
-    can_admin_team = request.user == team.owner or request.user.has_perm('sentry.can_add_team')
+    can_admin_team = request.user == team.owner or request.user.is_superuser
 
     if can_admin_team:
         form_cls = EditTeamAdminForm
@@ -153,7 +153,7 @@ def remove_team(request, team):
 @csrf_protect
 def manage_team_projects(request, team):
     result = plugins.first('has_perm', request.user, 'edit_team', team)
-    if result is False and not request.user.has_perm('sentry.can_change_team'):
+    if result is False and not request.user.is_superuser:
         return HttpResponseRedirect(reverse('sentry'))
 
     project_list = team.project_set.all()
@@ -178,7 +178,7 @@ def manage_team_projects(request, team):
 @csrf_protect
 def manage_team_members(request, team):
     result = plugins.first('has_perm', request.user, 'edit_team', team)
-    if result is False and not request.user.has_perm('sentry.can_change_team'):
+    if result is False and not request.user.is_superuser:
         return HttpResponseRedirect(reverse('sentry'))
 
     member_list = [(pm, pm.user) for pm in team.member_set.select_related('user').order_by('user__username')]
@@ -369,7 +369,7 @@ def remove_pending_team_member(request, team, member_id):
         return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
 
     result = plugins.first('has_perm', request.user, 'remove_team_member', member)
-    if result is False and not request.user.has_perm('sentry.can_remove_teammember'):
+    if result is False and not request.user.is_superuser:
         return HttpResponseRedirect(reverse('sentry'))
 
     member.delete()
@@ -389,7 +389,7 @@ def reinvite_pending_team_member(request, team, member_id):
         return HttpResponseRedirect(reverse('sentry-manage-team', args=[team.slug]))
 
     result = plugins.first('has_perm', request.user, 'add_team_member', member)
-    if result is False and not request.user.has_perm('sentry.can_add_teammember'):
+    if result is False and not request.user.is_superuser:
         return HttpResponseRedirect(reverse('sentry'))
 
     member.send_invite_email()
@@ -408,7 +408,7 @@ def create_new_team_project(request, team):
     if not can_create_projects(request.user, team):
         return missing_perm(request, Permissions.ADD_PROJECT, team=team)
 
-    if request.user.has_perm('sentry.can_add_project'):
+    if request.user.is_superuser:
         form_cls = NewProjectAdminForm
         initial = {
             'owner': request.user.username,

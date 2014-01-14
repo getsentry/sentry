@@ -1,5 +1,4 @@
 from django.conf import settings
-import base64
 import os
 import os.path
 
@@ -57,7 +56,8 @@ def pytest_configure(config):
     settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + (
         'tests',
     )
-    settings.SENTRY_KEY = base64.b64encode(os.urandom(40))
+    # Need a predictable key for tests that involve checking signatures
+    settings.SENTRY_KEY = 'abc123'
     settings.SENTRY_PUBLIC = False
     # This speeds up the tests considerably, pbkdf2 is by design, slow.
     settings.PASSWORD_HASHERS = [
@@ -67,3 +67,4 @@ def pytest_configure(config):
     # enable draft features
     settings.SENTRY_ENABLE_EXPLORE_CODE = True
     settings.SENTRY_ENABLE_EXPLORE_USERS = True
+    settings.SENTRY_ENABLE_EMAIL_REPLIES = True

@@ -2,7 +2,7 @@
 sentry.testutils
 ~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 
@@ -28,7 +28,7 @@ from django.utils.importlib import import_module
 
 from sentry.constants import MODULE_ROOT
 from sentry.models import (
-    Project, ProjectOption, Option, Team, Group, Event, User)
+    Activity, Project, ProjectOption, Option, Team, Group, Event, User)
 from sentry.utils import json
 from sentry.utils.compat import pickle
 from sentry.utils.strings import decompress
@@ -40,7 +40,7 @@ LEGACY_DATA = pickle.loads(decompress("""eJy9WW1v20YS/q5fwfqLpECluMvXFSzjgKK9Bri
 def get_auth_header(client, api_key=None, secret_key=None):
     header = [
         ('sentry_client', client),
-        ('sentry_version', '4'),
+        ('sentry_version', '5'),
     ]
 
     if api_key:
@@ -99,10 +99,7 @@ class BaseTestCase(Exam):
 
     @fixture
     def user(self):
-        user = User(username="admin", email="admin@localhost", is_staff=True, is_superuser=True)
-        user.set_password('admin')
-        user.save()
-        return user
+        return self.create_user('admin@localhost', username='admin')
 
     @fixture
     def team(self):
@@ -128,6 +125,25 @@ class BaseTestCase(Exam):
     @fixture
     def event(self):
         return self.create_event(event_id='a' * 32)
+
+    @fixture
+    def activity(self):
+        return Activity.objects.create(
+            group=self.group, event=self.event, project=self.project,
+            type=Activity.NOTE, user=self.user,
+            data={}
+        )
+
+    def create_user(self, email, **kwargs):
+        kwargs.setdefault('username', email)
+        kwargs.setdefault('is_staff', True)
+        kwargs.setdefault('is_superuser', True)
+
+        user = User(email=email, **kwargs)
+        user.set_password('admin')
+        user.save()
+
+        return user
 
     def create_event(self, event_id, **kwargs):
         if 'group' not in kwargs:

@@ -2,7 +2,7 @@
 sentry.utils.auth
 ~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 from django.conf import settings
@@ -22,6 +22,24 @@ def get_auth_providers():
     ]
 
 
+def find_users(username):
+    """
+    Return a list of users that match a username
+    and falling back to email
+    """
+    qs = User.objects.exclude(password='!')
+    try:
+        # First, assume username is an iexact match for username
+        user = qs.get(username__iexact=username)
+        return [user]
+    except User.DoesNotExist:
+        # If not, we can take a stab at guessing it's an email address
+        if '@' in username:
+            # email isn't guaranteed unique
+            return list(qs.filter(email__iexact=username))
+    return None
+
+
 class EmailAuthBackend(ModelBackend):
     """
     Authenticate against django.contrib.auth.models.User.
@@ -29,24 +47,12 @@ class EmailAuthBackend(ModelBackend):
     Supports authenticating via an email address or a username.
     """
     def authenticate(self, username=None, password=None):
-        qs = User.objects.exclude(password='!')
-        try:
-            # Assume username is a login and attempt to login.
-            user = qs.get(username__iexact=username)
-        except User.DoesNotExist:
-            if '@' in username:
-                # email isn't guaranteed unique
-                for user in qs.filter(email__iexact=username):
-                    if not user.password:
-                        continue
-                    if user.check_password(password):
+        users = find_users(username)
+        if users:
+            for user in users:
+                try:
+                    if user.password and user.check_password(password):
                         return user
-            return None
-
-        try:
-            if user.password and user.check_password(password):
-                return user
-        except ValueError:
-            return None
-
+                except ValueError:
+                    continue
         return None

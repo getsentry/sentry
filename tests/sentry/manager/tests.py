@@ -12,7 +12,7 @@ from sentry.interfaces import Interface
 from sentry.manager import get_checksum_from_event
 from sentry.models import (
     Event, Group, Project, GroupCountByMinute, ProjectCountByMinute,
-    Team, EventMapping, User, AccessGroup
+    Team, EventMapping, User, AccessGroup, GroupTagValue
 )
 from sentry.utils.db import has_trending  # NOQA
 from sentry.testutils import TestCase
@@ -60,78 +60,6 @@ class SentryManagerTest(TestCase):
             self.assertEquals(event.message, 'foo')
             self.assertEquals(event.project_id, 1)
             self.assertEquals(event.datetime, date.replace(tzinfo=timezone.utc))
-
-    def test_url_filter(self):
-        event = Group.objects.from_kwargs(1, message='foo')
-        group = event.group
-        self.assertEquals(group.grouptag_set.filter(key='url').count(), 0)
-
-        event = Group.objects.from_kwargs(1, message='foo', **{
-            'sentry.interfaces.Http': {
-                'url': 'http://example.com',
-            }
-        })
-        group = event.group
-        self.assertEquals(group.grouptag_set.filter(key='url').count(), 1)
-        res = group.grouptag_set.filter(key='url').get()
-        self.assertEquals(res.value, 'http://example.com')
-        self.assertEquals(res.times_seen, 1)
-
-        event = Group.objects.from_kwargs(1, message='foo', **{
-            'sentry.interfaces.Http': {
-                'url': 'http://example.com',
-            }
-        })
-        group = event.group
-        self.assertEquals(group.grouptag_set.filter(key='url').count(), 1)
-        res = group.grouptag_set.filter(key='url').get()
-        self.assertEquals(res.value, 'http://example.com')
-        self.assertEquals(res.times_seen, 2)
-
-        event = Group.objects.from_kwargs(1, message='foo', **{
-            'sentry.interfaces.Http': {
-                'url': 'http://example.com/2',
-            }
-        })
-        group = event.group
-        self.assertEquals(group.grouptag_set.filter(key='url').count(), 2)
-        results = list(group.grouptag_set.filter(key='url').order_by('id'))
-        res = results[0]
-        self.assertEquals(res.value, 'http://example.com')
-        self.assertEquals(res.times_seen, 2)
-        res = results[1]
-        self.assertEquals(res.value, 'http://example.com/2')
-        self.assertEquals(res.times_seen, 1)
-
-    def test_server_name_filter(self):
-        event = Group.objects.from_kwargs(1, message='foo')
-        group = event.group
-        self.assertEquals(group.grouptag_set.filter(key='server_name').count(), 0)
-
-        event = Group.objects.from_kwargs(1, message='foo', server_name='foo')
-        group = event.group
-        self.assertEquals(group.grouptag_set.filter(key='server_name').count(), 1)
-        res = group.grouptag_set.filter(key='server_name').get()
-        self.assertEquals(res.value, 'foo')
-        self.assertEquals(res.times_seen, 1)
-
-        event = Group.objects.from_kwargs(1, message='foo', server_name='foo')
-        group = event.group
-        self.assertEquals(group.grouptag_set.filter(key='server_name').count(), 1)
-        res = group.grouptag_set.filter(key='server_name').get()
-        self.assertEquals(res.value, 'foo')
-        self.assertEquals(res.times_seen, 2)
-
-        event = Group.objects.from_kwargs(1, message='foo', server_name='bar')
-        group = event.group
-        self.assertEquals(group.grouptag_set.filter(key='server_name').count(), 2)
-        results = list(group.grouptag_set.filter(key='server_name').order_by('id'))
-        res = results[0]
-        self.assertEquals(res.value, 'foo')
-        self.assertEquals(res.times_seen, 2)
-        res = results[1]
-        self.assertEquals(res.value, 'bar')
-        self.assertEquals(res.times_seen, 1)
 
     @mock.patch('sentry.manager.send_group_processors', mock.Mock())
     @mock.patch('sentry.manager.GroupManager.add_tags')
@@ -201,8 +129,9 @@ class SentryManagerTest(TestCase):
         group = event.group
         Group.objects.add_tags(group, tags=(('foo', 'bar'), ('foo', 'baz'), ('biz', 'boz')))
 
-        self.assertEquals(group.grouptag_set.filter(key='foo').count(), 2)
-        results = list(group.grouptag_set.filter(key='foo').order_by('id'))
+        results = list(GroupTagValue.objects.filter(
+            group=group, key='foo').order_by('id'))
+        assert len(results) == 2
         res = results[0]
         self.assertEquals(res.value, 'bar')
         self.assertEquals(res.times_seen, 1)
@@ -210,8 +139,9 @@ class SentryManagerTest(TestCase):
         self.assertEquals(res.value, 'baz')
         self.assertEquals(res.times_seen, 1)
 
-        self.assertEquals(group.grouptag_set.filter(key='biz').count(), 1)
-        results = list(group.grouptag_set.filter(key='biz').order_by('id'))
+        results = list(GroupTagValue.objects.filter(
+            group=group, key='biz').order_by('id'))
+        assert len(results) == 1
         res = results[0]
         self.assertEquals(res.value, 'boz')
         self.assertEquals(res.times_seen, 1)

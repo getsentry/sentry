@@ -9,7 +9,7 @@ https://github.com/toastdriven/pysolr
 The main differences are we focus on Python 2, and we must remove the
 dependency on the ``requests`` library.
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 

@@ -1,51 +1,41 @@
 {% extends "sentry/emails/base.html" %}
 
+{% load sentry_helpers %}
 {% load i18n %}
 
-{% block bodyclass %} level-{{ event.get_level_display }}{% endblock %}
-
 {% block header %}
-    <h1>Sentry <small>
-        {% if group.times_seen == 1 %}
-            {% trans "New Event" %}
-        {% else %}
-            {% trans "Regression" %}
-        {% endif %}
-    </small></h1>
+    <a href="{{ link }}" class="btn">View on Sentry</a>
+    <h1>Sentry</h1>
 {% endblock %}
 
 {% block inner %}
-    <pre>{{ event.message }}</pre>
+    <h2>
+        {% url 'sentry-stream' group.project.team.slug group.project.slug as project_link %}
+        {% if group.times_seen == 1 %}
+            New Event on <a href="{% absolute_uri project_link %}" class="highlight">{{ group.project.name }}</a>
+        {% else %}
+            Regression on <a href="{% absolute_uri project_link %}" class="highlight">{{ group.project.name }}</a>
+        {% endif %}
+    </h2>
 
-    <p><a href="{{ link }}">{{ link }}</a></p>
+    <pre class="message">{{ event.message }}</pre>
 
-    <table class="metadata">
-        <colgroup>
-            <col style="width:25%;">
-            <col style="width:25%;">
-            <col style="width:25%;">
-            <col style="width:25%;">
-        </colgroup>
-        <tr>
-            <th>{% trans "Logger:" %}</th>
-            <td>{{ event.logger }}</td>
-            <th>{% trans "Level:" %}</th>
-            <td>{{ event.get_level_display }}</td>
-        </tr>
-        <tr>
-            <th>{% trans "Server:" %}</th>
-            <td>{{ event.server_name }}</td>
-            <th>{% trans "First Seen:" %}</th>
-            <td>{{ group.first_seen|date }}</td>
-        </tr>
-    </table>
+    <h3>Tags</h3>
 
-    {% for int_id, label, text in interfaces %}
+    <ul class="tag-list">
+    {% for tag_key, tag_value in tags %}
+        <li>
+            <strong>{{ tag_key }}</strong>
+            <em>=</em>
+            <span><a href="{% absolute_uri project_link %}?{{ tag_key }}={{ tag_value }}">{{ tag_value }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}</span>
+        </li>
+    {% endfor %}
+    </ul>
+
+    {% for label, text in interfaces %}
     <div class="interface">
-        <div class="title">{{ label }}</div>
+        <h3 class="title">{{ label }}</h3>
 		{{ text }}
     </div>
     {% endfor %}
-
-    <p><a href="{{ settings_link }}">Notification Settings</a></p>
 {% endblock %}

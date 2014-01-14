@@ -2,7 +2,7 @@
 sentry.utils.query
 ~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 
@@ -53,7 +53,7 @@ class RangeQuerySetWrapper(object):
     """
 
     def __init__(self, queryset, step=1000, limit=None, min_id=None,
-                 order_by='pk'):
+                 order_by='pk', callbacks=()):
         # Support for slicing
         if queryset.query.low_mark == 0 and not \
                 (queryset.query.order_by or queryset.query.extra_order_by):
@@ -73,6 +73,7 @@ class RangeQuerySetWrapper(object):
         self.queryset = queryset
         self.min_value = min_id
         self.order_by = order_by
+        self.callbacks = callbacks
 
     def __iter__(self):
         max_value = None
@@ -104,7 +105,10 @@ class RangeQuerySetWrapper(object):
             elif not self.desc:
                 results = queryset.filter(**{'%s__gte' % self.order_by: cur_value})
 
-            results = results[offset:offset + self.step].iterator()
+            results = list(results[offset:offset + self.step])
+
+            for cb in self.callbacks:
+                cb(results)
 
             for result in results:
                 yield result
@@ -202,7 +206,6 @@ def merge_into(self, other, callback=lambda x: x, using='default'):
             and f.rel.to == s_model
             if f.rel.to
         )
-        print model, objects, fields
         if not fields:
             # the collector pulls in the self reference, so if it's our model
             # we actually assume it's probably not related to itself, and its

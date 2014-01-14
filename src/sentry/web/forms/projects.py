@@ -2,7 +2,7 @@
 sentry.web.forms.projects
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 from django import forms
@@ -152,6 +152,12 @@ class AlertSettingsForm(forms.Form):
     min_events = forms.IntegerField(
         label=_('Minimum Events'), required=False, min_value=0,
         help_text=_('Generate an alert only when an event is seen more than this many times during the interval.'),)
+
+
+class NotificationSettingsForm(forms.Form):
+    subject_prefix = forms.CharField(
+        label=_('Mail Subject Prefix'), required=False,
+        help_text=_('Choose a custom prefix for emails from this project.'))
 
 
 class NotificationTagValuesForm(forms.Form):

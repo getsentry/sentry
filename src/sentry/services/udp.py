@@ -2,7 +2,7 @@
 sentry.services.udp
 ~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 
@@ -71,10 +71,12 @@ class BaseUDPServer(Service):
     _socket = None
     _spawn = None
 
-    def __init__(self, host=None, port=None, debug=False, workers=None):
+    def __init__(self, host=None, port=None, debug=False,
+                 workers=None, use_ipv6=False):
         super(BaseUDPServer, self).__init__(debug=debug)
         from django.conf import settings
 
+        self.use_ipv6 = use_ipv6 or settings.SENTRY_USE_IPV6_UDP
         self.host = host or settings.SENTRY_UDP_HOST
         self.port = port or settings.SENTRY_UDP_PORT
         self.workers = workers or self.POOL_SIZE
@@ -93,15 +95,17 @@ class BaseUDPServer(Service):
             raise CommandError(
                 'It seems that you don\'t have the ``%s`` package installed, '
                 'which is required to run the udp service.' % (self.name,))
-        try:
+
+        if self.use_ipv6:
             sock = self._socket(socket.AF_INET6, socket.SOCK_DGRAM)
             sock.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.bind((self.host.strip('[]'), self.port))
-        except (socket.gaierror, socket.error):
+        else:
             sock = self._socket(socket.AF_INET, socket.SOCK_DGRAM)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.bind((self.host, self.port))
+
         while True:
             try:
                 self._spawn(self.handle, *sock.recvfrom(self.BUF_SIZE))

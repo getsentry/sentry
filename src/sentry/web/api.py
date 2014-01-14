@@ -2,7 +2,7 @@
 sentry.web.views
 ~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 import datetime
@@ -20,6 +20,8 @@ from django.views.decorators.cache import never_cache, cache_control
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.vary import vary_on_cookie
 from django.views.generic.base import View as BaseView
+
+from raven.contrib.django.models import client as Raven
 
 from sentry import app
 from sentry.constants import (
@@ -50,6 +52,8 @@ logger = logging.getLogger('sentry.api.http')
 # Transparent 1x1 gif
 # See http://probablyprogramming.com/2009/03/15/the-tiniest-gif-ever
 PIXEL = 'R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='.decode('base64')
+
+PROTOCOL_VERSIONS = frozenset(('2.0', '3', '4', '5'))
 
 
 def api(func):
@@ -103,7 +107,10 @@ class APIView(BaseView):
         server_version = auth_vars.get('sentry_version', '1.0')
         client = auth_vars.get('sentry_client', request.META.get('HTTP_USER_AGENT'))
 
-        if server_version not in ('2.0', '3', '4'):
+        Raven.tags_context({'client': client})
+        Raven.tags_context({'protocol': server_version})
+
+        if server_version not in PROTOCOL_VERSIONS:
             raise APIError('Client/server version mismatch: Unsupported protocol version (%s)' % server_version)
 
         if not client:
@@ -112,6 +119,7 @@ class APIView(BaseView):
         return auth_vars
 
     @csrf_exempt
+    @never_cache
     def dispatch(self, request, project_id=None, *args, **kwargs):
         try:
             origin = self.get_request_origin(request)
@@ -163,6 +171,9 @@ class APIView(BaseView):
         except APIError, e:
             return HttpResponse(str(e), content_type='text/plain', status=400)
 
+        if project:
+            Raven.tags_context({'project': project.id})
+
         origin = self.get_request_origin(request)
         if origin is not None:
             if not project:
@@ -194,6 +205,8 @@ class APIView(BaseView):
                 project = project_
             elif project_ != project:
                 return HttpResponse('Project ID mismatch', content_type='text/plain', status=400)
+            else:
+                Raven.tags_context({'project': project.id})
 
             auth = Auth(auth_vars, is_public=bool(origin))
 
@@ -253,7 +266,6 @@ class StoreView(APIView):
        the user be authenticated, and a project_id be sent in the GET variables.
 
     """
-    @never_cache
     def post(self, request, project, auth, **kwargs):
         data = request.raw_post_data
         response_or_event_id = self.process(request, project, auth, data, **kwargs)
@@ -263,7 +275,6 @@ class StoreView(APIView):
             'id': response_or_event_id,
         }), content_type='application/json')
 
-    @never_cache
     def get(self, request, project, auth, **kwargs):
         data = request.GET.get('sentry_data', '')
         response_or_event_id = self.process(request, project, auth, data, **kwargs)

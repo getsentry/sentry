@@ -2,7 +2,7 @@
 sentry.web.forms.accounts
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 
@@ -12,10 +12,12 @@ from datetime import datetime
 
 from django import forms
 from django.contrib.auth import authenticate
+from django.contrib.auth.forms import AuthenticationForm as AuthenticationForm_
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import EMPTY_PASSWORD_VALUES, LANGUAGES
 from sentry.models import UserOption, User
+from sentry.utils.auth import find_users
 
 
 def _get_timezone_choices():
@@ -31,6 +33,11 @@ def _get_timezone_choices():
     return results
 
 TIMEZONE_CHOICES = _get_timezone_choices()
+
+
+class AuthenticationForm(AuthenticationForm_):
+    username = forms.CharField(
+        label=_('Username or email'), max_length=128)
 
 
 class RegistrationForm(forms.ModelForm):
@@ -71,7 +78,7 @@ class NotificationSettingsForm(forms.Form):
         widget=forms.Select(attrs={'class': 'input-xxlarge'}))
     subscribe_notes = forms.ChoiceField(
         choices=(
-            ('1', _('Get notified about new notes on events I\'ve seen')),
+            ('1', _('Get notified about new notes')),
             ('0', _('Do not subscribe to note notifications')),
         ), required=False,
         widget=forms.Select(attrs={'class': 'input-xxlarge'}))
@@ -125,7 +132,7 @@ class NotificationSettingsForm(forms.Form):
 class AccountSettingsForm(forms.Form):
     old_password = forms.CharField(label=_('Current password'), widget=forms.PasswordInput)
     email = forms.EmailField(label=_('Email'))
-    first_name = forms.CharField(required=True, label=_('Name'))
+    first_name = forms.CharField(required=True, label=_('Name'), max_length=30)
     new_password = forms.CharField(label=_('New password'), widget=forms.PasswordInput, required=False)
 
     def __init__(self, user, *args, **kwargs):
@@ -205,15 +212,17 @@ class AppearanceSettingsForm(forms.Form):
 
 
 class RecoverPasswordForm(forms.Form):
-    user = forms.CharField(label=_('Username'))
+    user = forms.CharField(label=_('Username or email'))
 
     def clean_user(self):
         value = self.cleaned_data.get('user')
         if value:
-            try:
-                return User.objects.get(username__iexact=value)
-            except User.DoesNotExist:
+            users = find_users(value)
+            if not users:
                 raise forms.ValidationError(_("We were unable to find a matching user."))
+            if len(users) > 1:
+                raise forms.ValidationError(_("Multiple accounts were found matching this email address."))
+            return users[0]
         return None
 
 

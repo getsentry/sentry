@@ -2,18 +2,17 @@
 sentry.tasks.check_version
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 import json
 import logging
 
-from django.utils.simplejson import JSONDecodeError
-
-from sentry.tasks.fetch_source import fetch_url_content, BAD_SOURCE
-
 from celery.task import periodic_task
 from celery.task.schedules import crontab
+from simplejson import JSONDecodeError
+
+from sentry.tasks.fetch_source import fetch_url_content, BAD_SOURCE
 
 PYPI_URL = 'https://pypi.python.org/pypi/sentry/json'
 SENTRY_CHECKUPDATE_TIME = {

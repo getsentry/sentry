@@ -5,7 +5,7 @@ sentry.interfaces
 Interfaces provide an abstraction for how structured data should be
 validated and rendered.
 
-:copyright: (c) 2010-2013 by the Sentry Team, see AUTHORS for more details.
+:copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
 
@@ -413,9 +413,16 @@ class Stacktrace(Interface):
     describing the context of that frame. Frames should be sorted from oldest
     to newest.
 
-    The stacktrace contains one element, ``frames``, which is a list of hashes. Each
+    The stacktrace contains an element, ``frames``, which is a list of hashes. Each
     hash must contain **at least** the ``filename`` attribute. The rest of the values
     are optional, but recommended.
+
+    Additionally, if the list of frames is large, you can explicitly tell the
+    system that you've omitted a range of frames. The ``frames_omitted`` must
+    be a single tuple two values: start and end. For example, if you only
+    removed the 8th frame, the value would be (8, 9), meaning it started at the
+    8th frame, and went until the 9th (the number of frames omitted is
+    end-start). The values should be based on a one-index.
 
     The list of frames should be ordered by the oldest call first.
 
@@ -474,25 +481,29 @@ class Stacktrace(Interface):
     >>>             "line4",
     >>>             "line5"
     >>>         ],
-    >>>     }]
+    >>>     }],
+    >>>     "frames_omitted": [13, 56]
     >>> }
 
     .. note:: This interface can be passed as the 'stacktrace' key in addition
               to the full interface path.
     """
-    attrs = ('frames',)
+    attrs = ('frames', 'frames_omitted')
     score = 1000
 
     def __init__(self, frames, **kwargs):
         self.frames = [Frame(**f) for f in frames]
+        self.frames_omitted = kwargs.get('frames_omitted')
 
     def __iter__(self):
         return iter(self.frames)
 
     def validate(self):
+        assert self.frames
         for frame in self.frames:
             # ensure we've got the correct required values
             assert frame.is_valid()
+        assert self.frames_omitted is None or len(self.frames_omitted) == 2
 
     def serialize(self):
         frames = []
@@ -505,6 +516,7 @@ class Stacktrace(Interface):
 
         return {
             'frames': frames,
+            'frames_omitted': self.frames_omitted,
         }
 
     def has_app_frames(self):
@@ -512,6 +524,7 @@ class Stacktrace(Interface):
 
     def unserialize(self, data):
         data['frames'] = [Frame(**f) for f in data.pop('frames', [])]
+        data['frames_omitted'] = data.pop('frames_omitted', None)
         return data
 
     def get_composite_hash(self, interfaces):
@@ -553,6 +566,11 @@ class Stacktrace(Interface):
         if newest_first:
             frames = frames[::-1]
 
+        if self.frames_omitted:
+            first_frame_omitted, last_frame_omitted = self.frames_omitted
+        else:
+            first_frame_omitted, last_frame_omitted = None, None
+
         context = {
             'is_public': is_public,
             'newest_first': newest_first,
@@ -560,6 +578,8 @@ class Stacktrace(Interface):
             'event': event,
             'frames': frames,
             'stack_id': 'stacktrace_1',
+            'first_frame_omitted': first_frame_omitted,
+            'last_frame_omitted': last_frame_omitted,
         }
         if with_stacktrace:
             context['stacktrace'] = self.get_traceback(event, newest_first=newest_first)
@@ -575,17 +595,19 @@ class Stacktrace(Interface):
     def to_string(self, event, is_public=False, **kwargs):
         return self.get_stacktrace(event, system_frames=False, max_frames=5)
 
-    def get_stacktrace(self, event, system_frames=True, newest_first=None, max_frames=None):
+    def get_stacktrace(self, event, system_frames=True, newest_first=None,
+                       max_frames=None, header=True):
         if newest_first is None:
             newest_first = is_newest_frame_first(event)
 
         result = []
-        if newest_first:
-            result.append(_('Stacktrace (most recent call first):'))
-        else:
-            result.append(_('Stacktrace (most recent call last):'))
+        if header:
+            if newest_first:
+                result.append(_('Stacktrace (most recent call first):'))
+            else:
+                result.append(_('Stacktrace (most recent call last):'))
 
-        result.append('')
+            result.append('')
 
         frames = self.frames
 
@@ -787,6 +809,7 @@ class Exception(Interface):
         return len(self.values)
 
     def validate(self):
+        assert self.values
         for exception in self.values:
             # ensure we've got the correct required values
             exception.validate()
@@ -852,7 +875,17 @@ class Exception(Interface):
         return render_to_string('sentry/partial/interfaces/chained_exception.html', context)
 
     def to_string(self, event, is_public=False, **kwargs):
-        return self.get_stacktrace(event, system_frames=False, max_frames=5)
+        if not self.values:
+            return ''
+
+        output = []
+        for exc in self.values:
+            output.append('{0}: {1}\n'.format(exc.type, exc.value))
+            if exc.stacktrace:
+                output.append(exc.stacktrace.get_stacktrace(
+                    event, system_frames=False, max_frames=5,
+                    header=False) + '\n\n')
+        return (''.join(output)).strip()
 
     def get_search_context(self, event):
         return self.values[0].get_search_context(event)

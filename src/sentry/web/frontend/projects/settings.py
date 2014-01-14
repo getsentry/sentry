@@ -25,7 +25,7 @@ from sentry.web.helpers import render_to_response
 @csrf_protect
 def manage_project(request, team, project):
     result = plugins.first('has_perm', request.user, 'edit_project', project)
-    if result is False and not request.user.has_perm('sentry.can_change_project'):
+    if result is False and not request.user.is_superuser:
         return HttpResponseRedirect(reverse('sentry'))
 
     team_list = Team.objects.get_for_user(project.owner or request.user, MEMBER_OWNER)

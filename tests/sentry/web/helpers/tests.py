@@ -80,4 +80,4 @@ class GetRavenJsUrl(TestCase):
             self.assertEquals(get_raven_js_url(), url)
 
     def test_with_default_raven_js_url(self):
-        self.assertEquals(get_raven_js_url(), 'd3nslu0hdya83q.cloudfront.net/dist/1.0/raven.min.js')
+        self.assertEquals(get_raven_js_url(), 'cdn.ravenjs.com/1.1.7/jquery,native/raven.min.js')
