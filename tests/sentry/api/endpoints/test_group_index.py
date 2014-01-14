@@ -1,9 +1,8 @@
 from django.core.urlresolvers import reverse
-from rest_framework.test import APITestCase
-from sentry.testutils import BaseTestCase
+from sentry.testutils import APITestCase
 
 
-class GroupIndexTest(BaseTestCase, APITestCase):
+class GroupIndexTest(APITestCase):
     def test_simple(self):
         self.create_group(checksum='a' * 32)
         self.create_group(checksum='b' * 32)

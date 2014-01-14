@@ -5,9 +5,10 @@ from __future__ import absolute_import
 import logging
 
 from django.core.urlresolvers import reverse
+from exam import fixture
 
 from sentry.models import TagValue
-from sentry.testutils import TestCase, fixture
+from sentry.testutils import TestCase
 
 logger = logging.getLogger(__name__)
 

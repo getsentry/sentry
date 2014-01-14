@@ -2,7 +2,9 @@
 
 from __future__ import absolute_import
 
-from sentry.testutils import TestCase, fixture
+from exam import fixture
+
+from sentry.testutils import TestCase
 from sentry.interfaces import Message
 
 

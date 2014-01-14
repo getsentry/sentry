@@ -1,6 +1,8 @@
 from django import forms
+from exam import fixture
+
 from sentry.web.forms.fields import OriginsField
-from sentry.testutils import TestCase, fixture
+from sentry.testutils import TestCase
 
 
 class OriginsFieldTest(TestCase):

@@ -7,11 +7,11 @@ import json
 from datetime import timedelta
 from django.core.urlresolvers import reverse
 from django.utils import timezone
-from exam import before
+from exam import before, fixture
 
 from sentry.models import GroupSeen, Group
 from sentry.constants import MAX_JSON_RESULTS
-from sentry.testutils import TestCase, fixture
+from sentry.testutils import TestCase
 
 
 class GroupDetailsTest(TestCase):

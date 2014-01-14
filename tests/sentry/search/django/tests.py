@@ -5,12 +5,7 @@ from __future__ import absolute_import
 from exam import fixture
 
 from sentry.search.django.backend import DjangoSearchBackend
-from sentry.testutils import TestCase
-
-
-def norm_date(dt):
-    # mysql isnt playing nice
-    return dt.replace(microsecond=0)
+from sentry.testutils import TestCase, assert_date_resembles
 
 
 class SearchIndexTest(TestCase):
@@ -25,15 +20,15 @@ class SearchIndexTest(TestCase):
         assert doc.project == event.project
         assert doc.group == event.group
         assert doc.total_events == 1
-        assert norm_date(doc.date_added) == norm_date(event.group.first_seen)
-        assert norm_date(doc.date_changed) == norm_date(event.group.last_seen)
+        assert_date_resembles(doc.date_added, event.group.first_seen)
+        assert_date_resembles(doc.date_changed, event.group.last_seen)
 
         doc = self.backend.index(event.group, event)
         assert doc.project == event.project
         assert doc.group == event.group
         assert doc.total_events == 2
-        assert norm_date(doc.date_added) == norm_date(event.group.first_seen)
-        assert norm_date(doc.date_changed) == norm_date(event.group.last_seen)
+        assert_date_resembles(doc.date_added, event.group.first_seen)
+        assert_date_resembles(doc.date_changed, event.group.last_seen)
 
     def test_search(self):
         event = self.event
