@@ -10,6 +10,7 @@ validated and rendered.
 """
 
 import itertools
+import re
 import urlparse
 import warnings
 
@@ -30,6 +31,13 @@ from sentry.utils.strings import strip
 from sentry.web.helpers import render_to_string
 
 _Exception = Exception
+_ruby_anon_func = re.compile(r'(?:_(\d{2,}))')
+_filename_version_re = re.compile(r"""/?(
+    v?(?:\d+\.)*\d+|   # version numbers, v1, 1.0.0
+    [a-f0-9]{7,8}|     # short sha
+    [a-f0-9]{32}|      # md5
+    [a-f0-9]{40}       # sha1
+)/""", re.X | re.I)
 
 
 def unserialize(klass, data):
@@ -40,6 +48,28 @@ def unserialize(klass, data):
 
 def is_url(filename):
     return filename.startswith(('http:', 'https:', 'file:'))
+
+
+def remove_function_outliers(function):
+    """
+    Attempt to normalize functions by removing common platform outliers.
+
+    - Ruby generates (random?) integers for various anonymous style functions
+      such as in erb and the active_support library.
+    - Block functions have metadata that we don't care about.
+    """
+    if function.startswith('block '):
+        return 'block'
+    return _ruby_anon_func.sub('<anon>', function)
+
+
+def remove_filename_outliers(filename):
+    """
+    Attempt to normalize filenames by removing common platform outliers.
+
+    - Sometimes filename paths contain build numbers
+    """
+    return _filename_version_re.sub('<version>', filename)
 
 
 def get_context(lineno, context_line, pre_context=None, post_context=None, filename=None,
@@ -323,11 +353,20 @@ class Frame(object):
         return self.filename or self.function or self.module
 
     def get_hash(self):
+        """
+        The hash of the frame varies depending on the data available.
+
+        Our ideal scenario is the module name in addition to the line of
+        context. However, in several scenarios we opt for other approaches due
+        to platform constraints.
+
+        This is one of the few areas in Sentry that isn't platform-agnostic.
+        """
         output = []
         if self.module:
             output.append(self.module)
         elif self.filename and not self.is_url():
-            output.append(self.filename)
+            output.append(remove_filename_outliers(self.filename))
 
         if self.context_line is not None:
             output.append(self.context_line)
@@ -337,7 +376,7 @@ class Frame(object):
             # bail on recording this frame
             return output
         elif self.function:
-            output.append(self.function)
+            output.append(remove_function_outliers(self.function))
         elif self.lineno is not None:
             output.append(self.lineno)
         return output
