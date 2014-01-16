@@ -115,7 +115,7 @@ class StacktraceTest(TestCase):
         }])
         result = interface.get_hash()
         self.assertEquals(result, [
-            '/data/foo/releases<version>app/views/foo.html.erb',
+            '/data/foo/releases/<version>/app/views/foo.html.erb',
             '<% if @hotels.size > 0 %>',
         ])
 
@@ -125,7 +125,7 @@ class StacktraceTest(TestCase):
         }])
         result = interface.get_hash()
         self.assertEquals(result, [
-            '<version>app/views/foo.html.erb',
+            '<version>/app/views/foo.html.erb',
             '<% if @hotels.size > 0 %>',
         ])
 
@@ -137,7 +137,7 @@ class StacktraceTest(TestCase):
         }])
         result = interface.get_hash()
         self.assertEquals(result, [
-            'foo.html.erb', '_foo_html_erb_<anon><anon>',
+            'foo.html.erb', '_foo_html_erb__<anon>_<anon>',
         ])
 
     def test_get_hash_ignores_filename_if_http(self):
