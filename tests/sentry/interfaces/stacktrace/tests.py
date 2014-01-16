@@ -98,6 +98,48 @@ class StacktraceTest(TestCase):
         result = interface.get_hash()
         self.assertEquals(result, ['foo.py', 1])
 
+    def test_get_hash_sanitizes_block_functions(self):
+        # This is Ruby specific
+        interface = Stacktrace(frames=[{
+            'filename': 'foo.py',
+            'function': 'block in _conditional_callback_around_233',
+        }])
+        result = interface.get_hash()
+        self.assertEquals(result, ['foo.py', 'block'])
+
+    def test_get_hash_sanitizes_versioned_filenames(self):
+        # This is Ruby specific
+        interface = Stacktrace(frames=[{
+            'filename': '/data/foo/releases/20140114151955/app/views/foo.html.erb',
+            'context_line': '<% if @hotels.size > 0 %>',
+        }])
+        result = interface.get_hash()
+        self.assertEquals(result, [
+            '/data/foo/releases<version>app/views/foo.html.erb',
+            '<% if @hotels.size > 0 %>',
+        ])
+
+        interface = Stacktrace(frames=[{
+            'filename': '20140114151955/app/views/foo.html.erb',
+            'context_line': '<% if @hotels.size > 0 %>',
+        }])
+        result = interface.get_hash()
+        self.assertEquals(result, [
+            '<version>app/views/foo.html.erb',
+            '<% if @hotels.size > 0 %>',
+        ])
+
+    def test_get_hash_sanitizes_erb_templates(self):
+        # This is Ruby specific
+        interface = Stacktrace(frames=[{
+            'filename': 'foo.html.erb',
+            'function': '_foo_html_erb__3327151541118998292_70361296749460',
+        }])
+        result = interface.get_hash()
+        self.assertEquals(result, [
+            'foo.html.erb', '_foo_html_erb_<anon><anon>',
+        ])
+
     def test_get_hash_ignores_filename_if_http(self):
         interface = Stacktrace(frames=[{
             'context_line': 'hello world',
