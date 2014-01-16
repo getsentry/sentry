@@ -31,7 +31,7 @@ from sentry.utils.strings import strip
 from sentry.web.helpers import render_to_string
 
 _Exception = Exception
-_ruby_anon_func = re.compile(r'_(?:\d{2,})')
+_ruby_anon_func = re.compile(r'_\d{2,}')
 _filename_version_re = re.compile(r"""(?:
     v?(?:\d+\.)*\d+|   # version numbers, v1, 1.0.0
     [a-f0-9]{7,8}|     # short sha
