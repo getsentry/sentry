@@ -31,8 +31,8 @@ from sentry.utils.strings import strip
 from sentry.web.helpers import render_to_string
 
 _Exception = Exception
-_ruby_anon_func = re.compile(r'(?:_(\d{2,}))')
-_filename_version_re = re.compile(r"""/?(
+_ruby_anon_func = re.compile(r'_(?:\d{2,})')
+_filename_version_re = re.compile(r"""(?:
     v?(?:\d+\.)*\d+|   # version numbers, v1, 1.0.0
     [a-f0-9]{7,8}|     # short sha
     [a-f0-9]{32}|      # md5
@@ -60,7 +60,7 @@ def remove_function_outliers(function):
     """
     if function.startswith('block '):
         return 'block'
-    return _ruby_anon_func.sub('<anon>', function)
+    return _ruby_anon_func.sub('_<anon>', function)
 
 
 def remove_filename_outliers(filename):
@@ -69,7 +69,7 @@ def remove_filename_outliers(filename):
 
     - Sometimes filename paths contain build numbers
     """
-    return _filename_version_re.sub('<version>', filename)
+    return _filename_version_re.sub('<version>/', filename)
 
 
 def get_context(lineno, context_line, pre_context=None, post_context=None, filename=None,
