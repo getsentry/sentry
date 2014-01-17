@@ -163,8 +163,7 @@ class MessageBuilder(object):
         if self.reply_to_id is not None:
             headers.setdefault('In-Reply-To', self.reply_to_id)
             headers.setdefault('References', self.reply_to_id)
-            if subject[:4] != 'Re: ':
-                subject = 'Re: %s' % subject
+            subject = 'Re: %s' % subject
 
         msg = EmailMultiAlternatives(
             subject,
