@@ -123,7 +123,7 @@ class PyTest(TestCommand):
 
 setup(
     name='sentry',
-    version='6.4.4',
+    version='7.0.0-DEV',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     url='https://www.getsentry.com',
