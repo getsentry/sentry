@@ -1097,7 +1097,7 @@ class Http(Interface):
     def get_search_context(self, event):
         return {
             'filters': {
-                'url': [self.url],
+                'url': [self.short_url],
             }
         }
 
