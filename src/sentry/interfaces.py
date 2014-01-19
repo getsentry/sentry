@@ -968,7 +968,7 @@ class Http(Interface):
     .. note:: This interface can be passed as the 'request' key in addition
               to the full interface path.
     """
-    attrs = ('url', 'method', 'data', 'query_string', 'cookies', 'headers',
+    attrs = ('url', 'short_url', 'method', 'data', 'query_string', 'cookies', 'headers',
              'env')
 
     display_score = 1000
