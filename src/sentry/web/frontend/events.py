@@ -43,13 +43,8 @@ def replay_event(request, team, project, group, event_id):
     else:
         data = http.data
 
-    if http.query_string:
-        full_url = http.url + '?' + http.query_string
-    else:
-        full_url = http.url
-
     initial = {
-        'url': full_url,
+        'url': http.url_without_fragment,
         'method': http.method,
         'headers': headers,
         'data': data,

@@ -69,6 +69,9 @@
         <li{% if page == 'quotas' %} class="active"{% endif %}>
             <a href="{% url 'sentry-manage-project-quotas' project.team.slug project.slug %}">{% trans "Rate Limits" %}</a>
         </li>
+        <li{% if page == 'rules' %} class="active"{% endif %}>
+            <a href="{% url 'sentry-project-rules' project.team.slug project.slug %}">{% trans "Rules" %}</a>
+        </li>
         <li{% if page == 'tags' %} class="active"{% endif %}>
             <a href="{% url 'sentry-manage-project-tags' project.team.slug project.slug %}">{% trans "Tags" %}</a>
         </li>

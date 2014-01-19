@@ -2181,6 +2181,37 @@ table.vars {
   }
 }
 
+.table tbody tr {
+  &.success > td {
+    background-color: @successBackground;
+  }
+  &.error > td {
+    background-color: @errorBackground;
+  }
+  &.warning > td {
+    background-color: @warningBackground;
+  }
+  &.info > td {
+    background-color: @infoBackground;
+  }
+}
+
+// Hover states for .table-hover
+.table-hover tbody tr {
+  &.success:hover > td {
+    background-color: darken(@successBackground, 5%);
+  }
+  &.error:hover > td {
+    background-color: darken(@errorBackground, 5%);
+  }
+  &.warning:hover > td {
+    background-color: darken(@warningBackground, 5%);
+  }
+  &.info:hover > td {
+    background-color: darken(@infoBackground, 5%);
+  }
+}
+
 .nav-tabs {
   border-bottom: 1px solid #dee3e9;
   > li {
@@ -2536,6 +2567,19 @@ table.vars {
 .popover-title,
 .popover-content {
   padding: 4px 10px;
+}
+
+.rule-list {
+  list-style: none;
+  li {
+    line-height: 30px;
+    input[type=number] {
+      border-width: 0 0 1px;
+      width: 50px;
+      .border-radius(0);
+      .box-shadow(none);
+    }
+  }
 }
 
 #flotTip {
