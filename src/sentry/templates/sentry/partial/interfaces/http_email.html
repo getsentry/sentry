@@ -3,7 +3,7 @@
     <tbody>
         <tr>
             <th>{% trans "URL" %}</th>
-            <td><a href="{{ url }}{% if query_string %}?{{ query_string }}{% endif %}">{{ url }}</a></td>
+            <td><a href="{{ url }}">{{ short_url }}</a></td>
         </tr>
         {% if method %}
             <tr>

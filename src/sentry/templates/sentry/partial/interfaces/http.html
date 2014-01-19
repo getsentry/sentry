@@ -16,7 +16,7 @@
             <tbody>
                 <tr>
                     <th>{% trans "URL:" %}</th>
-                    <td><a href="{{ url }}{% if query_string %}?{{ query_string }}{% endif %}">{{ url }}</a></td>
+                    <td><a href="{{ url }}">{{ short_url }}</a></td>
                 </tr>
                 {% if method %}
                     <tr>
@@ -24,12 +24,22 @@
                         <td>{{ method }}</td>
                     </tr>
                 {% endif %}
-                <tr>
-                    <th>{% trans "Query:" %}</th>
-                    <td class="values">
-                        <pre>{{ query_string }}</pre>
-                    </td>
-                </tr>
+                {% if query_string %}
+                    <tr>
+                        <th>{% trans "Query:" %}</th>
+                        <td class="values">
+                            <pre>{{ query_string }}</pre>
+                        </td>
+                    </tr>
+                {% endif %}
+                {% if fragment %}
+                    <tr>
+                        <th>{% trans "Fragment:" %}</th>
+                        <td class="values">
+                            <pre>{{ fragment }}</pre>
+                        </td>
+                    </tr>
+                {% endif %}
                 {% if data %}
                     <tr>
                         <th>{% trans "Body:" %}</th>
