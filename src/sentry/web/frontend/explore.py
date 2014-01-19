@@ -50,8 +50,8 @@ def tag_list(request, team, project):
 
 @has_access
 def tag_value_list(request, team, project, key):
-    tag_key = TagKey.objects.get(
-        project=project, key=key).select_related('project')
+    tag_key = TagKey.objects.select_related('project').get(
+        project=project, key=key)
     tag_values_qs = TagValue.objects.filter(
         project=project, key=key).select_related('project')
 

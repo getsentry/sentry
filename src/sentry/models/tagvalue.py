@@ -45,6 +45,10 @@ class TagValue(Model):
         # HACK(dcramer): quick and dirty way to hack in better display states
         if self.key == 'sentry:user':
             return self.data.get('email') or self.value
+        elif self.key == 'sentry:function':
+            return '%s in %s' (self.data['function'], self.data['filename'])
+        elif self.key == 'sentry:filename':
+            return self.data['filename']
         return self.value
 
     def get_absolute_url(self):
