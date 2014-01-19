@@ -8678,6 +8678,30 @@ table.vars table.vars th {
 .table-striped tbody tr:nth-child(even) th {
   background-color: #fff;
 }
+.table tbody tr.success > td {
+  background-color: #dff0d8;
+}
+.table tbody tr.error > td {
+  background-color: #f2dede;
+}
+.table tbody tr.warning > td {
+  background-color: #fcf8e3;
+}
+.table tbody tr.info > td {
+  background-color: #d9edf7;
+}
+.table-hover tbody tr.success:hover > td {
+  background-color: #d0e9c6;
+}
+.table-hover tbody tr.error:hover > td {
+  background-color: #ebcccc;
+}
+.table-hover tbody tr.warning:hover > td {
+  background-color: #faf2cc;
+}
+.table-hover tbody tr.info:hover > td {
+  background-color: #c4e3f3;
+}
 .nav-tabs {
   border-bottom: 1px solid #dee3e9;
 }
@@ -9022,6 +9046,22 @@ table.vars table.vars th {
 .popover-title,
 .popover-content {
   padding: 4px 10px;
+}
+.rule-list {
+  list-style: none;
+}
+.rule-list li {
+  line-height: 30px;
+}
+.rule-list li input[type=number] {
+  border-width: 0 0 1px;
+  width: 50px;
+  -webkit-border-radius: 0;
+  -moz-border-radius: 0;
+  border-radius: 0;
+  -webkit-box-shadow: none;
+  -moz-box-shadow: none;
+  box-shadow: none;
 }
 #flotTip {
   background-color: #000000;

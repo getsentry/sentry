@@ -1000,7 +1000,6 @@ class Http(Interface):
             data = dict(enumerate(data))
 
         self.url = urlparse.urlunsplit((scheme, netloc, path, query, fragment))
-        self.short_url = urlparse.urlunsplit((scheme, netloc, path, None, None))
         self.method = method
         self.data = data
         self.query_string = query
@@ -1024,6 +1023,16 @@ class Http(Interface):
                 self.cookies = cookies
         self.headers = headers or {}
         self.env = env or {}
+
+    @property
+    def short_url(self):
+        scheme, netloc, path, _, _ = urlparse.urlsplit(self.url)
+        return urlparse.urlunsplit((scheme, netloc, path, None, None))
+
+    @property
+    def url_without_fragment(self):
+        scheme, netloc, path, query, _ = urlparse.urlsplit(self.url)
+        return urlparse.urlunsplit((scheme, netloc, path, query, None))
 
     def serialize(self):
         return {
@@ -1093,7 +1102,7 @@ class Http(Interface):
     def get_search_context(self, event):
         return {
             'filters': {
-                'url': [self.url],
+                'url': [self.short_url],
             }
         }
 
@@ -1224,7 +1233,7 @@ class User(Interface):
         self.email = email
         self.username = username
         self.ip_address = ip_address
-        self.data = kwargs
+        self.data = kwargs.get('data', kwargs)
 
     def serialize(self):
         # XXX: legacy -- delete

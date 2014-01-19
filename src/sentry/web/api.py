@@ -211,8 +211,10 @@ class APIView(BaseView):
             auth = Auth(auth_vars, is_public=bool(origin))
 
             if auth.version >= 3:
+                if request.method == 'GET' and origin is None:
+                    return HttpResponse('Missing required Origin or Referer header', status=400)
                 # Version 3 enforces secret key for server side requests
-                if origin is None and not auth.secret_key:
+                if not auth.secret_key:
                     return HttpResponse('Missing required attribute in authentication header: sentry_secret', status=400)
 
             try:

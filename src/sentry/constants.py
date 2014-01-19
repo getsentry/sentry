@@ -221,3 +221,11 @@ TAG_LABELS = {
     'url': _('URL'),
     'server_name': _('Server'),
 }
+
+# TODO(dcramer): once this is more flushed out we want this to be extendable
+SENTRY_RULES = (
+    'sentry.rules.actions.notify_event.NotifyEventAction',
+    'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+    'sentry.rules.conditions.regression_event.RegressionEventCondition',
+    'sentry.rules.conditions.tagged_event.TaggedEventCondition',
+)

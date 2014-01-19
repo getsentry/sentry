@@ -29,6 +29,7 @@ from .project import *  # NOQA
 from .projectcountbyminute import *  # NOQA
 from .projectkey import *  # NOQA
 from .projectoption import *  # NOQA
+from .rule import *  # NOQA
 from .tagkey import *  # NOQA
 from .tagvalue import *  # NOQA
 from .team import *  # NOQA

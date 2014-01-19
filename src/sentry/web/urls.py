@@ -27,6 +27,7 @@ import sentry.web.frontend.projects.notifications
 import sentry.web.frontend.projects.plugins
 import sentry.web.frontend.projects.quotas
 import sentry.web.frontend.projects.remove
+import sentry.web.frontend.projects.rules
 import sentry.web.frontend.projects.settings
 import sentry.web.frontend.projects.tags
 
@@ -184,6 +185,16 @@ urlpatterns += patterns('',
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/notifications/$',
         sentry.web.frontend.projects.notifications.notification_settings,
         name='sentry-project-notifications'),
+
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/rules/$',
+        sentry.web.frontend.projects.rules.list_rules,
+        name='sentry-project-rules'),
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/rules/(?P<rule_id>\d+)/edit/$',
+        sentry.web.frontend.projects.rules.create_or_edit_rule,
+        name='sentry-edit-project-rule'),
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/rules/new/$',
+        sentry.web.frontend.projects.rules.create_or_edit_rule,
+        name='sentry-new-project-rule'),
 
     # Generic
     url(r'^$', generic.dashboard,
