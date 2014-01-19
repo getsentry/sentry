@@ -8,7 +8,7 @@ sentry.models.tagkey
 
 from django.db import models
 
-from sentry.constants import MAX_TAG_KEY_LENGTH
+from sentry.constants import MAX_TAG_KEY_LENGTH, TAG_LABELS
 from sentry.db.models import Model, BoundedPositiveIntegerField, sane_repr
 from sentry.manager import TagKeyManager
 
@@ -32,4 +32,6 @@ class TagKey(Model):
     __repr__ = sane_repr('project_id', 'key')
 
     def get_label(self):
-        return self.label or self.key.replace('_', ' ').title()
+        return self.label \
+            or TAG_LABELS.get(self.key) \
+            or self.key.replace('_', ' ').title()
