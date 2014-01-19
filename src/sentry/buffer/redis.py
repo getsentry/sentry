@@ -7,24 +7,28 @@ sentry.buffer.redis
 """
 from __future__ import absolute_import
 
+from time import time
+
 from django.conf import settings
 from django.db import models
 from django.utils.encoding import smart_str
 from hashlib import md5
 from nydus.db import create_cluster
 from sentry.buffer import Buffer
+from sentry.tasks.process_buffer import process_incr
 from sentry.utils.compat import pickle
+from sentry.utils.imports import import_string
 
 
 class RedisBuffer(Buffer):
     key_expire = 60 * 60  # 1 hour
+    pending_key = 'b:p'
 
     def __init__(self, **options):
         if not options:
             # inherit default options from REDIS_OPTIONS
             options = settings.SENTRY_REDIS_OPTIONS
 
-        super(RedisBuffer, self).__init__(**options)
         options.setdefault('hosts', {
             0: {},
         })
@@ -40,78 +44,80 @@ class RedisBuffer(Buffer):
             value = value.pk
         return smart_str(value)
 
-    def _make_key(self, model, filters, column):
+    def _make_key(self, model, filters):
         """
         Returns a Redis-compatible key for the model given filters.
         """
-        return '%s:%s:%s' % (
-            model._meta,
-            md5(smart_str('&'.join('%s=%s' % (k, self._coerce_val(v))
-                for k, v in sorted(filters.iteritems())))).hexdigest(),
-            column,
-        )
-
-    def _make_extra_key(self, model, filters):
-        return '%s:extra:%s' % (
+        return 'b:k:%s:%s' % (
             model._meta,
             md5(smart_str('&'.join('%s=%s' % (k, self._coerce_val(v))
                 for k, v in sorted(filters.iteritems())))).hexdigest(),
         )
 
-    def _make_lock_key(self, model, filters):
-        return '%s:lock:%s' % (
-            model._meta,
-            md5(smart_str('&'.join('%s=%s' % (k, self._coerce_val(v))
-                for k, v in sorted(filters.iteritems())))).hexdigest(),
-        )
+    def _make_lock_key(self, key):
+        return 'l:%s' % (key,)
 
     def incr(self, model, columns, filters, extra=None):
-        with self.conn.map() as conn:
-            for column, amount in columns.iteritems():
-                key = self._make_key(model, filters, column)
-                conn.incr(key, amount)
-                conn.expire(key, self.key_expire)
+        """
+        Increment the key by doing the following:
 
-            # Store extra in a hashmap so it can easily be removed
-            if extra:
-                key = self._make_extra_key(model, filters)
-                for column, value in extra.iteritems():
-                    conn.hset(key, column, pickle.dumps(value))
-                    conn.expire(key, self.key_expire)
-        super(RedisBuffer, self).incr(model, columns, filters, extra)
+        - Insert/update a hashmap based on (model, columns)
+            - Perform an incrby on counters
+            - Perform a set (last write wins) on extra
+        - Add hashmap key to pending flushes
+        """
+        # TODO(dcramer): longer term we'd rather not have to serialize values
+        # here (unless it's to JSON)
+        key = self._make_key(model, filters)
+        # We can't use conn.map() due to wanting to support multiple pending
+        # keys (one per Redis shard)
+        conn = self.conn.get_conn(key)
 
-    def process(self, model, columns, filters, extra=None):
-        lock_key = self._make_lock_key(model, filters)
+        pipe = conn.pipeline()
+        pipe.hsetnx(key, 'm', '%s.%s' % (model.__module__, model.__name__))
+        pipe.hsetnx(key, 'f', pickle.dumps(filters))
+        for column, amount in columns.iteritems():
+            pipe.hincrby(key, 'i+' + column, amount)
+
+        if extra:
+            for column, value in extra.iteritems():
+                pipe.hset(key, 'e+' + column, pickle.dumps(value))
+        pipe.expire(key, self.key_expire)
+        pipe.zadd(self.pending_key, key, time())
+        pipe.execute()
+
+    def process_pending(self):
+        for conn in self.conn.hosts.itervalues():
+            keys = conn.zrange(self.pending_key, 0, -1)
+            for key in keys:
+                process_incr.apply_async(kwargs={
+                    'key': key,
+                })
+            conn.zrem(self.pending_key, *keys)
+
+    def process(self, key):
+        lock_key = self._make_lock_key(key)
         # prevent a stampede due to the way we use celery etas + duplicate
         # tasks
         if not self.conn.setnx(lock_key, '1'):
             return
-        self.conn.expire(lock_key, self.delay)
+        self.conn.expire(lock_key, 10)
 
-        results = {}
         with self.conn.map() as conn:
-            for column, amount in columns.iteritems():
-                key = self._make_key(model, filters, column)
-                results[column] = conn.getset(key, 0)
-                conn.expire(key, 60)  # drop expiration as it was just emptied
+            values = conn.hgetall(key)
+            conn.delete(key)
 
-            hash_key = self._make_extra_key(model, filters)
-            extra_results = conn.hgetall(hash_key)
-            conn.delete(hash_key)
-
-        # We combine the stored extra values with whatever was passed.
-        # This ensures that static values get updated to their latest value,
-        # and dynamic values (usually query expressions) are still dynamic.
-        if extra_results:
-            if not extra:
-                extra = {}
-            for key, value in extra_results.iteritems():
-                if not value:
-                    continue
-                extra[key] = pickle.loads(str(value))
-
-        # Filter out empty or zero'd results to avoid a potentially unnecessary update
-        results = dict((k, int(v)) for k, v in results.iteritems() if int(v or 0) > 0)
-        if not results:
+        if not values:
             return
-        super(RedisBuffer, self).process(model, results, filters, extra)
+
+        model = import_string(values['m'])
+        filters = pickle.loads(values['f'])
+        incr_values = {}
+        extra_values = {}
+        for k, v in values.iteritems():
+            if k.startswith('i+'):
+                incr_values[k[2:]] = int(v)
+            elif k.startswith('e+'):
+                extra_values[k[2:]] = pickle.loads(v)
+
+        super(RedisBuffer, self).process(model, incr_values, filters, extra_values)

@@ -289,7 +289,11 @@ CELERYBEAT_SCHEDULE = {
     'check-version': {
         'task': 'sentry.tasks.check_update',
         'schedule': timedelta(hours=1),
-    }
+    },
+    'flush-buffers': {
+        'task': 'sentry.tasks.process_buffer.process_pending',
+        'schedule': timedelta(seconds=10),
+    },
 }
 
 # Disable South in tests as it is sending incorrect create signals
