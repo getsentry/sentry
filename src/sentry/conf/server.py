@@ -17,6 +17,8 @@ import socket
 import sys
 import urlparse
 
+from datetime import timedelta
+
 DEBUG = False
 TEMPLATE_DEBUG = True
 
@@ -279,6 +281,16 @@ CELERY_QUEUES = (
     Queue('update', routing_key='update'),
     Queue('email', routing_key='email'),
 )
+CELERYBEAT_SCHEDULE = {
+    'check-alerts': {
+        'task': 'sentry.tasks.check_alerts',
+        'schedule': timedelta(minutes=1),
+    },
+    'check-version': {
+        'task': 'sentry.tasks.check_update',
+        'schedule': timedelta(hours=1),
+    }
+}
 
 # Disable South in tests as it is sending incorrect create signals
 SOUTH_TESTS_MIGRATE = True

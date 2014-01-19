@@ -8,8 +8,7 @@ sentry.tasks.check_alerts
 from __future__ import division
 
 from datetime import timedelta
-from celery.task import periodic_task, task
-from celery.task.schedules import crontab
+from celery.task import task
 from django.utils import timezone
 from sentry.constants import MINUTE_NORMALIZATION
 from sentry.utils import math
@@ -22,9 +21,7 @@ def fsteps(start, stop, steps):
         start += step
 
 
-@periodic_task(
-    name='sentry.tasks.check_alerts',
-    run_every=crontab(minute='*'), queue='alerts')
+@task(name='sentry.tasks.check_alerts', queue='alerts')
 def check_alerts(**kwargs):
     """
     Iterates all current keys and fires additional tasks to check each individual
