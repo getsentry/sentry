@@ -141,7 +141,7 @@ transports are available on top of HTTP:
 
 * ``gevent+http``
 * ``threaded+http``
-* ``zmq+http``
+* ``zmq+tcp``
 
 Building the JSON Packet
 ------------------------
