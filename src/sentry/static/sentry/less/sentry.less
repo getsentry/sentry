@@ -794,6 +794,16 @@ ul.tag-list {
 
   li {
     margin-bottom: 5px;
+    position: relative;
+
+    &:nth-child(even) {
+      background: #f9f9f9;
+    }
+
+    span {
+      position: absolute;
+      right: 0;
+    }
   }
 }
 
