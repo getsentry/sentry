@@ -9,25 +9,25 @@ JS_TESTS = tests/js/index.html
 JS_REPORTER = dot
 
 develop: update-submodules
-	npm install -q
+	npm install
 	# order matters here, base package must install first
-	pip install -q -e .
-	pip install -q "file://`pwd`#egg=sentry[dev]"
-	pip install -q "file://`pwd`#egg=sentry[tests]"
+	pip install -e .
+	pip install "file://`pwd`#egg=sentry[dev]"
+	pip install "file://`pwd`#egg=sentry[tests]"
 	make setup-git
 
 dev-postgres:
-	pip install -q -e .
-	pip install -q "file://`pwd`#egg=sentry[dev]"
-	pip install -q "file://`pwd`#egg=sentry[postgres]"
+	pip install -e .
+	pip install "file://`pwd`#egg=sentry[dev]"
+	pip install "file://`pwd`#egg=sentry[postgres]"
 
 dev-mysql:
-	pip install -q -e .
-	pip install -q "file://`pwd`#egg=sentry[dev]"
-	pip install -q "file://`pwd`#egg=sentry[mysql]"
+	pip install -e .
+	pip install "file://`pwd`#egg=sentry[dev]"
+	pip install "file://`pwd`#egg=sentry[mysql]"
 
 dev-docs:
-	pip install -q -r docs/requirements.txt
+	pip install -r docs/requirements.txt
 
 setup-git:
 	git config branch.autosetuprebase always
