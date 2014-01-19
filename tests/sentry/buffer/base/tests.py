@@ -23,7 +23,7 @@ class BufferTest(TestCase):
         self.buf.incr(model, columns, filters)
         kwargs = dict(model=model, columns=columns, filters=filters, extra=None)
         process_incr.apply_async.assert_called_once_with(
-            kwargs=kwargs, countdown=5)
+            kwargs=kwargs)
 
     def test_process_saves_data(self):
         group = Group.objects.create(project=Project(id=1))
