@@ -43,7 +43,7 @@ class TagKey(Model):
         if self.key == 'sentry:user':
             url_name = 'sentry-users'
         elif self.key == 'sentry:filename':
-            url_name = 'sentry-explore-code-by-filename'
+            url_name = 'sentry-explore-code'
         elif self.key == 'sentry:function':
             url_name = 'sentry-explore-code-by-function'
         else:
