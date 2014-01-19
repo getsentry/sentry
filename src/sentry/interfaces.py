@@ -1233,7 +1233,7 @@ class User(Interface):
         self.email = email
         self.username = username
         self.ip_address = ip_address
-        self.data = kwargs
+        self.data = kwargs.get('data', kwargs)
 
     def serialize(self):
         # XXX: legacy -- delete
