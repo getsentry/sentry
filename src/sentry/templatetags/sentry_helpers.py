@@ -100,6 +100,8 @@ def as_sorted(value):
 
 @register.filter
 def small_count(v):
+    if not v:
+        return 0
     z = [
         (1000000000, _('b')),
         (1000000, _('m')),
