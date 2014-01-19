@@ -968,7 +968,7 @@ class Http(Interface):
     .. note:: This interface can be passed as the 'request' key in addition
               to the full interface path.
     """
-    attrs = ('url', 'short_url', 'method', 'data', 'query_string', 'cookies', 'headers',
+    attrs = ('url', 'method', 'data', 'query_string', 'cookies', 'headers',
              'env')
 
     display_score = 1000
@@ -1000,7 +1000,6 @@ class Http(Interface):
             data = dict(enumerate(data))
 
         self.url = urlparse.urlunsplit((scheme, netloc, path, query, fragment))
-        self.short_url = urlparse.urlunsplit((scheme, netloc, path, None, None))
         self.method = method
         self.data = data
         self.query_string = query
@@ -1024,6 +1023,11 @@ class Http(Interface):
                 self.cookies = cookies
         self.headers = headers or {}
         self.env = env or {}
+
+    @property
+    def short_url(self):
+        scheme, netloc, path, _, _ = urlparse.urlsplit(self.url)
+        return urlparse.urlunsplit((scheme, netloc, path, None, None))
 
     def serialize(self):
         return {
