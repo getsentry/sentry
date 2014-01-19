@@ -1,3 +1,9 @@
+Version 7.0.0
+-------------
+
+- The buffer API has been rewritten and the Redis buffer has had its performance greatly improved.
+- The UDP server has been removed. Threaded/async models are the preferred replacement.
+
 Version 6.4.0
 -------------
 
