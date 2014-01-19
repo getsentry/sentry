@@ -30,7 +30,8 @@ class UserTest(TestCase):
 
     @mock.patch('sentry.interfaces.render_to_string')
     def test_to_html(self, render_to_string):
-        self.interface.to_html(self.event)
+        interface = User(**self.interface.serialize())
+        interface.to_html(self.event)
         render_to_string.assert_called_once_with('sentry/partial/interfaces/user.html', {
             'is_public': False,
             'event': self.event,
