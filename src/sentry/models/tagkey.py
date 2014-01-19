@@ -22,7 +22,7 @@ class TagKey(Model):
     DEFAULT_URL_NAME = 'sentry-explore-tag'
     URL_NAMES = {
         'sentry:user': 'sentry-users',
-        'sentry:filenames': 'sentry-explore-code',
+        'sentry:filename': 'sentry-explore-code',
         'sentry:function': 'sentry-explore-code-by-function',
     }
 
