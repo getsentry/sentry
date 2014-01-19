@@ -10,6 +10,7 @@ JS_REPORTER = dot
 
 develop: update-submodules
 	npm install
+	pip install "setuptools>=0.9.8"
 	# order matters here, base package must install first
 	pip install -e .
 	pip install "file://`pwd`#egg=sentry[dev]"
