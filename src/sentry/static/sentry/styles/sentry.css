@@ -7318,6 +7318,14 @@ ul.tag-list {
 }
 ul.tag-list li {
   margin-bottom: 5px;
+  position: relative;
+}
+ul.tag-list li:nth-child(even) {
+  background: #f9f9f9;
+}
+ul.tag-list li span {
+  position: absolute;
+  right: 0;
 }
 a.icon-share {
   margin-top: 1px;
