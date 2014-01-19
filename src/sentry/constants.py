@@ -214,6 +214,7 @@ SOURCE_FETCH_TIMEOUT = 5
 
 # TODO(dcramer): We eventually want to make this user-editable
 TAG_LABELS = {
+    'exc_type': _('Exception Type'),
     'sentry:user': _('User'),
     'sentry:filename': _('File'),
     'sentry:function': _('Function'),
