@@ -19,6 +19,13 @@ class TagKey(Model):
     """
     Stores references to available filters keys.
     """
+    DEFAULT_URL_NAME = 'sentry-explore-tag'
+    URL_NAMES = {
+        'sentry:user': 'sentry-users',
+        'sentry:filenames': 'sentry-explore-code',
+        'sentry:function': 'sentry-explore-code-by-function',
+    }
+
     project = models.ForeignKey('sentry.Project')
     key = models.CharField(max_length=MAX_TAG_KEY_LENGTH)
     values_seen = BoundedPositiveIntegerField(default=0)
@@ -40,14 +47,10 @@ class TagKey(Model):
 
     def get_absolute_url(self):
         # HACK(dcramer): quick and dirty way to support code/users
-        if self.key == 'sentry:user':
-            url_name = 'sentry-users'
-        elif self.key == 'sentry:filename':
-            url_name = 'sentry-explore-code'
-        elif self.key == 'sentry:function':
-            url_name = 'sentry-explore-code-by-function'
-        else:
-            url_name = 'sentry-explore-tag'
+        try:
+            url_name = self.URL_NAMES[self.key]
+        except KeyError:
+            url_name = self.DEFAULT_URL_NAME
             return absolute_uri(reverse(url_name, args=[
                 self.project.team.slug, self.project.slug, self.key]))
 
