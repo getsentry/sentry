@@ -984,26 +984,27 @@ class Http(Interface):
         if method:
             method = method.upper()
 
-        urlparts = urlparse.urlsplit(url)
+        scheme, netloc, path, query, fragment = urlparse.urlsplit(url)
 
-        if not query_string:
-            # define querystring from url
-            query_string = urlparts.query
-
-        elif query_string.startswith('?'):
-            # remove '?' prefix
-            query_string = query_string[1:]
+        if query_string:
+            # if querystring was a dict, convert it to a string
+            if isinstance(query_string, dict):
+                query = urlencode(query_string.items())
+            else:
+                query = query_string
+                if query[0] == '?':
+                    # remove '?' prefix
+                    query = query[1:]
 
         if isinstance(data, (list, tuple)):
             data = dict(enumerate(data))
 
-        self.url = '%s://%s%s' % (urlparts.scheme, urlparts.netloc, urlparts.path)
+        self.url = urlparse.urlunsplit((scheme, netloc, path, query, fragment))
+        self.short_url = urlparse.urlunsplit((scheme, netloc, path, None, None))
         self.method = method
         self.data = data
-        # if querystring was a dict, convert it to a string
-        if isinstance(query_string, dict):
-            query_string = urlencode(query_string.items())
-        self.query_string = query_string
+        self.query_string = query
+        self.fragment = fragment
         if cookies:
             self.cookies = cookies
         else:
@@ -1038,8 +1039,8 @@ class Http(Interface):
     def to_email_html(self, event, **kwargs):
         return render_to_string('sentry/partial/interfaces/http_email.html', {
             'event': event,
-            'full_url': '?'.join(filter(bool, [self.url, self.query_string])),
             'url': self.url,
+            'short_url': self.short_url,
             'method': self.method,
             'query_string': self.query_string,
         })
@@ -1067,10 +1068,11 @@ class Http(Interface):
         context = {
             'is_public': is_public,
             'event': event,
-            'full_url': '?'.join(filter(bool, [self.url, self.query_string])),
             'url': self.url,
+            'short_url': self.short_url,
             'method': self.method,
             'query_string': self.query_string,
+            'fragment': self.fragment,
             'headers': self.headers,
         }
         if not is_public:
