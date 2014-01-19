@@ -6,7 +6,6 @@
 
 {% block inner %}
     {% if tag_list %}
-
         {% for tag_key, tag_values in tag_list %}
             {% if not forloop.counter|divisibleby:2 %}
                 {% if not forloop.first %}
@@ -16,17 +15,17 @@
             {% endif %}
             <div class="span6">
                 <div class="page-header">
-                    <span class="pull-right"><a href="{% url 'sentry-explore-tag' project.team.slug project.slug tag_key.key|urlquote %}">More Details</a></span>
+                    <span class="pull-right"><a href="{{ tag_key.get_absolute_url }}">More Details</a></span>
 
                     <h4>{{ tag_key.get_label }} <small>({{ tag_key.values_seen|small_count }})</small></h4>
                 </div>
 
                 <ul class="tag-list">
-                    {% for value_id, tag_value, times_seen in tag_values %}
+                    {% for tag_value in tag_values %}
                         <li>
-                            <a href="{% url 'sentry-explore-tag-value' project.team.slug project.slug tag_key.key|urlquote value_id %}">
-                                {{ tag_value }}
-                                <span>{{ times_seen|small_count }}</span>
+                            <a href="{{ tag_value.get_absolute_url }}">
+                                {{ tag_value.get_label }}
+                                <span>{{ tag_value.times_seen|small_count }}</span>
                             </a>
                         </li>
                     {% endfor %}
@@ -36,9 +35,7 @@
                 </div>
             {% endif %}
         {% endfor %}
-
     {% else %}
-
         <p>{% trans "There don't seem to be any tags in the system yet. For more information on how you can tag data, check your client's documentation." %}</p>
 
     {% endif %}
