@@ -1029,6 +1029,11 @@ class Http(Interface):
         scheme, netloc, path, _, _ = urlparse.urlsplit(self.url)
         return urlparse.urlunsplit((scheme, netloc, path, None, None))
 
+    @property
+    def url_without_fragment(self):
+        scheme, netloc, path, query, _ = urlparse.urlsplit(self.url)
+        return urlparse.urlunsplit((scheme, netloc, path, query, None))
+
     def serialize(self):
         return {
             'url': self.url,
