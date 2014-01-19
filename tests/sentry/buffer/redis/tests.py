@@ -47,9 +47,8 @@ class RedisBufferTest(TestCase):
             'i+times_seen': '2',
             'm': 'sentry.models.Group',
         })
-        group = Group.objects.create(project=Project(id=1))
         columns = {'times_seen': 2}
-        filters = {'pk': group.pk}
+        filters = {'pk': 1}
         extra = {'foo': 'bar'}
         self.buf.process('foo')
         process.assert_called_once_with(Group, columns, filters, extra)
