@@ -287,7 +287,8 @@ urlpatterns += patterns('',
     # Explore - Users
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/users/$',
         users.user_list, name='sentry-users'),
-    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/users/(?P<user_id>\d+)/$', users.user_details, name='sentry-user-details'),
+    url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/users/(?P<user_id>\d+)/$',
+        users.user_details, name='sentry-user-details'),
 
     # Explore - Code
     url(r'^(?P<team_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/explore/code/$', explore_code.list_tag,

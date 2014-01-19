@@ -46,8 +46,8 @@
                 {% for tag_value in tag_values.paginator.objects %}
                     <tr>
                         <td>
-                            
-                            <a href="{% url 'sentry-explore-tag-value' team.slug project.slug tag_value.key tag_value.id %}">
+
+                            <a href="{{ tag_value.get_absolute_url }}">
                                 {{ tag_value.value }}
                             </a>
                         </td>
