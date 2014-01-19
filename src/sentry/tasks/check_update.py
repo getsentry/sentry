@@ -8,24 +8,17 @@ sentry.tasks.check_version
 import json
 import logging
 
-from celery.task import periodic_task
-from celery.task.schedules import crontab
+from celery.task import task
 from simplejson import JSONDecodeError
 
 from sentry.tasks.fetch_source import fetch_url_content, BAD_SOURCE
 
 PYPI_URL = 'https://pypi.python.org/pypi/sentry/json'
-SENTRY_CHECKUPDATE_TIME = {
-    'hour': 0,
-    'minute': 0
-}
 
 logger = logging.getLogger(__name__)
 
 
-@periodic_task(
-    name='sentry.tasks.check_update',
-    run_every=crontab(**SENTRY_CHECKUPDATE_TIME), queue='update')
+@task(name='sentry.tasks.check_update', queue='update')
 def check_update():
     """
     Daily retrieving latest available Sentry version from PyPI
