@@ -161,6 +161,16 @@ class SentryRemoteTest(TestCase):
         self.assertEquals(instance.site, 'not_a_real_site')
         self.assertEquals(instance.level, 40)
 
+    def test_correct_data_with_get(self):
+        kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
+        resp = self._getWithReferer(kwargs)
+        self.assertEquals(resp.status_code, 200, resp.content)
+        instance = Event.objects.get()
+        self.assertEquals(instance.message, 'hello')
+        self.assertEquals(instance.server_name, 'not_dcramer.local')
+        self.assertEquals(instance.level, 40)
+        self.assertEquals(instance.site, 'not_a_real_site')
+
     # def test_byte_sequence(self):
     #     """
     #     invalid byte sequence for encoding "UTF8": 0xedb7af

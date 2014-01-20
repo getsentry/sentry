@@ -12,6 +12,7 @@ __all__ = ('TestCase', 'TransactionTestCase', 'APITestCase')
 
 import base64
 import os.path
+import urllib
 
 from django.conf import settings
 from django.contrib.auth import login
@@ -90,11 +91,14 @@ class BaseTestCase(Fixtures, Exam):
         super(BaseTestCase, self)._pre_setup()
 
     def _makeMessage(self, data):
-        return base64.b64encode(json.dumps(data))
+        return json.dumps(data)
+
+    def _makePostMessage(self, data):
+        return base64.b64encode(self._makeMessage(data))
 
     def _postWithKey(self, data, key=None):
         resp = self.client.post(reverse('sentry-api-store'), {
-            'data': self._makeMessage(data),
+            'data': self._makePostMessage(data),
             'key': settings.SENTRY_KEY,
         })
         return resp
@@ -104,11 +108,28 @@ class BaseTestCase(Fixtures, Exam):
             key = self.projectkey.public_key
             secret = self.projectkey.secret_key
 
-        message = self._makeMessage(data)
+        message = self._makePostMessage(data)
         resp = self.client.post(
             reverse('sentry-api-store'), message,
             content_type='application/octet-stream',
             HTTP_X_SENTRY_AUTH=get_auth_header('_postWithHeader', key, secret),
+        )
+        return resp
+
+    def _getWithReferer(self, data, key=None):
+        if key is None:
+            key = self.projectkey.public_key
+
+        message = self._makeMessage(data)
+        qs = {
+            'sentry_version': '4',
+            'sentry_client': 'raven-js/lol',
+            'sentry_key': key,
+            'sentry_data': message,
+        }
+        resp = self.client.get(
+            '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urllib.urlencode(qs)),
+            HTTP_REFERER='http://lol.com/'
         )
         return resp
 
