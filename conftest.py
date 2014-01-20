@@ -68,3 +68,5 @@ def pytest_configure(config):
     settings.SENTRY_ENABLE_EXPLORE_CODE = True
     settings.SENTRY_ENABLE_EXPLORE_USERS = True
     settings.SENTRY_ENABLE_EMAIL_REPLIES = True
+
+    settings.SENTRY_ALLOW_ORIGIN = '*'
