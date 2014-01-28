@@ -19,6 +19,9 @@ import urlparse
 
 from datetime import timedelta
 
+
+socket.setdefaulttimeout(5)
+
 DEBUG = False
 TEMPLATE_DEBUG = True
 
