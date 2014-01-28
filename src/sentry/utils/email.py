@@ -133,9 +133,9 @@ class MessageBuilder(object):
                     pass
 
         if user_ids:
-            email_list |= set(User.objects.filter(
-                pk__in=user_ids, is_active=True
-            ).values_list('email', flat=True))
+            email_list |= set(filter(bool, User.objects.filter(
+                pk__in=user_ids, is_active=True,
+            ).values_list('email', flat=True)))
 
         self._send_to.update(email_list)
 
