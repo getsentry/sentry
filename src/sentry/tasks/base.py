@@ -22,5 +22,5 @@ def instrumented_task(name, queue, stat_suffix=None, **kwargs):
             with statsd.timer(statsd_key):
                 result = func(*args, **kwargs)
             return result
-        return task(name=name, queue=queue, **kwargs)(func)
+        return task(name=name, queue=queue, **kwargs)(_wrapped)
     return wrapped
