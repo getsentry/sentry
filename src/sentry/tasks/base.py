@@ -12,13 +12,12 @@ from functools import wraps
 
 
 def instrumented_task(name, queue, stat_suffix=None, **kwargs):
-    statsd_key = 'jobs.duration.{name}'.format(name=name)
-    if stat_suffix:
-        statsd_key += '.{key}'.format(key=stat_suffix)
-
     def wrapped(func):
         @wraps(func)
         def _wrapped(*args, **kwargs):
+            statsd_key = 'jobs.duration.{name}'.format(name=name)
+            if stat_suffix:
+                statsd_key += '.{key}'.format(key=stat_suffix(*args, **kwargs))
             with statsd.timer(statsd_key):
                 result = func(*args, **kwargs)
             return result
