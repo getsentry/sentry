@@ -12,7 +12,7 @@ from functools import wraps
 
 
 def instrumented_task(name, queue, stat_suffix=None, **kwargs):
-    statsd_key = 'tasks.{name}'.format(name=name)
+    statsd_key = 'jobs.duration.{name}'.format(name=name)
     if stat_suffix:
         statsd_key += '.{key}'.format(key=stat_suffix)
 
