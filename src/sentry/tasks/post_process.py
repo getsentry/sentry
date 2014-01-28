@@ -33,7 +33,8 @@ def post_process_group(group, event, **kwargs):
 
 @instrumented_task(
     name='sentry.tasks.post_process.plugin_post_process_group',
-    queue='triggers')
+    queue='triggers',
+    stat_suffix=lambda plugin_slug, *a, **k: plugin_slug)
 def plugin_post_process_group(plugin_slug, group, **kwargs):
     """
     Fires post processing hooks for a group.
