@@ -919,7 +919,7 @@ class Exception(Interface):
 
         output = []
         for exc in self.values:
-            output.append('{0}: {1}\n'.format(exc.type, exc.value))
+            output.append(u'{0}: {1}\n'.format(exc.type, exc.value))
             if exc.stacktrace:
                 output.append(exc.stacktrace.get_stacktrace(
                     event, system_frames=False, max_frames=5,

@@ -6,10 +6,12 @@ sentry.tasks.deletion
 :license: BSD, see LICENSE for more details.
 """
 
-from celery.task import task
+from __future__ import absolute_import
+
+from sentry.tasks.base import instrumented_task
 
 
-@task(name='sentry.tasks.deletion.delete_project', queue='cleanup')
+@instrumented_task(name='sentry.tasks.deletion.delete_project', queue='cleanup')
 def delete_project(object_id, **kwargs):
     from sentry.constants import STATUS_HIDDEN
     from sentry.models import (
@@ -46,7 +48,7 @@ def delete_project(object_id, **kwargs):
     p.delete()
 
 
-@task(name='sentry.tasks.deletion.delete_group', queue='cleanup')
+@instrumented_task(name='sentry.tasks.deletion.delete_group', queue='cleanup')
 def delete_group(object_id, **kwargs):
     from sentry.models import Group
 

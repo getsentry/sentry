@@ -5,12 +5,15 @@ sentry.tasks.check_version
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+
+from __future__ import absolute_import
+
 import json
 import logging
 
-from celery.task import task
 from simplejson import JSONDecodeError
 
+from sentry.tasks.base import instrumented_task
 from sentry.tasks.fetch_source import fetch_url_content, BAD_SOURCE
 
 PYPI_URL = 'https://pypi.python.org/pypi/sentry/json'
@@ -18,7 +21,7 @@ PYPI_URL = 'https://pypi.python.org/pypi/sentry/json'
 logger = logging.getLogger(__name__)
 
 
-@task(name='sentry.tasks.check_update', queue='update')
+@instrumented_task(name='sentry.tasks.check_update', queue='update')
 def check_update():
     """
     Daily retrieving latest available Sentry version from PyPI

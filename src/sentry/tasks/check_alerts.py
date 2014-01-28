@@ -5,12 +5,13 @@ sentry.tasks.check_alerts
 :copyright: (c) 2010-2014 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
-from __future__ import division
+
+from __future__ import absolute_import, division
 
 from datetime import timedelta
-from celery.task import task
 from django.utils import timezone
 from sentry.constants import MINUTE_NORMALIZATION
+from sentry.tasks.base import instrumented_task
 from sentry.utils import math
 
 
@@ -21,7 +22,7 @@ def fsteps(start, stop, steps):
         start += step
 
 
-@task(name='sentry.tasks.check_alerts', queue='alerts')
+@instrumented_task(name='sentry.tasks.check_alerts', queue='alerts')
 def check_alerts(**kwargs):
     """
     Iterates all current keys and fires additional tasks to check each individual
@@ -35,7 +36,8 @@ def check_alerts(**kwargs):
     min_date = max_date - timedelta(minutes=MINUTE_NORMALIZATION)
 
     # find each project which has data for the last interval
-    # TODO: we could force more work on the db by eliminating onces which don't have the full aggregate we need
+    # TODO: we could force more work on the db by eliminating onces which don't
+    # have the full aggregate we need
     qs = ProjectCountByMinute.objects.filter(
         date__lte=max_date,
         date__gt=min_date,
@@ -52,11 +54,12 @@ def check_alerts(**kwargs):
         )
 
 
-@task(name='sentry.tasks.check_alerts.check_project_alerts', queue='alerts')
+@instrumented_task(name='sentry.tasks.check_alerts.check_project_alerts', queue='alerts')
 def check_project_alerts(project_id, when, count, **kwargs):
     """
-    Given 'when' and 'count', which should signify recent times we compare it to historical data for this project
-    and if over a given threshold, create an alert.
+    Given 'when' and 'count', which should signify recent times we compare it to
+    historical data for this project and if over a given threshold, create an
+    alert.
     """
     from sentry.constants import DEFAULT_ALERT_PROJECT_THRESHOLD
     from sentry.models import ProjectCountByMinute, ProjectOption, Alert
