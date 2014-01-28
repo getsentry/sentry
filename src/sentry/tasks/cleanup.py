@@ -6,10 +6,10 @@ sentry.tasks.cleanup
 :license: BSD, see LICENSE for more details.
 """
 
-from celery.task import task
+from sentry.tasks.base import instrumented_task
 
 
-@task(name='sentry.tasks.cleanup.cleanup', queue='cleanup')
+@instrumented_task(name='sentry.tasks.cleanup.cleanup', queue='cleanup')
 def cleanup(days=30, project=None, chunk_size=1000, **kwargs):
     """
     Deletes a portion of the trailing data in Sentry based on

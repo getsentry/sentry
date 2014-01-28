@@ -8,10 +8,10 @@ sentry.tasks.index
 
 from __future__ import absolute_import
 
-from celery.task import task
+from sentry.tasks.base import instrumented_task
 
 
-@task(name='sentry.tasks.index.index_event', queue='search')
+@instrumented_task(name='sentry.tasks.index.index_event', queue='search')
 def index_event(event, **kwargs):
     from sentry import app
 

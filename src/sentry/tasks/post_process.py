@@ -6,15 +6,19 @@ sentry.tasks.post_process
 :license: BSD, see LICENSE for more details.
 """
 
-from celery.task import task
+from __future__ import absolute_import
+
 from hashlib import md5
 
 from django.conf import settings
 from sentry.plugins import plugins
+from sentry.tasks.base import instrumented_task
 from sentry.utils.safe import safe_execute
 
 
-@task(name='sentry.tasks.post_process.post_process_group', queue='triggers')
+@instrumented_task(
+    name='sentry.tasks.post_process.post_process_group',
+    queue='triggers')
 def post_process_group(group, event, **kwargs):
     """
     Fires post processing hooks for a group.
@@ -27,7 +31,7 @@ def post_process_group(group, event, **kwargs):
     record_affected_user.delay(group=group, event=event)
 
 
-@task(
+@instrumented_task(
     name='sentry.tasks.post_process.plugin_post_process_group',
     queue='triggers')
 def plugin_post_process_group(plugin_slug, group, **kwargs):
@@ -38,7 +42,7 @@ def plugin_post_process_group(plugin_slug, group, **kwargs):
     safe_execute(plugin.post_process, group=group, **kwargs)
 
 
-@task(
+@instrumented_task(
     name='sentry.tasks.post_process.record_affected_user',
     queue='triggers')
 def record_affected_user(group, event, **kwargs):
@@ -64,7 +68,7 @@ def record_affected_user(group, event, **kwargs):
     ])
 
 
-@task(
+@instrumented_task(
     name='sentry.tasks.post_process.record_affected_code',
     queue='triggers')
 def record_affected_code(group, event, **kwargs):

@@ -437,6 +437,7 @@ REST_FRAMEWORK = {
     'TEST_REQUEST_DEFAULT_FORMAT': 'json',
 }
 
+STATSD_CLIENT = 'django_statsd.clients.null'
 
 # Sentry and Raven configuration
 
