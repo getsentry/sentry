@@ -115,8 +115,8 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'sentry.middleware.SentryMiddleware',
-    'sentry.middleware.SentrySocialAuthExceptionMiddleware',
+    'sentry.middleware.locale.SentryLocaleMiddleware',
+    'sentry.middleware.social_auth.SentrySocialAuthExceptionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
 )
