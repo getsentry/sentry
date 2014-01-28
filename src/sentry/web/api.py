@@ -557,9 +557,12 @@ def clear(request, team, project):
 
     # TODO: should we record some kind of global event in Activity?
     event_list = response['event_list']
-    happened = event_list.update(status=STATUS_RESOLVED)
+    rows_affected = event_list.update(status=STATUS_RESOLVED)
+    if rows_affected > 1000:
+        logger.warning(
+            'Large resolve on %s of %s rows', project.slug, rows_affected)
 
-    if happened:
+    if rows_affected:
         Activity.objects.create(
             project=project,
             type=Activity.SET_RESOLVED,
