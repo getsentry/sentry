@@ -20,6 +20,7 @@ def instrumented_task(name, queue, stat_suffix=None, **kwargs):
         @wraps(func)
         def _wrapped(*args, **kwargs):
             with statsd.timer(statsd_key):
-                return func(*args, **kwargs)
+                result = func(*args, **kwargs)
+            return result
         return task(name=name, queue=queue, **kwargs)(func)
     return wrapped
