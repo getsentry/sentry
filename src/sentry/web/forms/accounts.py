@@ -148,6 +148,12 @@ class AccountSettingsForm(forms.Form):
         if self.user.password in EMPTY_PASSWORD_VALUES:
             del self.fields['old_password']
 
+    def clean_username(self):
+        value = self.cleaned_data['username']
+        if User.objects.filter(username__iexact=value).exists():
+            raise forms.ValidationError_("That username is already in use.")
+        return value
+
     def clean_old_password(self):
         """
         Validates that the old_password field is correct.
@@ -169,7 +175,9 @@ class AccountSettingsForm(forms.Form):
 
         self.user.email = self.cleaned_data['email']
 
-        if new_username and not User.objects.filter(username__iexact=self.user.email).exists():
+        if self.cleaned_data.get('username'):
+            self.user.username = self.cleaned_data['username']
+        elif new_username and not User.objects.filter(username__iexact=self.user.email).exists():
             self.user.username = self.user.email
 
         if commit:
