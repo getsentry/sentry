@@ -150,7 +150,7 @@ class AccountSettingsForm(forms.Form):
 
     def clean_username(self):
         value = self.cleaned_data['username']
-        if User.objects.filter(username__iexact=value).exists():
+        if User.objects.filter(username__iexact=value).exclude(id=self.user.id).exists():
             raise forms.ValidationError(_("That username is already in use."))
         return value
 
