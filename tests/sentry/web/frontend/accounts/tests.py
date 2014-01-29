@@ -114,6 +114,7 @@ class SettingsTest(TestCase):
 
     def params(self, without=()):
         params = {
+            'username': 'foobar',
             'email': 'foo@example.com',
             'first_name': 'Foo bar',
             'old_password': 'admin',

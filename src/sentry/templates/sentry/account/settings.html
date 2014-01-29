@@ -17,13 +17,10 @@
             {% endif %}
         {% endwith %}
         <hr>
-        <fieldset class="control-group">
-            <label>Username</label>
-            <div class="controls">
-                {{ request.user.username }}
-            </div>
-        </fieldset>
         {% with form.first_name as field %}
+            {{ field|as_crispy_field }}
+        {% endwith %}
+        {% with form.username as field %}
             {{ field|as_crispy_field }}
         {% endwith %}
         {% with form.email as field %}
