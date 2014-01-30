@@ -27,8 +27,11 @@ def post_process_group(group, event, **kwargs):
         plugin_post_process_group.delay(
             plugin.slug, group=group, event=event, **kwargs)
 
-    record_affected_code.delay(group=group, event=event)
-    record_affected_user.delay(group=group, event=event)
+    if settings.SENTRY_ENABLE_EXPLORE_CODE:
+        record_affected_code.delay(group=group, event=event)
+
+    if settings.SENTRY_ENABLE_EXPLORE_USERS:
+        record_affected_user.delay(group=group, event=event)
 
 
 @instrumented_task(
