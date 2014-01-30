@@ -220,6 +220,9 @@ class GroupManager(BaseManager, ChartMixin):
         else:
             data['logger'] = trim(data['logger'], 64)
 
+        if data.get('platform'):
+            data['platform'] = trim(data['platform'], 64)
+
         timestamp = data.get('timestamp')
         if not timestamp:
             timestamp = timezone.now()
