@@ -176,13 +176,13 @@ class SentryRemoteTest(TestCase):
     @override_settings(SENTRY_ALLOW_ORIGIN='getsentry.com')
     def test_get_without_referer(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
-        resp = self._getWithoutReferer(kwargs)
+        resp = self._getWithReferer(kwargs, referer=None)
         self.assertEquals(resp.status_code, 400, resp.content)
 
     @override_settings(SENTRY_ALLOW_ORIGIN='*')
     def test_get_without_referer_allowed(self):
         kwargs = {'message': 'hello', 'server_name': 'not_dcramer.local', 'level': 40, 'site': 'not_a_real_site'}
-        resp = self._getWithoutReferer(kwargs)
+        resp = self._getWithReferer(kwargs, referer=None)
         self.assertEquals(resp.status_code, 200, resp.content)
 
     # def test_byte_sequence(self):
