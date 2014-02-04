@@ -55,17 +55,17 @@ def is_same_domain(url1, url2):
 
 
 def get_origins(project=None):
-    from sentry.plugins.helpers import get_option
-
-    # TODO: we should cache this
     if settings.SENTRY_ALLOW_ORIGIN == '*':
         return frozenset(['*'])
-    elif settings.SENTRY_ALLOW_ORIGIN:
+
+    if settings.SENTRY_ALLOW_ORIGIN:
         result = settings.SENTRY_ALLOW_ORIGIN.split(' ')
     else:
         result = []
 
     if project:
+        # TODO: we should cache this
+        from sentry.plugins.helpers import get_option
         optval = get_option('sentry:origins', project)
         if optval:
             result.extend(optval)
@@ -115,7 +115,7 @@ def is_valid_origin(origin, project=None):
                 return True
             continue
 
-        if valid.startswith('*.'):
+        if valid[:2] == '*.':
             # check foo.domain.com and domain.com
             if parsed.hostname.endswith(valid[1:]) or parsed.hostname == valid[2:]:
                 return True
