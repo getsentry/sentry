@@ -53,7 +53,7 @@ def _get_group_list(request, project):
     for cls in get_filters(Group, project):
         try:
             filters.append(cls(request, project))
-        except Exception, e:
+        except Exception as e:
             logger = logging.getLogger('sentry.filters')
             logger.exception('Error initializing filter %r: %s', cls, e)
 
@@ -71,7 +71,7 @@ def _get_group_list(request, project):
             if not filter_.is_set():
                 continue
             event_list = filter_.get_query_set(event_list)
-        except Exception, e:
+        except Exception as e:
             logger = logging.getLogger('sentry.filters')
             logger.exception('Error processing filter %r: %s', cls, e)
 

@@ -24,7 +24,7 @@ def preprocess_event(data, **kwargs):
         if settings.SENTRY_SCRAPE_JAVASCRIPT_CONTEXT and data['platform'] == 'javascript':
             try:
                 expand_javascript_source(data)
-            except Exception, e:
+            except Exception as e:
                 logger.exception(u'Error fetching javascript source: %s', e)
     finally:
         save_event.delay(data=data)

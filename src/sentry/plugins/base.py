@@ -76,7 +76,7 @@ class PluginManager(InstanceManager):
         for plugin in self.all():
             try:
                 result = getattr(plugin, func_name)(*args, **kwargs)
-            except Exception, e:
+            except Exception as e:
                 logger = logging.getLogger('sentry.plugins')
                 logger.error('Error processing %s() on %r: %s', func_name, plugin.__class__, e, extra={
                     'func_arg': args,

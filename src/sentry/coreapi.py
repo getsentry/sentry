@@ -168,7 +168,7 @@ def decode_and_decompress_data(encoded_data):
             return decompress(encoded_data)
         except zlib.error:
             return base64.b64decode(encoded_data)
-    except Exception, e:
+    except Exception as e:
         # This error should be caught as it suggests that there's a
         # bug somewhere in the client's code.
         logger.info(e, **client_metadata(exception=e))
@@ -179,7 +179,7 @@ def decode_and_decompress_data(encoded_data):
 def safely_load_json_string(json_string):
     try:
         obj = json.loads(json_string)
-    except Exception, e:
+    except Exception as e:
         # This error should be caught as it suggests that there's a
         # bug somewhere in the client's code.
         logger.info(e, **client_metadata(exception=e))
@@ -268,7 +268,7 @@ def validate_data(project, data, client=None):
     if 'timestamp' in data:
         try:
             process_data_timestamp(data)
-        except InvalidTimestamp, e:
+        except InvalidTimestamp as e:
             # Log the error, remove the timestamp, and continue
             logger.info(
                 'Discarded invalid value for timestamp: %r', data['timestamp'],
@@ -368,7 +368,7 @@ def validate_data(project, data, client=None):
                 inst = interface(value)
             inst.validate()
             data[import_path] = inst.serialize()
-        except Exception, e:
+        except Exception as e:
             if isinstance(e, AssertionError):
                 log = logger.info
             else:
@@ -381,7 +381,7 @@ def validate_data(project, data, client=None):
         # assume it's something like 'warning'
         try:
             data['level'] = LOG_LEVEL_REVERSE_MAP[level]
-        except KeyError, e:
+        except KeyError as e:
             logger.info(
                 'Discarded invalid logger value: %s', level,
                 **client_metadata(client, project, exception=e))

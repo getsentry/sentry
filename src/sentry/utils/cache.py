@@ -63,7 +63,7 @@ class Lock(object):
     def __exit__(self, exc_type, exc_value, traceback):
         try:
             self.cache.delete(self.lock_key)
-        except Exception, e:
+        except Exception as e:
             logger.exception(e)
 
 

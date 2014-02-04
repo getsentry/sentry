@@ -161,7 +161,7 @@ def create_new_user(request):
                     body, settings.SERVER_EMAIL, [user.email],
                     fail_silently=False
                 )
-            except Exception, e:
+            except Exception as e:
                 logger = logging.getLogger('sentry.mail.errors')
                 logger.exception(e)
 
@@ -339,7 +339,7 @@ def status_mail(request):
                 body, settings.SERVER_EMAIL, [request.user.email],
                 fail_silently=False
             )
-        except Exception, e:
+        except Exception as e:
             form.errors['__all__'] = [unicode(e)]
 
     return render_to_response('sentry/admin/status/mail.html', {

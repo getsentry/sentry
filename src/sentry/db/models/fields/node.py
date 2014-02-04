@@ -97,7 +97,7 @@ class NodeField(GzippedDictField):
         if isinstance(value, basestring) and value:
             try:
                 value = pickle.loads(decompress(value))
-            except Exception, e:
+            except Exception as e:
                 logger.exception(e)
                 value = {}
         elif not value:

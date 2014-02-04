@@ -17,7 +17,7 @@ from sentry.utils.strings import truncatechars
 def safe_execute(func, *args, **kwargs):
     try:
         result = func(*args, **kwargs)
-    except Exception, e:
+    except Exception as e:
         transaction.rollback_unless_managed()
         if hasattr(func, 'im_class'):
             cls = func.im_class
