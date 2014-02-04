@@ -116,6 +116,22 @@ class BaseTestCase(Fixtures, Exam):
         )
         return resp
 
+    def _getWithoutReferer(self, data, key=None):
+        if key is None:
+            key = self.projectkey.public_key
+
+        message = self._makeMessage(data)
+        qs = {
+            'sentry_version': '4',
+            'sentry_client': 'raven-js/lol',
+            'sentry_key': key,
+            'sentry_data': message,
+        }
+        resp = self.client.get(
+            '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urllib.urlencode(qs))
+        )
+        return resp
+
     def _getWithReferer(self, data, key=None):
         if key is None:
             key = self.projectkey.public_key
@@ -129,7 +145,7 @@ class BaseTestCase(Fixtures, Exam):
         }
         resp = self.client.get(
             '%s?%s' % (reverse('sentry-api-store', args=(self.project.pk,)), urllib.urlencode(qs)),
-            HTTP_REFERER='http://lol.com/'
+            HTTP_REFERER='http://getsentry.com/'
         )
         return resp
 

@@ -87,15 +87,15 @@ def is_valid_origin(origin, project=None):
     - *.domain.com: matches domain.com and all subdomains, on any port
     - domain.com: matches domain.com on any port
     """
-    # we always run a case insensitive check
-    origin = origin.lower()
-
     allowed = get_origins(project)
     if '*' in allowed:
         return True
 
     if not origin:
         return False
+
+    # we always run a case insensitive check
+    origin = origin.lower()
 
     # Fast check
     if origin in allowed:
