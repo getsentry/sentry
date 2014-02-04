@@ -150,6 +150,6 @@ class Activity(Model):
 
         try:
             msg.send()
-        except Exception, e:
+        except Exception as e:
             logger = logging.getLogger('sentry.mail.errors')
             logger.exception(e)

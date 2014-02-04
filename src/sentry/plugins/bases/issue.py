@@ -173,7 +173,7 @@ class IssuePlugin(Plugin):
                     form_data=form.cleaned_data,
                     request=request,
                 )
-            except forms.ValidationError, e:
+            except forms.ValidationError as e:
                 form.errors['__all__'] = [u'Error creating issue: %s' % e]
 
         if form.is_valid():

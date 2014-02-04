@@ -197,7 +197,7 @@ class APIView(BaseView):
 
             try:
                 project_, user = project_from_auth_vars(auth_vars)
-            except APIError, error:
+            except APIError as error:
                 return HttpResponse(unicode(error.msg), status=error.http_status)
             else:
                 if user:
@@ -231,7 +231,7 @@ class APIView(BaseView):
             try:
                 response = super(APIView, self).dispatch(request, project=project, auth=auth, **kwargs)
 
-            except APIError, error:
+            except APIError as error:
                 response = HttpResponse(unicode(error.msg), content_type='text/plain', status=error.http_status)
 
         if origin:
@@ -316,7 +316,7 @@ class StoreView(APIView):
         try:
             # mutates data
             validate_data(project, data, auth.client)
-        except InvalidData, e:
+        except InvalidData as e:
             raise APIError(u'Invalid data: %s (%s)' % (unicode(e), type(e)))
 
         # mutates data

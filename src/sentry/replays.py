@@ -34,7 +34,7 @@ class Replayer(object):
             conn.request(self.method, full_url, data, self.headers or {})
 
             response = conn.getresponse()
-        except socket.error, e:
+        except socket.error as e:
             return {
                 'status': 'error',
                 'reason': str(e),

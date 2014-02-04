@@ -428,7 +428,7 @@ class GroupManager(BaseManager, ChartMixin):
             # TODO: should we mail admins when there are failures?
             try:
                 logger.exception(u'Unable to process log entry: %s', exc)
-            except Exception, exc:
+            except Exception as exc:
                 warnings.warn(u'Unable to process log entry: %s', exc)
             return
 
@@ -573,7 +573,7 @@ class GroupManager(BaseManager, ChartMixin):
 
         try:
             self.add_tags(group, tags)
-        except Exception, e:
+        except Exception as e:
             logger.exception('Unable to record tags: %s' % (e,))
 
         return group, is_new, is_sample
