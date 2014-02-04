@@ -108,6 +108,10 @@ def is_valid_origin(origin, project=None):
 
     parsed = urlparse(origin)
 
+    # There is no hostname, so the header is probably invalid
+    if parsed.hostname is None:
+        return False
+
     for valid in allowed:
         if '://' in valid:
             # Support partial uri matches that may include path
