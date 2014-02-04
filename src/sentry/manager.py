@@ -212,7 +212,11 @@ class GroupManager(BaseManager, ChartMixin):
     def normalize_event_data(self, data):
         # TODO(dcramer): store http.env.REMOTE_ADDR as user.ip
         # First we pull out our top-level (non-data attr) kwargs
-        if not data.get('level') or data['level'] not in LOG_LEVELS:
+        if (
+            not data.get('level') or
+            not isinstance(data['level'], basestring)
+            or data['level'] not in LOG_LEVELS
+        ):
             data['level'] = logging.ERROR
 
         if not data.get('logger'):
