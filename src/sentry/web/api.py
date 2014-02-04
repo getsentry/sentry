@@ -175,15 +175,15 @@ class APIView(BaseView):
             Raven.tags_context({'project': project.id})
 
         origin = self.get_request_origin(request)
-        if origin is not None:
-            if not project:
-                return HttpResponse('Your client must be upgraded for CORS support.')
-            elif not is_valid_origin(origin, project):
-                return HttpResponse('Invalid origin: %r' % origin, content_type='text/plain', status=400)
+        if origin is not None and not project:
+            return HttpResponse('Your client must be upgraded for CORS support.', content_type='text/plain', status=400)
 
         # XXX: It seems that the OPTIONS call does not always include custom headers
         if request.method == 'OPTIONS':
-            response = self.options(request, project)
+            if is_valid_origin(origin, project):
+                response = self.options(request, project)
+            else:
+                return HttpResponse('Invalid origin: %r' % origin, content_type='text/plain', status=400)
         else:
             try:
                 auth_vars = self._parse_header(request, project)
@@ -213,8 +213,11 @@ class APIView(BaseView):
             if auth.version >= 3:
                 if request.method == 'GET':
                     # GET only requires an Origin/Referer check
-                    if origin is None:
-                        return HttpResponse('Missing required Origin or Referer header', status=400)
+                    if not is_valid_origin(origin, project):
+                        if origin is None:
+                            return HttpResponse('Missing required Origin or Referer header', content_type='text/plain', status=400)
+                        else:
+                            return HttpResponse('Invalid origin: %r' % origin, content_type='text/plain', status=400)
                 else:
                     # Version 3 enforces secret key for server side requests
                     if not auth.secret_key:
