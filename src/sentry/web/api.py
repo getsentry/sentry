@@ -13,7 +13,10 @@ from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
 from django.core.urlresolvers import reverse
 from django.db.models import Sum, Q
-from django.http import HttpResponse, HttpResponseForbidden, HttpResponseRedirect
+from django.http import (
+    HttpResponse, HttpResponseBadRequest,
+    HttpResponseForbidden, HttpResponseRedirect,
+)
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 from django.views.decorators.cache import never_cache, cache_control
@@ -31,7 +34,7 @@ from sentry.coreapi import (
     project_from_auth_vars, decode_and_decompress_data,
     safely_load_json_string, validate_data, insert_data_to_database, APIError,
     APIForbidden, APIRateLimited, extract_auth_vars, ensure_has_ip)
-from sentry.exceptions import InvalidData
+from sentry.exceptions import InvalidData, InvalidOrigin, InvalidRequest
 from sentry.models import (
     Group, GroupBookmark, Project, ProjectCountByMinute, TagValue, Activity,
     User)
@@ -125,6 +128,8 @@ class APIView(BaseView):
             origin = self.get_request_origin(request)
 
             response = self._dispatch(request, project_id=project_id, *args, **kwargs)
+        except InvalidRequest as e:
+            response = HttpResponseBadRequest(str(e), content_type='text/plain')
         except Exception:
             response = HttpResponse(status=500)
 
@@ -168,27 +173,27 @@ class APIView(BaseView):
 
         try:
             project = self._get_project_from_id(project_id)
-        except APIError, e:
-            return HttpResponse(str(e), content_type='text/plain', status=400)
+        except APIError as e:
+            raise InvalidRequest(str(e))
 
         if project:
             Raven.tags_context({'project': project.id})
 
         origin = self.get_request_origin(request)
         if origin is not None and not project:
-            return HttpResponse('Your client must be upgraded for CORS support.', content_type='text/plain', status=400)
+            raise InvalidRequest('Your client must be upgraded for CORS support.')
 
         # XXX: It seems that the OPTIONS call does not always include custom headers
         if request.method == 'OPTIONS':
             if is_valid_origin(origin, project):
                 response = self.options(request, project)
             else:
-                return HttpResponse('Invalid origin: %r' % origin, content_type='text/plain', status=400)
+                raise InvalidOrigin(origin)
         else:
             try:
                 auth_vars = self._parse_header(request, project)
-            except APIError, e:
-                return HttpResponse(str(e), content_type='text/plain', status=400)
+            except APIError as e:
+                raise InvalidRequest(str(e))
 
             try:
                 project_, user = project_from_auth_vars(auth_vars)
@@ -201,10 +206,10 @@ class APIView(BaseView):
             # Legacy API was /api/store/ and the project ID was only available elsewhere
             if not project:
                 if not project_:
-                    return HttpResponse('Unable to identify project', content_type='text/plain', status=400)
+                    raise InvalidRequest('Unable to identify project')
                 project = project_
             elif project_ != project:
-                return HttpResponse('Project ID mismatch', content_type='text/plain', status=400)
+                raise InvalidRequest('Project ID mismatch')
             else:
                 Raven.tags_context({'project': project.id})
 
@@ -215,13 +220,13 @@ class APIView(BaseView):
                     # GET only requires an Origin/Referer check
                     if not is_valid_origin(origin, project):
                         if origin is None:
-                            return HttpResponse('Missing required Origin or Referer header', content_type='text/plain', status=400)
+                            raise InvalidRequest('Missing required Origin or Referer header')
                         else:
-                            return HttpResponse('Invalid origin: %r' % origin, content_type='text/plain', status=400)
+                            raise InvalidOrigin(origin)
                 else:
                     # Version 3 enforces secret key for server side requests
                     if not auth.secret_key:
-                        return HttpResponse('Missing required attribute in authentication header: sentry_secret', status=400)
+                        raise InvalidRequest('Missing required attribute in authentication header: sentry_secret')
 
             try:
                 response = super(APIView, self).dispatch(request, project=project, auth=auth, **kwargs)
