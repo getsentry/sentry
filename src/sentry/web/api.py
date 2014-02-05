@@ -180,15 +180,16 @@ class APIView(BaseView):
             Raven.tags_context({'project': project.id})
 
         origin = self.get_request_origin(request)
-        if origin is not None and not project:
-            raise InvalidRequest('Your client must be upgraded for CORS support.')
+        if origin is not None:
+            # This check is specific for clients who need CORS support
+            if not project:
+                raise InvalidRequest('Your client must be upgraded for CORS support.')
+            if not is_valid_origin(origin, project):
+                raise InvalidOrigin(origin)
 
         # XXX: It seems that the OPTIONS call does not always include custom headers
         if request.method == 'OPTIONS':
-            if is_valid_origin(origin, project):
-                response = self.options(request, project)
-            else:
-                raise InvalidOrigin(origin)
+            response = self.options(request, project)
         else:
             try:
                 auth_vars = self._parse_header(request, project)
@@ -218,11 +219,12 @@ class APIView(BaseView):
             if auth.version >= 3:
                 if request.method == 'GET':
                     # GET only requires an Origin/Referer check
-                    if not is_valid_origin(origin, project):
-                        if origin is None:
-                            raise InvalidRequest('Missing required Origin or Referer header')
-                        else:
-                            raise InvalidOrigin(origin)
+                    # If an Origin isn't passed, it's possible that the project allows no origin,
+                    # so we need to explicitly check for that here. If Origin is not None,
+                    # it can be safely assumed that it was checked previously and it's ok.
+                    if origin is None and not is_valid_origin(origin, project):
+                        # Special case an error message for a None origin when None wasn't allowed
+                        raise InvalidRequest('Missing required Origin or Referer header')
                 else:
                     # Version 3 enforces secret key for server side requests
                     if not auth.secret_key:
