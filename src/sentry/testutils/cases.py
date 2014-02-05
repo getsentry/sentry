@@ -116,7 +116,7 @@ class BaseTestCase(Fixtures, Exam):
         )
         return resp
 
-    def _getWithReferer(self, data, key=None, referer='getsentry.com'):
+    def _getWithReferer(self, data, key=None, referer='getsentry.com', protocol='4'):
         if key is None:
             key = self.projectkey.public_key
 
@@ -126,7 +126,7 @@ class BaseTestCase(Fixtures, Exam):
 
         message = self._makeMessage(data)
         qs = {
-            'sentry_version': '4',
+            'sentry_version': protocol,
             'sentry_client': 'raven-js/lol',
             'sentry_key': key,
             'sentry_data': message,
