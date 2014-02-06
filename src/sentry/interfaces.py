@@ -368,8 +368,19 @@ class Frame(object):
         elif self.filename and not self.is_url():
             output.append(remove_filename_outliers(self.filename))
 
+        if self.context_line is None:
+            can_use_context = False
+        elif len(self.context_line) > 120:
+            can_use_context = False
+        # XXX: deal with PHP anonymous functions (used for things like SQL
+        # queries and JSON data)
+        elif self.function and self.function.startswith('[Anonymous'):
+            can_use_context = True
+        else:
+            can_use_context = True
+
         # XXX: hack around what appear to be non-useful lines of context
-        if self.context_line is not None and len(self.context_line) < 120:
+        if can_use_context:
             output.append(self.context_line)
         elif not output:
             # If we were unable to achieve any context at this point
