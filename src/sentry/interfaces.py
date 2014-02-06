@@ -368,7 +368,8 @@ class Frame(object):
         elif self.filename and not self.is_url():
             output.append(remove_filename_outliers(self.filename))
 
-        if self.context_line is not None:
+        # XXX: hack around what appear to be non-useful lines of context
+        if self.context_line is not None and len(self.context_line) < 120:
             output.append(self.context_line)
         elif not output:
             # If we were unable to achieve any context at this point
