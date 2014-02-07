@@ -38,6 +38,7 @@ from sentry.exceptions import InvalidData, InvalidOrigin, InvalidRequest
 from sentry.models import (
     Group, GroupBookmark, Project, ProjectCountByMinute, TagValue, Activity,
     User)
+from sentry.signals import event_received
 from sentry.plugins import plugins
 from sentry.utils import json
 from sentry.utils.cache import cache
@@ -301,6 +302,8 @@ class StoreView(APIView):
         return response
 
     def process(self, request, project, auth, data, **kwargs):
+        event_received.send(ip=request.META['REMOTE_ADDR'])
+
         if safe_execute(app.quotas.is_rate_limited, project=project):
             raise APIRateLimited
         for plugin in plugins.all():
