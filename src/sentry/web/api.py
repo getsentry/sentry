@@ -302,7 +302,7 @@ class StoreView(APIView):
         return response
 
     def process(self, request, project, auth, data, **kwargs):
-        event_received.send(ip=request.META['REMOTE_ADDR'])
+        event_received.send(ip=request.META['REMOTE_ADDR'], sender=type(self))
 
         if safe_execute(app.quotas.is_rate_limited, project=project):
             raise APIRateLimited
