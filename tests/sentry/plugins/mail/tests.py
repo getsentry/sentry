@@ -181,9 +181,22 @@ class MailPluginTest(TestCase):
                 sorted(self.plugin.get_sendable_users(project)))
 
         # disabled user2
-        UserOption.objects.create(key='mail:alert', value=0, project=project, user=user2)
+        UserOption.objects.create(key='mail:alert', value=0,
+                                  project=project, user=user2)
 
         assert user2.pk not in self.plugin.get_sendable_users(project)
+
+        user4 = User.objects.create(username='baz4', email='bar@example.com',
+                                    is_active=True)
+        project.team.member_set.get_or_create(user=user4)
+
+        assert user4.pk in self.plugin.get_sendable_users(project)
+
+        # disabled by default user4
+        UserOption.objects.create(key='subscribe_by_default', value='0',
+                                  project=project, user=user4)
+
+        assert user4.pk not in self.plugin.get_sendable_users(project)
 
     @mock.patch('sentry.plugins.sentry_mail.models.MailPlugin._send_mail')
     def test_on_alert(self, _send_mail):
