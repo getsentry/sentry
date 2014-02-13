@@ -27,8 +27,8 @@
             </ul>
         </div>
         <div class="btn-group pull-right">
-            <a class="btn prev{% if not tag_list.paginator.has_previous %} disabled{% endif %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
-            <a class="btn next{% if not tag_list.paginator.has_next %} disabled{% endif %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+            <a class="btn prev{% if not tag_list.paginator.has_previous %} disabled{% else %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>
+            <a class="btn next{% if not tag_list.paginator.has_next %} disabled{% else %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.next_page }}{% endif %}"><span>{% trans "Next" %}</span></a>
         </div>
     </div>
 
@@ -65,8 +65,8 @@
 
         <div class="btn-toolbar">
             <div class="btn-group pull-right">
-                <a class="btn prev{% if not tag_list.paginator.has_previous %} disabled{% endif %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
-                <a class="btn next{% if not tag_list.paginator.has_next %} disabled{% endif %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+                <a class="btn prev{% if not tag_list.paginator.has_previous %} disabled{% else %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>
+                <a class="btn next{% if not tag_list.paginator.has_next %} disabled{% else %}" href="?{{ tag_list.query_string|escape }}&amp;p={{ tag_list.paginator.next_page }}{% endif %}"><span>{% trans "Next" %}</span></a>
             </div>
         </div>
     {% endif %}

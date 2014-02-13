@@ -84,8 +84,8 @@
              <i aria-hidden="true" class="icon-arrow-down"></i></a>
         </div>
         <div class="btn-group pull-right">
-            <a class="btn prev{% if not event_list.paginator.has_previous %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
-            <a class="btn next{% if not event_list.paginator.has_next %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+            <a class="btn prev{% if not event_list.paginator.has_previous %} disabled{% else %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>
+            <a class="btn next{% if not event_list.paginator.has_next %} disabled{% else %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}{% endif %}"><span>{% trans "Next" %}</span></a>
         </div>
     </div>
 
@@ -140,8 +140,8 @@
 
     <div class="btn-toolbar" style="border-bottom: none">
         <div class="btn-group pull-right">
-            <a class="btn prev{% if not event_list.paginator.has_previous %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
-            <a class="btn next{% if not event_list.paginator.has_next %} disabled{% endif %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+            <a class="btn prev{% if not event_list.paginator.has_previous %} disabled{% else %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>
+            <a class="btn next{% if not event_list.paginator.has_next %} disabled{% else %}" href="?{{ event_list.query_string|escape }}&amp;p={{ event_list.paginator.next_page }}{% endif %}"><span>{% trans "Next" %}</span></a>
         </div>
     </div>
 
