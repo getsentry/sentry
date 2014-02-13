@@ -276,16 +276,18 @@
             });
 
             $('.add-note-btn').click(function(e){
-                var $el = $(this);
+                var $el = $(this),
+                    $form = $('.add-note-form', $el.parent());
 
                 e.preventDefault();
 
                 if ($el.hasClass('selected')) {
                     $el.removeClass('selected');
-                    $('.add-note-form', $el.parent()).addClass('hide');
+                    $form.addClass('hide');
                 } else {
                     $el.addClass('selected');
-                    $('.add-note-form', $el.parent()).removeClass('hide');
+                    $form.removeClass('hide');
+                    $form.find('textarea:first').focus();
                 }
             });
 
