@@ -15,8 +15,8 @@
         <form class="btn-toolbar" method="GET" action="">
             <input type="text" name="tquery" value="{% if team_query %}{{ team_query }}{% endif %}" placeholder="search by team name">
             <div class="btn-group pull-right">
-                <a class="btn prev{% if not team_list.paginator.has_previous %} disabled{% endif %}" href="?{{ team_list.query_string|escape }}&amp;p={{ team_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
-                <a class="btn next{% if not team_list.paginator.has_next %} disabled{% endif %}" href="?{{ team_list.query_string|escape }}&amp;p={{ team_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+                <a class="btn prev{% if not team_list.paginator.has_previous %} disabled{% else %}" href="?{{ team_list.query_string|escape }}&amp;p={{ team_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>
+                <a class="btn next{% if not team_list.paginator.has_next %} disabled{% else %}" href="?{{ team_list.query_string|escape }}&amp;p={{ team_list.paginator.next_page }}{% endif %}"><span>{% trans "Next" %}</span></a>
             </div>
         </form>
 
@@ -70,8 +70,8 @@
 
         <div class="btn-toolbar">
             <div class="btn-group pull-right">
-                <a class="btn prev{% if not team_list.paginator.has_previous %} disabled{% endif %}" href="?{{ team_list.query_string|escape }}&amp;p={{ team_list.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
-                <a class="btn next{% if not team_list.paginator.has_next %} disabled{% endif %}" href="?{{ team_list.query_string|escape }}&amp;p={{ team_list.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+                <a class="btn prev{% if not team_list.paginator.has_previous %} disabled{% else %}" href="?{{ team_list.query_string|escape }}&amp;p={{ team_list.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>
+                <a class="btn next{% if not team_list.paginator.has_next %} disabled{% else %}" href="?{{ team_list.query_string|escape }}&amp;p={{ team_list.paginator.next_page }}{% endif %}"><span>{% trans "Next" %}</span></a>
             </div>
         </div>
     </section>

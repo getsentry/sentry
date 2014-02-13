@@ -26,8 +26,8 @@
             </ul>
         </div>
         <div class="btn-group pull-right">
-            <a class="btn prev{% if not tag_values.paginator.has_previous %} disabled{% endif %}" href="?{{ tag_values.query_string|escape }}&amp;p={{ tag_values.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
-            <a class="btn next{% if not tag_values.paginator.has_next %} disabled{% endif %}" href="?{{ tag_values.query_string|escape }}&amp;p={{ tag_values.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+            <a class="btn prev{% if not tag_values.paginator.has_previous %} disabled{% else %}" href="?{{ tag_values.query_string|escape }}&amp;p={{ tag_values.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>
+            <a class="btn next{% if not tag_values.paginator.has_next %} disabled{% else %}" href="?{{ tag_values.query_string|escape }}&amp;p={{ tag_values.paginator.next_page }}{% endif %}"><span>{% trans "Next" %}</span></a>
         </div>
     </div>
 
@@ -60,8 +60,8 @@
 
         <div class="btn-toolbar">
             <div class="btn-group pull-right">
-                <a class="btn prev{% if not tag_values.paginator.has_previous %} disabled{% endif %}" href="?{{ tag_values.query_string|escape }}&amp;p={{ tag_values.paginator.previous_page }}"><span>{% trans "Previous" %}</span></a>
-                <a class="btn next{% if not tag_values.paginator.has_next %} disabled{% endif %}" href="?{{ tag_values.query_string|escape }}&amp;p={{ tag_values.paginator.next_page }}"><span>{% trans "Next" %}</span></a>
+                <a class="btn prev{% if not tag_values.paginator.has_previous %} disabled{% else %}" href="?{{ tag_values.query_string|escape }}&amp;p={{ tag_values.paginator.previous_page }}{% endif %}"><span>{% trans "Previous" %}</span></a>
+                <a class="btn next{% if not tag_values.paginator.has_next %} disabled{% else %}" href="?{{ tag_values.query_string|escape }}&amp;p={{ tag_values.paginator.next_page }}{% endif %}"><span>{% trans "Next" %}</span></a>
             </div>
         </div>
     {% endif %}
