@@ -589,11 +589,14 @@ class Stacktrace(Interface):
         return output
 
     def get_hash(self):
-        if len(self.frames) == 1:
+        frames = self.frames
+
+        # TODO(dcramer): this should apply only to JS
+        if len(frames) == 1 and frames[0].lineno == '1' and frames[0].function in ('?', None):
             return []
 
         output = []
-        for frame in self.frames:
+        for frame in frames:
             output.extend(frame.get_hash())
         return output
 
