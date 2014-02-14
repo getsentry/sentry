@@ -42,6 +42,9 @@ class GzippedDictField(models.TextField):
         if not value and self.null:
             # save ourselves some storage
             return None
+        # enforce unicode strings to guarantee consistency
+        if isinstance(value, basestring):
+            value = unicode(value)
         return compress(pickle.dumps(value))
 
     def value_to_string(self, obj):
