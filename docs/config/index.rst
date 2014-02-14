@@ -145,6 +145,11 @@ The following settings are available for the built-in webserver:
             'worker_class': 'gevent',
         }
 
+    Note: The logging options of gunicorn is overridden by the default logging
+    configuration of Sentry. In order to reuse loggers from gunicorn, put
+    ``LOGGING['disable_existing_loggers'] = False`` into your configuration
+    file.
+
 .. _config-smtp-server:
 
 SMTP Server
