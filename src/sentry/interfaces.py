@@ -589,6 +589,9 @@ class Stacktrace(Interface):
         return output
 
     def get_hash(self):
+        if len(self.frames) == 1:
+            return []
+
         output = []
         for frame in self.frames:
             output.extend(frame.get_hash())

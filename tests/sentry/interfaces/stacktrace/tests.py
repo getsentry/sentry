@@ -6,7 +6,7 @@ import mock
 
 from exam import fixture
 
-from sentry.interfaces import Stacktrace, Exception
+from sentry.interfaces import Frame, Stacktrace, Exception
 from sentry.models import Event
 from sentry.testutils import TestCase
 
@@ -91,38 +91,38 @@ class StacktraceTest(TestCase):
         assert 'frames' in result
 
     def test_get_hash_with_only_required_vars(self):
-        interface = Stacktrace(frames=[{
+        interface = Frame(**{
             'lineno': 1,
             'filename': 'foo.py',
-        }])
+        })
         result = interface.get_hash()
         self.assertEquals(result, ['foo.py', 1])
 
     def test_get_hash_sanitizes_block_functions(self):
         # This is Ruby specific
-        interface = Stacktrace(frames=[{
+        interface = Frame(**{
             'filename': 'foo.py',
             'function': 'block in _conditional_callback_around_233',
-        }])
+        })
         result = interface.get_hash()
         self.assertEquals(result, ['foo.py', 'block'])
 
     def test_get_hash_sanitizes_versioned_filenames(self):
         # This is Ruby specific
-        interface = Stacktrace(frames=[{
+        interface = Frame(**{
             'filename': '/data/foo/releases/20140114151955/app/views/foo.html.erb',
             'context_line': '<% if @hotels.size > 0 %>',
-        }])
+        })
         result = interface.get_hash()
         self.assertEquals(result, [
             '/data/foo/releases/<version>/app/views/foo.html.erb',
             '<% if @hotels.size > 0 %>',
         ])
 
-        interface = Stacktrace(frames=[{
+        interface = Frame(**{
             'filename': '20140114151955/app/views/foo.html.erb',
             'context_line': '<% if @hotels.size > 0 %>',
-        }])
+        })
         result = interface.get_hash()
         self.assertEquals(result, [
             '<version>/app/views/foo.html.erb',
@@ -131,65 +131,65 @@ class StacktraceTest(TestCase):
 
     def test_get_hash_sanitizes_erb_templates(self):
         # This is Ruby specific
-        interface = Stacktrace(frames=[{
+        interface = Frame(**{
             'filename': 'foo.html.erb',
             'function': '_foo_html_erb__3327151541118998292_70361296749460',
-        }])
+        })
         result = interface.get_hash()
         self.assertEquals(result, [
             'foo.html.erb', '_foo_html_erb__<anon>_<anon>',
         ])
 
     def test_get_hash_ignores_filename_if_http(self):
-        interface = Stacktrace(frames=[{
+        interface = Frame(**{
             'context_line': 'hello world',
             'filename': 'http://foo.com/foo.py',
-        }])
+        })
         result = interface.get_hash()
         self.assertEquals(result, ['hello world'])
 
     def test_get_hash_ignores_filename_if_https(self):
-        interface = Stacktrace(frames=[{
+        interface = Frame(**{
             'context_line': 'hello world',
             'filename': 'https://foo.com/foo.py',
-        }])
+        })
         result = interface.get_hash()
         self.assertEquals(result, ['hello world'])
 
     def test_get_hash_ignores_filename_if_abs_path_is_http(self):
-        interface = Stacktrace(frames=[{
+        interface = Frame(**{
             'context_line': 'hello world',
             'abs_path': 'https://foo.com/foo.py',
             'filename': 'foo.py',
-        }])
+        })
         result = interface.get_hash()
         self.assertEquals(result, ['hello world'])
 
     def test_get_hash_uses_module_over_filename(self):
-        interface = Stacktrace(frames=[{
+        interface = Frame(**{
             'lineno': 1,
             'filename': 'foo.py',
             'module': 'foo'
-        }])
+        })
         result = interface.get_hash()
         self.assertEquals(result, ['foo', 1])
 
     def test_get_hash_uses_function_over_lineno(self):
-        interface = Stacktrace(frames=[{
+        interface = Frame(**{
             'lineno': 1,
             'filename': 'foo.py',
             'function': 'bar'
-        }])
+        })
         result = interface.get_hash()
         self.assertEquals(result, ['foo.py', 'bar'])
 
     def test_get_hash_uses_context_line_over_function(self):
-        interface = Stacktrace(frames=[{
+        interface = Frame(**{
             'context_line': 'foo bar',
             'lineno': 1,
             'filename': 'foo.py',
             'function': 'bar'
-        }])
+        })
         result = interface.get_hash()
         self.assertEquals(result, ['foo.py', 'foo bar'])
 
