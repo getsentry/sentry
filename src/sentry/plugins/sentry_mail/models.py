@@ -71,7 +71,8 @@ class MailPlugin(NotificationPlugin):
 
     def on_alert(self, alert):
         project = alert.project
-        subject = '[{0}] ALERT: {1}'.format(
+        subject = '[{0} {1}] ALERT: {2}'.format(
+            project.team.name.encode('utf-8'),
             project.name.encode('utf-8'),
             alert.message.encode('utf-8'),
         )
