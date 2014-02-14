@@ -43,7 +43,7 @@ class GzippedDictField(models.TextField):
             # save ourselves some storage
             return None
         # enforce unicode strings to guarantee consistency
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             value = unicode(value)
         return compress(pickle.dumps(value))
 
