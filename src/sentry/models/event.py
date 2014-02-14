@@ -192,7 +192,8 @@ class Event(Model):
         return len(unicode(vars(self)))
 
     def get_email_subject(self):
-        return '[%s] %s: %s' % (
+        return '[%s %s] %s: %s' % (
+            self.team.name.encode('utf-8'),
             self.project.name.encode('utf-8'),
             unicode(self.get_level_display()).upper().encode('utf-8'),
             self.error().encode('utf-8').splitlines()[0])
