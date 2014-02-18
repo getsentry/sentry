@@ -589,19 +589,21 @@ h3 {
     .nav.counted-list {
       margin-bottom: 8px;
       list-style: none;
+
       &.counted-list {
         margin: 0 -45px 17px;
         li {
           position: relative;
           padding: 0 30px;
           a {
-            display: inline;
             padding: 0;
             margin: 0;
             word-break: break-all;
           }
-          .count {
-            padding-right: 5px;
+          .progressbar {
+            padding: 5px 0;
+            > div {
+            }
           }
         }
       }
@@ -796,13 +798,17 @@ ul.tag-list {
     margin-bottom: 5px;
     position: relative;
 
+    .progressbar {
+      padding: 5px 0;
+    }
+
     &:nth-child(even) {
       background: #f9f9f9;
     }
 
     span {
       position: absolute;
-      right: 0;
+      right: 10px;
     }
   }
 }
@@ -817,7 +823,6 @@ a.icon-share {
 }
 .progressbar {
   position: relative;
-  border: 1px solid lighten(@linkColor, 30%);
   min-height: 1.5em;
   line-height: 1.5em;
 
@@ -831,16 +836,23 @@ a.icon-share {
     position: absolute;
   }
 
+  > div {
+    .border-radius(4px);
+  }
+
   > a {
     left: 5px;
     position: relative;
     z-index: 1;
     padding-right: 60px;
     display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 
     span {
       position: absolute;
-      right: 5px;
+      right: 10px;
     }
   }
 
