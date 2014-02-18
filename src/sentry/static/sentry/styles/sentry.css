@@ -7096,7 +7096,7 @@ h3 {
 }
 #content .sidebar .nav.nav-tabs.nav-stacked.counted-list li a,
 #content .sidebar .nav.counted-list.counted-list li a {
-  padding: 0;
+  padding: 0 50px 0 0;
   margin: 0;
   word-break: break-all;
 }

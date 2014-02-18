@@ -7096,14 +7096,13 @@ h3 {
 }
 #content .sidebar .nav.nav-tabs.nav-stacked.counted-list li a,
 #content .sidebar .nav.counted-list.counted-list li a {
-  display: inline;
-  padding: 0;
+  padding: 0 50px 0 0;
   margin: 0;
   word-break: break-all;
 }
-#content .sidebar .nav.nav-tabs.nav-stacked.counted-list li .count,
-#content .sidebar .nav.counted-list.counted-list li .count {
-  padding-right: 5px;
+#content .sidebar .nav.nav-tabs.nav-stacked.counted-list li .progressbar,
+#content .sidebar .nav.counted-list.counted-list li .progressbar {
+  padding: 5px 0;
 }
 #content .sidebar .nav.nav-tabs.nav-stacked li,
 #content .sidebar .nav.counted-list li {
@@ -7318,6 +7317,17 @@ ul.tag-list {
 }
 ul.tag-list li {
   margin-bottom: 5px;
+  position: relative;
+}
+ul.tag-list li .progressbar {
+  padding: 5px 0;
+}
+ul.tag-list li:nth-child(even) {
+  background: #f9f9f9;
+}
+ul.tag-list li span {
+  position: absolute;
+  right: 10px;
 }
 a.icon-share {
   margin-top: 1px;
@@ -7331,7 +7341,6 @@ a.icon-share:hover {
 }
 .progressbar {
   position: relative;
-  border: 1px solid #ffffff;
   min-height: 1.5em;
   line-height: 1.5em;
 }
@@ -7344,16 +7353,24 @@ a.icon-share:hover {
   max-width: 100%;
   position: absolute;
 }
+.progressbar > div {
+  -webkit-border-radius: 4px;
+  -moz-border-radius: 4px;
+  border-radius: 4px;
+}
 .progressbar > a {
   left: 5px;
   position: relative;
   z-index: 1;
   padding-right: 60px;
   display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .progressbar > a span {
   position: absolute;
-  right: 5px;
+  right: 10px;
 }
 .progressbar > div {
   background-color: #ffffff;
