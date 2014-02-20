@@ -10,7 +10,7 @@ from optparse import make_option
 
 
 class Command(BaseCommand):
-    help = 'Performs any pending database migrations and upgrades'
+    help = 'Deletes a portion of trailing data based on creation date'
 
     option_list = BaseCommand.option_list + (
         make_option('--days', default='30', type=int, help='Numbers of days to truncate on.'),
