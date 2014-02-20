@@ -388,15 +388,6 @@ First pop open your ``sentry.conf.py``, and add the following to the **very top*
 
 Now you'll have access to all of the default settings (Django and Sentry) to modify at your own will.
 
-If you're running in the public domain, we highly recommend looking into `django-secure <http://pypi.python.org/pypi/django-secure>`_
-and `django-bcrypt <http://pypi.python.org/pypi/django-bcrypt>`_ to lock down your installation with a little bit more
-security. For example, to change the password storage to bcrypt (rather than the Django default), you would add the
-following to your ``sentry.conf.py``::
-
-  INSTALLED_APPS = INSTALLED_APPS + (
-      'django_bcrypt',
-  )
-
 Configuring Memcache
 ~~~~~~~~~~~~~~~~~~~~
 
