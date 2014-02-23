@@ -2,4 +2,8 @@ from django.core.management.commands.runserver import Command as RunserverComman
 
 
 class Command(RunserverCommand):
-    help = "Starts a lightweight Web server for development and also serves static files."
+    """
+    ALmost identical to the built-in runserver except that we don't hijack
+    static files.
+    """
+    help = "Starts a lightweight Web server for development"
