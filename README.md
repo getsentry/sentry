@@ -1,9 +1,9 @@
 Sentry
 ======
 
-[![Travis   ](https://secure.travis-ci.org/getsentry/sentry.png?branch=master)    ](https://travis-ci.org/getsentry/sentry)
-[![Coveralls](https://coveralls.io/repos/getsentry/sentry/badge.png?branch=master)](https://coveralls.io/r/getsentry/sentry?branch=master)
-[![BitDeli  ](https://d2weczhvl823v0.cloudfront.net/getsentry/sentry/trend.png)   ](https://bitdeli.com/free)
+[![Travis   ](https://img.shields.io/travis/getsentry/sentry/master.svg)       ](https://travis-ci.org/getsentry/sentry)
+[![Coveralls](https://img.shields.io/coveralls/getsentry/sentry/master.svg)    ](https://coveralls.io/r/getsentry/sentry?branch=master)
+[![BitDeli  ](https://d2weczhvl823v0.cloudfront.net/getsentry/sentry/trend.png)](https://bitdeli.com/free)
 
 Sentry is a realtime event logging and aggregation platform. It specializes
 in monitoring errors and extracting all the information needed to do a proper
