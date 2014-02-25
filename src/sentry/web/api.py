@@ -304,10 +304,12 @@ class StoreView(APIView):
     def process(self, request, project, auth, data, **kwargs):
         event_received.send(ip=request.META['REMOTE_ADDR'], sender=type(self))
 
-        if safe_execute(app.quotas.is_rate_limited, project=project):
-            raise APIRateLimited
+        is_rate_limited = safe_execute(app.quotas.is_rate_limited, project=project)
         for plugin in plugins.all():
             if safe_execute(plugin.is_rate_limited, project=project):
+                is_rate_limited = True
+
+        if is_rate_limited:
                 raise APIRateLimited
 
         result = plugins.first('has_perm', request.user, 'create_event', project)
