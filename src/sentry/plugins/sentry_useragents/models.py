@@ -80,7 +80,7 @@ class OsPlugin(UserAgentPlugin):
             # Linux
             tag = ua['os']['name']
             if 'version' in ua['os']:
-                tag += ' ' + ua['version']
+                tag += ' ' + ua['os']['version']
             elif 'dist' in ua:
                 # Ubuntu
                 tag += ua['dist']['name']
