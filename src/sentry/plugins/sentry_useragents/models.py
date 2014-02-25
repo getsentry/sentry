@@ -75,7 +75,7 @@ class OsPlugin(UserAgentPlugin):
         if 'flavor' in ua:
             tag = ua['flavor']['name']
             if 'version' in ua['flavor']:
-                tag += ' ' + ua['version']
+                tag += ' ' + ua['flavor']['version']
         elif 'os' in ua:
             # Linux
             tag = ua['os']['name']
