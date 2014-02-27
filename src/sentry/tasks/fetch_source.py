@@ -18,6 +18,7 @@ from collections import namedtuple
 from simplejson import JSONDecodeError
 from urlparse import urljoin, urlsplit
 
+from django.conf import settings
 from sentry.constants import SOURCE_FETCH_TIMEOUT, MAX_CULPRIT_LENGTH
 from sentry.utils.cache import cache
 from sentry.utils.sourcemaps import sourcemap_to_index, find_source
@@ -106,6 +107,26 @@ def discover_sourcemap(result):
     if sourcemap:
         # fix url so its absolute
         sourcemap = urljoin(result.url, sourcemap)
+
+    if not sourcemap and settings.JS_SOURCEMAPS_USE_LOCAL:
+        url_params = urlsplit(result.url)
+        net_location = url_params.netloc
+        if net_location in settings.JS_SOURCEMAPS_ALLOWED_HOSTS:
+            script_path = url_params.path
+            sourcemap_data = settings.JS_SOURCEMAPS_CONFIG.get((net_location, script_path), None)
+            if sourcemap_data is not None:
+                sourcemap = sourcemap_data
+
+            if not sourcemap:
+                sourcemap_data = settings.JS_SOURCEMAPS_CONFIG.get((net_location, ''), None)
+                if sourcemap_data is not None:
+                    maps_path = sourcemap_data.get('maps_path', '')
+                    map_suffix = sourcemap_data.get('map_suffix', '')
+                    sourcemap_data['map'] = urljoin(maps_path, script_path.lstrip('/') + map_suffix)
+                    sourcemap = sourcemap_data
+
+            if sourcemap is not None:
+                logger.debug('Found local sourcemap %r for %r', sourcemap.get('map', ''), url_params.path)
 
     return sourcemap
 
@@ -198,6 +219,14 @@ def is_data_uri(url):
     return url[:BASE64_PREAMBLE_LENGTH] == BASE64_SOURCEMAP_PREAMBLE
 
 
+def get_script_source_path(sourcemap_data, sourcemap, source):
+    if settings.JS_SOURCEMAPS_USE_LOCAL and isinstance(sourcemap_data, dict):
+        next_filename = urljoin(sourcemap_data.get('src', ''), (source or '').lstrip('/'))
+    else:
+        next_filename = urljoin(sourcemap, source)
+    return next_filename
+
+
 def expand_javascript_source(data, **kwargs):
     """
     Attempt to fetch source code for javascript frames.
@@ -268,7 +297,11 @@ def expand_javascript_source(data, **kwargs):
             source_code[filename] = (result.body.splitlines(), None)
             continue
 
-        sourcemap = discover_sourcemap(result)
+        sourcemap_data = discover_sourcemap(result)
+        if settings.JS_SOURCEMAPS_USE_LOCAL and isinstance(sourcemap_data, dict):
+            sourcemap = sourcemap_data.get('map', '')
+        else:
+            sourcemap = sourcemap_data
 
         # TODO: we're currently running splitlines twice
         if not sourcemap:
@@ -293,13 +326,13 @@ def expand_javascript_source(data, **kwargs):
             continue
 
         if is_data_uri(sourcemap):
-            sourmap_idxs[sourcemap_key] = (index, result.url)
+            sourmap_idxs[sourcemap_key] = (index, result.url, None)
         else:
-            sourmap_idxs[sourcemap_key] = (index, sourcemap)
+            sourmap_idxs[sourcemap_key] = (index, sourcemap, sourcemap_data)
 
         # queue up additional source files for download
         for source in index.sources:
-            next_filename = urljoin(sourcemap, source)
+            next_filename = get_script_source_path(sourcemap_data, sourcemap, source)
             if next_filename not in done_file_list:
                 if index.content:
                     source_code[next_filename] = (index.content[source], None)
@@ -319,10 +352,10 @@ def expand_javascript_source(data, **kwargs):
 
         # may have had a failure pulling down the sourcemap previously
         if sourcemap in sourmap_idxs and frame.colno is not None:
-            index, relative_to = sourmap_idxs[sourcemap]
+            index, relative_to, sourcemap_data = sourmap_idxs[sourcemap]
             last_state = state
             state = find_source(index, frame.lineno, frame.colno)
-            abs_path = urljoin(relative_to, state.src)
+            abs_path = get_script_source_path(sourcemap_data, relative_to, state.src)
             logger.debug('Mapping compressed source %r to mapping in %r', frame.abs_path, abs_path)
             try:
                 source, _ = source_code[abs_path]
@@ -348,7 +381,10 @@ def expand_javascript_source(data, **kwargs):
                 # The offending function is always the previous function in the stack
                 # Honestly, no idea what the bottom most frame is, so we're ignoring that atm
                 frame.function = last_state.name if last_state else state.name
-                frame.abs_path = abs_path
+                if settings.JS_SOURCEMAPS_USE_LOCAL and isinstance(sourcemap_data, dict):
+                    frame.abs_path = state.src
+                else:
+                    frame.abs_path = abs_path
                 frame.filename = state.src
                 frame.module = generate_module(state.src) or '<unknown module>'
         elif sourcemap in sourmap_idxs:

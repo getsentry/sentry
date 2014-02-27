@@ -606,3 +606,47 @@ SENTRY_GRAVATAR_BASE_URL = 'https://secure.gravatar.com'
 # Configure celery
 import djcelery
 djcelery.setup_loader()
+
+
+# Local source maps for JavaScript
+
+# Use local source maps?
+JS_SOURCEMAPS_USE_LOCAL = False
+
+# Allow to search local source maps for hosts listed in JS_LOCAL_HOSTS
+JS_SOURCEMAPS_ALLOWED_HOSTS = []
+# JS_SOURCEMAPS_ALLOWED_HOSTS = [
+#     'www.your-domain.com',
+#     'your-domain.com:8000'
+# ]
+
+# Local source maps config
+JS_SOURCEMAPS_CONFIG = {}
+# Structure:
+#   JS_LOCAL_SOURCE_MAPS = {
+#       # Specific minified file from host
+#       ('your-domain.com', '/static/js/scripts.min.js'): {
+#           # Path to sourcemap
+#           'map': 'file:///secret/path/to/scripts.min.js.map',
+#
+#           # Path to sources (with trailing slash)
+#           'src': 'file:///secret/path/to/sources/',
+#           # Uncompressed file name will be:
+#           #    'file:///secret/path/to/sources/static/js/scripts.min.js'
+#       },
+#
+#       # Any minified files from host
+#       ('your-domain.com', ''): {
+#           # Path to sourcemaps root
+#           'maps_path': 'file:///secret/path/to/sorcemaps/',
+#
+#           # Sourcemap filename suffix
+#           'map_suffix': '.map',
+#
+#           # Sourcemap filename will be '{maps_path}{script_path}{map_suffix}'
+#           # where {script_path} is absolute script path without leading slash
+#
+#           # Path to sources (with trailing slash)
+#           'src': 'file:///secret/path/to/sources/',
+#       },
+#   }
