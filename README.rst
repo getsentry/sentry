@@ -4,9 +4,6 @@ Sentry
 .. image:: https://secure.travis-ci.org/getsentry/sentry.png?branch=master
    :target: http://travis-ci.org/getsentry/sentry
 
-.. image:: https://coveralls.io/repos/getsentry/sentry/badge.png?branch=master
-   :target: https://coveralls.io/r/getsentry/sentry?branch=master
-
 .. image:: https://d2weczhvl823v0.cloudfront.net/getsentry/sentry/trend.png
    :target: https://bitdeli.com/free
 
