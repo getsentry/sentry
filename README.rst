@@ -4,9 +4,6 @@ Sentry
 .. image:: https://secure.travis-ci.org/getsentry/sentry.png?branch=master
    :target: http://travis-ci.org/getsentry/sentry
 
-.. image:: https://d2weczhvl823v0.cloudfront.net/getsentry/sentry/trend.png
-   :target: https://bitdeli.com/free
-
 
 Sentry is a realtime event logging and aggregation platform. It specializes
 in monitoring errors and extracting all the information needed to do a proper
