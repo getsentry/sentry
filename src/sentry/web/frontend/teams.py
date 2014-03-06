@@ -104,6 +104,9 @@ def manage_team(request, team):
                     'type': MEMBER_OWNER,
                 }
             )
+            team.project_set.update(
+                owner=team.owner,
+            )
 
         messages.add_message(request, messages.SUCCESS,
             _('Changes to your team were saved.'))
