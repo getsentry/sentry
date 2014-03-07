@@ -8,8 +8,9 @@ sentry.tsdb.backend
 
 from collections import defaultdict
 from django.conf import settings
+from django.utils import timezone
+from enum import Enum
 from nydus.db import create_cluster
-# from enum import Enum
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -25,13 +26,13 @@ ROLLUPS = (
 )
 
 
-# class TimeSeriesModel(Enum):
-#     project = 1
-#     project_tag_key = 2
-#     project_tag_value = 3
-#     group = 4
-#     group_tag_key = 5
-#     group_tag_value = 6
+class TSDBModel(Enum):
+    project = 1
+    project_tag_key = 2
+    project_tag_value = 3
+    group = 4
+    group_tag_key = 5
+    group_tag_value = 6
 
 
 class RedisTSDB(object):
@@ -72,7 +73,7 @@ class RedisTSDB(object):
         return ROLLUPS[-1][0]
 
     def make_key(self, model, epoch):
-        return '{0}:{1}'.format(self.prefix, model.id)
+        return '{0}:{1}:{2}'.format(self.prefix, model.value, epoch)
 
     def incr(self, model, key, timestamp=None, count=1):
         self.incr_multi([(model, key)], timestamp, count)
@@ -85,6 +86,8 @@ class RedisTSDB(object):
         """
         make_key = self.make_key
         normalize_to_epoch = self.normalize_to_epoch
+        if timestamp is None:
+            timestamp = timezone.now()
 
         with self.conn.map() as conn:
             for rollup, max_values in ROLLUPS:
@@ -95,7 +98,7 @@ class RedisTSDB(object):
                     conn.hincrby(hash_key, key, count)
                     conn.expire(hash_key, rollup * max_values)
 
-    def get_keys(self, model, keys, start, end, rollup=None):
+    def get_range(self, model, keys, start, end, rollup=None):
         """
         To get a range of data for group ID=[1, 2, 3]:
 
@@ -115,19 +118,19 @@ class RedisTSDB(object):
         end_epoch = normalize_to_epoch(end, rollup)
 
         hash_keys = []
-        for x in range(start_epoch, end_epoch, rollup):
+        for x in range(start_epoch, end_epoch + 1, rollup):
             hash_keys.append((x, make_key(model, x)))
 
         results = []
         with self.conn.map() as conn:
             for epoch, hash_key in hash_keys:
-                results.append((epoch, conn.hmget(hash_key, *keys)))
+                results.append((epoch, keys, conn.hmget(hash_key, *keys)))
 
-        results_by_key = defaultdict(int)
-        for epoch, data in results:
-            for key, count in data.iteritems():
+        results_by_key = defaultdict(dict)
+        for epoch, keys, data in results:
+            for key, count in zip(keys, data):
                 results_by_key[key][epoch] = int(count)
 
         for key, points in results_by_key.iteritems():
-            results_by_key[key] = sorted(points.values())
+            results_by_key[key] = sorted(points.items())
         return results_by_key
