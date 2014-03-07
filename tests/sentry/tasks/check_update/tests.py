@@ -4,7 +4,8 @@ import mock
 
 from sentry.plugins.helpers import get_option, set_option
 from sentry.testutils import TestCase
-from sentry.models import set_sentry_version, Option
+from sentry.models import Option
+from sentry.receivers import set_sentry_version
 from sentry.tasks.check_update import check_update, PYPI_URL
 
 
