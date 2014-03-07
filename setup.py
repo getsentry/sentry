@@ -59,7 +59,6 @@ tests_require = [
     'python-coveralls',
     'nydus',
     'mock>=0.8.0',
-    'redis',
     'riak',
     'unittest2',
 ]
