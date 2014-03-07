@@ -70,3 +70,6 @@ def pytest_configure(config):
     settings.SENTRY_ENABLE_EMAIL_REPLIES = True
 
     settings.SENTRY_ALLOW_ORIGIN = '*'
+
+    from sentry.utils.runner import initialize_receivers
+    initialize_receivers()
