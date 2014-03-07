@@ -6,12 +6,16 @@ sentry.utils.runner
 :copyright: (c) 2012 by the Sentry Team, see AUTHORS for more details.
 :license: BSD, see LICENSE for more details.
 """
+from __future__ import absolute_import
+
 from logan.runner import run_app, configure_app
 
 import base64
 import os
 import pkg_resources
 import warnings
+
+USE_GEVENT = os.environ.get('USE_GEVENT')
 
 KEY_LENGTH = 40
 
@@ -222,9 +226,26 @@ def initialize_receivers():
     import sentry.receivers  # NOQA
 
 
+def initialize_gevent():
+    from gevent import monkey
+    monkey.patch_all()
+
+    try:
+        import psycopg2  # NOQA
+    except ImportError:
+        pass
+    else:
+        from sentry.utils.gevent import make_psycopg_green
+        make_psycopg_green()
+
+
 def initialize_app(config):
     from django.utils import timezone
     from sentry.app import env
+
+    if USE_GEVENT:
+        from django.db import connections
+        connections['default'].allow_thread_sharing = True
 
     env.data['config'] = config.get('config_path')
     env.data['start_date'] = timezone.now()
@@ -308,6 +329,10 @@ def configure():
 
 
 def main():
+    if USE_GEVENT:
+        print "Configuring Sentry with gevent bindings"
+        initialize_gevent()
+
     run_app(
         project='sentry',
         default_config_path='~/.sentry/sentry.conf.py',
