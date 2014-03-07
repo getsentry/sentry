@@ -1,4 +1,5 @@
 from django.conf import settings
+import mock
 import os
 import os.path
 
@@ -70,6 +71,11 @@ def pytest_configure(config):
     settings.SENTRY_ENABLE_EMAIL_REPLIES = True
 
     settings.SENTRY_ALLOW_ORIGIN = '*'
+
+    # django mail uses socket.getfqdn which doesnt play nice if our
+    # networking isnt stable
+    patcher = mock.patch('socket.getfqdn', return_value='localhost')
+    patcher.start()
 
     from sentry.utils.runner import initialize_receivers
     initialize_receivers()
