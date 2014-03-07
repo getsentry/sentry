@@ -217,6 +217,11 @@ def install_plugins(settings):
             register(plugin)
 
 
+def initialize_receivers():
+    # force signal registration
+    import sentry.receivers  # NOQA
+
+
 def initialize_app(config):
     from django.utils import timezone
     from sentry.app import env
@@ -232,6 +237,8 @@ def initialize_app(config):
         config['settings'], 'social_auth', 'social_auth_association')
 
     apply_legacy_settings(config)
+
+    initialize_receivers()
 
 
 def apply_legacy_settings(config):

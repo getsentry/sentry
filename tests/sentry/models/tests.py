@@ -5,7 +5,6 @@ from __future__ import absolute_import
 import mock
 
 from datetime import timedelta
-from django.conf import settings
 from django.core import mail
 from django.core.urlresolvers import reverse
 from django.db import connection
@@ -17,7 +16,7 @@ from sentry.db.models.fields.node import NodeData
 from sentry.models import (
     Project, ProjectKey, Group, Event, Team,
     GroupTagValue, GroupCountByMinute, TagValue, PendingTeamMember,
-    LostPasswordHash, Alert, User, create_default_project)
+    LostPasswordHash, Alert, User)
 from sentry.testutils import TestCase
 from sentry.utils.compat import pickle
 from sentry.utils.strings import compress
@@ -154,28 +153,6 @@ class GroupIsOverResolveAgeTest(TestCase):
         assert group.is_over_resolve_age() is True
         group.last_seen = timezone.now()
         assert group.is_over_resolve_age() is False
-
-
-class CreateDefaultProjectTest(TestCase):
-    def test_simple(self):
-        user, _ = User.objects.get_or_create(is_superuser=True, defaults={
-            'username': 'test'
-        })
-        Team.objects.filter(project__id=settings.SENTRY_PROJECT).delete()
-        Project.objects.filter(id=settings.SENTRY_PROJECT).delete()
-
-        create_default_project(created_models=[Project])
-
-        project = Project.objects.filter(id=settings.SENTRY_PROJECT)
-        assert project.exists() is True
-        project = project.get()
-        assert project.owner == user
-        assert project.public is False
-        assert project.name == 'Sentry (Internal)'
-        assert project.slug == 'sentry'
-        team = project.team
-        assert team.owner == user
-        assert team.slug == 'sentry'
 
 
 class EventNodeStoreTest(TestCase):

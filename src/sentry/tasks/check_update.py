@@ -26,7 +26,7 @@ def check_update():
     """
     Daily retrieving latest available Sentry version from PyPI
     """
-    from sentry.models import set_sentry_version
+    from sentry.receivers import set_sentry_version
 
     result = fetch_url_content(PYPI_URL)
 
