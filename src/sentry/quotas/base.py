@@ -16,14 +16,11 @@ class Quota(object):
     respond whether or not a project has been configured to throttle incoming
     events if they go beyond the specified quota.
     """
-    def __init__(self, **options):
-        pass
-
     def is_rate_limited(self, project):
         return False
 
     def translate_quota(self, quota, parent_quota):
-        if quota.endswith('%'):
+        if quota[-1:] == '%':
             pct = int(quota[:-1])
             quota = parent_quota * pct / 100
         return int(quota or 0)

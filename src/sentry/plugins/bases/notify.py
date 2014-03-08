@@ -7,8 +7,10 @@ sentry.plugins.bases.notify
 """
 from django import forms
 from django.utils.translation import ugettext_lazy as _
-from sentry.plugins import Plugin
+from sentry.plugins import Plugin, RateLimitingMixin
 from sentry.models import UserOption, AccessGroup
+
+import time
 
 
 class NotificationConfigurationForm(forms.Form):
@@ -37,7 +39,7 @@ class Message(object):
         self.long = long
 
 
-class NotificationPlugin(Plugin):
+class NotificationPlugin(RateLimitingMixin, Plugin):
     description = _('Notify project members when a new event is seen for the first time, or when an '
                     'already resolved event has changed back to unresolved.')
     # site_conf_form = NotificationConfigurationForm
@@ -45,6 +47,18 @@ class NotificationPlugin(Plugin):
 
     def notify_users(self, group, event, fail_silently=False):
         raise NotImplementedError
+
+    def get_project_quota(self, project):
+        """
+        Default to 100/minute per project
+        """
+        return 100
+
+    def get_project_key(self, project):
+        """
+        This implements per plugin and per project rate limiting
+        """
+        return 'notify:%s:p:%s:%s' % (type(self).__name__, project.id, int(time.time() / 60))
 
     def get_sendable_users(self, project):
         conf_key = self.get_conf_key()
@@ -96,7 +110,8 @@ class NotificationPlugin(Plugin):
                 return False
             if not any(v in allowed_tags.get(k, ()) for k, v in tags):
                 return False
-        return True
+
+        return not self.is_rate_limited(project)
 
     ## plugin hooks
 
