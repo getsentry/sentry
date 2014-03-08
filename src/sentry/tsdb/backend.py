@@ -129,7 +129,7 @@ class RedisTSDB(object):
         results_by_key = defaultdict(dict)
         for epoch, keys, data in results:
             for key, count in zip(keys, data):
-                results_by_key[key][epoch] = int(count)
+                results_by_key[key][epoch] = int(count or 0)
 
         for key, points in results_by_key.iteritems():
             results_by_key[key] = sorted(points.items())
