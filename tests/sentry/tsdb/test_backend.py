@@ -3,14 +3,22 @@ import pytz
 from datetime import datetime, timedelta
 
 from sentry.testutils import TestCase
-from sentry.tsdb.backend import RedisTSDB, TSDBModel
+from sentry.tsdb.backend import (
+    RedisTSDB, TSDBModel, ONE_MINUTE, ONE_HOUR, ONE_DAY
+)
 
 
 class RedisTSDBTest(TestCase):
     def setUp(self):
         self.db = RedisTSDB(hosts={
             0: {'db': 9}
-        })
+        }, rollups=(
+            # time in seconds, samples to keep
+            (10, 30),  # 5 minutes at 10 seconds
+            (ONE_MINUTE, 120),  # 2 hours at 1 minute
+            (ONE_HOUR, 24),  # 1 days at 1 hour
+            (ONE_DAY, 30),  # 30 days at 1 day
+        ))
         self.db.conn.flushdb()
 
     def test_normalize_to_epoch(self):
