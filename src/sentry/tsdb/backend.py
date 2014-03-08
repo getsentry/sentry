@@ -19,10 +19,10 @@ ONE_DAY = ONE_HOUR * 24
 
 ROLLUPS = (
     # time in seconds, samples to keep
-    (10, 30),  # 5 minutes at 10 seconds
-    (ONE_MINUTE, 120),  # 2 hours at 1 minute
-    (ONE_HOUR, 48),  # 2 days at 1 hour
-    (ONE_DAY, 365),  # 1 year at 1 day
+    # (10, 30),  # 5 minutes at 10 seconds
+    # (ONE_MINUTE, 120),  # 2 hours at 1 minute
+    (ONE_HOUR, 24),  # 1 days at 1 hour
+    (ONE_DAY, 30),  # 30 days at 1 day
 )
 
 
@@ -58,7 +58,7 @@ class RedisTSDB(object):
         }
     }
     """
-    def __init__(self, **options):
+    def __init__(self, rollups=ROLLUPS, **options):
         if not options:
             # inherit default options from REDIS_OPTIONS
             options = settings.SENTRY_REDIS_OPTIONS
@@ -72,6 +72,7 @@ class RedisTSDB(object):
             'router': options['router'],
             'hosts': options['hosts'],
         })
+        self.rollups = rollups
         self.prefix = options.get('prefix', 'ts:')
 
     def normalize_to_epoch(self, timestamp, seconds):
@@ -89,10 +90,10 @@ class RedisTSDB(object):
         num_seconds = int(end_timestamp.strftime('%s')) - int(start_timestamp.strftime('%s'))
 
         # calculate the highest rollup within time range
-        for rollup, samples in ROLLUPS:
+        for rollup, samples in self.rollups:
             if rollup * samples >= num_seconds:
                 return rollup
-        return ROLLUPS[-1][0]
+        return self.rollups[-1][0]
 
     def make_key(self, model, epoch):
         return '{0}:{1}:{2}'.format(self.prefix, model.value, epoch)
@@ -112,7 +113,7 @@ class RedisTSDB(object):
             timestamp = timezone.now()
 
         with self.conn.map() as conn:
-            for rollup, max_values in ROLLUPS:
+            for rollup, max_values in self.rollups:
                 epoch = normalize_to_epoch(timestamp, rollup)
 
                 for model, key in items:
