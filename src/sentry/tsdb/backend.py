@@ -36,6 +36,28 @@ class TSDBModel(Enum):
 
 
 class RedisTSDB(object):
+    """
+    A time series storage implementation which maps types + normalized epochs
+    to hash buckets.
+
+    Since each hash keyspace is an epoch, TTLs are applied to the entire bucket.
+
+    This ends up looking something like the following inside of Redis:
+
+    {
+        "TSDBModel:epoch": {
+            "Key": Count
+        }
+    }
+
+    In our case, this translates to:
+
+    {
+        "Group:epoch": {
+            "GroupID": Count
+        }
+    }
+    """
     def __init__(self, **options):
         if not options:
             # inherit default options from REDIS_OPTIONS
