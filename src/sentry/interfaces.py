@@ -883,10 +883,16 @@ class Exception(Interface):
         return data
 
     def get_hash(self):
-        return self.values[0].get_hash()
+        output = []
+        for value in self.values:
+            output.extend(value.get_hash())
+        return output
 
     def get_composite_hash(self, interfaces):
-        return self.values[0].get_composite_hash(interfaces)
+        output = []
+        for value in self.values:
+            output.extend(value.get_composite_hash(interfaces))
+        return output
 
     def get_context(self, event, is_public=False, **kwargs):
         newest_first = is_newest_frame_first(event)
