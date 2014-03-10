@@ -31,13 +31,17 @@ CHARSET_RE = re.compile(r'charset=(\S+)')
 DEFAULT_ENCODING = 'utf-8'
 BASE64_SOURCEMAP_PREAMBLE = 'data:application/json;base64,'
 BASE64_PREAMBLE_LENGTH = len(BASE64_SOURCEMAP_PREAMBLE)
-CLEAN_MODULE_RE = re.compile(r"""^(?:/|(?:
+CLEAN_MODULE_RE = re.compile(r"""^
+(?:/|  # Leading slashes
+(?:
     (?:java)?scripts?|js|build|static|[_\.].*?|  # common folder prefixes
     v?(?:\d+\.)*\d+|   # version numbers, v1, 1.0.0
     [a-f0-9]{7,8}|     # short sha
     [a-f0-9]{32}|      # md5
     [a-f0-9]{40}       # sha1
-)/)+""", re.X | re.I)
+)/)+|
+(?:-[a-f0-9]{32,40}$)  # Ending in a commitish
+""", re.X | re.I)
 
 UrlResult = namedtuple('UrlResult', ['url', 'headers', 'body'])
 
