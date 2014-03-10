@@ -19,6 +19,7 @@ Additionally, the following experimental clients are available:
 - Action Script 3 (`raven-as3 <https://github.com/skitoo/raven-as3>`_)
 - CFML (`raven-cfml <https://github.com/jmacul2/raven-cfml>`_)
 - Erlang (`raven-erlang <https://github.com/soundrop/raven-erlang>`_)
+- Grails (`raven-grails <https://github.com/informant-army/raven-grails>`_)
 - R (`logging <http://logging.r-forge.r-project.org/>`_)
 - Server-Side ActionScript (`raven-ssas <https://github.com/seegno/raven-ssas>`_)
 
