@@ -109,7 +109,7 @@ class Activity(Model):
         disabled = set(UserOption.objects.filter(
             user__in=user_id_list,
             key='subscribe_notes',
-            value='0',
+            value=u'0',
         ).values_list('user', flat=True))
 
         send_to = filter(lambda u_id: u_id not in disabled, user_id_list)
