@@ -7,3 +7,7 @@ class UnicodePickledObjectField(PickledObjectField):
             value = value.decode('utf-8')
         return super(UnicodePickledObjectField, self).get_db_prep_value(
             value, *args, **kwargs)
+
+
+from south.modelsinspector import add_introspection_rules
+add_introspection_rules([], ['^sentry\.db\.models\.fields\.pickle\.UnicodePickledObjectField'])
