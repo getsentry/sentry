@@ -12,6 +12,7 @@ import riak
 import riak.resolver
 
 from sentry.nodestore.base import NodeStorage
+from sentry.utils.cache import memoize
 
 
 class RiakNodeStorage(NodeStorage):
@@ -21,10 +22,22 @@ class RiakNodeStorage(NodeStorage):
     >>> RiakNodeStorage(nodes=[{'host':'127.0.0.1','http_port':8098}])
     """
     def __init__(self, nodes, bucket='nodes',
-                 resolver=riak.resolver.last_written_resolver, **kwargs):
-        self.conn = riak.RiakClient(
-            nodes=nodes, resolver=resolver, **kwargs)
-        self.bucket = self.conn.bucket(bucket)
+                 resolver=riak.resolver.last_written_resolver,
+                 protocol='http'):
+        self._client_options = {
+            'nodes': nodes,
+            'resolver': resolver,
+            'protocol': protocol,
+        }
+        self._bucket_name = bucket
+
+    @memoize
+    def conn(self):
+        return riak.RiakClient(**self._client_options)
+
+    @memoize
+    def bucket(self):
+        return self.conn.bucket(self._bucket_name)
 
     def create(self, data):
         obj = self.bucket.new(data=data)
