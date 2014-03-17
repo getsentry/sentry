@@ -25,7 +25,6 @@ class RiakNodeStorage(NodeStorage):
         self.conn = riak.RiakClient(
             nodes=nodes, resolver=resolver, **kwargs)
         self.bucket = self.conn.bucket(bucket)
-        super(RiakNodeStorage, self).__init__(**kwargs)
 
     def create(self, data):
         obj = self.bucket.new(data=data)
