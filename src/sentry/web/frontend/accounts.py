@@ -24,10 +24,12 @@ from sentry.web.decorators import login_required
 from sentry.web.forms.accounts import (
     AccountSettingsForm, NotificationSettingsForm, AppearanceSettingsForm,
     RegistrationForm, RecoverPasswordForm, ChangePasswordRecoverForm,
-    ProjectEmailOptionsForm, AuthenticationForm)
+    ProjectEmailOptionsForm, AuthenticationForm, SudoForm)
 from sentry.web.helpers import render_to_response
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.safe import safe_execute
+from sentry.utils.sudo import (
+    grant_sudo_privileges, has_sudo_privileges, sudo_required)
 
 
 @csrf_protect
@@ -41,7 +43,9 @@ def login(request):
     form = AuthenticationForm(request, request.POST or None)
     if form.is_valid():
         login_user(request, form.get_user())
-        return login_redirect(request)
+        response = login_redirect(request)
+        grant_sudo_privileges(request, response)
+        return response
 
     request.session.set_test_cookie()
 
@@ -54,6 +58,28 @@ def login(request):
         'SOCIAL_AUTH_CREATE_USERS': settings.SOCIAL_AUTH_CREATE_USERS,
     })
     return render_to_response('sentry/login.html', context, request)
+
+
+@never_cache
+@csrf_protect
+@login_required
+def sudo(request):
+    redirect_to = request.GET.get('next', '/')
+
+    if has_sudo_privileges(request):
+        return HttpResponseRedirect(redirect_to)
+
+    form = SudoForm(request.user, request.POST or None)
+    if request.method == 'POST':
+        if form.is_valid():
+            response = HttpResponseRedirect(redirect_to)
+            return grant_sudo_privileges(request, response)
+
+    context = {
+        'form': form,
+        'next': redirect_to,
+    }
+    return render_to_response('sentry/account/sudo.html', context, request)
 
 
 @csrf_protect
@@ -174,6 +200,7 @@ def recover_confirm(request, user_id, hash):
 @csrf_protect
 @never_cache
 @login_required
+@sudo_required
 @transaction.commit_on_success
 def settings(request):
     form = AccountSettingsForm(request.user, request.POST or None, initial={
