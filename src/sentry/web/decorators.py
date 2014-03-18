@@ -119,7 +119,7 @@ def has_access(access_or_func=None, team=None, access=None):
             return func(request, *args, **kwargs)
 
         if access is MEMBER_OWNER:
-            _wrapped = sudo_required(_wrapped)
+            _wrapped = login_required(sudo_required(_wrapped))
         return _wrapped
     return wrapped
 
