@@ -50,7 +50,7 @@ class NotificationPlugin(Plugin):
         conf_key = self.get_conf_key()
 
         alert_settings = dict(
-            (o.user_id, o.value)
+            (o.user_id, int(o.value))
             for o in UserOption.objects.filter(
                 project=project,
                 key='%s:alert' % conf_key,

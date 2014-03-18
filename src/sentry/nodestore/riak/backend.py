@@ -57,10 +57,15 @@ class RiakNodeStorage(NodeStorage):
 
     def get_multi(self, id_list, r=1):
         result = self.bucket.multiget(id_list)
-        return dict(
-            (obj.key, obj.data)
-            for obj in result
-        )
+
+        results = {}
+        for obj in result:
+            # errors return a tuple of (bucket, key, err)
+            if not isinstance(obj, tuple):
+                err = obj[2]
+                raise type(err), err, None
+            results[obj.key] = obj.data
+        return results
 
     def set(self, id, data):
         obj = self.bucket.new(key=id, data=data)
