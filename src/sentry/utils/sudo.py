@@ -16,7 +16,7 @@ from django.utils.crypto import get_random_string
 SUDO_COOKIE_NAME = getattr(settings, 'SUDO_COOKIE_NAME', 'sudo')
 
 
-def grant_sudo_privileges(request, response, max_age=3600):
+def grant_sudo_privileges(request, response=None, max_age=3600):
     """
     Assigns a random token to the user's session that allows them to have elevated permissions
     """
@@ -24,6 +24,11 @@ def grant_sudo_privileges(request, response, max_age=3600):
     token = get_random_string()
     request.session[SUDO_COOKIE_NAME] = token
     request.session.modified = True
+    request._sentry_sudo = True
+
+    if response is None:
+        return token
+
     response.set_cookie(
         SUDO_COOKIE_NAME, token,
         max_age=max_age,  # If max_age is None, it's a session cookie
@@ -37,14 +42,17 @@ def has_sudo_privileges(request):
     """
     Check if a request is allowed to perform sudo actions
     """
-    try:
-        return (
-            request.user.is_authenticated() and
-            request.COOKIES[SUDO_COOKIE_NAME] == request.session[SUDO_COOKIE_NAME]
-        )
-    except KeyError:
-        pass
-    return False
+    if not hasattr(request, '_sentry_sudo'):
+        try:
+            is_sudo = (
+                request.user.is_authenticated() and
+                request.COOKIES[SUDO_COOKIE_NAME] == request.session[SUDO_COOKIE_NAME]
+            )
+        except KeyError:
+            is_sudo = False
+
+        request._sentry_sudo = is_sudo
+    return request._sentry_sudo
 
 
 def redirect_to_sudo(next_url):
@@ -66,7 +74,7 @@ def sudo_required(func):
     """
     @wraps(func)
     def inner(request, *args, **kwargs):
-        if not has_sudo_privileges(request):
+        if not request.is_sudo():
             return redirect_to_sudo(request.get_full_path())
         return func(request, *args, **kwargs)
     return inner

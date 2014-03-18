@@ -28,8 +28,7 @@ from sentry.web.forms.accounts import (
 from sentry.web.helpers import render_to_response
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.safe import safe_execute
-from sentry.utils.sudo import (
-    grant_sudo_privileges, has_sudo_privileges, sudo_required)
+from sentry.utils.sudo import grant_sudo_privileges, sudo_required
 
 
 @csrf_protect
@@ -66,7 +65,7 @@ def login(request):
 def sudo(request):
     redirect_to = request.GET.get('next', '/')
 
-    if has_sudo_privileges(request):
+    if request.is_sudo():
         return HttpResponseRedirect(redirect_to)
 
     form = SudoForm(request.user, request.POST or None)
