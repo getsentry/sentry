@@ -14,7 +14,7 @@ class SudoMiddleware(object):
         request.is_sudo = lambda: has_sudo_privileges(request)
 
     def process_response(self, request, response):
-        is_sudo = request._sentry_sudo
+        is_sudo = getattr(request, '_sentry_sudo', None)
 
         if is_sudo is None:
             return response
