@@ -12,6 +12,8 @@ from django.http import HttpResponseRedirect
 from django.views.decorators.csrf import csrf_protect
 from django.utils.translation import ugettext as _
 
+from django_sudo.decorators import sudo_required
+
 from sentry.constants import MEMBER_USER, MEMBER_OWNER, STATUS_VISIBLE
 from sentry.models import PendingTeamMember, TeamMember, AccessGroup, User
 from sentry.permissions import (
@@ -20,7 +22,6 @@ from sentry.permissions import (
     Permissions)
 from sentry.plugins import plugins
 from sentry.utils.samples import create_sample_event
-from sentry.utils.sudo import sudo_required
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms.teams import (
     NewTeamForm, NewTeamAdminForm,

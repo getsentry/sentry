@@ -3,9 +3,10 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import get_object_or_404
 
+from django_sudo.decorators import sudo_required
+
 from sentry.constants import MEMBER_OWNER
 from sentry.models import Project, Team, Group
-from sentry.utils.sudo import sudo_required
 from sentry.web.helpers import (
     render_to_response, get_login_url)
 
