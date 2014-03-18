@@ -20,6 +20,7 @@ from sentry.permissions import (
     Permissions)
 from sentry.plugins import plugins
 from sentry.utils.samples import create_sample_event
+from sentry.utils.sudo import sudo_required
 from sentry.web.decorators import login_required, has_access
 from sentry.web.forms.teams import (
     NewTeamForm, NewTeamAdminForm,
@@ -41,6 +42,7 @@ def render_with_team_context(team, template, context, request=None):
 
 
 @login_required
+@sudo_required
 @csrf_protect
 def create_new_team(request):
     if not can_create_teams(request.user):
