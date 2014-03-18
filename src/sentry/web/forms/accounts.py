@@ -291,7 +291,8 @@ class ProjectEmailOptionsForm(forms.Form):
 
 
 class SudoForm(forms.Form):
-    password = forms.CharField(widget=forms.PasswordInput())
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={'placeholder': _('Password')}))
 
     def __init__(self, user, *args, **kwargs):
         self.user = user
