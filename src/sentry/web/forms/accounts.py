@@ -142,10 +142,6 @@ class AccountSettingsForm(forms.Form):
         if self.user.email == self.user.username:
             del self.fields['username']
 
-        # HACK: don't require current password if they don't have one
-        if self.user.password in EMPTY_PASSWORD_VALUES:
-            del self.fields['old_password']
-
     def clean_username(self):
         value = self.cleaned_data['username']
         if User.objects.filter(username__iexact=value).exclude(id=self.user.id).exists():
