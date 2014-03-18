@@ -28,7 +28,8 @@ from sentry.web.forms.accounts import (
 from sentry.web.helpers import render_to_response
 from sentry.utils.auth import get_auth_providers, login as login_user
 from sentry.utils.safe import safe_execute
-from sentry.utils.sudo import grant_sudo_privileges, sudo_required
+from sentry.utils.sudo import (
+    grant_sudo_privileges, revoke_sudo_privileges, sudo_required)
 
 
 @csrf_protect
@@ -125,6 +126,7 @@ def logout(request):
     from django.contrib.auth import logout
 
     logout(request)
+    revoke_sudo_privileges(request)
 
     return HttpResponseRedirect(reverse('sentry'))
 

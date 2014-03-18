@@ -31,11 +31,15 @@ def grant_sudo_privileges(request, max_age=SUDO_COOKIE_MAX_AGE):
     return token
 
 
+def revoke_sudo_privileges(request):
+    request._sentry_sudo = False
+
+
 def has_sudo_privileges(request):
     """
     Check if a request is allowed to perform sudo actions
     """
-    if not hasattr(request, '_sentry_sudo'):
+    if request._sentry_sudo is None:
         try:
             is_sudo = (
                 request.user.is_authenticated() and
