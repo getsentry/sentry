@@ -9054,6 +9054,10 @@ table.vars table.vars th {
   margin-top: 2px;
   color: #fff;
 }
+.windowed-small #content .main,
+.windowed-small #content section.body {
+  min-width: 0;
+}
 .windowed-small .container {
   width: auto;
   min-width: 0;

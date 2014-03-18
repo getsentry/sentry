@@ -28,16 +28,19 @@
         <form class="form-inline" action="" method="post">
             {% csrf_token %}
 
-            {{ form|as_crispy_errors }}
+            {% if form.password.errors %}
+                <div class="help-block error">{% trans "Your password was not valid." %}</div>
+            {% endif %}
 
             <div class="control-group">
                 <label class="control-label" for="id_password">
                     Password: <a href="{% url 'sentry-account-recover' %}">(Recover Password)</a>
                 </label>
                 <div class="controls">
-                    <input type="password" name="password" placeholder="password" style="width: 240px;" id="id_password"> <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
+                    <input type="password" name="password" placeholder="password" style="width: 225px;" id="id_password"> <button type="submit" class="btn btn-primary">{% trans "Continue" %}</button>
                 </div>
             </div>
+
         </form>
     </section>
 {% endblock %}
