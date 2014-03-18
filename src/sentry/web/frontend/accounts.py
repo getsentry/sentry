@@ -8,7 +8,7 @@ sentry.web.frontend.accounts
 import itertools
 
 from django.contrib import messages
-from django.contrib.auth import login as login_user, authenticate
+from django.contrib.auth import authenticate
 from django.core.context_processors import csrf
 from django.core.urlresolvers import reverse
 from django.db import transaction
@@ -26,7 +26,7 @@ from sentry.web.forms.accounts import (
     RegistrationForm, RecoverPasswordForm, ChangePasswordRecoverForm,
     ProjectEmailOptionsForm, AuthenticationForm, SudoForm)
 from sentry.web.helpers import render_to_response
-from sentry.utils.auth import get_auth_providers
+from sentry.utils.auth import get_auth_providers, login as login_user
 from sentry.utils.safe import safe_execute
 from sentry.utils.sudo import grant_sudo_privileges, sudo_required
 
@@ -42,8 +42,7 @@ def login(request):
     form = AuthenticationForm(request, request.POST or None)
     if form.is_valid():
         login_user(request, form.get_user())
-        response = login_redirect(request)
-        return grant_sudo_privileges(request, response)
+        return login_redirect(request)
 
     request.session.set_test_cookie()
 
@@ -70,8 +69,8 @@ def sudo(request):
     form = SudoForm(request.user, request.POST or None)
     if request.method == 'POST':
         if form.is_valid():
-            response = HttpResponseRedirect(redirect_to)
-            return grant_sudo_privileges(request, response)
+            grant_sudo_privileges(request)
+            return HttpResponseRedirect(redirect_to)
 
     context = {
         'form': form,
@@ -101,8 +100,7 @@ def register(request):
 
         login_user(request, user)
 
-        response = login_redirect(request)
-        return grant_sudo_privileges(request, response)
+        return login_redirect(request)
 
     return render_to_response('sentry/register.html', {
         'form': form,
@@ -185,8 +183,7 @@ def recover_confirm(request, user_id, hash):
 
                 password_hash.delete()
 
-                response = login_redirect(request)
-                return grant_sudo_privileges(request, response)
+                return login_redirect(request)
         else:
             form = ChangePasswordRecoverForm()
 

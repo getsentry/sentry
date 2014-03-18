@@ -16,7 +16,7 @@ from django.utils.crypto import get_random_string
 SUDO_COOKIE_NAME = getattr(settings, 'SUDO_COOKIE_NAME', 'sudo')
 
 
-def grant_sudo_privileges(request, response=None, max_age=3600):
+def grant_sudo_privileges(request, max_age=3600):
     """
     Assigns a random token to the user's session that allows them to have elevated permissions
     """
@@ -25,17 +25,9 @@ def grant_sudo_privileges(request, response=None, max_age=3600):
     request.session[SUDO_COOKIE_NAME] = token
     request.session.modified = True
     request._sentry_sudo = True
-
-    if response is None:
-        return token
-
-    response.set_cookie(
-        SUDO_COOKIE_NAME, token,
-        max_age=max_age,  # If max_age is None, it's a session cookie
-        secure=request.is_secure(),
-        httponly=True,  # Not accessible by JavaScript
-    )
-    return response
+    request._sentry_sudo_token = token
+    request._sentry_sudo_max_age = max_age
+    return token
 
 
 def has_sudo_privileges(request):
