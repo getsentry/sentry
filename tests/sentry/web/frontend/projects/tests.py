@@ -166,15 +166,6 @@ class RemoveProjectTest(TestCase):
     def test_deletion_flow(self, delete_project):
         self.login_as(self.user)
 
-        # missing password
-        resp = self.client.post(self.path, {'project': self.project.id})
-        assert resp.status_code == 200
-        assert 'password' in resp.context['form'].errors
-
-        # set password to empty value so it doesnt require check
-        self.user.password = ''
-        self.user.save()
-
         resp = self.client.post(self.path, {'project': self.project.id})
         assert resp.status_code == 302
         delete_project.delay.assert_called_once_with(
