@@ -224,6 +224,7 @@ def settings(request):
 @csrf_protect
 @never_cache
 @login_required
+@sudo_required
 @transaction.commit_on_success
 def appearance_settings(request):
     from django.conf import settings
@@ -251,6 +252,7 @@ def appearance_settings(request):
 @csrf_protect
 @never_cache
 @login_required
+@sudo_required
 @transaction.commit_on_success
 def notification_settings(request):
     settings_form = NotificationSettingsForm(request.user, request.POST or None)
